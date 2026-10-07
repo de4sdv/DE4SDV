@@ -10,17 +10,20 @@ Checks repository contracts using text extraction from SysML textual notation:
    defined in ``aebs_needs_requirements.sysml``.
 4. Verification usages in each verification file must resolve to a
    ``verification def`` declared in the same file and must be performed.
-5. The ontology-kernel contract must be complete in both directions: every
-   ontology mapping resolves, and every governed kernel declaration is either
-   mapped or explicitly excluded with a reason. Feature slices must not
-   re-declare mapped kernel vocabulary.
+5. Authored ontology -> kernel mapping direction: every ontology class has
+   exactly one well-formed kernel mapping and every file mapping resolves.
+   (O4 Wave C1: the kernel -> model direction and the feature-slice guard are
+   enforced by the model-projection coverage gate against model-projected
+   pins and ``docs/method-conformance/o4/kernel-internal-declarations.yaml``;
+   this remaining direction is deleted with the authored ontology in C2.)
 6. Requirement-derivation coverage (ontology R003): every design-input
    requirement usage in a governed requirements slice must carry at least one
    outgoing dependency whose target resolves — through the model-wide
    declaration index and specialization closure — to a semantic type grounding
    Need, RegulatoryConstraint, or ArchitectureDecisionRecord. Identifier
-   prefixes are never consulted; the permitted origin groundings are declared
-   in the ontology's R003 ``origin_groundings`` block.
+   prefixes are never consulted; the permitted origin groundings are read
+   from the model rule home ``constraint ontologyRuleR003`` in
+   ``de4sdv_ontology_validation_rules.sysml`` (O4 Wave C1).
 
 Exit code 0 on success, 1 on any mismatch.
 """
@@ -397,7 +400,6 @@ def check_verification_usages(errors: list[str]) -> None:
 # ---------------------------------------------------------------------------
 
 _ONTOLOGY_KERNEL = "[ONTOLOGY-KERNEL]"
-FEATURES_DIR = ROOT / "textual-notation-of-model/packages/features"
 
 # Match any one- or two-word SysML ``... def Name`` declaration kind at the
 # start of a source line. This intentionally does not use a kind allowlist:
@@ -547,74 +549,112 @@ class _R003ScopeError(RuntimeError):
     """A governed model text could not be resolved unambiguously (fail closed)."""
 
 
-def _load_ontology_r003_groundings() -> dict[str, tuple[str, str]]:
-    """Read the R003 origin groundings from the ontology YAML.
+# O4 Wave C1: the R003 groundings are read from their model rule home (the
+# third owned documentation of ``constraint ontologyRuleR003``), never from the
+# authored ontology YAML. The format is fixed; any drift fails closed.
+R003_RULE_HOME = (
+    ROOT
+    / "textual-notation-of-model/packages/methods/de4sdv"
+    / "de4sdv_ontology_validation_rules.sysml"
+)
+_R003_ORIGIN_CONCEPTS = ("Need", "RegulatoryConstraint", "ArchitectureDecisionRecord")
+_R003_EXCLUSION_CONCEPTS = ("ProblemStatement",)
+_R003_GROUNDING_ENTRY = re.compile(
+    r"^([A-Za-z][A-Za-z0-9]*): ((?:requirement|part) def [A-Za-z][A-Za-z0-9_]*) "
+    r"in ([A-Za-z0-9_./-]+\.sysml)$"
+)
 
-    The ontology owns the semantic mapping (R003 ``origin_groundings``);
-    this gate only consumes it. Returns ``{origin_name: (file, declaration)}``.
+
+class _R003GroundingError(ValueError):
+    """The model rule home does not state the R003 groundings exactly."""
+
+
+def _r003_rule_home_groundings() -> tuple[
+    dict[str, tuple[str, str]], dict[str, tuple[str, str]]
+]:
+    """Parse ``(origin, exclusion)`` groundings from the R003 model rule home.
+
+    Fail closed: exactly one ``constraint ontologyRuleR003`` block, at least
+    three owned ``doc`` comments, the third reading exactly
+    ``Origin groundings: <entries>. Exclusion groundings: <entries>.`` with
+    ``Concept: <kind> def <Name> in <repository-relative .sysml path>``
+    entries separated by ``; ``, and exactly the expected concept sets.
     """
-    import yaml  # local import: PyYAML is a CI test dependency
+    text = R003_RULE_HOME.read_text(encoding="utf-8")
+    heads = list(re.finditer(r"\bconstraint\s+ontologyRuleR003\s*\{", text))
+    if len(heads) != 1:
+        raise _R003GroundingError(
+            f"R003 rule home must declare exactly one constraint ontologyRuleR003 "
+            f"in {R003_RULE_HOME.relative_to(ROOT)} (found {len(heads)})"
+        )
+    depth = 0
+    body = None
+    for token in re.finditer(r"/\*.*?\*/|[{}]", text[heads[0].end() - 1:], re.S):
+        if token[0] == "{":
+            depth += 1
+        elif token[0] == "}":
+            depth -= 1
+            if depth == 0:
+                body = text[heads[0].end():heads[0].end() - 1 + token.start()]
+                break
+    if body is None:
+        raise _R003GroundingError("R003 rule home block is not closed")
+    docs = re.findall(r"\bdoc\s*/\*(.*?)\*/", body, re.S)
+    if len(docs) < 3:
+        raise _R003GroundingError("R003 rule home has no grounding documentation")
+    flat = " ".join(
+        line.strip().lstrip("*").strip() for line in docs[2].splitlines()
+    )
+    flat = " ".join(flat.split())
+    match = re.fullmatch(r"Origin groundings: (.+)\. Exclusion groundings: (.+)\.", flat)
+    if not match:
+        raise _R003GroundingError(
+            "R003 rule home grounding documentation must read 'Origin groundings: "
+            "...; .... Exclusion groundings: ....'"
+        )
 
-    doc = yaml.safe_load(_read(ONTOLOGY_YAML))
-    rules = doc.get("validation_rules") or []
-    for rule in rules:
-        if isinstance(rule, dict) and rule.get("id") == "DE4SDV-ONT-R003":
-            groundings = rule.get("origin_groundings")
-            if not isinstance(groundings, dict) or not groundings:
-                raise ValueError(
-                    "ontology DE4SDV-ONT-R003 has no origin_groundings block"
+    def _entries(part: str, expected: tuple[str, ...], label: str):
+        result: dict[str, tuple[str, str]] = {}
+        for entry in part.split("; "):
+            parsed = _R003_GROUNDING_ENTRY.fullmatch(entry)
+            if not parsed:
+                raise _R003GroundingError(
+                    f"R003 rule home {label} entry is malformed: {entry!r}"
                 )
-            result: dict[str, tuple[str, str]] = {}
-            for origin, grounding in groundings.items():
-                if not isinstance(grounding, dict):
-                    raise ValueError(
-                        f"R003 origin {origin!r} grounding must be a mapping"
-                    )
-                file_name = grounding.get("file")
-                declaration = grounding.get("declaration")
-                if not isinstance(file_name, str) or not isinstance(declaration, str):
-                    raise ValueError(
-                        f"R003 origin {origin!r} needs file+declaration grounding"
-                    )
-                result[origin] = (file_name, declaration)
-            return result
-    raise ValueError("ontology has no DE4SDV-ONT-R003 validation rule")
+            concept, declaration, file_name = parsed.groups()
+            if Path(file_name).is_absolute() or ".." in Path(file_name).parts:
+                raise _R003GroundingError(
+                    f"R003 rule home {label} file must be repository-relative: {file_name}"
+                )
+            if concept in result:
+                raise _R003GroundingError(f"R003 rule home {label} repeats {concept!r}")
+            result[concept] = (file_name, declaration)
+        if set(result) != set(expected):
+            raise _R003GroundingError(
+                f"R003 rule home {label} must name exactly {list(expected)} "
+                f"(got {sorted(result)})"
+            )
+        return result
+
+    return (
+        _entries(match.group(1), _R003_ORIGIN_CONCEPTS, "origin groundings"),
+        _entries(match.group(2), _R003_EXCLUSION_CONCEPTS, "exclusion groundings"),
+    )
 
 
-def _load_ontology_exclusion_groundings() -> dict[str, tuple[str, str]]:
-    """Read the R003 exclusion groundings from the ontology YAML.
+def _load_r003_origin_groundings() -> dict[str, tuple[str, str]]:
+    """R003 origin groundings ``{origin_name: (file, declaration)}`` (model)."""
+    return _r003_rule_home_groundings()[0]
+
+
+def _load_r003_exclusion_groundings() -> dict[str, tuple[str, str]]:
+    """R003 exclusion groundings ``{class_name: (file, declaration)}`` (model).
 
     Exclusion groundings name vocabulary that is traced INTO rather than out
-    of (e.g. the kernel ProblemStatement). Returns
-    ``{class_name: (file, declaration)}``; consumers must bind each class to
+    of (e.g. the kernel ProblemStatement); consumers must bind each class to
     declarations indexed from exactly that file, never to a bare name.
     """
-    import yaml  # local import: PyYAML is a CI test dependency
-
-    doc = yaml.safe_load(_read(ONTOLOGY_YAML))
-    rules = doc.get("validation_rules") or []
-    for rule in rules:
-        if isinstance(rule, dict) and rule.get("id") == "DE4SDV-ONT-R003":
-            groundings = rule.get("exclusion_groundings")
-            if not isinstance(groundings, dict) or not groundings:
-                raise ValueError(
-                    "ontology DE4SDV-ONT-R003 has no exclusion_groundings block"
-                )
-            result: dict[str, tuple[str, str]] = {}
-            for origin, grounding in groundings.items():
-                if not isinstance(grounding, dict):
-                    raise ValueError(
-                        f"R003 exclusion {origin!r} grounding must be a mapping"
-                    )
-                file_name = grounding.get("file")
-                declaration = grounding.get("declaration")
-                if not isinstance(file_name, str) or not isinstance(declaration, str):
-                    raise ValueError(
-                        f"R003 exclusion {origin!r} needs file+declaration grounding"
-                    )
-                result[origin] = (file_name, declaration)
-            return result
-    raise ValueError("ontology has no DE4SDV-ONT-R003 validation rule")
+    return _r003_rule_home_groundings()[1]
 
 
 def _r003_specialization_closure(
@@ -808,7 +848,12 @@ def check_requirement_derivation_coverage(errors: list[str]) -> None:
     This checks presence of the required link (the gap the dependency-target
     check cannot see); semantic strength of each link remains review policy.
     """
-    groundings = _load_ontology_r003_groundings()
+    try:
+        groundings = _load_r003_origin_groundings()
+        exclusion_groundings = _load_r003_exclusion_groundings()
+    except (_R003GroundingError, OSError) as exc:
+        errors.append(f"[SP6] {exc}")
+        return
 
     # Model-wide indexes keyed by QUALIFIED declaration name (kind is part of
     # the identity so a part def and a requirement def with the same name do
@@ -920,7 +965,6 @@ def check_requirement_derivation_coverage(errors: list[str]) -> None:
                 if f"{package_path}::{name}" in declarations
             )
 
-    exclusion_groundings = _load_ontology_exclusion_groundings()
     ps_file, ps_declaration = exclusion_groundings["ProblemStatement"]
     ps_grounding_name = ps_declaration.partition(" def ")[2]
     ps_grounding_file = str(ROOT / ps_file)
@@ -1121,9 +1165,10 @@ def check_requirement_derivation_coverage(errors: list[str]) -> None:
 
 
 def check_ontology_kernel_contract(errors: list[str]) -> None:
-    """Validate the bidirectional ontology ↔ SysML method-kernel contract.
+    """Validate the authored ontology -> SysML method-kernel mapping direction.
 
-    Each ontology class must carry a ``kernel`` mapping stating where its
+    O4 Wave C1 scope (the remaining YAML-reading part of sync point 5). Each
+    ontology class must carry a ``kernel`` mapping stating where its
     semantics live:
 
     - ``file:`` + ``declaration:`` — a SysML declaration in a kernel file;
@@ -1133,12 +1178,13 @@ def check_ontology_kernel_contract(errors: list[str]) -> None:
     - ``external:`` — the semantics live in an artifact outside the SysML
       model (feature catalogue, upstream library, evidence registers).
 
-    The YAML ``kernel_sync`` block defines one governed method-kernel
-    directory and explicit exclusions with reasons. Every declaration found
-    in that directory must be either mapped by an ontology class or excluded;
-    mappings and exclusions are compared as exact ``(file, declaration)``
-    pairs. Feature slices may specialize/import mapped vocabulary but must not
-    re-declare a mapped kernel name.
+    This direction validates the authored ontology itself, which still serves
+    the owner-visible residual and the O3 rollback authority; it is deleted
+    with the authored ontology in O4 Wave C2. The kernel -> model direction
+    (every governed declaration projected or listed as kernel-internal with a
+    reason, no stale or overlapping entries) and the feature-slice
+    re-declaration guard moved to the model-projection coverage gate
+    (``de4sdv/semantic/model_projection_coverage.py``) in O4 Wave C1.
     """
     import yaml  # local import: PyYAML is a CI test dependency
 
@@ -1157,41 +1203,12 @@ def check_ontology_kernel_contract(errors: list[str]) -> None:
         errors.append(f"{_ONTOLOGY_KERNEL} {ONTOLOGY_YAML}: no classes section")
         return
 
-    contract = doc.get("kernel_sync")
-    if not isinstance(contract, dict):
+    if not isinstance(doc.get("kernel_sync"), dict):
         errors.append(f"{_ONTOLOGY_KERNEL} {ONTOLOGY_YAML}: no kernel_sync contract")
-        return
-    governed_directory = contract.get("governed_directory")
-    if not isinstance(governed_directory, str) or not governed_directory.strip():
-        errors.append(
-            f"{_ONTOLOGY_KERNEL} kernel_sync.governed_directory must be a "
-            f"repository-relative directory"
-        )
-        return
-    governed_directory = governed_directory.strip()
-    governed_path = ROOT / governed_directory
-    if (
-        Path(governed_directory).is_absolute()
-        or ".." in Path(governed_directory).parts
-        or not governed_path.is_dir()
-    ):
-        errors.append(
-            f"{_ONTOLOGY_KERNEL} governed kernel directory not found or unsafe: "
-            f"{governed_directory}"
-        )
-        return
-
-    raw_exclusions = contract.get("exclusions")
-    if not isinstance(raw_exclusions, dict):
-        errors.append(
-            f"{_ONTOLOGY_KERNEL} kernel_sync.exclusions must map files to "
-            f"excluded declarations and reasons"
-        )
         return
 
     # Load each kernel file once.
     file_cache: dict[str, str] = {}
-    mapped_pairs: set[tuple[str, str]] = set()
     for class_name, spec in classes.items():
         if not isinstance(spec, dict):
             errors.append(f"{_ONTOLOGY_KERNEL} {class_name}: malformed class entry")
@@ -1250,74 +1267,6 @@ def check_ontology_kernel_contract(errors: list[str]) -> None:
                     f"'{declaration}' not "
                     f"found in {rel_file}"
                 )
-            if _is_within(rel_file, governed_directory):
-                mapped_pairs.add((rel_file, declaration))
-
-    excluded_pairs: set[tuple[str, str]] = set()
-    for rel_file, declarations in raw_exclusions.items():
-        if not isinstance(rel_file, str) or not _is_within(
-            rel_file, governed_directory
-        ):
-            errors.append(
-                f"{_ONTOLOGY_KERNEL} exclusion file is outside the governed "
-                f"directory or unsafe: {rel_file!r}"
-            )
-            continue
-        if not isinstance(declarations, dict):
-            errors.append(
-                f"{_ONTOLOGY_KERNEL} exclusions for {rel_file} must map "
-                f"declarations to reasons"
-            )
-            continue
-        for declaration, reason in declarations.items():
-            if not isinstance(declaration, str) or not declaration.strip():
-                errors.append(
-                    f"{_ONTOLOGY_KERNEL} {rel_file}: exclusion declaration "
-                    f"must be a non-empty string"
-                )
-                continue
-            if not isinstance(reason, str) or not reason.strip():
-                errors.append(
-                    f"{_ONTOLOGY_KERNEL} {rel_file}: exclusion "
-                    f"'{declaration}' needs a non-empty reason"
-                )
-                continue
-            excluded_pairs.add((rel_file, declaration.strip()))
-
-    actual_pairs: set[tuple[str, str]] = set()
-    for sysml_path in sorted(governed_path.rglob("*.sysml")):
-        rel_file = str(sysml_path.relative_to(ROOT))
-        for declaration in _sysml_definitions(_read(sysml_path)):
-            actual_pairs.add((rel_file, declaration))
-
-    for rel_file, declaration in sorted(actual_pairs - mapped_pairs - excluded_pairs):
-        errors.append(
-            f"{_ONTOLOGY_KERNEL} {rel_file}: declaration '{declaration}' is "
-            f"unclassified; map it from an ontology class or add it to "
-            f"kernel_sync.exclusions with a reason"
-        )
-    for rel_file, declaration in sorted(excluded_pairs - actual_pairs):
-        errors.append(
-            f"{_ONTOLOGY_KERNEL} {rel_file}: excluded declaration "
-            f"'{declaration}' does not exist (stale exclusion?)"
-        )
-    for rel_file, declaration in sorted(mapped_pairs & excluded_pairs):
-        errors.append(
-            f"{_ONTOLOGY_KERNEL} {rel_file}: declaration '{declaration}' is "
-            f"both ontology-mapped and excluded"
-        )
-
-    mapped_kernel_names = {declaration.split()[-1] for _, declaration in mapped_pairs}
-    if FEATURES_DIR.is_dir():
-        for sysml_path in sorted(FEATURES_DIR.rglob("*.sysml")):
-            for declaration in _sysml_definitions(_read(sysml_path)):
-                if declaration.split()[-1] in mapped_kernel_names:
-                    rel_file = sysml_path.relative_to(ROOT)
-                    errors.append(
-                        f"{_ONTOLOGY_KERNEL} {rel_file}: feature slice "
-                        f"re-declares mapped kernel name '{declaration.split()[-1]}'; "
-                        f"specialize or import the kernel declaration instead"
-                    )
 
 
 # ---------------------------------------------------------------------------

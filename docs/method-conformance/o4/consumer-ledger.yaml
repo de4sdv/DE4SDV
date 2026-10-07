@@ -72,7 +72,7 @@ entries:
     - ontology_dir_token
     - ontology_path_token
     retirement_status: pending
-    note: Shadow coverage ratchet; classifies the authored-YAML residual explicitly.
+    note: Coverage gate (Wave C1 mode blocking-retained); classifies the authored-YAML residual explicitly; kernel-internal declarations come from docs/method-conformance/o4/kernel-internal-declarations.yaml, locked equal to the authored list until Wave C2.
   tests/test_model_authority_runtime.py:
     role: test-reference
     markers:
@@ -611,7 +611,10 @@ entries:
     - ontology_yaml_symbol
     retirement_status: pending
     note: Reads the authored authority directly; retirement follows the model-to-projection
-      coverage gate replacement.
+      coverage gate replacement. O4 Wave C1 - sync point 6 reads the R003 groundings from the
+      model rule home, and the kernel->model direction plus the feature-slice guard moved to the
+      coverage gate; only the authored ontology->kernel mapping-direction check still reads the
+      YAML. Deleted with the YAML in Wave C2.
   scripts/import_sysml_api_baseline.py:
     role: validation-consumer
     markers:
@@ -967,6 +970,18 @@ entries:
     - ontology_path_token
     retirement_status: not-applicable
     note: Lexical guards for model-resident evidence/assurance vocabulary roles only; no runtime retirement or licensed Syside evidence.
+  tests/test_check_model_sync.py:
+    role: test-reference
+    markers:
+    - ontology_yaml_symbol
+    retirement_status: not-applicable
+    note: Wave C1 proof that sync point 6 runs with the authored ontology path pointing nowhere.
+  tests/test_o4_wave_c1_coverage_gate.py:
+    role: test-reference
+    markers:
+    - kernel_contract_module
+    retirement_status: not-applicable
+    note: Names the relocated contract test file only; exercises the model-projected kernel accounting.
   tests/test_ontology_kernel_contract.py:
     role: test-reference
     markers:

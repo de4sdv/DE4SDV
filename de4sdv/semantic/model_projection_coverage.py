@@ -1,4 +1,4 @@
-"""Model-projection coverage gate (O4 Wave B, shadow ratchet).
+"""Model-projection coverage gate (O4 Wave B ratchet; Wave C1 blocking retained residual).
 
 Classifies four populations as either ``projected`` (provider layer + layer
 digest) or ``residual`` (reason), using the same routing the model-authority
@@ -12,7 +12,9 @@ bundle binds (:func:`model_authority_runtime.compute_routing`):
   is reported as an owner-visible ``exceptions`` entry carrying its reason and
   register disposition (routing does not refuse it; that is a Wave C owner
   call);
-- every governed kernel declaration.
+- every governed kernel declaration: projected by a model-generated layer, or
+  listed in the kernel-internal declarations manifest with a reason (owner
+  decision D3, ``docs/method-conformance/o4/kernel-internal-declarations.yaml``).
 
 The report's total ``residual`` equals the routing residual exactly: every
 identity the runtime serves from the authored YAML is listed.
@@ -27,9 +29,22 @@ on:
 - routing/layer digest mismatch against the baseline, and — when a bundle is
   supplied — a bundle whose bound routing/layers differ from the checkout.
 
-Shadow mode: a non-empty residual is reported, not refused. Wave C makes an
-empty residual blocking. The baseline carries no binding block; it is a
-reviewed ratchet record, not revision-bound evidence.
+It also fails, regardless of the baseline (O4 Wave C1, mode
+``blocking-retained``), on:
+
+- a non-empty ``retained_residual`` (the owner's criterion);
+- any kernel-accounting error: an unclassified governed declaration, a stale
+  or reason-less manifest entry, a manifest entry outside the governed
+  directory or also projected, a feature slice re-declaring a projected kernel
+  name, or a manifest that differs from the authored ontology list (the C1
+  transition lock; Wave C2 deletes the authored list and the lock).
+
+These kernel-accounting checks replace the kernel -> ontology direction and
+the feature-slice guard of ``scripts/check_model_sync.py`` sync point 5.
+
+The two owner-visible exceptions stay ratcheted (reported and allowed) until
+Wave C2. The baseline carries no binding block; it is a reviewed ratchet
+record, not revision-bound evidence.
 """
 from __future__ import annotations
 
@@ -45,28 +60,164 @@ from .o3_bundle import canonical_json
 
 ROOT = Path(__file__).resolve().parents[2]
 BASELINE_PATH = "docs/method-conformance/o4/model-authority-coverage-baseline.yaml"
-REPORT_SCHEMA = "de4sdv.model-projection-coverage/v1"
-BASELINE_SCHEMA = "de4sdv.model-authority-coverage-baseline/v1"
+REPORT_SCHEMA = "de4sdv.model-projection-coverage/v2"
+BASELINE_SCHEMA = "de4sdv.model-authority-coverage-baseline/v2"
 ONTOLOGY_PATH = "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-MODE = "shadow"
+KERNEL_INTERNAL_PATH = "docs/method-conformance/o4/kernel-internal-declarations.yaml"
+KERNEL_INTERNAL_SCHEMA = "de4sdv.kernel-internal-declarations/v1"
+FEATURES_DIRECTORY = "textual-notation-of-model/packages/features"
+MODE = "blocking-retained"
 
 
-def _governed_declarations(root: Path, contract: KernelContract) -> list[tuple[str, str]]:
-    """``(file, declaration)`` pairs in the governed kernel directory.
-
-    Reuses the existing ontology-kernel gate's declaration extractor (the
-    same normalization that gate enforces); this is gate-time accounting,
-    never runtime identity.
-    """
+def _sysml_definitions(text: str) -> set[str]:
+    """Normalized ``<kind> def <Name>`` declarations (the gate's extractor)."""
     from scripts import check_model_sync
 
-    directory = Path(root) / contract.governed_directory
+    return check_model_sync._sysml_definitions(text)
+
+
+def _is_within(relative_file: str, relative_directory: str) -> bool:
+    """The model-sync gate's repository-relative containment rule."""
+    from scripts import check_model_sync
+
+    return check_model_sync._is_within(relative_file, relative_directory)
+
+
+def _governed_declarations(root: Path, directory: str) -> list[tuple[str, str]]:
+    """``(file, declaration)`` pairs in the governed kernel directory.
+
+    Reuses the existing model-sync gate's declaration extractor (the same
+    normalization); this is gate-time accounting, never runtime identity.
+    """
     pairs = []
-    for path in sorted(directory.rglob("*.sysml")):
+    for path in sorted((Path(root) / directory).rglob("*.sysml")):
         relative = path.relative_to(root).as_posix()
-        for declaration in sorted(check_model_sync._sysml_definitions(path.read_text(encoding="utf-8"))):
+        for declaration in sorted(_sysml_definitions(path.read_text(encoding="utf-8"))):
             pairs.append((relative, declaration))
     return pairs
+
+
+def _feature_declarations(root: Path) -> list[tuple[str, str]]:
+    pairs = []
+    base = Path(root) / FEATURES_DIRECTORY
+    if base.is_dir():
+        for path in sorted(base.rglob("*.sysml")):
+            relative = path.relative_to(root).as_posix()
+            for declaration in sorted(_sysml_definitions(path.read_text(encoding="utf-8"))):
+                pairs.append((relative, declaration))
+    return pairs
+
+
+def load_kernel_internal(root: Path = ROOT) -> tuple[str | None, dict[str, dict[str, str]], list[str]]:
+    """Read the kernel-internal declarations manifest (owner decision D3).
+
+    Returns ``(governed_directory, {file: {declaration: reason}}, errors)``.
+    Structural problems are reported as errors (fail closed) and the
+    offending entries are left out, so the accounting still runs and every
+    consequence is reported.
+    """
+    path = Path(root) / KERNEL_INTERNAL_PATH
+    tag = "kernel-internal manifest"
+    try:
+        document = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        return None, {}, [f"{tag} {KERNEL_INTERNAL_PATH} is unreadable: {exc}"]
+    if not isinstance(document, dict):
+        return None, {}, [f"{tag} must be a mapping"]
+    errors: list[str] = []
+    if document.get("schema") != KERNEL_INTERNAL_SCHEMA:
+        errors.append(f"{tag} schema must be {KERNEL_INTERNAL_SCHEMA}")
+    if "binding" in document:
+        errors.append(f"{tag} must not carry a binding block")
+    directory = document.get("governed_directory")
+    if (not isinstance(directory, str) or not directory.strip()
+            or Path(directory).is_absolute() or ".." in Path(directory).parts
+            or not (Path(root) / directory).is_dir()):
+        errors.append(f"{tag} governed directory not found or unsafe: {directory!r}")
+        directory = None
+    raw = document.get("declarations")
+    if not isinstance(raw, dict):
+        errors.append(f"{tag} declarations must map files to declarations and reasons")
+        raw = {}
+    declarations: dict[str, dict[str, str]] = {}
+    for rel_file, entries in raw.items():
+        if not isinstance(rel_file, str) or directory is None or not _is_within(rel_file, directory):
+            errors.append(f"{tag} file is outside the governed directory or unsafe: {rel_file!r}")
+            continue
+        if not isinstance(entries, dict):
+            errors.append(f"{tag} entries for {rel_file} must map declarations to reasons")
+            continue
+        for declaration, reason in entries.items():
+            if not isinstance(declaration, str) or not declaration.strip():
+                errors.append(f"{tag} {rel_file}: declaration must be a non-empty string")
+                continue
+            if not isinstance(reason, str) or not reason.strip():
+                errors.append(f"{tag} {rel_file}: '{declaration}' needs a non-empty reason")
+                continue
+            declarations.setdefault(rel_file, {})[" ".join(declaration.split())] = reason
+    return directory, declarations, errors
+
+
+def kernel_accounting(
+    governed: list[tuple[str, str]],
+    internal: Mapping[str, Mapping[str, str]],
+    projected: Mapping[tuple[str, str], str],
+    class_pins: set[tuple[str, str]],
+    authored_pins: Mapping[tuple[str, str], str],
+    feature_declarations: list[tuple[str, str]],
+    directory: str,
+) -> tuple[dict[str, Any], list[str]]:
+    """Classify every governed declaration and return the accounting errors.
+
+    The equation: governed declarations = projected declarations + listed
+    kernel-internal declarations (each with a reason). ``authored_pins`` are
+    the authored ontology's file mappings: until O4 Wave C2 a declaration
+    pinned only there is a ratcheted residual, never ``unclassified``.
+    ``class_pins`` are the model-projected class mappings (a subset of
+    ``projected``, which also holds relationship-carrier pins). A listed
+    kernel-internal declaration must not also be a class mapping; a carrier
+    pin may also be listed (a carrier is not ontology class vocabulary).
+    Class-mapped kernel names (in the governed directory) may be specialized
+    or imported by feature slices but never re-declared there.
+    """
+    errors: list[str] = []
+    governed_set = set(governed)
+    listed = {(file, declaration): reason
+              for file, entries in internal.items() for declaration, reason in entries.items()}
+    declarations: dict[str, Any] = {}
+    for file, declaration in governed:
+        key = f"{file}::{declaration}"
+        if (file, declaration) in projected:
+            layer = projected[(file, declaration)]
+            declarations[key] = {"status": "projected", "layer": layer}
+        elif (file, declaration) in listed:
+            declarations[key] = {"status": "excluded", "reason": str(listed[(file, declaration)])}
+        elif (file, declaration) in authored_pins:
+            declarations[key] = {"status": "residual", "reason":
+                                 f"mapped only by authored ontology YAML ({authored_pins[(file, declaration)]})"}
+        else:
+            declarations[key] = {"status": "residual", "reason": "unclassified governed declaration"}
+            errors.append(
+                f"kernel accounting: {file}: declaration '{declaration}' is unclassified; "
+                f"project it through a model-generated layer or list it in "
+                f"{KERNEL_INTERNAL_PATH} with a reason")
+    for file, declaration in sorted(set(listed) - governed_set):
+        errors.append(f"kernel accounting: {file}: listed kernel-internal declaration "
+                      f"'{declaration}' does not exist (stale entry?)")
+    for file, declaration in sorted(set(listed) & set(class_pins)):
+        errors.append(f"kernel accounting: {file}: declaration '{declaration}' is both projected "
+                      f"and listed as kernel-internal")
+    for file, declaration in sorted(set(listed) & set(authored_pins)):
+        errors.append(f"kernel accounting: {file}: declaration '{declaration}' is both "
+                      f"ontology-mapped and listed as kernel-internal")
+    protected = {declaration.split()[-1] for (file, declaration) in
+                 set(class_pins) | set(authored_pins) if _is_within(file, directory)}
+    for file, declaration in feature_declarations:
+        name = declaration.split()[-1]
+        if name in protected:
+            errors.append(f"kernel accounting: {file}: feature slice re-declares projected kernel "
+                          f"name '{name}'; specialize or import the kernel declaration instead")
+    return declarations, errors
 
 
 def _layer_digests(records: list[dict[str, Any]], root: Path) -> dict[str, str]:
@@ -116,12 +267,14 @@ def build_report(root: Path = ROOT) -> dict[str, Any]:
             identities[name] = {"group": group, "status": "retired",
                                 "reason": "retired by the model-derived successor contract"}
     projected_pins: dict[tuple[str, str], str] = {}
+    class_pins: set[tuple[str, str]] = set()  # model-projected class mappings
     for name, provision in routing.providers.items():
         mapping = provision.mapping
         if provision.layer == "o3":
             continue
         if isinstance(mapping, KernelFileMapping):
             projected_pins.setdefault((mapping.file, mapping.declaration), provision.layer)
+            class_pins.add((mapping.file, mapping.declaration))
         carrier = (provision.spec or {}).get("carrier") if isinstance(provision.spec, dict) else None
         if carrier:
             projected_pins.setdefault((carrier["file"], carrier["declaration"]), provision.layer)
@@ -134,25 +287,30 @@ def build_report(root: Path = ROOT) -> dict[str, Any]:
         pin = ((o3_rows.get(name) or {}).get("grounding") or {}).get("kernel_binding_contract") or {}
         if pin.get("source_file") and pin.get("declaration"):
             projected_pins.setdefault((pin["source_file"], pin["declaration"]), "o3")
+            class_pins.add((pin["source_file"], pin["declaration"]))
     yaml_pins = {}
     for name, spec in legacy.classes.items():
         kernel = (spec or {}).get("kernel") or {}
         if isinstance(kernel.get("file"), str) and isinstance(kernel.get("declaration"), str):
             yaml_pins[(kernel["file"], kernel["declaration"])] = name
-    declarations: dict[str, Any] = {}
-    for file, declaration in _governed_declarations(root, legacy):
-        key = f"{file}::{declaration}"
-        excluded = (legacy.exclusions.get(file) or {}).get(declaration)
-        if (file, declaration) in projected_pins:
-            layer = projected_pins[(file, declaration)]
-            declarations[key] = {"status": "projected", "layer": layer, "layer_digest": digests[layer]}
-        elif excluded:
-            declarations[key] = {"status": "excluded", "reason": str(excluded)}
-        elif (file, declaration) in yaml_pins:
-            declarations[key] = {"status": "residual",
-                                 "reason": f"mapped only by authored ontology YAML ({yaml_pins[(file, declaration)]})"}
-        else:
-            declarations[key] = {"status": "residual", "reason": "unclassified governed declaration"}
+    directory, internal, accounting_errors = load_kernel_internal(root)
+    # C1 transition lock (removed with the authored list in Wave C2): the
+    # manifest is the gate's source, and must not drift from the authored list.
+    authored = {file: {" ".join(d.split()): r for d, r in (entries or {}).items()}
+                for file, entries in (legacy.exclusions or {}).items()}
+    if directory != legacy.governed_directory or internal != authored:
+        accounting_errors.append(
+            f"kernel accounting: {KERNEL_INTERNAL_PATH} differs from the authored ontology "
+            "list of kernel-internal declarations (keep both equal until O4 Wave C2 retires "
+            "the authored list)")
+    directory = directory or legacy.governed_directory
+    declarations, errors = kernel_accounting(
+        _governed_declarations(root, directory), internal, projected_pins, class_pins,
+        yaml_pins, _feature_declarations(root), directory)
+    accounting_errors.extend(errors)
+    for value in declarations.values():
+        if value["status"] == "projected":
+            value["layer_digest"] = digests[value["layer"]]
     residual = sorted(n for n, v in identities.items() if v["status"] == "residual")
     if residual != sorted(routing.residual):
         missing = sorted(set(routing.residual) - set(residual))
@@ -190,6 +348,7 @@ def build_report(root: Path = ROOT) -> dict[str, Any]:
         "unregistered_residual": unregistered_residual,
         "exceptions": exceptions,
         "residual_declarations": residual_declarations,
+        "kernel_accounting_errors": accounting_errors,
     }
     return report
 
@@ -198,13 +357,14 @@ def baseline_from_report(report: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "schema": BASELINE_SCHEMA,
         "mode": MODE,
-        "note": ("Reviewed shadow ratchet for the model-authority coverage gate. "
+        "note": ("Reviewed ratchet for the model-authority coverage gate. "
                  "Not revision-bound evidence; no binding block. Regenerate with "
                  "scripts/check_model_projection_coverage.py --write-baseline after "
                  "a reviewed projection change. residual equals the runtime routing "
                  "residual; exceptions are the owner-visible registered non-retained "
-                 "rows still served from the authored YAML. Wave C makes an empty "
-                 "retained_residual blocking."),
+                 "rows still served from the authored YAML (ratcheted until O4 Wave "
+                 "C2). Since O4 Wave C1 a non-empty retained_residual and any "
+                 "kernel-accounting error block regardless of this baseline."),
         "routing_digest": report["routing_digest"],
         "layer_digests": dict(report["layer_digests"]),
         "residual": list(report["residual"]),
@@ -225,6 +385,13 @@ def load_baseline(root: Path = ROOT, path: str = BASELINE_PATH) -> dict[str, Any
 
 def compare(report: Mapping[str, Any], baseline: Mapping[str, Any]) -> list[str]:
     errors = []
+    # Absolute (O4 Wave C1): never satisfiable by updating the baseline.
+    for name in report["retained_residual"]:
+        errors.append(f"retained residual is blocking: {name!r} is a retained register row "
+                      "without a model-projected provider")
+    errors.extend(report.get("kernel_accounting_errors") or ())
+    if baseline.get("mode") != MODE:
+        errors.append(f"baseline mode {baseline.get('mode')!r} is not {MODE!r}")
     for name in report["duplicates"]:
         errors.append(f"duplicate provider: {name}")
     for key in ("residual", "retained_residual", "exceptions", "residual_declarations"):
@@ -266,7 +433,8 @@ def run_check_errors(root: Path = ROOT) -> list[str]:
 
 
 def render_baseline(baseline: Mapping[str, Any]) -> str:
-    header = "# Model-authority coverage baseline (shadow ratchet; no binding block).\n"
+    header = ("# Model-authority coverage baseline (ratchet; retained residual blocking; "
+              "no binding block).\n")
     return header + yaml.safe_dump(dict(baseline), sort_keys=False, width=100)
 
 
@@ -275,4 +443,5 @@ def report_digest(report: Mapping[str, Any]) -> str:
 
 
 __all__ = ["build_report", "compare", "bundle_errors", "run_check_errors", "load_baseline",
-           "baseline_from_report", "render_baseline", "report_digest", "BASELINE_PATH"]
+           "baseline_from_report", "render_baseline", "report_digest", "BASELINE_PATH",
+           "KERNEL_INTERNAL_PATH", "kernel_accounting", "load_kernel_internal"]

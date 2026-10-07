@@ -11,7 +11,9 @@
  * expression, are not asserted on any element, and evaluate nothing. Rule
  * enforcement stays where each enforcement note says it is (scripts, tests and
  * reviews). The YAML entries remain in place; retiring them is a separate,
- * later change. No compliance, certification or acceptance claim is made.
+ * later change. Since O4 Wave C1 the R003 origin and exclusion groundings are
+ * read from the ontologyRuleR003 home below (see its reader comment). No
+ * compliance, certification or acceptance claim is made.
  *
  * This package also records the vocabulary-only role of IncrementSize. It
  * lives here, not in DE4SDV_MethodProcess, so the method-process view, which
@@ -54,9 +56,10 @@ package DE4SDV_OntologyValidationRules {
      * textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml.
      * Exclusion groundings: ProblemStatement: requirement def ProblemStatement in
      * textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml. */
-    comment /* Reader boundary: scripts/check_model_sync.py still reads these origin groundings
-     * from the ontology YAML validation_rules entry; this model home does not switch that
-     * reader. */
+    comment /* Reader: since O4 Wave C1, scripts/check_model_sync.py sync point 6 reads the
+     * origin and exclusion groundings above from this rule home, not from the ontology
+     * YAML. Their text format is fixed and drift fails closed. A test keeps them equal to
+     * the YAML validation_rules entry until that entry is retired. */
   }
 
   constraint ontologyRuleR004 {
