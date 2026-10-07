@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Generate (or check) the O3 semantic-authority equivalence scope document.
 
+RETIRED (O4 Wave C1, owner decisions Q7 and D10, 2026-10-07): the output is a
+frozen record. The CLI refuses to write or check; the frozen lane of
+``scripts/verify_generated_chain.py`` verifies the record instead. The
+library functions below stay importable until O4 Wave C2 removes them.
+
 Canonical artifact (single):
 
 - ``docs/method-conformance/o3/o3-equivalence-scope.json``
@@ -39,7 +44,6 @@ Usage:
 
 from __future__ import annotations
 
-import argparse
 import json
 import sys
 from pathlib import Path
@@ -65,53 +69,20 @@ def run_check_errors(root: Path) -> list[str]:
     return o3_equivalence.check_scope_document(root, document)
 
 
+RETIRED_MESSAGE = (
+    "scripts/generate_o3_equivalence_scope.py is retired: its output is a frozen record "
+    "(owner decisions Q7 and D10, 2026-10-07) and is never regenerated or "
+    "re-checked against the live tree. The record bytes are pinned by "
+    "docs/method-conformance/frozen-records.json; verify them with "
+    "python scripts/verify_generated_chain.py (frozen lane)."
+)
+
+
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--check",
-        action="store_true",
-        help="validate the committed scope document instead of writing",
-    )
-    args = parser.parse_args(argv)
-
-    if args.check:
-        errors = run_check_errors(ROOT)
-        if errors:
-            print("O3 equivalence scope check FAILED.")
-            for error in errors:
-                print(f"  - {error}")
-            return 1
-        print("O3 equivalence scope check passed.")
-        return 0
-
-    document = o3_equivalence.build_scope_document(
-        ROOT, basis_revision=o3_equivalence.recorded_basis_revision(ROOT)
-    )
-    path = ROOT / o3_equivalence.O3_SCOPE_PATH
-    o3_equivalence.assert_writable(path, ROOT)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(o3_equivalence.canonical_json(document), encoding="utf-8")
-    summary = document["summary"]
-    static = summary["static_parity"]
-    print(f"wrote {o3_equivalence.O3_SCOPE_PATH}")
-    print(f"scope identities: {len(document['identities'])}")
-    print(
-        "static parity: "
-        f"{len(static['identities_fully_equivalent'])} fully equivalent; "
-        f"{len(static['identities_with_pending_dimension'])} with a pending "
-        f"dimension; {len(static['identities_with_mismatch'])} with mismatch"
-    )
-    print(
-        "runtime equivalence: "
-        f"{len(summary['runtime']['completed'])} completed; "
-        f"{len(summary['runtime']['not_yet_comparable'])} not yet comparable"
-    )
-    print(f"contract checks failing: {len(summary['contract_check_failures'])}")
-    print(
-        "comparison base revision: "
-        f"{document['basis']['comparison_base_revision']}"
-    )
-    return 0
+    """Refuse to write or check: the generated output is a frozen record."""
+    del argv
+    print(RETIRED_MESSAGE)
+    return 2
 
 
 if __name__ == "__main__":

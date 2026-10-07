@@ -1179,8 +1179,14 @@ class TestRevisionBinding:
             "not an ancestor of the checked-out revision" in e for e in errors
         ), errors
 
-    def test_real_repo_binding_is_valid(self, inventory):
-        assert ai.validate_source_binding(REPO_ROOT, inventory["binding"]) == []
+    def test_real_repo_binding_is_valid_at_its_own_revision(self, inventory):
+        """Frozen record (O4 Wave C1, owner decision Q7): the binding is checked
+        at its own source revision, never against the live tree's inputs.
+
+        Replaces ``test_real_repo_binding_is_valid`` (a live-tree check)."""
+        from scripts import verify_generated_chain as verifier
+
+        assert verifier._historical_binding_problems(REPO_ROOT, inventory["binding"]) == []
 
     def test_bound_inputs_cover_program_and_data_sources(self, inventory):
         bound = inventory["binding"]["bound_inputs"]
@@ -1392,8 +1398,23 @@ class TestDeterminism:
         assert ai.canonical_json(first) == ai.canonical_json(second)
         assert ai.render_markdown(first) == ai.render_markdown(second)
 
-    def test_committed_artifacts_match_regeneration(self):
-        assert generator.run_check_errors(REPO_ROOT) == []
+    def test_committed_artifacts_are_frozen_records(self):
+        """Replaces ``test_committed_artifacts_match_regeneration``: the O1
+        inventory is a frozen record (owner decisions Q7/D10, 2026-10-07). Its
+        bytes are pinned by the frozen manifest and its generator CLI refuses."""
+        from scripts import verify_generated_chain as verifier
+
+        manifest = json.loads(
+            (REPO_ROOT / verifier.FROZEN_MANIFEST_PATH).read_text(encoding="utf-8"))
+        pinned = {r["path"]: r for r in manifest["records"]}
+        for path in (ai.INVENTORY_JSON_PATH, ai.INVENTORY_MD_PATH):
+            assert pinned[path]["retired_generator"] == (
+                "scripts/generate_semantic_authority_inventory.py")
+        entries = {e["artifact"]: e for e in verifier._frozen_lane_entries(REPO_ROOT)}
+        for path in (ai.INVENTORY_JSON_PATH, ai.INVENTORY_MD_PATH):
+            assert entries[path]["ok"], entries[path]
+        assert generator.main([]) == 2
+        assert generator.main(["--check"]) == 2
 
     def test_check_fails_on_tampered_committed_artifact(self, tmp_path):
         tampered = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
@@ -1716,7 +1737,9 @@ class TestSupersessionAndGate:
             in inventory["supersession"]["supersedes"]
         )
 
-    def test_check_repo_runs_inventory_gate(self):
+    def test_check_repo_runs_the_frozen_lane(self):
+        """Replaces ``test_check_repo_runs_inventory_gate``: since O4 Wave C1
+        the frozen lane (not O1 regeneration) is check_repo's inventory gate."""
         with mock.patch.object(
             check_repo, "find_duplicate_global_packages", return_value={}
         ), mock.patch.object(
@@ -1728,31 +1751,15 @@ class TestSupersessionAndGate:
         ), mock.patch.object(
             check_repo.check_naming, "run_all_checks", return_value=[]
         ), mock.patch.object(
-            check_repo.generate_semantic_projection_v1,
-            "run_check_errors",
-            return_value=[],
-        ), mock.patch.object(
-            check_repo.generate_semantic_projection_o22,
-            "run_check_errors_o22",
-            return_value=[],
-        ), mock.patch.object(
-            check_repo.generate_semantic_projection_o23,
-            "run_check_errors_o23",
-            return_value=[],
-        ), mock.patch.object(
-            check_repo.generate_semantic_authority_inventory,
-            "run_check_errors",
-            return_value=["sentinel inventory error"],
+            check_repo.verify_generated_chain,
+            "frozen_record_errors",
+            return_value=["sentinel frozen-record error"],
         ):
             assert check_repo.main() == 1
 
-    def test_check_repo_passes_when_inventory_gate_passes(self):
-        # The projection v1 + v1.1 gates are mocked to pass here (added by
-        # O2.1/O2.2, deliberate and documented — the v1/v1.1-side sentinel
-        # assertions live in tests/test_semantic_projection_v1.py and
-        # tests/test_semantic_projection_o22.py): this test owns the
-        # inventory gate's failure/pass attribution, not the projection
-        # gates'.
+    def test_check_repo_passes_when_the_frozen_lane_passes(self):
+        """Replaces ``test_check_repo_passes_when_inventory_gate_passes``; the
+        frozen lane runs for real here."""
         with mock.patch.object(
             check_repo, "find_duplicate_global_packages", return_value={}
         ), mock.patch.object(
@@ -1763,21 +1770,5 @@ class TestSupersessionAndGate:
             check_repo.generate_scenario_manifest, "run_check_errors", return_value=[]
         ), mock.patch.object(
             check_repo.check_naming, "run_all_checks", return_value=[]
-        ), mock.patch.object(
-            check_repo.generate_semantic_projection_v1,
-            "run_check_errors",
-            return_value=[],
-        ), mock.patch.object(
-            check_repo.generate_semantic_projection_o22,
-            "run_check_errors_o22",
-            return_value=[],
-        ), mock.patch.object(
-            check_repo.generate_semantic_projection_o23,
-            "run_check_errors_o23",
-            return_value=[],
-        ), mock.patch.object(
-            check_repo.generate_semantic_authority_inventory,
-            "run_check_errors",
-            return_value=[],
         ):
             assert check_repo.main() == 0

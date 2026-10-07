@@ -650,10 +650,9 @@ entries:
     retirement_status: not-applicable
   scripts/verify_generated_chain.py:
     role: governance-machinery
-    markers:
-    - kernel_contract_module
-    - kernel_contract_symbol
-    retirement_status: not-applicable
+    markers: []
+    retirement_status: retired
+    note: O4 Wave C1 (owner decisions Q7/D10) - the frozen lane replaced the live O1 and O2 v1-v1.2 lanes, so the verifier no longer loads the authored ontology contract itself; frozen records are checked at their own historical revisions. Transitive reads through the live carrier lane generator remain until Wave C2.
   scripts/seed_aebs_api_fixture.py:
     role: validation-consumer
     markers:

@@ -1125,9 +1125,25 @@ class TestRuntimeIndependence:
 
 
 class TestCommittedArtifacts:
-    def test_committed_artifacts_match_regeneration(self) -> None:
-        errors = pv.run_check_errors(REPO_ROOT)
-        assert errors == []
+    def test_committed_artifacts_are_frozen_records(self) -> None:
+        """Replaces ``test_committed_artifacts_match_regeneration`` (O4 Wave C1,
+        owner decisions Q7/D10): the v1 pair is a frozen record. Its bytes are
+        pinned, its binding is checked at its own revision, and the retired
+        generator CLI refuses to write or check."""
+        import importlib
+
+        from scripts import verify_generated_chain as verifier
+
+        entries = {e["artifact"]: e for e in verifier._frozen_lane_entries(REPO_ROOT)}
+        manifest = json.loads(
+            (REPO_ROOT / verifier.FROZEN_MANIFEST_PATH).read_text(encoding="utf-8"))
+        pinned = {r["path"]: r for r in manifest["records"]}
+        for path in (pv.PROJECTION_V1_JSON_PATH, pv.PROFILE_V1_JSON_PATH):
+            assert entries[path]["ok"], entries[path]
+            assert pinned[path]["kind"] == "generated"
+            assert pinned[path]["retired_generator"] == "scripts/generate_semantic_projection_v1.py"
+        script = importlib.import_module("scripts.generate_semantic_projection_v1")
+        assert script.main([]) == 2 and script.main(["--check"]) == 2
 
     def test_committed_artifacts_exist_and_parse(self) -> None:
         projection = json.loads(
@@ -1145,7 +1161,9 @@ class TestRepositoryGateWiring:
     (the inventory-side attribution test mocks this gate to pass, and this
     test mocks the inventory gate to pass — deliberate, documented)."""
 
-    def test_check_repo_fails_when_projection_v1_gate_fails(self) -> None:
+    def test_check_repo_fails_when_the_frozen_lane_fails(self) -> None:
+        """Replaces the v1 regeneration-gate attribution test: since O4 Wave C1
+        check_repo runs the frozen lane for the frozen O1/O2/O3 records."""
         from unittest import mock
 
         from scripts import check_repo
@@ -1161,21 +1179,9 @@ class TestRepositoryGateWiring:
         ), mock.patch.object(
             check_repo.check_naming, "run_all_checks", return_value=[]
         ), mock.patch.object(
-            check_repo.generate_semantic_authority_inventory,
-            "run_check_errors",
-            return_value=[],
-        ), mock.patch.object(
-            check_repo.generate_semantic_projection_o22,
-            "run_check_errors_o22",
-            return_value=[],
-        ), mock.patch.object(
-            check_repo.generate_semantic_projection_o23,
-            "run_check_errors_o23",
-            return_value=[],
-        ), mock.patch.object(
-            check_repo.generate_semantic_projection_v1,
-            "run_check_errors",
-            return_value=["sentinel projection v1 error"],
+            check_repo.verify_generated_chain,
+            "frozen_record_errors",
+            return_value=["sentinel frozen v1 record error"],
         ):
             assert check_repo.main() == 1
 

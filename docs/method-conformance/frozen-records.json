@@ -1,0 +1,249 @@
+{
+  "schema": "de4sdv.frozen-records/v1",
+  "note": "Frozen historical records. Never regenerated; never compared with the live tree's inputs. Bindings are verified at their own source revisions by scripts/verify_generated_chain.py (frozen lane), which scripts/check_repo.py runs. Not revision-bound evidence itself: no binding block.",
+  "decision": {
+    "owner_decisions": "Q7 and D10 (Orkun, 2026-10-07)",
+    "statement": "Freeze the historical O1, O2 and O3 records (the whole o1/, o2/ and o3/ directories); do not regenerate them.",
+    "record": "docs/method-conformance/o4/owner-decisions-2026-10.md"
+  },
+  "frozen_at_revision": "ff0311b76db3cce81f68bcacd34dcb7d5024ab70",
+  "directories": [
+    "docs/method-conformance/o1",
+    "docs/method-conformance/o2",
+    "docs/method-conformance/o3"
+  ],
+  "records": [
+    {
+      "path": "docs/method-conformance/o1/authority-inventory.md",
+      "sha256": "sha256:0ea7f034af49e5934ad019feab2022495b8344c878902f33f802c1d47d2b28d3",
+      "kind": "prose",
+      "binding_source_revision": null,
+      "live_consumer": null,
+      "retired_generator": "scripts/generate_semantic_authority_inventory.py"
+    },
+    {
+      "path": "docs/method-conformance/o1/authority-review-decisions.yaml",
+      "sha256": "sha256:429ab8375077dfad9c66d802adb1518ec0f84a9a2bced60ba8ec3fc7ab95662c",
+      "kind": "authored",
+      "binding_source_revision": null,
+      "live_consumer": "O4 lifecycle-consistency gate (read-only data)",
+      "retired_generator": null
+    },
+    {
+      "path": "docs/method-conformance/o1/c2-verification-grounding-review.md",
+      "sha256": "sha256:da4ed58bda94b6d78df33b33b9ee4f3a76eab1f300df96fa30d52e78e16b03e4",
+      "kind": "prose",
+      "binding_source_revision": null,
+      "live_consumer": null,
+      "retired_generator": null
+    },
+    {
+      "path": "docs/method-conformance/o1/c3-subject-grounding-review.md",
+      "sha256": "sha256:ece7227f301c9c8f6169e586b156e2ce61ede91a5a249e02a945d38e838ff28e",
+      "kind": "prose",
+      "binding_source_revision": null,
+      "live_consumer": null,
+      "retired_generator": null
+    },
+    {
+      "path": "docs/method-conformance/o1/c4-concern-need-disposition-review.md",
+      "sha256": "sha256:e4d6020742e47ff7502e2852910b9ab3a20ca330fe6c08c465e10ec7a8f502ec",
+      "kind": "prose",
+      "binding_source_revision": null,
+      "live_consumer": null,
+      "retired_generator": null
+    },
+    {
+      "path": "docs/method-conformance/o1/c5-relevance-realization-review.md",
+      "sha256": "sha256:a685602fd4453f011ca88567a464bd7e30b0b398953a0ae7f73f3d15319c421d",
+      "kind": "prose",
+      "binding_source_revision": null,
+      "live_consumer": null,
+      "retired_generator": null
+    },
+    {
+      "path": "docs/method-conformance/o1/closure-evidence.json",
+      "sha256": "sha256:96578697f05d64ec26b25b81b78b978d55235bc66cf8c1c872f2e33b63f80171",
+      "kind": "evidence",
+      "binding_source_revision": null,
+      "live_consumer": null,
+      "retired_generator": null
+    },
+    {
+      "path": "docs/method-conformance/o1/phase1-inventory-review.md",
+      "sha256": "sha256:31adc78f3a1267c279696b4828239b979f2f84e0e1efdfa4c0ccc6704cbd1c6f",
+      "kind": "prose",
+      "binding_source_revision": null,
+      "live_consumer": null,
+      "retired_generator": null
+    },
+    {
+      "path": "docs/method-conformance/o1/semantic-authority-inventory.draft.json",
+      "sha256": "sha256:879b148693226c579b0d3e46a4dc16789ce29671e94dfdca38bbf3deb29e7024",
+      "kind": "evidence",
+      "binding_source_revision": null,
+      "live_consumer": null,
+      "retired_generator": null
+    },
+    {
+      "path": "docs/method-conformance/o1/semantic-authority-inventory.json",
+      "sha256": "sha256:1fd7cef22ea3779fcdd7ea1af6c385382624bdcb242a077c17cf20a6318a5c9d",
+      "kind": "generated",
+      "binding_source_revision": "5b20411d0e653ea786d781b033acfd5bc36a831c",
+      "live_consumer": "O3 equivalence basis (read-only data)",
+      "retired_generator": "scripts/generate_semantic_authority_inventory.py"
+    },
+    {
+      "path": "docs/method-conformance/o2/api-representation-profile-v1.1.json",
+      "sha256": "sha256:196fe6dcf9f1afaf7e62d9c18b3e76d5047fbe068e59931449522efe24d7ba35",
+      "kind": "generated",
+      "binding_source_revision": "39870d140d26a61430f1d3b82ecedc045d6fe5ca",
+      "live_consumer": "model-authority runtime o2-chain layer and O3 bundle (read-only data)",
+      "retired_generator": "scripts/generate_semantic_projection_o22.py"
+    },
+    {
+      "path": "docs/method-conformance/o2/api-representation-profile-v1.2.json",
+      "sha256": "sha256:1094534f4bd1308b731fb76a8e63e9fd3a4b69d4aec4bceafbf529198cd89d2c",
+      "kind": "generated",
+      "binding_source_revision": "74149bb8c9095fe5a6f0f979490fde3040f7f661",
+      "live_consumer": "model-authority runtime o2-chain layer and O3 bundle (read-only data)",
+      "retired_generator": "scripts/generate_semantic_projection_o23.py"
+    },
+    {
+      "path": "docs/method-conformance/o2/api-representation-profile-v1.json",
+      "sha256": "sha256:411621265ee76fa8e387c4c6b418d5689f4f47b696fb908b1083187b671bbaf1",
+      "kind": "generated",
+      "binding_source_revision": "a660ae03770bed426073af9316e833b5525a04ab",
+      "live_consumer": "model-authority runtime o2-chain layer and O3 bundle (read-only data)",
+      "retired_generator": "scripts/generate_semantic_projection_v1.py"
+    },
+    {
+      "path": "docs/method-conformance/o2/o2-1-design.md",
+      "sha256": "sha256:1430eaac46c95806fc811a42a411fd38be624164cdb8c69e0361702e1e89d8de",
+      "kind": "prose",
+      "binding_source_revision": null,
+      "live_consumer": null,
+      "retired_generator": null
+    },
+    {
+      "path": "docs/method-conformance/o2/o2-2-design.md",
+      "sha256": "sha256:1d9877ee77fedb29b32233c7eaebbb8d3de18231fea78115828f752aad1a53aa",
+      "kind": "prose",
+      "binding_source_revision": null,
+      "live_consumer": null,
+      "retired_generator": null
+    },
+    {
+      "path": "docs/method-conformance/o2/o2-3-design.md",
+      "sha256": "sha256:f43a51c1eecec1f94259ff940411dd1fa73a063720eedb75a77bea14835a3fbe",
+      "kind": "prose",
+      "binding_source_revision": null,
+      "live_consumer": null,
+      "retired_generator": null
+    },
+    {
+      "path": "docs/method-conformance/o2/o21-admission.yaml",
+      "sha256": "sha256:a223ee7fedb2574f7d160b782e7da211a66530b2864beff86c395756335ae773",
+      "kind": "authored",
+      "binding_source_revision": null,
+      "live_consumer": null,
+      "retired_generator": null
+    },
+    {
+      "path": "docs/method-conformance/o2/o22-admission.yaml",
+      "sha256": "sha256:80ec9affcbbc954a4f0416a8d6e0282ddbd3b4ab7055330952f332b9331955b7",
+      "kind": "authored",
+      "binding_source_revision": null,
+      "live_consumer": null,
+      "retired_generator": null
+    },
+    {
+      "path": "docs/method-conformance/o2/o23-admission.yaml",
+      "sha256": "sha256:384f4793ed1827f9fde0deff607aa0ac0bc17b046b9060cda735337a0de3fe49",
+      "kind": "authored",
+      "binding_source_revision": null,
+      "live_consumer": null,
+      "retired_generator": null
+    },
+    {
+      "path": "docs/method-conformance/o2/semantic-projection-v1.1.json",
+      "sha256": "sha256:6742c3289e324f74fc7aae239cde5d97ca7a77bc12815181770e3d39d92a28de",
+      "kind": "generated",
+      "binding_source_revision": "39870d140d26a61430f1d3b82ecedc045d6fe5ca",
+      "live_consumer": "model-authority runtime o2-chain layer and O3 bundle (read-only data)",
+      "retired_generator": "scripts/generate_semantic_projection_o22.py"
+    },
+    {
+      "path": "docs/method-conformance/o2/semantic-projection-v1.2.json",
+      "sha256": "sha256:b4ab78638398d8c5cf304b0a9b180507016e4c7e3aa7b821c1f41098302df002",
+      "kind": "generated",
+      "binding_source_revision": "74149bb8c9095fe5a6f0f979490fde3040f7f661",
+      "live_consumer": "model-authority runtime o2-chain layer and O3 bundle (read-only data)",
+      "retired_generator": "scripts/generate_semantic_projection_o23.py"
+    },
+    {
+      "path": "docs/method-conformance/o2/semantic-projection-v1.json",
+      "sha256": "sha256:a5b87d491135380d0858ed775bf7c7efc0b40ab19d39130262517920fe400156",
+      "kind": "generated",
+      "binding_source_revision": "a660ae03770bed426073af9316e833b5525a04ab",
+      "live_consumer": "model-authority runtime o2-chain layer and O3 bundle (read-only data)",
+      "retired_generator": "scripts/generate_semantic_projection_v1.py"
+    },
+    {
+      "path": "docs/method-conformance/o3/o3-activation-and-rollback.md",
+      "sha256": "sha256:003d9487b7ad1d9503e62f691878598c0e349166d1784fa350956126a8188165",
+      "kind": "prose",
+      "binding_source_revision": null,
+      "live_consumer": null,
+      "retired_generator": null
+    },
+    {
+      "path": "docs/method-conformance/o3/o3-completion-record.md",
+      "sha256": "sha256:848014a0ca34e9f154b2658ce9beff7114057bc6390ffd1de47801dcaa9cb590",
+      "kind": "prose",
+      "binding_source_revision": null,
+      "live_consumer": null,
+      "retired_generator": null
+    },
+    {
+      "path": "docs/method-conformance/o3/o3-equivalence-scope.json",
+      "sha256": "sha256:ed9a4e940c2d9ff35f5796b4450973719c756319e532c99a0479d793f280c056",
+      "kind": "evidence",
+      "binding_source_revision": null,
+      "live_consumer": "O3 equivalence lane (read-only data)",
+      "retired_generator": "scripts/generate_o3_equivalence_scope.py"
+    },
+    {
+      "path": "docs/method-conformance/o3/o3-production-cutover-evidence.json",
+      "sha256": "sha256:5e405b0a97ea5dc88491c833da402515e2f5fe97254f21938670a5b387a400a0",
+      "kind": "evidence",
+      "binding_source_revision": null,
+      "live_consumer": null,
+      "retired_generator": null
+    },
+    {
+      "path": "docs/method-conformance/o3/o3-readiness.md",
+      "sha256": "sha256:3a60dc7e9fe1d10a2fa25442b8cee9eda5ea1fc5a5af0c8e9566e075fa590bbb",
+      "kind": "prose",
+      "binding_source_revision": null,
+      "live_consumer": null,
+      "retired_generator": null
+    },
+    {
+      "path": "docs/method-conformance/o3/o3-stage-a-design.md",
+      "sha256": "sha256:c7019503db021b28ab513a864d7f5b51371a4c2997ca9ca19b7a3a40379d9e1a",
+      "kind": "prose",
+      "binding_source_revision": null,
+      "live_consumer": null,
+      "retired_generator": null
+    },
+    {
+      "path": "docs/method-conformance/o3/o3-stage-b-design.md",
+      "sha256": "sha256:27662133ccb91b716a7e9503f177d949403d2c5c07134208213eb9579625397c",
+      "kind": "prose",
+      "binding_source_revision": null,
+      "live_consumer": null,
+      "retired_generator": null
+    }
+  ]
+}
