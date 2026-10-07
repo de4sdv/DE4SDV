@@ -6,7 +6,8 @@
     python scripts/check_model_projection_coverage.py --bundle B # also verify a bundle
     python scripts/check_model_projection_coverage.py --write-baseline
 
-Exit 0 = no drift (residual may be non-empty in shadow mode); 1 = drift,
+Exit 0 = no drift (residual may be non-empty in shadow mode; the retained
+residual is the owner's criterion, the exceptions are owner-visible); 1 = drift,
 duplicate providers or bundle digest mismatch.
 """
 from __future__ import annotations
@@ -46,8 +47,10 @@ def main(argv: list[str] | None = None) -> int:
         errors += coverage.bundle_errors(report, json.loads(args.bundle.read_text(encoding="utf-8")), ROOT)
     summary = report["summary"]
     print(f"model-projection coverage ({report['mode']}): "
-          f"{summary['projected_identities']} projected, {summary['residual_identities']} residual "
-          f"identities, {summary['residual_declarations']} residual kernel declarations")
+          f"{summary['projected_identities']} projected, {summary['retained_residual']} retained "
+          f"residual, {summary['exceptions']} owner-visible exceptions "
+          f"({', '.join(report['exceptions']) or 'none'}), {summary['unregistered_residual']} "
+          f"unregistered residual, {summary['residual_declarations']} residual kernel declarations")
     for error in errors:
         print(f"- {error}")
     return 1 if errors else 0

@@ -47,7 +47,9 @@ def install_model_module(monkeypatch, *, verify_errors=()):
         return list(verify_errors)
 
     def build_model_closure_attestation(bundle, *, binding, binding_sha256,
-                                        definition_closure_closed, validations, generated_at):
+                                        definition_closure_closed, validations, generated_at,
+                                        evidence_contract_closure):
+        module.calls.append(("attest", list(evidence_contract_closure)))
         eligible = definition_closure_closed and all(
             v["status"] == "passed" for v in validations.values())
         return {"bundle_id": bundle["bundle_id"], "o3_activation_eligible": True,
@@ -137,10 +139,15 @@ def readback(passed=True, revision=REV):
             "activation_eligible": passed, "failures": [] if passed else ["x"]}
 
 
-def equivalence(overall="EQUIVALENT", bundle_id=MAB):
+MEMBERS = [{"source_file": f"f{i}.sysml", "declaration": f"requirement def C{i}",
+            "element_id": f"ec{i}"} for i in range(8)]
+
+
+def equivalence(overall="EQUIVALENT", bundle_id=MAB, identity="EQUAL"):
     return {"schema": cli.COMPARE_SCHEMA, "git_revision": REV, "model_bundle_id": bundle_id,
             "overall": overall,
-            "pairs": {"o3_vs_model": {"overall": overall}, "legacy_vs_model": {"overall": overall}}}
+            "pairs": {"o3_vs_model": {"overall": overall}, "legacy_vs_model": {"overall": overall}},
+            "discriminator": {"closure_members": MEMBERS, "closure_identity": {"result": identity}}}
 
 
 def probe(closed=True, revision=REV):
@@ -190,6 +197,7 @@ def test_close_all_gates_pass_is_activation_eligible(close_inputs, monkeypatch):
     assert ("verify", "closed", ["binding", "binding_sha256", "require_closed", "root",
                                  "validation_artifacts"]) in model.calls
     assert any(MAB in item for item in summary["owner_gated"])
+    assert ("attest", MEMBERS) in model.calls  # validated members flow into the attestation
 
 
 @pytest.mark.parametrize("flag, document, gate", [
@@ -199,6 +207,7 @@ def test_close_all_gates_pass_is_activation_eligible(close_inputs, monkeypatch):
     ("readback", {**readback(), "activation_eligible": "true"}, "verification_anchor_readback"),
     ("equivalence", equivalence("BLOCKING_MISMATCH"), "model_o3_legacy_equivalence"),
     ("equivalence", equivalence(bundle_id="mab-" + "f" * 32), "model_o3_legacy_equivalence"),
+    ("equivalence", equivalence(identity="BLOCKING_MISMATCH"), "model_o3_legacy_equivalence"),
     ("definition-probe", probe(closed=False), "definition_closure_closed"),
     ("definition-probe", probe(revision="e" * 40), "definition_closure_closed"),
 ])
@@ -280,6 +289,29 @@ def test_discriminator_population_records_model_resolution():
     assert record["distinct_targets"] == ["ec1", "ec2"]
     assert record["classification"] == "RECORDED"
     assert set(service.traversal.calls) == {cli.DISCRIMINATED_PREDICATE}
+
+
+class _ClosureTraversal(_Traversal):
+    def __init__(self, live):
+        super().__init__()
+        self.live = live
+
+    def evidence_contract_definitions(self, elements):
+        return "root", set(self.live), set(), {}
+
+
+def test_discriminator_closure_member_swap_keeping_the_count_blocks():
+    """R5: eight live definitions must be the eight validated bound members (by id)."""
+    members = [{"element_id": f"ec{i}"} for i in range(8)]
+    same = SimpleNamespace(traversal=_ClosureTraversal([f"ec{i}" for i in range(8)]))
+    record = cli.discriminator_population(same, [], [], closure_members=members)
+    assert record["closure_identity"]["result"] == "EQUAL"
+    assert record["classification"] == "RECORDED"
+    swapped = SimpleNamespace(traversal=_ClosureTraversal([f"ec{i}" for i in range(7)] + ["other"]))
+    record = cli.discriminator_population(swapped, [], [], closure_members=members)
+    assert record["closure_identity"] == {"result": "BLOCKING_MISMATCH", "live_only": ["other"],
+                                          "bound_only": ["ec7"]}
+    assert record["classification"] == "BLOCKING_MISMATCH"
 
 
 def test_discriminator_errors_block():

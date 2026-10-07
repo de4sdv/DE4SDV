@@ -288,16 +288,30 @@ jobs:
         # budget. The snapshot carries the exact API state those steps read
         # back; the second job re-verifies its corpus identity against the
         # export before using it. Not a deployment input; short retention.
+        # Off the ingestion critical path: only a dispatch runs the model job
+        # that consumes it (scheduled runs skip it), and continue-on-error
+        # keeps a dump/upload failure from failing ingest-and-validate, whose
+        # success the deploy and core-evidence workflows require. A missing
+        # snapshot fails the model-authority job explicitly instead.
+        if: github.event_name == 'workflow_dispatch'
+        continue-on-error: true
         run: |
+          set -euo pipefail
           mkdir -p /tmp/o4-db
+          started="$(date +%s)"
           docker exec "${{ job.services.postgres.id }}" \
             pg_dump -U postgres -d sysml2 -Fc -Z 6 > /tmp/o4-db/sysml2.dump
           sha256sum /tmp/o4-db/sysml2.dump | tee /tmp/o4-db/sysml2.dump.sha256
+          echo "snapshot bytes: $(stat -c %s /tmp/o4-db/sysml2.dump)"
+          echo "snapshot seconds: $(( $(date +%s) - started ))"
           ls -la /tmp/o4-db
 
       - name: Upload API database snapshot for the model-authority job
         # Deliberately NOT named full-model-api-ingestion-*: the deploy and
         # core-evidence workflows select exactly one artifact by that prefix.
+        # Same condition and continue-on-error as the snapshot step (above).
+        if: github.event_name == 'workflow_dispatch'
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: model-authority-api-db-${{ github.sha }}
@@ -441,10 +455,24 @@ jobs:
           path: /tmp
 
       - name: Download same-run API database snapshot
+        # The snapshot steps of ingest-and-validate are continue-on-error, so
+        # the artifact can be missing; the next step turns that into one
+        # explicit failure instead of a download error.
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: model-authority-api-db-${{ github.sha }}
           path: /tmp/o4-db
+
+      - name: Require the same-run API database snapshot
+        run: |
+          for path in /tmp/o4-db/sysml2.dump /tmp/o4-db/sysml2.dump.sha256; do
+            if [ ! -s "$path" ]; then
+              echo "::error::same-run API database snapshot missing ($path): the artifact model-authority-api-db-${{ github.sha }} was not produced or not uploaded by ingest-and-validate (its snapshot steps are continue-on-error). No model-authority evidence is produced; re-dispatch the ingestion at this SHA."
+              exit 1
+            fi
+          done
+          echo "snapshot bytes: $(stat -c %s /tmp/o4-db/sysml2.dump)"
 
       - name: Verify inputs are bound to the checked-out revision
         run: |
@@ -493,7 +521,7 @@ jobs:
           cat /tmp/sysml-api.log
           exit 1
 
-      - name: Decision-13 live-API read-back of the implied verification anchors
+      - name: Decision-13 read-back of the implied verification anchors (restored same-run API snapshot)
         # Owner decision 4 (2026-10-07): a failure BLOCKS activation. Also the
         # restored-database identity check (live element set == export,
         # element count == semantic report, binding project/commit). Exit 2
@@ -505,6 +533,7 @@ jobs:
             --binding /tmp/de4sdv-full-model-binding.json \
             --export /tmp/de4sdv-full-model-export.json \
             --semantic-report /tmp/de4sdv-full-model-semantic-validation.json \
+            --api-source restored-same-run-snapshot \
             --git-revision "$(git rev-parse HEAD)" \
             --output /tmp/o4/de4sdv-o4-verification-anchor-readback.json
 

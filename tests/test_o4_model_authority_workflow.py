@@ -40,7 +40,7 @@ def _names(job=JOB):
     return [s.get("name") for s in _job(job)["steps"]]
 
 
-READBACK = "Decision-13 live-API read-back of the implied verification anchors"
+READBACK = "Decision-13 read-back of the implied verification anchors (restored same-run API snapshot)"
 DELTA = "Measure the Wave A Requirement-population delta"
 BUNDLE = "Build candidate model-authority bundle"
 COVERAGE = "Model-projection coverage report against the candidate bundle"
@@ -181,3 +181,31 @@ def test_every_model_output_is_uploaded_and_close_reads_produced_files():
     for path in produced | {f"/tmp/o4/{cli.CLOSED_BUNDLE}", f"/tmp/o4/{cli.ATTESTATION}",
                             f"/tmp/o4/{cli.ELIGIBILITY}"}:
         assert path in uploaded, path
+
+
+SNAPSHOT = "Snapshot API database for the model-authority job"
+SNAPSHOT_UPLOAD = "Upload API database snapshot for the model-authority job"
+SNAPSHOT_DOWNLOAD = "Download same-run API database snapshot"
+SNAPSHOT_REQUIRED = "Require the same-run API database snapshot"
+
+
+def test_snapshot_steps_are_off_the_ingestion_critical_path():
+    """R4: a snapshot/upload failure never fails ingest-and-validate; scheduled runs skip it."""
+    for name in (SNAPSHOT, SNAPSHOT_UPLOAD):
+        step = _step(name, "ingest-and-validate")
+        assert step["if"] == "github.event_name == 'workflow_dispatch'", name
+        assert step["continue-on-error"] is True, name
+
+
+def test_missing_snapshot_fails_the_model_job_clearly():
+    names = _names()
+    download = _step(SNAPSHOT_DOWNLOAD)
+    assert download["continue-on-error"] is True
+    required = _step(SNAPSHOT_REQUIRED)
+    assert names.index(SNAPSHOT_DOWNLOAD) < names.index(SNAPSHOT_REQUIRED) < names.index(
+        "Verify inputs are bound to the checked-out revision")
+    assert required.get("if") is None and required.get("continue-on-error") is None
+    run = required["run"]
+    assert "::error" in run and "model-authority-api-db-" in run and "exit 1" in run
+    for path in ("/tmp/o4-db/sysml2.dump", "/tmp/o4-db/sysml2.dump.sha256"):
+        assert path in run

@@ -246,3 +246,34 @@ def test_status_for_invalid_model_selection_reports_error(tmp_path):
 def test_status_for_legacy_is_the_o3_selection_provenance():
     assert ea.entry_authority_status({}) == {"kind": "legacy",
                                             "authority_id": "de4sdv.o0-o1-authored-v1"}
+
+
+# -- rollback path independence (R3) ------------------------------------------
+
+
+@pytest.mark.parametrize("selector", [
+    {"authority": "legacy"}, {"authority": "o3"}, {"authority": None},
+    {"environ": {"DE4SDV_SEMANTIC_AUTHORITY": " O3 "}}, {"environ": {}},
+])
+def test_legacy_and_o3_construction_never_import_the_model_runtime(monkeypatch, selector):
+    """With the model runtime unimportable, the rollback path still reaches its builder."""
+    import sys
+
+    from de4sdv.semantic import composition_construction as cc
+
+    import de4sdv.semantic as package
+
+    monkeypatch.setitem(sys.modules, "de4sdv.semantic.model_authority_runtime", None)
+    monkeypatch.delattr(package, "model_authority_runtime", raising=False)
+    calls = []
+    monkeypatch.setattr(cc, "build_selected_semantic_runtime",
+                        lambda **kw: calls.append(kw) or ("service", "selection"))
+    kwargs = {"api_url": "u", "environ": {"DE4SDV_SEMANTIC_AUTHORITY": "legacy"}, **selector}
+    assert cc.build_explicit_semantic_runtime(**kwargs) == ("service", "selection")
+    assert calls == [kwargs]
+    with pytest.raises(AuthoritySelectionError, match="authority='model'"):
+        cc.build_explicit_semantic_runtime(api_url="u", authority="legacy",
+                                           model_bundle_id=MAB_ID)
+    with pytest.raises(ImportError):
+        cc.build_explicit_semantic_runtime(api_url="u", authority=" Model ")
+    assert len(calls) == 1

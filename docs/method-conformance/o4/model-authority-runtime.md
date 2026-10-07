@@ -25,7 +25,7 @@ is `mab:<bundle id>`.
 
 | Component | Content |
 | --- | --- |
-| `o3` | Closed O3 bundle, embedded. The record holds its id, sha256 and Projection/Profile chain digests. |
+| `o3` | Closure-independent O3 identity only: the O3 core `bundle_id`, the Projection/Profile chain records and the runtime build. The closed O3 document travels beside the id as `o3_document`; its API closure never enters the `mab-` id. |
 | `layers` | Projection/profile pairs (path, schema, sha256, source revision) for `definition`, `o2plus`, `vocabulary-carrier` and, once present in the checkout, `definition-batch2` |
 | `successor_contract` | Id, digest and relation names of the contract that `relationship_successor_contract.generate_contract` builds from the model, plus the deprecated-alias table |
 | `routing` | Exactly one provider per identity, any agreeing corroborations, duplicates (must be empty) and the residual with a reason for each entry |
@@ -33,7 +33,11 @@ is `mab:<bundle id>`.
 
 Closure (`de4sdv.model-authority-closure/v1`) binds the bundle to one
 revision binding. It records the binding digest and SysML project/commit,
-whether O3 is activation eligible, whether the definition closure is closed,
+the O3 bundle id and the digest of the carried closed O3 document (whose
+own API closure must name the same binding), whether O3 is activation
+eligible, whether the definition closure is closed, the bound
+`EvidenceContract` closure members with the element id each one validated
+to (ingestion binding rule over the same-run export),
 and the validation evidence `model_projection_coverage`,
 `model_o3_legacy_equivalence` and `verification_anchor_readback`. Each
 validation must be exactly `passed` and carry a sha256. Activation
@@ -153,16 +157,25 @@ keep the predicate blocked.
 
 `scripts/check_model_projection_coverage.py` (module
 `de4sdv/semantic/model_projection_coverage.py`) classifies every item in
-three populations as projected (layer + digest) or residual (reason):
+four populations as projected (layer + digest) or residual (reason):
 
-- every retained register row;
+- every retained register row (`retained_residual`: the owner's criterion,
+  empty, blocking from Wave C);
 - the ontology YAML identities that the register does not list;
+- every registered non-retained (merged/removed) row still in the ontology
+  YAML (`exceptions`: owner-visible, with reason and register disposition;
+  routing does not refuse them, an owner call reserved for Wave C);
 - every governed kernel declaration (excluded declarations are listed
   separately).
 
+The total `residual` equals the routing residual the runtime serves from
+the authored YAML. Current summary: 103 projected, 0 retained residual,
+2 owner-visible exceptions (`IncrementTraceabilityShell`,
+`derivesNeedFromConcern`), 0 residual kernel declarations.
+
 It compares the result with
 `model-authority-coverage-baseline.yaml`, which has no binding block. It
-fails on residual drift in either direction, duplicate providers, and
+fails on residual or exception drift in either direction, duplicate providers, and
 routing or layer digest mismatch. With `--bundle`, it also fails when a
 bundle differs from the checkout. `scripts/check_repo.py` runs it. In shadow
 mode, a non-empty residual is reported but does not fail the gate. Wave C

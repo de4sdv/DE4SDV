@@ -1,6 +1,6 @@
-"""Decision-13 live-API read-back of the implied VerificationCase anchors.
+"""Decision-13 API read-back of the implied VerificationCase anchors.
 
-Synthetic transports only: a fake repository stands in for the live API; no
+Synthetic transports only: a fake repository stands in for the queried API; no
 network is opened. A pass here is evaluator consistency, never privileged
 read-back evidence.
 """
@@ -194,7 +194,7 @@ def test_cli_writes_report_and_exit_code_tracks_pass(tmp_path, monkeypatch):
         out = tmp_path / f"out-{expected}.json"
         code = rb.main(["--api-url", "http://127.0.0.1:9", "--binding", str(binding_path),
                         "--export", str(export), "--git-revision", REVISION,
-                        "--output", str(out)])
+                        "--api-source", "restored-same-run-snapshot", "--output", str(out)])
         assert code == expected
         report = json.loads(out.read_text())
         assert report["activation_eligible"] is (expected == 0)
@@ -203,5 +203,34 @@ def test_cli_writes_report_and_exit_code_tracks_pass(tmp_path, monkeypatch):
 def test_cli_refuses_moving_revision(tmp_path, monkeypatch):
     monkeypatch.setattr(rb, "_git_head", lambda: "f" * 40)
     with pytest.raises(SystemExit):
-        rb.main(["--api-url", "u", "--binding", "b", "--export", "e",
-                 "--git-revision", REVISION, "--output", str(tmp_path / "o.json")])
+        rb.main(["--api-url", "u", "--binding", "b", "--export", "e", "--api-source",
+                 "deployed-api", "--git-revision", REVISION, "--output", str(tmp_path / "o.json")])
+
+
+@pytest.mark.parametrize("source, needle", [
+    ("restored-same-run-snapshot", "pg_restore"),
+    ("deployed-api", "deployed SysML v2 API"),
+])
+def test_claim_boundary_names_the_queried_api_instance(source, needle):
+    """R7: the CI read-back queries a restored same-run snapshot, never 'the live production API'."""
+    elements = corpus()
+    report = run(FakeRepository(elements), export_document(elements), api_source=source)
+    assert report["api_source"] == source
+    assert needle in report["claim_boundary"]
+    assert "identity-checked against the export" in report["claim_boundary"]
+    if source == "restored-same-run-snapshot":
+        assert "not the live production API" in report["claim_boundary"]
+
+
+def test_cli_requires_the_api_source():
+    with pytest.raises(SystemExit):
+        rb.main(["--api-url", "u", "--binding", "b", "--export", "e", "--git-revision",
+                 REVISION, "--output", "o"])
+
+
+def test_workflow_declares_the_restored_snapshot_source():
+    from pathlib import Path
+
+    text = (Path(rb.ROOT) / ".github/workflows/privileged-full-model-api-ingestion.yml").read_text()
+    call = text[text.index("python scripts/readback_verification_anchors.py"):]
+    assert "--api-source restored-same-run-snapshot" in call[:600]

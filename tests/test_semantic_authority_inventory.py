@@ -340,10 +340,6 @@ class TestLayers:
         "definition_candidate_provider.py",
         "definition_migration.py",
         "composition_construction.py",
-        # O4 Wave B entry-point selection seam: construction-time authority
-        # selection that delegates to composition_construction (never read at
-        # query time; it reads no inventory or decisions data).
-        "entry_authority.py",
         "relationship_successor_contract.py",
         "scoped_assurance.py",
         "definition_projection.py",
@@ -365,6 +361,10 @@ class TestLayers:
             "definition_migration",  # verified batch-1 definition pair
             "relationship_successor_contract",  # successor contract from the model
         }),
+        # O4 Wave B entry-point selection seam: delegates every selection to
+        # the one canonical router and imports nothing else from this set; the
+        # inventory/decisions text scan applies to it.
+        "entry_authority.py": frozenset({"composition_construction"}),
     }
 
     def test_reviewed_decisions_not_runtime_values(self):

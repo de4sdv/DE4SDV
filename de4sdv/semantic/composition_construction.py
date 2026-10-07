@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import inspect
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -152,6 +153,7 @@ def build_relationship_successor_runtime(*, contract, production=False,
     return service, service.contract
 
 
+_AUTHORITY_ENV = "DE4SDV_SEMANTIC_AUTHORITY"
 _MODEL_KEYS = ("model_bundle_path", "model_bundle_id", "production", "require_activation_eligible",
                "validation_artifacts")
 
@@ -164,14 +166,19 @@ def build_explicit_semantic_runtime(*, composition: str | None = None, **kwargs)
     (:mod:`model_authority_runtime`). Every other selection reaches the frozen
     ``authority_selection`` path with exactly the arguments it received
     before, so legacy and o3 (the rollback path) stay byte-identical.
-    Model-only arguments are refused outside a model selection. The explicit
-    ``o3+definitions`` composition path is unchanged.
+    The selector is read inline and the model-authority runtime is imported
+    only inside the ``model`` branch, so legacy/O3 construction never depends
+    on it. Model-only arguments are refused outside a model selection. The
+    explicit ``o3+definitions`` composition path is unchanged.
     """
     if composition is None:
-        from . import model_authority_runtime as model
+        authority = kwargs.get("authority")
+        environ = kwargs.get("environ")
+        if authority is None:
+            authority = (os.environ if environ is None else environ).get(_AUTHORITY_ENV, "")
+        if str(authority or "").strip().lower() == "model":
+            from . import model_authority_runtime as model
 
-        requested = model.requested_authority(kwargs.get("authority"), kwargs.get("environ"))
-        if requested == model.MODEL_AUTHORITY:
             if kwargs.get("bundle_path") is not None or kwargs.get("bundle_id") is not None:
                 raise AuthoritySelectionError(
                     "model authority takes model_bundle_path/model_bundle_id, not O3 bundle arguments")

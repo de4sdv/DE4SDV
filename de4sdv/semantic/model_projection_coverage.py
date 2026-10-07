@@ -1,17 +1,28 @@
 """Model-projection coverage gate (O4 Wave B, shadow ratchet).
 
-Classifies every retained O4 register row, every ontology YAML identity the
-register does not list, and every governed kernel declaration as either
-``projected`` (provider layer + layer digest) or ``residual`` (reason), using
-the same routing the model-authority bundle binds
-(:func:`model_authority_runtime.compute_routing`).
+Classifies four populations as either ``projected`` (provider layer + layer
+digest) or ``residual`` (reason), using the same routing the model-authority
+bundle binds (:func:`model_authority_runtime.compute_routing`):
+
+- every retained O4 register row (``retained_residual`` -- the owner's
+  criterion; it must stay empty and Wave C makes it blocking);
+- every ontology YAML identity the register does not list;
+- every registered NON-retained row (merged/removed) still present in the
+  ontology YAML: the runtime serves such a row from the authored YAML, so it
+  is reported as an owner-visible ``exceptions`` entry carrying its reason and
+  register disposition (routing does not refuse it; that is a Wave C owner
+  call);
+- every governed kernel declaration.
+
+The report's total ``residual`` equals the routing residual exactly: every
+identity the runtime serves from the authored YAML is listed.
 
 The gate compares the current classification with the committed baseline
 ``docs/method-conformance/o4/model-authority-coverage-baseline.yaml`` and fails
 on:
 
-- residual drift in either direction (a new residual, or a resolved residual
-  still listed in the baseline — the baseline must stay exact);
+- residual drift in either direction (a new residual or exception, or a
+  resolved one still listed in the baseline — the baseline must stay exact);
 - duplicate providers (two layers claiming one identity without agreement);
 - routing/layer digest mismatch against the baseline, and — when a bundle is
   supplied — a bundle whose bound routing/layers differ from the checkout.
@@ -76,11 +87,18 @@ def build_report(root: Path = ROOT) -> dict[str, Any]:
     digests = _layer_digests(records, root)
     digests["successor-contract"] = contract["id"]
     retained = sorted(n for n, r in register.items() if r.get("accounting_status") == "retained")
-    unregistered = sorted((set(legacy.classes) | set(legacy.relationships)) - set(register))
+    yaml_identities = set(legacy.classes) | set(legacy.relationships)
+    unregistered = sorted(yaml_identities - set(register))
+    non_retained = sorted((yaml_identities & set(register)) - set(retained))
     identities: dict[str, Any] = {}
-    for name in retained + unregistered:
+    for name in retained + unregistered + non_retained:
         provision = routing.providers.get(name)
-        group = "retained-register-row" if name in register else "unregistered-yaml-identity"
+        if name in retained:
+            group = "retained-register-row"
+        elif name in register:
+            group = "registered-non-retained-yaml-identity"
+        else:
+            group = "unregistered-yaml-identity"
         if provision is not None:
             identities[name] = {"group": group, "status": "projected", "layer": provision.layer,
                                 "layer_digest": digests[provision.layer]}
@@ -88,8 +106,15 @@ def build_report(root: Path = ROOT) -> dict[str, Any]:
             identities[name] = {"group": group, "status": "projected", "layer": "deprecated-alias",
                                 "layer_digest": digests["successor-contract"],
                                 "successor": mar.DEPRECATED_ALIASES[name].successor}
-        else:
-            identities[name] = {"group": group, "status": "residual", "reason": routing.residual[name]}
+        elif name in routing.residual:
+            entry = {"group": group, "status": "residual", "reason": routing.residual[name]}
+            if name in register:
+                entry["register"] = {key: register[name].get(key) for key in (
+                    "accounting_status", "migration_class", "final_disposition")}
+            identities[name] = entry
+        else:  # retired by the successor contract: answered by no provider
+            identities[name] = {"group": group, "status": "retired",
+                                "reason": "retired by the model-derived successor contract"}
     projected_pins: dict[tuple[str, str], str] = {}
     for name, provision in routing.providers.items():
         mapping = provision.mapping
@@ -129,6 +154,14 @@ def build_report(root: Path = ROOT) -> dict[str, Any]:
         else:
             declarations[key] = {"status": "residual", "reason": "unclassified governed declaration"}
     residual = sorted(n for n, v in identities.items() if v["status"] == "residual")
+    if residual != sorted(routing.residual):
+        missing = sorted(set(routing.residual) - set(residual))
+        raise ValueError(f"coverage residual differs from the routing residual: {missing}")
+    retained_residual = [n for n in residual if identities[n]["group"] == "retained-register-row"]
+    unregistered_residual = [n for n in residual
+                             if identities[n]["group"] == "unregistered-yaml-identity"]
+    exceptions = [n for n in residual
+                  if identities[n]["group"] == "registered-non-retained-yaml-identity"]
     residual_declarations = sorted(k for k, v in declarations.items() if v["status"] == "residual")
     report = {
         "schema": REPORT_SCHEMA,
@@ -141,13 +174,21 @@ def build_report(root: Path = ROOT) -> dict[str, Any]:
         "summary": {
             "retained_rows": len(retained),
             "unregistered_yaml_identities": len(unregistered),
+            "registered_non_retained_yaml_identities": len(non_retained),
             "governed_declarations": len(declarations),
             "projected_identities": sum(v["status"] == "projected" for v in identities.values()),
+            "retained_residual": len(retained_residual),
+            "unregistered_residual": len(unregistered_residual),
+            "exceptions": len(exceptions),
             "residual_identities": len(residual),
             "residual_declarations": len(residual_declarations),
+            "retained_residual_empty": not retained_residual,
             "residual_empty": not residual and not residual_declarations,
         },
         "residual": residual,
+        "retained_residual": retained_residual,
+        "unregistered_residual": unregistered_residual,
+        "exceptions": exceptions,
         "residual_declarations": residual_declarations,
     }
     return report
@@ -160,10 +201,15 @@ def baseline_from_report(report: Mapping[str, Any]) -> dict[str, Any]:
         "note": ("Reviewed shadow ratchet for the model-authority coverage gate. "
                  "Not revision-bound evidence; no binding block. Regenerate with "
                  "scripts/check_model_projection_coverage.py --write-baseline after "
-                 "a reviewed projection change. Wave C makes an empty residual blocking."),
+                 "a reviewed projection change. residual equals the runtime routing "
+                 "residual; exceptions are the owner-visible registered non-retained "
+                 "rows still served from the authored YAML. Wave C makes an empty "
+                 "retained_residual blocking."),
         "routing_digest": report["routing_digest"],
         "layer_digests": dict(report["layer_digests"]),
         "residual": list(report["residual"]),
+        "retained_residual": list(report["retained_residual"]),
+        "exceptions": list(report["exceptions"]),
         "residual_declarations": list(report["residual_declarations"]),
     }
 
@@ -181,7 +227,7 @@ def compare(report: Mapping[str, Any], baseline: Mapping[str, Any]) -> list[str]
     errors = []
     for name in report["duplicates"]:
         errors.append(f"duplicate provider: {name}")
-    for key in ("residual", "residual_declarations"):
+    for key in ("residual", "retained_residual", "exceptions", "residual_declarations"):
         current, recorded = set(report[key]), set(baseline.get(key) or ())
         for name in sorted(current - recorded):
             errors.append(f"residual drift: new {key} entry {name!r} not in the baseline")

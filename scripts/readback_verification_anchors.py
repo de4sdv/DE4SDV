@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Decision-13 live-API read-back of the implied VerificationCase anchors.
+"""Decision-13 API read-back of the implied VerificationCase anchors.
 
 Owner decision 13 (O4 W0, reaffirmed 2026-10-07 for Wave B): before any
 claim stronger than the export, the implied library-anchor edges of the
 governed VerificationCase population (22 definitions / 34 usages at the
-reviewed revision) are read back from the LIVE SysML v2 API at the exact
+reviewed revision) are read back from a running SysML v2 API at the exact
 revision. A failure BLOCKS activation (``activation_eligible`` = false).
 
 The proof reuses the ONE shared predicate
@@ -24,8 +24,15 @@ show:
    ``GET .../elements/<id>`` and must carry the reviewed shape (type,
    ``isImplied`` true, specific end = governed element).
 
-Claim boundary: presence and shape of the implied anchor edges in the live
-API at one revision. It does not establish verification adequacy, evidence
+Which API instance is read is stated, never implied (``--api-source``): the
+privileged CI job reads a ``pg_restore``'d same-run database snapshot served
+by the pinned API build (``restored-same-run-snapshot``), not the live
+production API; the activation procedure's deployment re-closure reads the
+deployed API (``deployed-api``). In both cases the corpus identity check (2)
+ties the queried instance to the export.
+
+Claim boundary: presence and shape of the implied anchor edges in the queried
+API instance at one revision. It does not establish verification adequacy, evidence
 validity or acceptance. Exit 0 only when every check passes; the report is
 written either way.
 """
@@ -49,6 +56,17 @@ from de4sdv.semantic import verification_grounding as vg  # noqa: E402
 from de4sdv.sysml_api.repository import reference_ids  # noqa: E402
 
 READBACK_SCHEMA = "de4sdv.o4-verification-anchor-readback/v1"
+
+#: The API instance a read-back queried -> what it is (claim-boundary text).
+API_SOURCES = {
+    "restored-same-run-snapshot": (
+        "a pg_restore'd snapshot of the same privileged run's API database, served "
+        "by the pinned SysML v2 API build and identity-checked against the export "
+        "(element id set); not the live production API"),
+    "deployed-api": (
+        "the deployed SysML v2 API at the deployment binding, identity-checked "
+        "against the export (element id set)"),
+}
 EXPECTED_DEFINITIONS = 22
 EXPECTED_USAGES = 34
 
@@ -77,17 +95,17 @@ def _dereference(repository, binding, role: str, row: dict[str, Any]) -> list[st
     try:
         witness = repository.get_element(project, commit, witness_id)
     except Exception as exc:  # noqa: BLE001 — any read failure is a failed read-back
-        return [f"{role}: witness {witness_id} not readable from the live API: {exc}"]
+        return [f"{role}: witness {witness_id} not readable from the queried API: {exc}"]
     try:
         governed = repository.get_element(project, commit, governed_id)
     except Exception as exc:  # noqa: BLE001
-        return [f"{role}: governed element {governed_id} not readable from the live API: {exc}"]
+        return [f"{role}: governed element {governed_id} not readable from the queried API: {exc}"]
     if str(witness.get("@id") or witness.get("elementId") or "") != witness_id:
         problems.append(f"{role}: witness {witness_id} dereferenced to a different id")
     if str(witness.get("@type")) not in kinds:
         problems.append(f"{role}: witness {witness_id} has type {witness.get('@type')!r}")
     if witness.get("isImplied") is not True:
-        problems.append(f"{role}: witness {witness_id} is not isImplied in the live API")
+        problems.append(f"{role}: witness {witness_id} is not isImplied in the queried API")
     specific: set[str] = set()
     for key in specific_keys:
         specific.update(reference_ids(witness.get(key)))
@@ -111,8 +129,12 @@ def readback_anchors(
     semantic_report: dict[str, Any] | None = None,
     expected_definitions: int = EXPECTED_DEFINITIONS,
     expected_usages: int = EXPECTED_USAGES,
+    api_source: str | None = None,
 ) -> dict[str, Any]:
     """Evaluate the decision-13 read-back (pure over the supplied transport)."""
+    if api_source is not None and api_source not in API_SOURCES:
+        raise ValueError(f"unknown api_source {api_source!r}")
+    queried = API_SOURCES.get(api_source or "", "an API instance whose kind was not stated")
     failures: list[str] = []
     if str(binding.git_commit) != revision:
         failures.append(f"binding revision {binding.git_commit} != {revision}")
@@ -199,10 +221,12 @@ def readback_anchors(
         "failures": failures,
         "passed": passed,
         "activation_eligible": passed,
+        "api_source": api_source,
         "claim_boundary": (
             "presence and shape of the implied VerificationCase library-anchor "
-            "edges in the live API at one exact revision; does not establish "
-            "verification adequacy, evidence validity, acceptance or compliance"
+            f"edges in the queried API instance ({queried}) at one exact revision; "
+            "does not establish verification adequacy, evidence validity, "
+            "acceptance or compliance"
         ),
     }
 
@@ -231,6 +255,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--export", required=True, type=Path)
     parser.add_argument("--git-revision", required=True)
     parser.add_argument("--semantic-report", type=Path)
+    parser.add_argument("--api-source", required=True, choices=sorted(API_SOURCES),
+                        help="which API instance --api-url serves (stated in the claim boundary)")
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args(argv)
     head = _git_head()
@@ -247,7 +273,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.semantic_report else None
     )
     report = readback_anchors(_repository(args.api_url), binding, export,
-                              revision=args.git_revision, semantic_report=semantic_report)
+                              revision=args.git_revision, semantic_report=semantic_report,
+                              api_source=args.api_source)
     report["binding_sha256"] = "sha256:" + hashlib.sha256(args.binding.read_bytes()).hexdigest()
     report["export_sha256"] = "sha256:" + hashlib.sha256(export_bytes).hexdigest()
     report["generated_at"] = datetime.now(timezone.utc).isoformat()
