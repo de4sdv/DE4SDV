@@ -47,4 +47,23 @@ Decisions for Wave A:
 Still open for later waves: the production cutover to a model-authority
 bundle with O3 kept as rollback, including the live-API anchor read-back
 (decision 13) (Wave B); and freezing the historical O1/O2/O3 records instead
-of regenerating them (Wave C).
+of regenerating them (Wave C). The freeze was decided on 2026-10-07 (below).
+
+## 2026-10-07 — Wave C
+
+All recommendations of the Wave C design brief were accepted.
+
+| # | Topic | Answer |
+|---|---|---|
+| Q7 | Historical O1/O2/O3 records | Freeze them; do not regenerate. Implemented in Wave C1: [frozen-records.md](../frozen-records.md). |
+| D1 | PR slicing | Two PRs: C1 gates and frozen records (squash OK), then C2 closure (merge commit required; a single rebind PR if it is squashed). |
+| D2 | Rollback after Wave C | Redeploy the soaked pre-Wave-C production SHA through the normal deploy workflows, with a mandatory post-C2 production drill. Soak of at least 7 days, at least one green nightly privileged run, no rollback. |
+| D3 | Kernel-internal declarations | A governance manifest, not model comments: [kernel-internal-declarations.yaml](kernel-internal-declarations.yaml) (Wave C1). |
+| D4 | Deprecated aliases | Refused with "retired; use `<successor>`"; the model retirement records are kept (Wave C2). |
+| D5 | `IncrementTraceabilityShell`, `derivesNeedFromConcern` | Refused with their register disposition; the `derivesNeedFromConcern` change from gap to refusal is reviewed as an intentional migration (Wave C2). Until then they stay ratcheted, allowed exceptions of the coverage gate. |
+| D6 | Unset authority selector | Refused; no default to `model` (Wave C2). |
+| D7 | Consumer-ledger `KernelContract` markers | Redefined; no class rename (Wave C2). |
+| D8 | `scripts/prove_derivation_slice.py` | Rewire or retire; decided during Wave C2. |
+| D9 | The 54 batch-2 contract fields | Stay in the admission manifest, labelled honestly with pre-deletion comparison evidence; accepted for O4 closure; moving them into the model is a follow-up. |
+| D10 | Freeze scope | The whole `o1/`, `o2/` and `o3/` directories. |
+

@@ -48,39 +48,55 @@ Before proposing a completed change:
 
 ## Ontology and kernel-vocabulary alignment
 
-The repository keeps a bidirectional ontology-kernel contract between the
-SysML method kernel (`textual-notation-of-model/packages/methods/de4sdv/`)
-and the basic ontology (`approach/framework/ontology/de4sdv-basic-ontology.yaml`).
-CI enforces it mechanically through the ontology-kernel contract check in
-`scripts/check_model_sync.py` (`[ONTOLOGY-KERNEL]` errors); do not weaken or
-bypass this check to make a change pass.
+The SysML method kernel (`textual-notation-of-model/packages/methods/de4sdv/`)
+is the semantic authority. Its vocabulary reaches consumers through
+model-generated projection layers. The authored basic ontology
+(`approach/framework/ontology/de4sdv-basic-ontology.yaml`) is being retired
+(O4); until O4 Wave C2 deletes it, it still serves two owner-visible
+exceptions and the O3 rollback path. Do not weaken or bypass these gates to
+make a change pass:
 
-The contract is the set equation:
+- **Kernel accounting** — the model-projection coverage gate
+  (`de4sdv/semantic/model_projection_coverage.py`, run by `check_repo.py` and
+  `scripts/check_model_projection_coverage.py`). The equation is:
 
-```text
-kernel declarations
-= ontology-mapped declarations
-+ kernel_sync.exclusions (each with a reason)
-```
+  ```text
+  governed kernel declarations
+  = model-projected declarations
+  + kernel-internal declarations (each with a reason)
+  ```
 
-When a change touches the method kernel or the ontology:
+  Kernel-internal declarations are listed in
+  `docs/method-conformance/o4/kernel-internal-declarations.yaml` (owner
+  decision D3). Until O4 Wave C2 that list must stay equal to the authored
+  ontology's exclusion list; the gate refuses any difference.
+- **Mapping direction** — `scripts/check_model_sync.py` sync point 5
+  (`[ONTOLOGY-KERNEL]` errors): every authored ontology class mapping is well
+  formed and resolves. It is deleted with the authored ontology in Wave C2.
+- **R003 groundings** — sync point 6 reads them from
+  `constraint ontologyRuleR003` in `de4sdv_ontology_validation_rules.sysml`;
+  keep their text format exact.
+
+When a change touches the method kernel:
 
 - Every new declaration (`part def`, `requirement def`, `enum def`, and every
   other `def` kind) in a kernel file must be classified in the same commit:
-  either map it from an ontology class with a `kernel` mapping
-  (`file` + `declaration`) in
-  `approach/framework/ontology/de4sdv-basic-ontology.yaml`, or add it to
-  `kernel_sync.exclusions` with a non-empty reason (deliberately
-  kernel-internal). Unlisted declarations fail CI.
-- Renaming or removing a kernel declaration requires updating the ontology
-  YAML in the same commit; stale mappings and stale exclusions fail the gate.
-- Exclusions must stay inside the governed directory declared by
-  `kernel_sync.governed_directory` and must not overlap mapped declarations.
+  project it through a model-generated layer, or list it as kernel-internal
+  with a non-empty reason (in the manifest above and, until Wave C2, in the
+  authored ontology's exclusion list). Unclassified declarations fail CI.
+- Renaming or removing a kernel declaration requires updating its projection
+  or kernel-internal entry in the same commit; stale entries fail the gate.
+- Kernel-internal entries must stay inside the governed directory and must not
+  also be a projected class mapping.
 - When a feature slice introduces a concept that is reusable method
-  vocabulary (not feature-specific), propose moving it to the kernel and
-  mapping it from the ontology instead of leaving a local duplicate.
-- Do not re-declare ontology-mapped kernel names as local `def`s inside
-  feature slices; specialize or import the kernel declarations instead.
+  vocabulary (not feature-specific), propose moving it to the kernel instead
+  of leaving a local duplicate.
+- Do not re-declare class-mapped kernel names as local `def`s inside feature
+  slices; specialize or import the kernel declarations instead.
+
+The historical O1, O2 and O3 records under `docs/method-conformance/` are
+frozen; never regenerate or edit them. See
+[`docs/method-conformance/frozen-records.md`](docs/method-conformance/frozen-records.md).
 
 ## SysML v2 textual notation validation
 

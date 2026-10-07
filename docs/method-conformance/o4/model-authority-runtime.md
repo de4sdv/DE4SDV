@@ -153,20 +153,21 @@ closed with `MODEL_EVIDENCE_CONTRACT_BLOCKED_REASON`. `traversal.py` is
 untouched; the discriminator is a subclass override. The legacy and o3 paths
 keep the predicate blocked.
 
-## Coverage gate (shadow ratchet)
+## Coverage gate (retained residual blocking)
 
 `scripts/check_model_projection_coverage.py` (module
 `de4sdv/semantic/model_projection_coverage.py`) classifies every item in
 four populations as projected (layer + digest) or residual (reason):
 
 - every retained register row (`retained_residual`: the owner's criterion,
-  empty, blocking from Wave C);
+  empty, blocking since Wave C1);
 - the ontology YAML identities that the register does not list;
 - every registered non-retained (merged/removed) row still in the ontology
   YAML (`exceptions`: owner-visible, with reason and register disposition;
-  routing does not refuse them, an owner call reserved for Wave C);
-- every governed kernel declaration (excluded declarations are listed
-  separately).
+  routing does not refuse them; ratcheted and allowed until Wave C2);
+- every governed kernel declaration: projected by a model-generated layer, or
+  listed in [kernel-internal-declarations.yaml](kernel-internal-declarations.yaml)
+  with a reason (owner decision D3).
 
 The total `residual` equals the routing residual the runtime serves from
 the authored YAML. Current summary: 103 projected, 0 retained residual,
@@ -174,9 +175,21 @@ the authored YAML. Current summary: 103 projected, 0 retained residual,
 `derivesNeedFromConcern`), 0 residual kernel declarations.
 
 It compares the result with
-`model-authority-coverage-baseline.yaml`, which has no binding block. It
-fails on residual or exception drift in either direction, duplicate providers, and
-routing or layer digest mismatch. With `--bundle`, it also fails when a
-bundle differs from the checkout. `scripts/check_repo.py` runs it. In shadow
-mode, a non-empty residual is reported but does not fail the gate. Wave C
-makes an empty residual blocking.
+`model-authority-coverage-baseline.yaml` (schema v2, mode
+`blocking-retained`), which has no binding block. It fails on residual or
+exception drift in either direction, duplicate providers, and routing or
+layer digest mismatch. With `--bundle`, it also fails when a bundle differs
+from the checkout. `scripts/check_repo.py` runs it.
+
+Since Wave C1 it also fails, regardless of the baseline, on:
+
+- a non-empty `retained_residual`;
+- any kernel-accounting error: an unclassified governed declaration; a stale,
+  reason-less or out-of-directory kernel-internal entry; an entry that is also
+  a projected class mapping; a feature slice that re-declares a class-mapped
+  kernel name; or a kernel-internal manifest that differs from the authored
+  ontology's list (the C1 transition lock, removed with that list in Wave C2).
+
+These kernel-accounting checks replace the kernel-to-ontology direction and
+the feature-slice guard of `scripts/check_model_sync.py` sync point 5. Wave C2
+makes any non-empty residual blocking.

@@ -115,7 +115,6 @@ entries:
   AGENTS.md:
     role: documentation
     markers:
-    - kernel_sync_key
     - ontology_dir_token
     - ontology_path_token
     retirement_status: not-applicable
@@ -319,6 +318,7 @@ entries:
   docs/method-conformance/o4/owner-decisions-2026-10.md:
     role: documentation
     markers:
+    - kernel_contract_symbol
     - kernel_sync_key
     - ontology_dir_token
     - ontology_path_token
