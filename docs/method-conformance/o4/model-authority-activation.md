@@ -66,10 +66,16 @@ edited): the O3 rollback path is byte-identical to the one in production.
    O3 `activation_eligible` AND O4 definition closure `closed` AND the
    model-projection coverage report equal to the checkout's recomputation
    with no residual drift and the bundle bound to the checkout AND
-   model-vs-O3 and model-vs-legacy runtime equivalence `EQUIVALENT` AND the
-   **decision-13 live-API read-back passed** (owner decision 4: a failed
-   read-back blocks activation; no claim stronger than the export is made
-   before it passes). Each gate is sha256-bound to its artifact in the
+   model-vs-O3 and model-vs-legacy runtime equivalence `EQUIVALENT` (which
+   includes the live `EvidenceContract` closure equal, by element id, to the
+   eight bound members validated from the export) AND the **decision-13
+   read-back passed** (owner decision 4: a failed read-back blocks
+   activation; no claim stronger than the export is made before it passes).
+   In this privileged job the read-back queries a `pg_restore`d snapshot of
+   the same run's API database, served by the pinned API build and
+   identity-checked against the export (element id set); it is not a
+   read-back of the live production API. The deployment-bound read-back is
+   activation step 0d. Each gate is sha256-bound to its artifact in the
    closure attestation.
 4. The requirement-population delta report
    (`de4sdv-o4-requirement-population-delta.json`, owner decision 6) is
@@ -82,18 +88,40 @@ edited): the O3 rollback path is byte-identical to the one in production.
 5. Independent review of the evidence (`de4sdv-assurance`), recorded as
    an acceptance package: exact SHA, run id, `mab-` id, O3 bundle id,
    closure digests, artifact digests, per-gate results, discriminator
-   population, delta report, known residual (must be empty for retained
-   rows).
-6. **Owner-gated:** the `sysml-api-production` environment approval for
+   population, delta report, and the coverage residual: `retained_residual`
+   must be empty (the owner's criterion, blocking from Wave C), and the
+   owner-visible `exceptions` (registered non-retained rows the runtime still
+   serves from the authored YAML: `IncrementTraceabilityShell` MERGE,
+   `derivesNeedFromConcern` REMOVE) are listed and acknowledged. The total
+   coverage residual equals the bundle's `routing.residual`.
+6. On the first dispatch, record the API database snapshot size and the
+   snapshot step time (the `snapshot bytes` / `snapshot seconds` lines of
+   the ingest job's snapshot step) in the acceptance package. The snapshot
+   and its upload are `continue-on-error` on the ingest job, so a missing
+   snapshot shows up as a failed `Require the same-run API database
+   snapshot` step of `model-authority-evidence`, not as a red ingestion.
+7. **Owner-gated:** the `sysml-api-production` environment approval for
    any production deploy, and the activation decision that names the
    exact `mab-` id.
 
 ## 3. Activation procedure
 
+The `mab-` id digests only closure-independent content: the Git revision,
+the ontology compatibility identity, and the components (the O3 core id,
+O3 chain and runtime build; every model layer digest; the successor
+contract; routing; the implementation manifest). The closed O3 document
+and every binding-dependent value (binding digest, SysML project/commit,
+O3 closure digest, validated `EvidenceContract` member ids, validation
+digests, `generated_at`) live in the closure attestation, which is not
+part of the id. Re-closing at the deployment binding therefore reproduces
+the privileged `mab-` id exactly; only the attestation changes.
+
 ```text
-0. deployment-bound closure (once per deployed binding; the privileged
-   bundle binds the CI binding and is refused against the deployment
-   binding by design):
+0. deployment-bound closure (once per deployed binding): the privileged
+   acceptance names one mab- id; the deployment re-closure must reproduce
+   exactly that id. The privileged closure attestation binds the CI binding
+   and is refused against the deployment binding by design, so the bundle
+   is re-closed and the new attestation carries the deployment binding:
    a. confirm deployment-status.json .baseline.git_commit == accepted SHA;
    b. fetch the deployment binding and semantic report READ-ONLY;
    c. produce the deployment-bound O3 closure exactly as in the O3
@@ -104,6 +132,7 @@ edited): the O3 rollback path is byte-identical to the one in production.
           --api-url <deployed API> --binding <deployment binding> \
           --export <evidence export> \
           --semantic-report <deployment semantic report> \
+          --api-source deployed-api \
           --git-revision <SHA> --output <dir>/readback.json
         python scripts/probe_definition_migration.py --root . \
           --binding <deployment binding> --export <evidence export> \
@@ -126,10 +155,16 @@ edited): the O3 rollback path is byte-identical to the one in production.
           --equivalence <dir>/de4sdv-model-authority-equivalence-report.json \
           --readback <dir>/readback.json --out <dir>
 
-   e. review against the privileged acceptance: the mab- id, git
-      revision, O3 component id, layer/successor/routing digests and
-      ontology identity must be IDENTICAL; only binding-dependent closure
-      fields may differ; require activation_eligible=true.
+   e. review against the privileged acceptance: the candidate printed by
+      `bundle` must carry EXACTLY the accepted mab- id (stop otherwise:
+      the checkout, O3 core, layers, successor contract, routing or
+      implementation differ from what was accepted). The git revision, O3
+      component (core id, chain, runtime build), layer/successor/routing
+      digests and ontology identity are therefore identical. Only the
+      closure attestation differs: binding digest, SysML project/commit,
+      O3 closure digest, validated EvidenceContract member ids, validation
+      digests and generated_at, all bound to the deployment binding.
+      Require activation_eligible=true.
 
 1. copy the reviewed closed bundle to
      /srv/de4sdv/artifacts/model/de4sdv-model-authority-bundle.json
@@ -229,5 +264,8 @@ not remove the deprecated alias names (`realizedBy`, `deployedTo`,
 deprecated aliases until Wave C), and makes no compliance, certification
 or homologation claim. The decision-13 read-back establishes presence and
 shape of the implied verification anchors in the live API at one
-revision, not verification adequacy. AI-produced evidence and reviews in
-this chain are inputs to the owner's decision, not expert approval.
+revision, not verification adequacy. In the privileged job that API is a
+restored same-run database snapshot identity-checked against the export;
+at activation step 0d it is the deployed API. AI-produced evidence and
+reviews in this chain are inputs to the owner's decision, not expert
+approval.

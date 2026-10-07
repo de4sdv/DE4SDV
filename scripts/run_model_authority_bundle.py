@@ -10,7 +10,11 @@ see ``.github/workflows/privileged-full-model-api-ingestion.yml``):
              legacy over the O3 identity set (the reviewed
              ``run_o3_equivalence`` report builder, unchanged), plus the
              model-only ``hasRelevantEvidenceContract`` discriminator
-             population as recorded evidence (owner decision 5).
+             population as recorded evidence (owner decision 5). The live
+             EvidenceContract closure must equal, by element id, the bound
+             eight members as validated from the same-run export by the
+             ingestion binding rule; a difference is BLOCKING_MISMATCH and the
+             validated members are what ``close`` attests.
 ``close``    closure attestation from the produced artifacts. Every gate
              status is DERIVED from the artifact it names (never from CLI
              text) and sha256-bound to it:
@@ -160,8 +164,27 @@ def _build_services(args, revision: str, o3_bundle: dict[str, Any], model_path: 
     return legacy, o3, model
 
 
-def discriminator_population(service, elements: list[dict[str, Any]], subjects) -> dict[str, Any]:
-    """Model-only ``hasRelevantEvidenceContract`` population (recorded)."""
+def closure_identity(service, elements: list[dict[str, Any]],
+                     closure_members: list[dict[str, Any]]) -> dict[str, Any]:
+    """Live EvidenceContract closure vs the validated bound members (by id)."""
+    expected = {str(m.get("element_id")) for m in closure_members}
+    try:
+        _, live, _, _ = service.traversal.evidence_contract_definitions(elements)
+    except Exception as exc:  # noqa: BLE001 — recorded, classification fails
+        return {"result": "BLOCKING_MISMATCH", "error": str(exc)}
+    live = {str(i) for i in live}
+    return {"result": "EQUAL" if live == expected and len(expected) == len(closure_members)
+            else "BLOCKING_MISMATCH",
+            "live_only": sorted(live - expected), "bound_only": sorted(expected - live)}
+
+
+def discriminator_population(service, elements: list[dict[str, Any]], subjects,
+                             closure_members: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    """Model-only ``hasRelevantEvidenceContract`` population (recorded).
+
+    With ``closure_members`` (the bound members validated from the export),
+    the live closure must equal them by element id.
+    """
     by_id = {str(e.get("@id")): e for e in elements}
     hops_total = 0
     sources: set[str] = set()
@@ -180,6 +203,9 @@ def discriminator_population(service, elements: list[dict[str, Any]], subjects) 
             hops_total += 1
             sources.add(subject)
             targets.add(str((hop.target or {}).get("@id")))
+    identity = (closure_identity(service, elements, closure_members)
+                if closure_members is not None else {"result": "NOT_CHECKED"})
+    blocking = bool(errors) or identity["result"] == "BLOCKING_MISMATCH"
     return {
         "predicate": DISCRIMINATED_PREDICATE,
         "authority": str(getattr(service, "semantic_authority_id", "")),
@@ -188,7 +214,9 @@ def discriminator_population(service, elements: list[dict[str, Any]], subjects) 
         "distinct_sources": len(sources),
         "distinct_targets": sorted(targets),
         "errors": errors[:50],
-        "classification": "RECORDED" if not errors else "BLOCKING_MISMATCH",
+        "closure_members": list(closure_members or []),
+        "closure_identity": identity,
+        "classification": "RECORDED" if not blocking else "BLOCKING_MISMATCH",
         "note": ("owner decision 5: model-only resolution of the adopted "
                  "EvidenceContract type-closure discriminator; legacy/O3 keep "
                  "the blocked range, so this is recorded evidence, not an "
@@ -237,7 +265,16 @@ def run_compare(args: argparse.Namespace) -> int:
             git_revision=revision, verification_case_grounding=grounding,
             generated_at=generated_at)
     subjects = roe.subject_population(elements, "hasRelevantArchitecture")
-    discriminator = discriminator_population(model, elements, subjects)
+    try:
+        from de4sdv.sysml_api.baseline import BaselineExportBundle
+
+        export = BaselineExportBundle.load(Path(args.export))
+        members = _module(MODEL_MODULE).validate_closure_members(
+            _module(MODEL_MODULE).bound_evidence_contract_closure(ROOT),
+            list(export.elements.values()), export.element_sources)
+    except (OSError, ValueError) as exc:  # includes ModelAuthorityRefused
+        raise Refused(f"bound EvidenceContract closure members cannot be validated: {exc}") from exc
+    discriminator = discriminator_population(model, elements, subjects, closure_members=members)
     overall = compare_overall(pairs, discriminator)
     report = {
         "schema": COMPARE_SCHEMA,
@@ -308,6 +345,9 @@ def equivalence_gate(document: dict[str, Any], *, revision: str, bundle_id: str)
     if set(pairs) != {"o3_vs_model", "legacy_vs_model"} or any(
             (p or {}).get("overall") != "EQUIVALENT" for p in pairs.values()):
         problems.append("both model comparison pairs must be EQUIVALENT")
+    discriminator = document.get("discriminator") or {}
+    if (discriminator.get("closure_identity") or {}).get("result") != "EQUAL":
+        problems.append("live EvidenceContract closure is not identity-equal to the bound members")
     return problems
 
 
@@ -359,10 +399,13 @@ def run_close(args: argparse.Namespace) -> int:
     }
     closed_ok, probe_problems = definition_closure_closed(_read_json(args.definition_probe),
                                                           revision=revision)
+    equivalence = _read_json(paths["model_o3_legacy_equivalence"])
+    members = list((equivalence.get("discriminator") or {}).get("closure_members") or [])
     attestation = model.build_model_closure_attestation(
         bundle, binding=binding, binding_sha256=_sha256_file(args.binding),
         definition_closure_closed=closed_ok, validations=validations,
-        generated_at=datetime.now(timezone.utc).isoformat())
+        generated_at=datetime.now(timezone.utc).isoformat(),
+        evidence_contract_closure=members)
     closed = model.close_model_bundle(bundle, attestation)
     errors = list(model.verify_model_bundle(
         closed, root=ROOT, binding=binding, binding_sha256=_sha256_file(args.binding),

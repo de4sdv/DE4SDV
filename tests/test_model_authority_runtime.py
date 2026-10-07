@@ -72,6 +72,13 @@ def _elements_and_bindings(ec_defs=EC_DEFS):
     return elements, bindings, legacy
 
 
+def _attested_members(ids=None):
+    """The bound closure members, attested with the fixture's ec-def ids."""
+    ids = ids or [f"ec-def-{i}" for i in range(EC_DEFS)]
+    return [{**member, "element_id": element}
+            for member, element in zip(mar.bound_evidence_contract_closure(ROOT), ids)]
+
+
 def _edge(kind, source, target, name, **kwargs):
     return {"@id": name, "@type": kind, "source": [{"@id": source}], "target": [{"@id": target}],
             "owningNamespace": {"@id": "context"}, **kwargs}
@@ -118,7 +125,8 @@ def _fixture(tmp_path, *, eligible=True, ec_defs=EC_DEFS):
                                  sha256=_sha(evidence))
     closed = mar.close_model_bundle(bundle, mar.build_model_closure_attestation(
         bundle, binding=binding, binding_sha256=_sha(binding_path), definition_closure_closed=True,
-        validations=validations, generated_at="1970-01-01T00:00:00+00:00"))
+        validations=validations, generated_at="1970-01-01T00:00:00+00:00",
+        evidence_contract_closure=_attested_members()))
     bundle_path = tmp_path / "model.json"
     bundle_path.write_text(json.dumps(closed))
     return dict(elements=elements, binding_path=binding_path, binding=binding, o3=o3,
@@ -180,7 +188,8 @@ def _tamper(bundle, path, value):
     (("components", "layers", 0, "projection", "sha256"), "sha256:" + "0" * 64, "layers"),
     (("components", "successor_contract", "id"), "sha256:" + "1" * 64, "successor_contract"),
     (("components", "implementation_manifest", "id"), "mai-" + "2" * 32, "implementation_manifest"),
-    (("components", "o3", "sha256"), "sha256:" + "3" * 64, "'o3'"),
+    (("components", "o3", "chain"), [], "'o3'"),
+    (("components", "o3", "runtime_build"), {}, "'o3'"),
     (("git_revision",), "b" * 40, "content digest"),
 ])
 def test_tampered_component_is_refused_even_with_recomputed_id(fx, path, value, message):
@@ -202,6 +211,64 @@ def test_closure_eligibility_is_recomputed_not_trusted(fx):
     bundle["closure"]["activation_eligible"] = False
     assert mar.verify_model_bundle(bundle, root=ROOT) == []
     assert mar._eligibility(bundle["closure"]) is False
+
+
+def _reclosed_o3(fx, tmp_path, *, commit_id, generated_at):
+    """The same O3 core, closed against another binding (deployment re-closure)."""
+    document = json.loads(fx["binding_path"].read_text())
+    document.update(sysml_commit_id=commit_id, import_timestamp=generated_at)
+    path = tmp_path / f"binding-{commit_id}.json"
+    path.write_text(json.dumps(document))
+    binding = RevisionBinding.load(path)
+    core = ob.build_candidate_bundle(ROOT, git_revision=REVISION)
+    validations = {name: dict(record) for name, record in fx["o3"]["api_closure"]["validation"].items()}
+    closed = ob.close_bundle(core, ob.build_closure_attestation(
+        core, binding=binding, binding_sha256=_sha(path), element_count=len(fx["elements"]) + 1,
+        export_identity_sha256="sha256:" + "e" * 64, validations=validations,
+        verification_case_grounding={"result": "EQUIVALENT"}, generated_at=generated_at))
+    return closed, binding, path
+
+
+def test_mab_id_is_reproducible_across_o3_reclosure(fx, tmp_path):
+    """R1: the deployment re-closure reproduces the privileged mab- id exactly."""
+    o3_deploy, binding, binding_path = _reclosed_o3(
+        fx, tmp_path, commit_id="cid-deployment", generated_at="2026-10-08T12:00:00+00:00")
+    assert o3_deploy["bundle_id"] == fx["o3"]["bundle_id"]
+    assert o3_deploy["api_closure"] != fx["o3"]["api_closure"]
+    redeployed = mar.build_model_bundle(ROOT, o3_bundle=o3_deploy, git_revision=REVISION)
+    assert redeployed["bundle_id"] == fx["candidate"]["bundle_id"] == fx["bundle"]["bundle_id"]
+    # The closure attestation, not the id, carries the deployment binding.
+    closed = mar.close_model_bundle(redeployed, mar.build_model_closure_attestation(
+        redeployed, binding=binding, binding_sha256=_sha(binding_path), definition_closure_closed=True,
+        validations=fx["bundle"]["closure"]["validation"], generated_at="2026-10-08T12:00:01+00:00",
+        evidence_contract_closure=_attested_members()))
+    assert closed["closure"]["sysml_commit_id"] == "cid-deployment"
+    assert closed["closure"]["o3_closure_sha256"] != fx["bundle"]["closure"]["o3_closure_sha256"]
+    assert mar.verify_model_bundle(closed, root=ROOT, binding=binding,
+                                   binding_sha256=_sha(binding_path), require_closed=True) == []
+    # The privileged closure is refused against the deployment binding.
+    assert any("binding" in e for e in mar.verify_model_bundle(
+        fx["bundle"], root=ROOT, binding=binding, binding_sha256=_sha(binding_path)))
+    # A model layer digest change still changes the id.
+    for index in range(len(fx["candidate"]["components"]["layers"])):
+        for side in ("projection", "profile"):
+            changed = copy.deepcopy(fx["candidate"])
+            changed["components"]["layers"][index][side]["sha256"] = "sha256:" + "0" * 64
+            assert mar.compute_model_bundle_id(changed) != fx["candidate"]["bundle_id"]
+    for key in ("bundle_id", "chain", "runtime_build"):
+        changed = copy.deepcopy(fx["candidate"])
+        changed["components"]["o3"][key] = "x"
+        assert mar.compute_model_bundle_id(changed) != fx["candidate"]["bundle_id"]
+
+
+def test_o3_closure_swap_is_refused_by_the_closure_attestation(fx, tmp_path):
+    """The re-closed O3 document is not id-bound, so the attestation binds it."""
+    o3_other, _, _ = _reclosed_o3(fx, tmp_path, commit_id="cid-other",
+                                  generated_at="2026-10-09T00:00:00+00:00")
+    bundle = copy.deepcopy(fx["bundle"])
+    bundle["o3_document"] = o3_other
+    errors = mar.verify_model_bundle(bundle, root=ROOT)
+    assert any("O3 closure" in e for e in errors), errors
 
 
 def test_activation_eligibility_is_required_by_default(tmp_path, monkeypatch):
@@ -559,6 +626,49 @@ def test_evidence_contract_closure_with_wrong_population_fails_closed(tmp_path, 
                for r in report["unsupported_predicates"])
 
 
+def test_evidence_contract_member_swap_keeping_the_count_fails_closed(tmp_path, monkeypatch):
+    """R5: eight live definitions are not enough; they must be the bound eight (by id)."""
+    data = _fixture(tmp_path)
+    swapped = []
+    for element in data["elements"]:
+        element = dict(element)
+        if element["@id"] == "ec-def-7":
+            element["@id"] = "ec-def-impostor"
+        if element.get("type") == [{"@id": "ec-def-7"}]:
+            element["type"] = [{"@id": "ec-def-impostor"}]
+        swapped.append(element)
+    monkeypatch.setattr(SysMLRepository, "list_elements", lambda self, *a, **k: swapped)
+    service, _ = _build(data, authority="model")
+    assert service.traversal.closure_member_ids == {f"ec-def-{i}" for i in range(EC_DEFS)}
+    report = service.semantic_neighbors("use-Requirement", predicates=["hasRelevantEvidenceContract"])
+    assert report["edges"] == [] and report["semantic_status"] == "incomplete"
+    assert any("attested bound members" in r["reason"] for r in report["unsupported_predicates"])
+
+
+def test_closure_must_attest_exactly_the_bound_members(fx):
+    for mutate in (lambda m: m.pop(), lambda m: m[0].update(declaration="requirement def Impostor"),
+                   lambda m: m[1].update(element_id=m[0]["element_id"])):
+        bundle = copy.deepcopy(fx["bundle"])
+        mutate(bundle["closure"]["evidence_contract_closure"])
+        assert any("evidence_contract_closure" in e for e in mar.verify_model_bundle(bundle, root=ROOT))
+
+
+def test_closure_members_are_validated_by_the_ingestion_binding_rule():
+    members = mar.bound_evidence_contract_closure(ROOT)
+    assert len(members) == mar.EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS
+    elements, sources = [], {}
+    for index, member in enumerate(members):
+        name, kind = declaration_identity(member["declaration"])
+        elements.append({"@id": f"id-{index}", "@type": kind, "declaredName": name})
+        sources[f"id-{index}"] = member["source_file"]
+    validated = mar.validate_closure_members(members, elements, sources)
+    assert [m["element_id"] for m in validated] == [f"id-{i}" for i in range(len(members))]
+    # Same name and type from another source file is not the bound member.
+    sources["id-0"] = "elsewhere.sysml"
+    with pytest.raises(mar.ModelAuthorityRefused, match="not validated"):
+        mar.validate_closure_members(members, elements, sources)
+
+
 def test_legacy_path_keeps_the_evidence_contract_blocked(fx):
     service, _ = _build(fx, authority="legacy")
     assert "hasRelevantEvidenceContract" in service.traversal.blocked_predicates()
@@ -664,6 +774,38 @@ def test_coverage_report_classifies_every_population_member():
         assert ("layer_digest" in value) if value["status"] == "projected" else value["reason"]
     assert report["kernel_declarations"]
     assert coverage.compare(report, coverage.load_baseline(ROOT)) == []
+
+
+def test_coverage_residual_equals_the_routing_residual_with_owner_visible_exceptions():
+    """R2: the report's total residual is exactly what the runtime serves from YAML."""
+    report = coverage.build_report(ROOT)
+    register = mar.load_register_rows(ROOT)
+    _, provisions = mar.load_layers(ROOT)
+    routing = mar.compute_routing(legacy=KernelContract.load(ONTOLOGY), provisions=provisions,
+                                  successor_contract=mar.generate_successor_contract(ROOT),
+                                  register_rows=register)
+    assert report["residual"] == sorted(routing.residual)
+    for name in report["residual"]:
+        entry = report["identities"][name]
+        assert entry["status"] == "residual" and entry["reason"] == routing.residual[name]
+        if name in register:
+            assert entry["register"]["final_disposition"] == register[name]["final_disposition"]
+    # The owner's criterion stays separate: no retained row is residual.
+    assert report["retained_residual"] == []
+    exceptions = {n: e for n, e in report["identities"].items()
+                  if e["group"] == "registered-non-retained-yaml-identity" and e["status"] == "residual"}
+    assert sorted(exceptions) == report["exceptions"] == [
+        "IncrementTraceabilityShell", "derivesNeedFromConcern"]
+    assert {n: e["register"]["final_disposition"] for n, e in exceptions.items()} == {
+        "IncrementTraceabilityShell": "MERGE", "derivesNeedFromConcern": "REMOVE"}
+    assert all("this retained row" not in routing.residual[n]
+               and "owner-visible exception" in routing.residual[n] for n in exceptions)
+    assert report["summary"]["exceptions"] == 2 and report["summary"]["retained_residual"] == 0
+    # The baseline ratchet covers the exceptions.
+    baseline = coverage.load_baseline(ROOT)
+    assert baseline["exceptions"] == report["exceptions"]
+    shrunk = dict(baseline, exceptions=["IncrementTraceabilityShell"])
+    assert any("exceptions" in e for e in coverage.compare(report, shrunk))
 
 
 def test_coverage_compare_detects_drift_duplicates_and_digest_mismatch():

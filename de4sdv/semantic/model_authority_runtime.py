@@ -3,7 +3,13 @@
 The model-authority bundle (``de4sdv.model-authority-bundle/v1``) is a
 deployment input. It binds, under one content digest:
 
-- the closed O3 component (embedded document, recomputed id and digest);
+- the O3 component by its closure-independent content only: the O3 core
+  ``bundle_id`` (itself a digest of revision, migrated identities, chains and
+  runtime build), the recomputed Projection/Profile chain records and the
+  recomputed runtime build. The closed O3 document travels beside the id as
+  ``o3_document``; its API closure (binding, SysML project/commit,
+  ``generated_at``) never enters the ``mab-`` id, so re-closing O3 against the
+  deployment binding reproduces the privileged id exactly;
 - every model projection layer as a projection/profile pair (path, schema,
   sha256, source revision): definitions (batch 1 plus the batch-2 rows when
   present), O2+ native/library rows and vocabulary carriers;
@@ -14,8 +20,10 @@ deployment input. It binds, under one content digest:
   that are not frozen O3 runtime-build inputs);
 - the routing table: exactly one provider per identity, plus the explicit,
   owner-visible residual that still uses the authored ontology YAML;
-- after closure, a structured attestation (binding, validation evidence and
-  recomputed activation eligibility).
+- after closure, a structured attestation (binding, the digest and
+  activation eligibility of the closed O3 document, validation evidence and
+  recomputed activation eligibility). The attestation, not the id, carries
+  the deployment binding.
 
 Selection is explicit (``DE4SDV_SEMANTIC_AUTHORITY=model`` with
 ``DE4SDV_MODEL_AUTHORITY_BUNDLE`` and ``DE4SDV_MODEL_AUTHORITY_BUNDLE_ID``) and
@@ -35,8 +43,14 @@ part of the default predicate set and are deleted in Wave C.
 ``hasRelevantEvidenceContract`` uses the owner-adopted discriminator: its
 range is the authored type closure of the validated ``EvidenceContract``
 kernel root, which must contain exactly :data:`EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS`
-specializing definitions (the eight AEBS evidence contracts). Any other
-population fails closed with :data:`MODEL_EVIDENCE_CONTRACT_BLOCKED_REASON`.
+specializing definitions (the eight AEBS evidence contracts). For a closed
+bundle the live closure must also equal, by API element id, the bound
+eight-member closure of ``definition-batch2-projection.json``: the closure
+attestation records each bound member's element id as validated by the
+ingestion binding rule (``validation.validate_ontology_bindings``: API type,
+declared name and serializer source file, over the same-run export), and the
+runtime compares ids, never names. Any other population fails closed with
+:data:`MODEL_EVIDENCE_CONTRACT_BLOCKED_REASON`.
 ``traversal.py`` is untouched; the discriminator is a subclass override.
 
 Non-claims: constructing or closing a bundle is not production activation,
@@ -68,6 +82,8 @@ from .kernel_contract import (
 )
 from .o3_bundle import (
     MIGRATED_CLASSES,
+    compute_bundle_id as compute_o3_bundle_id,
+    compute_runtime_build,
     MIGRATED_IDENTITIES,
     MIGRATED_RELATIONSHIPS,
     O3_BUNDLE_SCHEMA,
@@ -326,6 +342,61 @@ def _batch2_discriminator(identity: str, range_: Mapping[str, Any]) -> dict[str,
     for member in closure:
         _file_mapping(member, identity)
     return json.loads(json.dumps(dict(discriminator)))
+
+
+def bound_evidence_contract_closure(root: Path = ROOT) -> list[dict[str, str]]:
+    """The bound ``hasRelevantEvidenceContract`` closure members (file, declaration)."""
+    _, provisions = load_layers(root)
+    for provision in provisions:
+        if provision.identity in DISCRIMINATED_PREDICATES and provision.kind == "relationship":
+            discriminator = (provision.spec or {}).get("range_discriminator") or {}
+            members = []
+            for member in discriminator.get("closure") or ():
+                pinned = _file_mapping(member, provision.identity)
+                members.append({"source_file": pinned.file, "declaration": pinned.declaration})
+            if len(members) == EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS:
+                return sorted(members, key=lambda m: (m["source_file"], m["declaration"]))
+    raise ModelAuthorityRefused(
+        "no bound EvidenceContract closure: the batch-2 hasRelevantEvidenceContract "
+        f"discriminator with {EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS} members is not projected")
+
+
+class _ClosureMemberContract:
+    """Bound closure members presented to the ingestion binding validator."""
+
+    def __init__(self, members: list[Mapping[str, str]]) -> None:
+        self._mappings = {f"{m['source_file']}::{m['declaration']}":
+                          KernelFileMapping(m["source_file"], m["declaration"]) for m in members}
+        self.classes = list(self._mappings)
+
+    def mapping(self, key: str) -> KernelFileMapping:
+        return self._mappings[key]
+
+
+def validate_closure_members(members: list[Mapping[str, str]], elements: list[Mapping[str, Any]],
+                             element_sources: Mapping[str, str]) -> list[dict[str, str]]:
+    """Element id of each bound closure member through the ingestion binding rule.
+
+    Reuses :func:`validation.validate_ontology_bindings` (API type + declared
+    name + serializer-recorded source file over the same-run export): the
+    rule that establishes kernel identity at ingestion (ADR 0011). Unresolved
+    or ambiguous members refuse.
+    """
+    from .validation import validate_ontology_bindings
+
+    report = validate_ontology_bindings(_ClosureMemberContract(list(members)),
+                                        [dict(e) for e in elements], dict(element_sources))
+    validated, problems = [], []
+    for entry in report.entries:
+        if entry.status != "mapped" or len(entry.element_ids) != 1:
+            problems.append(f"{entry.ontology_class}: {entry.status} ({entry.detail})")
+            continue
+        validated.append({**entry.mapping, "element_id": entry.element_ids[0]})
+    if problems:
+        raise ModelAuthorityRefused("bound EvidenceContract closure members are not validated: "
+                                    + "; ".join(problems))
+    return [{"source_file": m["file"], "declaration": m["declaration"], "element_id": m["element_id"]}
+            for m in sorted(validated, key=lambda m: (m["file"], m["declaration"]))]
 
 
 def _batch2_relation(identity: str, row: Mapping[str, Any], entry: Mapping[str, Any] | None,
@@ -703,11 +774,18 @@ def compute_routing(*, legacy: KernelContract, provisions: list[Provision],
         if row is None:
             reason = ("unregistered ontology YAML identity: no model projection "
                       "layer provides it; the authored YAML entry is its source")
-        else:
+        elif row.get("accounting_status") == "retained":
             reason = ("no model projection layer provides this retained row; the "
                       "authored YAML entry is its source (migration_class="
                       f"{row.get('migration_class')}, final_disposition="
                       f"{row.get('final_disposition')})")
+        else:
+            reason = ("owner-visible exception: registered non-retained row "
+                      f"(accounting_status={row.get('accounting_status')}, "
+                      f"migration_class={row.get('migration_class')}, final_disposition="
+                      f"{row.get('final_disposition')}) still present in the authored "
+                      "ontology YAML; no model projection layer provides it, so the "
+                      "authored YAML entry is its source until Wave C")
         residual[name] = reason
     return Routing(MappingProxyType(providers),
                    MappingProxyType({k: tuple(v) for k, v in corroborations.items()}),
@@ -797,6 +875,28 @@ def _successor_record(contract: Mapping[str, Any]) -> dict[str, Any]:
                                    for name, a in sorted(DEPRECATED_ALIASES.items())}}
 
 
+def _o3_component(root: Path, o3_bundle: Mapping[str, Any]) -> dict[str, Any]:
+    """Closure-independent O3 identity: core id, chain and runtime build.
+
+    The O3 API closure (binding digest, SysML project/commit, element count,
+    ``generated_at``) is deliberately absent: it is bound by the model
+    closure attestation (``o3_closure_sha256``), not by the ``mab-`` id.
+    """
+    if o3_bundle.get("bundle_id") != compute_o3_bundle_id(dict(o3_bundle)):
+        raise ModelAuthorityRefused("O3 component id does not match its recomputed core digest")
+    runtime_build = compute_runtime_build(Path(root))
+    if o3_bundle.get("runtime_build") != runtime_build:
+        raise ModelAuthorityRefused("O3 component runtime build differs from the checkout")
+    return {"bundle_id": str(o3_bundle.get("bundle_id") or ""),
+            "chain": o3_chain_records(root),
+            "runtime_build": runtime_build}
+
+
+def o3_closure_digest(o3_bundle: Mapping[str, Any]) -> str:
+    """Digest of the closed O3 document a model closure attestation binds."""
+    return _canonical_digest(json.loads(json.dumps(dict(o3_bundle))))
+
+
 def model_components(root: Path = ROOT, *, o3_bundle: Mapping[str, Any]) -> dict[str, Any]:
     """Everything the bundle id binds, recomputed from the checkout."""
     if not isinstance(o3_bundle, Mapping) or o3_bundle.get("schema") != O3_BUNDLE_SCHEMA:
@@ -806,13 +906,8 @@ def model_components(root: Path = ROOT, *, o3_bundle: Mapping[str, Any]) -> dict
     contract = generate_successor_contract(root)
     routing = compute_routing(legacy=legacy, provisions=provisions, successor_contract=contract,
                               register_rows=load_register_rows(root))
-    o3_document = json.loads(json.dumps(dict(o3_bundle)))
     return {
-        "o3": {"bundle_id": str(o3_bundle.get("bundle_id") or ""),
-               "sha256": _canonical_digest(o3_document),
-               "state": o3_bundle.get("state"),
-               "chain": o3_chain_records(root),
-               "document": o3_document},
+        "o3": _o3_component(root, o3_bundle),
         "layers": records,
         "successor_contract": _successor_record(contract),
         "routing": routing.record(),
@@ -838,6 +933,7 @@ def build_model_bundle(root: Path = ROOT, *, o3_bundle: Mapping[str, Any],
             "path": "approach/framework/ontology/de4sdv-basic-ontology.yaml",
             "sha256": hashlib.sha256(ontology.read_bytes()).hexdigest()},
         "components": components,
+        "o3_document": json.loads(json.dumps(dict(o3_bundle))),
         "state": "candidate",
         "claim_boundary": ("deployment input; closure is not activation, consumer "
                            "retirement, compliance or certification"),
@@ -860,8 +956,11 @@ def _eligibility(attestation: Mapping[str, Any]) -> bool:
 def build_model_closure_attestation(bundle: Mapping[str, Any], *, binding: Any,
                                     binding_sha256: str, definition_closure_closed: bool,
                                     validations: Mapping[str, Mapping[str, Any]],
-                                    generated_at: str) -> dict[str, Any]:
-    o3_closure = (bundle["components"]["o3"]["document"].get("api_closure") or {})
+                                    generated_at: str,
+                                    evidence_contract_closure: list[Mapping[str, str]] | None = None,
+                                    ) -> dict[str, Any]:
+    o3_document = bundle.get("o3_document") or {}
+    o3_closure = o3_document.get("api_closure") or {}
     attestation = {
         "schema": MODEL_ATTESTATION_SCHEMA,
         "bundle_id": bundle["bundle_id"],
@@ -869,8 +968,13 @@ def build_model_closure_attestation(bundle: Mapping[str, Any], *, binding: Any,
         "binding_sha256": binding_sha256,
         "sysml_project_id": str(binding.sysml_project_id),
         "sysml_commit_id": str(binding.sysml_commit_id),
+        "o3_bundle_id": str(o3_document.get("bundle_id") or ""),
+        "o3_closure_sha256": o3_closure_digest(o3_document),
         "o3_activation_eligible": o3_closure.get("activation_eligible") is True,
         "definition_closure_closed": bool(definition_closure_closed),
+        "evidence_contract_closure": sorted(
+            (dict(m) for m in evidence_contract_closure or ()),
+            key=lambda m: (str(m.get("source_file")), str(m.get("declaration")))),
         "validation": {name: dict(record) for name, record in validations.items()},
         "generated_at": generated_at,
     }
@@ -896,7 +1000,7 @@ def verify_model_bundle(bundle: Mapping[str, Any], *, root: Path = ROOT, binding
     if not isinstance(bundle, Mapping) or bundle.get("schema") != MODEL_BUNDLE_SCHEMA:
         return ["model bundle schema mismatch"]
     errors: list[str] = []
-    allowed = set(_ID_COMPONENTS) | {"bundle_id", "state", "closure", "claim_boundary"}
+    allowed = set(_ID_COMPONENTS) | {"bundle_id", "state", "closure", "claim_boundary", "o3_document"}
     extra = sorted(set(bundle) - allowed)
     if extra:
         errors.append(f"model bundle carries unknown keys: {extra}")
@@ -912,9 +1016,9 @@ def verify_model_bundle(bundle: Mapping[str, Any], *, root: Path = ROOT, binding
     if not isinstance(components, Mapping):
         return errors + ["model bundle has no components"]
     o3 = components.get("o3") or {}
-    document = o3.get("document")
+    document = bundle.get("o3_document")
     if not isinstance(document, Mapping) or document.get("bundle_id") != o3.get("bundle_id"):
-        errors.append("O3 component id does not equal its embedded document")
+        errors.append("O3 component id does not equal the carried O3 document")
         document = {}
     else:
         try:
@@ -941,14 +1045,31 @@ def verify_model_bundle(bundle: Mapping[str, Any], *, root: Path = ROOT, binding
         if not isinstance(closure, Mapping):
             errors.append("closed model bundle carries no closure attestation")
         else:
-            errors.extend(_closure_errors(bundle, closure, binding=binding,
+            errors.extend(_closure_errors(bundle, closure, root=root, binding=binding,
                                           binding_sha256=binding_sha256,
                                           validation_artifacts=validation_artifacts))
     return errors
 
 
-def _closure_errors(bundle, closure, *, binding, binding_sha256, validation_artifacts):
-    errors = []
+def _closure_member_errors(closure, root) -> list[str]:
+    members = closure.get("evidence_contract_closure")
+    try:
+        bound = {(m["source_file"], m["declaration"]) for m in bound_evidence_contract_closure(root)}
+    except ModelAuthorityRefused as exc:
+        return [str(exc)]
+    if not isinstance(members, list) or not all(isinstance(m, Mapping) for m in members):
+        return ["closure attests no EvidenceContract closure members"]
+    ids = [m.get("element_id") for m in members]
+    if ({(m.get("source_file"), m.get("declaration")) for m in members} != bound
+            or len(members) != len(bound) or len(set(ids)) != len(ids)
+            or not all(isinstance(i, str) and i and i == i.strip() for i in ids)):
+        return ["closure evidence_contract_closure does not attest exactly the bound "
+                "EvidenceContract closure members, each with one distinct validated element id"]
+    return []
+
+
+def _closure_errors(bundle, closure, *, root, binding, binding_sha256, validation_artifacts):
+    errors = _closure_member_errors(closure, root)
     if closure.get("schema") != MODEL_ATTESTATION_SCHEMA:
         errors.append("model closure attestation schema mismatch")
     if closure.get("bundle_id") != bundle.get("bundle_id"):
@@ -957,9 +1078,17 @@ def _closure_errors(bundle, closure, *, binding, binding_sha256, validation_arti
         errors.append("closure attestation git revision mismatch")
     if closure.get("activation_eligible") is not _eligibility(closure):
         errors.append("recorded activation_eligible differs from the recomputed value")
-    o3_closure = (bundle["components"]["o3"].get("document") or {}).get("api_closure") or {}
+    o3_document = bundle.get("o3_document") if isinstance(bundle.get("o3_document"), Mapping) else {}
+    o3_closure = o3_document.get("api_closure") or {}
+    if closure.get("o3_bundle_id") != (bundle.get("components") or {}).get("o3", {}).get("bundle_id"):
+        errors.append("closure o3_bundle_id differs from the O3 component")
+    if closure.get("o3_closure_sha256") != o3_closure_digest(o3_document):
+        errors.append("closure o3_closure_sha256 differs from the carried O3 closure document")
     if closure.get("o3_activation_eligible") is not (o3_closure.get("activation_eligible") is True):
         errors.append("closure o3_activation_eligible differs from the O3 component")
+    for key in ("binding_sha256", "sysml_project_id", "sysml_commit_id"):
+        if o3_closure.get(key) != closure.get(key):
+            errors.append(f"O3 closure {key} differs from the model closure attestation")
     for name, record in (closure.get("validation") or {}).items():
         if not isinstance(record, Mapping) or not _DIGEST_RE.fullmatch(str(record.get("sha256") or "")):
             errors.append(f"validation {name!r} carries no exact sha256 digest")
@@ -1117,9 +1246,14 @@ def alias_marker(name: str) -> dict[str, Any]:
 class ModelAuthorityTraversal(SuccessorTraversal):
     """Successor traversal + deprecated aliases + EvidenceContract discriminator."""
 
-    def __init__(self, contract, kernel_bindings):
+    def __init__(self, contract, kernel_bindings, closure_member_ids=None):
         super().__init__(contract, kernel_bindings)
         self.aliases_used: list[str] = []
+        #: Attested element ids of the bound EvidenceContract closure (closed
+        #: bundles); ``None`` for a candidate, which only the compare step and
+        #: tests serve and whose compare step checks member identity itself.
+        self.closure_member_ids = (None if closure_member_ids is None
+                                   else frozenset(closure_member_ids))
 
     def blocked_predicates(self) -> frozenset[str]:
         return frozenset(super().blocked_predicates()) - set(DISCRIMINATED_PREDICATES)
@@ -1155,13 +1289,14 @@ class ModelAuthorityTraversal(SuccessorTraversal):
         return [replace(h, predicate=predicate,
                         witness={**h.witness, "deprecated_alias": marker}) for h in hops]
 
-    def _evidence_contract_identity_ids(self, elements):
-        """Owner-adopted discriminator: the EvidenceContract type closure.
+    def evidence_contract_definitions(self, elements):
+        """Live specializing definitions of the validated EvidenceContract root.
 
-        Root identity comes from the ingestion-validated kernel binding; the
-        closure follows AUTHORED subsumption only. It must contain exactly
-        the expected number of specializing requirement definitions; members
-        are the usages explicitly typed by the root or one of them.
+        Returns ``(root_id, definitions, closure, resolver)``. Root identity
+        comes from the ingestion-validated kernel binding; the closure follows
+        AUTHORED subsumption only. It must contain exactly the expected number
+        of specializing requirement definitions and, when attested, exactly
+        the bound members' validated element ids (ids, never names).
         """
         from .relationships import build_relationship_graph
 
@@ -1183,6 +1318,18 @@ class ModelAuthorityTraversal(SuccessorTraversal):
             raise IdentityNotFoundError(
                 f"{MODEL_EVIDENCE_CONTRACT_BLOCKED_REASON} (found {len(definitions)} "
                 "specializing definitions)")
+        if self.closure_member_ids is not None and definitions != self.closure_member_ids:
+            raise IdentityNotFoundError(
+                f"{MODEL_EVIDENCE_CONTRACT_BLOCKED_REASON} (live closure differs from the "
+                f"attested bound members: {len(definitions - self.closure_member_ids)} "
+                "unbound, "
+                f"{len(self.closure_member_ids - definitions)} missing)")
+        return root_id, definitions, closure, resolver
+
+    def _evidence_contract_identity_ids(self, elements):
+        """Owner-adopted discriminator: members are the usages explicitly typed
+        by the validated root or one of the bound closure definitions."""
+        root_id, definitions, closure, resolver = self.evidence_contract_definitions(elements)
         types = definitions | {root_id}
         return {element for element, typed in resolver["typed_by"].items()
                 if element not in closure and set(typed) & types}
@@ -1344,6 +1491,7 @@ class ModelAuthority:
     activation_eligible: bool
     o3: Any
     definitions: Any
+    closure_member_ids: frozenset[str] | None = None
 
 
 def load_model_authority(document: Mapping[str, Any], *, root: Path = ROOT, contract: KernelContract,
@@ -1365,7 +1513,7 @@ def load_model_authority(document: Mapping[str, Any], *, root: Path = ROOT, cont
     if require_activation_eligible and not eligible:
         raise ModelAuthorityRefused("production activation requires a closed, activation-eligible model bundle")
     components = document["components"]
-    o3 = load_o3_authority(components["o3"]["document"], root=root, contract=contract, binding=binding,
+    o3 = load_o3_authority(document["o3_document"], root=root, contract=contract, binding=binding,
                            binding_sha256=binding_sha256, expected_git_revision=expected_git_revision,
                            require_activation_eligible=require_activation_eligible)
     definitions = load_definition_migration_authority(
@@ -1387,9 +1535,12 @@ def load_model_authority(document: Mapping[str, Any], *, root: Path = ROOT, cont
     facade = ModelAuthorityFacade(legacy=contract, o3_facade=o3.facade, routing=routing,
                                   successor_contract=successor, bundle_id=document["bundle_id"],
                                   components=components)
+    member_ids = None
+    if document.get("state") == "closed":
+        member_ids = frozenset(m["element_id"] for m in closure["evidence_contract_closure"])
     return ModelAuthority(facade=facade, bundle_id=document["bundle_id"],
                           authority_id=facade.authority_id, activation_eligible=eligible,
-                          o3=o3, definitions=definitions)
+                          o3=o3, definitions=definitions, closure_member_ids=member_ids)
 
 
 def build_model_authority_runtime(repo_root: "str | Path" = ROOT,
@@ -1440,7 +1591,8 @@ def build_model_authority_runtime(repo_root: "str | Path" = ROOT,
     model_repository = repository.SysMLRepository(client.ApiClient(api_url, timeout=api_timeout))
     binder = OntologyApiBinder(facade, model_repository, project_id=binding.sysml_project_id,
                                commit_id=binding.sysml_commit_id, kernel_bindings=index)
-    traversal = ModelAuthorityTraversal(facade, kernel_bindings=index)
+    traversal = ModelAuthorityTraversal(facade, kernel_bindings=index,
+                                        closure_member_ids=authority.closure_member_ids)
     impact = ModelAuthorityImpactService(repository=model_repository, binding=binding, contract=facade,
                                          binder=binder, traversal=traversal)
     impact.semantic_authority_id = authority.authority_id
