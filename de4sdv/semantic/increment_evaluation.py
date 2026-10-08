@@ -389,59 +389,84 @@ class IncrementEvaluation:
 
     def phase_contract(self, phase: str | None = None) -> dict[str, Any]:
         """The gates of the method (or one phase) with this increment's applicability."""
-        response: dict[str, Any] = {
-            "query": "phase_contract",
-            "increment": {"id": self.scope.increment_id, "resolved": self.scope.usage_id is not None,
-                          "declared_phases": (list(self.scope.declared_phases)
-                                              if self.scope.declared_phases is not None else None)},
-            "method": self._method_block(),
-            "method_provenance": [{"authority": "authoritative",
-                                   "source": f"git://{self.revision.git_commit}"}],
-            "phase": phase,
-        }
-        if self.gate_set.contract is None:
-            response.update(executable_contract_available=False, phases=[], gates=[],
-                            reason_codes=[me.INVALID_CONTRACT if self.gate_set.problems else me.CONTRACT_UNAVAILABLE],
-                            diagnostics=[self.gate_set.reason])
-            return response
-        phases = self._phases(phase)
-        gates = []
-        for p in phases:
-            for gate in self._gates(p):
-                gates.append(self._gate_record(gate))
-        response.update(executable_contract_available=bool(gates), phases=phases, gates=gates,
-                        contract_digest=self._contract().digest())
-        return response
+        return phase_contract_response(self.gate_set, self.view, self.revision, phase=phase, scope=self.scope)
 
-    def _gate_record(self, gate: me.ObligationSpec) -> dict[str, Any]:
-        record = {
-            "obligation_id": gate.obligation_id,
-            "phase": gate.phase,
-            "subject_selector": gate.subject_selector,
-            "predicate": gate.predicate,
-            "target_filters": list(gate.target_filters),
-            "typed_filters": [
-                {"kind": f.kind, "argument": f.argument, "values": list(f.values)} for f in gate.filters
-            ],
-            "cardinality": [gate.cardinality[0], "*" if gate.cardinality[1] >= UNBOUNDED else gate.cardinality[1]],
-            "minimum_population": gate.minimum_population,
-            "permitted_empty": gate.permitted_empty,
-            "required": gate.required,
-            "applicability": gate.applicability,
-            "prerequisites": list(gate.depends_on),
-            "claim_boundary": gate.claim_boundary,
-            "what_satisfies": remedy(gate, increment=self.scope, view=self.view),
+
+def phase_contract_response(
+    gate_set: GateSet,
+    view: ModelView,
+    revision: me.RevisionIdentity,
+    *,
+    phase: str | None = None,
+    scope: IncrementScope | None = None,
+) -> dict[str, Any]:
+    """Candidate-independent discovery of the method gates; never a verdict.
+
+    With an increment scope, each gate also carries the increment's
+    applicability resolution; without one, the gates are listed as declared.
+    """
+    if phase is not None and phase not in PHASE_ORDER:
+        raise ValueError(f"{phase!r} is not a MethodPhase literal")
+    method = dict(gate_set.method_identity)
+    method["executable_contract_available"] = gate_set.available
+    if gate_set.problems:
+        method["problems"] = list(gate_set.problems)
+    if gate_set.other_obligations:
+        method["other_model_obligations"] = list(gate_set.other_obligations)
+    response: dict[str, Any] = {
+        "query": "phase_contract",
+        "method": method,
+        "method_provenance": [{"authority": "authoritative", "source": f"git://{revision.git_commit}"}],
+        "phase": phase,
+    }
+    if scope is not None:
+        response["increment"] = {
+            "id": scope.increment_id,
+            "resolved": scope.usage_id is not None,
+            "declared_phases": list(scope.declared_phases) if scope.declared_phases is not None else None,
         }
-        if gate.applicability_kind == me.APPLICABILITY_UNCONDITIONAL:
-            record["applicability_resolution"] = "applicable"
-        elif self.scope.declared_phases is None:
-            record["applicability_resolution"] = "unresolved"
-            record["applicability_missing_inputs"] = ["charter declaration applicablePhases"]
-        else:
-            record["applicability_resolution"] = (
-                "applicable" if gate.phase in self.scope.declared_phases else "not_applicable"
-            )
+    if gate_set.contract is None:
+        response.update(executable_contract_available=False, phases=[], gates=[],
+                        reason_codes=[me.INVALID_CONTRACT if gate_set.problems else me.CONTRACT_UNAVAILABLE],
+                        diagnostics=[gate_set.reason])
+        return response
+    contract = me.decode_contract_filters(gate_set.contract, GATE_PREDICATES)
+    phases = [p for p in gate_set.phases if phase is None or p == phase]
+    gates = [_gate_record(gate, view, scope) for p in phases for gate in contract.obligations if gate.phase == p]
+    response.update(executable_contract_available=bool(gates), phases=phases, gates=gates,
+                    contract_digest=gate_set.contract.digest())
+    return response
+
+
+def _gate_record(gate: me.ObligationSpec, view: ModelView, scope: IncrementScope | None) -> dict[str, Any]:
+    record: dict[str, Any] = {
+        "obligation_id": gate.obligation_id,
+        "phase": gate.phase,
+        "subject_selector": gate.subject_selector,
+        "predicate": gate.predicate,
+        "target_filters": list(gate.target_filters),
+        "typed_filters": [
+            {"kind": f.kind, "argument": f.argument, "values": list(f.values)} for f in gate.filters
+        ],
+        "cardinality": [gate.cardinality[0], "*" if gate.cardinality[1] >= UNBOUNDED else gate.cardinality[1]],
+        "minimum_population": gate.minimum_population,
+        "permitted_empty": gate.permitted_empty,
+        "required": gate.required,
+        "applicability": gate.applicability,
+        "prerequisites": list(gate.depends_on),
+        "claim_boundary": gate.claim_boundary,
+    }
+    if scope is None:
         return record
+    record["what_satisfies"] = remedy(gate, increment=scope, view=view)
+    if gate.applicability_kind == me.APPLICABILITY_UNCONDITIONAL:
+        record["applicability_resolution"] = "applicable"
+    elif scope.declared_phases is None:
+        record["applicability_resolution"] = "unresolved"
+        record["applicability_missing_inputs"] = ["charter declaration applicablePhases"]
+    else:
+        record["applicability_resolution"] = "applicable" if gate.phase in scope.declared_phases else "not_applicable"
+    return record
 
 
 def evaluate_increment(
