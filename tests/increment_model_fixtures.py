@@ -65,6 +65,7 @@ class ModelBuilder:
     sources: dict[str, str] = field(default_factory=dict)
     bindings: list[dict[str, str]] = field(default_factory=list)
     kernel: dict[str, dict[str, Any]] = field(default_factory=dict)
+    enumerations: dict[str, dict[str, dict[str, Any]]] = field(default_factory=dict)
     library: dict[str, dict[str, Any]] = field(default_factory=dict)
     _counter: Any = field(default_factory=itertools.count, repr=False)
 
@@ -156,12 +157,16 @@ class ModelBuilder:
         return definition
 
     def enumeration(self, ontology_class: str, literals: Sequence[str]) -> dict[str, dict[str, Any]]:
+        """The literals of a kernel enumeration (created once per builder)."""
+        if ontology_class in self.enumerations:
+            return self.enumerations[ontology_class]
         definition = self.kernel_definition(ontology_class)
         found = {}
         for literal in literals:
             usage = self.new("EnumerationUsage", name=literal, source=self.sources[definition["@id"]])
             self.own(definition, usage, kind="VariantMembership", member_name=literal)
             found[literal] = usage
+        self.enumerations[ontology_class] = found
         return found
 
     def library_feature(self, name: str) -> dict[str, Any]:
@@ -286,3 +291,146 @@ class ModelBuilder:
         return {"schema": "de4sdv-sysml-api-baseline-export/v1", "git_commit": git_commit,
                 "elements": list(self.elements), "element_sources": dict(self.sources),
                 "external_references": [], "source_manifest": []}
+
+    def remove(self, *elements: dict[str, Any]) -> None:
+        """Remove elements (and the relationships naming them) from the corpus."""
+        doomed = {element["@id"] for element in elements}
+        for element in list(self.elements):
+            if element["@id"] in doomed:
+                continue
+            for key in ("memberElement", "type", "referencedFeature", "owningRelatedElement"):
+                value = element.get(key)
+                if isinstance(value, dict) and value.get("@id") in doomed:
+                    doomed.add(element["@id"])
+        self.elements[:] = [e for e in self.elements if e["@id"] not in doomed]
+        for element in self.elements:
+            element["ownedRelationship"] = [
+                r for r in element.get("ownedRelationship", []) if r["@id"] not in doomed
+            ]
+
+
+@dataclass
+class IncrementScenario:
+    """Handles to one synthetic increment and its method vocabulary."""
+
+    builder: ModelBuilder
+    increment_id: str
+    phases: dict[str, dict[str, Any]]
+    framing: dict[str, Any]
+    definition: dict[str, Any]
+    usage: dict[str, Any]
+    charter: dict[str, Any]
+    problem_statement: dict[str, Any]
+    concern: dict[str, Any]
+    needs_package: dict[str, Any]
+    needs: list[dict[str, Any]]
+    requirements: list[dict[str, Any]]
+    evidence_package: dict[str, Any]
+    cases: list[dict[str, Any]]
+    stakeholder_role: dict[str, Any]
+    scenario_definition: dict[str, Any]
+    vocabulary: dict[str, dict[str, Any]] = field(default_factory=dict)
+
+
+def increment_scenario(
+    builder: ModelBuilder | None = None,
+    *,
+    increment_id: str = "INC-FIXTURE-001",
+    applicable_phases: Sequence[str] = (
+        "phase0_incrementFraming", "phase4_needs", "phase5_requirements", "phase10_vvEvidence"),
+    name: str = "Fixture",
+) -> IncrementScenario:
+    """A complete synthetic increment whose content satisfies the method rules.
+
+    Framing package: increment definition and usage (declared short name),
+    charter declaration, problem statement with subject and stakeholders,
+    engineering question, lifecycle decision, assumption, a concern framed by
+    a viewpoint of a view. Needs/requirements package: two needs (subject,
+    stakeholders, statement, source, rationale, framed concern, planned
+    validation scenario) and two requirements (subject, statement, primary
+    verification method, DerivesFromNeed connection). Evidence package
+    (declares ``references`` to the increment): one verification case
+    verifying both requirements.
+    """
+    b = builder or ModelBuilder(label=name)
+    phases = b.enumeration("MethodPhase", PHASE_LITERALS)
+    roots = {cls: b.kernel_definition(cls) for cls in (
+        "EngineeringIncrement", "IncrementTraceObligations", "ProblemStatement",
+        "IncrementEngineeringQuestion", "IncrementLifecycleDecision", "Assumption", "Stakeholder",
+        "Need", "Requirement", "EvidenceContract", "DerivesFromNeed",
+        "ValidationPlanningAssociation", "ValidationPlanningScenario")}
+    source_feature = b.library_feature("source")
+    rationale_feature = b.library_feature("rationale")
+    method_feature = b.library_feature("verificationMethod")
+
+    framing = b.package(f"DE4SDV_{name}Framing")
+    definition = b.definition("PartDefinition", f"{name}Increment", framing, [roots["EngineeringIncrement"]])
+    usage = b.usage("PartUsage", f"inc{name}", framing, [definition], short=increment_id)
+    role = b.definition("PartDefinition", f"{name}Engineer", framing, [roots["Stakeholder"]])
+    problem = b.usage("RequirementUsage", f"{name[0].lower()}{name[1:]}ProblemStatement", framing,
+                      [roots["ProblemStatement"]])
+    b.subject(problem, definition, name="increment")
+    b.stakeholder(problem, "engineer", role)
+    b.usage("PartUsage", f"{name[0].lower()}{name[1:]}Question", framing,
+            [roots["IncrementEngineeringQuestion"]])
+    b.usage("PartUsage", f"{name[0].lower()}{name[1:]}Decision", framing,
+            [roots["IncrementLifecycleDecision"]])
+    b.usage("PartUsage", f"{name[0].lower()}{name[1:]}Assumption", framing, [roots["Assumption"]])
+    concern_def = b.definition("ConcernDefinition", f"{name}Concern", framing)
+    concern = b.usage("ConcernUsage", f"{name[0].lower()}{name[1:]}Concern", framing, [concern_def])
+    b.stakeholder(concern, "engineer", role)
+    view = b.usage("ViewUsage", f"{name[0].lower()}{name[1:]}FramingView", framing)
+    viewpoint = b.usage("ViewpointUsage", "selectedViewpoint", view, membership="FeatureMembership")
+    b.frame(viewpoint, concern)
+    charter_def = b.definition("PartDefinition", f"{name}Charter", framing, [roots["IncrementTraceObligations"]])
+    charter = b.usage("PartUsage", f"{name[0].lower()}{name[1:]}Charter", framing, [charter_def])
+    b.attribute(charter, "applicablePhases", [phases[p] for p in applicable_phases])
+    b.attribute(charter, "increment", usage, kind="PartUsage")
+    b.attribute(charter, "owner", "fixture maintainers")
+    b.attribute(charter, "expectedArtifacts", [f"DE4SDV_{name}Framing"])
+    b.attribute(charter, "expectedReviewEvidence", ["fixture review evidence"])
+
+    needs_package = b.package(f"DE4SDV_{name}NeedsRequirements")
+    need_def = b.definition("RequirementDefinition", f"{name}Need", needs_package, [roots["Need"]])
+    requirement_def = b.definition("RequirementDefinition", f"{name}Requirement", needs_package,
+                                   [roots["Requirement"]])
+    scenario_def = b.definition("PartDefinition", f"{name}ValidationScenario", needs_package,
+                                [roots["ValidationPlanningScenario"]])
+    association_def = b.definition("ConnectionDefinition", f"{name}ValidationAssociation", needs_package,
+                                   [roots["ValidationPlanningAssociation"]])
+    needs, requirements = [], []
+    for index in range(2):
+        need = b.usage("RequirementUsage", f"need{index}", needs_package, [need_def])
+        b.subject(need, definition, name="increment")
+        b.stakeholder(need, "engineer", role)
+        b.statement(need)
+        b.attribute(need, "source", "fixture framing", redefines=source_feature)
+        b.attribute(need, "rationale", "fixture rationale", redefines=rationale_feature)
+        b.frame(need, concern)
+        scenario = b.usage("PartUsage", f"scenario{index}", needs_package, [scenario_def])
+        b.connection(f"need{index}ValidationPlanning", needs_package, association_def,
+                     [("source", need), ("target", scenario)])
+        needs.append(need)
+    for index in range(2):
+        requirement = b.usage("RequirementUsage", f"requirement{index}", needs_package, [requirement_def])
+        b.subject(requirement, definition, name="increment")
+        b.statement(requirement)
+        b.attribute(requirement, "verificationMethod", "test", redefines=method_feature)
+        b.connection(f"requirement{index}DerivedFromNeed{index}", needs_package, roots["DerivesFromNeed"],
+                     [("need", needs[index]), ("derivedRequirement", requirement)])
+        requirements.append(requirement)
+
+    evidence_package = b.package(f"DE4SDV_{name}VerificationEvidence")
+    b.references(evidence_package, usage)
+    bench = b.definition("PartDefinition", f"{name}Bench", evidence_package)
+    case_def = b.definition("VerificationCaseDefinition", f"{name}Verification", evidence_package)
+    b.objective(case_def, "fixtureObjective", requirements)
+    case = b.usage("VerificationCaseUsage", f"{name[0].lower()}{name[1:]}Verification", evidence_package,
+                   [case_def])
+    b.subject(case, bench, name="verifiedBench")
+    return IncrementScenario(
+        builder=b, increment_id=increment_id, phases=phases, framing=framing, definition=definition,
+        usage=usage, charter=charter, problem_statement=problem, concern=concern,
+        needs_package=needs_package, needs=needs, requirements=requirements,
+        evidence_package=evidence_package, cases=[case], stakeholder_role=role,
+        scenario_definition=scenario_def, vocabulary=roots)

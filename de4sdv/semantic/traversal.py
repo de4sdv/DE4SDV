@@ -149,6 +149,21 @@ class SemanticTraversal:
             return index.graph
         return build_relationship_graph(list(by_id.values()))
 
+    def class_lineage(self, ontology_class: str, elements: Any) -> dict[str, Any]:
+        """Validated lineage resolver of one ontology class over ``elements``.
+
+        Raises :class:`IdentityNotFoundError` when the class has no
+        ingestion-validated kernel binding in this revision.
+        """
+        index = self.revision_index(elements)
+        return self._lineage_resolver(ontology_class, index.by_id, index.graph)
+
+    def grounding(
+        self, element: dict[str, Any], ontology_class: str, elements: Any
+    ) -> str | None:
+        """``"explicit"``/``"implied"`` lineage grounding of ``element``, else None."""
+        return self._endpoint_grounding(element, self.class_lineage(ontology_class, elements))
+
     def traverse(
         self,
         predicate: str,
