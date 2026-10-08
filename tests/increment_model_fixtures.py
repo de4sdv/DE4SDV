@@ -288,8 +288,10 @@ class ModelBuilder:
     # -- export -------------------------------------------------------------
 
     def export(self, git_commit: str = "a" * 40) -> dict[str, Any]:
+        present = {element["@id"] for element in self.elements}
         return {"schema": "de4sdv-sysml-api-baseline-export/v1", "git_commit": git_commit,
-                "elements": list(self.elements), "element_sources": dict(self.sources),
+                "elements": list(self.elements),
+                "element_sources": {k: v for k, v in self.sources.items() if k in present},
                 "external_references": [], "source_manifest": []}
 
     def feature_of(self, owner: dict[str, Any], member_name: str) -> dict[str, Any]:

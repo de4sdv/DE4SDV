@@ -241,13 +241,29 @@ class IncrementEvaluation:
 
     def _where(self, subjects: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         package = self.view.describe(self.scope.package_id) if self.scope.package_id else None
-        sources = sorted({s["source"] for s in subjects if s.get("source")})
+        modules = sorted({
+            self.view.index.qualified_name(top)
+            for s in subjects
+            if s.get("element_id") and (top := self.view.top_package(s["element_id"]))
+        })
         where: dict[str, Any] = {"increment_package": package}
-        if sources:
-            where["sources"] = sources
-        elif package and package.get("source"):
-            where["sources"] = [package["source"]]
+        if modules:
+            where["packages"] = modules
         return where
+
+    def _presented(self, response: dict[str, Any]) -> dict[str, Any]:
+        """Attach input-dependent presentation data outside the canonical payload."""
+        if not self.view.sources:
+            return response
+        referenced = set(_element_ids(response))
+        sources = {i: self.view.source_of(i) for i in sorted(referenced) if self.view.source_of(i)}
+        if sources:
+            response["presentation"] = {
+                "element_sources": sources,
+                "note": "serializer-recorded source files of the evaluated export; presentation "
+                        "data outside the canonical payload",
+            }
+        return response
 
     # -- projections -----------------------------------------------------------
 
@@ -268,7 +284,7 @@ class IncrementEvaluation:
             phases=[self._phase_status(p) for p in phases],
             provenance=[dict(item) for item in self.canonical.provenance],
         )
-        return response
+        return self._presented(response)
 
     def _phase_status(self, phase: str) -> dict[str, Any]:
         assert self.canonical is not None
@@ -323,7 +339,7 @@ class IncrementEvaluation:
         for entry in blocking:
             counts[entry["kind"]] = counts.get(entry["kind"], 0) + 1
         response.update(blocking=blocking, advisory=advisory, counts=counts)
-        return response
+        return self._presented(response)
 
     def next_obligation(self, phase: str | None = None) -> dict[str, Any]:
         """The first actionable blocking gate, ranked by gate prerequisites."""
@@ -385,7 +401,7 @@ class IncrementEvaluation:
         else:
             reason = "every required gate passes or is not applicable"
         response.update(next=step, reason=reason, stage_queue=queue, method_side_blockers=method_side)
-        return response
+        return self._presented(response)
 
     def phase_contract(self, phase: str | None = None) -> dict[str, Any]:
         """The gates of the method (or one phase) with this increment's applicability."""
@@ -521,6 +537,21 @@ def _method_side(result: me.EvaluationResult) -> bool:
 
 def _state_label(unit: me.EvaluationResult) -> str:
     return unit.verdict or unit.state or unit.coverage
+
+
+def _element_ids(value: Any) -> list[str]:
+    """Every ``element_id`` value inside a response."""
+    found: list[str] = []
+    if isinstance(value, Mapping):
+        for key, item in value.items():
+            if key == "element_id" and isinstance(item, str) and item:
+                found.append(item)
+            else:
+                found.extend(_element_ids(item))
+    elif isinstance(value, (list, tuple)):
+        for item in value:
+            found.extend(_element_ids(item))
+    return found
 
 
 def _element_subject(subject_id: str | None, view: ModelView) -> str | None:

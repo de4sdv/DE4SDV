@@ -438,7 +438,7 @@ def _typed_connection(view, increment, spec, subject_id):
     targets: list[str] = []
     witnesses: list[str] = []
     problems: list[str] = []
-    for connection, (ends, problem) in _connection_ends(view).items():
+    for connection, (ends, problem) in sorted(_connection_ends(view).items()):
         if not view.index.typed_by(connection) & carriers:
             continue
         if problem:

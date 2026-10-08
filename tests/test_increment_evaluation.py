@@ -199,7 +199,9 @@ def test_failing_subjects_are_reported_with_where_to_author() -> None:
     (entry,) = [g for g in gaps["blocking"] if g["gate"] == "derives"]
     assert entry["kind"] == "violation"
     assert [s["name"] for s in entry["subjects"]] == ["requirement1"]
-    assert entry["subjects"][0]["source"].endswith(".sysml")
+    subject_id = entry["subjects"][0]["element_id"]
+    assert gaps["presentation"]["element_sources"][subject_id].endswith(".sysml")
+    assert entry["where"]["packages"] == ["DE4SDV_FixtureNeedsRequirements"]
     assert "DerivesFromNeed" in entry["what_to_author"]
 
 

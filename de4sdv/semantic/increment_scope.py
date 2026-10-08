@@ -151,7 +151,11 @@ class ModelView:
         return str(self.sources.get(identifier or "", ""))
 
     def describe(self, identifier: str | None) -> dict[str, str]:
-        """Display record of one element: name, qualified name, short name, source."""
+        """Display record of one element: name, qualified name, short name.
+
+        Source files are input-dependent (an export records them, an API
+        listing does not) and are reported separately as presentation data.
+        """
         element = self.element(identifier)
         record = {
             "element_id": str(identifier or ""),
@@ -161,10 +165,17 @@ class ModelView:
         short = element.get("declaredShortName")
         if short:
             record["short_name"] = str(short)
-        source = self.source_of(identifier)
-        if source:
-            record["source"] = source
         return record
+
+    def top_package(self, identifier: str | None) -> str | None:
+        """The outermost owning package of an element (its model module)."""
+        current, found, seen = identifier, None, set()
+        while current and current not in seen:
+            seen.add(current)
+            if str(self.element(current).get("@type")) in {"Package", "LibraryPackage"}:
+                found = current
+            current = self.index.owner_of(current)
+        return found
 
 
 @dataclass(frozen=True)
@@ -192,7 +203,7 @@ def resolve_increment(view: ModelView, increment_id: str) -> IncrementScope:
     diagnostics: list[str] = []
     problems: dict[str, tuple[str, str]] = {}
 
-    holders = index.with_short_name(identifier)
+    holders = sorted(index.with_short_name(identifier))
     candidates: list[str] = []
     rejected: list[str] = []
     try:
