@@ -290,6 +290,23 @@ def resolve_increment(view: ModelView, increment_id: str) -> IncrementScope:
     )
 
 
+def ordered_elements(view: ModelView, identifiers: Sequence[str]) -> tuple[str, ...]:
+    """Distinct identifiers ordered by qualified name, then identifier (corpus-order independent)."""
+    return _ordered(view, identifiers)
+
+
+def subject_scoped_requirements(view: ModelView, definition_ids: Sequence[str]) -> tuple[str, ...]:
+    """Requirement usages whose native subject is typed by one of ``definition_ids``."""
+    wanted = set(definition_ids)
+    if not wanted:
+        return ()
+    return tuple(
+        candidate
+        for candidate in view.index.elements_of_type("RequirementUsage")
+        if _subject_types(view, candidate) & wanted
+    )
+
+
 def _ordered(view: ModelView, identifiers: Sequence[str]) -> tuple[str, ...]:
     """Distinct identifiers in a corpus-order-independent order.
 
@@ -350,12 +367,7 @@ def _requirement_populations(
 ) -> tuple[tuple[str, ...], tuple[str, ...]]:
     if not definition_ids:
         return (), ()
-    wanted = set(definition_ids)
-    subjects = [
-        candidate
-        for candidate in view.index.elements_of_type("RequirementUsage")
-        if _subject_types(view, candidate) & wanted
-    ]
+    subjects = subject_scoped_requirements(view, definition_ids)
     needs: list[str] = []
     requirements: list[str] = []
     try:

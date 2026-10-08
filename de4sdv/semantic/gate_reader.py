@@ -1,4 +1,9 @@
-"""Read the method gates of one model revision into a method contract.
+"""Read the method of one model revision into a method contract.
+
+:func:`read_method_gates` reads the increment workflow when the revision
+declares one (:mod:`de4sdv.semantic.increment_workflow`), and otherwise the
+method gates below. Either way the result is one :class:`GateSet`: the
+contract plus the registries its checks and selectors resolve in.
 
 Method gates are MethodContractObligation-lineage usages (ingestion-validated
 kernel identity, ADR 0011) whose subject selector is a typed increment
@@ -16,12 +21,13 @@ pilot scope) are not increment gates; they are listed, not evaluated here.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 from de4sdv.sysml_api.errors import IdentityNotFoundError
 
 from . import method_evaluator as me
 from .gate_predicates import GATE_PREDICATES, GATE_SELECTORS
+from .gate_predicates import remedy as gate_remedy
 from .increment_scope import INCREMENT_SELECTORS, ModelView
 from .method_trace_adapter import CANONICAL_PHASE_LITERALS
 
@@ -57,6 +63,15 @@ class GateSet:
     other_obligations: tuple[str, ...] = ()
     problems: tuple[str, ...] = ()
     reason: str = ""
+    #: The registries the contract's predicates and selectors resolve in.
+    predicates: me.PredicateRegistry = GATE_PREDICATES
+    selectors: me.SelectorRegistry = GATE_SELECTORS
+    #: What to author for one gate: ``remedy(gate, increment=, view=, subject_id=)``.
+    remedy: Callable[..., str] = gate_remedy
+    #: Display labels per obligation (for example the method step it belongs to).
+    labels: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
+    #: The method representation that was read.
+    representation: str = "method-gates"
 
     @property
     def available(self) -> bool:
@@ -68,7 +83,21 @@ class _Undecodable(ValueError):
 
 
 def read_method_gates(view: ModelView, *, revision_label: str) -> GateSet:
-    """Decode the gates of ``view`` (a model revision) into one contract."""
+    """The method of ``view`` (a model revision) as one contract.
+
+    The increment workflow when the revision declares one, else the method
+    gates.
+    """
+    from .increment_workflow import read_increment_workflow
+
+    workflow = read_increment_workflow(view, revision_label=revision_label)
+    if workflow is not None:
+        return workflow
+    return read_gate_usages(view, revision_label=revision_label)
+
+
+def read_gate_usages(view: ModelView, *, revision_label: str) -> GateSet:
+    """Decode the method gates of ``view`` (a model revision) into one contract."""
     identity = {"method_id": METHOD_ID, "method_revision": revision_label}
     index = view.index
     try:

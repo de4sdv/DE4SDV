@@ -154,3 +154,35 @@ def test_index_is_keyed_by_the_corpus_never_shared_across_corpora() -> None:
     assert _hops(traversal, "derivesRequirementFromNeed", source, with_connection.elements)
     assert traversal.revision_index(with_connection.elements).elements is with_connection.elements
     assert traversal.revision_index(without).elements is without
+
+
+def test_specializations_close_over_subclassification() -> None:
+    builder = ModelBuilder(label="lineage")
+    package = builder.package("Lineage")
+    root = builder.definition("PartDefinition", "Root", package)
+    child = builder.definition("PartDefinition", "Child", package, [root])
+    grandchild = builder.definition("PartDefinition", "Grandchild", package, [child])
+    other = builder.definition("PartDefinition", "Other", package)
+    index = RevisionIndex(builder.elements)
+    assert index.specializations(root["@id"]) == {root["@id"], child["@id"], grandchild["@id"]}
+    assert index.specializations(child["@id"]) == {child["@id"], grandchild["@id"]}
+    assert index.specializations(other["@id"]) == {other["@id"]}
+
+
+@pytest.mark.parametrize(("bounds", "expected"), [
+    ((1, INFINITY), (1, None)), ((0, INFINITY), (0, None)), ((0, 1), (0, 1)), ((2,), (2, 2)),
+    ((INFINITY,), (0, None)),
+])
+def test_multiplicity_bounds_follow_the_export_shape(bounds, expected) -> None:
+    builder = ModelBuilder(label="multiplicity")
+    package = builder.package("Multiplicity")
+    feature = builder.usage("ReferenceUsage", "parameter", package)
+    builder.multiplicity(feature, *bounds)
+    index = RevisionIndex(builder.elements)
+    assert index.multiplicity(feature["@id"]) == expected
+
+
+def test_a_feature_without_multiplicity_declares_none() -> None:
+    builder = ModelBuilder(label="multiplicity")
+    feature = builder.usage("ReferenceUsage", "parameter", builder.package("Multiplicity"))
+    assert RevisionIndex(builder.elements).multiplicity(feature["@id"]) is None

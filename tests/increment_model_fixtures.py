@@ -227,6 +227,18 @@ class ModelBuilder:
             return expression
         raise TypeError(value)
 
+    def multiplicity(self, feature: dict[str, Any], *bounds: Any) -> dict[str, Any]:
+        """A MultiplicityRange owned by ``feature``: ``[n]`` or ``[lower..upper]`` literal bounds.
+
+        Only the owned structure is emitted (no derived ``lowerBound`` /
+        ``upperBound`` references), so readers work from ownership.
+        """
+        multiplicity = self.new("MultiplicityRange", source=self.sources[feature["@id"]])
+        self.own(feature, multiplicity)
+        for bound in bounds:
+            self.own(multiplicity, self.value_expression(multiplicity, bound))
+        return multiplicity
+
     def attribute(self, owner: dict[str, Any], name: str, value: Any,
                   redefines: dict[str, Any] | None = None, kind: str = "AttributeUsage") -> dict[str, Any]:
         feature = self.new(kind, name=name, declared=False, source=self.sources[owner["@id"]])
@@ -542,3 +554,109 @@ def method_gates(builder: ModelBuilder, gates: Sequence[GateSpec],
             builder.attribute(made[gate.name], "prerequisites", targets[0] if len(targets) == 1 else targets,
                               redefines=prerequisites_feature, kind="ReferenceUsage")
     return made
+
+
+# ---------------------------------------------------------------------------
+# Provisional increment workflow (action def IncrementWorkflow)
+# ---------------------------------------------------------------------------
+
+WORKFLOW_SOURCE = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml"
+
+
+@dataclass(frozen=True)
+class WorkflowCheck:
+    """One synthetic method check: a MethodCheck metadata usage about a step output."""
+
+    name: str
+    check: str
+    minimum: int | None = None  # None: attribute omitted (the default applies)
+    advisory: bool | None = None  # None: attribute omitted (the default applies)
+    doc: str | None = None
+
+
+@dataclass(frozen=True)
+class WorkflowStep:
+    """One synthetic workflow step: phase, one typed output parameter and its checks."""
+
+    name: str
+    phase: str
+    output: str
+    output_type: Any  # a kernel class name, or a definition element
+    bounds: tuple[Any, ...] = (1, INFINITY)
+    checks: tuple[WorkflowCheck, ...] = ()
+
+
+def increment_workflow(builder: ModelBuilder, steps: Sequence[WorkflowStep], *,
+                       successions: Sequence[tuple[str, str]] | None = None,
+                       package_name: str = "DE4SDV_IncrementWorkflow",
+                       bind: bool = True) -> dict[str, Any]:
+    """The provisional method workflow in export shape.
+
+    ``action def IncrementWorkflow`` owns one step action usage per step (all
+    but the first ``[0..1]``), connected by successions in step order unless
+    ``successions`` names the ``(first, then)`` pairs. Each step usage is
+    typed by a step action definition with a ``phase`` attribute (a
+    MethodPhase literal), one ``out`` parameter typed by the step's output
+    type with the given multiplicity, and ``MethodCheck`` metadata usages
+    ``about`` that parameter. The kernel bindings of ``IncrementWorkflow`` and
+    ``MethodCheck`` are synthetic: the classes are not in the model-built
+    contract of this checkout.
+    """
+    phases = builder.enumeration("MethodPhase", PHASE_LITERALS)
+    package = builder.package(package_name, source=WORKFLOW_SOURCE)
+    workflow = builder.definition("ActionDefinition", "IncrementWorkflow", package)
+    check_definition = builder.definition("MetadataDefinition", "MethodCheck", package)
+    if bind:
+        for ontology_class, element, declaration in (
+            ("IncrementWorkflow", workflow, "action def IncrementWorkflow"),
+            ("MethodCheck", check_definition, "metadata def MethodCheck"),
+        ):
+            builder.bindings.append({"ontology_class": ontology_class, "element_id": element["@id"],
+                                     "source_file": WORKFLOW_SOURCE, "declaration": declaration})
+    features = {}
+    for name in ("check", "minimum", "advisory"):
+        feature = builder.new("AttributeUsage", name=name, source=WORKFLOW_SOURCE)
+        builder.own(check_definition, feature, kind="FeatureMembership", member_name=name)
+        features[name] = feature
+    usages: dict[str, dict[str, Any]] = {}
+    parameters: dict[str, dict[str, Any]] = {}
+    checks: dict[str, dict[str, Any]] = {}
+    for position, step in enumerate(steps):
+        step_definition = builder.definition("ActionDefinition", f"{step.name[0].upper()}{step.name[1:]}Step",
+                                             package)
+        builder.attribute(step_definition, "phase", phases[step.phase])
+        parameter = builder.new("ReferenceUsage", name=step.output, source=WORKFLOW_SOURCE, direction="out")
+        builder.own(step_definition, parameter, kind="ParameterMembership", member_name=step.output)
+        output_type = (builder.kernel_definition(step.output_type) if isinstance(step.output_type, str)
+                       else step.output_type)
+        builder.typed(parameter, output_type)
+        builder.multiplicity(parameter, *step.bounds)
+        for check in step.checks:
+            metadata = builder.new("MetadataUsage", name=check.name, source=WORKFLOW_SOURCE)
+            builder.own(step_definition, metadata, kind="FeatureMembership", member_name=check.name)
+            builder.typed(metadata, check_definition)
+            builder.relationship("Annotation", metadata, annotatedElement=ref(parameter),
+                                 annotatingElement=ref(metadata))
+            builder.attribute(metadata, "check", check.check, redefines=features["check"])
+            if check.minimum is not None:
+                builder.attribute(metadata, "minimum", check.minimum, redefines=features["minimum"])
+            if check.advisory is not None:
+                builder.attribute(metadata, "advisory", check.advisory, redefines=features["advisory"])
+            if check.doc is not None:
+                builder.own(metadata, builder.new("Documentation", source=WORKFLOW_SOURCE, body=check.doc))
+            checks[check.name] = metadata
+        usage = builder.usage("ActionUsage", step.name, workflow, [step_definition], membership="FeatureMembership")
+        if position:
+            builder.multiplicity(usage, 0, 1)
+        usages[step.name] = usage
+        parameters[step.name] = parameter
+    names = [step.name for step in steps]
+    for first, then in (successions if successions is not None else list(zip(names, names[1:]))):
+        succession = builder.new("SuccessionAsUsage", source=WORKFLOW_SOURCE)
+        builder.own(workflow, succession, kind="FeatureMembership")
+        for target in (usages[first], usages[then]):
+            end = builder.new("Feature", source=WORKFLOW_SOURCE)
+            builder.own(succession, end, kind="EndFeatureMembership")
+            builder.reference_subsetting(end, target)
+    return {"workflow": workflow, "check_definition": check_definition, "steps": usages,
+            "parameters": parameters, "checks": checks}

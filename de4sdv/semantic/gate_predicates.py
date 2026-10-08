@@ -26,8 +26,7 @@ witnesses are marked ``model-witness:``; the agent can author those.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
-from typing import Any, Callable, Iterable, Sequence
+from typing import Callable, Sequence
 
 from de4sdv.sysml_api.errors import IdentityNotFoundError
 from de4sdv.sysml_api.repository import reference_ids
@@ -40,6 +39,7 @@ from .increment_scope import (
     IncrementScope,
     ModelView,
 )
+from .method_checks import indeterminate, outcome, satisfied, violated
 from .relation_checks import (
     METHOD_SIDE_PREFIXES,
     MODEL_WITNESS_PREFIX,
@@ -69,14 +69,6 @@ FILTER_EXTERNAL_EVIDENCE = "external-evidence"
 #: The kernel class whose usages are problem statements.
 PROBLEM_STATEMENT_DECLARATION = "ProblemStatement"
 _IDENTIFIER = r"[A-Z][A-Za-z0-9]*"
-
-
-@dataclass
-class IncrementEvaluationContext(me.EvaluationContext):
-    """Evaluation context of one increment: the model view and its scope."""
-
-    model: ModelView | None = None
-    increment: IncrementScope | None = None
 
 
 def is_method_side(result: me.EvaluationResult) -> bool:
@@ -153,30 +145,10 @@ def _filters(spec: me.ObligationSpec, kind: str) -> list[me.TargetFilter]:
 _MethodSide = MethodSideInput
 
 
-def _outcome(status: str, **fields: Any) -> me.PredicateOutcome:
-    return me.PredicateOutcome(
-        status=status,
-        reason_codes=tuple(fields.get("codes", ())),
-        targets=tuple(fields.get("targets", ())),
-        witnesses=tuple(fields.get("witnesses", ())),
-        missing=tuple(fields.get("missing", ())),
-        diagnostics=tuple(fields.get("diagnostics", ())),
-    )
-
-
-def _satisfied(targets: Iterable[str], witnesses: Iterable[str] = (), diagnostics: Sequence[str] = ()):
-    targets = list(dict.fromkeys(targets))
-    return _outcome("satisfied", targets=targets, witnesses=list(dict.fromkeys(witnesses)) or targets,
-                    diagnostics=diagnostics)
-
-
-def _violated(what: str, diagnostics: Sequence[str] = (), witnesses: Iterable[str] = ()):
-    return _outcome("violated", codes=(me.REQUIRED_RELATION_MISSING,),
-                    diagnostics=(what, *diagnostics), witnesses=list(witnesses))
-
-
-def _indeterminate(marker: str, detail: str):
-    return _outcome("indeterminate", codes=(me.INPUT_UNAVAILABLE,), missing=(marker,), diagnostics=(detail,))
+_outcome = outcome
+_satisfied = satisfied
+_violated = violated
+_indeterminate = indeterminate
 
 
 def _requires_increment(function: Callable[..., me.PredicateOutcome]) -> me.Predicate:

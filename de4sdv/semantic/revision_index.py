@@ -289,6 +289,57 @@ class RevisionIndex:
 
         return self.memo(key, build)
 
+    # -- lineage and multiplicity -------------------------------------------
+
+    def specializations(self, definition: str) -> frozenset[str]:
+        """``definition`` and every definition that specializes it (explicit lineage)."""
+        cache: dict[str, frozenset[str]] = self.memo("specializations", dict)
+        if definition not in cache:
+            specifics = self.graph_indexes().explicit_specifics
+            found: set[str] = set()
+            frontier = [definition]
+            while frontier:
+                current = frontier.pop()
+                if current in found:
+                    continue
+                found.add(current)
+                frontier.extend(specifics.get(current, ()))
+            cache[definition] = frozenset(found)
+        return cache[definition]
+
+    def multiplicity(self, feature: str) -> tuple[int, int | None] | None:
+        """Declared multiplicity of a feature as ``(lower, upper)``; upper ``None`` is unbounded.
+
+        Reads the feature's MultiplicityRange from its owned structure (its
+        literal bound expressions), or from the derived ``lowerBound`` /
+        ``upperBound`` references when a serializer emits them. ``[n]`` is
+        ``(n, n)`` and ``[*]`` is ``(0, None)``. ``None`` when no multiplicity
+        is declared or its bounds are not literals.
+        """
+        ranges = reference_ids(self.element(feature).get("multiplicity")) or self.owned_members(
+            feature, "MultiplicityRange")
+        if not ranges:
+            return None
+        multiplicity = self.element(ranges[0])
+        bound_ids = (reference_ids(multiplicity.get("lowerBound")) + reference_ids(multiplicity.get("upperBound"))
+                     or reference_ids(multiplicity.get("bound"))
+                     or self.owned_members(ranges[0], "LiteralInteger", "LiteralInfinity"))
+        values: list[int | None] = []
+        for bound in bound_ids:
+            element = self.element(bound)
+            kind = str(element.get("@type") or "")
+            if kind == "LiteralInfinity":
+                values.append(None)
+            elif kind == "LiteralInteger" and isinstance(element.get("value"), int) and element["value"] >= 0:
+                values.append(int(element["value"]))
+            else:
+                return None
+        if len(values) == 1:
+            return (0, None) if values[0] is None else (values[0], values[0])
+        if len(values) == 2 and values[0] is not None:
+            return values[0], values[1]
+        return None
+
     # -- feature values -----------------------------------------------------
 
     def feature(self, owner: str, member_name: str) -> str | None:

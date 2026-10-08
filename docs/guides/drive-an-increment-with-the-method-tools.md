@@ -7,6 +7,18 @@ evaluate one increment against those gates, so an agent (or a person) can run
 the loop **next → author → gaps**: the agent authors model content, the
 deterministic evaluation judges it.
 
+## Method representation
+
+When the revision declares the increment workflow (`action def IncrementWorkflow`,
+bound by validated kernel identity), the tools read it: step actions ordered
+by successions, each step's `phase`, its typed `out` parameters, and the
+`MethodCheck` metadata about those outputs (`check`, `minimum`, `advisory`).
+A check's subjects are the increment's elements of the output's type; its id
+resolves in `de4sdv/semantic/method_checks.py`, and an unknown id makes the
+method invalid. Otherwise the tools read the method gates. The workflow form
+is provisional; `de4sdv/semantic/increment_workflow.py` is the only module
+that knows it.
+
 ## The four tools
 
 All four take the increment identifier: the registered `INC-<SUBJECT>-<SEQ>`
