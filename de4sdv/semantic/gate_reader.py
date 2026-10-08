@@ -72,7 +72,7 @@ def read_method_gates(view: ModelView, *, revision_label: str) -> GateSet:
     identity = {"method_id": METHOD_ID, "method_revision": revision_label}
     index = view.index
     try:
-        obligation_root = view.kernel_element(OBLIGATION_CLASS)
+        view.kernel_element(OBLIGATION_CLASS)
         candidates = [
             element for element in index.elements_of_type("ItemUsage")
             if view.in_lineage(element, OBLIGATION_CLASS)
@@ -80,7 +80,6 @@ def read_method_gates(view: ModelView, *, revision_label: str) -> GateSet:
     except IdentityNotFoundError as error:
         return GateSet(method_identity=identity, contract=None,
                        reason=f"method gates cannot be read: kernel-binding:{OBLIGATION_CLASS}: {error}")
-    del obligation_root
     try:
         phase_root = view.kernel_element("MethodPhase")
     except IdentityNotFoundError:

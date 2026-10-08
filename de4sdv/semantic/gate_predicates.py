@@ -511,13 +511,20 @@ def _governed(view: ModelView, relation: str, subject_id: str) -> tuple[list[Any
         except IdentityNotFoundError as error:
             raise _MethodSide(f"kernel-binding:{ontology_class}", f"method side: {error}")
     traversal = view.traversal
-    before = list(getattr(traversal, "unsupported", None) or ())
+    # The traversal de-duplicates its accumulated unsupported records, so the
+    # records of this one call are collected on a fresh list and merged back.
+    accumulated = getattr(traversal, "unsupported", None)
+    if accumulated is not None:
+        traversal.unsupported = []
     try:
         hops = traversal.traverse(relation, view.element(subject_id), view.elements)
     except IdentityNotFoundError as error:
         return [], str(error)
-    added = [record for record in (getattr(traversal, "unsupported", None) or ())
-             if record not in before and record.get("predicate") == relation]
+    finally:
+        if accumulated is not None:
+            fresh = traversal.unsupported
+            traversal.unsupported = accumulated + [r for r in fresh if r not in accumulated]
+    added = [record for record in fresh if record.get("predicate") == relation] if accumulated is not None else []
     if added and not hops:
         return [], "; ".join(str(record.get("reason")) for record in added)
     return hops, ""

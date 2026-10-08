@@ -289,3 +289,50 @@ def test_status_names_the_resolved_increment(increment_id: str) -> None:
     assert status["increment"]["id"] == increment_id
     assert status["increment"]["usage"]["qualified_name"] == "DE4SDV_FixtureFraming::incFixture"
     assert status["increment"]["declared_phases"] == [P0, P4, P5, P10]
+
+
+def test_a_phase_without_gates_is_unassessed_never_a_pass() -> None:
+    evaluation = _evaluate(_scenario())
+    status = evaluation.status(phase="phase1_concernFraming")
+    assert status["phases"] == []
+    assert (status["assessment_coverage"], status["evaluation_state"], status["conformance_verdict"]) == (
+        me.COVERAGE_UNASSESSED, None, None)
+    assert status["reason_codes"] == [me.CONTRACT_UNAVAILABLE]
+    assert evaluation.next_obligation(phase="phase1_concernFraming")["next"] is None
+    contract = evaluation.phase_contract(phase="phase1_concernFraming")
+    assert contract["executable_contract_available"] is False
+    assert contract["reason_codes"] == [me.CONTRACT_UNAVAILABLE]
+
+
+def test_an_empty_required_inventory_cannot_open_a_phase_exit() -> None:
+    scenario = increment_scenario()
+    scenario.builder.kernel_definition("AcceptanceCriterion")
+    only_advisory = [g for g in synthetic_method() if g.phase != P10 or not g.required]
+    method_gates(scenario.builder, only_advisory)
+    evaluation = _evaluate(scenario)
+    block = _phase(evaluation.status(), P10)
+    assert (block["assessment_coverage"], block["evaluation_state"], block["conformance_verdict"]) == (
+        me.COVERAGE_UNASSESSED, None, None)
+    assert block["phase_exit"] == "BLOCKED"
+    assert block["readiness"]["reason_codes"] == [me.CONTRACT_UNAVAILABLE]
+
+
+def test_unreadable_governed_witnesses_stay_indeterminate_for_every_subject(monkeypatch) -> None:
+    """The traversal de-duplicates its unsupported records; each subject's own
+    unreadable witness must still be reported as an input problem, not a FAIL."""
+    from de4sdv.semantic.relationship_successor import SuccessorTraversal
+
+    def unreadable(self, predicate, source, elements):
+        if predicate == "derivesRequirementFromNeed":
+            self.unavailable(predicate, "native connection endpoint is absent")
+            return []
+        return original(self, predicate, source, elements)
+
+    original = SuccessorTraversal.traverse
+    monkeypatch.setattr(SuccessorTraversal, "traverse", unreadable)
+    evaluation = _evaluate(_scenario())
+    children = [r for r in evaluation.canonical.results if r.unit_id == "derives"]
+    assert len(children) == 2
+    assert {(c.state, c.verdict) for c in children} == {(me.STATE_INDETERMINATE, None)}
+    (entry,) = [g for g in evaluation.gaps()["blocking"] if g["gate"] == "derives"]
+    assert entry["kind"] == "input-problem"

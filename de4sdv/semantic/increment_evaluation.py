@@ -152,6 +152,30 @@ class IncrementEvaluation:
         assert self.canonical is not None
         return [r for r in self.canonical.results if r.unit_id == gate_id]
 
+    def _required(self, ids: Sequence[str]) -> list[str]:
+        assert self.canonical is not None
+        required = set(self.canonical.required_units)
+        return [unit_id for unit_id in ids if unit_id in required]
+
+    def _aggregate(self, ids: Sequence[str]) -> tuple[str, str | None, str | None]:
+        """Aggregate of the given gates; an empty required inventory is UNASSESSED."""
+        assert self.canonical is not None
+        if not self._required(ids):
+            return me.COVERAGE_UNASSESSED, None, None
+        return me.subset_aggregate(self._contract(), self.canonical, ids)
+
+    def _phase_exit(self, phase: str, ids: Sequence[str]) -> me.ReadinessBlock:
+        """Phase-exit readiness; an empty required inventory never opens an exit."""
+        assert self.canonical is not None
+        target = me.ReadinessTarget("PHASE_EXIT", f"{self.increment_id}/{phase}")
+        if not self._required(ids):
+            return me.ReadinessBlock(
+                target=target, readiness="BLOCKED", reason_codes=(me.CONTRACT_UNAVAILABLE,),
+                diagnostics=(f"no blocking gate is declared for {phase}; an empty required "
+                             "inventory cannot authorize a phase exit",),
+            )
+        return me.subset_readiness(self.canonical, ids, target)
+
     def _depths(self) -> dict[str, int]:
         gates = {g.obligation_id: g for g in self._contract().obligations}
         depth: dict[str, int] = {}
@@ -272,10 +296,9 @@ class IncrementEvaluation:
         if self.canonical is None:
             return self._unavailable("increment_status")
         response = self._header("increment_status")
-        contract = self._contract()
         phases = self._phases(phase)
         selected = [g.obligation_id for p in phases for g in self._gates(p)]
-        coverage, state, verdict = me.subset_aggregate(contract, self.canonical, selected)
+        coverage, state, verdict = self._aggregate(selected)
         response.update(
             executable_contract_available=True,
             assessment_coverage=coverage,
@@ -284,16 +307,20 @@ class IncrementEvaluation:
             phases=[self._phase_status(p) for p in phases],
             provenance=[dict(item) for item in self.canonical.provenance],
         )
+        if not self._required(selected):
+            response["reason_codes"] = [me.CONTRACT_UNAVAILABLE]
+            response["diagnostics"] = [
+                f"no blocking gate is declared for {phase}" if phase
+                else "the method declares no blocking gate"
+            ]
         return self._presented(response)
 
     def _phase_status(self, phase: str) -> dict[str, Any]:
         assert self.canonical is not None
         gates = self._gates(phase)
         ids = [g.obligation_id for g in gates]
-        coverage, state, verdict = me.subset_aggregate(self._contract(), self.canonical, ids)
-        readiness = me.subset_readiness(
-            self.canonical, ids, me.ReadinessTarget("PHASE_EXIT", f"{self.increment_id}/{phase}")
-        )
+        coverage, state, verdict = self._aggregate(ids)
+        readiness = self._phase_exit(phase, ids)
         blocking, advisory = [], []
         for gate in gates:
             kind = self._kind(self._unit(gate.obligation_id))
@@ -375,9 +402,8 @@ class IncrementEvaluation:
                 queue.append({"phase": gate.phase, "gates": []})
             queue[-1]["gates"].append(gate.obligation_id)
         for entry in queue:
-            entry["phase_exit"] = me.subset_readiness(
-                self.canonical, [g.obligation_id for g in self._gates(entry["phase"])],
-                me.ReadinessTarget("PHASE_EXIT", f"{self.increment_id}/{entry['phase']}"),
+            entry["phase_exit"] = self._phase_exit(
+                entry["phase"], [g.obligation_id for g in self._gates(entry["phase"])]
             ).readiness
         step = None
         reason = ""
@@ -398,6 +424,8 @@ class IncrementEvaluation:
         elif method_side:
             reason = ("no gate the agent can author is open; the remaining blockers need a method or "
                       "kernel change")
+        elif phase is not None and not self._phases(phase):
+            reason = f"no gate is declared for {phase}"
         else:
             reason = "every required gate passes or is not applicable"
         response.update(next=step, reason=reason, stage_queue=queue, method_side_blockers=method_side)
@@ -451,6 +479,9 @@ def phase_contract_response(
     gates = [_gate_record(gate, view, scope) for p in phases for gate in contract.obligations if gate.phase == p]
     response.update(executable_contract_available=bool(gates), phases=phases, gates=gates,
                     contract_digest=gate_set.contract.digest())
+    if not gates:
+        response["reason_codes"] = [me.CONTRACT_UNAVAILABLE]
+        response["diagnostics"] = [f"no gate is declared for {phase}"]
     return response
 
 
