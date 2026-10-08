@@ -55,6 +55,9 @@ class ExportSnapshot:
     kernel_bindings: tuple[KernelElementBinding, ...]
     identity_mode: str
     export_sha256: str
+    #: Semantic authority of the checkout whose model-built contract judged
+    #: the export (in both modes; the binding mode requires them equal).
+    semantic_authority_id: str = ""
 
 
 def _contract(root: Path) -> Any:
@@ -97,6 +100,7 @@ def load_export_snapshot(
                                       binding.sysml_commit_id, binding.scope),
             kernel_bindings=tuple(binding.kernel_bindings),
             identity_mode="validated-revision-binding",
+            semantic_authority_id=contract.identity.id,
         )
     from .validation import validate_ontology_bindings
 
@@ -119,6 +123,7 @@ def load_export_snapshot(
         revision=RevisionIdentity(git_commit, "", "", EXPORT_SNAPSHOT_SCOPE),
         kernel_bindings=kernel,
         identity_mode="export-validated-kernel-bindings",
+        semantic_authority_id=contract.identity.id,
     )
 
 

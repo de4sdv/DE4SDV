@@ -136,5 +136,17 @@ def test_command_line_evaluates_and_refuses(tmp_path: Path, capsys) -> None:
     report = json.loads(output.read_text())
     assert report["next"]["next"]["gate"] == "needStakeholder"
     assert set(report["timings"]) >= {"load_seconds", "evaluation_seconds", "total_seconds"}
+    assert report["semantic_authority"].startswith("sai-")
     assert module.main(["--export", str(export_path), "--increment", "not-an-increment"]) == 2
     capsys.readouterr()
+
+
+def test_the_evaluation_names_the_semantic_authority_that_judged_it(tmp_path: Path) -> None:
+    from de4sdv.semantic.export_evaluation import ROOT
+    from de4sdv.semantic.model_contract import build_model_contract
+
+    expected = build_model_contract(ROOT).identity.id
+    export_path, binding_path = _write(tmp_path, _scenario())
+    for binding in (binding_path, None):
+        snapshot, _evaluation = evaluate_export(export_path, INCREMENT, binding_path=binding)
+        assert snapshot.semantic_authority_id == expected

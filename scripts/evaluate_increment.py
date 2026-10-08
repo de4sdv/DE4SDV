@@ -78,6 +78,7 @@ def run(argv: list[str] | None = None) -> tuple[int, dict, Path | None]:
         "evaluation_key": evaluation.evaluation_key,
         "export_sha256": snapshot.export_sha256,
         "identity_mode": snapshot.identity_mode,
+        "semantic_authority": snapshot.semantic_authority_id,
         "element_count": len(snapshot.elements),
         **{name: projections[name]() for name in selected},
     }
