@@ -20,6 +20,8 @@ A snapshot is a derived read cache, never a second semantic authority:
 - any doubt (checksum mismatch, identity drift, older format, malformed,
   truncated, duplicate or missing element UUIDs) is a miss that falls back
   to the exact API load; a snapshot is never partially adopted;
+- the file is named by the SysML commit id only when that id is a plain
+  file-name component; any other id is never used as a path;
 - writes are atomic (unique temporary file, ``os.replace``) with a checksum
   sidecar, and installing the lazy hook performs no I/O, so protocol
   handshakes never wait for the corpus.
@@ -33,6 +35,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -44,6 +47,10 @@ from de4sdv.sysml_api.repository import validated_element_corpus
 #: v4: semantic-authority-bound identity (model-built contract). Older
 #: snapshots are a miss by construction, never reinterpreted.
 CORPUS_SNAPSHOT_FORMAT = 4
+
+#: A SysML commit id names the snapshot file only when it is a plain file-name
+#: component (API commit ids are UUIDs); anything else is never a path.
+_FILE_NAME_COMPONENT = re.compile(r"[0-9A-Za-z][0-9A-Za-z_-]{0,127}")
 
 
 def snapshot_directory() -> Path:
@@ -106,9 +113,12 @@ def corpus_identity(service: Any) -> dict[str, Any]:
 
 def corpus_snapshot_path(service: Any, *, directory: Path | str | None = None) -> Path:
     """Snapshot file of one exact revision and runtime semantic authority."""
+    commit = str(service.binding.sysml_commit_id)
+    if not _FILE_NAME_COMPONENT.fullmatch(commit):
+        raise ValueError(f"SysML commit id {commit!r} is not a safe snapshot file name")
     authority = str(getattr(service, "semantic_authority_id", "") or "unknown")
     component = hashlib.sha256(authority.encode("utf-8")).hexdigest()[:12]
-    return _directory(directory) / f"{service.binding.sysml_commit_id}.{component}.json"
+    return _directory(directory) / f"{commit}.{component}.json"
 
 
 def write_corpus_snapshot(service: Any, elements: object, *, directory: Path | str | None = None) -> Path:
@@ -142,8 +152,8 @@ def write_corpus_snapshot(service: Any, elements: object, *, directory: Path | s
 
 def load_corpus_snapshot(service: Any, *, directory: Path | str | None = None) -> list[dict[str, Any]] | None:
     """The checksum- and identity-verified snapshot corpus, or None (any doubt)."""
-    path = corpus_snapshot_path(service, directory=directory)
     try:
+        path = corpus_snapshot_path(service, directory=directory)
         raw = path.read_bytes()
         expected = path.with_suffix(".json.sha256").read_text(encoding="utf-8").strip()
         if hashlib.sha256(raw).hexdigest() != expected:

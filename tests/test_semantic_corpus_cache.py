@@ -295,3 +295,21 @@ def test_stdio_restart_lists_zero_elements(snapshot_dir, counting_api_server, tm
     warm_handshake, warm = anyio.run(run_session)
     assert warm_handshake == 1 and handler.retrievals == 1  # restart: zero listings
     assert warm == cold
+
+
+@pytest.mark.parametrize("commit", ["../escape", "nested/commit", ".."])
+def test_a_commit_id_that_is_not_a_file_name_never_becomes_a_path(snapshot_dir, tmp_path, commit) -> None:
+    elements, bindings = _corpus()
+    client = CountingClient(elements)
+    document = binding_dict(git_commit=REVISION, sysml_project_id="project-1",
+                            sysml_commit_id=commit, kernel_bindings=bindings)
+    service = model_service(RevisionBinding.from_dict(document), SysMLRepository(client),
+                            expected_git_revision=REVISION)
+    with pytest.raises(ValueError, match="file name"):
+        cc.write_corpus_snapshot(service, elements)
+    assert cc.load_corpus_snapshot(service) is None
+    # The hook falls back to the exact API load and writes nothing anywhere.
+    assert cc.install_corpus_snapshot(service)
+    assert service.repository.list_elements("project-1", commit) == elements
+    assert client.element_retrievals == 1
+    assert not [path for path in tmp_path.rglob("*") if path.is_file()]
