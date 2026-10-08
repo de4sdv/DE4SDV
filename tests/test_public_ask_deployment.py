@@ -40,12 +40,11 @@ def _runtime_repo(tmp_path):
     model = repo / "textual-notation-of-model" / "model.sysml"
     model.parent.mkdir()
     model.write_text("package Model;\n", encoding="utf-8")
-    ontology = (
-        repo / "approach" / "framework" / "ontology"
-        / "de4sdv-basic-ontology.yaml"
-    )
-    ontology.parent.mkdir(parents=True)
-    ontology.write_text("classes: {}\n", encoding="utf-8")
+    # A model-authority input (O4 Wave C2: the authored ontology is gone;
+    # the kernel-internal manifest is one of the governed inputs).
+    manifest = repo / "docs" / "method-conformance" / "o4" / "kernel-internal-declarations.yaml"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text("declarations: {}\n", encoding="utf-8")
     model_revision = _commit(repo, "model")
     code = repo / "tools" / "viewer.py"
     code.parent.mkdir()
@@ -92,6 +91,23 @@ def test_runtime_contract_rejects_model_drift_after_bound_revision(tmp_path):
     model = repo / "textual-notation-of-model" / "model.sysml"
     model.write_text("package ChangedModel;\n", encoding="utf-8")
     changed_revision = _commit(repo, "change model")
+
+    with pytest.raises(RuntimeContractError, match="model or ontology drift"):
+        validate_runtime_contract(
+            repo,
+            binding,
+            {
+                "NOUS_API_KEY": "test-key",
+                "DE4SDV_APP_GIT_SHA": changed_revision,
+            },
+        )
+
+
+def test_runtime_contract_rejects_authority_input_drift_after_bound_revision(tmp_path):
+    repo, binding, _, _ = _runtime_repo(tmp_path)
+    manifest = repo / "docs" / "method-conformance" / "o4" / "kernel-internal-declarations.yaml"
+    manifest.write_text("declarations: {changed: {}}\n", encoding="utf-8")
+    changed_revision = _commit(repo, "change kernel-internal manifest")
 
     with pytest.raises(RuntimeContractError, match="model or ontology drift"):
         validate_runtime_contract(

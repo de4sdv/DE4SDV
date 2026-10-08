@@ -357,10 +357,7 @@ def test_kernel_source_no_longer_describes_the_standard_library_relation() -> No
         assert stale not in text, f"stale standard-Derivation text remains: {stale}"
     assert "connection def DerivesFromNeed" in text
     assert "Claim strength: derivation" in text
-    # The library mention survives only where it records NON-adoption.
-    ontology = (
-        ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-    ).read_text(encoding="utf-8")
-    assert "remains pinned but unadopted" in ontology.lower() or (
-        "unadopted" in ontology.lower()
-    )
+    # The library mention survives only where it records NON-adoption. Since
+    # O4 Wave C2 (authored ontology deleted) the model-resident doc asserted
+    # above is the only home of that record; no other copy may exist.
+    assert not (ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml").exists()
