@@ -67,14 +67,14 @@ def _proof_elements():
     return elements
 
 
-def build_inputs(tmp_path, *, close=True):
+def build_inputs(tmp_path, *, close=True, revision=REVISION):
     elements, bindings = _elements_and_bindings()
     elements += _proof_elements()
     binding = tmp_path / "binding.json"
     binding.write_text(json.dumps(binding_dict(
-        git_repository="de4sdv/DE4SDV", git_commit=REVISION, sysml_project_id=PROJECT,
+        git_repository="de4sdv/DE4SDV", git_commit=revision, sysml_project_id=PROJECT,
         sysml_commit_id=COMMIT, kernel_bindings=bindings)))
-    bundle = mar.build_model_bundle(ROOT, git_revision=REVISION)
+    bundle = mar.build_model_bundle(ROOT, git_revision=revision)
     if close:
         bundle = _close(bundle, RevisionBinding.load(binding), binding, tmp_path)
     path = tmp_path / "model.json"
@@ -211,6 +211,49 @@ def test_server_on_a_retired_authority_produces_no_report(inputs, monkeypatch):
     with pytest.raises(BaseException):  # the server refuses to start; no result
         _run(elements, binding_path=binding, authority="model", model_bundle_path=path,
              model_bundle_id=bundle["bundle_id"])
+
+
+def _leaf_exceptions(exc):
+    if isinstance(exc, BaseExceptionGroup):
+        for inner in exc.exceptions:
+            yield from _leaf_exceptions(inner)
+    else:
+        yield exc
+
+
+def test_server_on_another_model_bundle_is_an_authority_mismatch(inputs, tmp_path, monkeypatch):
+    """R5 (O4 Wave C2 review): the REAL server launched on a different, valid
+    closed mab- bundle starts and answers, and the validator refuses the run
+    at the MCP-server/Proof-B authority guard (validate_semantic_mcp.py),
+    not at some earlier failure."""
+    binding, path, bundle, elements = inputs
+    other_dir = tmp_path / "other"
+    other_dir.mkdir()
+    other_binding, other_path, other_bundle, _ = build_inputs(other_dir, revision="b" * 40)
+    assert other_bundle["bundle_id"] != bundle["bundle_id"]
+    original_stdio = validator.stdio_client
+    launched = []
+
+    @asynccontextmanager
+    async def other_bundle_server(params):
+        args = params.args
+        for flag, value in (("--binding", str(other_binding.resolve())),
+                            ("--expected-git-revision", "b" * 40),
+                            ("--model-authority-bundle", str(other_path.resolve())),
+                            ("--model-authority-bundle-id", other_bundle["bundle_id"])):
+            args[args.index(flag) + 1] = value
+        launched.append(list(args))
+        async with original_stdio(params) as streams:
+            yield streams
+
+    monkeypatch.setattr(validator, "stdio_client", other_bundle_server)
+    with pytest.raises(BaseException) as excinfo:
+        _run(elements, binding_path=binding, authority="model", model_bundle_path=path,
+             model_bundle_id=bundle["bundle_id"])
+    assert launched, "the real server was launched"
+    messages = [str(leaf) for leaf in _leaf_exceptions(excinfo.value)]
+    assert any("authority mismatch" in message for message in messages), messages
+    assert any(f"mab:{other_bundle['bundle_id']}" in message for message in messages), messages
 
 
 def test_mcp_validator_cli_accepts_the_model_runtime(inputs, tmp_path, monkeypatch):

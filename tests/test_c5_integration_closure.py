@@ -483,7 +483,13 @@ def test_coverage_carries_the_resolved_evidence_contracts(integration_service) -
     no blocked range under the model authority)."""
     service, _, _, _ = integration_service
     coverage = service.verification_coverage("req-1")
-    assert coverage["status"] in {"covered", "partial"}
+    # Exact (review R5): req-1 has native verification cases, and the
+    # resolved evidence contract evidence-1 has none of its own in this
+    # fixture -> "partial" with exactly that verification gap.
+    assert coverage["status"] == "partial"
+    assert [gap["reason"] for gap in coverage["gaps"] if gap["category"] == "verification"] == [
+        "No native verification relationship covers evidence contracts: evidence-1"
+    ]
     assert coverage["semantic_status"] == "complete"
     assert coverage["unsupported_predicates"] == []
     assert [item["element_id"] for item in coverage["evidence_contracts"]] == ["evidence-1"]
