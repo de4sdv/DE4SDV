@@ -227,11 +227,17 @@ def check_ask_semantic_authority(
     Right after a C2 deploy the runtime may still be only *requested* (the
     bundle is re-closed at the new deployment binding afterwards, activation
     step 0); the served check is the Ask verifier's (verify_public_ask.py).
+    A pre-C2 rollback with a model expectation must SERVE that bundle (its
+    bundle was closed at that revision's own binding): a request the revision
+    cannot serve, such as a C2 mab- id left in the environment, fails.
+
+    A failure here marks the run red; it does NOT roll back the API (the
+    stack swap has already happened).
     """
     pre_c2 = "ontology" in (status_doc.get("baseline") or {})
     try:
         return check_expected_authority(
-            ask_status, expected=expected, pre_c2=pre_c2, require_served=False,
+            ask_status, expected=expected, pre_c2=pre_c2, require_served=pre_c2,
         )
     except AuthorityCheckError as exc:
         raise VerificationError(f"Ask semantic authority: {exc}") from exc

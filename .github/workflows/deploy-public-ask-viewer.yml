@@ -8,10 +8,12 @@ on:
         required: true
       model_authority_bundle_id:
         description: >-
-          Accepted model-authority bundle id (mab-<hex>) the viewer must serve
-          (must equal DE4SDV_MODEL_AUTHORITY_BUNDLE_ID in /srv/de4sdv/sysml2-api.env;
-          ignored by a pre-C2 application revision's verifier)
-        required: true
+          Accepted model-authority bundle id (mab-<hex>) the viewer must serve.
+          Required for an O4 Wave C2 or later revision, where it must equal
+          DE4SDV_MODEL_AUTHORITY_BUNDLE_ID in /srv/de4sdv/sysml2-api.env (checked
+          before any host change). Leave empty for a pre-C2 revision (ignored).
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -70,6 +72,40 @@ jobs:
           chmod 600 ~/.ssh/known_hosts
           ssh -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes \
             "$DEPLOY_SSH_USER@$DEPLOY_SSH_HOST" 'echo SSH_OK'
+
+      - name: Validate the declared semantic authority before any host change
+        id: authority
+        env:
+          DEPLOY_SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          DEPLOY_SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+        run: |
+          set -euo pipefail
+          # O4 Wave C2 (review F1/F2). A C2-or-later revision's verifier fails
+          # unless the viewer serves the declared bundle, and a failed run
+          # triggers the rollback; a typo'd or stale id must therefore be
+          # refused HERE, before the checkout swap. A pre-C2 revision's
+          # verifier predates the option: the check is skipped visibly.
+          if ! grep -q -- '--expected-model-authority-bundle-id' deployment/scripts/verify_public_ask.py; then
+            echo "::warning::pre-C2 verifier: semantic-authority check skipped (input ignored)"
+            echo "authority_check=skipped" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ ! "$MODEL_AUTHORITY_BUNDLE_ID" =~ ^mab-([0-9a-f]{32}|[0-9a-f]{64})$ ]]; then
+            echo "::error::model_authority_bundle_id must be mab-<32|64 lowercase hex> for this revision, got '$MODEL_AUTHORITY_BUNDLE_ID'"
+            exit 1
+          fi
+          HOST_LINE=$(ssh -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$DEPLOY_SSH_USER@$DEPLOY_SSH_HOST" \
+            "sudo grep -E '^DE4SDV_MODEL_AUTHORITY_BUNDLE_ID=' /srv/de4sdv/sysml2-api.env || true" \
+            </dev/null | tail -n 1)
+          HOST_ID="${HOST_LINE#DE4SDV_MODEL_AUTHORITY_BUNDLE_ID=}"
+          HOST_ID="${HOST_ID%\"}"; HOST_ID="${HOST_ID#\"}"
+          HOST_ID="${HOST_ID%\'}"; HOST_ID="${HOST_ID#\'}"
+          if [[ -z "$HOST_LINE" || "$HOST_ID" != "$MODEL_AUTHORITY_BUNDLE_ID" ]]; then
+            echo "::error::model_authority_bundle_id '$MODEL_AUTHORITY_BUNDLE_ID' differs from the host's DE4SDV_MODEL_AUTHORITY_BUNDLE_ID '${HOST_ID}' in /srv/de4sdv/sysml2-api.env; edit the environment first (model-authority-activation.md P1 to P4)"
+            exit 1
+          fi
+          echo "authority_check=enforced" >> "$GITHUB_OUTPUT"
 
       - name: Require viewer DNS to resolve to the deployment host
         env:
@@ -206,13 +242,15 @@ jobs:
 
       - name: Verify the public reader path with one live grounded query
         run: |
-          # O4 Wave C2 (review R3): the served authority must be the accepted
-          # bundle. A pre-C2 application revision's verifier predates the
-          # option (checked out at DEPLOY_SHA); it is passed whenever the
-          # checked-out verifier supports it.
+          # O4 Wave C2 (review R3/F2): the served authority must be the
+          # accepted bundle. A pre-C2 application revision's verifier predates
+          # the option (checked out at DEPLOY_SHA); the check is then skipped
+          # with a visible warning.
           authority_args=()
           if grep -q -- '--expected-model-authority-bundle-id' deployment/scripts/verify_public_ask.py; then
             authority_args=(--expected-model-authority-bundle-id "$MODEL_AUTHORITY_BUNDLE_ID")
+          else
+            echo "::warning::pre-C2 verifier: semantic-authority check skipped (input ignored)"
           fi
           python3 deployment/scripts/verify_public_ask.py \
             --base-url https://viewer.de4sdv.org \
@@ -252,12 +290,19 @@ jobs:
           # interpolates the required variable for EVERY command (even ones
           # that do not touch ask-viewer), so it must be set here too.
           export DE4SDV_APP_GIT_SHA="$(git -C "$BACKUP_DIR" rev-parse HEAD)"
-          sudo env DEPLOY_DIR="$DEPLOY_DIR" DE4SDV_ASK_ENV_FILE="$DE4SDV_ASK_ENV_FILE" DE4SDV_APP_GIT_SHA="$DE4SDV_APP_GIT_SHA" docker compose --env-file "$DEPLOY_DIR/sysml2-api.env" \
-            -f "$REPO_DIR/deployment/compose.yaml" rm -sf ask-viewer || true
+          # Same env exports as the deploy path. Every compose call reads
+          # /dev/null: this script is streamed over stdin (bash -s), and a
+          # compose call reading stdin would swallow the rest of it.
+          COMPOSE=(sudo env DEPLOY_DIR="$DEPLOY_DIR" DE4SDV_ASK_ENV_FILE="$DE4SDV_ASK_ENV_FILE" DE4SDV_APP_GIT_SHA="$DE4SDV_APP_GIT_SHA" docker compose --env-file "$DEPLOY_DIR/sysml2-api.env" -f "$REPO_DIR/deployment/compose.yaml")
+          "${COMPOSE[@]}" rm -sf ask-viewer </dev/null || true
           sudo rm -rf "$REPO_DIR"
           sudo mv "$BACKUP_DIR" "$REPO_DIR"
-          sudo env DEPLOY_DIR="$DEPLOY_DIR" DE4SDV_ASK_ENV_FILE="$DE4SDV_ASK_ENV_FILE" DE4SDV_APP_GIT_SHA="$DE4SDV_APP_GIT_SHA" docker compose --env-file "$DEPLOY_DIR/sysml2-api.env" \
-            -f "$REPO_DIR/deployment/compose.yaml" up -d --build --no-deps --force-recreate caddy
+          # Review F1: bring the ask-viewer back from the restored checkout
+          # (previously only caddy was recreated and the viewer stayed down).
+          # --build: the deploy path rebuilt the fixed image tag from the
+          # failed revision.
+          "${COMPOSE[@]}" up -d --build --no-deps ask-viewer </dev/null
+          "${COMPOSE[@]}" up -d --build --no-deps --force-recreate caddy </dev/null
           REMOTE
 
       - name: Remove runner secret material

@@ -369,3 +369,17 @@ def test_monitor_reports_the_served_authority(monkeypatch, block):
     result = _patched_monitor(monkeypatch, _ask_status(block))
     assert result["status"] == "healthy"
     assert result["semantic_authority_kind"] == block["kind"]
+
+
+def test_pre_c2_rollback_with_a_model_expectation_requires_the_served_bundle():
+    """F3: a pre-C2 revision is deployed with its bundle already closed at
+    its own binding, so a model expectation must be SERVED there. ff0311b left
+    with a request it cannot serve (for example the C2 mab- id) reports the
+    request but no served id, and fails the post-deploy verification."""
+    status = _pre_c2_status_document()
+    with pytest.raises(verify_api.VerificationError, match="serves"):
+        verify_api.check_ask_semantic_authority(
+            {"semantic_authority": _model_block(served=False)}, expected=MAB,
+            status_doc=status)
+    verify_api.check_ask_semantic_authority(
+        {"semantic_authority": _model_block(served=True)}, expected=MAB, status_doc=status)

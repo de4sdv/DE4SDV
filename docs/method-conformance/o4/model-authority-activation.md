@@ -331,7 +331,11 @@ environment, and `ff0311b` cannot serve the C2 bundle.
        -f git_sha=<ff0311b full SHA> -f artifact_run_id=<run> \
        -f expected_semantic_authority=<legacy | o3:<bundle id> | mab-<Wave B id>>
    (the workflow's verifier accepts the pre-C2 status shape,
-   baseline.ontology, and fails on invalid or any other authority);
+   baseline.ontology, and fails on invalid or any other authority; a
+   model expectation must be SERVED by ff0311b, not only requested);
+   a red post-deploy verification does NOT roll the API back: the stack
+   swap has already happened, so fix the environment and recreate the
+   ask-viewer, or redeploy;
 3. verify .semantic_authority.kind and the id of that revision.
 ```
 
@@ -382,7 +386,7 @@ results with the acceptance package.
 | served bundle id or `semantic_authority_id` differs from the request | refuses to start |
 | binding v1 (`ontology` block) or a semantic authority other than the checkout's | refuses to start |
 | viewer with a refused model request | serves no semantic answers; `/ask-status.json` reports `.semantic_authority.kind == "invalid"` with the reason |
-| deploy with an unset, stale or wrong selector | the API deploy's mandatory verification fails the run (`kind` is not the declared one, `invalid`, or another bundle id); the Ask verifier fails unless the runtime serves the accepted `mab:` id; the monitor alerts on `invalid` |
+| deploy with an unset, stale or wrong selector | the API deploy's mandatory verification fails the run (`kind` is not the declared one, `invalid`, another bundle id, or on a pre-C2 rollback a model bundle that is not served). That red run does **not** roll back the API: the new stack stays deployed and the operator fixes the environment and recreates the ask-viewer (or redeploys). The Ask deploy refuses before any host change when its declared id is malformed or differs from the host's `DE4SDV_MODEL_AUTHORITY_BUNDLE_ID`; its verifier fails unless the runtime serves the accepted `mab:` id, and its rollback restores the previous checkout and ask-viewer. The monitor alerts on `invalid` |
 
 ## 7. Boundary
 
