@@ -725,6 +725,268 @@ class TestRealizedByLaws:
 
 
 
+# O4 Wave C2 review R4: restored from base 6dab3e9 verbatim. They cover live
+# traversal behavior (specifiesFunction laws, the blocked EvidenceContract
+# range gate) and pass on the model-built contract and the revision binding
+# v2 helpers above; only those helpers changed.
+
+
+class TestSpecifiesFunctionLaws:
+    def test_generic_dependency_is_not_specification(self):
+        """The hop is relevance strength; the row records Outcome D for the
+        overclaiming name and no specification semantics are claimed."""
+        row = yaml.safe_load(DECISIONS_PATH.read_text(encoding="utf-8"))["entries"][
+            "specifiesFunction"
+        ]
+        assert row["disposition"] == RENAME_DISPOSITION
+        assert "does not prove specification" in _decision_text(row)
+        traversal = _traversal(_kernel_bindings())
+        hops = traversal.traverse(
+            "specifiesFunction", _by_id(_elements())["req-1"], _elements()
+        )
+        assert [hop.target["@id"] for hop in hops] == ["action-1"]
+        assert hops[0].semantic_strength == "relevance"
+
+    def test_generic_dependency_is_not_verification_or_satisfaction(self):
+        """Only the configured Dependency objects carry the predicate; no
+        verification membership or subject semantics leak into it."""
+        traversal = _traversal(_kernel_bindings())
+        hops = traversal.traverse(
+            "specifiesFunction", _by_id(_elements())["req-1"], _elements()
+        )
+        assert {hop.api_object["@type"] for hop in hops} == {"Dependency"}
+
+
+def _acceptance_criterion_kernel_bindings() -> list[dict[str, str]]:
+    return _kernel_bindings() + [
+        {
+            "ontology_class": "AcceptanceCriterion",
+            "element_id": "ac-def",
+            "source_file": "middleware_verification_evidence.sysml",
+            "declaration": "requirement def MiddlewareAcceptanceCriterion",
+        },
+    ]
+
+
+def _acceptance_criterion_elements() -> list[dict]:
+    """A verified acceptance-criterion usage with the same verification and
+    dependency structure as the evidence-contract candidates. It must never
+    be emitted through the blocked EvidenceContract range."""
+    ref = lambda value: {"@id": value}
+    return [
+        {"@id": "ac-def", "@type": "RequirementDefinition",
+         "declaredName": "MiddlewareAcceptanceCriterion"},
+        {"@id": "ac-1", "@type": "RequirementUsage",
+         "declaredName": "acceptanceCriterionProbe"},
+        {"@id": "ft-ac-1", "@type": "FeatureTyping",
+         "owningRelatedElement": ref("ac-1"), "type": ref("ac-def")},
+        {"@id": "rvm-ac", "@type": "RequirementVerificationMembership",
+         "memberElement": ref("ac-1")},
+        {"@id": "dep-ac", "@type": "Dependency",
+         "source": [ref("ac-1")], "target": [ref("req-1")]},
+    ]
+
+
+def _ordinary_verified_requirement_elements() -> list[dict]:
+    """A natively verified ordinary requirement (Requirement lineage) with
+    the same dependency structure: verification membership never upgrades an
+    ordinary requirement into an evidence contract."""
+    ref = lambda value: {"@id": value}
+    return [
+        {"@id": "req-ord-1", "@type": "RequirementUsage",
+         "declaredName": "reqOrdinaryVerified"},
+        {"@id": "ft-req-ord", "@type": "FeatureTyping",
+         "owningRelatedElement": ref("req-ord-1"),
+         "type": ref("kernel-requirement")},
+        {"@id": "rvm-ord", "@type": "RequirementVerificationMembership",
+         "memberElement": ref("req-ord-1")},
+        {"@id": "dep-ord", "@type": "Dependency",
+         "source": [ref("req-ord-1")], "target": [ref("req-1")]},
+    ]
+
+
+class TestEvidenceContractBlockedRange:
+    """The corrected range gate (c5 correction): native verification
+    membership is supporting evidence only; no governed discriminator
+    establishes EvidenceContract identity at the reviewed revision; nothing
+    is emitted and every ambiguous verified usage fails closed.
+
+    Laws locked here:
+
+    - ``RequirementUsage != EvidenceContract automatically``;
+    - ``RequirementVerificationMembership != EvidenceContract automatically``;
+    - verified ``AcceptanceCriterion != EvidenceContract``;
+    - ordinary verified ``Requirement != EvidenceContract``;
+    - unverified ``Requirement != EvidenceContract``;
+    - ``Need != Requirement`` (as queried source and as returned source);
+    - generic ``Dependency != EvidenceContract identity``;
+    - missing identity discriminator fails closed (non-vacuously: candidates
+      and their supporting evidence are present).
+    """
+
+    def test_verified_requirement_usage_is_supporting_evidence_not_a_hop(self):
+        """The fixture carries FULL verification support (direct anchor and
+        shadow bridge) and the supporting relation resolves — yet nothing is
+        emitted: the range identity cannot be established."""
+        traversal = _traversal(_kernel_bindings())
+        elements = _elements()
+        supporting = traversal._natively_verified_ids(elements)
+        assert {"ec-1", "ec-2"} <= supporting, "the fixture must be non-vacuous"
+        assert _targets(
+            traversal, "hasRelevantEvidenceContract", "req-1", elements
+        ) == []
+
+    def test_membership_presence_never_changes_the_outcome(self):
+        """With the memberships removed and with them present, the outcome is
+        identical (nothing emitted): the membership is supporting evidence,
+        never sufficient, and never load-bearing for emission."""
+        traversal = _traversal(_kernel_bindings())
+        with_membership = _elements()
+        without_membership = [
+            element
+            for element in with_membership
+            if element["@type"] != "RequirementVerificationMembership"
+        ]
+        assert _targets(
+            traversal, "hasRelevantEvidenceContract", "req-1", without_membership
+        ) == []
+        assert traversal._natively_verified_ids(with_membership), (
+            "the verification support must be present in the with-membership fixture"
+        )
+        assert _targets(
+            traversal, "hasRelevantEvidenceContract", "req-1", with_membership
+        ) == []
+
+    def test_missing_identity_discriminator_fails_closed(self):
+        """The gate is exercised directly: every supporting signal present,
+        no candidate proven — the fail-closed outcome is attributable to the
+        missing exact discriminator, not to missing verification."""
+        traversal = _traversal(_kernel_bindings())
+        elements = _elements()
+        assert traversal._natively_verified_ids(elements)
+        assert traversal._evidence_contract_identity_ids(elements) == set()
+
+    def test_unverified_shadow_only_does_not_qualify(self):
+        """A ReferenceSubsetting whose declared feature is not anchored by a
+        membership proves nothing."""
+        traversal = _traversal(_kernel_bindings())
+        elements = _elements() + [
+            {"@id": "ec-3", "@type": "RequirementUsage",
+             "declaredName": "evidenceContractZ"},
+            {"@id": "shadow-3", "@type": "ReferenceUsage"},
+            {"@id": "rs-3", "@type": "ReferenceSubsetting",
+             "referencedFeature": {"@id": "ec-3"},
+             "owningRelatedElement": {"@id": "shadow-3"}},
+            {"@id": "dep-ec-shadow-only", "@type": "Dependency",
+             "source": [{"@id": "ec-3"}], "target": [{"@id": "req-1"}]},
+        ]
+        assert _targets(
+            traversal, "hasRelevantEvidenceContract", "req-1", elements
+        ) == []
+
+    def test_no_verification_memberships_means_no_evidence_contract_hops(self):
+        traversal = _traversal(_kernel_bindings())
+        elements = [
+            element
+            for element in _elements()
+            if element["@type"] != "RequirementVerificationMembership"
+        ]
+        assert _targets(
+            traversal, "hasRelevantEvidenceContract", "req-1", elements
+        ) == []
+
+    def test_unverified_source_is_quiet_absence(self):
+        traversal = _traversal(_kernel_bindings())
+        assert _targets(
+            traversal, "hasRelevantEvidenceContract", "req-1", _elements()
+        ) == []
+
+    def test_verified_acceptance_criterion_is_not_an_evidence_contract(self):
+        """A nested verified acceptance-criterion usage — grounded through
+        the kernel-bound acceptance-criterion declaration, otherwise
+        verification- and dependency-identical to the evidence-contract
+        candidates — never becomes an evidence-contract hop. Under the
+        rejected enforcement this shape WOULD have been emitted (the
+        supporting relation resolves)."""
+        traversal = _traversal(_acceptance_criterion_kernel_bindings())
+        elements = _elements() + _acceptance_criterion_elements()
+        by_id = _by_id(elements)
+        assert traversal.kernel_bindings is not None
+        assert (
+            traversal.kernel_bindings.element_id_for("AcceptanceCriterion", by_id)
+            == "ac-def"
+        )
+        assert "ac-1" in traversal._natively_verified_ids(elements)
+        assert _targets(
+            traversal, "hasRelevantEvidenceContract", "req-1", elements
+        ) == []
+
+    def test_ordinary_verified_requirement_is_not_an_evidence_contract(self):
+        """A natively verified requirement usage inside the Requirement
+        lineage is an ordinary verified requirement — verification alone
+        never establishes the EvidenceContract range."""
+        traversal = _traversal(_kernel_bindings())
+        elements = _elements() + _ordinary_verified_requirement_elements()
+        assert "req-ord-1" in traversal._natively_verified_ids(elements)
+        assert _targets(
+            traversal, "hasRelevantEvidenceContract", "req-1", elements
+        ) == []
+
+    def test_need_is_not_a_requirement_and_never_a_hop(self):
+        """Need != Requirement: a need-typed returned source and a
+        need-queried source both fail closed."""
+        traversal = _traversal(_kernel_bindings())
+        elements = _elements() + [
+            {"@id": "dep-need-to-req", "@type": "Dependency",
+             "source": [{"@id": "need-1"}], "target": [{"@id": "req-1"}]},
+            {"@id": "dep-req-to-need", "@type": "Dependency",
+             "source": [{"@id": "req-unverified"}], "target": [{"@id": "need-1"}]},
+        ]
+        assert _targets(
+            traversal, "hasRelevantEvidenceContract", "req-1", elements
+        ) == []
+        assert _targets(
+            traversal, "hasRelevantEvidenceContract", "need-1", elements
+        ) == []
+
+    def test_generic_dependency_never_establishes_the_range(self):
+        """The Dependency witness exists and stays visible under its own
+        reviewed predicate (hasRelevantArchitecture); it never establishes
+        EvidenceContract identity for the blocked range."""
+        traversal = _traversal(_kernel_bindings())
+        elements = _elements()
+        assert _targets(
+            traversal, "hasRelevantArchitecture", "req-1", elements
+        ) == ["part-plain"]
+        assert _targets(
+            traversal, "hasRelevantEvidenceContract", "req-1", elements
+        ) == []
+
+    def test_non_requirement_usage_source_is_rejected_before_identity(self):
+        """The declared source-type filter still applies: a part source is
+        never an evidence-contract hop even when something is verified."""
+        traversal = _traversal(_kernel_bindings())
+        elements = _elements() + [
+            {"@id": "part-source", "@type": "PartUsage"},
+            {"@id": "dep-part", "@type": "Dependency",
+             "source": [{"@id": "part-source"}], "target": [{"@id": "req-1"}]},
+        ]
+        assert "part-source" not in _targets(
+            traversal, "hasRelevantEvidenceContract", "req-1", elements
+        )
+
+    def test_range_gate_keys_on_the_governed_contract(self):
+        """The identity gate applies to the reviewed EvidenceContract range
+        class only; the ontology still declares that range and domain."""
+        mapping = _contract().relationship_mapping("hasRelevantEvidenceContract")
+        assert mapping.range == "EvidenceContract"
+        assert mapping.domain == "Requirement"
+        source = TRAVERSAL_SOURCE.read_text(encoding="utf-8")
+        assert '_EVIDENCE_CONTRACT_RANGE_CLASS = "EvidenceContract"' in source
+        assert "def _evidence_contract_identity_ids(" in source
+        assert "def _natively_verified_ids(" in source
+
+
 class TestDisjointness:
     def test_no_witness_object_carries_two_predicates(self):
         """The relevance family is disjoint by construction: no relationship
