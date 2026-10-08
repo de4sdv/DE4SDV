@@ -1,11 +1,17 @@
-"""Loader for the merged PR #168 ontology/kernel contract."""
+"""The DE4SDV kernel contract: class and relationship mappings of the method kernel.
+
+O4 Wave C2: the contract is built from the model-generated projection layers
+(:func:`KernelContract.from_layers`, :mod:`de4sdv.semantic.model_contract`).
+The class name is kept (owner decision D7); its fields are the same shape the
+runtime, traversal, query and impact consumers read.
+"""
 
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 import yaml
 
@@ -54,6 +60,23 @@ class KernelExternalMapping:
 KernelMapping = KernelFileMapping | KernelNativeMapping | KernelExternalMapping
 
 
+class RetiredIdentityError(KeyError):
+    """A retired or refused identity was requested (O4 Wave C2, D4/D5).
+
+    A ``KeyError`` subclass so callers that treat an unknown identity as
+    absent keep working; the message carries the disposition (``retired;
+    use <successor>`` or the register disposition), never an answer.
+    """
+
+    def __init__(self, identity: str, disposition: str) -> None:
+        super().__init__(f"{identity}: {disposition}")
+        self.identity = identity
+        self.disposition = disposition
+
+    def __str__(self) -> str:
+        return f"{self.identity}: {self.disposition}"
+
+
 @dataclass(frozen=True)
 class RelationshipMapping:
     name: str
@@ -77,6 +100,25 @@ class KernelContract:
     exclusions: dict[str, dict[str, str]]
     classes: dict[str, dict[str, Any]]
     relationships: dict[str, dict[str, Any]]
+    #: Model-built contracts carry their resolved mappings directly; the
+    #: ``classes``/``relationships`` dictionaries are the same content in the
+    #: shape the consumers iterate. ``refused`` maps retired/refused identity
+    #: names to their disposition.
+    class_mappings: Mapping[str, Any] | None = None
+    relationship_mappings: Mapping[str, Any] | None = None
+    refused: Mapping[str, str] = field(default_factory=dict)
+
+    @classmethod
+    def from_layers(cls, root: Path = ROOT) -> "KernelContract":
+        """The contract built from the model-generated projection layers."""
+        from .model_contract import build_model_contract
+
+        return build_model_contract(Path(root))
+
+    def _refuse(self, name: str) -> None:
+        disposition = (self.refused or {}).get(name)
+        if disposition is not None:
+            raise RetiredIdentityError(name, disposition)
 
     @classmethod
     def load(cls, path: Path) -> "KernelContract":
@@ -108,6 +150,11 @@ class KernelContract:
         )
 
     def mapping(self, ontology_class: str) -> KernelMapping:
+        if self.class_mappings is not None:
+            self._refuse(ontology_class)
+            if ontology_class not in self.class_mappings:
+                raise KeyError(f"ontology class has no kernel mapping: {ontology_class}")
+            return self.class_mappings[ontology_class]
         try:
             value = self.classes[ontology_class]["kernel"]
         except (KeyError, TypeError) as exc:
@@ -129,6 +176,12 @@ class KernelContract:
         return mapping
 
     def relationship_mapping(self, relationship: str) -> RelationshipMapping:
+        if self.relationship_mappings is not None:
+            self._refuse(relationship)
+            mapping = self.relationship_mappings.get(relationship)
+            if mapping is None:
+                raise KeyError(f"ontology relationship has no SysML mapping: {relationship}")
+            return mapping
         try:
             spec = self.relationships[relationship]
             value = spec["sysml_mapping"]

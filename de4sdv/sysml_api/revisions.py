@@ -48,6 +48,57 @@ class OntologyIdentity:
         return asdict(self)
 
 
+SEMANTIC_AUTHORITY_SCHEMA = "de4sdv.semantic-authority/v1"
+_AUTHORITY_ID = re.compile(r"^sai-[0-9a-f]{32}$")
+_LAYER_DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
+
+
+@dataclass(frozen=True)
+class SemanticAuthorityIdentity:
+    """Identity of the model-built semantic contract (O4 Wave C2).
+
+    ``id`` digests the contract content (class and relationship mappings,
+    refusals) together with ``layers``: the repository path and sha256 of
+    every model-generated projection/profile file and frozen O2-chain record
+    the contract is built from. Two contracts are the same authority exactly
+    when their identities are equal.
+    """
+
+    schema: str
+    id: str
+    layers: tuple[tuple[str, str], ...]
+
+    @classmethod
+    def from_dict(cls, value: object) -> "SemanticAuthorityIdentity":
+        if not isinstance(value, dict):
+            raise ValueError("semantic_authority must be a JSON object")
+        if set(value) != {"schema", "id", "layers"}:
+            raise ValueError("semantic_authority must carry exactly schema, id and layers")
+        if value.get("schema") != SEMANTIC_AUTHORITY_SCHEMA:
+            raise ValueError(
+                f"semantic_authority.schema must be {SEMANTIC_AUTHORITY_SCHEMA}")
+        identifier = str(value.get("id") or "")
+        if not _AUTHORITY_ID.fullmatch(identifier):
+            raise ValueError("semantic_authority.id must be sai-<32 lowercase hex>")
+        raw_layers = value.get("layers")
+        if not isinstance(raw_layers, list) or not raw_layers:
+            raise ValueError("semantic_authority.layers must be a non-empty list")
+        layers = []
+        for item in raw_layers:
+            if (not isinstance(item, dict) or set(item) != {"path", "sha256"}
+                    or not isinstance(item.get("path"), str) or not item["path"]
+                    or not _LAYER_DIGEST.fullmatch(str(item.get("sha256") or ""))):
+                raise ValueError("semantic_authority layer must be {path, sha256:<64 hex>}")
+            layers.append((item["path"], item["sha256"]))
+        if len({path for path, _ in layers}) != len(layers):
+            raise ValueError("semantic_authority layers must not repeat a path")
+        return cls(schema=SEMANTIC_AUTHORITY_SCHEMA, id=identifier, layers=tuple(layers))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"schema": self.schema, "id": self.id,
+                "layers": [{"path": path, "sha256": digest} for path, digest in self.layers]}
+
+
 @dataclass(frozen=True)
 class KernelElementBinding:
     """One ingestion-validated kernel identity for a file-mapped ontology class.

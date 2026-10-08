@@ -698,21 +698,31 @@ def _authored_disagreement(legacy: KernelContract, provision: Provision) -> str 
     return None
 
 
-def compute_routing(*, legacy: KernelContract, provisions: list[Provision],
+def compute_routing(*, legacy: KernelContract | None, provisions: list[Provision],
                     successor_contract: Mapping[str, Any],
-                    register_rows: Mapping[str, Mapping[str, Any]] | None = None) -> Routing:
-    """Disjoint provider routing; duplicates are recorded (and refused by callers)."""
+                    register_rows: Mapping[str, Mapping[str, Any]] | None = None,
+                    seed: list[Provision] | None = None) -> Routing:
+    """Disjoint provider routing; duplicates are recorded (and refused by callers).
+
+    ``seed`` are the fixed first providers (the frozen O2-chain layer for the
+    model-built contract); without it the O3 component provides the migrated
+    identities. Without ``legacy`` there is no authored comparison and the
+    residual universe is the retained register rows only.
+    """
     providers: dict[str, Provision] = {}
     corroborations: dict[str, list[str]] = {}
     duplicates: list[str] = []
-    for name in MIGRATED_IDENTITIES:
-        kind = "class" if name in MIGRATED_CLASSES else "relationship"
-        providers[name] = Provision(name, kind, "o3")
+    if seed is None:
+        seed = [Provision(name, "class" if name in MIGRATED_CLASSES else "relationship", "o3")
+                for name in MIGRATED_IDENTITIES]
+    seed_layers = {provision.layer for provision in seed}
+    for provision in seed:
+        providers[provision.identity] = provision
     retired = set(DEPRECATED_ALIASES) | set(successor_contract.get("retired") or ())
     ordered = list(provisions)
     for successor in _successor_provisions(successor_contract):
         existing = providers.get(successor.identity)
-        if existing is not None and existing.layer != "o3" and _corroborates(
+        if existing is not None and existing.layer not in seed_layers and _corroborates(
                 existing, successor, successor_contract):
             # Successor relations own traversal; layer rows corroborate them.
             if successor.kind == "relationship":
@@ -734,8 +744,9 @@ def compute_routing(*, legacy: KernelContract, provisions: list[Provision],
         if name in retired:
             duplicates.append(f"{name}: retired name provided by {provision.layer}")
             continue
-        if provision.layer == BATCH2_LAYER.name and provision.kind != "relationship" or (
-                provision.layer == BATCH2_LAYER.name and "end_pairs" not in (provision.spec or {})):
+        if legacy is not None and (
+                provision.layer == BATCH2_LAYER.name and provision.kind != "relationship" or (
+                provision.layer == BATCH2_LAYER.name and "end_pairs" not in (provision.spec or {}))):
             problem = _authored_disagreement(legacy, provision)
             if problem:
                 duplicates.append(f"{name}: {provision.layer} {problem}")
@@ -755,7 +766,7 @@ def compute_routing(*, legacy: KernelContract, provisions: list[Provision],
             providers[name] = provision
             corroborations.setdefault(name, []).append(existing.layer)
             continue
-        if existing.layer != "o3" and _corroborates(existing, provision, successor_contract):
+        if existing.layer not in seed_layers and _corroborates(existing, provision, successor_contract):
             if provision.layer == "successor-contract" and provision.kind == "relationship":
                 providers[name] = provision
                 corroborations.setdefault(name, []).append(existing.layer)
@@ -764,7 +775,7 @@ def compute_routing(*, legacy: KernelContract, provisions: list[Provision],
             continue
         duplicates.append(f"{name}: {existing.layer} and {provision.layer}")
     residual: dict[str, str] = {}
-    universe = set(legacy.classes) | set(legacy.relationships)
+    universe = set(legacy.classes) | set(legacy.relationships) if legacy is not None else set()
     if register_rows:
         universe |= {n for n, r in register_rows.items() if r.get("accounting_status") == "retained"}
     for name in sorted(universe):

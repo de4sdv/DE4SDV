@@ -261,7 +261,15 @@ def _competing_known_homonyms(class_types: dict[str, tuple[str, str]], classes: 
     }
 
 
-def generate_contract(root: Path) -> dict:
+def generate_contract(root: Path, *, class_pins: dict | None = None,
+                      pin_inputs: tuple[str, ...] = ()) -> dict:
+    """Generate the successor contract from the model.
+
+    ``class_pins`` supplies the exact file/declaration pin per class from the
+    model-generated projection layers (``model_contract.model_class_pins``);
+    ``pin_inputs`` names the layer files those pins were read from, so they
+    are bound inputs of the contract.
+    """
     text = (root / MODEL).read_text()
     package = _live_declaration(text, r"\bpackage\s+" + PACKAGE + r"(?=\s*\{)", direct_depth=0)
     if not package:
@@ -303,8 +311,12 @@ def generate_contract(root: Path) -> dict:
     if len(versions) != 1 or not versions[0].get("version"):
         raise ValueError("one explicit successor version required")
     classes, class_types = {}, {}
-    inputs = {MODEL, ONTOLOGY, *PROGRAM_INPUTS}
-    ontology_pins = _ontology_class_pins(root)
+    if class_pins is None:
+        inputs = {MODEL, ONTOLOGY, *PROGRAM_INPUTS}
+        ontology_pins = _ontology_class_pins(root)
+    else:
+        inputs = {MODEL, *pin_inputs, *PROGRAM_INPUTS}
+        ontology_pins = {name: dict(pin) for name, pin in class_pins.items()}
     profile_classes = sorted({row[key] for row in records.get("SuccessorRelationRecord", [])
                               for key in ("sourceClass", "targetClass")})
     missing = [name for name in profile_classes if name not in ontology_pins]
@@ -390,8 +402,8 @@ def generate_contract(root: Path) -> dict:
     return payload
 
 
-def verify_contract(contract, root):
-    regenerated = generate_contract(root)
+def verify_contract(contract, root, *, class_pins=None, pin_inputs=()):
+    regenerated = generate_contract(root, class_pins=class_pins, pin_inputs=pin_inputs)
     if regenerated != contract:
         changed = sorted(p for p, d in contract.get("bound_inputs", {}).items()
                          if not (root / p).is_file() or digest((root / p).read_bytes()) != d)

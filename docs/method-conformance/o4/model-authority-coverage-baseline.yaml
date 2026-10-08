@@ -13,7 +13,7 @@ layer_digests:
   vocabulary-carrier: sha256:235380371f9d63918bb6c2b918142db6ea08d89a436a3ae8b74e7cf163f47390
   definition-batch2: sha256:5abc1e36771a1f68315b3ac7c30765f700cc5b0eb24723dc77969626e1c84939
   o3: sha256:5e4a98edd69475b47da4928e4b85381c2d1c76afc7f093d42ac7a3f8d50ba978
-  successor-contract: sha256:2f5f20742ea7a81e481cb772721bd6f54cc1b0dbfcf8747015cdb363a10d8842
+  successor-contract: sha256:b8f91ed697ff001063db25e7a6edf845cc7360e709245a472265478d2d5f5a84
 residual:
 - IncrementTraceabilityShell
 - derivesNeedFromConcern
