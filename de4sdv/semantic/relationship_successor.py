@@ -49,21 +49,27 @@ class SuccessorTraversal(SemanticTraversal):
             if mapping.strategy == "dependency":
                 # Native Dependency has client/supplier as well as derived source/target.
                 # Normalize mechanics only, preserving original objects and weak meaning.
-                normalized = []
-                originals = {}
-                for item in elements:
-                    if item.get("@type") != "Dependency":
-                        normalized.append(item)
-                        continue
-                    copy = dict(item)
-                    for native, derived in [("client", "source"), ("supplier", "target")]:
-                        n, d = reference_ids(item.get(native)), reference_ids(item.get(derived))
-                        if n and d and set(n) != set(d):
-                            raise IdentityNotFoundError("inconsistent native Dependency " + native)
-                        if n:
-                            copy[derived] = item[native]
-                    normalized.append(copy)
-                    originals[element_id(copy)] = item
+                # The normalized corpus is built once per corpus (revision index).
+                def normalize():
+                    normalized = []
+                    originals = {}
+                    for item in elements:
+                        if item.get("@type") != "Dependency":
+                            normalized.append(item)
+                            continue
+                        copy = dict(item)
+                        for native, derived in [("client", "source"), ("supplier", "target")]:
+                            n, d = reference_ids(item.get(native)), reference_ids(item.get(derived))
+                            if n and d and set(n) != set(d):
+                                raise IdentityNotFoundError("inconsistent native Dependency " + native)
+                            if n:
+                                copy[derived] = item[native]
+                        normalized.append(copy)
+                        originals[element_id(copy)] = item
+                    return normalized, originals
+
+                normalized, originals = self.revision_index(elements).memo(
+                    "dependency-normalized", normalize)
                 hops = super().traverse(predicate, source, normalized)
                 from dataclasses import replace
                 return [replace(hop, api_object=originals.get(element_id(hop.api_object), hop.api_object),
@@ -317,9 +323,10 @@ class SuccessorTraversal(SemanticTraversal):
         return meanings
 
     def _successor_hops(self, predicate, canonical, rows, source, elements):
-        by_id = {i: e for e in elements if (i := element_id(e)) is not None}
-        raw_index = self._raw_relationship_index(elements)
-        graph = self._successor_graph(elements, raw_index)
+        index = self.revision_index(elements)
+        by_id = index.by_id
+        raw_index = index.memo("successor-raw-index", lambda: self._raw_relationship_index(elements))
+        graph = index.memo("successor-graph", lambda: self._successor_graph(elements, raw_index))
         inverse = predicate != canonical
         mechanical_type = "AllocationUsage" if rows[0]["mechanism"] == "native-allocation" else "ConnectionUsage"
         resolvers = {}
