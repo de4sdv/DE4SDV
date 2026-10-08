@@ -298,6 +298,7 @@ def test_public_ask_monitor_is_non_paid_and_schedule_safe():
 def test_public_verifier_checks_identity_policy_and_live_grounding():
     app_sha = "a" * 40
     model_sha = "b" * 40
+    bundle_id = "mab-" + "1" * 32
     seen = {"live": False}
     expected_origin = ""
 
@@ -316,6 +317,12 @@ def test_public_verifier_checks_identity_policy_and_live_grounding():
                     "application_git_commit": app_sha,
                     "model_git_commit": model_sha,
                     "semantic_warmup": {"status": "ready"},
+                    "semantic_authority": {
+                        "kind": "model",
+                        "authority_id": "mab:" + bundle_id,
+                        "bundle_id": bundle_id,
+                        "semantic_authority_id": "mab:" + bundle_id,
+                    },
                 })
             elif self.path == "/deployment-status.json":
                 self._json(200, {"baseline": {"git_commit": model_sha}})
@@ -364,6 +371,7 @@ def test_public_verifier_checks_identity_policy_and_live_grounding():
         result = verify_public_ask(
             expected_origin,
             application_sha=app_sha,
+            expected_model_authority_bundle_id=bundle_id,
             model_sha=model_sha,
             live_query=True,
             tls_attempts=1,
@@ -380,6 +388,8 @@ def test_public_verifier_checks_identity_policy_and_live_grounding():
             "status": "healthy",
             "application_git_commit": app_sha,
             "model_git_commit": model_sha,
+            "semantic_authority_kind": "model",
+            "semantic_authority_id": "mab:" + bundle_id,
         }
     finally:
         server.shutdown()
@@ -425,6 +435,7 @@ def test_public_verifier_retries_tls_readiness_before_giving_up():
             verify_public_ask(
                 base,
                 application_sha=app_sha,
+                expected_model_authority_bundle_id="mab-" + "1" * 32,
                 model_sha=model_sha,
                 tls_attempts=2,
             )

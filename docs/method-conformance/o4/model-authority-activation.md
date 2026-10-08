@@ -198,6 +198,33 @@ validated `EvidenceContract` member ids, validation digests,
 id. Re-closing at the deployment binding therefore reproduces the
 privileged `mab-` id exactly; only the attestation changes.
 
+**Before the C2 deploy (mandatory; the C2 revision refuses `legacy`, `o3`
+and an unset selector).** Production runs `ff0311b` with the `legacy`
+selector until this step, and the C2 deploy recreates the ask-viewer from
+the compose substitution environment. Edit it first, or the deploy recreates
+a viewer that refuses every semantic answer:
+
+```text
+P1. record the current /srv/de4sdv/sysml2-api.env semantic-authority lines
+    (DE4SDV_SEMANTIC_AUTHORITY, DE4SDV_MODEL_AUTHORITY_BUNDLE[_ID],
+    DE4SDV_O3_*) with the acceptance package: section 4 restores exactly them;
+P2. copy the privileged closed bundle (same mab- id as the accepted one) to
+      /srv/de4sdv/artifacts/model/de4sdv-model-authority-bundle.json
+    (its closure is bound to the privileged binding, so after the deploy the
+    viewer reports the request, kind == "model", but does not serve it until
+    step 1 replaces it with the deployment-bound closure);
+P3. set in /srv/de4sdv/sysml2-api.env:
+      DE4SDV_SEMANTIC_AUTHORITY=model
+      DE4SDV_MODEL_AUTHORITY_BUNDLE=/run/de4sdv/model/de4sdv-model-authority-bundle.json
+      DE4SDV_MODEL_AUTHORITY_BUNDLE_ID=mab-<accepted id>
+P4. dispatch the deploy with the declared authority:
+      gh workflow run deploy-public-sysml-api.yml --ref main \
+        -f git_sha=<SHA> -f expected_semantic_authority=mab-<accepted id>
+    The mandatory post-deploy verification fails the run when
+    /ask-status.json .semantic_authority.kind is not "model" (invalid
+    included) or its bundle_id is not the declared id.
+```
+
 ```text
 0. deployment-bound closure (once per deployed binding):
    a. confirm deployment-status.json .baseline.git_commit == accepted SHA;
@@ -253,22 +280,22 @@ privileged `mab-` id exactly; only the attestation changes.
 1. copy the reviewed closed bundle to
      /srv/de4sdv/artifacts/model/de4sdv-model-authority-bundle.json
 
-2. set in /srv/de4sdv/sysml2-api.env:
-
-     DE4SDV_SEMANTIC_AUTHORITY=model
-     DE4SDV_MODEL_AUTHORITY_BUNDLE=/run/de4sdv/model/de4sdv-model-authority-bundle.json
-     DE4SDV_MODEL_AUTHORITY_BUNDLE_ID=mab-<accepted id>
-
-   (the DE4SDV_O3_* variables are no longer read; remove them);
+2. confirm /srv/de4sdv/sysml2-api.env still carries the P3 values (the
+   DE4SDV_O3_* variables are no longer read; remove them);
 
 3. recreate the ask-viewer
    (docker compose ... --env-file /srv/de4sdv/sysml2-api.env
     up -d --force-recreate ask-viewer); expect a cold load for the new
    authority id;
 
-4. verify provenance before trusting any answer:
+4. verify provenance before trusting any answer (the Ask verifier fails
+   unless the runtime SERVES the accepted bundle, and on invalid):
 
-     GET https://viewer.de4sdv.org/ask-status.json
+     python3 deployment/scripts/verify_public_ask.py \
+       --application-sha <SHA> \
+       --expected-model-authority-bundle-id mab-<accepted id> --live-query
+
+   which checks, in GET https://viewer.de4sdv.org/ask-status.json:
        .semantic_authority.kind         == "model"
        .semantic_authority.authority_id == "mab:<accepted id>"
        .semantic_authority.bundle_id    == the accepted id
@@ -282,20 +309,30 @@ privileged `mab-` id exactly; only the attestation changes.
 
 After C2 there is no in-revision fallback: the C2 revision cannot select O3
 or legacy (both refused, D6). Rollback is a **redeploy of the pre-C2
-activated revision `ff0311b`** (the Wave B revision under which the model
-authority was first activated) with its own accepted Wave B model bundle,
-following that revision's copy of this document (its O3 and legacy
-fallbacks remain available there). No model, generated artifact or
-evidence record is edited.
+revision `ff0311b`** (the Wave B revision in production before C2; at the
+time of writing it serves the `legacy` selector and its model activation is
+pending), following that revision's copy of this document (its model, O3
+and legacy selectors remain available there). No model, generated artifact
+or evidence record is edited.
+
+The environment is edited **before** the redeploy, exactly as for the C2
+deploy: the deploy recreates the ask-viewer from the compose substitution
+environment, and `ff0311b` cannot serve the C2 bundle.
 
 ```text
-1. deploy ff0311b through the production deploy workflow (owner-approved
+1. BEFORE dispatching, restore /srv/de4sdv/sysml2-api.env to the lines
+   recorded in P1 (legacy at the time of writing; or model with the
+   accepted Wave B mab- bundle and id; or that revision's O3 selection);
+2. deploy ff0311b through the production deploy workflow (owner-approved
    sysml-api-production environment), with that revision's ingestion
-   artifact (full-model-api-ingestion-ff0311b…);
-2. restore that revision's environment: DE4SDV_SEMANTIC_AUTHORITY=model
-   with the accepted Wave B mab- bundle and id (or its O3 fallback);
-3. recreate the ask-viewer; verify .semantic_authority.kind and the
-   mab:/o3: id of that revision.
+   artifact (full-model-api-ingestion-ff0311b…) and the authority it must
+   report:
+     gh workflow run deploy-public-sysml-api.yml --ref main \
+       -f git_sha=<ff0311b full SHA> -f artifact_run_id=<run> \
+       -f expected_semantic_authority=<legacy | o3:<bundle id> | mab-<Wave B id>>
+   (the workflow's verifier accepts the pre-C2 status shape,
+   baseline.ontology, and fails on invalid or any other authority);
+3. verify .semantic_authority.kind and the id of that revision.
 ```
 
 **Expiry.** The `ff0311b` ingestion artifact expires on **2026-10-22**.
@@ -314,6 +351,12 @@ the deployed API:
 1. **C2** (`model`, accepted C2 `mab-` id);
 2. **rollback** (`ff0311b`, its accepted Wave B authority);
 3. **redeploy C2** (same C2 `mab-` id).
+
+Every phase edits the environment **before** its deploy (P1 to P4 for a C2
+phase, section 4 step 1 for the rollback) and dispatches with the matching
+`expected_semantic_authority`. Each deploy produces a new deployment
+binding, so phase 3 repeats activation step 0 (deployment-bound closure)
+before its batteries.
 
 Acceptance: the phase-1 and phase-3 payloads are **byte-identical minus
 provenance** (after removing the semantic-authority/authority-id,
@@ -339,6 +382,7 @@ results with the acceptance package.
 | served bundle id or `semantic_authority_id` differs from the request | refuses to start |
 | binding v1 (`ontology` block) or a semantic authority other than the checkout's | refuses to start |
 | viewer with a refused model request | serves no semantic answers; `/ask-status.json` reports `.semantic_authority.kind == "invalid"` with the reason |
+| deploy with an unset, stale or wrong selector | the API deploy's mandatory verification fails the run (`kind` is not the declared one, `invalid`, or another bundle id); the Ask verifier fails unless the runtime serves the accepted `mab:` id; the monitor alerts on `invalid` |
 
 ## 7. Boundary
 

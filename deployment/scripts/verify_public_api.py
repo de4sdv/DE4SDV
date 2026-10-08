@@ -10,13 +10,16 @@ Proves, from OUTSIDE the server, that:
   - the deployment-specific project/commit from the status tuple is served;
   - the known element reqCommandEmergencyBraking is retrievable by its API
     UUID through the standard element path;
-  - full-model pagination exceeds 50,000 elements.
+  - full-model pagination exceeds 50,000 elements;
+  - the Ask viewer reports exactly the declared semantic authority
+    (``--expected-semantic-authority``; ``invalid`` always fails).
 
 Exits nonzero on any failure. Read-only: the script never sends a mutation
 payload beyond the method probes (which carry no body and must be rejected).
 
 Usage:
-  python3 verify_public_api.py [--base-url https://sysml-api.de4sdv.org] \
+  python3 verify_public_api.py --expected-semantic-authority mab-<hex> \
+      [--base-url https://sysml-api.de4sdv.org] [--ask-url https://viewer.de4sdv.org] \
       [--json OUT.json] [--skip-full-pagination]
 """
 from __future__ import annotations
@@ -31,7 +34,14 @@ from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit, urlunsplit
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from semantic_authority_check import (  # noqa: E402
+    AuthorityCheckError,
+    check_expected_authority,
+)
+
 KNOWN_ELEMENT_NAME = "reqCommandEmergencyBraking"
+DEFAULT_ASK_URL = "https://viewer.de4sdv.org"
 MUTATION_METHODS = ("POST", "PUT", "PATCH", "DELETE")
 # A deliberately nonstandard/extension method: if the proxy used a deny-list,
 # an unknown verb like this could slip through to the upstream API.
@@ -205,6 +215,42 @@ def check_status_document(base_url: str) -> dict[str, Any]:
     return check_status_payload(fetch_json(f"{base_url}/deployment-status.json"))
 
 
+def check_ask_semantic_authority(
+    ask_status: dict[str, Any], *, expected: str, status_doc: dict[str, Any],
+) -> dict[str, Any]:
+    """O4 Wave C2 (review R3): the deploy is not green unless the Ask viewer
+    reports exactly the declared semantic authority.
+
+    ``expected`` is ``mab-<hex>`` (the accepted bundle; C2 revisions), or for
+    a pre-C2 rollback the authority that revision serves (``legacy``,
+    ``o3:<bundle id>`` or its Wave B ``mab-`` id). ``invalid`` always fails.
+    Right after a C2 deploy the runtime may still be only *requested* (the
+    bundle is re-closed at the new deployment binding afterwards, activation
+    step 0); the served check is the Ask verifier's (verify_public_ask.py).
+    """
+    pre_c2 = "ontology" in (status_doc.get("baseline") or {})
+    try:
+        return check_expected_authority(
+            ask_status, expected=expected, pre_c2=pre_c2, require_served=False,
+        )
+    except AuthorityCheckError as exc:
+        raise VerificationError(f"Ask semantic authority: {exc}") from exc
+
+
+def fetch_ask_status(ask_url: str, attempts: int = 12, delay_seconds: float = 5.0) -> dict[str, Any]:
+    last_error: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            return fetch_json(f"{ask_url.rstrip('/')}/ask-status.json")
+        except (URLError, VerificationError) as exc:
+            last_error = exc
+            if attempt < attempts:
+                time.sleep(delay_seconds)
+    raise VerificationError(
+        f"Ask status not reachable after {attempts} attempts: {last_error}"
+    ) from last_error
+
+
 def check_model(base_url: str, status_doc: dict[str, Any]) -> dict[str, Any]:
     baseline = status_doc["baseline"]
     project_id = baseline["sysml_project_id"]
@@ -277,6 +323,14 @@ def main() -> int:
     parser.add_argument("--base-url", default="https://sysml-api.de4sdv.org")
     parser.add_argument("--json", type=Path, default=None)
     parser.add_argument("--skip-full-pagination", action="store_true")
+    parser.add_argument("--ask-url", default=DEFAULT_ASK_URL)
+    parser.add_argument(
+        "--expected-semantic-authority",
+        required=True,
+        help="the semantic authority the Ask viewer must report after this deploy: "
+             "mab-<hex> (the accepted model bundle), or for a pre-C2 rollback "
+             "legacy | o3:<bundle id> | that revision's mab- id",
+    )
     args = parser.parse_args()
     base = args.base_url.rstrip("/")
 
@@ -295,6 +349,12 @@ def main() -> int:
 
         model = check_model(base, status_doc)
         report["model"] = model
+
+        report["ask_semantic_authority"] = check_ask_semantic_authority(
+            fetch_ask_status(args.ask_url),
+            expected=args.expected_semantic_authority,
+            status_doc=status_doc,
+        )
 
         if not args.skip_full_pagination:
             total = check_pagination_and_known_element(base, model["project"], model["commit"])

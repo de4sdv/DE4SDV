@@ -6,6 +6,12 @@ on:
       git_sha:
         description: Exact DE4SDV application SHA to deploy (must be on main)
         required: true
+      model_authority_bundle_id:
+        description: >-
+          Accepted model-authority bundle id (mab-<hex>) the viewer must serve
+          (must equal DE4SDV_MODEL_AUTHORITY_BUNDLE_ID in /srv/de4sdv/sysml2-api.env;
+          ignored by a pre-C2 application revision's verifier)
+        required: true
 
 permissions:
   contents: read
@@ -16,6 +22,7 @@ concurrency:
 
 env:
   DEPLOY_SHA: ${{ inputs.git_sha }}
+  MODEL_AUTHORITY_BUNDLE_ID: ${{ inputs.model_authority_bundle_id }}
 
 jobs:
   deploy:
@@ -199,9 +206,18 @@ jobs:
 
       - name: Verify the public reader path with one live grounded query
         run: |
+          # O4 Wave C2 (review R3): the served authority must be the accepted
+          # bundle. A pre-C2 application revision's verifier predates the
+          # option (checked out at DEPLOY_SHA); it is passed whenever the
+          # checked-out verifier supports it.
+          authority_args=()
+          if grep -q -- '--expected-model-authority-bundle-id' deployment/scripts/verify_public_ask.py; then
+            authority_args=(--expected-model-authority-bundle-id "$MODEL_AUTHORITY_BUNDLE_ID")
+          fi
           python3 deployment/scripts/verify_public_ask.py \
             --base-url https://viewer.de4sdv.org \
             --application-sha "$DEPLOY_SHA" \
+            "${authority_args[@]}" \
             --live-query
 
       - name: Remove rollback checkout after successful verification

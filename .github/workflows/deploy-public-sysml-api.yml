@@ -56,6 +56,13 @@ on:
       artifact_run_id:
         description: Privileged Full-Model API Ingestion run ID for that SHA (optional; auto-detected when unambiguous)
         required: false
+      expected_semantic_authority:
+        description: >-
+          Semantic authority the Ask viewer must report after the deploy (checked by
+          the mandatory verification; invalid always fails). C2 and later: the
+          accepted mab-<hex> id. Pre-C2 rollback: what that revision serves
+          (legacy, o3:<bundle id> or its Wave B mab- id).
+        required: true
 
 permissions:
   contents: read
@@ -73,6 +80,7 @@ env:
   # round-trips through GITHUB_ENV.
   DEPLOY_SHA: ${{ inputs.git_sha }}
   PRVILEGED_RUN_INPUT: ${{ inputs.artifact_run_id }}
+  EXPECTED_SEMANTIC_AUTHORITY: ${{ inputs.expected_semantic_authority }}
 
 jobs:
   deploy:
@@ -393,7 +401,11 @@ jobs:
       - name: Post-deploy public verification (mandatory)
         run: |
           set -euo pipefail
-          python3 deployment/scripts/verify_public_api.py --json /tmp/verify.json
+          # O4 Wave C2 (review R3): an unset or stale semantic-authority
+          # selector must not deploy green; the Ask viewer must report the
+          # declared authority (docs/method-conformance/o4/model-authority-activation.md).
+          python3 deployment/scripts/verify_public_api.py --json /tmp/verify.json \
+            --expected-semantic-authority "$EXPECTED_SEMANTIC_AUTHORITY"
           cat /tmp/verify.json
 
       - name: Remove SSH key material

@@ -253,7 +253,16 @@ refuse startup (the authored ontology and the O3 bundle runtime were
 deleted); the `DE4SDV_O3_*` variables are no longer read. The deployed
 authority is visible at `GET /ask-status.json` (`.semantic_authority`).
 
-Rollback is a redeploy of the pre-C2 activated revision (`ff0311b`, its
+The environment is edited **before** a deploy (C2 or a rollback): the deploy
+recreates the ask-viewer from it. Both deploy workflows require the declared
+authority (`expected_semantic_authority` for the API deploy,
+`model_authority_bundle_id` for the Ask deploy); `verify_public_api.py`
+fails the run when `.semantic_authority.kind` is not the declared one
+(`invalid` included) or the bundle id differs, `verify_public_ask.py` fails
+unless the runtime serves the accepted `mab:` id, and
+`monitor_public_ask.py` alerts on `invalid`.
+
+Rollback is a redeploy of the pre-C2 revision (`ff0311b`, its
 ingestion artifact expires 2026-10-22). Activation, the rollback procedure,
 the production rollback proof (C2 → redeploy `ff0311b` → C2, three
 batteries) and the owner-gated steps live in
