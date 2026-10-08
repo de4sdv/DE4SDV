@@ -158,3 +158,14 @@ def test_pagination_retries_only_the_throttled_page(
     assert client.get_all("/elements") == ["a", "b"]
     assert script.urls == ["http://api.test/elements", next_link, next_link]
     assert script.waits == [0.0]
+
+
+@pytest.mark.parametrize("value", ["nan", "NaN", "soon"])
+def test_an_unreadable_retry_after_waits_one_rate_window(
+    value: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    script = _Script([(429, {"Retry-After": value}), _Response({"ok": True})])
+    client = _client(script, monkeypatch)
+
+    assert client.request("GET", "/projects") == {"ok": True}
+    assert script.waits == [DEFAULT_RATE_LIMIT_WAIT_SECONDS]

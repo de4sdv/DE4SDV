@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import email.utils
 import json
+import math
 import re
 import time
 import urllib.error
@@ -43,9 +44,12 @@ def _retry_after_seconds(value: str | None, now: float) -> float | None:
         return None
     text = value.strip()
     try:
-        return max(0.0, float(text))
+        seconds = float(text)
     except ValueError:
         pass
+    else:
+        # NaN is unreadable (one rate window applies); infinity exceeds any bound.
+        return None if math.isnan(seconds) else max(0.0, seconds)
     try:
         moment = email.utils.parsedate_to_datetime(text)
     except (TypeError, ValueError):
