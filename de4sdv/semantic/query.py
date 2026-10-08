@@ -664,6 +664,16 @@ class SemanticQueryService:
         response["service_provenance"] = self._provenance()
         return response
 
+    @staticmethod
+    def _selection_phase(phase: str | None) -> str:
+        """The phase of a call answered by a configured method selection."""
+        if phase is None:
+            raise ValueError(
+                "an increment (INC-<SUBJECT>-<SEQ>) is required; only a configured "
+                "method selection answers a phase alone"
+            )
+        return phase
+
     def phase_contract(
         self,
         phase: str | None = None,
@@ -678,8 +688,8 @@ class SemanticQueryService:
         A runtime explicitly configured with an approved method selection
         (a declared pilot contract) answers phase-only calls from it.
         """
-        if increment is None and self.method_conformance is not None:
-            return self.method_conformance.phase_contract(str(phase), candidate_context)
+        if increment is None and phase is not None and self.method_conformance is not None:
+            return self.method_conformance.phase_contract(phase, candidate_context)
         if increment is not None:
             return self._with_provenance(self.increment_evaluation(increment).phase_contract(phase))
         view = self._method_view()
@@ -697,9 +707,10 @@ class SemanticQueryService:
         """Per-phase status of one increment against the model's method gates."""
         if increment is not None:
             return self._with_provenance(self.increment_evaluation(increment).status(phase))
+        phase = self._selection_phase(phase)
         service = self._require_method_conformance()
         return service.increment_status(
-            str(phase),
+            phase,
             self._method_context(),
             requested_readiness=tuple(requested_readiness or ()),
         )
@@ -708,14 +719,12 @@ class SemanticQueryService:
         """Unmet blocking gates and advisory notes of one increment."""
         if increment is not None:
             return self._with_provenance(self.increment_evaluation(increment).gaps(phase))
-        return self._require_method_conformance().method_gaps(
-            str(phase), self._method_context()
-        )
+        phase = self._selection_phase(phase)
+        return self._require_method_conformance().method_gaps(phase, self._method_context())
 
     def next_obligation(self, phase: str | None = None, *, increment: str | None = None) -> dict[str, Any]:
         """The first actionable gate of one increment (no agent assignment)."""
         if increment is not None:
             return self._with_provenance(self.increment_evaluation(increment).next_obligation(phase))
-        return self._require_method_conformance().next_obligation(
-            str(phase), self._method_context()
-        )
+        phase = self._selection_phase(phase)
+        return self._require_method_conformance().next_obligation(phase, self._method_context())
