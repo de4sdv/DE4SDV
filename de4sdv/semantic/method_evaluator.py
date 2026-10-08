@@ -322,6 +322,10 @@ class ObligationSpec:
     depends_on: tuple[str, ...] = ()
     upstream_obligation_id: str | None = None
     expected_reason_default: tuple[str, ...] = ()
+    #: Most subjects the population may have (``None``: no maximum). Covered
+    #: by the contract digest only when set, so contracts without a maximum
+    #: keep their digest.
+    maximum_population: int | None = None
     #: Typed target filters decoded from ``target_filters`` by the predicate
     #: registry when an evaluator is constructed. Derived data: excluded from
     #: the contract digest, which covers the filter text.
@@ -375,6 +379,7 @@ def contract_digest(contract: MethodContract) -> str:
                 "claim_boundary": o.claim_boundary,
                 "depends_on": sorted(o.depends_on),
                 "upstream_obligation_id": o.upstream_obligation_id,
+                **({"maximum_population": o.maximum_population} if o.maximum_population is not None else {}),
             }
             for o in sorted(contract.obligations, key=lambda o: o.obligation_id)
         ],
@@ -485,6 +490,14 @@ def validate_contract(
             )
         if obligation.minimum_population < 0:
             violations.append(f"{oid}: invalid minimum_population")
+        if obligation.maximum_population is not None and (
+            obligation.maximum_population < 1
+            or obligation.maximum_population < obligation.minimum_population
+        ):
+            violations.append(
+                f"{oid}: invalid maximum_population {obligation.maximum_population} "
+                f"(minimum_population {obligation.minimum_population})"
+            )
         if obligation.permitted_empty and obligation.permitted_empty_disposition not in (
             PERMITTED_EMPTY_DISPOSITIONS
         ):
@@ -2353,6 +2366,28 @@ class MethodEvaluator:
                 )
             ]
 
+        # Population bounds: a non-empty population below the minimum, or
+        # above a declared maximum, violates the population policy.
+        count = len(subject_ids)
+        noun = "subject" if count == 1 else "subjects"
+        bound = None
+        if count < spec.minimum_population:
+            bound = f"the population policy requires at least {spec.minimum_population}"
+        elif spec.maximum_population is not None and count > spec.maximum_population:
+            bound = f"the population policy allows at most {spec.maximum_population}"
+        if bound is not None:
+            return [
+                EvaluationResult(
+                    unit_id=unit,
+                    coverage=COVERAGE_ASSESSED,
+                    state=STATE_COMPLETE,
+                    verdict=VERDICT_FAIL,
+                    reason_codes=(POPULATION_POLICY_VIOLATION,),
+                    diagnostics=(f"the population has {count} {noun}; {bound}",),
+                    claim_boundary=spec.claim_boundary,
+                )
+            ]
+
         predicate = self.predicates.definition(spec.predicate).evaluate
         child_results: list[EvaluationResult] = []
         for subject_id in subject_ids:
@@ -2745,6 +2780,8 @@ class ApprovedMethodSelection:
                 "target_filters": list(spec.target_filters),
                 "cardinality": list(spec.cardinality),
                 "minimum_population": spec.minimum_population,
+                **({"maximum_population": spec.maximum_population}
+                   if spec.maximum_population is not None else {}),
                 "permitted_empty": spec.permitted_empty,
                 "required": spec.required,
                 "evaluation_source": spec.evaluation_source,
