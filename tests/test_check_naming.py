@@ -172,7 +172,7 @@ def test_broadened_surface_actually_scans_ple_and_implementation():
         in joined
     )
     assert "implementation/aaos-sdv-reference-interop-bench/README.md" in joined
-    assert "approach/framework/ontology/de4sdv-basic-ontology.yaml" in joined
+    assert "approach/framework/ontology/README.md" in joined
 
 
 def test_retained_evidence_and_adrs_are_excluded():

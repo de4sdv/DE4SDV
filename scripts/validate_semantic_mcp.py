@@ -11,17 +11,17 @@ this proof; only the required seven are exercised.
 c5 integration closure (PR #249, R1+R2): the proof establishes two
 INDEPENDENT facts and fails closed unless both hold.
 
-Proof A - blocked EvidenceContract state: ``hasRelevantEvidenceContract`` is
-governed blocked at the reviewed revision (EvidenceContract-specific identity
-is not machine-resolvable; native verification membership also admits
-``AcceptanceCriterion``). The proof asserts the blocked/unsupported state is
-exposed (not ordinary absence), that zero EvidenceContract edges are emitted,
-and that verification coverage is reported as incomplete - never as ordinary
-``uncovered`` with an empty explanation - while the range is blocked.
+Proof A - resolved EvidenceContract range (model authority, owner decision 5,
+2026-10-07): the ``hasRelevantEvidenceContract`` discriminator is adopted
+(range = the EvidenceContract type closure), so the Proof-A requirement must
+expose at least one evidence-contract edge, the predicate must not be
+reported as blocked, and verification coverage must carry the evidence
+contracts; neighbors and coverage must stay subject-coherent. (The blocked
+proof of the retired legacy/O3 authorities was removed in O4 Wave C2.)
 
 Proof B - native verification still works: ``verifiedBy`` is an independently
 reviewed native ``Requirement -> VerificationCase`` relation grounded in
-``RequirementVerificationMembership``; its proof never depends on the blocked
+``RequirementVerificationMembership``; its proof never depends on the
 EvidenceContract route. The declared source domain is enforced by the
 SEMANTIC RUNTIME itself (the ``verification-membership`` traversal strategy
 grounds every queried source in the validated Requirement lineage; c5 R2
@@ -46,7 +46,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import sys
 from pathlib import Path
 from typing import Any, Iterable
@@ -59,7 +58,6 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from de4sdv.semantic.composition_construction import build_explicit_semantic_runtime
 from de4sdv.sysml_api.repository import element_id, reference_ids
 
 #: The seven full-model semantic proof tools this validator exercises. The
@@ -138,92 +136,6 @@ def validate_tool_surface(tools: Iterable[Any]) -> dict[str, int]:
     }
 
 
-def _require_blocked_evidence_state(
-    neighbors: dict[str, Any], coverage: dict[str, Any]
-) -> None:
-    """Proof A: the governed blocked EvidenceContract state must be exposed.
-
-    Both results must belong to the SAME Proof-A requirement: the coverage
-    subject must be the neighbor root. Fails closed if the blocked state
-    disappears unexpectedly, if any false EvidenceContract edge is emitted,
-    or if Proof-A results drift onto different subjects. Blocked semantic
-    authority is distinct from zero supported matches: the results must say
-    so explicitly.
-    """
-    root_id = (neighbors.get("root") or {}).get("element_id")
-    coverage_subject = (coverage.get("requirement") or {}).get("element_id")
-    if not root_id or not coverage_subject:
-        raise RuntimeError(
-            "Proof A results do not expose their requirement identities"
-        )
-    if root_id != coverage_subject:
-        raise RuntimeError(
-            "Proof A is not subject-coherent: semantic_neighbors root "
-            f"{root_id} != verification_coverage requirement {coverage_subject}"
-        )
-    unsupported = neighbors.get("unsupported_predicates")
-    if not isinstance(unsupported, list) or not any(
-        isinstance(item, dict)
-        and item.get("predicate") == "hasRelevantEvidenceContract"
-        and item.get("authority_state") == "blocked"
-        and "EvidenceContract-specific identity is not machine-resolvable"
-        in str(item.get("reason", ""))
-        for item in unsupported
-    ):
-        raise RuntimeError(
-            "semantic_neighbors did not expose the governed blocked "
-            "hasRelevantEvidenceContract state (blocked != ordinary absence)"
-        )
-    if neighbors.get("semantic_status") != "incomplete":
-        raise RuntimeError(
-            "semantic_neighbors reported a complete evaluation while the "
-            "EvidenceContract range is blocked"
-        )
-    blocked_edges = [
-        edge
-        for edge in neighbors.get("edges", [])
-        if edge.get("predicate") == "hasRelevantEvidenceContract"
-    ]
-    if blocked_edges:
-        raise RuntimeError(
-            "false EvidenceContract edges were emitted while the range is "
-            f"blocked: {len(blocked_edges)}"
-        )
-    if coverage.get("status") not in {"incomplete", "partial"}:
-        raise RuntimeError(
-            "verification_coverage must not report plain 'uncovered' while "
-            "the EvidenceContract range is blocked; the blocked range makes "
-            f"the assessment incomplete or partial, got {coverage.get('status')!r}"
-        )
-    if coverage.get("semantic_status") != "incomplete":
-        raise RuntimeError(
-            "verification_coverage reported a complete semantic evaluation "
-            "while the EvidenceContract range is blocked"
-        )
-    if not any(
-        isinstance(item, dict)
-        and item.get("predicate") == "hasRelevantEvidenceContract"
-        for item in coverage.get("unsupported_predicates", [])
-    ):
-        raise RuntimeError(
-            "verification_coverage lost the blocked EvidenceContract "
-            "unsupported-predicate record"
-        )
-    if not any(
-        gap.get("category") == "verification-unsupported"
-        and "EvidenceContract" in str(gap.get("reason", ""))
-        for gap in coverage.get("gaps", [])
-    ):
-        raise RuntimeError(
-            "verification_coverage omitted the blocked-range explanation"
-        )
-    if coverage.get("evidence_contracts"):
-        raise RuntimeError(
-            "false EvidenceContract claims present in verification_coverage "
-            "while the range is blocked"
-        )
-
-
 def require_resolved_evidence_state(
     neighbors: dict[str, Any], coverage: dict[str, Any]
 ) -> None:
@@ -269,36 +181,26 @@ def require_resolved_evidence_state(
         )
 
 
-def require_proof_a(
-    neighbors: dict[str, Any], coverage: dict[str, Any], authority: str | None
-) -> None:
-    """Dispatch Proof A by the selected authority (legacy/o3 blocked; model resolved)."""
-    if str(authority or "legacy").strip().lower() == "model":
-        require_resolved_evidence_state(neighbors, coverage)
-    else:
-        _require_blocked_evidence_state(neighbors, coverage)
+def require_proof_a(neighbors: dict[str, Any], coverage: dict[str, Any]) -> None:
+    """Proof A under the model authority: the EvidenceContract range resolves."""
+    require_resolved_evidence_state(neighbors, coverage)
 
 
 def server_authority_arguments(
     *,
     authority: str | None,
-    bundle_path: "str | Path | None",
-    bundle_id: str | None,
-    composition: str | None,
     model_bundle_path: "str | Path | None" = None,
     model_bundle_id: str | None = None,
+    allow_candidate_bundle: bool = False,
 ) -> list[str]:
     """The stdio server's authority flags (same selection as the in-process runtime)."""
     return [
-        "--semantic-authority",
-        str(authority),
-        *(["--o3-authority-bundle", str(bundle_path)] if bundle_path is not None else []),
-        *(["--o3-authority-bundle-id", bundle_id] if bundle_id is not None else []),
+        *(["--semantic-authority", str(authority)] if authority is not None else []),
         *(["--model-authority-bundle", str(model_bundle_path)]
           if model_bundle_path is not None else []),
         *(["--model-authority-bundle-id", model_bundle_id]
           if model_bundle_id is not None else []),
-        *(["--runtime-composition", composition] if composition is not None else []),
+        *(["--allow-candidate-bundle"] if allow_candidate_bundle else []),
     ]
 
 
@@ -433,7 +335,6 @@ def validate_semantic_results(
     proof_b_trace: dict[str, Any] | None = None,
     proof_b_subject: dict[str, Any] | None = None,
     require_subject_edge: bool = True,
-    authority: str | None = None,
 ) -> None:
     """Fail closed unless the MCP proof retains exact native semantics.
 
@@ -478,11 +379,10 @@ def validate_semantic_results(
     status = results["model_status"]
     if not status.get("current_baseline") or not status.get("read_only"):
         raise RuntimeError("model_status did not prove a read-only current baseline")
-    # Proof A: legacy/o3 — blocked EvidenceContract state is explicit, zero
-    # false edges; model — the adopted discriminator resolves the range.
+    # Proof A: the adopted discriminator resolves the EvidenceContract range.
     proof_a_neighbors = results["semantic_neighbors"]
     proof_a_coverage = results["verification_coverage"]
-    require_proof_a(proof_a_neighbors, proof_a_coverage, authority)
+    require_proof_a(proof_a_neighbors, proof_a_coverage)
     # Proof B: native verification on the selected subject — either the
     # explicit two-subject results or the same-subject fallback. The
     # explicit subject record carries the enforced source-domain proof.
@@ -663,13 +563,10 @@ async def run_mcp_validation(
     api_url: str,
     binding_path: Path,
     expected_git_revision: str,
-    ontology_path: Path,
-    authority: str = "legacy",
-    bundle_path: str | Path | None = None,
-    bundle_id: str | None = None,
-    composition: str | None = None,
+    authority: str | None = None,
     model_bundle_path: str | Path | None = None,
     model_bundle_id: str | None = None,
+    allow_candidate_bundle: bool = False,
 ) -> dict[str, Any]:
     from de4sdv.semantic import entry_authority
 
@@ -677,41 +574,22 @@ async def run_mcp_validation(
         raise ValueError(
             "model-authority bundle ID must be a literal mab-<32 or 64 lowercase hex> token"
         )
-    if bundle_id is not None and (
-        not isinstance(bundle_id, str)
-        or re.fullmatch(r"o3b-[0-9a-f]{32}", bundle_id) is None
-    ):
-        raise ValueError("O3 bundle ID must be a literal o3b-<32 lowercase hex> token")
     # The stdio server changes cwd; both processes must read the caller's files.
     binding_path = binding_path.resolve()
-    ontology_path = ontology_path.resolve()
-    if bundle_path is not None:
-        bundle_path = Path(bundle_path).resolve()
     if model_bundle_path is not None:
         model_bundle_path = Path(model_bundle_path).resolve()
     model_request = entry_authority.resolve_model_request(
         authority=authority, bundle_path=model_bundle_path, bundle_id=model_bundle_id,
         environ={},
     )
-    if model_request is None:
-        runtime, selection = build_explicit_semantic_runtime(
-            api_url=api_url, binding_path=binding_path,
-            expected_git_revision=expected_git_revision, ontology_path=ontology_path,
-            authority=authority, bundle_path=bundle_path, bundle_id=bundle_id,
-            composition=composition, environ={},
-        )
-    else:
-        if composition is not None:
-            raise entry_authority.ModelAuthoritySelectionError(
-                "explicit runtime composition cannot be combined with model authority"
-            )
-        runtime, selection = entry_authority.build_model_runtime(
-            model_request, api_url=api_url, binding_path=binding_path,
-            expected_git_revision=expected_git_revision, ontology_path=ontology_path,
-        )
+    runtime, selection = entry_authority.build_model_runtime(
+        model_request, api_url=api_url, binding_path=binding_path,
+        expected_git_revision=expected_git_revision,
+        **({"require_activation_eligible": False} if allow_candidate_bundle else {}),
+    )
     binding = runtime.binding
     binding.require_current(expected_git_revision)
-    binding.require_ontology(runtime.contract.identity)
+    binding.require_semantic_authority(runtime.contract.identity)
     if binding.scope != "full-model":
         raise RuntimeError(f"MCP proof requires full-model scope, got {binding.scope}")
     expected_revision = {
@@ -720,7 +598,7 @@ async def run_mcp_validation(
         "sysml_commit_id": binding.sysml_commit_id,
         "binding_status": "synchronized",
         "scope": "full-model",
-        "ontology": binding.ontology.to_dict(),
+        "semantic_authority": binding.semantic_authority.to_dict(),
     }
     params = StdioServerParameters(
         command=sys.executable,
@@ -732,12 +610,10 @@ async def run_mcp_validation(
             str(binding_path),
             "--expected-git-revision",
             expected_git_revision,
-            "--ontology",
-            str(ontology_path),
             *server_authority_arguments(
-                authority=authority, bundle_path=bundle_path, bundle_id=bundle_id,
-                composition=composition, model_bundle_path=model_bundle_path,
+                authority=authority or "model", model_bundle_path=model_bundle_path,
                 model_bundle_id=model_bundle_id,
+                allow_candidate_bundle=allow_candidate_bundle,
             ),
         ],
         cwd=ROOT,
@@ -860,7 +736,6 @@ async def run_mcp_validation(
         proof_b_coverage=proof_b_results["coverage"],
         proof_b_trace=proof_b_results["trace"],
         proof_b_subject=results.get("native_verification_subject"),
-        authority=authority,
     )
     # Only the seven required proof tools count as exercised; the native
     # verification subject record is proof metadata, not a tool result.
@@ -872,9 +747,7 @@ async def run_mcp_validation(
         "read_only": True,
         "revision": expected_revision,
         "semantic_authority": selection.provenance(),
-        "proof_a_blocked_evidence_contract": getattr(selection, "kind", None) != "model",
-        **({"proof_a_resolved_evidence_contract": True}
-           if getattr(selection, "kind", None) == "model" else {}),
+        "proof_a_resolved_evidence_contract": True,
         "proof_b_native_verification": True,
         "proof_a_root": proof_a_root_id,
         "proof_b_subject": results.get("native_verification_subject"),
@@ -898,31 +771,23 @@ def main() -> int:
     parser.add_argument("--api-url", required=True)
     parser.add_argument("--binding", type=Path, required=True)
     parser.add_argument("--expected-git-revision", required=True)
-    parser.add_argument(
-        "--ontology",
-        type=Path,
-        default=ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml",
-    )
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--semantic-authority", default="legacy")
-    parser.add_argument("--o3-authority-bundle")
-    parser.add_argument("--o3-authority-bundle-id")
+    parser.add_argument("--semantic-authority",
+                        help="model (the only accepted value; default DE4SDV_SEMANTIC_AUTHORITY)")
     parser.add_argument("--model-authority-bundle")
     parser.add_argument("--model-authority-bundle-id")
-    parser.add_argument("--runtime-composition", help="explicit non-production o3+definitions")
+    parser.add_argument("--allow-candidate-bundle", action="store_true",
+                        help="serve an unclosed candidate bundle (privileged evidence steps only)")
     args = parser.parse_args()
     result = anyio.run(
         lambda: run_mcp_validation(
             api_url=args.api_url,
             binding_path=args.binding,
             expected_git_revision=args.expected_git_revision,
-            ontology_path=args.ontology,
             authority=args.semantic_authority,
-            bundle_path=args.o3_authority_bundle,
-            bundle_id=args.o3_authority_bundle_id,
-            composition=args.runtime_composition,
             model_bundle_path=args.model_authority_bundle,
             model_bundle_id=args.model_authority_bundle_id,
+            allow_candidate_bundle=args.allow_candidate_bundle,
         )
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)

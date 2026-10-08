@@ -24,7 +24,7 @@ from pathlib import Path
 
 import yaml
 
-from de4sdv.semantic.o3_bundle import MIGRATED_IDENTITIES
+from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
 from scripts import check_o4_lifecycle_consistency as lifecycle
 
 REPO = Path(__file__).resolve().parents[1]

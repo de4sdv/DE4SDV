@@ -44,31 +44,6 @@ Usage:
 
 from __future__ import annotations
 
-import json
-import sys
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
-from de4sdv.semantic import o3_equivalence  # noqa: E402
-
-
-def run_check_errors(root: Path) -> list[str]:
-    """Validate the committed scope document fail-closed."""
-    path = root / o3_equivalence.O3_SCOPE_PATH
-    if not path.exists():
-        return [f"O3 scope document missing: {o3_equivalence.O3_SCOPE_PATH}"]
-    try:
-        document = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        return [f"O3 scope document is not valid JSON: {exc}"]
-    if not isinstance(document, dict):
-        return ["O3 scope document must be a JSON object"]
-    return o3_equivalence.check_scope_document(root, document)
-
-
 RETIRED_MESSAGE = (
     "scripts/generate_o3_equivalence_scope.py is retired: its output is a frozen record "
     "(owner decisions Q7 and D10, 2026-10-07) and is never regenerated or "
@@ -79,7 +54,11 @@ RETIRED_MESSAGE = (
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Refuse to write or check: the generated output is a frozen record."""
+    """Refuse to write or check: the generated output is a frozen record.
+
+    O4 Wave C2 deleted the generator library (it read the retired authored
+    ontology); only this refusal remains.
+    """
     del argv
     print(RETIRED_MESSAGE)
     return 2

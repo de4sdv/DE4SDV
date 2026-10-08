@@ -22,7 +22,7 @@ def _evidence() -> dict:
 
 
 def test_completion_record_binds_the_frozen_thirteen_to_runtime_code() -> None:
-    from de4sdv.semantic.o3_bundle import MIGRATED_IDENTITIES
+    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
 
     evidence = _evidence()
     assert evidence["schema"] == "de4sdv.o3-production-cutover-evidence/v1"

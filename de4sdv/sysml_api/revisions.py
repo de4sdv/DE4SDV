@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 from dataclasses import asdict, dataclass
@@ -13,39 +12,6 @@ from .errors import RevisionMismatchError
 
 BindingStatus = Literal["synchronized", "stale", "unvalidated"]
 _FULL_SHA = re.compile(r"^[0-9a-f]{40}$")
-_SHA256 = re.compile(r"^[0-9a-f]{64}$")
-
-
-@dataclass(frozen=True)
-class OntologyIdentity:
-    """Immutable identity of the executable ontology contract."""
-
-    path: str
-    sha256: str
-
-    @classmethod
-    def from_dict(cls, value: object) -> "OntologyIdentity":
-        if not isinstance(value, dict):
-            raise ValueError("revision binding ontology must be a JSON object")
-        path = str(value.get("path") or "")
-        digest = str(value.get("sha256") or "")
-        if not path:
-            raise ValueError("revision binding ontology.path is required")
-        if not _SHA256.fullmatch(digest):
-            raise ValueError("revision binding ontology.sha256 must be a lowercase SHA-256")
-        return cls(path=path, sha256=digest)
-
-    @classmethod
-    def from_file(cls, path: Path, *, repository_root: Path) -> "OntologyIdentity":
-        resolved = path.resolve()
-        try:
-            source = resolved.relative_to(repository_root.resolve()).as_posix()
-        except ValueError:
-            source = resolved.as_posix()
-        return cls(path=source, sha256=hashlib.sha256(resolved.read_bytes()).hexdigest())
-
-    def to_dict(self) -> dict[str, str]:
-        return asdict(self)
 
 
 SEMANTIC_AUTHORITY_SCHEMA = "de4sdv.semantic-authority/v1"
@@ -129,6 +95,14 @@ class KernelElementBinding:
         )
 
 
+BINDING_SCHEMA = "de4sdv.revision-binding/v2"
+RETIRED_BINDING_MESSAGE = (
+    "revision binding v1 (authored ontology identity) is retired by O4 Wave C2: "
+    "a binding must carry schema de4sdv.revision-binding/v2 and the model-built "
+    "semantic_authority identity; re-ingest at this revision"
+)
+
+
 @dataclass(frozen=True)
 class RevisionBinding:
     git_repository: str
@@ -138,12 +112,15 @@ class RevisionBinding:
     import_timestamp: str
     import_tool_version: str
     semantic_validation: str
-    ontology: OntologyIdentity
+    semantic_authority: SemanticAuthorityIdentity
     scope: str = "full-model"
     kernel_bindings: tuple[KernelElementBinding, ...] = ()
+    schema: str = BINDING_SCHEMA
 
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> "RevisionBinding":
+        if "ontology" in value or value.get("schema") != BINDING_SCHEMA:
+            raise ValueError(RETIRED_BINDING_MESSAGE)
         required = {
             "git_repository",
             "git_commit",
@@ -152,7 +129,7 @@ class RevisionBinding:
             "import_timestamp",
             "import_tool_version",
             "semantic_validation",
-            "ontology",
+            "semantic_authority",
         }
         missing = sorted(required - value.keys())
         if missing:
@@ -171,7 +148,7 @@ class RevisionBinding:
             import_timestamp=str(value["import_timestamp"]),
             import_tool_version=str(value["import_tool_version"]),
             semantic_validation=str(value["semantic_validation"]),
-            ontology=OntologyIdentity.from_dict(value["ontology"]),
+            semantic_authority=SemanticAuthorityIdentity.from_dict(value["semantic_authority"]),
             scope=str(value.get("scope", "full-model")),
             kernel_bindings=tuple(
                 KernelElementBinding.from_dict(item)
@@ -187,7 +164,9 @@ class RevisionBinding:
         return cls.from_dict(value)
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        value = asdict(self)
+        value["semantic_authority"] = self.semantic_authority.to_dict()
+        return value
 
     def status(self, git_revision: str) -> BindingStatus:
         if self.semantic_validation != "passed":
@@ -205,10 +184,9 @@ class RevisionBinding:
                 f"project {self.sysml_project_id} commit {self.sysml_commit_id}"
             )
 
-    def require_ontology(self, ontology: OntologyIdentity) -> None:
-        if ontology != self.ontology:
+    def require_semantic_authority(self, identity: SemanticAuthorityIdentity) -> None:
+        if identity != self.semantic_authority:
             raise RevisionMismatchError(
-                "ontology contract mismatch: validated binding requires "
-                f"{self.ontology.path} sha256:{self.ontology.sha256}, executed "
-                f"{ontology.path} sha256:{ontology.sha256}"
+                "semantic authority mismatch: validated binding requires "
+                f"{self.semantic_authority.id}, executed {getattr(identity, 'id', identity)}"
             )

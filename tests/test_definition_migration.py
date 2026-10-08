@@ -1,17 +1,14 @@
-"""O4 definition-migration path — verified, explicitly selected, fail-closed.
+"""O4 definition layer — verified pair, fail-closed API closure, real consumers.
 
-TDD suite: verified construction from the real candidate pair; the explicit
-selection surface (never implicit); the fail-closed activation prerequisite
-(a fresh exact-revision API closure); genuine consumption through the real
-API-binding / kernel-index / traversal / query / runtime consumers on a
-synthetic validated closure; adversarial independence of the migrated
-definition data from the authored contract with the remaining legacy
-fallback kept visible; and the executable offline probe over the real
-retained candidate artifacts.
-
-The O3 bundle route (authority_selection: legacy | o3) and the frozen 13
-identity semantics are asserted untouched — the migration path never
-composes with them and never impersonates them.
+Since O4 Wave C2 the definition pair is a layer of the model-built kernel
+contract: there is no legacy fallback provider, no explicit migration
+selector and no separate runtime. This suite covers verified construction
+from the real candidate pair, the fail-closed activation prerequisite (a fresh
+exact-revision API closure whose binding carries the model-built semantic
+authority), genuine consumption through the real API-binding / kernel-index /
+traversal / query consumers of the model-authority service on a synthetic
+validated closure, and the executable offline probe (schema v2) over the
+real retained artifacts.
 """
 from __future__ import annotations
 
@@ -23,45 +20,28 @@ from types import SimpleNamespace
 
 import pytest
 
+from model_contract_fixtures import binding_dict, model_contract, model_service
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-from de4sdv.semantic import o3_bundle
-from de4sdv.semantic.authority_ids import LEGACY_AUTHORITY_ID
-from de4sdv.semantic.authority_selection import (
-    AuthoritySelectionError,
-    resolve_authority_selection,
-)
+from de4sdv.semantic import model_authority_runtime as mar
 from de4sdv.semantic.definition_candidate import load_definition_candidate
-from de4sdv.semantic.definition_candidate_provider import DefinitionCandidateProvider
 from de4sdv.semantic.definition_migration import (
     DefinitionMigrationError,
-    MIGRATION_ENV,
-    MIGRATION_SELECTED,
-    build_definition_migration_runtime,
     load_definition_migration_authority,
     probe_definition_migration,
-    resolve_definition_migration_selection,
 )
-from de4sdv.semantic.kernel_contract import KernelContract, declaration_identity
-from de4sdv.semantic.o3_bundle import O3ImpactService
+from de4sdv.semantic.kernel_contract import declaration_identity
+from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES
 from de4sdv.semantic.query import SemanticQueryService
-from de4sdv.semantic.runtime import build_semantic_runtime
 from de4sdv.semantic.validation import validate_ontology_bindings
+from de4sdv.sysml_api.revisions import RevisionBinding
 
-ONTOLOGY = REPO_ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
 REVISION = "a" * 40
-
-
-def _contract() -> KernelContract:
-    return KernelContract.load(ONTOLOGY)
 
 
 def _candidate():
     return load_definition_candidate(REPO_ROOT)
-
-
-def _provider() -> DefinitionCandidateProvider:
-    return DefinitionCandidateProvider(legacy=_contract(), candidate=_candidate())
 
 
 def _synthetic_closure() -> tuple[list[dict], list[dict]]:
@@ -91,19 +71,10 @@ def _synthetic_closure() -> tuple[list[dict], list[dict]]:
     return elements, bindings
 
 
-def _binding_document(tmp_path: Path, bindings: list[dict]) -> Path:
-    document = {
-        "git_repository": "de4sdv/DE4SDV",
-        "git_commit": REVISION,
-        "sysml_project_id": "project-1",
-        "sysml_commit_id": "commit-1",
-        "import_timestamp": "2026-09-30T00:00:00Z",
-        "import_tool_version": "test",
-        "semantic_validation": "passed",
-        "scope": "full-model",
-        "ontology": _contract().identity.to_dict(),
-        "kernel_bindings": bindings,
-    }
+def _binding_document(tmp_path: Path, bindings: list[dict], **overrides) -> Path:
+    document = binding_dict(git_commit=REVISION, sysml_project_id="project-1",
+                            sysml_commit_id="commit-1", kernel_bindings=bindings,
+                            git_repository="de4sdv/DE4SDV", **overrides)
     path = tmp_path / "binding.json"
     path.write_text(json.dumps(document), encoding="utf-8")
     return path
@@ -114,37 +85,6 @@ def _fake_binding(bindings: list[dict]) -> SimpleNamespace:
         semantic_validation="passed",
         scope="full-model",
         kernel_bindings=tuple(SimpleNamespace(**item) for item in bindings),
-    )
-
-
-def _mutated_legacy(
-    *, classes: tuple[str, ...] = (), relationships: tuple[str, ...] = ()
-) -> KernelContract:
-    legacy = _contract()
-    mutated_classes = {name: dict(spec) for name, spec in legacy.classes.items()}
-    for name in classes:
-        entry = dict(mutated_classes[name])
-        kernel = dict(entry["kernel"])
-        kernel["file"] = "mutated/path.sysml"
-        kernel["declaration"] = "part def Mutated"
-        entry["kernel"] = kernel
-        mutated_classes[name] = entry
-    mutated_relationships = {
-        name: dict(spec) for name, spec in legacy.relationships.items()
-    }
-    for name in relationships:
-        spec = dict(mutated_relationships[name])
-        mapping = dict(spec["sysml_mapping"])
-        mapping["strategy"] = "mutated-strategy"
-        spec["sysml_mapping"] = mapping
-        mutated_relationships[name] = spec
-    return KernelContract(
-        source=legacy.source,
-        identity=legacy.identity,
-        governed_directory=legacy.governed_directory,
-        exclusions=legacy.exclusions,
-        classes=mutated_classes,
-        relationships=mutated_relationships,
     )
 
 
@@ -159,12 +99,12 @@ class _FakeRepository:
 
 
 # ---------------------------------------------------------------------------
-# verified construction + frozen-O3 / production-default preservation
+# verified construction + frozen O2-chain disjointness
 # ---------------------------------------------------------------------------
 
 
 def test_authority_loads_verified_candidate_and_reports_closure_prerequisite():
-    authority = load_definition_migration_authority(REPO_ROOT, contract=_contract())
+    authority = load_definition_migration_authority(REPO_ROOT)
     candidate = _candidate()
     assert authority.authority_id == f"definition-candidate:{candidate.source_revision}"
     assert authority.identities == candidate.identities
@@ -175,56 +115,21 @@ def test_authority_loads_verified_candidate_and_reports_closure_prerequisite():
     reason = authority.activation_blocked_reason()
     assert "fresh exact-revision API closure" in reason
     assert "ingestion" in reason
-    # frozen O3 13 identity semantics preserved and never overlapped
-    assert set(authority.identities) & set(o3_bundle.MIGRATED_IDENTITIES) == set()
-    assert len(o3_bundle.MIGRATED_IDENTITIES) == 13
-    # the accepted bundle route is untouched: legacy | o3 only
-    assert resolve_authority_selection(environ={}).kind == "legacy"
-    with pytest.raises(AuthoritySelectionError):
-        resolve_authority_selection(authority="o4", environ={})
-
-
-def test_selection_is_explicit_and_never_implicit(tmp_path):
-    assert resolve_definition_migration_selection(environ={}) == "off"
-    assert resolve_definition_migration_selection(environ={MIGRATION_ENV: ""}) == "off"
-    assert resolve_definition_migration_selection(environ={MIGRATION_ENV: "off"}) == "off"
-    assert (
-        resolve_definition_migration_selection(environ={MIGRATION_ENV: MIGRATION_SELECTED})
-        == MIGRATION_SELECTED
-    )
-    with pytest.raises(DefinitionMigrationError, match="never selected implicitly"):
-        resolve_definition_migration_selection(environ={MIGRATION_ENV: "o4"})
-    with pytest.raises(DefinitionMigrationError, match="not selected"):
-        build_definition_migration_runtime(
-            api_url="http://localhost:1",
-            binding_path=tmp_path / "unused.json",
-            expected_git_revision=REVISION,
-            ontology_path=ONTOLOGY,
-            environ={},
-        )
+    # the frozen O2-chain 13 identities are never overlapped
+    assert set(authority.identities) & set(O2_CHAIN_IDENTITIES) == set()
+    assert len(O2_CHAIN_IDENTITIES) == 13
 
 
 def test_activation_fails_closed_without_fresh_exact_revision_closure(tmp_path):
-    binding_path = _binding_document(tmp_path, bindings=[])
+    binding = RevisionBinding.load(_binding_document(tmp_path, bindings=[]))
     with pytest.raises(
         DefinitionMigrationError, match="fresh exact-revision API closure"
     ) as excinfo:
-        build_definition_migration_runtime(
-            api_url="http://localhost:1",
-            binding_path=binding_path,
+        load_definition_migration_authority(
+            REPO_ROOT, binding=binding, require_activation_eligible=True,
             expected_git_revision=REVISION,
-            ontology_path=ONTOLOGY,
-            selection=MIGRATION_SELECTED,
         )
     assert "22 of 22" in str(excinfo.value)
-    # production default unchanged: the same binding builds a legacy runtime
-    service = build_semantic_runtime(
-        api_url="http://localhost:1",
-        binding_path=binding_path,
-        expected_git_revision=REVISION,
-        ontology_path=ONTOLOGY,
-    )
-    assert service.semantic_authority_id == LEGACY_AUTHORITY_ID
 
 
 def test_closure_rejects_binding_disagreeing_with_the_candidate_pair():
@@ -232,7 +137,7 @@ def test_closure_rejects_binding_disagreeing_with_the_candidate_pair():
     tampered = [dict(item) for item in bindings]
     tampered[0]["declaration"] = "part def Mutated"
     authority = load_definition_migration_authority(
-        REPO_ROOT, contract=_contract(), binding=_fake_binding(tampered)
+        REPO_ROOT, binding=_fake_binding(tampered)
     )
     assert authority.activation_eligible is False
     assert authority.closure.mismatched
@@ -246,29 +151,23 @@ def test_closure_rejects_binding_disagreeing_with_the_candidate_pair():
 
 def test_migrated_definitions_consumed_by_real_consumers(tmp_path):
     elements, bindings = _synthetic_closure()
-    binding_path = _binding_document(tmp_path, bindings=bindings)
-    service, authority = build_definition_migration_runtime(
-        api_url="http://localhost:1",
-        binding_path=binding_path,
+    binding = RevisionBinding.load(_binding_document(tmp_path, bindings=bindings))
+    authority = load_definition_migration_authority(
+        REPO_ROOT, binding=binding, require_activation_eligible=True,
         expected_git_revision=REVISION,
-        ontology_path=ONTOLOGY,
-        selection=MIGRATION_SELECTED,
     )
     assert authority.activation_eligible is True
     provider = authority.provider
-    assert isinstance(service, SemanticQueryService)
-    assert service.semantic_authority_id == provider.authority_id
-    assert service.contract is provider
-    # runtime consumer wiring: binder, traversal and impact all receive the
-    # verified provider — the same consumers the production path uses
-    assert service.binder.contract is provider
-    assert service.traversal.contract is provider
-    assert isinstance(service.impact_service, O3ImpactService)
-    assert service.impact_service.semantic_authority_id == provider.authority_id
-
     fake = _FakeRepository(elements)
-    service.repository = fake
-    service.binder.repository = fake
+    service = model_service(binding, fake, expected_git_revision=REVISION)
+    assert isinstance(service, SemanticQueryService)
+    assert service.semantic_authority_id == service.contract.authority_id
+    # runtime consumer wiring: binder, traversal and impact all receive the
+    # model facade whose definition layer serves the verified pair
+    assert service.binder.contract is service.contract
+    assert service.traversal.contract is service.contract
+    assert isinstance(service.impact_service, mar.ModelAuthorityImpactService)
+    assert service.impact_service.semantic_authority_id == service.semantic_authority_id
 
     # API-binding consumer: candidate mapping + ingestion-validated UUID
     bound = service.binder.bind_class("Requirement")
@@ -282,11 +181,10 @@ def test_migrated_definitions_consumed_by_real_consumers(tmp_path):
     index = service.binder.kernel_bindings
     assert index is not None
     assert index.ontology_class_for(bound.sysml.element_id, by_id) == "Requirement"
-    # Exercise every admitted row through the actual binder, reverse index,
-    # and public query surface, not only the provider's mapping dictionary.
     candidate = _candidate()
     for name in candidate.identities:
         mapping = candidate.row_for(name)["grounding"]["kernel_binding_contract"]
+        assert provider.class_mapping(name).file == mapping["source_file"]
         admitted_bound = service.binder.bind_class(name)
         assert admitted_bound.kernel.file == mapping["source_file"]
         assert admitted_bound.kernel.declaration == mapping["declaration"]
@@ -295,7 +193,7 @@ def test_migrated_definitions_consumed_by_real_consumers(tmp_path):
         inspected = service.inspect_element(declared_name)
         assert inspected["element"]["element_id"] == admitted_bound.sysml.element_id
 
-    # traversal consumer: runs the real strategy through the provider
+    # traversal consumer: runs the real strategy through the facade
     source = by_id[bound.sysml.element_id]
     assert service.traversal.traverse("verifiedBy", source, elements) == []
 
@@ -303,8 +201,8 @@ def test_migrated_definitions_consumed_by_real_consumers(tmp_path):
     status = service.model_status()
     assert status["current_baseline"] is True
     assert status["element_count"] == len(elements)
-    assert status["semantic_authority"]["kind"] == "definition-candidate"
-    assert status["semantic_authority"]["id"] == provider.authority_id
+    assert status["semantic_authority"]["kind"] == "model"
+    assert status["semantic_authority"]["id"] == service.semantic_authority_id
 
     declared_name = declaration_identity(row["declaration"])[0]
     resolved = service.resolve_element(declared_name)
@@ -313,81 +211,14 @@ def test_migrated_definitions_consumed_by_real_consumers(tmp_path):
     assert neighbors["query"] == "semantic_neighbors"
     assert (
         neighbors["provenance"][2]["source"]
-        == f"projection://{provider.authority_id}"
+        == f"semantic-authority://{model_contract().identity.id}"
     )
 
-
-def test_migration_never_composes_with_the_o3_route(tmp_path):
-    elements, bindings = _synthetic_closure()
-    binding_path = _binding_document(tmp_path, bindings=bindings)
-    provider = _provider()
-    assert provider.authority_id.startswith("definition-candidate:")
-    assert not provider.authority_id.startswith("o3:")
-    with pytest.raises(ValueError, match="never both"):
-        build_semantic_runtime(
-            api_url="http://localhost:1",
-            binding_path=binding_path,
-            expected_git_revision=REVISION,
-            ontology_path=ONTOLOGY,
-            semantic_authority={},
-            definition_candidate_authority=provider,
-        )
-
-
-# ---------------------------------------------------------------------------
-# adversarial independence + visible remaining legacy dependency
-# ---------------------------------------------------------------------------
-
-
-def test_adversarial_legacy_mutation_leaves_migrated_data_untouched():
-    candidate = _candidate()
-    unadmitted = sorted(set(_contract().classes) - set(candidate.identities))
-    assert unadmitted
-    target = unadmitted[0]
-    mutated = _mutated_legacy(classes=tuple(candidate.identities) + (target,))
-    authority = load_definition_migration_authority(REPO_ROOT, contract=mutated)
-    provider = authority.provider
-    for name in candidate.identities:
-        row = candidate.row_for(name)["grounding"]["kernel_binding_contract"]
-        resolved = provider.class_mapping(name)
-        assert resolved.file == row["source_file"], name
-        assert resolved.declaration == row["declaration"], name
-        assert provider.mapping(name).file == row["source_file"], name
-
-    # every other identity keeps its EXPLICIT fallback: the mutated authored
-    # contract is what unadmitted identities still resolve through
-    unadmitted = sorted(set(_contract().classes) - set(candidate.identities))
-    assert unadmitted
-    target = unadmitted[0]
-    assert provider.class_mapping(target) == mutated.class_mapping(target)
-    assert provider.mapping(target).file == "mutated/path.sysml"
-
-    # validation consumer classifies admitted identities from candidate data
-    elements: list[dict] = []
-    sources: dict[str, str] = {}
-    for index, name in enumerate(candidate.identities):
-        row = candidate.row_for(name)["grounding"]["kernel_binding_contract"]
-        declared_name, expected_type = declaration_identity(row["declaration"])
-        element_id_value = f"val-{index:02d}"
-        elements.append(
-            {
-                "@id": element_id_value,
-                "@type": expected_type,
-                "declaredName": declared_name,
-            }
-        )
-        sources[element_id_value] = row["source_file"]
+    # validation consumer classifies every admitted identity from the pair
+    sources = {item["element_id"]: item["source_file"] for item in bindings}
     report = validate_ontology_bindings(provider, elements, sources)
-    admitted = set(candidate.identities)
-    admitted_entries = [entry for entry in report.entries if entry.ontology_class in admitted]
-    assert len(admitted_entries) == 22
-    assert all(entry.status == "mapped" for entry in admitted_entries)
-    # the remaining legacy dependency stays visible: an unadmitted class under
-    # the mutated contract fails to resolve instead of being silently served
-    unadmitted_entry = next(
-        entry for entry in report.entries if entry.ontology_class == target
-    )
-    assert unadmitted_entry.status == "unresolved"
+    assert len(report.entries) == 22
+    assert all(entry.status == "mapped" for entry in report.entries)
 
 
 # ---------------------------------------------------------------------------
@@ -397,24 +228,24 @@ def test_adversarial_legacy_mutation_leaves_migrated_data_untouched():
 
 def test_probe_reports_real_artifacts_offline():
     report = probe_definition_migration(REPO_ROOT)
-    assert report["schema"] == "de4sdv.o4-definition-migration-probe/v1"
+    assert report["schema"] == "de4sdv.o4-definition-migration-probe/v2"
     assert report["offline"] is True
     assert report["admitted_count"] == 22
-    assert report["o3_overlap"] == []
+    assert report["o2_chain_overlap"] == []
     assert report["activation_eligible"] is False
     assert "fresh exact-revision API closure" in report["activation_prerequisite"]
     assert report["closure"]["closed"] is False
     assert report["closure"]["missing"] == sorted(report["closure"]["missing"])
     assert len(report["closure"]["missing"]) == 22
     assert report["export"]["provided"] is False
-    assert report["legacy_only_class_count"] > 0
+    assert report["semantic_authority"] == model_contract().identity.to_dict()
     records = report["identities"]
     assert [record["identity"] for record in records] == sorted(
         record["identity"] for record in records
     )
-    # real parity at this revision: candidate mappings equal the authored
-    # ones, but they resolve from the verified candidate artifacts
-    assert all(record["legacy_present"] for record in records)
+    # real parity at this revision: candidate mappings equal the model-built
+    # contract's definition layer
+    assert all(record["contract_present"] for record in records)
     assert all(record["mapping_equal"] for record in records)
     assert all(record["validated_binding_element_id"] is None for record in records)
 
@@ -443,16 +274,13 @@ def test_probe_export_branch_marks_resolved_without_identity_claim():
     assert all(record["export_resolved"] for record in report["identities"])
 
 
-def test_runtime_refuses_stale_binding_before_assembly(tmp_path):
+def test_closure_refuses_stale_binding_revision(tmp_path):
     _elements, bindings = _synthetic_closure()
-    binding_path = _binding_document(tmp_path, bindings=bindings)
-    with pytest.raises(DefinitionMigrationError, match="revision"):
-        build_definition_migration_runtime(
-            api_url="http://localhost:1",
-            binding_path=binding_path,
+    binding = RevisionBinding.load(_binding_document(tmp_path, bindings=bindings))
+    with pytest.raises(DefinitionMigrationError, match="expected Git revision"):
+        load_definition_migration_authority(
+            REPO_ROOT, binding=binding, require_activation_eligible=True,
             expected_git_revision="b" * 40,
-            ontology_path=ONTOLOGY,
-            selection=MIGRATION_SELECTED,
         )
 
 
@@ -484,18 +312,19 @@ def test_closure_refuses_ambiguous_or_empty_binding_identity(tmp_path, defect):
     assert report["closure"]["mismatched"]
 
 
-def test_probe_refuses_foreign_ontology_even_when_revision_and_rows_match(tmp_path):
-    from de4sdv.sysml_api.revisions import RevisionBinding
+def test_probe_refuses_foreign_semantic_authority_even_when_revision_and_rows_match(tmp_path):
+    from model_contract_fixtures import synthetic_identity
 
     _elements, bindings = _synthetic_closure()
-    document = json.loads(_binding_document(tmp_path, bindings).read_text())
-    document["ontology"]["sha256"] = "b" * 64
+    document = json.loads(_binding_document(
+        tmp_path, bindings, semantic_authority=synthetic_identity("foreign").to_dict()).read_text())
     report = probe_definition_migration(
         REPO_ROOT, binding=RevisionBinding.from_dict(document),
         expected_git_revision=REVISION,
     )
     assert report["activation_eligible"] is False
-    assert "ontology" in report["activation_prerequisite"]
+    assert report["closure"]["authority_matches"] is False
+    assert "semantic-authority" in report["activation_prerequisite"]
 
 
 @pytest.mark.parametrize("content", [None, "[]"])

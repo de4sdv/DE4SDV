@@ -10,12 +10,14 @@ Checks repository contracts using text extraction from SysML textual notation:
    defined in ``aebs_needs_requirements.sysml``.
 4. Verification usages in each verification file must resolve to a
    ``verification def`` declared in the same file and must be performed.
-5. Authored ontology -> kernel mapping direction: every ontology class has
-   exactly one well-formed kernel mapping and every file mapping resolves.
-   (O4 Wave C1: the kernel -> model direction and the feature-slice guard are
-   enforced by the model-projection coverage gate against model-projected
-   pins and ``docs/method-conformance/o4/kernel-internal-declarations.yaml``;
-   this remaining direction is deleted with the authored ontology in C2.)
+5. Model-contract -> kernel mapping direction: every class of the
+   model-built kernel contract (``KernelContract.from_layers``, the
+   model-generated projection layers) has exactly one well-formed mapping and
+   every file mapping resolves to its declaration in the named kernel file.
+   (The kernel -> model direction and the feature-slice guard are enforced by
+   the model-projection coverage gate against model-projected pins and
+   ``docs/method-conformance/o4/kernel-internal-declarations.yaml``. The
+   authored ontology was deleted in O4 Wave C2.)
 6. Requirement-derivation coverage (ontology R003): every design-input
    requirement usage in a governed requirements slice must carry at least one
    outgoing dependency whose target resolves — through the model-wide
@@ -111,20 +113,11 @@ def _camel_to_snake(name: str) -> str:
     return s2.lower()
 
 
-# Sync point 5 — DE4SDV basic-ontology YAML ↔ method kernel declarations.
-# The ontology YAML maps each class to the SysML declaration that carries its
-# semantics. This gate verifies each mapped declaration still exists in the
-# named kernel file, so the vocabulary cannot drift from the model unnoticed.
-ONTOLOGY_YAML = ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-
-# Native-mapping classes are validated separately (see check_ontology_kernel):
-# their kernel mapping is "native", meaning the semantics live in a SysML v2
-# language construct rather than a kernel declaration, or live in an external
-# artifact outside the model (external).
-
-# Helper and re-export declarations that appear in de4sdv_method_context.sysml
-# but are not ontology vocabulary classes.
-_ONTOLOGY_FILE_EXEMPT_DECLARATIONS: dict[str, set[str]] = {}
+# Sync point 5 — model-built kernel contract -> method kernel declarations.
+# The model-generated projection layers map each class to the SysML
+# declaration that carries its semantics (or to a native/external construct).
+# This gate verifies each mapped declaration still exists in the named kernel
+# file, so the projected vocabulary cannot drift from the model unnoticed.
 
 
 def _strip_comments(text: str) -> str:
@@ -1164,109 +1157,84 @@ def check_requirement_derivation_coverage(errors: list[str]) -> None:
                 )
 
 
+def _load_model_contract():
+    """The model-built kernel contract (``KernelContract.from_layers``)."""
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from de4sdv.semantic.kernel_contract import KernelContract
+
+    return KernelContract.from_layers(ROOT)
+
+
 def check_ontology_kernel_contract(errors: list[str]) -> None:
-    """Validate the authored ontology -> SysML method-kernel mapping direction.
+    """Validate the model-contract -> SysML method-kernel mapping direction.
 
-    O4 Wave C1 scope (the remaining YAML-reading part of sync point 5). Each
-    ontology class must carry a ``kernel`` mapping stating where its
-    semantics live:
+    Each class of the model-built kernel contract carries exactly one mapping:
 
-    - ``file:`` + ``declaration:`` — a SysML declaration in a kernel file;
-      the gate verifies the declaration still exists there.
-    - ``native:`` — the semantics live in a native SysML v2 language
-      construct (no kernel declaration to check).
-    - ``external:`` — the semantics live in an artifact outside the SysML
-      model (feature catalogue, upstream library, evidence registers).
+    - a file mapping (``file`` + ``declaration``) — a SysML declaration in a
+      kernel file; the gate verifies the declaration still exists there;
+    - a native mapping — the semantics live in a native SysML v2 language
+      construct (no kernel declaration to check);
+    - an external mapping — the semantics live outside the SysML model.
 
-    This direction validates the authored ontology itself, which still serves
-    the owner-visible residual and the O3 rollback authority; it is deleted
-    with the authored ontology in O4 Wave C2. The kernel -> model direction
-    (every governed declaration projected or listed as kernel-internal with a
-    reason, no stale or overlapping entries) and the feature-slice
-    re-declaration guard moved to the model-projection coverage gate
-    (``de4sdv/semantic/model_projection_coverage.py``) in O4 Wave C1.
+    A contract that cannot be built (malformed layer, duplicate provider,
+    refused identity also provided) is itself an error. The kernel -> model
+    direction (every governed declaration projected or listed as
+    kernel-internal with a reason) and the feature-slice re-declaration guard
+    live in the model-projection coverage gate
+    (``de4sdv/semantic/model_projection_coverage.py``).
     """
-    import yaml  # local import: PyYAML is a CI test dependency
-
-    if not ONTOLOGY_YAML.exists():
-        errors.append(f"{_ONTOLOGY_KERNEL} {ONTOLOGY_YAML}: ontology YAML not found")
-        return
-
     try:
-        doc = yaml.safe_load(_read(ONTOLOGY_YAML))
-    except yaml.YAMLError as exc:
-        errors.append(f"{_ONTOLOGY_KERNEL} {ONTOLOGY_YAML}: invalid YAML: {exc}")
+        contract = _load_model_contract()
+    except Exception as exc:  # a contract that cannot be built fails the gate
+        errors.append(f"{_ONTOLOGY_KERNEL} model-built kernel contract cannot be built: {exc}")
         return
+    from de4sdv.semantic.kernel_contract import (
+        KernelExternalMapping,
+        KernelFileMapping,
+        KernelNativeMapping,
+    )
 
-    classes = doc.get("classes") if isinstance(doc, dict) else None
-    if not isinstance(classes, dict) or not classes:
-        errors.append(f"{_ONTOLOGY_KERNEL} {ONTOLOGY_YAML}: no classes section")
-        return
-
-    if not isinstance(doc.get("kernel_sync"), dict):
-        errors.append(f"{_ONTOLOGY_KERNEL} {ONTOLOGY_YAML}: no kernel_sync contract")
-        return
-
-    # Load each kernel file once.
     file_cache: dict[str, str] = {}
-    for class_name, spec in classes.items():
-        if not isinstance(spec, dict):
-            errors.append(f"{_ONTOLOGY_KERNEL} {class_name}: malformed class entry")
+    for class_name in sorted(contract.classes):
+        try:
+            mapping = contract.mapping(class_name)
+        except KeyError as exc:
+            errors.append(f"{_ONTOLOGY_KERNEL} {class_name}: no kernel mapping ({exc})")
             continue
-        kernel = spec.get("kernel")
-        if not isinstance(kernel, dict):
+        if isinstance(mapping, (KernelNativeMapping, KernelExternalMapping)):
+            continue
+        if not isinstance(mapping, KernelFileMapping):
+            errors.append(f"{_ONTOLOGY_KERNEL} {class_name}: unrecognized kernel mapping {mapping!r}")
+            continue
+        rel_file = mapping.file.strip()
+        declaration = mapping.declaration.strip()
+        if not rel_file or not declaration:
             errors.append(
-                f"{_ONTOLOGY_KERNEL} {class_name}: missing kernel mapping "
-                f"(file+declaration, native, or external)"
+                f"{_ONTOLOGY_KERNEL} {class_name}: kernel mapping needs both "
+                f"file and declaration (got file={mapping.file!r}, "
+                f"declaration={mapping.declaration!r})"
             )
             continue
-        has_declaration = "file" in kernel or "declaration" in kernel
-        has_native = "native" in kernel
-        has_external = "external" in kernel
-        if sum((has_declaration, has_native, has_external)) != 1:
+        if Path(rel_file).is_absolute() or ".." in Path(rel_file).parts:
             errors.append(
-                f"{_ONTOLOGY_KERNEL} {class_name}: kernel mapping must use "
-                f"exactly one of file+declaration, native, or external"
+                f"{_ONTOLOGY_KERNEL} {class_name}: kernel file must be "
+                f"repository-relative: {rel_file}"
             )
             continue
-        if has_declaration:
-            rel_file = kernel.get("file")
-            declaration = kernel.get("declaration")
-            if (
-                not isinstance(rel_file, str)
-                or not rel_file.strip()
-                or not isinstance(declaration, str)
-                or not declaration.strip()
-            ):
-                errors.append(
-                    f"{_ONTOLOGY_KERNEL} {class_name}: kernel mapping needs both "
-                    f"file: and declaration: (got file={rel_file!r}, "
-                    f"declaration={declaration!r})"
-                )
-                continue
-            rel_file = rel_file.strip()
-            declaration = declaration.strip()
-            if Path(rel_file).is_absolute() or ".." in Path(rel_file).parts:
-                errors.append(
-                    f"{_ONTOLOGY_KERNEL} {class_name}: kernel file must be "
-                    f"repository-relative: {rel_file}"
-                )
-                continue
-            path = ROOT / rel_file
-            if not path.exists():
-                errors.append(
-                    f"{_ONTOLOGY_KERNEL} {class_name}: kernel file not found: "
-                    f"{rel_file}"
-                )
-                continue
-            if rel_file not in file_cache:
-                file_cache[rel_file] = _read(path)
-            if not _declaration_exists(file_cache[rel_file], declaration):
-                errors.append(
-                    f"{_ONTOLOGY_KERNEL} {class_name}: declaration "
-                    f"'{declaration}' not "
-                    f"found in {rel_file}"
-                )
+        path = ROOT / rel_file
+        if not path.exists():
+            errors.append(
+                f"{_ONTOLOGY_KERNEL} {class_name}: kernel file not found: {rel_file}"
+            )
+            continue
+        if rel_file not in file_cache:
+            file_cache[rel_file] = _read(path)
+        if not _declaration_exists(file_cache[rel_file], declaration):
+            errors.append(
+                f"{_ONTOLOGY_KERNEL} {class_name}: declaration '{declaration}' not "
+                f"found in {rel_file}"
+            )
 
 
 # ---------------------------------------------------------------------------

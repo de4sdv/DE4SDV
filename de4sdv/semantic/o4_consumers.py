@@ -1,13 +1,23 @@
-"""O4 closure preparation: authored-YAML consumer inventory + retirement ledger.
+"""O4 authored-ontology consumer inventory and retirement ledger.
 
-Read-only detection machinery. It never retires, rewrites or bypasses the
-authored ontology authority; the authoritative YAML stays in place until the
-O4 closure conditions prove every executable consumer is retired or
-compatibility-generated. The ledger is authored governance data
-(``docs/method-conformance/o4/consumer-ledger.yaml``), never derived from
-runtime state, and the checker fails closed on: set drift in either
-direction, marker drift per file, unknown roles/statuses, and any ``retired``
-row that still shows live consumption markers.
+Read-only detection machinery over every git-tracked file. The ledger is
+authored governance data (``docs/method-conformance/o4/consumer-ledger.yaml``),
+never derived from runtime state, and the checker fails closed on: set drift
+in either direction, marker drift per file, unknown roles/statuses, and any
+``retired`` row that still shows live markers.
+
+Markers (owner decision D7, O4 Wave C2): only references to the authored
+ontology itself count — its file name, its directory, and its machinery
+symbols (``ontology_yaml``, ``kernel_sync``, the ``legacy-yaml`` authority
+value). The ``KernelContract``/``kernel_contract`` symbols are no longer
+markers: since Wave C2 that class is the model-built contract
+(``KernelContract.from_layers``) and reading it is not YAML consumption.
+
+Closure: when the ledger status is ``CLOSED`` every live hit must be a row
+whose role is non-executable (documentation, frozen record, historical
+tooling, test reference, the governance machinery that names the tokens) and
+whose status is ``not-applicable``; executable roles may only appear as
+``retired`` rows without live markers.
 
 Scanner semantics: every git-tracked file, all file types, full content,
 casefolded search — no truncation, no extension filter.
@@ -25,9 +35,6 @@ MARKERS: dict[str, str] = {
     "ontology_path_us_token": "de4sdv_basic_ontology",
     # Directory reference.
     "ontology_dir_token": "approach/framework/ontology",
-    # The KernelContract loader symbol and its module path.
-    "kernel_contract_symbol": "kernelcontract",
-    "kernel_contract_module": "kernel_contract",
     # Symbols in the ontology-machinery tooling.
     "ontology_yaml_symbol": "ontology_yaml",
     "kernel_sync_key": "kernel_sync",
@@ -46,7 +53,13 @@ ROLES = (
     "documentation",
     "model",
     "build",
+    "frozen-record",
+    "historical",
 )
+
+#: Roles a live hit may carry once the ledger is CLOSED (never executable).
+CLOSED_LIVE_ROLES = ("documentation", "frozen-record", "historical", "test-reference",
+                     "governance-machinery")
 
 RETIREMENT_STATUSES = ("active", "pending", "retired", "compatibility-generated", "not-applicable")
 
@@ -123,6 +136,7 @@ def check_ledger(root: Path, ledger: dict, scan: dict[str, dict]) -> list[str]:
     identity = ledger.get("identity")
     if identity and identity != LEDGER_PATH:
         errors.append(f"{LEDGER_PATH}: ledger identity does not name this path: {identity!r}")
+    closed = str(ledger.get("status") or "").startswith("CLOSED")
 
     for rel in sorted(set(scan) - set(entries)):
         errors.append(f"{LEDGER_PATH}: {rel} consumes the authored authority but is missing from the ledger")
@@ -147,6 +161,13 @@ def check_ledger(root: Path, ledger: dict, scan: dict[str, dict]) -> list[str]:
         if status == "retired":
             errors.append(
                 f"{LEDGER_PATH}: {rel}: retired consumer still consumes the authored authority"
+            )
+        if closed and (role not in CLOSED_LIVE_ROLES or status != "not-applicable"):
+            errors.append(
+                f"{LEDGER_PATH}: {rel}: the ledger is CLOSED but this live reference has role "
+                f"{role!r} / status {status!r}; only non-executable roles "
+                f"{list(CLOSED_LIVE_ROLES)} with status 'not-applicable' may still reference "
+                "the authored ontology"
             )
         recorded = row.get("markers")
         live = sorted(scan[rel]["markers"])

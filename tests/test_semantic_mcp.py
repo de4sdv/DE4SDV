@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
@@ -10,14 +9,14 @@ from typing import Any
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-ONTOLOGY_PATH = ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
+BINDING_SCHEMA = "de4sdv.revision-binding/v2"
 
 
-def ontology_identity(path: Path = ONTOLOGY_PATH) -> dict[str, str]:
-    return {
-        "path": ONTOLOGY_PATH.relative_to(ROOT).as_posix(),
-        "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-    }
+def semantic_authority() -> dict[str, Any]:
+    """The model-built kernel contract's semantic-authority identity."""
+    from model_contract_fixtures import semantic_authority_dict
+
+    return semantic_authority_dict()
 
 
 class FixtureRepository:
@@ -75,17 +74,34 @@ def semantic_api_server(semantic_service):
         _ApiHandler.elements = []
 
 
+#: Under the model authority (owner decision 5) the hasRelevantEvidenceContract
+#: discriminator fails closed without a validated EvidenceContract kernel root
+#: (the fixture has none): zero edges, an explicit ``incomplete`` record with
+#: this reason, never an ordinary absence. The successor relations are
+#: incomplete over this fixture (its ConnectionUsages carry no successor
+#: carrier endpoints).
+EVIDENCE_CLOSURE_REASON = "EvidenceContract type closure is not established"
+FIXTURE_UNSUPPORTED = {
+    "hasRegulatorySource",
+    "hasRelevantEvidenceContract",
+    "hasValidationScenario",
+    "validationScenarioFor",
+}
+
+
+def _evidence_record(records):
+    matches = [r for r in records if r["predicate"] == "hasRelevantEvidenceContract"]
+    assert len(matches) == 1, records
+    return matches[0]
+
+
 def ref(value: str) -> dict[str, str]:
     return {"@id": value}
 
 
 @pytest.fixture
 def semantic_service():
-    from de4sdv.semantic.api_binding import OntologyApiBinder
-    from de4sdv.semantic.impact import ImpactService
     from de4sdv.semantic.kernel_contract import KernelContract
-    from de4sdv.semantic.query import SemanticQueryService
-    from de4sdv.semantic.traversal import SemanticTraversal
     from de4sdv.sysml_api.revisions import RevisionBinding
 
     elements = [
@@ -216,9 +232,10 @@ def semantic_service():
         },
     ]
     repository = FixtureRepository(elements)
-    contract = KernelContract.load(
-        ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-    )
+    from model_contract_fixtures import model_contract
+
+    contract = model_contract()
+    assert isinstance(contract, KernelContract)
     binding = RevisionBinding.from_dict(
         {
             "git_repository": "de4sdv/DE4SDV",
@@ -229,7 +246,8 @@ def semantic_service():
             "import_tool_version": "fixture/1",
             "semantic_validation": "passed",
             "scope": "fixture",
-            "ontology": ontology_identity(),
+            "schema": BINDING_SCHEMA,
+                "semantic_authority": semantic_authority(),
             "kernel_bindings": [
                 {
                     "ontology_class": "Requirement",
@@ -270,33 +288,11 @@ def semantic_service():
             ],
         }
     )
-    from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
+    from model_contract_fixtures import model_service
 
-    kernel_index = KernelBindingIndex.from_binding(binding)
-    binder = OntologyApiBinder(
-        contract,
-        repository,  # type: ignore[arg-type]
-        project_id="project-1",
-        commit_id="commit-1",
-        kernel_bindings=kernel_index,
-    )
-    traversal = SemanticTraversal(contract, kernel_bindings=kernel_index)
-    impact = ImpactService(
-        repository=repository,  # type: ignore[arg-type]
-        binding=binding,
-        contract=contract,
-        binder=binder,
-        traversal=traversal,
-    )
-    return SemanticQueryService(
-        repository=repository,  # type: ignore[arg-type]
-        binding=binding,
-        contract=contract,
-        binder=binder,
-        traversal=traversal,
-        impact_service=impact,
-        expected_git_revision="a" * 40,
-    )
+    # The production assembly (model-authority facade + successor traversal)
+    # over the synthetic fixture repository.
+    return model_service(binding, repository, expected_git_revision="a" * 40)
 
 
 def test_model_status_does_not_present_fixture_as_current_baseline(semantic_service) -> None:
@@ -310,7 +306,7 @@ def test_model_status_does_not_present_fixture_as_current_baseline(semantic_serv
         "sysml_commit_id": "commit-1",
         "binding_status": "synchronized",
         "scope": "fixture",
-        "ontology": ontology_identity(),
+        "semantic_authority": semantic_authority(),
     }
     assert result["element_count"] is None
     assert result["gaps"] == [
@@ -336,21 +332,18 @@ def test_model_status_reports_exact_validated_full_model_binding(semantic_servic
     assert result["gaps"] == []
 
 
-def test_model_status_and_queries_fail_closed_for_stale_ontology_identity(
+def test_model_status_and_queries_fail_closed_for_stale_semantic_authority(
     semantic_service,
 ) -> None:
     from dataclasses import replace
 
+    from model_contract_fixtures import synthetic_identity
     from de4sdv.sysml_api.errors import RevisionMismatchError
-    from de4sdv.sysml_api.revisions import OntologyIdentity
 
     semantic_service.binding = replace(
         semantic_service.binding,
         scope="full-model",
-        ontology=OntologyIdentity(
-            path=semantic_service.binding.ontology.path,
-            sha256="b" * 64,
-        ),
+        semantic_authority=synthetic_identity("stale"),
     )
 
     status = semantic_service.model_status()
@@ -359,11 +352,11 @@ def test_model_status_and_queries_fail_closed_for_stale_ontology_identity(
         {
             "category": "runtime-binding",
             "reason": (
-                "ontology contract does not match the identity recorded in the binding"
+                "semantic authority does not match the identity recorded in the binding"
             ),
         }
     ]
-    with pytest.raises(RevisionMismatchError, match="ontology contract"):
+    with pytest.raises(RevisionMismatchError, match="semantic authority mismatch"):
         semantic_service.resolve_element("req-1")
 
 
@@ -427,17 +420,16 @@ def test_semantic_neighbors_only_use_ontology_declared_predicates(semantic_servi
         "native-verification",
     }
     assert all(edge["api_object_id"] for edge in result["edges"])
-    # Integration closure R1: the blocked predicate is reported as
+    # Integration closure R1: the fail-closed predicate is reported as
     # unsupported - mixed outcome alongside the evaluated predicates - and
     # never as an ordinary "no relationship found" gap.
     assert result["semantic_status"] == "incomplete"
-    assert [
+    assert {
         record["predicate"] for record in result["unsupported_predicates"]
-    ] == ["hasRelevantEvidenceContract"]
-    assert result["unsupported_predicates"][0]["authority_state"] == "blocked"
-    assert "EvidenceContract-specific identity is not machine-resolvable" in (
-        result["unsupported_predicates"][0]["reason"]
-    )
+    } == FIXTURE_UNSUPPORTED
+    record = _evidence_record(result["unsupported_predicates"])
+    assert record["authority_state"] == "incomplete"
+    assert EVIDENCE_CLOSURE_REASON in record["reason"]
     assert all(gap["category"] != "hasRelevantEvidenceContract" for gap in result["gaps"])
 
 
@@ -453,10 +445,17 @@ def test_impact_trace_and_verification_coverage_return_compact_provenance(semant
     # verification-1 directly — so the trace proves native verifiedBy while
     # the blocked predicate is recorded as unavailable (R1: no claim of a
     # fully-evaluated absence).
+    # Model impact is bounded witnessed reachability over every mapped
+    # predicate: the K pair over the fixture's DerivesFromNeed witness also
+    # appears; no EvidenceContract edge and no retired label is emitted.
     assert {edge["predicate"] for edge in impact["edges"]} == {
         "hasSubject",
         "verifiedBy",
+        "derivesRequirementFromNeed",
+        "derivedRequirementsOfNeed",
     }
+    assert not {edge["predicate"] for edge in impact["edges"]} & {
+        "hasRelevantEvidenceContract", "realizedBy", "deployedTo"}
     assert [step["predicate"] for step in trace["path"]] == ["verifiedBy"]
     assert trace["semantic_status"] == "incomplete"
     assert any(
@@ -471,16 +470,9 @@ def test_impact_trace_and_verification_coverage_return_compact_provenance(semant
     # missing-identity reason survives as an explicit unsupported record.
     assert coverage["status"] == "partial"
     assert coverage["semantic_status"] == "incomplete"
-    assert any(
-        record["predicate"] == "hasRelevantEvidenceContract"
-        and record["authority_state"] == "blocked"
-        for record in coverage["unsupported_predicates"]
-    )
-    assert any(
-        gap["category"] == "verification-unsupported"
-        and "EvidenceContract" in gap["reason"]
-        for gap in coverage["gaps"]
-    )
+    record = _evidence_record(coverage["unsupported_predicates"])
+    assert record["authority_state"] == "incomplete"
+    assert EVIDENCE_CLOSURE_REASON in record["reason"]
     # Native verifiedBy is independent of the blocked route (R2): the case is
     # still discovered through the root requirement's own membership.
     assert [case["element_id"] for case in coverage["verification_cases"]] == [
@@ -488,14 +480,14 @@ def test_impact_trace_and_verification_coverage_return_compact_provenance(semant
     ]
     assert coverage["evidence_contracts"] == []
     assert coverage["revision"]["sysml_commit_id"] == "commit-1"
-    assert coverage["revision"]["ontology"] == ontology_identity()
+    assert coverage["revision"]["semantic_authority"] == semantic_authority()
     assert any(
-        entry.get("sha256") == ontology_identity()["sha256"]
+        entry.get("source") == f"semantic-authority://{semantic_authority()['id']}"
         for entry in coverage["provenance"]
     )
 
 
-def test_verification_coverage_claims_no_evidence_contracts_while_blocked(
+def test_verification_coverage_claims_no_evidence_contracts_while_unresolved(
     semantic_service,
 ) -> None:
     """c5 correction: the EvidenceContract range gate emits nothing — both a
@@ -529,16 +521,12 @@ def test_verification_coverage_claims_no_evidence_contracts_while_blocked(
     # "uncovered" with an empty explanation.
     assert coverage["status"] == "partial"
     assert coverage["semantic_status"] == "incomplete"
-    assert [
+    assert {
         record["predicate"] for record in coverage["unsupported_predicates"]
-    ] == ["hasRelevantEvidenceContract"]
-    assert coverage["unsupported_predicates"][0]["authority_state"] == "blocked"
-    assert "EvidenceContract-specific identity is not machine-resolvable" in (
-        coverage["unsupported_predicates"][0]["reason"]
-    )
-    assert any(
-        gap["category"] == "verification-unsupported" for gap in coverage["gaps"]
-    )
+    } == FIXTURE_UNSUPPORTED
+    record = _evidence_record(coverage["unsupported_predicates"])
+    assert record["authority_state"] == "incomplete"
+    assert EVIDENCE_CLOSURE_REASON in record["reason"]
     assert coverage["evidence_contracts"] == []
     assert coverage["unverified_evidence_contracts"] == []
     # Native verification through the root requirement is unaffected.
@@ -608,79 +596,35 @@ def test_mcp_surface_exposes_only_the_declared_read_only_semantic_tools(
         )
     )
     assert result["revision"]["git_commit"] == "a" * 40
-    # c5 correction: the blocked EvidenceContract range emits no edge.
+    # The fail-closed EvidenceContract discriminator emits no edge.
     # Integration closure R2: native verifiedBy is discovered from the root
     # requirement's own RequirementVerificationMembership.
     assert {edge["predicate"] for edge in result["edges"]} == {
         "hasSubject",
         "verifiedBy",
+        "derivesRequirementFromNeed",
+        "derivedRequirementsOfNeed",
     }
+
+
+def _placeholder_bundle(tmp_path: Path) -> tuple[Path, str]:
+    """A schema-valid bundle file so selection passes and the binding is reached."""
+    from de4sdv.semantic import model_authority_runtime as mar
+
+    bundle_id = "mab-" + "1" * 32
+    path = tmp_path / "bundle.json"
+    path.write_text(json.dumps({"schema": mar.MODEL_BUNDLE_SCHEMA, "bundle_id": bundle_id}),
+                    encoding="utf-8")
+    return path, bundle_id
 
 
 def test_runtime_builder_requires_explicit_api_binding_and_expected_git(
     tmp_path: Path,
 ) -> None:
-    import json
-
-    from de4sdv.semantic.runtime import build_semantic_runtime
-
-    binding = tmp_path / "binding.json"
-    binding.write_text(
-        json.dumps(
-            {
-                "git_repository": "de4sdv/DE4SDV",
-                "git_commit": "a" * 40,
-                "sysml_project_id": "project-1",
-                "sysml_commit_id": "commit-1",
-                "import_timestamp": "2026-09-01T00:00:00Z",
-                "import_tool_version": "fixture/1",
-                "semantic_validation": "passed",
-                "scope": "fixture",
-                "ontology": ontology_identity(),
-                "kernel_bindings": [
-                    {
-                        "ontology_class": "Requirement",
-                        "element_id": "kernel-requirement",
-                        "source_file": (
-                            "textual-notation-of-model/packages/methods/de4sdv/"
-                            "de4sdv_method_context.sysml"
-                        ),
-                        "declaration": "requirement def RequirementCandidate",
-                    },
-                    {
-                        "ontology_class": "MemberProduct",
-                        "element_id": "kernel-member-product",
-                        "source_file": (
-                            "textual-notation-of-model/packages/methods/de4sdv/"
-                            "de4sdv_product_line.sysml"
-                        ),
-                        "declaration": "part def ProductLineMemberProduct",
-                    },
-                ],
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    service = build_semantic_runtime(
-        api_url="http://127.0.0.1:9",
-        binding_path=binding,
-        expected_git_revision="b" * 40,
-        ontology_path=ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml",
-    )
-
-    assert service.model_status()["current_baseline"] is False
-    assert service.model_status()["gaps"][0]["category"] == "runtime-binding"
-
-
-def test_runtime_refuses_binding_with_different_ontology_contract(
-    tmp_path: Path,
-) -> None:
-    from de4sdv.semantic.runtime import build_semantic_runtime
+    from de4sdv.semantic import model_authority_runtime as mar
     from de4sdv.sysml_api.errors import RevisionMismatchError
 
-    altered_ontology = tmp_path / "de4sdv-basic-ontology.yaml"
-    altered_ontology.write_bytes(ONTOLOGY_PATH.read_bytes() + b"\n# altered contract\n")
+    bundle_path, bundle_id = _placeholder_bundle(tmp_path)
     binding = tmp_path / "binding.json"
     binding.write_text(
         json.dumps(
@@ -692,157 +636,152 @@ def test_runtime_refuses_binding_with_different_ontology_contract(
                 "import_timestamp": "2026-09-01T00:00:00Z",
                 "import_tool_version": "fixture/1",
                 "semantic_validation": "passed",
-                "scope": "full-model",
-                "ontology": ontology_identity(),
+                "scope": "fixture",
+                "schema": BINDING_SCHEMA,
+                "semantic_authority": semantic_authority(),
             }
         ),
         encoding="utf-8",
     )
-
-    with pytest.raises(RevisionMismatchError, match="ontology contract"):
-        build_semantic_runtime(
-            api_url="http://127.0.0.1:9",
-            binding_path=binding,
-            expected_git_revision="a" * 40,
-            ontology_path=altered_ontology,
+    # The runtime contract is keyword-only and explicit: no API URL, binding
+    # or expected Git revision is ever defaulted.
+    with pytest.raises(TypeError):
+        mar.build_model_authority_runtime(ROOT, bundle_path, bundle_id,  # type: ignore[call-arg]
+                                          binding_path=binding, expected_git_revision="a" * 40)
+    # A stale binding (expected Git differs) is refused before any assembly.
+    with pytest.raises(RevisionMismatchError, match="stale"):
+        mar.build_model_authority_runtime(
+            ROOT, bundle_path, bundle_id, api_url="http://127.0.0.1:9",
+            binding_path=binding, expected_git_revision="b" * 40,
         )
 
 
-def test_revision_binding_requires_explicit_ontology_identity() -> None:
+def test_binding_refuses_a_different_semantic_authority() -> None:
+    from model_contract_fixtures import model_contract, synthetic_identity
+    from de4sdv.sysml_api.errors import RevisionMismatchError
     from de4sdv.sysml_api.revisions import RevisionBinding
 
-    with pytest.raises(ValueError, match="ontology"):
+    document = {
+        "git_repository": "de4sdv/DE4SDV",
+        "git_commit": "a" * 40,
+        "sysml_project_id": "project-1",
+        "sysml_commit_id": "commit-1",
+        "import_timestamp": "2026-09-01T00:00:00Z",
+        "import_tool_version": "fixture/1",
+        "semantic_validation": "passed",
+        "scope": "full-model",
+        "schema": BINDING_SCHEMA,
+        "semantic_authority": synthetic_identity("other-contract").to_dict(),
+    }
+    binding = RevisionBinding.from_dict(document)
+    with pytest.raises(RevisionMismatchError, match="semantic authority mismatch"):
+        binding.require_semantic_authority(model_contract().identity)
+
+
+def test_revision_binding_requires_explicit_semantic_authority_identity() -> None:
+    from de4sdv.sysml_api.revisions import RevisionBinding
+
+    base = {
+        "git_repository": "de4sdv/DE4SDV",
+        "git_commit": "a" * 40,
+        "sysml_project_id": "project-1",
+        "sysml_commit_id": "commit-1",
+        "import_timestamp": "2026-09-01T00:00:00Z",
+        "import_tool_version": "fixture/1",
+        "semantic_validation": "passed",
+        "scope": "fixture",
+    }
+    with pytest.raises(ValueError, match="semantic_authority"):
+        RevisionBinding.from_dict({**base, "schema": BINDING_SCHEMA})
+    # A v1 binding (authored ontology identity) is refused as retired.
+    with pytest.raises(ValueError, match="retired by O4 Wave C2"):
         RevisionBinding.from_dict(
-            {
-                "git_repository": "de4sdv/DE4SDV",
-                "git_commit": "a" * 40,
-                "sysml_project_id": "project-1",
-                "sysml_commit_id": "commit-1",
-                "import_timestamp": "2026-09-01T00:00:00Z",
-                "import_tool_version": "fixture/1",
-                "semantic_validation": "passed",
-                "scope": "fixture",
-            }
-        )
+            {**base, "ontology": {"path": "x.yaml", "sha256": "a" * 64}})
+    with pytest.raises(ValueError, match="retired by O4 Wave C2"):
+        RevisionBinding.from_dict({**base, "semantic_authority": semantic_authority()})
 
 
-def test_stdio_mcp_end_to_end_uses_revision_bound_fixture_runtime(
-    tmp_path: Path, semantic_api_server: str
-) -> None:
+def test_mcp_server_over_the_service_exposes_the_read_only_tools(semantic_service) -> None:
+    """The MCP surface built over the revision-bound service (in process)."""
     import anyio
-    from mcp import ClientSession, StdioServerParameters
-    from mcp.client.stdio import stdio_client
 
-    binding = tmp_path / "binding.json"
-    binding.write_text(
-        json.dumps(
-            {
-                "git_repository": "de4sdv/DE4SDV",
-                "git_commit": "a" * 40,
-                "sysml_project_id": "project-1",
-                "sysml_commit_id": "commit-1",
-                "import_timestamp": "2026-09-01T00:00:00Z",
-                "import_tool_version": "fixture/1",
-                "semantic_validation": "passed",
-                "scope": "fixture",
-                "ontology": ontology_identity(),
-                "kernel_bindings": [
-                    {
-                        "ontology_class": "Requirement",
-                        "element_id": "kernel-requirement",
-                        "source_file": (
-                            "textual-notation-of-model/packages/methods/de4sdv/"
-                            "de4sdv_method_context.sysml"
-                        ),
-                        "declaration": "requirement def RequirementCandidate",
-                    },
-                    {
-                        "ontology_class": "MemberProduct",
-                        "element_id": "kernel-member-product",
-                        "source_file": (
-                            "textual-notation-of-model/packages/methods/de4sdv/"
-                            "de4sdv_product_line.sysml"
-                        ),
-                        "declaration": "part def ProductLineMemberProduct",
-                    },
-                ],
-            }
-        ),
-        encoding="utf-8",
-    )
+    from de4sdv.semantic.mcp_server import create_mcp_server
+
+    server = create_mcp_server(semantic_service)
 
     async def exercise() -> None:
-        params = StdioServerParameters(
-            command="python",
-            args=[
-                "scripts/semantic_mcp_server.py",
-                "--api-url",
-                semantic_api_server,
-                "--binding",
-                str(binding),
-                "--expected-git-revision",
-                "a" * 40,
-            ],
-            cwd=ROOT,
+        tools = await server.list_tools()
+        assert {tool.name for tool in tools} == {
+            "model_status",
+            "resolve_element",
+            "inspect_element",
+            "semantic_neighbors",
+            "impact",
+            "trace",
+            "verification_coverage",
+            # Lane C method-conformance surfaces (frozen baseline Section 13)
+            "phase_contract",
+            "increment_status",
+            "method_gaps",
+            "next_obligation",
+        }
+        _content, coverage = await server.call_tool(
+            "verification_coverage",
+            {"requirement_identifier": "reqCommandEmergencyBraking"},
         )
-        async with stdio_client(params) as (read, write):
-            async with ClientSession(read, write) as session:
-                await session.initialize()
-                tools = await session.list_tools()
-                assert {tool.name for tool in tools.tools} == {
-                    "model_status",
-                    "resolve_element",
-                    "inspect_element",
-                    "semantic_neighbors",
-                    "impact",
-                    "trace",
-                    "verification_coverage",
-                    # Lane C method-conformance surfaces (frozen baseline Section 13)
-                    "phase_contract",
-                    "increment_status",
-                    "method_gaps",
-                    "next_obligation",
-                }
-                result = await session.call_tool(
-                    "verification_coverage",
-                    {"requirement_identifier": "reqCommandEmergencyBraking"},
-                )
-                assert not result.isError
-                # c5 correction + integration closure R1: the blocked
-                # EvidenceContract range emits nothing, and its blocked state
-                # is exposed - the assessment is never plain "uncovered" with
-                # an empty explanation. The native root-requirement case is
-                # still proven, so the status is partial (R2).
-                assert result.structuredContent["status"] == "partial"
-                assert result.structuredContent["semantic_status"] == "incomplete"
-                assert [
-                    record["predicate"]
-                    for record in result.structuredContent["unsupported_predicates"]
-                ] == ["hasRelevantEvidenceContract"]
-                assert (
-                    result.structuredContent["evidence_contracts"] == []
-                )
-                # R2: native verification through the root requirement's own
-                # RequirementVerificationMembership remains discoverable.
-                assert [
-                    case["element_id"]
-                    for case in result.structuredContent["verification_cases"]
-                ] == ["verification-1"]
-                assert (
-                    result.structuredContent["revision"]["sysml_commit_id"]
-                    == "commit-1"
-                )
-                status = await session.call_tool("model_status", {})
-                assert status.structuredContent["current_baseline"] is False
-                assert status.structuredContent["revision"]["scope"] == "fixture"
+        # The fail-closed EvidenceContract discriminator emits nothing and its
+        # state is exposed; the native root-requirement case is still proven,
+        # so the status is partial (R2).
+        assert coverage["status"] == "partial"
+        assert coverage["semantic_status"] == "incomplete"
+        assert {record["predicate"] for record in coverage["unsupported_predicates"]} == (
+            FIXTURE_UNSUPPORTED)
+        assert EVIDENCE_CLOSURE_REASON in _evidence_record(
+            coverage["unsupported_predicates"])["reason"]
+        assert coverage["evidence_contracts"] == []
+        assert [case["element_id"] for case in coverage["verification_cases"]] == [
+            "verification-1"
+        ]
+        assert coverage["revision"]["sysml_commit_id"] == "commit-1"
+        _content, status = await server.call_tool("model_status", {})
+        assert status["current_baseline"] is False
+        assert status["revision"]["scope"] == "fixture"
 
     anyio.run(exercise)
 
 
+def test_stdio_mcp_server_refuses_an_unset_semantic_authority(
+    tmp_path: Path, semantic_api_server: str
+) -> None:
+    """Owner decision D6: the real server process never selects an authority
+    implicitly; an unset selector refuses to start."""
+    import os
+    import subprocess
+    import sys
+
+    binding = tmp_path / "binding.json"
+    binding.write_text(json.dumps({
+        "git_repository": "de4sdv/DE4SDV", "git_commit": "a" * 40,
+        "sysml_project_id": "project-1", "sysml_commit_id": "commit-1",
+        "import_timestamp": "2026-09-01T00:00:00Z", "import_tool_version": "fixture/1",
+        "semantic_validation": "passed", "scope": "fixture", "schema": BINDING_SCHEMA,
+        "semantic_authority": semantic_authority(),
+    }), encoding="utf-8")
+    env = {k: v for k, v in os.environ.items() if k != "DE4SDV_SEMANTIC_AUTHORITY"}
+    result = subprocess.run(
+        [sys.executable, "scripts/semantic_mcp_server.py", "--api-url", semantic_api_server,
+         "--binding", str(binding), "--expected-git-revision", "a" * 40],
+        cwd=ROOT, env=env, capture_output=True, text=True, timeout=60, stdin=subprocess.DEVNULL,
+    )
+    assert result.returncode != 0
+    assert "DE4SDV_SEMANTIC_AUTHORITY is unset" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
 def test_privileged_result_validator_requires_exact_revision_and_native_edges() -> None:
-    """c5 integration closure (R1+R2): the validator proves BOTH the blocked
-    EvidenceContract state and the independent native verification path, and
-    fails closed when either degrades."""
+    """The validator proves BOTH the resolved EvidenceContract range (model
+    authority, owner decision 5) and the independent native verification
+    path, and fails closed when either degrades."""
     from scripts.validate_semantic_mcp import validate_semantic_results
 
     revision = {
@@ -851,17 +790,12 @@ def test_privileged_result_validator_requires_exact_revision_and_native_edges() 
         "sysml_commit_id": "commit-1",
         "binding_status": "synchronized",
         "scope": "full-model",
-        "ontology": ontology_identity(),
+        "semantic_authority": semantic_authority(),
     }
-    blocked_record = {
+    evidence_edge = {
         "predicate": "hasRelevantEvidenceContract",
-        "authority_state": "blocked",
-        "reason": (
-            "EvidenceContract-specific identity is not machine-resolvable at "
-            "the reviewed revision; native verification membership also "
-            "admits AcceptanceCriterion and therefore cannot establish the "
-            "declared EvidenceContract range."
-        ),
+        "semantic_strength": "relevance",
+        "target": "evidence-1",
     }
     verified_by_edge = {
         "predicate": "verifiedBy",
@@ -875,10 +809,11 @@ def test_privileged_result_validator_requires_exact_revision_and_native_edges() 
         "semantic_neighbors": {
             "revision": revision,
             "root": {"element_id": "req-1"},
-            "semantic_status": "incomplete",
-            "unsupported_predicates": [dict(blocked_record)],
+            "semantic_status": "complete",
+            "unsupported_predicates": [],
             "edges": [
                 {"predicate": "hasSubject", "semantic_strength": "native-reference"},
+                dict(evidence_edge),
             ],
         },
         "impact": {
@@ -903,60 +838,55 @@ def test_privileged_result_validator_requires_exact_revision_and_native_edges() 
         "verification_coverage": {
             "revision": revision,
             "requirement": {"element_id": "req-1"},
-            "status": "partial",
-            "semantic_status": "incomplete",
-            "unsupported_predicates": [dict(blocked_record)],
+            "status": "covered",
+            "semantic_status": "complete",
+            "unsupported_predicates": [],
             "verification_cases": [{"element_id": "verification-1"}],
-            "gaps": [
-                {
-                    "category": "verification-unsupported",
-                    "reason": "blocked hasRelevantEvidenceContract range: "
-                    "EvidenceContract identity unresolved",
-                }
-            ],
+            "evidence_contracts": [{"element_id": "evidence-1"}],
+            "gaps": [],
         },
     }
 
     validate_semantic_results(results, expected_revision=revision)
 
-    def without_verified_by() -> None:
-        stripped = json.loads(json.dumps(results))
-        stripped["impact"]["edges"] = [
-            edge
-            for edge in stripped["impact"]["edges"]
-            if edge["predicate"] != "verifiedBy"
+    def corrupted(mutate) -> None:
+        value = json.loads(json.dumps(results))
+        mutate(value)
+        validate_semantic_results(value, expected_revision=revision)
+
+    def drop_verified_by(value):
+        value["impact"]["edges"] = [
+            edge for edge in value["impact"]["edges"] if edge["predicate"] != "verifiedBy"
         ]
-        validate_semantic_results(stripped, expected_revision=revision)
 
     with pytest.raises(RuntimeError, match="verifiedBy"):
-        without_verified_by()
+        corrupted(drop_verified_by)
 
-    def without_blocked_state() -> None:
-        stripped = json.loads(json.dumps(results))
-        stripped["semantic_neighbors"]["unsupported_predicates"] = []
-        validate_semantic_results(stripped, expected_revision=revision)
+    def drop_evidence_edge(value):
+        value["semantic_neighbors"]["edges"] = [
+            edge for edge in value["semantic_neighbors"]["edges"]
+            if edge["predicate"] != "hasRelevantEvidenceContract"
+        ]
 
-    with pytest.raises(RuntimeError, match="blocked"):
-        without_blocked_state()
+    with pytest.raises(RuntimeError, match="no hasRelevantEvidenceContract edge"):
+        corrupted(drop_evidence_edge)
 
-    def with_false_evidence_edge() -> None:
-        corrupted = json.loads(json.dumps(results))
-        corrupted["semantic_neighbors"]["edges"].append(
-            {"predicate": "hasRelevantEvidenceContract"}
-        )
-        validate_semantic_results(corrupted, expected_revision=revision)
+    def still_blocked(value):
+        value["verification_coverage"]["unsupported_predicates"] = [
+            {"predicate": "hasRelevantEvidenceContract", "authority_state": "blocked"}
+        ]
 
-    with pytest.raises(RuntimeError, match="false EvidenceContract edges"):
-        with_false_evidence_edge()
+    with pytest.raises(RuntimeError, match="unsupported/blocked"):
+        corrupted(still_blocked)
 
-    def with_plain_uncovered() -> None:
-        corrupted = json.loads(json.dumps(results))
-        coverage = corrupted["verification_coverage"]
-        coverage["status"] = "uncovered"
-        coverage["semantic_status"] = "complete"
-        coverage["unsupported_predicates"] = []
-        coverage["gaps"] = []
-        validate_semantic_results(corrupted, expected_revision=revision)
+    def no_evidence_contracts(value):
+        value["verification_coverage"]["evidence_contracts"] = []
 
-    with pytest.raises(RuntimeError, match="incomplete"):
-        with_plain_uncovered()
+    with pytest.raises(RuntimeError, match="evidence_contracts"):
+        corrupted(no_evidence_contracts)
+
+    def stale_revision(value):
+        value["trace"]["revision"] = dict(revision, git_commit="b" * 40)
+
+    with pytest.raises(RuntimeError, match="revision mismatch"):
+        corrupted(stale_revision)

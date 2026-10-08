@@ -23,7 +23,6 @@ from de4sdv.sysml_api.repository import SysMLRepository, element_id, reference_i
 from de4sdv.sysml_api.revisions import RevisionBinding
 
 from .api_binding import OntologyApiBinder
-from .authority_ids import LEGACY_AUTHORITY_ID
 from .impact import ImpactService
 from .kernel_contract import KernelContract
 from .method_evaluator import (
@@ -54,7 +53,7 @@ class SemanticQueryService:
     method_context_provider: Callable[[], EvaluationContext] | None = field(
         default=None
     )
-    semantic_authority_id: str = LEGACY_AUTHORITY_ID
+    semantic_authority_id: str = ""
     _element_cache: list[dict[str, Any]] | None = field(
         default=None, init=False, repr=False
     )
@@ -69,45 +68,11 @@ class SemanticQueryService:
             "sysml_commit_id": self.binding.sysml_commit_id,
             "binding_status": self.binding.status(self.expected_git_revision),
             "scope": self.binding.scope,
-            "ontology": self.binding.ontology.to_dict(),
+            "semantic_authority": self.binding.semantic_authority.to_dict(),
         }
 
     def _provenance(self) -> list[dict[str, str]]:
-        if self.semantic_authority_id != LEGACY_AUTHORITY_ID:
-            # Candidate authority path: the ontology is the ingestion
-            # compatibility identity, never the semantic authority for the
-            # migrated set; semantics come from the Projection, mechanics
-            # from the Profile.
-            return [
-                {
-                    "authority": "authoritative",
-                    "source": f"git://{self.binding.git_repository}/{self.binding.git_commit}",
-                },
-                {
-                    "authority": "authoritative",
-                    "source": (
-                        f"sysml://{self.binding.sysml_project_id}/"
-                        f"{self.binding.sysml_commit_id}"
-                    ),
-                },
-                {
-                    "authority": "semantic-authority",
-                    "source": f"projection://{self.semantic_authority_id}",
-                },
-                {
-                    "authority": "representation-authority",
-                    "source": f"profile://{self.semantic_authority_id}",
-                },
-                {
-                    "authority": "compatibility",
-                    "source": (
-                        f"git://{self.binding.git_repository}/{self.binding.git_commit}/"
-                        f"{self.binding.ontology.path}"
-                    ),
-                    "sha256": self.binding.ontology.sha256,
-                },
-                {"authority": "derived", "source": "de4sdv.semantic.query"},
-            ]
+        """Revision, model and semantic-authority provenance of an answer."""
         return [
             {
                 "authority": "authoritative",
@@ -121,19 +86,15 @@ class SemanticQueryService:
                 ),
             },
             {
-                "authority": "authoritative",
-                "source": (
-                    f"git://{self.binding.git_repository}/{self.binding.git_commit}/"
-                    f"{self.binding.ontology.path}"
-                ),
-                "sha256": self.binding.ontology.sha256,
+                "authority": "semantic-authority",
+                "source": f"semantic-authority://{self.binding.semantic_authority.id}",
             },
             {"authority": "derived", "source": "de4sdv.semantic.query"},
         ]
 
     def _require_valid_revision(self) -> None:
         self.binding.require_current(self.expected_git_revision)
-        self.binding.require_ontology(self.contract.identity)
+        self.binding.require_semantic_authority(self.contract.identity)
 
     def _elements(self) -> list[dict[str, Any]]:
         self._require_valid_revision()
@@ -204,7 +165,7 @@ class SemanticQueryService:
     def model_status(self) -> dict[str, Any]:
         """Report whether this runtime can make an exact current-baseline claim."""
         status = self.binding.status(self.expected_git_revision)
-        ontology_current = self.contract.identity == self.binding.ontology
+        ontology_current = self.contract.identity == self.binding.semantic_authority
         current = (
             status == "synchronized"
             and self.binding.scope == "full-model"
@@ -217,7 +178,7 @@ class SemanticQueryService:
             reasons.append(f"binding scope is {self.binding.scope}, not full-model")
         if not ontology_current:
             reasons.append(
-                "ontology contract does not match the identity recorded in the binding"
+                "semantic authority does not match the identity recorded in the binding"
             )
         gaps: list[dict[str, str]] = [
             {"category": "runtime-binding", "reason": reason} for reason in reasons
@@ -250,50 +211,17 @@ class SemanticQueryService:
     def _semantic_authority(self) -> dict[str, Any]:
         """Deployment provenance: which semantic authority produced answers.
 
-        Always present, so a deployed service can be inspected for
-        ``legacy`` vs ``o3`` vs an explicit candidate authority without
-        guessing from the absence of a block. The O3 block identifies the
-        exact bundle; the bundle was verified against this exact revision
-        and revision binding at startup. Any other explicit authority id is
-        reported with its own kind — never as ``o3`` and never as legacy.
+        Always present. The model-authority service overrides it with the
+        verified ``mab:`` bundle identity; this base block only names the
+        authority id it was constructed with (empty when none was selected).
         """
-        if self.semantic_authority_id == LEGACY_AUTHORITY_ID:
-            return {
-                "id": LEGACY_AUTHORITY_ID,
-                "kind": "legacy",
-                "note": (
-                    "authored KernelContract authority (production default; "
-                    "unchanged behavior)"
-                ),
-            }
-        if self.semantic_authority_id.startswith("o3:"):
-            return {
-                "id": self.semantic_authority_id,
-                "kind": "o3",
-                "migrated_scope": "reviewed-13-identity-subset",
-                "note": (
-                    "explicitly selected O3 authority bundle (Semantic Projection "
-                    "semantics + API Representation Profile mechanics); every "
-                    "other identity delegates to the legacy authored "
-                    "KernelContract; verified against this exact revision and "
-                    "revision binding at startup"
-                ),
-            }
+        identifier = self.semantic_authority_id
         return {
-            "id": self.semantic_authority_id,
-            "kind": (
-                self.semantic_authority_id.split(":", 1)[0]
-                if ":" in self.semantic_authority_id
-                else "explicit"
-            ),
-            "note": (
-                "explicitly selected candidate authority (non-production); "
-                "the admitted subset resolves through the preconstructed "
-                "candidate provider and every other identity delegates to the "
-                "legacy authored KernelContract; this assembly seam does not "
-                "establish candidate artifact verification, exact-revision "
-                "API closure or production activation eligibility"
-            ),
+            "id": identifier,
+            "kind": identifier.split(":", 1)[0] if ":" in identifier else "unselected",
+            "semantic_authority": self.binding.semantic_authority.id,
+            "note": ("semantic authority id supplied at construction; production "
+                     "surfaces construct the model-authority service"),
         }
 
     def resolve_element(
@@ -392,8 +320,15 @@ class SemanticQueryService:
                 # absence (c5 correction + integration closure, PR #249).
                 unsupported.append(self._blocked_unsupported(predicate))
                 continue
+            recorded = list(getattr(self.traversal, "unsupported", None) or ())
             hops = self.traversal.traverse(predicate, source, elements)
-            if not hops:
+            unsupported_now = [
+                record for record in getattr(self.traversal, "unsupported", None) or ()
+                if record not in recorded and record.get("predicate") == predicate
+            ]
+            if not hops and not unsupported_now:
+                # An unsupported (incomplete/retired/blocked) evaluation is
+                # reported as such by the traversal, never as ordinary absence.
                 gaps.append(
                     {
                         "category": predicate,

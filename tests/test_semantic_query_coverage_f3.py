@@ -57,11 +57,9 @@ def api_server_fixture() -> Iterator[tuple[str, type[_ApiHandler]]]:
 
 
 def _contract():
-    from de4sdv.semantic.kernel_contract import KernelContract
+    from model_contract_fixtures import model_contract
 
-    return KernelContract.load(
-        ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-    )
+    return model_contract()
 
 
 def _binding_dict(
@@ -77,7 +75,8 @@ def _binding_dict(
         "import_tool_version": "test",
         "semantic_validation": "passed",
         "scope": "full-model",
-        "ontology": _contract().identity.to_dict(),
+        "schema": "de4sdv.revision-binding/v2",
+        "semantic_authority": _contract().identity.to_dict(),
     }
     if kernel_bindings is not None:
         result["kernel_bindings"] = kernel_bindings
@@ -406,32 +405,25 @@ def test_exclusion_fails_closed_on_unvalidated_exclusion_class() -> None:
 
 
 def test_exclusion_fails_closed_on_unknown_root_class(monkeypatch) -> None:
-    import yaml
+    import copy
 
     from de4sdv.semantic.kernel_contract import KernelContract
     from de4sdv.semantic.traversal import SemanticTraversal
 
-    raw = yaml.safe_load(
-        (ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml").read_text()
-    )
-    raw["relationships"]["hasRelevantArchitecture"]["sysml_mapping"][
+    base = _contract()
+    relationships = copy.deepcopy(dict(base.relationships))
+    relationships["hasRelevantArchitecture"]["sysml_mapping"][
         "exclude_source_specializations_of"
     ] = "NoSuchKernelClass"
-    import tempfile
-
-    with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False) as handle:
-        yaml.safe_dump(raw, handle)
-        broken_path = Path(handle.name)
-    try:
-        contract = KernelContract.load(broken_path)
-        with pytest.raises(KeyError, match="no kernel mapping"):
-            SemanticTraversal(
-                contract, kernel_bindings=_index(_f3_kernel_bindings())
-            ).traverse(
-                "hasRelevantArchitecture", {"@id": "req-1"}, _f3_elements()
-            )
-    finally:
-        broken_path.unlink(missing_ok=True)
+    # Synthetic in-memory contract records (no file copy).
+    contract = KernelContract.from_records(
+        classes=dict(base.classes), relationships=relationships, identity=base.identity)
+    with pytest.raises(KeyError, match="no kernel mapping"):
+        SemanticTraversal(
+            contract, kernel_bindings=_index(_f3_kernel_bindings())
+        ).traverse(
+            "hasRelevantArchitecture", {"@id": "req-1"}, _f3_elements()
+        )
 
 
 def test_canonical_grounds_and_homonym_cannot_borrow_mapping() -> None:
@@ -668,7 +660,7 @@ def _impact_service(api_server_fixture, elements, kernel_bindings):
     """Shared impact-service assembly with validated kernel bindings."""
     from de4sdv.semantic.api_binding import OntologyApiBinder
     from de4sdv.semantic.impact import ImpactService
-    from de4sdv.semantic.traversal import SemanticTraversal
+    from de4sdv.semantic.model_authority_runtime import ModelAuthorityTraversal
     from de4sdv.sysml_api.client import ApiClient
     from de4sdv.sysml_api.repository import SysMLRepository
     from de4sdv.sysml_api.revisions import RevisionBinding
@@ -684,7 +676,12 @@ def _impact_service(api_server_fixture, elements, kernel_bindings):
     handler.response_map = response_map
     repository = SysMLRepository(ApiClient(base_url))
     binding = RevisionBinding.from_dict(_binding_dict(kernel_bindings))
-    contract = _contract()
+    # O4 Wave C2: the impact allocation hop is the successor allocatedTo, so
+    # the impact surface runs on the model facade and its traversal (as the
+    # production model-authority runtime does).
+    from model_contract_fixtures import model_facade
+
+    contract = model_facade()
     index = None if kernel_bindings is None else _index(kernel_bindings)
     return ImpactService(
         repository=repository,
@@ -697,7 +694,7 @@ def _impact_service(api_server_fixture, elements, kernel_bindings):
             commit_id="commit-1",
             kernel_bindings=index,
         ),
-        traversal=SemanticTraversal(contract, kernel_bindings=index),
+        traversal=ModelAuthorityTraversal(contract, kernel_bindings=index),
     )
 
 

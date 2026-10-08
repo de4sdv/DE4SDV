@@ -1,5 +1,10 @@
 # O4 vocabulary-relationship definition carriers — design
 
+> **O4 Wave C2 note.** The authored ontology was deleted in Wave C2. The
+> carrier generator now validates carrier ends against the class mappings of
+> the model-built kernel contract instead of the authored kernel mappings; the
+> carrier rows are unchanged. The text below is the original design record.
+
 Status: **ADMITTED — five carriers admitted as engineering review evidence;
 Projection/Profile generation integrated; runtime unchanged.** The reviewed
 definition carriers for the vocabulary-relationship family (`recordsGap`,

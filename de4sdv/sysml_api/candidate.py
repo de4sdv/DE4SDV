@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from de4sdv.sysml_api.revisions import OntologyIdentity, RevisionBinding
+from de4sdv.sysml_api.revisions import RevisionBinding, SemanticAuthorityIdentity
 
 _FULL_SHA_LEN = 40
 
@@ -221,14 +221,13 @@ class CandidateRegistry:
         git_repository: str,
         import_timestamp: str,
         import_tool_version: str,
-        ontology_path: str = "",
-        ontology_sha256: str = "",
+        semantic_authority: SemanticAuthorityIdentity | None = None,
     ) -> RevisionBinding:
         """Emit a candidate revision binding only after validation passed.
 
         Provenance is real, not placeholder: repository identity, import
-        timestamp, and tool version are required, as is the ontology
-        contract identity validated during the candidate's import. The
+        timestamp, and tool version are required, as is the model-built
+        semantic-authority identity validated during the candidate's import. The
         emitted binding round-trips through RevisionBinding.from_dict and
         carries the same authority tuple as a full-model binding (scope
         differs, authority does not).
@@ -244,8 +243,7 @@ class CandidateRegistry:
                 ("git_repository", git_repository),
                 ("import_timestamp", import_timestamp),
                 ("import_tool_version", import_tool_version),
-                ("ontology_path", ontology_path),
-                ("ontology_sha256", ontology_sha256),
+                ("semantic_authority", semantic_authority),
             )
             if not value
         ]
@@ -265,8 +263,6 @@ class CandidateRegistry:
             import_timestamp=import_timestamp,
             import_tool_version=import_tool_version,
             semantic_validation=semantic_validation,
-            ontology=OntologyIdentity(
-                path=ontology_path, sha256=ontology_sha256
-            ),
+            semantic_authority=semantic_authority,
             scope="candidate",
         )

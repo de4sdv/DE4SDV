@@ -1,5 +1,11 @@
 # O4 definition-admission batch 1 — design record
 
+> **O4 Wave C2 note.** The authored ontology this record compares against was
+> deleted in Wave C2. The batch-1 pair is now a layer of the model-built kernel
+> contract; its last authored-ontology parity is recorded in
+> [`closure/contract-equivalence.json`](closure/contract-equivalence.json).
+> The text below is the original design record.
+
 Date: 2026-09-25 · Base: permanent `main` after safe-set 2 recovery
 (`ba2069c06d51f838769f378cd35024eb445cfc88`). Governing inputs: the O4
 execution plan and register (`docs/method-conformance/o4/`), the integrated

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Offline O4 definition-migration probe (read-only; no network, no writes).
+"""Offline O4 definition-layer probe (read-only; no network, no writes).
 
 Runs :func:`de4sdv.semantic.definition_migration.probe_definition_migration`
-over the checked-out candidate artifacts and prints the JSON report:
-per-identity candidate-vs-authored mappings, the fresh exact-revision API
-closure state and its exact prerequisite, the remaining legacy-only class
-count, and — when ``--export`` supplies a retained export — declaration-form
-matches as representation evidence (never an identity claim).
+over the checked-out definition pair and prints the JSON report:
+per-identity pair-vs-model-contract mappings, the fresh exact-revision API
+closure state and its exact prerequisite, and — when ``--export`` supplies a
+retained export — declaration-form matches as representation evidence (never
+an identity claim).
 
 Exit codes: 0 report produced; 2 refused (fail closed); 1 unexpected error.
 """

@@ -4,7 +4,7 @@ Machine-locked here (fail-closed):
 
 * the admitted set equals the derived family (retained register rows no other
   generated layer projects + unregistered ontology classes + W6 successors +
-  the deprecated name of the merged validatesFitnessForUse row), and the
+  the retired name of the merged validatesFitnessForUse row), and the
   exceptions are exactly the remaining non-retained identities;
 * every retained register row and every authored-ontology identity has exactly
   one generated provider layer (or is a listed exception); the O3 13 are not
@@ -37,7 +37,10 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[1]
 O4 = "docs/method-conformance/o4/"
 MANIFEST_PATH = O4 + "definition-admission-batch2.yaml"
-ONTOLOGY_PATH = "approach/framework/ontology/de4sdv-basic-ontology.yaml"
+#: O4 Wave C2 deleted the authored ontology; its last executable comparison
+#: (identities, definitions, the manifest-held contract fields) is committed
+#: evidence that these tests lock the manifest to (owner decision D9).
+EVIDENCE_PATH = O4 + "closure/contract-equivalence.json"
 REGISTER_PATH = O4 + "o4-execution-register.json"
 SUCCESSOR_FILE = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
 
@@ -59,7 +62,7 @@ EXPECTED_COUNTS = {
     "relationship-vocabulary": 12,
     "relationship-runtime": 2,
     "successor": 3,
-    "deprecated-alias": 5,
+    "retired-name": 5,
 }
 #: Owner decision 2026-10-06 (ADR 0020 D4 follow-up): the closure is exactly these.
 AEBS = "textual-notation-of-model/packages/features/aebs/"
@@ -93,8 +96,13 @@ def _manifest():
     return yaml.safe_load((REPO_ROOT / MANIFEST_PATH).read_text(encoding="utf-8"))
 
 
-def _ontology():
-    return yaml.safe_load((REPO_ROOT / ONTOLOGY_PATH).read_text(encoding="utf-8"))
+def _evidence():
+    return _json(EVIDENCE_PATH)
+
+
+def _authored_identities():
+    evidence = _evidence()["authored_identities"]
+    return set(evidence["classes"]), set(evidence["relationships"])
 
 
 def _register():
@@ -129,13 +137,13 @@ def _outputs():
 
 
 def test_admitted_set_is_exactly_the_derived_family():
-    from de4sdv.semantic.o3_bundle import MIGRATED_IDENTITIES
+    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
 
     register = _register()
-    ontology = _ontology()
+    authored_classes, authored_relationships = _authored_identities()
     other = set().union(*_layer_identities().values())
     retained = {i for i, r in register.items() if r["accounting_status"] == "retained" and not r["o3_complete"]}
-    unregistered = set(ontology["classes"]) - set(register)
+    unregistered = authored_classes - set(register)
     family = (retained - other) | unregistered | W6_NEW_SUCCESSORS | MERGED_ALIASES
     rows = _rows()
     assert set(rows) == family
@@ -148,17 +156,17 @@ def test_admitted_set_is_exactly_the_derived_family():
         counts[row["admission_class"]] = counts.get(row["admission_class"], 0) + 1
     assert counts == EXPECTED_COUNTS
     # The new successors are neither register rows nor authored identities.
-    assert not W6_NEW_SUCCESSORS & (set(register) | set(ontology["relationships"]))
+    assert not W6_NEW_SUCCESSORS & (set(register) | authored_relationships)
     assert register["validatesFitnessForUse"]["accounting_status"] == "merged"
 
 
 def test_every_retained_row_and_ontology_identity_has_exactly_one_provider():
     register = _register()
-    ontology = _ontology()
+    authored_classes, authored_relationships = _authored_identities()
     layers = _layer_identities()
     layers["definition-batch-2"] = set(_rows())
     exceptions = {entry["identity"]: entry for entry in _manifest()["exceptions"]}
-    universe = set(register) | set(ontology["classes"]) | set(ontology["relationships"])
+    universe = set(register) | authored_classes | authored_relationships
     providers = {identity: [name for name, ids in layers.items() if identity in ids] for identity in universe}
     duplicates = {i: p for i, p in providers.items() if len(p) > 1}
     assert duplicates == {}
@@ -188,43 +196,50 @@ def test_projection_scope_echoes_the_owner_visible_exceptions():
 # ---------------------------------------------------------------------------
 
 
-def test_reviewed_fields_equal_the_authored_ontology():
-    ontology = _ontology()
-    for identity, row in _rows().items():
-        if row["semantic_kind"] == "class":
-            spec = ontology["classes"][identity]
-            assert row["reviewed_definition"] == " ".join(spec["definition"].split()), identity
-            grounding = row["grounding"]
-            assert grounding["kernel_mapping"] == spec["kernel"], identity
-            assert grounding["sub_class_of"] == spec.get("subClassOf"), identity
-            assert grounding["disjoint_with"] == spec.get("disjointWith", []), identity
-            continue
-        spec = ontology["relationships"].get(identity)
-        if spec is None:
-            assert identity in W6_NEW_SUCCESSORS
-            continue
-        if row["admission_class"] == "successor":
-            continue
-        mapping = spec.get("sysml_mapping") or {}
-        assert row["relation"] == {
-            "domain": spec["domain"], "range": spec["range"],
-            "semantic_strength": mapping.get("semantic_strength"),
-        }, identity
-        if row["home"]["form"] in ("owned-doc", "named-doc"):
-            assert row["reviewed_definition"] == " ".join(spec["definition"].split()), identity
-        else:
-            assert row["reviewed_definition"] is None and not spec.get("definition"), identity
-        if "mechanics" in row:
-            assert row["mechanics"] == {k: v for k, v in mapping.items() if k != "semantic_strength"}, identity
-        elif mapping and row["admission_class"] != "deprecated-alias":
-            pytest.fail(f"{identity}: an authored mapping must be carried as mechanics")
-    # Every authored executable mapping outside the O3 13 is accounted:
-    # runtime-mapped, external reference, or the deprecated realizedBy alias.
-    mapped = {name for name, spec in ontology["relationships"].items() if spec.get("sysml_mapping")}
+def test_reviewed_fields_equal_the_pre_deletion_evidence():
+    """Replaces ``test_reviewed_fields_equal_the_authored_ontology`` (O4 Wave C2,
+    owner decision D9): the manifest-held contract fields (reviewed definition,
+    kernel mapping kind, ontology relations, domain/range/strength, mechanics)
+    are locked to the values the last executable comparison proved equal to the
+    authored ontology before its deletion. Changing one needs a reviewed
+    evidence update (the follow-up moves them into the model)."""
+    from scripts.compare_model_contract import manifest_held_values
+
+    held = _evidence()["manifest_held_fields"]
+    assert held["unequal"] == []
+    assert held["rows"] == 57
+    assert held["rows_with_manifest_held_contract_fields"] == 54
+    assert (held["relation_rows"], held["kernel_mapping_rows"]) == (21, 33)
     rows = _rows()
-    in_batch = {name for name in mapped if name in rows}
-    assert in_batch == {"specifiesFunction", "hasRelevantEvidenceContract", "hasEvidence", "realizedBy"}
-    assert rows["realizedBy"]["admission_class"] == "deprecated-alias"
+    assert set(held["entries"]) == set(rows)
+    for identity, row in rows.items():
+        entry = held["entries"][identity]
+        assert entry["equal"] is True, identity
+        assert manifest_held_values(row) == entry["manifest"], identity
+        if entry["authored"] is not None:
+            assert entry["authored"] == entry["manifest"], identity
+        else:
+            assert identity in W6_NEW_SUCCESSORS or row["admission_class"] == "successor", identity
+    # The authored executable mappings outside the O3 13 are accounted:
+    # runtime-mapped, external reference, or the retired realizedBy name.
+    assert {i for i, r in rows.items() if "mechanics" in r} == {
+        "specifiesFunction", "hasRelevantEvidenceContract", "hasEvidence"}
+    assert rows["realizedBy"]["admission_class"] == "retired-name"
+
+
+def test_every_contract_row_is_labeled_manifest_held():
+    """D9: every generated row with manifest-held contract fields says so."""
+    projected = {row["identity"]: row for row in _outputs()["projection_rows"]}
+    labeled = 0
+    for identity, row in projected.items():
+        for source in ((row.get("relation") or {}).get("contract_source"),
+                       (row.get("grounding") or {}).get("contract_source")):
+            if source:
+                labeled += 1
+                assert "reviewed admission-manifest" in source, identity
+                assert "closure/contract-equivalence.json" in source, identity
+                assert "test-locked to the authored ontology" not in source, identity
+    assert labeled == 54
 
 
 def test_documentation_homes_equal_the_kernel_definition_homes_inventory():
@@ -242,27 +257,35 @@ def test_documentation_homes_equal_the_kernel_definition_homes_inventory():
         assert (home["form"] == "named-doc") == bool(recorded["documentation_name"]), identity
 
 
-def test_successors_and_aliases_follow_the_w6_transition_plan():
+def test_successors_and_retired_names_follow_the_w6_transition_plan():
+    """Replaces ``test_successors_and_aliases_follow_the_w6_transition_plan``:
+    the former deprecated aliases are retired names (owner decision D4)."""
     plan = {entry["identity"]: entry for entry in yaml.safe_load(
         (REPO_ROOT / (O4 + "w6-transition-plan.yaml")).read_text(encoding="utf-8"))["entries"]}
     rows = _rows()
     for identity in ("realizedBy", "deployedTo", "validatedBy", "constrainedBy"):
-        assert rows[identity]["alias"]["successor"] == plan[identity]["successor"], identity
+        assert rows[identity]["retired"]["successor"] == plan[identity]["successor"], identity
     assert plan["specifiesFunction"]["successor"] is None
     assert rows["specifiesFunction"]["admission_class"] == "relationship-runtime"
-    assert {row["alias"]["successor"] for row in rows.values() if "alias" in row} <= {
+    assert {row["retired"]["successor"] for row in rows.values() if "retired" in row} <= {
         identity for identity, row in rows.items() if row["admission_class"] == "successor"
     }
     register = _register()
     assert register["validatesFitnessForUse"]["merge_into"] == "validatedBy"
-    assert rows["validatesFitnessForUse"]["alias"]["direction"] == "inverse"
-    # The model retirement record refuses an alias reading for constrainedBy.
-    assert rows["constrainedBy"]["alias"]["answer_mode"] == "documentation-only"
-    assert {i for i, r in rows.items() if "alias" in r and r["alias"]["answer_mode"] == "documentation-only"} == {"constrainedBy"}
-    # The authored allocatedTo signature is the second successor end pair.
-    ontology = _ontology()
-    old = ontology["relationships"]["allocatedTo"]
+    assert rows["validatesFitnessForUse"]["retired"]["direction"] == "inverse"
     projected = {row["identity"]: row for row in _outputs()["projection_rows"]}
+    expected = {"realizedBy": "allocatedTo", "deployedTo": "allocatedTo",
+                "validatedBy": "hasValidationScenario",
+                "validatesFitnessForUse": "validationScenarioFor",
+                "constrainedBy": "hasRegulatorySource"}
+    for identity, navigation in expected.items():
+        retired = projected[identity]["retired"]
+        assert retired["successor_navigation"] == navigation, identity
+        assert retired["refusal"] == f"retired; use {navigation}", identity
+        assert projected[identity]["support"] == "retired", identity
+        assert "alias" not in projected[identity], identity
+    # The authored allocatedTo signature is the second successor end pair.
+    old = _evidence()["authored_contract"]["differences"]["allocatedTo"]["authored"]["domain_range"]
     pair = projected["allocatedTo"]["successor"]["end_pairs"][1]
     assert (pair["source_class"], pair["target_class"]) == (old["domain"], old["range"])
 
@@ -320,7 +343,7 @@ def test_every_register_gate_is_resolved_by_an_existing_record():
         expected = set()
         if reg is not None and reg["accounting_status"] == "retained":
             expected = set(reg["gate_decisions"]) | ({"row-blocker"} if reg["blockers"] else set())
-        elif reg is not None:  # the merged alias keeps its own blocker resolution
+        elif reg is not None:  # the merged retired name keeps its own blocker resolution
             expected = {"row-blocker"} if reg["blockers"] else set()
         assert {gate["gate"] for gate in row["gates"]} == expected, identity
         for gate in row["gates"]:
@@ -508,13 +531,12 @@ _FIXTURE_MANIFEST = {
             "gates": [], "forward_obligations": [],
         },
         {
-            "identity": "oldAlphaLink", "semantic_kind": "relationship", "admission_class": "deprecated-alias",
+            "identity": "oldAlphaLink", "semantic_kind": "relationship", "admission_class": "retired-name",
             "register": {"wave": "W6", "accounting": "retained"}, "boundary": "none",
             "home": {"form": "retirement-record", "file": SUCCESSOR_FILE, "owner": _PKG, "name": "oldAlpha"},
             "reviewed_definition": None,
             "relation": {"domain": "Alpha", "range": "Alpha", "semantic_strength": None},
-            "alias": {"successor": "alphaLink", "successor_carrier": "AlphaLink", "direction": "forward",
-                      "answer_mode": "successor-facts"},
+            "retired": {"successor": "alphaLink", "successor_carrier": "AlphaLink", "direction": "forward"},
             "gates": [{"gate": "decision-1", "resolved_by": ["docs/fixture.md#topic"]}],
             "forward_obligations": [],
         },
@@ -576,7 +598,8 @@ def test_fixture_baseline_builds_and_is_comment_and_quote_inert(tmp_path):
     rows = {row["identity"]: row for row in outputs["projection_rows"]}
     assert set(rows) == {"Alpha", "Beta", "betaLink", "alphaLink", "oldAlphaLink"}
     assert rows["Alpha"]["definition"]["documentation"] == "Alpha is an exact fixture definition."
-    assert rows["oldAlphaLink"]["alias"]["successor_navigation"] == "alphaLink"
+    assert rows["oldAlphaLink"]["retired"]["successor_navigation"] == "alphaLink"
+    assert rows["oldAlphaLink"]["retired"]["refusal"] == "retired; use alphaLink"
     assert rows["alphaLink"]["successor"]["end_pairs"][0]["carrier"]["ends"] == [
         {"name": "source", "type": "Alpha"}, {"name": "target", "type": "Alpha"}]
 
@@ -589,8 +612,8 @@ _NEGATIVE_MANIFESTS = {
     "wrong about targets": lambda r, m: r["betaLink"]["home"].update({"about": ["Alpha"]}),
     "unknown comment": lambda r, m: r["betaLink"]["home"].update({"name": "gammaLinkVocabularyRole"}),
     "successor record set": lambda r, m: r["alphaLink"]["successor"].update({"records": ["alphaRecord", "betaRecord"]}),
-    "alias carrier": lambda r, m: r["oldAlphaLink"]["alias"].update({"successor_carrier": "BetaLink"}),
-    "alias inverse without inverse": lambda r, m: r["oldAlphaLink"]["alias"].update({"direction": "inverse"}),
+    "retired carrier": lambda r, m: r["oldAlphaLink"]["retired"].update({"successor_carrier": "BetaLink"}),
+    "retired inverse without inverse": lambda r, m: r["oldAlphaLink"]["retired"].update({"direction": "inverse"}),
     "retirement record predicate": lambda r, m: r["oldAlphaLink"]["home"].update({"name": "oldBeta"}),
     "duplicate identity": lambda r, m: m["admitted"].append(copy.deepcopy(r["Alpha"])),
     "exception overlaps admitted": lambda r, m: m["exceptions"].append(
@@ -601,7 +624,7 @@ _NEGATIVE_MANIFESTS = {
     "ple row with runtime class": lambda r, m: r["betaLink"].update({"boundary": "ple-no-configurator-authority",
                                                                       "admission_class": "relationship-runtime",
                                                                       "mechanics": {"strategy": "dependency"}}),
-    "alias without retirement home": lambda r, m: r["oldAlphaLink"].update({"home": copy.deepcopy(r["betaLink"]["home"])}),
+    "retired name without retirement home": lambda r, m: r["oldAlphaLink"].update({"home": copy.deepcopy(r["betaLink"]["home"])}),
     "traversal claim key": lambda r, m: r["betaLink"].update({"traversal": True}),
 }
 
@@ -615,15 +638,15 @@ _NEGATIVE_REASONS = {
     "wrong about targets": "annotates",
     "unknown comment": "exactly one comment gammaLinkVocabularyRole",
     "successor record set": "model successor records",
-    "alias carrier": "no unique record over BetaLink",
-    "alias inverse without inverse": "inverse alias needs",
+    "retired carrier": "no unique record over BetaLink",
+    "retired inverse without inverse": "inverse retired name needs",
     "retirement record predicate": "retirement record oldBeta not found",
     "duplicate identity": "duplicate admitted identity",
     "exception overlaps admitted": "cannot also be admitted",
     "decoy declaration in comment": "part def Ghost not found",
     "gate without record fragment": "record fragments",
     "ple row with runtime class": "PLE configuration rows stay vocabulary-only",
-    "alias without retirement home": "homed by a retirement record",
+    "retired name without retirement home": "homed by a retirement record",
     "traversal claim key": "unknown keys",
 }
 
@@ -774,13 +797,20 @@ def test_chain_verifier_requires_the_batch2_pair():
 
 def test_batch2_machinery_is_never_imported_by_the_runtime_path():
     for relative in (
-        "de4sdv/semantic/query.py", "de4sdv/semantic/runtime.py", "de4sdv/semantic/traversal.py",
+        "de4sdv/semantic/query.py", "de4sdv/semantic/traversal.py",
         "de4sdv/semantic/impact.py", "de4sdv/semantic/mcp_server.py", "de4sdv/semantic/api_binding.py",
         "de4sdv/semantic/kernel_binding_index.py", "de4sdv/semantic/o3_bundle.py",
         "de4sdv/semantic/authority_selection.py", "de4sdv/semantic/composition_construction.py",
     ):
         text = (REPO_ROOT / relative).read_text(encoding="utf-8")
         for token in ("definition_projection_batch2", "definition-batch2", "definition-admission-batch2"):
+            assert token not in text, (relative, token)
+    # The model-authority runtime reads the generated batch-2 pair as a data
+    # layer; it never imports the generator or reads the admission manifest.
+    for relative in ("de4sdv/semantic/model_authority_runtime.py",
+                     "de4sdv/semantic/model_contract.py"):
+        text = (REPO_ROOT / relative).read_text(encoding="utf-8")
+        for token in ("definition_projection_batch2", "definition-admission-batch2"):
             assert token not in text, (relative, token)
 
 

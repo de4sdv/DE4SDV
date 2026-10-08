@@ -1,17 +1,17 @@
 /*
  * DE4SDV ontology validation-rule homes (O4 Wave A).
  *
- * Owner decision 2026-10-06: each validation rule of the basic ontology
- * (approach/framework/ontology/de4sdv-basic-ontology.yaml, validation_rules
- * DE4SDV-ONT-R001 to DE4SDV-ONT-R010) gets one model-resident home. Each home
+ * Owner decision 2026-10-06: each validation rule of the former basic
+ * ontology (validation rules DE4SDV-ONT-R001 to DE4SDV-ONT-R010) gets one
+ * model-resident home. Each home
  * is a package-owned constraint usage whose first owned documentation is the
  * rule statement (normalized-exact) and whose second is its enforcement note.
  *
  * The constraint usages are rule declarations only: they carry no Boolean
  * expression, are not asserted on any element, and evaluate nothing. Rule
  * enforcement stays where each enforcement note says it is (scripts, tests and
- * reviews). The YAML entries remain in place; retiring them is a separate,
- * later change. Since O4 Wave C1 the R003 origin and exclusion groundings are
+ * reviews). Since O4 Wave C2 deleted the authored ontology these homes are
+ * the only record of the rules. Since O4 Wave C1 the R003 origin and exclusion groundings are
  * read from the ontologyRuleR003 home below (see its reader comment). No
  * compliance, certification or acceptance claim is made.
  *

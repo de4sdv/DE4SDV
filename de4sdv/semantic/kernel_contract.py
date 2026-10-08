@@ -13,9 +13,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping
 
-import yaml
-
-from de4sdv.sysml_api.revisions import OntologyIdentity
+from de4sdv.sysml_api.revisions import SemanticAuthorityIdentity
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -94,19 +92,22 @@ class RelationshipMapping:
 
 @dataclass(frozen=True)
 class KernelContract:
-    source: Path
-    identity: OntologyIdentity
+    source: str
+    identity: SemanticAuthorityIdentity
     governed_directory: str
     exclusions: dict[str, dict[str, str]]
     classes: dict[str, dict[str, Any]]
     relationships: dict[str, dict[str, Any]]
-    #: Model-built contracts carry their resolved mappings directly; the
-    #: ``classes``/``relationships`` dictionaries are the same content in the
-    #: shape the consumers iterate. ``refused`` maps retired/refused identity
-    #: names to their disposition.
+    #: The resolved mappings; ``classes``/``relationships`` are the same
+    #: content in the shape the consumers iterate. ``refused`` maps
+    #: retired/refused identity names to their disposition.
     class_mappings: Mapping[str, Any] | None = None
     relationship_mappings: Mapping[str, Any] | None = None
     refused: Mapping[str, str] = field(default_factory=dict)
+    #: Natively represented classes whose file mapping is the lineage pin of
+    #: their unique specializing class (name -> owning class). Ingestion binds
+    #: the pin under its owner only; the successor routing resolves these.
+    lineage_pinned: Mapping[str, str] = field(default_factory=dict)
 
     @classmethod
     def from_layers(cls, root: Path = ROOT) -> "KernelContract":
@@ -115,59 +116,60 @@ class KernelContract:
 
         return build_model_contract(Path(root))
 
+    @classmethod
+    def from_records(cls, *, classes: Mapping[str, Any], relationships: Mapping[str, Any],
+                     identity: SemanticAuthorityIdentity, source: str = "records",
+                     governed_directory: str = "", exclusions: Mapping[str, Any] | None = None,
+                     refused: Mapping[str, str] | None = None) -> "KernelContract":
+        """A contract from mapping records (``{"kernel": {...}}`` per class,
+        ``{"sysml_mapping": {...}, "domain", "range", ...}`` per relationship).
+
+        Used for synthetic contracts in tests and tooling; the runtime contract
+        comes from :meth:`from_layers`.
+        """
+        class_mappings: dict[str, KernelMapping] = {}
+        for name, record in classes.items():
+            kernel = (record or {}).get("kernel") if isinstance(record, Mapping) else None
+            if not isinstance(kernel, Mapping):
+                raise ValueError(f"class record {name!r} has no kernel mapping")
+            if isinstance(kernel.get("file"), str) and isinstance(kernel.get("declaration"), str):
+                class_mappings[name] = KernelFileMapping(kernel["file"], kernel["declaration"])
+            elif isinstance(kernel.get("native"), str):
+                class_mappings[name] = KernelNativeMapping(kernel["native"])
+            elif isinstance(kernel.get("external"), str):
+                class_mappings[name] = KernelExternalMapping(kernel["external"])
+            else:
+                raise ValueError(f"unrecognized kernel mapping for {name}")
+        relationship_mappings: dict[str, RelationshipMapping | None] = {}
+        for name, spec in relationships.items():
+            value = (spec or {}).get("sysml_mapping") if isinstance(spec, Mapping) else None
+            if not isinstance(value, Mapping) or not isinstance(value.get("strategy"), str):
+                relationship_mappings[name] = None
+                continue
+            strength = spec.get("semantic_strength", value.get("semantic_strength", "native"))
+            relationship_mappings[name] = RelationshipMapping(
+                name=name, strategy=value["strategy"], semantic_strength=str(strength),
+                configuration={k: v for k, v in value.items()
+                               if k not in {"strategy", "semantic_strength", "domain", "range"}},
+                domain=spec.get("domain") if isinstance(spec.get("domain"), str) else None,
+                range=spec.get("range") if isinstance(spec.get("range"), str) else None)
+        return cls(source=source, identity=identity, governed_directory=governed_directory,
+                   exclusions=dict(exclusions or {}),
+                   classes={name: dict(record) for name, record in classes.items()},
+                   relationships={name: dict(spec) for name, spec in relationships.items()},
+                   class_mappings=class_mappings, relationship_mappings=relationship_mappings,
+                   refused=dict(refused or {}))
+
     def _refuse(self, name: str) -> None:
         disposition = (self.refused or {}).get(name)
         if disposition is not None:
             raise RetiredIdentityError(name, disposition)
 
-    @classmethod
-    def load(cls, path: Path) -> "KernelContract":
-        value = yaml.safe_load(path.read_text(encoding="utf-8"))
-        if not isinstance(value, dict):
-            raise ValueError("ontology document must be a YAML mapping")
-        sync = value.get("kernel_sync")
-        classes = value.get("classes")
-        relationships = value.get("relationships")
-        if not isinstance(sync, dict):
-            raise ValueError("ontology has no kernel_sync contract")
-        governed = sync.get("governed_directory")
-        exclusions = sync.get("exclusions")
-        if not isinstance(governed, str) or not governed:
-            raise ValueError("kernel_sync.governed_directory is missing")
-        if not isinstance(exclusions, dict):
-            raise ValueError("kernel_sync.exclusions must be a mapping")
-        if not isinstance(classes, dict) or not classes:
-            raise ValueError("ontology classes must be a non-empty mapping")
-        if not isinstance(relationships, dict):
-            raise ValueError("ontology relationships must be a mapping")
-        return cls(
-            path,
-            OntologyIdentity.from_file(path, repository_root=ROOT),
-            governed,
-            exclusions,
-            classes,
-            relationships,
-        )
-
     def mapping(self, ontology_class: str) -> KernelMapping:
-        if self.class_mappings is not None:
-            self._refuse(ontology_class)
-            if ontology_class not in self.class_mappings:
-                raise KeyError(f"ontology class has no kernel mapping: {ontology_class}")
-            return self.class_mappings[ontology_class]
-        try:
-            value = self.classes[ontology_class]["kernel"]
-        except (KeyError, TypeError) as exc:
-            raise KeyError(f"ontology class has no kernel mapping: {ontology_class}") from exc
-        if not isinstance(value, dict):
-            raise ValueError(f"invalid kernel mapping for {ontology_class}")
-        if isinstance(value.get("file"), str) and isinstance(value.get("declaration"), str):
-            return KernelFileMapping(value["file"], value["declaration"])
-        if isinstance(value.get("native"), str):
-            return KernelNativeMapping(value["native"])
-        if isinstance(value.get("external"), str):
-            return KernelExternalMapping(value["external"])
-        raise ValueError(f"unrecognized kernel mapping for {ontology_class}")
+        self._refuse(ontology_class)
+        if ontology_class not in (self.class_mappings or {}):
+            raise KeyError(f"ontology class has no kernel mapping: {ontology_class}")
+        return self.class_mappings[ontology_class]
 
     def class_mapping(self, ontology_class: str) -> KernelFileMapping:
         mapping = self.mapping(ontology_class)
@@ -176,37 +178,8 @@ class KernelContract:
         return mapping
 
     def relationship_mapping(self, relationship: str) -> RelationshipMapping:
-        if self.relationship_mappings is not None:
-            self._refuse(relationship)
-            mapping = self.relationship_mappings.get(relationship)
-            if mapping is None:
-                raise KeyError(f"ontology relationship has no SysML mapping: {relationship}")
-            return mapping
-        try:
-            spec = self.relationships[relationship]
-            value = spec["sysml_mapping"]
-        except (KeyError, TypeError) as exc:
-            raise KeyError(
-                f"ontology relationship has no SysML mapping: {relationship}"
-            ) from exc
-        if not isinstance(value, dict) or not isinstance(value.get("strategy"), str):
-            raise ValueError(f"invalid SysML mapping for relationship {relationship}")
-        strength = value.get("semantic_strength", "native")
-        if not isinstance(strength, str):
-            raise ValueError(
-                f"invalid semantic_strength for relationship {relationship}"
-            )
-        domain = spec.get("domain")
-        range_ = spec.get("range")
-        return RelationshipMapping(
-            name=relationship,
-            strategy=value["strategy"],
-            semantic_strength=strength,
-            configuration={
-                key: item
-                for key, item in value.items()
-                if key not in {"strategy", "semantic_strength", "domain", "range"}
-            },
-            domain=domain if isinstance(domain, str) else None,
-            range=range_ if isinstance(range_, str) else None,
-        )
+        self._refuse(relationship)
+        mapping = (self.relationship_mappings or {}).get(relationship)
+        if mapping is None:
+            raise KeyError(f"ontology relationship has no SysML mapping: {relationship}")
+        return mapping

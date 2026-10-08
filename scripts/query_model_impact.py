@@ -297,23 +297,18 @@ def query_api_impact(
     api_url: str,
     binding_path: Path,
     git_revision: str,
-    ontology_path: Path = ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml",
-    authority: str = "legacy",
-    bundle_path: str | Path | None = None,
-    bundle_id: str | None = None,
-    composition: str | None = None,
+    authority: str | None = None,
     model_bundle_path: str | Path | None = None,
     model_bundle_id: str | None = None,
 ) -> dict:
-    """Query one exact API revision through the ontology traversal layer."""
+    """Query one exact API revision through the model-authority traversal layer."""
     from de4sdv.semantic import entry_authority
 
     service, _ = entry_authority.build_entry_semantic_runtime(
         api_url=api_url, binding_path=binding_path,
-        expected_git_revision=git_revision, ontology_path=ontology_path,
-        authority=authority, bundle_path=bundle_path, bundle_id=bundle_id,
-        model_bundle_path=model_bundle_path, model_bundle_id=model_bundle_id,
-        composition=composition, environ={},
+        expected_git_revision=git_revision,
+        authority=authority, model_bundle_path=model_bundle_path,
+        model_bundle_id=model_bundle_id, environ={},
     )
     return service.impact_service.impact(target, git_revision=git_revision)
 
@@ -441,24 +436,15 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--git-revision",
         help="Full Git SHA to compare with the API binding (default: current HEAD).",
     )
-    parser.add_argument(
-        "--ontology",
-        type=Path,
-        default=ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml",
-    )
-    parser.add_argument("--semantic-authority", default="legacy",
-                        help="legacy (default), o3 or model")
-    parser.add_argument("--o3-authority-bundle")
-    parser.add_argument("--o3-authority-bundle-id")
+    parser.add_argument("--semantic-authority",
+                        help="model (the only accepted value; required for --backend api)")
     parser.add_argument("--model-authority-bundle",
                         help="model-authority bundle JSON (with --semantic-authority model)")
     parser.add_argument("--model-authority-bundle-id",
                         help="exact model-authority bundle id (mab-...)")
-    parser.add_argument("--runtime-composition", help="explicit non-production o3+definitions")
     args = parser.parse_args(argv)
     if args.backend != "api" and (
-        args.runtime_composition is not None or args.semantic_authority != "legacy"
-        or args.o3_authority_bundle is not None or args.o3_authority_bundle_id is not None
+        args.semantic_authority is not None
         or args.model_authority_bundle is not None
         or args.model_authority_bundle_id is not None
     ):
@@ -497,11 +483,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             api_url=args.api_url,
             binding_path=args.binding,
             git_revision=args.git_revision or current_git_revision(),
-            ontology_path=args.ontology,
             authority=args.semantic_authority,
-            bundle_path=args.o3_authority_bundle,
-            bundle_id=args.o3_authority_bundle_id,
-            composition=args.runtime_composition,
             model_bundle_path=args.model_authority_bundle,
             model_bundle_id=args.model_authority_bundle_id,
         )

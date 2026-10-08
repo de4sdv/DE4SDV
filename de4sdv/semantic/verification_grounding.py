@@ -1,7 +1,7 @@
 """VerificationCase standard-library grounding proof — ONE reviewed mechanism.
 
 Shared by the privileged pilot read-back (``scripts/verify_pilot_readback.py``)
-and the O3 equivalence runner (``scripts/run_o3_equivalence.py``).
+and the runtime answer reports (``de4sdv/semantic/runtime_answers.py``).
 
 The proof resolves the toolchain-materialized IMPLIED edges from governed
 ``VerificationCaseDefinition`` / ``VerificationCaseUsage`` elements to the

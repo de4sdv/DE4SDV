@@ -15,7 +15,8 @@ from .kernel_contract import (
     KernelNativeMapping,
 )
 
-BindingStatus = Literal["mapped", "native", "external", "unresolved", "ambiguous"]
+BindingStatus = Literal["mapped", "native", "external", "lineage-pinned", "unresolved",
+                        "ambiguous"]
 
 
 @dataclass(frozen=True)
@@ -56,8 +57,21 @@ def validate_ontology_bindings(
 ) -> OntologyBindingReport:
     """Classify every ontology class without silently choosing an API object."""
     entries: list[OntologyBindingValidation] = []
+    lineage_pinned = getattr(contract, "lineage_pinned", None) or {}
     for ontology_class in contract.classes:
         mapping = contract.mapping(ontology_class)
+        if ontology_class in lineage_pinned:
+            owner = lineage_pinned[ontology_class]
+            entries.append(
+                OntologyBindingValidation(
+                    ontology_class=ontology_class,
+                    status="lineage-pinned",
+                    mapping={"file": mapping.file, "declaration": mapping.declaration},
+                    detail=(f"lineage pin of {owner}: the pin is bound under {owner} "
+                            "and the successor routing resolves this class from it"),
+                )
+            )
+            continue
         if isinstance(mapping, KernelNativeMapping):
             entries.append(
                 OntologyBindingValidation(
@@ -126,6 +140,7 @@ def validate_ontology_bindings(
             )
     summary = {
         status: sum(entry.status == status for entry in entries)
-        for status in ("mapped", "native", "external", "unresolved", "ambiguous")
+        for status in ("mapped", "native", "external", "lineage-pinned", "unresolved",
+                       "ambiguous")
     }
     return OntologyBindingReport(tuple(entries), summary)

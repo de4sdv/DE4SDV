@@ -1,36 +1,43 @@
 #!/usr/bin/env python3
-"""Build, compare and close the O4 model-authority bundle at one exact revision.
+"""Build, evidence and close the O4 model-authority bundle at one exact revision.
 
-Three subcommands, run in the privileged exact-SHA ingestion (separate job,
-see ``.github/workflows/privileged-full-model-api-ingestion.yml``):
+Subcommands (run in the privileged exact-SHA ingestion, see
+``.github/workflows/privileged-full-model-api-ingestion.yml``):
 
-``bundle``   candidate (unclosed) model-authority bundle (``mab-<hex>``) from
-             the checkout plus the closed O3 bundle of the same revision.
-``compare``  same-revision runtime equivalence: model vs O3 and model vs
-             legacy over the O3 identity set (the reviewed
-             ``run_o3_equivalence`` report builder, unchanged), plus the
-             model-only ``hasRelevantEvidenceContract`` discriminator
-             population as recorded evidence (owner decision 5). The live
-             EvidenceContract closure must equal, by element id, the bound
-             eight members as validated from the same-run export by the
-             ingestion binding rule; a difference is BLOCKING_MISMATCH and the
-             validated members are what ``close`` attests.
-``close``    closure attestation from the produced artifacts. Every gate
-             status is DERIVED from the artifact it names (never from CLI
-             text) and sha256-bound to it:
-             ``activation_eligible`` = O3 eligible AND definition closure
-             closed AND coverage (residual drift none, bundle bound to the
-             checkout) AND model/O3/legacy equivalence AND decision-13
-             read-back passed. The requirement-population delta is measured
+``bundle``   candidate (unclosed) model-authority bundle (``mab-<hex>``,
+             ``de4sdv.model-authority-bundle/v2``) from the checkout; no API
+             needed. Construction refuses a non-empty routing residual.
+``compare``  the model runtime's answer report over the migrated identity
+             set (``de4sdv.runtime-answer-report/v1``: the five predicates the
+             O3 cutover migrated, the eight class identities, the K pair) plus
+             the ``hasRelevantEvidenceContract`` discriminator population
+             (owner decision 5). The live EvidenceContract closure must equal,
+             by element id, the bound eight members as validated from the
+             same-run export by the ingestion binding rule.
+``compare-answers``  offline comparison of two answer reports (for example a
+             predecessor runtime's and this revision's) over the same SysML API
+             elements. Each side's manifest carries its own authority label.
+``close``    closure attestation from the produced artifacts. Every gate status
+             is DERIVED from the artifact it names (never from CLI text) and
+             sha256-bound to it: ``activation_eligible`` = definition closure
+             closed AND coverage (empty residual, bundle bound to the checkout)
+             AND model runtime answers (discriminator identity EQUAL, K pair
+             complete, VerificationCase grounding EQUIVALENT) AND decision-13
+             read-back passed AND the three batteries ran under this bundle at
+             this revision. The requirement-population delta is measured
              evidence, never a gate.
 
-The model-authority runtime (``de4sdv.semantic.model_authority_runtime``) is
-imported lazily. Exit codes: 0 success/eligible; 2 measured but not
-equivalent / not eligible (report written); 1 refused.
+The authored ontology and the O3/legacy runtimes were removed in O4 Wave C2,
+so there is no same-revision comparison against them; the last
+authored-vs-model contract comparison is the committed evidence
+``docs/method-conformance/o4/closure/contract-equivalence.json``.
+
+Exit codes: 0 success/eligible; 2 measured but not passing / not eligible
+(report written); 1 refused.
 
 Claim boundary: an eligible closed bundle is a deployment INPUT. Activation
 is a separate owner decision naming the mab id; nothing here deploys,
-activates, retires YAML, or claims compliance.
+activates or claims compliance.
 """
 
 from __future__ import annotations
@@ -51,22 +58,33 @@ if str(ROOT) not in sys.path:
 
 MODEL_MODULE = "de4sdv.semantic.model_authority_runtime"
 COVERAGE_MODULE = "de4sdv.semantic.model_projection_coverage"
+ANSWERS_MODULE = "de4sdv.semantic.runtime_answers"
 
 CANDIDATE_BUNDLE = "de4sdv-model-authority-candidate-bundle.json"
 CLOSED_BUNDLE = "de4sdv-model-authority-bundle.json"
 ATTESTATION = "de4sdv-model-authority-closure-attestation.json"
 ELIGIBILITY = "de4sdv-model-authority-activation-eligibility.json"
-EQUIVALENCE = "de4sdv-model-authority-equivalence-report.json"
-COMPARE_SCHEMA = "de4sdv.o4-model-authority-equivalence/v1"
-ELIGIBILITY_SCHEMA = "de4sdv.o4-model-authority-activation-eligibility/v1"
+ANSWERS = "de4sdv-model-authority-answers.json"
+ANSWERS_SCHEMA = "de4sdv.o4-model-authority-answers/v1"
+ELIGIBILITY_SCHEMA = "de4sdv.o4-model-authority-activation-eligibility/v2"
 READBACK_SCHEMA = "de4sdv.o4-verification-anchor-readback/v1"
 DISCRIMINATED_PREDICATE = "hasRelevantEvidenceContract"
 
-#: Validation name (B2 contract ``REQUIRED_MODEL_VALIDATIONS``) -> CLI flag.
+#: Validation name (``REQUIRED_MODEL_VALIDATIONS``) -> CLI flag.
 VALIDATION_FLAGS = {
     "model_projection_coverage": "coverage",
-    "model_o3_legacy_equivalence": "equivalence",
+    "model_runtime_answers": "answers",
     "verification_anchor_readback": "readback",
+    "full_model_semantic_queries": "full_model_semantic_queries",
+    "product_line_scope": "product_line_scope",
+    "semantic_mcp": "semantic_mcp",
+}
+
+#: The three batteries: expected output schema per validation name.
+BATTERY_SCHEMAS = {
+    "full_model_semantic_queries": "de4sdv-full-model-semantic-query-coverage/v1",
+    "product_line_scope": "de4sdv-aebs-product-line-scope-validation/v1",
+    "semantic_mcp": "de4sdv-semantic-mcp-validation/v2",
 }
 
 
@@ -124,44 +142,37 @@ def _write(path: Path, document: dict[str, Any]) -> None:
 def run_bundle(args: argparse.Namespace) -> int:
     revision = _require_exact_revision(args.source_revision)
     model = _module(MODEL_MODULE)
-    o3_bundle = _read_json(args.o3_bundle)
-    if o3_bundle.get("git_revision") != revision:
-        raise Refused("the O3 bundle is bound to a different Git revision")
     try:
-        bundle = model.build_model_bundle(ROOT, o3_bundle=o3_bundle, git_revision=revision)
+        bundle = model.build_model_bundle(ROOT, git_revision=revision)
     except getattr(model, "ModelAuthorityRefused", ValueError) as exc:
         raise Refused(f"model-authority bundle refused: {exc}") from exc
     errors = list(model.verify_model_bundle(bundle, root=ROOT))
     out = Path(args.out) / CANDIDATE_BUNDLE
     _write(out, bundle)
+    components = bundle.get("components") or {}
     print(f"model-authority bundle id: {bundle['bundle_id']}")
     print(f"state: {bundle.get('state')}  git revision: {revision}")
-    print(f"o3 component: {(bundle.get('components') or {}).get('o3', {}).get('bundle_id')}")
+    print(f"semantic authority: {(components.get('semantic_authority') or {}).get('id')}")
     for error in errors:
         print(f"  verification error: {error}")
     return 1 if errors else 0
 
 
 # ---------------------------------------------------------------------------
-# compare
+# compare (model runtime answers)
 # ---------------------------------------------------------------------------
 
 
-def _build_services(args, revision: str, o3_bundle: dict[str, Any], model_path: Path,
-                    model_id: str):
+def _build_model_service(args, revision: str, model_path: Path, model_id: str):
     from de4sdv.semantic import entry_authority
-    from de4sdv.semantic.runtime import build_semantic_runtime
 
-    common = dict(api_url=args.api_url, binding_path=args.binding,
-                  expected_git_revision=revision, ontology_path=args.ontology)
-    legacy = build_semantic_runtime(**common)
-    o3 = build_semantic_runtime(**common, semantic_authority=o3_bundle)
     request = entry_authority.ModelAuthorityRequest(bundle_path=model_path, bundle_id=model_id)
-    # A candidate bundle is compared BEFORE closure; production entry points
+    # A candidate bundle is evidenced BEFORE closure; production entry points
     # require the closed, activation-eligible bundle.
-    model, _ = entry_authority.build_model_runtime(
-        request, require_activation_eligible=False, **common)
-    return legacy, o3, model
+    service, _ = entry_authority.build_model_runtime(
+        request, api_url=args.api_url, binding_path=args.binding,
+        expected_git_revision=revision, require_activation_eligible=False)
+    return service
 
 
 def closure_identity(service, elements: list[dict[str, Any]],
@@ -180,7 +191,7 @@ def closure_identity(service, elements: list[dict[str, Any]],
 
 def discriminator_population(service, elements: list[dict[str, Any]], subjects,
                              closure_members: list[dict[str, Any]] | None = None) -> dict[str, Any]:
-    """Model-only ``hasRelevantEvidenceContract`` population (recorded).
+    """Model ``hasRelevantEvidenceContract`` population (recorded).
 
     With ``closure_members`` (the bound members validated from the export),
     the live closure must equal them by element id.
@@ -217,100 +228,107 @@ def discriminator_population(service, elements: list[dict[str, Any]], subjects,
         "closure_members": list(closure_members or []),
         "closure_identity": identity,
         "classification": "RECORDED" if not blocking else "BLOCKING_MISMATCH",
-        "note": ("owner decision 5: model-only resolution of the adopted "
-                 "EvidenceContract type-closure discriminator; legacy/O3 keep "
-                 "the blocked range, so this is recorded evidence, not an "
-                 "equivalence row"),
+        "note": ("owner decision 5: model resolution of the adopted EvidenceContract "
+                 "type-closure discriminator"),
     }
 
 
-def compare_overall(pairs: dict[str, dict[str, Any]], discriminator: dict[str, Any]) -> str:
+def answers_overall(answers: dict[str, Any], discriminator: dict[str, Any]) -> tuple[str, list[str]]:
+    """Gate verdict of the model runtime answers (problems listed)."""
+    problems = []
     if discriminator.get("classification") == "BLOCKING_MISMATCH":
-        return "BLOCKING_MISMATCH"
-    overalls = [str(report.get("overall")) for report in pairs.values()]
-    if overalls and all(value == "EQUIVALENT" for value in overalls):
-        return "EQUIVALENT"
-    from scripts import run_o3_equivalence as roe
-
-    return roe._worst_classification(*overalls) if overalls else "NOT_YET_COMPARABLE"
+        problems.append("hasRelevantEvidenceContract discriminator is BLOCKING_MISMATCH")
+    if (discriminator.get("closure_identity") or {}).get("result") != "EQUAL":
+        problems.append("live EvidenceContract closure is not identity-equal to the bound members")
+    k_pair = answers.get("k_pair") or {}
+    if k_pair.get("classification") != "EQUIVALENT":
+        problems.append(f"K pair is {k_pair.get('classification')!r}: "
+                        f"{(k_pair.get('errors') or []) + (k_pair.get('missing') or [])}")
+    grounding = ((answers.get("classes") or {}).get("VerificationCase") or {}).get("grounding_result")
+    if grounding != "EQUIVALENT":
+        problems.append(f"VerificationCase grounding is {grounding!r}")
+    return ("PASSED" if not problems else "FAILED"), problems
 
 
 def run_compare(args: argparse.Namespace) -> int:
-    from de4sdv.sysml_api.revisions import RevisionBinding
-    from scripts import run_o3_equivalence as roe
+    from de4sdv.semantic import verification_grounding as vg
+    from de4sdv.sysml_api.baseline import BaselineExportBundle
 
+    answers_lib = _module(ANSWERS_MODULE)
+    model = _module(MODEL_MODULE)
     revision = _require_exact_revision(args.git_revision)
-    binding = RevisionBinding.load(args.binding)
-    o3_bundle = _read_json(args.o3)
     model_document = _read_json(args.model)
     model_id = str(model_document.get("bundle_id") or "")
-    if model_document.get("git_revision") != revision or o3_bundle.get("git_revision") != revision:
-        raise Refused("model/O3 bundles must be bound to the checked-out revision")
-    model_o3 = ((model_document.get("components") or {}).get("o3") or {}).get("bundle_id")
-    if model_o3 != o3_bundle.get("bundle_id"):
-        raise Refused(f"model bundle embeds O3 {model_o3!r}, compared O3 is "
-                      f"{o3_bundle.get('bundle_id')!r}; exactly one O3 identity is permitted")
-    binding_digest = roe._binding_sha256(args.binding)
-    legacy, o3, model = _build_services(args, revision, o3_bundle, Path(args.model), model_id)
-    elements = roe._load_elements(args.api_url, binding)
-    grounding = roe._load_export_grounding(args.export, revision=revision)
-    closure_digest = roe.resolve_attested_closure(
-        o3_bundle, binding=binding, binding_sha256=binding_digest, element_count=len(elements))
-    generated_at = datetime.now(timezone.utc).isoformat()
-    pairs: dict[str, dict[str, Any]] = {}
-    for name, baseline in (("o3_vs_model", o3), ("legacy_vs_model", legacy)):
-        pairs[name] = roe.build_runtime_equivalence_report(
-            baseline, model, root=ROOT, bundle=o3_bundle, binding=binding,
-            binding_sha256=binding_digest, import_closure_digest=closure_digest,
-            git_revision=revision, verification_case_grounding=grounding,
-            generated_at=generated_at)
-    subjects = roe.subject_population(elements, "hasRelevantArchitecture")
+    if model_document.get("git_revision") != revision:
+        raise Refused("the model bundle must be bound to the checked-out revision")
+    service = _build_model_service(args, revision, Path(args.model), model_id)
+    elements = service._elements()
+    export_document = _read_json(args.export)
+    if export_document.get("git_commit") != revision:
+        raise Refused(f"export git_commit {export_document.get('git_commit')!r} != {revision}")
+    grounding = vg.prove_verification_case_grounding(
+        elements=export_document.get("elements") or [],
+        external_references=export_document.get("external_references") or [],
+        library_anchors=export_document.get("library_anchors") or {})
+    answers = answers_lib.collect_answers(service, elements,
+                                          label=str(service.semantic_authority_id),
+                                          verification_case_grounding=grounding)
+    subjects = answers_lib.subject_population(elements, "hasRelevantArchitecture")
     try:
-        from de4sdv.sysml_api.baseline import BaselineExportBundle
-
         export = BaselineExportBundle.load(Path(args.export))
-        members = _module(MODEL_MODULE).validate_closure_members(
-            _module(MODEL_MODULE).bound_evidence_contract_closure(ROOT),
+        members = model.validate_closure_members(
+            model.bound_evidence_contract_closure(ROOT),
             list(export.elements.values()), export.element_sources)
     except (OSError, ValueError) as exc:  # includes ModelAuthorityRefused
         raise Refused(f"bound EvidenceContract closure members cannot be validated: {exc}") from exc
-    discriminator = discriminator_population(model, elements, subjects, closure_members=members)
-    overall = compare_overall(pairs, discriminator)
+    discriminator = discriminator_population(service, elements, subjects, closure_members=members)
+    overall, problems = answers_overall(answers, discriminator)
     report = {
-        "schema": COMPARE_SCHEMA,
+        "schema": ANSWERS_SCHEMA,
         "git_revision": revision,
         "model_bundle_id": model_id,
         "model_bundle_sha256": _sha256_file(args.model),
-        "o3_bundle_id": str(o3_bundle.get("bundle_id") or ""),
-        "binding_sha256": binding_digest,
-        "import_closure_digest": closure_digest,
-        "authority_ids": {
-            "legacy": str(getattr(legacy, "semantic_authority_id", "")),
-            "o3": str(getattr(o3, "semantic_authority_id", "")),
-            "model": str(getattr(model, "semantic_authority_id", "")),
-        },
-        "pairs": {name: {"overall": r["overall"], "per_identity": r["per_identity"],
-                         "manifest_validation": r["manifest_validation"],
-                         "k_pair": r["k_pair"], "diagnostics": r["diagnostics"]}
-                  for name, r in pairs.items()},
-        "o3_vs_legacy": "see the same-run O3 runtime-equivalence report",
+        "binding_sha256": _sha256_file(args.binding),
+        "authority_id": str(service.semantic_authority_id),
+        "answers": answers,
+        "verification_case_grounding": grounding,
         "discriminator": discriminator,
         "overall": overall,
-        "generated_at": generated_at,
-        "claim_boundary": ("same-revision answer equivalence of the model-authority "
-                           "runtime with O3 and legacy over the O3 identity set; not "
-                           "activation, retirement or compliance"),
+        "problems": problems,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "claim_boundary": ("the model-authority runtime's answers over the migrated identity "
+                           "set at one revision; not activation or compliance"),
     }
-    out = Path(args.out)
-    _write(out / EQUIVALENCE, report)
-    for name, full in pairs.items():
-        _write(out / f"de4sdv-model-authority-{name.replace('_', '-')}-report.json", full)
-    print(f"model-authority equivalence: {overall}")
-    for name, entry in pairs.items():
-        print(f"  {name}: {entry['overall']}")
+    _write(Path(args.out) / ANSWERS, report)
+    print(f"model-authority answers: {overall}")
+    for problem in problems:
+        print(f"  {problem}")
     print(f"  {DISCRIMINATED_PREDICATE}: {discriminator['hop_count']} hop(s) to "
           f"{len(discriminator['distinct_targets'])} target(s)")
-    return 0 if overall == "EQUIVALENT" else 2
+    return 0 if overall == "PASSED" else 2
+
+
+def run_compare_answers(args: argparse.Namespace) -> int:
+    answers_lib = _module(ANSWERS_MODULE)
+
+    def load(path: Path) -> dict[str, Any]:
+        document = _read_json(path)
+        return document.get("answers") if document.get("schema") == ANSWERS_SCHEMA else document
+
+    try:
+        report = answers_lib.compare_answer_reports(
+            load(args.old), load(args.new), allow_revision_change=args.allow_revision_change)
+    except ValueError as exc:
+        raise Refused(str(exc)) from exc
+    _write(Path(args.out), report)
+    print(f"answer comparison {report['labels']['old']} -> {report['labels']['new']}: "
+          f"{report['overall']}")
+    for error in report["manifest_validation"]["errors"]:
+        print(f"  manifest: {error}")
+    for name, entry in report["per_identity"].items():
+        if entry["classification"] != "EQUIVALENT":
+            print(f"  {name}: {entry['classification']}")
+    return 0 if report["overall"] == "EQUIVALENT" else 2
 
 
 # ---------------------------------------------------------------------------
@@ -331,23 +349,44 @@ def readback_gate(document: dict[str, Any], *, revision: str) -> list[str]:
     return problems
 
 
-def equivalence_gate(document: dict[str, Any], *, revision: str, bundle_id: str) -> list[str]:
+def answers_gate(document: dict[str, Any], *, revision: str, bundle_id: str) -> list[str]:
     problems = []
-    if document.get("schema") != COMPARE_SCHEMA:
-        problems.append("equivalence report schema mismatch")
+    if document.get("schema") != ANSWERS_SCHEMA:
+        problems.append("answers report schema mismatch")
     if document.get("git_revision") != revision:
-        problems.append("equivalence report is bound to a different revision")
+        problems.append("answers report is bound to a different revision")
     if document.get("model_bundle_id") != bundle_id:
-        problems.append("equivalence report compares a different model bundle")
-    if document.get("overall") != "EQUIVALENT":
-        problems.append(f"model/O3/legacy equivalence is {document.get('overall')!r}")
-    pairs = document.get("pairs") or {}
-    if set(pairs) != {"o3_vs_model", "legacy_vs_model"} or any(
-            (p or {}).get("overall") != "EQUIVALENT" for p in pairs.values()):
-        problems.append("both model comparison pairs must be EQUIVALENT")
-    discriminator = document.get("discriminator") or {}
-    if (discriminator.get("closure_identity") or {}).get("result") != "EQUAL":
-        problems.append("live EvidenceContract closure is not identity-equal to the bound members")
+        problems.append("answers report evidences a different model bundle")
+    if document.get("authority_id") != f"mab:{bundle_id}":
+        problems.append("answers report was not produced by this bundle's runtime")
+    overall, recomputed = answers_overall(document.get("answers") or {},
+                                          document.get("discriminator") or {})
+    if overall != "PASSED" or document.get("overall") != "PASSED":
+        problems.extend(recomputed or ["model runtime answers did not pass"])
+    return problems
+
+
+def battery_gate(name: str, document: dict[str, Any], *, revision: str, bundle_id: str) -> list[str]:
+    """A battery passed under THIS candidate bundle at THIS revision.
+
+    Each battery script exits non-zero on any failed assertion and writes its
+    output only on success; the gate checks the output's schema, revision and
+    the serving authority recorded in it.
+    """
+    problems = []
+    if document.get("schema") != BATTERY_SCHEMAS[name]:
+        problems.append(f"{name} output schema mismatch")
+    recorded = document.get("git_commit") or (document.get("revision") or {}).get("git_commit")
+    if recorded != revision:
+        problems.append(f"{name} output is bound to revision {recorded!r}, not {revision}")
+    authority = document.get("semantic_authority") if name != "product_line_scope" else document.get(
+        "model_authority")
+    if (authority or {}).get("authority_id") != f"mab:{bundle_id}":
+        problems.append(f"{name} did not run under mab:{bundle_id} "
+                        f"(recorded {(authority or {}).get('authority_id')!r})")
+    if name == "semantic_mcp" and (document.get("read_only") is not True
+                                   or document.get("tool_count") != 7):
+        problems.append("semantic_mcp output does not describe a clean seven-tool read-only run")
     return problems
 
 
@@ -382,15 +421,20 @@ def run_close(args: argparse.Namespace) -> int:
     bundle_id = str(bundle.get("bundle_id") or "")
     if bundle.get("state") != "candidate" or bundle.get("git_revision") != revision:
         raise Refused("close requires the candidate model bundle of the checked-out revision")
-    binding = RevisionBinding.load(args.binding)
+    try:
+        binding = RevisionBinding.load(args.binding)
+    except ValueError as exc:
+        raise Refused(f"revision binding refused: {exc}") from exc
     paths = {name: Path(getattr(args, flag)) for name, flag in VALIDATION_FLAGS.items()}
     gates = {
         "verification_anchor_readback": readback_gate(_read_json(paths["verification_anchor_readback"]),
                                                       revision=revision),
-        "model_o3_legacy_equivalence": equivalence_gate(
-            _read_json(paths["model_o3_legacy_equivalence"]), revision=revision, bundle_id=bundle_id),
+        "model_runtime_answers": answers_gate(_read_json(paths["model_runtime_answers"]),
+                                              revision=revision, bundle_id=bundle_id),
         "model_projection_coverage": coverage_gate(_read_json(paths["model_projection_coverage"]),
                                                    bundle),
+        **{name: battery_gate(name, _read_json(paths[name]), revision=revision, bundle_id=bundle_id)
+           for name in BATTERY_SCHEMAS},
     }
     validations = {
         name: {"status": "passed" if not problems else "failed", "artifact": name,
@@ -399,8 +443,8 @@ def run_close(args: argparse.Namespace) -> int:
     }
     closed_ok, probe_problems = definition_closure_closed(_read_json(args.definition_probe),
                                                           revision=revision)
-    equivalence = _read_json(paths["model_o3_legacy_equivalence"])
-    members = list((equivalence.get("discriminator") or {}).get("closure_members") or [])
+    answers = _read_json(paths["model_runtime_answers"])
+    members = list((answers.get("discriminator") or {}).get("closure_members") or [])
     attestation = model.build_model_closure_attestation(
         bundle, binding=binding, binding_sha256=_sha256_file(args.binding),
         definition_closure_closed=closed_ok, validations=validations,
@@ -415,8 +459,8 @@ def run_close(args: argparse.Namespace) -> int:
         "schema": ELIGIBILITY_SCHEMA,
         "bundle_id": bundle_id,
         "git_revision": revision,
+        "semantic_authority": attestation.get("semantic_authority_id"),
         "gates": {
-            "o3_activation_eligible": attestation.get("o3_activation_eligible") is True,
             "definition_closure_closed": closed_ok,
             **{name: not problems for name, problems in gates.items()},
         },
@@ -426,8 +470,8 @@ def run_close(args: argparse.Namespace) -> int:
         "activation_eligible": eligible,
         "owner_gated": ["sysml-api-production deployment approval",
                         f"activation decision naming {bundle_id}"],
-        "claim_boundary": ("eligibility of a deployment input only; activation, "
-                           "rollback proof and YAML retirement are separate steps"),
+        "claim_boundary": ("eligibility of a deployment input only; activation and the "
+                           "rollback drill are separate owner-gated steps"),
     }
     out = Path(args.out)
     _write(out / CLOSED_BUNDLE, closed)
@@ -449,22 +493,28 @@ def main(argv: list[str] | None = None) -> int:
     bundle = sub.add_parser("bundle", allow_abbrev=False, help="build the candidate model-authority bundle")
     bundle.add_argument("--source-revision", "--git-revision", dest="source_revision",
                         required=True)
-    bundle.add_argument("--o3-bundle", required=True, type=Path,
-                        help="closed O3 bundle of the same revision")
     bundle.add_argument("--out", required=True, type=Path)
     bundle.set_defaults(func=run_bundle)
 
-    compare = sub.add_parser("compare", allow_abbrev=False, help="model vs O3 vs legacy runtime equivalence")
+    compare = sub.add_parser("compare", allow_abbrev=False,
+                             help="model runtime answers + EvidenceContract discriminator")
     compare.add_argument("--model", required=True, type=Path)
-    compare.add_argument("--o3", required=True, type=Path)
     compare.add_argument("--out", required=True, type=Path)
     compare.add_argument("--api-url", required=True)
     compare.add_argument("--binding", required=True, type=Path)
     compare.add_argument("--export", required=True, type=Path)
     compare.add_argument("--git-revision", required=True)
-    compare.add_argument("--ontology", type=Path,
-                         default=ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml")
     compare.set_defaults(func=run_compare)
+
+    compare_answers = sub.add_parser("compare-answers", allow_abbrev=False,
+                                     help="offline comparison of two answer reports")
+    compare_answers.add_argument("--old", required=True, type=Path)
+    compare_answers.add_argument("--new", required=True, type=Path)
+    compare_answers.add_argument("--out", required=True, type=Path)
+    compare_answers.add_argument("--allow-revision-change", action="store_true",
+                                 help="the two runtimes come from different Git revisions "
+                                      "(same SysML API project/commit and subjects required)")
+    compare_answers.set_defaults(func=run_compare_answers)
 
     close = sub.add_parser("close", allow_abbrev=False, help="derive gates from artifacts and close the bundle")
     close.add_argument("--model", required=True, type=Path, help="candidate model bundle")
@@ -472,8 +522,12 @@ def main(argv: list[str] | None = None) -> int:
     close.add_argument("--git-revision", required=True)
     close.add_argument("--definition-probe", required=True, type=Path)
     close.add_argument("--coverage", required=True, type=Path)
-    close.add_argument("--equivalence", required=True, type=Path)
+    close.add_argument("--answers", required=True, type=Path)
     close.add_argument("--readback", required=True, type=Path)
+    close.add_argument("--full-model-semantic-queries", dest="full_model_semantic_queries",
+                       required=True, type=Path)
+    close.add_argument("--product-line-scope", dest="product_line_scope", required=True, type=Path)
+    close.add_argument("--semantic-mcp", dest="semantic_mcp", required=True, type=Path)
     close.add_argument("--out", required=True, type=Path)
     close.set_defaults(func=run_close)
 

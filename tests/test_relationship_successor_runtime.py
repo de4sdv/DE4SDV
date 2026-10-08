@@ -1,14 +1,11 @@
 """R1 synthetic raw-reference regressions, not licensed model closure."""
-import json
-import subprocess
-import sys
 from typing import Any
 
 import pytest
 
-from test_approved_relationship_successor import ROOT, edge, fixture_service
+from test_approved_relationship_successor import edge, fixture_service
 from test_relationship_successor_consumer import (
-    SCRIPT, args_for, extension_binding, supplied_synthetic_api,
+    extension_binding, http_service, supplied_synthetic_api,
 )
 
 
@@ -52,18 +49,13 @@ def test_every_native_endpoint_member_requires_identity(predicate, key, member):
     assert_incomplete(service.semantic_neighbors(source, predicates=[predicate]), predicate)
 
 
-def test_real_cli_refuses_unidentified_planning_target(tmp_path):
+def test_supplied_api_read_refuses_unidentified_planning_target():
     _, elements, binding, _, relationship, source = candidate("hasValidationScenario")
     relationship["target"].append({"@type": "ReferenceUsage"})
-    path = tmp_path / "synthetic-binding.json"
-    path.write_text(json.dumps(extension_binding(binding).to_dict()))
     with supplied_synthetic_api(elements) as (url, reads):
-        result = subprocess.run(
-            [sys.executable, "-B", str(SCRIPT), *args_for(url, path), "neighbors", source,
-             "--predicate", "hasValidationScenario"],
-            cwd=ROOT, text=True, capture_output=True, timeout=30)
-        assert result.returncode == 0, result.stderr
-        assert_incomplete(json.loads(result.stdout), "hasValidationScenario")
+        report = http_service(extension_binding(binding), url).semantic_neighbors(
+            source, predicates=["hasValidationScenario"])
+        assert_incomplete(report, "hasValidationScenario")
         assert reads and all(method == "GET" for method, _ in reads)
 
 

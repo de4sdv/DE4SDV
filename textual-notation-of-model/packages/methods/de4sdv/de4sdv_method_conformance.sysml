@@ -9,8 +9,9 @@
  * representation"): the contract schema is materialized as model-resident
  * records — item definitions carrying typed attributes — so the contract
  * and the INC-AEBS-009D pilot scope are real API-queryable objects, not
- * prose. Every declaration here is classified in the ontology/kernel
- * contract (approach/framework/ontology/de4sdv-basic-ontology.yaml).
+ * prose. Every declaration here is classified by the model-projection
+ * coverage gate: projected through a model-generated layer or listed as
+ * kernel-internal with a reason.
  *
  * Boundary: this file defines method vocabulary only. The concrete
  * INC-AEBS-009D pilot scope usage lives beside its verification slice in

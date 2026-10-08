@@ -1,4 +1,4 @@
-"""O4 Wave B privileged-run wiring (static + argument-spy; no network, no dispatch).
+"""O4 privileged-run wiring, Wave C2 form (static + argument-spy; no network, no dispatch).
 
 The model-authority steps run in a separate job of the privileged ingestion
 workflow. These tests pin the job topology, the exact-revision inputs, the
@@ -42,9 +42,13 @@ def _names(job=JOB):
 
 READBACK = "Decision-13 read-back of the implied verification anchors (restored same-run API snapshot)"
 DELTA = "Measure the Wave A Requirement-population delta"
-BUNDLE = "Build candidate model-authority bundle"
+BUNDLE = "Rebuild the candidate model-authority bundle (must equal the batteries' bundle)"
+INGEST_BUNDLE = "Build candidate model-authority bundle"
 COVERAGE = "Model-projection coverage report against the candidate bundle"
-COMPARE = "Same-revision model vs O3 vs legacy runtime equivalence"
+COMPARE = "Model runtime answers over the migrated identity set (EvidenceContract discriminator, K pair)"
+BATTERIES = ("Exercise three production semantic concerns",
+             "Validate governed product-line scope through API identity",
+             "Exercise read-only semantic MCP tools")
 CLOSE = "Close the model-authority bundle (activation eligibility)"
 UPLOAD = "Upload model-authority evidence"
 
@@ -56,10 +60,29 @@ def test_separate_job_after_ingestion_keeps_both_budgets():
     assert "workflow_dispatch" in job["if"]
     assert job["timeout-minutes"] <= 360
     assert _job("ingest-and-validate")["timeout-minutes"] <= 360
-    # The ingestion job gains only the snapshot + upload (no model steps).
+    # The ingestion job builds the candidate bundle (no API) and runs the three
+    # batteries under it; read-back, answers and close stay in the model job.
     ingest = _names("ingest-and-validate")
     for name in (READBACK, DELTA, BUNDLE, COMPARE, CLOSE):
         assert name not in ingest
+    assert ingest.index(INGEST_BUNDLE) < min(ingest.index(name) for name in BATTERIES)
+
+
+def test_batteries_run_under_the_candidate_bundle_explicitly():
+    for name in BATTERIES:
+        run = _step(name, "ingest-and-validate")["run"]
+        for token in ("--semantic-authority model",
+                      "--model-authority-bundle /tmp/o4/de4sdv-model-authority-candidate-bundle.json",
+                      '--model-authority-bundle-id "$(cat /tmp/o4/candidate-bundle-id)"',
+                      "--allow-candidate-bundle"):
+            assert token in run, (name, token)
+
+
+def test_no_o3_or_legacy_step_remains():
+    text = WORKFLOW.read_text(encoding="utf-8")
+    for token in ("run_o3_equivalence", "/tmp/o3/", "--ontology", "--o3-", "de4sdv-basic-ontology",
+                  "semantic-authority o3", "semantic-authority legacy"):
+        assert token not in text, token
 
 
 def test_model_job_does_not_turn_the_ingestion_run_red():
@@ -81,9 +104,9 @@ def test_snapshot_artifact_never_matches_the_ingestion_artifact_prefix():
     assert prefixed == ["full-model-api-ingestion-${{ github.sha }}"]
 
 
-def test_snapshot_is_taken_after_the_o3_comparison():
+def test_snapshot_is_taken_after_the_ingestion_tests():
     ingest = _names("ingest-and-validate")
-    assert ingest.index("Run same-revision O3 runtime equivalence comparison") < ingest.index(
+    assert ingest.index("Run production-ingestion tests") < ingest.index(
         "Snapshot API database for the model-authority job")
 
 
@@ -94,7 +117,7 @@ def test_restored_inputs_are_revision_checked_before_use():
     run = _step("Verify inputs are bound to the checked-out revision")["run"]
     assert "sha256sum -c" in run
     for path in ("de4sdv-full-model-export.json", "de4sdv-full-model-binding.json",
-                 "o3/de4sdv-o3-candidate-bundle.json"):
+                 "o4/de4sdv-model-authority-candidate-bundle.json"):
         assert path in run
 
 
@@ -111,6 +134,10 @@ def test_step_order_and_gate_policy():
     assert 'if [ "$rc" = "2" ]' in delta and 'exit "$rc"' in delta
     for name in (READBACK, COMPARE, CLOSE):
         assert "set +e" not in _step(name)["run"]
+    # The rebuilt candidate must be the bundle the batteries ran under.
+    rebuild = _step(BUNDLE)["run"]
+    assert 'expected="$(cat /tmp/o4/candidate-bundle-id)"' in rebuild
+    assert '[ "$rebuilt" != "$expected" ]' in rebuild and "exit 1" in rebuild
 
 
 def _commands(job=JOB):
@@ -126,7 +153,7 @@ def _commands(job=JOB):
             line = re.sub(r"^(python3?) /tmp/de4sdv-ci/", r"\1 scripts/", line)
             if line.startswith(("python scripts/", "python3 scripts/")):
                 line = re.sub(r'"\$\(git rev-parse HEAD\)"', REV, line)
-                line = re.sub(r'"\$\(python -c [^"]*\)"', "o3b-" + "b" * 32, line)
+                line = re.sub(r'"\$\(cat /tmp/o4/candidate-bundle-id\)"', "mab-" + "b" * 32, line)
                 out.append((step["name"], shlex.split(line)))
     return out
 
@@ -161,6 +188,40 @@ def test_workflow_command_lines_parse_with_the_real_parsers(monkeypatch, name, a
             assert namespace[key] == REV
 
 
+_INGEST_SCRIPTS = ("run_model_authority_bundle.py", "validate_full_model_semantic_queries.py",
+                   "validate_product_line_scope_api.py", "validate_semantic_mcp.py",
+                   "import_sysml_api_baseline.py", "probe_definition_migration.py")
+_INGEST = [c for c in _commands("ingest-and-validate") if Path(c[1][1]).name in _INGEST_SCRIPTS]
+
+
+@pytest.mark.parametrize("name, argv", _INGEST, ids=[c[0] for c in _INGEST])
+def test_ingest_command_lines_parse_with_the_real_parsers(monkeypatch, name, argv):
+    import importlib
+    import inspect
+    import sys
+
+    argv = argv[:argv.index(">")] if ">" in argv else argv
+    module = importlib.import_module("scripts." + Path(argv[1]).stem)
+    captured = {}
+    real = argparse.ArgumentParser.parse_args
+
+    def spy(self, args=None, namespace=None):
+        captured["namespace"] = real(self, args, namespace)
+        raise _Parsed
+
+    monkeypatch.setattr(argparse.ArgumentParser, "parse_args", spy)
+    monkeypatch.setattr(sys, "argv", argv[1:])
+    with pytest.raises(_Parsed):
+        if inspect.signature(module.main).parameters:
+            module.main(argv[2:])
+        else:
+            module.main()
+    namespace = vars(captured["namespace"])
+    for key in ("git_revision", "source_revision", "expected_git_revision"):
+        if key in namespace:
+            assert namespace[key] == REV
+
+
 def test_every_model_output_is_uploaded_and_close_reads_produced_files():
     produced = set()
     for _, argv in _commands():
@@ -168,14 +229,26 @@ def test_every_model_output_is_uploaded_and_close_reads_produced_files():
             if flag in argv:
                 produced.add(argv[argv.index(flag) + 1])
     produced |= {"/tmp/o4/de4sdv-model-authority-candidate-bundle.json",
-                 "/tmp/o4/de4sdv-model-authority-equivalence-report.json"}
+                 "/tmp/o4/de4sdv-model-authority-answers.json"}
     close = dict(zip(*[iter(next(a for n, a in _commands() if n == CLOSE)[3:])] * 2))
     from_job1 = {"/tmp/de4sdv-full-model-binding.json",
-                 "/tmp/o4/de4sdv-o4-definition-migration-probe.json"}
-    for flag in ("--model", "--coverage", "--equivalence", "--readback"):
+                 "/tmp/o4/de4sdv-o4-definition-migration-probe.json",
+                 "/tmp/de4sdv-full-model-semantic-query-coverage.json",
+                 "/tmp/de4sdv-product-line-scope-validation.json",
+                 "/tmp/de4sdv-semantic-mcp-validation.json",
+                 "/tmp/o4/de4sdv-model-authority-candidate-bundle.json",
+                 "/tmp/o4/candidate-bundle-id"}
+    for flag in ("--model", "--coverage", "--answers", "--readback"):
         assert close[flag] in produced, flag
-    for flag in ("--binding", "--definition-probe"):
-        assert close[flag] in from_job1
+    for flag in ("--binding", "--definition-probe", "--full-model-semantic-queries",
+                 "--product-line-scope", "--semantic-mcp"):
+        assert close[flag] in from_job1, flag
+    ingest_produced = set()
+    for _, argv in _commands("ingest-and-validate"):
+        if "--output" in argv:
+            ingest_produced.add(argv[argv.index("--output") + 1])
+    for flag in ("--full-model-semantic-queries", "--product-line-scope", "--semantic-mcp"):
+        assert close[flag] in ingest_produced, flag
     ingest_upload = _step("Upload exact-head ingestion evidence", "ingest-and-validate")
     for path in from_job1:
         assert path in ingest_upload["with"]["path"]

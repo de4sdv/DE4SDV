@@ -17,8 +17,9 @@ Fail-closed contract:
   per row;
 * every projection row's kernel binding contract must agree with its profile
   entry echo (source file + declaration);
-* the pair must not overlap the frozen O3 migrated identity set — imported
-  from :mod:`de4sdv.semantic.o3_bundle` (the single reviewed list), never
+* the pair must not overlap the frozen O2-chain identity set (the 13
+  identities the O3 cutover migrated) — imported from
+  :mod:`de4sdv.semantic.model_contract` (the single reviewed list), never
   re-listed here;
 * the recorded revision binding is always
   validated through the existing ``authority_inventory.validate_source_binding``
@@ -406,10 +407,10 @@ def _pair_errors(projection: dict[str, Any], profile: dict[str, Any]) -> list[st
             for identity in sorted(row_set - admitted_set):
                 errors.append(f"{identity}: projection row missing from scope.admitted")
 
-    o3_bundle = _repo_module("o3_bundle")
-    for identity in sorted(row_set & set(o3_bundle.MIGRATED_IDENTITIES)):
+    model_contract = _repo_module("model_contract")
+    for identity in sorted(row_set & set(model_contract.O2_CHAIN_IDENTITIES)):
         errors.append(
-            f"{identity}: admitted identity overlaps the frozen O3 migrated "
+            f"{identity}: admitted identity overlaps the frozen O2-chain "
             "identity set"
         )
     return errors

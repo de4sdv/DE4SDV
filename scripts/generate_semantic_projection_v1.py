@@ -51,36 +51,6 @@ Usage:
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
-from de4sdv.semantic.projection_v1 import (  # noqa: E402
-    PROFILE_V1_JSON_PATH,
-    PROJECTION_V1_JSON_PATH,
-    ProjectionV1Error,
-    build_pair,
-    canonical_json,
-    resolve_source_revision,
-    run_check_errors,
-)
-
-
-def generate(root: Path, *, source_revision: str | None = None) -> dict:
-    """Build both artifacts bound to a source revision.
-
-    ``source_revision`` defaults to the checkout's HEAD; it must contain every
-    bound input byte-for-byte, and generation fails otherwise (commit inputs
-    first, then regenerate so the artifacts can bind to that commit).
-    """
-    if source_revision is None:
-        source_revision = resolve_source_revision(root)
-    return build_pair(root, source_revision=source_revision)
-
-
 RETIRED_MESSAGE = (
     "scripts/generate_semantic_projection_v1.py is retired: its output is a frozen record "
     "(owner decisions Q7 and D10, 2026-10-07) and is never regenerated or "
@@ -91,7 +61,11 @@ RETIRED_MESSAGE = (
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Refuse to write or check: the generated output is a frozen record."""
+    """Refuse to write or check: the generated output is a frozen record.
+
+    O4 Wave C2 deleted the generator library (it read the retired authored
+    ontology); only this refusal remains.
+    """
     del argv
     print(RETIRED_MESSAGE)
     return 2

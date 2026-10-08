@@ -37,12 +37,12 @@ from pathlib import Path
 import yaml
 
 from de4sdv.semantic.authority_inventory import doc_text_observation
-from de4sdv.semantic.o3_bundle import MIGRATED_IDENTITIES
+from model_contract_fixtures import reviewed_definition
+from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
 
 REPO = Path(__file__).resolve().parents[1]
 INVENTORY_PATH = REPO / "docs/method-conformance/o1/semantic-authority-inventory.json"
 DECISIONS_PATH = REPO / "docs/method-conformance/o1/authority-review-decisions.yaml"
-ONTOLOGY_PATH = REPO / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
 REGISTER_PATH = REPO / "docs/method-conformance/o4/o4-execution-register.json"
 MODEL_PATH = (
     REPO / "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
@@ -129,9 +129,8 @@ def _declaration_block(text: str, declaration: str) -> list[str]:
 
 def test_live_model_doc_parity_is_normalized_exact() -> None:
     file_text = MODEL_PATH.read_text(encoding="utf-8")
-    ontology = yaml.safe_load(ONTOLOGY_PATH.read_text(encoding="utf-8"))["classes"]
     for identity, declaration in PILOT_ROWS.items():
-        definition = ontology[identity]["definition"]
+        definition = reviewed_definition(identity)
         assert definition == REVIEWED_DEFINITIONS[identity]
         observation = doc_text_observation(file_text, declaration, definition)
         assert observation == "normalized-exact", identity
@@ -273,10 +272,12 @@ def test_all_six_blocks_are_doc_only() -> None:
         assert inner[0].strip().startswith("doc /*"), identity
 
 
-def test_yaml_comparison_source_is_untouched() -> None:
-    ontology = yaml.safe_load(ONTOLOGY_PATH.read_text(encoding="utf-8"))["classes"]
+def test_admission_manifest_reviewed_definitions_are_untouched() -> None:
+    """Replaces ``test_yaml_comparison_source_is_untouched``: since O4 Wave C2
+    the reviewed definitions live in the admission manifests (proven equal to
+    the deleted authored ontology in closure/contract-equivalence.json)."""
     for identity, definition in REVIEWED_DEFINITIONS.items():
-        assert ontology[identity]["definition"] == definition, identity
+        assert reviewed_definition(identity) == definition, identity
 
 
 def test_unrelated_reviewed_rows_are_unchanged() -> None:

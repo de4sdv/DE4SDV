@@ -1,9 +1,8 @@
-"""Wave B validation consumers under ``model`` authority (synthetic inputs)."""
+"""Validation consumers under the model authority (O4 Wave C2; synthetic inputs)."""
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
@@ -16,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MAB_ID = "mab-" + "b" * 32
 
 
-# -- import: authored vs model-provider cross-check ------------------------------
+# -- import: model-built contract vs projection cross-check ------------------------------
 
 
 class _Contract:
@@ -49,8 +48,7 @@ def _row(identity, source_file, declaration):
 def test_cross_check_matches_on_real_repository():
     from de4sdv.semantic.kernel_contract import KernelContract
 
-    contract = KernelContract.load(
-        ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml")
+    contract = KernelContract.from_layers(ROOT)
     report = importer.cross_check_model_provider(contract, [], root=ROOT)
     assert report["classification"] == "EQUIVALENT"
     assert report["projected_identity_count"] >= 29
@@ -77,8 +75,8 @@ def test_cross_check_refuses_projected_identity_without_file_mapping(tmp_path):
                                                  root=tmp_path)
     assert report["classification"] == "BLOCKING_MISMATCH"
     assert {m["reason"] for m in report["mismatches"]} == {
-        "projected identity has no authored kernel mapping",
-        "projected identity is not file-mapped in the authored contract",
+        "projected identity has no kernel mapping in the model-built contract",
+        "projected identity is not file-mapped in the model-built contract",
     }
 
 
@@ -113,10 +111,14 @@ def test_cross_check_with_no_projection_is_not_comparable(tmp_path):
 
 def test_import_binding_schema_is_unchanged_by_cross_check():
     # The cross-check is additive to the REPORT; the revision-binding writer
-    # is not touched (no new binding field).
+    # carries the semantic authority (binding v2), never the cross-check.
     source = (ROOT / "scripts/import_sysml_api_baseline.py").read_text(encoding="utf-8")
     binding_block = source.split("binding = RevisionBinding(", 1)[1].split(")\n", 1)[0]
     assert "model_provider" not in binding_block
+    assert "semantic_authority=contract.identity" in binding_block
+    assert "ontology=" not in binding_block
+    assert "KernelContract.from_layers(ROOT)" in source
+    assert "de4sdv-basic-ontology" not in source
 
 
 # -- full-model semantic queries -------------------------------------------------
@@ -126,20 +128,12 @@ def _braking(edges, gaps=("evidence",)):
     return {"edges": edges, "gaps": [{"category": c} for c in gaps]}
 
 
-def test_queries_legacy_and_o3_still_refuse_evidence_edges():
-    braking = _braking([{"predicate": "hasRelevantEvidenceContract"}])
-    for authority in ("legacy", "o3", None):
-        with pytest.raises(RuntimeError, match="blocked"):
-            queries.evidence_contract_state(braking, authority)
-    assert queries.evidence_contract_state(_braking([]), "o3") == "blocked"
-
-
 def test_queries_model_requires_resolved_evidence_edges():
     assert queries.evidence_contract_state(
         _braking([{"predicate": "hasRelevantEvidenceContract", "semantic_strength": "relevance"}],
-                 gaps=()), "model") == "resolved"
+                 gaps=())) == "resolved"
     with pytest.raises(RuntimeError, match="no hasRelevantEvidenceContract"):
-        queries.evidence_contract_state(_braking([]), "model")
+        queries.evidence_contract_state(_braking([]))
 
 
 def test_queries_model_bundle_id_must_be_literal(tmp_path):
@@ -183,56 +177,54 @@ def test_mcp_model_proof_a_refuses(neighbors, coverage, match):
         mcp.require_resolved_evidence_state(neighbors, coverage)
 
 
-def test_mcp_proof_a_dispatch_by_authority(monkeypatch):
+def test_mcp_proof_a_is_the_resolved_range_only(monkeypatch):
     calls = []
-    monkeypatch.setattr(mcp, "_require_blocked_evidence_state", lambda n, c: calls.append("blocked"))
     monkeypatch.setattr(mcp, "require_resolved_evidence_state", lambda n, c: calls.append("resolved"))
-    mcp.require_proof_a({}, {}, "legacy")
-    mcp.require_proof_a({}, {}, "o3")
-    mcp.require_proof_a({}, {}, "model")
-    assert calls == ["blocked", "blocked", "resolved"]
+    mcp.require_proof_a({}, {})
+    assert calls == ["resolved"]
+    assert not hasattr(mcp, "_require_blocked_evidence_state")
 
 
 def test_mcp_server_arguments_carry_model_bundle(tmp_path):
-    args = mcp.server_authority_arguments(authority="model", bundle_path=None, bundle_id=None,
-                                          composition=None,
+    args = mcp.server_authority_arguments(authority="model",
                                           model_bundle_path=tmp_path / "mab.json",
                                           model_bundle_id=MAB_ID)
     assert args == ["--semantic-authority", "model",
                     "--model-authority-bundle", str(tmp_path / "mab.json"),
                     "--model-authority-bundle-id", MAB_ID]
+    candidate = mcp.server_authority_arguments(authority="model", model_bundle_path=None,
+                                               model_bundle_id=MAB_ID,
+                                               allow_candidate_bundle=True)
+    assert candidate[-1] == "--allow-candidate-bundle"
 
 
 # -- product-line scope: contract from the selected runtime -----------------------
 
 
-def test_scope_contract_identity_from_selected_runtime(monkeypatch, tmp_path):
+def test_scope_runtime_is_built_through_the_entry_seam(monkeypatch, tmp_path):
     seen = {}
-    identity = SimpleNamespace(name="model-identity")
 
     def build(**kwargs):
         seen.update(kwargs)
-        return SimpleNamespace(contract=SimpleNamespace(identity=identity)), None
+        return "runtime", "selection"
 
     from de4sdv.semantic import entry_authority
 
     monkeypatch.setattr(entry_authority, "build_entry_semantic_runtime", build)
-    got = scope.selected_contract_identity(
+    got = scope.selected_runtime(
         api_url="u", binding_path=tmp_path / "b.json", git_commit="c" * 40,
         authority="model", model_bundle_path="/m.json", model_bundle_id=MAB_ID)
-    assert got is identity
+    assert got == ("runtime", "selection")
     assert seen["authority"] == "model" and seen["model_bundle_id"] == MAB_ID
     assert seen["environ"] == {}
+    assert "require_activation_eligible" not in seen
+    scope.selected_runtime(api_url="u", binding_path=tmp_path / "b.json", git_commit="c" * 40,
+                           authority="model", model_bundle_path="/m.json",
+                           model_bundle_id=MAB_ID, allow_candidate_bundle=True)
+    assert seen["require_activation_eligible"] is False
 
 
-def test_scope_legacy_default_keeps_authored_contract(monkeypatch, tmp_path):
-    from de4sdv.semantic import entry_authority
-
-    monkeypatch.setattr(entry_authority, "build_entry_semantic_runtime",
-                        lambda **kwargs: pytest.fail("legacy must not build a runtime"))
-    got = scope.selected_contract_identity(api_url="u", binding_path=tmp_path / "b",
-                                           git_commit="c" * 40)
-    from de4sdv.semantic.kernel_contract import KernelContract
-
-    assert got == KernelContract.load(
-        ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml").identity
+def test_scope_has_no_authored_contract_default():
+    assert not hasattr(scope, "selected_contract_identity")
+    source = (ROOT / "scripts/validate_product_line_scope_api.py").read_text(encoding="utf-8")
+    assert "de4sdv-basic-ontology" not in source and "KernelContract.load" not in source

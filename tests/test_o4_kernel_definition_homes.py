@@ -2,15 +2,17 @@
 from pathlib import Path
 import re
 
-import yaml
+import pytest
+
 
 from de4sdv.semantic.authority_inventory import declaration_block, normalize_text
+from model_contract_fixtures import (authored_definition, contract_equivalence_evidence,
+                                     model_contract, reviewed_definition)
 
 ROOT = Path(__file__).resolve().parents[1]
 KERNEL = "textual-notation-of-model/packages/methods/de4sdv/"
 CONTEXT = KERNEL + "de4sdv_method_context.sysml"
 MIDDLEWARE = "textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml"
-ONTOLOGY = "approach/framework/ontology/de4sdv-basic-ontology.yaml"
 AEBS = "textual-notation-of-model/packages/features/aebs/"
 # D4 population (owner decision 2026-10-06): exactly these eight AEBS definitions.
 AEBS_EVIDENCE_CONTRACTS = {
@@ -29,11 +31,10 @@ def test_acceptance_criterion_has_kernel_home_and_middleware_specialization():
     text = (ROOT / CONTEXT).read_text()
     block, bodyless = declaration_block(text, "requirement def AcceptanceCriterion")
     assert block and not bodyless, "D2 requires a kernel requirement definition"
-    ontology = yaml.safe_load((ROOT / ONTOLOGY).read_text())
-    assert ontology["classes"]["AcceptanceCriterion"]["kernel"] == {
+    assert model_contract().classes["AcceptanceCriterion"]["kernel"] == {
         "file": CONTEXT, "declaration": "requirement def AcceptanceCriterion"
     }
-    assert normalize_text(ontology["classes"]["AcceptanceCriterion"]["definition"]) in normalize_text(block)
+    assert normalize_text(reviewed_definition("AcceptanceCriterion")) in normalize_text(block)
     assert "de4sdv.acceptance.maintainer-decision.v1" in block
     middleware = re.sub(r"/\*.*?\*/|//[^\n]*", "", (ROOT / MIDDLEWARE).read_text(), flags=re.S)
     header = re.search(r"requirement\s+def\s+MiddlewareAcceptanceCriterion\s*:>\s*([^;{]+)", middleware)
@@ -44,11 +45,10 @@ def test_evidence_contract_is_a_planning_requirement_and_slices_are_typed():
     text = (ROOT / CONTEXT).read_text()
     block, bodyless = declaration_block(text, "requirement def EvidenceContract")
     assert block and not bodyless, "D4 requires a kernel requirement definition"
-    ontology = yaml.safe_load((ROOT / ONTOLOGY).read_text())
-    assert ontology["classes"]["EvidenceContract"]["kernel"] == {
+    assert model_contract().classes["EvidenceContract"]["kernel"] == {
         "file": CONTEXT, "declaration": "requirement def EvidenceContract"
     }
-    assert normalize_text(ontology["classes"]["EvidenceContract"]["definition"]) in normalize_text(block)
+    assert normalize_text(reviewed_definition("EvidenceContract")) in normalize_text(block)
     for path, declaration in AEBS_EVIDENCE_CONTRACTS.items():
         source = re.sub(r"/\*.*?\*/|//[^\n]*", "", (ROOT / path).read_text(), flags=re.S)
         header = re.search(r"requirement\s+def\s+" + declaration + r"\s*:>\s*([^;{]+)", source)
@@ -78,8 +78,7 @@ def test_evaluation_scope_structurally_owns_exclusions_with_reference_and_ration
     assert re.search(r"ref\s+excludedElement\s*:\s*Base::Anything\s*;", active)
     assert re.search(r"attribute\s+rationale\s*:\s*String\s*;", active)
     assert 'rationale != ""' in active
-    ontology = yaml.safe_load((ROOT / ONTOLOGY).read_text())
-    assert ontology["kernel_sync"]["exclusions"][path]["item def MethodEvaluationExclusion"].strip()
+    assert model_contract().exclusions[path]["item def MethodEvaluationExclusion"].strip()
     # Existing Python value representation remains compatible; no consumer rewiring.
     from de4sdv.semantic.method_contract import MethodEvaluationScope
     scope = MethodEvaluationScope("INC-SYNTHETIC", frozenset(), frozenset(), frozenset(), {}, {"excluded-id": "outside this slice"})
@@ -308,12 +307,14 @@ def _home_docs(row):
     return _direct_documentation(block)
 
 
-def test_all_yaml_definitions_have_exact_owned_model_documentation_homes():
+def test_all_authored_definitions_have_exact_owned_model_documentation_homes():
+    """Replaces ``test_all_yaml_definitions_have_exact_owned_model_documentation_homes``:
+    the authored definitions are read from the pre-deletion evidence
+    (closure/contract-equivalence.json) since O4 Wave C2 deleted the YAML."""
     import json
     document = json.loads((ROOT / "docs/method-conformance/o4/kernel-definition-homes.json").read_text())
-    ontology = yaml.safe_load((ROOT / ONTOLOGY).read_text())
-    required = {(kind, name) for kind in ("classes", "relationships")
-                for name, row in ontology[kind].items() if row.get("definition")}
+    authored = contract_equivalence_evidence()["authored_definitions"]["entries"]
+    required = {tuple(key.split(":", 1)) for key in authored}
     entries = document["definitions"]
     assert len(entries) == len(required) == 76
     assert {(row["kind"], row["identity"]) for row in entries} == required
@@ -321,7 +322,7 @@ def test_all_yaml_definitions_have_exact_owned_model_documentation_homes():
         candidates = [body for name, body in _home_docs(row) if name == row["documentation_name"]]
         assert len(candidates) > row["documentation_index"], row["identity"]
         assert normalize_text(candidates[row["documentation_index"]]) == normalize_text(
-            ontology[row["kind"]][row["identity"]]["definition"]
+            authored_definition(row["kind"], row["identity"])
         ), row["identity"]
 
 
@@ -371,8 +372,8 @@ def test_no_documentation_name_shadows_a_model_or_library_name():
     """Licensed Syside run 37411981652: ``doc VerificationMethod`` shadowed the
     library metadata for every importer. Kernel Documentation names must be
     unique ``ontologyDefinition`` or ``<Term>OntologyDefinition`` forms."""
-    ontology = yaml.safe_load((ROOT / ONTOLOGY).read_text())
-    vocabulary = set(ontology["classes"]) | set(ontology["relationships"])
+    contract = model_contract()
+    vocabulary = set(contract.classes) | set(contract.relationships) | set(contract.refused)
     declared = set()
     for path in sorted((ROOT / KERNEL).glob("*.sysml")):
         active = re.sub(r"/\*.*?\*/|//[^\n]*", " ", path.read_text(), flags=re.S)
@@ -526,8 +527,7 @@ def test_has_relevant_evidence_contract_discriminator_is_model_resident_vocabula
     for phrase in ("specialization closure", "governed kernel mapping", "never by a name",
                    "AcceptanceCriterion typing", "Vocabulary only", "existing dependency mapping"):
         assert normalize_text(phrase) in body, phrase
-    ontology = yaml.safe_load((ROOT / ONTOLOGY).read_text())
-    assert ontology["relationships"]["hasRelevantEvidenceContract"]["sysml_mapping"]["strategy"] == "dependency"
+    assert model_contract().relationship_mapping("hasRelevantEvidenceContract").strategy == "dependency"
 
 
 def test_named_docs_do_not_borrow_nested_or_comment_only_homes():
@@ -556,5 +556,7 @@ def test_canonical_architecture_remains_non_queryable_documentation_only():
     text = (ROOT / (KERNEL + "de4sdv_product_line.sysml")).read_text()
     annotation = re.search(r"comment\s+about\s+instantiatesCanonicalArchitectureOntologyDefinition\s*/\*(.*?)\*/", text, re.S)
     assert annotation and "not queryable; no product-to-canonical reachability claimed" in " ".join(annotation[1].split())
-    ontology = yaml.safe_load((ROOT / ONTOLOGY).read_text())
-    assert "sysml_mapping" not in ontology["relationships"]["instantiatesCanonicalArchitecture"]
+    contract = model_contract()
+    assert "sysml_mapping" not in contract.relationships["instantiatesCanonicalArchitecture"]
+    with pytest.raises(KeyError, match="no SysML mapping"):
+        contract.relationship_mapping("instantiatesCanonicalArchitecture")

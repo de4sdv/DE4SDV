@@ -2,7 +2,7 @@
 
 Derives requirement-subject (and, where mapped, verification) relations
 from the **deployed SysML v2 API** through the repository's semantic
-runtime — ontology-declared predicates, revision-binding enforced,
+runtime — model-authority predicates, revision-binding enforced,
 UUID-addressed — instead of re-deriving them from source text.
 
 Grounding contract (unchanged): every relation listed exists in the
@@ -20,7 +20,7 @@ Cold-load policy (visitors never wait):
   - while warming, /ask serves the regex path immediately, labeled
     "regex:warming" — it never blocks on the cold load;
   - the snapshot is only trusted AFTER the runtime's binding checks pass
-    (expected Git SHA, ontology identity) and only when its recorded
+    (expected Git SHA, semantic-authority identity) and only when its recorded
     project/commit identity matches the binding exactly.
 
 Fallback ladder (explicit, never silent about which path produced the
@@ -70,8 +70,8 @@ def semantic_authority_status() -> dict:
     """Deployment provenance: which semantic authority is requested/served.
 
     Always available (even before warmup or after a fail-closed startup):
-    reports the explicit selector, the exact bundle id for an O3 selection,
-    and — once the runtime is built — the served authority id. An invalid
+    reports the explicit selector, the exact model-authority bundle id, and
+    — once the runtime is built — the served authority id. An invalid
     selector surfaces its error here; semantic answers are refused in that
     state (the explicitly labeled regex path never consults semantic
     authority).
@@ -80,8 +80,9 @@ def semantic_authority_status() -> dict:
         block = dict(_AUTHORITY_SELECTION)
     else:
         try:
-            # legacy | o3 | model; the seam never builds a runtime here and
-            # reports an invalid selector instead of raising.
+            # model only (unset, legacy, o3 are refused); the seam never
+            # builds a runtime here and reports an invalid selector instead
+            # of raising.
             from de4sdv.semantic.entry_authority import entry_authority_status
 
             block = entry_authority_status(os.environ)
@@ -91,7 +92,7 @@ def semantic_authority_status() -> dict:
                 "error": str(exc),
                 "note": (
                     "semantic authority selector is invalid; semantic "
-                    "answers are refused (no fallback to legacy authority)"
+                    "answers are refused (no fallback to another authority)"
                 ),
             }
     service = _SEMANTIC_RUNTIME
@@ -106,26 +107,22 @@ def semantic_enabled() -> bool:
     return os.environ.get("NOUS_ASK_SEMANTIC", "").strip() not in ("", "0", "false")
 
 
-def _runtime(*, composition=None, bundle_path=None, bundle_id=None):
+def _runtime():
     """Build the semantic runtime once per process (fail-closed contract).
 
     Authority is selected explicitly through the deployment environment
-    (``DE4SDV_SEMANTIC_AUTHORITY`` = legacy | o3 | model; default legacy).
-    A requested O3 or model-authority bundle that fails selection or startup
-    verification raises here — the viewer
-    serves NO semantic answers in that state and never degrades to legacy
-    answers; the failure is surfaced through ``semantic_authority_status()``
-    and ``warm_status()``.
+    (``DE4SDV_SEMANTIC_AUTHORITY=model`` with the model-authority bundle
+    path and id; there is no default). A selector or bundle that fails
+    selection or startup verification raises here — the viewer serves NO
+    semantic answers in that state; the failure is surfaced through
+    ``semantic_authority_status()`` and ``warm_status()``.
     """
     global _SEMANTIC_RUNTIME, _SEMANTIC_ERROR, _AUTHORITY_SELECTION
     if _SEMANTIC_RUNTIME is not None:
-        if composition is not None:
-            raise RuntimeError("explicit composition requires a fresh viewer runtime; cached authority is not replaced")
         return _SEMANTIC_RUNTIME
     if _SEMANTIC_ERROR is not None:
         raise RuntimeError(_SEMANTIC_ERROR)
 
-    repo = Path(__file__).resolve().parents[2]
     api_url = os.environ.get("DE4SDV_SYSML_API_URL",
                              "https://sysml-api.de4sdv.org")
     binding = os.environ.get(
@@ -133,10 +130,6 @@ def _runtime(*, composition=None, bundle_path=None, bundle_id=None):
         str(Path.home() / ".hermes/de4sdv-semantic/binding.json"),
     )
     expected = os.environ.get("DE4SDV_EXPECTED_GIT_SHA", "")
-    ontology = os.environ.get(
-        "DE4SDV_ONTOLOGY_PATH",
-        str(repo / "approach/framework/ontology/de4sdv-basic-ontology.yaml"),
-    )
     missing = [n for n, v in (
         ("DE4SDV_EXPECTED_GIT_SHA", expected),
     ) if not v]
@@ -152,10 +145,7 @@ def _runtime(*, composition=None, bundle_path=None, bundle_id=None):
             api_url=api_url,
             binding_path=Path(binding),
             expected_git_revision=expected,
-            ontology_path=Path(ontology),
             api_timeout=float(os.environ.get("DE4SDV_API_TIMEOUT", "900")),
-            **({"composition": composition, "authority": "o3", "bundle_path": bundle_path,
-                "bundle_id": bundle_id} if composition is not None else {}),
         )
         _AUTHORITY_SELECTION = selection.provenance()
     except Exception as exc:  # noqa: BLE001 — fail-closed, error kept
@@ -165,7 +155,7 @@ def _runtime(*, composition=None, bundle_path=None, bundle_id=None):
 
 
 # ---- per-revision disk snapshot of the API element corpus -----------------
-# Only the network retrieval is replaced; binding/ontology enforcement
+# Only the network retrieval is replaced; binding/semantic-authority enforcement
 # still runs on every call and the snapshot identity must match the
 # binding exactly. Snapshots live outside the repo (default ~/.cache).
 

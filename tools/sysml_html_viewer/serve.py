@@ -454,7 +454,7 @@ class _Handler(SimpleHTTPRequestHandler):
                 "application_git_commit": server.application_revision,
                 "model_git_commit": server.model_revision,
                 # Deployment provenance: which semantic authority serves
-                # answers (legacy | o3 + exact bundle id + revision); an
+                # answers (model + exact mab- bundle id + revision); an
                 # invalid selector surfaces its error here and semantic
                 # answers are refused in that state.
                 "semantic_authority": semantic_authority_status(),

@@ -325,14 +325,14 @@ def test_kernel_binding_echo_mismatch_fails_closed(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_frozen_o3_identity_overlap_fails_closed(tmp_path):
+def test_frozen_o2_chain_identity_overlap_fails_closed(tmp_path):
     identities = ["Assumption", "VerificationCase"]
     _write_pair(tmp_path, _projection(identities), _profile(identities))
     with pytest.raises(DefinitionCandidateError) as excinfo:
         _load(tmp_path)
     message = str(excinfo.value)
     assert "VerificationCase" in message
-    assert "frozen O3" in message
+    assert "frozen O2-chain" in message
 
 
 # ---------------------------------------------------------------------------
@@ -341,7 +341,7 @@ def test_frozen_o3_identity_overlap_fails_closed(tmp_path):
 
 
 def test_real_repository_pair_loads_through_existing_validators():
-    from de4sdv.semantic.o3_bundle import MIGRATED_IDENTITIES
+    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
 
     committed = json.loads(
         (REPO_ROOT / O4_DIR / PROJECTION_NAME).read_text(encoding="utf-8")
@@ -390,14 +390,12 @@ def test_tampered_committed_projection_is_refused_and_restored():
 def test_candidate_loader_is_never_referenced_by_runtime_modules():
     """The runtime never imports or loads the candidate loader/provider.
 
-    The explicit runtime seam receives an ALREADY-CONSTRUCTED candidate
-    authority object as a parameter (``definition_candidate_authority``);
-    no runtime module may import, load or name the candidate modules
-    themselves.
+    Only the model-authority construction path (definition_migration) loads
+    the verified pair; the query surfaces never import, load or name the
+    candidate modules themselves.
     """
     runtime_modules = (
         "de4sdv/semantic/query.py",
-        "de4sdv/semantic/runtime.py",
         "de4sdv/semantic/traversal.py",
         "de4sdv/semantic/impact.py",
         "de4sdv/semantic/mcp_server.py",

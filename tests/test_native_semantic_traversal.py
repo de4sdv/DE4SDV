@@ -20,6 +20,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Iterator
 
 import pytest
+from model_contract_fixtures import model_contract  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -59,9 +60,7 @@ def api_server_fixture() -> Iterator[tuple[str, type[_ApiHandler]]]:
 def _contract():
     from de4sdv.semantic.kernel_contract import KernelContract
 
-    return KernelContract.load(
-        ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-    )
+    return model_contract()
 
 
 def _kernel_requirement() -> dict:
@@ -123,6 +122,7 @@ def _kernel_index():
     return KernelBindingIndex.from_binding(
         RevisionBinding.from_dict(
             {
+                "schema": "de4sdv.revision-binding/v2",
                 "git_repository": "de4sdv/DE4SDV",
                 "git_commit": "a" * 40,
                 "sysml_project_id": "project-1",
@@ -131,7 +131,7 @@ def _kernel_index():
                 "import_tool_version": "test",
                 "semantic_validation": "passed",
                 "scope": "fixture",
-                "ontology": _contract().identity.to_dict(),
+                "semantic_authority": _contract().identity.to_dict(),
                 "kernel_bindings": [
                     {
                         "ontology_class": "Requirement",
@@ -591,6 +591,7 @@ def test_impact_service_reports_native_edges_against_real_shapes(
 
     binding = RevisionBinding.from_dict(
         {
+            "schema": "de4sdv.revision-binding/v2",
             "git_repository": "de4sdv/DE4SDV",
             "git_commit": "a" * 40,
             "sysml_project_id": "project-1",
@@ -599,7 +600,7 @@ def test_impact_service_reports_native_edges_against_real_shapes(
             "import_tool_version": "test",
             "semantic_validation": "passed",
             "scope": "full-model",
-            "ontology": _contract().identity.to_dict(),
+            "semantic_authority": _contract().identity.to_dict(),
             "kernel_bindings": [
                 {
                     "ontology_class": "Requirement",
@@ -622,18 +623,10 @@ def test_impact_service_reports_native_edges_against_real_shapes(
             ],
         }
     )
-    contract = _contract()
-    index = KernelBindingIndex.from_binding(binding)
-    service = ImpactService(
-        repository=repository,
-        binding=binding,
-        contract=contract,
-        binder=OntologyApiBinder(
-            contract, repository, project_id="project-1", commit_id="commit-1",
-            kernel_bindings=index,
-        ),
-        traversal=SemanticTraversal(contract, kernel_bindings=index),
-    )
+    from model_contract_fixtures import model_service
+
+    # O4 Wave C2: the production impact surface of the model-authority runtime.
+    service = model_service(binding, repository).impact_service
     result = service.impact("reqCommandEmergencyBraking", git_revision="a" * 40)
 
     predicates = {edge["predicate"] for edge in result["edges"]}

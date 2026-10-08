@@ -2,8 +2,8 @@
  * Profile records below are construction inputs, never query-time source text.
  * Relation and retirement records carry engineering semantics only (predicate,
  * carrier, mechanism, strength, endpoint classes, inverse). Endpoint class
- * pins come from the authored ontology's kernel mappings, not from file paths
- * in this model. Each class/carrier pin routes from an ingestion-validated
+ * pins come from the class mappings of the model-generated projection layers,
+ * not from file paths in this model. Each class/carrier pin routes from an ingestion-validated
  * exact source-file and declaration tuple. Runtime never derives UUIDs by name.
  * Allocations retain responsibility assignment only; no satisfaction,
  * transitivity, execution, fulfillment, deployment or compliance is asserted.

@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -45,18 +44,13 @@ def _json_text(value: object) -> str:
     return json.dumps(value, sort_keys=True, default=str)
 
 
-def evidence_contract_state(braking: dict[str, Any], authority: str | None) -> str:
-    """Check the hasRelevantEvidenceContract state for the selected authority.
+def evidence_contract_state(braking: dict[str, Any]) -> str:
+    """The hasRelevantEvidenceContract state under the model authority.
 
-    legacy / o3: the declared EvidenceContract range is blocked at the
-    reviewed revision (c5 correction), so the governed traversal must not
-    claim any evidence-contract edge and the braking requirement must report
-    an explicit evidence gap.
-
-    model (O4 Wave B, owner decision 5): the ``hasRelevantEvidenceContract``
+    Owner decision 5 (2026-10-07): the ``hasRelevantEvidenceContract``
     discriminator is adopted (range = the EvidenceContract type closure), so
     the braking requirement must expose at least one resolved
-    evidence-contract edge; a model runtime that still blocks the range is a
+    evidence-contract edge; a runtime that still blocks the range is a
     refusal, not an ordinary absence.
     """
     evidence_edges = [
@@ -64,34 +58,13 @@ def evidence_contract_state(braking: dict[str, Any], authority: str | None) -> s
         for edge in braking["edges"]
         if edge["predicate"] == "hasRelevantEvidenceContract"
     ]
-    gap_categories = {gap["category"] for gap in braking["gaps"]}
-    if str(authority or "legacy").strip().lower() == "model":
-        if not evidence_edges:
-            raise RuntimeError(
-                "model authority: reqCommandEmergencyBraking exposed no "
-                "hasRelevantEvidenceContract edge although the EvidenceContract "
-                "discriminator is adopted"
-            )
-        return "resolved"
-    # c5 correction: the declared EvidenceContract range is blocked at the
-    # reviewed revision (no machine-resolvable identity discriminator
-    # separates an evidence-contract usage from every other verified
-    # requirement usage), so the governed traversal must not claim any
-    # evidence-contract edge. The raw Dependency witnesses remain model facts
-    # but are not evidence-contract hops; this supersedes the earlier
-    # three-link retention assertion.
-    if evidence_edges:
+    if not evidence_edges:
         raise RuntimeError(
-            "imported reqCommandEmergencyBraking reported "
-            "hasRelevantEvidenceContract edges while the declared range is "
-            "blocked"
+            "model authority: reqCommandEmergencyBraking exposed no "
+            "hasRelevantEvidenceContract edge although the EvidenceContract "
+            "discriminator is adopted"
         )
-    if "evidence" not in gap_categories:
-        raise RuntimeError(
-            "blocked EvidenceContract range was not reported as an explicit "
-            "evidence gap"
-        )
-    return "blocked"
+    return "resolved"
 
 
 def _git_head() -> str:
@@ -102,9 +75,8 @@ def _git_head() -> str:
 
 def run_queries(
     *, api_url: str, binding_path: Path, semantic_report_path: Path,
-    authority: str = "legacy", bundle_path: str | Path | None = None,
-    bundle_id: str | None = None, composition: str | None = None,
-    model_bundle_path: str | Path | None = None, model_bundle_id: str | None = None,
+    authority: str | None = None, model_bundle_path: str | Path | None = None,
+    model_bundle_id: str | None = None, allow_candidate_bundle: bool = False,
 ) -> dict[str, Any]:
     from de4sdv.semantic import entry_authority
 
@@ -112,11 +84,6 @@ def run_queries(
         raise ValueError(
             "model-authority bundle ID must be a literal mab-<32 or 64 lowercase hex> token"
         )
-    if bundle_id is not None and (
-        not isinstance(bundle_id, str)
-        or re.fullmatch(r"o3b-[0-9a-f]{32}", bundle_id) is None
-    ):
-        raise ValueError("O3 bundle ID must be a literal o3b-<32 lowercase hex> token")
     git_commit = _git_head()
     binding = RevisionBinding.load(binding_path)
     binding.require_current(git_commit)
@@ -135,23 +102,22 @@ def run_queries(
         raise RuntimeError(
             f"semantic report/binding revision mismatch: {expected_revision} != {actual_revision}"
         )
-    if not semantic_report.get("ontology", {}).get("passed"):
-        raise RuntimeError("ontology report is not passed")
+    if not semantic_report.get("kernel_binding_validation", {}).get("passed"):
+        raise RuntimeError("kernel binding validation report is not passed")
     if int(semantic_report.get("source_document_count", 0)) < 3:
         raise RuntimeError("semantic report does not prove a multi-document full baseline")
 
-    if semantic_report.get("ontology_identity") != binding.ontology.to_dict():
+    if semantic_report.get("semantic_authority") != binding.semantic_authority.to_dict():
         raise RuntimeError(
-            "semantic report ontology identity does not match the validated binding"
+            "semantic report semantic authority does not match the validated binding"
         )
     runtime, selection = entry_authority.build_entry_semantic_runtime(
         api_url=api_url, binding_path=binding_path, expected_git_revision=git_commit,
-        ontology_path=ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml",
-        authority=authority, bundle_path=bundle_path, bundle_id=bundle_id,
-        model_bundle_path=model_bundle_path, model_bundle_id=model_bundle_id,
-        composition=composition, environ={},
+        authority=authority, model_bundle_path=model_bundle_path,
+        model_bundle_id=model_bundle_id, environ={},
+        **({"require_activation_eligible": False} if allow_candidate_bundle else {}),
     )
-    binding.require_ontology(runtime.contract.identity)
+    binding.require_semantic_authority(runtime.contract.identity)
     service = runtime.impact_service
     results: list[dict[str, Any]] = []
     allowed_strengths = {
@@ -189,7 +155,7 @@ def run_queries(
         for result in results
         if result["identifier"] == "reqCommandEmergencyBraking"
     )
-    evidence_state = evidence_contract_state(braking, authority)
+    evidence_state = evidence_contract_state(braking)
     subject_edges = [
         edge
         for edge in braking["edges"]
@@ -233,11 +199,9 @@ def run_queries(
         "sysml_commit_id": binding.sysml_commit_id,
         "concern_count": len({case.concern for case in QUERY_CASES}),
         "results": results,
+        "semantic_authority": selection.provenance(),
+        "evidence_contract_state": evidence_state,
     }
-    if getattr(selection, "kind", None) == "model":
-        # Additive only for the model path: legacy/O3 outputs stay byte-shaped.
-        report["semantic_authority"] = selection.provenance()
-        report["evidence_contract_state"] = evidence_state
     return report
 
 
@@ -247,21 +211,21 @@ def main() -> int:
     parser.add_argument("--binding", type=Path, required=True)
     parser.add_argument("--semantic-report", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--semantic-authority", default="legacy")
-    parser.add_argument("--o3-authority-bundle")
-    parser.add_argument("--o3-authority-bundle-id")
+    parser.add_argument("--semantic-authority",
+                        help="model (the only accepted value; default DE4SDV_SEMANTIC_AUTHORITY)")
     parser.add_argument("--model-authority-bundle")
     parser.add_argument("--model-authority-bundle-id")
-    parser.add_argument("--runtime-composition", help="explicit non-production o3+definitions")
+    parser.add_argument("--allow-candidate-bundle", action="store_true",
+                        help="serve an unclosed candidate bundle (privileged evidence steps only)")
     args = parser.parse_args()
     result = run_queries(
         api_url=args.api_url,
         binding_path=args.binding,
         semantic_report_path=args.semantic_report,
-        authority=args.semantic_authority, bundle_path=args.o3_authority_bundle,
-        bundle_id=args.o3_authority_bundle_id, composition=args.runtime_composition,
+        authority=args.semantic_authority,
         model_bundle_path=args.model_authority_bundle,
         model_bundle_id=args.model_authority_bundle_id,
+        allow_candidate_bundle=args.allow_candidate_bundle,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(

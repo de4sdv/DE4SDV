@@ -632,12 +632,15 @@ def test_r003_groundings_come_from_the_model_rule_home():
     assert exclusions == {"ProblemStatement": (_CONTEXT, "requirement def ProblemStatement")}
 
 
-def test_sync_point_6_does_not_read_the_authored_ontology(tmp_path):
-    """With the authored ontology path pointing nowhere, SP6 still passes."""
+def test_sync_point_6_does_not_read_the_authored_ontology():
+    """SP6 reads the model rule home; the authored ontology (deleted in O4 Wave
+    C2) and its loader symbol are gone from the gate."""
     errors: list[str] = []
-    with mock.patch.object(check_model_sync, "ONTOLOGY_YAML", tmp_path / "absent.yaml"):
-        check_model_sync.check_requirement_derivation_coverage(errors)
+    check_model_sync.check_requirement_derivation_coverage(errors)
     assert errors == []
+    source = Path(check_model_sync.__file__).read_text(encoding="utf-8")
+    assert not hasattr(check_model_sync, "ONTOLOGY_YAML")
+    assert "de4sdv-basic-ontology" not in source
 
 
 def _rule_home_text(mutate) -> str:

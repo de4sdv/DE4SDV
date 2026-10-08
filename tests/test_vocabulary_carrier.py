@@ -55,6 +55,27 @@ _SYSML = """package DE4SDV_MethodVocabularyCarriers {
 """
 
 
+_SYNTHETIC_INDEX = "synthetic-kernel-index.json"
+
+
+@pytest.fixture(autouse=True)
+def _synthetic_kernel_index(monkeypatch):
+    """Synthetic repositories carry their kernel index as a test file; the
+    real checkout uses the model-built contract (``_ontology_kernel_index``)."""
+    from de4sdv.semantic import vocabulary_carrier
+
+    real = vocabulary_carrier._ontology_kernel_index
+
+    def index(root):
+        path = Path(root) / _SYNTHETIC_INDEX
+        if path.is_file():
+            return {name: (tuple(pin) if pin else None)
+                    for name, pin in json.loads(path.read_text(encoding="utf-8")).items()}
+        return real(root)
+
+    monkeypatch.setattr(vocabulary_carrier, "_ontology_kernel_index", index)
+
+
 def _model(tmp_path: Path) -> Path:
     root = tmp_path / "repo"
     carrier = root / _CARRIER_FILE
@@ -75,28 +96,17 @@ def _model(tmp_path: Path) -> Path:
         encoding="utf-8",
     )
     (root / _DESIGN_DOC).write_text("# design\n", encoding="utf-8")
-    ontology = root / "approach" / "framework" / "ontology" / "de4sdv-basic-ontology.yaml"
-    ontology.parent.mkdir(parents=True)
-    ontology.write_text(
-        "kernel_sync:\n"
-        "  governed_directory: textual-notation-of-model/packages/methods/de4sdv\n"
-        "  exclusions: {}\n"
-        "classes:\n"
-        "  EngineeringIncrement:\n"
-        f"    kernel: {{file: {_CARRIER_FILE}, declaration: 'part def EngineeringIncrement'}}\n"
-        "  Gap:\n"
-        f"    kernel: {{file: {_CARRIER_FILE}, declaration: 'part def IncrementGap'}}\n"
-        "  Assumption:\n"
-        f"    kernel: {{file: {_CARRIER_FILE}, declaration: 'part def IncrementAssumption'}}\n"
-        "  Concern:\n"
-        "    kernel: {native: concern}\n"
-        "  Viewpoint:\n"
-        "    kernel: {native: viewpoint}\n"
-        "  View:\n"
-        "    kernel: {native: view}\n"
-        "relationships: {}\n",
-        encoding="utf-8",
-    )
+    # Synthetic kernel index (identity -> [file, declaration] or null for
+    # native/external semantics): stands in for the model-built contract's
+    # class mappings of this synthetic repository (O4 Wave C2; no ontology file).
+    (root / _SYNTHETIC_INDEX).write_text(json.dumps({
+        "EngineeringIncrement": [_CARRIER_FILE, "part def EngineeringIncrement"],
+        "Gap": [_CARRIER_FILE, "part def IncrementGap"],
+        "Assumption": [_CARRIER_FILE, "part def IncrementAssumption"],
+        "Concern": None,
+        "Viewpoint": None,
+        "View": None,
+    }), encoding="utf-8")
     return root
 
 
@@ -623,17 +633,11 @@ def test_declaration_pin_must_agree_with_the_ontology_mapping(tmp_path):
         "declaration": "part def IncrementGap",
     }
     with pytest.raises(CarrierError, match="ontology kernel mapping"):
-        # Re-point the ontology mapping: the pin no longer agrees.
-        ontology = (
-            root / "approach" / "framework" / "ontology" / "de4sdv-basic-ontology.yaml"
-        )
-        ontology.write_text(
-            ontology.read_text().replace(
-                f"kernel: {{file: {_CARRIER_FILE}, declaration: 'part def IncrementGap'}}",
-                f"kernel: {{file: {_CARRIER_FILE}, declaration: 'part def EngineeringIncrement'}}",
-            ),
-            encoding="utf-8",
-        )
+        # Re-point the kernel mapping: the pin no longer agrees.
+        index_path = root / _SYNTHETIC_INDEX
+        index = json.loads(index_path.read_text(encoding="utf-8"))
+        index["Gap"] = [_CARRIER_FILE, "part def EngineeringIncrement"]
+        index_path.write_text(json.dumps(index), encoding="utf-8")
         _build(root, document, _review())
 
 

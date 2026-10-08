@@ -1,29 +1,18 @@
-"""Entry-point authority seam for the O4 Wave B model-authority selector.
+"""Entry-point authority seam (O4 Wave C2: model authority only).
 
 Production surfaces select semantic authority explicitly:
 
-    DE4SDV_SEMANTIC_AUTHORITY = legacy | o3 | model     (default: legacy)
-
-``legacy`` and ``o3`` are resolved by the frozen O3 machinery
-(``authority_selection`` is a member of the O3 runtime build, so it is not
-edited: its behavior — and therefore the O3 rollback path — stays
-byte-identical). The one canonical router is
-``composition_construction.build_explicit_semantic_runtime``; this module
-resolves and identity-checks a ``model`` request around it and delegates every
-other value unchanged:
-
+    DE4SDV_SEMANTIC_AUTHORITY = model
     DE4SDV_MODEL_AUTHORITY_BUNDLE    = <path to the model-authority bundle JSON>
     DE4SDV_MODEL_AUTHORITY_BUNDLE_ID = mab-<hex>
 
-A ``model`` request is bundle-id-bound and fails closed: a missing path or
-id, a malformed id, a missing file, a refusal by the model-authority runtime,
-or any identity mismatch between the requested id and the served runtime
-refuses startup. There is no fallback from a requested model authority to
-O3 or legacy; rollback is an explicit selector change (``=o3`` with a fresh
-O3 bundle at the same revision, legacy second).
-
-The router imports the model-authority runtime only for a model selection,
-so legacy/O3 startup never depends on it.
+The request is bundle-id-bound and fails closed: an unset, retired
+(``legacy``/``o3``) or unknown selector, a missing path or id, a malformed
+id, a missing file, a refusal by the model-authority runtime, or any identity
+mismatch between the requested id and the served runtime refuses startup.
+Rollback is a redeploy of the pre-Wave-C production revision, never a
+selector change. The one canonical router is
+``composition_construction.build_explicit_semantic_runtime``.
 """
 from __future__ import annotations
 
@@ -33,7 +22,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping
 
-from .authority_selection import AUTHORITY_ENV, AuthoritySelectionError
+from .authority_selection import AUTHORITY_ENV, AuthoritySelectionError, require_model_selection
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -50,7 +39,6 @@ RUNTIME_CONTRACT_KEYS = (
     "api_url",
     "binding_path",
     "expected_git_revision",
-    "ontology_path",
     "api_timeout",
     "method_conformance",
     "method_context_provider",
@@ -79,16 +67,12 @@ class ModelAuthorityRequest:
 
 @dataclass(frozen=True)
 class ModelAuthoritySelection:
-    """Resolved model-authority selection (same duck type as O3 selection)."""
+    """Resolved and identity-checked model-authority selection."""
 
     bundle_id: str
     bundle_path: Path
     status: dict[str, Any] = field(default_factory=dict)
     kind: str = MODEL_AUTHORITY
-
-    @property
-    def is_o3(self) -> bool:
-        return False
 
     @property
     def is_model(self) -> bool:
@@ -101,14 +85,10 @@ class ModelAuthoritySelection:
             "bundle_id": self.bundle_id,
             "bundle_path": str(self.bundle_path),
             "source_revision": str(self.status.get("source_revision") or ""),
-            "residual": list(self.status.get("residual") or []),
+            "semantic_authority": str(self.status.get("semantic_authority") or ""),
+            "refused": list(self.status.get("refused") or []),
             "rollback": str(self.status.get("rollback") or ""),
         }
-
-
-def _selector_value(authority: str | None, env: Mapping[str, str]) -> str:
-    raw = authority if authority is not None else env.get(AUTHORITY_ENV, "")
-    return str(raw or "").strip().lower()
 
 
 def resolve_model_request(
@@ -117,15 +97,16 @@ def resolve_model_request(
     bundle_path: "str | Path | None" = None,
     bundle_id: str | None = None,
     environ: Mapping[str, str] | None = None,
-) -> ModelAuthorityRequest | None:
-    """Return the model request, or ``None`` for any non-model selector.
+) -> ModelAuthorityRequest:
+    """Resolve the model request (fail closed on any other selector).
 
-    Explicit arguments (CLI flags) win over the environment, exactly as in
-    the O3 resolver. Non-model values are left to that resolver untouched.
+    Explicit arguments (CLI flags) win over the environment.
     """
     env = os.environ if environ is None else environ
-    if _selector_value(authority, env) != MODEL_AUTHORITY:
-        return None
+    try:
+        require_model_selection(authority, env)
+    except AuthoritySelectionError as exc:
+        raise ModelAuthoritySelectionError(str(exc)) from exc
     raw_path = bundle_path if bundle_path is not None else env.get(MODEL_BUNDLE_PATH_ENV, "")
     raw_id = bundle_id if bundle_id is not None else env.get(MODEL_BUNDLE_ID_ENV, "")
     if not str(raw_path or "").strip():
@@ -147,7 +128,7 @@ def resolve_model_request(
     if not path.is_file():
         raise ModelAuthoritySelectionError(
             f"model-authority bundle not found: {path} (no other bundle is "
-            "substituted; O3 and legacy are never used as a fallback)"
+            "substituted and no other authority exists)"
         )
     return ModelAuthorityRequest(bundle_path=path, bundle_id=str(raw_id))
 
@@ -183,11 +164,8 @@ def require_model_identity(service: Any, request: ModelAuthorityRequest) -> dict
 def build_model_runtime(request: ModelAuthorityRequest, **runtime_kwargs: Any):
     """Build and identity-check the model-authority runtime (fail closed).
 
-    Construction goes through the one canonical router,
-    ``composition_construction.build_explicit_semantic_runtime``; this seam
-    only resolves the request up front and cross-checks the served identity.
     Activation eligibility is required unless the caller explicitly passes
-    ``require_activation_eligible=False`` (the privileged candidate compare).
+    ``require_activation_eligible=False`` (privileged evidence steps only).
     """
     unknown = sorted(set(runtime_kwargs) - set(RUNTIME_CONTRACT_KEYS))
     if unknown:
@@ -222,41 +200,25 @@ def _delegate(**kwargs: Any):
 
 def build_entry_semantic_runtime(
     *,
-    composition: str | None = None,
     authority: str | None = None,
     model_bundle_path: "str | Path | None" = None,
     model_bundle_id: str | None = None,
     environ: Mapping[str, str] | None = None,
     **kwargs: Any,
 ) -> tuple[Any, Any]:
-    """One construction call for every entry point.
-
-    ``model`` is resolved and identity-checked here, then built by the same
-    canonical router as every other selector, which receives legacy/o3/
-    composition requests unchanged.
-    """
+    """One construction call for every entry point (model authority only)."""
     request = resolve_model_request(
         authority=authority,
         bundle_path=model_bundle_path,
         bundle_id=model_bundle_id,
         environ=environ,
     )
-    if request is None:
-        delegated: dict[str, Any] = dict(kwargs)
-        if composition is not None:
-            delegated["composition"] = composition
-        if authority is not None:
-            delegated["authority"] = authority
-        if environ is not None:
-            delegated["environ"] = environ
-        return _delegate(**delegated)
-    if composition is not None:
+    unknown = sorted(set(kwargs) - set(RUNTIME_CONTRACT_KEYS))
+    if unknown:
         raise ModelAuthoritySelectionError(
-            "explicit runtime composition is a non-production O3 sidecar and "
-            "cannot be combined with model authority"
+            f"unsupported entry-point runtime arguments: {unknown}"
         )
-    runtime_kwargs = {key: kwargs[key] for key in RUNTIME_CONTRACT_KEYS if key in kwargs}
-    return build_model_runtime(request, **runtime_kwargs)
+    return build_model_runtime(request, **kwargs)
 
 
 def entry_authority_status(environ: Mapping[str, str] | None = None) -> dict[str, Any]:
@@ -264,17 +226,13 @@ def entry_authority_status(environ: Mapping[str, str] | None = None) -> dict[str
     env = os.environ if environ is None else environ
     try:
         request = resolve_model_request(environ=env)
-        if request is not None:
-            return {
-                "kind": MODEL_AUTHORITY,
-                "authority_id": model_authority_id(request.bundle_id),
-                "bundle_id": request.bundle_id,
-                "bundle_path": str(request.bundle_path),
-                "state": "requested",
-            }
-        from .authority_selection import resolve_authority_selection
-
-        return resolve_authority_selection(environ=env).provenance()
+        return {
+            "kind": MODEL_AUTHORITY,
+            "authority_id": model_authority_id(request.bundle_id),
+            "bundle_id": request.bundle_id,
+            "bundle_path": str(request.bundle_path),
+            "state": "requested",
+        }
     except Exception as exc:  # noqa: BLE001 — status must survive
         return {
             "kind": "invalid",

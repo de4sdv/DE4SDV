@@ -1,8 +1,15 @@
-"""Validator wiring against synthetic API data, not privileged closure evidence."""
+"""Validator wiring under the model authority (O4 Wave C2), synthetic API data.
+
+The batteries run under a model-authority bundle (closed, or a candidate with
+the explicit ``--allow-candidate-bundle`` evidence flag). These tests drive
+the REAL MCP validator and the REAL stdio MCP server process against a
+synthetic SysML API serving a fixture that a real model bundle of this
+checkout verifies against (model-built contract, revision binding v2, kernel
+bindings for every pin). Not privileged closure evidence.
+"""
 from contextlib import asynccontextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
-import os
 from pathlib import Path
 import subprocess
 import sys
@@ -12,32 +19,76 @@ import anyio
 import pytest
 import mcp.client.stdio  # noqa: F401 — bind stderr at collection time
 
+from de4sdv.semantic import model_authority_runtime as mar
+from de4sdv.sysml_api.revisions import RevisionBinding
 from scripts import validate_semantic_mcp as validator
-from de4sdv.semantic.authority_ids import LEGACY_AUTHORITY_ID
-from test_c5_integration_closure import _kernel_bindings, _service_elements
-from test_semantic_mcp import ontology_identity
+from tests.model_contract_fixtures import binding_dict
+from test_model_authority_runtime import EC_DEFS, _close, _elements_and_bindings
 
 ROOT = Path(__file__).resolve().parents[1]
-ONTOLOGY = ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
 REVISION = "a" * 40
+PROJECT, COMMIT = "pid", "cid"
+
+
+def ref(identifier):
+    return {"@id": identifier}
+
+
+def _proof_elements():
+    """reqCommandEmergencyBraking (Proof A), the query cases, a verified req (Proof B)."""
+    elements = []
+
+    def requirement(identifier, name):
+        elements.extend([
+            {"@id": identifier, "@type": "RequirementUsage", "declaredName": name},
+            {"@id": f"{identifier}-typing", "@type": "FeatureTyping",
+             "owningRelatedElement": ref(identifier), "type": ref("root-Requirement"),
+             "typedFeature": ref(identifier)},
+        ])
+
+    requirement("req-braking", "reqCommandEmergencyBraking")
+    requirement("req-signal", "reqProvideMiddlewareSignalAccess")
+    requirement("req-binding", "reqAuthenticateServiceBinding")
+    requirement("req-1", "reqVerifiedByCase")
+    elements.extend([
+        {"@id": "product-1", "@type": "PartUsage", "declaredName": "memberProduct"},
+        {"@id": "product-1-typing", "@type": "FeatureTyping", "owningRelatedElement": ref("product-1"),
+         "type": ref("root-MemberProduct"), "typedFeature": ref("product-1")},
+        {"@id": "subject-membership", "@type": "SubjectMembership",
+         "owningRelatedElement": ref("req-braking"), "memberElement": ref("product-1")},
+        {"@id": "verification-1", "@type": "VerificationCaseUsage",
+         "declaredName": "nominalMovingVehicleTargetVerification"},
+        {"@id": "rvm-1", "@type": "RequirementVerificationMembership",
+         "owningRelatedElement": ref("verification-1"), "memberElement": ref("req-1")},
+    ])
+    for index in range(EC_DEFS):
+        elements.append({"@id": f"ec-braking-dep-{index}", "@type": "Dependency",
+                         "source": [ref(f"ec-use-{index}")], "target": [ref("req-braking")]})
+    return elements
+
+
+def build_inputs(tmp_path, *, close=True):
+    elements, bindings = _elements_and_bindings()
+    elements += _proof_elements()
+    binding = tmp_path / "binding.json"
+    binding.write_text(json.dumps(binding_dict(
+        git_repository="de4sdv/DE4SDV", git_commit=REVISION, sysml_project_id=PROJECT,
+        sysml_commit_id=COMMIT, kernel_bindings=bindings)))
+    bundle = mar.build_model_bundle(ROOT, git_revision=REVISION)
+    if close:
+        bundle = _close(bundle, RevisionBinding.load(binding), binding, tmp_path)
+    path = tmp_path / "model.json"
+    path.write_text(json.dumps(bundle))
+    return binding, path, bundle, elements
 
 
 @pytest.fixture
-def proof_inputs(tmp_path):
-    elements = _service_elements()
-    binding = tmp_path / "binding.json"
-    binding.write_text(json.dumps(dict(
-        git_repository="de4sdv/DE4SDV", git_commit=REVISION,
-        sysml_project_id="project-1", sysml_commit_id="commit-1",
-        import_timestamp="2026-09-01T00:00:00Z", import_tool_version="synthetic-fixture",
-        semantic_validation="passed", scope="full-model", ontology=ontology_identity(),
-        kernel_bindings=_kernel_bindings(),
-    )))
-    return binding, elements
+def inputs(tmp_path):
+    return build_inputs(tmp_path)
 
 
 @asynccontextmanager
-async def synthetic_api(elements, project="project-1", commit="commit-1"):
+async def synthetic_api(elements, project=PROJECT, commit=COMMIT):
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):  # noqa: N802
             if self.path == f"/projects/{project}":
@@ -69,8 +120,7 @@ async def synthetic_api(elements, project="project-1", commit="commit-1"):
         server.server_close()
 
 
-def test_explicit_legacy_runtime_drives_selector_and_real_stdio(proof_inputs, monkeypatch):
-    binding, elements = proof_inputs
+def instrument(monkeypatch):
     launched = []
     original_stdio = validator.stdio_client
 
@@ -81,307 +131,175 @@ def test_explicit_legacy_runtime_drives_selector_and_real_stdio(proof_inputs, mo
             yield streams
 
     monkeypatch.setattr(validator, "stdio_client", stdio)
+    return launched
 
+
+def _run(elements, **kwargs):
     async def run():
         async with synthetic_api(elements) as url:
-            return await validator.run_mcp_validation(
-                api_url=url, binding_path=binding, expected_git_revision=REVISION,
-                ontology_path=ONTOLOGY, authority="legacy",
-            )
-
-    result = anyio.run(run)
-    assert result["proof_a_blocked_evidence_contract"] is True
-    assert result["proof_b_native_verification"] is True
-    assert result["proof_b_subject"]["element_id"] == "req-1"
-    assert result["semantic_authority"]["authority_id"] == LEGACY_AUTHORITY_ID
-    argv = launched[0].args
-    assert argv[argv.index("--semantic-authority") + 1] == "legacy"
-    assert result["tools"]["model_status"]["semantic_authority"]["id"] == LEGACY_AUTHORITY_ID
+            return await validator.run_mcp_validation(api_url=url, expected_git_revision=REVISION,
+                                                      **kwargs)
+    return anyio.run(run)
 
 
-def selected_inputs(tmp_path):
-    """Extend an existing synthetic composition fixture, never mirror model files."""
-    import hashlib
-    from de4sdv.semantic import o3_bundle as ob
-    from de4sdv.sysml_api.revisions import RevisionBinding
-    from test_o4_runtime_composition import inputs
-
-    binding, path, bundle, elements = inputs(tmp_path)
-    document = json.loads(binding.read_text())
-    fixture_bindings = _kernel_bindings()
-    replaced = {row["ontology_class"] for row in fixture_bindings}
-    removed_ids = {row["element_id"] for row in document["kernel_bindings"]
-                   if row["ontology_class"] in replaced}
-    document["kernel_bindings"] = [row for row in document["kernel_bindings"]
-                                   if row["ontology_class"] not in replaced] + fixture_bindings
-    elements = [element for element in elements if element["@id"] not in removed_ids]
-    binding.write_text(json.dumps(document))
-    elements.extend(_service_elements())
-    prior = bundle["api_closure"]
-    attestation = ob.build_closure_attestation(
-        bundle, binding=RevisionBinding.load(binding),
-        binding_sha256="sha256:" + hashlib.sha256(binding.read_bytes()).hexdigest(),
-        element_count=len(elements), export_identity_sha256=None,
-        validations=prior["validation"],
-        verification_case_grounding=prior["verification_case_grounding"],
-        generated_at=prior["generated_at"],
-    )
-    bundle = ob.close_bundle(bundle, attestation)
-    path.write_text(json.dumps(bundle))
-    return binding, path, bundle, elements
-
-
-def instrument(monkeypatch):
-    built, selected, launched = [], [], []
-    populations = []
-    original_build = validator.build_explicit_semantic_runtime
-    original_select = validator._select_native_verification_subject
-    original_stdio = validator.stdio_client
-
-    def build(**kwargs):
-        assert kwargs["environ"] == {}
-        runtime, selection = original_build(**kwargs)
-        original_list = runtime.repository.list_elements
-
-        def list_elements(*args, **kwargs):
-            population = original_list(*args, **kwargs)
-            populations.append(population)
-            return population
-
-        monkeypatch.setattr(runtime.repository, "list_elements", list_elements)
-        built.append((runtime, selection))
-        return runtime, selection
-
-    def select(elements, traversal):
-        runtime = built[0][0]
-        assert traversal is runtime.traversal
-        assert traversal.contract is runtime.contract
-        assert elements is populations[-1]
-        selected.append(traversal)
-        return original_select(elements, traversal)
-
-    @asynccontextmanager
-    async def stdio(params):
-        launched.append(params)
-        async with original_stdio(params) as streams:
-            yield streams
-
-    monkeypatch.setattr(validator, "build_explicit_semantic_runtime", build)
-    monkeypatch.setattr(validator, "_select_native_verification_subject", select)
-    monkeypatch.setattr(validator, "stdio_client", stdio)
-    return built, selected, launched
-
-
-@pytest.mark.parametrize("composition", [None, "o3+definitions"])
-def test_selected_runtime_and_server_share_authority(tmp_path, monkeypatch, composition):
-    binding, path, bundle, elements = selected_inputs(tmp_path)
-    built, selected, launched = instrument(monkeypatch)
-    options = dict(authority="o3", bundle_path=path, bundle_id=bundle["bundle_id"],
-                   composition=composition)
-
-    async def run():
-        async with synthetic_api(elements, "pid", "cid") as url:
-            return await validator.run_mcp_validation(
-                api_url=url, binding_path=binding, expected_git_revision=REVISION,
-                ontology_path=ONTOLOGY, **options,
-            )
-
-    report = anyio.run(run)
-    assert len(built) == len(selected) == len(launched) == 1
-    runtime, selection = built[0]
-    assert report["semantic_authority"] == selection.provenance()
-    assert report["tools"]["model_status"]["semantic_authority"]["id"] == runtime.semantic_authority_id
+def test_model_runtime_drives_the_selector_and_the_real_stdio_server(inputs, monkeypatch):
+    binding, path, bundle, elements = inputs
+    launched = instrument(monkeypatch)
+    report = _run(elements, binding_path=binding, authority="model", model_bundle_path=path,
+                  model_bundle_id=bundle["bundle_id"])
+    assert report["proof_a_resolved_evidence_contract"] is True
+    assert report["proof_b_native_verification"] is True
     assert report["proof_b_subject"]["element_id"] == "req-1"
-    assert report["exercised_tool_count"] == 7
-    assert report["exposed_tool_count"] == 11
+    assert report["semantic_authority"]["kind"] == "model"
+    assert report["semantic_authority"]["authority_id"] == f"mab:{bundle['bundle_id']}"
+    assert report["tools"]["model_status"]["semantic_authority"]["id"] == f"mab:{bundle['bundle_id']}"
+    assert report["exercised_tool_count"] == report["tool_count"] == 7
     argv = launched[0].args
-    for flag, value in [("--semantic-authority", "o3"),
-                        ("--o3-authority-bundle", str(path)),
-                        ("--o3-authority-bundle-id", bundle["bundle_id"]),
-                        ("--binding", str(binding)),
+    for flag, value in [("--semantic-authority", "model"),
+                        ("--model-authority-bundle", str(path.resolve())),
+                        ("--model-authority-bundle-id", bundle["bundle_id"]),
+                        ("--binding", str(binding.resolve())),
                         ("--expected-git-revision", REVISION)]:
         assert argv[argv.index(flag) + 1] == value
-    if composition:
-        assert argv[argv.index("--runtime-composition") + 1] == composition
-        assert report["semantic_authority"]["activation_blocked"] is True
-        assert "authored contract" in report["semantic_authority"]["fallback"]
-        assert runtime.semantic_authority_id in json.dumps(report["tools"]["impact"]["provenance"])
-    else:
-        assert "--runtime-composition" not in argv
+    assert "--allow-candidate-bundle" not in argv
+    for retired in ("--ontology", "--o3-authority-bundle", "--runtime-composition"):
+        assert retired not in argv
 
 
-@pytest.mark.parametrize("mode", ["legacy", "o3", "o3+definitions"])
-def test_mcp_paths_resolve_from_caller_working_directory(tmp_path, monkeypatch, mode):
-    binding, path, bundle, elements = selected_inputs(tmp_path)
-    built, selected, launched = instrument(monkeypatch)
+def test_candidate_bundle_runs_only_with_the_explicit_evidence_flag(tmp_path, monkeypatch):
+    binding, path, bundle, elements = build_inputs(tmp_path, close=False)
+
+    def forbidden_transport(*args, **kwargs):
+        pytest.fail("a candidate bundle without the evidence flag launched a server")
+
+    monkeypatch.setattr(validator, "stdio_client", forbidden_transport)
+    with pytest.raises(ValueError):
+        _run(elements, binding_path=binding, authority="model", model_bundle_path=path,
+             model_bundle_id=bundle["bundle_id"])
+    monkeypatch.undo()
+    launched = instrument(monkeypatch)
+    report = _run(elements, binding_path=binding, authority="model", model_bundle_path=path,
+                  model_bundle_id=bundle["bundle_id"], allow_candidate_bundle=True)
+    assert report["semantic_authority"]["authority_id"] == f"mab:{bundle['bundle_id']}"
+    assert "--allow-candidate-bundle" in launched[0].args
+
+
+def test_mcp_paths_resolve_from_caller_working_directory(inputs, tmp_path, monkeypatch):
+    binding, path, bundle, elements = inputs
+    launched = instrument(monkeypatch)
     monkeypatch.chdir(tmp_path)
-    options = {}
-    if mode != "legacy":
-        options.update(authority="o3", bundle_path=path.relative_to(tmp_path),
-                       bundle_id=bundle["bundle_id"])
-    if mode == "o3+definitions":
-        options["composition"] = mode
-
-    async def run():
-        async with synthetic_api(elements, "pid", "cid") as url:
-            return await validator.run_mcp_validation(
-                api_url=url, binding_path=binding.relative_to(tmp_path),
-                expected_git_revision=REVISION,
-                ontology_path=Path(os.path.relpath(ONTOLOGY, tmp_path)), **options,
-            )
-
-    report = anyio.run(run)
-    assert report["semantic_authority"]["kind"] == mode
-    assert len(built) == len(selected) == len(launched) == 1
-    assert report["tools"]["model_status"]["semantic_authority"]["id"] == built[0][0].semantic_authority_id
+    report = _run(elements, binding_path=binding.relative_to(tmp_path), authority="model",
+                  model_bundle_path=path.relative_to(tmp_path), model_bundle_id=bundle["bundle_id"])
+    assert report["semantic_authority"]["kind"] == "model"
     argv = launched[0].args
     assert argv[argv.index("--binding") + 1] == str(binding.resolve())
-    assert argv[argv.index("--ontology") + 1] == str(ONTOLOGY.resolve())
-    if mode != "legacy":
-        assert argv[argv.index("--o3-authority-bundle") + 1] == str(path.resolve())
+    assert argv[argv.index("--model-authority-bundle") + 1] == str(path.resolve())
 
 
-def test_default_legacy_ignores_authority_environment(proof_inputs, monkeypatch):
-    binding, elements = proof_inputs
-    monkeypatch.setenv("DE4SDV_SEMANTIC_AUTHORITY", "o3")
-    monkeypatch.setenv("DE4SDV_O3_AUTHORITY_BUNDLE", "/absent/environment-bundle.json")
-    monkeypatch.setenv("DE4SDV_O3_AUTHORITY_BUNDLE_ID", "foreign-environment-id")
-    built, selected, launched = instrument(monkeypatch)
-
-    async def run():
-        async with synthetic_api(elements) as url:
-            return await validator.run_mcp_validation(
-                api_url=url, binding_path=binding, expected_git_revision=REVISION,
-                ontology_path=ONTOLOGY,
-            )
-
-    report = anyio.run(run)
-    assert built[0][0].semantic_authority_id == LEGACY_AUTHORITY_ID
-    assert len(selected) == 1
-    assert report["semantic_authority"]["kind"] == "legacy"
-    assert report["tools"]["model_status"]["semantic_authority"]["id"] == LEGACY_AUTHORITY_ID
-    assert "--o3-authority-bundle" not in launched[0].args
-
-
-def test_server_authority_mismatch_refuses_real_results(tmp_path, monkeypatch):
-    binding, path, bundle, elements = selected_inputs(tmp_path)
+def test_server_on_a_retired_authority_produces_no_report(inputs, monkeypatch):
+    binding, path, bundle, elements = inputs
     original_stdio = validator.stdio_client
 
     @asynccontextmanager
     async def wrong_authority(params):
-        # Deliberately launch a different real authority, not forged tool output.
+        # Deliberately launch the real server with a retired selector.
         params.args[params.args.index("--semantic-authority") + 1] = "legacy"
         async with original_stdio(params) as streams:
             yield streams
 
     monkeypatch.setattr(validator, "stdio_client", wrong_authority)
+    with pytest.raises(BaseException):  # the server refuses to start; no result
+        _run(elements, binding_path=binding, authority="model", model_bundle_path=path,
+             model_bundle_id=bundle["bundle_id"])
+
+
+def test_mcp_validator_cli_accepts_the_model_runtime(inputs, tmp_path, monkeypatch):
+    binding, path, bundle, elements = inputs
+    output = tmp_path / "result.json"
 
     async def run():
-        async with synthetic_api(elements, "pid", "cid") as url:
-            return await validator.run_mcp_validation(
-                api_url=url, binding_path=binding, expected_git_revision=REVISION,
-                ontology_path=ONTOLOGY, authority="o3", bundle_path=path,
-                bundle_id=bundle["bundle_id"],
-            )
+        async with synthetic_api(elements) as url:
+            monkeypatch.setattr("sys.argv", ["validate_semantic_mcp.py", "--api-url", url,
+                "--binding", str(binding), "--expected-git-revision", REVISION,
+                "--output", str(output), "--semantic-authority", "model",
+                "--model-authority-bundle", str(path),
+                "--model-authority-bundle-id", bundle["bundle_id"]])
+            return await anyio.to_thread.run_sync(validator.main)
 
-    with pytest.raises(RuntimeError, match="authority mismatch"):
-        anyio.run(run)
+    assert anyio.run(run) == 0
+    assert json.loads(output.read_text())["semantic_authority"]["kind"] == "model"
 
 
 def full_report(binding, tmp_path):
-    from scripts.validate_full_model_semantic_queries import QUERY_CASES
     document = json.loads(binding.read_text())
     report = tmp_path / "semantic-report.json"
     report.write_text(json.dumps(dict(
         git_commit=document["git_commit"], sysml_project_id=document["sysml_project_id"],
-        sysml_commit_id=document["sysml_commit_id"], ontology={"passed": True},
-        source_document_count=3, ontology_identity=document["ontology"],
+        sysml_commit_id=document["sysml_commit_id"], kernel_binding_validation={"passed": True},
+        source_document_count=3, semantic_authority=document["semantic_authority"],
     )))
-    elements = _service_elements()
-    for index, case in enumerate(QUERY_CASES[1:]):
-        elements.extend([
-            {"@id": f"query-{index}", "@type": "RequirementUsage", "declaredName": case.identifier},
-            {"@id": f"query-type-{index}", "@type": "FeatureTyping",
-             "owningRelatedElement": {"@id": f"query-{index}"},
-             "typedFeature": {"@id": f"query-{index}"}, "type": {"@id": "kernel-requirement"}},
-        ])
-    return report, elements
+    return report
 
 
-def test_full_queries_load_only_shared_runtime_contract(proof_inputs, tmp_path, monkeypatch):
-    from de4sdv.semantic.kernel_contract import KernelContract
+def test_full_queries_run_under_the_model_runtime(inputs, tmp_path, monkeypatch):
     from scripts import validate_full_model_semantic_queries as queries
-    binding, _ = proof_inputs
-    report, elements = full_report(binding, tmp_path)
-    original = KernelContract.load
-    loaded = []
 
-    def load(path):
-        loaded.append(path)
-        return original(path)
-
-    monkeypatch.setattr(KernelContract, "load", load)
+    binding, path, bundle, elements = inputs
+    report = full_report(binding, tmp_path)
     monkeypatch.setattr(queries, "_git_head", lambda: REVISION)
 
     async def run():
         async with synthetic_api(elements) as url:
-            return queries.run_queries(api_url=url, binding_path=binding, semantic_report_path=report)
+            return queries.run_queries(api_url=url, binding_path=binding, semantic_report_path=report,
+                                       authority="model", model_bundle_path=path,
+                                       model_bundle_id=bundle["bundle_id"])
 
     result = anyio.run(run)
     assert len(result["results"]) == len(queries.QUERY_CASES)
-    assert len(loaded) == 1
+    assert result["semantic_authority"]["authority_id"] == f"mab:{bundle['bundle_id']}"
+    assert result["evidence_contract_state"] == "resolved"
 
 
-def test_mcp_validator_cli_accepts_explicit_runtime(tmp_path, monkeypatch):
-    binding, path, bundle, elements = selected_inputs(tmp_path)
-    output = tmp_path / "result.json"
+@pytest.mark.parametrize("entrypoint", ["mcp", "full-queries"])
+@pytest.mark.parametrize("bundle_id", [
+    " " + "mab-" + "0" * 32, "mab-" + "0" * 32 + "\n", "MAB-" + "0" * 32, "o3b-" + "0" * 32,
+])
+def test_malformed_bundle_ids_refuse_before_construction(tmp_path, monkeypatch, entrypoint, bundle_id):
+    from de4sdv.semantic import entry_authority
+    from scripts import validate_full_model_semantic_queries as queries
 
-    async def run():
-        async with synthetic_api(elements, "pid", "cid") as url:
-            monkeypatch.setattr("sys.argv", ["validate_semantic_mcp.py", "--api-url", url,
-                "--binding", str(binding), "--expected-git-revision", REVISION,
-                "--output", str(output), "--semantic-authority", "o3",
-                "--o3-authority-bundle", str(path), "--o3-authority-bundle-id", bundle["bundle_id"],
-                "--runtime-composition", "o3+definitions"])
-            return await anyio.to_thread.run_sync(validator.main)
+    def forbidden_construction(*args, **kwargs):
+        pytest.fail("malformed bundle ID reached runtime construction")
 
-    assert anyio.run(run) == 0
-    assert json.loads(output.read_text())["semantic_authority"]["kind"] == "o3+definitions"
-
-
-@pytest.mark.parametrize("composition", [None, "o3+definitions"])
-def test_mcp_refuses_padded_bundle_id(tmp_path, composition):
-    binding, path, bundle, elements = selected_inputs(tmp_path)
-    supplied_id = " \t" + bundle["bundle_id"] + "\n"
-
-    async def run():
-        async with synthetic_api(elements, "pid", "cid") as url:
-            return await validator.run_mcp_validation(
-                api_url=url, binding_path=binding, expected_git_revision=REVISION,
-                ontology_path=ONTOLOGY, authority="o3", bundle_path=path,
-                bundle_id=supplied_id, composition=composition,
+    monkeypatch.setattr(entry_authority, "build_model_runtime", forbidden_construction)
+    monkeypatch.setattr(entry_authority, "build_entry_semantic_runtime", forbidden_construction)
+    with pytest.raises(ValueError, match="literal mab-"):
+        if entrypoint == "mcp":
+            anyio.run(lambda: validator.run_mcp_validation(
+                api_url="http://127.0.0.1:1", binding_path=tmp_path / "missing-binding.json",
+                expected_git_revision=REVISION, authority="model",
+                model_bundle_path=tmp_path / "missing-bundle.json", model_bundle_id=bundle_id,
+            ))
+        else:
+            queries.run_queries(
+                api_url="http://127.0.0.1:1", binding_path=tmp_path / "missing-binding.json",
+                semantic_report_path=tmp_path / "missing-report.json", authority="model",
+                model_bundle_path=tmp_path / "missing-bundle.json", model_bundle_id=bundle_id,
             )
 
-    with pytest.raises(ValueError, match="literal.*bundle|bundle.*literal"):
-        anyio.run(run)
 
-
-@pytest.mark.parametrize("composition", [None, "o3+definitions"])
-def test_actual_mcp_cli_refuses_padded_bundle_id(tmp_path, composition):
-    binding, path, bundle, elements = selected_inputs(tmp_path)
+def test_actual_mcp_cli_refuses_padded_bundle_id(inputs, tmp_path):
+    binding, path, bundle, elements = inputs
     output = tmp_path / "must-not-exist.json"
     command = [
         sys.executable, "-B", str(ROOT / "scripts/validate_semantic_mcp.py"),
-        "--binding", str(binding), "--expected-git-revision", REVISION,
-        "--ontology", str(ONTOLOGY), "--output", str(output),
-        "--semantic-authority", "o3", "--o3-authority-bundle", str(path),
-        "--o3-authority-bundle-id", " \t" + bundle["bundle_id"] + "\n",
+        "--binding", str(binding), "--expected-git-revision", REVISION, "--output", str(output),
+        "--semantic-authority", "model", "--model-authority-bundle", str(path),
+        "--model-authority-bundle-id", " \t" + bundle["bundle_id"] + "\n",
     ]
-    if composition is not None:
-        command += ["--runtime-composition", composition]
 
     async def run():
-        async with synthetic_api(elements, "pid", "cid") as url:
+        async with synthetic_api(elements) as url:
             return await anyio.to_thread.run_sync(lambda: subprocess.run(
                 command + ["--api-url", url], cwd=tmp_path, text=True,
                 capture_output=True, timeout=45,
@@ -389,114 +307,61 @@ def test_actual_mcp_cli_refuses_padded_bundle_id(tmp_path, composition):
 
     result = anyio.run(run)
     assert result.returncode != 0, result.stdout + result.stderr
-    assert "literal" in result.stderr and "bundle" in result.stderr
+    assert "literal" in result.stderr and "mab-" in result.stderr
     assert not output.exists()
 
 
-@pytest.mark.parametrize("composition", [None, "o3+definitions"])
-def test_full_queries_refuse_padded_bundle_id(tmp_path, monkeypatch, composition):
-    from scripts import validate_full_model_semantic_queries as queries
-    binding, path, bundle, elements = selected_inputs(tmp_path)
-    report, query_elements = full_report(binding, tmp_path)
-    combined = list({item["@id"]: item for item in elements + query_elements}.values())
-    monkeypatch.setattr(queries, "_git_head", lambda: REVISION)
-
-    async def run():
-        async with synthetic_api(combined, "pid", "cid") as url:
-            return queries.run_queries(
-                api_url=url, binding_path=binding, semantic_report_path=report,
-                authority="o3", bundle_path=path,
-                bundle_id=" \t" + bundle["bundle_id"] + "\n", composition=composition,
-            )
-
-    with pytest.raises(ValueError, match="literal.*bundle|bundle.*literal"):
-        anyio.run(run)
-
-
-@pytest.mark.parametrize("entrypoint", ["mcp", "full-queries"])
-@pytest.mark.parametrize("bundle_id", [
-    " " + "o3b-" + "0" * 32, "o3b-" + "0" * 32 + "\n",
-    "O3B-" + "0" * 32, "", 7, [],
-])
-def test_malformed_bundle_ids_refuse_before_construction(tmp_path, monkeypatch, entrypoint, bundle_id):
-    from de4sdv.semantic import composition_construction
-    from scripts import validate_full_model_semantic_queries as queries
-
-    def forbidden_construction(*args, **kwargs):
-        pytest.fail("malformed bundle ID reached runtime construction")
-
-    monkeypatch.setattr(validator, "build_explicit_semantic_runtime", forbidden_construction)
-    monkeypatch.setattr(composition_construction, "build_explicit_semantic_runtime", forbidden_construction)
-    with pytest.raises(ValueError, match="literal.*bundle|bundle.*literal"):
-        if entrypoint == "mcp":
-            anyio.run(lambda: validator.run_mcp_validation(
-                api_url="http://127.0.0.1:1", binding_path=tmp_path / "missing-binding.json",
-                expected_git_revision=REVISION, ontology_path=ONTOLOGY, authority="o3",
-                bundle_path=tmp_path / "missing-bundle.json", bundle_id=bundle_id,
-            ))
-        else:
-            queries.run_queries(
-                api_url="http://127.0.0.1:1", binding_path=tmp_path / "missing-binding.json",
-                semantic_report_path=tmp_path / "missing-report.json", authority="o3",
-                bundle_path=tmp_path / "missing-bundle.json", bundle_id=bundle_id,
-            )
-
-
 @pytest.mark.parametrize("failure", [
-    "unknown-authority", "missing-bundle", "wrong-bundle-id", "unclosed-bundle",
-    "unknown-composition", "legacy-composition", "composition-missing-bundle",
-    "foreign-binding", "incomplete-definitions",
+    "unset-authority", "legacy-authority", "o3-authority", "unknown-authority", "missing-bundle",
+    "wrong-bundle-id", "foreign-binding", "incomplete-definitions", "v1-binding",
 ])
-def test_invalid_selection_refuses_before_server_launch(tmp_path, monkeypatch, failure):
-    binding, path, bundle, _ = selected_inputs(tmp_path)
-    options = dict(authority="o3", bundle_path=path, bundle_id=bundle["bundle_id"])
-    if failure == "unknown-authority":
+def test_invalid_selection_refuses_before_server_launch(inputs, monkeypatch, failure):
+    binding, path, bundle, _ = inputs
+    options = dict(authority="model", model_bundle_path=path, model_bundle_id=bundle["bundle_id"])
+    document = json.loads(binding.read_text())
+    if failure == "unset-authority":
+        options["authority"] = None
+    elif failure == "legacy-authority":
+        options["authority"] = "legacy"
+    elif failure == "o3-authority":
+        options["authority"] = "o3"
+    elif failure == "unknown-authority":
         options["authority"] = "unknown"
     elif failure == "missing-bundle":
-        options.pop("bundle_path")
+        options.pop("model_bundle_path")
     elif failure == "wrong-bundle-id":
-        options["bundle_id"] = "o3b-" + "0" * 32
-    elif failure == "unclosed-bundle":
-        bundle["state"] = "core"
-        path.write_text(json.dumps(bundle))
-    elif failure == "unknown-composition":
-        options["composition"] = "unknown"
-    elif failure == "legacy-composition":
-        options.update(authority="legacy", composition="o3+definitions")
-    elif failure == "composition-missing-bundle":
-        options.pop("bundle_path")
-        options["composition"] = "o3+definitions"
+        options["model_bundle_id"] = "mab-" + "0" * 32
     elif failure == "foreign-binding":
-        document = json.loads(binding.read_text())
         document["sysml_commit_id"] = "foreign-commit"
-        binding.write_text(json.dumps(document))
-    else:
-        document = json.loads(binding.read_text())
+    elif failure == "incomplete-definitions":
         document["kernel_bindings"].pop(0)
-        binding.write_text(json.dumps(document))
-        options["composition"] = "o3+definitions"
+    else:
+        document.pop("schema")
+        document.pop("semantic_authority")
+        document["ontology"] = {"path": "x.yaml", "sha256": "0" * 64}
+    binding.write_text(json.dumps(document))
 
     def forbidden_transport(*args, **kwargs):
-        pytest.fail("invalid explicit selection launched a fallback server")
+        pytest.fail("invalid explicit selection launched a server")
 
     monkeypatch.setattr(validator, "stdio_client", forbidden_transport)
     with pytest.raises(ValueError):
         anyio.run(lambda: validator.run_mcp_validation(
             api_url="http://127.0.0.1:1", binding_path=binding,
-            expected_git_revision=REVISION, ontology_path=ONTOLOGY, **options,
+            expected_git_revision=REVISION, **options,
         ))
 
 
-@pytest.mark.parametrize("failure", ["revision", "scope", "ontology"])
-def test_mcp_binding_guards_still_refuse(proof_inputs, monkeypatch, failure):
-    binding, _ = proof_inputs
+@pytest.mark.parametrize("failure", ["revision", "scope", "semantic-authority"])
+def test_mcp_binding_guards_still_refuse(inputs, monkeypatch, failure):
+    binding, path, bundle, _ = inputs
     document = json.loads(binding.read_text())
     if failure == "revision":
         document["git_commit"] = "b" * 40
     elif failure == "scope":
         document["scope"] = "fixture"
     else:
-        document["ontology"]["sha256"] = "b" * 64
+        document["semantic_authority"]["id"] = "sai-" + "b" * 32
     binding.write_text(json.dumps(document))
 
     def forbidden_transport(*args, **kwargs):
@@ -505,56 +370,37 @@ def test_mcp_binding_guards_still_refuse(proof_inputs, monkeypatch, failure):
     monkeypatch.setattr(validator, "stdio_client", forbidden_transport)
     with pytest.raises((ValueError, RuntimeError)):
         anyio.run(lambda: validator.run_mcp_validation(
-            api_url="http://127.0.0.1:1", binding_path=binding,
-            expected_git_revision=REVISION, ontology_path=ONTOLOGY,
+            api_url="http://127.0.0.1:1", binding_path=binding, expected_git_revision=REVISION,
+            authority="model", model_bundle_path=path, model_bundle_id=bundle["bundle_id"],
         ))
 
 
 @pytest.mark.parametrize("failure", [
-    "report-revision", "ontology-not-passed", "source-document-count",
-    "report-ontology", "binding-current", "runtime-ontology",
+    "report-revision", "kernel-bindings-not-passed", "source-document-count",
+    "report-semantic-authority", "binding-current", "runtime-semantic-authority",
 ])
-def test_full_queries_preserve_report_and_runtime_guards(proof_inputs, tmp_path, monkeypatch, failure):
+def test_full_queries_preserve_report_and_runtime_guards(inputs, tmp_path, monkeypatch, failure):
     from scripts import validate_full_model_semantic_queries as queries
-    binding, _ = proof_inputs
-    report, _ = full_report(binding, tmp_path)
+    binding, path, bundle, _ = inputs
+    report = full_report(binding, tmp_path)
     document = json.loads(report.read_text())
     if failure == "report-revision":
         document["sysml_commit_id"] = "foreign-commit"
-    elif failure == "ontology-not-passed":
-        document["ontology"]["passed"] = False
+    elif failure == "kernel-bindings-not-passed":
+        document["kernel_binding_validation"]["passed"] = False
     elif failure == "source-document-count":
         document["source_document_count"] = 2
-    elif failure == "report-ontology":
-        document["ontology_identity"]["sha256"] = "b" * 64
-    elif failure == "runtime-ontology":
+    elif failure == "report-semantic-authority":
+        document["semantic_authority"]["id"] = "sai-" + "b" * 32
+    elif failure == "runtime-semantic-authority":
         bound = json.loads(binding.read_text())
-        bound["ontology"]["sha256"] = "b" * 64
-        document["ontology_identity"] = bound["ontology"]
+        bound["semantic_authority"]["id"] = "sai-" + "b" * 32
+        document["semantic_authority"] = bound["semantic_authority"]
         binding.write_text(json.dumps(bound))
     report.write_text(json.dumps(document))
-    monkeypatch.setattr(queries, "_git_head", lambda: "b" * 40 if failure == "binding-current" else REVISION)
+    monkeypatch.setattr(queries, "_git_head",
+                        lambda: "b" * 40 if failure == "binding-current" else REVISION)
     with pytest.raises((ValueError, RuntimeError)):
-        queries.run_queries(api_url="http://127.0.0.1:1", binding_path=binding, semantic_report_path=report)
-
-
-def test_full_queries_reuse_composed_runtime(tmp_path, monkeypatch):
-    from scripts import validate_full_model_semantic_queries as queries
-    binding, path, bundle, elements = selected_inputs(tmp_path)
-    report, query_elements = full_report(binding, tmp_path)
-    elements = list({element["@id"]: element for element in elements + query_elements}.values())
-    monkeypatch.setattr(queries, "_git_head", lambda: REVISION)
-
-    async def run():
-        async with synthetic_api(elements, "pid", "cid") as url:
-            return queries.run_queries(
-                api_url=url, binding_path=binding, semantic_report_path=report,
-                authority="o3", bundle_path=path, bundle_id=bundle["bundle_id"],
-                composition="o3+definitions",
-            )
-
-    result = anyio.run(run)
-    assert len(result["results"]) == len(queries.QUERY_CASES)
-    for entry in result["results"]:
-        assert entry["impact"]["semantic_authority"]["kind"] == "o3+definitions"
-        assert entry["impact"]["semantic_authority"]["activation_blocked"] is True
+        queries.run_queries(api_url="http://127.0.0.1:1", binding_path=binding,
+                            semantic_report_path=report, authority="model",
+                            model_bundle_path=path, model_bundle_id=bundle["bundle_id"])

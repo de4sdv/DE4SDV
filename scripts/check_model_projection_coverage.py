@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Model-projection coverage gate (shadow ratchet) — CLI.
+"""Model-projection coverage gate (blocking) — CLI.
 
     python scripts/check_model_projection_coverage.py            # check vs baseline
     python scripts/check_model_projection_coverage.py --json OUT # write the report
     python scripts/check_model_projection_coverage.py --bundle B # also verify a bundle
     python scripts/check_model_projection_coverage.py --write-baseline
 
-Exit 0 = no drift (residual may be non-empty in shadow mode; the retained
-residual is the owner's criterion, the exceptions are owner-visible); 1 = drift,
-duplicate providers or bundle digest mismatch.
+Exit 0 = empty residual, clean kernel accounting and no ratchet drift; 1 = any
+residual, kernel-accounting error, duplicate provider, ratchet drift or bundle
+mismatch.
 """
 from __future__ import annotations
 
@@ -47,10 +47,11 @@ def main(argv: list[str] | None = None) -> int:
         errors += coverage.bundle_errors(report, json.loads(args.bundle.read_text(encoding="utf-8")), ROOT)
     summary = report["summary"]
     print(f"model-projection coverage ({report['mode']}): "
-          f"{summary['projected_identities']} projected, {summary['retained_residual']} retained "
-          f"residual, {summary['exceptions']} owner-visible exceptions "
-          f"({', '.join(report['exceptions']) or 'none'}), {summary['unregistered_residual']} "
-          f"unregistered residual, {summary['residual_declarations']} residual kernel declarations")
+          f"{summary['projected_identities']} projected, {summary['residual_identities']} "
+          f"residual, {summary['refused']} refused ({', '.join(report['refused']) or 'none'}), "
+          f"{summary['retired']} retired ({', '.join(report['retired']) or 'none'}), "
+          f"{summary['governed_declarations']} governed declarations "
+          f"({summary['residual_declarations']} residual)")
     for error in errors:
         print(f"- {error}")
     return 1 if errors else 0

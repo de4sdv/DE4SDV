@@ -21,6 +21,8 @@ from de4sdv.semantic.relationships import build_relationship_graph
 # Isolated candidate export (B-R3 real path)
 # ---------------------------------------------------------------------------
 
+from model_contract_fixtures import synthetic_identity  # noqa: E402
+
 def _synthetic_repo(path: Path) -> tuple[Path, str]:
     repo = path / "synthetic-repo"
     repo.mkdir()
@@ -243,7 +245,8 @@ def _binding(tmp_path: Path, project_id: str, commit_id: str, sha: str) -> Path:
         "import_timestamp": "2026-09-10T00:00:00+00:00",
         "import_tool_version": "de4sdv-full-model-import/1+official-syside-json",
         "semantic_validation": "passed",
-        "ontology": {"path": "approach/framework/ontology/de4sdv-basic-ontology.yaml", "sha256": "a" * 64},
+        "schema": "de4sdv.revision-binding/v2",
+        "semantic_authority": synthetic_identity("lane-b").to_dict(),
         "scope": "candidate",
     }
     path = tmp_path / f"binding-{project_id[:8]}.json"
@@ -499,10 +502,8 @@ PILOT_BINDING = {
     "import_timestamp": "2026-09-10T00:00:00+00:00",
     "import_tool_version": "de4sdv-full-model-import/1+official-syside-json",
     "semantic_validation": "passed",
-    "ontology": {
-        "path": "approach/framework/ontology/de4sdv-basic-ontology.yaml",
-        "sha256": "a" * 64,
-    },
+    "schema": "de4sdv.revision-binding/v2",
+    "semantic_authority": synthetic_identity("lane-b").to_dict(),
     "scope": "candidate",
 }
 

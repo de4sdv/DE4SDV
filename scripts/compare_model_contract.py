@@ -108,6 +108,9 @@ def oracle_surfaces(root: Path) -> dict[str, Any]:
         "authored": contract_surface(legacy, names),
         "providers": {name: p.layer for name, p in routing.providers.items()},
         "ontology_sha256": legacy.identity.sha256,
+        "raw": {"classes": legacy.classes, "relationships": legacy.relationships,
+                "validation_rules": __import__("yaml").safe_load(
+                    (root / ONTOLOGY).read_text(encoding="utf-8")).get("validation_rules")},
     }
 
 
@@ -210,10 +213,119 @@ def build_report(root: Path = ROOT, *, base: str = BASE_REVISION,
         },
         "model_only_identities": sorted(n for n in set(model.classes) | set(model.relationships)
                                         if not authored.get(n, empty).get("listed")),
+        "manifest_held_fields": manifest_held_fields(root, oracle["raw"]),
+        "batch1_reviewed_definitions": batch1_reviewed_definitions(root, oracle["raw"]),
+        "authored_identities": {
+            "note": "every class and relationship name of the authored ontology",
+            "classes": sorted(oracle["raw"]["classes"]),
+            "relationships": sorted(oracle["raw"]["relationships"]),
+        },
+        "authored_validation_rules": {
+            "note": ("the authored validation rules R001-R010 (statement, enforcement, R003 "
+                     "groundings); tests lock their model homes "
+                     "(de4sdv_ontology_validation_rules.sysml) to it after the deletion"),
+            "rules": oracle["raw"]["validation_rules"],
+        },
+        "authored_definitions": {
+            "note": ("the authored definition text of every class and relationship that had "
+                     "one, normalized; tests lock the model documentation homes "
+                     "(kernel-definition-homes.json) to it after the deletion"),
+            "entries": {f"{kind}:{name}": " ".join(str(row["definition"]).split())
+                        for kind in ("classes", "relationships")
+                        for name, row in sorted(oracle["raw"][kind].items())
+                        if isinstance(row, dict) and row.get("definition")},
+        },
         "claim_boundary": ("last executable parity proof between the authored ontology and the "
                            "model-built contract over class and relationship mappings; not a "
                            "semantic proof beyond them; no compliance or certification claim"),
     }
+
+
+MANIFEST_PATH = "docs/method-conformance/o4/definition-admission-batch2.yaml"
+
+
+def manifest_held_values(row: dict[str, Any]) -> dict[str, Any]:
+    """The contract fields one batch-2 manifest row holds (owner decision D9)."""
+    values: dict[str, Any] = {"reviewed_definition": row.get("reviewed_definition")}
+    if row["semantic_kind"] == "class":
+        grounding = row["grounding"]
+        values.update(kernel_mapping=grounding["kernel_mapping"],
+                      sub_class_of=grounding["sub_class_of"],
+                      disjoint_with=list(grounding["disjoint_with"]))
+    elif row["admission_class"] != "successor":
+        values["relation"] = dict(row["relation"])
+        if "mechanics" in row:
+            values["mechanics"] = dict(row["mechanics"])
+    return values
+
+
+def authored_values(row: dict[str, Any], raw: dict[str, Any]) -> dict[str, Any] | None:
+    """The same fields read from the authored ontology (same rules as the
+    retired batch-2 lock test)."""
+    identity = row["identity"]
+    if row["semantic_kind"] == "class":
+        spec = raw["classes"].get(identity)
+        if spec is None:
+            return None
+        return {"reviewed_definition": " ".join(str(spec.get("definition") or "").split()) or None,
+                "kernel_mapping": spec.get("kernel"), "sub_class_of": spec.get("subClassOf"),
+                "disjoint_with": list(spec.get("disjointWith", []))}
+    spec = raw["relationships"].get(identity)
+    if spec is None or row["admission_class"] == "successor":
+        return None
+    mapping = spec.get("sysml_mapping") or {}
+    values: dict[str, Any] = {
+        "reviewed_definition": (" ".join(str(spec["definition"]).split())
+                                if row["home"]["form"] in ("owned-doc", "named-doc") else None),
+        "relation": {"domain": spec.get("domain"), "range": spec.get("range"),
+                     "semantic_strength": mapping.get("semantic_strength")},
+    }
+    if "mechanics" in row:
+        values["mechanics"] = {k: v for k, v in mapping.items() if k != "semantic_strength"}
+    return values
+
+
+def manifest_held_fields(root: Path, raw: dict[str, Any]) -> dict[str, Any]:
+    """Per batch-2 row: the manifest-held contract fields and their authored values."""
+    import yaml
+
+    rows = yaml.safe_load((root / MANIFEST_PATH).read_text(encoding="utf-8"))["admitted"]
+    entries: dict[str, Any] = {}
+    for row in sorted(rows, key=lambda r: r["identity"]):
+        held = manifest_held_values(row)
+        authored = authored_values(row, raw)
+        entries[row["identity"]] = {"admission_class": row["admission_class"], "manifest": held,
+                                    "authored": authored,
+                                    "equal": authored is None or authored == held}
+    contract_rows = [n for n, e in entries.items()
+                     if "relation" in e["manifest"] or "kernel_mapping" in e["manifest"]]
+    return {
+        "manifest": MANIFEST_PATH,
+        "rows": len(entries),
+        "rows_with_manifest_held_contract_fields": len(contract_rows),
+        "relation_rows": sum("relation" in e["manifest"] for e in entries.values()),
+        "kernel_mapping_rows": sum("kernel_mapping" in e["manifest"] for e in entries.values()),
+        "unequal": sorted(n for n, e in entries.items() if not e["equal"]),
+        "entries": entries,
+    }
+
+
+BATCH1_MANIFEST_PATH = "docs/method-conformance/o4/definition-admission.yaml"
+
+
+def batch1_reviewed_definitions(root: Path, raw: dict[str, Any]) -> dict[str, Any]:
+    """Batch-1 reviewed definitions vs the authored class definitions."""
+    import yaml
+
+    rows = yaml.safe_load((root / BATCH1_MANIFEST_PATH).read_text(encoding="utf-8"))["admitted"]
+    entries = {}
+    for row in sorted(rows, key=lambda r: r["identity"]):
+        spec = raw["classes"].get(row["identity"]) or raw["relationships"].get(row["identity"]) or {}
+        authored = " ".join(str(spec.get("definition") or "").split()) or None
+        entries[row["identity"]] = {"manifest": row.get("reviewed_definition"), "authored": authored,
+                                    "equal": authored == row.get("reviewed_definition")}
+    return {"manifest": BATCH1_MANIFEST_PATH, "rows": len(entries),
+            "unequal": sorted(n for n, e in entries.items() if not e["equal"]), "entries": entries}
 
 
 def report_errors(report: dict[str, Any]) -> list[str]:
@@ -225,6 +337,12 @@ def report_errors(report: dict[str, Any]) -> list[str]:
     if report["authored_contract"]["unclassified"]:
         errors.append("unclassified authored-vs-model differences: "
                       f"{report['authored_contract']['unclassified']}")
+    if report["batch1_reviewed_definitions"]["unequal"]:
+        errors.append("batch-1 reviewed definitions differ from the authored ontology: "
+                      f"{report['batch1_reviewed_definitions']['unequal']}")
+    if report["manifest_held_fields"]["unequal"]:
+        errors.append("manifest-held contract fields differ from the authored ontology: "
+                      f"{report['manifest_held_fields']['unequal']}")
     return errors
 
 

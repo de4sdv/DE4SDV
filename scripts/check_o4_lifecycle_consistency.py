@@ -68,11 +68,11 @@ def is_o3_lifecycle_obligation(item: object) -> bool:
 
 def _migrated_identities() -> tuple:
     try:
-        from de4sdv.semantic.o3_bundle import MIGRATED_IDENTITIES
+        from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES
     except ImportError:  # Direct execution sets scripts/ as sys.path[0].
         sys.path.insert(0, str(REPO_ROOT))
-        from de4sdv.semantic.o3_bundle import MIGRATED_IDENTITIES
-    return tuple(MIGRATED_IDENTITIES)
+        from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES
+    return tuple(O2_CHAIN_IDENTITIES)
 
 
 def _scan_items(errors: list[str], identity: str, source: str, field: str, items) -> None:

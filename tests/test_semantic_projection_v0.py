@@ -23,7 +23,7 @@ from de4sdv.semantic.projection import (
     assert_profile_compatible,
     build_projection,
     build_representation_profile,
-    contract_identity_from_file,
+    contract_identity,
 )
 from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
 
@@ -122,14 +122,17 @@ def test_projection_row_binds_revision_and_validated_groundings() -> None:
 
 
 def test_projection_binds_recomputed_contract_identity() -> None:
-    """The contract identity is recomputed from the actual file, not trusted."""
+    """The parity-oracle identity is the passed contract's semantic-authority
+    identity (O4 Wave C2: the model-built contract; it replaced the authored
+    ontology file digest)."""
+    from model_contract_fixtures import model_contract
+
     projection = _build()
-    identity = projection["revision_binding"]["generated_from"][
-        "ontology_contract_parity_oracle"
-    ]
-    expected = contract_identity_from_file(ROOT)
+    identity = projection["revision_binding"]["generated_from"]["contract_parity_oracle"]
+    expected = model_contract().identity.to_dict()
     assert identity == expected
-    assert identity["sha256"] == expected["sha256"]
+    assert identity == contract_identity(_contract())
+    assert identity["id"].startswith("sai-")
 
 
 def test_projection_support_state_is_honest_without_closure_evidence() -> None:
@@ -198,7 +201,7 @@ def test_projection_definition_comes_from_model_doc_not_yaml() -> None:
     assert definition.startswith("Design-input provenance")
     assert "neither satisfaction nor logical implication" in definition
 
-    # YAML drift in definition text does NOT leak into the projection.
+    # Drift in the contract's definition text does NOT leak into the projection.
     contract = _contract()
     contract.relationships["derivesRequirementFromNeed"]["definition"] = (
         "TAMPERED definition text that must never reach the projection."

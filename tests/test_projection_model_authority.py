@@ -2,10 +2,10 @@
 
 Requirement (plan v1.1 §16): the projection's semantic fields must originate
 from validated model-resident evidence — never from Python literals, never
-from the authored YAML oracle. These tests prove the authority direction:
+from the kernel contract (the parity oracle). These tests prove the authority direction:
 
 * tampering the model changes the projection (no silent Python fallback);
-* YAML drift fails parity but cannot redefine the projection;
+* contract drift fails parity but cannot redefine the projection;
 * representation-profile mechanics cannot redefine model semantics;
 * the superseded standard-Derivation representation text is gone from the
   kernel source.
@@ -34,8 +34,44 @@ from test_derivation_implied_graph import (  # noqa: E402
     DEF_ID,
     _base_elements,
     _binding_index,
-    _contract,
 )
+from model_contract_fixtures import model_contract  # noqa: E402
+
+
+class _LiveContract:
+    """A mutable, dict-shaped copy of the model-built contract (test only).
+
+    The parity tests mutate relationship records in place; mappings are
+    re-derived from the current records on every call (``from_records``), so
+    a mutation is seen exactly as the K parity oracle would see a changed
+    contract. The strength lives in ``sysml_mapping`` (record shape).
+    """
+
+    def __init__(self) -> None:
+        base = model_contract()
+        self.identity = base.identity
+        self.classes = copy.deepcopy(dict(base.classes))
+        self.relationships = copy.deepcopy(dict(base.relationships))
+        for spec in self.relationships.values():
+            if isinstance(spec.get("sysml_mapping"), dict) and "semantic_strength" in spec:
+                spec["sysml_mapping"]["semantic_strength"] = spec.pop("semantic_strength")
+
+    def _records(self) -> KernelContract:
+        return KernelContract.from_records(classes=self.classes, relationships=self.relationships,
+                                           identity=self.identity)
+
+    def relationship_mapping(self, name):
+        return self._records().relationship_mapping(name)
+
+    def mapping(self, name):
+        return self._records().mapping(name)
+
+    def class_mapping(self, name):
+        return self._records().class_mapping(name)
+
+
+def _contract() -> _LiveContract:
+    return _LiveContract()
 
 ROOT = Path(__file__).resolve().parents[1]
 KERNEL_FILE = (
