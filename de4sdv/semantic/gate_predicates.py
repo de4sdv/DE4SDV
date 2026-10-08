@@ -167,7 +167,7 @@ def _satisfied(targets: Iterable[str], witnesses: Iterable[str] = (), diagnostic
 
 
 def _violated(what: str, diagnostics: Sequence[str] = (), witnesses: Iterable[str] = ()):
-    return _outcome("violated", codes=(me.REQUIRED_RELATION_MISSING,), missing=(what,),
+    return _outcome("violated", codes=(me.REQUIRED_RELATION_MISSING,),
                     diagnostics=(what, *diagnostics), witnesses=list(witnesses))
 
 
