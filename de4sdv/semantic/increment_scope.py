@@ -1,4 +1,4 @@
-"""Increment resolution from the model: identity, charter declaration, populations.
+"""Increment resolution from the model: identity, charter declaration, scope.
 
 An engineering increment is identified only by its registered identifier
 (``INC-<SUBJECT>-<SEQ>``, docs/naming/naming-conventions.md) carried as the
@@ -14,13 +14,15 @@ relationships only:
 - the charter declaration: the IncrementTraceObligations-lineage usage whose
   ``increment`` value references the usage, and its declared applicable
   phases (MethodPhase literals);
-- the populations the method gates select: needs and requirements whose
-  native subject is typed by an increment definition, and verification cases
-  owned by the increment package or by a package that declares
-  ``references`` to the increment usage.
+- the increment's scope: the top-level packages the charter declares in
+  ``expectedArtifacts`` (String values matched to the declared names of
+  top-level packages, exactly and uniquely), with every element they own
+  through nested packages. Features of those elements (for example the
+  framed-concern members of a need) are not scope elements. A declared name
+  without exactly one top-level package is reported, never guessed.
 
-A population that cannot be established (for example a missing kernel
-binding) is recorded as a population problem, never as an empty population.
+An identity that cannot be established (for example a missing kernel binding
+or an ambiguous identifier) is recorded as a problem, never as an empty scope.
 """
 
 from __future__ import annotations
@@ -30,34 +32,22 @@ from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 
 from de4sdv.sysml_api.errors import IdentityNotFoundError
-from de4sdv.sysml_api.repository import reference_ids
 
 from .revision_index import RevisionIndex
 
 #: ``INC-<SUBJECT>-<SEQ>[<letter>][-<SUBSEQ>...]`` (naming conventions §4).
 _INCREMENT_ID = re.compile(r"\AINC-[A-Z][A-Z0-9]*-[0-9]+[A-Z]?(?:-[0-9A-Z]+)*\Z")
 
-#: Typed population selectors of an increment.
-SELECTOR_INCREMENT_IDENTIFIER = "incrementIdentifier"
-SELECTOR_INCREMENT = "increment"
-SELECTOR_NEEDS = "incrementNeeds"
-SELECTOR_REQUIREMENTS = "incrementRequirements"
-SELECTOR_VERIFICATION_CASES = "incrementVerificationCases"
-INCREMENT_SELECTORS = (
-    SELECTOR_INCREMENT_IDENTIFIER,
-    SELECTOR_INCREMENT,
-    SELECTOR_NEEDS,
-    SELECTOR_REQUIREMENTS,
-    SELECTOR_VERIFICATION_CASES,
-)
+#: Key of an increment identity problem in :attr:`IncrementScope.problems`.
+IDENTITY_PROBLEM = "increment"
 
 #: Kernel classes the resolution grounds in (ontology class names).
 INCREMENT_CLASS = "EngineeringIncrement"
 CHARTER_CLASS = "IncrementTraceObligations"
-NEED_CLASS = "Need"
-REQUIREMENT_CLASS = "Requirement"
-EVIDENCE_CONTRACT_CLASS = "EvidenceContract"
 PHASE_CLASS = "MethodPhase"
+#: Charter attribute naming the increment's packages.
+SCOPE_ATTRIBUTE = "expectedArtifacts"
+_PACKAGE_TYPES = ("Package", "LibraryPackage")
 
 PROBLEM_UNAVAILABLE = "unavailable"
 PROBLEM_INVALID = "invalid"
@@ -190,14 +180,16 @@ class IncrementScope:
     package_id: str | None
     charters: tuple[str, ...]
     declared_phases: tuple[str, ...] | None
-    verification_packages: tuple[str, ...]
-    populations: Mapping[str, tuple[str, ...]]
-    population_problems: Mapping[str, tuple[str, str]] = field(default_factory=dict)
+    #: The packages the charter declares in ``expectedArtifacts``, in declared order.
+    scope_packages: tuple[str, ...] = ()
+    #: Every element those packages own through nested packages.
+    scope_elements: tuple[str, ...] = ()
+    problems: Mapping[str, tuple[str, str]] = field(default_factory=dict)
     diagnostics: tuple[str, ...] = ()
 
 
 def resolve_increment(view: ModelView, increment_id: str) -> IncrementScope:
-    """Resolve the increment and its populations from the model."""
+    """Resolve the increment, its charter and its scope from the model."""
     identifier = parse_increment_id(increment_id)
     index = view.index
     diagnostics: list[str] = []
@@ -215,7 +207,7 @@ def resolve_increment(view: ModelView, increment_id: str) -> IncrementScope:
             else:
                 rejected.append(holder)
     except IdentityNotFoundError as error:
-        problems[SELECTOR_INCREMENT] = (PROBLEM_UNAVAILABLE, f"kernel-binding:{INCREMENT_CLASS}: {error}")
+        problems[IDENTITY_PROBLEM] = (PROBLEM_UNAVAILABLE, f"kernel-binding:{INCREMENT_CLASS}: {error}")
         diagnostics.append(f"the EngineeringIncrement lineage cannot be established: {error}")
     for holder in rejected:
         diagnostics.append(
@@ -232,12 +224,14 @@ def resolve_increment(view: ModelView, increment_id: str) -> IncrementScope:
         detail = (f"ambiguous increment identity: {len(candidates)} part usages carry the "
                   f"declared short name {identifier!r}")
         diagnostics.append(detail)
-        problems[SELECTOR_INCREMENT] = (PROBLEM_INVALID, detail)
+        problems[IDENTITY_PROBLEM] = (PROBLEM_INVALID, detail)
 
     definition_ids: tuple[str, ...] = ()
     package_id: str | None = None
     charters: tuple[str, ...] = ()
     declared_phases: tuple[str, ...] | None = None
+    scope_packages: tuple[str, ...] = ()
+    scope_elements: tuple[str, ...] = ()
     if usage_id is not None:
         definition_ids = tuple(sorted(index.typed_by(usage_id)))
         package_id = index.owner_of(usage_id)
@@ -247,6 +241,8 @@ def resolve_increment(view: ModelView, increment_id: str) -> IncrementScope:
         if len(charters) == 1:
             declared_phases, phase_diagnostics = _declared_phases(view, charters[0])
             diagnostics.extend(phase_diagnostics)
+            scope_packages, scope_elements, scope_diagnostics = _declared_scope(view, charters[0])
+            diagnostics.extend(scope_diagnostics)
         elif len(charters) > 1:
             diagnostics.append(
                 f"{len(charters)} charter declarations reference the increment; applicable "
@@ -255,25 +251,11 @@ def resolve_increment(view: ModelView, increment_id: str) -> IncrementScope:
         else:
             diagnostics.append("no charter declaration references the increment")
 
-    populations: dict[str, tuple[str, ...]] = {
-        SELECTOR_INCREMENT_IDENTIFIER: (identifier,),
-        SELECTOR_INCREMENT: (usage_id,) if usage_id else (),
-    }
-    needs, requirements = _requirement_populations(view, definition_ids, problems)
-    populations[SELECTOR_NEEDS] = _ordered(view, needs)
-    populations[SELECTOR_REQUIREMENTS] = _ordered(view, requirements)
-    verification_packages = _verification_packages(view, usage_id, package_id)
-    populations[SELECTOR_VERIFICATION_CASES] = _ordered(view, [
-        case
-        for package in verification_packages
-        for case in index.owned_members(package, "VerificationCaseUsage")
-    ])
     if usage_id is None:
-        for selector in (SELECTOR_NEEDS, SELECTOR_REQUIREMENTS, SELECTOR_VERIFICATION_CASES):
-            problems.setdefault(
-                selector,
-                (PROBLEM_UNAVAILABLE, f"the increment {identifier!r} is not identified in the model"),
-            )
+        problems.setdefault(
+            IDENTITY_PROBLEM,
+            (PROBLEM_UNAVAILABLE, f"the increment {identifier!r} is not identified in the model"),
+        )
     return IncrementScope(
         increment_id=identifier,
         candidates=tuple(candidates),
@@ -283,9 +265,9 @@ def resolve_increment(view: ModelView, increment_id: str) -> IncrementScope:
         package_id=package_id,
         charters=charters,
         declared_phases=declared_phases,
-        verification_packages=verification_packages,
-        populations=populations,
-        population_problems=problems,
+        scope_packages=scope_packages,
+        scope_elements=scope_elements,
+        problems=problems,
         diagnostics=tuple(diagnostics),
     )
 
@@ -293,18 +275,6 @@ def resolve_increment(view: ModelView, increment_id: str) -> IncrementScope:
 def ordered_elements(view: ModelView, identifiers: Sequence[str]) -> tuple[str, ...]:
     """Distinct identifiers ordered by qualified name, then identifier (corpus-order independent)."""
     return _ordered(view, identifiers)
-
-
-def subject_scoped_requirements(view: ModelView, definition_ids: Sequence[str]) -> tuple[str, ...]:
-    """Requirement usages whose native subject is typed by one of ``definition_ids``."""
-    wanted = set(definition_ids)
-    if not wanted:
-        return ()
-    return tuple(
-        candidate
-        for candidate in view.index.elements_of_type("RequirementUsage")
-        if _subject_types(view, candidate) & wanted
-    )
 
 
 def _ordered(view: ModelView, identifiers: Sequence[str]) -> tuple[str, ...]:
@@ -354,49 +324,56 @@ def _declared_phases(view: ModelView, charter: str) -> tuple[tuple[str, ...] | N
     return tuple(phases), diagnostics
 
 
-def _subject_types(view: ModelView, requirement: str) -> set[str]:
-    types: set[str] = set()
-    for relationship in view.index.owned_relationships(requirement, "SubjectMembership"):
-        for member in reference_ids(relationship.get("memberElement")):
-            types |= view.index.typed_by(member)
-    return types
+def _top_level_packages(view: ModelView) -> dict[str, list[str]]:
+    """Declared name -> top-level packages (owned by a root namespace, or by nothing)."""
+
+    def build() -> dict[str, list[str]]:
+        index = view.index
+        found: dict[str, list[str]] = {}
+        for package in index.elements_of_type(*_PACKAGE_TYPES):
+            owner = index.owner_of(package)
+            if owner is not None and str(index.element(owner).get("@type")) != "Namespace":
+                continue
+            name = str(index.element(package).get("declaredName") or "")
+            if name:
+                found.setdefault(name, []).append(package)
+        return found
+
+    return view.index.memo("top-level-packages", build)
 
 
-def _requirement_populations(
-    view: ModelView, definition_ids: Sequence[str], problems: dict[str, tuple[str, str]]
-) -> tuple[tuple[str, ...], tuple[str, ...]]:
-    if not definition_ids:
-        return (), ()
-    subjects = subject_scoped_requirements(view, definition_ids)
-    needs: list[str] = []
-    requirements: list[str] = []
-    try:
-        needs = [candidate for candidate in subjects if view.in_lineage(candidate, NEED_CLASS)]
-    except IdentityNotFoundError as error:
-        problems[SELECTOR_NEEDS] = (PROBLEM_UNAVAILABLE, f"kernel-binding:{NEED_CLASS}: {error}")
-    try:
-        requirements = [
-            candidate
-            for candidate in subjects
-            if candidate not in needs
-            and view.in_lineage(candidate, REQUIREMENT_CLASS)
-            and not view.in_lineage(candidate, EVIDENCE_CONTRACT_CLASS)
-        ]
-    except IdentityNotFoundError as error:
-        problems[SELECTOR_REQUIREMENTS] = (PROBLEM_UNAVAILABLE, f"kernel-binding: {error}")
-    return tuple(needs), tuple(requirements)
+def _package_contents(view: ModelView, package: str) -> list[str]:
+    """Every element ``package`` owns, descending into nested packages only."""
+    found: list[str] = []
+    frontier, seen = [package], set()
+    while frontier:
+        current = frontier.pop(0)
+        if current in seen:
+            continue
+        seen.add(current)
+        for member in view.index.owned_members(current):
+            found.append(member)
+            if str(view.index.element(member).get("@type")) in _PACKAGE_TYPES:
+                frontier.append(member)
+    return found
 
 
-def _verification_packages(
-    view: ModelView, usage_id: str | None, package_id: str | None
-) -> tuple[str, ...]:
-    if usage_id is None or package_id is None:
-        return ()
-    index = view.index
-    referencing = []
-    for holder in index.referencing_holders(usage_id):
-        owner = index.owner_of(holder)
-        if owner and str(index.element(owner).get("@type")) in {"Package", "LibraryPackage"}:
-            if owner != package_id:
-                referencing.append(owner)
-    return (package_id, *_ordered(view, referencing))
+def _declared_scope(view: ModelView, charter: str) -> tuple[tuple[str, ...], tuple[str, ...], list[str]]:
+    """The packages the charter declares in ``expectedArtifacts`` and their elements."""
+    names = [str(leaf.value) for leaf in view.index.feature_values(charter, SCOPE_ATTRIBUTE)
+             if leaf.kind == "string" and str(leaf.value or "").strip()]
+    if not names:
+        return (), (), [f"the charter declares no {SCOPE_ATTRIBUTE}; the increment scope is empty"]
+    packages_by_name = _top_level_packages(view)
+    packages: list[str] = []
+    diagnostics: list[str] = []
+    for name in names:
+        matches = packages_by_name.get(name, [])
+        if len(matches) != 1:
+            diagnostics.append(f"declared artifact {name!r} names {len(matches)} top-level packages; "
+                               "exactly one is required, so it is not in the increment scope")
+            continue
+        if matches[0] not in packages:
+            packages.append(matches[0])
+    elements = [element for package in packages for element in _package_contents(view, package)]
+    return tuple(packages), _ordered(view, elements), diagnostics

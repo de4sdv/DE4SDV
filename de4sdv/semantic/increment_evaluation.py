@@ -29,7 +29,7 @@ from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 
 from . import method_evaluator as me
-from .gate_reader import PHASE_ORDER, UNBOUNDED, GateSet, read_method_gates
+from .increment_workflow import PHASE_ORDER, UNBOUNDED, IncrementMethod, read_increment_method
 from .increment_scope import IncrementScope, ModelView, resolve_increment
 from .method_checks import IncrementEvaluationContext
 from .relation_checks import METHOD_SIDE_PREFIXES
@@ -50,7 +50,7 @@ class IncrementEvaluation:
 
     increment_id: str
     revision: me.RevisionIdentity
-    gate_set: GateSet
+    increment_method: IncrementMethod
     scope: IncrementScope
     view: ModelView
     canonical: me.CanonicalEvaluation | None
@@ -64,9 +64,9 @@ class IncrementEvaluation:
         payload = {
             "increment_id": self.increment_id,
             "revision": _revision(self.revision),
-            "method": dict(self.gate_set.method_identity),
-            "reason": self.gate_set.reason,
-            "problems": list(self.gate_set.problems),
+            "method": dict(self.increment_method.method_identity),
+            "reason": self.increment_method.reason,
+            "problems": list(self.increment_method.problems),
         }
         encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
         return hashlib.sha256(encoded).hexdigest()
@@ -95,41 +95,40 @@ class IncrementEvaluation:
             block["package"] = self.view.describe(scope.package_id)
         if len(scope.charters) == 1:
             block["charter"] = self.view.describe(scope.charters[0])
-        block["populations"] = {
-            selector: len(members) for selector, members in scope.populations.items()
+        block["scope"] = {
+            "packages": [self.view.index.qualified_name(package) for package in scope.scope_packages],
+            "elements": len(scope.scope_elements),
         }
         return block
 
     def _method_block(self) -> dict[str, Any]:
-        block = dict(self.gate_set.method_identity)
-        block["executable_contract_available"] = self.gate_set.available
-        if self.gate_set.problems:
-            block["problems"] = list(self.gate_set.problems)
-        if self.gate_set.other_obligations:
-            block["other_model_obligations"] = list(self.gate_set.other_obligations)
+        block = dict(self.increment_method.method_identity)
+        block["executable_contract_available"] = self.increment_method.available
+        if self.increment_method.problems:
+            block["problems"] = list(self.increment_method.problems)
         return block
 
     def _unavailable(self, query: str) -> dict[str, Any]:
         response = self._header(query)
-        invalid = bool(self.gate_set.problems)
+        invalid = bool(self.increment_method.problems)
         response.update(
             executable_contract_available=False,
             assessment_coverage=me.COVERAGE_ASSESSED if invalid else me.COVERAGE_UNASSESSED,
             evaluation_state=me.STATE_ERROR if invalid else None,
             conformance_verdict=None,
             reason_codes=[me.INVALID_CONTRACT if invalid else me.CONTRACT_UNAVAILABLE],
-            diagnostics=[self.gate_set.reason],
+            diagnostics=[self.increment_method.reason],
         )
         return response
 
     # -- shared structure -------------------------------------------------------
 
     def _contract(self) -> me.MethodContract:
-        assert self.gate_set.contract is not None
-        return self.gate_set.contract
+        assert self.increment_method.contract is not None
+        return self.increment_method.contract
 
     def _phases(self, phase: str | None) -> list[str]:
-        phases = list(self.gate_set.phases)
+        phases = list(self.increment_method.phases)
         if phase is None:
             return phases
         if phase not in PHASE_ORDER:
@@ -170,20 +169,6 @@ class IncrementEvaluation:
                              "inventory cannot authorize a phase exit",),
             )
         return me.subset_readiness(self.canonical, ids, target)
-
-    def _depths(self) -> dict[str, int]:
-        gates = {g.obligation_id: g for g in self._contract().obligations}
-        depth: dict[str, int] = {}
-
-        def of(gate_id: str) -> int:
-            if gate_id not in depth:
-                depth[gate_id] = 0
-                depth[gate_id] = 1 + max((of(d) for d in gates[gate_id].depends_on if d in gates), default=-1)
-            return depth[gate_id]
-
-        for gate_id in gates:
-            of(gate_id)
-        return depth
 
     def _kind(self, unit: me.EvaluationResult) -> str | None:
         """Gap kind of one gate unit (None when the gate passes or is not applicable)."""
@@ -235,10 +220,27 @@ class IncrementEvaluation:
             first = next((c.subject_id for c in self._children(gate.obligation_id)
                           if c.verdict == me.VERDICT_FAIL or c.state in {me.STATE_INDETERMINATE, me.STATE_ERROR}),
                          None)
-            entry["what_to_author"] = self.gate_set.remedy(gate, increment=self.scope, view=self.view,
-                                             subject_id=_element_subject(first, self.view))
+            if me.POPULATION_POLICY_VIOLATION in unit.reason_codes:
+                entry["what_to_author"] = self._population_remedy(gate, unit)
+            else:
+                entry["what_to_author"] = self.increment_method.remedy(
+                    gate, increment=self.scope, view=self.view, subject_id=_element_subject(first, self.view))
             entry["where"] = self._where(subjects)
         return entry
+
+    def _population_remedy(self, gate: me.ObligationSpec, unit: me.EvaluationResult) -> str:
+        """What to author when the number of subjects is outside the population bounds."""
+        label = self.increment_method.labels.get(gate.obligation_id, {})
+        subject_type = str(label.get("subject_type") or "subject").rsplit("::", 1)[-1]
+        lower, upper = gate.minimum_population, gate.maximum_population
+        if upper is None:
+            bounds = f"at least {lower}"
+        elif lower == upper:
+            bounds = f"exactly {lower}"
+        else:
+            bounds = f"between {lower} and {upper}"
+        observed = unit.diagnostics[0] if unit.diagnostics else ""
+        return f"keep {bounds} {subject_type} in the increment's declared packages ({observed})"
 
     def _subject(self, child: me.EvaluationResult) -> dict[str, Any]:
         subject_id = child.subject_id
@@ -364,15 +366,14 @@ class IncrementEvaluation:
         return self._presented(response)
 
     def next_obligation(self, phase: str | None = None) -> dict[str, Any]:
-        """The first actionable blocking gate, ranked by gate prerequisites."""
+        """The first actionable blocking check, in workflow order (step order, then check order)."""
         if self.canonical is None:
             response = self._unavailable("next_obligation")
-            response.update(next=None, reason=self.gate_set.reason, stage_queue=[], method_side_blockers=[])
+            response.update(next=None, reason=self.increment_method.reason, stage_queue=[], method_side_blockers=[])
             return response
         response = self._header("next_obligation")
-        depths = self._depths()
         order = {g.obligation_id: i for i, g in enumerate(self._contract().obligations)}
-        actionable: list[tuple[tuple[int, int, int], me.ObligationSpec, str]] = []
+        actionable: list[tuple[int, me.ObligationSpec, str]] = []
         method_side: list[dict[str, Any]] = []
         for p in self._phases(phase):
             for gate in self._gates(p):
@@ -380,8 +381,7 @@ class IncrementEvaluation:
                     continue
                 kind = self._kind(self._unit(gate.obligation_id))
                 if kind in {KIND_VIOLATION, KIND_INPUT}:
-                    rank = (depths[gate.obligation_id], PHASE_ORDER.get(gate.phase, 99), order[gate.obligation_id])
-                    actionable.append((rank, gate, kind))
+                    actionable.append((order[gate.obligation_id], gate, kind))
                 elif kind == KIND_METHOD_SIDE:
                     unit = self._unit(gate.obligation_id)
                     missing = sorted({m for c in self._children(gate.obligation_id) for m in c.missing}
@@ -414,7 +414,6 @@ class IncrementEvaluation:
                 "what_to_author": entry.get("what_to_author", ""),
                 "where": entry.get("where", {}),
                 "subjects": entry.get("subjects", []),
-                "prerequisites": list(gate.depends_on),
             }
         elif method_side:
             reason = ("no gate the agent can author is open; the remaining blockers need a method or "
@@ -428,11 +427,11 @@ class IncrementEvaluation:
 
     def phase_contract(self, phase: str | None = None) -> dict[str, Any]:
         """The gates of the method (or one phase) with this increment's applicability."""
-        return phase_contract_response(self.gate_set, self.view, self.revision, phase=phase, scope=self.scope)
+        return phase_contract_response(self.increment_method, self.view, self.revision, phase=phase, scope=self.scope)
 
 
 def phase_contract_response(
-    gate_set: GateSet,
+    increment_method: IncrementMethod,
     view: ModelView,
     revision: me.RevisionIdentity,
     *,
@@ -446,12 +445,10 @@ def phase_contract_response(
     """
     if phase is not None and phase not in PHASE_ORDER:
         raise ValueError(f"{phase!r} is not a MethodPhase literal")
-    method = dict(gate_set.method_identity)
-    method["executable_contract_available"] = gate_set.available
-    if gate_set.problems:
-        method["problems"] = list(gate_set.problems)
-    if gate_set.other_obligations:
-        method["other_model_obligations"] = list(gate_set.other_obligations)
+    method = dict(increment_method.method_identity)
+    method["executable_contract_available"] = increment_method.available
+    if increment_method.problems:
+        method["problems"] = list(increment_method.problems)
     response: dict[str, Any] = {
         "query": "phase_contract",
         "method": method,
@@ -464,17 +461,17 @@ def phase_contract_response(
             "resolved": scope.usage_id is not None,
             "declared_phases": list(scope.declared_phases) if scope.declared_phases is not None else None,
         }
-    if gate_set.contract is None:
+    if increment_method.contract is None:
         response.update(executable_contract_available=False, phases=[], gates=[],
-                        reason_codes=[me.INVALID_CONTRACT if gate_set.problems else me.CONTRACT_UNAVAILABLE],
-                        diagnostics=[gate_set.reason])
+                        reason_codes=[me.INVALID_CONTRACT if increment_method.problems else me.CONTRACT_UNAVAILABLE],
+                        diagnostics=[increment_method.reason])
         return response
-    contract = me.decode_contract_filters(gate_set.contract, gate_set.predicates)
-    phases = [p for p in gate_set.phases if phase is None or p == phase]
-    gates = [_gate_record(gate, view, scope, gate_set) for p in phases
+    contract = me.decode_contract_filters(increment_method.contract, increment_method.predicates)
+    phases = [p for p in increment_method.phases if phase is None or p == phase]
+    gates = [_gate_record(gate, view, scope, increment_method) for p in phases
              for gate in contract.obligations if gate.phase == p]
     response.update(executable_contract_available=bool(gates), phases=phases, gates=gates,
-                    contract_digest=gate_set.contract.digest())
+                    contract_digest=increment_method.contract.digest())
     if not gates:
         response["reason_codes"] = [me.CONTRACT_UNAVAILABLE]
         response["diagnostics"] = [f"no gate is declared for {phase}"]
@@ -482,7 +479,7 @@ def phase_contract_response(
 
 
 def _gate_record(gate: me.ObligationSpec, view: ModelView, scope: IncrementScope | None,
-                 gate_set: GateSet) -> dict[str, Any]:
+                 increment_method: IncrementMethod) -> dict[str, Any]:
     record: dict[str, Any] = {
         "obligation_id": gate.obligation_id,
         "phase": gate.phase,
@@ -497,13 +494,12 @@ def _gate_record(gate: me.ObligationSpec, view: ModelView, scope: IncrementScope
         "permitted_empty": gate.permitted_empty,
         "required": gate.required,
         "applicability": gate.applicability,
-        "prerequisites": list(gate.depends_on),
         "claim_boundary": gate.claim_boundary,
     }
-    record.update(gate_set.labels.get(gate.obligation_id, {}))
+    record.update(increment_method.labels.get(gate.obligation_id, {}))
     if scope is None:
         return record
-    record["what_satisfies"] = gate_set.remedy(gate, increment=scope, view=view)
+    record["what_satisfies"] = increment_method.remedy(gate, increment=scope, view=view)
     if gate.applicability_kind == me.APPLICABILITY_UNCONDITIONAL:
         record["applicability_resolution"] = "applicable"
     elif scope.declared_phases is None:
@@ -519,13 +515,14 @@ def evaluate_increment(
     increment_id: str,
     *,
     revision: me.RevisionIdentity,
-    gates: GateSet | None = None,
+    method: IncrementMethod | None = None,
 ) -> IncrementEvaluation:
-    """Evaluate one increment against the method gates of ``view`` (or ``gates``)."""
-    gate_set = gates if gates is not None else read_method_gates(view, revision_label=revision.git_commit)
+    """Evaluate one increment against the workflow its charter declares (or ``method``)."""
     scope = resolve_increment(view, increment_id)
+    increment_method = method if method is not None else read_increment_method(
+        view, scope, revision_label=revision.git_commit)
     canonical = None
-    if gate_set.contract is not None:
+    if increment_method.contract is not None:
         ctx = IncrementEvaluationContext(
             revision=revision,
             elements=(),
@@ -543,11 +540,11 @@ def evaluate_increment(
             model=view,
             increment=scope,
         )
-        evaluator = me.MethodEvaluator(gate_set.contract, predicates=gate_set.predicates,
-                                       selectors=gate_set.selectors)
+        evaluator = me.MethodEvaluator(increment_method.contract, predicates=increment_method.predicates,
+                                       selectors=increment_method.selectors)
         canonical = evaluator.evaluate(ctx)
     return IncrementEvaluation(
-        increment_id=scope.increment_id, revision=revision, gate_set=gate_set, scope=scope,
+        increment_id=scope.increment_id, revision=revision, increment_method=increment_method, scope=scope,
         view=view, canonical=canonical,
     )
 

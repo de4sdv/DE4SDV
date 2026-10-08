@@ -26,7 +26,7 @@ from de4sdv.sysml_api.repository import SysMLRepository, element_id, reference_i
 from de4sdv.sysml_api.revisions import RevisionBinding
 
 from .api_binding import OntologyApiBinder
-from .gate_reader import GateSet, read_method_gates
+from .increment_workflow import IncrementMethod, read_revision_method
 from .impact import ImpactService
 from .increment_evaluation import IncrementEvaluation, evaluate_increment, phase_contract_response
 from .increment_scope import ModelView, parse_increment_id
@@ -67,7 +67,7 @@ class SemanticQueryService:
     _impact_cache: dict[str, dict[str, Any]] = field(
         default_factory=dict, init=False, repr=False
     )
-    _method_gates: dict[tuple[str, str, str], GateSet] = field(
+    _revision_methods: dict[tuple[str, str, str], IncrementMethod] = field(
         default_factory=dict, init=False, repr=False
     )
     _increment_evaluations: dict[tuple[str, str, str, str], IncrementEvaluation] = field(
@@ -638,25 +638,28 @@ class SemanticQueryService:
             self.binding.sysml_commit_id,
         )
 
-    def method_gates(self) -> GateSet:
-        """The method gates of the bound model revision (read once)."""
+    def revision_method(self) -> IncrementMethod:
+        """The workflow the bound revision's charters declare, when there is exactly one (read once)."""
         view = self._method_view()
         key = self._revision_key()
-        if key not in self._method_gates:
-            self._method_gates[key] = read_method_gates(
+        if key not in self._revision_methods:
+            self._revision_methods[key] = read_revision_method(
                 view, revision_label=self.binding.git_commit
             )
-        return self._method_gates[key]
+        return self._revision_methods[key]
 
     def increment_evaluation(self, increment: str) -> IncrementEvaluation:
-        """The canonical method evaluation of one increment (computed once)."""
+        """The canonical method evaluation of one increment (computed once).
+
+        The method is the workflow the increment's own charter declares.
+        """
         identifier = parse_increment_id(increment)
-        gates = self.method_gates()
+        view = self._method_view()  # revision gates before any method answer
         key = (*self._revision_key(), identifier)
         if key not in self._increment_evaluations:
             self.method_evaluation_count += 1
             self._increment_evaluations[key] = evaluate_increment(
-                self._method_view(), identifier, revision=self._revision_identity(), gates=gates
+                view, identifier, revision=self._revision_identity()
             )
         return self._increment_evaluations[key]
 
@@ -681,12 +684,13 @@ class SemanticQueryService:
         *,
         increment: str | None = None,
     ) -> dict[str, Any]:
-        """Candidate-independent read of the method gates (never a verdict).
+        """Candidate-independent read of the method checks (never a verdict).
 
-        Without an increment: the gates as declared by the bound model. With
-        an increment: each gate also carries that increment's applicability.
-        A runtime explicitly configured with an approved method selection
-        (a declared pilot contract) answers phase-only calls from it.
+        With an increment: the workflow its charter declares, each check with
+        that increment's applicability. Without one: the workflow the
+        revision's charters declare, when they declare exactly one. A runtime
+        explicitly configured with an approved method selection (a declared
+        pilot contract) answers phase-only calls from it.
         """
         if increment is None and phase is not None and self.method_conformance is not None:
             return self.method_conformance.phase_contract(phase, candidate_context)
@@ -694,7 +698,7 @@ class SemanticQueryService:
             return self._with_provenance(self.increment_evaluation(increment).phase_contract(phase))
         view = self._method_view()
         return self._with_provenance(
-            phase_contract_response(self.method_gates(), view, self._revision_identity(), phase=phase)
+            phase_contract_response(self.revision_method(), view, self._revision_identity(), phase=phase)
         )
 
     def increment_status(

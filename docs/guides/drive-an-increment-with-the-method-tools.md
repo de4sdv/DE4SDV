@@ -8,18 +8,28 @@ authors model content, the deterministic evaluation judges it.
 
 ## Method representation
 
-The tools read the increment workflow
-([`DE4SDV_IncrementWorkflow`](../../textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml))
-when the revision identifies it by validated kernel identity: the step
-actions in succession order, each step's `phase` and parameters, and the
-`MethodCheck` metadata about a parameter (`check`, `minimum`, `advisory`).
-A check's subjects are the increment's elements that conform to the
-parameter: typed by its type, or of its usage kind when it is untyped.
-Framing always applies; a later, optional step applies when the charter
-declares its phase. Check ids resolve in `de4sdv/semantic/method_checks.py`;
-an unknown id makes the method invalid. Without the workflow the tools read
-method gates, if any. `de4sdv/semantic/increment_workflow.py` is the only
-module that knows this representation.
+The method of an increment is the workflow its charter declares
+([`DE4SDV_IncrementWorkflow`](../../textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml)).
+The tools reach it through native relations from validated identity, never by
+name: the increment's charter (IncrementTraceObligations lineage) -> its
+definition's `workflow` feature -> the workflow definition -> its step actions
+in succession order -> each step's `phase`, parameters and `MethodCheck`
+metadata about a parameter (`check`, `minimum`, `advisory`).
+
+- **Scope.** A check's subjects are the elements of the packages the charter
+  declares in `expectedArtifacts` (with their nested packages) that conform to
+  the parameter: typed by its type, or of its usage kind when it is untyped.
+- **Population.** The parameter's multiplicity bounds the number of subjects:
+  `[1]` means exactly one, `[0..*]` lets an empty population mean "does not
+  apply".
+- **Applicability.** Framing always applies; a later, optional step applies
+  when the charter declares its phase.
+- **Every check is evaluated.** The step order only ranks `next`; an open check
+  never blocks a later one.
+
+Check ids resolve in `de4sdv/semantic/method_checks.py`; an unknown id makes the
+method invalid. `de4sdv/semantic/increment_workflow.py` is the only module that
+knows this representation.
 
 ## The four tools
 
@@ -31,10 +41,10 @@ optional `MethodPhase` literal, such as `phase4_needs`, that filters the answer.
 
 | Tool | Answers |
 | --- | --- |
-| `next_obligation(increment, phase?)` | The first gate the agent can act on, with the failing elements, what to author and in which package |
-| `method_gaps(increment, phase?)` | Every unmet blocking gate (with its subjects) and the advisory notes |
+| `next_obligation(increment, phase?)` | The first check the agent can act on, in workflow order, with the failing elements, what to author and in which package |
+| `method_gaps(increment, phase?)` | Every unmet blocking check (with its subjects) and the advisory notes |
 | `increment_status(increment, phase?)` | Per phase: the aggregate verdict and whether the phase exit is `READY` or `BLOCKED` |
-| `phase_contract(phase?, increment?)` | The gates themselves, and for an increment whether each applies; never a verdict |
+| `phase_contract(phase?, increment?)` | The checks themselves, and for an increment whether each applies; never a verdict |
 
 The three evaluation tools project one evaluation of the increment, so their
 answers carry the same `evaluation_key`.
@@ -43,26 +53,25 @@ answers carry the same `evaluation_key`.
 
 - **Identity.** The increment is the part usage in the `EngineeringIncrement`
   lineage whose declared short name is the identifier. Its charter
-  declaration states the applicable phases; gates of undeclared phases are
-  not applicable, which is reported as such, never as passed.
-- **Blocking and advisory.** A gate's `required` flag decides. Structural
-  checks block the phase exit; advisory gates are reported as notes.
-- **Prerequisites.** A gate whose prerequisite gate has not passed is not
-  attempted, and `method_gaps` names the prerequisite that blocks it.
-- **Ranking.** `next_obligation` ranks open gates by their depth in the
-  prerequisite graph, then by phase, then by gate order.
-- **Relations.** The relation a gate checks is decided by the relation check
+  declaration states the applicable phases; checks of undeclared optional
+  steps are not applicable, which is reported as such, never as passed.
+- **Blocking and advisory.** A check's `advisory` flag decides (default:
+  blocking). Blocking checks hold the phase exit; advisory checks are reported
+  as notes.
+- **Ranking.** `next_obligation` returns the earliest open blocking check in
+  workflow order (step order, then check order).
+- **Relations.** A check that names a relation is decided by the relation check
   of that name in `de4sdv/semantic/relation_checks.py`: a relation of the
   model-built contract through the production traversal (a connection-carried
   relation from the connections of its pinned carrier), and the native SysML
   relations `frame`, `stakeholder`, `subject` and `verify` from their
-  memberships. A relation check reads only the model, never gate fields.
+  memberships. A relation check reads only the model, never method fields.
 - **Method side versus model.** Some inputs only a method or kernel change can
   supply, for example a declaration without a validated kernel identity or a
-  relation without a SysML mapping. Those gates are listed under
+  relation without a SysML mapping. Those checks are listed under
   `method_side_blockers`, not offered as authoring work.
 
-Results describe model content against the declared gates only. They make no
+Results describe model content against the declared checks only. They make no
 acceptance, compliance, certification or evidence-adequacy claim.
 
 ## Offline, over a model export

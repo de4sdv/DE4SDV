@@ -22,7 +22,6 @@ from de4sdv.semantic.kernel_contract import KernelFileMapping, declaration_ident
 from model_contract_fixtures import model_contract
 
 ODE4HERA_SOURCE = ".sysand/lib/ode4hera-requirements-management_2.0.1/RequirementsManagement.sysml"
-GATES_SOURCE = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_gates.sysml"
 FEATURE_SOURCE = "textual-notation-of-model/packages/features/fixture/fixture_increment.sysml"
 _NAMESPACE = uuid.UUID("0b8f6a0e-6a39-5c43-9d4e-5d2c1f3c9a11")
 
@@ -40,14 +39,6 @@ PHASE_LITERALS = (
     "phase10_vvEvidence",
     "phase11_publication",
     "phase12_baselineNextSlice",
-)
-SOURCE_KIND_LITERALS = ("pinnedModelRecord", "pinnedRepositoryArtifact", "liveDeliveryAdapter")
-DISPOSITION_LITERALS = ("noEligibleSubjects", "explicitDisposition")
-OBLIGATION_FIELDS = (
-    "obligationId", "phase", "subjectSelector", "applicability", "minimumPopulation",
-    "permittedEmpty", "predicate", "targetFilter", "cardinalityMinimum",
-    "cardinalityMaximum", "required", "evaluationSource", "attestationPolicyRef",
-    "claimBoundary",
 )
 INFINITY = object()
 
@@ -396,8 +387,6 @@ def increment_scenario(
     """
     b = builder or ModelBuilder(label=name)
     phases = b.enumeration("MethodPhase", PHASE_LITERALS)
-    b.enumeration("EvaluationSourceKind", SOURCE_KIND_LITERALS)
-    b.kernel_definition("MethodContractObligation")
     roots = {cls: b.kernel_definition(cls) for cls in (
         "EngineeringIncrement", "IncrementTraceObligations", "ProblemStatement",
         "IncrementEngineeringQuestion", "IncrementLifecycleDecision", "Assumption", "Stakeholder",
@@ -431,7 +420,8 @@ def increment_scenario(
     b.attribute(charter, "applicablePhases", [phases[p] for p in applicable_phases])
     b.attribute(charter, "increment", usage, kind="PartUsage")
     b.attribute(charter, "owner", "fixture maintainers")
-    b.attribute(charter, "expectedArtifacts", [f"DE4SDV_{name}Framing"])
+    b.attribute(charter, "expectedArtifacts", [f"DE4SDV_{name}Framing", f"DE4SDV_{name}NeedsRequirements",
+                                               f"DE4SDV_{name}VerificationEvidence"])
     b.attribute(charter, "expectedReviewEvidence", ["fixture review evidence"])
 
     needs_package = b.package(f"DE4SDV_{name}NeedsRequirements")
@@ -480,82 +470,6 @@ def increment_scenario(
         scenario_definition=scenario_def, vocabulary=roots)
 
 
-@dataclass(frozen=True)
-class GateSpec:
-    """One synthetic method gate (MethodGate usage) for tests."""
-
-    name: str
-    phase: str
-    selector: str
-    predicate: str
-    target_filter: str = ""
-    minimum: int = 1
-    maximum: Any = INFINITY
-    required: bool = True
-    minimum_population: int = 1
-    permitted_empty: bool = False
-    disposition: str | None = None
-    prerequisites: tuple[str, ...] = ()
-    applicability: str = "increment declares the gate phase"
-    claim: str = "synthetic gate claim boundary"
-    source_kind: str = "pinnedModelRecord"
-
-
-def method_gates(builder: ModelBuilder, gates: Sequence[GateSpec],
-                 package_name: str = "DE4SDV_FixtureMethodGates") -> dict[str, dict[str, Any]]:
-    """MethodGate usages specializing the kernel MethodContractObligation.
-
-    The obligation definition carries its typed attributes; MethodGate adds
-    ``prerequisites`` and ``permittedEmptyDisposition``. Each gate usage
-    redefines the attributes with literal or reference values, as the
-    licensed serializer emits them.
-    """
-    phases = builder.enumeration("MethodPhase", PHASE_LITERALS)
-    kinds = builder.enumeration("EvaluationSourceKind", SOURCE_KIND_LITERALS)
-    obligation = builder.kernel_definition("MethodContractObligation")
-    features = {}
-    for field_name in OBLIGATION_FIELDS:
-        feature = builder.new("AttributeUsage", name=field_name, source=builder.sources[obligation["@id"]])
-        builder.own(obligation, feature, kind="FeatureMembership", member_name=field_name)
-        features[field_name] = feature
-    package = builder.package(package_name, source=GATES_SOURCE)
-    gate_def = builder.definition("ItemDefinition", "MethodGate", package, [obligation])
-    prerequisites_feature = builder.new("ReferenceUsage", name="prerequisites", source=GATES_SOURCE)
-    builder.own(gate_def, prerequisites_feature, kind="FeatureMembership", member_name="prerequisites")
-    disposition_def = builder.definition("EnumerationDefinition", "PermittedEmptyDisposition", package)
-    dispositions = {}
-    for literal in DISPOSITION_LITERALS:
-        usage = builder.new("EnumerationUsage", name=literal, source=GATES_SOURCE)
-        builder.own(disposition_def, usage, kind="VariantMembership", member_name=literal)
-        dispositions[literal] = usage
-    disposition_feature = builder.new("AttributeUsage", name="permittedEmptyDisposition", source=GATES_SOURCE)
-    builder.own(gate_def, disposition_feature, kind="FeatureMembership", member_name="permittedEmptyDisposition")
-    made: dict[str, dict[str, Any]] = {}
-    for gate in gates:
-        usage = builder.usage("ItemUsage", gate.name, package, [gate_def])
-        values = {
-            "obligationId": gate.name, "phase": phases[gate.phase], "subjectSelector": gate.selector,
-            "applicability": gate.applicability, "minimumPopulation": gate.minimum_population,
-            "permittedEmpty": gate.permitted_empty, "predicate": gate.predicate,
-            "targetFilter": gate.target_filter, "cardinalityMinimum": gate.minimum,
-            "cardinalityMaximum": gate.maximum, "required": gate.required,
-            "evaluationSource": kinds[gate.source_kind], "attestationPolicyRef": "",
-            "claimBoundary": gate.claim,
-        }
-        for field_name, value in values.items():
-            builder.attribute(usage, field_name, value, redefines=features[field_name])
-        if gate.disposition is not None:
-            builder.attribute(usage, "permittedEmptyDisposition", dispositions[gate.disposition],
-                              redefines=disposition_feature)
-        made[gate.name] = usage
-    for gate in gates:
-        if gate.prerequisites:
-            targets = [made[name] for name in gate.prerequisites]
-            builder.attribute(made[gate.name], "prerequisites", targets[0] if len(targets) == 1 else targets,
-                              redefines=prerequisites_feature, kind="ReferenceUsage")
-    return made
-
-
 # ---------------------------------------------------------------------------
 # Increment workflow (action def IncrementWorkflow)
 # ---------------------------------------------------------------------------
@@ -597,9 +511,9 @@ class WorkflowStep:
 
 
 def increment_workflow(builder: ModelBuilder, steps: Sequence[WorkflowStep], *,
+                       charter: dict[str, Any] | None = None,
                        successions: Sequence[tuple[str, str]] | None = None,
-                       package_name: str = "DE4SDV_IncrementWorkflow",
-                       bind: bool = True) -> dict[str, Any]:
+                       package_name: str = "DE4SDV_IncrementWorkflow") -> dict[str, Any]:
     """The increment workflow in export shape.
 
     ``action def IncrementWorkflow`` owns one step action usage per step (all
@@ -610,21 +524,17 @@ def increment_workflow(builder: ModelBuilder, steps: Sequence[WorkflowStep], *,
     usage is typed by a step action definition with a ``phase`` attribute (a
     MethodPhase literal) and its parameters (usages with a direction, an
     optional type and a multiplicity), and owns ``MethodCheck`` metadata
-    usages ``about`` one of those parameters. The kernel bindings of
-    ``IncrementWorkflow`` and ``MethodCheck`` are synthetic: the model registers
-    them as kernel-internal declarations, not ontology classes.
+    usages ``about`` one of those parameters. With a ``charter``, its
+    definition owns ``action workflow : IncrementWorkflow``: the native relation
+    from the increment's charter to its workflow. No kernel binding is added:
+    the model registers the workflow declarations as kernel-internal.
     """
     phases = builder.enumeration("MethodPhase", PHASE_LITERALS)
     package = builder.package(package_name, source=WORKFLOW_SOURCE)
     workflow = builder.definition("ActionDefinition", "IncrementWorkflow", package)
     check_definition = builder.definition("MetadataDefinition", "MethodCheck", package)
-    if bind:
-        for ontology_class, element, declaration in (
-            ("IncrementWorkflow", workflow, "action def IncrementWorkflow"),
-            ("MethodCheck", check_definition, "metadata def MethodCheck"),
-        ):
-            builder.bindings.append({"ontology_class": ontology_class, "element_id": element["@id"],
-                                     "source_file": WORKFLOW_SOURCE, "declaration": declaration})
+    if charter is not None:
+        attach_workflow(builder, charter, workflow)
     features = {}
     for name in ("check", "minimum", "advisory"):
         feature = builder.new("AttributeUsage", name=name, source=WORKFLOW_SOURCE)
@@ -681,3 +591,101 @@ def increment_workflow(builder: ModelBuilder, steps: Sequence[WorkflowStep], *,
             builder.reference_subsetting(end, target)
     return {"workflow": workflow, "check_definition": check_definition, "steps": usages,
             "parameters": parameters, "checks": checks}
+
+
+def attach_workflow(builder: ModelBuilder, charter: dict[str, Any], workflow: dict[str, Any]) -> dict[str, Any]:
+    """``action workflow : <workflow>`` owned by the charter's definition."""
+    by_id = {e["@id"]: e for e in builder.elements}
+    typings = [by_id[r["@id"]] for r in charter["ownedRelationship"]
+               if by_id[r["@id"]].get("@type") == "FeatureTyping"]
+    definition = by_id[typings[0]["type"]["@id"]]
+    feature = builder.new("ActionUsage", name="workflow", source=builder.sources[definition["@id"]])
+    builder.own(definition, feature, kind="FeatureMembership", member_name="workflow")
+    builder.typed(feature, workflow)
+    return feature
+
+
+def model_workflow_steps(scenario: IncrementScenario, **changes: dict[str, Any]) -> list[WorkflowStep]:
+    """The steps, parameters and checks of the model's increment workflow (checked steps in full)."""
+    from dataclasses import replace as _replace
+
+    builder, framing = scenario.builder, scenario.framing
+    scope = builder.definition("PartDefinition", "IncrementScope", framing)
+    out_of_scope = builder.definition("PartDefinition", "OutOfScopeItem", framing)
+    builder.usage("PartUsage", "fixtureScope", framing, [scope])
+    builder.usage("PartUsage", "fixtureOutOfScopeItem", framing, [out_of_scope])
+    p, c = WorkflowParameter, WorkflowCheck
+    steps = [
+        WorkflowStep("frameIncrement", "phase0_incrementFraming", (
+            p("increment", "EngineeringIncrement"), p("charter", "IncrementTraceObligations"),
+            p("problemStatement", "ProblemStatement", "RequirementUsage"),
+            p("engineeringQuestion", "IncrementEngineeringQuestion"),
+            p("lifecycleDecision", "IncrementLifecycleDecision"),
+            p("assumptions", "Assumption", bounds=(1, INFINITY)), p("scope", scope),
+            p("outOfScopeItems", out_of_scope, bounds=(1, INFINITY)),
+            p("framedConcerns", None, "ConcernUsage", bounds=(1, INFINITY)),
+        ), (
+            c("incrementHasIdentifier", "incrementShortName", "increment"),
+            c("incrementHasCharter", "charterReferencesIncrement", "charter"),
+            c("incrementHasProblemStatement", "problemStatementSubject", "problemStatement"),
+            c("incrementHasEngineeringQuestion", "ownedByIncrementPackage", "engineeringQuestion"),
+            c("incrementHasLifecycleDecision", "ownedByIncrementPackage", "lifecycleDecision"),
+            c("incrementHasAssumption", "ownedByIncrementPackage", "assumptions"),
+            c("incrementHasStakeholder", "stakeholderMember", "problemStatement"),
+            c("incrementHasFramedConcern", "framedByIncrementView", "framedConcerns"),
+            c("incrementHasScope", "ownedByIncrementPackage", "scope"),
+            c("incrementHasOutOfScopeItem", "ownedByIncrementPackage", "outOfScopeItems"),
+            c("incrementHasOwner", "charterOwner", "charter"),
+            c("incrementDeclaresApplicablePhases", "charterApplicablePhases", "charter"),
+            c("incrementDeclaresExpectedArtifacts", "charterExpectedArtifacts", "charter"),
+            c("incrementDeclaresExpectedReviewEvidence", "charterExpectedReviewEvidence", "charter"),
+        )),
+        WorkflowStep("frameConcerns", "phase1_concernFraming", (
+            p("problemStatement", "ProblemStatement", "RequirementUsage", "in"),
+            p("concerns", None, "ConcernUsage", bounds=(1, INFINITY)),
+        )),
+        WorkflowStep("elaborateNeeds", "phase4_needs", (
+            p("problemStatement", "ProblemStatement", "RequirementUsage", "in"),
+            p("concerns", None, "ConcernUsage", "in", (0, INFINITY)),
+            p("needs", "Need", "RequirementUsage", bounds=(1, INFINITY)),
+        ), (
+            c("needHasStatement", "requireConstraint", "needs"),
+            c("needHasStakeholder", "stakeholderMember", "needs"),
+            c("needHasSource", "sourceAttribute", "needs"),
+            c("needHasRationale", "rationaleAttribute", "needs"),
+            c("needHasValidationScenario", "hasValidationScenario", "needs"),
+            c("needFramesConcern", "framesStakeholderConcern", "needs"),
+        )),
+        WorkflowStep("specifyRequirements", "phase5_requirements", (
+            p("needs", "Need", "RequirementUsage", "in", (0, INFINITY)),
+            p("requirements", "Requirement", "RequirementUsage", bounds=(1, INFINITY)),
+        ), (
+            c("requirementDerivesFromNeed", "derivesRequirementFromNeed", "requirements"),
+            c("requirementHasOneSubject", "oneNativeSubject", "requirements"),
+            c("requirementHasVerificationMethod", "oneVerificationMethodKind", "requirements"),
+            c("requirementSpecifiesFeatureOrCapability", "specifiesFeatureOrCommonCapability", "requirements",
+              advisory=True),
+        )),
+        WorkflowStep("defineFunctionalArchitecture", "phase6_functionalArchitecture", (
+            p("requirements", "Requirement", "RequirementUsage", "in", (0, INFINITY)),
+            p("functions", None, "ActionUsage", bounds=(1, INFINITY)),
+        )),
+        WorkflowStep("planVerificationAndEvidence", "phase10_vvEvidence", (
+            p("requirements", "Requirement", "RequirementUsage", "in", (0, INFINITY)),
+            p("verificationCases", None, "VerificationCaseUsage", bounds=(1, INFINITY)),
+        ), (
+            c("verificationCaseVerifiesRequirement", "verifiesIncrementRequirement", "verificationCases"),
+            c("requirementVerifiedByVerificationCase", "verifiedBy", "requirements"),
+            c("verificationCaseVerifiesAcceptanceCriterion", "verifiesAcceptanceCriterion", "verificationCases",
+              advisory=True),
+            c("verificationCaseHasEvidenceRecordOrStatus", "evidenceRecordOrStatus", "verificationCases",
+              advisory=True),
+        )),
+    ]
+    return [_replace(step, **changes.get(step.name, {})) for step in steps]
+
+
+def install_model_workflow(scenario: IncrementScenario, **changes: dict[str, Any]) -> dict[str, Any]:
+    """The model's workflow, declared by the scenario's charter."""
+    scenario.builder.kernel_definition("AcceptanceCriterion")
+    return increment_workflow(scenario.builder, model_workflow_steps(scenario, **changes), charter=scenario.charter)

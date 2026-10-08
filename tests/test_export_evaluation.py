@@ -20,11 +20,12 @@ from de4sdv.semantic.export_evaluation import (
     ExportEvaluationRefused,
     evaluate_export,
 )
-from increment_model_fixtures import increment_scenario, method_gates
+from increment_model_fixtures import increment_scenario, install_model_workflow
 from model_contract_fixtures import binding_dict, model_service, synthetic_identity
 from de4sdv.sysml_api.revisions import RevisionBinding
-from test_increment_evaluation import P4, synthetic_method
 from test_semantic_method_tools import INCREMENT, _Repository
+
+P4 = "phase4_needs"
 
 GIT = "c" * 40
 
@@ -49,8 +50,7 @@ def _write(tmp_path: Path, scenario, **binding_overrides) -> tuple[Path, Path]:
 
 def _scenario():
     scenario = increment_scenario()
-    scenario.builder.kernel_definition("AcceptanceCriterion")
-    method_gates(scenario.builder, synthetic_method())
+    install_model_workflow(scenario)
     # Make the model gappy so every projection carries content.
     need = scenario.needs[1]
     builder = scenario.builder
@@ -134,7 +134,7 @@ def test_command_line_evaluates_and_refuses(tmp_path: Path, capsys) -> None:
                         "--increment", INCREMENT, "--query", "next", "--output", str(output)])
     assert code == 0
     report = json.loads(output.read_text())
-    assert report["next"]["next"]["gate"] == "needStakeholder"
+    assert report["next"]["next"]["gate"] == "needHasStakeholder"
     assert set(report["timings"]) >= {"load_seconds", "evaluation_seconds", "total_seconds"}
     assert report["semantic_authority"].startswith("sai-")
     assert module.main(["--export", str(export_path), "--increment", "not-an-increment"]) == 2

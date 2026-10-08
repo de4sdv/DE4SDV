@@ -1,10 +1,11 @@
 """Method tools of the semantic service and MCP surface, per increment.
 
 Method evaluation is part of every revision-bound semantic service: the
-method gates are read from the bound model, so the runtime needs no separate
-method wiring ("not configured" no longer applies). The four tools take the
-increment identifier; phase is an optional filter. A model without gates
-answers with an explicit CONTRACT_UNAVAILABLE result.
+method is the workflow the increment's charter declares in the bound model, so
+the runtime needs no separate method wiring ("not configured" no longer
+applies). The four tools take the increment identifier; phase is an optional
+filter. A model without a workflow answers with an explicit
+CONTRACT_UNAVAILABLE result.
 """
 
 from __future__ import annotations
@@ -18,9 +19,10 @@ from de4sdv.semantic import method_evaluator as me
 from de4sdv.semantic.mcp_server import create_mcp_server
 from de4sdv.sysml_api.errors import RevisionMismatchError
 from de4sdv.sysml_api.repository import SysMLRepository
-from increment_model_fixtures import increment_scenario, method_gates
+from increment_model_fixtures import increment_scenario, install_model_workflow
 from model_contract_fixtures import binding, model_service
-from test_increment_evaluation import P4, synthetic_method
+
+P4 = "phase4_needs"
 
 INCREMENT = "INC-FIXTURE-001"
 
@@ -36,11 +38,11 @@ class _Repository(SysMLRepository):
         return self.elements
 
 
-def _service(with_gates: bool = True, git_commit: str = "a" * 40):
+def _service(with_workflow: bool = True, git_commit: str = "a" * 40):
     scenario = increment_scenario()
     scenario.builder.kernel_definition("AcceptanceCriterion")
-    if with_gates:
-        method_gates(scenario.builder, synthetic_method())
+    if with_workflow:
+        install_model_workflow(scenario)
     revision_binding = binding(git_commit=git_commit, kernel_bindings=scenario.builder.bindings)
     repository = _Repository(scenario.builder.elements)
     return model_service(revision_binding, repository), scenario, repository
@@ -86,13 +88,13 @@ def test_mcp_tools_take_the_increment_and_an_optional_phase() -> None:
     nxt = _call(server, "next_obligation", {"increment": INCREMENT})
     assert nxt["next"] is None
     contract = _call(server, "phase_contract", {"phase": P4, "increment": INCREMENT})
-    assert {gate["obligation_id"] for gate in contract["gates"]} >= {"needStakeholder", "needValidation"}
+    assert {gate["obligation_id"] for gate in contract["gates"]} >= {"needHasStakeholder", "needHasValidationScenario"}
     gaps = _call(server, "method_gaps", {"increment": INCREMENT})
-    assert [entry["gate"] for entry in gaps["blocking"]] == ["scope"]
+    assert gaps["blocking"] == []
 
 
-def test_a_model_without_gates_answers_contract_unavailable() -> None:
-    service, _scenario, _repository = _service(with_gates=False)
+def test_a_model_without_a_workflow_answers_contract_unavailable() -> None:
+    service, _scenario, _repository = _service(with_workflow=False)
     server = create_mcp_server(service)
     status = _call(server, "increment_status", {"increment": INCREMENT})
     assert status["executable_contract_available"] is False

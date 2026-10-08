@@ -186,13 +186,13 @@ def _framed_by_increment_view(view: ModelView, increment: IncrementScope, subjec
     return satisfied(viewpoints, witnesses)
 
 
-def _charter_text(attribute: str, *, exactly_one: bool = False) -> CheckFunction:
+def _charter_text(attribute: str) -> CheckFunction:
+    """Non-empty String values of a charter attribute (how many: the check's cardinality)."""
+
     def check(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
         texts = _texts(view, subject_id, attribute)
         if not texts:
             return violated(f"{_name(view, subject_id)} carries no non-empty {attribute} value")
-        if exactly_one and len(texts) != 1:
-            return violated(f"{_name(view, subject_id)} carries {len(texts)} {attribute} values; one is required")
         return satisfied(texts, witnesses=[subject_id])
 
     return check
@@ -221,7 +221,11 @@ def _require_constraint(view: ModelView, increment: IncrementScope, subject_id: 
 
 
 def _library_attribute(attribute: str, *, allowed: Sequence[str] = ()) -> CheckFunction:
-    """One non-empty value of an inherited (library) attribute, optionally from ``allowed``."""
+    """Non-empty values of an inherited (library) attribute, each from ``allowed`` when given.
+
+    How many values a subject may carry is the check's cardinality (for
+    example exactly one verification method kind).
+    """
 
     def check(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
         feature = view.index.feature(subject_id, attribute)
@@ -235,10 +239,11 @@ def _library_attribute(attribute: str, *, allowed: Sequence[str] = ()) -> CheckF
         if feature is None or not inherited:
             return violated(f"{name} sets no {attribute} value (attribute :>> {attribute} = ...)")
         texts = _texts(view, subject_id, attribute)
-        if len(texts) != 1:
-            return violated(f"{name} carries {len(texts)} non-empty {attribute} values; one is required")
-        if allowed and texts[0] not in allowed:
-            return violated(f"{name} {attribute} value {texts[0]!r} is not one of {', '.join(allowed)}")
+        if not texts:
+            return violated(f"{name} {attribute} value is empty")
+        outside = sorted({text for text in texts if allowed and text not in allowed})
+        if outside:
+            return violated(f"{name} {attribute} value {outside} is not one of {', '.join(allowed)}")
         return satisfied(texts, witnesses=[feature, *inherited])
 
     return check
@@ -279,9 +284,11 @@ def _feature_or_common_capability(view: ModelView, increment: IncrementScope, su
 
 
 def _verifies_increment_requirement(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """The case verifies a requirement of the increment: a Requirement-lineage element of its scope."""
     result = relation_checks(view).check("verify", view, subject_id)
-    requirements = set(increment.populations.get("incrementRequirements", ()))
-    hops = [(target, witness) for target, witness in result.hops if target in requirements]
+    scope = set(increment.scope_elements)
+    hops = [(target, witness) for target, witness in result.hops
+            if target in scope and in_class(view, target, "Requirement")]
     if not hops:
         verified = ", ".join(_name(view, t) for t in result.targets[:5]) or "nothing"
         return violated(f"{_name(view, subject_id)} verifies no requirement of the increment",
@@ -338,7 +345,7 @@ NAMED_CHECKS = (
     CheckDefinition("framedByIncrementView", _framed_by_increment_view,
                     remedy="in the increment package, frame {subject_name} by a viewpoint of a view: view <name> "
                            "{{ viewpoint <name> : <Viewpoint> {{ frame {subject_name}; }} }}"),
-    CheckDefinition("charterOwner", _charter_text("owner", exactly_one=True),
+    CheckDefinition("charterOwner", _charter_text("owner"), maximum=1,
                     remedy="set on {subject}: attribute :>> owner = \"...\";"),
     CheckDefinition("charterApplicablePhases", _charter_applicable_phases,
                     remedy="set on {subject}: attribute :>> applicablePhases = (MethodPhase::...);"),
@@ -349,9 +356,9 @@ NAMED_CHECKS = (
     CheckDefinition("requireConstraint", _require_constraint,
                     remedy="add the statement to {subject}: require constraint statement "
                            "{{ language \"English\" /* ... */ }}"),
-    CheckDefinition("sourceAttribute", _library_attribute("source"),
+    CheckDefinition("sourceAttribute", _library_attribute("source"), maximum=1,
                     remedy="set on {subject}: attribute :>> source = \"...\";"),
-    CheckDefinition("rationaleAttribute", _library_attribute("rationale"),
+    CheckDefinition("rationaleAttribute", _library_attribute("rationale"), maximum=1,
                     remedy="set on {subject}: attribute :>> rationale = \"...\";"),
     CheckDefinition("framesStakeholderConcern", _frames_stakeholder_concern,
                     remedy="frame a stakeholder concern in {subject}: frame <concern>; (the concern declares a "
@@ -359,7 +366,7 @@ NAMED_CHECKS = (
     CheckDefinition("oneNativeSubject", _one_native_subject, maximum=1,
                     remedy="declare exactly one subject on {subject}: subject <name> : <Definition>;"),
     CheckDefinition("oneVerificationMethodKind",
-                    _library_attribute("verificationMethod", allowed=STANDARD_VERIFICATION_METHOD_KINDS),
+                    _library_attribute("verificationMethod", allowed=STANDARD_VERIFICATION_METHOD_KINDS), maximum=1,
                     remedy="set on {subject}: attribute :>> verificationMethod = \"<kind>\"; (one of " + _KINDS + ")"),
     CheckDefinition("specifiesFeatureOrCommonCapability", _feature_or_common_capability,
                     remedy="trace {subject} to a feature or common capability"),

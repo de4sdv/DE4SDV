@@ -27,9 +27,8 @@ from de4sdv.semantic import corpus_cache as cc
 from de4sdv.sysml_api.errors import RevisionMismatchError
 from de4sdv.sysml_api.repository import SysMLRepository
 from de4sdv.sysml_api.revisions import RevisionBinding
-from increment_model_fixtures import increment_scenario, method_gates
+from increment_model_fixtures import increment_scenario, install_model_workflow
 from model_contract_fixtures import binding_dict, model_service, synthetic_identity
-from test_increment_evaluation import synthetic_method
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REVISION = "a" * 40
@@ -38,8 +37,7 @@ INCREMENT = "INC-FIXTURE-001"
 
 def _corpus() -> tuple[list[dict], list[dict]]:
     scenario = increment_scenario()
-    scenario.builder.kernel_definition("AcceptanceCriterion")
-    method_gates(scenario.builder, synthetic_method())
+    install_model_workflow(scenario)
     return scenario.builder.elements, scenario.builder.bindings
 
 
@@ -211,9 +209,7 @@ def _complete_corpus() -> tuple[list[dict], list[dict]]:
     kernel_elements, kernel_bindings = _elements_and_bindings()
     builder = ModelBuilder(label="Complete")
     builder.adopt(kernel_elements, kernel_bindings)
-    increment_scenario(builder)
-    builder.kernel_definition("AcceptanceCriterion")
-    method_gates(builder, synthetic_method())
+    install_model_workflow(increment_scenario(builder))
     return builder.elements, builder.bindings
 
 
