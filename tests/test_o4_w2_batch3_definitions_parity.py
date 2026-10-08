@@ -33,12 +33,12 @@ from pathlib import Path
 import yaml
 
 from de4sdv.semantic.authority_inventory import doc_text_observation
-from de4sdv.semantic.o3_bundle import MIGRATED_IDENTITIES
+from model_contract_fixtures import reviewed_definition
+from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
 
 REPO = Path(__file__).resolve().parents[1]
 INVENTORY_PATH = REPO / "docs/method-conformance/o1/semantic-authority-inventory.json"
 DECISIONS_PATH = REPO / "docs/method-conformance/o1/authority-review-decisions.yaml"
-ONTOLOGY_PATH = REPO / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
 REGISTER_PATH = REPO / "docs/method-conformance/o4/o4-execution-register.json"
 MODEL_PATH = (
     REPO / "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml"
@@ -155,8 +155,7 @@ def test_exact_three_row_scope() -> None:
 
 def test_enum_level_doc_is_normalized_exact() -> None:
     file_text = MODEL_PATH.read_text(encoding="utf-8")
-    ontology = yaml.safe_load(ONTOLOGY_PATH.read_text(encoding="utf-8"))["classes"]
-    definition = ontology["SignalMappingDisposition"]["definition"]
+    definition = reviewed_definition("SignalMappingDisposition")
     assert definition == REVIEWED_DEFINITIONS["SignalMappingDisposition"]
     observation = doc_text_observation(
         file_text, "enum def SignalMappingDisposition", definition
@@ -173,11 +172,10 @@ def test_enum_level_doc_is_normalized_exact() -> None:
 
 def test_reviewed_equivalence_rows_record_their_equivalence() -> None:
     file_text = MODEL_PATH.read_text(encoding="utf-8")
-    ontology = yaml.safe_load(ONTOLOGY_PATH.read_text(encoding="utf-8"))["classes"]
     entries = _entries(_inventory(), EQUIVALENCE_ROWS)
     for identity in EQUIVALENCE_ROWS:
         declaration = PILOT_ROWS[identity]
-        definition = ontology[identity]["definition"]
+        definition = reviewed_definition(identity)
         assert definition == REVIEWED_DEFINITIONS[identity]
         observation = doc_text_observation(file_text, declaration, definition)
         assert observation == "differs", identity

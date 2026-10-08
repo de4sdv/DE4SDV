@@ -3,7 +3,9 @@
 The real ``model_authority_runtime`` / ``model_projection_coverage`` modules
 are replaced through ``sys.modules`` so the CLI is tested against the
 controller-defined interface, not against any real bundle. No network; a pass
-here is CLI/gate-derivation consistency, never privileged evidence.
+here is CLI/gate-derivation consistency, never privileged evidence. O4 Wave C2
+form: no O3 bundle input, model runtime answers instead of the model/O3/legacy
+comparison, and the three batteries as closure gates.
 """
 from __future__ import annotations
 
@@ -21,7 +23,6 @@ from scripts import run_model_authority_bundle as cli
 
 REV = "c" * 40
 MAB = "mab-" + "a" * 32
-O3_ID = "o3b-" + "b" * 32
 
 
 def _digest(path):
@@ -37,10 +38,11 @@ def install_model_module(monkeypatch, *, verify_errors=()):
     module.ModelAuthorityRefused = Refused
     module.calls = []
 
-    def build_model_bundle(root, *, o3_bundle, git_revision):
-        module.calls.append(("build", git_revision, o3_bundle["bundle_id"]))
+    def build_model_bundle(root, *, git_revision):
+        module.calls.append(("build", git_revision))
         return {"schema": "fake", "bundle_id": MAB, "git_revision": git_revision,
-                "state": "candidate", "components": {"o3": {"bundle_id": o3_bundle["bundle_id"]}}}
+                "state": "candidate",
+                "components": {"semantic_authority": {"id": "sai-" + "3" * 32}}}
 
     def verify_model_bundle(bundle, **kwargs):
         module.calls.append(("verify", bundle["state"], sorted(kwargs)))
@@ -52,7 +54,7 @@ def install_model_module(monkeypatch, *, verify_errors=()):
         module.calls.append(("attest", list(evidence_contract_closure)))
         eligible = definition_closure_closed and all(
             v["status"] == "passed" for v in validations.values())
-        return {"bundle_id": bundle["bundle_id"], "o3_activation_eligible": True,
+        return {"bundle_id": bundle["bundle_id"], "semantic_authority_id": "sai-" + "3" * 32,
                 "definition_closure_closed": definition_closure_closed,
                 "validation": validations, "activation_eligible": eligible}
 
@@ -92,39 +94,36 @@ def write(path, document):
 
 def test_bundle_writes_candidate_and_verifies(tmp_path, monkeypatch):
     module = install_model_module(monkeypatch)
-    o3 = write(tmp_path / "o3.json", {"bundle_id": O3_ID, "git_revision": REV})
-    assert cli.main(["bundle", "--source-revision", REV, "--o3-bundle", str(o3),
-                     "--out", str(tmp_path / "out")]) == 0
+    assert cli.main(["bundle", "--source-revision", REV, "--out", str(tmp_path / "out")]) == 0
     written = json.loads((tmp_path / "out" / cli.CANDIDATE_BUNDLE).read_text())
     assert written["bundle_id"] == MAB and written["state"] == "candidate"
-    assert ("build", REV, O3_ID) in module.calls
+    assert ("build", REV) in module.calls
+
+
+def test_bundle_takes_no_o3_input(tmp_path, monkeypatch):
+    install_model_module(monkeypatch)
+    with pytest.raises(SystemExit) as exc:
+        cli.main(["bundle", "--source-revision", REV, "--o3-bundle", "o3.json",
+                  "--out", str(tmp_path)])
+    assert exc.value.code == 2
 
 
 def test_bundle_verification_error_is_nonzero(tmp_path, monkeypatch):
     install_model_module(monkeypatch, verify_errors=["routing differs"])
-    o3 = write(tmp_path / "o3.json", {"bundle_id": O3_ID, "git_revision": REV})
-    assert cli.main(["bundle", "--source-revision", REV, "--o3-bundle", str(o3),
-                     "--out", str(tmp_path)]) == 1
+    assert cli.main(["bundle", "--source-revision", REV, "--out", str(tmp_path)]) == 1
 
 
-def test_bundle_refuses_moving_revision_and_foreign_o3(tmp_path, monkeypatch):
+def test_bundle_refuses_moving_revision(tmp_path, monkeypatch):
     install_model_module(monkeypatch)
-    o3 = write(tmp_path / "o3.json", {"bundle_id": O3_ID, "git_revision": "e" * 40})
     with pytest.raises(SystemExit) as exc:
-        cli.main(["bundle", "--source-revision", "d" * 40, "--o3-bundle", str(o3),
-                  "--out", str(tmp_path)])
+        cli.main(["bundle", "--source-revision", "d" * 40, "--out", str(tmp_path)])
     assert exc.value.code == 1
-    with pytest.raises(SystemExit):
-        cli.main(["bundle", "--source-revision", REV, "--o3-bundle", str(o3),
-                  "--out", str(tmp_path)])
 
 
 def test_bundle_refuses_when_model_runtime_missing(tmp_path, monkeypatch):
     monkeypatch.setitem(sys.modules, cli.MODEL_MODULE, None)  # import -> ImportError
-    o3 = write(tmp_path / "o3.json", {"bundle_id": O3_ID, "git_revision": REV})
     with pytest.raises(SystemExit) as exc:
-        cli.main(["bundle", "--source-revision", REV, "--o3-bundle", str(o3),
-                  "--out", str(tmp_path)])
+        cli.main(["bundle", "--source-revision", REV, "--out", str(tmp_path)])
     assert exc.value.code == 1
 
 
@@ -143,11 +142,30 @@ MEMBERS = [{"source_file": f"f{i}.sysml", "declaration": f"requirement def C{i}"
             "element_id": f"ec{i}"} for i in range(8)]
 
 
-def equivalence(overall="EQUIVALENT", bundle_id=MAB, identity="EQUAL"):
-    return {"schema": cli.COMPARE_SCHEMA, "git_revision": REV, "model_bundle_id": bundle_id,
-            "overall": overall,
-            "pairs": {"o3_vs_model": {"overall": overall}, "legacy_vs_model": {"overall": overall}},
-            "discriminator": {"closure_members": MEMBERS, "closure_identity": {"result": identity}}}
+def answers(overall="PASSED", bundle_id=MAB, identity="EQUAL", authority=None,
+            k_pair="EQUIVALENT", grounding="EQUIVALENT", revision=REV):
+    return {"schema": cli.ANSWERS_SCHEMA, "git_revision": revision, "model_bundle_id": bundle_id,
+            "authority_id": authority or f"mab:{bundle_id}", "overall": overall,
+            "answers": {"k_pair": {"classification": k_pair, "errors": [], "missing": []},
+                        "classes": {"VerificationCase": {"grounding_result": grounding}}},
+            "discriminator": {"closure_members": MEMBERS, "classification": "RECORDED",
+                              "closure_identity": {"result": identity}}}
+
+
+def queries(revision=REV, authority=f"mab:{MAB}", schema=None):
+    return {"schema": schema or cli.BATTERY_SCHEMAS["full_model_semantic_queries"],
+            "git_commit": revision, "semantic_authority": {"authority_id": authority}}
+
+
+def scope(revision=REV, authority=f"mab:{MAB}"):
+    return {"schema": cli.BATTERY_SCHEMAS["product_line_scope"],
+            "revision": {"git_commit": revision}, "model_authority": {"authority_id": authority}}
+
+
+def mcp(revision=REV, authority=f"mab:{MAB}", tool_count=7, read_only=True):
+    return {"schema": cli.BATTERY_SCHEMAS["semantic_mcp"], "revision": {"git_commit": revision},
+            "semantic_authority": {"authority_id": authority}, "read_only": read_only,
+            "tool_count": tool_count}
 
 
 def probe(closed=True, revision=REV):
@@ -165,8 +183,11 @@ def close_inputs(tmp_path, monkeypatch):
         "binding": write(tmp_path / "binding.json", {"git_commit": REV}),
         "definition-probe": write(tmp_path / "probe.json", probe()),
         "coverage": write(tmp_path / "coverage.json", COVERAGE),
-        "equivalence": write(tmp_path / "equivalence.json", equivalence()),
+        "answers": write(tmp_path / "answers.json", answers()),
         "readback": write(tmp_path / "readback.json", readback()),
+        "full-model-semantic-queries": write(tmp_path / "queries.json", queries()),
+        "product-line-scope": write(tmp_path / "scope.json", scope()),
+        "semantic-mcp": write(tmp_path / "mcp.json", mcp()),
     }
     return tmp_path, files
 
@@ -191,7 +212,7 @@ def test_close_all_gates_pass_is_activation_eligible(close_inputs, monkeypatch):
     for name, flag in cli.VALIDATION_FLAGS.items():
         record = attestation["validation"][name]
         assert record["status"] == "passed"
-        assert record["sha256"] == _digest(files[flag])  # bound to the exact artifact
+        assert record["sha256"] == _digest(files[flag.replace("_", "-")])  # bound to the artifact
     closed = json.loads((tmp_path / "closed" / cli.CLOSED_BUNDLE).read_text())
     assert closed["state"] == "closed"
     assert ("verify", "closed", ["binding", "binding_sha256", "require_closed", "root",
@@ -205,9 +226,22 @@ def test_close_all_gates_pass_is_activation_eligible(close_inputs, monkeypatch):
     ("readback", readback(revision="e" * 40), "verification_anchor_readback"),
     ("readback", {**readback(), "passed": False}, "verification_anchor_readback"),
     ("readback", {**readback(), "activation_eligible": "true"}, "verification_anchor_readback"),
-    ("equivalence", equivalence("BLOCKING_MISMATCH"), "model_o3_legacy_equivalence"),
-    ("equivalence", equivalence(bundle_id="mab-" + "f" * 32), "model_o3_legacy_equivalence"),
-    ("equivalence", equivalence(identity="BLOCKING_MISMATCH"), "model_o3_legacy_equivalence"),
+    ("answers", answers("FAILED"), "model_runtime_answers"),
+    ("answers", answers(bundle_id="mab-" + "f" * 32), "model_runtime_answers"),
+    ("answers", answers(authority="mab:mab-" + "f" * 32), "model_runtime_answers"),
+    ("answers", answers(identity="BLOCKING_MISMATCH"), "model_runtime_answers"),
+    ("answers", answers(k_pair="NOT_YET_COMPARABLE"), "model_runtime_answers"),
+    ("answers", answers(grounding="BLOCKING_MISMATCH"), "model_runtime_answers"),
+    ("answers", answers(revision="e" * 40), "model_runtime_answers"),
+    ("full-model-semantic-queries", queries(revision="e" * 40), "full_model_semantic_queries"),
+    ("full-model-semantic-queries", queries(authority="mab:mab-" + "f" * 32),
+     "full_model_semantic_queries"),
+    ("full-model-semantic-queries", queries(schema="other"), "full_model_semantic_queries"),
+    ("product-line-scope", scope(authority=None), "product_line_scope"),
+    ("product-line-scope", scope(revision="e" * 40), "product_line_scope"),
+    ("semantic-mcp", mcp(tool_count=6), "semantic_mcp"),
+    ("semantic-mcp", mcp(read_only=False), "semantic_mcp"),
+    ("semantic-mcp", mcp(authority="o3:o3b-" + "b" * 32), "semantic_mcp"),
     ("definition-probe", probe(closed=False), "definition_closure_closed"),
     ("definition-probe", probe(revision="e" * 40), "definition_closure_closed"),
 ])
@@ -262,8 +296,14 @@ def test_close_refuses_already_closed_or_foreign_revision(close_inputs, monkeypa
 
 def test_population_delta_is_not_a_gate():
     assert set(cli.VALIDATION_FLAGS) == {
-        "model_projection_coverage", "model_o3_legacy_equivalence",
-        "verification_anchor_readback"}
+        "model_projection_coverage", "model_runtime_answers", "verification_anchor_readback",
+        "full_model_semantic_queries", "product_line_scope", "semantic_mcp"}
+
+
+def test_close_validations_match_the_runtime_contract():
+    from de4sdv.semantic import model_authority_runtime as mar
+
+    assert set(cli.VALIDATION_FLAGS) == set(mar.REQUIRED_MODEL_VALIDATIONS)
 
 
 # -- compare helpers -----------------------------------------------------------
@@ -318,35 +358,38 @@ def test_discriminator_errors_block():
     service = SimpleNamespace(traversal=_Traversal(raise_on={"s1"}))
     record = cli.discriminator_population(service, [{"@id": "s1"}], ["s1"])
     assert record["classification"] == "BLOCKING_MISMATCH"
-    assert cli.compare_overall({"a": {"overall": "EQUIVALENT"}}, record) == "BLOCKING_MISMATCH"
+    overall, problems = cli.answers_overall(answers()["answers"], record)
+    assert overall == "FAILED" and problems
 
 
-@pytest.mark.parametrize("overalls, expected", [
-    (["EQUIVALENT", "EQUIVALENT"], "EQUIVALENT"),
-    (["EQUIVALENT", "BLOCKING_MISMATCH"], "BLOCKING_MISMATCH"),
-    (["NOT_YET_COMPARABLE", "EQUIVALENT"], "NOT_YET_COMPARABLE"),
-])
-def test_compare_overall_is_worst_pair(overalls, expected):
-    pairs = {str(i): {"overall": value} for i, value in enumerate(overalls)}
-    assert cli.compare_overall(pairs, {"classification": "RECORDED"}) == expected
+def test_answers_overall_passes_only_when_every_term_holds():
+    good = answers()
+    assert cli.answers_overall(good["answers"], good["discriminator"]) == ("PASSED", [])
+    for bad in (answers(identity="BLOCKING_MISMATCH"), answers(k_pair="BLOCKING_MISMATCH"),
+                answers(grounding="NOT_YET_COMPARABLE")):
+        overall, problems = cli.answers_overall(bad["answers"], bad["discriminator"])
+        assert overall == "FAILED" and problems
 
 
-def test_compare_refuses_model_bundle_embedding_another_o3(tmp_path, monkeypatch):
-    monkeypatch.setattr("de4sdv.sysml_api.revisions.RevisionBinding.load",
-                        staticmethod(lambda path: SimpleNamespace(git_commit=REV)))
-    model = write(tmp_path / "m.json", {"bundle_id": MAB, "git_revision": REV,
-                                        "components": {"o3": {"bundle_id": "o3b-" + "9" * 32}}})
-    o3 = write(tmp_path / "o3.json", {"bundle_id": O3_ID, "git_revision": REV})
+def test_compare_refuses_a_bundle_of_another_revision(tmp_path):
+    model = write(tmp_path / "m.json", {"bundle_id": MAB, "git_revision": "e" * 40})
     binding = write(tmp_path / "b.json", {})
     with pytest.raises(SystemExit) as exc:
-        cli.main(["compare", "--model", str(model), "--o3", str(o3), "--out", str(tmp_path),
+        cli.main(["compare", "--model", str(model), "--out", str(tmp_path),
                   "--api-url", "http://127.0.0.1:9", "--binding", str(binding),
                   "--export", str(binding), "--git-revision", REV])
     assert exc.value.code == 1
 
 
+def test_compare_takes_no_o3_input(tmp_path):
+    with pytest.raises(SystemExit) as exc:
+        cli.main(["compare", "--model", "m", "--o3", "o3", "--out", str(tmp_path),
+                  "--api-url", "u", "--binding", "b", "--export", "e", "--git-revision", REV])
+    assert exc.value.code == 2
+
+
 def test_compare_builds_model_runtime_without_eligibility_requirement(monkeypatch, tmp_path):
-    """The candidate is compared before closure; entry points default to eligible."""
+    """The candidate is evidenced before closure; entry points default to eligible."""
     seen = {}
 
     def fake_build_model_runtime(request, **kwargs):
@@ -354,9 +397,7 @@ def test_compare_builds_model_runtime_without_eligibility_requirement(monkeypatc
         return "model", None
 
     monkeypatch.setattr(ea, "build_model_runtime", fake_build_model_runtime)
-    monkeypatch.setattr("de4sdv.semantic.runtime.build_semantic_runtime",
-                        lambda **kwargs: ("o3" if "semantic_authority" in kwargs else "legacy"))
-    args = SimpleNamespace(api_url="u", binding=tmp_path / "b", ontology=tmp_path / "o")
-    legacy, o3, model = cli._build_services(args, REV, {}, tmp_path / "m.json", MAB)
-    assert (legacy, o3, model) == ("legacy", "o3", "model")
+    args = SimpleNamespace(api_url="u", binding=tmp_path / "b")
+    assert cli._build_model_service(args, REV, tmp_path / "m.json", MAB) == "model"
     assert seen["require_activation_eligible"] is False and seen["bundle_id"] == MAB
+    assert "ontology_path" not in seen

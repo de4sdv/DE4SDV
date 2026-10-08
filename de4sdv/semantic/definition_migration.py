@@ -1,62 +1,34 @@
-"""O4 definition-migration path — verified, explicitly selected, fail-closed.
+"""O4 definition layer verification — the admitted definition pair and its API closure.
 
-Moves the admitted 22-identity definition consumption out of an isolated
-candidate seam into ONE migration path with four governed properties:
+The model-authority runtime serves the admitted definition identities from
+the verified definition pair (``definition-projection.json`` /
+``definition-profile.json``). This module provides:
 
 * **Verification.** The candidate pair is loaded and verified through
   :mod:`de4sdv.semantic.definition_candidate` (structural pair contract, the
-  recorded source-revision binding, regeneration equality, and frozen-O3
-  disjointness). Nothing here re-implements or bypasses that verification.
-* **Construction.** The verified pair builds the explicit
-  :class:`~de4sdv.semantic.definition_candidate_provider.DefinitionCandidateProvider`:
-  admitted identities resolve EXCLUSIVELY from the candidate artifacts, and
-  every other identity delegates explicitly to the authored
-  ``KernelContract`` — the remaining legacy dependency stays visible and is
-  never hidden.
-* **Selection.** The path is selected EXPLICITLY (``DE4SDV_DEFINITION_MIGRATION``
-  or the explicit ``selection`` argument). Unset means OFF: the production
-  default (legacy authority) is unchanged and the accepted O3 bundle route
-  (``authority_selection``: ``legacy`` | ``o3``) is untouched. This module
-  never adds a production selector and never falls back silently.
-* **Activation.** Activating the migration path requires a FRESH
+  recorded source-revision binding, regeneration equality, and disjointness
+  from the frozen O2-chain identities).
+* **Closure.** :func:`validate_candidate_closure` computes the fresh
   exact-revision API closure: the validated revision binding for the exact
   revision must carry an ingestion-validated kernel binding for every
   admitted identity whose ``source_file``/``declaration`` agree with the
-  candidate pair. The admitted rows are published ``api_identity:
-  unclaimed`` / ``traversal: false`` (vocabulary-only), so this prerequisite
-  is genuinely unmet until a privileged ingestion validates the admitted
-  declarations at the bound revision. Until then activation FAILS CLOSED
-  with the exact prerequisite and no production surface changes.
+  pair, and the binding's semantic-authority identity must equal the
+  model-built contract's. The model-authority runtime refuses to construct
+  unless the closure is closed.
+* **Probe.** :func:`probe_definition_migration` is the read-only report the
+  privileged ingestion records (``closure.closed`` gates bundle closure):
+  per-identity pair-vs-contract mappings and, when a retained export is
+  supplied, declaration-form matches (representation evidence only).
 
-Consumption: an assembled migration runtime passes the verified provider
-through the existing runtime seam into the real consumers
-(:class:`~de4sdv.semantic.api_binding.OntologyApiBinder`,
-:class:`~de4sdv.semantic.kernel_binding_index.KernelBindingIndex`,
-:class:`~de4sdv.semantic.traversal.SemanticTraversal`,
-:class:`~de4sdv.semantic.query.SemanticQueryService` and the impact-service
-provenance) — the same consumer classes the production paths use.
-
-Probe: :func:`probe_definition_migration` is the read-only, offline
-comparison/probe over the real candidate pair and the authored contract —
-and, when a retained export / validated binding is supplied, over those
-bytes. It reports per-identity candidate-vs-legacy mappings, the closure
-prerequisite state, and the remaining legacy dependency. Export matches are
-representation evidence only: the probe claims no runtime identity.
-
-This is NOT a migration-complete claim: a partial migration retires nothing.
-The authored authority stays active, every runtime/validation consumer
-ledger row stays ``pending``, and no production default changes here.
+There is no other provider and no fallback (O4 Wave C2).
 """
 from __future__ import annotations
 
 import json
-import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
-
-from de4sdv.sysml_api.revisions import OntologyIdentity
 
 from .definition_candidate import (
     DefinitionCandidate,
@@ -64,21 +36,11 @@ from .definition_candidate import (
 )
 from .definition_candidate_provider import DefinitionCandidateProvider
 from .kernel_contract import KernelContract, declaration_identity
-from .o3_bundle import MIGRATED_IDENTITIES
+from .model_contract import O2_CHAIN_IDENTITIES
 
 ROOT = Path(__file__).resolve().parents[2]
 
-#: Explicit, non-production selection surface. Unset means OFF.
-MIGRATION_ENV = "DE4SDV_DEFINITION_MIGRATION"
-MIGRATION_SELECTED = "definition-candidate"
-MIGRATION_OFF = "off"
-
-#: The authored contract, read ONLY as the explicit fallback for unadmitted
-#: identities and as the probe's comparison oracle — never semantic authority
-#: for the admitted set.
-LEGACY_ONTOLOGY_PATH = "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-
-PROBE_SCHEMA = "de4sdv.o4-definition-migration-probe/v1"
+PROBE_SCHEMA = "de4sdv.o4-definition-migration-probe/v2"
 
 
 class DefinitionMigrationError(ValueError):
@@ -98,7 +60,7 @@ class MigrationClosureStatus:
     expected_git_revision: str | None = None
     binding_git_revision: str | None = None
     revision_matches: bool = False
-    ontology_matches: bool = False
+    authority_matches: bool = False
 
     @property
     def closed(self) -> bool:
@@ -108,7 +70,7 @@ class MigrationClosureStatus:
             and self.binding_validated
             and self.binding_scope == "full-model"
             and self.revision_matches
-            and self.ontology_matches
+            and self.authority_matches
         )
 
     def prerequisite(self) -> str:
@@ -122,8 +84,9 @@ class MigrationClosureStatus:
                 f"binding revision (expected={self.expected_git_revision!r}, "
                 f"binding={self.binding_git_revision!r})"
             )
-        if not self.ontology_matches:
-            parts.append("the binding ontology identity must match the executed contract")
+        if not self.authority_matches:
+            parts.append("the binding semantic-authority identity must match the "
+                         "model-built contract")
         if not self.binding_validated:
             parts.append(
                 "the exact-revision revision binding is missing or not "
@@ -151,16 +114,14 @@ class MigrationClosureStatus:
             "activation requires a fresh exact-revision API closure: "
             + "; ".join(parts)
             + ". Run the privileged ingestion/binding validation for the "
-            "admitted declarations at the bound revision and select the "
-            "definition-candidate migration path explicitly with the "
-            "resulting binding. Until then the path stays non-activatable "
-            "and the production default (legacy authority) is unchanged."
+            "admitted declarations at the bound revision. Until then the "
+            "model-authority runtime refuses to construct."
         )
 
 
 @dataclass(frozen=True)
 class DefinitionMigrationAuthority:
-    """Verified migration authority: candidate pair + explicit fallback provider."""
+    """Verified definition pair + its provider + the API-closure state."""
 
     candidate: DefinitionCandidate
     provider: DefinitionCandidateProvider
@@ -185,7 +146,7 @@ class DefinitionMigrationAuthority:
 def validate_candidate_closure(
     candidate: DefinitionCandidate, binding: Any = None,
     *, expected_git_revision: str | None = None,
-    expected_ontology: OntologyIdentity | None = None,
+    expected_authority: Any = None,
 ) -> MigrationClosureStatus:
     """Compute the fresh exact-revision API-closure state for the candidate.
 
@@ -237,9 +198,9 @@ def validate_candidate_closure(
         admitted_count=admitted_count,
         expected_git_revision=expected_git_revision,
         binding_git_revision=getattr(binding, "git_commit", None),
-        ontology_matches=(
-            expected_ontology is not None
-            and expected_ontology == getattr(binding, "ontology", None)
+        authority_matches=(
+            expected_authority is not None
+            and expected_authority == getattr(binding, "semantic_authority", None)
         ),
         revision_matches=(
             isinstance(expected_git_revision, str)
@@ -252,143 +213,42 @@ def validate_candidate_closure(
 def load_definition_migration_authority(
     root: Path,
     *,
-    contract: KernelContract,
     binding: Any = None,
     candidate: DefinitionCandidate | None = None,
     require_activation_eligible: bool = False,
     expected_git_revision: str | None = None,
+    expected_authority: Any = None,
 ) -> DefinitionMigrationAuthority:
-    """Load the verified candidate pair and build the explicit provider.
+    """Load the verified definition pair, its provider and its closure state.
 
-    ``root`` is the repository checkout holding the verified candidate
-    artifacts. The authored ``KernelContract`` is required: the migration
-    path keeps an EXPLICIT fallback for every unadmitted identity instead of
-    hiding it. With ``require_activation_eligible`` the call refuses unless
-    the fresh exact-revision API closure is present, naming the exact
-    prerequisite.
+    ``expected_authority`` is the semantic-authority identity the binding must
+    carry (default: the model-built contract of ``root``). With
+    ``require_activation_eligible`` the call refuses unless the fresh
+    exact-revision API closure is present, naming the exact prerequisite.
     """
     root = Path(root)
-    if not isinstance(contract, KernelContract):
-        raise DefinitionMigrationError(
-            "the definition-migration path requires the authored "
-            "KernelContract for the explicit fallback of every unadmitted "
-            "identity"
-        )
     if candidate is None:
         candidate = load_definition_candidate(root)
-    overlap = sorted(set(candidate.identities) & set(MIGRATED_IDENTITIES))
+    overlap = sorted(set(candidate.identities) & set(O2_CHAIN_IDENTITIES))
     if overlap:
         raise DefinitionMigrationError(
-            "candidate identities overlap the frozen O3 migrated identity "
+            "candidate identities overlap the frozen O2-chain identity "
             f"set: {overlap}"
         )
-    provider = DefinitionCandidateProvider(legacy=contract, candidate=candidate)
+    if expected_authority is None and binding is not None:
+        expected_authority = KernelContract.from_layers(root).identity
+    provider = DefinitionCandidateProvider(candidate=candidate)
     closure = validate_candidate_closure(
         candidate, binding, expected_git_revision=expected_git_revision,
-        expected_ontology=contract.identity,
+        expected_authority=expected_authority,
     )
     if require_activation_eligible and not closure.closed:
         raise DefinitionMigrationError(
-            "definition-candidate migration cannot activate: " + closure.prerequisite()
+            "definition layer cannot activate: " + closure.prerequisite()
         )
     return DefinitionMigrationAuthority(
         candidate=candidate, provider=provider, closure=closure
     )
-
-
-def resolve_definition_migration_selection(
-    *, selection: str | None = None, environ: Mapping[str, str] | None = None
-) -> str:
-    """Resolve the explicit migration selection (fail closed).
-
-    Explicit arguments win over the environment. The default — unset or
-    empty — is OFF. Any other value than ``off`` / ``definition-candidate``
-    is refused: this path is never selected implicitly, and the production
-    surfaces never consult it.
-    """
-    env = os.environ if environ is None else environ
-    raw = selection if selection is not None else env.get(MIGRATION_ENV, "")
-    value = str(raw or "").strip().lower()
-    if value in ("", MIGRATION_OFF):
-        return MIGRATION_OFF
-    if value != MIGRATION_SELECTED:
-        raise DefinitionMigrationError(
-            f"unknown {MIGRATION_ENV} value {raw!r}: expected "
-            f"{MIGRATION_OFF!r} or {MIGRATION_SELECTED!r}; the "
-            "definition-migration path is never selected implicitly"
-        )
-    return MIGRATION_SELECTED
-
-
-def build_definition_migration_runtime(
-    *,
-    api_url: str,
-    binding_path: Path,
-    expected_git_revision: str,
-    ontology_path: Path,
-    selection: str | None = None,
-    environ: Mapping[str, str] | None = None,
-    require_activation_eligible: bool = True,
-    api_timeout: float = 600.0,
-    method_conformance: Any = None,
-    method_context_provider: Any = None,
-    root: Path = ROOT,
-) -> "tuple[Any, DefinitionMigrationAuthority]":
-    """Assemble the migration runtime under the explicit selection.
-
-    One call site for the migration path: resolve the explicit selection,
-    load the exact-revision binding, verify the candidate pair, enforce the
-    fresh exact-revision API closure (fail closed with the exact
-    prerequisite), then assemble the runtime through the existing seam with
-    the verified provider. The returned service is the same
-    :class:`~de4sdv.semantic.query.SemanticQueryService` the production path
-    builds; it is non-production until a reviewed activation decision makes
-    the path the selected authority.
-    """
-    selected = resolve_definition_migration_selection(
-        selection=selection, environ=environ
-    )
-    if selected != MIGRATION_SELECTED:
-        raise DefinitionMigrationError(
-            f"definition migration is not selected (set {MIGRATION_ENV}="
-            f"{MIGRATION_SELECTED} or pass selection explicitly); the "
-            "production default remains legacy and is never replaced "
-            "implicitly"
-        )
-    from de4sdv.sysml_api.errors import RevisionMismatchError
-    from de4sdv.sysml_api.revisions import RevisionBinding
-
-    from .runtime import build_semantic_runtime
-
-    binding_path = Path(binding_path)
-    ontology_path = Path(ontology_path)
-    binding = RevisionBinding.load(binding_path)
-    try:
-        binding.require_current(expected_git_revision)
-    except RevisionMismatchError as exc:
-        raise DefinitionMigrationError(
-            "definition migration revision mismatch: " + str(exc)
-        ) from exc
-    contract = KernelContract.load(ontology_path)
-    binding.require_ontology(contract.identity)
-    authority = load_definition_migration_authority(
-        root,
-        contract=contract,
-        binding=binding,
-        require_activation_eligible=require_activation_eligible,
-        expected_git_revision=expected_git_revision,
-    )
-    service = build_semantic_runtime(
-        api_url=api_url,
-        binding_path=binding_path,
-        expected_git_revision=expected_git_revision,
-        ontology_path=ontology_path,
-        api_timeout=api_timeout,
-        method_conformance=method_conformance,
-        method_context_provider=method_context_provider,
-        definition_candidate_authority=authority.provider,
-    )
-    return service, authority
 
 
 def _load_export_elements(export: Any) -> list[dict[str, Any]] | None:
@@ -453,27 +313,23 @@ def probe_definition_migration(
     """Executable offline comparison/probe over the real retained artifacts.
 
     Read-only and offline: loads the verified candidate pair, compares every
-    admitted identity's candidate mapping against the authored contract
-    (the comparison oracle only), reports the fresh exact-revision closure
-    state and the remaining legacy dependency, and — when a retained export
+    admitted identity's pair mapping against the model-built contract,
+    reports the fresh exact-revision closure state, and — when a retained export
     is supplied — reports declaration-form matches in that export as
     representation evidence. It claims no runtime identity and selects
     nothing.
     """
     root = Path(root)
     if contract is None:
-        contract = KernelContract.load(root / LEGACY_ONTOLOGY_PATH)
+        contract = KernelContract.from_layers(root)
     if candidate is None:
         candidate = load_definition_candidate(root)
     authority = load_definition_migration_authority(
-        root, contract=contract, binding=binding, candidate=candidate,
+        root, binding=binding, candidate=candidate,
         expected_git_revision=expected_git_revision,
+        expected_authority=contract.identity,
     )
-    overlap = sorted(set(candidate.identities) & set(MIGRATED_IDENTITIES))
-    if overlap:
-        raise DefinitionMigrationError(
-            f"candidate identities overlap the frozen O3 migrated set: {overlap}"
-        )
+    overlap = sorted(set(candidate.identities) & set(O2_CHAIN_IDENTITIES))
     bindings_by_class: dict[str, Any] = {}
     if binding is not None:
         for item in getattr(binding, "kernel_bindings", ()) or ():
@@ -493,22 +349,22 @@ def probe_definition_migration(
             "source_file": contract_row["source_file"],
             "declaration": contract_row["declaration"],
         }
-        legacy_mapping: dict[str, str] | None
+        contract_mapping: dict[str, str] | None
         try:
             mapping = contract.class_mapping(name)
-            legacy_mapping = {
+            contract_mapping = {
                 "source_file": mapping.file,
                 "declaration": mapping.declaration,
             }
-        except KeyError:
-            legacy_mapping = None
+        except (KeyError, ValueError):
+            contract_mapping = None
         entry = bindings_by_class.get(name)
         record: dict[str, Any] = {
             "identity": name,
             "candidate": candidate_mapping,
-            "legacy": legacy_mapping,
-            "legacy_present": legacy_mapping is not None,
-            "mapping_equal": legacy_mapping == candidate_mapping,
+            "contract": contract_mapping,
+            "contract_present": contract_mapping is not None,
+            "mapping_equal": contract_mapping == candidate_mapping,
             "validated_binding_element_id": (
                 str(getattr(entry, "element_id", "")) or None
                 if entry is not None
@@ -530,7 +386,7 @@ def probe_definition_migration(
         "source_revision": candidate.source_revision,
         "authority_id": authority.authority_id,
         "admitted_count": len(candidate.identities),
-        "o3_overlap": overlap,
+        "o2_chain_overlap": overlap,
         "activation_eligible": authority.activation_eligible,
         "activation_prerequisite": authority.closure.prerequisite(),
         "closure": {
@@ -543,13 +399,10 @@ def probe_definition_migration(
             "expected_git_revision": authority.closure.expected_git_revision,
             "binding_git_revision": authority.closure.binding_git_revision,
             "revision_matches": authority.closure.revision_matches,
-            "ontology_matches": authority.closure.ontology_matches,
+            "authority_matches": authority.closure.authority_matches,
         },
-        "legacy_contract_identity": contract.identity.to_dict(),
-        "legacy_only_class_count": len(
-            set(contract.classes) - set(candidate.identities)
-        ),
-        "production_default": "legacy (unchanged); this probe selects nothing",
+        "semantic_authority": contract.identity.to_dict(),
+        "selection": "none; this probe selects nothing",
         "identities": records,
     }
     if elements is None:

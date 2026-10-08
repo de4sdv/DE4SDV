@@ -15,11 +15,13 @@ _FULL_SHA = re.compile(r"^[0-9a-f]{40}$")
 _GOVERNED_MODEL_PATHS = (
     "textual-notation-of-model",
     "model-based-product-line-engineering/product-models",
-    "approach/framework/ontology/de4sdv-basic-ontology.yaml",
-    # Model-authority inputs (O4 Wave B): the generated projection/profile
-    # pairs and the admission manifests the model-authority bundle binds.
-    # A code-only consumer deploy must not run against drifted authority
-    # inputs; design notes and other documentation stay outside the gate.
+    # Model-authority inputs: the generated projection/profile pairs (and the
+    # frozen O2-chain records), the admission manifests, the O4 register whose
+    # dispositions decide refusals, and the kernel-internal manifest; the
+    # model-built kernel contract and the mab- bundle derive from them. A
+    # code-only consumer deploy must not run against drifted authority inputs;
+    # design notes and other documentation stay outside the gate. (The
+    # authored ontology was deleted in O4 Wave C2.)
     ":(glob)docs/method-conformance/o2/*.json",
     ":(glob)docs/method-conformance/o2/*admission*.yaml",
     ":(glob)docs/method-conformance/o2plus/*.json",
@@ -28,6 +30,8 @@ _GOVERNED_MODEL_PATHS = (
     ":(glob)docs/method-conformance/o4/*profile*.json",
     ":(glob)docs/method-conformance/o4/*admission*.yaml",
     "docs/method-conformance/o4/vocabulary-carriers.yaml",
+    "docs/method-conformance/o4/o4-execution-register.json",
+    "docs/method-conformance/o4/kernel-internal-declarations.yaml",
 )
 
 

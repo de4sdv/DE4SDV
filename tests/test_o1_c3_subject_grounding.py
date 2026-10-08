@@ -61,6 +61,7 @@ from de4sdv.semantic import authority_inventory as ai
 from de4sdv.semantic.kernel_contract import KernelContract
 from de4sdv.semantic.traversal import SemanticTraversal
 from de4sdv.sysml_api.errors import IdentityNotFoundError
+from model_contract_fixtures import model_contract  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -144,10 +145,20 @@ REPLAY_REMOVED_NON_MEMBERPRODUCT_TARGETS = 53
 # ---------------------------------------------------------------------------
 
 
+def _mutated_contract(mutate) -> KernelContract:
+    """A synthetic contract: the model-built contract's records with one
+    mutation applied (never mutates the shared cached contract)."""
+    import copy
+
+    real = model_contract()
+    relationships = copy.deepcopy(real.relationships)
+    mutate(relationships)
+    return KernelContract.from_records(classes=real.classes, relationships=relationships,
+                                       identity=real.identity)
+
+
 def _contract() -> KernelContract:
-    return KernelContract.load(
-        REPO_ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-    )
+    return model_contract()
 
 
 def _kernel_elements() -> tuple[dict, dict, dict, dict]:
@@ -257,6 +268,7 @@ def _kernel_index(
     return KernelBindingIndex.from_binding(
         RevisionBinding.from_dict(
             {
+                "schema": "de4sdv.revision-binding/v2",
                 "git_repository": "de4sdv/DE4SDV",
                 "git_commit": "a" * 40,
                 "sysml_project_id": "project-1",
@@ -265,7 +277,7 @@ def _kernel_index(
                 "import_tool_version": "test",
                 "semantic_validation": "passed",
                 "scope": "fixture",
-                "ontology": _contract().identity.to_dict(),
+                "semantic_authority": _contract().identity.to_dict(),
                 "kernel_bindings": bindings,
             }
         )
@@ -434,7 +446,7 @@ class TestC3ScopeAndCounts:
         from de4sdv.semantic import authority_inventory as ai_module
 
         assert ai_module.__doc__ is not None
-        assert "NEVER imported by the semantic runtime" in ai_module.__doc__
+        assert "never imported by the semantic runtime" in ai_module.__doc__.lower()
         runtime = (REPO_ROOT / "de4sdv/semantic/traversal.py").read_text(
             encoding="utf-8"
         )
@@ -1115,6 +1127,7 @@ class TestTargetNegativeLaws:
         def _binding(entries: list[dict[str, str]]):
             return RevisionBinding.from_dict(
                 {
+                    "schema": "de4sdv.revision-binding/v2",
                     "git_repository": "de4sdv/DE4SDV",
                     "git_commit": "a" * 40,
                     "sysml_project_id": "project-1",
@@ -1123,7 +1136,7 @@ class TestTargetNegativeLaws:
                     "import_tool_version": "test",
                     "semantic_validation": "passed",
                     "scope": "fixture",
-                    "ontology": _contract().identity.to_dict(),
+                    "semantic_authority": _contract().identity.to_dict(),
                     "kernel_bindings": entries,
                 }
             )
@@ -1402,17 +1415,8 @@ class TestMappingParity:
             _subject_membership("sm-need", "need-1", "member-1"),
             _subject_membership("sm-req", "req-1", "member-1"),
         ]
-        swapped = KernelContract.load(
-            REPO_ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-        )
-        object.__setattr__(swapped, "relationships", dict(swapped.relationships))
-        swapped.relationships["hasSubject"] = dict(
-            swapped.relationships["hasSubject"]
-        )
-        swapped.relationships["hasSubject"]["domain"] = "Need"
-        swapped.relationships["hasSubject"]["sysml_mapping"] = dict(
-            swapped.relationships["hasSubject"]["sysml_mapping"]
-        )
+        swapped = _mutated_contract(
+            lambda rels: rels["hasSubject"].__setitem__("domain", "Need"))
         index = _kernel_index(requirement=True, member_product=True, need=True)
         traversal = SemanticTraversal(swapped, kernel_bindings=index)
         need_hops = traversal.traverse(
@@ -1427,17 +1431,7 @@ class TestMappingParity:
     def test_mapping_without_declared_domain_or_range_refuses_to_run(self):
         """A corrupted mapping that loses the governed lineage contract is a
         hard configuration error, never silent vocabulary-only degradation."""
-        contract = KernelContract.load(
-            REPO_ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-        )
-        object.__setattr__(contract, "relationships", dict(contract.relationships))
-        contract.relationships["hasSubject"] = dict(
-            contract.relationships["hasSubject"]
-        )
-        contract.relationships["hasSubject"]["sysml_mapping"] = dict(
-            contract.relationships["hasSubject"]["sysml_mapping"]
-        )
-        del contract.relationships["hasSubject"]["domain"]
+        contract = _mutated_contract(lambda rels: rels["hasSubject"].pop("domain"))
         elements, requirement = _qualifying_fixture()
         with pytest.raises(ValueError, match="declares no governed domain/range"):
             SemanticTraversal(
@@ -1450,19 +1444,14 @@ class TestMappingParity:
         domain/range into RelationshipMapping.domain/range and never exposes
         them as configuration, so no second authored type contract can
         appear at the mechanics layer."""
-        contract = KernelContract.load(
-            REPO_ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-        )
-        raw = yaml.safe_load(
-            (
-                REPO_ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-            ).read_text(encoding="utf-8")
-        )
         # An author (or a corrupt edit) plants competing type keys inside the
-        # sysml_mapping block.
-        raw["relationships"]["hasSubject"]["sysml_mapping"]["domain"] = "Need"
-        raw["relationships"]["hasSubject"]["sysml_mapping"]["range"] = "Need"
-        object.__setattr__(contract, "relationships", raw["relationships"])
+        # sysml_mapping block of the contract records (KernelContract.from_records,
+        # the record loader since O4 Wave C2).
+        def plant(rels):
+            rels["hasSubject"]["sysml_mapping"]["domain"] = "Need"
+            rels["hasSubject"]["sysml_mapping"]["range"] = "Need"
+
+        contract = _mutated_contract(plant)
         mapping = contract.relationship_mapping("hasSubject")
         # The spec-level semantic contract is untouched by the mapping keys.
         assert mapping.domain == "Requirement"
@@ -1500,6 +1489,7 @@ class TestImpactServiceBoundary:
 
         binding = RevisionBinding.from_dict(
             {
+                "schema": "de4sdv.revision-binding/v2",
                 "git_repository": "de4sdv/DE4SDV",
                 "git_commit": "a" * 40,
                 "sysml_project_id": "project-1",
@@ -1508,18 +1498,24 @@ class TestImpactServiceBoundary:
                 "import_tool_version": "test",
                 "semantic_validation": "passed",
                 "scope": "full-model",
-                "ontology": _contract().identity.to_dict(),
+                "semantic_authority": _contract().identity.to_dict(),
                 "kernel_bindings": [
                     {
                         "ontology_class": "Requirement",
                         "element_id": "kernel-requirement",
-                        "source_file": "f.sysml",
+                        "source_file": (
+                            "textual-notation-of-model/packages/methods/de4sdv/"
+                            "de4sdv_method_context.sysml"
+                        ),
                         "declaration": "requirement def RequirementCandidate",
                     },
                     {
                         "ontology_class": "MemberProduct",
                         "element_id": "kernel-member-product",
-                        "source_file": "f.sysml",
+                        "source_file": (
+                            "textual-notation-of-model/packages/methods/de4sdv/"
+                            "de4sdv_product_line.sysml"
+                        ),
                         "declaration": "part def ProductLineMemberProduct",
                     },
                 ],
@@ -1527,22 +1523,11 @@ class TestImpactServiceBoundary:
         )
         from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
 
-        index = KernelBindingIndex.from_binding(binding)
-        contract = _contract()
-        repository = _Repo(elements)
-        return ImpactService(
-            repository=repository,  # type: ignore[arg-type]
-            binding=binding,
-            contract=contract,
-            binder=OntologyApiBinder(
-                contract,
-                repository,  # type: ignore[arg-type]
-                project_id="project-1",
-                commit_id="commit-1",
-                kernel_bindings=index,
-            ),
-            traversal=SemanticTraversal(contract, kernel_bindings=index),
-        )
+        from model_contract_fixtures import model_service
+
+        # O4 Wave C2: the production impact surface of the model-authority
+        # runtime (the base ImpactService subclass the validators consume).
+        return model_service(binding, _Repo(elements)).impact_service
 
     def test_non_member_product_subject_is_never_a_product_line_hop(self):
         """Regression: a governed requirement whose SubjectMembership points

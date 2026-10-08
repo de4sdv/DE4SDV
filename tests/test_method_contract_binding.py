@@ -553,6 +553,7 @@ def test_mc36_dirty_tree_evaluation_request_refused(tmp_path: Path) -> None:
 
 def test_mc37_concurrent_candidates_do_not_overwrite() -> None:
     from de4sdv.sysml_api.candidate import CandidateRegistry
+    from model_contract_fixtures import synthetic_identity
 
     registry = CandidateRegistry()
     first = registry.register_candidate(
@@ -569,6 +570,7 @@ def test_mc37_concurrent_candidates_do_not_overwrite() -> None:
 
 def test_mc37_candidate_production_preserves_published_baseline() -> None:
     from de4sdv.sysml_api.candidate import CandidateRegistry
+    from model_contract_fixtures import synthetic_identity
 
     registry = CandidateRegistry()
     registry.set_published_accepted_baseline(
@@ -584,6 +586,7 @@ def test_mc37_candidate_production_preserves_published_baseline() -> None:
 
 def test_mc37_candidate_binding_requires_validation() -> None:
     from de4sdv.sysml_api.candidate import CandidateRegistry
+    from model_contract_fixtures import synthetic_identity
 
     registry = CandidateRegistry()
     # Binding emission without passing validation is refused (provenance is
@@ -597,8 +600,7 @@ def test_mc37_candidate_binding_requires_validation() -> None:
             git_repository="de4sdv/DE4SDV",
             import_timestamp="2026-09-10T00:00:00+00:00",
             import_tool_version="de4sdv-full-model-import/1+official-syside-json",
-            ontology_path="approach/framework/ontology/de4sdv-basic-ontology.yaml",
-            ontology_sha256="a" * 64,
+            semantic_authority=synthetic_identity("mc37"),
         )
     binding = registry.emit_binding(
         git_commit="e" * 40,
@@ -608,15 +610,14 @@ def test_mc37_candidate_binding_requires_validation() -> None:
         git_repository="de4sdv/DE4SDV",
         import_timestamp="2026-09-10T00:00:00+00:00",
         import_tool_version="de4sdv-full-model-import/1+official-syside-json",
-        ontology_path="approach/framework/ontology/de4sdv-basic-ontology.yaml",
-        ontology_sha256="a" * 64,
+        semantic_authority=synthetic_identity("mc37"),
     )
     assert binding.semantic_validation == "passed"
     assert binding.scope == "candidate"
     # The binding must round-trip through the strict loader (authority tuple
     # complete even for candidate scope).
     loaded = type(binding).from_dict(binding.to_dict())
-    assert loaded.ontology.path == binding.ontology.path
+    assert loaded.semantic_authority == binding.semantic_authority
     assert loaded.scope == "candidate"
 
 

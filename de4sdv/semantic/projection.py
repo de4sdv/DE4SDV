@@ -8,10 +8,10 @@ kernel declaration whose typed ends (``need : StakeholderNeedCandidate``,
 ``derivedRequirement : RequirementCandidate``) carry the predicate's
 domain, range, and direction in the model itself; the kernel role-binding
 contract (connection definition + end types + role-binding doc) carries the
-meaning and claim boundary. The authored ontology YAML is loaded ONLY as
-the O0/O1 parity oracle: it is compared against the model-derived fields
-and any unintended drift fails generation — it never supplies a semantic
-field. The projection may not define serializer property paths, runtime
+meaning and claim boundary. The kernel contract (since O4 Wave C2 the
+model-built contract, ``KernelContract.from_layers``) is the pair-parity
+oracle: it is compared against the model-derived fields and any unintended
+drift fails generation — it never supplies a semantic field. The projection may not define serializer property paths, runtime
 dispatch, importer quirks, or transport behavior — those live in the
 representation profile.
 
@@ -20,9 +20,8 @@ Every generated artifact binds:
 - the validated revision identity (Git SHA + SysML project/commit), which
   must be provided by the caller from a validated revision binding — the
   builders never invent or accept unverified revision labels; and
-- the ontology contract identity (path + SHA-256) whose digest is recomputed
-  from the actual contract file at generation time, recording exactly which
-  oracle text the parity check compared against.
+- the semantic-authority identity of the contract the parity check compared
+  against (``sai-`` id and layer digests).
 
 Support promotion: ``support_state`` is ``vocabulary-only`` unless a
 structured :class:`ClosureAttestation` — evidence identity, exact Git
@@ -37,7 +36,6 @@ deliberately does not generalize the schema (plan §8.1).
 
 from __future__ import annotations
 
-import hashlib
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -48,8 +46,6 @@ from .model_authority import model_semantics
 PROJECTION_SCHEMA = "de4sdv.semantic-projection.v0"
 PROFILE_SCHEMA = "de4sdv.api-representation-profile.v0"
 PROFILE_IDENTITY = "de4sdv.api-representation-profile.v0#derivesRequirementFromNeed"
-
-CONTRACT_REPOSITORY_PATH = "approach/framework/ontology/de4sdv-basic-ontology.yaml"
 
 # Bounded schema identifiers/selectors for this one K slice (plan v1.1 §16).
 # They LOCATE the model authority; they do not define domain, range,
@@ -285,13 +281,9 @@ class RevisionIdentity:
         )
 
 
-def contract_identity_from_file(repository_root: Path) -> dict[str, str]:
-    """Recompute the ontology contract identity from the actual file."""
-    contract_path = repository_root / CONTRACT_REPOSITORY_PATH
-    return {
-        "path": CONTRACT_REPOSITORY_PATH,
-        "sha256": hashlib.sha256(contract_path.read_bytes()).hexdigest(),
-    }
+def contract_identity(contract: Any) -> dict[str, Any]:
+    """The semantic-authority identity of the parity-oracle contract."""
+    return contract.identity.to_dict()
 
 
 def _pair_oracle_rows(contract: Any) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -332,9 +324,9 @@ def _pair_oracle_rows(contract: Any) -> tuple[dict[str, Any], dict[str, Any]]:
 
 
 def _assert_oracle_parity(contract: Any, semantics: dict[str, Any]) -> dict[str, Any]:
-    """Pair-parity-check the authored ontology YAML against the model semantics.
+    """Pair-parity-check the kernel contract against the model semantics.
 
-    The YAML is the O0/O1 parity oracle: it may contradict nothing and it may
+    The contract is the parity oracle: it may contradict nothing and it may
     not redefine anything. The check covers the COMPLETE pair — the canonical
     row (``Requirement -> Need``, inverse navigation) and the companion row
     (``Need -> Requirement``, forward traversal) — and verifies the
@@ -470,7 +462,7 @@ def _assert_oracle_parity(contract: Any, semantics: dict[str, Any]) -> dict[str,
 
     if drift:
         raise ValueError(
-            "ontology parity oracle drift for the K predicate pair "
+            "contract parity oracle drift for the K predicate pair "
             f"({_PREDICATE} / {_INVERSE_PREDICATE}): " + "; ".join(drift)
         )
     return {
@@ -492,10 +484,9 @@ def build_projection(
 
     Every semantic field published here is COPIED from the model-derived
     authority (``model_authority.model_semantics``); nothing is restated as a
-    Python semantic literal. The authored ontology YAML is loaded only as the
-    O0/O1 parity oracle: both rows of the K predicate pair are compared
-    against the model-derived semantics and any unintended drift fails
-    generation (F5).
+    Python semantic literal. The kernel contract is the parity oracle: both
+    rows of the K predicate pair are compared against the model-derived
+    semantics and any unintended drift fails generation (F5).
 
     Fails closed when any grounding required by the slice is missing from the
     validated binding index, absent from the bound revision, or not stated by
@@ -537,8 +528,8 @@ def build_projection(
                 # K authority (plan v1.1 §16): identity, meaning,
                 # domain/range, native and canonical direction, claim
                 # strength, and claim boundary are all grounded in the
-                # validated model. The ontology contract identity is carried
-                # as the O0/O1 parity oracle, not as a semantic authority.
+                # validated model. The contract identity is carried as the
+                # parity oracle, not as a semantic authority.
                 "model_semantic_authority": {
                     "connection_definition": semantics["connection_definition"],
                     "element_id": definition_id,
@@ -570,9 +561,7 @@ def build_projection(
                     "claim_boundary": semantics["claim_boundary"],
                     "authority_provenance": semantics["authority_provenance"],
                 },
-                "ontology_contract_parity_oracle": (
-                    contract_identity_from_file(repository_root)
-                ),
+                "contract_parity_oracle": contract_identity(contract),
             },
         },
         "predicate": {

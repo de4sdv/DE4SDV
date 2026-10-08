@@ -1,84 +1,101 @@
-# Model-authority runtime (O4 Wave B)
+# Model-authority runtime (O4 Wave B, closed by Wave C2)
 
-Status: **draft, not activated.** This record describes the runtime core for
-the owner decisions of 2026-10-07. It does not claim production activation,
-consumer retirement, live API closure, compliance or certification.
-Production activation and the activation decision naming the `mab-` id stay
-with the owner.
+Status: **draft, not activated by this record.** This record describes the
+runtime core for the owner decisions of 2026-10-07 (Wave B) and the closure
+decisions of Wave C (2026-10-07/08). It does not claim production
+activation, live API closure, compliance or certification. Production
+deployment and the activation decision naming the `mab-` id stay with the
+owner ([activation and rollback](model-authority-activation.md)).
 
 ## Problem
 
-Under the O3 authority only 13 identities come from projection artifacts.
-Every other identity still comes from the authored ontology YAML, and no
-runtime loads the O2+, vocabulary-carrier or relationship-successor layers.
-Wave B cuts production over to one bundle that binds every model projection
-layer, so the remaining authored-YAML use becomes an explicit, visible
-residual and not a silent fallback.
+Under the O3 authority only 13 identities came from projection artifacts;
+every other identity came from the authored ontology YAML. Wave B cut the
+runtime over to one bundle that binds every model projection layer and made
+the remaining authored-YAML use an explicit residual. Wave C2 removed that
+residual and the YAML itself: the model-built kernel contract is the only
+semantic authority, and nothing at runtime reads an authored ontology.
+
+## Model-built kernel contract
+
+`KernelContract.from_layers(root)` (`de4sdv/semantic/kernel_contract.py`,
+built by `de4sdv/semantic/model_contract.py`) assembles the contract from:
+
+- the model-generated layers: definition admission batch 1
+  (`definition-projection.json` / `-profile.json`), batch 2
+  (`definition-batch2-…`), the O2+ pair (`o2plus-…`) and the
+  vocabulary-carrier pair (`vocabulary-carriers-…`);
+- the frozen O2-chain layer: the 13 O3-migrated identities read from the
+  frozen O2 Projection/Profile records (`o2/semantic-projection-v1…v1.2`
+  and profiles), unchanged since O3;
+- the successor contract generated from the model
+  (`relationship_successor_contract.generate_contract`, class pins from the
+  layers);
+- the kernel-internal declarations manifest
+  ([kernel-internal-declarations.yaml](kernel-internal-declarations.yaml),
+  owner decision D3), the governed-directory accounting.
+
+Its identity is the **semantic-authority identity** (`sai-<32 hex>`,
+schema `de4sdv.semantic-authority/v1`): a digest over every layer path and
+sha256 and the contract content. Revision bindings v2 carry it as
+`semantic_authority`; a v1 binding (authored-YAML `ontology` block) is
+refused.
+
+The contract also carries:
+
+- `refused`: every identity answered only with its disposition — the
+  registered non-retained rows (`IncrementTraceabilityShell` MERGE,
+  `derivesNeedFromConcern` REMOVE, owner decision D5, refused with the
+  register disposition) and the retired names (D4, below). A refused
+  identity raises `RetiredIdentityError` with `<name>: <disposition>`;
+- `lineage_pinned`: the natively represented successor endpoint classes
+  (`Function`, `LogicalElement`, `PhysicalElement`, `ValidationScenario`)
+  map to their successor lineage pins (`AllocatableFunction`,
+  `LogicalAllocationElement`, `PhysicalAllocationElement`,
+  `ValidationPlanningScenario`). Ingestion binds those pins only under
+  the owning successor class (validation status `lineage-pinned`), so the
+  kernel binding set equals the one Wave B served.
+
+The equivalence of this contract with the deleted authored ontology was
+proven before the deletion and is committed as evidence:
+[closure/contract-equivalence.json](closure/contract-equivalence.json). The
+served contract differs from the authored one in exactly seven identities:
+the two refused exceptions and the five retired names. The 54 batch-2
+contract fields held by the admission manifest (domain/range/strength,
+mechanics, kernel mapping kind, ontology relations) are recorded there with
+their pre-deletion equality (owner decision D9).
 
 ## Bundle
 
 `de4sdv/semantic/model_authority_runtime.py` builds and verifies the
-model-authority bundle (`de4sdv.model-authority-bundle/v1`). Its id is
-`mab-<32 hex>`, the digest of `schema`, `git_revision`,
-`ontology_compatibility_identity` and `components`. The service authority id
-is `mab:<bundle id>`.
+model-authority bundle (`de4sdv.model-authority-bundle/v2`). Its id is
+`mab-<32 hex>`, the digest of `schema`, `git_revision` and `components`. The
+service authority id is `mab:<bundle id>`.
 
 | Component | Content |
 | --- | --- |
-| `o3` | Closure-independent O3 identity only: the O3 core `bundle_id`, the Projection/Profile chain records and the runtime build. The closed O3 document travels beside the id as `o3_document`; its API closure never enters the `mab-` id. |
-| `layers` | Projection/profile pairs (path, schema, sha256, source revision) for `definition`, `o2plus`, `vocabulary-carrier` and, once present in the checkout, `definition-batch2` |
-| `successor_contract` | Id, digest and relation names of the contract that `relationship_successor_contract.generate_contract` builds from the model, plus the deprecated-alias table |
-| `routing` | Exactly one provider per identity, any agreeing corroborations, duplicates (must be empty) and the residual with a reason for each entry |
-| `implementation_manifest` | sha256 of each executed sidecar source that is not a frozen O3 runtime-build input |
+| `layers` | Projection/profile pairs (path, schema, sha256, source revision) of every model layer, and the frozen O2-chain records |
+| `semantic_authority` | The `sai-` identity of the model-built contract |
+| `successor_contract` | Id, digest and relation names of the model-generated successor contract, and the `retired` table (name → successor navigation) |
+| `routing` | Exactly one provider per identity, agreeing corroborations, duplicates (must be empty), the residual (must be empty: bundle construction refuses otherwise) and the retired names |
+| `implementation_manifest` | sha256 of each executed runtime source (21 files) |
 
-Closure (`de4sdv.model-authority-closure/v1`) binds the bundle to one
-revision binding. It records the binding digest and SysML project/commit,
-the O3 bundle id and the digest of the carried closed O3 document (whose
-own API closure must name the same binding), whether O3 is activation
-eligible, whether the definition closure is closed, the bound
-`EvidenceContract` closure members with the element id each one validated
-to (ingestion binding rule over the same-run export),
-and the validation evidence `model_projection_coverage`,
-`model_o3_legacy_equivalence` and `verification_anchor_readback`. Each
-validation must be exactly `passed` and carry a sha256. Activation
-eligibility is recomputed during verification, never trusted. The
-requirement-population delta is measured, not gating.
+Closure (`de4sdv.model-authority-closure/v2`) binds the bundle to one
+revision binding: binding digest, SysML project/commit, whether the
+definition closure is closed, the bound `EvidenceContract` closure members
+with the element id each one validated to, and the required validations
+`model_projection_coverage`, `model_runtime_answers`,
+`verification_anchor_readback`, `full_model_semantic_queries`,
+`product_line_scope` and `semantic_mcp`. Each must be exactly `passed` and
+carry the sha256 of its artifact. Activation eligibility (definition
+closure closed and every validation passed) is recomputed during
+verification, never trusted. The requirement-population delta is measured,
+not gating.
 
 Verification recomputes every component from the checkout and refuses any
-mismatch. That covers layer bytes, the regenerated successor contract,
-routing, implementation sources (an external substitute is refused) and the
-O3 component. A coherent rewrite of the id does not get past it.
-
-## Definition-admission batch 2
-
-The batch-2 pair (`definition-batch2-projection.json` /
-`definition-batch2-profile.json`, schemas
-`de4sdv.o4-definition-batch2-projection/v1` and `-profile/v1`) is a fourth
-layer. It is optional only while the pair is absent from the checkout; once
-present it is bound and verified like every other layer. Every admission
-class the batch emits has one loader rule, and any other shape is refused:
-
-| Row | Becomes |
-| --- | --- |
-| class `definition` / `external-reference` | class provider from exactly one of `kernel_binding_contract`, `kernel_native`, `kernel_external` |
-| `relationship-vocabulary` / `external-reference` relation | vocabulary relationship (domain, range, optional strength, carrier) |
-| relation with profile `serializer_mechanics` | serialized relationship mapping (strength required) |
-| `relationship-runtime` with a range `discriminator` | the discriminator is carried; the `hasRelevantEvidenceContract` closure must hold exactly eight definitions |
-| `successor` | corroborates the model-generated successor contract when the end-pair sets are equal |
-| `deprecated-alias` | never a provider; must equal the alias table (successor, navigation, answer mode) |
-
-While the authored YAML still exists, a batch-2 class mapping or
-relationship mapping that differs from it is a routing conflict. The
-natively represented successor endpoint classes (`Function`,
-`LogicalElement`, `PhysicalElement`, `ValidationScenario`) keep the
-successor contract's lineage pin as their runtime mapping, as the approved
-successor runtime does. The batch-2 row corroborates that pin only when
-exactly one projected direct specialization (by `sub_class_of`) carries it.
-
-With the batch-2 pair from the admission lane overlaid, routing has no
-duplicates, and the residual is exactly the two owner-visible exceptions
-`IncrementTraceabilityShell` (disposition MERGE) and `derivesNeedFromConcern`
-(disposition REMOVE).
+mismatch: layer bytes, the regenerated successor contract, routing, the
+semantic-authority identity and the implementation sources (an external
+substitute is refused).
 
 ## Selection and rollback
 
@@ -88,21 +105,16 @@ DE4SDV_MODEL_AUTHORITY_BUNDLE=<path to closed bundle JSON>
 DE4SDV_MODEL_AUTHORITY_BUNDLE_ID=mab-<32 hex>
 ```
 
-`composition_construction.build_explicit_semantic_runtime` is the one
-canonical router: it routes `model` to `build_model_authority_runtime`, and
-entry points delegate every selection, `model` included, to it.
-Activation eligibility (a closed bundle whose recomputed closure is eligible)
-is required by default. Only an explicit `require_activation_eligible=False`
-serves a candidate or ineligible bundle; the privileged compare step and the
-tests use it. `ModelAuthorityRefused` is an `AuthoritySelectionError`. The frozen `authority_selection` module, a
-recorded O3 runtime-build input, is not changed. Legacy and o3 calls reach it
-with byte-identical arguments, and a test asserts this. Rollback is
-`DE4SDV_SEMANTIC_AUTHORITY=o3` with a fresh O3 bundle; legacy is the second
-fallback. A failed model request raises and never degrades to o3 or legacy.
-Callers that use `authority_selection.build_selected_semantic_runtime`
-directly still refuse `model`.
-
-The builder can also be called directly:
+`authority_selection.require_model_selection` accepts only `model`. Unset
+(owner decision D6), `legacy`, `o3` or any other value is refused; the
+message names the rollback procedure (rollback is a redeploy of the pre-C2
+revision). `composition_construction.build_explicit_semantic_runtime`
+routes the model selection to `build_model_authority_runtime`; every entry
+point delegates to it. Activation eligibility is required by default; only
+an explicit `require_activation_eligible=False` (the
+`--allow-candidate-bundle` flag of the evidence scripts) serves a candidate
+bundle, for evidence runs and tests. `ModelAuthorityRefused` is an
+`AuthoritySelectionError`.
 
 ```python
 from de4sdv.semantic.model_authority_runtime import (
@@ -110,38 +122,34 @@ from de4sdv.semantic.model_authority_runtime import (
 
 runtime = build_model_authority_runtime(
     repo_root, bundle_path, expected_id,  # None -> the two environment variables
-    api_url=..., binding_path=..., expected_git_revision=..., ontology_path=...,
-    require_activation_eligible=True)  # default; False only for compare/test
+    api_url=..., binding_path=..., expected_git_revision=...,
+    require_activation_eligible=True)
 runtime.authority_status()
 # {"authority": "model", "bundle_id": "mab-...", "authority_id": "mab:mab-...",
-#  "source_revision": "<40 hex>", "residual": [<identity>, ...],
-#  "rollback": "o3", "activation_blocked": <bool>}
+#  "source_revision": "<40 hex>", "semantic_authority": "sai-...",
+#  "refused": [...], "rollback": "redeploy the pre-Wave-C production revision",
+#  "activation_blocked": <bool>}
 ```
 
-The returned runtime is the query service; `runtime.selection` holds the
-verified selection, and `runtime.semantic_authority_id` is `mab:<bundle id>`.
-Every refusal raises `ModelAuthorityRefused`.
-
-## Successor exposure and deprecated aliases
+## Successor exposure and retired names
 
 `allocatedTo`, `hasValidationScenario` (inverse `validationScenarioFor`) and
-`hasRegulatorySource` are default predicates. The retired names answer only
-on explicit request, as deprecated aliases. Each alias edge carries
-`witness.deprecated_alias`, and each alias-bearing report carries a
-`deprecated_aliases` list. Wave C deletes the aliases.
+`hasRegulatorySource` are default predicates. The Wave B deprecated aliases
+are **retired names** (owner decision D4): no fact is answered under them;
+every request is refused with `retired; use <successor>`. The model
+retirement records are kept as history.
 
-| Alias | Answers through | Claim boundary |
-| --- | --- | --- |
-| `realizedBy` | `allocatedTo`, Requirement to Function pair only | responsibility assignment only |
-| `deployedTo` | `allocatedTo`, LogicalElement to PhysicalElement pair only | no deployment or observed operation |
-| `validatedBy` | `hasValidationScenario` | planning association only |
-| `validatesFitnessForUse` | `hasValidationScenario`, navigated as `validationScenarioFor` | no fitness-for-use verdict |
-| `constrainedBy` | nothing: documentation only, points to `hasRegulatorySource` | historical provenance, not an alias |
+| Retired name | Refusal |
+| --- | --- |
+| `realizedBy` | `retired; use allocatedTo` |
+| `deployedTo` | `retired; use allocatedTo` |
+| `validatedBy` | `retired; use hasValidationScenario` |
+| `validatesFitnessForUse` | `retired; use validationScenarioFor` |
+| `constrainedBy` | `retired; use hasRegulatorySource` |
 
-`constrainedBy` follows the model retirement record: the controlled-source
-successor `hasRegulatorySource` is not an alias. The name stays answerable,
-but it returns no edges. It records a `retired` unavailability and carries
-the deprecation marker with `answer_mode: documentation-only`.
+The impact surface's requirement-to-architecture hop traverses
+`allocatedTo` (from a Requirement source only the Requirement → Function
+end pair applies, exactly what the `realizedBy` alias served).
 
 ## `hasRelevantEvidenceContract` discriminator
 
@@ -150,46 +158,29 @@ kernel root. It must contain exactly eight specializing requirement
 definitions: the AEBS evidence contracts. Members are the usages explicitly
 typed by the root or by one of those definitions. Any other population fails
 closed with `MODEL_EVIDENCE_CONTRACT_BLOCKED_REASON`. `traversal.py` is
-untouched; the discriminator is a subclass override. The legacy and o3 paths
-keep the predicate blocked.
+untouched; the discriminator is a subclass override.
 
-## Coverage gate (retained residual blocking)
+## Coverage gate (blocking)
 
 `scripts/check_model_projection_coverage.py` (module
-`de4sdv/semantic/model_projection_coverage.py`) classifies every item in
-four populations as projected (layer + digest) or residual (reason):
+`de4sdv/semantic/model_projection_coverage.py`) classifies every register
+row, every model identity and every governed kernel declaration as
+projected (layer + digest), refused, retired or residual. Mode `blocking`
+(O4 Wave C2): any residual identity, any residual governed declaration and
+any kernel-accounting error fails regardless of the baseline. Kernel
+accounting: every governed declaration is projected by a model-generated
+layer or listed in the D3 manifest with a reason, as a disjoint union (a
+listed declaration that is also projected fails); a stale, reason-less or
+out-of-directory entry fails; a feature slice must not re-declare a
+class-mapped kernel name.
 
-- every retained register row (`retained_residual`: the owner's criterion,
-  empty, blocking since Wave C1);
-- the ontology YAML identities that the register does not list;
-- every registered non-retained (merged/removed) row still in the ontology
-  YAML (`exceptions`: owner-visible, with reason and register disposition;
-  routing does not refuse them; ratcheted and allowed until Wave C2);
-- every governed kernel declaration: projected by a model-generated layer, or
-  listed in [kernel-internal-declarations.yaml](kernel-internal-declarations.yaml)
-  with a reason (owner decision D3).
+It compares the result with `model-authority-coverage-baseline.yaml`
+(schema v3, no binding block), which ratchets the refused and retired sets,
+the routing digest and the layer digests. With `--bundle`, it also fails
+when a bundle differs from the checkout. `scripts/check_repo.py` runs it.
+Current summary: 101 projected, 0 residual, 2 refused, 5 retired, 138
+governed declarations (0 residual).
 
-The total `residual` equals the routing residual the runtime serves from
-the authored YAML. Current summary: 103 projected, 0 retained residual,
-2 owner-visible exceptions (`IncrementTraceabilityShell`,
-`derivesNeedFromConcern`), 0 residual kernel declarations.
-
-It compares the result with
-`model-authority-coverage-baseline.yaml` (schema v2, mode
-`blocking-retained`), which has no binding block. It fails on residual or
-exception drift in either direction, duplicate providers, and routing or
-layer digest mismatch. With `--bundle`, it also fails when a bundle differs
-from the checkout. `scripts/check_repo.py` runs it.
-
-Since Wave C1 it also fails, regardless of the baseline, on:
-
-- a non-empty `retained_residual`;
-- any kernel-accounting error: an unclassified governed declaration; a stale,
-  reason-less or out-of-directory kernel-internal entry; an entry that is also
-  a projected class mapping; a feature slice that re-declares a class-mapped
-  kernel name; or a kernel-internal manifest that differs from the authored
-  ontology's list (the C1 transition lock, removed with that list in Wave C2).
-
-These kernel-accounting checks replace the kernel-to-ontology direction and
-the feature-slice guard of `scripts/check_model_sync.py` sync point 5. Wave C2
-makes any non-empty residual blocking.
+The model-contract → kernel mapping direction (every class mapping resolves
+to its declaration in the named file) is `scripts/check_model_sync.py` sync
+point 5.

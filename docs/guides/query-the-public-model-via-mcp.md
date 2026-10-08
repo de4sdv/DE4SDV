@@ -20,7 +20,10 @@ and [ADR 0013](../architecture-decisions/0013-deploy-experimental-readonly-publi
 - A machine-readable status document at
   [`/deployment-status.json`](https://sysml-api.de4sdv.org/deployment-status.json)
   publishing the deployed Git SHA, the deployment's SysML Project/Commit UUIDs,
-  and the ontology identity the baseline was validated against.
+  and the semantic identity the baseline was validated against:
+  `baseline.semantic_authority` (the model-built semantic-authority identity,
+  `sai-…`) for a revision that contains O4 Wave C2, `baseline.ontology` (the
+  retired authored-ontology identity) for an earlier revision.
 
 Project/Commit UUIDs are specific to each deployment (the importer generates
 them fresh); element UUIDs are stable across deployments. Never reuse a binding
@@ -33,8 +36,9 @@ UUIDs that do not exist in the public deployment.
   from the repository root installs the pinned version).
 - A clone of this repository at the **deployed Git SHA** (the
   `baseline.git_commit` field in `deployment-status.json`). The server
-  recomputes the ontology contract identity from files in the repository, so
-  the checkout must be the exact revision the deployment was built from. A
+  recomputes the semantic-authority identity from the model layers in the
+  repository, so the checkout must be the exact revision the deployment was
+  built from. A
   detached worktree is the cleanest way to pin one:
 
   ```bash
@@ -45,9 +49,11 @@ UUIDs that do not exist in the public deployment.
 
 ## Step 1 — Build a client revision binding
 
-The server needs a revision-binding JSON file. For the public deployment, build
-it from the live status document (Project/Commit UUIDs and ontology identity
-come straight from what is actually deployed):
+The server needs a revision-binding JSON file (`de4sdv.revision-binding/v2`).
+For the public deployment, build it from the live status document
+(Project/Commit UUIDs and the semantic-authority identity come straight from
+what is actually deployed). This works for a deployment whose status carries
+`baseline.semantic_authority`; a binding v1 (`ontology` block) is refused:
 
 ```bash
 python - <<'EOF'
@@ -55,7 +61,11 @@ import json, urllib.request
 s = json.load(urllib.request.urlopen(
     'https://sysml-api.de4sdv.org/deployment-status.json'))
 b = s['baseline']
+if "semantic_authority" not in b:
+    raise SystemExit("deployment predates O4 Wave C2 (baseline.ontology): "
+                     "use that revision's copy of this guide")
 binding = {
+    "schema": "de4sdv.revision-binding/v2",
     "git_repository": "de4sdv/DE4SDV",
     "git_commit": b["git_commit"],
     "sysml_project_id": b["sysml_project_id"],
@@ -64,7 +74,7 @@ binding = {
     "import_tool_version": "de4sdv-full-model-import/1+official-syside-json",
     "semantic_validation": "passed",
     "scope": "full-model",
-    "ontology": b["ontology"],
+    "semantic_authority": b["semantic_authority"],
 }
 with open("public-model-binding.json", "w") as f:
     f.write(json.dumps(binding, indent=2) + "\n")
@@ -74,20 +84,36 @@ EOF
 
 ## Step 2 — Launch the server and verify
 
-The server fails closed unless binding, ontology identity, and expected Git SHA
-all match. That is deliberate: an agent cannot reason over a stale or
-mismatched model and present the results as current.
+The server fails closed unless binding, semantic-authority identity,
+expected Git SHA and the model-authority bundle all match. That is
+deliberate: an agent cannot reason over a stale or mismatched model and
+present the results as current.
+
+The semantic authority is selected explicitly: `--semantic-authority model`
+with the closed model-authority bundle accepted for the deployed revision and
+its exact `mab-` id (the deployed id is published at
+`https://viewer.de4sdv.org/ask-status.json` as `.semantic_authority.bundle_id`).
+There is no default; an unset selector refuses to start. The bundle closure
+is bound to the deployment binding, so only the bundle closed for this
+deployment starts. Public distribution of that bundle file is not set up yet;
+until it is, the public MCP route needs the bundle from the maintainers (see
+[model-authority activation](../method-conformance/o4/model-authority-activation.md)).
 
 ```bash
 python scripts/semantic_mcp_server.py \
   --api-url https://sysml-api.de4sdv.org \
   --binding public-model-binding.json \
-  --expected-git-revision <DEPLOYED_SHA>
+  --expected-git-revision <DEPLOYED_SHA> \
+  --semantic-authority model \
+  --model-authority-bundle /path/to/de4sdv-model-authority-bundle.json \
+  --model-authority-bundle-id mab-<DEPLOYED_BUNDLE_ID>
 ```
 
 Equivalent environment variables (`DE4SDV_SYSML_API_URL`,
-`DE4SDV_REVISION_BINDING`, `DE4SDV_EXPECTED_GIT_SHA`) are available for stdio
-clients that pass configuration through the environment.
+`DE4SDV_REVISION_BINDING`, `DE4SDV_EXPECTED_GIT_SHA`,
+`DE4SDV_SEMANTIC_AUTHORITY`, `DE4SDV_MODEL_AUTHORITY_BUNDLE`,
+`DE4SDV_MODEL_AUTHORITY_BUNDLE_ID`) are available for stdio clients that
+pass configuration through the environment.
 
 ## Step 3 — Register with your MCP client
 
@@ -100,6 +126,9 @@ hermes mcp add de4sdv-semantic \
   --env DE4SDV_SYSML_API_URL=https://sysml-api.de4sdv.org \
     DE4SDV_REVISION_BINDING=/absolute/path/to/public-model-binding.json \
     DE4SDV_EXPECTED_GIT_SHA=<DEPLOYED_SHA> \
+    DE4SDV_SEMANTIC_AUTHORITY=model \
+    DE4SDV_MODEL_AUTHORITY_BUNDLE=/absolute/path/to/de4sdv-model-authority-bundle.json \
+    DE4SDV_MODEL_AUTHORITY_BUNDLE_ID=mab-<DEPLOYED_BUNDLE_ID> \
   --args /path/to/DE4SDV/scripts/semantic_mcp_server.py --api-timeout 600
 ```
 
@@ -118,8 +147,9 @@ cold cost once.
 
 `model_status` reports whether the runtime can make a current-baseline claim:
 it returns `current_baseline: true` only when the binding is synchronized with
-the expected Git SHA, the scope is full-model, and the ontology identity
-matches. Every result carries the complete Git/API/ontology provenance tuple —
+the expected Git SHA, the scope is full-model, and the semantic-authority
+identity matches. Every result carries the complete Git/API/semantic-authority
+provenance tuple —
 treat anything less as a gap, not a fact.
 
 ## The seven tools

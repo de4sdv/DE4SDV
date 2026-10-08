@@ -50,29 +50,32 @@ Before proposing a completed change:
 
 The SysML method kernel (`textual-notation-of-model/packages/methods/de4sdv/`)
 is the semantic authority. Its vocabulary reaches consumers through
-model-generated projection layers. The authored basic ontology
-(`approach/framework/ontology/de4sdv-basic-ontology.yaml`) is being retired
-(O4); until O4 Wave C2 deletes it, it still serves two owner-visible
-exceptions and the O3 rollback path. Do not weaken or bypass these gates to
-make a change pass:
+model-generated projection layers, from which the runtime builds the kernel
+contract (`KernelContract.from_layers`, `de4sdv/semantic/model_contract.py`).
+The authored basic ontology YAML was deleted in O4 Wave C2; there is no
+second semantic authority and no generated YAML copy. Do not weaken or bypass
+these gates to make a change pass:
 
 - **Kernel accounting** — the model-projection coverage gate
   (`de4sdv/semantic/model_projection_coverage.py`, run by `check_repo.py` and
-  `scripts/check_model_projection_coverage.py`). The equation is:
+  `scripts/check_model_projection_coverage.py`). The equation is a disjoint
+  union:
 
   ```text
   governed kernel declarations
-  = model-projected declarations
+  = model-projected declarations (class pins and relationship-carrier pins)
   + kernel-internal declarations (each with a reason)
   ```
 
   Kernel-internal declarations are listed in
   `docs/method-conformance/o4/kernel-internal-declarations.yaml` (owner
-  decision D3). Until O4 Wave C2 that list must stay equal to the authored
-  ontology's exclusion list; the gate refuses any difference.
+  decision D3), the only home of that list. Any residual (a retained O4
+  register row or a governed declaration without a model provider) fails the
+  gate regardless of the baseline.
 - **Mapping direction** — `scripts/check_model_sync.py` sync point 5
-  (`[ONTOLOGY-KERNEL]` errors): every authored ontology class mapping is well
-  formed and resolves. It is deleted with the authored ontology in Wave C2.
+  (`[ONTOLOGY-KERNEL]` errors): every class of the model-built kernel contract
+  has one well-formed mapping and every file mapping resolves in its kernel
+  file.
 - **R003 groundings** — sync point 6 reads them from
   `constraint ontologyRuleR003` in `de4sdv_ontology_validation_rules.sysml`;
   keep their text format exact.
@@ -82,12 +85,12 @@ When a change touches the method kernel:
 - Every new declaration (`part def`, `requirement def`, `enum def`, and every
   other `def` kind) in a kernel file must be classified in the same commit:
   project it through a model-generated layer, or list it as kernel-internal
-  with a non-empty reason (in the manifest above and, until Wave C2, in the
-  authored ontology's exclusion list). Unclassified declarations fail CI.
+  with a non-empty reason in the manifest above. Unclassified declarations
+  fail CI.
 - Renaming or removing a kernel declaration requires updating its projection
   or kernel-internal entry in the same commit; stale entries fail the gate.
-- Kernel-internal entries must stay inside the governed directory and must not
-  also be a projected class mapping.
+- Kernel-internal entries must stay inside the governed directory and must
+  not also be projected (as a class pin or a relationship-carrier pin).
 - When a feature slice introduces a concept that is reusable method
   vocabulary (not feature-specific), propose moving it to the kernel instead
   of leaving a local duplicate.

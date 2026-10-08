@@ -102,25 +102,18 @@ services:
       # entrypoint refuses to serve when the mounted checkout HEAD does not
       # equal this SHA. deploy.py always sets it to the deployed SHA.
       DE4SDV_APP_GIT_SHA: ${DE4SDV_APP_GIT_SHA:?DE4SDV_APP_GIT_SHA is required (set to the exact deployed SHA)}
-      # O3 semantic-authority selection. Default legacy: the authored
-      # KernelContract path, unchanged behavior. Values come from the
-      # compose substitution environment (the --env-file passed by
-      # deployment/scripts/deploy.py, e.g. /srv/de4sdv/sysml2-api.env),
-      # never from the service env file, which this section overrides.
-      # An explicit `o3` request is verified at startup against the exact
-      # revision, the revision binding, the closed bundle schema/id and its
-      # activation eligibility; any mismatch refuses the runtime (there is
-      # no fallback to legacy). Procedures: docs/method-conformance/o3/
-      # o3-activation-and-rollback.md
-      DE4SDV_SEMANTIC_AUTHORITY: ${DE4SDV_SEMANTIC_AUTHORITY:-legacy}
-      DE4SDV_O3_AUTHORITY_BUNDLE: ${DE4SDV_O3_AUTHORITY_BUNDLE:-/run/de4sdv/o3/de4sdv-o3-authority-bundle.json}
-      DE4SDV_O3_AUTHORITY_BUNDLE_ID: ${DE4SDV_O3_AUTHORITY_BUNDLE_ID:-}
-      # O4 model-authority selection (DE4SDV_SEMANTIC_AUTHORITY=model). Same
-      # substitution-environment rule as O3; the request is bundle-id-bound
-      # (mab-...) and verified at startup; any mismatch refuses the runtime
-      # (no fallback to O3 or legacy). Rollback is DE4SDV_SEMANTIC_AUTHORITY=o3
-      # with a fresh O3 bundle at the same revision, legacy second.
+      # Semantic-authority selection (O4 Wave C2: model authority only).
+      # There is no default (owner decision D6): an unset or empty selector,
+      # and the retired values legacy and o3, refuse the semantic runtime and
+      # /ask-status.json reports .semantic_authority.kind == "invalid".
+      # Values come from the compose substitution environment (the --env-file
+      # passed by deployment/scripts/deploy.py, e.g. /srv/de4sdv/sysml2-api.env),
+      # never from the service env file, which this section overrides. The
+      # request is bundle-id-bound (mab-...) and verified at startup against
+      # the exact revision and revision binding; any mismatch refuses the
+      # runtime. Rollback is a redeploy of the pre-Wave-C production revision.
       # Procedure: docs/method-conformance/o4/model-authority-activation.md
+      DE4SDV_SEMANTIC_AUTHORITY: ${DE4SDV_SEMANTIC_AUTHORITY:-}
       DE4SDV_MODEL_AUTHORITY_BUNDLE: ${DE4SDV_MODEL_AUTHORITY_BUNDLE:-/run/de4sdv/model/de4sdv-model-authority-bundle.json}
       DE4SDV_MODEL_AUTHORITY_BUNDLE_ID: ${DE4SDV_MODEL_AUTHORITY_BUNDLE_ID:-}
     expose:
@@ -135,16 +128,8 @@ services:
     volumes:
       - ${DEPLOY_SOURCE_DIR:-/srv/de4sdv/DE4SDV}:/srv/de4sdv/DE4SDV:ro
       - ${DEPLOY_DIR}/artifacts/current/de4sdv-full-model-binding.json:/run/de4sdv/de4sdv-full-model-binding.json:ro
-      # O3 authority-bundle delivery directory: empty (and never read)
-      # under legacy authority; an activation places the accepted closed
-      # bundle here and points DE4SDV_O3_AUTHORITY_BUNDLE/_ID at it. Kept
-      # OUTSIDE the repo checkout so deploy-time cleanliness stays
-      # authoritative. Rollback leaves the file in place: a retained
-      # artifact is not active authority.
-      - ${DEPLOY_DIR}/artifacts/o3:/run/de4sdv/o3:ro
-      # Model-authority bundle delivery directory: never read unless
-      # `model` is selected; kept outside the checkout like the O3 one. A
-      # rollback leaves the file in place (retained artifact, not authority).
+      # Model-authority bundle delivery directory: kept outside the repo
+      # checkout so deploy-time cleanliness stays authoritative.
       - ${DEPLOY_DIR}/artifacts/model:/run/de4sdv/model:ro
       - ask_viewer_cache:/var/cache/de4sdv-viewer
     healthcheck:

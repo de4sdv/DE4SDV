@@ -267,13 +267,11 @@ def test_import_baseline_fails_closed_when_internal_reference_is_lost() -> None:
         )
 
 
-def test_ontology_validation_reports_all_binding_categories_explicitly() -> None:
-    from de4sdv.semantic.kernel_contract import KernelContract
+def test_kernel_binding_validation_reports_all_binding_categories_explicitly() -> None:
     from de4sdv.semantic.validation import validate_ontology_bindings
+    from tests.model_contract_fixtures import model_contract
 
-    contract = KernelContract.load(
-        ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-    )
+    contract = model_contract()  # the model-built kernel contract (O4 Wave C2)
     requirement_id = "00000000-0000-4000-8000-000000000001"
     acceptance_a = "00000000-0000-4000-8000-000000000002"
     acceptance_b = "00000000-0000-4000-8000-000000000003"

@@ -24,7 +24,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from de4sdv.semantic.o3_bundle import MIGRATED_IDENTITIES
+from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 METHOD_CONTEXT = REPO_ROOT / "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"

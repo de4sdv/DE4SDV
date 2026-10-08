@@ -4,7 +4,7 @@ Covers the human-review blockers that can be tested without a live host:
 
 - privileged bundle validation (BLOCKER 1 / 6 defense in depth);
 - export digest mismatch rejection;
-- ontology identity mismatch rejection;
+- semantic-authority identity mismatch rejection (binding v2; v1 refused);
 - Git HEAD mismatch / dirty checkout rejection (BLOCKER 2);
 - fresh-server import path: deployment-specific project/commit identities
   are accepted and the privileged CI UUIDs are NOT required (BLOCKER 1);
@@ -47,13 +47,15 @@ def _evidence_bundle(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
     """Build a synthetic-but-consistent privileged bundle.
 
     Mirrors the real artifact shape produced by the privileged workflow:
-    same keys, sane counts, one Git SHA, one ontology identity.
+    same keys, sane counts, one Git SHA, one semantic-authority identity
+    (revision binding v2).
     """
     tmp_path.mkdir(parents=True, exist_ok=True)
     git_sha = "a" * 40
-    ontology = {
-        "path": "approach/framework/ontology/de4sdv-basic-ontology.yaml",
-        "sha256": "b" * 64,
+    authority = {
+        "schema": "de4sdv.semantic-authority/v1",
+        "id": "sai-" + "b" * 32,
+        "layers": [["approach/framework/model-authority/layer.json", "sha256:" + "c" * 64]],
     }
     export = {
         "git_commit": git_sha,
@@ -72,13 +74,14 @@ def _evidence_bundle(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
         "source_document_count": 59,
         "element_count": 56745,
         "internal_reference_count": 189930,
-        "ontology": {
+        "kernel_binding_validation": {
             "passed": True,
             "summary": {"mapped": 30, "native": 16, "external": 4, "unresolved": 0, "ambiguous": 0},
         },
-        "ontology_identity": ontology,
+        "semantic_authority": authority,
     }
     binding = {
+        "schema": "de4sdv.revision-binding/v2",
         "git_repository": "de4sdv/DE4SDV",
         "git_commit": git_sha,
         "sysml_project_id": "ci-project",
@@ -86,7 +89,7 @@ def _evidence_bundle(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
         "import_timestamp": "2026-09-01T00:00:00Z",
         "import_tool_version": "de4sdv-full-model-import/1+official-syside-json",
         "semantic_validation": "passed",
-        "ontology": ontology,
+        "semantic_authority": authority,
         "scope": "full-model",
     }
     mcp = {
@@ -94,7 +97,7 @@ def _evidence_bundle(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
         "tool_count": 7,
         "revision": {
             "git_commit": git_sha,
-            "ontology": ontology,
+            "semantic_authority": authority,
             "scope": "full-model",
         },
     }
@@ -106,7 +109,8 @@ def _evidence_bundle(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
         ("de4sdv-full-model-semantic-query-coverage.json", coverage),
     ):
         (tmp_path / name).write_text(json.dumps(payload), encoding="utf-8")
-    return tmp_path, {"git_sha": git_sha, "ontology": ontology, "export_digest": export_digest}
+    return tmp_path, {"git_sha": git_sha, "semantic_authority": authority,
+                      "export_digest": export_digest}
 
 
 # ---------------------------------------------------------------- blockers 1/6
@@ -130,28 +134,57 @@ def test_bundle_rejects_export_digest_mismatch(tmp_path: Path) -> None:
         deploy.validate_bundle(bundle_dir)
 
 
-def test_bundle_rejects_ontology_identity_mismatch(tmp_path: Path) -> None:
+def test_bundle_rejects_semantic_authority_mismatch(tmp_path: Path) -> None:
     bundle_dir, _facts = _evidence_bundle(tmp_path)
     report = json.loads(
         (bundle_dir / "de4sdv-full-model-semantic-validation.json").read_text()
     )
-    report["ontology_identity"] = {
-        "path": "other.yaml",
-        "sha256": "c" * 64,
-    }
+    report["semantic_authority"] = dict(report["semantic_authority"], id="sai-" + "c" * 32)
     (bundle_dir / "de4sdv-full-model-semantic-validation.json").write_text(
         json.dumps(report), encoding="utf-8"
     )
-    with pytest.raises(deploy.DeployError, match="ontology identity"):
+    with pytest.raises(deploy.DeployError, match="semantic authority differs"):
         deploy.validate_bundle(bundle_dir)
 
 
-def test_bundle_rejects_unclean_ontology_summary(tmp_path: Path) -> None:
+def test_bundle_rejects_mcp_semantic_authority_mismatch(tmp_path: Path) -> None:
+    bundle_dir, _facts = _evidence_bundle(tmp_path)
+    path = bundle_dir / "de4sdv-semantic-mcp-validation.json"
+    mcp = json.loads(path.read_text())
+    mcp["revision"]["semantic_authority"] = dict(mcp["revision"]["semantic_authority"],
+                                                 id="sai-" + "c" * 32)
+    path.write_text(json.dumps(mcp), encoding="utf-8")
+    with pytest.raises(deploy.DeployError, match="semantic-authority identity differs"):
+        deploy.validate_bundle(bundle_dir)
+
+
+@pytest.mark.parametrize("mutation", ["v1-binding", "ontology-field", "bad-authority-id",
+                                      "extra-authority-key"])
+def test_bundle_refuses_a_non_v2_binding(tmp_path: Path, mutation: str) -> None:
+    bundle_dir, _facts = _evidence_bundle(tmp_path)
+    path = bundle_dir / "de4sdv-full-model-binding.json"
+    binding = json.loads(path.read_text())
+    if mutation == "v1-binding":
+        binding.pop("schema")
+        binding.pop("semantic_authority")
+        binding["ontology"] = {"path": "x.yaml", "sha256": "b" * 64}
+    elif mutation == "ontology-field":
+        binding["ontology"] = {"path": "x.yaml", "sha256": "b" * 64}
+    elif mutation == "bad-authority-id":
+        binding["semantic_authority"]["id"] = "o3b-" + "b" * 32
+    else:
+        binding["semantic_authority"]["ontology"] = "x.yaml"
+    path.write_text(json.dumps(binding), encoding="utf-8")
+    with pytest.raises(deploy.DeployError, match="revision binding v2|semantic authority identity"):
+        deploy.validate_bundle(bundle_dir)
+
+
+def test_bundle_rejects_unclean_kernel_binding_summary(tmp_path: Path) -> None:
     bundle_dir, _facts = _evidence_bundle(tmp_path)
     report = json.loads(
         (bundle_dir / "de4sdv-full-model-semantic-validation.json").read_text()
     )
-    report["ontology"]["summary"]["unresolved"] = 2
+    report["kernel_binding_validation"]["summary"]["unresolved"] = 2
     (bundle_dir / "de4sdv-full-model-semantic-validation.json").write_text(
         json.dumps(report), encoding="utf-8"
     )
@@ -231,14 +264,14 @@ def test_import_accepts_deployment_specific_identities(
             "sysml_commit_id": "deployment-commit",
             "semantic_validation": "passed",
             "scope": "full-model",
-            "ontology": facts["ontology"],
+            "semantic_authority": facts["semantic_authority"],
         }
         report = {
             "source_export_sha256": facts["export_digest"],
             "element_count": 56745,
             "internal_reference_count": 189930,
             "source_document_count": 59,
-            "ontology": {
+            "kernel_binding_validation": {
                 "passed": True,
                 "summary": {"mapped": 30, "native": 16, "external": 4, "unresolved": 0, "ambiguous": 0},
             },
@@ -277,14 +310,15 @@ def test_import_rejects_count_drift_vs_privileged_evidence(
             "sysml_commit_id": "deployment-commit",
             "semantic_validation": "passed",
             "scope": "full-model",
-            "ontology": facts["ontology"],
+            "semantic_authority": facts["semantic_authority"],
         }
         report = {
             "source_export_sha256": facts["export_digest"],
             "element_count": 56744,  # drift!
             "internal_reference_count": 189930,
             "source_document_count": 59,
-            "ontology": {"passed": True, "summary": {"unresolved": 0, "ambiguous": 0}},
+            "kernel_binding_validation": {"passed": True,
+                                          "summary": {"unresolved": 0, "ambiguous": 0}},
         }
         artifacts = tmp_path / "artifacts" / "current"
         artifacts.mkdir(parents=True, exist_ok=True)

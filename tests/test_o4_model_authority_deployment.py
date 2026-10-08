@@ -1,4 +1,4 @@
-"""Wave B deployment wiring for the model-authority selector (synthetic)."""
+"""Deployment wiring for the model-authority selector, O4 Wave C2 (synthetic)."""
 from __future__ import annotations
 
 import json
@@ -42,6 +42,8 @@ MODEL_INPUTS = (
     "docs/method-conformance/o4/vocabulary-carriers-projection.json",
     "docs/method-conformance/o4/vocabulary-carriers-profile.json",
     "docs/method-conformance/o4/vocabulary-carriers.yaml",
+    "docs/method-conformance/o4/o4-execution-register.json",
+    "docs/method-conformance/o4/kernel-internal-declarations.yaml",
 )
 
 
@@ -53,7 +55,6 @@ def runtime_repo(tmp_path):
     _git(repo, "config", "user.email", "test@example.invalid")
     _git(repo, "config", "user.name", "Test")
     _write(repo, "textual-notation-of-model/model.sysml", "package Model;\n")
-    _write(repo, "approach/framework/ontology/de4sdv-basic-ontology.yaml", "classes: {}\n")
     for relative in MODEL_INPUTS:
         _write(repo, relative, "{}\n")
     _write(repo, "docs/method-conformance/o4/model-authority-activation.md", "# doc\n")
@@ -67,9 +68,10 @@ def _env(revision):
     return {"NOUS_API_KEY": "k", "DE4SDV_APP_GIT_SHA": revision}
 
 
-def test_authored_yaml_path_stays_governed():
-    assert "approach/framework/ontology/de4sdv-basic-ontology.yaml" in entrypoint._GOVERNED_MODEL_PATHS
+def test_deleted_authored_yaml_is_no_longer_a_governed_path():
+    assert not any("de4sdv-basic-ontology" in path for path in entrypoint._GOVERNED_MODEL_PATHS)
     assert "textual-notation-of-model" in entrypoint._GOVERNED_MODEL_PATHS
+    assert "docs/method-conformance/o4/o4-execution-register.json" in entrypoint._GOVERNED_MODEL_PATHS
 
 
 @pytest.mark.parametrize("relative", MODEL_INPUTS)
@@ -109,19 +111,28 @@ def _ask_viewer():
 
 def test_compose_passes_model_selection_through_substitution_environment():
     environment = _ask_viewer()["environment"]
-    assert environment["DE4SDV_SEMANTIC_AUTHORITY"] == "${DE4SDV_SEMANTIC_AUTHORITY:-legacy}"
+    # D6: no default; an empty selector is refused by the runtime.
+    assert environment["DE4SDV_SEMANTIC_AUTHORITY"] == "${DE4SDV_SEMANTIC_AUTHORITY:-}"
     assert environment["DE4SDV_MODEL_AUTHORITY_BUNDLE"] == (
         "${DE4SDV_MODEL_AUTHORITY_BUNDLE:-/run/de4sdv/model/de4sdv-model-authority-bundle.json}"
     )
     assert environment["DE4SDV_MODEL_AUTHORITY_BUNDLE_ID"] == "${DE4SDV_MODEL_AUTHORITY_BUNDLE_ID:-}"
-    # O3 rollback stays wired.
-    assert environment["DE4SDV_O3_AUTHORITY_BUNDLE_ID"] == "${DE4SDV_O3_AUTHORITY_BUNDLE_ID:-}"
+    # The O3 rollback selector is retired (rollback = redeploy).
+    assert not any(key.startswith("DE4SDV_O3_") for key in environment)
+    assert "DE4SDV_ONTOLOGY_PATH" not in environment
+
+
+def test_empty_compose_selector_is_refused_at_runtime():
+    from de4sdv.semantic.authority_selection import AuthoritySelectionError, require_model_selection
+
+    with pytest.raises(AuthoritySelectionError, match="is unset"):
+        require_model_selection(None, {"DE4SDV_SEMANTIC_AUTHORITY": ""})
 
 
 def test_compose_mounts_model_artifacts_read_only_outside_checkout():
     volumes = _ask_viewer()["volumes"]
     assert "${DEPLOY_DIR}/artifacts/model:/run/de4sdv/model:ro" in volumes
-    assert "${DEPLOY_DIR}/artifacts/o3:/run/de4sdv/o3:ro" in volumes
+    assert not any("/run/de4sdv/o3" in volume for volume in volumes)
 
 
 def test_activation_document_names_owner_gates_and_rollback():
@@ -130,15 +141,15 @@ def test_activation_document_names_owner_gates_and_rollback():
     for needle in (
         "DE4SDV_SEMANTIC_AUTHORITY=model",
         "DE4SDV_MODEL_AUTHORITY_BUNDLE_ID=mab-",
-        "DE4SDV_SEMANTIC_AUTHORITY=o3",
-        "DE4SDV_SEMANTIC_AUTHORITY=legacy",
         "sysml-api-production",
-        "activate", "rollback", "reactivate",
-        "byte-identical",
+        "rollback", "redeploy", "ff0311b",
         "activation_eligible",
     ):
         assert needle in text, needle
     assert "three batteries" in text.lower() or "3 batteries" in text.lower()
+    # Wave C2: the selector rollback to o3/legacy no longer exists.
+    for retired in ("DE4SDV_SEMANTIC_AUTHORITY=o3", "DE4SDV_SEMANTIC_AUTHORITY=legacy"):
+        assert retired not in text, retired
 
 
 def test_deploy_readme_points_to_model_activation_procedure():

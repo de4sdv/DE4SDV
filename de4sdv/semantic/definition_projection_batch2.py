@@ -23,7 +23,7 @@ locates and reads itself, fail-closed:
   the model-owned vocabulary role and claim boundary.
 * ``retirement-record`` — a directly owned ``SuccessorRetirementRecord`` usage
   of the relationship-successor package whose ``predicate`` equals the
-  identity (deprecated aliases).
+  identity (retired names, owner decision D4).
 
 Successor rows additionally carry every directly owned
 ``SuccessorRelationRecord`` usage whose ``predicate`` equals the identity (set
@@ -37,16 +37,20 @@ owning kernel package.
 Contract fields the model does not structurally carry (relationship
 domain/range of vocabulary-only predicates, kernel mapping kind of
 native/external classes, serializer mechanics of the runtime-mapped
-predicates) are reviewed manifest fields; tests lock them byte-for-byte to the
-authored ontology until Wave C deletes it. They are labeled as such in every
-generated row (``contract_source``); nothing is inferred from names.
+predicates) are reviewed admission-manifest fields (owner decision D9): the
+manifest is their authority. They were proven equal to the authored ontology
+before its deletion in O4 Wave C2
+(``docs/method-conformance/o4/closure/contract-equivalence.json``, which tests
+lock them to). They are labeled as such in every generated row
+(``contract_source``); nothing is inferred from names.
 
 Boundaries: generation reads ONLY the admission manifest, the governed model
 files named by it and the accepted external-reference profile (for the
 external-reference echo). No O1 artifact, no register and no authored
-ontology is read here. No runtime module imports this machinery. Rows claim no
-traversal proof and no API element identity; deprecated aliases never
-translate an old signature into a broader successor contract.
+ontology exists or is read here. No runtime module imports this machinery.
+Rows claim no traversal proof and no API element identity; a retired name
+answers no fact and never translates an old signature into a broader
+successor contract.
 
 Read-only and offline; never imported by the runtime.
 """
@@ -74,8 +78,8 @@ SUCCESSOR_CONTRACT = "de4sdv.relationship-successor/v1"
 
 WARNING = (
     "no traversal proof, no runtime read by this artifact, no API element "
-    "identity, no authority retirement; deprecated aliases are documented "
-    "names only"
+    "identity, no authority retirement; retired names answer no fact (retired; "
+    "use the successor)"
 )
 
 SEMANTIC_KINDS = frozenset({"class", "relationship"})
@@ -85,7 +89,7 @@ ADMISSION_CLASSES = {
     "relationship-runtime": "relationship",
     "external-reference": None,  # class or relationship
     "successor": "relationship",
-    "deprecated-alias": "relationship",
+    "retired-name": "relationship",
 }
 BOUNDARIES = frozenset(
     {
@@ -104,7 +108,7 @@ SUPPORT = {
     "relationship-runtime": "runtime-mapped-candidate",
     "external-reference": "external",
     "successor": "runtime-mapped-candidate",
-    "deprecated-alias": "deprecated-alias",
+    "retired-name": "retired",
 }
 
 #: Declaration keyword -> representation class / API metaclass.
@@ -160,7 +164,7 @@ _COMMON_KEYS = frozenset(
 _CLASS_KEYS = frozenset({"grounding", "external_reference"})
 _RELATIONSHIP_KEYS = frozenset(
     {"relation", "mechanics", "carrier", "range_discriminator", "successor",
-     "alias", "external_reference"}
+     "retired", "external_reference"}
 )
 _HOME_KEYS = {
     "owned-doc": {"form", "file", "owner", "index"},
@@ -527,11 +531,11 @@ def _validate_row(row: Any) -> str:
                      f"{identity}: relation carries domain, range and semantic_strength")
         else:
             _require("relation" not in row, f"{identity}: successor end pairs come from the model records")
-    has = {key: key in row for key in ("mechanics", "range_discriminator", "successor", "alias", "external_reference", "carrier")}
+    has = {key: key in row for key in ("mechanics", "range_discriminator", "successor", "retired", "external_reference", "carrier")}
     _require(has["successor"] == (admission == "successor"), f"{identity}: successor block iff admission_class successor")
-    _require(has["alias"] == (admission == "deprecated-alias"), f"{identity}: alias block iff deprecated-alias")
-    _require(form == "retirement-record" if admission == "deprecated-alias" else form != "retirement-record",
-             f"{identity}: deprecated aliases (and only they) are homed by a retirement record")
+    _require(has["retired"] == (admission == "retired-name"), f"{identity}: retired block iff retired-name")
+    _require(form == "retirement-record" if admission == "retired-name" else form != "retirement-record",
+             f"{identity}: retired names (and only they) are homed by a retirement record")
     if admission == "relationship-runtime":
         _require(has["mechanics"], f"{identity}: runtime-mapped rows carry serializer mechanics")
     if has["mechanics"]:
@@ -567,13 +571,12 @@ def _validate_row(row: Any) -> str:
                  and all(isinstance(r, str) and _IDENT.match(r) for r in successor["records"])
                  and len(set(successor["records"])) == len(successor["records"]),
                  f"{identity}: successor.records must list unique record usage names")
-    if has["alias"]:
-        alias = row["alias"]
-        _require(isinstance(alias, dict) and set(alias) == {"successor", "successor_carrier", "direction", "answer_mode"}
-                 and _IDENT.match(str(alias["successor"])) and _IDENT.match(str(alias["successor_carrier"]))
-                 and alias["direction"] in ("forward", "inverse")
-                 and alias["answer_mode"] in ("successor-facts", "documentation-only"),
-                 f"{identity}: alias carries successor, successor_carrier, direction and answer_mode")
+    if has["retired"]:
+        retired = row["retired"]
+        _require(isinstance(retired, dict) and set(retired) == {"successor", "successor_carrier", "direction"}
+                 and _IDENT.match(str(retired["successor"])) and _IDENT.match(str(retired["successor_carrier"]))
+                 and retired["direction"] in ("forward", "inverse"),
+                 f"{identity}: retired carries successor, successor_carrier and direction")
     if row["boundary"] == "ple-no-configurator-authority":
         _require(admission in ("definition", "relationship-vocabulary"),
                  f"{identity}: PLE configuration rows stay vocabulary-only")
@@ -806,9 +809,10 @@ def _row_outputs(root: Path, model: _Model, row: dict[str, Any], successors: dic
         ground["ontology_relations"] = {"sub_class_of": grounding["sub_class_of"],
                                         "disjoint_with": list(grounding["disjoint_with"])}
         ground["contract_source"] = (
-            "kernel mapping kind and ontology relations: reviewed manifest fields "
-            "(test-locked to the authored ontology); file mappings are resolved "
-            "in the model by this generator"
+            "kernel mapping kind and ontology relations: reviewed admission-manifest "
+            "fields (manifest-held; owner decision D9); file mappings are resolved in "
+            "the model by this generator; authored-ontology parity proven before its "
+            "deletion: docs/method-conformance/o4/closure/contract-equivalence.json"
         )
         projection["grounding"] = ground
     if admission == "successor":
@@ -839,8 +843,10 @@ def _row_outputs(root: Path, model: _Model, row: dict[str, Any], successors: dic
             "canonical_direction": f"{relation['domain']} -> {relation['range']}",
             "semantic_strength": relation["semantic_strength"],
             "contract_source": (
-                "domain/range/strength: reviewed manifest fields (test-locked to "
-                "the authored ontology); not a structural model witness"
+                "domain/range/strength: reviewed admission-manifest fields "
+                "(manifest-held, model-witnessed declaration; no structural domain/range "
+                "in the model; owner decision D9); authored-ontology parity proven before "
+                "its deletion: docs/method-conformance/o4/closure/contract-equivalence.json"
             ),
         }
     if "carrier" in row:
@@ -876,41 +882,35 @@ def _row_outputs(root: Path, model: _Model, row: dict[str, Any], successors: dic
     if "mechanics" in row:
         profile["serializer_mechanics"] = dict(row["mechanics"])
         profile["mechanics_source"] = (
-            "reviewed manifest field equal to the authored mapping (test-locked); "
-            "Wave C retires the authored copy"
+            "reviewed admission-manifest field (representation mechanics; owner decision "
+            "D9); authored-ontology parity proven before its deletion: "
+            "docs/method-conformance/o4/closure/contract-equivalence.json"
         )
-    if admission == "deprecated-alias":
-        alias = row["alias"]
+    if admission == "retired-name":
+        retired = row["retired"]
         relations = successors["relations"]
-        pairs = [r for r in relations.values() if r["predicate"] == alias["successor"]
-                 and r["carrier"] == alias["successor_carrier"]]
+        pairs = [r for r in relations.values() if r["predicate"] == retired["successor"]
+                 and r["carrier"] == retired["successor_carrier"]]
         _require(len(pairs) == 1,
-                 f"{identity}: successor {alias['successor']} has no unique record over {alias['successor_carrier']}")
-        navigation = alias["successor"]
-        if alias["direction"] == "inverse":
-            _require(bool(pairs[0]["inverse"]), f"{identity}: inverse alias needs a successor inverse navigation")
+                 f"{identity}: successor {retired['successor']} has no unique record over {retired['successor_carrier']}")
+        navigation = retired["successor"]
+        if retired["direction"] == "inverse":
+            _require(bool(pairs[0]["inverse"]), f"{identity}: an inverse retired name needs a successor inverse navigation")
             navigation = pairs[0]["inverse"]
-        projection["alias"] = {
-            "deprecated": True,
-            "successor": alias["successor"],
+        projection["retired"] = {
+            "successor": retired["successor"],
             "successor_navigation": navigation,
-            "successor_carrier": alias["successor_carrier"],
-            "direction": alias["direction"],
-            "answer_mode": alias["answer_mode"],
-            "removal": "Wave C (with the authored ontology)",
+            "successor_carrier": retired["successor_carrier"],
+            "direction": retired["direction"],
+            "refusal": f"retired; use {navigation}",
+            "retirement_record": row["home"]["name"],
             "rule": (
-                "documented deprecated name: answers are the successor's facts over "
-                "this carrier with the successor's meaning; the old signature and "
-                "claim are never translated into the successor"
-                if alias["answer_mode"] == "successor-facts" else
-                "documented deprecated name only: no fact is answered under this "
-                "name (the model retirement record refuses an alias reading); "
-                "query the successor"
+                "retired name (owner decision D4): no fact is answered under this name; "
+                "the model retirement record is kept as history; query the successor"
             ),
         }
-        profile["alias_resolution"] = {"successor": alias["successor"], "navigation": navigation,
-                                       "carrier": alias["successor_carrier"],
-                                       "answer_mode": alias["answer_mode"]}
+        profile["retired_resolution"] = {"successor": retired["successor"], "navigation": navigation,
+                                         "carrier": retired["successor_carrier"]}
     if "external_reference" in row:
         entry = external.get(identity)
         _require(entry is not None, f"{identity}: not an entry of the accepted external-reference profile")

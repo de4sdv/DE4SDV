@@ -1,21 +1,14 @@
-"""O4 definition-candidate provider — explicit, non-default class resolution.
+"""O4 definition-candidate provider — the verified definition pair's class mappings.
 
 Serves the admitted definition identities' kernel class mappings from the
 verified candidate pair (``definition-projection.json`` /
-``definition-profile.json``, read through :mod:`definition_candidate`) while
-every other identity delegates to the legacy kernel contract. The surface
-mirrors the frozen O3 authority façade (``classes`` / ``relationships`` /
-``mapping`` / ``class_mapping`` / ``relationship_mapping`` / ``identity``) so
-a runtime assembly seam can consume it through the same interface.
+``definition-profile.json``, read through :mod:`definition_candidate`). The
+model-authority runtime checks that its definition layer routes every
+admitted identity to exactly these mappings. Any other identity is not
+served here (``KeyError``); there is no fallback provider.
 
-Explicit construction only: no production caller selects this provider, the
-runtime accepts only a preconstructed candidate, and the frozen O3 path is untouched. It
-creates no traversal, no API identity claim and no authority activation — the
-admitted rows stay vocabulary-only until their forward evidence exists.
-
-Fail-closed: the provider is built from an already-validated candidate; a row
-without a complete file/declaration contract is refused instead of producing a
-silent partial provider.
+Fail-closed: a row without a complete file/declaration contract is refused
+instead of producing a silent partial provider.
 """
 from __future__ import annotations
 
@@ -23,26 +16,13 @@ from collections.abc import Mapping
 from typing import Any
 
 from .definition_candidate import DefinitionCandidate
-from .kernel_contract import (
-    KernelContract,
-    KernelFileMapping,
-    RelationshipMapping,
-)
+from .kernel_contract import KernelFileMapping
 
 
 class DefinitionCandidateProvider:
-    """Candidate class-resolution surface for the admitted definitions.
+    """Candidate class-resolution surface for the admitted definitions only."""
 
-    Admitted identities resolve EXCLUSIVELY from the candidate pair; every
-    other identity delegates explicitly to the legacy contract. There is no
-    fallback between the two providers and never two providers for one
-    identity.
-    """
-
-    def __init__(
-        self, *, legacy: KernelContract, candidate: DefinitionCandidate
-    ) -> None:
-        self._legacy = legacy
+    def __init__(self, *, candidate: DefinitionCandidate) -> None:
         self._candidate = candidate
         mappings: dict[str, KernelFileMapping] = {}
         for name in candidate.identities:
@@ -72,30 +52,15 @@ class DefinitionCandidateProvider:
             mappings[name] = KernelFileMapping(source_file, declaration)
         self._admitted_mappings = mappings
         self.authority_id = f"definition-candidate:{candidate.source_revision}"
-        self.identity = legacy.identity
-        self.classes = self._merged_classes()
-        self.relationships = dict(legacy.relationships)
-
-    def _merged_classes(self) -> dict[str, Any]:
-        merged = dict(self._legacy.classes)
-        for name, mapping in self._admitted_mappings.items():
-            merged[name] = {
-                "kernel": {
-                    "file": mapping.file,
-                    "declaration": mapping.declaration,
-                }
-            }
-        return merged
+        self.classes = {
+            name: {"kernel": {"file": mapping.file, "declaration": mapping.declaration}}
+            for name, mapping in mappings.items()
+        }
 
     def mapping(self, ontology_class: str) -> Any:
         if ontology_class in self._admitted_mappings:
             return self._admitted_mappings[ontology_class]
-        return self._legacy.mapping(ontology_class)
+        raise KeyError(f"not an admitted definition identity: {ontology_class}")
 
     def class_mapping(self, ontology_class: str) -> KernelFileMapping:
-        if ontology_class in self._admitted_mappings:
-            return self._admitted_mappings[ontology_class]
-        return self._legacy.class_mapping(ontology_class)
-
-    def relationship_mapping(self, relationship: str) -> RelationshipMapping:
-        return self._legacy.relationship_mapping(relationship)
+        return self.mapping(ontology_class)

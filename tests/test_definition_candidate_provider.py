@@ -1,15 +1,18 @@
-"""O4 definition-candidate provider — explicit candidate class resolution.
+"""O4 definition-candidate provider — the verified pair's class mappings only.
 
-TDD suite: parity for every admitted identity, adversarial independence from
-the legacy contract (a mutated legacy must not change admitted answers, and
-unadmitted identities must still delegate), fail-closed refusal of incomplete
-candidate contracts, and runtime independence.
+Since O4 Wave C2 the provider has no legacy fallback: admitted identities
+resolve from the verified candidate pair, every other identity is refused
+(``KeyError``). Parity is against the model-built kernel contract, whose
+definition layer must route each admitted identity to exactly the same
+mapping. Incomplete candidate contracts are refused.
 """
 from __future__ import annotations
 
 from pathlib import Path
 
 import pytest
+
+from model_contract_fixtures import model_contract
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -18,115 +21,54 @@ from de4sdv.semantic.definition_candidate import (
     load_definition_candidate,
 )
 from de4sdv.semantic.definition_candidate_provider import DefinitionCandidateProvider
-from de4sdv.semantic.kernel_contract import KernelContract, KernelFileMapping
-
-ONTOLOGY = REPO_ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-
-
-def _legacy() -> KernelContract:
-    return KernelContract.load(ONTOLOGY)
+from de4sdv.semantic.kernel_contract import KernelFileMapping
 
 
 def _candidate() -> DefinitionCandidate:
     return load_definition_candidate(REPO_ROOT)
 
 
-def _provider(
-    legacy: KernelContract | None = None, candidate: DefinitionCandidate | None = None
-) -> DefinitionCandidateProvider:
-    return DefinitionCandidateProvider(
-        legacy=legacy if legacy is not None else _legacy(),
-        candidate=candidate if candidate is not None else _candidate(),
-    )
-
-
-def _mutated_legacy(
-    *, classes: tuple[str, ...] = (), relationships: tuple[str, ...] = ()
-) -> KernelContract:
-    """A structurally valid legacy contract with deliberate content mutations."""
-    legacy = _legacy()
-    mutated_classes = {name: dict(spec) for name, spec in legacy.classes.items()}
-    for name in classes:
-        entry = dict(mutated_classes[name])
-        kernel = dict(entry["kernel"])
-        kernel["file"] = "mutated/path.sysml"
-        kernel["declaration"] = "part def Mutated"
-        entry["kernel"] = kernel
-        mutated_classes[name] = entry
-    mutated_relationships = {
-        name: dict(spec) for name, spec in legacy.relationships.items()
-    }
-    for name in relationships:
-        spec = dict(mutated_relationships[name])
-        mapping = dict(spec["sysml_mapping"])
-        mapping["strategy"] = "mutated-strategy"
-        spec["sysml_mapping"] = mapping
-        mutated_relationships[name] = spec
-    return KernelContract(
-        source=legacy.source,
-        identity=legacy.identity,
-        governed_directory=legacy.governed_directory,
-        exclusions=legacy.exclusions,
-        classes=mutated_classes,
-        relationships=mutated_relationships,
-    )
+def _provider(candidate: DefinitionCandidate | None = None) -> DefinitionCandidateProvider:
+    return DefinitionCandidateProvider(candidate=candidate if candidate is not None else _candidate())
 
 
 def test_provider_parity_for_every_admitted_identity():
-    legacy = _legacy()
+    contract = model_contract()
     candidate = _candidate()
-    provider = _provider(legacy=legacy, candidate=candidate)
+    provider = _provider(candidate=candidate)
     assert len(candidate.identities) == 22
     for name in candidate.identities:
         resolved = provider.class_mapping(name)
         assert isinstance(resolved, KernelFileMapping)
-        assert resolved == legacy.class_mapping(name), name
-        assert provider.mapping(name) == legacy.mapping(name), name
+        assert resolved == contract.class_mapping(name), name
+        assert provider.mapping(name) == contract.mapping(name), name
 
 
-def test_provider_resolves_admitted_from_candidate_under_legacy_mutation():
-    original = _legacy().class_mapping("Requirement")
-    mutated = _mutated_legacy(classes=("Requirement",))
-    provider = _provider(legacy=mutated)
-    resolved = provider.class_mapping("Requirement")
-    assert resolved == original
-    assert resolved != mutated.class_mapping("Requirement")
-    assert provider.mapping("Requirement") == original
-
-
-def test_provider_delegates_unadmitted_identities():
-    legacy = _legacy()
+def test_provider_refuses_unadmitted_identities():
+    contract = model_contract()
     candidate = _candidate()
-    unadmitted = sorted(set(legacy.classes) - set(candidate.identities))
+    unadmitted = sorted(set(contract.classes) - set(candidate.identities))
     assert unadmitted
-    target = unadmitted[0]
-    mutated = _mutated_legacy(classes=(target,))
-    provider = _provider(legacy=mutated, candidate=candidate)
-    assert provider.class_mapping(target) == mutated.class_mapping(target)
-    assert provider.mapping(target) == mutated.mapping(target)
+    provider = _provider(candidate=candidate)
+    for name in unadmitted[:5]:
+        with pytest.raises(KeyError, match="not an admitted definition identity"):
+            provider.mapping(name)
+        with pytest.raises(KeyError):
+            provider.class_mapping(name)
 
 
-def test_provider_relationships_delegate():
-    legacy = _legacy()
-    relationship = next(
-        name
-        for name in sorted(legacy.relationships)
-        if "sysml_mapping" in legacy.relationships[name]
-    )
-    mutated = _mutated_legacy(relationships=(relationship,))
-    provider = _provider(legacy=mutated)
-    assert provider.relationship_mapping(relationship) == mutated.relationship_mapping(
-        relationship
-    )
-    assert provider.relationship_mapping(relationship).strategy == "mutated-strategy"
+def test_provider_has_no_legacy_fallback_surface():
+    provider = _provider()
+    assert not hasattr(provider, "_legacy")
+    assert not hasattr(provider, "relationship_mapping")
+    with pytest.raises(TypeError):
+        DefinitionCandidateProvider(legacy=object(), candidate=_candidate())  # type: ignore[call-arg]
 
 
-def test_provider_surface_matches_facade_contract():
-    legacy = _legacy()
+def test_provider_classes_echo_the_candidate_contract():
     candidate = _candidate()
-    provider = _provider(legacy=legacy, candidate=candidate)
-    assert provider.identity == legacy.identity
-    assert provider.relationships == legacy.relationships
+    provider = _provider(candidate=candidate)
+    assert set(provider.classes) == set(candidate.identities)
     for name in candidate.identities:
         contract = candidate.row_for(name)["grounding"]["kernel_binding_contract"]
         assert provider.classes[name] == {
@@ -135,8 +77,6 @@ def test_provider_surface_matches_facade_contract():
                 "declaration": contract["declaration"],
             }
         }
-    unadmitted = sorted(set(legacy.classes) - set(candidate.identities))[0]
-    assert provider.classes[unadmitted] == legacy.classes[unadmitted]
 
 
 def test_provider_refuses_candidate_without_complete_file_contract():
@@ -148,13 +88,12 @@ def test_provider_refuses_candidate_without_complete_file_contract():
         entries=(),
     )
     with pytest.raises(ValueError, match="Broken"):
-        DefinitionCandidateProvider(legacy=_legacy(), candidate=broken)
+        DefinitionCandidateProvider(candidate=broken)
 
 
-def test_provider_is_never_referenced_by_runtime_modules():
+def test_provider_is_never_referenced_by_query_surfaces():
     runtime_modules = (
         "de4sdv/semantic/query.py",
-        "de4sdv/semantic/runtime.py",
         "de4sdv/semantic/traversal.py",
         "de4sdv/semantic/impact.py",
         "de4sdv/semantic/mcp_server.py",

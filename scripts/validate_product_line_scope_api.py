@@ -14,7 +14,6 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from de4sdv.semantic.kernel_contract import KernelContract
 from de4sdv.sysml_api.baseline import BaselineExportBundle, BaselineManifest
 from de4sdv.sysml_api.client import ApiClient
 from de4sdv.sysml_api.product_line_scope import validate_scope_elements
@@ -28,45 +27,35 @@ def _git_head() -> str:
     ).strip()
 
 
-def selected_contract_identity(
+def selected_runtime(
     *,
     api_url: str,
     binding_path: Path,
     git_commit: str,
     authority: str | None = None,
-    bundle_path: "str | Path | None" = None,
-    bundle_id: str | None = None,
     model_bundle_path: "str | Path | None" = None,
     model_bundle_id: str | None = None,
+    allow_candidate_bundle: bool = False,
 ):
-    """Ontology compatibility identity of the SELECTED semantic authority.
+    """The model-authority runtime the scope check binds (fail closed).
 
-    The default (legacy) keeps the authored contract load unchanged. An
-    explicit ``o3`` or ``model`` selection builds that runtime through the
-    entry seam (fail closed, no fallback) and takes the contract identity the
-    runtime actually serves, so the scope check binds the same authority the
-    production surfaces would answer from.
+    Built through the entry seam, so the scope check binds the same
+    authority the production surfaces answer from. ``allow_candidate_bundle``
+    serves an unclosed candidate bundle (privileged evidence steps only).
     """
-    value = str(authority or "legacy").strip().lower()
-    if value == "legacy":
-        return KernelContract.load(
-            ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-        ).identity
     from de4sdv.semantic import entry_authority
 
-    runtime, _ = entry_authority.build_entry_semantic_runtime(
+    kwargs = {"require_activation_eligible": False} if allow_candidate_bundle else {}
+    return entry_authority.build_entry_semantic_runtime(
         api_url=api_url,
         binding_path=binding_path,
         expected_git_revision=git_commit,
-        ontology_path=ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml",
-        authority=value,
-        bundle_path=bundle_path,
-        bundle_id=bundle_id,
+        authority=authority,
         model_bundle_path=model_bundle_path,
         model_bundle_id=model_bundle_id,
         environ={},
+        **kwargs,
     )
-    return runtime.contract.identity
 
 
 def validate_api_scope(
@@ -75,20 +64,20 @@ def validate_api_scope(
     binding_path: Path,
     export_path: Path,
     authority: str | None = None,
-    bundle_path: "str | Path | None" = None,
-    bundle_id: str | None = None,
     model_bundle_path: "str | Path | None" = None,
     model_bundle_id: str | None = None,
+    allow_candidate_bundle: bool = False,
 ) -> dict[str, Any]:
     git_commit = _git_head()
     binding = RevisionBinding.load(binding_path)
     binding.require_current(git_commit)
 
-    binding.require_ontology(selected_contract_identity(
+    runtime, selection = selected_runtime(
         api_url=api_url, binding_path=binding_path, git_commit=git_commit,
-        authority=authority, bundle_path=bundle_path, bundle_id=bundle_id,
-        model_bundle_path=model_bundle_path, model_bundle_id=model_bundle_id,
-    ))
+        authority=authority, model_bundle_path=model_bundle_path,
+        model_bundle_id=model_bundle_id, allow_candidate_bundle=allow_candidate_bundle,
+    )
+    binding.require_semantic_authority(runtime.contract.identity)
 
     bundle = BaselineExportBundle.load(export_path)
     if bundle.git_commit != git_commit:
@@ -119,8 +108,9 @@ def validate_api_scope(
             "git_commit": binding.git_commit,
             "sysml_project_id": binding.sysml_project_id,
             "sysml_commit_id": binding.sysml_commit_id,
-            "ontology": binding.ontology.to_dict(),
+            "semantic_authority": binding.semantic_authority.to_dict(),
         },
+        "model_authority": selection.provenance(),
         "api_element_count": len(elements),
     }
 
@@ -131,12 +121,12 @@ def main() -> int:
     parser.add_argument("--binding", required=True, type=Path)
     parser.add_argument("--export", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
-    parser.add_argument("--semantic-authority", default="legacy",
-                        help="legacy (default), o3 or model")
-    parser.add_argument("--o3-authority-bundle")
-    parser.add_argument("--o3-authority-bundle-id")
+    parser.add_argument("--semantic-authority",
+                        help="model (the only accepted value; default DE4SDV_SEMANTIC_AUTHORITY)")
     parser.add_argument("--model-authority-bundle")
     parser.add_argument("--model-authority-bundle-id")
+    parser.add_argument("--allow-candidate-bundle", action="store_true",
+                        help="serve an unclosed candidate bundle (privileged evidence steps only)")
     args = parser.parse_args()
 
     report = validate_api_scope(
@@ -144,10 +134,9 @@ def main() -> int:
         binding_path=args.binding,
         export_path=args.export,
         authority=args.semantic_authority,
-        bundle_path=args.o3_authority_bundle,
-        bundle_id=args.o3_authority_bundle_id,
         model_bundle_path=args.model_authority_bundle,
         model_bundle_id=args.model_authority_bundle_id,
+        allow_candidate_bundle=args.allow_candidate_bundle,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(

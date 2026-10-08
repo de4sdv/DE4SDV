@@ -7,11 +7,15 @@
 # (de4sdv/semantic/model_projection_coverage.py) reads it: every governed
 # declaration must be projected by a model-generated layer or listed here
 # with a non-empty reason; a listed declaration must exist, stay inside the
-# governed directory and must not also be projected.
+# governed directory and must not also be projected (class pin or
+# relationship-carrier pin): projected and listed are a disjoint union.
 #
-# Transition (O4 Wave C1 to C2): the authored ontology still carries the same
-# list. The coverage gate refuses any difference between the two until O4
-# Wave C2 deletes the authored list; this file is then the only home.
+# Since O4 Wave C2 (authored ontology deleted) this file is the only home of
+# these declarations. Wave C2 removed the six relationship-carrier pins that
+# C1 carried over from the authored list (HasStakeholder, AddressesConcern,
+# ProducesView, RecordsAssumption, RecordsGap, SelectedViewpoint): each is
+# projected through a model-generated layer (definition batch 2 or the
+# vocabulary-carrier layer), so listing it here would give it a second home.
 # Authored governance data; not generated, no binding block.
 schema: de4sdv.kernel-internal-declarations/v1
 governed_directory: textual-notation-of-model/packages/methods/de4sdv
@@ -60,8 +64,6 @@ declarations:
     part def IncrementScope: framing helper
     part def SourceContributionRecord: realization-evidence helper
     part def SystemContext: SYSMOD problem-statement pattern element consumed by feature slices
-    connection def HasStakeholder: typed carrier of existing hasStakeholder relationship; not an additional
-      ontology class or assignment authority
   textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml:
     part def SAFDomainMapping: method-process assurance helper
   textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml:
@@ -81,21 +83,6 @@ declarations:
     part def SuccessorVersionRecord: construction-only successor version and supersession record; not
       production selection or acceptance
   textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml:
-    connection def RecordsGap: vocabulary-only definition carrier for the reviewed relationship recordsGap;
-      the relationship entry carries the semantic contract and the O4 carrier machinery machine-enforces
-      definition parity; no separate ontology class identity is introduced
-    connection def RecordsAssumption: vocabulary-only definition carrier for the reviewed relationship
-      recordsAssumption; the relationship entry carries the semantic contract and the O4 carrier machinery
-      machine-enforces definition parity; no separate ontology class identity is introduced
-    connection def AddressesConcern: vocabulary-only definition carrier for the reviewed relationship
-      addressesConcern; the relationship entry carries the semantic contract and the O4 carrier machinery
-      machine-enforces definition parity; no separate ontology class identity is introduced
-    connection def SelectedViewpoint: vocabulary-only definition carrier for the reviewed relationship
-      selectedViewpoint; the relationship entry carries the semantic contract and the O4 carrier machinery
-      machine-enforces definition parity; no separate ontology class identity is introduced
-    connection def ProducesView: vocabulary-only definition carrier for the reviewed relationship producesView;
-      the relationship entry carries the semantic contract and the O4 carrier machinery machine-enforces
-      definition parity; no separate ontology class identity is introduced
     concern def IncrementConcern: generic range-kind base for the vocabulary-only carriers (reviewed range
       Concern); not an ontology identity of its own
     viewpoint def IncrementViewpoint: generic range-kind base for the vocabulary-only carriers (reviewed

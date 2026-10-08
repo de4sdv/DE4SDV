@@ -1,20 +1,16 @@
 #!/usr/bin/env python3
 """Run the read-only DE4SDV semantic MCP server over stdio.
 
-Semantic authority is selected explicitly (O3):
+Semantic authority is selected explicitly (O4 Wave C2: model only):
 
-    --semantic-authority legacy|o3|model   DE4SDV_SEMANTIC_AUTHORITY
-    --o3-authority-bundle <path>           DE4SDV_O3_AUTHORITY_BUNDLE
-    --o3-authority-bundle-id <o3b-...>     DE4SDV_O3_AUTHORITY_BUNDLE_ID
+    --semantic-authority model             DE4SDV_SEMANTIC_AUTHORITY
     --model-authority-bundle <path>        DE4SDV_MODEL_AUTHORITY_BUNDLE
     --model-authority-bundle-id <mab-...>  DE4SDV_MODEL_AUTHORITY_BUNDLE_ID
 
-The default is legacy authority. An explicit O3 request is verified at
-startup (exact revision, revision binding, closed bundle attestation,
-activation eligibility); any failure refuses to start — there is no
-fallback to legacy. A ``model`` request (O4 Wave B) is bundle-id-bound the
-same way and never falls back to O3 or legacy. Procedures:
-docs/method-conformance/o3/o3-activation-and-rollback.md and
+There is no default: an unset selector, the retired values ``legacy`` and
+``o3`` and any unknown value refuse to start. The model request is verified
+at startup (exact revision, revision binding v2, closed bundle attestation,
+activation eligibility); any failure refuses to start. Procedure:
 docs/method-conformance/o4/model-authority-activation.md.
 """
 
@@ -36,7 +32,6 @@ from de4sdv.semantic.entry_authority import (  # noqa: E402
     build_entry_semantic_runtime as build_selected_semantic_runtime,
 )
 from de4sdv.semantic.mcp_server import create_mcp_server  # noqa: E402
-from de4sdv.semantic.o3_bundle import O3BundleError  # noqa: E402
 
 
 def _value(argument: str | None, environment: str) -> str | None:
@@ -48,23 +43,11 @@ def main() -> int:
     parser.add_argument("--api-url")
     parser.add_argument("--binding", type=Path)
     parser.add_argument("--expected-git-revision")
-    parser.add_argument(
-        "--ontology",
-        type=Path,
-        default=ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml",
-    )
     parser.add_argument("--api-timeout", type=float, default=600.0)
     parser.add_argument(
         "--semantic-authority",
-        help="explicit semantic authority: legacy (default), o3 or model",
-    )
-    parser.add_argument(
-        "--o3-authority-bundle",
-        help="path to the accepted closed O3 authority bundle JSON",
-    )
-    parser.add_argument(
-        "--o3-authority-bundle-id",
-        help="exact accepted bundle id (o3b-...) the selection is bound to",
+        help="explicit semantic authority: model (the only accepted value; "
+             "default DE4SDV_SEMANTIC_AUTHORITY, unset is refused)",
     )
     parser.add_argument(
         "--model-authority-bundle",
@@ -74,7 +57,12 @@ def main() -> int:
         "--model-authority-bundle-id",
         help="exact accepted model-authority bundle id (mab-...)",
     )
-    parser.add_argument("--runtime-composition", help="explicit non-production o3+definitions")
+    parser.add_argument(
+        "--allow-candidate-bundle",
+        action="store_true",
+        help="serve an unclosed candidate bundle (privileged evidence validation only; "
+             "never a production setting)",
+    )
     args = parser.parse_args()
 
     api_url = _value(args.api_url, "DE4SDV_SYSML_API_URL")
@@ -102,18 +90,15 @@ def main() -> int:
             api_url=str(api_url),
             binding_path=Path(str(binding_value)),
             expected_git_revision=str(expected_git_revision),
-            ontology_path=args.ontology,
             api_timeout=args.api_timeout,
             authority=args.semantic_authority,
-            bundle_path=args.o3_authority_bundle,
-            bundle_id=args.o3_authority_bundle_id,
             model_bundle_path=args.model_authority_bundle,
             model_bundle_id=args.model_authority_bundle_id,
-            **({"composition": args.runtime_composition} if args.runtime_composition is not None else {}),
+            **({"require_activation_eligible": False} if args.allow_candidate_bundle else {}),
         )
-    except (AuthoritySelectionError, O3BundleError) as exc:
-        # Fail closed: a requested-but-invalid O3 authority never degrades
-        # into legacy answers, and an unknown selector is never guessed.
+    except AuthoritySelectionError as exc:
+        # Fail closed: an unset, retired or unknown selector is refused and a
+        # requested model authority never degrades into another authority.
         parser.error(f"semantic authority selection failed: {exc}")
     print(
         "semantic authority: "

@@ -1,17 +1,14 @@
-"""Versioned non-production relationship service over exact API bindings.
+"""Relationship-successor traversal and query surfaces over exact API bindings.
 
-Constructed projection/profile values are model-derived, never decisions JSON.
-The predecessor is retained as a component, not silently rewritten.
+The successor contract is model-derived (``relationship_successor_contract``);
+the model-authority runtime composes these classes with the model-built kernel
+contract. Constructed values never come from decisions JSON.
 """
 from __future__ import annotations
-import hashlib
-import json
 from typing import Any
 from de4sdv.sysml_api.errors import IdentityNotFoundError
 from de4sdv.sysml_api.repository import element_id, reference_ids
-from .api_binding import OntologyApiBinder
 from .kernel_binding_index import KernelBindingIndex
-from .kernel_contract import KernelFileMapping, RelationshipMapping
 from .query import SemanticQueryService
 from .traversal import SemanticTraversal, TraversalHop
 from .model_edges import (is_reference_subsetting_hop, is_subsumption_hop, is_typing_hop,
@@ -19,60 +16,6 @@ from .model_edges import (is_reference_subsetting_hop, is_subsumption_hop, is_ty
                           TYPING_FAMILIES, TYPING_INLINE_KEYS,
                           REFERENCE_SUBSETTING_FAMILIES)
 from .relationships import build_relationship_graph, is_family
-
-
-class SuccessorAuthority:
-    def __init__(self, base, contract, binding):
-        self.base = base
-        self.binding_routes = []
-        self.profile = json.loads(json.dumps(contract))
-        self.identity = base.identity
-        self.source = base.source
-        self.classes = dict(base.classes)
-        for name, pin in contract["classes"].items():
-            self.classes[name] = {"kernel": pin}
-        self.relationships = {n: s for n, s in base.relationships.items()
-                              if n not in contract["retired"] and n not in contract["relations"]}
-        self._inverse = {}
-        for name, rows in contract["relations"].items():
-            self.relationships[name] = {"sysml_mapping": {"strategy": "successor"}}
-            if rows[0]["inverse"]:
-                inverse = rows[0]["inverse"]
-                if inverse in self.relationships:
-                    raise ValueError("overlapping successor inverse identity")
-                self._inverse[inverse] = name
-                self.relationships[inverse] = {"sysml_mapping": {"strategy": "successor"}}
-        payload = dict(profile=contract, binding=binding.to_dict(),
-                       predecessor=getattr(base, "authority_id", "legacy"),
-                       ontology=base.identity.to_dict())
-        self.authority_id = "relationship-successor:" + hashlib.sha256(
-            json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-
-    def mapping(self, name):
-        pin = self.profile["classes"].get(name) or self.profile["carriers"].get(name)
-        return KernelFileMapping(**pin) if pin else self.base.mapping(name)
-
-    def class_mapping(self, name):
-        pin = self.profile["classes"].get(name) or self.profile["carriers"].get(name)
-        return KernelFileMapping(**pin) if pin else self.base.class_mapping(name)
-
-    def relationship_mapping(self, name):
-        canonical = self._inverse.get(name, name)
-        if canonical in self.profile["relations"]:
-            rows = self.profile["relations"][canonical]
-            return RelationshipMapping(name, "successor", rows[0]["strength"], {},
-                                       rows[0]["sourceClass"], rows[0]["targetClass"])
-        if name in self.profile["retired"]:
-            return RelationshipMapping(name, "external", "retired", {})
-        return self.base.relationship_mapping(name)
-
-    def provenance(self):
-        return dict(kind=self.profile["schema"], authority_id=self.authority_id,
-                    activation_blocked=True, supersedes=self.profile["supersedes"],
-                    contract_id=self.profile["id"], bound_inputs=self.profile["bound_inputs"],
-                    predecessor=getattr(self.base, "authority_id", "legacy"),
-                    binding_routes=getattr(self, "binding_routes", []),
-                    status="non-production; API closure and consumer retirement pending")
 
 
 class SuccessorTraversal(SemanticTraversal):
@@ -540,31 +483,3 @@ def route_successor_bindings(contract, binding):
         routes.append(dict(profile_class=name, ingestion_class=selected.ontology_class,
                            element_id=selected.element_id, **pin))
     return KernelBindingIndex.from_binding(SimpleNamespace(kernel_bindings=tuple(routed))), routes
-
-
-def assemble_successor_service(*, base_contract, contract, binding, repository,
-                               expected_git_revision, production=False):
-    """Assemble from construction-verified records; never read model source."""
-    if production:
-        raise ValueError("relationship successor is non-production; activation refused")
-    binding.require_current(expected_git_revision)
-    binding.require_ontology(base_contract.identity)
-    index, routes = route_successor_bindings(contract, binding)
-    # Profile routing consumes ingestion-validated file/declaration/UUID tuples.
-    # An ontology-native Function has no root UUID: the extension's separately
-    # mapped AllocatableFunction can supply the exact pin, never a name fallback.
-    selected = [b.element_id for b in index.bindings
-                if b.ontology_class in {**contract["classes"], **contract["carriers"]}]
-    if any(not i or not i.strip() for i in selected) or len(selected) != len(set(selected)):
-        raise ValueError("overlapping or blank successor kernel identities")
-    authority = SuccessorAuthority(base_contract, contract, binding)
-    authority.binding_routes = routes
-    binder = OntologyApiBinder(authority, repository, project_id=binding.sysml_project_id,
-                              commit_id=binding.sysml_commit_id, kernel_bindings=index)
-    traversal = SuccessorTraversal(authority, kernel_bindings=index)
-    from .impact import ImpactService
-    impact = ImpactService(repository=repository, binding=binding, contract=authority,
-                           binder=binder, traversal=traversal)
-    return SuccessorQueryService(repository=repository, binding=binding, contract=authority,
-        binder=binder, traversal=traversal, impact_service=impact,
-        expected_git_revision=expected_git_revision, semantic_authority_id=authority.authority_id)

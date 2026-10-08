@@ -26,7 +26,7 @@ class ImpactService:
 
     def impact(self, identifier: str, *, git_revision: str) -> dict[str, Any]:
         self.binding.require_current(git_revision)
-        self.binding.require_ontology(self.contract.identity)
+        self.binding.require_semantic_authority(self.contract.identity)
         project_id = self.binding.sysml_project_id
         commit_id = self.binding.sysml_commit_id
         elements = self.repository.list_elements(project_id, commit_id)
@@ -96,7 +96,11 @@ class ImpactService:
 
         root_node = add_node(root, "Requirement", "requirement")
 
-        architecture_hops = self.traversal.traverse("realizedBy", root, elements)
+        # O4 Wave C2 (owner decision D4): the retired realizedBy name is
+        # refused; its successor allocatedTo answers the same facts (from a
+        # Requirement source only the Requirement -> Function end pair applies,
+        # exactly what the Wave B realizedBy alias served).
+        architecture_hops = self.traversal.traverse("allocatedTo", root, elements)
         for hop in architecture_hops:
             add_hop(hop, "ArchitectureElement", "architecture")
         function_hops = self.traversal.traverse("specifiesFunction", root, elements)
@@ -237,7 +241,7 @@ class ImpactService:
                 "sysml_commit_id": commit_id,
                 "binding_status": "synchronized",
                 "scope": self.binding.scope,
-                "ontology": self.binding.ontology.to_dict(),
+                "semantic_authority": self.binding.semantic_authority.to_dict(),
             },
             "root": {**root_node, "resolution_level": resolution.level},
             "ontology_bindings": {
@@ -267,12 +271,8 @@ class ImpactService:
                     "source": f"sysml://{project_id}/{commit_id}",
                 },
                 {
-                    "authority": "authoritative",
-                    "source": (
-                        f"git://{self.binding.git_repository}/{self.binding.git_commit}/"
-                        f"{self.binding.ontology.path}"
-                    ),
-                    "sha256": self.binding.ontology.sha256,
+                    "authority": "semantic-authority",
+                    "source": f"semantic-authority://{self.binding.semantic_authority.id}",
                 },
                 {
                     "authority": "derived",

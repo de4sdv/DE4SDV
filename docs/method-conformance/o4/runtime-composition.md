@@ -1,5 +1,12 @@
 # Explicit runtime composition (non-production)
 
+> **Historical (O4 Wave C2).** The composed O3 + definition + authored-fallback
+> runtime described here (`de4sdv/semantic/runtime_composition.py`) was
+> deleted in O4 Wave C2 together with the authored ontology and the O3 bundle
+> runtime. The model-authority runtime replaced it:
+> [model-authority-runtime.md](model-authority-runtime.md). The record is kept
+> as history.
+
 The definition-only path could not serve the reviewed O3 relationships at
 once. `de4sdv/semantic/composition_construction.py` verifies both components
 against one exact revision binding before assembling the real binder,

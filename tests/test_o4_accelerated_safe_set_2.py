@@ -33,7 +33,7 @@ import pytest
 import yaml
 
 from de4sdv.semantic import authority_inventory as ai
-from de4sdv.semantic.o3_bundle import MIGRATED_IDENTITIES
+from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PRODUCT_LINE = (
@@ -42,7 +42,6 @@ PRODUCT_LINE = (
 OPERATIONAL_CONTEXT = (
     REPO_ROOT / "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml"
 )
-ONTOLOGY = REPO_ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
 INVENTORY = REPO_ROOT / "docs/method-conformance/o1/semantic-authority-inventory.json"
 DECISIONS = REPO_ROOT / "docs/method-conformance/o1/authority-review-decisions.yaml"
 REGISTER = REPO_ROOT / "docs/method-conformance/o4/o4-execution-register.json"
@@ -105,7 +104,17 @@ def register_rows() -> dict:
 
 @pytest.fixture(scope="module")
 def ontology() -> dict:
-    return yaml.safe_load(ONTOLOGY.read_text())
+    """O4 Wave C2: the reviewed admission definitions and the model-built
+    contract mappings stand in for the deleted authored ontology."""
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from model_contract_fixtures import model_contract, reviewed_definition
+
+    contract = model_contract()
+    return {"classes": {name: {"kernel": contract.classes[name]["kernel"],
+                               "definition": reviewed_definition(name)}
+                        for name in ("ProductLineCharacteristic", "Scenario")}}
 
 
 def _entry(inventory: dict, identity: str) -> dict:
@@ -244,9 +253,9 @@ def test_scenario_definition_home_is_model_resident(inventory, ontology):
     assert "native" not in kernel
     assert kernel["declaration"] == "part def Scenario"
     assert kernel["file"] == observed["file"]
-    # Reviewed-equivalent is representable only for a differing doc
-    # observation; this row's parity is normalized-exact (equivalence null).
-    assert ai.REVIEWED_EQUIVALENT_OBSERVATIONS == frozenset({"differs"})
+    # Reviewed-equivalent was representable only for a differing doc
+    # observation; this frozen row's parity is normalized-exact.
+    assert _entry(inventory, "Scenario")["reviewed"]["semantic_text_equivalence"] is None
 
 
 def test_scenario_identity_enums_present_in_model():

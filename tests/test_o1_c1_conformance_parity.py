@@ -59,6 +59,7 @@ import pytest
 import yaml
 
 from de4sdv.semantic import authority_inventory as ai
+from model_contract_fixtures import model_contract  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -189,13 +190,33 @@ _C1_YAML: dict[str, tuple[Path, str]] = {
 
 
 def _declaration(name: str) -> str:
-    contract = ai.KernelContract.load(REPO_ROOT / ai.ONTOLOGY_PATH)
+    contract = model_contract()
     return str(contract.classes[name]["kernel"]["declaration"])
 
 
+#: Frozen O1 doc-observation vocabulary (the O1 inventory generator that held
+#: these constants was deleted in O4 Wave C2; its output is a frozen record).
+REVIEW_REQUIRED_OBSERVATIONS = frozenset(
+    {"differs", "doc-absent", "doc-absent (bodyless declaration)", "block-not-located"})
+REVIEWED_EQUIVALENT = "reviewed-equivalent"
+REVIEWED_EQUIVALENT_OBSERVATIONS = frozenset({"differs"})
+
+
+def _authored_classes() -> dict:
+    """The authored ontology classes AT the frozen O1 inventory's own bound
+    revision (historical, read from Git like the frozen lane; the authored
+    ontology was deleted in O4 Wave C2 and is never read from the tree)."""
+    import subprocess
+
+    revision = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))["binding"]["source_revision"]
+    text = subprocess.run(
+        ["git", "show", f"{revision}:approach/framework/ontology/de4sdv-basic-ontology.yaml"],
+        cwd=REPO_ROOT, check=True, capture_output=True, text=True).stdout
+    return yaml.safe_load(text)["classes"]
+
+
 def _definition(name: str) -> str:
-    contract = ai.KernelContract.load(REPO_ROOT / ai.ONTOLOGY_PATH)
-    return str(contract.classes[name]["definition"])
+    return str(_authored_classes()[name]["definition"])
 
 
 def _file_text(name: str) -> str:
@@ -219,7 +240,7 @@ class TestC1Scope:
         assert len(set(C1_IDENTITIES)) == 8
 
     def test_all_eight_are_ontology_classes(self):
-        contract = ai.KernelContract.load(REPO_ROOT / ai.ONTOLOGY_PATH)
+        contract = model_contract()
         for name in C1_IDENTITIES:
             assert name in contract.classes, name
             assert name not in contract.relationships, name
@@ -389,40 +410,6 @@ def _entries(
     return {name: by_identity[name] for name in names}
 
 
-def _probe_observed(observation: str) -> dict:
-    return {
-        "yaml_path": "classes:Thing",
-        "grounding_kind": "file-declaration",
-        "file": "f.sysml",
-        "declaration": "part def Thing",
-        "doc_text_observation": observation,
-        "consumer_evidence": [],
-    }
-
-
-def _probe_reviewed(**overrides) -> dict:
-    row = {
-        "authority_current": "legacy-yaml",
-        "authority_target": "model-authoritative",
-        "evidence_state": "repository-evidenced",
-        "adoption_status": "not-applicable",
-        "transition_gate": None,
-        "conditional_target": False,
-        "disposition": "move-meaning-into-model",
-        "confidence": "high",
-        "stage": "test-stage",
-        "note": "",
-        "unknowns": [],
-        "required_evidence": ["model-side representation decision"],
-        "exact_fit_decision": None,
-        "closure_evidence_ref": None,
-        "semantic_text_equivalence": None,
-        "runtime_consumption": None,
-    }
-    row.update(overrides)
-    return row
-
-
 # ---------------------------------------------------------------------------
 # R1 review correction: MethodEvaluationScope stays incomplete
 # ---------------------------------------------------------------------------
@@ -467,32 +454,6 @@ class TestMethodEvaluationScopeIncomplete:
         assert entry["observed"]["doc_text_observation"] == "differs"
         assert entry["reviewed"]["semantic_text_equivalence"] == "reviewed-equivalent"
         assert entry["reviewed"]["evidence_state"] == "repository-evidenced"
-
-    def test_normalized_exact_text_does_not_promote_evidence(self):
-        """Test-lock: exact text parity never auto-promotes evidence maturity —
-        the exact-text + repository-evidenced combination is an admissible
-        honest state in the validator."""
-        problems = ai._entry_problems(
-            "Thing",
-            "class",
-            _probe_observed("normalized-exact"),
-            _probe_reviewed(),
-            {},
-        )
-        assert problems == []
-
-    def test_validator_still_rejects_manual_equivalence_on_exact_text(self):
-        for equivalence in ("review-required", "reviewed-equivalent"):
-            problems = ai._entry_problems(
-                "Thing",
-                "class",
-                _probe_observed("normalized-exact"),
-                _probe_reviewed(semantic_text_equivalence=equivalence),
-                {},
-            )
-            assert any("no automatic upgrade" in problem for problem in problems), (
-                equivalence
-            )
 
     def test_structural_gap_names_exclusions_and_rationale(self):
         """The reviewed decision explicitly records the structural gap: the
@@ -697,7 +658,7 @@ class TestDefinitionDocExtraction:
         )
         assert ai.doc_text_observation(
             file_text, "item def Widget", "The widget meaning."
-        ) in ai.REVIEW_REQUIRED_OBSERVATIONS
+        ) in REVIEW_REQUIRED_OBSERVATIONS
 
     def test_member_following_doc_without_leading_block_is_found(self):
         """A body whose only doc follows a bodyless member: the doc sits in no
@@ -777,8 +738,8 @@ class TestDefinitionDocExtraction:
 
     def test_no_c1_definitions_hardcoded_in_python(self):
         """The parity machinery must not embed the eight definitions as
-        Python constants; the comparison inputs come from the ontology YAML
-        through KernelContract at test time."""
+        Python constants; the comparison inputs are the authored definitions at
+        the frozen O1 record's own revision (read from Git at test time)."""
         source = (REPO_ROOT / "de4sdv/semantic/authority_inventory.py").read_text(
             encoding="utf-8"
         )
@@ -1026,14 +987,14 @@ class TestDirectBodyDocOwnership:
 
 class TestC1TextParity:
     def test_c1_observations_recomputed_from_source(self):
-        contract = ai.KernelContract.load(REPO_ROOT / ai.ONTOLOGY_PATH)
+        authored = _authored_classes()
+        contract = model_contract()
         for name in C1_IDENTITIES:
-            spec = contract.classes[name]
             file_text = _file_text(name)
             observation = ai.doc_text_observation(
                 file_text,
-                str(spec["kernel"]["declaration"]),
-                str(spec["definition"]),
+                str(contract.classes[name]["kernel"]["declaration"]),
+                str(authored[name]["definition"]),
             )
             assert observation == C1_DOC_OBSERVATIONS[name], name
 
@@ -1050,16 +1011,16 @@ class TestC1TextParity:
         for entry in inventory["entries"]:
             observation = entry["observed"].get("doc_text_observation")
             equivalence = entry["reviewed"]["semantic_text_equivalence"]
-            if observation in ai.REVIEW_REQUIRED_OBSERVATIONS:
+            if observation in REVIEW_REQUIRED_OBSERVATIONS:
                 assert equivalence in (
                     "review-required",
-                    ai.REVIEWED_EQUIVALENT,
+                    REVIEWED_EQUIVALENT,
                 ), entry["identity"]
-                if equivalence == ai.REVIEWED_EQUIVALENT:
+                if equivalence == REVIEWED_EQUIVALENT:
                     # The completed-review state is limited to material
                     # wording drift (the concrete reviewed case).
                     assert (
-                        observation in ai.REVIEWED_EQUIVALENT_OBSERVATIONS
+                        observation in REVIEWED_EQUIVALENT_OBSERVATIONS
                     ), entry["identity"]
             elif observation == "normalized-exact":
                 # No manual equivalence when exact parity is machine-checked.
@@ -1130,7 +1091,7 @@ class TestC1TextParity:
         doc never enters a class observation; a synthetic DIRECT-body doc
         always does — regardless of adjacency, ordering, or a preceding
         leading doc block."""
-        contract = ai.KernelContract.load(REPO_ROOT / ai.ONTOLOGY_PATH)
+        contract = model_contract()
         for name in C1_IDENTITIES:
             spec = contract.classes[name]
             declaration = str(spec["kernel"]["declaration"])

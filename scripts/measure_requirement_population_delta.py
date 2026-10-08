@@ -269,11 +269,10 @@ def _build_service(args):
     return entry_authority.build_entry_semantic_runtime(
         api_url=args.api_url, binding_path=args.binding,
         expected_git_revision=args.git_revision,
-        ontology_path=ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml",
-        authority=args.semantic_authority, bundle_path=args.o3_authority_bundle,
-        bundle_id=args.o3_authority_bundle_id,
+        authority=args.semantic_authority,
         model_bundle_path=args.model_authority_bundle,
         model_bundle_id=args.model_authority_bundle_id, environ={},
+        **({"require_activation_eligible": False} if args.allow_candidate_bundle else {}),
     )
 
 
@@ -291,11 +290,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--baseline-export", type=Path,
                         help="retained pre-Wave-A full-model export (optional)")
-    parser.add_argument("--semantic-authority", default="o3")
-    parser.add_argument("--o3-authority-bundle")
-    parser.add_argument("--o3-authority-bundle-id")
+    parser.add_argument("--semantic-authority", default="model",
+                        help="model (the only accepted value)")
     parser.add_argument("--model-authority-bundle")
     parser.add_argument("--model-authority-bundle-id")
+    parser.add_argument("--allow-candidate-bundle", action="store_true",
+                        help="serve an unclosed candidate bundle (privileged evidence steps only)")
     args = parser.parse_args(argv)
     head = _git_head()
     if args.git_revision != head:

@@ -194,25 +194,25 @@ def _owned_doc_bodies(block: str) -> list[str]:
 
 
 def _ontology_kernel_index(root: Path) -> dict[str, tuple[str, str] | None]:
-    """Reviewed-identity -> ontology kernel mapping (fail-closed source).
+    """Reviewed-identity -> kernel mapping, from the model-built contract.
 
-    Every class identity of the authored ontology maps either to a
-    ``(file, declaration)`` pair (repo-resident semantics) or to ``None``
-    (native/external semantics with no kernel declaration). An end whose
-    reviewed identity is not an ontology class at all is refused by the
-    caller: the reviewed domain/range must be a governed identity.
+    Every class identity of the model-built kernel contract
+    (``KernelContract.from_layers``) maps either to a ``(file, declaration)``
+    pair (repo-resident semantics) or to ``None`` (native/external semantics
+    with no kernel declaration). An end whose reviewed identity is not a
+    contract class at all is refused by the caller: the reviewed
+    domain/range must be a governed identity. Validation input only; the
+    generated rows do not depend on it beyond refusal.
     """
-    from de4sdv.semantic.kernel_contract import KernelContract
+    from de4sdv.semantic.kernel_contract import KernelContract, KernelFileMapping
 
-    contract = KernelContract.load(
-        root / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-    )
+    contract = KernelContract.from_layers(root)
     index: dict[str, tuple[str, str] | None] = {}
-    for name, spec in contract.classes.items():
-        kernel = (spec or {}).get("kernel") or {}
-        if "file" in kernel and "declaration" in kernel:
-            index[str(name)] = (str(kernel["file"]), str(kernel["declaration"]))
-        elif "native" in kernel or "external" in kernel:
+    for name in contract.classes:
+        mapping = contract.mapping(name)
+        if isinstance(mapping, KernelFileMapping):
+            index[str(name)] = (mapping.file, mapping.declaration)
+        else:
             index[str(name)] = None
     return index
 

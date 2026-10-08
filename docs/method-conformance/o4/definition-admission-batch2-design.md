@@ -1,5 +1,15 @@
 # O4 definition-admission batch 2 — design record
 
+> **O4 Wave C2 note.** The authored ontology was deleted in Wave C2. The 54
+> manifest-held contract fields (domain/range/strength, kernel mapping kinds,
+> ontology relations, serializer mechanics) are now governed by the admission
+> manifest alone and labeled so in every row (owner decision D9); their last
+> authored-ontology parity, which tests lock them to, is
+> [`closure/contract-equivalence.json`](closure/contract-equivalence.json).
+> The five former deprecated aliases are `retired-name` rows that the runtime
+> refuses with `retired; use <successor>` (owner decision D4). The text below
+> is the original design record.
+
 Status: **draft engineering evidence** (Wave B). Base: `main` at
 `c12792b8b352c72cabbe58f095189af9272df4b3` (Wave A #333 plus its rebind
 chain #334–#336). Governing inputs:

@@ -8,7 +8,14 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from semantic_authority_check import (  # noqa: E402
+    AuthorityCheckError,
+    check_expected_authority,
+)
 
 
 class VerificationError(RuntimeError):
@@ -66,6 +73,23 @@ def _deployed_model_revision() -> str:
     return revision
 
 
+def check_semantic_authority(
+    status: dict[str, Any], *, expected_bundle_id: str,
+) -> dict[str, Any]:
+    """O4 Wave C2 (review R3): the viewer must SERVE the accepted bundle.
+
+    ``kind == "model"``, the exact ``mab-`` bundle id and the built runtime's
+    ``semantic_authority_id == mab:<id>``; ``invalid`` (an unset or retired
+    selector) or any stale id fails the verification.
+    """
+    try:
+        return check_expected_authority(
+            status, expected=expected_bundle_id, pre_c2=False, require_served=True,
+        )
+    except AuthorityCheckError as exc:
+        raise VerificationError(f"public Ask semantic authority: {exc}") from exc
+
+
 _TLS_READINESS_ATTEMPTS = 12
 _TLS_READINESS_DELAY_SECONDS = 5.0
 
@@ -98,6 +122,7 @@ def verify_public_ask(
     base_url: str,
     *,
     application_sha: str,
+    expected_model_authority_bundle_id: str,
     model_sha: str | None = None,
     live_query: bool = False,
     tls_attempts: int = _TLS_READINESS_ATTEMPTS,
@@ -117,6 +142,9 @@ def verify_public_ask(
         raise VerificationError("public Ask application revision mismatch")
     if status.get("model_git_commit") != model_sha:
         raise VerificationError("public Ask model revision mismatch")
+    authority = check_semantic_authority(
+        status, expected_bundle_id=expected_model_authority_bundle_id,
+    )
     warmup = status.get("semantic_warmup")
     if not isinstance(warmup, dict) or warmup.get("status") != "ready":
         raise VerificationError("public Ask semantic warmup is not ready")
@@ -152,6 +180,7 @@ def verify_public_ask(
     result = {
         "application_git_commit": application_sha,
         "model_git_commit": model_sha,
+        "semantic_authority_id": str(authority.get("semantic_authority_id") or ""),
         "live_query": "skipped",
     }
     if live_query:
@@ -181,6 +210,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base-url", default="https://viewer.de4sdv.org")
     parser.add_argument("--application-sha", required=True)
+    parser.add_argument(
+        "--expected-model-authority-bundle-id",
+        required=True,
+        help="the accepted mab-<hex> id the viewer must serve",
+    )
     parser.add_argument("--model-sha")
     parser.add_argument("--live-query", action="store_true")
     parser.add_argument("--element", default="evidenceObjective")
@@ -189,6 +223,7 @@ def main(argv: list[str] | None = None) -> int:
         result = verify_public_ask(
             args.base_url,
             application_sha=args.application_sha,
+            expected_model_authority_bundle_id=args.expected_model_authority_bundle_id,
             model_sha=args.model_sha,
             live_query=args.live_query,
         )

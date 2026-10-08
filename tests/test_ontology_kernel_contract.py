@@ -1,33 +1,45 @@
-"""Ontology ↔ method-kernel contract tests.
+"""Model-built kernel contract <-> method-kernel contract tests.
 
-The contract (``kernel_sync`` in ``approach/framework/ontology/de4sdv-basic-ontology.yaml``)
-is complete in both directions:
+O4 Wave C2 deleted the authored ontology (and its ``kernel_sync`` block). The
+contract is complete in both directions:
 
-- every ontology class maps to exactly one kernel target (declaration,
-  native construct, or external artifact), and mapped declarations exist;
+- every class of the model-built kernel contract
+  (``KernelContract.from_layers``) maps to exactly one kernel target (file
+  declaration, native construct, or external artifact), and mapped
+  declarations exist in the named file (``scripts/check_model_sync.py`` sync
+  point 5);
 - every SysML declaration in the governed method-kernel directory is either
-  mapped by a class or explicitly excluded with a reason;
-- mappings, exclusions, and actual declarations are compared as exact
+  projected by a model-generated layer or listed in
+  ``docs/method-conformance/o4/kernel-internal-declarations.yaml`` with a
+  reason, as a disjoint union (the model-projection coverage gate, owner
+  decision D3);
+- mappings, listed declarations and actual declarations are compared as exact
   ``(file, declaration)`` pairs — no name-only shortcuts;
 - feature slices may not re-declare mapped kernel names.
 
-O4 Wave C1: the kernel -> model direction and the feature-slice guard are
-enforced by the model-projection coverage gate (kernel-internal declarations
-manifest, owner decision D3); the ontology -> kernel mapping direction stays
-in ``scripts/check_model_sync.py`` sync point 5 until O4 Wave C2.
+Replaced in Wave C2 (YAML-mutation tests -> model-contract / D3-manifest
+mutations): ``test_governed_directory_is_declared_in_yaml``,
+``test_every_kernel_declaration_is_mapped_or_excluded``,
+``test_exclusions_carry_reasons``, ``test_every_class_has_exactly_one_mapping_style``,
+``test_catches_ambiguous_kernel_mapping`` (a typed model mapping cannot carry
+two styles; replaced by ``test_catches_unrecognized_kernel_mapping``),
+``test_catches_invalid_yaml`` / ``test_catches_missing_yaml_file`` (replaced
+by ``test_catches_unbuildable_model_contract`` /
+``test_catches_corrupt_model_layer``), the inventory-direction tests (now
+mutate the D3 manifest instead of breaking the retired C1 transition lock),
+``test_catches_missing_kernel_sync_block`` (-> ``test_catches_missing_manifest_declarations``),
+``test_schema_bumped_past_v0`` (-> ``test_semantic_authority_identity_is_model_built``)
+and the content pins (now read the model contract and the batch-2 projection).
 
 Adversarial probing per the declarative-artifact-testing skill: every failure
-mode is induced on a live copy and attributed to a specific ``[ONTOLOGY-KERNEL]``
-error. Written as ``unittest.TestCase`` and collected by the repository pytest
-suite.
+mode is induced and attributed to a specific error.
 """
 
 from __future__ import annotations
 
+import json
 import sys
-import tempfile
 import unittest
-from contextlib import contextmanager
 from pathlib import Path
 from unittest import mock
 
@@ -35,77 +47,62 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "tests"))
 from scripts import check_model_sync  # noqa: E402
+from model_contract_fixtures import model_contract  # noqa: E402
 
-ONTOLOGY_YAML = ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
 CONTRACT_TAG = "[ONTOLOGY-KERNEL]"
-GOVERNED_DIR = (
-    "textual-notation-of-model/packages/methods/de4sdv"
-)
-
-
-def _load_ontology() -> dict:
-    return yaml.safe_load(ONTOLOGY_YAML.read_text(encoding="utf-8"))
+GOVERNED_DIR = "textual-notation-of-model/packages/methods/de4sdv"
+MANIFEST = "docs/method-conformance/o4/kernel-internal-declarations.yaml"
+BATCH2 = "docs/method-conformance/o4/definition-batch2-projection.json"
 
 
 def _kernel_path(name: str) -> Path:
     return ROOT / GOVERNED_DIR / name
 
 
-@contextmanager
-def _contract_environment(tampered_yaml: Path, tampered_texts: dict[str, str]):
-    """Serve a tampered YAML and tampered kernel/slice texts to the gate."""
-    original_yaml = check_model_sync.ONTOLOGY_YAML
-    original_read = Path.read_text
-
-    def fake_read(self, *args, **kwargs):
-        if str(self) in tampered_texts:
-            return tampered_texts[str(self)]
-        return original_read(self, *args, **kwargs)
-
-    check_model_sync.ONTOLOGY_YAML = tampered_yaml
-    Path.read_text = fake_read
-    try:
-        yield
-    finally:
-        Path.read_text = original_read
-        check_model_sync.ONTOLOGY_YAML = original_yaml
+def _manifest() -> dict:
+    return yaml.safe_load((ROOT / MANIFEST).read_text(encoding="utf-8"))
 
 
-def _run_contract(doc: dict | None = None, tampered_texts: dict[str, str] | None = None):
-    """Run the contract gate with an optional mutated YAML and tampered files."""
-    if doc is None:
-        with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False) as handle:
-            handle.write(ONTOLOGY_YAML.read_text(encoding="utf-8"))
-            tampered_yaml = Path(handle.name)
-    else:
-        with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False) as handle:
-            yaml.safe_dump(doc, handle)
-            tampered_yaml = Path(handle.name)
+class _MappingContract:
+    """A contract view whose class mappings can be replaced per test."""
+
+    def __init__(self, overrides: dict) -> None:
+        real = model_contract()
+        self.classes = dict(real.classes)
+        self._real = real
+        self._overrides = overrides
+
+    def mapping(self, name):
+        if name in self._overrides:
+            value = self._overrides[name]
+            if isinstance(value, Exception):
+                raise value
+            return value
+        return self._real.mapping(name)
+
+
+def _run_contract(overrides: dict | None = None):
+    """Run sync point 5 over the real contract with replaced class mappings."""
     errors: list[str] = []
-    try:
-        with _contract_environment(tampered_yaml, tampered_texts or {}):
-            check_model_sync.check_ontology_kernel_contract(errors)
-    finally:
-        tampered_yaml.unlink()
+    if overrides is None:
+        check_model_sync.check_ontology_kernel_contract(errors)
+        return errors
+    with mock.patch.object(check_model_sync, "_load_model_contract",
+                           return_value=_MappingContract(overrides)):
+        check_model_sync.check_ontology_kernel_contract(errors)
     return errors
 
 
-def _run_coverage(doc: dict | None = None, tampered_texts: dict[str, str] | None = None):
-    """Kernel-accounting errors of the model-projection coverage gate.
-
-    O4 Wave C1 moved the kernel -> model direction and the feature-slice guard
-    from sync point 5 to the coverage gate. The same mutations are served to
-    that gate: kernel/slice tampering must raise a kernel-accounting error, and
-    any tampering of the authored kernel-internal list must break the C1
-    transition lock (the list must equal
-    ``docs/method-conformance/o4/kernel-internal-declarations.yaml``).
-    """
+def _run_coverage(manifest: dict | None = None, tampered_texts: dict[str, str] | None = None):
+    """Kernel-accounting errors of the model-projection coverage gate, with an
+    optionally mutated D3 manifest and tampered kernel/slice texts."""
     from de4sdv.semantic import model_projection_coverage as coverage
 
     texts = {Path(path): text for path, text in (tampered_texts or {}).items()}
-    if doc is not None:
-        texts[ROOT / coverage.ONTOLOGY_PATH] = yaml.safe_dump(doc)
+    if manifest is not None:
+        texts[ROOT / MANIFEST] = yaml.safe_dump(manifest)
     original_read = Path.read_text
 
     def fake_read(self, *args, **kwargs):
@@ -115,9 +112,6 @@ def _run_coverage(doc: dict | None = None, tampered_texts: dict[str, str] | None
 
     with mock.patch.object(Path, "read_text", fake_read):
         return list(coverage.build_report(ROOT)["kernel_accounting_errors"])
-
-
-_LOCK = "differs from the authored ontology list"
 
 
 class ContractCleanRepo(unittest.TestCase):
@@ -132,23 +126,21 @@ class ContractCleanRepo(unittest.TestCase):
             any(e.startswith(CONTRACT_TAG) for e in errors), "\n".join(errors)
         )
 
-    def test_governed_directory_is_declared_in_yaml(self):
-        contract = _load_ontology()["kernel_sync"]
-        self.assertEqual(contract["governed_directory"], GOVERNED_DIR)
+    def test_governed_directory_is_declared_in_the_manifest(self):
+        self.assertEqual(_manifest()["governed_directory"], GOVERNED_DIR)
 
-    def test_every_kernel_declaration_is_mapped_or_excluded(self):
+    def test_every_kernel_declaration_is_projected_or_listed(self):
         """The bidirectional set equation holds on the live tree."""
-        doc = _load_ontology()
-        mapped = {
-            (spec["kernel"]["file"], spec["kernel"]["declaration"])
-            for spec in doc["classes"].values()
-            if isinstance(spec.get("kernel"), dict) and "file" in spec["kernel"]
-        }
-        excluded = {
-            (rel_file, declaration)
-            for rel_file, declarations in doc["kernel_sync"]["exclusions"].items()
-            for declaration in declarations
-        }
+        from de4sdv.semantic import model_projection_coverage as coverage
+
+        report = coverage.build_report(ROOT)
+        self.assertEqual(report["kernel_accounting_errors"], [])
+        listed = {(rel_file, declaration)
+                  for rel_file, declarations in _manifest()["declarations"].items()
+                  for declaration in declarations}
+        mapped = {(m.file, m.declaration) for m in
+                  (model_contract().mapping(n) for n in model_contract().classes)
+                  if hasattr(m, "declaration")}
         actual = set()
         for path in (ROOT / GOVERNED_DIR).rglob("*.sysml"):
             rel = str(path.relative_to(ROOT))
@@ -156,21 +148,17 @@ class ContractCleanRepo(unittest.TestCase):
                 path.read_text(encoding="utf-8")
             ):
                 actual.add((rel, declaration))
-        self.assertEqual(actual - mapped - excluded, set())
-        self.assertEqual(excluded - actual, set())
-        self.assertEqual(mapped & excluded, set())
+        self.assertEqual(listed - actual, set())
+        self.assertEqual(mapped & listed, set())
+        statuses = {entry["status"] for entry in report["kernel_declarations"].values()}
+        self.assertEqual(statuses, {"projected", "excluded"})
 
-    def test_exclusions_carry_reasons(self):
-        for rel_file, declarations in _load_ontology()["kernel_sync"][
-            "exclusions"
-        ].items():
-            self.assertTrue(declarations, f"{rel_file}: empty exclusion block")
+    def test_listed_declarations_carry_reasons(self):
+        for rel_file, declarations in _manifest()["declarations"].items():
+            self.assertTrue(declarations, f"{rel_file}: empty block")
             for declaration, reason in declarations.items():
                 self.assertIsInstance(reason, str)
-                self.assertTrue(
-                    reason.strip(),
-                    f"{rel_file}: '{declaration}' has no reason",
-                )
+                self.assertTrue(reason.strip(), f"{rel_file}: '{declaration}' has no reason")
 
     def test_scan_breadth_covers_two_word_kinds(self):
         """The scanner must inventory forms like 'variation part def'."""
@@ -183,112 +171,96 @@ class ContractCleanRepo(unittest.TestCase):
 
 
 class ContractMappingDirection(unittest.TestCase):
-    """Ontology → kernel direction: mappings must resolve, exactly."""
+    """Model contract -> kernel direction: mappings must resolve, exactly."""
 
-    def test_every_class_has_exactly_one_mapping_style(self):
-        for name, spec in _load_ontology()["classes"].items():
-            kernel = spec.get("kernel")
-            self.assertIsInstance(kernel, dict, f"{name}: no kernel mapping")
-            styles = sum(
-                (
-                    "file" in kernel and "declaration" in kernel,
-                    "native" in kernel,
-                    "external" in kernel,
-                )
-            )
-            self.assertEqual(
-                styles, 1, f"{name}: {styles} mapping styles in one kernel block"
-            )
+    def test_every_class_has_exactly_one_typed_mapping(self):
+        from de4sdv.semantic.kernel_contract import (
+            KernelExternalMapping, KernelFileMapping, KernelNativeMapping)
+
+        contract = model_contract()
+        self.assertGreaterEqual(len(contract.classes), 60)
+        for name in contract.classes:
+            mapping = contract.mapping(name)
+            self.assertIsInstance(
+                mapping, (KernelFileMapping, KernelNativeMapping, KernelExternalMapping), name)
 
     def test_catches_renamed_kernel_declaration(self):
-        def mutate(doc):
-            doc["classes"]["EngineeringIncrement"]["kernel"]["declaration"] = (
-                "part def NoLongerExists"
-            )
+        from de4sdv.semantic.kernel_contract import KernelFileMapping
 
-        doc = _load_ontology()
-        mutate(doc)
-        errors = _run_contract(doc)
-        self.assertTrue(
-            any("part def NoLongerExists" in e for e in errors), errors
-        )
+        errors = _run_contract({"EngineeringIncrement": KernelFileMapping(
+            GOVERNED_DIR + "/de4sdv_method_context.sysml", "part def NoLongerExists")})
+        self.assertTrue(any("part def NoLongerExists" in e and "not found" in e
+                            for e in errors), errors)
 
     def test_catches_mapping_to_same_name_in_wrong_file(self):
         """Name-only matching is banned: the pair must be file-scoped."""
-        doc = _load_ontology()
-        doc["classes"]["ProductLine"]["kernel"]["file"] = (
-            GOVERNED_DIR + "/de4sdv_method_context.sysml"
-        )
-        errors = _run_contract(doc)
-        self.assertTrue(
-            any(
-                "'part def ProductLine'" in e and "not" in e for e in errors
-            ),
-            errors,
-        )
+        from de4sdv.semantic.kernel_contract import KernelFileMapping
+
+        errors = _run_contract({"ProductLine": KernelFileMapping(
+            GOVERNED_DIR + "/de4sdv_method_context.sysml", "part def ProductLine")})
+        self.assertTrue(any("'part def ProductLine'" in e and "not found" in e
+                            for e in errors), errors)
 
     def test_catches_missing_kernel_file(self):
-        def mutate(doc):
-            doc["classes"]["EngineeringIncrement"]["kernel"]["file"] = (
-                "no/such/file.sysml"
-            )
+        from de4sdv.semantic.kernel_contract import KernelFileMapping
 
-        doc = _load_ontology()
-        mutate(doc)
-        errors = _run_contract(doc)
+        errors = _run_contract({"EngineeringIncrement": KernelFileMapping(
+            "no/such/file.sysml", "part def EngineeringIncrement")})
         self.assertTrue(any("kernel file not found" in e for e in errors), errors)
 
+    def test_catches_unsafe_kernel_file(self):
+        from de4sdv.semantic.kernel_contract import KernelFileMapping
+
+        errors = _run_contract({"EngineeringIncrement": KernelFileMapping(
+            "../outside.sysml", "part def EngineeringIncrement")})
+        self.assertTrue(any("repository-relative" in e for e in errors), errors)
+
     def test_catches_half_specified_kernel_mapping(self):
-        def mutate(doc):
-            del doc["classes"]["EngineeringIncrement"]["kernel"]["declaration"]
+        from de4sdv.semantic.kernel_contract import KernelFileMapping
 
-        doc = _load_ontology()
-        mutate(doc)
-        errors = _run_contract(doc)
-        self.assertTrue(
-            any("file: and declaration:" in e for e in errors), errors
-        )
+        errors = _run_contract({"EngineeringIncrement": KernelFileMapping(
+            GOVERNED_DIR + "/de4sdv_method_context.sysml", " ")})
+        self.assertTrue(any("needs both file and declaration" in e for e in errors), errors)
 
-    def test_catches_ambiguous_kernel_mapping(self):
-        def mutate(doc):
-            doc["classes"]["EngineeringIncrement"]["kernel"]["native"] = (
-                "SysML v2 part"
-            )
+    def test_catches_unrecognized_kernel_mapping(self):
+        errors = _run_contract({"EngineeringIncrement": object()})
+        self.assertTrue(any("unrecognized kernel mapping" in e for e in errors), errors)
 
-        doc = _load_ontology()
-        mutate(doc)
-        errors = _run_contract(doc)
-        self.assertTrue(
-            any("exactly one of file+declaration" in e for e in errors), errors
-        )
+    def test_catches_class_without_mapping(self):
+        errors = _run_contract({"EngineeringIncrement": KeyError("EngineeringIncrement")})
+        self.assertTrue(any("EngineeringIncrement: no kernel mapping" in e for e in errors), errors)
 
-    def test_catches_invalid_yaml(self):
-        with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False) as handle:
-            handle.write("classes: [unclosed\n  broken")
-            bad = Path(handle.name)
+    def test_catches_unbuildable_model_contract(self):
         errors: list[str] = []
-        try:
-            with mock.patch.object(check_model_sync, "ONTOLOGY_YAML", bad):
-                check_model_sync.check_ontology_kernel_contract(errors)
-        finally:
-            bad.unlink()
-        self.assertTrue(any("invalid YAML" in e for e in errors), errors)
-
-    def test_catches_missing_yaml_file(self):
-        errors: list[str] = []
-        with mock.patch.object(
-            check_model_sync,
-            "ONTOLOGY_YAML",
-            Path(tempfile.gettempdir()) / "absent-ontology.yaml",
-        ):
+        with mock.patch.object(check_model_sync, "_load_model_contract",
+                               side_effect=ValueError("duplicate provider")):
             check_model_sync.check_ontology_kernel_contract(errors)
-        self.assertTrue(any("ontology YAML not found" in e for e in errors), errors)
+        self.assertTrue(any("model-built kernel contract cannot be built" in e
+                            and "duplicate provider" in e for e in errors), errors)
+
+    def test_catches_corrupt_model_layer(self):
+        """A real layer file that does not parse fails the gate (no fallback)."""
+        target = ROOT / BATCH2
+        original_text, original_bytes = Path.read_text, Path.read_bytes
+
+        def fake_text(self, *args, **kwargs):
+            return "{not json" if self == target else original_text(self, *args, **kwargs)
+
+        def fake_bytes(self, *args, **kwargs):
+            return b"{not json" if self == target else original_bytes(self, *args, **kwargs)
+
+        errors: list[str] = []
+        with mock.patch.object(Path, "read_text", fake_text), \
+                mock.patch.object(Path, "read_bytes", fake_bytes):
+            check_model_sync.check_ontology_kernel_contract(errors)
+        self.assertTrue(any("model-built kernel contract cannot be built" in e
+                            for e in errors), errors)
 
 
 class ContractInventoryDirection(unittest.TestCase):
     """Kernel -> model direction: every declaration needs a decision.
 
-    Enforced by the model-projection coverage gate since O4 Wave C1.
+    Enforced by the model-projection coverage gate over the D3 manifest.
     """
 
     def test_catches_unclassified_new_kernel_declaration(self):
@@ -304,46 +276,59 @@ class ContractInventoryDirection(unittest.TestCase):
             errors,
         )
 
-    def test_catches_stale_exclusion_after_rename(self):
-        doc = _load_ontology()
-        exclusions = doc["kernel_sync"]["exclusions"]
-        rel_file = next(iter(exclusions))
-        first = next(iter(exclusions[rel_file]))
-        del exclusions[rel_file][first]
-        exclusions[rel_file]["part def Ghost"] = "stale"
-        errors = _run_coverage(doc)
-        self.assertTrue(any(_LOCK in e for e in errors), errors)
+    def test_catches_stale_listed_declaration_after_rename(self):
+        manifest = _manifest()
+        declarations = manifest["declarations"]
+        rel_file = next(iter(declarations))
+        first = next(iter(declarations[rel_file]))
+        del declarations[rel_file][first]
+        declarations[rel_file]["part def Ghost"] = "stale"
+        errors = _run_coverage(manifest)
+        self.assertTrue(any("'part def Ghost' does not exist" in e for e in errors), errors)
+        self.assertTrue(any(first in e and "unclassified" in e for e in errors), errors)
 
-    def test_catches_exclusion_with_empty_reason(self):
-        doc = _load_ontology()
-        exclusions = doc["kernel_sync"]["exclusions"]
-        rel_file = next(iter(exclusions))
-        first = next(iter(exclusions[rel_file]))
-        exclusions[rel_file][first] = ""
-        errors = _run_coverage(doc)
-        self.assertTrue(any(_LOCK in e for e in errors), errors)
+    def test_catches_listed_declaration_with_empty_reason(self):
+        manifest = _manifest()
+        declarations = manifest["declarations"]
+        rel_file = next(iter(declarations))
+        first = next(iter(declarations[rel_file]))
+        declarations[rel_file][first] = ""
+        errors = _run_coverage(manifest)
+        self.assertTrue(any("needs a non-empty reason" in e for e in errors), errors)
 
-    def test_catches_mapping_and_exclusion_overlap(self):
-        doc = _load_ontology()
-        doc["kernel_sync"]["exclusions"][
-            GOVERNED_DIR + "/de4sdv_method_context.sysml"
-        ]["part def EngineeringIncrement"] = "double bookkeeping"
-        errors = _run_coverage(doc)
-        self.assertTrue(any(_LOCK in e for e in errors), errors)
+    def test_catches_projection_and_listing_overlap(self):
+        manifest = _manifest()
+        manifest["declarations"][GOVERNED_DIR + "/de4sdv_method_context.sysml"][
+            "part def EngineeringIncrement"] = "double bookkeeping"
+        errors = _run_coverage(manifest)
+        self.assertTrue(any("'part def EngineeringIncrement' is both projected" in e
+                            for e in errors), errors)
 
-    def test_catches_exclusion_outside_governed_directory(self):
-        doc = _load_ontology()
-        doc["kernel_sync"]["exclusions"]["somewhere/else.sysml"] = {
-            "part def Thing": "not governed"
-        }
-        errors = _run_coverage(doc)
-        self.assertTrue(any(_LOCK in e for e in errors), errors)
+    def test_catches_listing_outside_governed_directory(self):
+        manifest = _manifest()
+        manifest["declarations"]["somewhere/else.sysml"] = {"part def Thing": "not governed"}
+        errors = _run_coverage(manifest)
+        self.assertTrue(any("outside the governed directory" in e for e in errors), errors)
 
-    def test_catches_missing_kernel_sync_block(self):
-        doc = _load_ontology()
-        del doc["kernel_sync"]
-        errors = _run_contract(doc)
-        self.assertTrue(any("no kernel_sync contract" in e for e in errors), errors)
+    def test_catches_missing_manifest_declarations(self):
+        """Without declarations the contract itself cannot be built: the
+        coverage gate fails closed (it cannot be evaluated)."""
+        from de4sdv.semantic import model_projection_coverage as coverage
+
+        manifest = _manifest()
+        del manifest["declarations"]
+        target = ROOT / MANIFEST
+        original_read = Path.read_text
+
+        def fake_read(self, *args, **kwargs):
+            if self == target:
+                return yaml.safe_dump(manifest)
+            return original_read(self, *args, **kwargs)
+
+        with mock.patch.object(Path, "read_text", fake_read):
+            errors = coverage.run_check_errors(ROOT)
+        self.assertTrue(any("cannot be evaluated" in e and "governed_directory/declarations" in e
+                            for e in errors), errors)
 
 
 class ContractSliceGuard(unittest.TestCase):
@@ -380,73 +365,62 @@ class ContractSliceGuard(unittest.TestCase):
 
 
 class ContractSemanticsPins(unittest.TestCase):
-    """Content pins tying the YAML to semantics the gate alone cannot see."""
+    """Content pins tying the model contract to semantics the gate cannot see."""
+
+    def _batch2(self, identity):
+        rows = json.loads((ROOT / BATCH2).read_text(encoding="utf-8"))["rows"]
+        return next(row for row in rows if row["identity"] == identity)
 
     def test_feature_common_capability_disjointness_is_symmetric(self):
-        doc = _load_ontology()
-        feature = doc["classes"]["Feature"]
-        common = doc["classes"]["CommonCapability"]
-        self.assertEqual(feature["disjointWith"], ["CommonCapability"])
-        self.assertEqual(common["disjointWith"], ["Feature"])
-        kernel_text = check_model_sync._read(ROOT / feature["kernel"]["file"])
-        self.assertIn(
-            "ProductLineFeatureCandidate", feature["kernel"]["declaration"]
-        )
-        self.assertIn(
-            "CommonProductLineCapability", common["kernel"]["declaration"]
-        )
-        self.assertEqual(feature["kernel"]["file"], common["kernel"]["file"])
-        for declaration in (
-            feature["kernel"]["declaration"],
-            common["kernel"]["declaration"],
-        ):
-            self.assertTrue(
-                check_model_sync._declaration_exists(kernel_text, declaration),
-                declaration,
-            )
+        feature = self._batch2("Feature")["grounding"]
+        common = self._batch2("CommonCapability")["grounding"]
+        self.assertEqual(feature["ontology_relations"]["disjoint_with"], ["CommonCapability"])
+        self.assertEqual(common["ontology_relations"]["disjoint_with"], ["Feature"])
+        contract = model_contract()
+        feature_map = contract.mapping("Feature")
+        common_map = contract.mapping("CommonCapability")
+        self.assertIn("ProductLineFeatureCandidate", feature_map.declaration)
+        self.assertIn("CommonProductLineCapability", common_map.declaration)
+        self.assertEqual(feature_map.file, common_map.file)
+        kernel_text = check_model_sync._read(ROOT / feature_map.file)
+        for declaration in (feature_map.declaration, common_map.declaration):
+            self.assertTrue(check_model_sync._declaration_exists(kernel_text, declaration),
+                            declaration)
 
     def test_status_vocabulary_comes_from_upstream_not_local(self):
-        """ADR 0009: no parallel local status enums in the ontology."""
-        evidence_status = _load_ontology()["classes"]["EvidenceStatus"]
-        self.assertIn("external", evidence_status["kernel"])
-        self.assertIn("VVStatus", evidence_status["kernel"]["external"])
+        """ADR 0009: no parallel local status enums."""
+        from de4sdv.semantic.kernel_contract import KernelExternalMapping
 
-    def test_schema_bumped_past_v0(self):
-        self.assertEqual(
-            _load_ontology()["schema"], "de4sdv.basic-ontology.v0.1"
-        )
+        mapping = model_contract().mapping("EvidenceStatus")
+        self.assertIsInstance(mapping, KernelExternalMapping)
+        self.assertIn("VVStatus", mapping.external)
+
+    def test_semantic_authority_identity_is_model_built(self):
+        identity = model_contract().identity
+        self.assertEqual(identity.schema, "de4sdv.semantic-authority/v1")
+        self.assertTrue(identity.id.startswith("sai-"))
+        paths = {path for path, _ in identity.layers}
+        self.assertNotIn("approach/framework/ontology/de4sdv-basic-ontology.yaml", paths)
+        self.assertIn(BATCH2, paths)
 
     def test_method_context_kernel_declares_pinned_declarations(self):
-        doc = _load_ontology()
         context_file = GOVERNED_DIR + "/de4sdv_method_context.sysml"
         kernel_text = check_model_sync._read(ROOT / context_file)
-        mapped = [
-            spec["kernel"]["declaration"]
-            for spec in doc["classes"].values()
-            if spec.get("kernel", {}).get("file") == context_file
-        ]
+        contract = model_contract()
+        mapped = [m.declaration for m in (contract.mapping(n) for n in contract.classes)
+                  if getattr(m, "file", None) == context_file]
         self.assertGreaterEqual(len(mapped), 5)
         for declaration in mapped:
-            self.assertTrue(
-                check_model_sync._declaration_exists(kernel_text, declaration),
-                declaration,
-            )
+            self.assertTrue(check_model_sync._declaration_exists(kernel_text, declaration),
+                            declaration)
 
     def test_governed_inventory_is_not_empty(self):
         """Meta-check: the scanner must actually find kernel declarations."""
-        doc = _load_ontology()
-        mapped = sum(
-            1
-            for spec in doc["classes"].values()
-            if isinstance(spec.get("kernel"), dict)
-            and "file" in spec["kernel"]
-        )
-        excluded = sum(
-            len(declarations)
-            for declarations in doc["kernel_sync"]["exclusions"].values()
-        )
+        contract = model_contract()
+        mapped = sum(1 for n in contract.classes if hasattr(contract.mapping(n), "declaration"))
+        listed = sum(len(d) for d in _manifest()["declarations"].values())
         self.assertGreaterEqual(mapped, 20)
-        self.assertGreaterEqual(excluded, 50)
+        self.assertGreaterEqual(listed, 50)
 
 
 if __name__ == "__main__":

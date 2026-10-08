@@ -165,7 +165,7 @@ def test_manifest_scope_is_exactly_the_admitted_family():
 def test_family_invariant_from_canonical_governance():
     """admitted == structural register family ∩ parity stage − other admissions."""
     from de4sdv.semantic.definition_projection import load_document
-    from de4sdv.semantic.o3_bundle import MIGRATED_IDENTITIES
+    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
 
     register = json.loads(
         (
@@ -687,7 +687,6 @@ def test_committed_artifacts_match_regeneration():
 def test_definition_projection_is_never_imported_by_the_runtime_path():
     runtime_modules = (
         "de4sdv/semantic/query.py",
-        "de4sdv/semantic/runtime.py",
         "de4sdv/semantic/traversal.py",
         "de4sdv/semantic/impact.py",
         "de4sdv/semantic/mcp_server.py",
@@ -698,6 +697,13 @@ def test_definition_projection_is_never_imported_by_the_runtime_path():
         text = (REPO_ROOT / relative).read_text(encoding="utf-8")
         assert "definition_projection" not in text, relative
         assert "definition-projection" not in text, relative
+        assert "definition-admission" not in text, relative
+    # The model-authority runtime reads the generated pair as a data layer
+    # (O4 Wave C2: runtime.py was deleted); it never imports the generator.
+    for relative in ("de4sdv/semantic/model_authority_runtime.py",
+                     "de4sdv/semantic/model_contract.py"):
+        text = (REPO_ROOT / relative).read_text(encoding="utf-8")
+        assert "definition_projection" not in text, relative
         assert "definition-admission" not in text, relative
 
 

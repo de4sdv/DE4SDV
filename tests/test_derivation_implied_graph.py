@@ -27,9 +27,9 @@ from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
 from de4sdv.semantic.kernel_contract import KernelContract
 from de4sdv.semantic.traversal import SemanticTraversal
 from de4sdv.sysml_api.revisions import KernelElementBinding
+from model_contract_fixtures import model_contract  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-CONTRACT_PATH = "approach/framework/ontology/de4sdv-basic-ontology.yaml"
 
 LIB_URI = "https://www.omg.org/spec/SysML/20250201/sysml.library/Systems%20Library/VerificationCases.sysml"
 LIB_ANCHOR = "lib-verification-case-anchor"
@@ -46,7 +46,7 @@ DEF_END_REQ = "def-end-req-graph-0008"
 
 
 def _contract() -> KernelContract:
-    return KernelContract.load(ROOT / CONTRACT_PATH)
+    return model_contract()
 
 
 def _binding_index() -> KernelBindingIndex:

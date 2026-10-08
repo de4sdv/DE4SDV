@@ -62,6 +62,7 @@ from test_lane_b_v11_round import (  # noqa: E402 - shared real-shape fixtures
     _full_pilot_import,
     _run_readback,
 )
+from model_contract_fixtures import model_contract  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -165,7 +166,7 @@ def _entries(inventory: dict, names=None) -> dict[str, dict]:
 
 
 def _contract() -> ai.KernelContract:
-    return ai.KernelContract.load(REPO_ROOT / ai.ONTOLOGY_PATH)
+    return model_contract()
 
 
 def _requirement_kernel_index():
@@ -182,6 +183,7 @@ def _requirement_kernel_index():
     return KernelBindingIndex.from_binding(
         RevisionBinding.from_dict(
             {
+                "schema": "de4sdv.revision-binding/v2",
                 "git_repository": "de4sdv/DE4SDV",
                 "git_commit": "a" * 40,
                 "sysml_project_id": "project-1",
@@ -190,7 +192,7 @@ def _requirement_kernel_index():
                 "import_tool_version": "fixture/1",
                 "semantic_validation": "passed",
                 "scope": "fixture",
-                "ontology": _contract().identity.to_dict(),
+                "semantic_authority": _contract().identity.to_dict(),
                 "kernel_bindings": [
                     {
                         "ontology_class": "Requirement",

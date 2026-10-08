@@ -127,7 +127,7 @@ def test_synthetic_probe_reads_selected_bytes_and_never_closes_stale_scope(
         identities=tuple(row["identity"] for row in projection["rows"]),
         rows=tuple(projection["rows"]), entries=tuple(profile["entries"]),
     )
-    contract = KernelContract.load(ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml")
+    contract = KernelContract.from_layers(ROOT)
     bindings = []
     elements = []
     for index, identity in enumerate(candidate.identities):
@@ -138,11 +138,12 @@ def test_synthetic_probe_reads_selected_bytes_and_never_closes_stale_scope(
         bindings.append(dict(ontology_class=identity, element_id=element_id, **dict(mapping)))
     binding_path = tmp_path / "selected-binding.json"
     binding_path.write_text(json.dumps({
+        "schema": "de4sdv.revision-binding/v2",
         "git_repository": "de4sdv/DE4SDV", "git_commit": binding_revision,
         "sysml_project_id": "synthetic-project", "sysml_commit_id": "synthetic-commit",
         "import_timestamp": "synthetic", "import_tool_version": "fixture",
         "semantic_validation": validated, "scope": scope,
-        "ontology": contract.identity.to_dict(), "kernel_bindings": bindings,
+        "semantic_authority": contract.identity.to_dict(), "kernel_bindings": bindings,
     }))
     # Non-vacuity guard: an empty identity population would make the closure
     # and export assertions below pass over zero rows.

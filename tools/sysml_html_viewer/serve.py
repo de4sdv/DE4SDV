@@ -66,6 +66,29 @@ from .model_parse import ModelFile, build_member_index, load_model
 from .model_parse import ElementRef  # noqa: F401  (type only)
 
 
+def _method_context_failure(exc: BaseException) -> str:
+    """Derivation label for a failed method-context build, logged distinctly.
+
+    A retired or refused identity asked of the kernel contract (O4 Wave C2,
+    owner decisions D4/D5) is a code defect, not a runtime degradation: it
+    gets its own label and a distinct stderr line so it can never hide in
+    the generic exception fallback again. Every other failure names its
+    exception type.
+    """
+    from de4sdv.semantic.kernel_contract import RetiredIdentityError
+
+    if isinstance(exc, RetiredIdentityError):
+        sys.stderr.write(
+            "ask: RETIRED IDENTITY requested while building method context "
+            f"(code defect; use the successor): {exc}\n"
+        )
+        return "regex:fallback:retired-identity"
+    sys.stderr.write(
+        f"ask: method context failed: {type(exc).__name__}: {exc}\n"
+    )
+    return f"regex:fallback:exception:{type(exc).__name__}"
+
+
 @dataclass
 class Target:
     """One selectable revision."""
@@ -454,7 +477,7 @@ class _Handler(SimpleHTTPRequestHandler):
                 "application_git_commit": server.application_revision,
                 "model_git_commit": server.model_revision,
                 # Deployment provenance: which semantic authority serves
-                # answers (legacy | o3 + exact bundle id + revision); an
+                # answers (model + exact mab- bundle id + revision); an
                 # invalid selector surfaces its error here and semantic
                 # answers are refused in that state.
                 "semantic_authority": semantic_authority_status(),
@@ -668,8 +691,8 @@ class _Handler(SimpleHTTPRequestHandler):
                     "regex:api-revision-unbound" if viewer_revision_bound else
                     "regex:viewer-revision-unbound"
                 )
-        except Exception:
-            method_ctx, derivation = {}, "regex:fallback:exception"
+        except Exception as exc:  # noqa: BLE001 — labeled + logged below
+            method_ctx, derivation = {}, _method_context_failure(exc)
         if method_ctx:
             evidence["method_context"] = method_ctx
         api_key = load_api_key()

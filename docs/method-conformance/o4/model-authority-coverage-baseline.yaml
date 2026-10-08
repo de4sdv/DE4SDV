@@ -1,24 +1,24 @@
-# Model-authority coverage baseline (ratchet; retained residual blocking; no binding block).
-schema: de4sdv.model-authority-coverage-baseline/v2
-mode: blocking-retained
+# Model-authority coverage baseline (ratchet; any residual blocking; no binding block).
+schema: de4sdv.model-authority-coverage-baseline/v3
+mode: blocking
 note: Reviewed ratchet for the model-authority coverage gate. Not revision-bound evidence; no binding
   block. Regenerate with scripts/check_model_projection_coverage.py --write-baseline after a reviewed
-  projection change. residual equals the runtime routing residual; exceptions are the owner-visible registered
-  non-retained rows still served from the authored YAML (ratcheted until O4 Wave C2). Since O4 Wave C1
-  a non-empty retained_residual and any kernel-accounting error block regardless of this baseline.
-routing_digest: sha256:37ade6c863df59b24dcea45e48dbbc7ef9f9af98e07332a1224c9009b5165c69
+  projection change. Any residual identity or declaration and any kernel-accounting error block regardless
+  of this baseline (O4 Wave C2); refused and retired list the identities answered only with their disposition.
+routing_digest: sha256:d8eda03b27a01b7d2c7d07629cfac317198c014f9a845f66e8af6a00988f414f
 layer_digests:
-  definition: sha256:ec906e3d5fb454f8b0917966120a822c9096d3dd323370bdc277a13f02866a0c
+  o2-chain: sha256:61e61aba68bf131a713ddd6dc43780d180902419b0428a5546a6ad984f8e61bc
+  definition: sha256:c29dc69014551adf47c54925d1e3eac3c86bb472b96bc4b7468d5973e940fd94
   o2plus: sha256:546c56d11ebe407f97d6563e5287e20a361cb21dce36853ce7568329af6c012a
-  vocabulary-carrier: sha256:235380371f9d63918bb6c2b918142db6ea08d89a436a3ae8b74e7cf163f47390
-  definition-batch2: sha256:5abc1e36771a1f68315b3ac7c30765f700cc5b0eb24723dc77969626e1c84939
-  o3: sha256:5e4a98edd69475b47da4928e4b85381c2d1c76afc7f093d42ac7a3f8d50ba978
-  successor-contract: sha256:2f5f20742ea7a81e481cb772721bd6f54cc1b0dbfcf8747015cdb363a10d8842
-residual:
+  vocabulary-carrier: sha256:b13e8034c8f9eba4ff099aaae24a5d965ac84494c72bca45addbd5ae0c0500be
+  definition-batch2: sha256:dbc5adf86c5e189bc769e3c73ada7a56cab508983848311d28a6159b0a7f0e21
+  successor-contract: sha256:f8ddb95e2db9fde73d56febfa61d9a6dc3c36298e30d09e480525202c3999437
+refused:
 - IncrementTraceabilityShell
 - derivesNeedFromConcern
-retained_residual: []
-exceptions:
-- IncrementTraceabilityShell
-- derivesNeedFromConcern
-residual_declarations: []
+retired:
+- constrainedBy
+- deployedTo
+- realizedBy
+- validatedBy
+- validatesFitnessForUse

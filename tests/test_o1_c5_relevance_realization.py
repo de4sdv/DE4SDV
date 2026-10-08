@@ -57,6 +57,7 @@ import yaml
 
 from de4sdv.semantic import authority_inventory as ai
 from de4sdv.semantic.kernel_contract import KernelContract
+from model_contract_fixtures import model_contract  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -69,7 +70,6 @@ DECISIONS_PATH = (
 REVIEW_DOC = (
     REPO_ROOT / "docs/method-conformance/o1/c5-relevance-realization-review.md"
 )
-ONTOLOGY_PATH = REPO_ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
 TRAVERSAL_SOURCE = REPO_ROOT / "de4sdv/semantic/traversal.py"
 
 C5_IDENTITIES: tuple[str, ...] = (
@@ -186,7 +186,7 @@ REPLAY_HEC_CORRECTED_SOURCES = 0
 
 
 def _contract() -> KernelContract:
-    return KernelContract.load(ONTOLOGY_PATH)
+    return model_contract()
 
 
 @pytest.fixture(scope="module")
@@ -510,71 +510,6 @@ class TestReviewedDecisions:
 # ---------------------------------------------------------------------------
 
 
-class TestRenameRequiredSchema:
-    def _observed(self) -> dict:
-        return {
-            "yaml_path": "relationships:probe",
-            "domain": "Requirement",
-            "range": "ArchitectureElement",
-            "grounding_kind": "sysml_mapping",
-            "strategy": "allocation",
-            "semantic_strength": "allocation",
-            "query_direction": None,
-            "runtime_support": "implemented (allocation)",
-        }
-
-    def _row(self, **overrides) -> dict:
-        row = {
-            "authority_current": "legacy-yaml",
-            "authority_target": "model-authoritative",
-            "evidence_state": "parity-reviewed",
-            "adoption_status": "not-applicable",
-            "transition_gate": None,
-            "conditional_target": False,
-            "disposition": RENAME_DISPOSITION,
-            "confidence": "high",
-            "stage": "c5 (probe)",
-            "note": "probe",
-            "unknowns": [],
-            "required_evidence": ["O2 probe", "O3 probe"],
-            "exact_fit_decision": "not exact native fit",
-            "closure_evidence_ref": None,
-            "semantic_text_equivalence": None,
-            "runtime_consumption": None,
-        }
-        row.update(overrides)
-        return row
-
-    def _problems(self, **overrides) -> list[str]:
-        return ai._entry_problems(
-            "probe", "relationship", self._observed(), self._row(**overrides), {}
-        )
-
-    def test_disposition_vocabulary_contains_rename_required(self):
-        assert RENAME_DISPOSITION in ai.DISPOSITIONS
-
-    def test_rename_required_is_not_a_target_or_current_location(self):
-        assert RENAME_DISPOSITION not in ai.AUTHORITY_SOURCES
-        assert RENAME_DISPOSITION not in ai.AUTHORITY_TARGETS
-
-    def test_valid_rename_required_row_passes_validation(self):
-        assert self._problems() == []
-
-    def test_rename_required_keeps_a_location_target(self):
-        """A rename-required entry keeps its location target (distinct from
-        retired/unknown): the fact is retained, only the identity migrates."""
-        for target in ("model-authoritative", "de4sdv-application-semantic"):
-            assert self._problems(authority_target=target) == []
-
-    def test_unknown_disposition_still_fails_closed(self):
-        problems = self._problems(disposition="rename-or-something")
-        assert any("outside the accepted" in problem for problem in problems)
-
-    def test_rename_required_row_requires_forward_evidence(self):
-        problems = self._problems(required_evidence=[])
-        assert any("required_evidence" in problem for problem in problems)
-
-
 # ---------------------------------------------------------------------------
 # Hardened traversal laws (the c5 runtime contract)
 # ---------------------------------------------------------------------------
@@ -582,6 +517,7 @@ class TestRenameRequiredSchema:
 
 def _binding_dict(kernel_bindings: list[dict[str, str]]) -> dict:
     return {
+        "schema": "de4sdv.revision-binding/v2",
         "git_repository": "de4sdv/DE4SDV",
         "git_commit": "a" * 40,
         "sysml_project_id": "project-1",
@@ -590,7 +526,7 @@ def _binding_dict(kernel_bindings: list[dict[str, str]]) -> dict:
         "import_tool_version": "test",
         "semantic_validation": "passed",
         "scope": "fixture",
-        "ontology": _contract().identity.to_dict(),
+        "semantic_authority": _contract().identity.to_dict(),
         "kernel_bindings": kernel_bindings,
     }
 
@@ -714,10 +650,15 @@ class TestRequirementDomainEnforcement:
         ]
         assert _targets(traversal, "specifiesFunction", "need-1", _elements()) == []
 
-    def test_need_source_is_quiet_absence_for_realized_by(self):
+    def test_realized_by_is_refused_as_a_retired_name(self):
+        """O4 Wave C2 (owner decision D4): realizedBy is retired; the contract
+        refuses it with its successor instead of answering allocation hops.
+        The allocation laws are carried by the allocatedTo successor tests."""
+        from de4sdv.semantic.kernel_contract import RetiredIdentityError
+
         traversal = _traversal(_kernel_bindings())
-        assert _targets(traversal, "realizedBy", "req-1", _elements()) == ["action-1"]
-        assert _targets(traversal, "realizedBy", "need-1", _elements()) == []
+        with pytest.raises(RetiredIdentityError, match="retired; use allocatedTo"):
+            traversal.traverse("realizedBy", _by_id(_elements())["req-1"], _elements())
 
     def test_non_requirement_queries_are_quiet_absence(self):
         traversal = _traversal(_kernel_bindings())
@@ -773,27 +714,21 @@ class TestRealizedByLaws:
         assert "AllocationUsage != realization automatically" in text
         assert "!= physical realization automatically" in text
 
-    def test_requirement_sourced_allocation_is_bounded_allocation_trace(self):
-        traversal = _traversal(_kernel_bindings())
-        hops = traversal.traverse(
-            "realizedBy", _by_id(_elements())["req-1"], _elements()
-        )
-        assert [hop.target["@id"] for hop in hops] == ["action-1"]
-        assert hops[0].semantic_strength == "allocation"
+    def test_realized_by_answers_no_allocation_fact(self):
+        """O4 Wave C2: the retired name is refused (owner decision D4)."""
+        from de4sdv.semantic.kernel_contract import RetiredIdentityError
 
-    def test_generic_dependency_is_not_an_allocation(self):
-        """A dependency with allocation-like endpoints is never a realizedBy
-        witness (different relationship objects)."""
-        traversal = _traversal(_kernel_bindings())
-        elements = _elements()
-        assert _targets(traversal, "realizedBy", "req-1", elements) == ["action-1"]
-        dep_hops = [
-            hop for hop in traversal.traverse(
-                "realizedBy", _by_id(elements)["req-1"], elements
-            )
-            if hop.api_object["@id"] == "dep-sf"
-        ]
-        assert dep_hops == []
+        with pytest.raises(RetiredIdentityError, match="retired; use allocatedTo"):
+            _contract().relationship_mapping("realizedBy")
+        assert "realizedBy" not in _contract().relationships
+
+
+
+
+# O4 Wave C2 review R4: restored from base 6dab3e9 verbatim. They cover live
+# traversal behavior (specifiesFunction laws, the blocked EvidenceContract
+# range gate) and pass on the model-built contract and the revision binding
+# v2 helpers above; only those helpers changed.
 
 
 class TestSpecifiesFunctionLaws:
@@ -1055,13 +990,13 @@ class TestEvidenceContractBlockedRange:
 class TestDisjointness:
     def test_no_witness_object_carries_two_predicates(self):
         """The relevance family is disjoint by construction: no relationship
-        object is reported under two of the four predicates."""
+        object is reported under two of the three remaining dependency
+        predicates (realizedBy is retired since O4 Wave C2)."""
         traversal = _traversal(_kernel_bindings())
         elements = _elements()
         by_id = _by_id(elements)
         witnesses: dict[str, set[str]] = {}
         for predicate, source_id in (
-            ("realizedBy", "req-1"),
             ("specifiesFunction", "req-1"),
             ("hasRelevantArchitecture", "req-1"),
             ("hasRelevantEvidenceContract", "req-1"),
@@ -1097,37 +1032,27 @@ class TestDisjointness:
 
 class TestImpactServiceConsumer:
     def _impact(self, elements, kernel_bindings=None):
-        from de4sdv.semantic.api_binding import OntologyApiBinder
-        from de4sdv.semantic.impact import ImpactService
-        from de4sdv.semantic.traversal import SemanticTraversal
-        from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
+        """The production impact surface of the model-authority runtime (O4
+        Wave C2; the base ImpactService subclass the validators consume)."""
         from de4sdv.sysml_api.revisions import RevisionBinding
+        from model_contract_fixtures import model_service
 
-        binding_dict = _binding_dict(
-            _kernel_bindings() if kernel_bindings is None else kernel_bindings
-        )
-        binding = RevisionBinding.from_dict(binding_dict)
-        index = KernelBindingIndex.from_binding(binding)
-        contract = _contract()
+        bindings = _kernel_bindings() if kernel_bindings is None else kernel_bindings
+        full_paths = {
+            "de4sdv_method_context.sysml":
+                "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+            "de4sdv_product_line.sysml":
+                "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+        }
+        bindings = [{**b, "source_file": full_paths.get(b["source_file"], b["source_file"])}
+                    for b in bindings]
+        binding = RevisionBinding.from_dict(_binding_dict(bindings))
 
         class _Repo:
             def list_elements(self, project_id, commit_id):
                 return elements
 
-        traversal = SemanticTraversal(contract, kernel_bindings=index)
-        service = ImpactService(
-            repository=_Repo(),  # type: ignore[arg-type]
-            binding=binding,
-            contract=contract,
-            binder=OntologyApiBinder(
-                contract,
-                _Repo(),  # type: ignore[arg-type]
-                project_id="project-1",
-                commit_id="commit-1",
-                kernel_bindings=index,
-            ),
-            traversal=traversal,
-        )
+        service = model_service(binding, _Repo()).impact_service
         return service.impact("req-1", git_revision="a" * 40)
 
     def test_impact_edges_reflect_the_narrowed_predicates(self):
@@ -1345,20 +1270,19 @@ class TestDocumentAndBoundaryLaws:
         assert "No composite realization query exists" in text
 
     def test_no_sysml_or_ontology_semantic_change_by_this_batch(self):
-        """The four authored contracts are byte-stable in c5: no predicate
-        name/signature/config change, no allocatedTo/deployedTo touch."""
-        ontology = yaml.safe_load(ONTOLOGY_PATH.read_text(encoding="utf-8"))
-        relationships = ontology["relationships"]
-        assert len(relationships) == 34
-        assert relationships["realizedBy"]["sysml_mapping"] == {
-            "strategy": "allocation",
-            "relationship_types": ["AllocationUsage"],
-            "direction": "outgoing",
-            "source_property": "source",
-            "target_property": "target",
-            "semantic_strength": "allocation",
-        }
-        assert relationships["specifiesFunction"]["sysml_mapping"] == {
+        """The c5 contracts are stable in the model-built kernel contract (the
+        authored ontology was deleted in O4 Wave C2): no predicate
+        signature/config change; the retired names are refused."""
+        from de4sdv.semantic.kernel_contract import RetiredIdentityError
+
+        contract = _contract()
+
+        def mapping(name):
+            value = contract.relationship_mapping(name)
+            return {"strategy": value.strategy, **value.configuration,
+                    "semantic_strength": value.semantic_strength}
+
+        assert mapping("specifiesFunction") == {
             "strategy": "dependency",
             "relationship_types": ["Dependency"],
             "direction": "outgoing",
@@ -1368,7 +1292,7 @@ class TestDocumentAndBoundaryLaws:
             "target_types": ["ActionUsage", "ActionDefinition"],
             "semantic_strength": "relevance",
         }
-        assert relationships["hasRelevantArchitecture"]["sysml_mapping"] == {
+        assert mapping("hasRelevantArchitecture") == {
             "strategy": "dependency",
             "relationship_types": ["Dependency"],
             "direction": "incoming",
@@ -1383,7 +1307,7 @@ class TestDocumentAndBoundaryLaws:
             "exclude_source_specializations_of": "MemberProduct",
             "semantic_strength": "relevance",
         }
-        assert relationships["hasRelevantEvidenceContract"]["sysml_mapping"] == {
+        assert mapping("hasRelevantEvidenceContract") == {
             "strategy": "dependency",
             "relationship_types": ["Dependency"],
             "direction": "incoming",
@@ -1392,22 +1316,26 @@ class TestDocumentAndBoundaryLaws:
             "source_types": ["RequirementUsage"],
             "semantic_strength": "relevance",
         }
-        assert set(relationships["allocatedTo"]) == {"domain", "range"}
-        assert relationships["allocatedTo"]["domain"] == "Function"
-        assert relationships["allocatedTo"]["range"] == "LogicalElement"
-        assert set(relationships["deployedTo"]) == {"domain", "range"}
-        assert relationships["deployedTo"]["domain"] == "LogicalElement"
-        assert relationships["deployedTo"]["range"] == "PhysicalElement"
+        for retired in ("realizedBy", "deployedTo"):
+            with pytest.raises(RetiredIdentityError, match="retired; use allocatedTo"):
+                contract.relationship_mapping(retired)
+        assert contract.relationship_mapping("allocatedTo").strategy == "successor"
 
     def test_c4_retirement_mechanics_unchanged(self):
+        """derivesNeedFromConcern: O4 Wave C2 refuses it with its register
+        disposition (owner decision D5, intentional migration from the former
+        vocabulary-only gap); addressesConcern stays vocabulary-only."""
+        from de4sdv.semantic.kernel_contract import RetiredIdentityError
+
         source = TRAVERSAL_SOURCE.read_text(encoding="utf-8")
         assert "derivesNeedFromConcern" not in source
-        ontology = yaml.safe_load(ONTOLOGY_PATH.read_text(encoding="utf-8"))
-        assert "sysml_mapping" not in ontology["relationships"]["derivesNeedFromConcern"]
-        assert "sysml_mapping" not in ontology["relationships"]["addressesConcern"]
+        with pytest.raises(RetiredIdentityError, match="register disposition REMOVE"):
+            _contract().relationship_mapping("derivesNeedFromConcern")
+        with pytest.raises(KeyError, match="no SysML mapping"):
+            _contract().relationship_mapping("addressesConcern")
 
     def test_runtime_does_not_read_the_inventory(self):
-        assert "NEVER imported by the semantic runtime" in (ai.__doc__ or "")
+        assert "never imported by the semantic runtime" in (ai.__doc__ or "").lower()
         source = TRAVERSAL_SOURCE.read_text(encoding="utf-8")
         assert "authority_inventory" not in source
         assert "semantic-authority-inventory" not in source

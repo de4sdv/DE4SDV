@@ -153,12 +153,33 @@ jobs:
             --binding /tmp/de4sdv-full-model-binding.json \
             --report /tmp/de4sdv-full-model-semantic-validation.json
 
+      - name: Build candidate model-authority bundle
+        # O4 Wave C2: the model authority is the only semantic authority. The
+        # candidate bundle needs no API; the three batteries below run under
+        # it (explicit --allow-candidate-bundle, evidence only) and the
+        # model-authority-evidence job closes it. Bundle construction refuses
+        # a non-empty routing residual.
+        run: |
+          mkdir -p /tmp/o4
+          python scripts/run_model_authority_bundle.py bundle \
+            --source-revision "$(git rev-parse HEAD)" \
+            --out /tmp/o4
+          python - <<'PY' > /tmp/o4/candidate-bundle-id
+          import json
+          print(json.load(open("/tmp/o4/de4sdv-model-authority-candidate-bundle.json"))["bundle_id"])
+          PY
+          cat /tmp/o4/candidate-bundle-id
+
       - name: Exercise three production semantic concerns
         run: |
           python scripts/validate_full_model_semantic_queries.py \
             --api-url http://127.0.0.1:9000 \
             --binding /tmp/de4sdv-full-model-binding.json \
             --semantic-report /tmp/de4sdv-full-model-semantic-validation.json \
+            --semantic-authority model \
+            --model-authority-bundle /tmp/o4/de4sdv-model-authority-candidate-bundle.json \
+            --model-authority-bundle-id "$(cat /tmp/o4/candidate-bundle-id)" \
+            --allow-candidate-bundle \
             --output /tmp/de4sdv-full-model-semantic-query-coverage.json
 
       - name: Validate governed product-line scope through API identity
@@ -167,6 +188,10 @@ jobs:
             --api-url http://127.0.0.1:9000 \
             --binding /tmp/de4sdv-full-model-binding.json \
             --export /tmp/de4sdv-full-model-export.json \
+            --semantic-authority model \
+            --model-authority-bundle /tmp/o4/de4sdv-model-authority-candidate-bundle.json \
+            --model-authority-bundle-id "$(cat /tmp/o4/candidate-bundle-id)" \
+            --allow-candidate-bundle \
             --output /tmp/de4sdv-product-line-scope-validation.json
 
       - name: Exercise read-only semantic MCP tools
@@ -175,6 +200,10 @@ jobs:
             --api-url http://127.0.0.1:9000 \
             --binding /tmp/de4sdv-full-model-binding.json \
             --expected-git-revision "$(git rev-parse HEAD)" \
+            --semantic-authority model \
+            --model-authority-bundle /tmp/o4/de4sdv-model-authority-candidate-bundle.json \
+            --model-authority-bundle-id "$(cat /tmp/o4/candidate-bundle-id)" \
+            --allow-candidate-bundle \
             --output /tmp/de4sdv-semantic-mcp-validation.json
 
       - name: Probe O4 definition closure against fresh full-model binding
@@ -264,37 +293,6 @@ jobs:
             tests/test_sysml_api_semantic.py \
             tests/test_semantic_mcp.py -q
 
-      - name: Build O3 candidate bundle and VerificationCase grounding proof
-        # O3 Stage A evidence: candidate machinery only — no activation, no
-        # authority switch, no YAML retirement. Exact-revision only: the
-        # runner refuses any revision other than the checked-out SHA.
-        # Validation evidence is sha256-bound to the exact produced outputs.
-        run: |
-          mkdir -p /tmp/o3
-          python scripts/run_o3_equivalence.py bundle \
-            --api-url http://127.0.0.1:9000 \
-            --binding /tmp/de4sdv-full-model-binding.json \
-            --git-revision "$(git rev-parse HEAD)" \
-            --output-dir /tmp/o3 \
-            --export /tmp/de4sdv-full-model-export.json \
-            --validation full_model_semantic_queries=passed \
-            --validation product_line_scope=passed \
-            --validation semantic_mcp=passed \
-            --validation-artifact full_model_semantic_queries=/tmp/de4sdv-full-model-semantic-validation.json \
-            --validation-artifact product_line_scope=/tmp/de4sdv-product-line-scope-validation.json \
-            --validation-artifact semantic_mcp=/tmp/de4sdv-semantic-mcp-validation.json
-
-      - name: Run same-revision O3 runtime equivalence comparison
-        run: |
-          python scripts/run_o3_equivalence.py compare \
-            --api-url http://127.0.0.1:9000 \
-            --binding /tmp/de4sdv-full-model-binding.json \
-            --ontology approach/framework/ontology/de4sdv-basic-ontology.yaml \
-            --git-revision "$(git rev-parse HEAD)" \
-            --bundle /tmp/o3/de4sdv-o3-candidate-bundle.json \
-            --export /tmp/de4sdv-full-model-export.json \
-            --output /tmp/o3/de4sdv-o3-runtime-equivalence-report.json
-
       - name: Snapshot API database for the model-authority job
         # O4 Wave B: the model-authority steps run in a SEPARATE job (see
         # model-authority-evidence below) so this job keeps its own 360-minute
@@ -355,10 +353,8 @@ jobs:
             /tmp/de4sdv-full-model-binding.json
             /tmp/de4sdv-full-model-semantic-validation.json
             /tmp/de4sdv-full-model-semantic-query-coverage.json
-            /tmp/o3/de4sdv-o3-candidate-bundle.json
-            /tmp/o3/de4sdv-o3-api-closure-attestation.json
-            /tmp/o3/de4sdv-o3-verification-case-grounding.json
-            /tmp/o3/de4sdv-o3-runtime-equivalence-report.json
+            /tmp/o4/de4sdv-model-authority-candidate-bundle.json
+            /tmp/o4/candidate-bundle-id
             /tmp/o4/de4sdv-o4-definition-migration-probe.json
             /tmp/o4/de4sdv-o4-definition-migration-probe.stderr.log
             /tmp/de4sdv-product-line-scope-validation.json
@@ -376,19 +372,22 @@ jobs:
             /tmp/de4sdv-pilot-readback.json
             /tmp/sysml-api.tail.log
 
-  # O4 Wave B model-authority evidence (owner decisions 2026-10-07: 4, 6).
+  # O4 model-authority evidence (owner decisions 2026-10-07: 4, 6; Wave C2:
+  # the model authority is the only authority, there is no O3/legacy runtime
+  # to compare against).
   #
-  # Separate job, not more steps in ingest-and-validate: that job already
-  # runs 3.4-5 h of its 360-minute cap (import ~24 min, two candidate
-  # imports ~46 min, O3 comparison ~64 min), and the model comparison runs two
-  # O3-sized comparisons (model vs O3, model vs legacy, ~130 min). This job
-  # restores the API database snapshot of the same run (no re-export, no
-  # Syside licence), so its budget is ~3.2 h: restore + API build/start
-  # ~20 min, read-back ~10, population delta ~10, bundle/coverage ~10,
-  # comparison ~130, close ~1. The restored corpus is re-verified against
-  # the export (decision-13 read-back step) before any claim.
+  # Separate job, not more steps in ingest-and-validate: that job runs the
+  # export, the full import, two candidate transactions and the batteries
+  # within its 360-minute cap. This job restores the API database snapshot of
+  # the same run (no re-export, no Syside licence): restore + API build/start
+  # ~20 min, read-back ~10, population delta ~10, bundle/coverage ~10, model
+  # runtime answers (one runtime over the migrated identity set), close ~1.
+  # The restored corpus is re-verified against the export (decision-13
+  # read-back step) before any claim. The three batteries ran in
+  # ingest-and-validate under the same candidate bundle; close checks that
+  # their outputs name this revision and this mab id.
   #
-  # Verdicts: the read-back, comparison and close steps exit non-zero when
+  # Verdicts: the read-back, answers and close steps exit non-zero when
   # their gate fails (reports are still written and uploaded); the
   # requirement-population delta is measured evidence only (a difference
   # from the recorded 27/28 is reported, never adjusted, and does not fail
@@ -505,7 +504,7 @@ jobs:
             "PyYAML==6.0.2" "pytest==8.4.2" -r requirements-mcp.txt
 
       - name: Download same-run ingestion evidence
-        # Restores the exact /tmp paths the O3 closure attestation hashes.
+        # Restores the exact /tmp paths the closure attestation hashes.
         if: github.event.inputs.reuse_ingestion_run == ''
         uses: actions/download-artifact@v4
         with:
@@ -565,7 +564,7 @@ jobs:
           sha = sys.argv[1]
           for path, key in (("/tmp/de4sdv-full-model-export.json", "git_commit"),
                             ("/tmp/de4sdv-full-model-binding.json", "git_commit"),
-                            ("/tmp/o3/de4sdv-o3-candidate-bundle.json", "git_revision")):
+                            ("/tmp/o4/de4sdv-model-authority-candidate-bundle.json", "git_revision")):
               value = json.load(open(path, encoding="utf-8")).get(key)
               if value != sha:
                   raise SystemExit(f"{path} {key}={value!r} != checked-out {sha}")
@@ -668,9 +667,10 @@ jobs:
             --api-url http://127.0.0.1:9000 \
             --binding /tmp/de4sdv-full-model-binding.json \
             --export /tmp/de4sdv-full-model-export.json \
-            --semantic-authority o3 \
-            --o3-authority-bundle /tmp/o3/de4sdv-o3-candidate-bundle.json \
-            --o3-authority-bundle-id "$(python -c 'import json;print(json.load(open("/tmp/o3/de4sdv-o3-candidate-bundle.json"))["bundle_id"])')" \
+            --semantic-authority model \
+            --model-authority-bundle /tmp/o4/de4sdv-model-authority-candidate-bundle.json \
+            --model-authority-bundle-id "$(cat /tmp/o4/candidate-bundle-id)" \
+            --allow-candidate-bundle \
             --git-revision "$(git rev-parse HEAD)" \
             --output /tmp/o4/de4sdv-o4-requirement-population-delta.json
           rc=$?
@@ -681,13 +681,19 @@ jobs:
           fi
           exit "$rc"
 
-      - name: Build candidate model-authority bundle
+      - name: Rebuild the candidate model-authority bundle (must equal the batteries' bundle)
         if: ${{ !cancelled() && steps.restore-proof.outcome == 'success' }}
         run: |
+          set -euo pipefail
+          expected="$(cat /tmp/o4/candidate-bundle-id)"
           python scripts/run_model_authority_bundle.py bundle \
             --source-revision "$(git rev-parse HEAD)" \
-            --o3-bundle /tmp/o3/de4sdv-o3-candidate-bundle.json \
             --out /tmp/o4
+          rebuilt="$(python -c 'import json;print(json.load(open("/tmp/o4/de4sdv-model-authority-candidate-bundle.json"))["bundle_id"])')"
+          if [ "$rebuilt" != "$expected" ]; then
+            echo "::error::rebuilt candidate bundle $rebuilt differs from the ingest job's $expected (the batteries ran under the latter)"
+            exit 1
+          fi
 
       - name: Model-projection coverage report against the candidate bundle
         if: ${{ !cancelled() && steps.restore-proof.outcome == 'success' }}
@@ -696,12 +702,11 @@ jobs:
             --json /tmp/o4/de4sdv-o4-model-projection-coverage.json \
             --bundle /tmp/o4/de4sdv-model-authority-candidate-bundle.json
 
-      - name: Same-revision model vs O3 vs legacy runtime equivalence
+      - name: Model runtime answers over the migrated identity set (EvidenceContract discriminator, K pair)
         if: ${{ !cancelled() && steps.restore-proof.outcome == 'success' }}
         run: |
           python scripts/run_model_authority_bundle.py compare \
             --model /tmp/o4/de4sdv-model-authority-candidate-bundle.json \
-            --o3 /tmp/o3/de4sdv-o3-candidate-bundle.json \
             --out /tmp/o4 \
             --api-url http://127.0.0.1:9000 \
             --binding /tmp/de4sdv-full-model-binding.json \
@@ -719,8 +724,11 @@ jobs:
             --git-revision "$(git rev-parse HEAD)" \
             --definition-probe /tmp/o4/de4sdv-o4-definition-migration-probe.json \
             --coverage /tmp/o4/de4sdv-o4-model-projection-coverage.json \
-            --equivalence /tmp/o4/de4sdv-model-authority-equivalence-report.json \
+            --answers /tmp/o4/de4sdv-model-authority-answers.json \
             --readback /tmp/o4/de4sdv-o4-verification-anchor-readback.json \
+            --full-model-semantic-queries /tmp/de4sdv-full-model-semantic-query-coverage.json \
+            --product-line-scope /tmp/de4sdv-product-line-scope-validation.json \
+            --semantic-mcp /tmp/de4sdv-semantic-mcp-validation.json \
             --out /tmp/o4
 
       - name: Trim API service log for upload
@@ -744,9 +752,7 @@ jobs:
             /tmp/o4/de4sdv-o4-requirement-population-delta.json
             /tmp/o4/de4sdv-model-authority-candidate-bundle.json
             /tmp/o4/de4sdv-o4-model-projection-coverage.json
-            /tmp/o4/de4sdv-model-authority-equivalence-report.json
-            /tmp/o4/de4sdv-model-authority-o3-vs-model-report.json
-            /tmp/o4/de4sdv-model-authority-legacy-vs-model-report.json
+            /tmp/o4/de4sdv-model-authority-answers.json
             /tmp/o4/de4sdv-model-authority-bundle.json
             /tmp/o4/de4sdv-model-authority-closure-attestation.json
             /tmp/o4/de4sdv-model-authority-activation-eligibility.json

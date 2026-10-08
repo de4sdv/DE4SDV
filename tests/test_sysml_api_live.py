@@ -12,8 +12,8 @@ import pytest
 
 from de4sdv.semantic.api_binding import OntologyApiBinder
 from de4sdv.semantic.impact import ImpactService
-from de4sdv.semantic.kernel_contract import KernelContract
-from de4sdv.semantic.traversal import SemanticTraversal
+from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
+from de4sdv.semantic.model_authority_runtime import ModelAuthorityTraversal
 from de4sdv.sysml_api.client import ApiClient
 from de4sdv.sysml_api.repository import SysMLRepository
 from de4sdv.sysml_api.revisions import RevisionBinding
@@ -32,9 +32,13 @@ def live_service() -> tuple[SysMLRepository, RevisionBinding, ImpactService]:
     repository = SysMLRepository(
         ApiClient(os.environ.get(API_URL_ENV, "http://127.0.0.1:9000"))
     )
-    contract = KernelContract.load(
-        ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-    )
+    # O4 Wave C2: the model-built contract over the model facade (the impact
+    # allocation hop is the successor allocatedTo, served by its traversal).
+    sys.path.insert(0, str(ROOT / "tests"))
+    from model_contract_fixtures import model_facade
+
+    contract = model_facade()
+    index = KernelBindingIndex.from_binding(binding)
     service = ImpactService(
         repository=repository,
         binding=binding,
@@ -44,8 +48,9 @@ def live_service() -> tuple[SysMLRepository, RevisionBinding, ImpactService]:
             repository,
             project_id=binding.sysml_project_id,
             commit_id=binding.sysml_commit_id,
+            kernel_bindings=index,
         ),
-        traversal=SemanticTraversal(contract),
+        traversal=ModelAuthorityTraversal(contract, kernel_bindings=index),
     )
     return repository, binding, service
 

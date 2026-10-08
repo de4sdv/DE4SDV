@@ -37,9 +37,9 @@ from de4sdv.semantic.projection import (
 from de4sdv.semantic.traversal import SemanticTraversal
 from de4sdv.sysml_api.errors import IdentityNotFoundError
 from de4sdv.sysml_api.revisions import KernelElementBinding
+from model_contract_fixtures import model_contract  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-CONTRACT_PATH = "approach/framework/ontology/de4sdv-basic-ontology.yaml"
 REVISION = RevisionIdentity("0" * 40, "proj-0001", "commit-0001")
 
 NEED_DEF = "r6-needdef"
@@ -85,7 +85,7 @@ CASES: dict[str, dict[str, str]] = {
 
 
 def _contract() -> KernelContract:
-    return KernelContract.load(ROOT / CONTRACT_PATH)
+    return model_contract()
 
 
 def _binding_index() -> KernelBindingIndex:

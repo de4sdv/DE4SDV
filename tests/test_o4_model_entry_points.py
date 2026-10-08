@@ -70,12 +70,34 @@ def test_mcp_server_model_selection_from_environment(monkeypatch):
     assert seen["model_bundle_path"] is None and seen["model_bundle_id"] is None
 
 
-def test_mcp_server_o3_flags_unchanged(monkeypatch):
-    seen = _run_server(monkeypatch, ["--semantic-authority", "o3",
-                                     "--o3-authority-bundle", "/b/o3.json",
-                                     "--o3-authority-bundle-id", "o3b-" + "1" * 32])
-    assert seen["authority"] == "o3" and seen["bundle_path"] == "/b/o3.json"
-    assert seen["bundle_id"] == "o3b-" + "1" * 32
+@pytest.mark.parametrize("retired", [["--o3-authority-bundle", "/b/o3.json"],
+                                     ["--o3-authority-bundle-id", "o3b-" + "1" * 32],
+                                     ["--ontology", "o.yaml"],
+                                     ["--runtime-composition", "o3+definitions"]])
+def test_mcp_server_retired_flags_are_refused(monkeypatch, retired):
+    with pytest.raises(SystemExit) as raised:
+        _run_server(monkeypatch, ["--semantic-authority", "model", *retired])
+    assert raised.value.code == 2
+
+
+def test_mcp_server_candidate_bundle_is_explicit(monkeypatch):
+    seen = _run_server(monkeypatch, ["--semantic-authority", "model"])
+    assert "require_activation_eligible" not in seen
+    seen = _run_server(monkeypatch, ["--semantic-authority", "model", "--allow-candidate-bundle"])
+    assert seen["require_activation_eligible"] is False
+
+
+def test_mcp_server_refuses_retired_selectors_for_real(monkeypatch, capsys):
+    from scripts import semantic_mcp_server as server
+
+    for value in ("o3", "legacy"):
+        monkeypatch.setattr(sys, "argv", ["s", "--api-url", "u", "--binding", "b",
+                                          "--expected-git-revision", REVISION,
+                                          "--semantic-authority", value])
+        with pytest.raises(SystemExit) as raised:
+            server.main()
+        assert raised.value.code == 2
+        assert "retired by O4 Wave C2" in capsys.readouterr().err
 
 
 def test_mcp_server_refuses_on_model_selection_error(monkeypatch, capsys):
@@ -144,9 +166,21 @@ def test_viewer_snapshot_identity_is_keyed_by_mab_id(viewer):
         semantic_authority_id=f"mab:{MAB_ID}",
         binding=SimpleNamespace(git_commit=REVISION, sysml_project_id="p", sysml_commit_id="c"),
     )
-    o3 = SimpleNamespace(semantic_authority_id="o3:o3b-" + "1" * 32, binding=service.binding)
+    other = SimpleNamespace(semantic_authority_id="mab:mab-" + "b" * 32, binding=service.binding)
     assert viewer._snapshot_identity(service)["semantic_authority_id"] == f"mab:{MAB_ID}"
-    assert viewer._snapshot_path(service) != viewer._snapshot_path(o3)
+    assert viewer._snapshot_path(service) != viewer._snapshot_path(other)
+
+
+def test_viewer_status_unset_selector_is_invalid(viewer, monkeypatch):
+    monkeypatch.delenv("DE4SDV_SEMANTIC_AUTHORITY", raising=False)
+    block = viewer.semantic_authority_status()
+    assert block["kind"] == "invalid" and "is unset" in block["error"]
+
+
+def test_viewer_reads_no_ontology_path():
+    source = (Path(__file__).resolve().parents[1]
+              / "tools/sysml_html_viewer/ask_model_semantic.py").read_text(encoding="utf-8")
+    assert "DE4SDV_ONTOLOGY_PATH" not in source and "de4sdv-basic-ontology" not in source
 
 
 # -- impact CLI ------------------------------------------------------------------
@@ -176,3 +210,11 @@ def test_impact_cli_model_flags_require_api_backend():
 
     with pytest.raises(SystemExit):
         qmi.main(["reqX", "--model-authority-bundle-id", MAB_ID])
+
+
+def test_impact_cli_has_no_ontology_or_o3_flags():
+    from scripts import query_model_impact as qmi
+
+    for retired in (["--ontology", "o.yaml"], ["--o3-authority-bundle", "x"]):
+        with pytest.raises(SystemExit):
+            qmi.main(["reqX", "--backend", "api", "--binding", "b.json", *retired])

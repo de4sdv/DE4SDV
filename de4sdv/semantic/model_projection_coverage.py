@@ -1,50 +1,33 @@
-"""Model-projection coverage gate (O4 Wave B ratchet; Wave C1 blocking retained residual).
+"""Model-projection coverage gate (O4 Wave C2: blocking, one authority).
 
-Classifies four populations as either ``projected`` (provider layer + layer
-digest) or ``residual`` (reason), using the same routing the model-authority
-bundle binds (:func:`model_authority_runtime.compute_routing`):
+Replaces the old bidirectional hand-maintained ontology/kernel gate with
+model-to-generated-projection coverage plus justified exclusions. It
+classifies, using the routing the model-authority bundle binds
+(:func:`model_contract.compute_routing`):
 
-- every retained O4 register row (``retained_residual`` -- the owner's
-  criterion; it must stay empty and Wave C makes it blocking);
-- every ontology YAML identity the register does not list;
-- every registered NON-retained row (merged/removed) still present in the
-  ontology YAML: the runtime serves such a row from the authored YAML, so it
-  is reported as an owner-visible ``exceptions`` entry carrying its reason and
-  register disposition (routing does not refuse it; that is a Wave C owner
-  call);
-- every governed kernel declaration: projected by a model-generated layer, or
-  listed in the kernel-internal declarations manifest with a reason (owner
-  decision D3, ``docs/method-conformance/o4/kernel-internal-declarations.yaml``).
+- every O4 register row and every identity of the model-built contract
+  (:func:`KernelContract.from_layers`): ``projected`` (provider layer + layer
+  digest), ``refused`` (a registered non-retained row: merged/removed, with
+  its register disposition), ``retired`` (a successor retirement, e.g. a
+  former deprecated alias) or ``residual`` (a retained row no layer provides);
+- every governed kernel declaration: projected by a model-generated layer
+  (class pin or relationship-carrier pin), or listed in the kernel-internal
+  declarations manifest with a reason (owner decision D3,
+  ``docs/method-conformance/o4/kernel-internal-declarations.yaml``). The
+  equation is a disjoint union: a declaration is projected or listed, never
+  both.
 
-The report's total ``residual`` equals the routing residual exactly: every
-identity the runtime serves from the authored YAML is listed.
+It fails, regardless of the baseline, on any residual (identity or
+declaration), any duplicate provider, and any kernel-accounting error: an
+unclassified governed declaration, a stale or reason-less manifest entry, a
+manifest entry outside the governed directory, a listed declaration that is
+also projected, or a feature slice re-declaring a class-mapped kernel name.
 
-The gate compares the current classification with the committed baseline
-``docs/method-conformance/o4/model-authority-coverage-baseline.yaml`` and fails
-on:
-
-- residual drift in either direction (a new residual or exception, or a
-  resolved one still listed in the baseline — the baseline must stay exact);
-- duplicate providers (two layers claiming one identity without agreement);
-- routing/layer digest mismatch against the baseline, and — when a bundle is
-  supplied — a bundle whose bound routing/layers differ from the checkout.
-
-It also fails, regardless of the baseline (O4 Wave C1, mode
-``blocking-retained``), on:
-
-- a non-empty ``retained_residual`` (the owner's criterion);
-- any kernel-accounting error: an unclassified governed declaration, a stale
-  or reason-less manifest entry, a manifest entry outside the governed
-  directory or also projected, a feature slice re-declaring a projected kernel
-  name, or a manifest that differs from the authored ontology list (the C1
-  transition lock; Wave C2 deletes the authored list and the lock).
-
-These kernel-accounting checks replace the kernel -> ontology direction and
-the feature-slice guard of ``scripts/check_model_sync.py`` sync point 5.
-
-The two owner-visible exceptions stay ratcheted (reported and allowed) until
-Wave C2. The baseline carries no binding block; it is a reviewed ratchet
-record, not revision-bound evidence.
+The committed baseline
+``docs/method-conformance/o4/model-authority-coverage-baseline.yaml`` is a
+reviewed ratchet for the routing digest, the layer digests and the refused /
+retired sets: any change needs a reviewed baseline update. It carries no
+binding block.
 """
 from __future__ import annotations
 
@@ -54,19 +37,18 @@ from typing import Any, Mapping
 
 import yaml
 
-from . import model_authority_runtime as mar
+from . import model_contract as mc
 from .kernel_contract import KernelContract, KernelFileMapping
-from .o3_bundle import canonical_json
+from .model_contract import canonical_json
 
 ROOT = Path(__file__).resolve().parents[2]
 BASELINE_PATH = "docs/method-conformance/o4/model-authority-coverage-baseline.yaml"
-REPORT_SCHEMA = "de4sdv.model-projection-coverage/v2"
-BASELINE_SCHEMA = "de4sdv.model-authority-coverage-baseline/v2"
-ONTOLOGY_PATH = "approach/framework/ontology/de4sdv-basic-ontology.yaml"
+REPORT_SCHEMA = "de4sdv.model-projection-coverage/v3"
+BASELINE_SCHEMA = "de4sdv.model-authority-coverage-baseline/v3"
 KERNEL_INTERNAL_PATH = "docs/method-conformance/o4/kernel-internal-declarations.yaml"
 KERNEL_INTERNAL_SCHEMA = "de4sdv.kernel-internal-declarations/v1"
 FEATURES_DIRECTORY = "textual-notation-of-model/packages/features"
-MODE = "blocking-retained"
+MODE = "blocking"
 
 
 def _sysml_definitions(text: str) -> set[str]:
@@ -163,22 +145,18 @@ def kernel_accounting(
     internal: Mapping[str, Mapping[str, str]],
     projected: Mapping[tuple[str, str], str],
     class_pins: set[tuple[str, str]],
-    authored_pins: Mapping[tuple[str, str], str],
     feature_declarations: list[tuple[str, str]],
     directory: str,
 ) -> tuple[dict[str, Any], list[str]]:
     """Classify every governed declaration and return the accounting errors.
 
     The equation: governed declarations = projected declarations + listed
-    kernel-internal declarations (each with a reason). ``authored_pins`` are
-    the authored ontology's file mappings: until O4 Wave C2 a declaration
-    pinned only there is a ratcheted residual, never ``unclassified``.
-    ``class_pins`` are the model-projected class mappings (a subset of
-    ``projected``, which also holds relationship-carrier pins). A listed
-    kernel-internal declaration must not also be a class mapping; a carrier
-    pin may also be listed (a carrier is not ontology class vocabulary).
-    Class-mapped kernel names (in the governed directory) may be specialized
-    or imported by feature slices but never re-declared there.
+    kernel-internal declarations (each with a reason), as a disjoint union.
+    ``projected`` holds every model-projected pin (class mappings and
+    relationship-carrier pins); ``class_pins`` are the class mappings only.
+    A listed declaration must not also be projected (one home per
+    declaration). Class-mapped kernel names (in the governed directory) may
+    be specialized or imported by feature slices but never re-declared there.
     """
     errors: list[str] = []
     governed_set = set(governed)
@@ -192,9 +170,6 @@ def kernel_accounting(
             declarations[key] = {"status": "projected", "layer": layer}
         elif (file, declaration) in listed:
             declarations[key] = {"status": "excluded", "reason": str(listed[(file, declaration)])}
-        elif (file, declaration) in authored_pins:
-            declarations[key] = {"status": "residual", "reason":
-                                 f"mapped only by authored ontology YAML ({authored_pins[(file, declaration)]})"}
         else:
             declarations[key] = {"status": "residual", "reason": "unclassified governed declaration"}
             errors.append(
@@ -204,14 +179,11 @@ def kernel_accounting(
     for file, declaration in sorted(set(listed) - governed_set):
         errors.append(f"kernel accounting: {file}: listed kernel-internal declaration "
                       f"'{declaration}' does not exist (stale entry?)")
-    for file, declaration in sorted(set(listed) & set(class_pins)):
+    for file, declaration in sorted(set(listed) & set(projected)):
         errors.append(f"kernel accounting: {file}: declaration '{declaration}' is both projected "
-                      f"and listed as kernel-internal")
-    for file, declaration in sorted(set(listed) & set(authored_pins)):
-        errors.append(f"kernel accounting: {file}: declaration '{declaration}' is both "
-                      f"ontology-mapped and listed as kernel-internal")
-    protected = {declaration.split()[-1] for (file, declaration) in
-                 set(class_pins) | set(authored_pins) if _is_within(file, directory)}
+                      f"({projected[(file, declaration)]}) and listed as kernel-internal")
+    protected = {declaration.split()[-1] for (file, declaration) in set(class_pins)
+                 if _is_within(file, directory)}
     for file, declaration in feature_declarations:
         name = declaration.split()[-1]
         if name in protected:
@@ -220,133 +192,103 @@ def kernel_accounting(
     return declarations, errors
 
 
-def _layer_digests(records: list[dict[str, Any]], root: Path) -> dict[str, str]:
-    digests = {record["layer"]: mar._canonical_digest(
-        [record["projection"]["sha256"], record["profile"]["sha256"]]) for record in records}
-    digests["o3"] = mar._canonical_digest(mar.o3_chain_records(root))
+def _layer_digests(records: list[dict[str, Any]]) -> dict[str, str]:
+    digests = {}
+    for record in records:
+        if record.get("frozen"):
+            digests[record["layer"]] = mc._canonical_digest(
+                [item["sha256"] for item in record["chain"]])
+        else:
+            digests[record["layer"]] = mc._canonical_digest(
+                [record["projection"]["sha256"], record["profile"]["sha256"]])
     return digests
 
 
 def build_report(root: Path = ROOT) -> dict[str, Any]:
     root = Path(root)
-    legacy = KernelContract.load(root / ONTOLOGY_PATH)
-    records, provisions = mar.load_layers(root)
-    contract = mar.generate_successor_contract(root)
-    register = mar.load_register_rows(root)
-    routing = mar.compute_routing(legacy=legacy, provisions=provisions,
-                                  successor_contract=contract, register_rows=register)
-    digests = _layer_digests(records, root)
-    digests["successor-contract"] = contract["id"]
-    retained = sorted(n for n, r in register.items() if r.get("accounting_status") == "retained")
-    yaml_identities = set(legacy.classes) | set(legacy.relationships)
-    unregistered = sorted(yaml_identities - set(register))
-    non_retained = sorted((yaml_identities & set(register)) - set(retained))
+    records, provisions = mc.load_model_layers(root)
+    successor = mc.generate_model_successor_contract(root, records=records, provisions=provisions)
+    register = mc.load_register_rows(root)
+    routing = mc.compute_routing(
+        provisions=[p for p in provisions if p.layer != mc.O2_CHAIN_LAYER],
+        successor_contract=successor, register_rows=register,
+        seed=[p for p in provisions if p.layer == mc.O2_CHAIN_LAYER])
+    contract = KernelContract.from_layers(root)
+    digests = _layer_digests(records)
+    digests["successor-contract"] = successor["id"]
+    retired = dict(successor.get("retired") or {})
+    universe = (set(register) | set(contract.classes) | set(contract.relationships)
+                | set(contract.refused) | set(routing.providers))
     identities: dict[str, Any] = {}
-    for name in retained + unregistered + non_retained:
+    for name in sorted(universe):
+        row = register.get(name)
+        group = ("register-row" if row is not None else "model-identity")
         provision = routing.providers.get(name)
-        if name in retained:
-            group = "retained-register-row"
-        elif name in register:
-            group = "registered-non-retained-yaml-identity"
+        if provision is not None and name not in contract.refused:
+            entry = {"group": group, "status": "projected", "layer": provision.layer,
+                     "layer_digest": digests[provision.layer]}
+        elif name in retired:
+            entry = {"group": group, "status": "retired",
+                     "reason": contract.refused.get(name) or str(retired.get(name) or "")}
+        elif name in contract.refused:
+            entry = {"group": group, "status": "refused", "reason": contract.refused[name]}
         else:
-            group = "unregistered-yaml-identity"
-        if provision is not None:
-            identities[name] = {"group": group, "status": "projected", "layer": provision.layer,
-                                "layer_digest": digests[provision.layer]}
-        elif name in mar.DEPRECATED_ALIASES:
-            identities[name] = {"group": group, "status": "projected", "layer": "deprecated-alias",
-                                "layer_digest": digests["successor-contract"],
-                                "successor": mar.DEPRECATED_ALIASES[name].successor}
-        elif name in routing.residual:
-            entry = {"group": group, "status": "residual", "reason": routing.residual[name]}
-            if name in register:
-                entry["register"] = {key: register[name].get(key) for key in (
-                    "accounting_status", "migration_class", "final_disposition")}
-            identities[name] = entry
-        else:  # retired by the successor contract: answered by no provider
-            identities[name] = {"group": group, "status": "retired",
-                                "reason": "retired by the model-derived successor contract"}
+            entry = {"group": group, "status": "residual",
+                     "reason": routing.residual.get(name, "no model provider and no disposition")}
+        if row is not None:
+            entry["register"] = {key: row.get(key) for key in (
+                "accounting_status", "migration_class", "final_disposition")}
+        identities[name] = entry
     projected_pins: dict[tuple[str, str], str] = {}
-    class_pins: set[tuple[str, str]] = set()  # model-projected class mappings
+    class_pins: set[tuple[str, str]] = set()
     for name, provision in routing.providers.items():
         mapping = provision.mapping
-        if provision.layer == "o3":
-            continue
         if isinstance(mapping, KernelFileMapping):
             projected_pins.setdefault((mapping.file, mapping.declaration), provision.layer)
             class_pins.add((mapping.file, mapping.declaration))
         carrier = (provision.spec or {}).get("carrier") if isinstance(provision.spec, dict) else None
         if carrier:
             projected_pins.setdefault((carrier["file"], carrier["declaration"]), provision.layer)
-    for carrier in contract["carriers"].values():
+    for carrier in successor["carriers"].values():
         projected_pins.setdefault((carrier["file"], carrier["declaration"]), "successor-contract")
-    from .o3_bundle import _load_chain_rows
-
-    o3_rows, _entries = _load_chain_rows(root)
-    for name in mar.MIGRATED_CLASSES:
-        pin = ((o3_rows.get(name) or {}).get("grounding") or {}).get("kernel_binding_contract") or {}
-        if pin.get("source_file") and pin.get("declaration"):
-            projected_pins.setdefault((pin["source_file"], pin["declaration"]), "o3")
-            class_pins.add((pin["source_file"], pin["declaration"]))
-    yaml_pins = {}
-    for name, spec in legacy.classes.items():
-        kernel = (spec or {}).get("kernel") or {}
-        if isinstance(kernel.get("file"), str) and isinstance(kernel.get("declaration"), str):
-            yaml_pins[(kernel["file"], kernel["declaration"])] = name
     directory, internal, accounting_errors = load_kernel_internal(root)
-    # C1 transition lock (removed with the authored list in Wave C2): the
-    # manifest is the gate's source, and must not drift from the authored list.
-    authored = {file: {" ".join(d.split()): r for d, r in (entries or {}).items()}
-                for file, entries in (legacy.exclusions or {}).items()}
-    if directory != legacy.governed_directory or internal != authored:
-        accounting_errors.append(
-            f"kernel accounting: {KERNEL_INTERNAL_PATH} differs from the authored ontology "
-            "list of kernel-internal declarations (keep both equal until O4 Wave C2 retires "
-            "the authored list)")
-    directory = directory or legacy.governed_directory
+    directory = directory or contract.governed_directory
     declarations, errors = kernel_accounting(
         _governed_declarations(root, directory), internal, projected_pins, class_pins,
-        yaml_pins, _feature_declarations(root), directory)
+        _feature_declarations(root), directory)
     accounting_errors.extend(errors)
     for value in declarations.values():
         if value["status"] == "projected":
             value["layer_digest"] = digests[value["layer"]]
     residual = sorted(n for n, v in identities.items() if v["status"] == "residual")
-    if residual != sorted(routing.residual):
-        missing = sorted(set(routing.residual) - set(residual))
-        raise ValueError(f"coverage residual differs from the routing residual: {missing}")
-    retained_residual = [n for n in residual if identities[n]["group"] == "retained-register-row"]
-    unregistered_residual = [n for n in residual
-                             if identities[n]["group"] == "unregistered-yaml-identity"]
-    exceptions = [n for n in residual
-                  if identities[n]["group"] == "registered-non-retained-yaml-identity"]
+    if sorted(routing.residual) != [n for n in residual if n in routing.residual]:
+        raise ValueError("coverage residual differs from the routing residual")
     residual_declarations = sorted(k for k, v in declarations.items() if v["status"] == "residual")
+    refused = sorted(n for n, v in identities.items() if v["status"] == "refused")
+    retired_names = sorted(n for n, v in identities.items() if v["status"] == "retired")
     report = {
         "schema": REPORT_SCHEMA,
         "mode": MODE,
-        "routing_digest": mar._canonical_digest(routing.record()),
+        "routing_digest": mc._canonical_digest(routing.record()),
         "layer_digests": digests,
+        "semantic_authority": contract.identity.to_dict(),
         "duplicates": list(routing.duplicates),
         "identities": identities,
         "kernel_declarations": declarations,
         "summary": {
-            "retained_rows": len(retained),
-            "unregistered_yaml_identities": len(unregistered),
-            "registered_non_retained_yaml_identities": len(non_retained),
+            "register_rows": len(register),
+            "identities": len(identities),
             "governed_declarations": len(declarations),
             "projected_identities": sum(v["status"] == "projected" for v in identities.values()),
-            "retained_residual": len(retained_residual),
-            "unregistered_residual": len(unregistered_residual),
-            "exceptions": len(exceptions),
+            "refused": len(refused),
+            "retired": len(retired_names),
             "residual_identities": len(residual),
             "residual_declarations": len(residual_declarations),
-            "retained_residual_empty": not retained_residual,
             "residual_empty": not residual and not residual_declarations,
         },
         "residual": residual,
-        "retained_residual": retained_residual,
-        "unregistered_residual": unregistered_residual,
-        "exceptions": exceptions,
+        "refused": refused,
+        "retired": retired_names,
         "residual_declarations": residual_declarations,
         "kernel_accounting_errors": accounting_errors,
     }
@@ -360,17 +302,14 @@ def baseline_from_report(report: Mapping[str, Any]) -> dict[str, Any]:
         "note": ("Reviewed ratchet for the model-authority coverage gate. "
                  "Not revision-bound evidence; no binding block. Regenerate with "
                  "scripts/check_model_projection_coverage.py --write-baseline after "
-                 "a reviewed projection change. residual equals the runtime routing "
-                 "residual; exceptions are the owner-visible registered non-retained "
-                 "rows still served from the authored YAML (ratcheted until O4 Wave "
-                 "C2). Since O4 Wave C1 a non-empty retained_residual and any "
-                 "kernel-accounting error block regardless of this baseline."),
+                 "a reviewed projection change. Any residual identity or declaration "
+                 "and any kernel-accounting error block regardless of this baseline "
+                 "(O4 Wave C2); refused and retired list the identities answered only "
+                 "with their disposition."),
         "routing_digest": report["routing_digest"],
         "layer_digests": dict(report["layer_digests"]),
-        "residual": list(report["residual"]),
-        "retained_residual": list(report["retained_residual"]),
-        "exceptions": list(report["exceptions"]),
-        "residual_declarations": list(report["residual_declarations"]),
+        "refused": list(report["refused"]),
+        "retired": list(report["retired"]),
     }
 
 
@@ -385,21 +324,22 @@ def load_baseline(root: Path = ROOT, path: str = BASELINE_PATH) -> dict[str, Any
 
 def compare(report: Mapping[str, Any], baseline: Mapping[str, Any]) -> list[str]:
     errors = []
-    # Absolute (O4 Wave C1): never satisfiable by updating the baseline.
-    for name in report["retained_residual"]:
-        errors.append(f"retained residual is blocking: {name!r} is a retained register row "
-                      "without a model-projected provider")
+    # Absolute (O4 Wave C2): never satisfiable by updating the baseline.
+    for name in report["residual"]:
+        errors.append(f"residual is blocking: {name!r} has no model-projected provider")
+    for name in report["residual_declarations"]:
+        errors.append(f"residual is blocking: governed declaration {name!r} is unclassified")
     errors.extend(report.get("kernel_accounting_errors") or ())
-    if baseline.get("mode") != MODE:
-        errors.append(f"baseline mode {baseline.get('mode')!r} is not {MODE!r}")
     for name in report["duplicates"]:
         errors.append(f"duplicate provider: {name}")
-    for key in ("residual", "retained_residual", "exceptions", "residual_declarations"):
+    if baseline.get("mode") != MODE:
+        errors.append(f"baseline mode {baseline.get('mode')!r} is not {MODE!r}")
+    for key in ("refused", "retired"):
         current, recorded = set(report[key]), set(baseline.get(key) or ())
         for name in sorted(current - recorded):
-            errors.append(f"residual drift: new {key} entry {name!r} not in the baseline")
+            errors.append(f"{key} drift: {name!r} is {key} but not in the baseline")
         for name in sorted(recorded - current):
-            errors.append(f"residual drift: {key} entry {name!r} resolved; update the baseline")
+            errors.append(f"{key} drift: baseline lists {name!r} as {key}; update the baseline")
     if report["routing_digest"] != baseline.get("routing_digest"):
         errors.append("routing digest differs from the baseline (provider set changed)")
     if dict(report["layer_digests"]) != dict(baseline.get("layer_digests") or {}):
@@ -408,18 +348,19 @@ def compare(report: Mapping[str, Any], baseline: Mapping[str, Any]) -> list[str]
 
 
 def bundle_errors(report: Mapping[str, Any], bundle: Mapping[str, Any], root: Path = ROOT) -> list[str]:
-    """A bundle must bind exactly the checkout's routing and layer bytes."""
+    """A bundle must bind exactly the checkout's routing, layers and authority."""
     components = (bundle or {}).get("components") or {}
     errors = []
-    if mar._canonical_digest(components.get("routing")) != report["routing_digest"]:
+    if mc._canonical_digest(components.get("routing")) != report["routing_digest"]:
         errors.append("bundle routing digest differs from the checkout")
-    recorded = {r.get("layer"): mar._canonical_digest(
-        [r["projection"]["sha256"], r["profile"]["sha256"]]) for r in components.get("layers") or ()}
-    current = {k: v for k, v in report["layer_digests"].items() if k not in ("o3", "successor-contract")}
+    recorded = _layer_digests(list(components.get("layers") or ()))
+    current = {k: v for k, v in report["layer_digests"].items() if k != "successor-contract"}
     if recorded != current:
         errors.append("bundle layer digests differ from the checkout")
     if (components.get("successor_contract") or {}).get("id") != report["layer_digests"]["successor-contract"]:
         errors.append("bundle successor contract differs from the checkout")
+    if components.get("semantic_authority") != report["semantic_authority"]:
+        errors.append("bundle semantic authority differs from the checkout")
     return errors
 
 
@@ -433,7 +374,7 @@ def run_check_errors(root: Path = ROOT) -> list[str]:
 
 
 def render_baseline(baseline: Mapping[str, Any]) -> str:
-    header = ("# Model-authority coverage baseline (ratchet; retained residual blocking; "
+    header = ("# Model-authority coverage baseline (ratchet; any residual blocking; "
               "no binding block).\n")
     return header + yaml.safe_dump(dict(baseline), sort_keys=False, width=100)
 

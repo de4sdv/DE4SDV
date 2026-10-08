@@ -38,131 +38,60 @@ Domain concepts and relationships.
   assets.
 - ADRs record System 3 decisions that shape System 2 capabilities.
 
-## Minimal increment ontology kernel
+## Where the DE4SDV vocabulary lives
 
-[`de4sdv-basic-ontology.yaml`](de4sdv-basic-ontology.yaml) defines the current
-minimal vocabulary for SYSMOD/SysML v2 increments. It is intentionally lightweight:
+The DE4SDV method vocabulary lives in the SysML v2 method kernel
+(`textual-notation-of-model/packages/methods/de4sdv/`) and reaches consumers
+through model-generated projection layers. The authored basic-ontology YAML
+that used to sit in this directory was deleted in O4 Wave C2 (owner decision 6:
+delete at closure, no generated YAML copy). There is one semantic authority:
 
-- no OWL/OML/openCAESAR toolchain is adopted by this file,
-- no formal reasoning or SHACL validation is enabled yet,
-- terms exist to keep feature increments, SAF viewpoints, requirements,
-  architecture elements, evidence, and baselines semantically consistent.
+| What | Where |
+|---|---|
+| Definitions, typed ends, carriers, successor and retirement records | the method kernel `.sysml` files |
+| Class and relationship mappings (identity → kernel declaration, native construct or external artifact; domain/range; mechanics) | the generated projection/profile pairs under `docs/method-conformance/o4/` and `docs/method-conformance/o2plus/`, plus the frozen O2 chain under `docs/method-conformance/o2/` |
+| The runtime kernel contract built from them | `KernelContract.from_layers` (`de4sdv/semantic/model_contract.py`) |
+| Kernel declarations that are deliberately not projected vocabulary, each with a reason | `docs/method-conformance/o4/kernel-internal-declarations.yaml` |
+| Validation rules R001–R010 | `de4sdv_ontology_validation_rules.sysml` (one model home per rule) |
+| Kernel accounting gate | `de4sdv/semantic/model_projection_coverage.py` |
+
+The vocabulary stays intentionally lightweight: no OWL/OML/openCAESAR
+toolchain is adopted, and no formal reasoning or SHACL validation is enabled.
 
 ### Query coverage (executable semantic queries)
 
-The relationships block distinguishes vocabulary from executable query
-surface. Only relationships carrying a `sysml_mapping` block are traversable
-through the revision-bound semantic API; the rest are vocabulary whose links
-live natively in the model, in external records, or in review artifacts, and
-are not returned by semantic queries:
+Only relationships whose projection row carries executable mechanics are
+traversable through the revision-bound semantic API; the rest are vocabulary
+whose links live natively in the model, in external records, or in review
+artifacts:
 
-| Relationship | Mapping strategy | Queryable |
+| Relationship | Mapping strategy | Semantic strength |
 |---|---|---|
-| `realizedBy` | `allocation` (outgoing AllocationUsage) | yes |
-| `specifiesFunction` | `dependency` (outgoing, action-typed targets) | yes |
-| `hasRelevantArchitecture` | `dependency` (incoming, part/action-typed sources, member-product lineage excluded) | yes |
-| `verifiedBy` | `verification-membership` (reverse) | yes |
+| `allocatedTo` | successor (native `AllocationUsage`, three governed end pairs) | allocation |
+| `specifiesFunction` | `dependency` (outgoing, action-typed targets) | relevance |
+| `hasRelevantArchitecture` | `dependency` (incoming, part/action-typed sources, member-product lineage excluded) | relevance |
+| `hasRelevantEvidenceContract` | `dependency` (incoming; range = the EvidenceContract type closure) | relevance |
+| `verifiedBy` | `verification-membership` (reverse) | native-verification |
+| `hasSubject` | `subject-membership` | native-reference |
+| `derivesRequirementFromNeed` | `derivation-connection` (inverse over the `DerivesFromNeed` witness) | derivation |
+| `derivedRequirementsOfNeed` | `derivation-connection` (forward over the same witness) | derivation |
+| `hasValidationScenario` / `validationScenarioFor` | successor (typed carrier connection) | validation-planning |
+| `hasRegulatorySource` | successor (typed carrier connection) | source-provenance |
 | `hasEvidence` | `external` (evidence registers) | external data required |
-| `hasSubject` | `subject-membership` | yes |
-| `hasRelevantEvidenceContract` | `dependency` (incoming, requirement-usage sources) | yes |
-| `derivesRequirementFromNeed` | `derivation-connection` (inverse over the `DerivesFromNeed` witness) | yes |
-| `derivedRequirementsOfNeed` | `derivation-connection` (forward over the same witness) | yes |
-| all other relationships | none declared | no — model/review artifacts |
 
-The two relevance-direction predicates are deliberately disjoint:
-`specifiesFunction` follows dependencies from the requirement to
-action-typed targets; `hasRelevantArchitecture` follows dependencies into
-the requirement from part/action-typed sources. `hasRelevantEvidenceContract`
-restricts sources to requirement usages (evidence contracts and acceptance
-criteria are requirement usages in the kernel), so no dependency edge is
-reported under two predicates. Sources whose type specializes the kernel
-`ProductLineMemberProduct` declaration are excluded from
-`hasRelevantArchitecture`: configured-product traces are product-line
-relationships, not architecture relevance. Canonical kernel identity is
-established exactly once at ingestion, when ontology/API binding validation
-confirms the API type/name against the serializer-recorded source document,
-and the validated UUID is persisted in the revision binding's kernel
-bindings. Runtime traversal pins that UUID against the API graph and never
-re-derives identity from element names or SysML source text (ADR 0011: no
-custom textual parser, no source-derived runtime semantics). The behavior
-contract is: canonical declaration present and an unrelated same-named
-declaration elsewhere — the canonical element grounds and the homonym
-cannot borrow the mapping; canonical declaration absent from the bound
-revision — `IdentityNotFoundError` even when unrelated homonyms survive;
-more than one genuinely grounded canonical candidate — rejected as
-ambiguous at ingestion time. Both lineage definitions and usages typed by
-lineage definitions are excluded, so specialized product definitions
-cannot pose as architecture sources either.
+The former names `realizedBy`, `deployedTo`, `validatedBy`,
+`validatesFitnessForUse` and `constrainedBy` are retired: the runtime refuses
+them with `retired; use <successor>` (owner decision D4); their model
+retirement records in `de4sdv_relationship_carriers.sysml` are kept.
+`IncrementTraceabilityShell` and `derivesNeedFromConcern` are refused with
+their register disposition (owner decision D5).
 
-Absence of a hop is not proof that no model relationship exists: a "no
-allocation" result from `realizedBy` says nothing about relevance
-dependencies, and external evidence is never traversed. The impact service
-separates the two architecture conditions: `architecture` means neither
-allocation nor reverse relevance exists; `architecture-allocation` means
-relevance dependencies exist while no AllocationUsage allocates the
-requirement — relevance is not allocation. Requirement
-derivation is one modeled semantic fact: the DE4SDV application connection
-definition `DerivesFromNeed` with typed ends `need : StakeholderNeedCandidate`
-and `derivedRequirement : RequirementCandidate`, whose owned model
-documentation carries the meaning and claim boundary (design-input provenance
-only: no satisfaction, allocation, verification, evidence, or acceptance
-claim). The two query predicates in the coverage table above traverse that
-same connection witness — they are not two independent relationships.
-`derivesRequirementFromNeed` is the canonical query (`Requirement -> Need`,
-inverse over the witness); `derivedRequirementsOfNeed` is the companion
-navigation (`Need -> Requirement`, forward over the same witness). The
-model-native definition is semantic authority for the pair: the typed ends
-carry role/domain/range grounding and the model documentation carries meaning;
-this YAML records the declared mappings and acts as the parity oracle, not as
-the pair's semantic authority. The `derivation-connection` strategy is
-implemented in the runtime and fails closed.
-
-Presence coverage is enforced by sync point 6 in
-`scripts/check_model_sync.py` (rule R003): each design-input requirement usage
-must carry at least one outgoing derivation trace — a `dependency` edge or a
-`DerivesFromNeed` connection witness read as its inverse — whose target
-resolves, through the model-wide declaration index and specialization closure,
-to a semantic type grounding Need (`StakeholderNeedCandidate`),
-RegulatoryConstraint (`RegulatoryConstraintCandidate`), or
-ArchitectureDecisionRecord (`ArchitectureDecisionRecord`). Identifier
-prefixes are never consulted; the origin groundings are declared in the R003
-`origin_groundings` block of this ontology. The standard Requirement
-Derivation Domain Library remains pinned but not adopted for this pair (its
-`originalImpliesDerived` constraint would overclaim the intended
-provenance-only semantics), and no SemanticMetadata workaround is in use.
-Projection support promotion for the pair requires a structured,
-exact-revision closure attestation (see `docs/method-conformance/k-slice/`);
-there is no boolean shortcut.
-
-### Kernel sync
-
-The YAML is not a free-floating word list: every class carries a `kernel`
-mapping stating where its semantics actually live:
-
-- `file` + `declaration` — a SysML declaration in the method kernel
-  (for example `part def EngineeringIncrement` in
-  `de4sdv_method_context.sysml`);
-- `native` — a native SysML v2 language construct (`variation`, `variant`,
-  `viewpoint def`, `verification def`, and so on) rather than a kernel
-  declaration;
-- `external` — an artifact outside the SysML model (the feature catalogue and
-  Bill-of-Features records, the ODE4HERA requirements-management library, or
-  evidence registers).
-
-The `kernel_sync` block makes the vocabulary contract bidirectional and
-complete:
-
-- `governed_directory` names the method-kernel directory whose declarations
-  are under contract;
-- `exclusions` lists every kernel declaration that is deliberately not
-  ontology vocabulary, each with a reason.
-
-The ontology-kernel contract check in `scripts/check_model_sync.py` enforces
-the set equation `kernel declarations = ontology-mapped declarations +
-exclusions` as exact `(file, declaration)` pairs, so the ontology cannot
-silently drift from the model in either direction. The gate runs as part of
-`python scripts/check_repo.py`, and its failure modes are covered by
-`tests/test_ontology_kernel_contract.py`.
+Absence of a hop is not proof that no model relationship exists, and external
+evidence is never traversed. Canonical kernel identity is established exactly
+once at ingestion, when the kernel/API binding validation confirms the API
+type and name against the serializer-recorded source document; runtime
+traversal pins that UUID and never re-derives identity from element names or
+SysML source text (ADR 0011).
 
 ### Terminology alignment
 
@@ -170,46 +99,7 @@ Status vocabulary is not redefined here: requirement and verification status
 come from the ODE4HERA requirements-management library (`ReqStatus`,
 `VVStatus`) adopted via ADR 0009 through the method-context adapter. Needs are
 modeled as `StakeholderNeedCandidate` specializations and design-input
-requirements as `RequirementCandidate` specializations; the ontology's `Need`
-and `Requirement` classes map to those kernel declarations. Product-line
-classes map to `DE4SDV_ProductLine` (`CommonProductLineCapability`,
+requirements as `RequirementCandidate` specializations. Product-line classes
+map to `DE4SDV_ProductLine` (`CommonProductLineCapability`,
 `ProductLineFeatureCandidate`), which enforces the ISO/IEC 26580-aligned rule
 that a characteristic is only a feature once it distinguishes member products.
-
-## Candidate ontology elements
-
-Superseded: the concepts previously listed here as draft candidates
-(`SDVProductLine`, `ConfiguredSDVVariant`, `FeatureConfiguration`,
-`EvidenceBaseline`, and others) now exist as concrete kernel declarations or
-kernel mappings in `de4sdv-basic-ontology.yaml`. See the `kernel_sync`
-section of that file for the current class-to-declaration mapping.
-
-
-## Executable SysML traversal mappings
-
-Relationships may declare an executable `sysml_mapping` block. Strategies are
-bound to the native SysML v2 API representation of the reviewed model:
-
-- `dependency` — `Dependency` objects with `source`/`target` references;
-  semantic strength `relevance`.
-- `allocation` — `AllocationUsage` objects; semantic strength `allocation`.
-- `subject-membership` — native `SubjectMembership` objects owned by a
-  requirement usage, referencing the product-line subject through
-  `memberElement`; semantic strength `native-reference`.
-- `verification-membership` — native `RequirementVerificationMembership`
-  objects referencing the verified requirement through `verifiedRequirement`;
-  the verification case is resolved from the membership owner; semantic
-  strength `native-verification`.
-- `external` — the authoritative object lives outside the SysML API baseline.
-- `derivation-connection` — the DE4SDV application connection definition
-  `DerivesFromNeed` (typed ends `need : StakeholderNeedCandidate`,
-  `derivedRequirement : RequirementCandidate`) over native connection usages;
-  the canonical query traverses it inversely (`Requirement -> Need`) and the
-  companion query forward (`Need -> Requirement`) over the same witness;
-  semantic strength `derivation`.
-
-These mappings are the explicit contract between DE4SDV concepts and SysML
-semantics. Traversal uses only these declared strategies; there is no
-name-based or heuristic inference. The bounded test fixture keeps its own
-simplified shapes for deterministic tests and does not define production
-semantics.

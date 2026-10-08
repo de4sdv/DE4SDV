@@ -1,16 +1,25 @@
-"""Approved extensions are accounted model vocabulary, never closure claims."""
+"""Approved extensions are accounted model vocabulary, never closure claims.
+
+O4 Wave C2: the authored ontology and the O1 inventory generator are gone.
+Mappings are read from the model-built kernel contract, the reviewed O1
+decisions from their frozen record, the documentation observation from the
+generated definition-batch-2 projection row, and the kernel accounting from
+the model-projection coverage gate.
+"""
 import json
 from pathlib import Path
 import re
 
 import pytest
+import yaml
 
-from de4sdv.semantic import authority_inventory as ai
-from de4sdv.semantic.kernel_contract import KernelContract
-from de4sdv.semantic.o3_bundle import MIGRATED_IDENTITIES
+from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
+from model_contract_fixtures import model_contract
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml"
+DECISIONS_PATH = "docs/method-conformance/o1/authority-review-decisions.yaml"
+BATCH2_PATH = "docs/method-conformance/o4/definition-batch2-projection.json"
 ASSURANCE_RECORDS = (
     "EvidenceSupportCitation",
     "ScopedVVActivityRecord",
@@ -31,15 +40,23 @@ RELATIONSHIP_EXTENSIONS = {
 EXTENSIONS = ASSURANCE_RECORDS + TRACE_RECORDS + tuple(RELATIONSHIP_EXTENSIONS)
 
 
+def _decisions():
+    """The reviewed O1 decisions (a frozen O1 record)."""
+    return yaml.safe_load((ROOT / DECISIONS_PATH).read_text())["entries"]
+
+
+def _observation(identity):
+    rows = {r["identity"]: r for r in json.loads((ROOT / BATCH2_PATH).read_text())["rows"]}
+    return rows[identity]["definition"]["documentation_observation"]
+
+
 @pytest.mark.parametrize("identity", ASSURANCE_RECORDS)
 def test_assurance_extension_has_exact_model_mapping_and_no_closure_promotion(identity):
-    contract = KernelContract.load(ROOT / ai.ONTOLOGY_PATH)
+    contract = model_contract()
     assert contract.classes[identity]["kernel"] == {
         "file": MODEL, "declaration": f"item def {identity}"}
-    decisions = ai.load_reviewed_decisions(ROOT / ai.DECISIONS_PATH)
-    observed = ai.observed_entries(ROOT, contract, decisions)
-    assert observed[identity]["observed"]["doc_text_observation"] == "normalized-exact"
-    reviewed = decisions["entries"][identity]
+    assert _observation(identity) == "normalized-exact"
+    reviewed = _decisions()[identity]
     assert reviewed["evidence_state"] == "proposed"
     assert reviewed["adoption_status"] == "not-applicable"
     assert reviewed["closure_evidence_ref"] is None
@@ -56,57 +73,66 @@ def test_historical_o4_review_population_is_not_silently_expanded():
     assert {r["identity"] for r in rows if r["o3_protected"]} == set(MIGRATED_IDENTITIES)
 
 
-def test_integrated_inventory_accounts_for_all_new_records_without_waiving_coverage():
-    contract = KernelContract.load(ROOT / ai.ONTOLOGY_PATH)
-    decisions = ai.load_reviewed_decisions(ROOT / ai.DECISIONS_PATH)
-    observed = ai.observed_entries(ROOT, contract, decisions)
-    assert set(observed) == set(decisions["entries"])
-    assert not ai.validate_inventory(
-        observed, decisions, ai.load_closure_records(ROOT / ai.CLOSURE_PATH),
-        ai.strategy_accounting(ROOT, contract, decisions))
+def test_every_new_record_is_reviewed_and_model_mapped_without_waiving_coverage():
+    """Replaces the O1 inventory join: every extension has a reviewed decision,
+    a model-built mapping and a generated row, and coverage stays exact."""
+    from de4sdv.semantic import model_projection_coverage as coverage
+    contract, decisions = model_contract(), _decisions()
+    for identity in EXTENSIONS:
+        assert identity in decisions, identity
+        assert identity in contract.classes, identity
+        assert _observation(identity) == "normalized-exact", identity
+    report = coverage.build_report(ROOT)
+    assert report["residual"] == [] and report["residual_declarations"] == []
+    assert report["duplicates"] == [] and report["kernel_accounting_errors"] == []
+    assert set(EXTENSIONS) <= {n for n, v in report["identities"].items() if v["status"] == "projected"}
 
 
 @pytest.mark.parametrize("identity,declaration", RELATIONSHIP_EXTENSIONS.items())
 def test_relationship_extension_is_ingestable_but_not_promoted(identity, declaration):
-    contract = KernelContract.load(ROOT / ai.ONTOLOGY_PATH)
+    contract = model_contract()
     assert identity in contract.classes
     assert contract.classes[identity]["kernel"] == {
         "file": RELATIONSHIP_MODEL, "declaration": declaration}
-    decisions = ai.load_reviewed_decisions(ROOT / ai.DECISIONS_PATH)
-    row = decisions["entries"][identity]
+    row = _decisions()[identity]
     assert row["evidence_state"] == "proposed"
     assert row["closure_evidence_ref"] is None
     assert row["transition_gate"]
     assert row["semantic_text_equivalence"] is None
-    observed = ai.observed_entries(ROOT, contract, decisions)
-    assert observed[identity]["observed"]["doc_text_observation"] == "normalized-exact"
+    assert _observation(identity) == "normalized-exact"
     assert identity not in MIGRATED_IDENTITIES
 
 
-@pytest.mark.parametrize("identity,native", [
-    ("Function", "SysML v2 action/state/behavior definitions in functional-architecture slices"),
-    ("LogicalElement", "part def elements in logical-architecture slices"),
-    ("PhysicalElement", "part def elements in physical/software realization slices"),
-    ("ValidationScenario", "Scenario parts with bounded validation outcomes (for example passBoundedValidation)"),
+@pytest.mark.parametrize("identity,owner", [
+    ("Function", "AllocatableFunction"),
+    ("LogicalElement", "LogicalAllocationElement"),
+    ("PhysicalElement", "PhysicalAllocationElement"),
+    ("ValidationScenario", "ValidationPlanningScenario"),
 ])
-def test_successor_extension_does_not_rewrite_predecessor_mapping(identity, native):
-    contract = KernelContract.load(ROOT / ai.ONTOLOGY_PATH)
-    assert contract.classes[identity]["kernel"] == {"native": native}
+def test_successor_endpoint_class_borrows_its_extension_pin(identity, owner):
+    """Replaces the predecessor-native-mapping check: since Wave B the model
+    successor pins the natively represented endpoint class to its unique
+    extension specialization, and ingestion binds the pin under the owner only."""
+    contract = model_contract()
+    assert contract.classes[identity]["kernel"] == contract.classes[owner]["kernel"]
+    assert contract.lineage_pinned[identity] == owner
 
 
-def test_all_successor_pins_can_route_from_real_ontology_mapping_names():
+def test_all_successor_pins_can_route_from_real_ingestion_class_names():
     """Synthetic binding metadata proves wiring, not licensed ingestion/readback."""
     from types import SimpleNamespace
     from de4sdv.sysml_api.revisions import KernelElementBinding
-    from de4sdv.semantic.relationship_successor_contract import generate_contract
     from de4sdv.semantic.relationship_successor import route_successor_bindings
+    from model_contract_fixtures import model_facade
 
-    ontology = KernelContract.load(ROOT / ai.ONTOLOGY_PATH)
-    profile = generate_contract(ROOT)
+    contract = model_contract()
+    profile = model_facade().profile
     pins = {**profile["classes"], **profile["carriers"]}
     bindings = []
     for pin in pins.values():
-        matches = [name for name, row in ontology.classes.items() if row.get("kernel") == pin]
+        # One ingestion binding per pin, under its owning (non-borrowed) class.
+        matches = [name for name, row in contract.classes.items()
+                   if row.get("kernel") == pin and name not in contract.lineage_pinned]
         assert len(matches) == 1, pin
         name = matches[0]
         bindings.append(KernelElementBinding(name, "synthetic-fixture-" + name,
@@ -130,13 +156,11 @@ def test_all_successor_pins_can_route_from_real_ontology_mapping_names():
 
 @pytest.mark.parametrize("identity", TRACE_RECORDS)
 def test_trace_extension_has_exact_model_mapping_without_runtime_admission(identity):
-    contract = KernelContract.load(ROOT / ai.ONTOLOGY_PATH)
+    contract = model_contract()
     assert contract.classes[identity]["kernel"] == {
         "file": TRACE_MODEL, "declaration": f"part def {identity}"}
-    decisions = ai.load_reviewed_decisions(ROOT / ai.DECISIONS_PATH)
-    observed = ai.observed_entries(ROOT, contract, decisions)
-    assert observed[identity]["observed"]["doc_text_observation"] == "normalized-exact"
-    row = decisions["entries"][identity]
+    assert _observation(identity) == "normalized-exact"
+    row = _decisions()[identity]
     assert row["evidence_state"] == "proposed"
     assert row["closure_evidence_ref"] is None
     assert row["transition_gate"]
@@ -144,13 +168,13 @@ def test_trace_extension_has_exact_model_mapping_without_runtime_admission(ident
     assert identity not in MIGRATED_IDENTITIES
 
 
-@pytest.mark.parametrize("identity", ("TraceLink", "RequiredTraceChain", "IncrementTraceabilityShell"))
+@pytest.mark.parametrize("identity", ("TraceLink", "RequiredTraceChain"))
 def test_historical_trace_identity_is_retained_but_not_a_successor_witness(identity):
-    contract = KernelContract.load(ROOT / ai.ONTOLOGY_PATH)
+    contract = model_contract()
     mapping = contract.classes[identity]["kernel"]
     assert set(mapping) == {"external"}
     assert "Historical pre-Topic-5" in mapping["external"]
-    row = ai.load_reviewed_decisions(ROOT / ai.DECISIONS_PATH)["entries"][identity]
+    row = _decisions()[identity]
     assert row["authority_current"] == "legacy-yaml"
     assert row["evidence_state"] == "repository-evidenced"
     assert row["closure_evidence_ref"] is None
@@ -158,7 +182,17 @@ def test_historical_trace_identity_is_retained_but_not_a_successor_witness(ident
     assert any("whole-consumer migration" in text for text in row["required_evidence"])
 
 
+def test_merged_trace_shell_is_refused_with_its_register_disposition():
+    """O4 Wave C2 (owner decision D5): IncrementTraceabilityShell is refused."""
+    from de4sdv.semantic.kernel_contract import RetiredIdentityError
+    contract = model_contract()
+    assert "IncrementTraceabilityShell" not in contract.classes
+    with pytest.raises(RetiredIdentityError, match="merged into RequiredTraceChain"):
+        contract.mapping("IncrementTraceabilityShell")
+
+
 def test_reusable_stakeholder_roles_and_relationship_carrier_are_not_authority_grants():
+    from de4sdv.semantic import model_projection_coverage as coverage
     prefix = "textual-notation-of-model/packages/methods/de4sdv/"
     text = (ROOT / prefix / "de4sdv_stakeholders.sysml").read_text()
     code = re.sub(r"/\*.*?\*/|//[^\n]*", " ", text, flags=re.S)
@@ -172,12 +206,13 @@ def test_reusable_stakeholder_roles_and_relationship_carrier_are_not_authority_g
     assert set(declarations) == roles
     assert len(declarations) == len(roles)
     assert not re.search(r"\bindividual\s+(?:part|item)\s+def\b", code)
-    contract = KernelContract.load(ROOT / ai.ONTOLOGY_PATH)
+    contract = model_contract()
     assert contract.relationships["hasStakeholder"]["domain"] == "EngineeringIncrement"
     assert contract.relationships["hasStakeholder"]["range"] == "Stakeholder"
     assert "sysml_mapping" not in contract.relationships["hasStakeholder"]
-    kernel = ai.kernel_accounting(ROOT, contract)
-    assert kernel.governed_declarations == kernel.mapped_in_directory + kernel.exclusions
+    report = coverage.build_report(ROOT)
+    assert not report["kernel_accounting_errors"]
+    assert not report["residual_declarations"]
 
 
 def _constructor_record(name, kind, **values):
@@ -206,10 +241,10 @@ def successor_constructor_parts():
 
 
 class _ClassPin(str):
-    """Synthetic ontology class pin: renders as no model text at all.
+    """Synthetic class pin: renders as no model text at all.
 
-    Class identities are ontology kernel mappings, never records inside the
-    model; the constructor overlay writes these pins into a synthetic ontology.
+    Class identities are projection-layer class mappings, never records inside
+    the model; the constructor passes these pins as ``class_pins``.
     """
 
     def __new__(cls, identity, file, declaration):
@@ -250,21 +285,13 @@ class _SourcedModel(str):
         return _SourcedModel(str(self), self.pins + list(pins))
 
 
-def _ontology_with_pins(model):
-    """Overlay the authored ontology with exactly the synthetic class pins."""
-    import yaml
-    pins = getattr(model, "pins", [])
-    document = {"classes": {pin.identity: {"kernel": {"file": pin.file, "declaration": pin.declaration}}
-                            for pin in pins}}
-    return yaml.safe_dump(document)
-
-
 def _synthetic_constructor(monkeypatch, sources):
     """Overlay synthetic sources; unrelated program digests are not under test."""
     from de4sdv.semantic import relationship_successor_contract as construction
     original_text, original_bytes = Path.read_text, Path.read_bytes
-    sources = {path: str(text) for path, text in sources.items()} | {
-        construction.ONTOLOGY: _ontology_with_pins(sources[RELATIONSHIP_MODEL])}
+    pins = {pin.identity: {"file": pin.file, "declaration": pin.declaration}
+            for pin in getattr(sources[RELATIONSHIP_MODEL], "pins", [])}
+    sources = {path: str(text) for path, text in sources.items()}
     overlays = {ROOT / path: text for path, text in sources.items()}
 
     def read_text(path, *args, **kwargs):
@@ -277,7 +304,7 @@ def _synthetic_constructor(monkeypatch, sources):
         scoped.setattr(construction, "PROGRAM_INPUTS", ())
         scoped.setattr(Path, "read_text", read_text)
         scoped.setattr(Path, "read_bytes", read_bytes)
-        return construction.generate_contract(ROOT)
+        return construction.generate_contract(ROOT, class_pins=pins, pin_inputs=())
 
 
 @pytest.mark.parametrize("fragment", ["version", "carrier", "source", "target"])

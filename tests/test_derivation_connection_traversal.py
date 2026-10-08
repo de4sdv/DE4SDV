@@ -20,10 +20,10 @@ from de4sdv.sysml_api.errors import IdentityNotFoundError
 from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
 from de4sdv.semantic.kernel_contract import KernelContract
 from de4sdv.semantic.traversal import SemanticTraversal
+from model_contract_fixtures import model_contract  # noqa: E402
 
 ROOT = None  # set in _contract via package path below
 
-CONTRACT_PATH = "approach/framework/ontology/de4sdv-basic-ontology.yaml"
 
 REQ_ID = "req-uuid-0001"
 NEED_ID = "need-uuid-0002"
@@ -35,11 +35,42 @@ NEED_DEF_ID = "needdef-uuid-0022"
 REQ_DEF_ID = "reqdef-uuid-0021"
 
 
-def _contract() -> KernelContract:
-    import pathlib
+class _RecordContract:
+    """A mutable copy of the model-built contract's records.
 
-    root = pathlib.Path(__file__).resolve().parents[1]
-    return KernelContract.load(root / CONTRACT_PATH)
+    Tests in this module (and the projection v0 / K parity tests that import
+    it) tamper with ``classes`` / ``relationships`` in place; mappings are
+    re-derived from the current records on every call through
+    ``KernelContract.from_records``, so a tampered record takes effect. The
+    shared cached contract is never mutated.
+    """
+
+    def __init__(self) -> None:
+        import copy
+
+        real = model_contract()
+        self.identity = real.identity
+        self.refused = dict(real.refused)
+        self.lineage_pinned = dict(real.lineage_pinned)
+        self.classes = copy.deepcopy(real.classes)
+        self.relationships = copy.deepcopy(real.relationships)
+
+    def _view(self) -> KernelContract:
+        return KernelContract.from_records(classes=self.classes, relationships=self.relationships,
+                                           identity=self.identity, refused=self.refused)
+
+    def mapping(self, name):
+        return self._view().mapping(name)
+
+    def class_mapping(self, name):
+        return self._view().class_mapping(name)
+
+    def relationship_mapping(self, name):
+        return self._view().relationship_mapping(name)
+
+
+def _contract():
+    return _RecordContract()
 
 
 def _binding_entry(ontology_class, element_id, declaration):

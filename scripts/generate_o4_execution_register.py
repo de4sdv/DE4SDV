@@ -400,9 +400,9 @@ def o3_identities() -> list[str]:
     """The frozen O3 13 from the runtime code (single source of truth)."""
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
-    from de4sdv.semantic.o3_bundle import MIGRATED_IDENTITIES
+    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES
 
-    return list(MIGRATED_IDENTITIES)
+    return list(O2_CHAIN_IDENTITIES)
 
 
 def row_text(row: dict[str, Any]) -> str:

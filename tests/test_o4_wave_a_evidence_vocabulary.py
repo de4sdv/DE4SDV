@@ -17,7 +17,6 @@ KERNEL = "textual-notation-of-model/packages/methods/de4sdv/"
 ASSURANCE = KERNEL + "de4sdv_scoped_assurance.sysml"
 CONTEXT = KERNEL + "de4sdv_method_context.sysml"
 OPERATIONAL = KERNEL + "de4sdv_operational_context.sysml"
-ONTOLOGY = "approach/framework/ontology/de4sdv-basic-ontology.yaml"
 
 # role name -> (file, annotated elements, required phrases)
 ROLES = {
@@ -111,11 +110,20 @@ def test_status_successor_adds_no_universal_status_enum_and_keeps_legacy_name():
         assert not re.search(r"\battribute\s+def\b", active), (path.name, "attribute def outside the pinned kernel")
     active = re.sub(r"/\*.*?\*/", " ", (ROOT / ASSURANCE).read_text(), flags=re.S)
     assert re.search(r"attribute\s+status\s*:\s*VVStatus\s*;", active)
-    ontology = yaml.safe_load((ROOT / ONTOLOGY).read_text())
-    # Old YAML names stay until the authored ontology is retired (Wave C).
-    assert ontology["relationships"]["hasEvidenceStatus"] == {"domain": "EvidenceArtifact", "range": "EvidenceStatus"}
-    assert ontology["relationships"]["supportedByEvidence"] == {"domain": "AssuranceClaim", "range": "EvidenceArtifact"}
-    assert ontology["relationships"]["hasEvidence"]["sysml_mapping"]["strategy"] == "external"
+    # The old names stay vocabulary of the model-built contract (O4 Wave C2:
+    # the authored YAML is deleted; the batch-2 projection rows carry them).
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from model_contract_fixtures import model_contract
+
+    contract = model_contract()
+    for name, (domain, range_) in {"hasEvidenceStatus": ("EvidenceArtifact", "EvidenceStatus"),
+                                   "supportedByEvidence": ("AssuranceClaim", "EvidenceArtifact")}.items():
+        spec = contract.relationships[name]
+        assert (spec["domain"], spec["range"]) == (domain, range_), name
+        assert "sysml_mapping" not in spec, name
+    assert contract.relationship_mapping("hasEvidence").strategy == "external"
 
 
 def test_external_boundary_rows_gain_no_model_content_mirror():

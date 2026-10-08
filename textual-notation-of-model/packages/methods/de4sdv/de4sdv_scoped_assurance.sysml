@@ -73,8 +73,8 @@ package DE4SDV_ScopedAssurance {
    * enum is introduced. Artifact maturity, evidence-set adequacy and authority
    * acceptance stay separate, and Completed never means passed or accepted.
    * Retirement: hasEvidenceStatus takes no new model usage; consumers move to
-   * this successor in a reviewed runtime change, and the legacy predicate is
-   * then removed with the authored ontology. */
+   * this successor in a reviewed runtime change, which then retires the
+   * legacy predicate (the authored ontology that declared it is removed). */
 
   item def EvidenceSupportCitation {
     doc /* supportedByEvidence cites one identified artifact as support for an

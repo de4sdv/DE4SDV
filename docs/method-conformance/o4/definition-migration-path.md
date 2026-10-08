@@ -29,16 +29,13 @@ remaining legacy dependency stays visible and is never hidden.
 
 ## Selection
 
-`build_definition_migration_runtime` is the explicit non-production entry
-point. Only that helper reads this selector; setting it on a deployed service
-does not select this path:
-
-    DE4SDV_DEFINITION_MIGRATION = off | definition-candidate      (default: off)
-
-Unset/empty/`off` selects nothing: the production default (legacy authority)
-and the accepted O3 bundle route (`DE4SDV_SEMANTIC_AUTHORITY`: `legacy` |
-`o3`) are untouched. Unknown values fail closed; the path is never selected
-implicitly.
+O4 Wave C2 removed the separate migration selector and its runtime builder
+(`build_definition_migration_runtime`, `DE4SDV_DEFINITION_MIGRATION`): the
+admitted definitions are part of the model-built kernel contract served by
+the model-authority runtime ([model-authority-runtime.md](model-authority-runtime.md)).
+The definition-candidate provider and the migration probe
+(`scripts/probe_definition_migration.py`) remain build-time evidence; the
+probe's report feeds the model bundle closure.
 
 ## Activation prerequisite (fresh exact-revision API closure)
 

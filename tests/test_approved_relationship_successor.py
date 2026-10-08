@@ -2,19 +2,24 @@
 from pathlib import Path
 import pytest
 import mcp.client.stdio  # keep session-global stderr for later MCP tests
-from de4sdv.semantic import composition_construction
-from de4sdv.semantic.kernel_contract import KernelContract, declaration_identity
+from de4sdv.semantic.kernel_contract import declaration_identity
 from de4sdv.sysml_api.revisions import RevisionBinding
+from model_contract_fixtures import binding_dict, model_facade, model_service
 
 ROOT = Path(__file__).resolve().parents[1]
 REVISION = "a" * 40
 
 
+def model_pins():
+    """Class pins and pin inputs of the successor contract (from the layers)."""
+    from de4sdv.semantic import model_contract as mc
+    records, provisions = mc.load_model_layers(ROOT)
+    return mc.model_class_pins(provisions), mc._pin_inputs(records)
+
+
 def fixture_service():
-    from de4sdv.semantic.relationship_successor_contract import generate_contract
-    from de4sdv.semantic.composition_construction import build_successor_service
-    contract = generate_contract(ROOT)
-    legacy = KernelContract.load(ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml")
+    import copy
+    contract = copy.deepcopy(model_facade().profile)
     bindings, elements = [], []
     for name, row in {**contract["classes"], **contract["carriers"]}.items():
         declared, metaclass = declaration_identity(row["declaration"])
@@ -32,20 +37,15 @@ def fixture_service():
                      "owningNamespace": {"@id": "context"},
                      "source": [{"@id": "use-Requirement"}],
                      "target": [{"@id": "use-Function"}]})
-    binding = RevisionBinding.from_dict(dict(git_repository="fixture", git_commit=REVISION,
-        sysml_project_id="pid", sysml_commit_id="cid", import_timestamp="2026-10-02T00:00:00Z",
-        import_tool_version="synthetic", semantic_validation="passed", scope="fixture",
-        ontology=legacy.identity.to_dict(), kernel_bindings=bindings))
+    binding = RevisionBinding.from_dict(binding_dict(git_commit=REVISION, scope="fixture",
+        kernel_bindings=bindings))
     class Repository:
         def list_elements(self, *args): return elements
-    service = build_successor_service(base_contract=legacy, contract=contract,
-        binding=binding, repository=Repository(), expected_git_revision=REVISION, root=ROOT)
+    service = model_service(binding, Repository(), expected_git_revision=REVISION)
     return service, elements, binding, contract
 
 
 def test_first_public_requirement_allocation_slice():
-    # Feature-missing assertion is intentionally executed before implementation.
-    assert hasattr(composition_construction, "build_relationship_successor_runtime")
     service, elements, binding, contract = fixture_service()
     result = service.semantic_neighbors("use-Requirement", predicates=["allocatedTo"])
     assert [(e["predicate"], e["target"], e["semantic_strength"]) for e in result["edges"]] == [
@@ -56,14 +56,18 @@ def test_first_public_requirement_allocation_slice():
 
 
 
-def rebuild(elements, binding, contract):
-    from de4sdv.semantic.composition_construction import build_successor_service
+def rebuild(elements, binding, contract=None):
+    """Reassemble the production services over the (possibly mutated) binding.
+
+    The successor contract is always the one the facade regenerates from the
+    model; a supplied contract must equal it (tampering refuses)."""
+    from de4sdv.semantic.relationship_successor_contract import verify_contract
     class Repository:
         def list_elements(self, *args): return elements
-    return build_successor_service(base_contract=KernelContract.load(
-        ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"),
-        contract=contract, binding=binding, repository=Repository(),
-        expected_git_revision=REVISION, root=ROOT)
+    if contract is not None:
+        pins, inputs = model_pins()
+        verify_contract(contract, ROOT, class_pins=pins, pin_inputs=inputs)
+    return model_service(binding, Repository(), expected_git_revision=REVISION)
 
 
 def edge(kind, source, target, name="extra", **kwargs):
@@ -98,7 +102,10 @@ def test_typed_planning_and_source_provenance_through_public_binder(predicate):
     report = service.semantic_neighbors("use-" + row["sourceClass"], predicates=[predicate])
     assert len(report["edges"]) == 1
     assert report["edges"][0]["semantic_strength"] == row["strength"]
-    assert service.binder.bind_class(predicate).sysml.element_id == "root-" + predicate
+    # The carrier pin routes from its exact ingestion binding (the carrier is a
+    # successor-profile pin, not a kernel-contract class).
+    by_id = {e["@id"]: e for e in elements}
+    assert service.binder.kernel_bindings.element_id_for(predicate, by_id) == "root-" + predicate
     if row["inverse"]:
         inverse = service.semantic_neighbors("use-" + row["targetClass"], predicates=[row["inverse"]])
         assert inverse["edges"][0]["api_object_id"] == report["edges"][0]["api_object_id"]
@@ -138,13 +145,15 @@ def test_overlapping_validated_roots_refuse_identity_routing():
         rebuild(elements, replace(binding, kernel_bindings=changed), contract)
 
 
-def test_retired_stronger_claims_are_unsupported_not_aliases():
+def test_retired_stronger_claims_are_refused_not_aliases():
+    from de4sdv.semantic.kernel_contract import RetiredIdentityError
     service, _, _, contract = fixture_service()
+    assert contract["retired"]
     for name in contract["retired"]:
-        report = service.semantic_neighbors("use-Requirement", predicates=[name])
-        assert report["edges"] == []
-        assert report["semantic_status"] == "incomplete"
-        assert report["unsupported_predicates"][0]["authority_state"] == "retired"
+        with pytest.raises(RetiredIdentityError, match="retired"):
+            service.semantic_neighbors("use-Requirement", predicates=[name])
+        assert service.traversal.traverse(name, {"@id": "use-Requirement"}, []) == []
+        assert service.traversal.unsupported[-1]["authority_state"] == "retired"
     assert "hasRelevantFunction" not in service.contract.relationships
     assert not set(contract["retired"]) & set(service._mapped_predicates())
 
@@ -179,17 +188,16 @@ def test_absent_or_dangling_allocation_context_cannot_be_a_fact():
     assert "context" in report["unsupported_predicates"][0]["reason"]
 
 
-def test_contract_tampering_and_production_refuse():
+def test_contract_tampering_refuses():
     from copy import deepcopy
-    from de4sdv.semantic.composition_construction import build_successor_service
+    from de4sdv.semantic import model_authority_runtime as mar
     _, elements, binding, contract = fixture_service()
     changed = deepcopy(contract)
     changed["relations"]["allocatedTo"][0]["targetClass"] = "PhysicalElement"
     with pytest.raises(ValueError, match="contract/source mismatch"):
         rebuild(elements, binding, changed)
-    with pytest.raises(ValueError, match="non-production"):
-        build_successor_service(base_contract=None, contract=contract, binding=binding,
-            repository=None, expected_git_revision=REVISION, root=ROOT, production=True)
+    # A bundle binding a tampered successor record is refused at load time.
+    assert mar._successor_record(changed) != model_facade()._components["successor_contract"]
 
 
 # ---- Reviewed SPEC findings: reference shapes, meanings, discrimination, grammar.
@@ -373,8 +381,9 @@ def _contract_from_model_text(text):
         return text if path == ROOT / MODEL else read_text(path, *args, **kwargs)
     def bytes_read(path, *args, **kwargs):
         return text.encode() if path == ROOT / MODEL else read_bytes(path, *args, **kwargs)
+    pins, inputs = model_pins()
     with patch.object(Path, "read_text", text_read), patch.object(Path, "read_bytes", bytes_read):
-        return generate_contract(ROOT)
+        return generate_contract(ROOT, class_pins=pins, pin_inputs=inputs)
 
 
 @pytest.mark.parametrize("literal", ["synthetic://review", "synthetic:/*review*/", "synthetic://{\"quoted\"}"])
@@ -400,85 +409,48 @@ def test_missing_required_record_field_is_a_controlled_refusal(field):
         _contract_from_model_text(text[:start] + text[end:])
 
 
-def test_class_pins_come_from_ontology_not_model_records():
-    """Review R2: the model carries no file-path class records."""
-    from de4sdv.semantic.relationship_successor_contract import MODEL, ONTOLOGY, generate_contract
+def test_class_pins_come_from_projection_layers_not_model_records():
+    """Review R2: the model carries no file-path class records; since O4 Wave C2
+    the pins come from the model-generated projection layers."""
+    from de4sdv.semantic.relationship_successor_contract import MODEL, generate_contract
     text = (ROOT / MODEL).read_text()
     assert "SuccessorClassRecord" not in text
     assert "sourceFile" not in text
-    contract = generate_contract(ROOT)
-    assert ONTOLOGY in contract["bound_inputs"]
+    pins, inputs = model_pins()
+    contract = generate_contract(ROOT, class_pins=pins, pin_inputs=inputs)
+    assert set(inputs) <= set(contract["bound_inputs"])
+    assert not any("ontology" in path and path.endswith(".yaml") for path in contract["bound_inputs"])
     assert contract["classes"]["Function"] == {"file": MODEL, "declaration": "action def AllocatableFunction"}
     assert contract["classes"]["Requirement"]["declaration"] == "requirement def RequirementCandidate"
 
 
 @pytest.mark.parametrize("mutation", ["remove-mapping", "ambiguous-specialization"])
-def test_missing_or_ambiguous_ontology_class_pin_refuses(mutation):
-    from unittest.mock import patch
-    import yaml
-    from de4sdv.semantic.relationship_successor_contract import ONTOLOGY, generate_contract
-    document = yaml.safe_load((ROOT / ONTOLOGY).read_text())
+def test_missing_or_ambiguous_class_pin_refuses(mutation):
+    from dataclasses import replace
+    from de4sdv.semantic import model_contract as mc
+    from de4sdv.semantic.kernel_contract import KernelFileMapping
+    from de4sdv.semantic.relationship_successor_contract import generate_contract
+    records, provisions = mc.load_model_layers(ROOT)
     if mutation == "remove-mapping":
-        del document["classes"]["AllocatableFunction"]
+        provisions = [p for p in provisions if p.identity != "AllocatableFunction"]
     else:
-        document["classes"]["SecondAllocatableFunction"] = {
-            "subClassOf": "Function", "kernel": {"file": "x.sysml", "declaration": "action def Other"}}
-    overlay = yaml.safe_dump(document)
-    read_text = Path.read_text
-
-    def text_read(path, *args, **kwargs):
-        return overlay if path == ROOT / ONTOLOGY else read_text(path, *args, **kwargs)
-    with patch.object(Path, "read_text", text_read):
-        with pytest.raises(ValueError, match="missing endpoint class pin: Function"):
-            generate_contract(ROOT)
+        template = next(p for p in provisions if p.identity == "AllocatableFunction")
+        provisions = provisions + [replace(template, identity="SecondAllocatableFunction",
+            mapping=KernelFileMapping("x.sysml", "action def Other"))]
+    with pytest.raises(ValueError, match="missing endpoint class pin: Function"):
+        generate_contract(ROOT, class_pins=mc.model_class_pins(provisions),
+                          pin_inputs=mc._pin_inputs(records))
 
 
 @pytest.mark.parametrize("declaration", ["", None, "part def", "  part def X", 123])
-def test_malformed_ontology_pin_is_a_controlled_refusal(declaration):
+def test_malformed_class_pin_is_a_controlled_refusal(declaration):
     """QUALITY P2: blank/null/malformed pins raise ValueError, never a raw error."""
-    from unittest.mock import patch
-    import yaml
-    from de4sdv.semantic.relationship_successor_contract import ONTOLOGY, generate_contract
-    document = yaml.safe_load((ROOT / ONTOLOGY).read_text())
-    document["classes"]["Requirement"]["kernel"]["declaration"] = declaration
-    overlay = yaml.safe_dump(document)
-    read_text = Path.read_text
-
-    def text_read(path, *args, **kwargs):
-        return overlay if path == ROOT / ONTOLOGY else read_text(path, *args, **kwargs)
-    with patch.object(Path, "read_text", text_read):
-        with pytest.raises(ValueError, match="malformed ontology kernel pin"):
-            generate_contract(ROOT)
-
-
-def test_malformed_ontology_pin_exits_two_through_the_real_cli():
-    """QUALITY P2 repro through the actual successor CLI main: exit 2, no traceback.
-
-    The subprocess overlays only the ontology read in memory; no model or code
-    is copied into a fixture tree.
-    """
-    import subprocess
-    import sys
-    program = (
-        "import sys, yaml\n"
-        "from pathlib import Path\n"
-        "from de4sdv.semantic.relationship_successor_contract import ONTOLOGY\n"
-        "root = Path.cwd()\n"
-        "doc = yaml.safe_load((root / ONTOLOGY).read_text())\n"
-        "doc['classes']['Requirement']['kernel']['declaration'] = ''\n"
-        "overlay, original = yaml.safe_dump(doc), Path.read_text\n"
-        "Path.read_text = lambda self, *a, **k: overlay if self == root / ONTOLOGY else original(self, *a, **k)\n"
-        "sys.argv = ['relationship_successor.py', '--non-production', '--predecessor', 'legacy',\n"
-        "            '--api-url', 'http://127.0.0.1:9', '--binding', 'missing-binding.json',\n"
-        "            '--expected-git-revision', 'a' * 40, 'model-status']\n"
-        "sys.path.insert(0, 'scripts')\n"
-        "import relationship_successor\n"
-        "sys.exit(relationship_successor.main())\n")
-    run = subprocess.run([sys.executable, "-B", "-c", program], cwd=ROOT,
-                         text=True, capture_output=True, timeout=60)
-    assert run.returncode == 2, (run.returncode, run.stderr[-800:])
-    assert "malformed ontology kernel pin" in run.stderr
-    assert "Traceback" not in run.stderr
+    from de4sdv.semantic.relationship_successor_contract import generate_contract
+    pins, inputs = model_pins()
+    pins = dict(pins)
+    pins["Requirement"] = dict(pins["Requirement"], declaration=declaration)
+    with pytest.raises(ValueError, match="malformed class pin"):
+        generate_contract(ROOT, class_pins=pins, pin_inputs=inputs)
 
 
 def test_unbalanced_or_unreadable_pin_is_a_controlled_refusal():

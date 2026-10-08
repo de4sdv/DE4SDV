@@ -256,14 +256,15 @@ def test_composite_keeps_bounded_projection_limitation_wording() -> None:
 
 
 def test_ontology_declares_instantiates_canonical_architecture_vocabulary() -> None:
-    import yaml
+    import sys
 
-    ontology = yaml.safe_load(
-        (
-            ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-        ).read_text(encoding="utf-8")
-    )
-    relationship = ontology["relationships"]["instantiatesCanonicalArchitecture"]
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from model_contract_fixtures import model_contract, reviewed_definition
+
+    # O4 Wave C2: the model-built contract (batch-2 projection row) and the
+    # reviewed admission definition replace the deleted authored YAML entry.
+    relationship = dict(model_contract().relationships["instantiatesCanonicalArchitecture"])
+    relationship["definition"] = reviewed_definition("instantiatesCanonicalArchitecture")
     assert relationship["domain"] == "MemberProduct"
     assert relationship["range"] == "ArchitectureElement"
     # Vocabulary only: no executable mapping until a canonical-usage selector

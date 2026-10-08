@@ -13,6 +13,13 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from semantic_authority_check import (  # noqa: E402
+    AuthorityCheckError,
+    authority_block,
+    check_served_consistency,
+)
+
 ASK_URL = "https://viewer.de4sdv.org"
 MODEL_STATUS_URL = "https://sysml-api.de4sdv.org/deployment-status.json"
 _SHA = re.compile(r"[0-9a-f]{40}")
@@ -49,6 +56,14 @@ def monitor_public_ask(
         raise MonitorError("invalid public Ask application revision")
     if not isinstance(model_revision, str) or not _SHA.fullmatch(model_revision):
         raise MonitorError("invalid public Ask model revision")
+    # O4 Wave C2 (review R3): an invalid selector refuses every semantic
+    # answer; alert on it (and on a runtime serving another authority than
+    # the requested one) before the generic warmup state.
+    try:
+        authority = authority_block(ask_status)
+        check_served_consistency(authority)
+    except AuthorityCheckError as exc:
+        raise MonitorError(f"semantic authority: {exc}") from exc
     warmup = ask_status.get("semantic_warmup")
     if not isinstance(warmup, dict) or warmup.get("status") != "ready":
         raise MonitorError("semantic warmup is not ready")
@@ -76,6 +91,8 @@ def monitor_public_ask(
         "status": "healthy",
         "application_git_commit": app_revision,
         "model_git_commit": model_revision,
+        "semantic_authority_kind": str(authority.get("kind") or ""),
+        "semantic_authority_id": str(authority.get("semantic_authority_id") or ""),
     }
 
 

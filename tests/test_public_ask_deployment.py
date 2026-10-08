@@ -40,12 +40,11 @@ def _runtime_repo(tmp_path):
     model = repo / "textual-notation-of-model" / "model.sysml"
     model.parent.mkdir()
     model.write_text("package Model;\n", encoding="utf-8")
-    ontology = (
-        repo / "approach" / "framework" / "ontology"
-        / "de4sdv-basic-ontology.yaml"
-    )
-    ontology.parent.mkdir(parents=True)
-    ontology.write_text("classes: {}\n", encoding="utf-8")
+    # A model-authority input (O4 Wave C2: the authored ontology is gone;
+    # the kernel-internal manifest is one of the governed inputs).
+    manifest = repo / "docs" / "method-conformance" / "o4" / "kernel-internal-declarations.yaml"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text("declarations: {}\n", encoding="utf-8")
     model_revision = _commit(repo, "model")
     code = repo / "tools" / "viewer.py"
     code.parent.mkdir()
@@ -92,6 +91,23 @@ def test_runtime_contract_rejects_model_drift_after_bound_revision(tmp_path):
     model = repo / "textual-notation-of-model" / "model.sysml"
     model.write_text("package ChangedModel;\n", encoding="utf-8")
     changed_revision = _commit(repo, "change model")
+
+    with pytest.raises(RuntimeContractError, match="model or ontology drift"):
+        validate_runtime_contract(
+            repo,
+            binding,
+            {
+                "NOUS_API_KEY": "test-key",
+                "DE4SDV_APP_GIT_SHA": changed_revision,
+            },
+        )
+
+
+def test_runtime_contract_rejects_authority_input_drift_after_bound_revision(tmp_path):
+    repo, binding, _, _ = _runtime_repo(tmp_path)
+    manifest = repo / "docs" / "method-conformance" / "o4" / "kernel-internal-declarations.yaml"
+    manifest.write_text("declarations: {changed: {}}\n", encoding="utf-8")
+    changed_revision = _commit(repo, "change kernel-internal manifest")
 
     with pytest.raises(RuntimeContractError, match="model or ontology drift"):
         validate_runtime_contract(
@@ -282,6 +298,7 @@ def test_public_ask_monitor_is_non_paid_and_schedule_safe():
 def test_public_verifier_checks_identity_policy_and_live_grounding():
     app_sha = "a" * 40
     model_sha = "b" * 40
+    bundle_id = "mab-" + "1" * 32
     seen = {"live": False}
     expected_origin = ""
 
@@ -300,6 +317,12 @@ def test_public_verifier_checks_identity_policy_and_live_grounding():
                     "application_git_commit": app_sha,
                     "model_git_commit": model_sha,
                     "semantic_warmup": {"status": "ready"},
+                    "semantic_authority": {
+                        "kind": "model",
+                        "authority_id": "mab:" + bundle_id,
+                        "bundle_id": bundle_id,
+                        "semantic_authority_id": "mab:" + bundle_id,
+                    },
                 })
             elif self.path == "/deployment-status.json":
                 self._json(200, {"baseline": {"git_commit": model_sha}})
@@ -348,6 +371,7 @@ def test_public_verifier_checks_identity_policy_and_live_grounding():
         result = verify_public_ask(
             expected_origin,
             application_sha=app_sha,
+            expected_model_authority_bundle_id=bundle_id,
             model_sha=model_sha,
             live_query=True,
             tls_attempts=1,
@@ -364,6 +388,8 @@ def test_public_verifier_checks_identity_policy_and_live_grounding():
             "status": "healthy",
             "application_git_commit": app_sha,
             "model_git_commit": model_sha,
+            "semantic_authority_kind": "model",
+            "semantic_authority_id": "mab:" + bundle_id,
         }
     finally:
         server.shutdown()
@@ -409,6 +435,7 @@ def test_public_verifier_retries_tls_readiness_before_giving_up():
             verify_public_ask(
                 base,
                 application_sha=app_sha,
+                expected_model_authority_bundle_id="mab-" + "1" * 32,
                 model_sha=model_sha,
                 tls_attempts=2,
             )

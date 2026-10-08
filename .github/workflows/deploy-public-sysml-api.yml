@@ -56,6 +56,13 @@ on:
       artifact_run_id:
         description: Privileged Full-Model API Ingestion run ID for that SHA (optional; auto-detected when unambiguous)
         required: false
+      expected_semantic_authority:
+        description: >-
+          Semantic authority the Ask viewer must report after the deploy (checked by
+          the mandatory verification; invalid always fails). C2 and later: the
+          accepted mab-<hex> id. Pre-C2 rollback: what that revision serves
+          (legacy, o3:<bundle id> or its Wave B mab- id).
+        required: true
 
 permissions:
   contents: read
@@ -73,6 +80,7 @@ env:
   # round-trips through GITHUB_ENV.
   DEPLOY_SHA: ${{ inputs.git_sha }}
   PRVILEGED_RUN_INPUT: ${{ inputs.artifact_run_id }}
+  EXPECTED_SEMANTIC_AUTHORITY: ${{ inputs.expected_semantic_authority }}
 
 jobs:
   deploy:
@@ -355,9 +363,8 @@ jobs:
           ssh -i /tmp/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" \
             'sudo rm -rf /srv/de4sdv/artifacts/incoming && sudo mkdir -p /srv/de4sdv/artifacts/incoming /srv/de4sdv/status && sudo chown -R "$(whoami)" /srv/de4sdv/artifacts /srv/de4sdv/status'
           # Transfer only regular files: the privileged evidence bundle also
-          # carries evidence subdirectories (o3/ Stage-A closure bundle,
-          # attestation, grounding proof, equivalence report) that are not
-          # deployment inputs. scp without -r fails closed on any directory
+          # carries evidence subdirectories (o4/ candidate model-authority
+          # bundle, definition probe) that are not deployment inputs. scp without -r fails closed on any directory
           # (deploy run 35232563477: 'local "/tmp/bundle/o3" is not a
           # regular file' — the job aborted before deploy.py ran). Evidence
           # subdirectories stay on the runner; only files are transferred,
@@ -394,7 +401,11 @@ jobs:
       - name: Post-deploy public verification (mandatory)
         run: |
           set -euo pipefail
-          python3 deployment/scripts/verify_public_api.py --json /tmp/verify.json
+          # O4 Wave C2 (review R3): an unset or stale semantic-authority
+          # selector must not deploy green; the Ask viewer must report the
+          # declared authority (docs/method-conformance/o4/model-authority-activation.md).
+          python3 deployment/scripts/verify_public_api.py --json /tmp/verify.json \
+            --expected-semantic-authority "$EXPECTED_SEMANTIC_AUTHORITY"
           cat /tmp/verify.json
 
       - name: Remove SSH key material

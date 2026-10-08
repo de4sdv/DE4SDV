@@ -53,14 +53,14 @@ def _projected_kernel_bindings(document: object, identity: str | None = None):
 def cross_check_model_provider(
     contract: object, kernel_bindings: list[dict], *, root: Path = ROOT
 ) -> dict[str, object]:
-    """Additive cross-check: authored kernel mapping vs model-provider projection.
+    """Cross-check: model-built contract mapping vs every tracked projection.
 
-    Every identity a tracked projection grounds through a kernel binding
-    contract must carry the SAME (source file, declaration) in the authored
-    contract. A mismatch, a projected identity without an authored file
-    mapping, or two providers disagreeing on one identity is a refusal. The
-    revision binding format is unchanged: the result lands in the semantic
-    validation report only.
+    Every identity a tracked projection (live layers and frozen O2 records)
+    grounds through a kernel binding contract must carry the SAME (source
+    file, declaration) in the model-built kernel contract. A mismatch, a
+    projected identity the contract does not file-map, or two providers
+    disagreeing on one identity is a refusal. The result lands in the
+    semantic validation report.
     """
     from de4sdv.semantic.kernel_contract import KernelFileMapping
 
@@ -101,17 +101,17 @@ def cross_check_model_provider(
             mapping = contract.mapping(identity)  # type: ignore[attr-defined]
         except KeyError:
             mismatches.append({"identity": identity, **entry,
-                               "reason": "projected identity has no authored kernel mapping"})
+                               "reason": "projected identity has no kernel mapping in the model-built contract"})
             continue
         if not isinstance(mapping, KernelFileMapping):
             mismatches.append({"identity": identity, **entry,
-                               "reason": "projected identity is not file-mapped in the authored contract"})
+                               "reason": "projected identity is not file-mapped in the model-built contract"})
             continue
         if (mapping.file, mapping.declaration) != (entry["source_file"], entry["declaration"]):
             mismatches.append({"identity": identity, **entry,
-                               "authored_source_file": mapping.file,
-                               "authored_declaration": mapping.declaration,
-                               "reason": "authored and projected kernel binding contracts differ"})
+                               "contract_source_file": mapping.file,
+                               "contract_declaration": mapping.declaration,
+                               "reason": "model-built contract and projected kernel binding contracts differ"})
             continue
         rows.append({"identity": identity, **entry,
                      "ingested_element_id": ingested.get(identity)})
@@ -174,9 +174,7 @@ def run_import(
     )
     repository = SysMLRepository(client)
     elements = repository.list_elements(imported.project_id, imported.commit_id)
-    contract = KernelContract.load(
-        ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-    )
+    contract = KernelContract.from_layers(ROOT)
     ontology = validate_ontology_bindings(contract, elements, bundle.element_sources)
     # Persist the ingestion-validated kernel identities: each file-mapped
     # ontology class whose binding resolved to exactly one API UUID carries
@@ -195,7 +193,7 @@ def run_import(
         if entry.status == "mapped" and len(entry.element_ids) == 1
     ]
     report = {
-        "schema": "de4sdv-full-model-semantic-validation/v1",
+        "schema": "de4sdv-full-model-semantic-validation/v2",
         "git_commit": head,
         "sysml_project_id": imported.project_id,
         "sysml_commit_id": imported.commit_id,
@@ -207,20 +205,20 @@ def run_import(
         "external_reference_count": len(bundle.external_references),
         "source_manifest": list(bundle.source_manifest),
         "external_references": list(bundle.external_references),
-        "ontology": ontology.to_dict(),
-        "ontology_identity": contract.identity.to_dict(),
+        "kernel_binding_validation": ontology.to_dict(),
+        "semantic_authority": contract.identity.to_dict(),
     }
     cross_check = cross_check_model_provider(contract, kernel_bindings)
     report["model_provider_cross_check"] = cross_check
     _write_json(report_path, report)
     if not ontology.passed:
         raise RuntimeError(
-            "ontology/API binding validation failed closed: "
+            "kernel/API binding validation failed closed: "
             f"{ontology.summary}; report={report_path}"
         )
     if cross_check["classification"] == "BLOCKING_MISMATCH":
         raise RuntimeError(
-            "authored vs model-provider kernel binding cross-check failed closed: "
+            "model-built contract vs projection kernel binding cross-check failed closed: "
             f"{len(cross_check['mismatches'])} mismatch(es), "
             f"{len(cross_check['duplicate_providers'])} conflicting provider(s); "
             f"report={report_path}"
@@ -233,7 +231,7 @@ def run_import(
         import_timestamp=datetime.now(timezone.utc).isoformat(),
         import_tool_version="de4sdv-full-model-import/1+official-syside-json",
         semantic_validation="passed",
-        ontology=contract.identity,
+        semantic_authority=contract.identity,
         scope="candidate" if candidate else "full-model",
         kernel_bindings=tuple(
             KernelElementBinding.from_dict(item) for item in kernel_bindings
@@ -243,7 +241,7 @@ def run_import(
     return {
         "binding": binding.to_dict(),
         "semantic_report": str(report_path),
-        "ontology_summary": ontology.summary,
+        "kernel_binding_summary": ontology.summary,
         "element_count": imported.element_count,
         "internal_reference_count": imported.internal_reference_count,
     }

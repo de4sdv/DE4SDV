@@ -15,13 +15,14 @@ import pytest
 
 from de4sdv.sysml_api.errors import IdentityNotFoundError
 
-from de4sdv.sysml_api.revisions import KernelElementBinding, OntologyIdentity
+from de4sdv.sysml_api.revisions import KernelElementBinding, SemanticAuthorityIdentity
 from de4sdv.semantic.api_binding import OntologyApiBinder
 from de4sdv.semantic.impact import ImpactService
 from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
 from de4sdv.semantic.kernel_contract import KernelContract
 from de4sdv.semantic.query import SemanticQueryService
 from de4sdv.semantic.traversal import SemanticTraversal
+from model_contract_fixtures import model_contract  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -185,9 +186,7 @@ class _StubClient:
 
 
 def _service() -> SemanticQueryService:
-    contract = KernelContract.load(
-        ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-    )
+    contract = model_contract()
     binding = _BindingStub(contract.identity)
     kernel_bindings = KernelBindingIndex.from_binding(binding)
     binder = OntologyApiBinder(
@@ -218,13 +217,13 @@ def _service() -> SemanticQueryService:
 class _BindingStub:
     """Revision binding stub carrying the validated kernel bindings."""
 
-    def __init__(self, ontology_identity: OntologyIdentity) -> None:
+    def __init__(self, semantic_authority: SemanticAuthorityIdentity) -> None:
         self.git_repository = "de4sdv/DE4SDV"
         self.git_commit = GIT_COMMIT
         self.sysml_project_id = PROJECT_ID
         self.sysml_commit_id = COMMIT_ID
         self.scope = "full-model"
-        self.ontology = ontology_identity
+        self.semantic_authority = semantic_authority
         self.kernel_bindings = [
             KernelElementBinding(
                 ontology_class="DerivesFromNeed",
@@ -263,8 +262,8 @@ class _BindingStub:
     def require_current(self, git_revision: str) -> None:
         assert self.status(git_revision) == "synchronized"
 
-    def require_ontology(self, ontology: OntologyIdentity) -> None:
-        assert ontology == self.ontology
+    def require_semantic_authority(self, identity: SemanticAuthorityIdentity) -> None:
+        assert identity == self.semantic_authority
 
 
 class _RepositoryStub:
@@ -334,9 +333,7 @@ def _mutated_listing(mutate) -> list[dict]:
 
 def _service_with_listing(elements: list[dict]) -> SemanticQueryService:
     """Build the service around one specific element listing."""
-    contract = KernelContract.load(
-        ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-    )
+    contract = model_contract()
     binding = _BindingStub(contract.identity)
     kernel_bindings = KernelBindingIndex.from_binding(binding)
     repository = _RepositoryStub(elements)

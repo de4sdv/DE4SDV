@@ -9,10 +9,10 @@ import re
 import yaml
 
 from de4sdv.semantic.authority_inventory import normalize_text
+from model_contract_fixtures import contract_equivalence_evidence, model_contract
 
 ROOT = Path(__file__).resolve().parents[1]
 KERNEL = "textual-notation-of-model/packages/methods/de4sdv/"
-ONTOLOGY = "approach/framework/ontology/de4sdv-basic-ontology.yaml"
 PRODUCT_LINE = KERNEL + "de4sdv_product_line.sysml"
 CONTEXT = KERNEL + "de4sdv_method_context.sysml"
 VIEWPOINTS = KERNEL + "de4sdv_method_concerns_and_viewpoints.sysml"
@@ -39,8 +39,15 @@ def _text(path):
     return (ROOT / path).read_text()
 
 
-def _ontology():
-    return yaml.safe_load(_text(ONTOLOGY))
+def _domain_range(identity):
+    """Reviewed domain/range: the model contract's projection spec, or (for the
+    O2+ row usesVerificationMethod, whose domain/range text is not projected)
+    the authored values recorded by the pre-deletion evidence."""
+    spec = model_contract().relationships[identity]
+    if spec.get("domain") and spec.get("range"):
+        return spec["domain"], spec["range"]
+    authored = contract_equivalence_evidence()["authored_contract"]["differences"][identity]["authored"]
+    return authored["domain_range"]["domain"], authored["domain_range"]["range"]
 
 
 def _flat(text):
@@ -63,7 +70,6 @@ def _active(text):
 
 
 def test_relationship_vocabulary_roles_are_anchored_and_claim_no_traversal():
-    ontology = _ontology()
     for identity, (path, target, (domain, range_)) in VOCABULARY_ROLES.items():
         comments = _named_comments(_text(path))
         name = identity + "VocabularyRole"
@@ -71,16 +77,16 @@ def test_relationship_vocabulary_roles_are_anchored_and_claim_no_traversal():
         targets, body = comments[name]
         assert [t.strip() for t in targets.split(",")] == [target], identity
         body = _flat(body)
-        relationship = ontology["relationships"][identity]
+        reviewed_domain, reviewed_range = _domain_range(identity)
         # The comment restates the reviewed domain/range identities and their
         # kernel names; it must not invent a different signature.
         assert f"relationship {identity}" in body, identity
-        assert f"domain {relationship['domain']}" in body and f"range {relationship['range']}" in body, identity
+        assert f"domain {reviewed_domain}" in body and f"range {reviewed_range}" in body, identity
         for kernel_name in (domain, range_):
             assert kernel_name in body, (identity, kernel_name)
         assert "no sysml_mapping" in body and "no runtime traversal" in body, identity
-        # Vocabulary only: the ontology declares no executable mapping either.
-        assert "sysml_mapping" not in relationship, identity
+        # Vocabulary only: the model contract declares no executable mapping either.
+        assert "sysml_mapping" not in model_contract().relationships[identity], identity
 
 
 def test_ple_configuration_rows_keep_adr_0006_external_selection_authority():
@@ -98,8 +104,7 @@ def test_ple_configuration_rows_keep_adr_0006_external_selection_authority():
     for path in sorted((ROOT / KERNEL).glob("*.sysml")):
         active = _active(path.read_text())
         assert not re.search(r"\bdef\s+(FeatureConfiguration|VariationPoint|Variant)\b", active), path.name
-    ontology = _ontology()
-    assert "external" in ontology["classes"]["FeatureConfiguration"]["kernel"]
+    assert "external" in model_contract().classes["FeatureConfiguration"]["kernel"]
 
 
 def test_native_rows_record_library_grounding_without_copying_library_types():
@@ -149,7 +154,8 @@ def _rule_blocks(text):
 
 
 def test_every_validation_rule_has_one_faithful_model_home():
-    rules = _ontology()["validation_rules"]
+    # The authored rules as recorded by the pre-deletion evidence (O4 Wave C2).
+    rules = contract_equivalence_evidence()["authored_validation_rules"]["rules"]
     text = _text(RULES)
     blocks = _rule_blocks(text)
     expected = {"ontologyRule" + rule["id"].split("-")[-1]: rule for rule in rules}
@@ -178,14 +184,12 @@ def test_rule_homes_add_no_kernel_declarations():
     assert not re.search(r"\bdef\b", active)
 
 
-def test_pilot_query_fixture_equals_the_ontology_block():
+def test_pilot_query_fixture_is_the_pilot_query_home():
+    """Replaces ``test_pilot_query_fixture_equals_the_ontology_block``: the
+    authored YAML block was deleted in O4 Wave C2; the fixture is the home."""
     fixture = yaml.safe_load(_text(PILOT_FIXTURE))
     assert list(fixture) == ["pilot_queries"]
     assert len(fixture["pilot_queries"]) == 8 and all(isinstance(q, str) and q for q in fixture["pilot_queries"])
-    ontology = _ontology()
-    # Holds while the YAML block exists; after its deletion the fixture is the home.
-    if "pilot_queries" in ontology:
-        assert fixture["pilot_queries"] == ontology["pilot_queries"]
 
 
 MODEL_ROOTS = ("textual-notation-of-model", "model-based-product-line-engineering")

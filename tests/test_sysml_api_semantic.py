@@ -11,13 +11,16 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def ontology_identity() -> dict[str, str]:
-    from de4sdv.sysml_api.revisions import OntologyIdentity
+def semantic_authority() -> dict:
+    from model_contract_fixtures import semantic_authority_dict
 
-    return OntologyIdentity.from_file(
-        ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml",
-        repository_root=ROOT,
-    ).to_dict()
+    return semantic_authority_dict()
+
+
+def _model_contract():
+    from model_contract_fixtures import model_contract
+
+    return model_contract()
 
 
 class _ApiHandler(BaseHTTPRequestHandler):
@@ -159,7 +162,8 @@ def test_revision_binding_refuses_current_baseline_claim_when_git_is_stale() -> 
             "import_timestamp": "2026-08-31T00:00:00Z",
             "import_tool_version": "de4sdv-semantic-fixture/1",
             "semantic_validation": "passed",
-            "ontology": ontology_identity(),
+            "schema": "de4sdv.revision-binding/v2",
+            "semantic_authority": semantic_authority(),
         }
     )
 
@@ -204,7 +208,8 @@ def _semantic_binding_dict(kernel_bindings=None):
         "import_timestamp": "2026-08-31T00:00:00Z",
         "import_tool_version": "de4sdv-semantic-fixture/1",
         "semantic_validation": "passed",
-        "ontology": ontology_identity(),
+        "schema": "de4sdv.revision-binding/v2",
+        "semantic_authority": semantic_authority(),
     }
     if kernel_bindings is not None:
         base["kernel_bindings"] = kernel_bindings
@@ -237,9 +242,8 @@ def test_ontology_requirement_binds_through_exact_kernel_mapping_to_api_uuid(
     from de4sdv.sysml_api.revisions import RevisionBinding
     from de4sdv.sysml_api.repository import SysMLRepository
 
-    contract = KernelContract.load(
-        ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-    )
+    contract = _model_contract()
+    assert isinstance(contract, KernelContract)
     mapping = contract.class_mapping("Requirement")
     assert mapping.file.endswith("de4sdv_method_context.sysml")
     assert mapping.declaration == "requirement def RequirementCandidate"
@@ -285,11 +289,15 @@ def test_ontology_requirement_binds_through_exact_kernel_mapping_to_api_uuid(
 def test_first_milestone_relationships_define_machine_traversal_strategies() -> None:
     from de4sdv.semantic.kernel_contract import KernelContract
 
-    contract = KernelContract.load(
-        ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-    )
+    from de4sdv.semantic.kernel_contract import RetiredIdentityError
 
-    assert contract.relationship_mapping("realizedBy").strategy == "allocation"
+    contract = _model_contract()
+    assert isinstance(contract, KernelContract)
+
+    assert contract.relationship_mapping("allocatedTo").strategy == "successor"
+    assert contract.relationship_mapping("allocatedTo").semantic_strength == "allocation"
+    with pytest.raises(RetiredIdentityError, match="retired; use allocatedTo"):
+        contract.relationship_mapping("realizedBy")
     assert (
         contract.relationship_mapping("verifiedBy").strategy
         == "verification-membership"
@@ -338,15 +346,22 @@ def test_allocation_strategy_traverses_native_api_relationship_object() -> None:
             kernel_bindings=tuple(_requirement_kernel_bindings()),
         )
     )
-    traversal = SemanticTraversal(
-        KernelContract.load(
-            ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-        ),
-        kernel_bindings=index,
+    # The native ``allocation`` strategy (formerly carried by the retired
+    # realizedBy) over a synthetic contract record; no copy of any model file.
+    base = _model_contract()
+    contract = KernelContract.from_records(
+        classes=dict(base.classes),
+        relationships={"allocationProbe": {
+            "domain": "Requirement", "range": "ArchitectureElement",
+            "sysml_mapping": {"strategy": "allocation", "relationship_types": ["AllocationUsage"],
+                              "direction": "outgoing", "source_property": "source",
+                              "target_property": "target", "semantic_strength": "allocation"}}},
+        identity=base.identity,
     )
+    traversal = SemanticTraversal(contract, kernel_bindings=index)
 
     hops = traversal.traverse(
-        "realizedBy",
+        "allocationProbe",
         requirement,
         [requirement, architecture, allocation, kernel_requirement, grounding],
     )
@@ -364,8 +379,7 @@ def test_api_impact_returns_revision_pinned_compact_aebs_subgraph(
 ) -> None:
     from de4sdv.semantic.api_binding import OntologyApiBinder
     from de4sdv.semantic.impact import ImpactService
-    from de4sdv.semantic.kernel_contract import KernelContract
-    from de4sdv.semantic.traversal import SemanticTraversal
+    from de4sdv.semantic.model_authority_runtime import ModelAuthorityTraversal
     from de4sdv.sysml_api.client import ApiClient
     from de4sdv.sysml_api.repository import SysMLRepository
     from de4sdv.sysml_api.revisions import RevisionBinding
@@ -480,9 +494,9 @@ def test_api_impact_returns_revision_pinned_compact_aebs_subgraph(
     handler.response_map = {
         "/projects/project-1/commits/commit-1/elements?page[size]=1000": (200, elements, {})
     }
-    contract = KernelContract.load(
-        ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
-    )
+    from model_contract_fixtures import model_facade
+
+    contract = model_facade()
     repository = SysMLRepository(ApiClient(base_url))
     from de4sdv.semantic.kernel_binding_index import KernelBindingIndex
 
@@ -516,7 +530,8 @@ def test_api_impact_returns_revision_pinned_compact_aebs_subgraph(
             "import_tool_version": "de4sdv-semantic-fixture/1",
             "semantic_validation": "passed",
             "scope": "AEBS impact pilot",
-            "ontology": contract.identity.to_dict(),
+            "schema": "de4sdv.revision-binding/v2",
+            "semantic_authority": contract.identity.to_dict(),
             "kernel_bindings": kernel_bindings,
         }
     )
@@ -529,7 +544,7 @@ def test_api_impact_returns_revision_pinned_compact_aebs_subgraph(
             contract, repository, project_id="project-1", commit_id="commit-1",
             kernel_bindings=index,
         ),
-        traversal=SemanticTraversal(contract, kernel_bindings=index),
+        traversal=ModelAuthorityTraversal(contract, kernel_bindings=index),
     )
 
     result = service.impact("reqCommandEmergencyBraking", git_revision="a" * 40)

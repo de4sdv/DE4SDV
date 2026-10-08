@@ -10,14 +10,15 @@ Deployment model (ADR 0013, corrected by human review of PR #176):
         -> deployment-specific Project/Commit UUIDs (the deployment API
            repository generates its own identities; the privileged CI run's
            ephemeral UUIDs are NOT reused)
-        -> deployment-specific RevisionBinding + ontology/API validation
+        -> deployment-specific RevisionBinding v2 + kernel/API binding validation
         -> public deployment-status tuple
 
 Fail-closed stages:
 
 1.  Bundle validation: the privileged evidence files must exist, agree on one
-    Git SHA, be `passed`/`full-model` with a clean ontology summary, carry the
-    semantic authority ontology identity, and the export bytes must hash to
+    Git SHA, be `passed`/`full-model` with a clean kernel binding summary,
+    carry the model-built semantic-authority identity (binding v2; the
+    authored-ontology binding v1 is refused), and the export bytes must hash to
     the digest recorded in the privileged semantic report.
 2.  Exact Git checkout: the deployment repository HEAD must equal the bundle
     Git SHA and be clean (no stale files; the workflow creates a detached
@@ -25,11 +26,11 @@ Fail-closed stages:
 3.  Import: the exact validated export is imported into this deployment's
     API repository through the existing DE4SDV importer (no second parser).
     The importer fails closed on any lost element UUID or internal
-    reference; ontology mappings must resolve with 0 unresolved and
+    reference; kernel class mappings must resolve with 0 unresolved and
     0 ambiguous; only then is a deployment-specific binding written.
 4.  Cross-check: the deployment import must preserve the immutable evidence
     the privileged run pinned (element count, internal reference count,
-    export digest, ontology identity, source-document count). Project/commit
+    export digest, semantic-authority identity, source-document count). Project/commit
     UUIDs are intentionally deployment-specific and are NOT compared against
     the privileged run's ephemeral UUIDs.
 5.  Status + proxy: only after all of the above succeed is
@@ -119,32 +120,36 @@ def validate_bundle(bundle_dir: Path) -> dict[str, Any]:
     )
     require(binding.get("scope") == "full-model", "binding scope is not full-model")
 
-    ontology = binding.get("ontology")
-    require(isinstance(ontology, dict), "binding carries no ontology identity")
     require(
-        set(ontology) == {"path", "sha256"},
-        "ontology identity must be exactly path+sha256",
+        binding.get("schema") == "de4sdv.revision-binding/v2" and "ontology" not in binding,
+        "binding is not a revision binding v2 (the authored-ontology binding v1 is retired)",
     )
+    authority = binding.get("semantic_authority")
+    require(isinstance(authority, dict), "binding carries no semantic authority identity")
     require(
-        isinstance(ontology.get("sha256"), str)
-        and len(ontology["sha256"]) == 64
-        and all(c in "0123456789abcdef" for c in ontology["sha256"]),
-        "ontology sha256 is not a lowercase SHA-256 digest",
+        set(authority) == {"schema", "id", "layers"}
+        and authority.get("schema") == "de4sdv.semantic-authority/v1"
+        and isinstance(authority.get("id"), str)
+        and authority["id"].startswith("sai-")
+        and len(authority["id"]) == 36
+        and isinstance(authority.get("layers"), list)
+        and authority["layers"],
+        "semantic authority identity must be exactly schema+id(sai-<32 hex>)+layers",
     )
 
-    ontology_report = report.get("ontology") or {}
+    validation_report = report.get("kernel_binding_validation") or {}
     require(
-        ontology_report.get("passed") is True,
+        validation_report.get("passed") is True,
         "semantic validation report did not pass",
     )
-    summary = ontology_report.get("summary") or {}
+    summary = validation_report.get("summary") or {}
     require(
         summary.get("unresolved") == 0 and summary.get("ambiguous") == 0,
-        f"ontology summary is not clean: {summary}",
+        f"kernel binding summary is not clean: {summary}",
     )
     require(
-        report.get("ontology_identity") == ontology,
-        "report ontology identity differs from binding ontology identity",
+        report.get("semantic_authority") == authority,
+        "report semantic authority differs from the binding semantic authority",
     )
     require(
         report.get("git_commit") == binding.get("git_commit"),
@@ -165,19 +170,19 @@ def validate_bundle(bundle_dir: Path) -> dict[str, Any]:
     mcp_revision = mcp.get("revision", {})
     require(
         mcp_revision.get("git_commit") == binding["git_commit"]
-        and mcp_revision.get("ontology") == ontology,
-        "MCP validation Git/ontology identity differs from the binding",
+        and mcp_revision.get("semantic_authority") == authority,
+        "MCP validation Git/semantic-authority identity differs from the binding",
     )
 
     return {
         "git_commit": binding["git_commit"],
-        "ontology": ontology,
+        "semantic_authority": authority,
         "export_path": export,
         "export_sha256": actual_digest,
         "expected_element_count": report.get("element_count"),
         "expected_internal_reference_count": report.get("internal_reference_count"),
         "expected_source_document_count": report.get("source_document_count"),
-        "ontology_summary": summary,
+        "kernel_binding_summary": summary,
     }
 
 
@@ -367,7 +372,7 @@ def import_baseline(repo: Path, evidence: dict[str, Any]) -> dict[str, Any]:
 
     Reuses scripts/import_sysml_api_baseline.py (the privileged import path):
     it fails closed on lost element UUIDs / internal references, requires a
-    clean ontology binding summary, and writes a deployment-specific
+    clean kernel binding summary, and writes a deployment-specific
     full-model binding with the deployment repository's own Project/Commit
     UUIDs. A fresh empty API database is the expected first-deployment state.
     """
@@ -412,14 +417,16 @@ def import_baseline(repo: Path, evidence: dict[str, Any]) -> dict[str, Any]:
         "deployment binding is not a passed full-model binding",
     )
     require(
-        binding.get("ontology") == evidence["ontology"],
-        "deployment binding ontology identity differs from the privileged identity",
+        binding.get("semantic_authority") == evidence["semantic_authority"],
+        "deployment binding semantic authority differs from the privileged identity",
     )
-    deployment_summary = (deployment_report.get("ontology") or {}).get("summary") or {}
+    deployment_summary = (
+        (deployment_report.get("kernel_binding_validation") or {}).get("summary") or {}
+    )
     require(
         deployment_summary.get("unresolved") == 0
         and deployment_summary.get("ambiguous") == 0,
-        f"deployment ontology summary is not clean: {deployment_summary}",
+        f"deployment kernel binding summary is not clean: {deployment_summary}",
     )
     require(
         deployment_report.get("source_export_sha256") == evidence["export_sha256"],
@@ -451,7 +458,7 @@ def import_baseline(repo: Path, evidence: dict[str, Any]) -> dict[str, Any]:
         "sysml_project_id": binding["sysml_project_id"],
         "sysml_commit_id": binding["sysml_commit_id"],
         "element_count": deployment_report.get("element_count"),
-        "ontology_summary": deployment_summary,
+        "kernel_binding_summary": deployment_summary,
     }
 
 
@@ -474,10 +481,10 @@ def write_status(
             # run's ephemeral UUIDs).
             "sysml_project_id": deployment["sysml_project_id"],
             "sysml_commit_id": deployment["sysml_commit_id"],
-            "ontology": evidence["ontology"],
+            "semantic_authority": evidence["semantic_authority"],
             "export_sha256": evidence["export_sha256"],
             "element_count": deployment["element_count"],
-            "ontology_summary": deployment["ontology_summary"],
+            "kernel_binding_summary": deployment["kernel_binding_summary"],
         },
         "deployed_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }

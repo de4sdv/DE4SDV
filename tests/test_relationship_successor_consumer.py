@@ -5,17 +5,13 @@ from contextlib import contextmanager
 from dataclasses import replace
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
-from pathlib import Path
-import subprocess
-import sys
 import threading
 
 import pytest
 from test_approved_relationship_successor import fixture_service, rebuild, ROOT, REVISION
+from model_contract_fixtures import model_service
 from de4sdv.semantic.relationship_successor import route_successor_bindings
 from de4sdv.sysml_api.errors import IdentityNotFoundError
-
-SCRIPT = ROOT / 'scripts/relationship_successor.py'
 
 
 def extension_binding(binding):
@@ -74,64 +70,44 @@ def supplied_synthetic_api(elements):
         thread.join()
 
 
-def args_for(url, path):
-    return ['--non-production', '--predecessor', 'legacy', '--api-url', url,
-            '--binding', str(path), '--expected-git-revision', REVISION]
+def http_service(binding, url):
+    """The production service assembly reading a supplied API over HTTP.
+
+    The non-production successor CLI (scripts/relationship_successor.py) was
+    deleted in O4 Wave C2; the model-authority runtime with the production
+    SysMLRepository/ApiClient is the surviving read path.
+    """
+    from de4sdv.sysml_api.client import ApiClient
+    from de4sdv.sysml_api.repository import SysMLRepository
+    return model_service(binding, SysMLRepository(ApiClient(url, timeout=30)),
+                         expected_git_revision=REVISION)
 
 
-def test_real_cli_process_reads_supplied_api_with_extension_pins(tmp_path):
+def test_supplied_http_api_is_read_with_extension_pins():
     _, elements, binding, _ = fixture_service()
-    path = tmp_path / 'synthetic-binding.json'
-    path.write_text(json.dumps(extension_binding(binding).to_dict()))
+    binding = extension_binding(binding)
     with supplied_synthetic_api(elements) as (url, reads):
-        result = subprocess.run([sys.executable, str(SCRIPT), *args_for(url, path),
-                                 'neighbors', 'use-Requirement', '--predicate', 'allocatedTo'],
-                                cwd=ROOT, text=True, capture_output=True, timeout=30)
-        assert result.returncode == 0, result.stderr
-        report = json.loads(result.stdout)
+        report = http_service(binding, url).semantic_neighbors(
+            'use-Requirement', predicates=['allocatedTo'])
         assert report['semantic_status'] == 'complete'
         assert report['edges'][0]['api_object_id'] == 'allocation'
-        assert report['semantic_authority']['activation_blocked'] is True
+        assert report['semantic_authority']['kind'] == 'model'
         assert reads and all(method == 'GET' for method, _ in reads)
         assert all(f'/projects/{binding.sysml_project_id}/commits/{binding.sysml_commit_id}/elements?' in p for _, p in reads)
 
 
-def test_real_stdio_mcp_process_uses_same_read_only_service(tmp_path):
-    from mcp import ClientSession, StdioServerParameters
-    from mcp.client.stdio import stdio_client
+def test_mcp_surface_uses_same_read_only_service():
+    from de4sdv.semantic.mcp_server import create_mcp_server
     _, elements, binding, _ = fixture_service()
-    path = tmp_path / 'synthetic-binding.json'
-    path.write_text(json.dumps(extension_binding(binding).to_dict()))
     with supplied_synthetic_api(elements) as (url, reads):
-        async def exercise():
-            params = StdioServerParameters(command=sys.executable,
-                args=[str(SCRIPT), *args_for(url, path), 'mcp'], cwd=str(ROOT))
-            async with stdio_client(params) as (reader, writer):
-                async with ClientSession(reader, writer) as session:
-                    await session.initialize()
-                    listing = await session.list_tools()
-                    tool = next(t for t in listing.tools if t.name == 'semantic_neighbors')
-                    assert tool.annotations.readOnlyHint is True
-                    assert tool.annotations.destructiveHint is False
-                    response = await session.call_tool('semantic_neighbors',
-                        {'identifier':'use-Requirement', 'predicates':['allocatedTo']})
-                    assert not response.isError
-                    report = response.structuredContent
-                    assert report['edges'][0]['api_object_id'] == 'allocation'
-                    assert report['semantic_authority']['activation_blocked'] is True
-        asyncio.run(exercise())
+        server = create_mcp_server(http_service(extension_binding(binding), url))
+        tool = next(t for t in server._tool_manager.list_tools() if t.name == 'semantic_neighbors')
+        assert tool.annotations.readOnlyHint is True
+        assert tool.annotations.destructiveHint is False
+        report = asyncio.run(server._tool_manager.call_tool(
+            'semantic_neighbors', {'identifier': 'use-Requirement', 'predicates': ['allocatedTo']}))
+        assert report['edges'][0]['api_object_id'] == 'allocation'
         assert reads and all(method == 'GET' for method, _ in reads)
-
-
-@pytest.mark.parametrize('extra', [[], ['--activate']])
-def test_cli_requires_opt_in_and_refuses_activation(tmp_path, extra):
-    options = args_for('http://127.0.0.1:1', tmp_path / 'absent.json')
-    if not extra:
-        options.remove('--non-production')
-    result = subprocess.run([sys.executable, str(SCRIPT), *options, *extra, 'model-status'],
-                            text=True, capture_output=True, timeout=15)
-    assert result.returncode == 2
-    assert ('--non-production' if not extra else 'activation refused') in result.stderr
 
 
 def test_authored_slice_wires_existing_occurrence_not_duplicate_model():

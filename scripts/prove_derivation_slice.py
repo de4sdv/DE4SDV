@@ -2,8 +2,10 @@
 """Prove the derivesRequirementFromNeed slice against one validated API revision.
 
 Loads the revision binding (including ingestion-validated kernel bindings),
-assembles the existing semantic runtime, and queries the predicate for real
-AEBS requirements. The proof asserts, per positive case:
+assembles the model-authority semantic runtime (``--semantic-authority model``
+with the accepted bundle, or the ``DE4SDV_SEMANTIC_AUTHORITY`` /
+``DE4SDV_MODEL_AUTHORITY_BUNDLE`` / ``_ID`` environment), and queries the
+predicate for real AEBS requirements. The proof asserts, per positive case:
 
 - exactly the expected edge count;
 - the exact expected source, target, and dependency witness UUIDs (resolved
@@ -26,6 +28,8 @@ Usage:
         --api-url https://sysml-api.de4sdv.org \\
         --binding <binding.json> \\
         --expected-revision <full-40-hex-sha> \\
+        --semantic-authority model \\
+        --model-authority-bundle <bundle.json> --model-authority-bundle-id mab-<hex> \\
         [--output /tmp/derivation-proof.json]
 """
 
@@ -42,7 +46,19 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from de4sdv.semantic.runtime import build_semantic_runtime  # noqa: E402
+from de4sdv.semantic.entry_authority import build_entry_semantic_runtime  # noqa: E402
+
+
+def build_semantic_runtime(*, api_url: str, binding_path: Path, expected_git_revision: str,
+                           authority: str | None = None, model_bundle_path: Any = None,
+                           model_bundle_id: str | None = None) -> Any:
+    """The model-authority runtime the proof queries (fail closed)."""
+    service, _selection = build_entry_semantic_runtime(
+        api_url=api_url, binding_path=binding_path,
+        expected_git_revision=expected_git_revision, authority=authority,
+        model_bundle_path=model_bundle_path, model_bundle_id=model_bundle_id,
+    )
+    return service
 
 POSITIVE_CASES: dict[str, dict[str, str]] = {
     # case name -> expected need (target) declared identity
@@ -95,6 +111,10 @@ def main() -> int:
         help="read the expected revision from this file (first token)",
     )
     parser.add_argument("--output", type=Path, default=None)
+    parser.add_argument("--semantic-authority",
+                        help="model (default: DE4SDV_SEMANTIC_AUTHORITY)")
+    parser.add_argument("--model-authority-bundle", type=Path, default=None)
+    parser.add_argument("--model-authority-bundle-id", default=None)
     args = parser.parse_args()
 
     failures: list[str] = []
@@ -140,8 +160,9 @@ def main() -> int:
         api_url=args.api_url,
         binding_path=args.binding,
         expected_git_revision=str(expected_revision),
-        ontology_path=ROOT
-        / "approach/framework/ontology/de4sdv-basic-ontology.yaml",
+        authority=args.semantic_authority,
+        model_bundle_path=args.model_authority_bundle,
+        model_bundle_id=args.model_authority_bundle_id,
     )
 
     report: dict[str, object] = {

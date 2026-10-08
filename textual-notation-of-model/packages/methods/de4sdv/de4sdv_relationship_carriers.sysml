@@ -2,8 +2,8 @@
  * Profile records below are construction inputs, never query-time source text.
  * Relation and retirement records carry engineering semantics only (predicate,
  * carrier, mechanism, strength, endpoint classes, inverse). Endpoint class
- * pins come from the authored ontology's kernel mappings, not from file paths
- * in this model. Each class/carrier pin routes from an ingestion-validated
+ * pins come from the class mappings of the model-generated projection layers,
+ * not from file paths in this model. Each class/carrier pin routes from an ingestion-validated
  * exact source-file and declaration tuple. Runtime never derives UUIDs by name.
  * Allocations retain responsibility assignment only; no satisfaction,
  * transitivity, execution, fulfillment, deployment or compliance is asserted.
@@ -63,7 +63,7 @@ package DE4SDV_RelationshipSuccessor {
    * assigns responsibility from its source usage to its target usage for
    * exactly one governed end pair: requirement to function, function to
    * logical element, or logical element to physical element. Endpoint
-   * classes come from the ontology kernel mappings of the endpoint lineage,
+   * classes come from the validated kernel bindings of the endpoint lineage,
    * never from usage or allocation names. Allocation proves no satisfaction,
    * execution, deployment, fulfillment or transitivity; it is not a
    * composed requirement-to-architecture realization. The superseded names

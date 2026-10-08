@@ -52,6 +52,7 @@ import yaml
 
 from de4sdv.semantic import authority_inventory as ai
 from de4sdv.semantic.kernel_contract import KernelContract
+from model_contract_fixtures import model_contract  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -65,7 +66,6 @@ CLOSURE_PATH = REPO_ROOT / "docs/method-conformance/o1/closure-evidence.json"
 REVIEW_DOC = (
     REPO_ROOT / "docs/method-conformance/o1/c4-concern-need-disposition-review.md"
 )
-ONTOLOGY_PATH = REPO_ROOT / "approach/framework/ontology/de4sdv-basic-ontology.yaml"
 TRAVERSAL_SOURCE = REPO_ROOT / "de4sdv/semantic/traversal.py"
 PROJECTION_SOURCE = REPO_ROOT / "de4sdv/semantic/projection.py"
 
@@ -199,47 +199,7 @@ def _review_text() -> str:
 
 
 def _contract() -> KernelContract:
-    return KernelContract.load(ONTOLOGY_PATH)
-
-
-def _observed_relationship() -> dict:
-    return {
-        "yaml_path": "relationships:probe",
-        "domain": "Need",
-        "range": "Concern",
-        "grounding_kind": "yaml-vocabulary",
-        "runtime_support": "vocabulary-only",
-    }
-
-
-def _reviewed_row(**overrides) -> dict:
-    """A valid intentional-retirement reviewed row for schema probes."""
-    row = {
-        "authority_current": "legacy-yaml",
-        "authority_target": RETIRED_TARGET,
-        "evidence_state": "parity-reviewed",
-        "adoption_status": "not-applicable",
-        "transition_gate": None,
-        "conditional_target": False,
-        "disposition": RETIRED_DISPOSITION,
-        "confidence": "high",
-        "stage": "c4 (probe)",
-        "note": "probe",
-        "unknowns": [],
-        "required_evidence": ["O2 probe", "O4 probe"],
-        "exact_fit_decision": "not exact native fit",
-        "closure_evidence_ref": None,
-        "semantic_text_equivalence": None,
-        "runtime_consumption": None,
-    }
-    row.update(overrides)
-    return row
-
-
-def _probe(**overrides) -> list[str]:
-    return ai._entry_problems(
-        "probe", "relationship", _observed_relationship(), _reviewed_row(**overrides), {}
-    )
+    return model_contract()
 
 
 # ---------------------------------------------------------------------------
@@ -374,7 +334,7 @@ class TestC4ScopeAndCounts:
             assert f'"{name}"' not in source, name
 
     def test_runtime_does_not_read_the_inventory_or_the_retired_identity(self):
-        assert "NEVER imported by the semantic runtime" in (ai.__doc__ or "")
+        assert "never imported by the semantic runtime" in (ai.__doc__ or "").lower()
         runtime = TRAVERSAL_SOURCE.read_text(encoding="utf-8")
         assert "authority_inventory" not in runtime
         assert "semantic-authority-inventory" not in runtime
@@ -639,46 +599,10 @@ class TestC4ReviewedDecision:
 
 
 class TestRetirementRepresentationSchema:
-    def test_target_vocabulary_extends_locations_with_retired(self):
-        assert ai.AUTHORITY_TARGETS == ai.AUTHORITY_SOURCES + (RETIRED_TARGET,)
-        assert RETIRED_TARGET not in ai.AUTHORITY_SOURCES
-        # ``retired`` is a target state; it can never be a current location.
-        assert "authority_current: retired" not in (
-            ONTOLOGY_PATH.read_text(encoding="utf-8")
-        )
-
-    def test_disposition_vocabulary_contains_retirement(self):
-        assert RETIRED_DISPOSITION in ai.DISPOSITIONS
-
-    def test_valid_retired_row_passes_validation(self):
-        assert _probe() == []
-
-    def test_retired_target_requires_the_retirement_disposition(self):
-        problems = _probe(disposition="introduce-minimal-de4sdv-relation")
-        assert any("requires disposition" in problem for problem in problems)
-
-    def test_retirement_disposition_requires_the_retired_target(self):
-        problems = _probe(authority_target="legacy-yaml")
-        assert any("requires authority_target 'retired'" in p for p in problems)
-
-    def test_retired_row_cannot_be_conditional(self):
-        problems = _probe(conditional_target=True, transition_gate="some gate")
-        assert any("cannot carry a conditional target" in p for p in problems)
-
-    def test_retired_row_has_no_transition_gate(self):
-        problems = _probe(transition_gate="some gate")
-        assert any("has no transition gate" in p for p in problems)
-
-    def test_retired_row_cannot_be_blocked_or_unknown(self):
-        for state in ("blocked", "unknown"):
-            problems = _probe(evidence_state=state)
-            assert any(
-                "must carry a decided evidence state" in p for p in problems
-            ), state
-
-    def test_retired_is_unrepresentable_as_current_authority(self):
-        problems = _probe(authority_current=RETIRED_TARGET)
-        assert any("authority_current" in p for p in problems)
+    # The O1 inventory row validator (authority_inventory._entry_problems and
+    # its vocabularies) was deleted with the inventory generator in O4 Wave C2;
+    # the inventory is a frozen record. Its retirement representation is
+    # checked on the frozen artifact below.
 
     def test_inventory_row_is_consistent_with_the_decisions_row(
         self, inventory, decisions
@@ -702,8 +626,11 @@ class TestRetirementRepresentationSchema:
             assert reviewed[field] == source[field], field
 
     def test_artifact_declares_the_target_vocabulary(self, inventory):
+        """The frozen inventory's target vocabulary extends the location
+        sources with exactly ``retired``, which is never a current location."""
         dimensions = inventory["dimensions"]
-        assert dimensions.get("authority_target") == list(ai.AUTHORITY_TARGETS)
+        assert dimensions.get("authority_target") == list(dimensions["authority_source"]) + [
+            RETIRED_TARGET]
         assert RETIRED_TARGET not in dimensions["authority_source"]
 
 
@@ -777,11 +704,17 @@ class TestAddressesConcernUntouched:
         # No mapping was silently attached or changed.
         assert "sysml_mapping" not in relationships["addressesConcern"]
 
-    def test_derives_need_from_concern_contract_is_unchanged(self):
-        relationships = _contract().relationships
-        assert relationships["derivesNeedFromConcern"]["domain"] == "Need"
-        assert relationships["derivesNeedFromConcern"]["range"] == "Concern"
-        assert "sysml_mapping" not in relationships["derivesNeedFromConcern"]
+    def test_derives_need_from_concern_is_refused_with_its_disposition(self):
+        """O4 Wave C2 (owner decision D5, intentional migration): the retired
+        row is no longer served as a vocabulary-only gap; the model-built
+        contract refuses it with its register disposition."""
+        from de4sdv.semantic.kernel_contract import RetiredIdentityError
+
+        contract = _contract()
+        assert "derivesNeedFromConcern" not in contract.relationships
+        assert "register disposition REMOVE" in contract.refused["derivesNeedFromConcern"]
+        with pytest.raises(RetiredIdentityError, match="register disposition REMOVE"):
+            contract.relationship_mapping("derivesNeedFromConcern")
 
     def test_addresses_concern_reviewed_row_is_unchanged(self, decisions):
         row = decisions["entries"]["addressesConcern"]
@@ -813,7 +746,8 @@ class TestAddressesConcernUntouched:
     def test_no_motivates_inverse_or_generic_source_predicate(self, decisions):
         assert "motivatesNeed" not in decisions["entries"]
         assert "traceToSource" not in decisions["entries"]
-        ontology = ONTOLOGY_PATH.read_text(encoding="utf-8")
+        contract = _contract()
+        identities = set(contract.classes) | set(contract.relationships) | set(contract.refused)
         for token in (
             "motivatesNeed",
             "needAddressesConcern",
@@ -822,20 +756,21 @@ class TestAddressesConcernUntouched:
             "derivesNeedFromScenario",
             "traceToSource",
         ):
-            assert token not in ontology, token
+            assert token not in identities, token
         runtime = TRAVERSAL_SOURCE.read_text(encoding="utf-8")
         assert "motivatesNeed" not in runtime
         assert "traceToSource" not in runtime
 
     def test_ontology_relationship_set_is_unchanged(self, decisions):
-        raw = yaml.safe_load(ONTOLOGY_PATH.read_text(encoding="utf-8"))
-        relationships = raw["relationships"]
-        assert len(relationships) == 34
-        assert "addressesConcern" in relationships
-        assert "derivesNeedFromConcern" in relationships
-        # The retired row keeps its contract shape: domain/range only.
-        assert set(relationships["derivesNeedFromConcern"]) == {"domain", "range"}
-        assert set(relationships["addressesConcern"]) == {"domain", "range"}
+        """In the model-built contract (O4 Wave C2) addressesConcern stays a
+        vocabulary-only relationship and the retired row is refused, never
+        served."""
+        contract = _contract()
+        assert "addressesConcern" in contract.relationships
+        with pytest.raises(KeyError, match="no SysML mapping"):
+            contract.relationship_mapping("addressesConcern")
+        assert "derivesNeedFromConcern" not in contract.relationships
+        assert "derivesNeedFromConcern" in contract.refused
 
 
 # ---------------------------------------------------------------------------

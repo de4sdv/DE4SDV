@@ -155,7 +155,7 @@ def test_frozen_o2_surface_is_never_admitted(manifest: dict) -> None:
 
 
 def test_frozen_o3_surface_is_never_admitted(manifest: dict) -> None:
-    from de4sdv.semantic.o3_bundle import MIGRATED_IDENTITIES
+    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
 
     admitted = {row["identity"] for row in manifest["admitted"]}
     assert admitted & set(MIGRATED_IDENTITIES) == set()
@@ -196,7 +196,7 @@ def test_projection_row_outputs_match_reviewed_flags(
 
 
 def test_no_frozen_identity_is_emitted(artifacts: dict) -> None:
-    from de4sdv.semantic.o3_bundle import MIGRATED_IDENTITIES
+    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
 
     emitted = {row["identity"] for row in artifacts["projection"]["rows"]}
     assert emitted & set(po2p.FROZEN_O2_IDENTITIES) == set()

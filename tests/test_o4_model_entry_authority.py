@@ -1,4 +1,4 @@
-"""Wave B entry-point seam for ``DE4SDV_SEMANTIC_AUTHORITY=model``.
+"""Entry-point seam for ``DE4SDV_SEMANTIC_AUTHORITY=model`` (O4 Wave C2: model only).
 
 Synthetic: the canonical router the seam delegates to is replaced by a fake,
 so the seam is tested for request resolution, delegation and identity
@@ -26,8 +26,9 @@ class FakeRuntime:
             "authority": authority,
             "bundle_id": status_id or bundle_id,
             "source_revision": "c" * 40,
-            "residual": [],
-            "rollback": "o3",
+            "refused": ["IncrementTraceabilityShell"],
+            "semantic_authority": "sai-" + "3" * 32,
+            "rollback": "redeploy the pre-Wave-C production revision",
         }
 
     def authority_status(self):
@@ -52,10 +53,16 @@ def model_env(bundle, bundle_id=MAB_ID):
 # -- request resolution ------------------------------------------------------
 
 
-@pytest.mark.parametrize("value", [None, "", "legacy", "o3", "LEGACY", " o3 "])
-def test_non_model_selectors_are_not_intercepted(value):
+@pytest.mark.parametrize("value,match", [
+    (None, "is unset"), ("", "is unset"), ("legacy", "retired by O4 Wave C2"),
+    ("o3", "retired by O4 Wave C2"), ("LEGACY", "retired by O4 Wave C2"),
+    (" o3 ", "retired by O4 Wave C2"), ("other", "unknown"),
+])
+def test_non_model_selectors_are_refused(value, match):
+    """D6: unset is refused; legacy and o3 are retired (rollback = redeploy)."""
     environ = {} if value is None else {"DE4SDV_SEMANTIC_AUTHORITY": value}
-    assert ea.resolve_model_request(environ=environ) is None
+    with pytest.raises(ea.ModelAuthoritySelectionError, match=match):
+        ea.resolve_model_request(environ=environ)
 
 
 def test_model_request_requires_bundle_path_and_id(bundle):
@@ -94,7 +101,8 @@ def test_explicit_arguments_win_over_environment(bundle, tmp_path):
                  "DE4SDV_MODEL_AUTHORITY_BUNDLE_ID": OTHER_ID},
     )
     assert request.bundle_path == bundle and request.bundle_id == MAB_ID
-    assert ea.resolve_model_request(authority="legacy", environ=model_env(bundle)) is None
+    with pytest.raises(ea.ModelAuthoritySelectionError, match="retired"):
+        ea.resolve_model_request(authority="legacy", environ=model_env(bundle))
 
 
 def test_empty_environ_with_explicit_model_needs_explicit_bundle(bundle):
@@ -120,21 +128,27 @@ def test_model_runtime_built_through_the_canonical_router(monkeypatch, bundle):
     install_router(monkeypatch, router)
     service, selection = ea.build_entry_semantic_runtime(
         api_url="http://api", binding_path=Path("b.json"), expected_git_revision="c" * 40,
-        ontology_path=Path("o.yaml"), api_timeout=12.0, environ=model_env(bundle),
+        api_timeout=12.0, environ=model_env(bundle),
     )
     assert calls == [dict(authority="model", model_bundle_path=bundle, model_bundle_id=MAB_ID,
                           environ={}, api_url="http://api", binding_path=Path("b.json"),
-                          expected_git_revision="c" * 40, ontology_path=Path("o.yaml"),
-                          api_timeout=12.0)]
+                          expected_git_revision="c" * 40, api_timeout=12.0)]
     assert isinstance(service, FakeRuntime)
-    assert selection.kind == "model" and not selection.is_o3
+    assert selection.kind == "model" and selection.is_model
     provenance = selection.provenance()
     assert provenance["kind"] == "model"
     assert provenance["authority_id"] == f"mab:{MAB_ID}"
     assert provenance["bundle_id"] == MAB_ID
-    assert provenance["rollback"] == "o3"
-    assert provenance["residual"] == []
+    assert provenance["rollback"] == "redeploy the pre-Wave-C production revision"
+    assert provenance["refused"] == ["IncrementTraceabilityShell"]
+    assert provenance["semantic_authority"] == "sai-" + "3" * 32
     assert provenance["source_revision"] == "c" * 40
+
+
+def test_ontology_path_is_no_longer_a_runtime_argument(monkeypatch, bundle):
+    install_router(monkeypatch, lambda **kw: pytest.fail("must not build"))
+    with pytest.raises(ea.ModelAuthoritySelectionError, match="unsupported"):
+        ea.build_entry_semantic_runtime(ontology_path=Path("o.yaml"), environ=model_env(bundle))
 
 
 def test_eligibility_is_required_by_default_and_opt_out_is_explicit(monkeypatch, bundle):
@@ -170,7 +184,7 @@ def test_model_runtime_identity_mismatch_refuses(monkeypatch, bundle, runtime):
     install_router(monkeypatch, lambda **kw: (runtime, None))
     with pytest.raises(ea.ModelAuthoritySelectionError):
         ea.build_entry_semantic_runtime(api_url="u", binding_path=Path("b"),
-            expected_git_revision="c" * 40, ontology_path=Path("o"), environ=model_env(bundle))
+            expected_git_revision="c" * 40, environ=model_env(bundle))
 
 
 def test_model_refusal_is_translated_never_falls_back(monkeypatch, bundle):
@@ -185,45 +199,27 @@ def test_model_refusal_is_translated_never_falls_back(monkeypatch, bundle):
     install_router(monkeypatch, router)
     with pytest.raises(ea.ModelAuthoritySelectionError, match="bundle digest mismatch"):
         ea.build_entry_semantic_runtime(api_url="u", binding_path=Path("b"),
-            expected_git_revision="c" * 40, ontology_path=Path("o"), environ=model_env(bundle))
+            expected_git_revision="c" * 40, environ=model_env(bundle))
     assert calls == ["model"]  # one model attempt; no o3/legacy retry
 
 
-def test_real_router_refuses_model_arguments_outside_a_model_selection():
+def test_real_router_refuses_non_model_selections():
     from de4sdv.semantic.composition_construction import build_explicit_semantic_runtime
 
-    with pytest.raises(AuthoritySelectionError, match="require authority='model'"):
-        build_explicit_semantic_runtime(authority="o3", production=True,
-                                        environ={})
+    with pytest.raises(AuthoritySelectionError, match="retired by O4 Wave C2"):
+        build_explicit_semantic_runtime(authority="o3", production=True, environ={})
+    with pytest.raises(AuthoritySelectionError, match="is unset"):
+        build_explicit_semantic_runtime(production=True, environ={})
 
 
-def test_model_and_composition_are_mutually_exclusive(monkeypatch, bundle):
+def test_runtime_composition_is_retired(monkeypatch, bundle):
     install_router(monkeypatch, lambda **kw: pytest.fail("must not build"))
     with pytest.raises(ea.ModelAuthoritySelectionError, match="composition"):
         ea.build_entry_semantic_runtime(composition="o3+definitions", api_url="u",
-            binding_path=Path("b"), expected_git_revision="c" * 40,
-            ontology_path=Path("o"), environ=model_env(bundle))
-
-
-def test_non_model_delegates_unchanged(monkeypatch):
-    seen = []
-    monkeypatch.setattr(ea, "_delegate", lambda **kwargs: seen.append(kwargs) or ("svc", "sel"))
-    result = ea.build_entry_semantic_runtime(
-        api_url="u", binding_path=Path("b"), expected_git_revision="c" * 40,
-        ontology_path=Path("o"), authority="o3", bundle_path="p", bundle_id="o3b-x",
-        composition=None, environ={},
-    )
-    assert result == ("svc", "sel")
-    assert seen == [dict(api_url="u", binding_path=Path("b"), expected_git_revision="c" * 40,
-                         ontology_path=Path("o"), authority="o3", bundle_path="p",
-                         bundle_id="o3b-x", environ={})]
-
-
-def test_non_model_with_composition_passes_composition(monkeypatch):
-    seen = []
-    monkeypatch.setattr(ea, "_delegate", lambda **kwargs: seen.append(kwargs) or ("s", "x"))
-    ea.build_entry_semantic_runtime(composition="o3+definitions", authority="o3", environ={})
-    assert seen == [{"composition": "o3+definitions", "authority": "o3", "environ": {}}]
+            binding_path=Path("b"), expected_git_revision="c" * 40, environ=model_env(bundle))
+    from de4sdv.semantic.composition_construction import build_explicit_semantic_runtime
+    with pytest.raises(AuthoritySelectionError, match="retired"):
+        build_explicit_semantic_runtime(composition="o3+definitions", authority="model", environ={})
 
 
 # -- status block --------------------------------------------------------------
@@ -243,37 +239,21 @@ def test_status_for_invalid_model_selection_reports_error(tmp_path):
     assert block["kind"] == "invalid" and "not found" in block["error"]
 
 
-def test_status_for_legacy_is_the_o3_selection_provenance():
-    assert ea.entry_authority_status({}) == {"kind": "legacy",
-                                            "authority_id": "de4sdv.o0-o1-authored-v1"}
-
-
-# -- rollback path independence (R3) ------------------------------------------
-
-
-@pytest.mark.parametrize("selector", [
-    {"authority": "legacy"}, {"authority": "o3"}, {"authority": None},
-    {"environ": {"DE4SDV_SEMANTIC_AUTHORITY": " O3 "}}, {"environ": {}},
+@pytest.mark.parametrize("environ,match", [
+    ({}, "is unset"), ({"DE4SDV_SEMANTIC_AUTHORITY": "legacy"}, "retired"),
+    ({"DE4SDV_SEMANTIC_AUTHORITY": "o3"}, "retired"),
 ])
-def test_legacy_and_o3_construction_never_import_the_model_runtime(monkeypatch, selector):
-    """With the model runtime unimportable, the rollback path still reaches its builder."""
-    import sys
+def test_status_for_non_model_selection_is_invalid(environ, match):
+    block = ea.entry_authority_status(environ)
+    assert block["kind"] == "invalid" and match in block["error"]
 
+
+def test_model_construction_is_the_only_path(monkeypatch):
+    """No other authority builder exists to fall back to."""
     from de4sdv.semantic import composition_construction as cc
 
-    import de4sdv.semantic as package
-
-    monkeypatch.setitem(sys.modules, "de4sdv.semantic.model_authority_runtime", None)
-    monkeypatch.delattr(package, "model_authority_runtime", raising=False)
-    calls = []
-    monkeypatch.setattr(cc, "build_selected_semantic_runtime",
-                        lambda **kw: calls.append(kw) or ("service", "selection"))
-    kwargs = {"api_url": "u", "environ": {"DE4SDV_SEMANTIC_AUTHORITY": "legacy"}, **selector}
-    assert cc.build_explicit_semantic_runtime(**kwargs) == ("service", "selection")
-    assert calls == [kwargs]
-    with pytest.raises(AuthoritySelectionError, match="authority='model'"):
-        cc.build_explicit_semantic_runtime(api_url="u", authority="legacy",
-                                           model_bundle_id=MAB_ID)
-    with pytest.raises(ImportError):
-        cc.build_explicit_semantic_runtime(api_url="u", authority=" Model ")
-    assert len(calls) == 1
+    assert not hasattr(cc, "build_selected_semantic_runtime")
+    assert not hasattr(cc, "build_composed_semantic_runtime")
+    with pytest.raises(AuthoritySelectionError, match="bundle_path"):
+        cc.build_explicit_semantic_runtime(api_url="u", authority="model", bundle_path="p",
+                                           environ={})

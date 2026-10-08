@@ -11,15 +11,15 @@ from pathlib import Path
 
 MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
 PACKAGE = "DE4SDV_RelationshipSuccessor"
-# Class identities are pinned by the authored ontology's kernel mappings, not by
-# file-path records inside the SysML model: the model carries engineering
-# semantics, the ontology carries the class-to-declaration mapping.
-ONTOLOGY = "approach/framework/ontology/de4sdv-basic-ontology.yaml"
+# Class identities are pinned by the model-generated projection layers' class
+# mappings (``model_contract.model_class_pins``), not by file-path records
+# inside the successor package: the layers carry the class-to-declaration
+# mapping, and the pin files are bound inputs of the contract.
 PROGRAM_INPUTS = (
     "de4sdv/semantic/relationship_successor_contract.py",
     "de4sdv/semantic/relationship_successor.py",
     "de4sdv/semantic/composition_construction.py",
-    "de4sdv/semantic/authority_inventory.py",
+    "de4sdv/semantic/model_contract.py",
     "de4sdv/semantic/traversal.py",
     "de4sdv/semantic/query.py",
     "de4sdv/semantic/api_binding.py",
@@ -31,7 +31,6 @@ PROGRAM_INPUTS = (
     "de4sdv/sysml_api/revisions.py",
     "de4sdv/sysml_api/repository.py",
     "de4sdv/sysml_api/client.py",
-    "scripts/relationship_successor.py",
     "textual-notation-of-model/packages/features/aebs/aebs_functional_architecture.sysml",
     "textual-notation-of-model/packages/features/aebs/aebs_logical_architecture.sysml",
     "textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml",
@@ -194,51 +193,6 @@ def _definition_owner(text: str, declaration: str) -> str:
     return owner
 
 
-def _ontology_class_pins(root: Path) -> dict[str, dict[str, str]]:
-    """Exact file/declaration pin per ontology class, from kernel mappings only.
-
-    A class with its own ``kernel: {file, declaration}`` mapping pins that
-    declaration. A natively represented class (e.g. ``Function``) is pinned by
-    its unique directly specializing ontology class that has a file mapping
-    (e.g. ``AllocatableFunction``). Two such specializations are ambiguous and
-    pin nothing. No name lookup in model source; no record inside the model.
-    """
-    import yaml
-
-    try:
-        document = yaml.safe_load((root / ONTOLOGY).read_text(encoding="utf-8"))
-    except (OSError, yaml.YAMLError) as error:
-        raise ValueError("unreadable ontology for successor class pins") from error
-    classes = document.get("classes") if isinstance(document, dict) else None
-    if not isinstance(classes, dict):
-        raise ValueError("ontology classes mapping missing")
-
-    def file_pin(row):
-        kernel = row.get("kernel") if isinstance(row, dict) else None
-        if isinstance(kernel, dict) and set(kernel) == {"file", "declaration"}:
-            file, declaration = kernel["file"], kernel["declaration"]
-            # Malformed pins are a controlled refusal, never a raw exception.
-            if (not isinstance(file, str) or not file.strip() or file != file.strip()
-                    or not isinstance(declaration, str)
-                    or not re.fullmatch(r"[a-z]+(?: [a-z]+)* def [A-Za-z_]\w*", declaration)):
-                raise ValueError(f"malformed ontology kernel pin: {kernel!r}")
-            return {"file": file, "declaration": declaration}
-        return None
-
-    pins = {}
-    for name, row in classes.items():
-        own = file_pin(row)
-        if own:
-            pins[name] = own
-            continue
-        specializations = [file_pin(child) for child in classes.values()
-                           if isinstance(child, dict) and child.get("subClassOf") == name
-                           and file_pin(child)]
-        if len(specializations) == 1:
-            pins[name] = specializations[0]
-    return pins
-
-
 def _competing_known_homonyms(class_types: dict[str, tuple[str, str]], classes: dict,
                               imports: set[str], identity: str, expected: str,
                               canonical: str) -> set[str]:
@@ -261,7 +215,14 @@ def _competing_known_homonyms(class_types: dict[str, tuple[str, str]], classes: 
     }
 
 
-def generate_contract(root: Path) -> dict:
+def generate_contract(root: Path, *, class_pins: dict, pin_inputs: tuple[str, ...]) -> dict:
+    """Generate the successor contract from the model.
+
+    ``class_pins`` supplies the exact file/declaration pin per class from the
+    model-generated projection layers (``model_contract.model_class_pins``);
+    ``pin_inputs`` names the layer files those pins were read from, so they
+    are bound inputs of the contract.
+    """
     text = (root / MODEL).read_text()
     package = _live_declaration(text, r"\bpackage\s+" + PACKAGE + r"(?=\s*\{)", direct_depth=0)
     if not package:
@@ -303,17 +264,24 @@ def generate_contract(root: Path) -> dict:
     if len(versions) != 1 or not versions[0].get("version"):
         raise ValueError("one explicit successor version required")
     classes, class_types = {}, {}
-    inputs = {MODEL, ONTOLOGY, *PROGRAM_INPUTS}
-    ontology_pins = _ontology_class_pins(root)
+    inputs = {MODEL, *pin_inputs, *PROGRAM_INPUTS}
+    for name, pin in class_pins.items():
+        if (not isinstance(pin, dict) or set(pin) != {"file", "declaration"}
+                or not isinstance(pin["file"], str) or not pin["file"].strip()
+                or pin["file"] != pin["file"].strip()
+                or not isinstance(pin["declaration"], str)
+                or not re.fullmatch(r"[a-z]+(?: [a-z]+)* def [A-Za-z_]\w*", pin["declaration"])):
+            raise ValueError(f"malformed class pin for {name}: {pin!r}")
+    class_pin_map = {name: dict(pin) for name, pin in class_pins.items()}
     profile_classes = sorted({row[key] for row in records.get("SuccessorRelationRecord", [])
                               for key in ("sourceClass", "targetClass")})
-    missing = [name for name in profile_classes if name not in ontology_pins]
+    missing = [name for name in profile_classes if name not in class_pin_map]
     if missing:
         raise ValueError("missing endpoint class pin: " + ", ".join(missing))
-    # Known pinned identities: the profile classes plus every ontology pin that
+    # Known pinned identities: the profile classes plus every class pin that
     # declares the same short name (bounded homonym competition, no resolver).
-    wanted = {ontology_pins[name]["declaration"].split()[-1] for name in profile_classes}
-    known = {name: pin for name, pin in ontology_pins.items()
+    wanted = {class_pin_map[name]["declaration"].split()[-1] for name in profile_classes}
+    known = {name: pin for name, pin in class_pin_map.items()
              if name in profile_classes or pin["declaration"].split()[-1] in wanted}
     known_pins, known_types = {}, {}
     for name in sorted(known):
@@ -390,8 +358,8 @@ def generate_contract(root: Path) -> dict:
     return payload
 
 
-def verify_contract(contract, root):
-    regenerated = generate_contract(root)
+def verify_contract(contract, root, *, class_pins, pin_inputs):
+    regenerated = generate_contract(root, class_pins=class_pins, pin_inputs=pin_inputs)
     if regenerated != contract:
         changed = sorted(p for p, d in contract.get("bound_inputs", {}).items()
                          if not (root / p).is_file() or digest((root / p).read_bytes()) != d)

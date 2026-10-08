@@ -91,7 +91,7 @@ def test_merge_targets_resolve_non_vacuously() -> None:
 
 
 def test_frozen_o3_thirteen_binds_to_runtime_code() -> None:
-    from de4sdv.semantic.o3_bundle import MIGRATED_IDENTITIES
+    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
 
     register = _register()
     o3_rows = sorted(row["identity"] for row in register["rows"] if row["o3_complete"])
