@@ -203,7 +203,7 @@ def test_reviewed_fields_equal_the_pre_deletion_evidence():
     are locked to the values the last executable comparison proved equal to the
     authored ontology before its deletion. Changing one needs a reviewed
     evidence update (the follow-up moves them into the model)."""
-    from scripts.compare_model_contract import manifest_held_values
+    from model_contract_fixtures import manifest_held_values
 
     held = _evidence()["manifest_held_fields"]
     assert held["unequal"] == []

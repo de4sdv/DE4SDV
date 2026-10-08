@@ -151,6 +151,26 @@ def reviewed_definition(identity: str) -> str:
     return text
 
 
-__all__ = ["admission_row", "authored_definition", "contract_equivalence_evidence",
+def manifest_held_values(row: dict[str, Any]) -> dict[str, Any]:
+    """The contract fields one batch-2 manifest row holds (owner decision D9).
+
+    Same extraction as the pre-deletion comparison
+    (``scripts/compare_model_contract.py`` at the stage-4 commit of O4 Wave
+    C2, recorded in contract-equivalence.json ``manifest_held_fields``).
+    """
+    values: dict[str, Any] = {"reviewed_definition": row.get("reviewed_definition")}
+    if row["semantic_kind"] == "class":
+        grounding = row["grounding"]
+        values.update(kernel_mapping=grounding["kernel_mapping"],
+                      sub_class_of=grounding["sub_class_of"],
+                      disjoint_with=list(grounding["disjoint_with"]))
+    elif row["admission_class"] != "successor":
+        values["relation"] = dict(row["relation"])
+        if "mechanics" in row:
+            values["mechanics"] = dict(row["mechanics"])
+    return values
+
+
+__all__ = ["admission_row", "manifest_held_values", "authored_definition", "contract_equivalence_evidence",
            "reviewed_definition", "REPO_ROOT", "FACADE_BUNDLE_ID", "binding", "binding_dict", "model_contract",
            "model_facade", "model_service", "semantic_authority_dict", "synthetic_identity"]

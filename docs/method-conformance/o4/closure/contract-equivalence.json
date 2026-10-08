@@ -1,0 +1,2404 @@
+{
+  "authored_contract": {
+    "differences": {
+      "Concern": {
+        "authored": {
+          "absent": null,
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": true,
+          "mapping": {
+            "native": "SysML v2 concern def and concern usage; kernel examples in DE4SDV_MethodViewpoints",
+            "type": "KernelNativeMapping"
+          }
+        },
+        "classification": "same KernelNativeMapping kind; the description text comes from the o2plus projection row instead of the authored entry",
+        "model": {
+          "absent": null,
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": true,
+          "mapping": {
+            "native": "SysML v2 concern def and concern usage",
+            "type": "KernelNativeMapping"
+          }
+        }
+      },
+      "Function": {
+        "authored": {
+          "absent": null,
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": true,
+          "mapping": {
+            "native": "SysML v2 action/state/behavior definitions in functional-architecture slices",
+            "type": "KernelNativeMapping"
+          }
+        },
+        "classification": "Wave B successor contract (owner decision 2026-10-07): the model successor owns this identity's mapping",
+        "model": {
+          "absent": null,
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": true,
+          "mapping": {
+            "declaration": "action def AllocatableFunction",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+            "type": "KernelFileMapping"
+          }
+        }
+      },
+      "IncrementTraceabilityShell": {
+        "authored": {
+          "absent": null,
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": true,
+          "mapping": {
+            "external": "Historical pre-Topic-5 string-shell vocabulary; retained as a compatibility identity, not a successor obligation or engineering witness",
+            "type": "KernelExternalMapping"
+          }
+        },
+        "classification": "owner-visible exception: refused with its register disposition (D5)",
+        "model": {
+          "absent": "IncrementTraceabilityShell: refused: merged into RequiredTraceChain (register disposition MERGE); no separate identity is served",
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": false,
+          "mapping": null
+        }
+      },
+      "LogicalElement": {
+        "authored": {
+          "absent": null,
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": true,
+          "mapping": {
+            "native": "part def elements in logical-architecture slices",
+            "type": "KernelNativeMapping"
+          }
+        },
+        "classification": "Wave B successor contract (owner decision 2026-10-07): the model successor owns this identity's mapping",
+        "model": {
+          "absent": null,
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": true,
+          "mapping": {
+            "declaration": "part def LogicalAllocationElement",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+            "type": "KernelFileMapping"
+          }
+        }
+      },
+      "PhysicalElement": {
+        "authored": {
+          "absent": null,
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": true,
+          "mapping": {
+            "native": "part def elements in physical/software realization slices",
+            "type": "KernelNativeMapping"
+          }
+        },
+        "classification": "Wave B successor contract (owner decision 2026-10-07): the model successor owns this identity's mapping",
+        "model": {
+          "absent": null,
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": true,
+          "mapping": {
+            "declaration": "part def PhysicalAllocationElement",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+            "type": "KernelFileMapping"
+          }
+        }
+      },
+      "ValidationScenario": {
+        "authored": {
+          "absent": null,
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": true,
+          "mapping": {
+            "native": "Scenario parts with bounded validation outcomes (for example passBoundedValidation)",
+            "type": "KernelNativeMapping"
+          }
+        },
+        "classification": "Wave B successor contract (owner decision 2026-10-07): the model successor owns this identity's mapping",
+        "model": {
+          "absent": null,
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": true,
+          "mapping": {
+            "declaration": "part def ValidationPlanningScenario",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+            "type": "KernelFileMapping"
+          }
+        }
+      },
+      "VerificationCase": {
+        "authored": {
+          "absent": null,
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": true,
+          "mapping": {
+            "native": "SysML v2 verification def; see aebs and middleware verification slices",
+            "type": "KernelNativeMapping"
+          }
+        },
+        "classification": "same KernelNativeMapping kind; the description text comes from the o3 projection row instead of the authored entry",
+        "model": {
+          "absent": null,
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": true,
+          "mapping": {
+            "native": "native verification-case construct (VerificationCase), pinned standard library",
+            "type": "KernelNativeMapping"
+          }
+        }
+      },
+      "VerificationMethod": {
+        "authored": {
+          "absent": null,
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": true,
+          "mapping": {
+            "external": "ODE4HERA requirements-management library verificationMethod (NRM A8) populated with the SysML standard-library VerificationMethodKind values",
+            "type": "KernelExternalMapping"
+          }
+        },
+        "classification": "same KernelExternalMapping kind; the description text comes from the o2plus projection row instead of the authored entry",
+        "model": {
+          "absent": null,
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": true,
+          "mapping": {
+            "external": "SysML VerificationMethod metadata (standard method-kind vocabulary)",
+            "type": "KernelExternalMapping"
+          }
+        }
+      },
+      "View": {
+        "authored": {
+          "absent": null,
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": true,
+          "mapping": {
+            "native": "SysML v2 view",
+            "type": "KernelNativeMapping"
+          }
+        },
+        "classification": "same KernelNativeMapping kind; the description text comes from the o2plus projection row instead of the authored entry",
+        "model": {
+          "absent": null,
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": true,
+          "mapping": {
+            "native": "SysML v2 view (concrete view usages)",
+            "type": "KernelNativeMapping"
+          }
+        }
+      },
+      "Viewpoint": {
+        "authored": {
+          "absent": null,
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": true,
+          "mapping": {
+            "native": "SysML v2 viewpoint def; kernel selections in DE4SDV_MethodViewpoints and SAF_Viewpoints",
+            "type": "KernelNativeMapping"
+          }
+        },
+        "classification": "same KernelNativeMapping kind; the description text comes from the o2plus projection row instead of the authored entry",
+        "model": {
+          "absent": null,
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": true,
+          "mapping": {
+            "native": "SysML v2 viewpoint def",
+            "type": "KernelNativeMapping"
+          }
+        }
+      },
+      "allocatedTo": {
+        "authored": {
+          "absent": "ontology relationship has no SysML mapping: allocatedTo",
+          "domain_range": {
+            "domain": "Function",
+            "range": "LogicalElement"
+          },
+          "listed": true,
+          "mapping": null
+        },
+        "classification": "Wave B successor contract (owner decision 2026-10-07): the model successor owns this identity's mapping",
+        "model": {
+          "absent": null,
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": true,
+          "mapping": {
+            "configuration": {},
+            "domain": "Requirement",
+            "name": "allocatedTo",
+            "range": "Function",
+            "semantic_strength": "allocation",
+            "strategy": "successor",
+            "type": "RelationshipMapping"
+          }
+        }
+      },
+      "constrainedBy": {
+        "authored": {
+          "absent": "ontology relationship has no SysML mapping: constrainedBy",
+          "domain_range": {
+            "domain": "Requirement",
+            "range": "RegulatoryConstraint"
+          },
+          "listed": true,
+          "mapping": null
+        },
+        "classification": "deprecated alias: refused, retired; use the successor (D4)",
+        "model": {
+          "absent": "constrainedBy: retired; use hasRegulatorySource",
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": false,
+          "mapping": null
+        }
+      },
+      "deployedTo": {
+        "authored": {
+          "absent": "ontology relationship has no SysML mapping: deployedTo",
+          "domain_range": {
+            "domain": "LogicalElement",
+            "range": "PhysicalElement"
+          },
+          "listed": true,
+          "mapping": null
+        },
+        "classification": "deprecated alias: refused, retired; use the successor (D4)",
+        "model": {
+          "absent": "deployedTo: retired; use allocatedTo",
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": false,
+          "mapping": null
+        }
+      },
+      "derivesNeedFromConcern": {
+        "authored": {
+          "absent": "ontology relationship has no SysML mapping: derivesNeedFromConcern",
+          "domain_range": {
+            "domain": "Need",
+            "range": "Concern"
+          },
+          "listed": true,
+          "mapping": null
+        },
+        "classification": "owner-visible exception: refused with its register disposition (D5)",
+        "model": {
+          "absent": "derivesNeedFromConcern: refused: removed (register disposition REMOVE, REMOVE_FROM_ONTOLOGY); retired; historical evidence retained (no migration target)",
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": false,
+          "mapping": null
+        }
+      },
+      "hasRegulatorySource": {
+        "authored": {
+          "absent": "ontology relationship has no SysML mapping: hasRegulatorySource",
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": false,
+          "mapping": null
+        },
+        "classification": "Wave B successor contract (owner decision 2026-10-07): the model successor owns this identity's mapping",
+        "model": {
+          "absent": null,
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": true,
+          "mapping": {
+            "configuration": {},
+            "domain": "Requirement",
+            "name": "hasRegulatorySource",
+            "range": "RegulatorySource",
+            "semantic_strength": "source-provenance",
+            "strategy": "successor",
+            "type": "RelationshipMapping"
+          }
+        }
+      },
+      "hasValidationScenario": {
+        "authored": {
+          "absent": "ontology relationship has no SysML mapping: hasValidationScenario",
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": false,
+          "mapping": null
+        },
+        "classification": "Wave B successor contract (owner decision 2026-10-07): the model successor owns this identity's mapping",
+        "model": {
+          "absent": null,
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": true,
+          "mapping": {
+            "configuration": {},
+            "domain": "Need",
+            "name": "hasValidationScenario",
+            "range": "ValidationScenario",
+            "semantic_strength": "validation-planning",
+            "strategy": "successor",
+            "type": "RelationshipMapping"
+          }
+        }
+      },
+      "realizedBy": {
+        "authored": {
+          "absent": null,
+          "domain_range": {
+            "domain": "Requirement",
+            "range": "ArchitectureElement"
+          },
+          "listed": true,
+          "mapping": {
+            "configuration": {
+              "direction": "outgoing",
+              "relationship_types": [
+                "AllocationUsage"
+              ],
+              "source_property": "source",
+              "target_property": "target"
+            },
+            "domain": "Requirement",
+            "name": "realizedBy",
+            "range": "ArchitectureElement",
+            "semantic_strength": "allocation",
+            "strategy": "allocation",
+            "type": "RelationshipMapping"
+          }
+        },
+        "classification": "deprecated alias: refused, retired; use the successor (D4)",
+        "model": {
+          "absent": "realizedBy: retired; use allocatedTo",
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": false,
+          "mapping": null
+        }
+      },
+      "usesVerificationMethod": {
+        "authored": {
+          "absent": "ontology relationship has no SysML mapping: usesVerificationMethod",
+          "domain_range": {
+            "domain": "VerificationCase",
+            "range": "VerificationMethod"
+          },
+          "listed": true,
+          "mapping": null
+        },
+        "classification": "O2+ relationship row: vocabulary-only, no executable mapping in either contract; the authored domain/range text is not projected (D9 residual)",
+        "model": {
+          "absent": "ontology relationship has no SysML mapping: usesVerificationMethod",
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": true,
+          "mapping": null
+        }
+      },
+      "validatedBy": {
+        "authored": {
+          "absent": "ontology relationship has no SysML mapping: validatedBy",
+          "domain_range": {
+            "domain": "Need",
+            "range": "ValidationScenario"
+          },
+          "listed": true,
+          "mapping": null
+        },
+        "classification": "deprecated alias: refused, retired; use the successor (D4)",
+        "model": {
+          "absent": "validatedBy: retired; use hasValidationScenario",
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": false,
+          "mapping": null
+        }
+      },
+      "validatesFitnessForUse": {
+        "authored": {
+          "absent": "ontology relationship has no SysML mapping: validatesFitnessForUse",
+          "domain_range": {
+            "domain": "ValidationScenario",
+            "range": "Need"
+          },
+          "listed": true,
+          "mapping": null
+        },
+        "classification": "deprecated alias: refused, retired; use the successor (D4)",
+        "model": {
+          "absent": "validatesFitnessForUse: retired; use validationScenarioFor",
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": false,
+          "mapping": null
+        }
+      },
+      "validationScenarioFor": {
+        "authored": {
+          "absent": "ontology relationship has no SysML mapping: validationScenarioFor",
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": false,
+          "mapping": null
+        },
+        "classification": "Wave B successor contract (owner decision 2026-10-07): the model successor owns this identity's mapping",
+        "model": {
+          "absent": null,
+          "domain_range": {
+            "domain": null,
+            "range": null
+          },
+          "listed": true,
+          "mapping": {
+            "configuration": {},
+            "domain": "ValidationScenario",
+            "name": "validationScenarioFor",
+            "range": "Need",
+            "semantic_strength": "validation-planning",
+            "strategy": "successor",
+            "type": "RelationshipMapping"
+          }
+        }
+      }
+    },
+    "oracle": "raw authored contract (KernelContract.load of the authored YAML)",
+    "unclassified": []
+  },
+  "authored_definitions": {
+    "entries": {
+      "classes:AcceptanceAttestationReference": "A model-resident reference to the authorization policy and the machine-declared decision-registry location. Policy status (proposed vs approved) is carried by the policy document, not by this reference; a missing registry and a known-empty registry are different states.",
+      "classes:AcceptanceCriterion": "A condition used to decide whether a verification result, validation result, evidence artifact, or increment output is acceptable for its stated purpose.",
+      "classes:AllocatableFunction": "Functional responsibility identity for this versioned allocation profile.",
+      "classes:ApprovedTraceMethod": "Selected approved method identity. Selecting this reference does not establish conformance, approval of a candidate, or an engineering trace.",
+      "classes:ArchitectureDecisionRecord": "A reviewed architecture or method decision recorded as an ADR in Git that can serve as the semantic origin of a design-input requirement.",
+      "classes:ArchitectureElement": "Any model element used to describe system context, function, logical realization, physical/software realization, interface, or behavior.",
+      "classes:Assumption": "A stated condition treated as true for the purpose of an increment, model, scenario, analysis, or evidence record.",
+      "classes:AssuranceClaim": "A claim about safety, security, compliance alignment, release readiness, or fitness-for-use that requires argument and evidence before acceptance. Claims are bounded and never imply certification or homologation.",
+      "classes:Baseline": "A reviewed and controlled state of model, evidence, configuration, or publication artifacts.",
+      "classes:BlockedRealizationBranchRecord": "A record of a realization branch blocked by a source defect or gap.",
+      "classes:CommonCapability": "A capability or characteristic present in all relevant member products; not a feature unless it distinguishes variants.",
+      "classes:Concern": "An interest or issue that matters to a stakeholder and motivates views, needs, requirements, or evidence.",
+      "classes:DeferredProductLineScope": "Product-line scope deliberately deferred from the current increment, including recorded gaps.",
+      "classes:DerivesFromNeed": "DE4SDV application connection definition for design-input derivation: the derivedRequirement originates from the stakeholder need. Provenance/traceability semantics only - neither satisfaction nor logical implication between the connected usages is claimed. The typed connection ends (need : StakeholderNeedCandidate, derivedRequirement : RequirementCandidate) carry the predicate's domain and range in the model itself. The standard Requirement Derivation Domain Library remains pinned but unadopted: its originalImpliesDerived semantics change the claim (upstream adoption gate still applies; no floating upgrade, no upstream contact without authorization).",
+      "classes:EngineeringIncrement": "A bounded DE4SDV work package that changes, tests, or publishes engineering knowledge.",
+      "classes:EvaluationScopeMembership": "Explicit membership of one subject in an evaluation scope, carrying the contributes flag that separates the contribution set from reused evaluation-scope members.",
+      "classes:EvaluationSourceKind": "The kind of input an obligation reads: a pinned model record, a pinned repository artifact, or a live delivery adapter (outside deterministic V1 evaluation).",
+      "classes:EvidenceArtifact": "A reviewable artifact that supports a verification, validation, assurance, or release decision.",
+      "classes:EvidenceContract": "A requirement usage that defines the bounded observations, acceptance boundary, and retained-evidence obligations for a verification case. An evidence contract is planning vocabulary, not proof that a product requirement is verified.",
+      "classes:EvidenceStatus": "Lifecycle status for evidence and verification results. DE4SDV does not define its own status vocabulary: requirement verification status uses the upstream VVStatus enum, and bounded evidence outcomes/dispositions use slice-local enums such as MiddlewareEvidenceOutcome and MiddlewareEvidenceDisposition.",
+      "classes:EvidenceSupportCitation": "supportedByEvidence cites one identified artifact as support for an exact scoped claim, with rationale and known limitations. Neither this citation nor hasEvidence (case-to-artifact association) asserts adequacy, satisfaction, a passing result, or acceptance. Evidence bytes and artifact maturity remain external. Scope identifiers must match without inference.",
+      "classes:Feature": "A distinguishing characteristic expressing variability among member products. In the kernel a feature is a candidate until member-product variability is shown; it must not be accepted as a feature before that.",
+      "classes:FeatureConfiguration": "A selection of features, common capabilities, and variation choices for a member product or scenario.",
+      "classes:FeatureIncrement": "An engineering increment focused on a product-line feature, common capability, or native SysML v2 variation/variant choice.",
+      "classes:Function": "A behavior or transformation expected from the system or product-line architecture.",
+      "classes:Gap": "A known missing trace link, missing evidence item, unresolved uncertainty, or unproven claim that must not be hidden.",
+      "classes:IncrementEngineeringQuestion": "The engineering question that an increment answers.",
+      "classes:IncrementLifecycleDecision": "A lifecycle decision that an increment supports (accepted, deferred, or invalidated).",
+      "classes:IncrementSize": "Size guidance for an increment (XS correction, S slice, M cross-viewpoint, L end-to-end baseline).",
+      "classes:IncrementTraceObligations": "Scope declaration of an increment's trace obligations: the selected approved method, the increment, its declared scope kind, applicable phases and completion claim. Required traces derive from the selected approved method, not from candidate-selected easy checks. The traces themselves are the increment's native model relationships (owning membership, typing, requirement subject and stakeholder membership, HasStakeholder connections, framed concerns), never parallel reference slots in this declaration. Populating this declaration is not completion evidence. Reuse prior artifacts, preserve R/F/L/P, and do not invent realization or execution for early framing. Missing required traces block the corresponding claim unless an authorized visible disposition permits it. Unsupported or unavailable evaluation stays UNASSESSED, never synthetic PASS.",
+      "classes:IncrementTraceabilityShell": "The traceability structure connecting an increment to its sources and downstream artifacts.",
+      "classes:Interface": "A boundary or interaction point through which items, signals, services, or information are exchanged.",
+      "classes:LogicalAllocationElement": "Technology-neutral logical responsibility grouping.",
+      "classes:LogicalElement": "A logical service, component, or responsibility grouping that realizes functions.",
+      "classes:LogicalToSoftwareSignalMappingRecord": "A control record for a logical or semantic information item crossing into a software, service, topic, API, or physical boundary; preserves trace and review obligations without claiming runtime interoperability.",
+      "classes:MemberProduct": "A configured product or product variant that belongs to a product line.",
+      "classes:MethodContractObligation": "A typed model-resident method-contract obligation: stable explicit identifier, phase reference, typed subject selector, restricted applicability, population policy, pinned predicate with declared input/output types, target filters, per-subject cardinality bounds, requiredness, evaluation source, optional attestation-policy reference, and exact claim boundary. Model materialization of the frozen baseline Section 7 schema.",
+      "classes:MethodEvaluationScope": "An evaluation scope binding increment identity, eligible subject types, and explicit exclusions. Contribution set and evaluation scope are distinct sets; membership in evaluation scope is a reviewed scope decision, not an inferred impact claim.",
+      "classes:MethodPhase": "One of the 13 phases of the DE4SDV increment workflow.",
+      "classes:MissingRealizationRecord": "A record of a missing or blocked realization allocation for a conceptual element.",
+      "classes:Need": "Stakeholder-expressed problem-space intent, before conversion into design input requirements. The kernel models needs as requirement usages of StakeholderNeedCandidate specializations carrying the ADR 0009 attribute set.",
+      "classes:NeedsRequirementsIncrement": "An engineering increment focused on needs, draft requirements, traceability, and V&V planning.",
+      "classes:PhysicalAllocationElement": "Concrete software, hardware or platform realization element; allocation is not deployment.",
+      "classes:PhysicalElement": "A physical, software, hardware, deployment, or platform element that realizes conceptual elements or functions.",
+      "classes:ProblemStatement": "The problem that is to be solved by the system or increment, modeled as a requirement.",
+      "classes:ProductLine": "A family of related member products managed through shared assets and variability.",
+      "classes:ProductLineCharacteristic": "The product-line classification base: a characteristic is a common capability, a feature candidate, deferred scope, or a native SysML v2 variation choice.",
+      "classes:RegulatoryConstraint": "A constraint or reference derived from a standard, regulation, or homologation-relevant source, with controlled source identity and no compliance claim.",
+      "classes:RegulatorySource": "Controlled external origin reference that informed requirement engineering. Interpretation, applicability, obligations, required conditions, evidence and authorized compliance assessment are separate.",
+      "classes:RegulatorySourceAssociation": "Source provenance only. Does not add a required satisfaction condition or establish applicability, correct interpretation, fulfillment, certification or homologation. Historical constrainedBy was provenance, never a native required constraint.",
+      "classes:RequiredTraceChain": "The ordered trace chain every substantial increment should establish, even if some links are draft: stakeholder concern, need, requirement, feature or common capability, architecture element, logical-to-software signal mapping when a boundary is crossed, physical/software realization, verification case, acceptance criterion, evidence artifact, baseline decision. Intentionally missing links are recorded as gaps.",
+      "classes:Requirement": "A verifiable design input obligation or constraint derived from needs, standards, or architecture decisions. The kernel models requirement candidates on the SYSMOD requirement seam with ADR 0009 attributes.",
+      "classes:RetainedExecutionRecordReference": "A model-resident reference to one retained execution record with explicit external identity, artifact path, digest, and run identity; record bytes stay external.",
+      "classes:Scenario": "A bounded operational, validation, test, or threat situation used to reason about behavior and evidence.",
+      "classes:ScopedEvidenceAdequacyAssessment": "Proportionate evidence-SET assessment for this exact claim, subject, configuration, conditions and agreed criteria. Required before presenting a claim as established or seeking acceptance; not a universal sufficiency verdict on each artifact. Reuse cases, criteria, executions, evidence and gap identities. Coverage, confidence and rigor bases, contrary results, discrepancies, unresolved gaps, assessor, conclusion and reasoning must remain explicit. An adequate set can establish a negative conclusion. supportsClaim records the assessor's scoped conclusion, not checker truth. Accepted exceptions stay visible; neither assessment nor acceptance turns exceptions or generic Completed status into unqualified satisfaction. AcceptanceAttestationReference remains a separate designated-authority decision reference, not the assessor's conclusion or result approval.",
+      "classes:ScopedVVActivityRecord": "One explicitly scoped verification OR validation activity. Applicable across needs, requirements, designs, production outputs, system elements, integrated systems and artifacts without inheriting requirement attributes. Native need/requirement verificationStatus attachments remain unchanged. Results and evidence are references to retained external records, not a second result/evidence store; native VerdictKind execution values remain distinct from this activity's status. Artifact maturity is not this status. Completed includes necessary result approval, but never infers PASS or designated-authority acceptance. CompletedUnsuccessful could not complete; CompletedFailed completed with technical failure; CompletedPassed completed successfully against the activity basis only, not a broader scoped claim.",
+      "classes:SignalMappingDisposition": "The disposition of a logical-to-software signal mapping (mapped, candidate, deferred, or notApplicable).",
+      "classes:Stakeholder": "A role, person, organization, or community with concerns about the system or increment.",
+      "classes:SystemLayer": "Coarse ASELCM-style layer used to frame DE4SDV increments and their environments.",
+      "classes:SystemToSoftwareSignalMappingCandidate": "A reusable non-claiming allocation relationship from a logical/function signal responsibility to a concrete software or adapter signal endpoint; the allocation alone never proves field identity or runtime interoperability.",
+      "classes:TestedScopeDeclaration": "A candidate evaluation's declaration of the tested scope it compares retained evidence against: execution head and pinned profile identities (conservative scope-equality inputs).",
+      "classes:TraceLink": "A relationship connecting source, rationale, requirement, model, evidence, or baseline artifacts.",
+      "classes:ValidationPlanningAssociation": "One validation planning association. Inverse navigation is the same fact, not execution or a fitness-for-use verdict.",
+      "classes:ValidationPlanningScenario": "Stakeholder fitness-for-use validation planning only; not a native verification case, execution, result or acceptance.",
+      "classes:ValidationScenario": "A scenario used to assess stakeholder fitness for intended use.",
+      "classes:Variant": "A native SysML v2 variant usage owned by a variation point and representing one allowed choice for that variation.",
+      "classes:VariationPoint": "A native SysML v2 variation definition or usage that identifies an element whose allowed instances vary across product-line configurations.",
+      "classes:VerificationCase": "A planned or executed check that evaluates whether a requirement or model claim is satisfied.",
+      "classes:VerificationMethod": "A method used to check requirement satisfaction. Carried natively by VerificationMethod metadata with the standard method-kind vocabulary (inspect, demo, test, analyze), per the ADR 0009 amendment.",
+      "classes:View": "A representation produced according to a viewpoint for stakeholder review.",
+      "classes:Viewpoint": "A specification of stakeholder concerns, conventions, and expected view content.",
+      "relationships:derivedRequirementsOfNeed": "Inverse navigation of derivesRequirementFromNeed over the SAME discriminator witness: the need N is the design-input origin of the derived requirement R. This predicate declares no new model fact; it reuses the identical DerivesFromNeed connection traversed in the reverse direction, with the same lineage grounding and fail-closed closure semantics.",
+      "relationships:derivesRequirementFromNeed": "Requirement R is derived from stakeholder need N. Design-input derivation; direction R -> N. No satisfaction, allocation, verification, evidence, or acceptance claim. Grounded in the DE4SDV application connection definition DerivesFromNeed: the Need grounds the `need` end, the derived design requirement grounds the `derivedRequirement` end. DE4SDV's Requirement -> Need query is inverse navigation over that native witness.",
+      "relationships:hasRelevantArchitecture": "Reverse relevance: an incoming dependency from an architecture element (part, action, or their definitions) that is derived from or traces to the requirement. Sources grounded in the MemberProduct kernel lineage (resolved through the governed kernel mapping, never by bare name) are excluded \u2014 configured-product traces are product-line relationships, not architecture relevance.",
+      "relationships:instantiatesCanonicalArchitecture": "Explicit binding from a composite member product's contained architecture instances (its logical-system and software usages) to the canonical architecture usages whose allocation and evidence records govern them. The modeled dependencies originate from the contained usages, not from the member-product root; the executable mapping must therefore define which elements carry this relationship and how a query walks it before any product-level query reachability is claimed. Vocabulary only for now: no sysml_mapping is declared because a generic dependency traversal cannot distinguish canonical-architecture bindings from ordinary part-to-part dependencies without inventing a naming heuristic. Declaring an executable mapping requires an explicit canonical-usage selector (for example an API-side allowlist of canonical packages), not a name-based filter. The binding does not restate allocations at product level and does not make a composite projection a resolved configured product.",
+      "relationships:specifiesFunction": "Requirement-to-function relevance: a dependency from a draft requirement candidate to the functional action or flow responsibility that addresses it. Relevance only \u2014 not satisfaction, allocation, or verification."
+    },
+    "note": "the authored definition text of every class and relationship that had one, normalized; tests lock the model documentation homes (kernel-definition-homes.json) to it after the deletion"
+  },
+  "authored_identities": {
+    "classes": [
+      "AcceptanceAttestationReference",
+      "AcceptanceCriterion",
+      "AllocatableFunction",
+      "ApprovedTraceMethod",
+      "ArchitectureDecisionRecord",
+      "ArchitectureElement",
+      "Assumption",
+      "AssuranceClaim",
+      "Baseline",
+      "BlockedRealizationBranchRecord",
+      "CommonCapability",
+      "Concern",
+      "DeferredProductLineScope",
+      "DerivesFromNeed",
+      "EngineeringIncrement",
+      "EvaluationScopeMembership",
+      "EvaluationSourceKind",
+      "EvidenceArtifact",
+      "EvidenceContract",
+      "EvidenceStatus",
+      "EvidenceSupportCitation",
+      "Feature",
+      "FeatureConfiguration",
+      "FeatureIncrement",
+      "Function",
+      "Gap",
+      "IncrementEngineeringQuestion",
+      "IncrementLifecycleDecision",
+      "IncrementSize",
+      "IncrementTraceObligations",
+      "IncrementTraceabilityShell",
+      "Interface",
+      "LogicalAllocationElement",
+      "LogicalElement",
+      "LogicalToSoftwareSignalMappingRecord",
+      "MemberProduct",
+      "MethodContractObligation",
+      "MethodEvaluationScope",
+      "MethodPhase",
+      "MissingRealizationRecord",
+      "Need",
+      "NeedsRequirementsIncrement",
+      "PhysicalAllocationElement",
+      "PhysicalElement",
+      "ProblemStatement",
+      "ProductLine",
+      "ProductLineCharacteristic",
+      "RegulatoryConstraint",
+      "RegulatorySource",
+      "RegulatorySourceAssociation",
+      "RequiredTraceChain",
+      "Requirement",
+      "RetainedExecutionRecordReference",
+      "Scenario",
+      "ScopedEvidenceAdequacyAssessment",
+      "ScopedVVActivityRecord",
+      "SignalMappingDisposition",
+      "Stakeholder",
+      "SystemLayer",
+      "SystemToSoftwareSignalMappingCandidate",
+      "TestedScopeDeclaration",
+      "TraceLink",
+      "ValidationPlanningAssociation",
+      "ValidationPlanningScenario",
+      "ValidationScenario",
+      "Variant",
+      "VariationPoint",
+      "VerificationCase",
+      "VerificationMethod",
+      "View",
+      "Viewpoint"
+    ],
+    "note": "every class and relationship name of the authored ontology",
+    "relationships": [
+      "addressesConcern",
+      "allocatedTo",
+      "appliesToMemberProduct",
+      "capturedInBaseline",
+      "constrainedBy",
+      "deployedTo",
+      "derivedRequirementsOfNeed",
+      "derivesNeedFromConcern",
+      "derivesRequirementFromNeed",
+      "hasAcceptanceCriterion",
+      "hasEvidence",
+      "hasEvidenceStatus",
+      "hasRelevantArchitecture",
+      "hasRelevantEvidenceContract",
+      "hasStakeholder",
+      "hasSubject",
+      "includesCommonCapability",
+      "instantiatesCanonicalArchitecture",
+      "producesView",
+      "realizedBy",
+      "recordsAssumption",
+      "recordsGap",
+      "selectedViewpoint",
+      "selectsFeature",
+      "selectsVariant",
+      "specifiesCommonCapability",
+      "specifiesFeature",
+      "specifiesFunction",
+      "supportedByEvidence",
+      "usesVerificationMethod",
+      "validatedBy",
+      "validatesFitnessForUse",
+      "variesAt",
+      "verifiedBy"
+    ]
+  },
+  "authored_ontology": {
+    "path": "approach/framework/ontology/de4sdv-basic-ontology.yaml",
+    "sha256": "a0b309ef3a49f938144c3362fd1e396d3fc7f0e5a306ea50fe1f6465915ddb3e"
+  },
+  "authored_validation_rules": {
+    "note": "the authored validation rules R001-R010 (statement, enforcement, R003 groundings); tests lock their model homes (de4sdv_ontology_validation_rules.sysml) to it after the deletion",
+    "rules": [
+      {
+        "enforced_by": "Kernel rule (a feature stays a ProductLineFeatureCandidate until variability is shown) plus feature-catalogue review.",
+        "id": "DE4SDV-ONT-R001",
+        "statement": "Every Feature shall distinguish at least one member product from another member product."
+      },
+      {
+        "enforced_by": "Increment framing review against the kernel viewpoint selections.",
+        "id": "DE4SDV-ONT-R002",
+        "statement": "Every FeatureIncrement shall identify selected SAF viewpoints and out-of-scope viewpoints."
+      },
+      {
+        "enforced_by": "scripts/check_model_sync.py sync point 6 resolves each derivation target to its modeled type (including specialization closure) and accepts only targets whose semantic type grounds Need (StakeholderNeedCandidate specializations), RegulatoryConstraint (RegulatoryConstraintCandidate specializations), or ArchitectureDecisionRecord (ArchitectureDecisionRecord specializations); identifier prefixes are never consulted. Remaining semantic-strength questions stay with requirements QA review.",
+        "exclusion_groundings": {
+          "ProblemStatement": {
+            "declaration": "requirement def ProblemStatement",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
+          }
+        },
+        "id": "DE4SDV-ONT-R003",
+        "origin_groundings": {
+          "ArchitectureDecisionRecord": {
+            "declaration": "part def ArchitectureDecisionRecord",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
+          },
+          "Need": {
+            "declaration": "requirement def StakeholderNeedCandidate",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
+          },
+          "RegulatoryConstraint": {
+            "declaration": "requirement def RegulatoryConstraintCandidate",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
+          }
+        },
+        "statement": "Every Requirement in a feature increment shall trace to at least one Need, RegulatoryConstraint, or ArchitectureDecisionRecord."
+      },
+      {
+        "enforced_by": "Verification-model invariant tests (product-claim bans) and evidence-register status review.",
+        "id": "DE4SDV-ONT-R004",
+        "statement": "Every compliance-oriented claim shall be marked as draft, planned, example, verified, or accepted."
+      },
+      {
+        "enforced_by": "Kernel ProductLineCharacteristic specialization structure plus product-line classification review.",
+        "id": "DE4SDV-ONT-R005",
+        "statement": "Common capabilities shall not be modeled as Features unless they distinguish member products."
+      },
+      {
+        "enforced_by": "ADR 0009 amendment attributes (VerificationMethod metadata, verificationStatus) plus capability-agnostic verification-model invariant tests.",
+        "id": "DE4SDV-ONT-R006",
+        "statement": "Every VerificationCase shall identify a verification method and at least one acceptance criterion or open gap."
+      },
+      {
+        "enforced_by": "V&V planning review.",
+        "id": "DE4SDV-ONT-R007",
+        "statement": "Every ValidationScenario shall identify the Need or stakeholder concern whose fitness-for-use it evaluates."
+      },
+      {
+        "enforced_by": "ADR 0009 amendment (VVStatus in the model); evidence YAML records no longer duplicate method or evidence_status columns.",
+        "id": "DE4SDV-ONT-R008",
+        "statement": "Every EvidenceArtifact shall carry an explicit status value."
+      },
+      {
+        "enforced_by": "Argumentation-assurance viewpoint review.",
+        "id": "DE4SDV-ONT-R009",
+        "statement": "Every AssuranceClaim shall be supported by evidence or recorded as an open gap."
+      },
+      {
+        "enforced_by": "Kernel guard doc plus variability-configuration tests.",
+        "id": "DE4SDV-ONT-R010",
+        "statement": "Product-line variation points represented in SysML v2 shall use native variation with owned variant usages; do not substitute a generic variation-point part taxonomy."
+      }
+    ]
+  },
+  "batch1_reviewed_definitions": {
+    "entries": {
+      "Assumption": {
+        "authored": "A stated condition treated as true for the purpose of an increment, model, scenario, analysis, or evidence record.",
+        "equal": true,
+        "manifest": "A stated condition treated as true for the purpose of an increment, model, scenario, analysis, or evidence record."
+      },
+      "BlockedRealizationBranchRecord": {
+        "authored": "A record of a realization branch blocked by a source defect or gap.",
+        "equal": true,
+        "manifest": "A record of a realization branch blocked by a source defect or gap."
+      },
+      "DeferredProductLineScope": {
+        "authored": "Product-line scope deliberately deferred from the current increment, including recorded gaps.",
+        "equal": true,
+        "manifest": "Product-line scope deliberately deferred from the current increment, including recorded gaps."
+      },
+      "EngineeringIncrement": {
+        "authored": "A bounded DE4SDV work package that changes, tests, or publishes engineering knowledge.",
+        "equal": true,
+        "manifest": "A bounded DE4SDV work package that changes, tests, or publishes engineering knowledge."
+      },
+      "FeatureIncrement": {
+        "authored": "An engineering increment focused on a product-line feature, common capability, or native SysML v2 variation/variant choice.",
+        "equal": true,
+        "manifest": "An engineering increment focused on a product-line feature, common capability, or native SysML v2 variation/variant choice."
+      },
+      "Gap": {
+        "authored": "A known missing trace link, missing evidence item, unresolved uncertainty, or unproven claim that must not be hidden.",
+        "equal": true,
+        "manifest": "A known missing trace link, missing evidence item, unresolved uncertainty, or unproven claim that must not be hidden."
+      },
+      "IncrementEngineeringQuestion": {
+        "authored": "The engineering question that an increment answers.",
+        "equal": true,
+        "manifest": "The engineering question that an increment answers."
+      },
+      "IncrementLifecycleDecision": {
+        "authored": "A lifecycle decision that an increment supports (accepted, deferred, or invalidated).",
+        "equal": true,
+        "manifest": "A lifecycle decision that an increment supports (accepted, deferred, or invalidated)."
+      },
+      "LogicalToSoftwareSignalMappingRecord": {
+        "authored": "A control record for a logical or semantic information item crossing into a software, service, topic, API, or physical boundary; preserves trace and review obligations without claiming runtime interoperability.",
+        "equal": true,
+        "manifest": "A control record for a logical or semantic information item crossing into a software, service, topic, API, or physical boundary; preserves trace and review obligations without claiming runtime interoperability."
+      },
+      "MemberProduct": {
+        "authored": "A configured product or product variant that belongs to a product line.",
+        "equal": true,
+        "manifest": "A configured product or product variant that belongs to a product line."
+      },
+      "MissingRealizationRecord": {
+        "authored": "A record of a missing or blocked realization allocation for a conceptual element.",
+        "equal": true,
+        "manifest": "A record of a missing or blocked realization allocation for a conceptual element."
+      },
+      "Need": {
+        "authored": "Stakeholder-expressed problem-space intent, before conversion into design input requirements. The kernel models needs as requirement usages of StakeholderNeedCandidate specializations carrying the ADR 0009 attribute set.",
+        "equal": true,
+        "manifest": "Stakeholder-expressed problem-space intent, before conversion into design input requirements. The kernel models needs as requirement usages of StakeholderNeedCandidate specializations carrying the ADR 0009 attribute set."
+      },
+      "NeedsRequirementsIncrement": {
+        "authored": "An engineering increment focused on needs, draft requirements, traceability, and V&V planning.",
+        "equal": true,
+        "manifest": "An engineering increment focused on needs, draft requirements, traceability, and V&V planning."
+      },
+      "ProblemStatement": {
+        "authored": "The problem that is to be solved by the system or increment, modeled as a requirement.",
+        "equal": true,
+        "manifest": "The problem that is to be solved by the system or increment, modeled as a requirement."
+      },
+      "ProductLine": {
+        "authored": "A family of related member products managed through shared assets and variability.",
+        "equal": true,
+        "manifest": "A family of related member products managed through shared assets and variability."
+      },
+      "ProductLineCharacteristic": {
+        "authored": "The product-line classification base: a characteristic is a common capability, a feature candidate, deferred scope, or a native SysML v2 variation choice.",
+        "equal": true,
+        "manifest": "The product-line classification base: a characteristic is a common capability, a feature candidate, deferred scope, or a native SysML v2 variation choice."
+      },
+      "RegulatoryConstraint": {
+        "authored": "A constraint or reference derived from a standard, regulation, or homologation-relevant source, with controlled source identity and no compliance claim.",
+        "equal": true,
+        "manifest": "A constraint or reference derived from a standard, regulation, or homologation-relevant source, with controlled source identity and no compliance claim."
+      },
+      "Requirement": {
+        "authored": "A verifiable design input obligation or constraint derived from needs, standards, or architecture decisions. The kernel models requirement candidates on the SYSMOD requirement seam with ADR 0009 attributes.",
+        "equal": true,
+        "manifest": "A verifiable design input obligation or constraint derived from needs, standards, or architecture decisions. The kernel models requirement candidates on the SYSMOD requirement seam with ADR 0009 attributes."
+      },
+      "Scenario": {
+        "authored": "A bounded operational, validation, test, or threat situation used to reason about behavior and evidence.",
+        "equal": true,
+        "manifest": "A bounded operational, validation, test, or threat situation used to reason about behavior and evidence."
+      },
+      "SignalMappingDisposition": {
+        "authored": "The disposition of a logical-to-software signal mapping (mapped, candidate, deferred, or notApplicable).",
+        "equal": true,
+        "manifest": "The disposition of a logical-to-software signal mapping (mapped, candidate, deferred, or notApplicable)."
+      },
+      "SystemLayer": {
+        "authored": "Coarse ASELCM-style layer used to frame DE4SDV increments and their environments.",
+        "equal": true,
+        "manifest": "Coarse ASELCM-style layer used to frame DE4SDV increments and their environments."
+      },
+      "SystemToSoftwareSignalMappingCandidate": {
+        "authored": "A reusable non-claiming allocation relationship from a logical/function signal responsibility to a concrete software or adapter signal endpoint; the allocation alone never proves field identity or runtime interoperability.",
+        "equal": true,
+        "manifest": "A reusable non-claiming allocation relationship from a logical/function signal responsibility to a concrete software or adapter signal endpoint; the allocation alone never proves field identity or runtime interoperability."
+      }
+    },
+    "manifest": "docs/method-conformance/o4/definition-admission.yaml",
+    "rows": 22,
+    "unequal": []
+  },
+  "claim_boundary": "last executable parity proof between the authored ontology and the model-built contract over class and relationship mappings; not a semantic proof beyond them; no compliance or certification claim",
+  "identity_universe": 108,
+  "manifest_held_fields": {
+    "entries": {
+      "AcceptanceCriterion": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "requirement def AcceptanceCriterion",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
+          },
+          "reviewed_definition": "A condition used to decide whether a verification result, validation result, evidence artifact, or increment output is acceptable for its stated purpose.",
+          "sub_class_of": null
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "requirement def AcceptanceCriterion",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
+          },
+          "reviewed_definition": "A condition used to decide whether a verification result, validation result, evidence artifact, or increment output is acceptable for its stated purpose.",
+          "sub_class_of": null
+        }
+      },
+      "AllocatableFunction": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "action def AllocatableFunction",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+          },
+          "reviewed_definition": "Functional responsibility identity for this versioned allocation profile.",
+          "sub_class_of": "Function"
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "action def AllocatableFunction",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+          },
+          "reviewed_definition": "Functional responsibility identity for this versioned allocation profile.",
+          "sub_class_of": "Function"
+        }
+      },
+      "ApprovedTraceMethod": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "part def ApprovedTraceMethod",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml"
+          },
+          "reviewed_definition": "Selected approved method identity. Selecting this reference does not establish conformance, approval of a candidate, or an engineering trace.",
+          "sub_class_of": null
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "part def ApprovedTraceMethod",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml"
+          },
+          "reviewed_definition": "Selected approved method identity. Selecting this reference does not establish conformance, approval of a candidate, or an engineering trace.",
+          "sub_class_of": null
+        }
+      },
+      "ArchitectureDecisionRecord": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "part def ArchitectureDecisionRecord",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
+          },
+          "reviewed_definition": "A reviewed architecture or method decision recorded as an ADR in Git that can serve as the semantic origin of a design-input requirement.",
+          "sub_class_of": null
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "part def ArchitectureDecisionRecord",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
+          },
+          "reviewed_definition": "A reviewed architecture or method decision recorded as an ADR in Git that can serve as the semantic origin of a design-input requirement.",
+          "sub_class_of": null
+        }
+      },
+      "ArchitectureElement": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "native": "part def, port def, and behavior definitions in feature and architecture slices"
+          },
+          "reviewed_definition": "Any model element used to describe system context, function, logical realization, physical/software realization, interface, or behavior.",
+          "sub_class_of": null
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "native": "part def, port def, and behavior definitions in feature and architecture slices"
+          },
+          "reviewed_definition": "Any model element used to describe system context, function, logical realization, physical/software realization, interface, or behavior.",
+          "sub_class_of": null
+        }
+      },
+      "AssuranceClaim": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "native": "Claim usages framed by the argumentation-assurance viewpoint"
+          },
+          "reviewed_definition": "A claim about safety, security, compliance alignment, release readiness, or fitness-for-use that requires argument and evidence before acceptance. Claims are bounded and never imply certification or homologation.",
+          "sub_class_of": null
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "native": "Claim usages framed by the argumentation-assurance viewpoint"
+          },
+          "reviewed_definition": "A claim about safety, security, compliance alignment, release readiness, or fitness-for-use that requires argument and evidence before acceptance. Claims are bounded and never imply certification or homologation.",
+          "sub_class_of": null
+        }
+      },
+      "Baseline": {
+        "admission_class": "external-reference",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "part def DE4SDVEvidenceBaseline",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml"
+          },
+          "reviewed_definition": "A reviewed and controlled state of model, evidence, configuration, or publication artifacts.",
+          "sub_class_of": null
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "part def DE4SDVEvidenceBaseline",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml"
+          },
+          "reviewed_definition": "A reviewed and controlled state of model, evidence, configuration, or publication artifacts.",
+          "sub_class_of": null
+        }
+      },
+      "CommonCapability": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [
+            "Feature"
+          ],
+          "kernel_mapping": {
+            "declaration": "part def CommonProductLineCapability",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml"
+          },
+          "reviewed_definition": "A capability or characteristic present in all relevant member products; not a feature unless it distinguishes variants.",
+          "sub_class_of": null
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [
+            "Feature"
+          ],
+          "kernel_mapping": {
+            "declaration": "part def CommonProductLineCapability",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml"
+          },
+          "reviewed_definition": "A capability or characteristic present in all relevant member products; not a feature unless it distinguishes variants.",
+          "sub_class_of": null
+        }
+      },
+      "DerivesFromNeed": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "connection def DerivesFromNeed",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
+          },
+          "reviewed_definition": "DE4SDV application connection definition for design-input derivation: the derivedRequirement originates from the stakeholder need. Provenance/traceability semantics only - neither satisfaction nor logical implication between the connected usages is claimed. The typed connection ends (need : StakeholderNeedCandidate, derivedRequirement : RequirementCandidate) carry the predicate's domain and range in the model itself. The standard Requirement Derivation Domain Library remains pinned but unadopted: its originalImpliesDerived semantics change the claim (upstream adoption gate still applies; no floating upgrade, no upstream contact without authorization).",
+          "sub_class_of": null
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "connection def DerivesFromNeed",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
+          },
+          "reviewed_definition": "DE4SDV application connection definition for design-input derivation: the derivedRequirement originates from the stakeholder need. Provenance/traceability semantics only - neither satisfaction nor logical implication between the connected usages is claimed. The typed connection ends (need : StakeholderNeedCandidate, derivedRequirement : RequirementCandidate) carry the predicate's domain and range in the model itself. The standard Requirement Derivation Domain Library remains pinned but unadopted: its originalImpliesDerived semantics change the claim (upstream adoption gate still applies; no floating upgrade, no upstream contact without authorization).",
+          "sub_class_of": null
+        }
+      },
+      "EvidenceArtifact": {
+        "admission_class": "external-reference",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "external": "Evidence registers and retained-evidence items referenced by verification slices (for example RetainedMiddlewareEvidence) and bench evidence YAML records"
+          },
+          "reviewed_definition": "A reviewable artifact that supports a verification, validation, assurance, or release decision.",
+          "sub_class_of": null
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "external": "Evidence registers and retained-evidence items referenced by verification slices (for example RetainedMiddlewareEvidence) and bench evidence YAML records"
+          },
+          "reviewed_definition": "A reviewable artifact that supports a verification, validation, assurance, or release decision.",
+          "sub_class_of": null
+        }
+      },
+      "EvidenceContract": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "requirement def EvidenceContract",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
+          },
+          "reviewed_definition": "A requirement usage that defines the bounded observations, acceptance boundary, and retained-evidence obligations for a verification case. An evidence contract is planning vocabulary, not proof that a product requirement is verified.",
+          "sub_class_of": "Requirement"
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "requirement def EvidenceContract",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
+          },
+          "reviewed_definition": "A requirement usage that defines the bounded observations, acceptance boundary, and retained-evidence obligations for a verification case. An evidence contract is planning vocabulary, not proof that a product requirement is verified.",
+          "sub_class_of": "Requirement"
+        }
+      },
+      "EvidenceStatus": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "external": "ODE4HERA requirements-management library VVStatus (NRM A13+A14) via the DE4SDV method-context adapter"
+          },
+          "reviewed_definition": "Lifecycle status for evidence and verification results. DE4SDV does not define its own status vocabulary: requirement verification status uses the upstream VVStatus enum, and bounded evidence outcomes/dispositions use slice-local enums such as MiddlewareEvidenceOutcome and MiddlewareEvidenceDisposition.",
+          "sub_class_of": null
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "external": "ODE4HERA requirements-management library VVStatus (NRM A13+A14) via the DE4SDV method-context adapter"
+          },
+          "reviewed_definition": "Lifecycle status for evidence and verification results. DE4SDV does not define its own status vocabulary: requirement verification status uses the upstream VVStatus enum, and bounded evidence outcomes/dispositions use slice-local enums such as MiddlewareEvidenceOutcome and MiddlewareEvidenceDisposition.",
+          "sub_class_of": null
+        }
+      },
+      "EvidenceSupportCitation": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "item def EvidenceSupportCitation",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml"
+          },
+          "reviewed_definition": "supportedByEvidence cites one identified artifact as support for an exact scoped claim, with rationale and known limitations. Neither this citation nor hasEvidence (case-to-artifact association) asserts adequacy, satisfaction, a passing result, or acceptance. Evidence bytes and artifact maturity remain external. Scope identifiers must match without inference.",
+          "sub_class_of": null
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "item def EvidenceSupportCitation",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml"
+          },
+          "reviewed_definition": "supportedByEvidence cites one identified artifact as support for an exact scoped claim, with rationale and known limitations. Neither this citation nor hasEvidence (case-to-artifact association) asserts adequacy, satisfaction, a passing result, or acceptance. Evidence bytes and artifact maturity remain external. Scope identifiers must match without inference.",
+          "sub_class_of": null
+        }
+      },
+      "Feature": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [
+            "CommonCapability"
+          ],
+          "kernel_mapping": {
+            "declaration": "part def ProductLineFeatureCandidate",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml"
+          },
+          "reviewed_definition": "A distinguishing characteristic expressing variability among member products. In the kernel a feature is a candidate until member-product variability is shown; it must not be accepted as a feature before that.",
+          "sub_class_of": null
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [
+            "CommonCapability"
+          ],
+          "kernel_mapping": {
+            "declaration": "part def ProductLineFeatureCandidate",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml"
+          },
+          "reviewed_definition": "A distinguishing characteristic expressing variability among member products. In the kernel a feature is a candidate until member-product variability is shown; it must not be accepted as a feature before that.",
+          "sub_class_of": null
+        }
+      },
+      "FeatureConfiguration": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "external": "Bill-of-Features records under model-based-product-line-engineering/feature-configurations/ resolved against the feature catalogue in model-based-product-line-engineering/feature-models/"
+          },
+          "reviewed_definition": "A selection of features, common capabilities, and variation choices for a member product or scenario.",
+          "sub_class_of": null
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "external": "Bill-of-Features records under model-based-product-line-engineering/feature-configurations/ resolved against the feature catalogue in model-based-product-line-engineering/feature-models/"
+          },
+          "reviewed_definition": "A selection of features, common capabilities, and variation choices for a member product or scenario.",
+          "sub_class_of": null
+        }
+      },
+      "Function": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "native": "SysML v2 action/state/behavior definitions in functional-architecture slices"
+          },
+          "reviewed_definition": "A behavior or transformation expected from the system or product-line architecture.",
+          "sub_class_of": "ArchitectureElement"
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "native": "SysML v2 action/state/behavior definitions in functional-architecture slices"
+          },
+          "reviewed_definition": "A behavior or transformation expected from the system or product-line architecture.",
+          "sub_class_of": "ArchitectureElement"
+        }
+      },
+      "IncrementTraceObligations": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "part def IncrementTraceObligations",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml"
+          },
+          "reviewed_definition": "Scope declaration of an increment's trace obligations: the selected approved method, the increment, its declared scope kind, applicable phases and completion claim. Required traces derive from the selected approved method, not from candidate-selected easy checks. The traces themselves are the increment's native model relationships (owning membership, typing, requirement subject and stakeholder membership, HasStakeholder connections, framed concerns), never parallel reference slots in this declaration. Populating this declaration is not completion evidence. Reuse prior artifacts, preserve R/F/L/P, and do not invent realization or execution for early framing. Missing required traces block the corresponding claim unless an authorized visible disposition permits it. Unsupported or unavailable evaluation stays UNASSESSED, never synthetic PASS.",
+          "sub_class_of": null
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "part def IncrementTraceObligations",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml"
+          },
+          "reviewed_definition": "Scope declaration of an increment's trace obligations: the selected approved method, the increment, its declared scope kind, applicable phases and completion claim. Required traces derive from the selected approved method, not from candidate-selected easy checks. The traces themselves are the increment's native model relationships (owning membership, typing, requirement subject and stakeholder membership, HasStakeholder connections, framed concerns), never parallel reference slots in this declaration. Populating this declaration is not completion evidence. Reuse prior artifacts, preserve R/F/L/P, and do not invent realization or execution for early framing. Missing required traces block the corresponding claim unless an authorized visible disposition permits it. Unsupported or unavailable evaluation stays UNASSESSED, never synthetic PASS.",
+          "sub_class_of": null
+        }
+      },
+      "Interface": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "native": "SysML v2 port def and connection elements"
+          },
+          "reviewed_definition": "A boundary or interaction point through which items, signals, services, or information are exchanged.",
+          "sub_class_of": "ArchitectureElement"
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "native": "SysML v2 port def and connection elements"
+          },
+          "reviewed_definition": "A boundary or interaction point through which items, signals, services, or information are exchanged.",
+          "sub_class_of": "ArchitectureElement"
+        }
+      },
+      "LogicalAllocationElement": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "part def LogicalAllocationElement",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+          },
+          "reviewed_definition": "Technology-neutral logical responsibility grouping.",
+          "sub_class_of": "LogicalElement"
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "part def LogicalAllocationElement",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+          },
+          "reviewed_definition": "Technology-neutral logical responsibility grouping.",
+          "sub_class_of": "LogicalElement"
+        }
+      },
+      "LogicalElement": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "native": "part def elements in logical-architecture slices"
+          },
+          "reviewed_definition": "A logical service, component, or responsibility grouping that realizes functions.",
+          "sub_class_of": "ArchitectureElement"
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "native": "part def elements in logical-architecture slices"
+          },
+          "reviewed_definition": "A logical service, component, or responsibility grouping that realizes functions.",
+          "sub_class_of": "ArchitectureElement"
+        }
+      },
+      "MethodEvaluationScope": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "part def MethodEvaluationScope",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml"
+          },
+          "reviewed_definition": "An evaluation scope binding increment identity, eligible subject types, and explicit exclusions. Contribution set and evaluation scope are distinct sets; membership in evaluation scope is a reviewed scope decision, not an inferred impact claim.",
+          "sub_class_of": null
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "part def MethodEvaluationScope",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml"
+          },
+          "reviewed_definition": "An evaluation scope binding increment identity, eligible subject types, and explicit exclusions. Contribution set and evaluation scope are distinct sets; membership in evaluation scope is a reviewed scope decision, not an inferred impact claim.",
+          "sub_class_of": null
+        }
+      },
+      "PhysicalAllocationElement": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "part def PhysicalAllocationElement",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+          },
+          "reviewed_definition": "Concrete software, hardware or platform realization element; allocation is not deployment.",
+          "sub_class_of": "PhysicalElement"
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "part def PhysicalAllocationElement",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+          },
+          "reviewed_definition": "Concrete software, hardware or platform realization element; allocation is not deployment.",
+          "sub_class_of": "PhysicalElement"
+        }
+      },
+      "PhysicalElement": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "native": "part def elements in physical/software realization slices"
+          },
+          "reviewed_definition": "A physical, software, hardware, deployment, or platform element that realizes conceptual elements or functions.",
+          "sub_class_of": "ArchitectureElement"
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "native": "part def elements in physical/software realization slices"
+          },
+          "reviewed_definition": "A physical, software, hardware, deployment, or platform element that realizes conceptual elements or functions.",
+          "sub_class_of": "ArchitectureElement"
+        }
+      },
+      "RegulatorySource": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "part def ControlledRegulatorySource",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+          },
+          "reviewed_definition": "Controlled external origin reference that informed requirement engineering. Interpretation, applicability, obligations, required conditions, evidence and authorized compliance assessment are separate.",
+          "sub_class_of": null
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "part def ControlledRegulatorySource",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+          },
+          "reviewed_definition": "Controlled external origin reference that informed requirement engineering. Interpretation, applicability, obligations, required conditions, evidence and authorized compliance assessment are separate.",
+          "sub_class_of": null
+        }
+      },
+      "RegulatorySourceAssociation": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "connection def RegulatorySourceAssociation",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+          },
+          "reviewed_definition": "Source provenance only. Does not add a required satisfaction condition or establish applicability, correct interpretation, fulfillment, certification or homologation. Historical constrainedBy was provenance, never a native required constraint.",
+          "sub_class_of": null
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "connection def RegulatorySourceAssociation",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+          },
+          "reviewed_definition": "Source provenance only. Does not add a required satisfaction condition or establish applicability, correct interpretation, fulfillment, certification or homologation. Historical constrainedBy was provenance, never a native required constraint.",
+          "sub_class_of": null
+        }
+      },
+      "RequiredTraceChain": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "external": "Historical pre-Topic-5 universal-chain vocabulary retained for compatibility; not a successor completion policy"
+          },
+          "reviewed_definition": "The ordered trace chain every substantial increment should establish, even if some links are draft: stakeholder concern, need, requirement, feature or common capability, architecture element, logical-to-software signal mapping when a boundary is crossed, physical/software realization, verification case, acceptance criterion, evidence artifact, baseline decision. Intentionally missing links are recorded as gaps.",
+          "sub_class_of": null
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "external": "Historical pre-Topic-5 universal-chain vocabulary retained for compatibility; not a successor completion policy"
+          },
+          "reviewed_definition": "The ordered trace chain every substantial increment should establish, even if some links are draft: stakeholder concern, need, requirement, feature or common capability, architecture element, logical-to-software signal mapping when a boundary is crossed, physical/software realization, verification case, acceptance criterion, evidence artifact, baseline decision. Intentionally missing links are recorded as gaps.",
+          "sub_class_of": null
+        }
+      },
+      "ScopedEvidenceAdequacyAssessment": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "item def ScopedEvidenceAdequacyAssessment",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml"
+          },
+          "reviewed_definition": "Proportionate evidence-SET assessment for this exact claim, subject, configuration, conditions and agreed criteria. Required before presenting a claim as established or seeking acceptance; not a universal sufficiency verdict on each artifact. Reuse cases, criteria, executions, evidence and gap identities. Coverage, confidence and rigor bases, contrary results, discrepancies, unresolved gaps, assessor, conclusion and reasoning must remain explicit. An adequate set can establish a negative conclusion. supportsClaim records the assessor's scoped conclusion, not checker truth. Accepted exceptions stay visible; neither assessment nor acceptance turns exceptions or generic Completed status into unqualified satisfaction. AcceptanceAttestationReference remains a separate designated-authority decision reference, not the assessor's conclusion or result approval.",
+          "sub_class_of": null
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "item def ScopedEvidenceAdequacyAssessment",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml"
+          },
+          "reviewed_definition": "Proportionate evidence-SET assessment for this exact claim, subject, configuration, conditions and agreed criteria. Required before presenting a claim as established or seeking acceptance; not a universal sufficiency verdict on each artifact. Reuse cases, criteria, executions, evidence and gap identities. Coverage, confidence and rigor bases, contrary results, discrepancies, unresolved gaps, assessor, conclusion and reasoning must remain explicit. An adequate set can establish a negative conclusion. supportsClaim records the assessor's scoped conclusion, not checker truth. Accepted exceptions stay visible; neither assessment nor acceptance turns exceptions or generic Completed status into unqualified satisfaction. AcceptanceAttestationReference remains a separate designated-authority decision reference, not the assessor's conclusion or result approval.",
+          "sub_class_of": null
+        }
+      },
+      "ScopedVVActivityRecord": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "item def ScopedVVActivityRecord",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml"
+          },
+          "reviewed_definition": "One explicitly scoped verification OR validation activity. Applicable across needs, requirements, designs, production outputs, system elements, integrated systems and artifacts without inheriting requirement attributes. Native need/requirement verificationStatus attachments remain unchanged. Results and evidence are references to retained external records, not a second result/evidence store; native VerdictKind execution values remain distinct from this activity's status. Artifact maturity is not this status. Completed includes necessary result approval, but never infers PASS or designated-authority acceptance. CompletedUnsuccessful could not complete; CompletedFailed completed with technical failure; CompletedPassed completed successfully against the activity basis only, not a broader scoped claim.",
+          "sub_class_of": null
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "item def ScopedVVActivityRecord",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml"
+          },
+          "reviewed_definition": "One explicitly scoped verification OR validation activity. Applicable across needs, requirements, designs, production outputs, system elements, integrated systems and artifacts without inheriting requirement attributes. Native need/requirement verificationStatus attachments remain unchanged. Results and evidence are references to retained external records, not a second result/evidence store; native VerdictKind execution values remain distinct from this activity's status. Artifact maturity is not this status. Completed includes necessary result approval, but never infers PASS or designated-authority acceptance. CompletedUnsuccessful could not complete; CompletedFailed completed with technical failure; CompletedPassed completed successfully against the activity basis only, not a broader scoped claim.",
+          "sub_class_of": null
+        }
+      },
+      "Stakeholder": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "part def Stakeholder",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml"
+          },
+          "reviewed_definition": "A role, person, organization, or community with concerns about the system or increment.",
+          "sub_class_of": null
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "part def Stakeholder",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml"
+          },
+          "reviewed_definition": "A role, person, organization, or community with concerns about the system or increment.",
+          "sub_class_of": null
+        }
+      },
+      "TraceLink": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "external": "Historical pre-Topic-5 string-endpoint record; successor source-reference witnesses require identified owning references, not category strings"
+          },
+          "reviewed_definition": "A relationship connecting source, rationale, requirement, model, evidence, or baseline artifacts.",
+          "sub_class_of": null
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "external": "Historical pre-Topic-5 string-endpoint record; successor source-reference witnesses require identified owning references, not category strings"
+          },
+          "reviewed_definition": "A relationship connecting source, rationale, requirement, model, evidence, or baseline artifacts.",
+          "sub_class_of": null
+        }
+      },
+      "ValidationPlanningAssociation": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "connection def ValidationPlanningAssociation",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+          },
+          "reviewed_definition": "One validation planning association. Inverse navigation is the same fact, not execution or a fitness-for-use verdict.",
+          "sub_class_of": null
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "connection def ValidationPlanningAssociation",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+          },
+          "reviewed_definition": "One validation planning association. Inverse navigation is the same fact, not execution or a fitness-for-use verdict.",
+          "sub_class_of": null
+        }
+      },
+      "ValidationPlanningScenario": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "part def ValidationPlanningScenario",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+          },
+          "reviewed_definition": "Stakeholder fitness-for-use validation planning only; not a native verification case, execution, result or acceptance.",
+          "sub_class_of": "ValidationScenario"
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "declaration": "part def ValidationPlanningScenario",
+            "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+          },
+          "reviewed_definition": "Stakeholder fitness-for-use validation planning only; not a native verification case, execution, result or acceptance.",
+          "sub_class_of": "ValidationScenario"
+        }
+      },
+      "ValidationScenario": {
+        "admission_class": "definition",
+        "authored": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "native": "Scenario parts with bounded validation outcomes (for example passBoundedValidation)"
+          },
+          "reviewed_definition": "A scenario used to assess stakeholder fitness for intended use.",
+          "sub_class_of": null
+        },
+        "equal": true,
+        "manifest": {
+          "disjoint_with": [],
+          "kernel_mapping": {
+            "native": "Scenario parts with bounded validation outcomes (for example passBoundedValidation)"
+          },
+          "reviewed_definition": "A scenario used to assess stakeholder fitness for intended use.",
+          "sub_class_of": null
+        }
+      },
+      "allocatedTo": {
+        "admission_class": "successor",
+        "authored": null,
+        "equal": true,
+        "manifest": {
+          "reviewed_definition": null
+        }
+      },
+      "appliesToMemberProduct": {
+        "admission_class": "relationship-vocabulary",
+        "authored": {
+          "relation": {
+            "domain": "FeatureConfiguration",
+            "range": "MemberProduct",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        },
+        "equal": true,
+        "manifest": {
+          "relation": {
+            "domain": "FeatureConfiguration",
+            "range": "MemberProduct",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        }
+      },
+      "capturedInBaseline": {
+        "admission_class": "external-reference",
+        "authored": {
+          "relation": {
+            "domain": "EvidenceArtifact",
+            "range": "Baseline",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        },
+        "equal": true,
+        "manifest": {
+          "relation": {
+            "domain": "EvidenceArtifact",
+            "range": "Baseline",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        }
+      },
+      "constrainedBy": {
+        "admission_class": "retired-name",
+        "authored": {
+          "relation": {
+            "domain": "Requirement",
+            "range": "RegulatoryConstraint",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        },
+        "equal": true,
+        "manifest": {
+          "relation": {
+            "domain": "Requirement",
+            "range": "RegulatoryConstraint",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        }
+      },
+      "deployedTo": {
+        "admission_class": "retired-name",
+        "authored": {
+          "relation": {
+            "domain": "LogicalElement",
+            "range": "PhysicalElement",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        },
+        "equal": true,
+        "manifest": {
+          "relation": {
+            "domain": "LogicalElement",
+            "range": "PhysicalElement",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        }
+      },
+      "hasAcceptanceCriterion": {
+        "admission_class": "relationship-vocabulary",
+        "authored": {
+          "relation": {
+            "domain": "VerificationCase",
+            "range": "AcceptanceCriterion",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        },
+        "equal": true,
+        "manifest": {
+          "relation": {
+            "domain": "VerificationCase",
+            "range": "AcceptanceCriterion",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        }
+      },
+      "hasEvidence": {
+        "admission_class": "external-reference",
+        "authored": {
+          "mechanics": {
+            "strategy": "external"
+          },
+          "relation": {
+            "domain": "VerificationCase",
+            "range": "EvidenceArtifact",
+            "semantic_strength": "external-data-required"
+          },
+          "reviewed_definition": null
+        },
+        "equal": true,
+        "manifest": {
+          "mechanics": {
+            "strategy": "external"
+          },
+          "relation": {
+            "domain": "VerificationCase",
+            "range": "EvidenceArtifact",
+            "semantic_strength": "external-data-required"
+          },
+          "reviewed_definition": null
+        }
+      },
+      "hasEvidenceStatus": {
+        "admission_class": "relationship-vocabulary",
+        "authored": {
+          "relation": {
+            "domain": "EvidenceArtifact",
+            "range": "EvidenceStatus",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        },
+        "equal": true,
+        "manifest": {
+          "relation": {
+            "domain": "EvidenceArtifact",
+            "range": "EvidenceStatus",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        }
+      },
+      "hasRegulatorySource": {
+        "admission_class": "successor",
+        "authored": null,
+        "equal": true,
+        "manifest": {
+          "reviewed_definition": null
+        }
+      },
+      "hasRelevantEvidenceContract": {
+        "admission_class": "relationship-runtime",
+        "authored": {
+          "mechanics": {
+            "direction": "incoming",
+            "relationship_types": [
+              "Dependency"
+            ],
+            "source_property": "source",
+            "source_types": [
+              "RequirementUsage"
+            ],
+            "strategy": "dependency",
+            "target_property": "target"
+          },
+          "relation": {
+            "domain": "Requirement",
+            "range": "EvidenceContract",
+            "semantic_strength": "relevance"
+          },
+          "reviewed_definition": null
+        },
+        "equal": true,
+        "manifest": {
+          "mechanics": {
+            "direction": "incoming",
+            "relationship_types": [
+              "Dependency"
+            ],
+            "source_property": "source",
+            "source_types": [
+              "RequirementUsage"
+            ],
+            "strategy": "dependency",
+            "target_property": "target"
+          },
+          "relation": {
+            "domain": "Requirement",
+            "range": "EvidenceContract",
+            "semantic_strength": "relevance"
+          },
+          "reviewed_definition": null
+        }
+      },
+      "hasStakeholder": {
+        "admission_class": "relationship-vocabulary",
+        "authored": {
+          "relation": {
+            "domain": "EngineeringIncrement",
+            "range": "Stakeholder",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        },
+        "equal": true,
+        "manifest": {
+          "relation": {
+            "domain": "EngineeringIncrement",
+            "range": "Stakeholder",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        }
+      },
+      "hasValidationScenario": {
+        "admission_class": "successor",
+        "authored": null,
+        "equal": true,
+        "manifest": {
+          "reviewed_definition": null
+        }
+      },
+      "includesCommonCapability": {
+        "admission_class": "relationship-vocabulary",
+        "authored": {
+          "relation": {
+            "domain": "FeatureConfiguration",
+            "range": "CommonCapability",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        },
+        "equal": true,
+        "manifest": {
+          "relation": {
+            "domain": "FeatureConfiguration",
+            "range": "CommonCapability",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        }
+      },
+      "instantiatesCanonicalArchitecture": {
+        "admission_class": "relationship-vocabulary",
+        "authored": {
+          "relation": {
+            "domain": "MemberProduct",
+            "range": "ArchitectureElement",
+            "semantic_strength": null
+          },
+          "reviewed_definition": "Explicit binding from a composite member product's contained architecture instances (its logical-system and software usages) to the canonical architecture usages whose allocation and evidence records govern them. The modeled dependencies originate from the contained usages, not from the member-product root; the executable mapping must therefore define which elements carry this relationship and how a query walks it before any product-level query reachability is claimed. Vocabulary only for now: no sysml_mapping is declared because a generic dependency traversal cannot distinguish canonical-architecture bindings from ordinary part-to-part dependencies without inventing a naming heuristic. Declaring an executable mapping requires an explicit canonical-usage selector (for example an API-side allowlist of canonical packages), not a name-based filter. The binding does not restate allocations at product level and does not make a composite projection a resolved configured product."
+        },
+        "equal": true,
+        "manifest": {
+          "relation": {
+            "domain": "MemberProduct",
+            "range": "ArchitectureElement",
+            "semantic_strength": null
+          },
+          "reviewed_definition": "Explicit binding from a composite member product's contained architecture instances (its logical-system and software usages) to the canonical architecture usages whose allocation and evidence records govern them. The modeled dependencies originate from the contained usages, not from the member-product root; the executable mapping must therefore define which elements carry this relationship and how a query walks it before any product-level query reachability is claimed. Vocabulary only for now: no sysml_mapping is declared because a generic dependency traversal cannot distinguish canonical-architecture bindings from ordinary part-to-part dependencies without inventing a naming heuristic. Declaring an executable mapping requires an explicit canonical-usage selector (for example an API-side allowlist of canonical packages), not a name-based filter. The binding does not restate allocations at product level and does not make a composite projection a resolved configured product."
+        }
+      },
+      "realizedBy": {
+        "admission_class": "retired-name",
+        "authored": {
+          "relation": {
+            "domain": "Requirement",
+            "range": "ArchitectureElement",
+            "semantic_strength": "allocation"
+          },
+          "reviewed_definition": null
+        },
+        "equal": true,
+        "manifest": {
+          "relation": {
+            "domain": "Requirement",
+            "range": "ArchitectureElement",
+            "semantic_strength": "allocation"
+          },
+          "reviewed_definition": null
+        }
+      },
+      "selectsFeature": {
+        "admission_class": "relationship-vocabulary",
+        "authored": {
+          "relation": {
+            "domain": "FeatureConfiguration",
+            "range": "Feature",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        },
+        "equal": true,
+        "manifest": {
+          "relation": {
+            "domain": "FeatureConfiguration",
+            "range": "Feature",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        }
+      },
+      "selectsVariant": {
+        "admission_class": "relationship-vocabulary",
+        "authored": {
+          "relation": {
+            "domain": "FeatureConfiguration",
+            "range": "Variant",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        },
+        "equal": true,
+        "manifest": {
+          "relation": {
+            "domain": "FeatureConfiguration",
+            "range": "Variant",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        }
+      },
+      "specifiesCommonCapability": {
+        "admission_class": "relationship-vocabulary",
+        "authored": {
+          "relation": {
+            "domain": "Requirement",
+            "range": "CommonCapability",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        },
+        "equal": true,
+        "manifest": {
+          "relation": {
+            "domain": "Requirement",
+            "range": "CommonCapability",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        }
+      },
+      "specifiesFeature": {
+        "admission_class": "relationship-vocabulary",
+        "authored": {
+          "relation": {
+            "domain": "Requirement",
+            "range": "Feature",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        },
+        "equal": true,
+        "manifest": {
+          "relation": {
+            "domain": "Requirement",
+            "range": "Feature",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        }
+      },
+      "specifiesFunction": {
+        "admission_class": "relationship-runtime",
+        "authored": {
+          "mechanics": {
+            "direction": "outgoing",
+            "relationship_types": [
+              "Dependency"
+            ],
+            "source_property": "source",
+            "source_types": [
+              "RequirementUsage"
+            ],
+            "strategy": "dependency",
+            "target_property": "target",
+            "target_types": [
+              "ActionUsage",
+              "ActionDefinition"
+            ]
+          },
+          "relation": {
+            "domain": "Requirement",
+            "range": "Function",
+            "semantic_strength": "relevance"
+          },
+          "reviewed_definition": "Requirement-to-function relevance: a dependency from a draft requirement candidate to the functional action or flow responsibility that addresses it. Relevance only \u2014 not satisfaction, allocation, or verification."
+        },
+        "equal": true,
+        "manifest": {
+          "mechanics": {
+            "direction": "outgoing",
+            "relationship_types": [
+              "Dependency"
+            ],
+            "source_property": "source",
+            "source_types": [
+              "RequirementUsage"
+            ],
+            "strategy": "dependency",
+            "target_property": "target",
+            "target_types": [
+              "ActionUsage",
+              "ActionDefinition"
+            ]
+          },
+          "relation": {
+            "domain": "Requirement",
+            "range": "Function",
+            "semantic_strength": "relevance"
+          },
+          "reviewed_definition": "Requirement-to-function relevance: a dependency from a draft requirement candidate to the functional action or flow responsibility that addresses it. Relevance only \u2014 not satisfaction, allocation, or verification."
+        }
+      },
+      "supportedByEvidence": {
+        "admission_class": "relationship-vocabulary",
+        "authored": {
+          "relation": {
+            "domain": "AssuranceClaim",
+            "range": "EvidenceArtifact",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        },
+        "equal": true,
+        "manifest": {
+          "relation": {
+            "domain": "AssuranceClaim",
+            "range": "EvidenceArtifact",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        }
+      },
+      "validatedBy": {
+        "admission_class": "retired-name",
+        "authored": {
+          "relation": {
+            "domain": "Need",
+            "range": "ValidationScenario",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        },
+        "equal": true,
+        "manifest": {
+          "relation": {
+            "domain": "Need",
+            "range": "ValidationScenario",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        }
+      },
+      "validatesFitnessForUse": {
+        "admission_class": "retired-name",
+        "authored": {
+          "relation": {
+            "domain": "ValidationScenario",
+            "range": "Need",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        },
+        "equal": true,
+        "manifest": {
+          "relation": {
+            "domain": "ValidationScenario",
+            "range": "Need",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        }
+      },
+      "variesAt": {
+        "admission_class": "relationship-vocabulary",
+        "authored": {
+          "relation": {
+            "domain": "Feature",
+            "range": "VariationPoint",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        },
+        "equal": true,
+        "manifest": {
+          "relation": {
+            "domain": "Feature",
+            "range": "VariationPoint",
+            "semantic_strength": null
+          },
+          "reviewed_definition": null
+        }
+      }
+    },
+    "kernel_mapping_rows": 33,
+    "manifest": "docs/method-conformance/o4/definition-admission-batch2.yaml",
+    "relation_rows": 21,
+    "rows": 57,
+    "rows_with_manifest_held_contract_fields": 54,
+    "unequal": []
+  },
+  "model_contract_identity": {
+    "id": "sai-3dd4407c10519805e65accb02bc39cd2",
+    "layers": [
+      {
+        "path": "docs/method-conformance/o2/api-representation-profile-v1.1.json",
+        "sha256": "sha256:196fe6dcf9f1afaf7e62d9c18b3e76d5047fbe068e59931449522efe24d7ba35"
+      },
+      {
+        "path": "docs/method-conformance/o2/api-representation-profile-v1.2.json",
+        "sha256": "sha256:1094534f4bd1308b731fb76a8e63e9fd3a4b69d4aec4bceafbf529198cd89d2c"
+      },
+      {
+        "path": "docs/method-conformance/o2/api-representation-profile-v1.json",
+        "sha256": "sha256:411621265ee76fa8e387c4c6b418d5689f4f47b696fb908b1083187b671bbaf1"
+      },
+      {
+        "path": "docs/method-conformance/o2/semantic-projection-v1.1.json",
+        "sha256": "sha256:6742c3289e324f74fc7aae239cde5d97ca7a77bc12815181770e3d39d92a28de"
+      },
+      {
+        "path": "docs/method-conformance/o2/semantic-projection-v1.2.json",
+        "sha256": "sha256:b4ab78638398d8c5cf304b0a9b180507016e4c7e3aa7b821c1f41098302df002"
+      },
+      {
+        "path": "docs/method-conformance/o2/semantic-projection-v1.json",
+        "sha256": "sha256:a5b87d491135380d0858ed775bf7c7efc0b40ab19d39130262517920fe400156"
+      },
+      {
+        "path": "docs/method-conformance/o2plus/api-representation-profile-o2plus.json",
+        "sha256": "sha256:23297285f4902cb91decf0a90a4e86c88c11ba07e3aafc9704b671792b1a5b9a"
+      },
+      {
+        "path": "docs/method-conformance/o2plus/semantic-projection-o2plus.json",
+        "sha256": "sha256:dd8372b216e92e3c280c068bbea36190ca44b46e657a1d2d546bcee2e36d3dc6"
+      },
+      {
+        "path": "docs/method-conformance/o4/definition-batch2-profile.json",
+        "sha256": "sha256:bbac76a4adc7ccc6bb256661cf870fbf43601aef4f031422fd01537309a0b8b5"
+      },
+      {
+        "path": "docs/method-conformance/o4/definition-batch2-projection.json",
+        "sha256": "sha256:73b773e35a932e162b70c6ac74a3c1fbc5c0295b818e80867778d0ba9d049b29"
+      },
+      {
+        "path": "docs/method-conformance/o4/definition-profile.json",
+        "sha256": "sha256:afa8ccef8e983e63c0768b688488d839a1fd8f40ad55d7861eb4ec2c27fcf8dc"
+      },
+      {
+        "path": "docs/method-conformance/o4/definition-projection.json",
+        "sha256": "sha256:6f020387bd4dc6128e892d57778a783534538e22ebbba386be19db380ad61f5e"
+      },
+      {
+        "path": "docs/method-conformance/o4/vocabulary-carriers-profile.json",
+        "sha256": "sha256:957e94ffc7d2cb662b3167cfc0dae9db6d082a9b31f9b114513c28bd1865dbcc"
+      },
+      {
+        "path": "docs/method-conformance/o4/vocabulary-carriers-projection.json",
+        "sha256": "sha256:44d5cec7018764c60b680ccb90cd43ad627992beaaee7abfe48a793dbdda5d5e"
+      }
+    ],
+    "schema": "de4sdv.semantic-authority/v1"
+  },
+  "model_only_identities": [
+    "hasRegulatorySource",
+    "hasValidationScenario",
+    "validationScenarioFor"
+  ],
+  "model_revision": "7cf719c0722e3aeeafda9189849f43649314331d",
+  "model_revision_note": "the commit whose model-built contract was compared; informational, not a binding",
+  "oracle_revision": "6dab3e9e45df00cd28b1b0ad824e30708097a663",
+  "oracle_revision_note": "main at the Wave C1 merge: the last main revision with the authored ontology and the Wave B runtime; its own code built the served and authored surfaces",
+  "schema": "de4sdv.o4-contract-equivalence/v1",
+  "served_contract": {
+    "detail": {
+      "IncrementTraceabilityShell": {
+        "model": {
+          "absent": "IncrementTraceabilityShell: refused: merged into RequiredTraceChain (register disposition MERGE); no separate identity is served",
+          "listed": false,
+          "refused": "refused: merged into RequiredTraceChain (register disposition MERGE); no separate identity is served"
+        },
+        "served": {
+          "listed": true,
+          "mapping": {
+            "external": "Historical pre-Topic-5 string-shell vocabulary; retained as a compatibility identity, not a successor obligation or engineering witness",
+            "type": "KernelExternalMapping"
+          }
+        }
+      },
+      "constrainedBy": {
+        "model": {
+          "absent": "constrainedBy: retired; use hasRegulatorySource",
+          "listed": false,
+          "refused": "retired; use hasRegulatorySource"
+        },
+        "served": {
+          "listed": false,
+          "mapping": {
+            "configuration": {
+              "successor": "hasRegulatorySource"
+            },
+            "domain": "Requirement",
+            "name": "constrainedBy",
+            "range": "RegulatorySource",
+            "semantic_strength": "source-provenance",
+            "strategy": "deprecated-alias",
+            "type": "RelationshipMapping"
+          }
+        }
+      },
+      "deployedTo": {
+        "model": {
+          "absent": "deployedTo: retired; use allocatedTo",
+          "listed": false,
+          "refused": "retired; use allocatedTo"
+        },
+        "served": {
+          "listed": false,
+          "mapping": {
+            "configuration": {
+              "successor": "allocatedTo"
+            },
+            "domain": "LogicalElement",
+            "name": "deployedTo",
+            "range": "PhysicalElement",
+            "semantic_strength": "allocation",
+            "strategy": "deprecated-alias",
+            "type": "RelationshipMapping"
+          }
+        }
+      },
+      "derivesNeedFromConcern": {
+        "model": {
+          "absent": "derivesNeedFromConcern: refused: removed (register disposition REMOVE, REMOVE_FROM_ONTOLOGY); retired; historical evidence retained (no migration target)",
+          "listed": false,
+          "refused": "refused: removed (register disposition REMOVE, REMOVE_FROM_ONTOLOGY); retired; historical evidence retained (no migration target)"
+        },
+        "served": {
+          "absent": "ontology relationship has no SysML mapping: derivesNeedFromConcern",
+          "listed": true,
+          "spec": {
+            "domain": "Need",
+            "range": "Concern"
+          }
+        }
+      },
+      "realizedBy": {
+        "model": {
+          "absent": "realizedBy: retired; use allocatedTo",
+          "listed": false,
+          "refused": "retired; use allocatedTo"
+        },
+        "served": {
+          "listed": false,
+          "mapping": {
+            "configuration": {
+              "successor": "allocatedTo"
+            },
+            "domain": "Requirement",
+            "name": "realizedBy",
+            "range": "Function",
+            "semantic_strength": "allocation",
+            "strategy": "deprecated-alias",
+            "type": "RelationshipMapping"
+          }
+        }
+      },
+      "validatedBy": {
+        "model": {
+          "absent": "validatedBy: retired; use hasValidationScenario",
+          "listed": false,
+          "refused": "retired; use hasValidationScenario"
+        },
+        "served": {
+          "listed": false,
+          "mapping": {
+            "configuration": {
+              "successor": "hasValidationScenario"
+            },
+            "domain": "Need",
+            "name": "validatedBy",
+            "range": "ValidationScenario",
+            "semantic_strength": "validation-planning",
+            "strategy": "deprecated-alias",
+            "type": "RelationshipMapping"
+          }
+        }
+      },
+      "validatesFitnessForUse": {
+        "model": {
+          "absent": "validatesFitnessForUse: retired; use validationScenarioFor",
+          "listed": false,
+          "refused": "retired; use validationScenarioFor"
+        },
+        "served": {
+          "listed": false,
+          "mapping": {
+            "configuration": {
+              "successor": "hasValidationScenario"
+            },
+            "domain": "ValidationScenario",
+            "name": "validatesFitnessForUse",
+            "range": "Need",
+            "semantic_strength": "validation-planning",
+            "strategy": "deprecated-alias",
+            "type": "RelationshipMapping"
+          }
+        }
+      }
+    },
+    "differences": [
+      "IncrementTraceabilityShell",
+      "constrainedBy",
+      "deployedTo",
+      "derivesNeedFromConcern",
+      "realizedBy",
+      "validatedBy",
+      "validatesFitnessForUse"
+    ],
+    "expected_differences": [
+      "IncrementTraceabilityShell",
+      "constrainedBy",
+      "deployedTo",
+      "derivesNeedFromConcern",
+      "realizedBy",
+      "validatedBy",
+      "validatesFitnessForUse"
+    ],
+    "oracle": "Wave B model-authority facade (model layers, frozen O2 chain, model successor contract; authored YAML as residual provider)",
+    "result": "EQUAL_EXCEPT_EXPECTED"
+  }
+}
