@@ -10,6 +10,16 @@ on:
           refuses moving refs)
         required: false
         type: string
+      reuse_ingestion_run:
+        description: >-
+          Reuse mode (optional): id of an earlier successful dispatch run of
+          this workflow at the same ref. When set, ingest-and-validate is
+          skipped and model-authority-evidence runs on that run's ingestion
+          and database-snapshot artifacts (requires ref; preconditions are
+          verified through the API before anything is downloaded)
+        required: false
+        type: string
+        default: ""
   schedule:
     # One nightly full-model ingestion of main. The artifact feeds the
     # gated public API deployment and keeps a daily semantic health signal.
@@ -31,9 +41,12 @@ concurrency:
 
 jobs:
   ingest-and-validate:
+    # Skipped in reuse mode (reuse_ingestion_run set): the model-authority job
+    # then consumes the artifacts of the named earlier run instead.
     if: >-
-      github.event_name == 'workflow_dispatch' ||
-      github.event.pull_request.head.repo.full_name == github.repository
+      (github.event_name == 'workflow_dispatch' ||
+      github.event.pull_request.head.repo.full_name == github.repository) &&
+      !github.event.inputs.reuse_ingestion_run
     runs-on: ubuntu-latest
     timeout-minutes: 360
     services:
@@ -385,11 +398,22 @@ jobs:
   # successful model-authority-evidence job whose eligibility artifact says
   # activation_eligible=true, plus the owner's decision naming the mab id
   # (docs/method-conformance/o4/model-authority-activation.md).
+  #
+  # Reuse mode (reuse_ingestion_run input): ingest-and-validate is skipped and
+  # this job consumes the artifacts of that earlier dispatch run at the same
+  # ref, after verifying through the API that the run, its ingest job and both
+  # artifacts are eligible. actions: read is needed only for that cross-run
+  # verification and download, so only this job gets it.
   model-authority-evidence:
     needs: ingest-and-validate
     if: >-
+      !cancelled() &&
       github.event_name == 'workflow_dispatch' &&
-      needs.ingest-and-validate.result == 'success'
+      (needs.ingest-and-validate.result == 'success' ||
+      (github.event.inputs.reuse_ingestion_run != '' && needs.ingest-and-validate.result == 'skipped'))
+    permissions:
+      contents: read
+      actions: read
     runs-on: ubuntu-latest
     timeout-minutes: 360
     continue-on-error: true
@@ -430,6 +454,25 @@ jobs:
             exit 1
           fi
 
+      - name: Verify the reused ingestion run (reuse mode)
+        # Every precondition read through the GitHub API before anything is
+        # downloaded: same workflow, workflow_dispatch, completed, head_sha ==
+        # ref, ingest-and-validate concluded success, and both artifacts exist
+        # once, unexpired, from ref. Artifact names come from the ref input,
+        # never from github.sha (a reuse dispatch runs on a newer main). Writes
+        # the provenance record uploaded with the evidence. Stdlib only.
+        if: github.event.inputs.reuse_ingestion_run != ''
+        id: reuse
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 scripts/verify_reuse_ingestion_run.py \
+            --repository "${{ github.repository }}" \
+            --run-id "${{ github.event.inputs.reuse_ingestion_run }}" \
+            --ref "${{ github.event.inputs.ref }}" \
+            --current-run-id "${{ github.run_id }}" \
+            --output /tmp/o4/de4sdv-o4-ingestion-source.json
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -449,6 +492,7 @@ jobs:
 
       - name: Download same-run ingestion evidence
         # Restores the exact /tmp paths the O3 closure attestation hashes.
+        if: github.event.inputs.reuse_ingestion_run == ''
         uses: actions/download-artifact@v4
         with:
           name: full-model-api-ingestion-${{ github.sha }}
@@ -458,17 +502,40 @@ jobs:
         # The snapshot steps of ingest-and-validate are continue-on-error, so
         # the artifact can be missing; the next step turns that into one
         # explicit failure instead of a download error.
+        if: github.event.inputs.reuse_ingestion_run == ''
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: model-authority-api-db-${{ github.sha }}
           path: /tmp/o4-db
 
+      - name: Download reused-run ingestion evidence (reuse mode)
+        # The exact artifact object verified above (by id), same /tmp layout.
+        if: github.event.inputs.reuse_ingestion_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: ${{ steps.reuse.outputs.ingestion_artifact_id }}
+          run-id: ${{ github.event.inputs.reuse_ingestion_run }}
+          github-token: ${{ github.token }}
+          merge-multiple: true
+          path: /tmp
+
+      - name: Download reused-run API database snapshot (reuse mode)
+        if: github.event.inputs.reuse_ingestion_run != ''
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: ${{ steps.reuse.outputs.snapshot_artifact_id }}
+          run-id: ${{ github.event.inputs.reuse_ingestion_run }}
+          github-token: ${{ github.token }}
+          merge-multiple: true
+          path: /tmp/o4-db
+
       - name: Require the same-run API database snapshot
         run: |
           for path in /tmp/o4-db/sysml2.dump /tmp/o4-db/sysml2.dump.sha256; do
             if [ ! -s "$path" ]; then
-              echo "::error::same-run API database snapshot missing ($path): the artifact model-authority-api-db-${{ github.sha }} was not produced or not uploaded by ingest-and-validate (its snapshot steps are continue-on-error). No model-authority evidence is produced; re-dispatch the ingestion at this SHA."
+              echo "::error::same-run API database snapshot missing ($path): the artifact model-authority-api-db-${{ github.event.inputs.reuse_ingestion_run != '' && github.event.inputs.ref || github.sha }} was not produced or not uploaded by ingest-and-validate (its snapshot steps are continue-on-error). No model-authority evidence is produced; re-dispatch the ingestion at this SHA."
               exit 1
             fi
           done
@@ -497,9 +564,28 @@ jobs:
             pg_restore -U postgres -d sysml2 --no-owner --exit-on-error < /tmp/o4-db/sysml2.dump
 
       - name: Build pinned Systems Modeling API service
+        # Unlike ingest-and-validate (empty database, create-drop intended),
+        # this job serves a pg_restore'd database: the pinned build's
+        # hibernate.hbm2ddl.auto=create-drop would recreate the schema at
+        # startup and wipe it (run 37677500924 served 0 elements). Patch it to
+        # update before staging, exactly as deployment/sysml2-api/Dockerfile
+        # does for production; fail closed if upstream content differs.
         run: |
           git clone --filter=blob:none https://github.com/Systems-Modeling/SysML-v2-API-Services.git /tmp/sysmlv2-api-services
           git -C /tmp/sysmlv2-api-services checkout 0af711b14bbcea7b240bb0a3a65817ae68302092
+          # >>> schema-preservation patch
+          CONF=/tmp/sysmlv2-api-services/conf/META-INF/persistence.xml
+          if ! grep -q 'hibernate.hbm2ddl.auto" value="create-drop"' "$CONF"; then
+            echo "::error::schema-preservation patch: expected hibernate.hbm2ddl.auto=create-drop not found in $CONF; refusing to start the API on the restored database with an unknown schema policy"
+            exit 1
+          fi
+          sed -i 's/hibernate.hbm2ddl.auto" value="create-drop"/hibernate.hbm2ddl.auto" value="update"/' "$CONF"
+          if grep -q 'create-drop' "$CONF" || ! grep -q 'hibernate.hbm2ddl.auto" value="update"' "$CONF"; then
+            echo "::error::schema-preservation patch: create-drop still present (or update missing) in $CONF after the edit; the restored database would be wiped"
+            exit 1
+          fi
+          grep -n 'hibernate.hbm2ddl.auto' "$CONF"
+          # <<< schema-preservation patch
           curl -fsSL -o /tmp/sbt-launch.jar \
             https://repo1.maven.org/maven2/org/scala-sbt/sbt-launch/1.2.8/sbt-launch-1.2.8.jar
           (cd /tmp/sysmlv2-api-services && java -Xmx4g -jar /tmp/sbt-launch.jar stage)
@@ -521,6 +607,22 @@ jobs:
           cat /tmp/sysml-api.log
           exit 1
 
+      - name: Prove the restored API serves the export corpus
+        # Fail fast, before any evidence step: the binding's project/commit
+        # exist and the element count (and id set) read through the API equal
+        # the export's, and the semantic report's element_count. A refusal
+        # names the cause (e.g. schema wiped at startup) and skips every
+        # evidence step below; the proof report and API log are still uploaded.
+        id: restore-proof
+        run: |
+          mkdir -p /tmp/o4
+          python scripts/verify_restored_api_corpus.py \
+            --api-url http://127.0.0.1:9000 \
+            --binding /tmp/de4sdv-full-model-binding.json \
+            --export /tmp/de4sdv-full-model-export.json \
+            --semantic-report /tmp/de4sdv-full-model-semantic-validation.json \
+            --output /tmp/o4/de4sdv-o4-restored-corpus-proof.json
+
       - name: Decision-13 read-back of the implied verification anchors (restored same-run API snapshot)
         # Owner decision 4 (2026-10-07): a failure BLOCKS activation. Also the
         # restored-database identity check (live element set == export,
@@ -541,7 +643,7 @@ jobs:
         # Owner decision 6: measured evidence, not an activation gate. Exit 2
         # (measured, differs from the recorded 27/28) is reported in the
         # artifact and tolerated; any other non-zero exit fails the step.
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.restore-proof.outcome == 'success' }}
         run: |
           set +e
           python scripts/measure_requirement_population_delta.py \
@@ -562,7 +664,7 @@ jobs:
           exit "$rc"
 
       - name: Build candidate model-authority bundle
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.restore-proof.outcome == 'success' }}
         run: |
           python scripts/run_model_authority_bundle.py bundle \
             --source-revision "$(git rev-parse HEAD)" \
@@ -570,14 +672,14 @@ jobs:
             --out /tmp/o4
 
       - name: Model-projection coverage report against the candidate bundle
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.restore-proof.outcome == 'success' }}
         run: |
           python scripts/check_model_projection_coverage.py \
             --json /tmp/o4/de4sdv-o4-model-projection-coverage.json \
             --bundle /tmp/o4/de4sdv-model-authority-candidate-bundle.json
 
       - name: Same-revision model vs O3 vs legacy runtime equivalence
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.restore-proof.outcome == 'success' }}
         run: |
           python scripts/run_model_authority_bundle.py compare \
             --model /tmp/o4/de4sdv-model-authority-candidate-bundle.json \
@@ -591,7 +693,7 @@ jobs:
       - name: Close the model-authority bundle (activation eligibility)
         # Every gate is derived from its artifact and sha256-bound to it.
         # Exit 2 = closed but not activation-eligible.
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.restore-proof.outcome == 'success' }}
         run: |
           python scripts/run_model_authority_bundle.py close \
             --model /tmp/o4/de4sdv-model-authority-candidate-bundle.json \
@@ -614,10 +716,12 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: model-authority-evidence-${{ github.sha }}
+          name: model-authority-evidence-${{ github.event.inputs.reuse_ingestion_run != '' && github.event.inputs.ref || github.sha }}
           if-no-files-found: warn
           retention-days: 14
           path: |
+            /tmp/o4/de4sdv-o4-ingestion-source.json
+            /tmp/o4/de4sdv-o4-restored-corpus-proof.json
             /tmp/o4/de4sdv-o4-verification-anchor-readback.json
             /tmp/o4/de4sdv-o4-requirement-population-delta.json
             /tmp/o4/de4sdv-model-authority-candidate-bundle.json
