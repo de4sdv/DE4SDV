@@ -39,6 +39,9 @@ package DE4SDV_IncrementWorkflow {
     attribute owner : String;
     attribute expectedArtifacts : String[1..*];
     attribute expectedReviewEvidence : String[1..*];
+    action workflow : IncrementWorkflow {
+      doc /* The workflow this increment follows; an increment may tailor it later by redefinition. */
+    }
   }
 
   abstract action def IncrementStep {
