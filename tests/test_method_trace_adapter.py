@@ -22,6 +22,9 @@ SCOPE_HEADER = "part visualizationScope : IncrementScope"
 QUESTION_HEADER = "part visualizationEngineeringQuestion : IncrementEngineeringQuestion"
 DECISION_HEADER = "part visualizationLifecycleDecision : IncrementLifecycleDecision"
 INCREMENT_DEFINITION = "part def VisualizationIncrement :> EngineeringIncrement;"
+# The increment usage carries its registered identifier as its declared short name.
+INCREMENT_HEADER = "part <'INC-AEBS-010'> incAEBS010 : VisualizationIncrement {"
+RETYPED_INCREMENT_HEADER = "part <'INC-AEBS-010'> incAEBS010 : EngineeringIncrement {"
 FRAMES = ("      frame visualizationProvenanceConcern;\n"
           "      frame visualizationBoundaryConcern;\n"
           "      frame predecessorIndependenceConcern;\n")
@@ -68,6 +71,18 @@ class ScopedTraceTests(unittest.TestCase):
         })
         stakeholder = next(w for w in snapshot.witnesses if w.relation == "stakeholders")
         self.assertEqual(stakeholder.identity, AEBS_NS + "visualizationStakeholderParticipation")
+
+    def test_increment_usage_carries_its_registered_identifier_as_short_name(self):
+        """The increment identity is the native declared short name. Only the
+        increment usage header admits it; every other witness grammar is
+        unchanged, so a short-named scope part stays an unsupported shape."""
+        from de4sdv.semantic.method_trace_adapter import FRAMINGS, repository_snapshot
+        source = (ROOT / FRAMINGS[AEBS][0]).read_text()
+        self.assertEqual(source.count(INCREMENT_HEADER), 1)
+        self.assertEqual(self._row(repository_snapshot(ROOT, AEBS), "increment").verdict, "PASS")
+        self._assert_unavailable(
+            self._snapshot_mutation(SCOPE_HEADER, "part <'probe'> visualizationScope : IncrementScope"),
+            ("declaredScope",))
 
     def test_trace_declaration_carries_no_parallel_reference_slots(self):
         import re
@@ -181,8 +196,8 @@ class ScopedTraceTests(unittest.TestCase):
              ("stakeholders",)),
             (SYSTEMS_ENGINEER, SYSTEMS_ENGINEER + SYSTEMS_ENGINEER, ("stakeholders",)),
             (PROBLEM_SUBJECT, PROBLEM_SUBJECT + PROBLEM_SUBJECT, ("problemStatement",)),
-            ("part incAEBS010 : VisualizationIncrement {",
-             "part incAEBS010 : VisualizationIncrement;\n  part incAEBS010 : VisualizationIncrement {",
+            (INCREMENT_HEADER,
+             "part incAEBS010 : VisualizationIncrement;\n  " + INCREMENT_HEADER,
              ("increment", "problemStatement", "stakeholders")),
         )
         for old, new, relations in cases:
@@ -234,9 +249,9 @@ class ScopedTraceTests(unittest.TestCase):
         snapshot = self._snapshot_mutation(INCREMENT_DEFINITION, shadow)
         self._assert_unavailable(snapshot, ("increment", "problemStatement", "stakeholders"))
         direct = self._snapshot_mutation(
-            (INCREMENT_DEFINITION, "part incAEBS010 : VisualizationIncrement {"),
+            (INCREMENT_DEFINITION, INCREMENT_HEADER),
             (INCREMENT_DEFINITION + "\n  part def EngineeringIncrement :> IncrementAssumption;",
-             "part incAEBS010 : EngineeringIncrement {"))
+             RETYPED_INCREMENT_HEADER))
         self._assert_unavailable(direct, ("increment",))
         for type_name, relation in (("IncrementScope", "declaredScope"),
                                     ("ProblemStatement", "problemStatement"),
@@ -253,16 +268,16 @@ class ScopedTraceTests(unittest.TestCase):
         for extra in ("part def Foo;", "part def FeatureIncrement :> IncrementAssumption;"):
             with self.subTest(extra=extra):
                 snapshot = self._snapshot_mutation(
-                    (INCREMENT_DEFINITION, "part incAEBS010 : VisualizationIncrement {",
+                    (INCREMENT_DEFINITION, INCREMENT_HEADER,
                      "subject increment : VisualizationIncrement;"),
-                    (INCREMENT_DEFINITION + "\n  " + extra, "part incAEBS010 : EngineeringIncrement {",
+                    (INCREMENT_DEFINITION + "\n  " + extra, RETYPED_INCREMENT_HEADER,
                      "subject increment : EngineeringIncrement;"))
                 result = evaluate_snapshot(snapshot)
                 self.assertEqual(len([r for r in result.results if r.verdict == "PASS"]), 7)
         same = self._snapshot_mutation(
-            (INCREMENT_DEFINITION, "part incAEBS010 : VisualizationIncrement {"),
+            (INCREMENT_DEFINITION, INCREMENT_HEADER),
             (INCREMENT_DEFINITION + "\n  part def EngineeringIncrement;",
-             "part incAEBS010 : EngineeringIncrement {"))
+             RETYPED_INCREMENT_HEADER))
         self._assert_unavailable(same, ("increment",))
 
     def test_qualified_kernel_parent_still_identifies_the_increment(self):
@@ -422,10 +437,17 @@ class ScopedTraceTests(unittest.TestCase):
             ("MethodPhase::phase5_requirements", "TraceCompletionClaim::requirementsReady"),
             ("DE4SDV_MethodProcess::MethodPhase::phase5_requirements",
              "DE4SDV_MethodTraces::TraceCompletionClaim::requirementsReady"))
-        self.assertEqual(snapshot.declaration.phases, tuple(range(6)))
+        # The charter declares phases 0 to 10 (framing through verification
+        # evidence); the requirements scope minimum stays phases 0 to 5 and
+        # the later declared phases only add trace obligations.
+        self.assertEqual(snapshot.declaration.phases, tuple(range(11)))
         result = evaluate_snapshot(snapshot)
         self.assertEqual(len([r for r in result.results if r.verdict == "PASS"]), 7)
-        self.assertEqual(len(result.unassessed_ids), 5)
+        self.assertEqual(set(result.unassessed_ids), {
+            "operational-context", "capability-classification", "need-origin",
+            "requirement-derivation", "requirement-to-function", "function-to-logical",
+            "logical-to-physical", "software-boundary-mapping", "configuration-to-assets",
+            "verification-to-target", "criterion-to-evidence", "native-validation"})
         self.assertEqual(result.readiness[0].readiness, "BLOCKED")
 
     def test_all_phase_literals_require_the_original_ascii_spelling(self):

@@ -24,6 +24,15 @@ declarations:
     item def MethodEvaluationExclusion: scope-internal structured exclusion record (excluded element reference
       plus rationale), owned by MethodEvaluationScope; not an additional ontology class or contribution
       membership
+  textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_gates.sysml:
+    enum def PermittedEmptyDisposition: allowed-value vocabulary of the permitted-empty disposition of a method
+      gate; evaluation-policy data, not an ontology class or a result status
+    item def MethodGate: method-gate specialization of MethodContractObligation adding gate prerequisites and
+      the permitted-empty disposition; method data for the deterministic evaluation, not an additional ontology
+      class
+    part def IncrementCharter: increment charter declaration specializing IncrementTraceObligations with owner,
+      expected artifacts and expected review evidence as plain attributes; declaration helper, not an additional
+      ontology class or completion evidence
   textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml:
     concern def ProductLineCapabilityClassificationConcern: method-specific concern type
     concern def RegulatoryScopeWithoutComplianceClaimConcern: method-specific concern type

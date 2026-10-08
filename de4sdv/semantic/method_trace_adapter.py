@@ -337,8 +337,9 @@ def _owned_records(text: str, name: str):
     Header boundaries stop at the declaration's own semicolon/opening brace;
     nested bodies, comments (already cleaned) and quote tokens cannot count.
     Discovery deliberately does not require an explicit type or supported kind.
-    A bounded optional short-name token also establishes header presence, but
-    never expands the supported witness grammar below.
+    A bounded optional short-name token also establishes header presence; it
+    expands the supported witness grammar below only for the increment usage,
+    whose declared short name carries the registered increment identifier.
     It is a bounded identity inventory, not a general SysML parser.
     """
     prefix = (r"\s*(?:doc\s+)*(?:(?:public|private|protected|abstract|variation|variant|"
@@ -390,7 +391,8 @@ class _NativeFraming:
     increment's own governed package through native SysML relationships:
 
     - ``increment``: the declared increment is a directly owned part typed by a
-      local ``EngineeringIncrement`` specialization (owning membership + typing).
+      local ``EngineeringIncrement`` specialization (owning membership + typing);
+      its header may carry the declared short name (the increment identifier).
     - ``declaredScope``, ``engineeringQuestion``, ``lifecycleDecision``: exactly
       one directly owned part typed by ``IncrementScope``,
       ``IncrementEngineeringQuestion`` or ``IncrementLifecycleDecision``.
@@ -455,8 +457,8 @@ class _NativeFraming:
             return _UNAVAILABLE
         if not usages:
             return []
-        typed = re.fullmatch(r"\s*(?:doc\s+)*part\s+" + re.escape(name) + r"\s*:\s*("
-                             + _NAME + r")\s*[;{]", usages[0].group())
+        typed = re.fullmatch(r"\s*(?:doc\s+)*part\s+(?:<[^<>;{}]*>\s*)?" + re.escape(name)
+                             + r"\s*:\s*(" + _NAME + r")\s*[;{]", usages[0].group())
         if not typed:
             return _UNAVAILABLE
         definition = typed.group(1)
