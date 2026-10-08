@@ -21,7 +21,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+from types import MappingProxyType
 from typing import Any, Callable, Iterable, Mapping, Protocol, Sequence
 
 # ---------------------------------------------------------------------------
@@ -235,9 +236,10 @@ class EvaluationResult:
 # Contract schema (frozen baseline Section 7; result-algebra spelling)
 # ---------------------------------------------------------------------------
 
-#: Typed subject-selector kinds. Selector strings are contract data; the
-#: registry below is the evaluator's typed meaning for them. An unregistered
-#: selector string is a contract validation error, never a silent skip.
+#: Typed subject-selector kinds. Selector strings are contract data that a
+#: contract decoder maps to one of these kinds; the selector registry
+#: (``DEFAULT_SELECTORS``) holds each kind's typed subject resolution. An
+#: unregistered kind is a contract validation error, never a silent skip.
 SELECTOR_SCOPE_SUBJECT = "scope-subject"
 SELECTOR_SCOPE_USAGES = "scope-usages"
 SELECTOR_DEFINITION_SUBJECT = "definition-subject"
@@ -245,15 +247,23 @@ SELECTOR_TESTED_SCOPE_SUBJECT = "tested-scope-subject"
 SELECTOR_PROFILE_SET = "profile-set"
 SELECTOR_UPSTREAM = "upstream-targets"
 
-SELECTOR_REGISTRY: dict[str, str] = {
-    "declared-pilot-scope": SELECTOR_SCOPE_SUBJECT,
-    "scope usages": SELECTOR_SCOPE_USAGES,
-    "declared-tested-scope": SELECTOR_TESTED_SCOPE_SUBJECT,
-    "declared profiles": SELECTOR_PROFILE_SET,
-    "ConsciousOverrideVerification": SELECTOR_DEFINITION_SUBJECT,
-}
-
 _UPSTREAM_SELECTOR_PREFIX = "upstream:"
+
+
+@dataclass(frozen=True)
+class TargetFilter:
+    """One typed target condition decoded from an obligation's filter text.
+
+    ``kind`` names the condition; ``argument`` and ``values`` carry its typed
+    parameters; ``text`` is the contract text it was decoded from. Decoding
+    happens once, at contract validation, against the predicate's closed
+    filter vocabulary, so predicates never match filter text themselves.
+    """
+
+    kind: str
+    argument: str = ""
+    values: tuple[str, ...] = ()
+    text: str = ""
 
 #: Evaluation sources (frozen baseline Section 7). ``live-delivery-adapter``
 #: obligations are outside deterministic evaluation (Package D) and are
@@ -306,6 +316,10 @@ class ObligationSpec:
     depends_on: tuple[str, ...] = ()
     upstream_obligation_id: str | None = None
     expected_reason_default: tuple[str, ...] = ()
+    #: Typed target filters decoded from ``target_filters`` by the predicate
+    #: registry when an evaluator is constructed. Derived data: excluded from
+    #: the contract digest, which covers the filter text.
+    filters: tuple[TargetFilter, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -394,19 +408,29 @@ def _blocking_cycle(edges: Mapping[str, Iterable[str]]) -> list[str] | None:
 
 
 def validate_contract(
-    contract: MethodContract, predicate_names: Iterable[str] | None = None
+    contract: MethodContract,
+    predicate_names: Iterable[str] | None = None,
+    *,
+    predicates: "PredicateRegistry | None" = None,
+    selectors: "SelectorRegistry | None" = None,
 ) -> None:
     """Validate contract rows; raise ContractValidationError on any violation.
 
     Rejects (frozen baseline Section 7 / MC-09): duplicate IDs, unknown
     predicates, type/selector mismatches, invalid bounds, unknown status
     literals / unresolved policy references, unsupported applicability or
-    evaluation-source forms, and invalid dependency structures (unknown or
-    cyclic blocking prerequisites; MC-27).
+    evaluation-source forms, invalid dependency structures (unknown or
+    cyclic blocking prerequisites; MC-27), and target-filter text outside
+    the registered predicate's filter vocabulary.
+
+    ``predicate_names`` lets an adapter that dispatches obligations itself
+    declare its own predicate names; their filters are not decoded.
     """
 
     violations: list[str] = []
-    known_predicates = set(predicate_names or PREDICATES)
+    registry = predicates if predicates is not None else DEFAULT_PREDICATES
+    selector_registry = selectors if selectors is not None else DEFAULT_SELECTORS
+    known_predicates = set(predicate_names or registry.names())
     seen: set[str] = set()
     for obligation in contract.obligations:
         oid = obligation.obligation_id
@@ -418,16 +442,7 @@ def validate_contract(
         seen.add(oid)
         if not obligation.phase:
             violations.append(f"{oid}: missing phase reference")
-        if (
-            obligation.selector_kind not in {
-                SELECTOR_SCOPE_SUBJECT,
-                SELECTOR_SCOPE_USAGES,
-                SELECTOR_DEFINITION_SUBJECT,
-                SELECTOR_TESTED_SCOPE_SUBJECT,
-                SELECTOR_PROFILE_SET,
-                SELECTOR_UPSTREAM,
-            }
-        ):
+        if obligation.selector_kind not in selector_registry.kinds():
             violations.append(
                 f"{oid}: unsupported subject_selector kind {obligation.selector_kind!r} "
                 f"(selector {obligation.subject_selector!r})"
@@ -447,6 +462,11 @@ def validate_contract(
             )
         if obligation.predicate not in known_predicates:
             violations.append(f"{oid}: unknown predicate {obligation.predicate!r}")
+        elif obligation.predicate in registry.names():
+            try:
+                registry.filters(obligation)
+            except ValueError as error:
+                violations.append(f"{oid}: {error}")
         minimum, maximum = obligation.cardinality
         if (
             not isinstance(minimum, int)
@@ -642,19 +662,25 @@ def _eligible_target_ids(
 
     qualifying: set[str] = set()
     diagnostics: list[str] = []
-    filters = set(obligation.target_filters)
+    element_types = [f.argument for f in obligation.filters if f.kind == FILTER_ELEMENT_TYPE]
+    bench_names = [f.argument for f in obligation.filters if f.kind == FILTER_BENCH_SPECIALIZATION]
     for target_id in candidate_ids:
         element = by_id(target_id)
-        if "element type VerificationCaseUsage" in filters:
-            if str(element.get("@type")) != "VerificationCaseUsage":
-                diagnostics.append(f"target {target_id} is not a VerificationCaseUsage")
-                continue
-        if "element type OverrideMatrixBench specialization" in filters:
+        rejected = False
+        for element_type in element_types:
+            if str(element.get("@type")) != element_type:
+                diagnostics.append(f"target {target_id} is not a {element_type}")
+                rejected = True
+                break
+        if rejected:
+            continue
+        for bench_name in bench_names:
             if not _is_bench_specialization(ctx, target_id):
-                diagnostics.append(
-                    f"target {target_id} is not an OverrideMatrixBench specialization"
-                )
-                continue
+                diagnostics.append(f"target {target_id} is not an {bench_name} specialization")
+                rejected = True
+                break
+        if rejected:
+            continue
         qualifying.add(target_id)
     return tuple(sorted(qualifying)), tuple(diagnostics)
 
@@ -797,8 +823,7 @@ def _predicate_scope_composition(
     pinned contract/scope data; observed members come from the bound revision
     or the declared tested-scope manifest.
     """
-    filters = set(spec.target_filters)
-    if "profile identity equality (pinned set, exact)" in filters:
+    if any(f.kind == FILTER_PROFILE_SET_EQUALITY for f in spec.filters):
         return _profile_population(ctx)
     observed: list[str] = []
     diagnostics: list[str] = []
@@ -931,9 +956,8 @@ def _predicate_objective_contracts(
             witnesses=witnesses,
             diagnostics=(f"objective witnesses outside the pinned requirement set: {foreign}",),
         )
-    if "full-witness-path" not in set(spec.target_filters) and expected:
-        # Witness completeness: every expected requirement must be reached.
-        pass
+    # Witness completeness: every expected requirement must be reached
+    # (stated by the FILTER_FULL_WITNESS_PATH filter; it is the default).
     missing = sorted(expected - observed)
     if missing:
         return PredicateOutcome(
@@ -1053,8 +1077,7 @@ def _predicate_method_metadata(
     literal references make the value check untestable (INPUT_UNAVAILABLE),
     never a pass and never an absence-based fail (UG-06 / closure rule C4).
     """
-    filters = set(spec.target_filters)
-    if "per-action kind" in " ".join(filters):
+    if any(f.kind == FILTER_PER_ACTION_KIND for f in spec.filters):
         binding = ctx.usage_bindings.get(f"definition:{subject_id}")
         metadata_by_action = binding.get("action_metadata") if binding else None
         if not metadata_by_action:
@@ -1497,17 +1520,250 @@ def _predicate_acceptance_record_match(
     )
 
 
-PREDICATES: dict[str, Predicate] = {
-    "binding-resolution": _predicate_binding_resolution,
-    "scope-composition": _predicate_scope_composition,
-    "verification-subject-membership": _predicate_subject_membership,
-    "verifiedBy-reverse-witness": _predicate_objective_contracts,
-    "verification-method-metadata": _predicate_method_metadata,
-    "external-evidence-reference": _predicate_external_evidence_reference,
-    "execution-outcome": _predicate_execution_outcome,
-    "conservative-scope-equality": _predicate_scope_equality,
-    "acceptance-record-match": _predicate_acceptance_record_match,
-}
+# ---------------------------------------------------------------------------
+# Predicate and subject-selector registries
+# ---------------------------------------------------------------------------
+
+#: Typed target-filter kinds of the registered phase-10 evidence predicates.
+FILTER_ELEMENT_TYPE = "element-type"
+FILTER_BENCH_SPECIALIZATION = "bench-specialization"
+FILTER_PROFILE_SET_EQUALITY = "profile-set-equality"
+FILTER_PINNED_REQUIREMENT_SET = "pinned-requirement-set"
+FILTER_FULL_WITNESS_PATH = "full-witness-path"
+FILTER_DECLARED_KIND_VALUES = "declared-kind-values"
+FILTER_PER_ACTION_KIND = "per-action-kind"
+FILTER_RECORD_INTEGRITY = "record-integrity"
+FILTER_PINNED_DISPOSITION = "pinned-disposition"
+FILTER_ALL_PINNED_FIELDS = "all-pinned-fields"
+FILTER_DECISION_POPULATION = "decision-population-completeness"
+
+FilterParser = Callable[[str], TargetFilter]
+
+
+def filter_vocabulary(entries: Mapping[str, tuple[str, str]]) -> FilterParser:
+    """A closed filter vocabulary: exact text -> (kind, argument).
+
+    Text outside the vocabulary raises ``ValueError``; nothing is inferred
+    from partial or similar text.
+    """
+
+    table = dict(entries)
+
+    def parse(text: str) -> TargetFilter:
+        if text not in table:
+            raise ValueError(f"unsupported target filter {text!r}")
+        kind, argument = table[text]
+        return TargetFilter(kind=kind, argument=argument, text=text)
+
+    return parse
+
+
+def _no_filters(text: str) -> TargetFilter:
+    raise ValueError(f"unsupported target filter {text!r} (the predicate takes no filter)")
+
+
+@dataclass(frozen=True)
+class PredicateDefinition:
+    """One registered predicate: its evaluation, filter vocabulary and remedy.
+
+    ``remedy`` states, in model terms, what content satisfies the predicate;
+    the increment projections use it to say what to author.
+    """
+
+    name: str
+    evaluate: Predicate
+    parse_filter: FilterParser = _no_filters
+    remedy: str = ""
+
+
+class PredicateRegistry:
+    """Immutable name -> predicate registry; extension returns a new registry."""
+
+    def __init__(self, definitions: Iterable[PredicateDefinition] = ()) -> None:
+        self._definitions: dict[str, PredicateDefinition] = {}
+        for definition in definitions:
+            if definition.name in self._definitions:
+                raise ValueError(f"predicate {definition.name!r} is already registered")
+            self._definitions[definition.name] = definition
+
+    def names(self) -> frozenset[str]:
+        return frozenset(self._definitions)
+
+    def definition(self, name: str) -> PredicateDefinition:
+        return self._definitions[name]
+
+    def with_definitions(self, *definitions: PredicateDefinition) -> "PredicateRegistry":
+        return PredicateRegistry([*self._definitions.values(), *definitions])
+
+    def filters(self, spec: ObligationSpec) -> tuple[TargetFilter, ...]:
+        """Typed filters of one obligation (``ValueError`` on unsupported text)."""
+        parse = self.definition(spec.predicate).parse_filter
+        return tuple(parse(text) for text in spec.target_filters if text != "")
+
+    def functions(self) -> Mapping[str, Predicate]:
+        return MappingProxyType({name: d.evaluate for name, d in self._definitions.items()})
+
+
+SubjectResolver = Callable[["ObligationSpec", EvaluationContext], tuple[list[str], list[str]]]
+
+
+@dataclass(frozen=True)
+class SelectorDefinition:
+    """One registered subject-selector kind and its typed subject resolution."""
+
+    kind: str
+    resolve: SubjectResolver
+
+
+class SelectorRegistry:
+    """Immutable kind -> selector registry; extension returns a new registry."""
+
+    def __init__(self, definitions: Iterable[SelectorDefinition] = ()) -> None:
+        self._definitions: dict[str, SelectorDefinition] = {}
+        for definition in definitions:
+            if definition.kind in self._definitions:
+                raise ValueError(f"selector kind {definition.kind!r} is already registered")
+            self._definitions[definition.kind] = definition
+
+    def kinds(self) -> frozenset[str]:
+        return frozenset(self._definitions)
+
+    def definition(self, kind: str) -> SelectorDefinition:
+        return self._definitions[kind]
+
+    def with_definitions(self, *definitions: SelectorDefinition) -> "SelectorRegistry":
+        return SelectorRegistry([*self._definitions.values(), *definitions])
+
+
+def _subjects_scope(spec: ObligationSpec, ctx: EvaluationContext) -> tuple[list[str], list[str]]:
+    return [ctx.scope.scope_id], []
+
+
+def _subjects_scope_usages(spec: ObligationSpec, ctx: EvaluationContext) -> tuple[list[str], list[str]]:
+    return list(ctx.scope.usage_ids), []
+
+
+def _subjects_definition(spec: ObligationSpec, ctx: EvaluationContext) -> tuple[list[str], list[str]]:
+    if ctx.definition_id is None:
+        return [], ["the declared definition identity is unavailable"]
+    return [ctx.definition_id], []
+
+
+def _subjects_tested_scope(spec: ObligationSpec, ctx: EvaluationContext) -> tuple[list[str], list[str]]:
+    return [f"tested-scope:{ctx.scope.increment_id}"], []
+
+
+def _subjects_profiles(spec: ObligationSpec, ctx: EvaluationContext) -> tuple[list[str], list[str]]:
+    return list(ctx.scope.profiles), []
+
+
+def _subjects_upstream(spec: ObligationSpec, ctx: EvaluationContext) -> tuple[list[str], list[str]]:
+    # Upstream subjects are the declared profiles' records; the context
+    # carries their derived identity, which keeps one evaluation.
+    subjects: list[str] = []
+    for profile in ctx.scope.profiles:
+        run_id = str(
+            ((ctx.campaign_manifest or {}).get("profiles") or {}).get(profile, {}).get("run_id")
+            or ""
+        )
+        subjects.append(run_id or f"record:{profile}")
+    return subjects, []
+
+
+DEFAULT_SELECTORS = SelectorRegistry(
+    [
+        SelectorDefinition(SELECTOR_SCOPE_SUBJECT, _subjects_scope),
+        SelectorDefinition(SELECTOR_SCOPE_USAGES, _subjects_scope_usages),
+        SelectorDefinition(SELECTOR_DEFINITION_SUBJECT, _subjects_definition),
+        SelectorDefinition(SELECTOR_TESTED_SCOPE_SUBJECT, _subjects_tested_scope),
+        SelectorDefinition(SELECTOR_PROFILE_SET, _subjects_profiles),
+        SelectorDefinition(SELECTOR_UPSTREAM, _subjects_upstream),
+    ]
+)
+
+DEFAULT_PREDICATES = PredicateRegistry(
+    [
+        PredicateDefinition("binding-resolution", _predicate_binding_resolution),
+        PredicateDefinition(
+            "scope-composition",
+            _predicate_scope_composition,
+            filter_vocabulary(
+                {
+                    "element type VerificationCaseUsage": (FILTER_ELEMENT_TYPE, "VerificationCaseUsage"),
+                    "profile identity equality (pinned set, exact)": (FILTER_PROFILE_SET_EQUALITY, ""),
+                }
+            ),
+        ),
+        PredicateDefinition(
+            "verification-subject-membership",
+            _predicate_subject_membership,
+            filter_vocabulary(
+                {
+                    "element type OverrideMatrixBench specialization": (
+                        FILTER_BENCH_SPECIALIZATION,
+                        "OverrideMatrixBench",
+                    ),
+                }
+            ),
+        ),
+        PredicateDefinition(
+            "verifiedBy-reverse-witness",
+            _predicate_objective_contracts,
+            filter_vocabulary(
+                {
+                    "pinned requirement set": (FILTER_PINNED_REQUIREMENT_SET, ""),
+                    "full-witness-path": (FILTER_FULL_WITNESS_PATH, ""),
+                }
+            ),
+        ),
+        PredicateDefinition(
+            "verification-method-metadata",
+            _predicate_method_metadata,
+            filter_vocabulary(
+                {
+                    "method-kind value set exactly {test, analyze}": (FILTER_DECLARED_KIND_VALUES, ""),
+                    "per-action kind": (FILTER_PER_ACTION_KIND, ""),
+                }
+            ),
+        ),
+        PredicateDefinition(
+            "external-evidence-reference",
+            _predicate_external_evidence_reference,
+            filter_vocabulary({"record integrity: manifest sha256": (FILTER_RECORD_INTEGRITY, "")}),
+        ),
+        PredicateDefinition(
+            "execution-outcome",
+            _predicate_execution_outcome,
+            filter_vocabulary({"pinned disposition": (FILTER_PINNED_DISPOSITION, "")}),
+        ),
+        PredicateDefinition(
+            "conservative-scope-equality",
+            _predicate_scope_equality,
+            filter_vocabulary({"all pinned fields": (FILTER_ALL_PINNED_FIELDS, "")}),
+        ),
+        PredicateDefinition(
+            "acceptance-record-match",
+            _predicate_acceptance_record_match,
+            filter_vocabulary({"decision population completeness": (FILTER_DECISION_POPULATION, "")}),
+        ),
+    ]
+)
+
+#: Read-only name -> function view of the default registry (compatibility).
+PREDICATES: Mapping[str, Predicate] = DEFAULT_PREDICATES.functions()
+
+
+def decode_contract_filters(
+    contract: MethodContract, predicates: PredicateRegistry
+) -> MethodContract:
+    """The contract with each registered obligation's typed filters decoded."""
+    decoded = tuple(
+        replace(obligation, filters=predicates.filters(obligation))
+        if obligation.predicate in predicates.names()
+        else obligation
+        for obligation in contract.obligations
+    )
+    return replace(contract, obligations=decoded)
 
 
 # ---------------------------------------------------------------------------
@@ -1830,11 +2086,29 @@ def _evaluation_order(contract: MethodContract) -> list[ObligationSpec]:
 
 
 class MethodEvaluator:
-    """Phase-neutral deterministic evaluator for one approved contract."""
+    """Phase-neutral deterministic evaluator for one approved contract.
 
-    def __init__(self, contract: MethodContract) -> None:
-        validate_contract(contract)
-        self.contract = contract
+    Predicates and subject selectors dispatch through the given registries
+    (default: the registered phase-10 evidence predicates and the pilot scope
+    selectors); target-filter text is decoded once into typed filters.
+    """
+
+    predicates: PredicateRegistry = DEFAULT_PREDICATES
+    selectors: SelectorRegistry = DEFAULT_SELECTORS
+
+    def __init__(
+        self,
+        contract: MethodContract,
+        *,
+        predicates: PredicateRegistry | None = None,
+        selectors: SelectorRegistry | None = None,
+    ) -> None:
+        if predicates is not None:
+            self.predicates = predicates
+        if selectors is not None:
+            self.selectors = selectors
+        validate_contract(contract, predicates=self.predicates, selectors=self.selectors)
+        self.contract = decode_contract_filters(contract, self.predicates)
 
     # -- subject resolution ------------------------------------------------
 
@@ -1842,37 +2116,9 @@ class MethodEvaluator:
         self, spec: ObligationSpec, ctx: EvaluationContext
     ) -> tuple[list[str], list[str]]:
         """Resolve typed subjects; returns (subject ids, diagnostics)."""
-        diagnostics: list[str] = []
-        if spec.selector_kind == SELECTOR_SCOPE_SUBJECT:
-            return [ctx.scope.scope_id], diagnostics
-        if spec.selector_kind == SELECTOR_SCOPE_USAGES:
-            return list(ctx.scope.usage_ids), diagnostics
-        if spec.selector_kind == SELECTOR_DEFINITION_SUBJECT:
-            if ctx.definition_id is None:
-                diagnostics.append("the declared definition identity is unavailable")
-                return [], diagnostics
-            return [ctx.definition_id], diagnostics
-        if spec.selector_kind == SELECTOR_TESTED_SCOPE_SUBJECT:
-            return [f"tested-scope:{ctx.scope.increment_id}"], diagnostics
-        if spec.selector_kind == SELECTOR_PROFILE_SET:
-            return list(ctx.scope.profiles), diagnostics
-        if spec.selector_kind == SELECTOR_UPSTREAM:
-            upstream_id = spec.upstream_obligation_id
-            subjects: list[str] = []
-            # The engine resolves upstream subjects after the upstream
-            # obligation evaluated; assembly here relies on the context for
-            # derived subject identity (records), which keeps one evaluation.
-            for profile in ctx.scope.profiles:
-                run_id = str(
-                    ((ctx.campaign_manifest or {}).get("profiles") or {})
-                    .get(profile, {})
-                    .get("run_id")
-                    or ""
-                )
-                subjects.append(run_id or f"record:{profile}")
-            return subjects, diagnostics
-        diagnostics.append(f"unsupported selector kind {spec.selector_kind!r}")
-        return [], diagnostics
+        if spec.selector_kind not in self.selectors.kinds():
+            return [], [f"unsupported selector kind {spec.selector_kind!r}"]
+        return self.selectors.definition(spec.selector_kind).resolve(spec, ctx)
 
     # -- obligation evaluation --------------------------------------------
 
@@ -1994,7 +2240,7 @@ class MethodEvaluator:
                 )
             ]
 
-        predicate = PREDICATES[spec.predicate]
+        predicate = self.predicates.definition(spec.predicate).evaluate
         child_results: list[EvaluationResult] = []
         for subject_id in subject_ids:
             outcome = predicate(ctx, spec, subject_id)
