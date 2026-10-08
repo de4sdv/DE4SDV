@@ -11,6 +11,11 @@ is complete in both directions:
   ``(file, declaration)`` pairs — no name-only shortcuts;
 - feature slices may not re-declare mapped kernel names.
 
+O4 Wave C1: the kernel -> model direction and the feature-slice guard are
+enforced by the model-projection coverage gate (kernel-internal declarations
+manifest, owner decision D3); the ontology -> kernel mapping direction stays
+in ``scripts/check_model_sync.py`` sync point 5 until O4 Wave C2.
+
 Adversarial probing per the declarative-artifact-testing skill: every failure
 mode is induced on a live copy and attributed to a specific ``[ONTOLOGY-KERNEL]``
 error. Written as ``unittest.TestCase`` and collected by the repository pytest
@@ -84,6 +89,35 @@ def _run_contract(doc: dict | None = None, tampered_texts: dict[str, str] | None
     finally:
         tampered_yaml.unlink()
     return errors
+
+
+def _run_coverage(doc: dict | None = None, tampered_texts: dict[str, str] | None = None):
+    """Kernel-accounting errors of the model-projection coverage gate.
+
+    O4 Wave C1 moved the kernel -> model direction and the feature-slice guard
+    from sync point 5 to the coverage gate. The same mutations are served to
+    that gate: kernel/slice tampering must raise a kernel-accounting error, and
+    any tampering of the authored kernel-internal list must break the C1
+    transition lock (the list must equal
+    ``docs/method-conformance/o4/kernel-internal-declarations.yaml``).
+    """
+    from de4sdv.semantic import model_projection_coverage as coverage
+
+    texts = {Path(path): text for path, text in (tampered_texts or {}).items()}
+    if doc is not None:
+        texts[ROOT / coverage.ONTOLOGY_PATH] = yaml.safe_dump(doc)
+    original_read = Path.read_text
+
+    def fake_read(self, *args, **kwargs):
+        if self in texts:
+            return texts[self]
+        return original_read(self, *args, **kwargs)
+
+    with mock.patch.object(Path, "read_text", fake_read):
+        return list(coverage.build_report(ROOT)["kernel_accounting_errors"])
+
+
+_LOCK = "differs from the authored ontology list"
 
 
 class ContractCleanRepo(unittest.TestCase):
@@ -252,7 +286,10 @@ class ContractMappingDirection(unittest.TestCase):
 
 
 class ContractInventoryDirection(unittest.TestCase):
-    """Kernel → ontology direction: every declaration needs a decision."""
+    """Kernel -> model direction: every declaration needs a decision.
+
+    Enforced by the model-projection coverage gate since O4 Wave C1.
+    """
 
     def test_catches_unclassified_new_kernel_declaration(self):
         process = _kernel_path("de4sdv_method_process.sysml")
@@ -261,7 +298,7 @@ class ContractInventoryDirection(unittest.TestCase):
             "enum def IncrementSize {",
             "part def BrandNewConcept {\n  }\n\n  enum def IncrementSize {",
         )
-        errors = _run_contract(tampered_texts={str(process): tampered})
+        errors = _run_coverage(tampered_texts={str(process): tampered})
         self.assertTrue(
             any("BrandNewConcept" in e and "unclassified" in e for e in errors),
             errors,
@@ -274,66 +311,46 @@ class ContractInventoryDirection(unittest.TestCase):
         first = next(iter(exclusions[rel_file]))
         del exclusions[rel_file][first]
         exclusions[rel_file]["part def Ghost"] = "stale"
-        errors = _run_contract(doc)
-        self.assertTrue(
-            any("Ghost" in e and "stale exclusion" in e for e in errors), errors
-        )
+        errors = _run_coverage(doc)
+        self.assertTrue(any(_LOCK in e for e in errors), errors)
 
     def test_catches_exclusion_with_empty_reason(self):
-        def mutate(doc):
-            exclusions = doc["kernel_sync"]["exclusions"]
-            rel_file = next(iter(exclusions))
-            first = next(iter(exclusions[rel_file]))
-            exclusions[rel_file][first] = ""
-
         doc = _load_ontology()
-        mutate(doc)
-        errors = _run_contract(doc)
-        self.assertTrue(
-            any("non-empty reason" in e for e in errors), errors
-        )
+        exclusions = doc["kernel_sync"]["exclusions"]
+        rel_file = next(iter(exclusions))
+        first = next(iter(exclusions[rel_file]))
+        exclusions[rel_file][first] = ""
+        errors = _run_coverage(doc)
+        self.assertTrue(any(_LOCK in e for e in errors), errors)
 
     def test_catches_mapping_and_exclusion_overlap(self):
-        def mutate(doc):
-            doc["kernel_sync"]["exclusions"][
-                GOVERNED_DIR + "/de4sdv_method_context.sysml"
-            ]["part def EngineeringIncrement"] = "double bookkeeping"
-
         doc = _load_ontology()
-        mutate(doc)
-        errors = _run_contract(doc)
-        self.assertTrue(
-            any(
-                "both ontology-mapped and excluded" in e for e in errors
-            ),
-            errors,
-        )
+        doc["kernel_sync"]["exclusions"][
+            GOVERNED_DIR + "/de4sdv_method_context.sysml"
+        ]["part def EngineeringIncrement"] = "double bookkeeping"
+        errors = _run_coverage(doc)
+        self.assertTrue(any(_LOCK in e for e in errors), errors)
 
     def test_catches_exclusion_outside_governed_directory(self):
-        def mutate(doc):
-            doc["kernel_sync"]["exclusions"]["somewhere/else.sysml"] = {
-                "part def Thing": "not governed"
-            }
-
         doc = _load_ontology()
-        mutate(doc)
-        errors = _run_contract(doc)
-        self.assertTrue(
-            any("outside the governed directory" in e for e in errors), errors
-        )
+        doc["kernel_sync"]["exclusions"]["somewhere/else.sysml"] = {
+            "part def Thing": "not governed"
+        }
+        errors = _run_coverage(doc)
+        self.assertTrue(any(_LOCK in e for e in errors), errors)
 
     def test_catches_missing_kernel_sync_block(self):
-        def mutate(doc):
-            del doc["kernel_sync"]
-
         doc = _load_ontology()
-        mutate(doc)
+        del doc["kernel_sync"]
         errors = _run_contract(doc)
         self.assertTrue(any("no kernel_sync contract" in e for e in errors), errors)
 
 
 class ContractSliceGuard(unittest.TestCase):
-    """Feature slices must not re-declare mapped kernel names."""
+    """Feature slices must not re-declare mapped kernel names.
+
+    Enforced by the model-projection coverage gate since O4 Wave C1.
+    """
 
     def test_catches_slice_redeclaration_of_mapped_kernel_name(self):
         slice_path = ROOT / (
@@ -342,21 +359,24 @@ class ContractSliceGuard(unittest.TestCase):
         )
         original = slice_path.read_text(encoding="utf-8")
         tampered = original + "\npart def RequirementCandidate {}\n"
-        errors = _run_contract(tampered_texts={str(slice_path): tampered})
+        errors = _run_coverage(tampered_texts={str(slice_path): tampered})
         self.assertTrue(
             any(
-                "re-declares mapped kernel name 'RequirementCandidate'" in e
+                "re-declares projected kernel name 'RequirementCandidate'" in e
                 for e in errors
             ),
             errors,
         )
 
     def test_slice_guard_derives_names_from_mappings_not_a_list(self):
-        """The guard must derive from the YAML, not a hand-kept name list."""
+        """The guard must derive from mappings/projection, not a hand-kept list."""
         import inspect
 
-        source = inspect.getsource(check_model_sync.check_ontology_kernel_contract)
+        from de4sdv.semantic import model_projection_coverage as coverage
+
+        source = inspect.getsource(coverage.kernel_accounting)
         self.assertNotIn("_PROTECTED_CONCEPTS", source)
+        self.assertIn("class_pins", source)
 
 
 class ContractSemanticsPins(unittest.TestCase):

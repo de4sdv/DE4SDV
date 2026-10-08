@@ -750,13 +750,20 @@ class TestNoActivation:
                 o3.assert_writable(REPO_ROOT / rel, REPO_ROOT)
 
     def test_running_the_generator_changes_no_protected_file(self) -> None:
+        """O4 Wave C1 (owner decisions Q7/D10): the scope document is a frozen
+        record, so the retired generator CLI refuses both modes and writes
+        nothing. Replaces the former write/check run, which regenerated the
+        scope document in place."""
         from scripts import generate_o3_equivalence_scope
+        from scripts import verify_generated_chain as verifier
 
-        before = _fingerprint(REPO_ROOT)
-        assert generate_o3_equivalence_scope.main(["--check"]) == 0
-        assert generate_o3_equivalence_scope.main([]) == 0
-        after = _fingerprint(REPO_ROOT)
-        assert before == after
+        scope = REPO_ROOT / o3.O3_SCOPE_PATH
+        before = (_fingerprint(REPO_ROOT), scope.read_bytes())
+        assert generate_o3_equivalence_scope.main(["--check"]) == 2
+        assert generate_o3_equivalence_scope.main([]) == 2
+        assert (_fingerprint(REPO_ROOT), scope.read_bytes()) == before
+        entries = {e["artifact"]: e for e in verifier._frozen_lane_entries(REPO_ROOT)}
+        assert entries[o3.O3_SCOPE_PATH]["ok"], entries[o3.O3_SCOPE_PATH]
 
     def test_scope_document_is_labelled_planning_evidence(self) -> None:
         document = json.loads((REPO_ROOT / o3.O3_SCOPE_PATH).read_text(encoding="utf-8"))

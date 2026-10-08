@@ -156,25 +156,9 @@ def _passing_gate_mocks():
             check_repo.generate_scenario_manifest, "run_check_errors", return_value=[]
         ),
         mock.patch.object(check_repo.check_naming, "run_all_checks", return_value=[]),
+        # O4 Wave C1: the frozen lane replaced the O1/O2 regeneration gates.
         mock.patch.object(
-            check_repo.generate_semantic_authority_inventory,
-            "run_check_errors",
-            return_value=[],
-        ),
-        mock.patch.object(
-            check_repo.generate_semantic_projection_v1,
-            "run_check_errors",
-            return_value=[],
-        ),
-        mock.patch.object(
-            check_repo.generate_semantic_projection_o22,
-            "run_check_errors_o22",
-            return_value=[],
-        ),
-        mock.patch.object(
-            check_repo.generate_semantic_projection_o23,
-            "run_check_errors_o23",
-            return_value=[],
+            check_repo.verify_generated_chain, "frozen_record_errors", return_value=[]
         ),
         mock.patch.object(
             check_repo.generate_semantic_projection_o2p,

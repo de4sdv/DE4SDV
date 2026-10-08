@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Generate (or check) the O1 Semantic Authority Inventory.
 
+RETIRED (O4 Wave C1, owner decisions Q7 and D10, 2026-10-07): the output is a
+frozen record. The CLI refuses to write or check; the frozen lane of
+``scripts/verify_generated_chain.py`` verifies the record instead. The
+library functions below stay importable until O4 Wave C2 removes them.
+
 Canonical artifacts:
 
 - ``docs/method-conformance/o1/semantic-authority-inventory.json``
@@ -36,7 +41,6 @@ Usage:
 
 from __future__ import annotations
 
-import argparse
 import json
 import sys
 from pathlib import Path
@@ -119,51 +123,20 @@ def run_check_errors(root: Path | None = None) -> list[str]:
     return errors
 
 
+RETIRED_MESSAGE = (
+    "scripts/generate_semantic_authority_inventory.py is retired: its output is a frozen record "
+    "(owner decisions Q7 and D10, 2026-10-07) and is never regenerated or "
+    "re-checked against the live tree. The record bytes are pinned by "
+    "docs/method-conformance/frozen-records.json; verify them with "
+    "python scripts/verify_generated_chain.py (frozen lane)."
+)
+
+
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--check",
-        action="store_true",
-        help="verify the committed artifacts equal regeneration (no writes)",
-    )
-    parser.add_argument(
-        "--source-revision",
-        default=None,
-        help=(
-            "explicit Git commit id that contains every bound input "
-            "byte-for-byte (default: HEAD)"
-        ),
-    )
-    args = parser.parse_args(argv)
-
-    if args.check:
-        errors = run_check_errors()
-        if errors:
-            print("Semantic authority inventory check FAILED.")
-            for error in errors:
-                print(f"  - {error}")
-            return 1
-        print("Semantic authority inventory check passed.")
-        return 0
-
-    try:
-        inventory = generate(
-            ROOT, source_revision=args.source_revision
-        )
-    except InventoryError as exc:
-        print("Semantic authority inventory generation FAILED.")
-        print(f"  - {exc}")
-        return 1
-    (ROOT / INVENTORY_JSON_PATH).write_text(
-        canonical_json(inventory), encoding="utf-8"
-    )
-    (ROOT / INVENTORY_MD_PATH).write_text(
-        render_markdown(inventory), encoding="utf-8"
-    )
-    print(f"wrote {INVENTORY_JSON_PATH}")
-    print(f"wrote {INVENTORY_MD_PATH}")
-    print(f"source revision: {inventory['binding']['source_revision']}")
-    return 0
+    """Refuse to write or check: the generated output is a frozen record."""
+    del argv
+    print(RETIRED_MESSAGE)
+    return 2
 
 
 if __name__ == "__main__":

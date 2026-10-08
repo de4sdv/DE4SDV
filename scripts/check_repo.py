@@ -29,24 +29,9 @@ except ImportError:  # Direct execution sets scripts/ as sys.path[0].
     import generate_scenario_manifest
 
 try:
-    from scripts import generate_semantic_authority_inventory
+    from scripts import verify_generated_chain
 except ImportError:  # Direct execution sets scripts/ as sys.path[0].
-    import generate_semantic_authority_inventory
-
-try:
-    from scripts import generate_semantic_projection_v1
-except ImportError:  # Direct execution sets scripts/ as sys.path[0].
-    import generate_semantic_projection_v1
-
-try:
-    from scripts import generate_semantic_projection_o22
-except ImportError:  # Direct execution sets scripts/ as sys.path[0].
-    import generate_semantic_projection_o22
-
-try:
-    from scripts import generate_semantic_projection_o23
-except ImportError:  # Direct execution sets scripts/ as sys.path[0].
-    import generate_semantic_projection_o23
+    import verify_generated_chain
 
 try:
     from scripts import generate_semantic_projection_o2p
@@ -196,10 +181,10 @@ def main() -> int:
     model_sync_errors = check_model_sync.run_all_checks()
     manifest_errors = generate_scenario_manifest.run_check_errors()
     naming_errors = check_naming.run_all_checks()
-    inventory_errors = generate_semantic_authority_inventory.run_check_errors(root)
-    projection_v1_errors = generate_semantic_projection_v1.run_check_errors(root)
-    projection_o22_errors = generate_semantic_projection_o22.run_check_errors_o22(root)
-    projection_o23_errors = generate_semantic_projection_o23.run_check_errors_o23(root)
+    # Owner decision Q7 (2026-10-07): the O1/O2/O3 records are frozen. They are
+    # never regenerated; the frozen lane pins their bytes and checks their
+    # bindings at their own historical revisions.
+    frozen_record_errors = verify_generated_chain.frozen_record_errors(root)
     projection_o2p_errors = generate_semantic_projection_o2p.run_check_errors_o2p(root)
     ontology_review_errors = validate_review.run_check_errors(root)
     o4_register_errors = generate_o4_execution_register.run_check_errors(root)
@@ -219,7 +204,7 @@ def main() -> int:
     )
     definition_admission_errors = definition_projection.run_check_errors(root)
     definition_batch2_errors = definition_projection_batch2.run_check_errors(root)
-    # Shadow ratchet: drift/duplicates/digest mismatch fail; residual is reported.
+    # Retained residual blocks; drift/duplicates/digests ratchet; exceptions reported.
     model_coverage_errors = model_projection_coverage.run_check_errors(root)
     try:
         consumer_ledger_errors = o4_consumers.load_and_check(root)
@@ -258,24 +243,9 @@ def main() -> int:
         for error in naming_errors:
             print(f"- {error}")
 
-    if inventory_errors:
-        print("Repository check failed. Semantic authority inventory errors:")
-        for error in inventory_errors:
-            print(f"- {error}")
-
-    if projection_v1_errors:
-        print("Repository check failed. Semantic projection v1 errors:")
-        for error in projection_v1_errors:
-            print(f"- {error}")
-
-    if projection_o22_errors:
-        print("Repository check failed. Semantic projection v1.1 errors:")
-        for error in projection_o22_errors:
-            print(f"- {error}")
-
-    if projection_o23_errors:
-        print("Repository check failed. Semantic projection v1.2 errors:")
-        for error in projection_o23_errors:
+    if frozen_record_errors:
+        print("Repository check failed. Frozen O1/O2/O3 record errors (frozen lane):")
+        for error in frozen_record_errors:
             print(f"- {error}")
 
     if projection_o2p_errors:
@@ -309,7 +279,7 @@ def main() -> int:
             print(f"- {error}")
 
     if model_coverage_errors:
-        print("Repository check failed. Model-authority projection coverage errors (shadow ratchet):")
+        print("Repository check failed. Model-authority projection coverage errors (retained residual blocking; ratchet):")
         for error in model_coverage_errors:
             print(f"- {error}")
 
@@ -330,10 +300,7 @@ def main() -> int:
         or model_sync_errors
         or manifest_errors
         or naming_errors
-        or inventory_errors
-        or projection_v1_errors
-        or projection_o22_errors
-        or projection_o23_errors
+        or frozen_record_errors
         or projection_o2p_errors
         or ontology_review_errors
         or o4_register_errors

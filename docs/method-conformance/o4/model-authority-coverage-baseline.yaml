@@ -1,10 +1,11 @@
-# Model-authority coverage baseline (shadow ratchet; no binding block).
-schema: de4sdv.model-authority-coverage-baseline/v1
-mode: shadow
-note: Reviewed shadow ratchet for the model-authority coverage gate. Not revision-bound evidence; no binding
+# Model-authority coverage baseline (ratchet; retained residual blocking; no binding block).
+schema: de4sdv.model-authority-coverage-baseline/v2
+mode: blocking-retained
+note: Reviewed ratchet for the model-authority coverage gate. Not revision-bound evidence; no binding
   block. Regenerate with scripts/check_model_projection_coverage.py --write-baseline after a reviewed
   projection change. residual equals the runtime routing residual; exceptions are the owner-visible registered
-  non-retained rows still served from the authored YAML. Wave C makes an empty retained_residual blocking.
+  non-retained rows still served from the authored YAML (ratcheted until O4 Wave C2). Since O4 Wave C1
+  a non-empty retained_residual and any kernel-accounting error block regardless of this baseline.
 routing_digest: sha256:37ade6c863df59b24dcea45e48dbbc7ef9f9af98e07332a1224c9009b5165c69
 layer_digests:
   definition: sha256:ec906e3d5fb454f8b0917966120a822c9096d3dd323370bdc277a13f02866a0c

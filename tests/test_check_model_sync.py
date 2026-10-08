@@ -128,11 +128,11 @@ def _sp6_scenario(
         check_model_sync, "_R003_MODEL_ROOTS", (tmp_path,)
     ), mock.patch.object(
         check_model_sync,
-        "_load_ontology_r003_groundings",
+        "_load_r003_origin_groundings",
         return_value=grounding,
     ), mock.patch.object(
         check_model_sync,
-        "_load_ontology_exclusion_groundings",
+        "_load_r003_exclusion_groundings",
         return_value=exclusion_grounding,
     ):
         check_model_sync.check_requirement_derivation_coverage(errors)
@@ -608,3 +608,74 @@ def test_check_member_correspondence_no_match():
     )
     assert result is not None
     assert "apple" in result
+
+
+# ---------------------------------------------------------------------------
+# O4 Wave C1: sync point 6 reads the R003 groundings from the model rule home
+# ---------------------------------------------------------------------------
+
+_RULES = ROOT / (
+    "textual-notation-of-model/packages/methods/de4sdv/"
+    "de4sdv_ontology_validation_rules.sysml"
+)
+_CONTEXT = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
+
+
+def test_r003_groundings_come_from_the_model_rule_home():
+    origins = check_model_sync._load_r003_origin_groundings()
+    exclusions = check_model_sync._load_r003_exclusion_groundings()
+    assert origins == {
+        "Need": (_CONTEXT, "requirement def StakeholderNeedCandidate"),
+        "RegulatoryConstraint": (_CONTEXT, "requirement def RegulatoryConstraintCandidate"),
+        "ArchitectureDecisionRecord": (_CONTEXT, "part def ArchitectureDecisionRecord"),
+    }
+    assert exclusions == {"ProblemStatement": (_CONTEXT, "requirement def ProblemStatement")}
+
+
+def test_sync_point_6_does_not_read_the_authored_ontology(tmp_path):
+    """With the authored ontology path pointing nowhere, SP6 still passes."""
+    errors: list[str] = []
+    with mock.patch.object(check_model_sync, "ONTOLOGY_YAML", tmp_path / "absent.yaml"):
+        check_model_sync.check_requirement_derivation_coverage(errors)
+    assert errors == []
+
+
+def _rule_home_text(mutate) -> str:
+    return mutate(_RULES.read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize(
+    "mutate, needle",
+    [
+        (lambda t: t.replace("Origin groundings: Need:", "Origin groundings: Needs:"),
+         "origin groundings"),
+        (lambda t: t.replace("RegulatoryConstraint: requirement def", "RegulatoryConstraint: part def"),
+         None),
+        (lambda t: t.replace("Exclusion groundings: ProblemStatement:", "Exclusions: ProblemStatement:"),
+         "groundings"),
+        (lambda t: t.replace("constraint ontologyRuleR003 {", "constraint ontologyRuleR003x {"),
+         "ontologyRuleR003"),
+        (lambda t: t.replace(
+            "ArchitectureDecisionRecord: part def ArchitectureDecisionRecord in",
+            "ArchitectureDecisionRecord: part def ArchitectureDecisionRecord at"),
+         "malformed"),
+    ],
+)
+def test_r003_rule_home_format_drift_fails_closed(mutate, needle):
+    """Any drift in the model rule-home grounding text is an [SP6] error, never a pass."""
+    original_read = Path.read_text
+    tampered = _rule_home_text(mutate)
+    assert tampered != _RULES.read_text(encoding="utf-8")
+
+    def fake_read(self, *args, **kwargs):
+        if self == _RULES:
+            return tampered
+        return original_read(self, *args, **kwargs)
+
+    errors: list[str] = []
+    with mock.patch.object(Path, "read_text", fake_read):
+        check_model_sync.check_requirement_derivation_coverage(errors)
+    assert errors, "rule-home drift must fail closed"
+    assert all(error.startswith("[SP6]") for error in errors), errors
+    if needle:
+        assert any(needle in error for error in errors), errors

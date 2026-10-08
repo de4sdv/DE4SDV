@@ -831,7 +831,7 @@ def test_coverage_bundle_cross_check(fx):
 
 def test_coverage_baseline_has_no_binding_block():
     document = coverage.load_baseline(ROOT)
-    assert "binding" not in document and document["mode"] == "shadow"
+    assert "binding" not in document and document["mode"] == "blocking-retained"
 
 
 def _gate_mocks():

@@ -1052,8 +1052,14 @@ class TestAdversarial:
 
 
 class TestPreservationAndRuntimeIndependence:
-    def test_v1_gate_still_green_on_this_checkout(self) -> None:
-        assert pv.run_check_errors(REPO_ROOT) == []
+    def test_v1_pair_still_valid_as_a_frozen_record(self) -> None:
+        """Replaces ``test_v1_gate_still_green_on_this_checkout`` (live v1
+        regeneration): the v1 baseline is a frozen record since O4 Wave C1."""
+        from scripts import verify_generated_chain as verifier
+
+        entries = {e["artifact"]: e for e in verifier._frozen_lane_entries(REPO_ROOT)}
+        assert entries[pv.PROJECTION_V1_JSON_PATH]["ok"]
+        assert entries[pv.PROFILE_V1_JSON_PATH]["ok"]
 
     def test_projection_v0_byte_unchanged_since_v1_baseline(self) -> None:
         baseline_revision = json.loads(
@@ -1174,8 +1180,25 @@ def _git_backed_repo(tmp_path: Path) -> tuple[Path, str, str]:
 
 
 class TestCommittedArtifacts:
-    def test_committed_artifacts_match_regeneration(self) -> None:
-        assert po22.run_check_errors_o22(REPO_ROOT) == []
+    def test_committed_artifacts_are_frozen_records(self) -> None:
+        """Replaces ``test_committed_artifacts_match_regeneration`` (O4 Wave C1,
+        owner decisions Q7/D10): the v1.1 pair is a frozen record. Its bytes are
+        pinned, its binding is checked at its own revision, and the retired
+        generator CLI refuses to write or check."""
+        import importlib
+
+        from scripts import verify_generated_chain as verifier
+
+        entries = {e["artifact"]: e for e in verifier._frozen_lane_entries(REPO_ROOT)}
+        manifest = json.loads(
+            (REPO_ROOT / verifier.FROZEN_MANIFEST_PATH).read_text(encoding="utf-8"))
+        pinned = {r["path"]: r for r in manifest["records"]}
+        for path in (po22.PROJECTION_V11_JSON_PATH, po22.PROFILE_V11_JSON_PATH):
+            assert entries[path]["ok"], entries[path]
+            assert pinned[path]["kind"] == "generated"
+            assert pinned[path]["retired_generator"] == "scripts/generate_semantic_projection_o22.py"
+        script = importlib.import_module("scripts.generate_semantic_projection_o22")
+        assert script.main([]) == 2 and script.main(["--check"]) == 2
 
     def test_committed_artifacts_exist_and_parse(self) -> None:
         projection = json.loads(
@@ -1271,7 +1294,9 @@ class TestCommittedArtifacts:
 class TestRepositoryGateWiring:
     """The v1.1 gate owns its own failure attribution in ``check_repo``."""
 
-    def test_check_repo_fails_when_o22_gate_fails(self) -> None:
+    def test_check_repo_fails_when_the_frozen_lane_fails(self) -> None:
+        """Replaces the v1.1 regeneration-gate attribution test: since O4 Wave C1
+        check_repo runs the frozen lane for the frozen O1/O2/O3 records."""
         from unittest import mock
 
         from scripts import check_repo
@@ -1287,21 +1312,9 @@ class TestRepositoryGateWiring:
         ), mock.patch.object(
             check_repo.check_naming, "run_all_checks", return_value=[]
         ), mock.patch.object(
-            check_repo.generate_semantic_projection_v1,
-            "run_check_errors",
-            return_value=[],
-        ), mock.patch.object(
-            check_repo.generate_semantic_authority_inventory,
-            "run_check_errors",
-            return_value=[],
-        ), mock.patch.object(
-            check_repo.generate_semantic_projection_o23,
-            "run_check_errors_o23",
-            return_value=[],
-        ), mock.patch.object(
-            check_repo.generate_semantic_projection_o22,
-            "run_check_errors_o22",
-            return_value=["sentinel projection v1.1 error"],
+            check_repo.verify_generated_chain,
+            "frozen_record_errors",
+            return_value=["sentinel frozen v1.1 record error"],
         ):
             assert check_repo.main() == 1
 
@@ -1321,43 +1334,31 @@ class TestRepositoryGateWiring:
         ), mock.patch.object(
             check_repo.check_naming, "run_all_checks", return_value=[]
         ), mock.patch.object(
-            check_repo.generate_semantic_projection_v1,
-            "run_check_errors",
-            return_value=[],
-        ), mock.patch.object(
-            check_repo.generate_semantic_projection_o22,
-            "run_check_errors_o22",
-            return_value=[],
-        ), mock.patch.object(
-            check_repo.generate_semantic_projection_o23,
-            "run_check_errors_o23",
-            return_value=[],
-        ), mock.patch.object(
-            check_repo.generate_semantic_authority_inventory,
-            "run_check_errors",
-            return_value=[],
+            check_repo.verify_generated_chain, "frozen_record_errors", return_value=[]
         ):
             assert check_repo.main() == 0
 
-    def test_check_repo_actually_invokes_the_o22_gate(self) -> None:
-        # A pass-through spy proves check_repo calls the v1.1 gate (rather
-        # than the test suite accidentally bypassing it).
+    def test_check_repo_actually_invokes_the_frozen_lane(self) -> None:
+        """Replaces the v1.1 regeneration-gate spy: a pass-through spy proves
+        check_repo runs the frozen lane and that it covers the v1.1 pair."""
         from unittest import mock
 
         from scripts import check_repo
 
-        calls: list[int] = []
-        original = check_repo.generate_semantic_projection_o22.run_check_errors_o22
+        calls: list[list[str]] = []
+        original = check_repo.verify_generated_chain.frozen_record_errors
 
         def spy(root):
-            calls.append(1)
-            return original(root)
+            result = original(root)
+            calls.append(result)
+            return result
 
         with mock.patch.object(
-            check_repo.generate_semantic_projection_o22,
-            "run_check_errors_o22",
-            side_effect=spy,
+            check_repo.verify_generated_chain, "frozen_record_errors", side_effect=spy
         ):
             result = check_repo.main()
-        assert calls, "check_repo did not invoke the O2.2 gate"
+        assert calls == [[]], "check_repo did not run the frozen lane cleanly"
         assert result == 0
+        entries = check_repo.verify_generated_chain._frozen_lane_entries(REPO_ROOT)
+        assert po22.PROJECTION_V11_JSON_PATH in {e["artifact"] for e in entries if e["ok"]}
+
