@@ -27,6 +27,9 @@ Fallback ladder (explicit, never silent about which path produced the
 answer's evidence):
   "api" | "api:no-match" | "api:empty" | "regex" | "regex:warming" |
   "regex:warmup-failed" | "regex:fallback:<Error>"
+The /ask handler (serve.py) adds "regex:fallback:retired-identity" (a retired
+or refused identity was asked of the contract: a code defect, logged
+distinctly) and "regex:fallback:exception:<Error>" for any other failure.
 """
 from __future__ import annotations
 
@@ -317,8 +320,11 @@ def api_method_context(service, targets: list[dict],
     - incoming_dependencies   (hasRelevantEvidenceContract as mapped:
       Dependency edges targeting the element; covers evidence-contract
       and derivation dependencies, semantic_strength: relevance)
-    - realized_by             (realizedBy: AllocationUsage edges from
-      the element, direction outgoing)
+    - allocated_to            (allocatedTo, the successor of the retired
+      realizedBy/deployedTo names: AllocationUsage edges whose source is
+      the element; the targets are what it is allocated to — direction
+      outgoing, the same mechanics realizedBy had; allocation only, no
+      realization, deployment or satisfaction claim)
 
     Every entry records ``hops`` (1 = direct neighbor of the asked
     element, 2 = reached through one chained element), so a consumer can
@@ -383,7 +389,12 @@ def api_method_context(service, targets: list[dict],
             "source_property", "source"))
         dep_target_prop = str(dep_mapping.configuration.get(
             "target_property", "target"))
-        alloc_mapping = service.contract.relationship_mapping("realizedBy")
+        # O4 Wave C2 (owner decision D4): realizedBy is retired and the
+        # contract refuses it (RetiredIdentityError); its successor is
+        # allocatedTo. The successor mapping carries no relationship_types
+        # configuration, so the native carrier AllocationUsage applies
+        # (source = allocated element, target = allocation target).
+        alloc_mapping = service.contract.relationship_mapping("allocatedTo")
         alloc_types = {
             str(t) for t in alloc_mapping.configuration.get(
                 "relationship_types", ["AllocationUsage"])
@@ -436,7 +447,7 @@ def api_method_context(service, targets: list[dict],
                         tgt = by_id.get(tid)
                         if tgt is not None:
                             allocations[tid] = element_ref(
-                                tgt, "realized_target")
+                                tgt, "allocation_target")
                             reached.add(tid)
         families: dict[str, list] = {}
         if subject_reqs:
@@ -456,9 +467,9 @@ def api_method_context(service, targets: list[dict],
                 incoming_deps.values(),
                 key=lambda r: (r["source_element"], r["element_id"]))
         if allocations:
-            families["realized_by"] = sorted(
+            families["allocated_to"] = sorted(
                 allocations.values(),
-                key=lambda r: (r["realized_target"], r["element_id"]))
+                key=lambda r: (r["allocation_target"], r["element_id"]))
         return families, reached
 
     merged: dict[str, dict[str, dict]] = {}
@@ -500,7 +511,7 @@ def api_method_context(service, targets: list[dict],
         ctx["derivation"] = (
             "API-derived: ontology-declared predicates over the deployed "
             "SysML v2 revision (hasSubject, verifiedBy both directions, "
-            "hasRelevantEvidenceContract incoming, realizedBy outgoing), "
+            "hasRelevantEvidenceContract incoming, allocatedTo outgoing), "
             "chained to "
             f"{max(1, max_hops)} hop(s) so multi-hop traces reach their "
             "leaf; entries carry hops (1 = direct neighbor of the asked "

@@ -59,8 +59,9 @@ ID mention network). Rules:
 - When an "incoming_dependencies" list is present, those elements declare
   dependencies toward this element (evidence contracts, derivations) —
   each entry names the dependency.
-- When a "realized_by" list is present, this element is realized by the
-  listed architecture elements (allocation).
+- When an "allocated_to" list is present, this element is allocated to
+  the listed elements (allocation only: do not call it realization,
+  deployment or satisfaction).
 - When a "mentions" list is present, those are ID cross-references found
   in the element's own text; distinguish them from subject relations.
 - If the evidence does not answer the question, say exactly what the model

@@ -136,7 +136,7 @@ _MAPPINGS = {
         "source_property": "source",
         "target_property": "target",
     },
-    "realizedBy": {
+    "allocatedTo": {
         "relationship_types": ["AllocationUsage"],
     },
 }
@@ -144,6 +144,12 @@ _MAPPINGS = {
 
 class _FakeContract:
     def relationship_mapping(self, predicate):
+        # The real model contract decides name validity: a retired or
+        # refused name raises RetiredIdentityError here exactly as in
+        # production, so a fake can never hide a retired-name call (R2).
+        from model_contract_fixtures import model_contract
+
+        model_contract().relationship_mapping(predicate)
         return type("M", (), {"configuration": _MAPPINGS[predicate]})()
 
 
@@ -324,7 +330,7 @@ def test_api_verified_by_reversed_direction(fixture_repo, monkeypatch):
         "hops": 2,
     }]
     assert "incoming_dependencies" not in ctx
-    assert "realized_by" not in ctx
+    assert "allocated_to" not in ctx
     ams._SEMANTIC_CTX_CACHE.clear()
 
 
@@ -403,8 +409,8 @@ def test_api_incoming_dependencies_with_dependency_name(
     ams._SEMANTIC_CTX_CACHE.clear()
 
 
-def test_api_realized_by_outgoing_allocations(fixture_repo, monkeypatch):
-    """AllocationUsage edges from the element list their realized targets."""
+def test_api_allocated_to_outgoing_allocations(fixture_repo, monkeypatch):
+    """AllocationUsage edges from the element list their allocation targets."""
     monkeypatch.setenv("NOUS_ASK_SEMANTIC", "1")
 
     class _Service(_FakeService):
@@ -425,8 +431,8 @@ def test_api_realized_by_outgoing_allocations(fixture_repo, monkeypatch):
     ref, files = _resolve(fixture_repo)
     ctx, path = ams.build_method_context_api(ref, files)
     assert path == "api"
-    assert ctx["realized_by"] == [{
-        "realized_target": "signalTranslator",
+    assert ctx["allocated_to"] == [{
+        "allocation_target": "signalTranslator",
         "sysml_type": "PartUsage",
         "element_id": "arch-1",
         "hops": 1,
@@ -446,7 +452,7 @@ def test_api_derivation_names_all_predicates(fixture_repo, monkeypatch):
     ref, files = _resolve(fixture_repo)
     ctx, path = ams.build_method_context_api(ref, files)
     for predicate in ("hasSubject", "verifiedBy",
-                      "hasRelevantEvidenceContract", "realizedBy"):
+                      "hasRelevantEvidenceContract", "allocatedTo"):
         assert predicate in ctx["derivation"]
     ams._SEMANTIC_CTX_CACHE.clear()
 
@@ -685,3 +691,65 @@ def test_api_context_max_hops_1_keeps_direct_only(monkeypatch):
     assert [d["source_element"] for d in ctx.get("incoming_dependencies", [])] \
         == ["evidenceContractNominalPath"]
     assert ctx.get("verified_by") is None
+
+
+def test_real_model_contract_serves_api_method_context(fixture_repo, monkeypatch):
+    """R2 (O4 Wave C2 review): against the REAL model-built kernel contract
+    (no fake), an element with traces is answered from the API
+    (``method_context_source == "api"``), never a regex fallback. A sweep
+    that asks the contract for a retired name (``realizedBy``) raises
+    ``RetiredIdentityError`` here and fails this test."""
+    from model_contract_fixtures import model_contract
+
+    monkeypatch.setenv("NOUS_ASK_SEMANTIC", "1")
+
+    class _RealContractService(_FakeService):
+        contract = model_contract()
+
+        @staticmethod
+        def _build_elements():
+            return [
+                *_FakeService._build_elements(),
+                {"@type": "PartUsage", "@id": "fn-1",
+                 "declaredName": "signalTranslator"},
+                {"@type": "AllocationUsage", "@id": "alloc-1",
+                 "source": [{"@id": "subj-1"}],
+                 "target": [{"@id": "fn-1"}]},
+            ]
+
+    monkeypatch.setattr(ams, "_runtime", lambda: _RealContractService())
+    ams._SEMANTIC_CTX_CACHE.clear()
+    ref, files = _resolve(fixture_repo)
+    ctx, path = ams.build_method_context_api(ref, files)
+    assert path == "api"
+    assert ctx["requirement_subject_of"][0]["requirement"] == "needBoundedApi"
+    assert ctx["allocated_to"] == [{
+        "allocation_target": "signalTranslator",
+        "sysml_type": "PartUsage",
+        "element_id": "fn-1",
+        "hops": 1,
+    }]
+    assert "allocatedTo outgoing" in ctx["derivation"]
+    for retired in ("realizedBy", "deployedTo", "validatedBy",
+                    "constrainedBy", "validatesFitnessForUse"):
+        assert retired not in ctx["derivation"]
+    ams._SEMANTIC_CTX_CACHE.clear()
+
+
+def test_serve_labels_and_logs_a_retired_identity_failure_distinctly(capsys):
+    """R2: the /ask handler's broad except must not hide a retired-identity
+    error inside the generic exception label. It gets its own derivation
+    label and a distinct stderr line; any other exception names its type."""
+    from de4sdv.semantic.kernel_contract import RetiredIdentityError
+    from tools.sysml_html_viewer import serve
+
+    label = serve._method_context_failure(
+        RetiredIdentityError("realizedBy", "retired; use allocatedTo"))
+    assert label == "regex:fallback:retired-identity"
+    err = capsys.readouterr().err
+    assert "RETIRED IDENTITY" in err
+    assert "realizedBy: retired; use allocatedTo" in err
+
+    label = serve._method_context_failure(ValueError("boom"))
+    assert label == "regex:fallback:exception:ValueError"
+    assert "ValueError: boom" in capsys.readouterr().err
