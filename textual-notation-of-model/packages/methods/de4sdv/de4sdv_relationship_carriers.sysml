@@ -63,7 +63,7 @@ package DE4SDV_RelationshipSuccessor {
    * assigns responsibility from its source usage to its target usage for
    * exactly one governed end pair: requirement to function, function to
    * logical element, or logical element to physical element. Endpoint
-   * classes come from the ontology kernel mappings of the endpoint lineage,
+   * classes come from the validated kernel bindings of the endpoint lineage,
    * never from usage or allocation names. Allocation proves no satisfaction,
    * execution, deployment, fulfillment or transitivity; it is not a
    * composed requirement-to-architecture realization. The superseded names
