@@ -166,6 +166,13 @@ evidence artifact, which is named `model-authority-evidence-<ref>`. Only
 verification and download. A dispatch with the input empty behaves as
 before.
 
+The two helpers (`verify_reuse_ingestion_run.py`,
+`verify_restored_api_corpus.py`) are workflow wiring. They are taken from
+the workflow's own revision (`github.sha`, materialized to
+`/tmp/de4sdv-ci`), not from the evidence checkout, because a reuse run
+checks out an older `ref` that can predate them. Every model-evidence step
+still runs from the checked-out `ref`.
+
 A reuse run concludes `success` without an ingestion artifact. The deploy
 workflow's automatic run selection and the core-evidence workflow fail
 closed on such a run (an ambiguous selection or a missing

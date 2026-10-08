@@ -33,7 +33,9 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
+# The workflow runs a copy of this helper from outside the checkout (with
+# PYTHONPATH set to the checkout); only add ROOT when it is the repository.
+if (ROOT / "de4sdv").is_dir() and str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 PROOF_SCHEMA = "de4sdv.o4-restored-api-corpus-proof/v1"

@@ -120,6 +120,10 @@ def _commands(job=JOB):
         joined = re.sub(r"\\\n\s*", " ", run)
         for line in joined.splitlines():
             line = line.strip()
+            # Workflow-revision helpers run from /tmp/de4sdv-ci (see
+            # test_ci_helpers_come_from_the_workflow_revision); parse them as
+            # the repository scripts they were materialized from.
+            line = re.sub(r"^(python3?) /tmp/de4sdv-ci/", r"\1 scripts/", line)
             if line.startswith(("python scripts/", "python3 scripts/")):
                 line = re.sub(r'"\$\(git rev-parse HEAD\)"', REV, line)
                 line = re.sub(r'"\$\(python -c [^"]*\)"', "o3b-" + "b" * 32, line)
@@ -328,12 +332,14 @@ def test_reuse_preconditions_are_verified_before_anything_else():
     names = _names()
     step = _step(REUSE_VERIFY)
     assert step["if"] == REUSE_SET and step["id"] == "reuse"
-    assert names.index("Validate exact-revision checkout") + 1 == names.index(REUSE_VERIFY)
+    # Only the workflow-revision helper materialization sits in between.
+    assert names.index("Validate exact-revision checkout") + 2 == names.index(REUSE_VERIFY)
+    assert names[names.index(REUSE_VERIFY) - 1] == "Materialize workflow-revision CI helpers"
     for later in ("Install Sysand and pinned model dependencies", SAME_RUN_DOWNLOAD,
                   REUSE_INGESTION_DOWNLOAD, REUSE_SNAPSHOT_DOWNLOAD, VERIFY_INPUTS):
         assert names.index(REUSE_VERIFY) < names.index(later), later
     run = re.sub(r"\\\n\s*", " ", step["run"])
-    assert "python3 scripts/verify_reuse_ingestion_run.py" in run
+    assert "python3 /tmp/de4sdv-ci/verify_reuse_ingestion_run.py" in run
     assert '--ref "${{ github.event.inputs.ref }}"' in run
     assert '--run-id "${{ github.event.inputs.reuse_ingestion_run }}"' in run
     assert "/tmp/o4/de4sdv-o4-ingestion-source.json" in run
@@ -392,3 +398,52 @@ def test_evidence_names_follow_the_ref_in_reuse_mode():
     assert _step(UPLOAD)["with"]["name"] == "model-authority-evidence-${{ %s }}" % selector
     assert "model-authority-api-db-${{ %s }}" % selector in _step(SNAPSHOT_REQUIRED)["run"]
     assert "/tmp/o4/de4sdv-o4-ingestion-source.json" in _step(UPLOAD)["with"]["path"]
+
+
+MATERIALIZE = "Materialize workflow-revision CI helpers"
+
+
+def test_ci_helpers_come_from_the_workflow_revision():
+    """A reuse dispatch checks out an OLDER ref (e.g. ff0311b) that predates
+    the helpers; they must come from the workflow's own revision."""
+    names = _names()
+    step = _step(MATERIALIZE)
+    assert step.get("if") is None
+    assert names.index("Validate exact-revision checkout") < names.index(MATERIALIZE) < names.index(
+        REUSE_VERIFY)
+    run = step["run"]
+    assert 'git show "${{ github.sha }}:scripts/$helper"' in run
+    assert "inputs.ref" not in run
+    used = set()
+    for other in _job()["steps"]:
+        used |= set(re.findall(r"/tmp/de4sdv-ci/([A-Za-z0-9_]+\.py)", other.get("run") or ""))
+    assert used == {"verify_reuse_ingestion_run.py", "verify_restored_api_corpus.py"}
+    for helper in used:
+        assert helper in run and (ROOT / "scripts" / helper).is_file()
+        assert f"python scripts/{helper}" not in yaml.safe_dump(_job())
+        assert f"python3 scripts/{helper}" not in yaml.safe_dump(_job())
+    # The restore proof imports de4sdv from the evidence checkout.
+    assert "PYTHONPATH" in _step(PROOF).get("env", {})
+    assert names.index(MATERIALIZE) < names.index(PROOF)
+
+
+
+def test_materialized_helpers_run_outside_the_checkout(tmp_path):
+    """Run copies the way the workflow does: from /tmp/de4sdv-ci-like dirs."""
+    import shutil
+    import sys
+
+    for helper in ("verify_reuse_ingestion_run.py", "verify_restored_api_corpus.py"):
+        shutil.copy(ROOT / "scripts" / helper, tmp_path / helper)
+    env = {"PATH": "/usr/bin:/bin", "PYTHONPATH": str(ROOT)}
+    proof = subprocess.run(
+        [sys.executable, str(tmp_path / "verify_restored_api_corpus.py"),
+         "--api-url", "http://127.0.0.1:9", "--binding", str(tmp_path / "missing.json"),
+         "--export", str(tmp_path / "missing.json"), "--output", str(tmp_path / "o.json")],
+        capture_output=True, text=True, env=env, cwd=tmp_path)
+    # de4sdv resolved from PYTHONPATH; it fails on the missing binding, not an import.
+    assert proof.returncode != 0
+    assert "ModuleNotFoundError" not in proof.stderr and "FileNotFoundError" in proof.stderr
+    reuse = subprocess.run([sys.executable, "-I", str(tmp_path / "verify_reuse_ingestion_run.py"),
+                            "--help"], capture_output=True, text=True, cwd=tmp_path)
+    assert reuse.returncode == 0, reuse.stderr  # stdlib only, isolated mode
