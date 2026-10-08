@@ -1,9 +1,9 @@
 {
   "schema": "de4sdv.o4-definition-batch2-profile/v1",
   "status": "admitted",
-  "warning": "no traversal proof, no runtime read by this artifact, no API element identity, no authority retirement; deprecated aliases are documented names only",
+  "warning": "no traversal proof, no runtime read by this artifact, no API element identity, no authority retirement; retired names answer no fact (retired; use the successor)",
   "binding": {
-    "source_revision": "69111383dfd671ca54d0adb5ca82cdbca5dcc90f",
+    "source_revision": "01acc003bad7d847c0d3748f8d72cba6cedf9f95",
     "source_revision_note": "Git commit that contains every bound input byte-for-byte. The gate validates commit existence, ancestry of the checked-out revision, per-input content equality and the recorded content digests.",
     "artifact_commit": null,
     "artifact_commit_note": "Unknowable at generation; left explicitly unclaimed.",
@@ -40,11 +40,11 @@
     "governance_inputs": {
       "admission_document": {
         "path": "docs/method-conformance/o4/definition-admission-batch2.yaml",
-        "digest": "sha256:de0e6f49bf5d77477a67f068a3d8dee614c288a979cf4f2eb9a8e43b154b72dd"
+        "digest": "sha256:6bf6b1dfb34b65e53152cb7891bd82aaea9b6e88a6a855d3a3b1a70e05286db6"
       },
       "design_record": {
         "path": "docs/method-conformance/o4/definition-admission-batch2-design.md",
-        "digest": "sha256:ad8e566dca2b5c990ee846de1df61d2f7156a73636f42bc2c3231e54a8d3403a"
+        "digest": "sha256:80ef67d24bdccd8a8a0c198c79643e4d0d3d90daa6b211cd834c9d6b6fd694d8"
       },
       "external_reference_profile": {
         "path": "docs/method-conformance/o4/external-reference-profile.yaml",
@@ -56,11 +56,11 @@
       "note": "No SysML API element UUID is claimed; profile entries state representation mechanics only."
     },
     "bound_inputs": {
-      "de4sdv/semantic/authority_inventory.py": "sha256:6ecd3ee167ebb89f72f4fd21e039d6ee54930889da0714281ece5e882a7e6f6d",
-      "de4sdv/semantic/definition_projection_batch2.py": "sha256:e936b45e2b38348f7398fb93213270c6808c865cace0485a7f5157655e56c36d",
+      "de4sdv/semantic/authority_inventory.py": "sha256:a073c4f61cf4504a645f6465e4a2b067494a41bb2898d4188d5df38e2825408d",
+      "de4sdv/semantic/definition_projection_batch2.py": "sha256:a330321b9c76cfb3cc76b647ee1a8794dc77784c9de2e848dfdbe62a9b2e8db6",
       "de4sdv/semantic/projection_o2p.py": "sha256:03ed5509e02126cabd2234aa84725c761b42f1b454172fbc4b6a9ef66c4e7817",
-      "docs/method-conformance/o4/definition-admission-batch2-design.md": "sha256:ad8e566dca2b5c990ee846de1df61d2f7156a73636f42bc2c3231e54a8d3403a",
-      "docs/method-conformance/o4/definition-admission-batch2.yaml": "sha256:de0e6f49bf5d77477a67f068a3d8dee614c288a979cf4f2eb9a8e43b154b72dd",
+      "docs/method-conformance/o4/definition-admission-batch2-design.md": "sha256:80ef67d24bdccd8a8a0c198c79643e4d0d3d90daa6b211cd834c9d6b6fd694d8",
+      "docs/method-conformance/o4/definition-admission-batch2.yaml": "sha256:6bf6b1dfb34b65e53152cb7891bd82aaea9b6e88a6a855d3a3b1a70e05286db6",
       "docs/method-conformance/o4/external-reference-profile.yaml": "sha256:3ebff0476f11ec176819012bcd0337e41efb6752f3091f45532ed67b6b34bed7",
       "scripts/generate_definition_projection.py": "sha256:8a06c0692f1f043454421a7826257b8a2695cfb43b76446fcc172675621c338d",
       "textual-notation-of-model/packages/features/aebs/aebs_bicycle_verification.sysml": "sha256:b5cfb9604a1c1b0adcbc08332c8d3fb2b3db2a6d8ca1ee7a9b56ff4cb8e3a2f2",
@@ -71,12 +71,12 @@
       "textual-notation-of-model/packages/features/aebs/aebs_partial_intervention_verification.sysml": "sha256:35c89ec4a674e3acb82de2d1f7b1b22adbfb295e84c4ce8829148a69b7ad48d3",
       "textual-notation-of-model/packages/features/aebs/aebs_pedestrian_verification.sysml": "sha256:8be0a0afff343c1e1a6316d251952386e61e0bf436e5f464a43e2aedf590362c",
       "textual-notation-of-model/packages/features/aebs/aebs_regulatory_criterion_verification.sysml": "sha256:64247cc55f0f2e0d526bab8d3d89e48411e323dc151896e759c2219b864ed370",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml": "sha256:b6e982c94fece36524dc816922029eacbaba6c961b1d1663b123ae598f41a328",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml": "sha256:ff876eced31482a41ffe45a7864d7b2266681fac352d63b03761664d34143546",
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml": "sha256:63c1a3efc36f77027fff2e22aa071ebc3ecdaddf4d23976e8662bcb45fc02654",
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml": "sha256:a4b2cba28cc6f29534db455ef47f1e0aed3ded7ccdc690bebf475cf3e732efd7",
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml": "sha256:9a566d02964af2b2af5d6508601d7623d7c5b06235630dcf1413fa774cba9edb",
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml": "sha256:3d669f980fd985c5c0e40682c9ea347b140dbf331b526869101ab73f39aed1ef",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml": "sha256:d1567cc6ba76a92899133979239af11268ef7d0ce2b5787cb8b0f2ceb694fdbb",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml": "sha256:28257b968e2e91cf7bbf3d2f87d3a83400cb1fd25dd0f56edd912da24973a4e7",
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml": "sha256:29f2816f277bb91fed28997f2ed07108a5b93fb7b2de22b50637cdc66d53f93a",
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml": "sha256:90ea9a644770d519364393387caaa9435c699104656a82a1531eff059bb05ac4"
     }
@@ -602,11 +602,10 @@
       "witness_forms": [
         "ownedRelationship -> FeatureMembership -> PartUsage : SuccessorRetirementRecord"
       ],
-      "alias_resolution": {
+      "retired_resolution": {
         "successor": "hasRegulatorySource",
         "navigation": "hasRegulatorySource",
-        "carrier": "RegulatorySourceAssociation",
-        "answer_mode": "documentation-only"
+        "carrier": "RegulatorySourceAssociation"
       }
     },
     {
@@ -621,11 +620,10 @@
       "witness_forms": [
         "ownedRelationship -> FeatureMembership -> PartUsage : SuccessorRetirementRecord"
       ],
-      "alias_resolution": {
+      "retired_resolution": {
         "successor": "allocatedTo",
         "navigation": "allocatedTo",
-        "carrier": "LogicalPhysicalAssignment",
-        "answer_mode": "successor-facts"
+        "carrier": "LogicalPhysicalAssignment"
       }
     },
     {
@@ -656,7 +654,7 @@
       "serializer_mechanics": {
         "strategy": "external"
       },
-      "mechanics_source": "reviewed manifest field equal to the authored mapping (test-locked); Wave C retires the authored copy",
+      "mechanics_source": "reviewed admission-manifest field (representation mechanics; owner decision D9); authored-ontology parity proven before its deletion: docs/method-conformance/o4/closure/contract-equivalence.json",
       "external_reference": {
         "profile": "docs/method-conformance/o4/external-reference-profile.yaml",
         "accepted_ref": "docs/method-conformance/o4/external-reference-acceptance-review.md#hasEvidence",
@@ -722,7 +720,7 @@
           "RequirementUsage"
         ]
       },
-      "mechanics_source": "reviewed manifest field equal to the authored mapping (test-locked); Wave C retires the authored copy"
+      "mechanics_source": "reviewed admission-manifest field (representation mechanics; owner decision D9); authored-ontology parity proven before its deletion: docs/method-conformance/o4/closure/contract-equivalence.json"
     },
     {
       "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#hasStakeholder",
@@ -798,11 +796,10 @@
       "witness_forms": [
         "ownedRelationship -> FeatureMembership -> PartUsage : SuccessorRetirementRecord"
       ],
-      "alias_resolution": {
+      "retired_resolution": {
         "successor": "allocatedTo",
         "navigation": "allocatedTo",
-        "carrier": "RequirementFunctionAssignment",
-        "answer_mode": "successor-facts"
+        "carrier": "RequirementFunctionAssignment"
       }
     },
     {
@@ -887,7 +884,7 @@
           "ActionDefinition"
         ]
       },
-      "mechanics_source": "reviewed manifest field equal to the authored mapping (test-locked); Wave C retires the authored copy"
+      "mechanics_source": "reviewed admission-manifest field (representation mechanics; owner decision D9); authored-ontology parity proven before its deletion: docs/method-conformance/o4/closure/contract-equivalence.json"
     },
     {
       "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#supportedByEvidence",
@@ -914,11 +911,10 @@
       "witness_forms": [
         "ownedRelationship -> FeatureMembership -> PartUsage : SuccessorRetirementRecord"
       ],
-      "alias_resolution": {
+      "retired_resolution": {
         "successor": "hasValidationScenario",
         "navigation": "hasValidationScenario",
-        "carrier": "ValidationPlanningAssociation",
-        "answer_mode": "successor-facts"
+        "carrier": "ValidationPlanningAssociation"
       }
     },
     {
@@ -933,11 +929,10 @@
       "witness_forms": [
         "ownedRelationship -> FeatureMembership -> PartUsage : SuccessorRetirementRecord"
       ],
-      "alias_resolution": {
+      "retired_resolution": {
         "successor": "hasValidationScenario",
         "navigation": "validationScenarioFor",
-        "carrier": "ValidationPlanningAssociation",
-        "answer_mode": "successor-facts"
+        "carrier": "ValidationPlanningAssociation"
       }
     },
     {
