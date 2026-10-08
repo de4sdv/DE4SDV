@@ -26,8 +26,12 @@ for the separate application/model identity contract and abuse controls.
   privileged CI run's ephemeral UUIDs are not reused).
 - Swagger/OpenAPI documentation from the implementation at `/docs`.
 - A machine-readable status document at `/deployment-status.json` with the
-  served Git SHA, the deployment-specific SysML project/commit UUIDs, ontology
-  SHA-256, deployment timestamp, and read-only/experimental status.
+  served Git SHA, the deployment-specific SysML project/commit UUIDs, the
+  semantic identity (`baseline.semantic_authority` since O4 Wave C2;
+  `baseline.ontology` for an earlier revision, e.g. a rollback target),
+  deployment timestamp, and read-only/experimental status.
+  `scripts/verify_public_api.py` accepts exactly one of the two, each with a
+  strict shape.
 
 ## What is blocked (by design)
 

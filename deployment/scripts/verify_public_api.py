@@ -125,19 +125,84 @@ def check_method_allowlist(base_url: str) -> dict[str, int]:
     return verdicts
 
 
-def check_status_document(base_url: str) -> dict[str, Any]:
-    status_doc = fetch_json(f"{base_url}/deployment-status.json")
+_LOWER_HEX = frozenset("0123456789abcdef")
+
+
+def _is_lower_hex(value: Any, length: int) -> bool:
+    return isinstance(value, str) and len(value) == length and set(value) <= _LOWER_HEX
+
+
+def _check_semantic_authority_identity(authority: Any) -> None:
+    """O4 Wave C2 status identity: exactly schema + id (sai-<32 hex>) + layers.
+
+    The same shape deploy.validate_bundle requires of the binding.
+    """
+    require(
+        isinstance(authority, dict)
+        and set(authority) == {"schema", "id", "layers"}
+        and authority.get("schema") == "de4sdv.semantic-authority/v1"
+        and isinstance(authority.get("id"), str)
+        and authority["id"].startswith("sai-")
+        and _is_lower_hex(authority["id"][4:], 32)
+        and isinstance(authority.get("layers"), list)
+        and bool(authority["layers"]),
+        "status document baseline.semantic_authority must be exactly "
+        "schema(de4sdv.semantic-authority/v1) + id(sai-<32 hex>) + non-empty layers",
+    )
+
+
+def _check_pre_c2_ontology_identity(ontology: Any) -> None:
+    """Pre-C2 status identity (rollback revisions such as ff0311b): exactly
+    path + sha256 of the authored ontology, as those revisions' deploy.py
+    required of the binding."""
+    require(
+        isinstance(ontology, dict)
+        and set(ontology) == {"path", "sha256"}
+        and isinstance(ontology.get("path"), str)
+        and bool(ontology["path"])
+        and _is_lower_hex(ontology.get("sha256"), 64),
+        "status document baseline.ontology (pre-C2) must be exactly "
+        "path + sha256 (lowercase SHA-256)",
+    )
+
+
+def check_status_payload(status_doc: dict[str, Any]) -> dict[str, Any]:
+    """Validate a deployment-status document.
+
+    The semantic identity is ``baseline.semantic_authority`` (O4 Wave C2 and
+    later) or ``baseline.ontology`` (pre-C2 revisions, the rollback path);
+    exactly one must be present and it is validated with a strict shape.
+    """
     require(status_doc.get("read_only") is True, "status document does not declare read-only")
     require(
         status_doc.get("service") == "DE4SDV Experimental Read-Only Systems Modeling API",
         "status document has the wrong service label",
     )
     baseline = status_doc.get("baseline") or {}
-    for field in ("git_commit", "sysml_project_id", "sysml_commit_id", "ontology"):
+    for field in ("git_commit", "sysml_project_id", "sysml_commit_id"):
         require(field in baseline, f"status document baseline missing {field}")
+    present = [key for key in ("semantic_authority", "ontology") if key in baseline]
+    require(
+        bool(present),
+        "status document baseline carries neither semantic_authority (C2) nor "
+        "ontology (pre-C2)",
+    )
+    require(
+        len(present) == 1,
+        "status document baseline must carry exactly one semantic identity "
+        f"(semantic_authority or ontology), found {present}",
+    )
+    if present == ["semantic_authority"]:
+        _check_semantic_authority_identity(baseline["semantic_authority"])
+    else:
+        _check_pre_c2_ontology_identity(baseline["ontology"])
     text = json.dumps(status_doc)
     require("password" not in text.lower(), "status document may contain a secret")
     return status_doc
+
+
+def check_status_document(base_url: str) -> dict[str, Any]:
+    return check_status_payload(fetch_json(f"{base_url}/deployment-status.json"))
 
 
 def check_model(base_url: str, status_doc: dict[str, Any]) -> dict[str, Any]:
