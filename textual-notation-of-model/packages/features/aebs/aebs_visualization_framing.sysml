@@ -29,10 +29,11 @@ package DE4SDV_AEBSVisualizationFraming {
 
   part <'INC-AEBS-010'> incAEBS010 : VisualizationIncrement {
     doc /*
-     * INC-AEBS-010: AEBS visualization on AAOS SDV — framing through
-     * needs and System 2 requirements. Later increments in the same
-     * increment chain carry architecture, configuration, implementation,
-     * and evidence.
+     * INC-AEBS-010: AEBS visualization on AAOS SDV. One increment identity
+     * spanning phases 0 to 10, from framing through verification evidence:
+     * this framing slice and the operational context, needs and
+     * requirements, architecture, configuration, and verification-evidence
+     * slices all belong to this increment.
      */
   }
 
