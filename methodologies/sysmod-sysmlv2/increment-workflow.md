@@ -33,7 +33,7 @@ If these cannot be stated, the increment is not ready.
 ### Declaring an increment in the model
 
 The entry criteria are model content. An increment is declared in SysML in
-this shape, which the method gates read:
+this shape, which the method checks read:
 
 - **Identity:** the increment usage carries its registered `INC` identifier
   as its declared short name, for example
@@ -53,7 +53,7 @@ this shape, which the method gates read:
   increment's verification cases declares `references` to the increment
   usage.
 
-### Method rules and gates
+### Method rules and the increment workflow model
 
 These method rules apply to every increment:
 
@@ -79,14 +79,21 @@ These method rules apply to every increment:
 8. **Principle.** Structural checks block; judgment checks (wording,
    verifiability) are advisory.
 
-[`DE4SDV_MethodGates`](../../textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_gates.sysml)
-encodes these rules as the generic gates of the increment framing, needs,
-requirements, and V&V and evidence phases. Each gate is a typed
-method-contract obligation over one increment's native model relationships,
-with one gate per rule clause. Each rule is a model comment about exactly the
-gates that encode it, so a rule change edits only that comment and those
-gates. Declaring a gate is not evaluating it, and no gate result is a
-conformance, acceptance, or certification claim.
+[`DE4SDV_IncrementWorkflow`](../../textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml)
+models this workflow in the style of the SYSMOD default process. The
+`IncrementWorkflow` action has one step per phase in method order. Increment
+framing always applies, and each later step is optional: it applies when the
+increment charter lists the step's phase. Each step definition states its
+phase question, its phase, and the artifacts it reads and produces as typed
+parameters.
+
+The rules are `MethodCheck` metadata inside the step definitions, one check
+per rule clause, each about the step parameter it constrains. The check
+identifier names the evaluation, an unknown identifier fails closed, and
+`advisory = true` marks the advisory checks. The increment framing, needs,
+requirements, and V&V and evidence steps carry checks so far. Declaring a
+check is not evaluating it, and no check result is a conformance,
+acceptance, or certification claim.
 
 ## Workflow phases
 

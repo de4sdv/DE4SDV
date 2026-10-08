@@ -24,15 +24,42 @@ declarations:
     item def MethodEvaluationExclusion: scope-internal structured exclusion record (excluded element reference
       plus rationale), owned by MethodEvaluationScope; not an additional ontology class or contribution
       membership
-  textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_gates.sysml:
-    enum def PermittedEmptyDisposition: allowed-value vocabulary of the permitted-empty disposition of a method
-      gate; evaluation-policy data, not an ontology class or a result status
-    item def MethodGate: method-gate specialization of MethodContractObligation adding gate prerequisites and
-      the permitted-empty disposition; method data for the deterministic evaluation, not an additional ontology
-      class
+  textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml:
+    metadata def MethodCheck: method-rule annotation of a workflow step parameter (check identifier, minimum,
+      advisory); evaluation-policy data, not an ontology class or a result status
     part def IncrementCharter: increment charter declaration specializing IncrementTraceObligations with owner,
       expected artifacts and expected review evidence as plain attributes; declaration helper, not an additional
       ontology class or completion evidence
+    action def IncrementStep: abstract increment-workflow step carrying the method phase it performs; method
+      structure, not an ontology class
+    action def IncrementWorkflow: increment workflow (method steps in order with their artifact flows); method
+      structure, not an ontology class or an executed process
+    action def FrameIncrement: increment-workflow step definition (method structure with phase and artifact
+      parameters); not an ontology class
+    action def FrameConcerns: increment-workflow step definition (method structure with phase and artifact
+      parameters); not an ontology class
+    action def SpecifyOperationalContext: increment-workflow step definition (method structure with phase and
+      artifact parameters); not an ontology class
+    action def ClassifyCapabilities: increment-workflow step definition (method structure with phase and
+      artifact parameters); not an ontology class
+    action def ElaborateNeeds: increment-workflow step definition (method structure with phase and artifact
+      parameters); not an ontology class
+    action def SpecifyRequirements: increment-workflow step definition (method structure with phase and artifact
+      parameters); not an ontology class
+    action def DefineFunctionalArchitecture: increment-workflow step definition (method structure with phase and
+      artifact parameters); not an ontology class
+    action def DefineLogicalArchitecture: increment-workflow step definition (method structure with phase and
+      artifact parameters); not an ontology class
+    action def DefinePhysicalRealization: increment-workflow step definition (method structure with phase and
+      artifact parameters); not an ontology class
+    action def DefineVariabilityAndConfiguration: increment-workflow step definition (method structure with
+      phase and artifact parameters); not an ontology class
+    action def PlanVerificationAndEvidence: increment-workflow step definition (method structure with phase and
+      artifact parameters); not an ontology class
+    action def PublishIncrement: increment-workflow step definition (method structure with phase and artifact
+      parameters); not an ontology class
+    action def DecideBaselineAndNextSlice: increment-workflow step definition (method structure with phase and artifact
+      parameters); not an ontology class
   textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml:
     concern def ProductLineCapabilityClassificationConcern: method-specific concern type
     concern def RegulatoryScopeWithoutComplianceClaimConcern: method-specific concern type

@@ -16,7 +16,7 @@
 package DE4SDV_AEBSVisualizationFraming {
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_MethodTraces::*;
-  private import DE4SDV_MethodGates::IncrementCharter;
+  private import DE4SDV_IncrementWorkflow::IncrementCharter;
   private import DE4SDV_MethodProcess::*;
   private import DE4SDV_MethodViewpoints::*;
   private import DE4SDV_Stakeholders::*;

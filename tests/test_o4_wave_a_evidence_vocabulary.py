@@ -101,11 +101,8 @@ def test_status_successor_adds_no_universal_status_enum_and_keeps_legacy_name():
     for path in sorted((ROOT / KERNEL).glob("*.sysml")):
         active = re.sub(r"/\*.*?\*/|//[^\n]*", " ", path.read_text(), flags=re.S)
         enums |= set(re.findall(r"\benum\s+def\s+(\w+)", active))
-    # PermittedEmptyDisposition is the method-gate population-policy
-    # disposition (not applicable without eligible subjects), not a status.
     assert enums == {"MethodPhase", "SignalMappingDisposition", "IncrementSize", "EvaluationSourceKind",
-                     "TraceCompletionClaim", "PriorityKind", "StakeholderCategoryKind",
-                     "PermittedEmptyDisposition"}, enums
+                     "TraceCompletionClaim", "PriorityKind", "StakeholderCategoryKind"}, enums
     # No status vocabulary under another definition kind or name either.
     for path in sorted((ROOT / KERNEL).glob("*.sysml")):
         active = re.sub(r"/\*.*?\*/|//[^\n]*", " ", path.read_text(), flags=re.S)

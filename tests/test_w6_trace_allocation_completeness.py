@@ -474,9 +474,9 @@ def test_transition_record_accounts_for_every_w6_identity_against_the_plan():
     for name in ("IncrementTraceObligations", "approvedScopedTraceMethod", "ApprovedTraceMethod"):
         assert f"`{name}`" in text and name in traces, name
     # A declaration is typed by IncrementTraceObligations or by the increment
-    # charter, which the method-gates package declares as its specialization.
-    gates = (KERNEL / "de4sdv_method_gates.sysml").read_text(encoding="utf-8")
-    assert re.search(r"\bpart\s+def\s+IncrementCharter\s*:>\s*IncrementTraceObligations\b", gates)
+    # charter, which the increment-workflow package declares as its specialization.
+    workflow = (KERNEL / "de4sdv_increment_workflow.sysml").read_text(encoding="utf-8")
+    assert re.search(r"\bpart\s+def\s+IncrementCharter\s*:>\s*IncrementTraceObligations\b", workflow)
     for usage, framing in (("visualizationTraceObligations", "aebs/aebs_visualization_framing.sysml"),
                            ("traceObligationsMW002", "middleware/middleware_increment_framing.sysml")):
         assert f"`{usage}`" in text
