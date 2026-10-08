@@ -3,7 +3,7 @@
   "status": "admitted",
   "warning": "no traversal proof, no runtime read by this artifact, no API element identity, no authority retirement; retired names answer no fact (retired; use the successor)",
   "binding": {
-    "source_revision": "01acc003bad7d847c0d3748f8d72cba6cedf9f95",
+    "source_revision": "6a7538c046df4a8b4bf1940a0b5041572b3a8c98",
     "source_revision_note": "Git commit that contains every bound input byte-for-byte. The gate validates commit existence, ancestry of the checked-out revision, per-input content equality and the recorded content digests.",
     "artifact_commit": null,
     "artifact_commit_note": "Unknowable at generation; left explicitly unclaimed.",
@@ -76,8 +76,8 @@
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml": "sha256:a4b2cba28cc6f29534db455ef47f1e0aed3ded7ccdc690bebf475cf3e732efd7",
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml": "sha256:9a566d02964af2b2af5d6508601d7623d7c5b06235630dcf1413fa774cba9edb",
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml": "sha256:3d669f980fd985c5c0e40682c9ea347b140dbf331b526869101ab73f39aed1ef",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml": "sha256:28257b968e2e91cf7bbf3d2f87d3a83400cb1fd25dd0f56edd912da24973a4e7",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml": "sha256:29f2816f277bb91fed28997f2ed07108a5b93fb7b2de22b50637cdc66d53f93a",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml": "sha256:bf92d6e7dfd948fa02c710cc3c66c7a2496097a2b281c04862d81d6fb343451b",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml": "sha256:f97f906d9d82269ecb80863ee5d6429fcec6a87de9137cd3c054091a9428b218",
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml": "sha256:90ea9a644770d519364393387caaa9435c699104656a82a1531eff059bb05ac4"
     }
   },
@@ -1222,7 +1222,7 @@
       "accounting": "retained",
       "boundary": "none",
       "definition": {
-        "documentation": "Successor definition: one canonical allocatedTo predicate. A native AllocationUsage assigns responsibility from its source usage to its target usage for exactly one governed end pair: requirement to function, function to logical element, or logical element to physical element. Endpoint classes come from the ontology kernel mappings of the endpoint lineage, never from usage or allocation names. Allocation proves no satisfaction, execution, deployment, fulfillment or transitivity; it is not a composed requirement-to-architecture realization. The superseded names are realizedBy and deployedTo, and the former Function-to-LogicalElement signature is the second end pair of this version.",
+        "documentation": "Successor definition: one canonical allocatedTo predicate. A native AllocationUsage assigns responsibility from its source usage to its target usage for exactly one governed end pair: requirement to function, function to logical element, or logical element to physical element. Endpoint classes come from the validated kernel bindings of the endpoint lineage, never from usage or allocation names. Allocation proves no satisfaction, execution, deployment, fulfillment or transitivity; it is not a composed requirement-to-architecture realization. The superseded names are realizedBy and deployedTo, and the former Function-to-LogicalElement signature is the second end pair of this version.",
         "documentation_witness": {
           "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
           "owner": "package DE4SDV_RelationshipSuccessor",
@@ -1555,7 +1555,7 @@
       "accounting": "retained",
       "boundary": "historical-redesign",
       "definition": {
-        "documentation": "Successor for the legacy hasEvidenceStatus (EvidenceArtifact to EvidenceStatus) predicate. Scoped verification and validation activity status is the unchanged adopted VVStatus on ScopedVVActivityRecord status, identified with its subject, configuration, activity, comparison basis and result or evidence references; EvidenceStatus resolves to that pinned VVStatus and to slice-local bounded outcome/disposition enums. No new universal status enum is introduced. Artifact maturity, evidence-set adequacy and authority acceptance stay separate, and Completed never means passed or accepted. Retirement: hasEvidenceStatus takes no new model usage; consumers move to this successor in a reviewed runtime change, and the legacy predicate is then removed with the authored ontology.",
+        "documentation": "Successor for the legacy hasEvidenceStatus (EvidenceArtifact to EvidenceStatus) predicate. Scoped verification and validation activity status is the unchanged adopted VVStatus on ScopedVVActivityRecord status, identified with its subject, configuration, activity, comparison basis and result or evidence references; EvidenceStatus resolves to that pinned VVStatus and to slice-local bounded outcome/disposition enums. No new universal status enum is introduced. Artifact maturity, evidence-set adequacy and authority acceptance stay separate, and Completed never means passed or accepted. Retirement: hasEvidenceStatus takes no new model usage; consumers move to this successor in a reviewed runtime change, which then retires the legacy predicate (the authored ontology that declared it is removed).",
         "documentation_witness": {
           "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
           "owner": "package DE4SDV_ScopedAssurance",

@@ -3,7 +3,7 @@
   "status": "admitted",
   "warning": "no traversal proof, no runtime read by this artifact, no API element identity, no authority retirement; retired names answer no fact (retired; use the successor)",
   "binding": {
-    "source_revision": "01acc003bad7d847c0d3748f8d72cba6cedf9f95",
+    "source_revision": "6a7538c046df4a8b4bf1940a0b5041572b3a8c98",
     "source_revision_note": "Git commit that contains every bound input byte-for-byte. The gate validates commit existence, ancestry of the checked-out revision, per-input content equality and the recorded content digests.",
     "artifact_commit": null,
     "artifact_commit_note": "Unknowable at generation; left explicitly unclaimed.",
@@ -76,8 +76,8 @@
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml": "sha256:a4b2cba28cc6f29534db455ef47f1e0aed3ded7ccdc690bebf475cf3e732efd7",
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml": "sha256:9a566d02964af2b2af5d6508601d7623d7c5b06235630dcf1413fa774cba9edb",
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml": "sha256:3d669f980fd985c5c0e40682c9ea347b140dbf331b526869101ab73f39aed1ef",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml": "sha256:28257b968e2e91cf7bbf3d2f87d3a83400cb1fd25dd0f56edd912da24973a4e7",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml": "sha256:29f2816f277bb91fed28997f2ed07108a5b93fb7b2de22b50637cdc66d53f93a",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml": "sha256:bf92d6e7dfd948fa02c710cc3c66c7a2496097a2b281c04862d81d6fb343451b",
+      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml": "sha256:f97f906d9d82269ecb80863ee5d6429fcec6a87de9137cd3c054091a9428b218",
       "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml": "sha256:90ea9a644770d519364393387caaa9435c699104656a82a1531eff059bb05ac4"
     }
   },
