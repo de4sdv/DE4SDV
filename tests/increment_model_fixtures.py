@@ -292,6 +292,15 @@ class ModelBuilder:
                 "elements": list(self.elements), "element_sources": dict(self.sources),
                 "external_references": [], "source_manifest": []}
 
+    def feature_of(self, owner: dict[str, Any], member_name: str) -> dict[str, Any]:
+        """The feature ``owner`` owns under ``member_name``."""
+        by_id = {e["@id"]: e for e in self.elements}
+        for reference in owner["ownedRelationship"]:
+            relationship = by_id[reference["@id"]]
+            if relationship.get("memberName") == member_name:
+                return by_id[relationship["memberElement"]["@id"]]
+        raise KeyError(member_name)
+
     def remove(self, *elements: dict[str, Any]) -> None:
         """Remove elements (and the relationships naming them) from the corpus."""
         doomed = {element["@id"] for element in elements}
@@ -354,6 +363,8 @@ def increment_scenario(
     """
     b = builder or ModelBuilder(label=name)
     phases = b.enumeration("MethodPhase", PHASE_LITERALS)
+    b.enumeration("EvaluationSourceKind", SOURCE_KIND_LITERALS)
+    b.kernel_definition("MethodContractObligation")
     roots = {cls: b.kernel_definition(cls) for cls in (
         "EngineeringIncrement", "IncrementTraceObligations", "ProblemStatement",
         "IncrementEngineeringQuestion", "IncrementLifecycleDecision", "Assumption", "Stakeholder",
@@ -434,3 +445,79 @@ def increment_scenario(
         needs_package=needs_package, needs=needs, requirements=requirements,
         evidence_package=evidence_package, cases=[case], stakeholder_role=role,
         scenario_definition=scenario_def, vocabulary=roots)
+
+
+@dataclass(frozen=True)
+class GateSpec:
+    """One synthetic method gate (MethodGate usage) for tests."""
+
+    name: str
+    phase: str
+    selector: str
+    predicate: str
+    target_filter: str = ""
+    minimum: int = 1
+    maximum: Any = INFINITY
+    required: bool = True
+    minimum_population: int = 1
+    permitted_empty: bool = False
+    disposition: str | None = None
+    prerequisites: tuple[str, ...] = ()
+    applicability: str = "increment declares the gate phase"
+    claim: str = "synthetic gate claim boundary"
+    source_kind: str = "pinnedModelRecord"
+
+
+def method_gates(builder: ModelBuilder, gates: Sequence[GateSpec],
+                 package_name: str = "DE4SDV_FixtureMethodGates") -> dict[str, dict[str, Any]]:
+    """MethodGate usages specializing the kernel MethodContractObligation.
+
+    The obligation definition carries its typed attributes; MethodGate adds
+    ``prerequisites`` and ``permittedEmptyDisposition``. Each gate usage
+    redefines the attributes with literal or reference values, as the
+    licensed serializer emits them.
+    """
+    phases = builder.enumeration("MethodPhase", PHASE_LITERALS)
+    kinds = builder.enumeration("EvaluationSourceKind", SOURCE_KIND_LITERALS)
+    obligation = builder.kernel_definition("MethodContractObligation")
+    features = {}
+    for field_name in OBLIGATION_FIELDS:
+        feature = builder.new("AttributeUsage", name=field_name, source=builder.sources[obligation["@id"]])
+        builder.own(obligation, feature, kind="FeatureMembership", member_name=field_name)
+        features[field_name] = feature
+    package = builder.package(package_name, source=GATES_SOURCE)
+    gate_def = builder.definition("ItemDefinition", "MethodGate", package, [obligation])
+    prerequisites_feature = builder.new("ReferenceUsage", name="prerequisites", source=GATES_SOURCE)
+    builder.own(gate_def, prerequisites_feature, kind="FeatureMembership", member_name="prerequisites")
+    disposition_def = builder.definition("EnumerationDefinition", "PermittedEmptyDisposition", package)
+    dispositions = {}
+    for literal in DISPOSITION_LITERALS:
+        usage = builder.new("EnumerationUsage", name=literal, source=GATES_SOURCE)
+        builder.own(disposition_def, usage, kind="VariantMembership", member_name=literal)
+        dispositions[literal] = usage
+    disposition_feature = builder.new("AttributeUsage", name="permittedEmptyDisposition", source=GATES_SOURCE)
+    builder.own(gate_def, disposition_feature, kind="FeatureMembership", member_name="permittedEmptyDisposition")
+    made: dict[str, dict[str, Any]] = {}
+    for gate in gates:
+        usage = builder.usage("ItemUsage", gate.name, package, [gate_def])
+        values = {
+            "obligationId": gate.name, "phase": phases[gate.phase], "subjectSelector": gate.selector,
+            "applicability": gate.applicability, "minimumPopulation": gate.minimum_population,
+            "permittedEmpty": gate.permitted_empty, "predicate": gate.predicate,
+            "targetFilter": gate.target_filter, "cardinalityMinimum": gate.minimum,
+            "cardinalityMaximum": gate.maximum, "required": gate.required,
+            "evaluationSource": kinds[gate.source_kind], "attestationPolicyRef": "",
+            "claimBoundary": gate.claim,
+        }
+        for field_name, value in values.items():
+            builder.attribute(usage, field_name, value, redefines=features[field_name])
+        if gate.disposition is not None:
+            builder.attribute(usage, "permittedEmptyDisposition", dispositions[gate.disposition],
+                              redefines=disposition_feature)
+        made[gate.name] = usage
+    for gate in gates:
+        if gate.prerequisites:
+            targets = [made[name] for name in gate.prerequisites]
+            builder.attribute(made[gate.name], "prerequisites", targets[0] if len(targets) == 1 else targets,
+                              redefines=prerequisites_feature, kind="ReferenceUsage")
+    return made

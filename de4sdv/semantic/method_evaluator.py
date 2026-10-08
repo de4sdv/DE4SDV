@@ -277,7 +277,13 @@ EVALUATION_SOURCES = frozenset(
 
 APPLICABILITY_UNCONDITIONAL = "unconditional"
 APPLICABILITY_CANDIDATE_SCOPE = "candidate-declares-scope"
-APPLICABILITY_FORMS = frozenset({APPLICABILITY_UNCONDITIONAL, APPLICABILITY_CANDIDATE_SCOPE})
+#: Applicable when the evaluated increment declares the obligation's phase
+#: (``EvaluationContext.declared_phases``); undeclared phases are explicitly
+#: not applicable and unknown declarations leave applicability unresolved.
+APPLICABILITY_DECLARED_PHASE = "declared-phase"
+APPLICABILITY_FORMS = frozenset(
+    {APPLICABILITY_UNCONDITIONAL, APPLICABILITY_CANDIDATE_SCOPE, APPLICABILITY_DECLARED_PHASE}
+)
 
 #: Resolvable authorization-policy identities (acceptance obligations only).
 POLICY_DEFINITIONS: frozenset[str] = frozenset(
@@ -603,6 +609,30 @@ class EvaluationContext:
     pilot_scope_declared: bool | None = None
     candidate_missing_inputs: tuple[str, ...] = ()
     diagnostics: tuple[str, ...] = ()
+    #: phase literals the evaluated increment declares applicable (declared-
+    #: phase applicability); None when the declaration cannot be established
+    declared_phases: frozenset[str] | None = None
+
+
+class SubjectResolutionError(Exception):
+    """A typed selector could not establish its subject population.
+
+    Failure to resolve scope is not an empty population (frozen baseline
+    Section 8 rule 3): ``INPUT_UNAVAILABLE`` yields INDETERMINATE; an invalid
+    or ambiguous selector (``SCOPE_RESOLUTION_ERROR``) yields ERROR.
+    """
+
+    def __init__(
+        self,
+        reason_code: str,
+        *,
+        diagnostics: Sequence[str] = (),
+        missing: Sequence[str] = (),
+    ) -> None:
+        self.reason_code = reason_code
+        self.diagnostics = tuple(diagnostics)
+        self.missing = tuple(missing)
+        super().__init__("; ".join(self.diagnostics) or reason_code)
 
 
 @dataclass(frozen=True)
@@ -2019,6 +2049,38 @@ def readiness_blocks(
     )
 
 
+def subset_readiness(
+    evaluation: "CanonicalEvaluation",
+    unit_ids: Iterable[str],
+    target: ReadinessTarget,
+) -> ReadinessBlock:
+    """Phase-exit readiness of a subset of one evaluation's units (one phase)."""
+    wanted = set(unit_ids)
+    (block,) = _readiness_blocks(
+        [unit for unit in evaluation.units if unit.unit_id in wanted],
+        [unit_id for unit_id in evaluation.required_units if unit_id in wanted],
+        [target],
+        {},
+    )
+    return block
+
+
+def subset_aggregate(
+    contract: MethodContract,
+    evaluation: "CanonicalEvaluation",
+    unit_ids: Iterable[str],
+) -> tuple[str, str | None, str | None]:
+    """Aggregate coverage/state/verdict of a subset of one evaluation's units."""
+    wanted = set(unit_ids)
+    subset = replace(
+        contract, obligations=tuple(o for o in contract.obligations if o.obligation_id in wanted)
+    )
+    coverage, state, verdict, _counts = MethodEvaluator._aggregate(
+        subset, [result for result in evaluation.results if result.unit_id in wanted]
+    )
+    return coverage, state, verdict
+
+
 def _canonical_key(
     contract: MethodContract,
     ctx: EvaluationContext,
@@ -2195,8 +2257,59 @@ class MethodEvaluator:
                         claim_boundary=spec.claim_boundary,
                     )
                 ]
+        elif spec.applicability_kind == APPLICABILITY_DECLARED_PHASE:
+            declared_phases = ctx.declared_phases
+            if declared_phases is None:
+                return [
+                    EvaluationResult(
+                        unit_id=unit,
+                        coverage=COVERAGE_ASSESSED,
+                        state=STATE_INDETERMINATE,
+                        verdict=None,
+                        reason_codes=(APPLICABILITY_UNRESOLVED,),
+                        missing=ctx.candidate_missing_inputs,
+                        diagnostics=(
+                            "the increment's applicable phases cannot be established; "
+                            "applicability unresolved",
+                        ),
+                        claim_boundary=spec.claim_boundary,
+                    )
+                ]
+            if spec.phase not in declared_phases:
+                return [
+                    EvaluationResult(
+                        unit_id=unit,
+                        coverage=COVERAGE_ASSESSED,
+                        state=STATE_COMPLETE,
+                        verdict=VERDICT_NOT_APPLICABLE,
+                        reason_codes=(NOT_APPLICABLE_REASON,),
+                        diagnostics=(
+                            EXPLICIT_DISPOSITION,
+                            f"the increment does not declare {spec.phase} applicable",
+                        ),
+                        claim_boundary=spec.claim_boundary,
+                    )
+                ]
 
-        subject_ids, subject_diagnostics = self._subjects(spec, ctx)
+        try:
+            subject_ids, subject_diagnostics = self._subjects(spec, ctx)
+        except SubjectResolutionError as error:
+            failed = error.reason_code in {
+                SCOPE_RESOLUTION_ERROR, BINDING_MISMATCH, INVALID_CONTRACT, EVALUATOR_FAILURE,
+            }
+            return [
+                EvaluationResult(
+                    unit_id=unit,
+                    coverage=COVERAGE_ASSESSED,
+                    state=STATE_ERROR if failed else STATE_INDETERMINATE,
+                    verdict=None,
+                    reason_codes=(error.reason_code,),
+                    diagnostics=error.diagnostics
+                    or ("the subject population cannot be established",),
+                    missing=() if failed else error.missing,
+                    claim_boundary=spec.claim_boundary,
+                )
+            ]
         if not subject_ids:
             subject_ids = []
         if not subject_ids:

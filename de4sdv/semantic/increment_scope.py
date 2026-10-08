@@ -126,25 +126,26 @@ class ModelView:
         return bindings.element_id_for(ontology_class, self.index.by_id)
 
     def class_of_declaration(self, declaration_name: str) -> str | None:
-        """The ontology class whose kernel declaration is ``declaration_name``."""
+        """The kernel-index class holding the validated binding of a declaration.
 
-        def build() -> dict[str, str]:
-            found: dict[str, str] = {}
-            classes = getattr(self.contract, "classes", {}) or {}
-            for ontology_class in classes:
-                try:
-                    mapping = self.contract.mapping(ontology_class)
-                except Exception:  # noqa: BLE001 - unmapped classes are skipped
-                    continue
-                declaration = str(getattr(mapping, "declaration", "") or "")
-                if not declaration:
-                    continue
-                name = declaration.split()[-1]
-                found.setdefault(name, ontology_class)
+        Resolution goes through the ingestion-validated kernel bindings
+        themselves (their recorded declaration), so a binding the runtime
+        files under a routed profile name still resolves. Exactly one binding
+        must carry the declaration; otherwise the declaration has no identity.
+        """
+        bindings = getattr(self.traversal.kernel_bindings, "bindings", ()) or ()
+
+        def build() -> dict[str, list[str]]:
+            found: dict[str, list[str]] = {}
+            for binding in bindings:
+                name = str(binding.declaration).split()[-1] if binding.declaration else ""
+                if name:
+                    found.setdefault(name, []).append(binding.ontology_class)
             return found
 
-        table = self.index.memo_bound(("declaration-classes",), (self.contract,), build)
-        return table.get(declaration_name)
+        table = self.index.memo_bound(("declaration-classes",), (self.traversal.kernel_bindings,), build)
+        classes = table.get(declaration_name) or []
+        return classes[0] if len(classes) == 1 else None
 
     def source_of(self, identifier: str | None) -> str:
         return str(self.sources.get(identifier or "", ""))
@@ -248,14 +249,14 @@ def resolve_increment(view: ModelView, increment_id: str) -> IncrementScope:
         SELECTOR_INCREMENT: (usage_id,) if usage_id else (),
     }
     needs, requirements = _requirement_populations(view, definition_ids, problems)
-    populations[SELECTOR_NEEDS] = needs
-    populations[SELECTOR_REQUIREMENTS] = requirements
+    populations[SELECTOR_NEEDS] = _ordered(view, needs)
+    populations[SELECTOR_REQUIREMENTS] = _ordered(view, requirements)
     verification_packages = _verification_packages(view, usage_id, package_id)
-    populations[SELECTOR_VERIFICATION_CASES] = tuple(
+    populations[SELECTOR_VERIFICATION_CASES] = _ordered(view, [
         case
         for package in verification_packages
         for case in index.owned_members(package, "VerificationCaseUsage")
-    )
+    ])
     if usage_id is None:
         for selector in (SELECTOR_NEEDS, SELECTOR_REQUIREMENTS, SELECTOR_VERIFICATION_CASES):
             problems.setdefault(
@@ -278,6 +279,16 @@ def resolve_increment(view: ModelView, increment_id: str) -> IncrementScope:
     )
 
 
+def _ordered(view: ModelView, identifiers: Sequence[str]) -> tuple[str, ...]:
+    """Distinct identifiers in a corpus-order-independent order.
+
+    An API listing and an export of the same revision may enumerate elements
+    differently; qualified name then element identifier is stable for both.
+    """
+    unique = list(dict.fromkeys(identifiers))
+    return tuple(sorted(unique, key=lambda item: (view.index.qualified_name(item), item)))
+
+
 def _charters(view: ModelView, usage_id: str) -> tuple[tuple[str, ...], str]:
     index = view.index
     found: list[str] = []
@@ -290,7 +301,7 @@ def _charters(view: ModelView, usage_id: str) -> tuple[tuple[str, ...], str]:
                 found.append(candidate)
     except IdentityNotFoundError as error:
         return (), f"charter declarations cannot be established: kernel-binding:{CHARTER_CLASS}: {error}"
-    return tuple(found), ""
+    return _ordered(view, found), ""
 
 
 def _declared_phases(view: ModelView, charter: str) -> tuple[tuple[str, ...] | None, list[str]]:
@@ -359,10 +370,10 @@ def _verification_packages(
     if usage_id is None or package_id is None:
         return ()
     index = view.index
-    packages = [package_id]
+    referencing = []
     for holder in index.referencing_holders(usage_id):
         owner = index.owner_of(holder)
         if owner and str(index.element(owner).get("@type")) in {"Package", "LibraryPackage"}:
-            if owner not in packages:
-                packages.append(owner)
-    return tuple(packages)
+            if owner != package_id:
+                referencing.append(owner)
+    return (package_id, *_ordered(view, referencing))

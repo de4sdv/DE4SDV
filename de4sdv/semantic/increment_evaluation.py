@@ -1,0 +1,502 @@
+"""One canonical method evaluation per increment, and its projections.
+
+The agent loop is ``next`` -> the agent authors -> ``gaps``: the agent
+authors, the deterministic evaluation judges. For one increment and one
+model revision this module runs the method gates read from the model through
+the existing evaluator once and projects that single canonical evaluation as
+
+- ``status``: per phase, the aggregate verdict and the phase-exit readiness;
+- ``gaps``: unmet blocking gates (violations, input problems, method-side
+  blockers, unattempted gates and what blocks them) plus advisory notes;
+- ``next``: the first actionable blocking gate, ranked by gate prerequisites
+  (depth in the prerequisite graph, then phase, then gate order), with what
+  to author and where;
+- ``phase_contract``: the gates of a phase with the increment's
+  applicability, no verdict.
+
+All projections carry the same evaluation key. A model revision without
+gates is UNASSESSED with ``CONTRACT_UNAVAILABLE``; invalid gates are an
+evaluation ERROR with ``INVALID_CONTRACT`` (frozen baseline Section 8).
+Results describe model content only; no acceptance, compliance or
+certification claim follows from them.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from dataclasses import dataclass
+from typing import Any, Mapping, Sequence
+
+from . import method_evaluator as me
+from .gate_predicates import (
+    GATE_PREDICATES,
+    GATE_SELECTORS,
+    METHOD_SIDE_PREFIXES,
+    IncrementEvaluationContext,
+    remedy,
+)
+from .gate_reader import PHASE_ORDER, UNBOUNDED, GateSet, read_method_gates
+from .increment_scope import IncrementScope, ModelView, resolve_increment
+
+CLAIM_BOUNDARY = (
+    "model-content gates of the method declared in the evaluated revision; no acceptance, "
+    "compliance, certification or evidence-adequacy claim"
+)
+KIND_VIOLATION = "violation"
+KIND_INPUT = "input-problem"
+KIND_METHOD_SIDE = "method-side"
+KIND_NOT_ATTEMPTED = "not-attempted"
+
+
+@dataclass
+class IncrementEvaluation:
+    """The canonical evaluation of one increment at one revision."""
+
+    increment_id: str
+    revision: me.RevisionIdentity
+    gate_set: GateSet
+    scope: IncrementScope
+    view: ModelView
+    canonical: me.CanonicalEvaluation | None
+
+    # -- identity -------------------------------------------------------------
+
+    @property
+    def evaluation_key(self) -> str:
+        if self.canonical is not None:
+            return self.canonical.evaluation_key
+        payload = {
+            "increment_id": self.increment_id,
+            "revision": _revision(self.revision),
+            "method": dict(self.gate_set.method_identity),
+            "reason": self.gate_set.reason,
+            "problems": list(self.gate_set.problems),
+        }
+        encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+        return hashlib.sha256(encoded).hexdigest()
+
+    def _header(self, query: str) -> dict[str, Any]:
+        return {
+            "query": query,
+            "evaluation_key": self.evaluation_key,
+            "increment": self._increment_block(),
+            "method": self._method_block(),
+            "revision": _revision(self.revision),
+            "claim_boundary": CLAIM_BOUNDARY,
+        }
+
+    def _increment_block(self) -> dict[str, Any]:
+        scope = self.scope
+        block: dict[str, Any] = {
+            "id": scope.increment_id,
+            "resolved": scope.usage_id is not None,
+            "declared_phases": list(scope.declared_phases) if scope.declared_phases is not None else None,
+            "diagnostics": list(scope.diagnostics),
+        }
+        if scope.usage_id:
+            block["usage"] = self.view.describe(scope.usage_id)
+        if scope.package_id:
+            block["package"] = self.view.describe(scope.package_id)
+        if len(scope.charters) == 1:
+            block["charter"] = self.view.describe(scope.charters[0])
+        block["populations"] = {
+            selector: len(members) for selector, members in scope.populations.items()
+        }
+        return block
+
+    def _method_block(self) -> dict[str, Any]:
+        block = dict(self.gate_set.method_identity)
+        block["executable_contract_available"] = self.gate_set.available
+        if self.gate_set.problems:
+            block["problems"] = list(self.gate_set.problems)
+        if self.gate_set.other_obligations:
+            block["other_model_obligations"] = list(self.gate_set.other_obligations)
+        return block
+
+    def _unavailable(self, query: str) -> dict[str, Any]:
+        response = self._header(query)
+        invalid = bool(self.gate_set.problems)
+        response.update(
+            executable_contract_available=False,
+            assessment_coverage=me.COVERAGE_ASSESSED if invalid else me.COVERAGE_UNASSESSED,
+            evaluation_state=me.STATE_ERROR if invalid else None,
+            conformance_verdict=None,
+            reason_codes=[me.INVALID_CONTRACT if invalid else me.CONTRACT_UNAVAILABLE],
+            diagnostics=[self.gate_set.reason],
+        )
+        return response
+
+    # -- shared structure -------------------------------------------------------
+
+    def _contract(self) -> me.MethodContract:
+        assert self.gate_set.contract is not None
+        return self.gate_set.contract
+
+    def _phases(self, phase: str | None) -> list[str]:
+        phases = list(self.gate_set.phases)
+        if phase is None:
+            return phases
+        if phase not in PHASE_ORDER:
+            raise ValueError(f"{phase!r} is not a MethodPhase literal")
+        return [p for p in phases if p == phase]
+
+    def _gates(self, phase: str | None = None) -> list[me.ObligationSpec]:
+        return [g for g in self._contract().obligations if phase is None or g.phase == phase]
+
+    def _unit(self, gate_id: str) -> me.EvaluationResult:
+        assert self.canonical is not None
+        return next(u for u in self.canonical.units if u.unit_id == gate_id)
+
+    def _children(self, gate_id: str) -> list[me.EvaluationResult]:
+        assert self.canonical is not None
+        return [r for r in self.canonical.results if r.unit_id == gate_id]
+
+    def _depths(self) -> dict[str, int]:
+        gates = {g.obligation_id: g for g in self._contract().obligations}
+        depth: dict[str, int] = {}
+
+        def of(gate_id: str) -> int:
+            if gate_id not in depth:
+                depth[gate_id] = 0
+                depth[gate_id] = 1 + max((of(d) for d in gates[gate_id].depends_on if d in gates), default=-1)
+            return depth[gate_id]
+
+        for gate_id in gates:
+            of(gate_id)
+        return depth
+
+    def _kind(self, unit: me.EvaluationResult) -> str | None:
+        """Gap kind of one gate unit (None when the gate passes or is not applicable)."""
+        if unit.coverage == me.COVERAGE_UNASSESSED:
+            return KIND_NOT_ATTEMPTED
+        if unit.verdict in {me.VERDICT_PASS, me.VERDICT_NOT_APPLICABLE}:
+            return None
+        if unit.verdict == me.VERDICT_FAIL:
+            return KIND_VIOLATION
+        children = [c for c in self._children(unit.unit_id) if c.state in {me.STATE_INDETERMINATE, me.STATE_ERROR}]
+        if children and all(_method_side(child) for child in children):
+            return KIND_METHOD_SIDE
+        if not children and _method_side(unit):
+            return KIND_METHOD_SIDE
+        return KIND_INPUT
+
+    def _entry(self, gate: me.ObligationSpec, kind: str) -> dict[str, Any]:
+        unit = self._unit(gate.obligation_id)
+        entry: dict[str, Any] = {
+            "gate": gate.obligation_id,
+            "phase": gate.phase,
+            "predicate": gate.predicate,
+            "target_filters": list(gate.target_filters),
+            "required": gate.required,
+            "kind": kind,
+            "assessment_coverage": unit.coverage,
+            "evaluation_state": unit.state,
+            "conformance_verdict": unit.verdict,
+            "reason_codes": list(unit.reason_codes),
+            "claim_boundary": gate.claim_boundary,
+        }
+        if kind == KIND_NOT_ATTEMPTED:
+            entry["blocked_by"] = [
+                d for d in gate.depends_on
+                if self._unit(d).verdict not in {me.VERDICT_PASS, me.VERDICT_NOT_APPLICABLE}
+            ]
+            entry["diagnostics"] = list(unit.diagnostics)
+            return entry
+        subjects = []
+        for child in self._children(gate.obligation_id):
+            if child.verdict in {me.VERDICT_PASS, me.VERDICT_NOT_APPLICABLE}:
+                continue
+            subjects.append(self._subject(child))
+        if not subjects:
+            entry["diagnostics"] = list(unit.diagnostics)
+            entry["missing"] = list(unit.missing)
+        entry["subjects"] = subjects
+        if kind in {KIND_VIOLATION, KIND_INPUT}:
+            first = next((c.subject_id for c in self._children(gate.obligation_id)
+                          if c.verdict == me.VERDICT_FAIL or c.state in {me.STATE_INDETERMINATE, me.STATE_ERROR}),
+                         None)
+            entry["what_to_author"] = remedy(gate, increment=self.scope, view=self.view,
+                                             subject_id=_element_subject(first, self.view))
+            entry["where"] = self._where(subjects)
+        return entry
+
+    def _subject(self, child: me.EvaluationResult) -> dict[str, Any]:
+        subject_id = child.subject_id
+        record: dict[str, Any] = (
+            self.view.describe(subject_id) if subject_id in self.view.index.by_id
+            else {"element_id": None, "name": str(subject_id or "")}
+        )
+        record.update(
+            evaluation_state=child.state,
+            conformance_verdict=child.verdict,
+            reason_codes=list(child.reason_codes),
+            diagnostics=list(child.diagnostics),
+        )
+        if child.missing:
+            record["missing"] = list(child.missing)
+        if child.targets:
+            record["targets"] = list(child.targets)
+        return record
+
+    def _where(self, subjects: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+        package = self.view.describe(self.scope.package_id) if self.scope.package_id else None
+        sources = sorted({s["source"] for s in subjects if s.get("source")})
+        where: dict[str, Any] = {"increment_package": package}
+        if sources:
+            where["sources"] = sources
+        elif package and package.get("source"):
+            where["sources"] = [package["source"]]
+        return where
+
+    # -- projections -----------------------------------------------------------
+
+    def status(self, phase: str | None = None) -> dict[str, Any]:
+        """Per-phase aggregate and phase-exit readiness."""
+        if self.canonical is None:
+            return self._unavailable("increment_status")
+        response = self._header("increment_status")
+        contract = self._contract()
+        phases = self._phases(phase)
+        selected = [g.obligation_id for p in phases for g in self._gates(p)]
+        coverage, state, verdict = me.subset_aggregate(contract, self.canonical, selected)
+        response.update(
+            executable_contract_available=True,
+            assessment_coverage=coverage,
+            evaluation_state=state,
+            conformance_verdict=verdict,
+            phases=[self._phase_status(p) for p in phases],
+            provenance=[dict(item) for item in self.canonical.provenance],
+        )
+        return response
+
+    def _phase_status(self, phase: str) -> dict[str, Any]:
+        assert self.canonical is not None
+        gates = self._gates(phase)
+        ids = [g.obligation_id for g in gates]
+        coverage, state, verdict = me.subset_aggregate(self._contract(), self.canonical, ids)
+        readiness = me.subset_readiness(
+            self.canonical, ids, me.ReadinessTarget("PHASE_EXIT", f"{self.increment_id}/{phase}")
+        )
+        blocking, advisory = [], []
+        for gate in gates:
+            kind = self._kind(self._unit(gate.obligation_id))
+            if kind is None:
+                continue
+            (blocking if gate.required else advisory).append({"gate": gate.obligation_id, "kind": kind})
+        return {
+            "phase": phase,
+            "applicability": self._applicability(gates, phase),
+            "assessment_coverage": coverage,
+            "evaluation_state": state,
+            "conformance_verdict": verdict,
+            "phase_exit": readiness.readiness,
+            "readiness": readiness.as_dict(),
+            "gates": {g.obligation_id: _state_label(self._unit(g.obligation_id)) for g in gates},
+            "blocking": blocking,
+            "advisory_open": advisory,
+        }
+
+    def _applicability(self, gates: Sequence[me.ObligationSpec], phase: str) -> str:
+        if all(g.applicability_kind == me.APPLICABILITY_UNCONDITIONAL for g in gates):
+            return "unconditional"
+        declared = self.scope.declared_phases
+        if declared is None:
+            return "unresolved"
+        return "declared" if phase in declared else "not declared"
+
+    def gaps(self, phase: str | None = None) -> dict[str, Any]:
+        """Unmet blocking gates and advisory notes."""
+        if self.canonical is None:
+            response = self._unavailable("method_gaps")
+            response.update(blocking=[], advisory=[])
+            return response
+        response = self._header("method_gaps")
+        blocking, advisory = [], []
+        for p in self._phases(phase):
+            for gate in self._gates(p):
+                kind = self._kind(self._unit(gate.obligation_id))
+                if kind is None:
+                    continue
+                (blocking if gate.required else advisory).append(self._entry(gate, kind))
+        counts: dict[str, int] = {}
+        for entry in blocking:
+            counts[entry["kind"]] = counts.get(entry["kind"], 0) + 1
+        response.update(blocking=blocking, advisory=advisory, counts=counts)
+        return response
+
+    def next_obligation(self, phase: str | None = None) -> dict[str, Any]:
+        """The first actionable blocking gate, ranked by gate prerequisites."""
+        if self.canonical is None:
+            response = self._unavailable("next_obligation")
+            response.update(next=None, reason=self.gate_set.reason, stage_queue=[], method_side_blockers=[])
+            return response
+        response = self._header("next_obligation")
+        depths = self._depths()
+        order = {g.obligation_id: i for i, g in enumerate(self._contract().obligations)}
+        actionable: list[tuple[tuple[int, int, int], me.ObligationSpec, str]] = []
+        method_side: list[dict[str, Any]] = []
+        for p in self._phases(phase):
+            for gate in self._gates(p):
+                if not gate.required:
+                    continue
+                kind = self._kind(self._unit(gate.obligation_id))
+                if kind in {KIND_VIOLATION, KIND_INPUT}:
+                    rank = (depths[gate.obligation_id], PHASE_ORDER.get(gate.phase, 99), order[gate.obligation_id])
+                    actionable.append((rank, gate, kind))
+                elif kind == KIND_METHOD_SIDE:
+                    unit = self._unit(gate.obligation_id)
+                    missing = sorted({m for c in self._children(gate.obligation_id) for m in c.missing}
+                                     | set(unit.missing))
+                    method_side.append({"gate": gate.obligation_id, "phase": gate.phase, "missing": missing})
+        actionable.sort(key=lambda item: item[0])
+        queue: list[dict[str, Any]] = []
+        for _rank, gate, _kind in actionable:
+            if not queue or queue[-1]["phase"] != gate.phase:
+                if any(entry["phase"] == gate.phase for entry in queue):
+                    next(entry for entry in queue if entry["phase"] == gate.phase)["gates"].append(gate.obligation_id)
+                    continue
+                queue.append({"phase": gate.phase, "gates": []})
+            queue[-1]["gates"].append(gate.obligation_id)
+        for entry in queue:
+            entry["phase_exit"] = me.subset_readiness(
+                self.canonical, [g.obligation_id for g in self._gates(entry["phase"])],
+                me.ReadinessTarget("PHASE_EXIT", f"{self.increment_id}/{entry['phase']}"),
+            ).readiness
+        step = None
+        reason = ""
+        if actionable:
+            _rank, gate, kind = actionable[0]
+            entry = self._entry(gate, kind)
+            step = {
+                "stage": gate.phase,
+                "gate": gate.obligation_id,
+                "kind": kind,
+                "predicate": gate.predicate,
+                "claim_boundary": gate.claim_boundary,
+                "what_to_author": entry.get("what_to_author", ""),
+                "where": entry.get("where", {}),
+                "subjects": entry.get("subjects", []),
+                "prerequisites": list(gate.depends_on),
+            }
+        elif method_side:
+            reason = ("no gate the agent can author is open; the remaining blockers need a method or "
+                      "kernel change")
+        else:
+            reason = "every required gate passes or is not applicable"
+        response.update(next=step, reason=reason, stage_queue=queue, method_side_blockers=method_side)
+        return response
+
+    def phase_contract(self, phase: str | None = None) -> dict[str, Any]:
+        """The gates of the method (or one phase) with this increment's applicability."""
+        response: dict[str, Any] = {
+            "query": "phase_contract",
+            "increment": {"id": self.scope.increment_id, "resolved": self.scope.usage_id is not None,
+                          "declared_phases": (list(self.scope.declared_phases)
+                                              if self.scope.declared_phases is not None else None)},
+            "method": self._method_block(),
+            "method_provenance": [{"authority": "authoritative",
+                                   "source": f"git://{self.revision.git_commit}"}],
+            "phase": phase,
+        }
+        if self.gate_set.contract is None:
+            response.update(executable_contract_available=False, phases=[], gates=[],
+                            reason_codes=[me.INVALID_CONTRACT if self.gate_set.problems else me.CONTRACT_UNAVAILABLE],
+                            diagnostics=[self.gate_set.reason])
+            return response
+        phases = self._phases(phase)
+        gates = []
+        for p in phases:
+            for gate in self._gates(p):
+                gates.append(self._gate_record(gate))
+        response.update(executable_contract_available=bool(gates), phases=phases, gates=gates,
+                        contract_digest=self._contract().digest())
+        return response
+
+    def _gate_record(self, gate: me.ObligationSpec) -> dict[str, Any]:
+        record = {
+            "obligation_id": gate.obligation_id,
+            "phase": gate.phase,
+            "subject_selector": gate.subject_selector,
+            "predicate": gate.predicate,
+            "target_filters": list(gate.target_filters),
+            "typed_filters": [
+                {"kind": f.kind, "argument": f.argument, "values": list(f.values)} for f in gate.filters
+            ],
+            "cardinality": [gate.cardinality[0], "*" if gate.cardinality[1] >= UNBOUNDED else gate.cardinality[1]],
+            "minimum_population": gate.minimum_population,
+            "permitted_empty": gate.permitted_empty,
+            "required": gate.required,
+            "applicability": gate.applicability,
+            "prerequisites": list(gate.depends_on),
+            "claim_boundary": gate.claim_boundary,
+            "what_satisfies": remedy(gate, increment=self.scope, view=self.view),
+        }
+        if gate.applicability_kind == me.APPLICABILITY_UNCONDITIONAL:
+            record["applicability_resolution"] = "applicable"
+        elif self.scope.declared_phases is None:
+            record["applicability_resolution"] = "unresolved"
+            record["applicability_missing_inputs"] = ["charter declaration applicablePhases"]
+        else:
+            record["applicability_resolution"] = (
+                "applicable" if gate.phase in self.scope.declared_phases else "not_applicable"
+            )
+        return record
+
+
+def evaluate_increment(
+    view: ModelView,
+    increment_id: str,
+    *,
+    revision: me.RevisionIdentity,
+    gates: GateSet | None = None,
+) -> IncrementEvaluation:
+    """Evaluate one increment against the method gates of ``view`` (or ``gates``)."""
+    gate_set = gates if gates is not None else read_method_gates(view, revision_label=revision.git_commit)
+    scope = resolve_increment(view, increment_id)
+    canonical = None
+    if gate_set.contract is not None:
+        ctx = IncrementEvaluationContext(
+            revision=revision,
+            elements=(),
+            scope=me.DeclaredEvaluationScope(
+                scope_id=scope.increment_id,
+                increment_id=scope.increment_id,
+                usage_ids=(scope.usage_id,) if scope.usage_id else (),
+                contribution_ids=frozenset(),
+                profiles=(),
+                scope_element_id=scope.usage_id,
+            ),
+            declared_phases=frozenset(scope.declared_phases) if scope.declared_phases is not None else None,
+            candidate_missing_inputs=("charter declaration applicablePhases",),
+            diagnostics=tuple(scope.diagnostics),
+            model=view,
+            increment=scope,
+        )
+        evaluator = me.MethodEvaluator(gate_set.contract, predicates=GATE_PREDICATES, selectors=GATE_SELECTORS)
+        canonical = evaluator.evaluate(ctx)
+    return IncrementEvaluation(
+        increment_id=scope.increment_id, revision=revision, gate_set=gate_set, scope=scope,
+        view=view, canonical=canonical,
+    )
+
+
+def _revision(revision: me.RevisionIdentity) -> dict[str, str]:
+    return {
+        "git_commit": revision.git_commit,
+        "sysml_project_id": revision.sysml_project_id,
+        "sysml_commit_id": revision.sysml_commit_id,
+        "scope": revision.scope,
+    }
+
+
+def _method_side(result: me.EvaluationResult) -> bool:
+    return any(str(item).startswith(METHOD_SIDE_PREFIXES) for item in result.missing)
+
+
+def _state_label(unit: me.EvaluationResult) -> str:
+    return unit.verdict or unit.state or unit.coverage
+
+
+def _element_subject(subject_id: str | None, view: ModelView) -> str | None:
+    return subject_id if subject_id and subject_id in view.index.by_id else None

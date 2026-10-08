@@ -226,6 +226,18 @@ class RevisionIndex:
             typed |= set(indexes.typed_by_implied.get(identifier, ()))
         return frozenset(typed)
 
+    def typed_usages(self, definition: str) -> tuple[str, ...]:
+        """Elements explicitly typed by ``definition`` (reverse typing index)."""
+
+        def build() -> dict[str, tuple[str, ...]]:
+            found: dict[str, list[str]] = {}
+            for feature, types in self.graph_indexes().typed_by.items():
+                for typed in types:
+                    found.setdefault(typed, []).append(feature)
+            return {key: tuple(sorted(value)) for key, value in found.items()}
+
+        return self.memo("typed-usages", build).get(definition, ())
+
     def declared_of(self, identifier: str) -> str:
         """The declared original of a serialized reference shadow (else itself)."""
 

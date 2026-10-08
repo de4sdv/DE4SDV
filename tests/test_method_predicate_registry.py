@@ -185,3 +185,67 @@ def test_evaluator_core_does_not_match_pilot_filter_text() -> None:
         source = inspect.getsource(function)
         for text in pilot_texts:
             assert text not in source, (function.__name__, text)
+
+
+def _declared_phase_spec() -> me.ObligationSpec:
+    return _spec(
+        applicability="increment declares the gate phase",
+        applicability_kind=me.APPLICABILITY_DECLARED_PHASE,
+        predicate="test-pass",
+    )
+
+
+def _pass_registry() -> me.PredicateRegistry:
+    return me.DEFAULT_PREDICATES.with_definitions(
+        me.PredicateDefinition(
+            name="test-pass",
+            evaluate=lambda ctx, spec, subject: me.PredicateOutcome(status="satisfied", targets=("t",)),
+        )
+    )
+
+
+def _evaluate_declared(declared):
+    ctx = _context()
+    ctx.declared_phases = declared
+    return me.MethodEvaluator(_contract(_declared_phase_spec()), predicates=_pass_registry()).evaluate(ctx)
+
+
+def test_declared_phase_applicability_evaluates_declared_phases() -> None:
+    evaluation = _evaluate_declared(frozenset({"phase5_requirements"}))
+    assert evaluation.conformance_verdict == me.VERDICT_PASS
+
+
+def test_undeclared_phase_is_explicitly_not_applicable() -> None:
+    evaluation = _evaluate_declared(frozenset({"phase4_needs"}))
+    (unit,) = evaluation.units
+    assert (unit.state, unit.verdict) == (me.STATE_COMPLETE, me.VERDICT_NOT_APPLICABLE)
+    assert me.EXPLICIT_DISPOSITION in evaluation.results[0].diagnostics
+
+
+def test_unknown_declared_phases_leave_applicability_unresolved() -> None:
+    evaluation = _evaluate_declared(None)
+    (unit,) = evaluation.units
+    assert (unit.state, unit.verdict) == (me.STATE_INDETERMINATE, None)
+    assert unit.reason_codes == (me.APPLICABILITY_UNRESOLVED,)
+
+
+@pytest.mark.parametrize(
+    ("reason", "state"),
+    [(me.INPUT_UNAVAILABLE, me.STATE_INDETERMINATE), (me.SCOPE_RESOLUTION_ERROR, me.STATE_ERROR)],
+)
+def test_unresolvable_subjects_are_never_an_empty_population(reason, state) -> None:
+    def unresolvable(spec, ctx):
+        raise me.SubjectResolutionError(reason, diagnostics=("population unknown",),
+                                        missing=("kernel-binding:Need",))
+
+    selectors = me.DEFAULT_SELECTORS.with_definitions(
+        me.SelectorDefinition(kind="test-unresolvable", resolve=unresolvable)
+    )
+    contract = _contract(_spec(selector_kind="test-unresolvable", predicate="test-pass"))
+    evaluation = me.MethodEvaluator(contract, predicates=_pass_registry(), selectors=selectors).evaluate(
+        _context()
+    )
+    (unit,) = evaluation.units
+    assert unit.state == state
+    assert unit.reason_codes == (reason,)
+    assert me.POPULATION_POLICY_VIOLATION not in unit.reason_codes
