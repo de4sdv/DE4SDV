@@ -13,7 +13,6 @@ package DE4SDV_IncrementWorkflow {
   private import DE4SDV_MethodTraces::*;
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_Stakeholders::*;
-  private import DE4SDV_ProductLine::*;
 
   metadata def MethodCheck {
     doc /* A method rule about one parameter of a step definition. Its subjects are
@@ -168,7 +167,7 @@ package DE4SDV_IncrementWorkflow {
     doc /* Is this a feature, common capability, constraint, or evidence capability? */
     attribute :>> phase = MethodPhase::phase3_capabilityClassification;
     in part operationalContext : SystemContext;
-    out part characteristics[1..*] : ProductLineCharacteristic;
+    out part characteristics[1..*];
   }
 
   action def ElaborateNeeds :> IncrementStep {
@@ -261,7 +260,7 @@ package DE4SDV_IncrementWorkflow {
     doc /* How does this vary across member products or configurations? */
     attribute :>> phase = MethodPhase::phase9_variabilityConfiguration;
     in part physicalElements[0..*];
-    out part memberProducts[1..*] : ProductLineMemberProduct;
+    out part variationPoints[1..*];
   }
 
   action def PlanVerificationAndEvidence :> IncrementStep {
