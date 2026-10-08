@@ -67,3 +67,17 @@ All recommendations of the Wave C design brief were accepted.
 | D9 | The 54 batch-2 contract fields | Stay in the admission manifest, labelled honestly with pre-deletion comparison evidence; accepted for O4 closure; moving them into the model is a follow-up. |
 | D10 | Freeze scope | The whole `o1/`, `o2/` and `o3/` directories. |
 
+
+### 2026-10-08 — Wave C amendments
+
+| # | Topic | Answer |
+|---|---|---|
+| D2 | Soak before C2 | No fixed soak. The gate for merging C2 is the owner's own production test of the Wave B activation, plus the rollback drill (model → o3 → model) at the Wave B revision. C2's own merged-SHA privileged run supplies fresh evidence. Retained mitigation: the post-C2 rollback target is the activated pre-C revision `ff0311b`; its ingestion artifact expires 2026-10-22, so C2 lands and is verified before then, or the rollback path needs a fresh ingestion. |
+| — | Comparison pair-manifest labels | The Wave B model comparison labelled its pair manifests `legacy`/`o3` regardless of the compared authorities (authority ids were correct). Fixed in Wave C2: the runtime-answers comparison labels each side from its own report and refuses equal labels. |
+
+### Wave C2 implementation choices (delegated decisions)
+
+| # | Choice | Reason |
+|---|---|---|
+| D3 | The six relationship-carrier pins C1 carried over from the authored list (`HasStakeholder`, `AddressesConcern`, `ProducesView`, `RecordsAssumption`, `RecordsGap`, `SelectedViewpoint`) were removed from the manifest (81 entries). | Each is projected through a model-generated layer (definition batch 2 or the vocabulary-carrier layer); keeping it listed would give one declaration two homes. Since C2 projected and listed are a disjoint union, enforced by the coverage gate. |
+| D8 | `scripts/prove_derivation_slice.py` was rewired to the model-authority runtime (`--semantic-authority model --model-authority-bundle … --model-authority-bundle-id …`), not retired. | The rewire is small (one runtime-construction seam), and the script remains the only end-to-end proof of the derivation (K) slice against a deployed API; retiring it would drop that capability. |

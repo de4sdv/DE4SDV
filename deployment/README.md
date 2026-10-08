@@ -234,39 +234,27 @@ and an independent rate-limit budget (`guide_global`, `guide_daily`,
 hourly/daily spend. No server-side user memory or accounts exist in V1;
 conversation state is browser-local.
 
-## Semantic authority selection (O3 Stage B)
+## Semantic authority selection (O4 Wave C2)
 
 The ask-viewer and the semantic MCP server select their semantic authority
-explicitly. The default is the legacy authored `KernelContract` authority;
-an accepted closed O3 authority bundle for the frozen 13-identity subset
-can be selected per deployment. The variables
-(`DE4SDV_SEMANTIC_AUTHORITY`, `DE4SDV_O3_AUTHORITY_BUNDLE`,
-`DE4SDV_O3_AUTHORITY_BUNDLE_ID`) are supplied through the compose
-substitution environment (`/srv/de4sdv/sysml2-api.env` or the deploy
-session), and an O3 bundle is delivered under `/srv/de4sdv/artifacts/o3/`
-(mounted read-only at `/run/de4sdv/o3`). Selection is fail-closed: an
-invalid O3 request refuses the runtime instead of serving legacy answers.
-The deployed authority is visible at `GET /ask-status.json`
-(`.semantic_authority`). Activation and rollback procedures and the
-reasoning behind them live in
-`docs/method-conformance/o3/o3-activation-and-rollback.md`; Stage B
-ships no accepted bundle, so production remains legacy until a reviewed
-cutover decision.
-
-### Model authority (O4 Wave B)
-
+explicitly, and since O4 Wave C2 the model authority is the only one:
 `DE4SDV_SEMANTIC_AUTHORITY=model` selects a closed, activation-eligible
 model-authority bundle (`DE4SDV_MODEL_AUTHORITY_BUNDLE`,
-`DE4SDV_MODEL_AUTHORITY_BUNDLE_ID=mab-…`), supplied through the same compose
-substitution environment and delivered under
-`/srv/de4sdv/artifacts/model/` (mounted read-only at `/run/de4sdv/model`).
-The request is bundle-id-bound and fail-closed; it never falls back. The
-rollback is `=o3` with a fresh O3 bundle at the same revision, legacy
-second. Activation, the rollback procedure, the production rollback proof
-(activate → rollback → reactivate, three batteries, payloads byte-identical
-minus provenance) and the owner-gated steps live in
-`docs/method-conformance/o4/model-authority-activation.md`. Merging the
-Wave B change activates nothing.
+`DE4SDV_MODEL_AUTHORITY_BUNDLE_ID=mab-…`), supplied through the compose
+substitution environment (`/srv/de4sdv/sysml2-api.env` or the deploy
+session) and delivered under `/srv/de4sdv/artifacts/model/` (mounted
+read-only at `/run/de4sdv/model`). The request is bundle-id-bound and
+fail-closed. An unset selector and the retired values `legacy` and `o3`
+refuse startup (the authored ontology and the O3 bundle runtime were
+deleted); the `DE4SDV_O3_*` variables are no longer read. The deployed
+authority is visible at `GET /ask-status.json` (`.semantic_authority`).
+
+Rollback is a redeploy of the pre-C2 activated revision (`ff0311b`, its
+ingestion artifact expires 2026-10-22). Activation, the rollback procedure,
+the production rollback proof (C2 → redeploy `ff0311b` → C2, three
+batteries) and the owner-gated steps live in
+`docs/method-conformance/o4/model-authority-activation.md`. Merging the C2
+change activates nothing.
 
 ## Known limitations
 

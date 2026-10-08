@@ -71,8 +71,10 @@ These CLIs refuse to write or check (exit code 2) and point to the manifest:
 - `scripts/generate_semantic_projection_o23.py`
 - `scripts/generate_o3_equivalence_scope.py`
 
-Their library code stays importable until O4 Wave C2 removes the parts that
-read the authored ontology.
+O4 Wave C2 deleted or pruned their library code (the O1 inventory builder, the O2
+v1/v1.1/v1.2 projection generators and the O3 equivalence machinery all read
+the authored ontology, which C2 deleted). The CLIs remain as import-free
+stubs that exit 2 and name the manifest.
 
 ## Changing a frozen record
 

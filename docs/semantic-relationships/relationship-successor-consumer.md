@@ -2,7 +2,8 @@
 
 The successor exposes actual responsibility, validation-planning and source-provenance
 relationships without turning them into satisfaction, execution, deployment or compliance.
-It is an explicitly selected **non-production** sidecar, not a production authority change.
+It was introduced as an explicitly selected **non-production** sidecar; since O4 Wave C2
+it is part of the model-authority runtime (the only semantic authority).
 
 ## Model-backed scope
 
@@ -32,8 +33,8 @@ remain required for every authored model claim.
 
 ## Exact-pin ingestion and routing
 
-The authored ontology retains its predecessor native `Function`, `LogicalElement`,
-`PhysicalElement` and `ValidationScenario` categories. The explicit successor
+The model-built kernel contract retains the predecessor native `Function`, `LogicalElement`,
+`PhysicalElement` and `ValidationScenario` categories (lineage-pinned since O4 Wave C2). The explicit successor
 lineage roots and two typed association definitions are separately mapped for
 ingestion. Construction-only records and native-allocation end-pair descriptors
 remain reasoned kernel exclusions; they are not extra predicates or native facts.
@@ -41,7 +42,7 @@ Normal licensed ingestion validates those mappings using serializer source-docum
 provenance and persists `kernel_bindings` with source file, declaration and API UUID.
 
 At successor construction, each profile endpoint class (e.g. `Function`) is pinned
-from the authored ontology's kernel mapping: the class's own `file` + `declaration`,
+from the model-built contract's kernel mapping: the class's own `file` + `declaration`,
 or, for a natively represented class, its unique file-mapped specialization (e.g.
 `AllocatableFunction`). The SysML model carries no file-path records.
 `route_successor_bindings` then matches each profile slot's
@@ -83,29 +84,17 @@ qualified spelling cannot choose a file and construction refuses.
 
 ## Runnable CLI and MCP
 
-Supply a licensed-ingestion binding whose full Git SHA, ontology identity, project,
-commit and kernel pins match the API revision. No values are guessed from deployment
-status or inherited from environment variables.
-
-```bash
-python scripts/relationship_successor.py \
-  --non-production --predecessor legacy \
-  --api-url "$SUPPLIED_API_URL" --binding "$VALIDATED_BINDING" \
-  --expected-git-revision "$FULL_GIT_SHA" \
-  neighbors "$REQUIREMENT_API_UUID" --predicate allocatedTo
-```
-
-`legacy` is an explicitly selected base for the supplied-API path, never a fallback.
-For the verified O3+definitions predecessor, select `--predecessor o3+definitions`
-and supply `--o3-authority-bundle PATH --o3-authority-bundle-id EXACT_ID` as well.
-Invalid O3 construction refuses; it cannot silently use legacy.
-
-Commands: `model-status`, `resolve UUID`, `inspect UUID`, `neighbors UUID`,
-`impact UUID`, `verification-coverage UUID`, and `trace SOURCE TARGET --max-depth 4`.
-Replace the command with `mcp` to run the same service through stdio MCP. The shared
-MCP adapter declares read-only/non-destructive tools. All model access uses repository
-GET operations. `--non-production` and explicit predecessor selection are required;
-`--activate` always refuses. Existing production CLI/MCP entrypoints are unchanged.
+O4 Wave C2 retired the separate non-production sidecar CLI
+(`scripts/relationship_successor.py`) together with its `legacy` and
+`o3+definitions` predecessors: the successor relations are served by the
+model-authority runtime as default predicates, and the retired names
+(`realizedBy`, `deployedTo`, `validatedBy`, `validatesFitnessForUse`,
+`constrainedBy`) are refused as `retired; use <successor>`. Query them
+through the semantic MCP server (`scripts/semantic_mcp_server.py
+--semantic-authority model --model-authority-bundle PATH
+--model-authority-bundle-id mab-…`) or the impact CLI
+(`scripts/query_model_impact.py`), both read-only. See
+`docs/method-conformance/o4/model-authority-runtime.md`.
 
 ## Evidence boundary
 
