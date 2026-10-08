@@ -32,12 +32,12 @@ from . import method_evaluator as me
 from .gate_predicates import (
     GATE_PREDICATES,
     GATE_SELECTORS,
-    METHOD_SIDE_PREFIXES,
     IncrementEvaluationContext,
     remedy,
 )
 from .gate_reader import PHASE_ORDER, UNBOUNDED, GateSet, read_method_gates
 from .increment_scope import IncrementScope, ModelView, resolve_increment
+from .relation_checks import METHOD_SIDE_PREFIXES
 
 CLAIM_BOUNDARY = (
     "model-content gates of the method declared in the evaluated revision; no acceptance, "

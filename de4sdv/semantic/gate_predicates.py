@@ -1,10 +1,16 @@
-"""Generic method-gate predicates and typed increment selectors.
+"""Method-gate predicates and typed increment selectors (the MethodGate adapter).
 
-Each predicate is one generic operator over the native model relationships of
-one increment (ownership, typing, memberships, connections, feature values,
-governed traversal). Phase rules stay model data: which predicate a phase
-uses, with which filter, cardinality and prerequisites, is declared by the
-gates in the model. A predicate never branches on phase identity.
+This module adapts one representation of the method gates (a ``MethodGate``
+usage per rule clause, carrying a predicate name and filter text) to the
+evaluator. Relation-shaped predicates delegate to the relation checks
+(:mod:`de4sdv.semantic.relation_checks`), which map a relation name to an
+implementation over the model and take no gate field; here a gate's filter
+text only narrows the targets its rule accepts. The other predicates check
+increment framing content (identity, charter, package members, attribute
+values) and belong to this gate representation. Phase rules stay model data:
+which predicate a phase uses, with which filter, cardinality and
+prerequisites, is declared by the gates in the model. A predicate never
+branches on phase identity.
 
 Filter text decodes against each predicate's closed grammar into typed
 target filters; a lineage names a kernel declaration (for example
@@ -27,7 +33,6 @@ from de4sdv.sysml_api.errors import IdentityNotFoundError
 from de4sdv.sysml_api.repository import reference_ids
 
 from . import method_evaluator as me
-from .kernel_contract import KernelFileMapping
 from .increment_scope import (
     INCREMENT_SELECTORS,
     PROBLEM_INVALID,
@@ -35,11 +40,16 @@ from .increment_scope import (
     IncrementScope,
     ModelView,
 )
-
-#: ``missing`` prefixes of inputs that only a method/kernel change can supply.
-METHOD_SIDE_PREFIXES = ("kernel-binding:", "governed-relation:", "external-relation:")
-#: ``missing`` prefix of a malformed engineering witness (authorable).
-MODEL_WITNESS_PREFIX = "model-witness:"
+from .relation_checks import (
+    METHOD_SIDE_PREFIXES,
+    MODEL_WITNESS_PREFIX,
+    MethodSideInput,
+    RelationResult,
+    element_name,
+    membership_members,
+    plain_dependency_near_misses,
+    relation_checks,
+)
 
 #: Typed target-filter kinds of the gate predicates.
 FILTER_LINEAGE = "kernel-lineage"
@@ -140,13 +150,7 @@ def _filters(spec: me.ObligationSpec, kind: str) -> list[me.TargetFilter]:
 # ---------------------------------------------------------------------------
 
 
-class _MethodSide(Exception):
-    """An input only the method or kernel can supply is missing."""
-
-    def __init__(self, marker: str, detail: str) -> None:
-        self.marker = marker
-        self.detail = detail
-        super().__init__(detail)
+_MethodSide = MethodSideInput
 
 
 def _outcome(status: str, **fields: Any) -> me.PredicateOutcome:
@@ -211,23 +215,19 @@ def _in(view: ModelView, element: str, declaration: str) -> bool:
                           f"method side: no validated kernel binding for {ontology_class}: {error}")
 
 
-def _name(view: ModelView, element: str | None) -> str:
-    return view.index.qualified_name(element) or str(element or "")
+_name = element_name
+_members = membership_members
+
+
+def _relation(view: ModelView, relation: str, subject_id: str) -> RelationResult:
+    """The relation check named ``relation`` for one subject (no gate fields)."""
+    return relation_checks(view).check(relation, view, subject_id)
 
 
 def _package_members(view: ModelView, increment: IncrementScope, *types: str) -> list[str]:
     if increment.package_id is None:
         return []
     return view.index.owned_members(increment.package_id, *types)
-
-
-def _members(view: ModelView, owner: str, membership_type: str) -> list[str]:
-    found: list[str] = []
-    for relationship in view.index.owned_relationships(owner, membership_type):
-        for member in reference_ids(relationship.get("memberElement")):
-            if member not in found:
-                found.append(member)
-    return found
 
 
 def _subject_typed_by_increment(view: ModelView, increment: IncrementScope, element: str) -> bool:
@@ -373,7 +373,7 @@ def _required_constraint(view, increment, spec, subject_id):
 @_requires_increment
 def _stakeholder_membership(view, increment, spec, subject_id):
     (lineage,) = _filters(spec, FILTER_LINEAGE)
-    members = _members(view, subject_id, "StakeholderMembership")
+    members = _relation(view, "stakeholder", subject_id).targets
     found = [m for m in members if _in(view, m, lineage.argument)]
     if not found:
         return _violated(f"{_name(view, subject_id)} has no stakeholder member in the "
@@ -404,158 +404,57 @@ def _requirement_attribute(view, increment, spec, subject_id):
     return _satisfied(texts, witnesses=[feature, *inherited])
 
 
-def _connection_ends(view: ModelView) -> dict[str, tuple[tuple[str, ...], str]]:
-    """Connection usage -> (connected usages in end order, problem) per corpus."""
+def _connection_relation(relation: str) -> me.Predicate:
+    """A connection-carried relation; the gate filter narrows the accepted targets.
 
-    def build() -> dict[str, tuple[tuple[str, ...], str]]:
-        traversal = view.traversal
-        index = view.index
-        found: dict[str, tuple[tuple[str, ...], str]] = {}
-        for connection in index.elements_of_type("ConnectionUsage"):
-            element = index.by_id[connection]
-            try:
-                records = traversal._connection_end_records(element, index.by_id, index.graph)
-                ends = tuple(
-                    traversal._connected_usage_id(record["end_element_id"], index.graph, index.by_id)[0]
-                    for record in records
-                )
-                found[connection] = (ends, "")
-            except IdentityNotFoundError as error:
-                found[connection] = ((), str(error))
-        return found
+    The relation's pinned connection carrier decides which connections count;
+    the filter names that carrier and the target lineage the rule accepts.
+    """
 
-    return view.index.memo("connection-ends", build)
+    @_requires_increment
+    def evaluate(view, increment, spec, subject_id):
+        (rule,) = _filters(spec, FILTER_TYPED_CONNECTION)
+        result = _relation(view, relation, subject_id)
+        if result.problem:
+            return _indeterminate(result.problem, result.detail)
+        hops = [(target, witness) for target, witness in result.hops if _in(view, target, rule.argument)]
+        if not hops:
+            return _violated(result.absent)
+        return _satisfied([t for t, _w in hops], [w for _t, w in hops])
 
-
-@_requires_increment
-def _typed_connection(view, increment, spec, subject_id):
-    (rule,) = _filters(spec, FILTER_TYPED_CONNECTION)
-    carrier_class = _class_of(view, rule.values[0])
-    try:
-        carriers = view.traversal.class_lineage(carrier_class, view.elements)["explicit_lineage_ids"]
-    except IdentityNotFoundError as error:
-        raise _MethodSide(f"kernel-binding:{carrier_class}", f"method side: {error}")
-    targets: list[str] = []
-    witnesses: list[str] = []
-    problems: list[str] = []
-    for connection, (ends, problem) in sorted(_connection_ends(view).items()):
-        if not view.index.typed_by(connection) & carriers:
-            continue
-        if problem:
-            problems.append(f"{_name(view, connection)}: {problem}")
-            continue
-        if subject_id not in ends:
-            continue
-        for end in ends:
-            if end != subject_id and _in(view, end, rule.argument) and end not in targets:
-                targets.append(end)
-                witnesses.append(connection)
-    if not targets and problems:
-        return _indeterminate(MODEL_WITNESS_PREFIX + rule.values[0],
-                              f"{rule.values[0]} connections cannot be read: {problems[:3]}")
-    if not targets:
-        return _violated(f"{_name(view, subject_id)} has no {rule.values[0]} connection to a "
-                         f"{rule.argument}")
-    return _satisfied(targets, witnesses)
+    evaluate.__name__ = f"connection_{relation}"
+    return evaluate
 
 
 @_requires_increment
 def _framed_concern_membership(view, increment, spec, subject_id):
-    found, witnesses = [], []
-    for relationship in view.index.owned_relationships(subject_id, "FramedConcernMembership"):
-        for member in reference_ids(relationship.get("memberElement")):
-            concern = view.index.declared_of(member)
-            if str(view.element(concern).get("@type")) != "ConcernUsage":
-                continue
-            if _members(view, concern, "StakeholderMembership") and concern not in found:
-                found.append(concern)
-                witnesses.append(str(relationship.get("@id")))
-    if not found:
+    hops = [(concern, witness) for concern, witness in _relation(view, "frame", subject_id).hops
+            if _members(view, concern, "StakeholderMembership")]
+    if not hops:
         return _violated(f"{_name(view, subject_id)} frames no concern that has a native stakeholder member")
-    return _satisfied(found, witnesses)
+    return _satisfied([c for c, _w in hops], [w for _c, w in hops])
 
 
 @_requires_increment
 def _subject_membership(view, increment, spec, subject_id):
-    found = _members(view, subject_id, "SubjectMembership")
+    found = _relation(view, "subject", subject_id).targets
     if not found:
         return _violated(f"{_name(view, subject_id)} declares no subject")
     return _satisfied(found)
 
 
-def _governed(view: ModelView, relation: str, subject_id: str) -> tuple[list[Any], str]:
-    """Hops of one governed relation, or a method-side/model-witness problem."""
-    contract = view.contract
-    try:
-        mapping = contract.relationship_mapping(relation)
-    except Exception as error:  # noqa: BLE001 - an unmapped relation is method side
-        raise _MethodSide(f"governed-relation:{relation}",
-                          f"method side: governed relation {relation} has no SysML mapping ({error})")
-    if mapping.strategy == "external":
-        raise _MethodSide(f"external-relation:{relation}",
-                          f"method side: {relation} is external data; no native relation at this revision")
-    config = mapping.configuration or {}
-    # Classes the strategy itself resolves through kernel bindings; a
-    # missing binding is method side, not a model gap.
-    classes = [mapping.domain, config.get("connection_definition"),
-               config.get("source_lineage_of"), config.get("target_lineage_of")]
-    for ontology_class in [str(c) for c in classes if c]:
-        try:
-            file_mapped = isinstance(contract.mapping(ontology_class), KernelFileMapping)
-        except Exception:  # noqa: BLE001 - not a class of this contract
-            file_mapped = False
-        if not file_mapped:
-            continue
-        try:
-            view.traversal.class_lineage(ontology_class, view.elements)
-        except IdentityNotFoundError as error:
-            raise _MethodSide(f"kernel-binding:{ontology_class}", f"method side: {error}")
-    traversal = view.traversal
-    # The traversal de-duplicates its accumulated unsupported records, so the
-    # records of this one call are collected on a fresh list and merged back.
-    accumulated = getattr(traversal, "unsupported", None)
-    if accumulated is not None:
-        traversal.unsupported = []
-    try:
-        hops = traversal.traverse(relation, view.element(subject_id), view.elements)
-    except IdentityNotFoundError as error:
-        return [], str(error)
-    finally:
-        if accumulated is not None:
-            fresh = traversal.unsupported
-            traversal.unsupported = accumulated + [r for r in fresh if r not in accumulated]
-    added = [record for record in fresh if record.get("predicate") == relation] if accumulated is not None else []
-    if added and not hops:
-        return [], "; ".join(str(record.get("reason")) for record in added)
-    return hops, ""
-
-
-def _plain_need_dependencies(view: ModelView, requirement: str, need_class: str) -> int:
-    count = 0
-    for dependency in view.index.elements_of_type("Dependency"):
-        element = view.index.by_id[dependency]
-        sources = reference_ids(element.get("client")) or reference_ids(element.get("source"))
-        if requirement not in sources:
-            continue
-        targets = reference_ids(element.get("supplier")) or reference_ids(element.get("target"))
-        count += sum(1 for target in targets if view.in_lineage(target, need_class))
-    return count
-
-
 def _governed_relation(relation: str) -> me.Predicate:
     @_requires_increment
     def evaluate(view, increment, spec, subject_id):
-        hops, problem = _governed(view, relation, subject_id)
-        if problem:
-            return _indeterminate(MODEL_WITNESS_PREFIX + relation,
-                                  f"{relation} witnesses of {_name(view, subject_id)} cannot be read: {problem}")
+        result = _relation(view, relation, subject_id)
+        if result.problem:
+            return _indeterminate(result.problem, result.detail)
         targets, witnesses = [], []
         lineages = _filters(spec, FILTER_LINEAGE)
         types = [f.argument for f in _filters(spec, me.FILTER_ELEMENT_TYPE)]
-        for hop in hops:
-            target = str(hop.target.get("@id"))
+        for target, witness in result.hops:
             candidates = [target]
-            if types and str(hop.target.get("@type")) not in types:
+            if types and str(view.element(target).get("@type")) not in types:
                 # A witness on a definition covers the usages typed by it.
                 candidates = [usage for usage in view.index.typed_usages(target)
                               if str(view.element(usage).get("@type")) in types]
@@ -563,15 +462,10 @@ def _governed_relation(relation: str) -> me.Predicate:
                 if any(not _in(view, candidate, f.argument) for f in lineages):
                     continue
                 targets.append(candidate)
-                witnesses.append(str(hop.api_object.get("@id")))
+                witnesses.append(witness)
         if not targets:
-            extra: list[str] = []
-            if relation == "derivesRequirementFromNeed" and lineages:
-                plain = _plain_need_dependencies(view, subject_id, _class_of(view, lineages[0].argument))
-                if plain:
-                    extra.append(f"{plain} plain dependency derivation(s) to needs do not count; "
-                                 "only a DerivesFromNeed connection does")
-            return _violated(f"{_name(view, subject_id)} has no {relation} target", extra)
+            near = plain_dependency_near_misses(view, relation, subject_id) if lineages else ()
+            return _violated(result.absent, near)
         return _satisfied(targets, witnesses)
 
     evaluate.__name__ = f"governed_{relation}"
@@ -589,16 +483,15 @@ def _any_governed_lineage(view, increment, spec, subject_id):
                           f"method side: no governed relation reaches {', '.join(rule.values)}")
     targets, witnesses, unmapped = [], [], []
     for relation in chosen:
-        try:
-            hops, problem = _governed(view, relation, subject_id)
-        except _MethodSide as missing:
-            unmapped.append(missing.marker)
+        result = _relation(view, relation, subject_id)
+        if result.method_side:
+            unmapped.append(result.problem)
             continue
-        if problem:
-            return _indeterminate(MODEL_WITNESS_PREFIX + relation, problem)
-        for hop in hops:
-            targets.append(str(hop.target.get("@id")))
-            witnesses.append(str(hop.api_object.get("@id")))
+        if result.problem:
+            return _indeterminate(result.problem, result.reason)
+        for target, witness in result.hops:
+            targets.append(target)
+            witnesses.append(witness)
     if not targets and len(unmapped) == len(chosen):
         raise _MethodSide(",".join(unmapped),
                           "method side: " + " and ".join(chosen) + " have no SysML mapping at this revision")
@@ -612,26 +505,12 @@ def _any_governed_lineage(view, increment, spec, subject_id):
 # ---------------------------------------------------------------------------
 
 
-def _verified_requirements(view: ModelView, case: str) -> tuple[list[str], list[str]]:
-    """Requirements verified by a case's own or inherited objectives."""
-    holders = [case, *sorted(view.index.typed_by(case))]
-    targets, witnesses = [], []
-    for holder in holders:
-        for objective in _members(view, holder, "ObjectiveMembership"):
-            for relationship in view.index.owned_relationships(objective, "RequirementVerificationMembership"):
-                for member in reference_ids(relationship.get("memberElement")):
-                    declared = view.index.declared_of(member)
-                    if declared not in targets:
-                        targets.append(declared)
-                        witnesses.append(str(relationship.get("@id")))
-    return targets, witnesses
-
-
 @_requires_increment
 def _verifies(view, increment, spec, subject_id):
-    verified, witnesses = _verified_requirements(view, subject_id)
+    result = _relation(view, "verify", subject_id)
+    verified, witnesses = [t for t, _w in result.hops], [w for _t, w in result.hops]
     if not verified:
-        return _violated(f"{_name(view, subject_id)} objective verifies no requirement (own or inherited)")
+        return _violated(result.absent)
     qualifying = verified
     for rule in _filters(spec, FILTER_POPULATION_MEMBER):
         population = set(increment.populations.get(rule.argument, ()))
@@ -647,12 +526,12 @@ def _verifies(view, increment, spec, subject_id):
 
 @_requires_increment
 def _external_evidence(view, increment, spec, subject_id):
-    hops, problem = _governed(view, "hasEvidence", subject_id)
-    if problem:
-        return _indeterminate(MODEL_WITNESS_PREFIX + "hasEvidence", problem)
-    if not hops:
+    result = _relation(view, "hasEvidence", subject_id)
+    if result.problem:
+        return _indeterminate(result.problem, result.detail if result.method_side else result.reason)
+    if not result.hops:
         return _violated(f"{_name(view, subject_id)} has no evidence record or status")
-    return _satisfied([str(h.target.get("@id")) for h in hops], [str(h.api_object.get("@id")) for h in hops])
+    return _satisfied([t for t, _w in result.hops], [w for _t, w in result.hops])
 
 
 # ---------------------------------------------------------------------------
@@ -721,7 +600,7 @@ GATE_PREDICATE_DEFINITIONS = (
         "set on {subject}: attribute :>> {argument} = \"...\";{allowed}",
     ),
     me.PredicateDefinition(
-        "hasValidationScenario", _typed_connection,
+        "hasValidationScenario", _connection_relation("hasValidationScenario"),
         _grammar((rf"(?P<t>{_IDENTIFIER}) lineage; through a (?P<c>{_IDENTIFIER}) connection",
                   lambda m: _f(FILTER_TYPED_CONNECTION, m["t"], (m["c"],)))),
         "add a scenario and connect it to {subject}: part <scenario> : <:> {argument}>; connection "

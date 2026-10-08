@@ -37,9 +37,16 @@ answers carry the same `evaluation_key`.
   attempted, and `method_gaps` names the prerequisite that blocks it.
 - **Ranking.** `next_obligation` ranks open gates by their depth in the
   prerequisite graph, then by phase, then by gate order.
+- **Relations.** The relation a gate checks is decided by the relation check
+  of that name in `de4sdv/semantic/relation_checks.py`: a relation of the
+  model-built contract through the production traversal (a connection-carried
+  relation from the connections of its pinned carrier), and the native SysML
+  relations `frame`, `stakeholder`, `subject` and `verify` from their
+  memberships. A relation check reads only the model, never gate fields.
 - **Method side versus model.** Some inputs only a method or kernel change can
-  supply, for example a declaration without a validated kernel identity. Those
-  gates are listed under `method_side_blockers`, not offered as authoring work.
+  supply, for example a declaration without a validated kernel identity or a
+  relation without a SysML mapping. Those gates are listed under
+  `method_side_blockers`, not offered as authoring work.
 
 Results describe model content against the declared gates only. They make no
 acceptance, compliance, certification or evidence-adequacy claim.
