@@ -15,9 +15,9 @@ package DE4SDV_MethodGates {
        * claim follows from it.
        *
        * Method rules: the gates encode the eight DE4SDV method rules accepted
-       * by the owner. Each rule is a named comment about exactly the gates
-       * that encode it, one gate per rule clause, so changing a rule edits
-       * that comment and those gates only.
+       * by the owner. Each rule is a comment about exactly the gates that
+       * encode it, one gate per rule clause, so changing a rule edits that
+       * comment and those gates only.
        *
        * Increment declaration convention:
        * 1. Identity: the increment usage carries its registered increment
@@ -109,7 +109,7 @@ package DE4SDV_MethodGates {
     }
   }
 
-  comment blockingPrinciple about MethodGate /* Principle: structural checks
+  comment about MethodGate /* Principle: structural checks
    * block; judgment checks (wording, verifiability) are advisory. A gate
    * records this through its required flag. */
 
@@ -136,7 +136,7 @@ package DE4SDV_MethodGates {
 
   // Increment framing gates
 
-  comment incrementRule about incrementHasIdentifier, incrementHasCharter,
+  comment about incrementHasIdentifier, incrementHasCharter,
       incrementHasProblemStatement, incrementHasEngineeringQuestion,
       incrementHasLifecycleDecision, incrementHasAssumption, incrementHasStakeholder,
       incrementHasFramedConcern, incrementHasScope, incrementHasOutOfScopeItem,
@@ -441,13 +441,13 @@ package DE4SDV_MethodGates {
 
   // Needs gates
 
-  comment needsRule about needHasStatement, needHasStakeholder, needHasSource,
+  comment about needHasStatement, needHasStakeholder, needHasSource,
       needHasRationale, needHasValidationScenario
     /* Needs rule: each need has a statement, at least one stakeholder, an
      * ODE4HERA source and rationale, and at least one planned validation
      * scenario. */
 
-  comment needFramingRule about needFramesConcern
+  comment about needFramesConcern
     /* Need-to-concern rule: each need frames at least one stakeholder concern
      * through native SysML v2 framing. This replaces the retired
      * need-from-concern derivation. */
@@ -585,11 +585,11 @@ package DE4SDV_MethodGates {
 
   // Requirements gates
 
-  comment requirementDerivationRule about requirementDerivesFromNeed
+  comment about requirementDerivesFromNeed
     /* Requirement-to-need rule: only the governed DerivesFromNeed connection
      * counts; plain dependencies do not. */
 
-  comment requirementRule about requirementHasOneSubject, requirementHasVerificationMethod
+  comment about requirementHasOneSubject, requirementHasVerificationMethod
     /* Requirement rule: exactly one native subject, and exactly one primary
      * verification method from the standard kinds. */
 
@@ -684,17 +684,17 @@ package DE4SDV_MethodGates {
 
   // V&V and evidence gates
 
-  comment verificationRule about verificationCaseVerifiesRequirement,
+  comment about verificationCaseVerifiesRequirement,
       requirementVerifiedByVerificationCase
     /* Verification rule: each verification case verifies at least one
      * requirement of the increment, and every in-scope requirement is
      * verified by at least one verification case. */
 
-  comment advisoryTraceRule about requirementSpecifiesFeatureOrCapability,
+  comment about requirementSpecifiesFeatureOrCapability,
       verificationCaseVerifiesAcceptanceCriterion, verificationCaseHasEvidenceRecordOrStatus
-    /* Advisory rule, not blocking: requirement to feature or common
-     * capability, acceptance-criterion targets, and evidence record or
-     * status. */
+    /* Advisory rule: requirement to feature or common capability,
+     * acceptance-criterion targets, and evidence record or status are
+     * advisory, not blocking. */
 
   item verificationCaseVerifiesRequirement : MethodGate {
     doc /* Claim boundary: the objective of each verification case of the

@@ -83,7 +83,7 @@ These method rules apply to every increment:
 encodes these rules as the generic gates of the increment framing, needs,
 requirements, and V&V and evidence phases. Each gate is a typed
 method-contract obligation over one increment's native model relationships,
-with one gate per rule clause. Each rule is a named comment about exactly the
+with one gate per rule clause. Each rule is a model comment about exactly the
 gates that encode it, so a rule change edits only that comment and those
 gates. Declaring a gate is not evaluating it, and no gate result is a
 conformance, acceptance, or certification claim.

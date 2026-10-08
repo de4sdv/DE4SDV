@@ -159,21 +159,25 @@ def test_gates_are_generic_and_semantically_named() -> None:
 
 
 def test_each_gate_encodes_exactly_one_accepted_rule() -> None:
-    code = _code(GATES_FILE)
-    annotated: dict[str, list[str]] = {}
-    rules = dict(re.findall(r"\bcomment\s+(\w+)\s+about\s+([^;{}]*?)(?=\n\s*\n|\Z)", code))
+    # Each accepted method rule is an anonymous comment about exactly the
+    # gates that encode it; the label before the first colon names the rule.
+    text = GATES_FILE.read_text(encoding="utf-8")
+    rules = {label.strip(): targets for targets, label in re.findall(
+        r"\bcomment\s+about\s+([\w\s,]+?)\s*/\*\s*([^:*]+):", text)}
     assert set(rules) == {
-        "blockingPrinciple", "incrementRule", "needsRule", "needFramingRule",
-        "requirementDerivationRule", "requirementRule", "verificationRule", "advisoryTraceRule"}
-    assert rules["blockingPrinciple"].strip() == "MethodGate"
+        "Principle", "Increment rule", "Needs rule", "Need-to-concern rule",
+        "Requirement-to-need rule", "Requirement rule", "Verification rule", "Advisory rule"}
+    assert rules["Principle"].strip() == "MethodGate"
+    annotated: dict[str, list[str]] = {}
     for rule, targets in rules.items():
         for target in (name.strip() for name in targets.split(",")):
             annotated.setdefault(target, []).append(rule)
     for name in _gates():
         assert len(annotated.get(name, [])) == 1, (name, annotated.get(name))
     assert set(annotated) - {"MethodGate"} == set(_gates())
-    advisory_rule = {t.strip() for t in rules["advisoryTraceRule"].split(",")}
-    assert advisory_rule == ADVISORY
+    assert {t.strip() for t in rules["Advisory rule"].split(",")} == ADVISORY
+    # Named comments in the kernel are reserved for vocabulary roles.
+    assert not re.search(r"\bcomment\s+(?!about\b)\w+", strip_comments(text))
 
 
 def test_inc_aebs_010_is_declared_with_identifier_and_charter() -> None:
