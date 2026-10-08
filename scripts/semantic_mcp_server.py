@@ -12,6 +12,10 @@ There is no default: an unset selector, the retired values ``legacy`` and
 at startup (exact revision, revision binding v2, closed bundle attestation,
 activation eligibility); any failure refuses to start. Procedure:
 docs/method-conformance/o4/model-authority-activation.md.
+
+The bound revision's element corpus is cached across restarts in an
+identity-bound snapshot (``DE4SDV_SEMANTIC_SNAPSHOT_DIR``, default
+``~/.cache/de4sdv/semantic-snapshots``); a miss or any doubt loads from the API.
 """
 
 from __future__ import annotations
@@ -25,6 +29,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from de4sdv.semantic import corpus_cache  # noqa: E402
 from de4sdv.semantic.authority_selection import (  # noqa: E402
     AuthoritySelectionError,
 )
@@ -105,6 +110,11 @@ def main() -> int:
         f"{selection.provenance()}",
         file=sys.stderr,
     )
+    # Fast start: a lazy, identity-bound snapshot of the bound revision's
+    # element corpus. Installing performs no I/O, so the stdio handshake never
+    # waits; the first listing is served from the snapshot when one exists
+    # (DE4SDV_SEMANTIC_SNAPSHOT_DIR), else loaded from the API and saved.
+    corpus_cache.install_corpus_snapshot(service)
     create_mcp_server(service).run(transport="stdio")
     return 0
 

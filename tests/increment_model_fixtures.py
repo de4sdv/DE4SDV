@@ -143,12 +143,31 @@ class ModelBuilder:
 
     # -- kernel and library declarations ------------------------------------
 
+    def adopt(self, elements: Sequence[dict[str, Any]], bindings: Sequence[dict[str, str]]) -> None:
+        """Adopt an existing kernel fixture (its roots are reused by declaration)."""
+        by_id = {element["@id"]: element for element in elements}
+        for element in elements:
+            element.setdefault("ownedRelationship", [])
+            self.elements.append(element)
+            self.sources.setdefault(element["@id"], FEATURE_SOURCE)
+        for binding in bindings:
+            self.bindings.append(dict(binding))
+            root = by_id.get(binding["element_id"])
+            if root is not None:
+                self.sources[root["@id"]] = binding["source_file"]
+                self.kernel.setdefault(binding["ontology_class"], root)
+
     def kernel_definition(self, ontology_class: str) -> dict[str, Any]:
         """The kernel declaration of one ontology class plus its binding."""
         if ontology_class in self.kernel:
             return self.kernel[ontology_class]
         mapping = model_contract().mapping(ontology_class)
         assert isinstance(mapping, KernelFileMapping), ontology_class
+        for binding in self.bindings:
+            if (binding["source_file"], binding["declaration"]) == (mapping.file, mapping.declaration):
+                existing = next(e for e in self.elements if e["@id"] == binding["element_id"])
+                self.kernel[ontology_class] = existing
+                return existing
         name, metaclass = declaration_identity(mapping.declaration)
         definition = self.new(metaclass, name=name, source=mapping.file)
         self.kernel[ontology_class] = definition
