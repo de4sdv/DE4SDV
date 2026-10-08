@@ -888,3 +888,32 @@ def test_impact_text_output_includes_function_category() -> None:
     }
     text = qmi._render_api_text(report)
     assert "function: 1" in text
+
+
+def test_impact_traverses_the_successor_and_never_a_refused_identity(
+    api_server_fixture,
+) -> None:
+    """O4 Wave C2 (D4): the requirement-to-architecture hop is the successor
+    ``allocatedTo``; impact never asks the traversal for a retired or refused
+    identity (a refused name would only yield an unsupported record)."""
+    elements = [
+        {"@id": "kernel-member-product", "@type": "PartDefinition",
+         "declaredName": "ProductLineMemberProduct"},
+        {"@id": "kernel-requirement", "@type": "RequirementDefinition",
+         "declaredName": "RequirementCandidate"},
+        {"@id": "req-lonely", "@type": "RequirementUsage", "declaredName": "reqNoFunctionTrace"},
+    ]
+    service = _impact_service(api_server_fixture, elements, _f3_kernel_bindings())
+    asked: list[str] = []
+    real = service.traversal.traverse
+
+    def recording(predicate, *args, **kwargs):
+        asked.append(predicate)
+        return real(predicate, *args, **kwargs)
+
+    service.traversal.traverse = recording
+    service.impact("reqNoFunctionTrace", git_revision="a" * 40)
+    assert "allocatedTo" in asked
+    refused = set(service.contract.refused)
+    assert refused >= {"realizedBy", "deployedTo", "validatedBy", "constrainedBy"}
+    assert not refused & set(asked), sorted(refused & set(asked))
