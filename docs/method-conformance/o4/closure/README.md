@@ -48,8 +48,18 @@ compliance, certification or homologation claim.
   reviewed definitions are equal to the authored ones (D9). The record
   also keeps the authored identity lists, definitions and validation
   rules the tests now lock to.
-- The regenerated definition (batch 1 and 2) and vocabulary-carrier pairs,
-  bound to a branch commit of the C2 PR (merge commit required).
+- **Branch-bound artifacts** (the C2 PR must be merged with a merge
+  commit, never squashed; each bound commit must stay an ancestor of
+  `main`):
+  - the regenerated definition batch-1 and vocabulary-carrier pairs, bound
+    to branch commit `01acc00`;
+  - the definition batch-2 pair, bound to branch commit `6a7538c` (it was
+    regenerated after the two stale successor-definition comments were
+    corrected in review);
+  - [contract-equivalence.json](contract-equivalence.json)
+    `model_revision`, bound to branch commit `7cf719c`
+    (`tests/test_o4_wave_c2_closure_evidence.py` requires it to be an
+    ancestor of HEAD and the comparison script to exist there).
 - The C2 PR's gate and suite results at its head, and the without-YAML
   runs of `verify_generated_chain`, `check_model_sync` and `check_repo`.
 
@@ -61,11 +71,26 @@ answerable, or the O3/legacy selectors as rollback paths, this record and
 [model-authority-runtime.md](../model-authority-runtime.md) supersede them
 from O4 Wave C2 on.
 
+Two frozen labels are stale and stay unchanged with the frozen file:
+`frozen-records.json` (and `LIVE_CONSUMERS` in
+`scripts/verify_generated_chain.py`, which must match it) still name an
+"O3 equivalence basis" reader of `o1/semantic-authority-inventory.json`, an
+"O3 equivalence lane" reader of `o3/o3-equivalence-scope.json`, and the
+"O3 bundle" as a reader of the O2 profiles and projections. The O3 runtime
+and its equivalence machinery were deleted in C2, so those readers no
+longer exist; the model-authority runtime's o2-chain layer is the only
+remaining live reader of the O2 files.
+
 ## Open follow-ups
 
 - D9: move the 54 manifest-held batch-2 contract fields into the model
-  (follow-up issue).
-- Reviewed definition texts that still describe the authored ontology as
-  present (for example the `hasEvidenceStatus` role in
-  `de4sdv_scoped_assurance.sysml`) need an owner-reviewed definition
-  change; they were not edited by C2.
+  (follow-up issue), and the domain and range of `usesVerificationMethod`
+  (authored as `VerificationCase -> VerificationMethod`; the model-built
+  contract provides the identity as O2+ vocabulary only, without a
+  relationship mapping).
+- The two successor-definition comments that still described the authored
+  ontology as present (`allocatedToVocabularyRole`,
+  `hasEvidenceStatusVocabularyRole`) were corrected in review (comment
+  bodies only; the comment-stripped model text is byte-identical). They are
+  model-owned definitions, so the owner reviews the new wording with the
+  PR.

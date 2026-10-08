@@ -2239,7 +2239,7 @@
     "validationScenarioFor"
   ],
   "model_revision": "7cf719c0722e3aeeafda9189849f43649314331d",
-  "model_revision_note": "the commit whose model-built contract was compared; informational, not a binding",
+  "model_revision_note": "the C2 branch commit whose model-built contract was compared; a binding: tests/test_o4_wave_c2_closure_evidence.py requires it to stay an ancestor of HEAD (merge the C2 PR with a merge commit, never squash)",
   "oracle_revision": "6dab3e9e45df00cd28b1b0ad824e30708097a663",
   "oracle_revision_note": "main at the Wave C1 merge: the last main revision with the authored ontology and the Wave B runtime; its own code built the served and authored surfaces",
   "schema": "de4sdv.o4-contract-equivalence/v1",
