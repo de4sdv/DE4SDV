@@ -428,7 +428,11 @@ class TestAuthorityAwareCaches:
         service = self._snapshot_service("de4sdv.o0-o1-authored-v1")
         identity = viewer._snapshot_identity(service)
         assert identity["semantic_authority_id"] == "de4sdv.o0-o1-authored-v1"
-        assert identity["format"] == 2
+        # v3 additionally binds endpoint, revision binding and ontology.
+        assert identity["format"] == 3
+        assert "api_endpoint_digest" in identity
+        assert "binding_digest" in identity
+        assert "ontology" in identity
 
     def test_snapshot_paths_do_not_collide_across_authorities(self, viewer, tmp_path, monkeypatch) -> None:
         monkeypatch.setattr(viewer, "_snapshot_dir", lambda: tmp_path)
