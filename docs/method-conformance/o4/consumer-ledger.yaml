@@ -32,26 +32,17 @@ entries:
     role: build
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   AGENTS.md:
     role: documentation
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   approach/framework/ontology/README.md:
     role: documentation
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   approach/framework/ontology/de4sdv-basic-ontology.yaml:
     role: authored-authority
     markers: []
@@ -67,116 +58,82 @@ entries:
     role: runtime-consumer
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   de4sdv/semantic/authority_ids.py:
     role: governance-machinery
     markers: []
     retirement_status: retired
-    note: 'Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2.'
+    note: Deleted in O4 Wave C2.
   de4sdv/semantic/authority_inventory.py:
     role: governance-machinery
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   de4sdv/semantic/authority_selection.py:
     role: governance-machinery
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   de4sdv/semantic/composition_construction.py:
     role: closure-preparation-machinery
     markers: []
     retirement_status: retired
     note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract). Previously: Non-production bootstrap verification only; live query routing is
-      in runtime_composition.py.'
+      Previously: Non-production bootstrap verification only; live query routing is in runtime_composition.py.'
   de4sdv/semantic/definition_candidate_provider.py:
     role: closure-preparation-machinery
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   de4sdv/semantic/definition_migration.py:
     role: closure-preparation-machinery
     markers: []
     retirement_status: retired
     note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract). Previously: Verified, explicitly selected, non-production definition-migration
-      path (verified candidate load, explicit fallback provider, fail-closed activation prerequisite,
-      offline probe). Consumes the authored contract only as the explicit fallback for unadmitted identities
-      and as the probe comparison oracle; never semantic authority for the admitted set. This row claims
-      no retirement.'
+      Previously: Verified, explicitly selected, non-production definition-migration path (verified candidate
+      load, explicit fallback provider, fail-closed activation prerequisite, offline probe). Consumes
+      the authored contract only as the explicit fallback for unadmitted identities and as the probe comparison
+      oracle; never semantic authority for the admitted set. This row claims no retirement.'
   de4sdv/semantic/impact.py:
     role: runtime-consumer
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   de4sdv/semantic/kernel_binding_index.py:
     role: runtime-consumer
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   de4sdv/semantic/kernel_contract.py:
     role: runtime-consumer
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   de4sdv/semantic/model_authority_runtime.py:
     role: runtime-consumer
     markers: []
     retirement_status: retired
     note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract). Previously: Model-authority bundle runtime (Wave B); the listed residual still
-      uses the authored YAML and the ontology stays the ingestion compatibility identity.'
+      Previously: Model-authority bundle runtime (Wave B); the listed residual still uses the authored
+      YAML and the ontology stays the ingestion compatibility identity.'
   de4sdv/semantic/model_projection_coverage.py:
     role: gate
     markers: []
     retirement_status: retired
     note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract). Previously: Coverage gate (Wave C1 mode blocking-retained); classifies the authored-YAML
-      residual explicitly; kernel-internal declarations come from docs/method-conformance/o4/kernel-internal-declarations.yaml,
+      Previously: Coverage gate (Wave C1 mode blocking-retained); classifies the authored-YAML residual
+      explicitly; kernel-internal declarations come from docs/method-conformance/o4/kernel-internal-declarations.yaml,
       locked equal to the authored list until Wave C2.'
   de4sdv/semantic/o3_bundle.py:
     role: governance-machinery
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   de4sdv/semantic/o3_equivalence.py:
     role: governance-machinery
     markers: []
     retirement_status: retired
-    note: 'Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2.'
+    note: Deleted in O4 Wave C2.
   de4sdv/semantic/o4_consumers.py:
     role: governance-machinery
     markers:
@@ -192,112 +149,84 @@ entries:
     role: governance-machinery
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   de4sdv/semantic/projection_o22.py:
     role: governance-machinery
     markers: []
     retirement_status: retired
-    note: 'Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2.'
+    note: Deleted in O4 Wave C2.
   de4sdv/semantic/projection_o23.py:
     role: governance-machinery
     markers: []
     retirement_status: retired
-    note: 'Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2.'
+    note: Deleted in O4 Wave C2.
   de4sdv/semantic/projection_v1.py:
     role: governance-machinery
     markers: []
     retirement_status: retired
-    note: 'Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2.'
+    note: Deleted in O4 Wave C2.
   de4sdv/semantic/query.py:
     role: runtime-consumer
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   de4sdv/semantic/relationship_successor.py:
     role: runtime-consumer
     markers: []
     retirement_status: retired
     note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract). Previously: Explicit non-production successor; the predecessor authored-authority
-      consumer is not retired.'
+      Previously: Explicit non-production successor; the predecessor authored-authority consumer is not
+      retired.'
   de4sdv/semantic/relationship_successor_contract.py:
     role: governance-machinery
     markers: []
     retirement_status: retired
     note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract). Previously: Model-derived profile extraction and construction verification, not
-      query-time source parsing. Endpoint class pins are read from the authored ontology kernel mappings
-      at construction only.'
+      Previously: Model-derived profile extraction and construction verification, not query-time source
+      parsing. Endpoint class pins are read from the authored ontology kernel mappings at construction
+      only.'
   de4sdv/semantic/runtime.py:
     role: runtime-consumer
     markers: []
     retirement_status: retired
-    note: 'Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2.'
+    note: Deleted in O4 Wave C2.
   de4sdv/semantic/runtime_composition.py:
     role: runtime-consumer
     markers: []
     retirement_status: retired
-    note: 'Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2.
-      Previously: Explicit non-production disjoint O3 plus definition routing; unmigrated fallback remains.'
+    note: 'Deleted in O4 Wave C2. Previously: Explicit non-production disjoint O3 plus definition routing;
+      unmigrated fallback remains.'
   de4sdv/semantic/traversal.py:
     role: runtime-consumer
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   de4sdv/semantic/validation.py:
     role: runtime-consumer
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   de4sdv/semantic/vocabulary_carrier.py:
     role: governance-machinery
     markers: []
     retirement_status: retired
     note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract). Previously: O4 W4 carrier machinery; build-time governance only, never a runtime
-      consumer.'
+      Previously: O4 W4 carrier machinery; build-time governance only, never a runtime consumer.'
   deployment/README.md:
     role: documentation
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   deployment/ask_viewer/entrypoint.py:
     role: runtime-consumer
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   deployment/compose.yaml:
     role: build
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md:
     role: documentation
     markers:
@@ -393,10 +322,7 @@ entries:
     role: documentation
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   docs/method-conformance/o2/semantic-projection-v1.1.json:
     role: documentation
     markers:
@@ -431,18 +357,12 @@ entries:
     role: documentation
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   docs/method-conformance/o3/o3-stage-b-design.md:
     role: documentation
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   docs/method-conformance/o4/closure/README.md:
     role: documentation
     markers:
@@ -476,10 +396,8 @@ entries:
     markers: []
     retirement_status: retired
     note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract). Previously: Migration-path design record; references the authored contract as
-      the explicit fallback and probe comparison oracle. Not a consumer to retire.'
+      Previously: Migration-path design record; references the authored contract as the explicit fallback
+      and probe comparison oracle. Not a consumer to retire.'
   docs/method-conformance/o4/o4-execution-plan.md:
     role: documentation
     markers:
@@ -517,10 +435,7 @@ entries:
     role: documentation
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   docs/method-conformance/o4/ontology-review/decisions/ple-decisions-v2.json:
     role: documentation
     markers:
@@ -538,10 +453,7 @@ entries:
     role: documentation
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   docs/method-conformance/o4/owner-decisions-2026-10.md:
     role: documentation
     markers:
@@ -570,10 +482,7 @@ entries:
     role: documentation
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   docs/naming/migration-manifest.md:
     role: documentation
     markers:
@@ -585,36 +494,28 @@ entries:
     markers: []
     retirement_status: retired
     note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract). Previously: Reads the authored authority directly; retirement follows the model-to-projection
-      coverage gate replacement. O4 Wave C1 - sync point 6 reads the R003 groundings from the model rule
-      home, and the kernel->model direction plus the feature-slice guard moved to the coverage gate; only
-      the authored ontology->kernel mapping-direction check still reads the YAML. Deleted with the YAML
-      in Wave C2.'
+      Previously: Reads the authored authority directly; retirement follows the model-to-projection coverage
+      gate replacement. O4 Wave C1 - sync point 6 reads the R003 groundings from the model rule home,
+      and the kernel->model direction plus the feature-slice guard moved to the coverage gate; only the
+      authored ontology->kernel mapping-direction check still reads the YAML. Deleted with the YAML in
+      Wave C2.'
   scripts/compare_model_contract.py:
     role: documentation
     markers: []
     retirement_status: retired
-    note: 'Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2.'
+    note: Deleted in O4 Wave C2.
   scripts/import_sysml_api_baseline.py:
     role: validation-consumer
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   scripts/measure_requirement_population_delta.py:
     role: validation-consumer
     markers: []
     retirement_status: retired
     note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract). Previously: O4 Wave B privileged-run measurement (owner decision 6). Passes the
-      authored ontology path to the selected entry runtime (legacy/o3/model); measured evidence, not an
-      activation gate.'
+      Previously: O4 Wave B privileged-run measurement (owner decision 6). Passes the authored ontology
+      path to the selected entry runtime (legacy/o3/model); measured evidence, not an activation gate.'
   scripts/ontology_review/arch_recheck.py:
     role: governance-machinery
     markers:
@@ -630,91 +531,65 @@ entries:
     role: governance-machinery
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   scripts/query_model_impact.py:
     role: runtime-consumer
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   scripts/relationship_successor.py:
     role: runtime-consumer
     markers: []
     retirement_status: retired
-    note: 'Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2.
-      Previously: Supplied-API CLI/MCP path requires explicit non-production and predecessor arguments;
-      activation always refuses.'
+    note: 'Deleted in O4 Wave C2. Previously: Supplied-API CLI/MCP path requires explicit non-production
+      and predecessor arguments; activation always refuses.'
   scripts/run_model_authority_bundle.py:
     role: closure-preparation-machinery
     markers: []
     retirement_status: retired
     note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract). Previously: O4 Wave B model-authority bundle/compare/close CLI. The authored ontology
-      path is only the legacy side of the model-vs-O3-vs-legacy comparison; the model bundle itself is
-      built by the model-authority runtime.'
+      Previously: O4 Wave B model-authority bundle/compare/close CLI. The authored ontology path is only
+      the legacy side of the model-vs-O3-vs-legacy comparison; the model bundle itself is built by the
+      model-authority runtime.'
   scripts/run_o3_equivalence.py:
     role: governance-machinery
     markers: []
     retirement_status: retired
-    note: 'Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2.'
+    note: Deleted in O4 Wave C2.
   scripts/seed_aebs_api_fixture.py:
     role: validation-consumer
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   scripts/semantic_mcp_server.py:
     role: runtime-consumer
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   scripts/validate_full_model_semantic_queries.py:
     role: validation-consumer
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   scripts/validate_product_line_scope_api.py:
     role: validation-consumer
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   scripts/validate_semantic_mcp.py:
     role: validation-consumer
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   scripts/verify_generated_chain.py:
     role: governance-machinery
     markers: []
     retirement_status: retired
     note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract). Previously: O4 Wave C1 (owner decisions Q7/D10) - the frozen lane replaced the
-      live O1 and O2 v1-v1.2 lanes, so the verifier no longer loads the authored ontology contract itself;
-      frozen records are checked at their own historical revisions. Transitive reads through the live
-      carrier lane generator remain until Wave C2.'
+      Previously: O4 Wave C1 (owner decisions Q7/D10) - the frozen lane replaced the live O1 and O2 v1-v1.2
+      lanes, so the verifier no longer loads the authored ontology contract itself; frozen records are
+      checked at their own historical revisions. Transitive reads through the live carrier lane generator
+      remain until Wave C2.'
   tests/fixtures/ontology/pilot_queries.yaml:
     role: test-reference
     markers:
@@ -725,10 +600,7 @@ entries:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   tests/test_approved_semantic_extensions.py:
     role: test-reference
     markers:
@@ -743,10 +615,7 @@ entries:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   tests/test_check_model_sync.py:
     role: test-reference
     markers:
@@ -763,32 +632,24 @@ entries:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   tests/test_definition_candidate_seam.py:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2.'
+    note: Deleted in O4 Wave C2.
   tests/test_definition_migration.py:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   tests/test_definition_migration_ingestion.py:
     role: test-reference
     markers: []
     retirement_status: retired
     note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract). Previously: Synthetic binding/probe tests and privileged workflow input-selection
-      checks; no API closure or consumer retirement evidence.'
+      Previously: Synthetic binding/probe tests and privileged workflow input-selection checks; no API
+      closure or consumer retirement evidence.'
   tests/test_definition_projection.py:
     role: test-reference
     markers:
@@ -799,58 +660,38 @@ entries:
     markers: []
     retirement_status: retired
     note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract). Previously: Locks the batch-2 manifest''s reviewed contract fields to the authored
-      ontology until Wave C deletes it; generation never reads the authored ontology.'
+      Previously: Locks the batch-2 manifest''s reviewed contract fields to the authored ontology until
+      Wave C deletes it; generation never reads the authored ontology.'
   tests/test_derivation_connection_traversal.py:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   tests/test_derivation_implied_graph.py:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   tests/test_derivation_runtime_consumer.py:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   tests/test_k_real_serializer_shapes.py:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   tests/test_lane_b_v11_round.py:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   tests/test_method_contract_binding.py:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   tests/test_model_authority_runtime.py:
     role: test-reference
     markers:
@@ -861,10 +702,7 @@ entries:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   tests/test_o1_c1_conformance_parity.py:
     role: test-reference
     markers:
@@ -896,22 +734,22 @@ entries:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2.'
+    note: Deleted in O4 Wave C2.
   tests/test_o3_equivalence_readiness.py:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2.'
+    note: Deleted in O4 Wave C2.
   tests/test_o3_runtime_equivalence.py:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2.'
+    note: Deleted in O4 Wave C2.
   tests/test_o3_stage_b.py:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2.'
+    note: Deleted in O4 Wave C2.
   tests/test_o4_accelerated_safe_set_2.py:
     role: test-reference
     markers:
@@ -929,10 +767,8 @@ entries:
     markers: []
     retirement_status: retired
     note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract). Previously: Definition-home parity and bounded source/typing probes only; no runtime
-      retirement or licensed Syside evidence.'
+      Previously: Definition-home parity and bounded source/typing probes only; no runtime retirement
+      or licensed Syside evidence.'
   tests/test_o4_model_authority_deployment.py:
     role: test-reference
     markers:
@@ -964,16 +800,12 @@ entries:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2. Previously: Retired in O4 Wave C2:
-      no longer references the authored ontology (model-built kernel contract).'
+    note: Deleted in O4 Wave C2.
   tests/test_o4_validator_runtime.py:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   tests/test_o4_w2_batch3_definitions_parity.py:
     role: test-reference
     markers:
@@ -1014,27 +846,19 @@ entries:
     markers: []
     retirement_status: retired
     note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract). Previously: Lexical guards for model-resident evidence/assurance vocabulary roles
-      only; no runtime retirement or licensed Syside evidence.'
+      Previously: Lexical guards for model-resident evidence/assurance vocabulary roles only; no runtime
+      retirement or licensed Syside evidence.'
   tests/test_o4_wave_a_vocabulary_roles.py:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   tests/test_o4_wave_c1_coverage_gate.py:
     role: test-reference
     markers: []
     retirement_status: retired
     note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract). Previously: Names the relocated contract test file only; exercises the model-projected
-      kernel accounting.'
+      Previously: Names the relocated contract test file only; exercises the model-projected kernel accounting.'
   tests/test_o4_wave_c2_closure_evidence.py:
     role: test-reference
     markers:
@@ -1045,7 +869,7 @@ entries:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2.'
+    note: Deleted in O4 Wave C2.
   tests/test_o4_wave_c2_retirement.py:
     role: test-reference
     markers:
@@ -1063,10 +887,7 @@ entries:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   tests/test_projection_model_authority.py:
     role: test-reference
     markers:
@@ -1075,102 +896,76 @@ entries:
     retirement_status: not-applicable
   tests/test_public_ask_deployment.py:
     role: test-reference
-    markers:
-    - ontology_path_token
-    retirement_status: not-applicable
+    markers: []
+    retirement_status: retired
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   tests/test_public_deployment.py:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   tests/test_semantic_authority_inventory.py:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2.'
+    note: Deleted in O4 Wave C2.
   tests/test_semantic_mcp.py:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   tests/test_semantic_projection_o22.py:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2.'
+    note: Deleted in O4 Wave C2.
   tests/test_semantic_projection_o23.py:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2.'
+    note: Deleted in O4 Wave C2.
   tests/test_semantic_projection_v1.py:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2. Previously: Deleted in O4 Wave C2.'
+    note: Deleted in O4 Wave C2.
   tests/test_semantic_query_coverage_f3.py:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   tests/test_sysml_api_live.py:
     role: test-reference
-    markers:
-    - ontology_dir_token
-    - ontology_path_token
-    retirement_status: not-applicable
+    markers: []
+    retirement_status: retired
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   tests/test_sysml_api_semantic.py:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   tests/test_sysml_full_ingestion.py:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   tests/test_vocabulary_carrier.py:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml:
     role: model
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   textual-notation-of-model/packages/methods/de4sdv/de4sdv_ontology_validation_rules.sysml:
     role: model
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   tools/sysml_html_viewer/ask_model_semantic.py:
     role: runtime-consumer
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel
-      contract). Previously: Retired in O4 Wave C2: no longer references the authored ontology (model-built
-      kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
