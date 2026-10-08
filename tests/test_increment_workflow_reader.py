@@ -1,32 +1,44 @@
-"""The increment workflow (provisional representation) evaluated against an increment.
+"""The increment workflow read from the model and evaluated against an increment.
 
-The method is ``action def IncrementWorkflow``: step actions ordered by
-successions, each typed by a step definition with a ``phase`` attribute, a
-typed ``out`` parameter with a multiplicity and ``MethodCheck`` metadata
-``about`` that output (``check`` id, optional ``minimum`` and ``advisory``).
-Check ids resolve in the method-check registry; an unknown id fails closed.
-Subjects are the increment's elements of the output's type.
+The method is ``action def IncrementWorkflow`` (DE4SDV_IncrementWorkflow): step
+actions chained from ``start`` to ``done``, each typed by a step definition
+with a ``phase``, parameters (direction, multiplicity, usually a type) and
+``MethodCheck`` metadata about a parameter (``check`` id, optional ``minimum``
+and ``advisory``). The synthetic workflow below mirrors the model's steps,
+parameters and checks; check ids resolve in the method-check registry and an
+unknown id fails closed.
 """
 
 from __future__ import annotations
 
+import re
 from dataclasses import replace
+from pathlib import Path
 
 from de4sdv.semantic import method_evaluator as me
 from de4sdv.semantic.gate_reader import UNBOUNDED, read_method_gates
 from de4sdv.semantic.increment_evaluation import evaluate_increment
 from de4sdv.semantic.increment_scope import ModelView
+from de4sdv.semantic.method_checks import MethodCheckRegistry
+from de4sdv.semantic.model_authority_runtime import model_facade
+from de4sdv.semantic.relation_checks import RelationCheckRegistry
 from increment_model_fixtures import (
     INFINITY,
     WorkflowCheck,
+    WorkflowParameter,
     WorkflowStep,
     increment_scenario,
     increment_workflow,
     method_gates,
     ref,
 )
-from test_increment_evaluation import P4, P5, P10, REVISION, synthetic_method
+from test_increment_evaluation import P0, P4, P5, P10, REVISION, synthetic_method
 from test_revision_index import _traversal
+
+WORKFLOW_FILE = (Path(__file__).resolve().parents[1]
+                 / "textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml")
+P = WorkflowParameter
+C = WorkflowCheck
 
 
 def _named(scenario, name: str) -> dict:
@@ -34,21 +46,84 @@ def _named(scenario, name: str) -> dict:
     return element
 
 
+def _framing_types(scenario) -> tuple[dict, dict]:
+    """Scope and out-of-scope declarations of the synthetic increment."""
+    builder, framing = scenario.builder, scenario.framing
+    scope = builder.definition("PartDefinition", "IncrementScope", framing)
+    out_of_scope = builder.definition("PartDefinition", "OutOfScopeItem", framing)
+    builder.usage("PartUsage", "fixtureScope", framing, [scope])
+    builder.usage("PartUsage", "fixtureOutOfScopeItem", framing, [out_of_scope])
+    return scope, out_of_scope
+
+
 def _steps(scenario, **changes) -> list[WorkflowStep]:
+    """The model's workflow steps (checked steps in full, the others with their parameters)."""
+    scope, out_of_scope = _framing_types(scenario)
     steps = [
-        WorkflowStep("needs", P4, "needs", "Need", checks=(
-            WorkflowCheck("needFramesConcern", "needFramesConcern"),
-            WorkflowCheck("needHasValidationScenario", "hasValidationScenario"),
+        WorkflowStep("frameIncrement", P0, (
+            P("increment", "EngineeringIncrement"), P("charter", "IncrementTraceObligations"),
+            P("problemStatement", "ProblemStatement", "RequirementUsage"),
+            P("engineeringQuestion", "IncrementEngineeringQuestion"),
+            P("lifecycleDecision", "IncrementLifecycleDecision"),
+            P("assumptions", "Assumption", bounds=(1, INFINITY)), P("scope", scope),
+            P("outOfScopeItems", out_of_scope, bounds=(1, INFINITY)),
+            P("framedConcerns", None, "ConcernUsage", bounds=(1, INFINITY)),
+        ), (
+            C("incrementHasIdentifier", "incrementShortName", "increment"),
+            C("incrementHasCharter", "charterReferencesIncrement", "charter"),
+            C("incrementHasProblemStatement", "problemStatementSubject", "problemStatement"),
+            C("incrementHasEngineeringQuestion", "ownedByIncrementPackage", "engineeringQuestion"),
+            C("incrementHasLifecycleDecision", "ownedByIncrementPackage", "lifecycleDecision"),
+            C("incrementHasAssumption", "ownedByIncrementPackage", "assumptions"),
+            C("incrementHasStakeholder", "stakeholderMember", "problemStatement"),
+            C("incrementHasFramedConcern", "framedByIncrementView", "framedConcerns"),
+            C("incrementHasScope", "ownedByIncrementPackage", "scope"),
+            C("incrementHasOutOfScopeItem", "ownedByIncrementPackage", "outOfScopeItems"),
+            C("incrementHasOwner", "charterOwner", "charter"),
+            C("incrementDeclaresApplicablePhases", "charterApplicablePhases", "charter"),
+            C("incrementDeclaresExpectedArtifacts", "charterExpectedArtifacts", "charter"),
+            C("incrementDeclaresExpectedReviewEvidence", "charterExpectedReviewEvidence", "charter"),
         )),
-        WorkflowStep("requirements", P5, "requirements", "Requirement", checks=(
-            WorkflowCheck("requirementDerivesFromNeed", "derivesRequirementFromNeed"),
-            WorkflowCheck("requirementHasOneSubject", "requirementHasOneSubject"),
-            WorkflowCheck("requirementHasVerificationMethod", "hasVerificationMethod"),
-            WorkflowCheck("requirementVerifiedByVerificationCase", "verifiedByVerificationCase"),
+        WorkflowStep("frameConcerns", "phase1_concernFraming", (
+            P("problemStatement", "ProblemStatement", "RequirementUsage", "in"),
+            P("concerns", None, "ConcernUsage", bounds=(1, INFINITY)),
         )),
-        WorkflowStep("verification", P10, "cases", _named(scenario, "FixtureVerification"), checks=(
-            WorkflowCheck("verificationCaseVerifiesRequirement", "verify"),
-            WorkflowCheck("verificationCaseHasEvidence", "hasEvidence", advisory=True),
+        WorkflowStep("elaborateNeeds", P4, (
+            P("problemStatement", "ProblemStatement", "RequirementUsage", "in"),
+            P("concerns", None, "ConcernUsage", "in", (0, INFINITY)),
+            P("needs", "Need", "RequirementUsage", bounds=(1, INFINITY)),
+        ), (
+            C("needHasStatement", "requireConstraint", "needs"),
+            C("needHasStakeholder", "stakeholderMember", "needs"),
+            C("needHasSource", "sourceAttribute", "needs"),
+            C("needHasRationale", "rationaleAttribute", "needs"),
+            C("needHasValidationScenario", "hasValidationScenario", "needs"),
+            C("needFramesConcern", "framesStakeholderConcern", "needs"),
+        )),
+        WorkflowStep("specifyRequirements", P5, (
+            P("needs", "Need", "RequirementUsage", "in", (0, INFINITY)),
+            P("requirements", "Requirement", "RequirementUsage", bounds=(1, INFINITY)),
+        ), (
+            C("requirementDerivesFromNeed", "derivesRequirementFromNeed", "requirements"),
+            C("requirementHasOneSubject", "oneNativeSubject", "requirements"),
+            C("requirementHasVerificationMethod", "oneVerificationMethodKind", "requirements"),
+            C("requirementSpecifiesFeatureOrCapability", "specifiesFeatureOrCommonCapability", "requirements",
+              advisory=True),
+        )),
+        WorkflowStep("defineFunctionalArchitecture", "phase6_functionalArchitecture", (
+            P("requirements", "Requirement", "RequirementUsage", "in", (0, INFINITY)),
+            P("functions", None, "ActionUsage", bounds=(1, INFINITY)),
+        )),
+        WorkflowStep("planVerificationAndEvidence", P10, (
+            P("requirements", "Requirement", "RequirementUsage", "in", (0, INFINITY)),
+            P("verificationCases", None, "VerificationCaseUsage", bounds=(1, INFINITY)),
+        ), (
+            C("verificationCaseVerifiesRequirement", "verifiesIncrementRequirement", "verificationCases"),
+            C("requirementVerifiedByVerificationCase", "verifiedBy", "requirements"),
+            C("verificationCaseVerifiesAcceptanceCriterion", "verifiesAcceptanceCriterion", "verificationCases",
+              advisory=True),
+            C("verificationCaseHasEvidenceRecordOrStatus", "evidenceRecordOrStatus", "verificationCases",
+              advisory=True),
         )),
     ]
     return [replace(step, **changes.get(step.name, {})) for step in steps]
@@ -59,12 +134,17 @@ def _view(scenario) -> ModelView:
     return ModelView(builder.elements, _traversal(builder), sources=builder.sources)
 
 
+def _gates(scenario):
+    return read_method_gates(_view(scenario), revision_label=REVISION.git_commit)
+
+
 def _evaluate(scenario):
     return evaluate_increment(_view(scenario), scenario.increment_id, revision=REVISION)
 
 
-def _workflow_scenario(**changes):
-    scenario = increment_scenario()
+def _scenario(applicable_phases=(P0, P4, P5, P10), **changes):
+    scenario = increment_scenario(applicable_phases=applicable_phases)
+    scenario.builder.kernel_definition("AcceptanceCriterion")
     increment_workflow(scenario.builder, _steps(scenario, **changes))
     return scenario
 
@@ -78,130 +158,120 @@ def _children(evaluation, gate):
     return [r for r in evaluation.canonical.results if r.unit_id == gate and r.subject_id]
 
 
-def test_the_workflow_reads_into_one_contract_in_step_order() -> None:
-    scenario = _workflow_scenario()
-    gates = read_method_gates(_view(scenario), revision_label=REVISION.git_commit)
-    assert gates.available and gates.representation == "increment-workflow"
+ADVISORY = {"requirementSpecifiesFeatureOrCapability", "verificationCaseVerifiesAcceptanceCriterion",
+            "verificationCaseHasEvidenceRecordOrStatus"}
+
+
+def test_the_workflow_reads_every_check_into_one_contract_in_step_order() -> None:
+    scenario = _scenario()
+    gates = _gates(scenario)
+    assert gates.available and gates.representation == "increment-workflow", gates.problems
     obligations = gates.contract.obligations
-    assert [o.obligation_id for o in obligations] == [
-        "needFramesConcern", "needHasValidationScenario", "requirementDerivesFromNeed",
-        "requirementHasOneSubject", "requirementHasVerificationMethod",
-        "requirementVerifiedByVerificationCase", "verificationCaseVerifiesRequirement",
-        "verificationCaseHasEvidence"]
+    assert len(obligations) == 28
+    assert [o.obligation_id for o in obligations][:2] == ["incrementHasIdentifier", "incrementHasCharter"]
+    assert [o.obligation_id for o in obligations][-1] == "verificationCaseHasEvidenceRecordOrStatus"
     by_id = {o.obligation_id: o for o in obligations}
-    assert by_id["needFramesConcern"].phase == P4 and by_id["needFramesConcern"].predicate == "needFramesConcern"
-    assert by_id["requirementDerivesFromNeed"].predicate == "derivesRequirementFromNeed"
-    assert by_id["needFramesConcern"].cardinality == (1, UNBOUNDED)
+    assert by_id["needFramesConcern"].predicate == "framesStakeholderConcern"
+    assert {o.obligation_id for o in obligations if not o.required} == ADVISORY
+    # Framing always applies; later steps apply when the charter declares their phase.
+    assert by_id["incrementHasCharter"].applicability_kind == me.APPLICABILITY_UNCONDITIONAL
+    assert by_id["needFramesConcern"].applicability_kind == me.APPLICABILITY_DECLARED_PHASE
     assert by_id["requirementHasOneSubject"].cardinality == (1, 1)
-    assert by_id["needFramesConcern"].required and not by_id["verificationCaseHasEvidence"].required
-    assert by_id["needFramesConcern"].target_filters == ()
-    assert gates.phases == (P4, P5, P10)
-    assert gates.labels["needFramesConcern"]["step"] == "needs"
-    assert gates.labels["needFramesConcern"]["output"] == "needs"
+    assert by_id["needFramesConcern"].cardinality == (1, UNBOUNDED)
+    # A check about an in parameter [0..*] permits an empty population.
+    assert by_id["requirementVerifiedByVerificationCase"].permitted_empty
+    assert gates.phases == (P0, P4, P5, P10)
+    assert gates.labels["requirementVerifiedByVerificationCase"]["direction"] == "in"
 
 
 def test_a_complete_increment_passes_every_blocking_check() -> None:
-    evaluation = _evaluate(_workflow_scenario())
-    assert evaluation.gate_set.representation == "increment-workflow"
+    evaluation = _evaluate(_scenario())
     for unit in evaluation.canonical.units:
-        if unit.unit_id == "verificationCaseHasEvidence":
-            assert unit.state == me.STATE_INDETERMINATE  # external evidence: method side
+        if unit.unit_id in ADVISORY:
             continue
         assert (unit.coverage, unit.state, unit.verdict) == (
-            me.COVERAGE_ASSESSED, me.STATE_COMPLETE, me.VERDICT_PASS), unit.unit_id
-    status = evaluation.status()
-    assert [block["phase_exit"] for block in status["phases"]] == ["READY", "READY", "READY"]
+            me.COVERAGE_ASSESSED, me.STATE_COMPLETE, me.VERDICT_PASS), (unit.unit_id, unit.diagnostics)
+    assert _unit(evaluation, "verificationCaseVerifiesAcceptanceCriterion").verdict == me.VERDICT_FAIL
+    assert _unit(evaluation, "verificationCaseHasEvidenceRecordOrStatus").state == me.STATE_INDETERMINATE
+    assert [block["phase_exit"] for block in evaluation.status()["phases"]] == ["READY"] * 4
     assert evaluation.next_obligation()["next"] is None
 
 
-def test_subjects_are_the_increment_elements_of_the_output_type() -> None:
-    scenario = _workflow_scenario()
+def test_subjects_conform_to_the_parameter_type_or_usage_kind() -> None:
+    scenario = _scenario()
     builder = scenario.builder
-    # A need of another increment: same type, outside this increment's scope.
-    other_increment = builder.definition("PartDefinition", "OtherIncrement", scenario.needs_package,
-                                         [scenario.vocabulary["EngineeringIncrement"]])
+    other = builder.definition("PartDefinition", "OtherIncrement", scenario.needs_package,
+                               [scenario.vocabulary["EngineeringIncrement"]])
     stranger = builder.usage("RequirementUsage", "strangerNeed", scenario.needs_package,
                              [_named(scenario, "FixtureNeed")])
-    builder.subject(stranger, other_increment, name="increment")
+    builder.subject(stranger, other, name="increment")
     evaluation = _evaluate(scenario)
-    subjects = {r.subject_id for r in _children(evaluation, "needFramesConcern")}
-    assert subjects == {need["@id"] for need in scenario.needs}
-    requirement_subjects = {r.subject_id for r in _children(evaluation, "requirementHasOneSubject")}
-    assert requirement_subjects == {requirement["@id"] for requirement in scenario.requirements}
+    assert {r.subject_id for r in _children(evaluation, "needFramesConcern")} == {n["@id"] for n in scenario.needs}
+    assert [r.subject_id for r in _children(evaluation, "incrementHasFramedConcern")] == [scenario.concern["@id"]]
+    assert [r.subject_id for r in _children(evaluation, "verificationCaseVerifiesRequirement")] == [
+        scenario.cases[0]["@id"]]
 
 
-def test_an_unknown_check_id_fails_closed() -> None:
-    scenario = _workflow_scenario(needs={"checks": (WorkflowCheck("needSomething", "noSuchCheck"),)})
-    gates = read_method_gates(_view(scenario), revision_label=REVISION.git_commit)
-    assert gates.contract is None
-    assert any("noSuchCheck" in problem for problem in gates.problems)
-    contract = _evaluate(scenario).phase_contract()
-    assert contract["reason_codes"] == [me.INVALID_CONTRACT]
+def test_framing_always_applies_and_later_steps_need_their_phase_declared() -> None:
+    evaluation = _evaluate(_scenario(applicable_phases=(P4,)))
+    assert _unit(evaluation, "incrementHasCharter").verdict == me.VERDICT_PASS
+    assert _unit(evaluation, "needFramesConcern").verdict == me.VERDICT_PASS
+    assert _unit(evaluation, "requirementHasOneSubject").verdict == me.VERDICT_NOT_APPLICABLE
 
 
-def test_minimum_raises_the_number_of_targets_each_subject_needs() -> None:
-    scenario = _workflow_scenario(requirements={"checks": (
-        WorkflowCheck("requirementDerivesFromNeed", "derivesRequirementFromNeed", minimum=2),)})
-    evaluation = _evaluate(scenario)
-    assert _unit(evaluation, "requirementDerivesFromNeed").verdict == me.VERDICT_FAIL
-    assert all("outside the declared cardinality [2.." in r.diagnostics[0]
-               for r in _children(evaluation, "requirementDerivesFromNeed"))
-
-
-def test_an_advisory_check_never_blocks_the_phase_exit() -> None:
-    scenario = _workflow_scenario(needs={"checks": (
-        WorkflowCheck("needFramesConcern", "needFramesConcern"),
-        WorkflowCheck("needDerivesSomething", "derivesRequirementFromNeed", advisory=True),
-    )})
-    evaluation = _evaluate(scenario)
-    assert _unit(evaluation, "needDerivesSomething").verdict == me.VERDICT_FAIL
-    (needs,) = [block for block in evaluation.status()["phases"] if block["phase"] == P4]
-    assert needs["phase_exit"] == "READY"
-    assert "needDerivesSomething" in [note["gate"] for note in evaluation.gaps()["advisory"]]
-
-
-def test_successions_order_the_steps_and_open_steps_block_their_successors() -> None:
-    scenario = increment_scenario()
-    steps = _steps(scenario)
-    # Declared in reverse; the successions alone give the method order.
-    increment_workflow(scenario.builder, list(reversed(steps)),
-                       successions=[("needs", "requirements"), ("requirements", "verification")])
-    gates = read_method_gates(_view(scenario), revision_label=REVISION.git_commit)
-    assert [o.phase for o in gates.contract.obligations][0] == P4
-    by_id = {o.obligation_id: o for o in gates.contract.obligations}
-    assert set(by_id["requirementDerivesFromNeed"].depends_on) == {"needFramesConcern", "needHasValidationScenario"}
-    assert set(by_id["verificationCaseVerifiesRequirement"].depends_on) == {
-        "requirementDerivesFromNeed", "requirementHasOneSubject", "requirementHasVerificationMethod",
-        "requirementVerifiedByVerificationCase"}
-    assert by_id["needFramesConcern"].depends_on == ()
+def test_open_steps_leave_their_successors_not_attempted() -> None:
+    scenario = _scenario()
     scenario.builder.remove(_named(scenario, "need0ValidationPlanning"))
     evaluation = _evaluate(scenario)
     assert _unit(evaluation, "needHasValidationScenario").verdict == me.VERDICT_FAIL
     assert me.NOT_ATTEMPTED in _unit(evaluation, "requirementDerivesFromNeed").reason_codes
+    gates = evaluation.gate_set.contract.obligations
+    (derives,) = [o for o in gates if o.obligation_id == "requirementDerivesFromNeed"]
+    assert "needFramesConcern" in derives.depends_on and "incrementHasCharter" not in derives.depends_on
+    (statement,) = [o for o in gates if o.obligation_id == "needHasStatement"]
+    assert "incrementHasCharter" in statement.depends_on  # steps without checks are passed over
     assert evaluation.next_obligation()["next"]["gate"] == "needHasValidationScenario"
 
 
-def test_requirement_has_one_subject_rejects_a_second_subject() -> None:
-    scenario = _workflow_scenario()
+def test_an_unknown_check_id_fails_closed() -> None:
+    scenario = increment_scenario()
+    increment_workflow(scenario.builder, [WorkflowStep("elaborateNeeds", P4, (
+        P("needs", "Need", "RequirementUsage", bounds=(1, INFINITY)),), (
+        C("needSomething", "noSuchCheck", "needs"),))])
+    gates = _gates(scenario)
+    assert gates.contract is None and any("noSuchCheck" in problem for problem in gates.problems)
+    assert _evaluate(scenario).phase_contract()["reason_codes"] == [me.INVALID_CONTRACT]
+
+
+def test_a_check_about_something_other_than_a_step_parameter_is_invalid() -> None:
+    scenario = _scenario()
+    annotation = [e for e in scenario.builder.elements if e["@type"] == "Annotation"][0]
+    annotation["annotatedElement"] = ref(scenario.needs[0])
+    gates = _gates(scenario)
+    assert gates.contract is None
+    assert any("not a parameter of the step" in problem for problem in gates.problems)
+
+
+def test_cyclic_successions_are_invalid() -> None:
+    scenario = increment_scenario()
+    increment_workflow(scenario.builder, _steps(scenario), successions=[
+        ("frameIncrement", "elaborateNeeds"), ("elaborateNeeds", "frameIncrement")])
+    gates = _gates(scenario)
+    assert gates.contract is None and any("cycle" in problem for problem in gates.problems)
+
+
+def test_minimum_raises_the_number_of_targets_each_subject_needs() -> None:
+    evaluation = _evaluate(_scenario(specifyRequirements={"checks": (
+        C("requirementDerivesFromNeed", "derivesRequirementFromNeed", "requirements", minimum=2),)}))
+    assert _unit(evaluation, "requirementDerivesFromNeed").verdict == me.VERDICT_FAIL
+
+
+def test_one_native_subject_rejects_a_second_subject() -> None:
+    scenario = _scenario()
     scenario.builder.subject(scenario.requirements[0], scenario.definition, name="secondSubject")
-    evaluation = _evaluate(scenario)
-    verdicts = {r.subject_id: r.verdict for r in _children(evaluation, "requirementHasOneSubject")}
-    assert verdicts[scenario.requirements[0]["@id"]] == me.VERDICT_FAIL
-    assert verdicts[scenario.requirements[1]["@id"]] == me.VERDICT_PASS
-
-
-def test_has_verification_method_requires_a_standard_kind() -> None:
-    scenario = _workflow_scenario()
-    builder = scenario.builder
-    builder.remove(*[e for e in builder.elements if e.get("name") == "verificationMethod"
-                     and e.get("owningRelationship") and e["@type"] == "AttributeUsage"
-                     and builder.elements and _owner(builder, e) == scenario.requirements[0]["@id"]])
-    builder.attribute(scenario.requirements[0], "verificationMethod", "review",
-                      redefines=builder.library_feature("verificationMethod"))
-    evaluation = _evaluate(scenario)
-    verdicts = {r.subject_id: r.verdict for r in _children(evaluation, "requirementHasVerificationMethod")}
-    assert verdicts[scenario.requirements[0]["@id"]] == me.VERDICT_FAIL
-    assert verdicts[scenario.requirements[1]["@id"]] == me.VERDICT_PASS
+    verdicts = {r.subject_id: r.verdict for r in _children(_evaluate(scenario), "requirementHasOneSubject")}
+    assert verdicts == {scenario.requirements[0]["@id"]: me.VERDICT_FAIL,
+                        scenario.requirements[1]["@id"]: me.VERDICT_PASS}
 
 
 def _owner(builder, element) -> str | None:
@@ -209,36 +279,44 @@ def _owner(builder, element) -> str | None:
     return membership["owningRelatedElement"]["@id"] if membership else None
 
 
-def test_the_output_multiplicity_sets_the_minimum_population() -> None:
-    # One step only, so no succession prerequisite is involved.
+def test_one_verification_method_kind_requires_one_standard_kind() -> None:
+    scenario = _scenario()
+    builder = scenario.builder
+    feature = builder.library_feature("verificationMethod")
+    holders = [e for e in builder.elements if e.get("name") == "verificationMethod" and e["@type"] == "AttributeUsage"]
+    (first,) = [h for h in holders if _owner(builder, h) == scenario.requirements[0]["@id"]]
+    builder.remove(first)
+    builder.attribute(scenario.requirements[0], "verificationMethod", "review", redefines=feature)
+    verdicts = {r.subject_id: r.verdict for r in _children(_evaluate(scenario), "requirementHasVerificationMethod")}
+    assert verdicts[scenario.requirements[0]["@id"]] == me.VERDICT_FAIL
+    assert verdicts[scenario.requirements[1]["@id"]] == me.VERDICT_PASS
+
+
+def test_framing_checks_name_what_is_missing() -> None:
+    scenario = _scenario()
+    builder = scenario.builder
+    builder.remove(*[e for e in builder.elements if e["@type"] == "AttributeUsage" and e.get("name") == "owner"
+                     and _owner(builder, e) == scenario.charter["@id"]])
+    stray = builder.usage("PartUsage", "strayAssumption", scenario.evidence_package,
+                          [scenario.vocabulary["Assumption"]])
+    evaluation = _evaluate(scenario)
+    assert _unit(evaluation, "incrementHasOwner").verdict == me.VERDICT_FAIL
+    verdicts = {r.subject_id: r.verdict for r in _children(evaluation, "incrementHasAssumption")}
+    assert verdicts[stray["@id"]] == me.VERDICT_FAIL
+
+
+def test_the_parameter_multiplicity_sets_the_minimum_population() -> None:
     for bounds in ((0, INFINITY), (1, INFINITY)):
         scenario = increment_scenario()
-        (verification,) = [step for step in _steps(scenario) if step.name == "verification"]
-        increment_workflow(scenario.builder, [replace(verification, bounds=bounds)])
+        increment_workflow(scenario.builder, [WorkflowStep("planVerificationAndEvidence", P10, (
+            P("verificationCases", None, "VerificationCaseUsage", bounds=bounds),), (
+            C("verificationCaseVerifiesRequirement", "verifiesIncrementRequirement", "verificationCases"),))])
         scenario.builder.remove(scenario.cases[0])
         unit = _unit(_evaluate(scenario), "verificationCaseVerifiesRequirement")
         if bounds[0] == 0:
             assert (unit.state, unit.verdict) == (me.STATE_COMPLETE, me.VERDICT_NOT_APPLICABLE)
         else:
-            assert unit.verdict not in (me.VERDICT_PASS, me.VERDICT_NOT_APPLICABLE)
-
-
-def test_a_check_about_something_other_than_a_step_output_is_invalid() -> None:
-    scenario = _workflow_scenario()
-    made = [e for e in scenario.builder.elements if e["@type"] == "Annotation"]
-    made[0]["annotatedElement"] = ref(scenario.needs[0])
-    gates = read_method_gates(_view(scenario), revision_label=REVISION.git_commit)
-    assert gates.contract is None
-    assert any("not an output parameter" in problem for problem in gates.problems)
-
-
-def test_cyclic_successions_are_invalid() -> None:
-    scenario = increment_scenario()
-    increment_workflow(scenario.builder, _steps(scenario),
-                       successions=[("needs", "requirements"), ("requirements", "needs")])
-    gates = read_method_gates(_view(scenario), revision_label=REVISION.git_commit)
-    assert gates.contract is None
-    assert any("cycle" in problem for problem in gates.problems)
+            assert (unit.verdict, unit.reason_codes) == (me.VERDICT_FAIL, (me.POPULATION_POLICY_VIOLATION,))
 
 
 def test_without_a_workflow_binding_the_method_gates_are_read() -> None:
@@ -246,22 +324,30 @@ def test_without_a_workflow_binding_the_method_gates_are_read() -> None:
     scenario.builder.kernel_definition("AcceptanceCriterion")
     method_gates(scenario.builder, synthetic_method())
     increment_workflow(scenario.builder, _steps(scenario), bind=False)
-    gates = read_method_gates(_view(scenario), revision_label=REVISION.git_commit)
+    gates = _gates(scenario)
     assert gates.available and gates.representation == "method-gates"
 
 
 def test_a_workflow_without_method_check_identity_is_unavailable() -> None:
-    scenario = _workflow_scenario()
+    scenario = _scenario()
     scenario.builder.bindings[:] = [b for b in scenario.builder.bindings if b["ontology_class"] != "MethodCheck"]
-    gates = read_method_gates(_view(scenario), revision_label=REVISION.git_commit)
+    gates = _gates(scenario)
     assert gates.contract is None and "MethodCheck" in gates.reason
-    status = _evaluate(scenario).status()
-    assert status["reason_codes"] == [me.CONTRACT_UNAVAILABLE]
+    assert _evaluate(scenario).status()["reason_codes"] == [me.CONTRACT_UNAVAILABLE]
 
 
-def test_the_contract_projection_names_step_output_and_subject_type() -> None:
-    contract = _evaluate(_workflow_scenario()).phase_contract(P4)
-    (record, _second) = contract["gates"]
-    assert (record["step"], record["output"], record["check"]) == ("needs", "needs", "needFramesConcern")
+def test_the_contract_projection_names_step_parameter_and_subject_type() -> None:
+    contract = _evaluate(_scenario()).phase_contract(P4)
+    record = contract["gates"][-1]
+    assert (record["obligation_id"], record["step"], record["parameter"], record["check"]) == (
+        "needFramesConcern", "elaborateNeeds", "needs", "framesStakeholderConcern")
     assert record["subject_type"].endswith("StakeholderNeedCandidate")
     assert record["what_satisfies"].startswith("frame a stakeholder concern")
+
+
+def test_every_check_the_model_declares_is_supported() -> None:
+    """Every check id in the model's workflow resolves in the engine's registry."""
+    text = re.sub(r"/\*.*?\*/", "", WORKFLOW_FILE.read_text(encoding="utf-8"), flags=re.S)
+    used = set(re.findall(r':>>\s*check\s*=\s*"([^"]+)"', text))
+    registry = MethodCheckRegistry.for_relations(RelationCheckRegistry.for_contract(model_facade()).names())
+    assert used and used <= set(registry.names()), used - set(registry.names())

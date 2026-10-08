@@ -1,32 +1,38 @@
 """Read the increment workflow of one model revision into a method contract.
 
-The method model is being reworked; this module is the only place that knows
-its representation, so the final details are a local change here.
+This module is the only place that knows the representation of the method
+(``DE4SDV_IncrementWorkflow``), so a change of that representation is a local
+change here.
 
-Representation (provisional):
+Representation read:
 
 - the method is the action definition bound to the kernel class
   ``IncrementWorkflow``; its step actions (owned action usages) are ordered
-  by the successions between them;
+  by the successions between them (``first start; then ...; then done;``:
+  successions to the standard ``start`` and ``done`` actions are not steps);
 - each step is typed by one step action definition with a ``phase``
-  attribute (a MethodPhase literal) and typed ``in`` / ``out`` parameters
-  with multiplicities;
+  attribute (a MethodPhase literal) and parameters with a direction, a
+  multiplicity and usually a type;
 - checks are metadata usages typed by the kernel class ``MethodCheck`` (or a
   specialization), owned by the step definition and ``about`` one of its
-  ``out`` parameters: ``check`` (the check id), ``minimum`` (default 1) and
+  parameters: ``check`` (the check id), ``minimum`` (default 1) and
   ``advisory`` (default false: blocking).
 
 Contract, one obligation per check:
 
 - subjects: the increment's elements (members of the increment package and
   of packages that declare ``references`` to the increment, and requirement
-  usages whose native subject is typed by the increment definition) whose
-  type is the output parameter's type or a specialization of it;
-- minimum population: the output parameter's lower multiplicity bound (no
-  multiplicity: 1); a lower bound of 0 permits an empty population;
+  usages whose native subject is typed by the increment definition) that
+  conform to the parameter: typed by its type or a specialization of it, or,
+  for an untyped parameter such as ``out verification cases[1..*]``, of its
+  usage kind;
+- minimum population: the parameter's lower multiplicity bound (no
+  multiplicity: 1); a lower bound of 0 permits an empty population. The upper
+  bound is not enforced: the evaluator checks the population minimum only;
 - cardinality: ``minimum`` distinct targets, bounded above only where the
   check states a maximum;
-- applicability: the increment charter declares the step's phase;
+- applicability: a mandatory step always applies; an optional step
+  (``[0..1]``) applies when the increment charter declares its phase;
 - prerequisites: the blocking checks of the nearest preceding steps, by the
   successions, that declare blocking checks.
 
@@ -34,7 +40,7 @@ Identity is validated kernel identity (ADR 0011). Without a kernel binding for
 ``IncrementWorkflow`` the revision declares no workflow and the caller reads
 the method gates instead. A missing ``MethodCheck`` or ``MethodPhase`` binding
 leaves the workflow unavailable. An unknown check id, a check about anything
-but an output parameter, or cyclic successions make the contract invalid.
+but a parameter of its step, or cyclic successions make the contract invalid.
 """
 
 from __future__ import annotations
@@ -62,11 +68,14 @@ CHECK_CLASS = "MethodCheck"
 PHASE_CLASS = "MethodPhase"
 METHOD_ID = "de4sdv.increment-workflow"
 REPRESENTATION = "increment-workflow"
-#: Selector kind of a check's subjects: the increment's elements of the output type.
-OUTPUT_SELECTOR = "workflow-step-output"
-APPLICABILITY = "increment declares the step phase"
+#: Selector kind of a check's subjects: the increment's elements conforming to a parameter.
+PARAMETER_SELECTOR = "workflow-step-parameter"
+#: Subject selector of an untyped parameter: ``kind:<usage metaclass>``.
+KIND_PREFIX = "kind:"
+APPLICABILITY_ALWAYS = "unconditional"
+APPLICABILITY_DECLARED = "increment declares the step phase"
 DEFAULT_MINIMUM = 1
-_OUTPUT_DIRECTIONS = {"out", "inout"}
+_DIRECTIONS = {"in", "out", "inout"}
 _SUCCESSION_TYPES = ("SuccessionAsUsage", "Succession")
 
 
@@ -92,12 +101,12 @@ def scope_elements(view: ModelView, increment: IncrementScope) -> tuple[str, ...
     return view.index.memo(key, build)
 
 
-def _output_subjects(spec: me.ObligationSpec, ctx: me.EvaluationContext) -> tuple[list[str], list[str]]:
+def _parameter_subjects(spec: me.ObligationSpec, ctx: me.EvaluationContext) -> tuple[list[str], list[str]]:
     view = getattr(ctx, "model", None)
     increment = getattr(ctx, "increment", None)
     if view is None or increment is None:
         raise me.SubjectResolutionError(
-            me.EVALUATOR_FAILURE, diagnostics=(f"selector {OUTPUT_SELECTOR!r} needs an increment evaluation context",))
+            me.EVALUATOR_FAILURE, diagnostics=(f"selector {PARAMETER_SELECTOR!r} needs an increment evaluation context",))
     problem = increment.population_problems.get(SELECTOR_INCREMENT)
     if problem is not None:
         kind, detail = problem
@@ -107,11 +116,16 @@ def _output_subjects(spec: me.ObligationSpec, ctx: me.EvaluationContext) -> tupl
     if increment.usage_id is None:
         detail = f"the increment {increment.increment_id!r} is not identified in the model"
         raise me.SubjectResolutionError(me.INPUT_UNAVAILABLE, diagnostics=(detail,), missing=(detail,))
+    elements = scope_elements(view, increment)
+    if spec.subject_selector.startswith(KIND_PREFIX):
+        kind = spec.subject_selector[len(KIND_PREFIX):]
+        return [element for element in elements if str(view.element(element).get("@type")) == kind], []
     types = view.index.specializations(spec.subject_selector)
-    return [element for element in scope_elements(view, increment) if view.index.typed_by(element) & types], []
+    return [element for element in elements if view.index.typed_by(element) & types], []
 
 
-WORKFLOW_SELECTORS = me.DEFAULT_SELECTORS.with_definitions(me.SelectorDefinition(OUTPUT_SELECTOR, _output_subjects))
+WORKFLOW_SELECTORS = me.DEFAULT_SELECTORS.with_definitions(
+    me.SelectorDefinition(PARAMETER_SELECTOR, _parameter_subjects))
 
 
 # ---------------------------------------------------------------------------
@@ -145,7 +159,8 @@ def read_increment_workflow(view: ModelView, *, revision_label: str) -> GateSet 
     for step in order:
         step_name = index.name_of(step) or step
         try:
-            phase, step_checks = _step_checks(view, step, step_name, phase_root, check_types, checks, problems)
+            phase, step_checks = _step_checks(view, step, step_name, phase_root, check_types, checks, problems,
+                                              optional=(index.multiplicity(step) or (1, 1))[0] == 0)
         except _Invalid as error:
             problems.append(f"step {step_name}: {error}")
             continue
@@ -188,9 +203,7 @@ def _step_order(view: ModelView, workflow: str, steps: list[str],
     for succession in index.owned_members(workflow, *_SUCCESSION_TYPES):
         ends = _succession_ends(view, succession)
         if len(ends) != 2 or not set(ends) <= set(steps):
-            problems.append(f"succession {index.qualified_name(succession) or succession} does not connect "
-                            "two steps of the workflow")
-            continue
+            continue  # for example the successions from start and to done
         first, then = ends
         if first not in predecessors[then]:
             predecessors[then].append(first)
@@ -240,21 +253,21 @@ def _prerequisites(step: str, predecessors: dict[str, list[str]], blocking: dict
 
 
 def _step_checks(view: ModelView, step: str, step_name: str, phase_root: str, check_types: frozenset[str],
-                 checks: MethodCheckRegistry, problems: list[str]):
+                 checks: MethodCheckRegistry, problems: list[str], *, optional: bool):
     index = view.index
     definitions = sorted(index.typed_by(step))
     if len(definitions) != 1:
         raise _Invalid(f"typed by {len(definitions)} definitions; one step action definition is required")
     step_definition = definitions[0]
     phase = _phase(view, step_definition, phase_root)
-    outputs = {member: index.name_of(member) or member for member in index.owned_members(step_definition)
-               if str(index.element(member).get("direction") or "") in _OUTPUT_DIRECTIONS}
+    parameters = {member: index.name_of(member) or member for member in index.owned_members(step_definition)
+                  if str(index.element(member).get("direction") or "") in _DIRECTIONS}
     found = []
     for metadata in index.owned_members(step_definition, "MetadataUsage"):
         if not index.typed_by(metadata) & check_types:
             continue
         try:
-            found.append(_check(view, metadata, step_name, phase, outputs, checks))
+            found.append(_check(view, metadata, step_name, phase, parameters, checks, optional=optional))
         except _Invalid as error:
             problems.append(f"step {step_name}, check {index.name_of(metadata) or metadata}: {error}")
     return phase, found
@@ -271,21 +284,23 @@ def _phase(view: ModelView, step_definition: str, phase_root: str) -> str:
     return name
 
 
-def _check(view: ModelView, metadata: str, step_name: str, phase: str, outputs: dict[str, str],
-           checks: MethodCheckRegistry) -> tuple[me.ObligationSpec, dict[str, Any], str]:
+def _check(view: ModelView, metadata: str, step_name: str, phase: str, parameters: dict[str, str],
+           checks: MethodCheckRegistry, *, optional: bool) -> tuple[me.ObligationSpec, dict[str, Any], str]:
     index = view.index
     about = _annotated(view, metadata)
-    if len(about) != 1 or about[0] not in outputs:
+    if len(about) != 1 or about[0] not in parameters:
         named = ", ".join(index.qualified_name(target) or target for target in about) or "nothing"
-        raise _Invalid(f"the check is about {named}, which is not an output parameter of the step")
-    output = about[0]
-    types = sorted(index.typed_by(output))
-    if len(types) != 1:
-        raise _Invalid(f"output {outputs[output]} is typed by {len(types)} definitions; one is required")
+        raise _Invalid(f"the check is about {named}, which is not a parameter of the step")
+    parameter = about[0]
+    types = sorted(index.typed_by(parameter))
+    if len(types) > 1:
+        raise _Invalid(f"parameter {parameters[parameter]} is typed by {len(types)} definitions; at most one is allowed")
+    kind = str(index.element(parameter).get("@type") or "")
+    selector = types[0] if types else KIND_PREFIX + kind
     check_id = _text(view, metadata, "check")
     minimum = _natural(view, metadata, "minimum", DEFAULT_MINIMUM)
     advisory = _boolean(view, metadata, "advisory", False)
-    lower = (index.multiplicity(output) or (1, 1))[0]
+    lower = (index.multiplicity(parameter) or (1, 1))[0]
     definition = checks.definition(check_id) if check_id in checks else None
     maximum = definition.maximum if definition is not None and definition.maximum is not None else UNBOUNDED
     claim = (_documentation(view, metadata) or (definition.claim if definition is not None else "")
@@ -294,10 +309,10 @@ def _check(view: ModelView, metadata: str, step_name: str, phase: str, outputs: 
     spec = me.ObligationSpec(
         obligation_id=index.name_of(metadata) or check_id,
         phase=phase,
-        subject_selector=types[0],
-        selector_kind=OUTPUT_SELECTOR,
-        applicability=APPLICABILITY,
-        applicability_kind=me.APPLICABILITY_DECLARED_PHASE,
+        subject_selector=selector,
+        selector_kind=PARAMETER_SELECTOR,
+        applicability=APPLICABILITY_DECLARED if optional else APPLICABILITY_ALWAYS,
+        applicability_kind=me.APPLICABILITY_DECLARED_PHASE if optional else me.APPLICABILITY_UNCONDITIONAL,
         minimum_population=lower,
         permitted_empty=lower == 0,
         permitted_empty_disposition=me.NO_ELIGIBLE_SUBJECTS if lower == 0 else None,
@@ -309,8 +324,9 @@ def _check(view: ModelView, metadata: str, step_name: str, phase: str, outputs: 
         attestation_policy_ref="",
         claim_boundary=claim,
     )
-    label = {"step": step_name, "output": outputs[output],
-             "subject_type": index.qualified_name(types[0]) or types[0], "check": check_id}
+    label = {"step": step_name, "parameter": parameters[parameter],
+             "direction": str(index.element(parameter).get("direction") or ""),
+             "subject_type": (index.qualified_name(types[0]) or types[0]) if types else kind, "check": check_id}
     return spec, label, metadata
 
 

@@ -1,23 +1,25 @@
 # Drive an increment with the method tools
 
-The DE4SDV method lives in the model: the method gates in
-[`DE4SDV_MethodGates`](../../textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_gates.sysml)
-state what each phase of an increment must contain. Four read-only tools
-evaluate one increment against those gates, so an agent (or a person) can run
-the loop **next → author → gaps**: the agent authors model content, the
-deterministic evaluation judges it.
+The DE4SDV method lives in the model: the steps of the increment workflow and
+the method checks about their artifacts state what each phase of an increment
+must contain. Four read-only tools evaluate one increment against those checks,
+so an agent (or a person) can run the loop **next → author → gaps**: the agent
+authors model content, the deterministic evaluation judges it.
 
 ## Method representation
 
-When the revision declares the increment workflow (`action def IncrementWorkflow`,
-bound by validated kernel identity), the tools read it: step actions ordered
-by successions, each step's `phase`, its typed `out` parameters, and the
-`MethodCheck` metadata about those outputs (`check`, `minimum`, `advisory`).
-A check's subjects are the increment's elements of the output's type; its id
-resolves in `de4sdv/semantic/method_checks.py`, and an unknown id makes the
-method invalid. Otherwise the tools read the method gates. The workflow form
-is provisional; `de4sdv/semantic/increment_workflow.py` is the only module
-that knows it.
+The tools read the increment workflow
+([`DE4SDV_IncrementWorkflow`](../../textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml))
+when the revision identifies it by validated kernel identity: the step
+actions in succession order, each step's `phase` and parameters, and the
+`MethodCheck` metadata about a parameter (`check`, `minimum`, `advisory`).
+A check's subjects are the increment's elements that conform to the
+parameter: typed by its type, or of its usage kind when it is untyped.
+Framing always applies; a later, optional step applies when the charter
+declares its phase. Check ids resolve in `de4sdv/semantic/method_checks.py`;
+an unknown id makes the method invalid. Without the workflow the tools read
+method gates, if any. `de4sdv/semantic/increment_workflow.py` is the only
+module that knows this representation.
 
 ## The four tools
 

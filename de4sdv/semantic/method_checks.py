@@ -4,14 +4,13 @@ A method declares checks about the elements its steps produce. Each check
 names, by its id, what must hold for every subject element; this registry maps
 the id to the implementation that decides it for one subject:
 
-- **named checks** state one rule, for example ``needFramesConcern`` (the need
-  frames a concern that declares a stakeholder), ``requirementHasOneSubject``
-  (exactly one subject), ``hasVerificationMethod`` (a standard verification
-  method kind is recorded) or ``verifiedByVerificationCase`` (a verification
-  case usage verifies the requirement);
-- **relation names**, for example ``derivesRequirementFromNeed`` or
-  ``frame``: the subject reaches targets through that relation (see
-  :mod:`de4sdv.semantic.relation_checks`).
+- **named checks** state one rule, for example ``framesStakeholderConcern``
+  (the need frames a concern that declares a stakeholder), ``oneNativeSubject``
+  (exactly one subject), ``oneVerificationMethodKind`` (one standard
+  verification method kind is recorded) or ``ownedByIncrementPackage``;
+- **relation names**, for example ``derivesRequirementFromNeed``,
+  ``hasValidationScenario`` or ``verifiedBy``: the subject reaches targets
+  through that relation (see :mod:`de4sdv.semantic.relation_checks`).
 
 An implementation takes the model view, the increment and one subject; it
 reads no method-representation field (no selector, filter or phase text). How
@@ -33,6 +32,7 @@ from .increment_scope import IncrementScope, ModelView
 from .relation_checks import (
     MethodSideInput,
     element_name,
+    in_class,
     membership_members,
     relation_checks,
 )
@@ -122,60 +122,188 @@ def relation_holds(relation: str) -> CheckFunction:
     return check
 
 
-def _need_frames_concern(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
-    hops = [(concern, witness) for concern, witness in relation_checks(view).check("frame", view, subject_id).hops
-            if membership_members(view, concern, "StakeholderMembership")]
-    if not hops:
-        return violated(f"{element_name(view, subject_id)} frames no concern that has a native stakeholder member")
-    return satisfied([c for c, _w in hops], [w for _c, w in hops])
+def _name(view: ModelView, element: str | None) -> str:
+    return element_name(view, element)
 
 
-def _requirement_subject(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
-    found = relation_checks(view).check("subject", view, subject_id).targets
+def _texts(view: ModelView, owner: str, attribute: str) -> list[str]:
+    return [str(leaf.value) for leaf in view.index.feature_values(owner, attribute)
+            if leaf.kind == "string" and str(leaf.value or "").strip()]
+
+
+def _increment_short_name(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    if str(view.element(subject_id).get("declaredShortName") or "") != increment.increment_id:
+        return violated(f"{_name(view, subject_id)} does not carry the increment identifier "
+                        f"{increment.increment_id!r} as its declared short name")
+    return satisfied([subject_id])
+
+
+def _charter_references_increment(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    references = [leaf.value for leaf in view.index.feature_values(subject_id, "increment") if leaf.kind == "reference"]
+    if increment.usage_id is None or increment.usage_id not in references:
+        return violated(f"{_name(view, subject_id)} does not reference the increment {increment.increment_id} "
+                        "through its increment value")
+    return satisfied([increment.usage_id], witnesses=[subject_id])
+
+
+def _problem_statement_subject(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    wanted = set(increment.definition_ids)
+    subjects = [member for member in membership_members(view, subject_id, "SubjectMembership")
+                if view.index.typed_by(member) & wanted]
+    if increment.package_id is None or view.index.owner_of(subject_id) != increment.package_id or not subjects:
+        return violated(f"{_name(view, subject_id)} is not a problem statement of the increment package with a "
+                        "native subject typed by the increment definition")
+    return satisfied(subjects)
+
+
+def _owned_by_increment_package(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    if increment.package_id is None or view.index.owner_of(subject_id) != increment.package_id:
+        package = _name(view, increment.package_id) if increment.package_id else "the increment package"
+        return violated(f"{_name(view, subject_id)} is not owned by {package}")
+    return satisfied([increment.package_id], witnesses=[subject_id])
+
+
+def _stakeholder_member(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    found = relation_checks(view).check("stakeholder", view, subject_id).targets
     if not found:
-        return violated(f"{element_name(view, subject_id)} declares no subject")
+        return violated(f"{_name(view, subject_id)} has no native stakeholder member")
     return satisfied(found)
 
 
-def _verification_method(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
-    """The requirement sets the library ``verificationMethod`` to a standard kind."""
-    attribute = "verificationMethod"
-    feature = view.index.feature(subject_id, attribute)
-    redefined: list[str] = []
-    if feature is not None:
-        for relationship in view.index.owned_relationships(feature, "Redefinition"):
-            redefined.extend(reference_ids(relationship.get("redefinedFeature")))
-    inherited = [r for r in redefined if view.index.name_of(r) == attribute and view.index.owner_of(r) != subject_id]
-    name = element_name(view, subject_id)
-    if feature is None or not inherited:
-        return violated(f"{name} sets no {attribute} value (attribute :>> {attribute} = ...)")
-    texts = [str(leaf.value) for leaf in view.index.feature_values(subject_id, attribute)
-             if leaf.kind == "string" and str(leaf.value or "").strip()]
-    if not texts:
-        return violated(f"{name} {attribute} value is empty")
-    if not set(texts) <= set(STANDARD_VERIFICATION_METHOD_KINDS):
-        return violated(f"{name} {attribute} value {sorted(set(texts))} is not one of "
-                        f"{', '.join(STANDARD_VERIFICATION_METHOD_KINDS)}")
-    return satisfied(texts, witnesses=[feature, *inherited])
+def _framed_by_increment_view(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """The concern is framed by a viewpoint of a view the increment package owns."""
+    viewpoints, witnesses = [], []
+    if increment.package_id is not None:
+        for view_usage in view.index.owned_members(increment.package_id, "ViewUsage"):
+            for viewpoint in view.index.owned_members(view_usage, "ViewpointUsage"):
+                for relationship in view.index.owned_relationships(viewpoint, "FramedConcernMembership"):
+                    if any(view.index.declared_of(member) == subject_id
+                           for member in reference_ids(relationship.get("memberElement"))):
+                        viewpoints.append(viewpoint)
+                        witnesses.append(str(relationship.get("@id")))
+    if not viewpoints:
+        return violated(f"{_name(view, subject_id)} is framed by no viewpoint of a view owned by the increment package")
+    return satisfied(viewpoints, witnesses)
 
 
-def _verified_by_case(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
-    """A verification case usage verifies the requirement (a definition's objective covers its usages)."""
-    result = relation_checks(view).check("verifiedBy", view, subject_id)
+def _charter_text(attribute: str, *, exactly_one: bool = False) -> CheckFunction:
+    def check(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+        texts = _texts(view, subject_id, attribute)
+        if not texts:
+            return violated(f"{_name(view, subject_id)} carries no non-empty {attribute} value")
+        if exactly_one and len(texts) != 1:
+            return violated(f"{_name(view, subject_id)} carries {len(texts)} {attribute} values; one is required")
+        return satisfied(texts, witnesses=[subject_id])
+
+    return check
+
+
+def _charter_applicable_phases(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    try:
+        phase_root = view.kernel_element("MethodPhase")
+    except Exception as error:  # noqa: BLE001 - an unbound enumeration is method side
+        return indeterminate("kernel-binding:MethodPhase", f"method side: {error}")
+    literals = [leaf.value for leaf in view.index.feature_values(subject_id, "applicablePhases")
+                if leaf.kind == "reference" and view.index.owner_of(leaf.value) == phase_root]
+    if not literals:
+        return violated(f"{_name(view, subject_id)} declares no applicablePhases value that is a MethodPhase literal")
+    return satisfied(literals, witnesses=[subject_id])
+
+
+def _require_constraint(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    found = []
+    for relationship in view.index.owned_relationships(subject_id, "RequirementConstraintMembership"):
+        if str(relationship.get("kind") or "requirement") == "requirement":
+            found.extend(reference_ids(relationship.get("memberElement")))
+    if not found:
+        return violated(f"{_name(view, subject_id)} owns no require constraint (statement)")
+    return satisfied(found)
+
+
+def _library_attribute(attribute: str, *, allowed: Sequence[str] = ()) -> CheckFunction:
+    """One non-empty value of an inherited (library) attribute, optionally from ``allowed``."""
+
+    def check(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+        feature = view.index.feature(subject_id, attribute)
+        redefined: list[str] = []
+        if feature is not None:
+            for relationship in view.index.owned_relationships(feature, "Redefinition"):
+                redefined.extend(reference_ids(relationship.get("redefinedFeature")))
+        inherited = [r for r in redefined
+                     if view.index.name_of(r) == attribute and view.index.owner_of(r) != subject_id]
+        name = _name(view, subject_id)
+        if feature is None or not inherited:
+            return violated(f"{name} sets no {attribute} value (attribute :>> {attribute} = ...)")
+        texts = _texts(view, subject_id, attribute)
+        if len(texts) != 1:
+            return violated(f"{name} carries {len(texts)} non-empty {attribute} values; one is required")
+        if allowed and texts[0] not in allowed:
+            return violated(f"{name} {attribute} value {texts[0]!r} is not one of {', '.join(allowed)}")
+        return satisfied(texts, witnesses=[feature, *inherited])
+
+    return check
+
+
+def _frames_stakeholder_concern(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    hops = [(concern, witness) for concern, witness in relation_checks(view).check("frame", view, subject_id).hops
+            if membership_members(view, concern, "StakeholderMembership")]
+    if not hops:
+        return violated(f"{_name(view, subject_id)} frames no concern that has a native stakeholder member")
+    return satisfied([c for c, _w in hops], [w for _c, w in hops])
+
+
+def _one_native_subject(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    found = relation_checks(view).check("subject", view, subject_id).targets
+    if not found:
+        return violated(f"{_name(view, subject_id)} declares no subject")
+    return satisfied(found)
+
+
+def _feature_or_common_capability(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    targets, witnesses, method_side = [], [], []
+    for relation in ("specifiesFeature", "specifiesCommonCapability"):
+        result = relation_checks(view).check(relation, view, subject_id)
+        if result.method_side:
+            method_side.append(result.problem)
+            continue
+        if result.problem:
+            return indeterminate(result.problem, result.detail)
+        targets.extend(t for t, _w in result.hops)
+        witnesses.extend(w for _t, w in result.hops)
+    if not targets and len(method_side) == 2:
+        return indeterminate(",".join(method_side), "method side: specifiesFeature and specifiesCommonCapability "
+                                                    "have no SysML mapping at this revision")
+    if not targets:
+        return violated(f"{_name(view, subject_id)} specifies no feature or common capability")
+    return satisfied(targets, witnesses)
+
+
+def _verifies_increment_requirement(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    result = relation_checks(view).check("verify", view, subject_id)
+    requirements = set(increment.populations.get("incrementRequirements", ()))
+    hops = [(target, witness) for target, witness in result.hops if target in requirements]
+    if not hops:
+        verified = ", ".join(_name(view, t) for t in result.targets[:5]) or "nothing"
+        return violated(f"{_name(view, subject_id)} verifies no requirement of the increment",
+                        (f"verified: {verified}",), witnesses=result.witnesses)
+    return satisfied([t for t, _w in hops], [w for _t, w in hops])
+
+
+def _verifies_acceptance_criterion(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    result = relation_checks(view).check("verify", view, subject_id)
+    hops = [(target, witness) for target, witness in result.hops if in_class(view, target, "AcceptanceCriterion")]
+    if not hops:
+        return violated(f"{_name(view, subject_id)} verifies no acceptance criterion")
+    return satisfied([t for t, _w in hops], [w for _t, w in hops])
+
+
+def _evidence_record_or_status(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    result = relation_checks(view).check("hasEvidence", view, subject_id)
     if result.problem:
         return indeterminate(result.problem, result.detail)
-    targets, witnesses = [], []
-    for target, witness in result.hops:
-        candidates = [target]
-        if str(view.element(target).get("@type")) != "VerificationCaseUsage":
-            candidates = [usage for usage in view.index.typed_usages(target)
-                          if str(view.element(usage).get("@type")) == "VerificationCaseUsage"]
-        for candidate in candidates:
-            targets.append(candidate)
-            witnesses.append(witness)
-    if not targets:
-        return violated(f"{element_name(view, subject_id)} is verified by no verification case usage")
-    return satisfied(targets, witnesses)
+    if not result.hops:
+        return violated(f"{_name(view, subject_id)} has no evidence record or status")
+    return satisfied([t for t, _w in result.hops], [w for _t, w in result.hops])
 
 
 @dataclass(frozen=True)
@@ -192,31 +320,55 @@ class CheckDefinition:
     claim: str = ""
 
 
+_KINDS = ", ".join(STANDARD_VERIFICATION_METHOD_KINDS)
+
 NAMED_CHECKS = (
-    CheckDefinition(
-        "needFramesConcern", _need_frames_concern,
-        remedy="frame a stakeholder concern in {subject}: frame <concern>; (the concern declares a stakeholder)",
-        claim="each need natively frames at least one stakeholder concern; framing only, no concern "
-              "satisfaction or derivation claim",
-    ),
-    CheckDefinition(
-        "requirementHasOneSubject", _requirement_subject, maximum=1,
-        remedy="declare exactly one subject on {subject}: subject <name> : <Definition>;",
-        claim="each requirement declares exactly one native subject; subject declaration only",
-    ),
-    CheckDefinition(
-        "hasVerificationMethod", _verification_method,
-        remedy="set on {subject}: attribute :>> verificationMethod = \"<kind>\"; (one of "
-               + ", ".join(STANDARD_VERIFICATION_METHOD_KINDS) + ")",
-        claim="each requirement records a standard verification method kind (planning data); no "
-              "verification result or evidence claim",
-    ),
-    CheckDefinition(
-        "verifiedByVerificationCase", _verified_by_case,
-        remedy="add `verify {subject_name};` to the objective of a verification case",
-        claim="each requirement is verified by the objective of at least one verification case; "
-              "verification planning only, no verification result or evidence claim",
-    ),
+    CheckDefinition("incrementShortName", _increment_short_name, maximum=1,
+                    remedy="declare the increment usage with its identifier as declared short name: "
+                           "part <'INC-...'> <usageName> : <IncrementDefinition>;"),
+    CheckDefinition("charterReferencesIncrement", _charter_references_increment, maximum=1,
+                    remedy="reference the increment from {subject}: ref part :>> increment = <incrementUsage>;"),
+    CheckDefinition("problemStatementSubject", _problem_statement_subject,
+                    remedy="in the increment package: requirement <name> : ProblemStatement "
+                           "{{ subject increment : <IncrementDefinition>; }}"),
+    CheckDefinition("ownedByIncrementPackage", _owned_by_increment_package, maximum=1,
+                    remedy="declare {subject} in the increment package"),
+    CheckDefinition("stakeholderMember", _stakeholder_member,
+                    remedy="add to {subject}: stakeholder <name> : <role>;"),
+    CheckDefinition("framedByIncrementView", _framed_by_increment_view,
+                    remedy="in the increment package, frame {subject_name} by a viewpoint of a view: view <name> "
+                           "{{ viewpoint <name> : <Viewpoint> {{ frame {subject_name}; }} }}"),
+    CheckDefinition("charterOwner", _charter_text("owner", exactly_one=True),
+                    remedy="set on {subject}: attribute :>> owner = \"...\";"),
+    CheckDefinition("charterApplicablePhases", _charter_applicable_phases,
+                    remedy="set on {subject}: attribute :>> applicablePhases = (MethodPhase::...);"),
+    CheckDefinition("charterExpectedArtifacts", _charter_text("expectedArtifacts"),
+                    remedy="set on {subject}: attribute :>> expectedArtifacts = (\"...\");"),
+    CheckDefinition("charterExpectedReviewEvidence", _charter_text("expectedReviewEvidence"),
+                    remedy="set on {subject}: attribute :>> expectedReviewEvidence = (\"...\");"),
+    CheckDefinition("requireConstraint", _require_constraint,
+                    remedy="add the statement to {subject}: require constraint statement "
+                           "{{ language \"English\" /* ... */ }}"),
+    CheckDefinition("sourceAttribute", _library_attribute("source"),
+                    remedy="set on {subject}: attribute :>> source = \"...\";"),
+    CheckDefinition("rationaleAttribute", _library_attribute("rationale"),
+                    remedy="set on {subject}: attribute :>> rationale = \"...\";"),
+    CheckDefinition("framesStakeholderConcern", _frames_stakeholder_concern,
+                    remedy="frame a stakeholder concern in {subject}: frame <concern>; (the concern declares a "
+                           "stakeholder)"),
+    CheckDefinition("oneNativeSubject", _one_native_subject, maximum=1,
+                    remedy="declare exactly one subject on {subject}: subject <name> : <Definition>;"),
+    CheckDefinition("oneVerificationMethodKind",
+                    _library_attribute("verificationMethod", allowed=STANDARD_VERIFICATION_METHOD_KINDS),
+                    remedy="set on {subject}: attribute :>> verificationMethod = \"<kind>\"; (one of " + _KINDS + ")"),
+    CheckDefinition("specifiesFeatureOrCommonCapability", _feature_or_common_capability,
+                    remedy="trace {subject} to a feature or common capability"),
+    CheckDefinition("verifiesIncrementRequirement", _verifies_increment_requirement,
+                    remedy="add to the objective of {subject} (or its definition): verify <increment requirement>;"),
+    CheckDefinition("verifiesAcceptanceCriterion", _verifies_acceptance_criterion,
+                    remedy="add to the objective of {subject}: verify <acceptance criterion>;"),
+    CheckDefinition("evidenceRecordOrStatus", _evidence_record_or_status,
+                    remedy="record evidence for {subject} (evidence content is external at this revision)"),
 )
 
 #: What to author for a relation, where the relation needs more than its name.
