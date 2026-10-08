@@ -60,6 +60,11 @@ edited): the O3 rollback path is byte-identical to the one in production.
      `continue-on-error` so it never blocks the deploy/core-evidence
      consumers of the ingestion run; its own conclusion must therefore be
      read from the jobs API, not from the run conclusion).
+
+   Alternatively, when the ingestion already succeeded at that SHA and only
+   the model-authority job must be repeated, a **reuse run** (section 2a)
+   supplies the `model-authority-evidence` success; the acceptance package
+   then names both run ids (the ingestion source run and the reuse run).
 3. The artifact `model-authority-evidence-<sha>` contains
    `de4sdv-model-authority-activation-eligibility.json` with
    `activation_eligible: true`, which is derived (never asserted) as:
@@ -100,9 +105,91 @@ edited): the O3 rollback path is byte-identical to the one in production.
    and its upload are `continue-on-error` on the ingest job, so a missing
    snapshot shows up as a failed `Require the same-run API database
    snapshot` step of `model-authority-evidence`, not as a red ingestion.
+   The `Prove the restored API serves the export corpus` step must have
+   passed (`de4sdv-o4-restored-corpus-proof.json`, `passed: true`).
 7. **Owner-gated:** the `sysml-api-production` environment approval for
    any production deploy, and the activation decision that names the
    exact `mab-` id.
+
+## 2a. Restore proof and reuse mode
+
+**Schema preservation.** `model-authority-evidence` serves a
+`pg_restore`d database with the pinned API build. That build's
+`persistence.xml` sets `hibernate.hbm2ddl.auto=create-drop`,
+which recreates the schema at startup and wipes restored data. The job
+therefore patches it to `update` before staging, behind a guard that the
+expected line exists and an assertion that no `create-drop` remains, the
+same patch `deployment/sysml2-api/Dockerfile` applies for production.
+`ingest-and-validate` keeps `create-drop`: it starts on an empty database,
+which is the intended behavior there.
+
+**Restore proof.** Right after the API starts, before any evidence step,
+`scripts/verify_restored_api_corpus.py` proves that the binding's SysML
+project and commit exist in the restored API and that the element count
+and element id set read through the API equal the export's (and the
+semantic report's `element_count`). A refusal is an `::error::` naming the
+cause, every evidence step is skipped, and the proof report and API log
+tail are still uploaded.
+
+**Reuse mode.** The `reuse_ingestion_run` dispatch input repeats only the
+model-authority job, on the artifacts of an earlier run, without
+re-ingesting (~4.5 h saved):
+
+```text
+gh workflow run privileged-full-model-api-ingestion.yml --ref main \
+  -f ref=<sha> -f reuse_ingestion_run=<earlier run id>
+```
+
+`ingest-and-validate` is skipped. Before anything is downloaded,
+`scripts/verify_reuse_ingestion_run.py` checks through the GitHub API, and
+refuses unless all hold:
+
+- `ref` is set to an exact 40-character SHA, and the run id is numeric and
+  not the current run;
+- the source run is a run of this same workflow file in this repository,
+  `event=workflow_dispatch`, `status=completed`, and its `head_sha` equals
+  `ref`;
+- the source run's `ingest-and-validate` job concluded `success`;
+- `full-model-api-ingestion-<ref>` and `model-authority-api-db-<ref>` each
+  exist exactly once, `expired=false`, originating from `ref`. The
+  snapshot is retained for 3 days and the ingestion evidence for 14, so a
+  reuse run must start within 3 days of the source run.
+
+Artifact names come from the `ref` input, never from `github.sha` (a reuse
+dispatch runs on a newer `main`). Both downloads are bound to the verified
+artifact ids, and the existing `Verify inputs are bound to the checked-out
+revision` step still re-checks the content (export, binding and O3 bundle
+name the checked-out SHA; the dump matches its sha256). The verified
+source run is recorded as `de4sdv-o4-ingestion-source.json` in the
+evidence artifact, which is named `model-authority-evidence-<ref>`. Only
+`model-authority-evidence` gets `actions: read`, for the cross-run
+verification and download. A dispatch with the input empty behaves as
+before.
+
+The two helpers (`verify_reuse_ingestion_run.py`,
+`verify_restored_api_corpus.py`) are workflow wiring. They are taken from
+the workflow's own revision (`github.sha`, materialized to
+`/tmp/de4sdv-ci`), not from the evidence checkout, because a reuse run
+checks out an older `ref` that can predate them. Every model-evidence step
+still runs from the checked-out `ref`.
+
+A reuse run concludes `success` without an ingestion artifact. The deploy
+workflow's automatic run selection and the core-evidence workflow fail
+closed on such a run (an ambiguous selection or a missing
+`full-model-api-ingestion-<sha>`); pass the ingestion run id explicitly.
+
+**Run history and pitfalls.**
+
+- Run 37677500924 (dispatch at `ff0311b`, 2026-10-08):
+  `ingest-and-validate` succeeded (4 h 22 min); `model-authority-evidence`
+  failed after 6 min. The job restored the same-run dump and then started
+  the unpatched pinned build, whose `create-drop` dropped the constraints
+  and recreated the schema. The API served 0 elements, so read-back
+  (`missing=84429`), population delta, comparison (`O3BundleError`, closure
+  element count) and close all refused. They refused correctly, but only
+  through secondary symptoms. Fixed by the schema-preservation patch and
+  the restore proof above. That run's artifacts are the intended input of
+  the first reuse run.
 
 ## 3. Activation procedure
 
