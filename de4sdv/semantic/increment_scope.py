@@ -22,7 +22,8 @@ relationships only:
   top-level packages, exactly and uniquely), with every element they own
   through nested packages. Features of those elements (for example the
   framed-concern members of a need) are not scope elements. A declared name
-  without exactly one top-level package is reported, never guessed.
+  without exactly one top-level package leaves the scope unresolved (a
+  problem), never narrower.
 
 An identity that cannot be established (for example a missing kernel binding
 or an ambiguous identifier) is recorded as a problem, never as an empty scope.
@@ -41,8 +42,9 @@ from .revision_index import RevisionIndex
 #: ``INC-<SUBJECT>-<SEQ>[<letter>][-<SUBSEQ>...]`` (naming conventions §4).
 _INCREMENT_ID = re.compile(r"\AINC-[A-Z][A-Z0-9]*-[0-9]+[A-Z]?(?:-[0-9A-Z]+)*\Z")
 
-#: Key of an increment identity problem in :attr:`IncrementScope.problems`.
+#: Keys of :attr:`IncrementScope.problems`: the increment's identity, its declared scope.
 IDENTITY_PROBLEM = "increment"
+SCOPE_PROBLEM = "scope"
 
 #: Kernel classes the resolution grounds in (ontology class names).
 INCREMENT_CLASS = "EngineeringIncrement"
@@ -118,28 +120,6 @@ class ModelView:
             )
         return bindings.element_id_for(ontology_class, self.index.by_id)
 
-    def class_of_declaration(self, declaration_name: str) -> str | None:
-        """The kernel-index class holding the validated binding of a declaration.
-
-        Resolution goes through the ingestion-validated kernel bindings
-        themselves (their recorded declaration), so a binding the runtime
-        files under a routed profile name still resolves. Exactly one binding
-        must carry the declaration; otherwise the declaration has no identity.
-        """
-        bindings = getattr(self.traversal.kernel_bindings, "bindings", ()) or ()
-
-        def build() -> dict[str, list[str]]:
-            found: dict[str, list[str]] = {}
-            for binding in bindings:
-                name = str(binding.declaration).split()[-1] if binding.declaration else ""
-                if name:
-                    found.setdefault(name, []).append(binding.ontology_class)
-            return found
-
-        table = self.index.memo_bound(("declaration-classes",), (self.traversal.kernel_bindings,), build)
-        classes = table.get(declaration_name) or []
-        return classes[0] if len(classes) == 1 else None
-
     def source_of(self, identifier: str | None) -> str:
         return str(self.sources.get(identifier or "", ""))
 
@@ -176,8 +156,6 @@ class IncrementScope:
     """The model-resolved scope of one requested increment."""
 
     increment_id: str
-    candidates: tuple[str, ...]
-    rejected_candidates: tuple[str, ...]
     usage_id: str | None
     definition_ids: tuple[str, ...]
     package_id: str | None
@@ -246,18 +224,23 @@ def resolve_increment(view: ModelView, increment_id: str) -> IncrementScope:
         charters, charter_problem = _charters(view, usage_id)
         if charter_problem:
             diagnostics.append(charter_problem)
+        scope_problem = ""
         if len(charters) == 1:
             declared_phases, phase_diagnostics = _declared_phases(view, charters[0])
             diagnostics.extend(phase_diagnostics)
-            scope_packages, scope_elements, scope_diagnostics = _declared_scope(view, charters[0])
-            diagnostics.extend(scope_diagnostics)
-        elif len(charters) > 1:
-            diagnostics.append(
-                f"{len(charters)} charter declarations reference the increment; applicable "
-                "phases are unresolved"
-            )
+            packages, unresolved = declared_artifacts(view, charters[0])
+            scope_packages = tuple(packages)
+            scope_elements = _ordered(view, [e for package in packages for e in _package_contents(view, package)])
+            if unresolved or not packages:
+                scope_problem = (f"{SCOPE_ATTRIBUTE} {', '.join(unresolved)} name no single top-level package"
+                                 if unresolved else f"the charter declares no {SCOPE_ATTRIBUTE}")
         else:
-            diagnostics.append("no charter declaration references the increment")
+            scope_problem = (f"{len(charters)} charter declarations reference the increment"
+                             if charters else "no charter declaration references the increment")
+        if scope_problem:
+            detail = f"{scope_problem}; applicable phases and scope beyond the increment's package are unresolved"
+            diagnostics.append(detail)
+            problems[SCOPE_PROBLEM] = (PROBLEM_UNAVAILABLE, detail)
 
     if usage_id is None:
         problems.setdefault(
@@ -266,8 +249,6 @@ def resolve_increment(view: ModelView, increment_id: str) -> IncrementScope:
         )
     return IncrementScope(
         increment_id=identifier,
-        candidates=tuple(candidates),
-        rejected_candidates=tuple(rejected),
         usage_id=usage_id,
         definition_ids=definition_ids,
         package_id=package_id,
@@ -279,11 +260,6 @@ def resolve_increment(view: ModelView, increment_id: str) -> IncrementScope:
         problems=problems,
         diagnostics=tuple(diagnostics),
     )
-
-
-def ordered_elements(view: ModelView, identifiers: Sequence[str]) -> tuple[str, ...]:
-    """Distinct identifiers ordered by qualified name, then identifier (corpus-order independent)."""
-    return _ordered(view, identifiers)
 
 
 def _ordered(view: ModelView, identifiers: Sequence[str]) -> tuple[str, ...]:
@@ -311,26 +287,32 @@ def _charters(view: ModelView, usage_id: str) -> tuple[tuple[str, ...], str]:
     return _ordered(view, found), ""
 
 
+def applicable_phase_literals(view: ModelView, charter: str) -> tuple[list[str], list[str]]:
+    """The MethodPhase literals a charter declares applicable, and the values that are not literals.
+
+    Raises :class:`IdentityNotFoundError` when MethodPhase has no validated kernel binding.
+    """
+    phase_root = view.kernel_element(PHASE_CLASS)
+    literals: list[str] = []
+    foreign: list[str] = []
+    for leaf in view.index.feature_values(charter, "applicablePhases"):
+        if leaf.kind == "reference" and view.index.owner_of(leaf.value) == phase_root:
+            if leaf.value not in literals:
+                literals.append(leaf.value)
+        else:
+            foreign.append(str(leaf.value))
+    return literals, foreign
+
+
 def _declared_phases(view: ModelView, charter: str) -> tuple[tuple[str, ...] | None, list[str]]:
-    index = view.index
-    diagnostics: list[str] = []
     try:
-        phase_root = view.kernel_element(PHASE_CLASS)
+        literals, foreign = applicable_phase_literals(view, charter)
     except IdentityNotFoundError as error:
         return None, [f"applicable phases cannot be read: kernel-binding:{PHASE_CLASS}: {error}"]
-    values = index.feature_values(charter, "applicablePhases")
-    if not values:
+    if not literals and not foreign:
         return None, ["the charter declares no applicable phases"]
-    phases: list[str] = []
-    for leaf in values:
-        literal = leaf.value if leaf.kind == "reference" else None
-        if literal is None or index.owner_of(literal) != phase_root:
-            diagnostics.append(f"applicable phase value {leaf.value!r} is not a MethodPhase literal")
-            continue
-        name = index.name_of(literal)
-        if name and name not in phases:
-            phases.append(name)
-    return tuple(phases), diagnostics
+    diagnostics = [f"applicable phase value {value!r} is not a MethodPhase literal" for value in foreign]
+    return tuple(view.index.name_of(literal) for literal in literals), diagnostics
 
 
 def _top_level_packages(view: ModelView) -> dict[str, list[str]]:
@@ -367,22 +349,16 @@ def _package_contents(view: ModelView, package: str) -> list[str]:
     return found
 
 
-def _declared_scope(view: ModelView, charter: str) -> tuple[tuple[str, ...], tuple[str, ...], list[str]]:
-    """The packages the charter declares in ``expectedArtifacts`` and their elements."""
-    names = [str(leaf.value) for leaf in view.index.feature_values(charter, SCOPE_ATTRIBUTE)
-             if leaf.kind == "string" and str(leaf.value or "").strip()]
-    if not names:
-        return (), (), [f"the charter declares no {SCOPE_ATTRIBUTE}; the increment scope is empty"]
+def declared_artifacts(view: ModelView, charter: str) -> tuple[list[str], list[str]]:
+    """The top-level packages the charter's ``expectedArtifacts`` name, and the values naming no single one."""
     packages_by_name = _top_level_packages(view)
     packages: list[str] = []
-    diagnostics: list[str] = []
-    for name in names:
+    unresolved: list[str] = []
+    for leaf in view.index.feature_values(charter, SCOPE_ATTRIBUTE):
+        name = str(leaf.value or "").strip() if leaf.kind == "string" else ""
         matches = packages_by_name.get(name, [])
         if len(matches) != 1:
-            diagnostics.append(f"declared artifact {name!r} names {len(matches)} top-level packages; "
-                               "exactly one is required, so it is not in the increment scope")
-            continue
-        if matches[0] not in packages:
+            unresolved.append(f"{leaf.value!r} ({len(matches)} top-level packages)")
+        elif matches[0] not in packages:
             packages.append(matches[0])
-    elements = [element for package in packages for element in _package_contents(view, package)]
-    return tuple(packages), _ordered(view, elements), diagnostics
+    return packages, unresolved

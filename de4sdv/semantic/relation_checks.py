@@ -1,7 +1,7 @@
 """Relation checks: one implementation per relation, keyed by the relation's name.
 
 A method check names the relation it checks, for example
-``derivesRequirementFromNeed``. This registry maps that name to the
+``derivesRequirementFromNeed``. :func:`relation_checks` maps that name to the
 implementation that finds, for one subject element of the bound model
 revision, the elements the relation reaches and the witnesses that carry
 it. An implementation reads only the model: the subject, the revision-scoped
@@ -37,7 +37,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Mapping
 
 from de4sdv.sysml_api.errors import IdentityNotFoundError
 from de4sdv.sysml_api.repository import reference_ids
@@ -49,9 +49,6 @@ from .kernel_contract import KernelFileMapping
 METHOD_SIDE_PREFIXES = ("kernel-binding:", "governed-relation:", "external-relation:")
 #: Problem marker of engineering witnesses that exist but cannot be read.
 MODEL_WITNESS_PREFIX = "model-witness:"
-
-#: Native SysML v2 relations, by keyword.
-NATIVE_RELATIONS = ("frame", "stakeholder", "subject", "verify")
 
 
 class MethodSideInput(Exception):
@@ -379,72 +376,29 @@ _NATIVE_CHECKS: dict[str, RelationCheck] = {
 }
 
 
-# ---------------------------------------------------------------------------
-# Registry
-# ---------------------------------------------------------------------------
+def relation_checks(view: ModelView) -> Mapping[str, RelationCheck]:
+    """Relation name -> check: every relation of the view's model-built contract and the
+    native SysML relations (read-only, built once per contract)."""
 
-
-@dataclass(frozen=True)
-class RelationDefinition:
-    """One relation name and the check that decides it."""
-
-    name: str
-    check: RelationCheck
-
-
-class RelationCheckRegistry:
-    """Immutable map from relation name to relation check."""
-
-    def __init__(self, definitions: Iterable[RelationDefinition] = ()) -> None:
-        table: dict[str, RelationDefinition] = {}
-        for definition in definitions:
-            if definition.name in table:
-                raise ValueError(f"relation {definition.name!r} is registered twice")
-            table[definition.name] = definition
-        self._table = MappingProxyType(table)
-
-    @classmethod
-    def for_contract(cls, contract: Any) -> "RelationCheckRegistry":
-        """Every relation of the model-built contract, plus the native SysML relations."""
+    def build() -> Mapping[str, RelationCheck]:
+        contract = view.contract
         carriers = (getattr(contract, "profile", None) or {}).get("carriers") or {}
-        definitions = []
+        table: dict[str, RelationCheck] = {}
         for relation in sorted(getattr(contract, "relationships", {}) or {}):
             try:
                 strategy = contract.relationship_mapping(relation).strategy
             except Exception:  # noqa: BLE001 - unmapped: decided as method side
                 strategy = ""
             pinned = str((carriers.get(relation) or {}).get("declaration") or "")
-            if strategy == "successor" and pinned.startswith("connection def "):
-                definitions.append(RelationDefinition(relation, connection_carried_check(relation)))
-            else:
-                definitions.append(RelationDefinition(relation, governed_relation_check(relation)))
-        definitions.extend(RelationDefinition(name, check) for name, check in _NATIVE_CHECKS.items())
-        return cls(definitions)
+            carried = strategy == "successor" and pinned.startswith("connection def ")
+            table[relation] = (connection_carried_check if carried else governed_relation_check)(relation)
+        if set(table) & set(_NATIVE_CHECKS):
+            raise ValueError(f"contract relations shadow native relations: {sorted(set(table) & set(_NATIVE_CHECKS))}")
+        return MappingProxyType({**table, **_NATIVE_CHECKS})
 
-    def with_definitions(self, *definitions: RelationDefinition) -> "RelationCheckRegistry":
-        """A new registry; a definition replaces an existing one of the same name."""
-        table = dict(self._table)
-        for definition in definitions:
-            table[definition.name] = definition
-        return RelationCheckRegistry(table.values())
-
-    def names(self) -> tuple[str, ...]:
-        return tuple(sorted(self._table))
-
-    def __contains__(self, name: object) -> bool:
-        return name in self._table
-
-    def definition(self, name: str) -> RelationDefinition:
-        try:
-            return self._table[name]
-        except KeyError:
-            raise KeyError(f"no relation check is registered for {name!r}") from None
-
-    def check(self, name: str, view: ModelView, subject_id: str) -> RelationResult:
-        return self.definition(name).check(view, subject_id)
+    return view.index.memo_bound(("relation-checks",), (view.contract,), build)
 
 
-def relation_checks(view: ModelView) -> RelationCheckRegistry:
-    """The relation checks of the view's model-built contract (built once per contract)."""
-    return view.index.memo_bound(("relation-checks",), (view.contract,),
-                                 lambda: RelationCheckRegistry.for_contract(view.contract))
+def check_relation(view: ModelView, relation: str, subject_id: str) -> RelationResult:
+    """What ``relation`` reaches from one subject element."""
+    return relation_checks(view)[relation](view, subject_id)

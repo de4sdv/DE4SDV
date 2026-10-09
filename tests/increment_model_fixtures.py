@@ -1,28 +1,38 @@
-"""Synthetic, export-shaped SysML model content for increment-evaluation tests.
+"""Export-shaped SysML model content for increment-evaluation tests.
 
-Elements follow the shapes of the licensed full-model JSON export (owning
-memberships, FeatureTyping/Subclassification objects, FeatureMembership ->
-AttributeUsage -> FeatureValue -> literal or FeatureReferenceExpression,
-EndFeatureMembership -> Feature -> ReferenceSubsetting connection ends, and
-so on). Kernel definitions carry the model-built contract's declarations and
-source files, so ingestion-shaped kernel bindings resolve them by identity.
+Synthetic increment content is built in code, in the shapes of the licensed
+full-model JSON export (owning memberships, FeatureTyping/Subclassification
+objects, FeatureMembership -> AttributeUsage -> FeatureValue -> literal or
+FeatureReferenceExpression, EndFeatureMembership -> Feature ->
+ReferenceSubsetting connection ends, MultiplicityRange -> OperatorExpression
+``..`` ranges, and so on). Kernel definitions carry the model-built contract's
+declarations and source files, so ingestion-shaped kernel bindings resolve
+them by identity. Element identifiers are deterministic per builder.
 
-Nothing here copies a model file: every element is synthetic and built in
-code. Element identifiers are deterministic per builder.
+The model's own method (kernel declarations, the increment workflow, the
+library attribute bases) is never copied by hand: :func:`method_builder`
+adopts it, unchanged, from the cut of a genuine export in
+``fixtures/genuine_export``.
 """
 
 from __future__ import annotations
 
+import functools
+import gzip
 import itertools
+import json
 import uuid
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Iterable, Sequence
 
 from de4sdv.semantic.kernel_contract import KernelFileMapping, declaration_identity
+from de4sdv.semantic.validation import validate_ontology_bindings
 from model_contract_fixtures import model_contract
 
 ODE4HERA_SOURCE = ".sysand/lib/ode4hera-requirements-management_2.0.1/RequirementsManagement.sysml"
 FEATURE_SOURCE = "textual-notation-of-model/packages/features/fixture/fixture_increment.sysml"
+GENUINE_EXPORT = Path(__file__).resolve().parent / "fixtures/genuine_export/inc-aebs-010.json.gz"
 _NAMESPACE = uuid.UUID("0b8f6a0e-6a39-5c43-9d4e-5d2c1f3c9a11")
 
 PHASE_LITERALS = (
@@ -166,28 +176,42 @@ class ModelBuilder:
                               "source_file": mapping.file, "declaration": mapping.declaration})
         return definition
 
+    def members(self, owner: dict[str, Any]) -> dict[str, dict[str, Any]]:
+        """The owned members of ``owner`` by name."""
+        by_id = {e["@id"]: e for e in self.elements}
+        found: dict[str, dict[str, Any]] = {}
+        for reference in owner.get("ownedRelationship", []):
+            relationship = by_id.get(reference["@id"], {})
+            member = by_id.get((relationship.get("memberElement") or {}).get("@id"))
+            if member is not None and str(relationship.get("@type")).endswith("Membership"):
+                found.setdefault(member.get("declaredName") or member.get("name"), member)
+        return found
+
     def enumeration(self, ontology_class: str, literals: Sequence[str]) -> dict[str, dict[str, Any]]:
-        """The literals of a kernel enumeration (created once per builder)."""
+        """The literals of a kernel enumeration (adopted or created once per builder)."""
         if ontology_class in self.enumerations:
             return self.enumerations[ontology_class]
         definition = self.kernel_definition(ontology_class)
-        found = {}
+        found = {name: member for name, member in self.members(definition).items() if name in literals}
         for literal in literals:
-            usage = self.new("EnumerationUsage", name=literal, source=self.sources[definition["@id"]])
-            self.own(definition, usage, kind="VariantMembership", member_name=literal)
-            found[literal] = usage
+            if literal not in found:
+                found[literal] = self.new("EnumerationUsage", name=literal, source=self.sources[definition["@id"]])
+                self.own(definition, found[literal], kind="VariantMembership", member_name=literal)
         self.enumerations[ontology_class] = found
         return found
 
     def library_feature(self, name: str) -> dict[str, Any]:
+        """An attribute of the library attribute base needs specialize (the adopted ODE4HERA one, if any)."""
         if name not in self.library:
-            holder = self.library.get("__holder__")
+            holder = self.library.get("__holder__") or next(
+                (e for e in self.elements if e.get("declaredName") == "NeedsRequirementsAttributes"), None)
             if holder is None:
-                holder = self.new("RequirementDefinition", name="ExtendedRequirement",
-                                  source=ODE4HERA_SOURCE)
-                self.library["__holder__"] = holder
-            feature = self.new("AttributeUsage", name=name, source=ODE4HERA_SOURCE)
-            self.own(holder, feature, kind="FeatureMembership", member_name=name)
+                holder = self.new("RequirementDefinition", name="ExtendedRequirement", source=ODE4HERA_SOURCE)
+            self.library["__holder__"] = holder
+            feature = self.members(holder).get(name)
+            if feature is None:
+                feature = self.new("AttributeUsage", name=name, source=ODE4HERA_SOURCE)
+                self.own(holder, feature, kind="FeatureMembership", member_name=name)
             self.library[name] = feature
         return self.library[name]
 
@@ -219,15 +243,24 @@ class ModelBuilder:
         raise TypeError(value)
 
     def multiplicity(self, feature: dict[str, Any], *bounds: Any) -> dict[str, Any]:
-        """A MultiplicityRange owned by ``feature``: ``[n]`` or ``[lower..upper]`` literal bounds.
+        """A MultiplicityRange owned by ``feature``, in the licensed export's shape.
 
-        Only the owned structure is emitted (no derived ``lowerBound`` /
-        ``upperBound`` references), so readers work from ownership.
+        ``[n]`` and ``[*]`` own one literal; ``[lower..upper]`` owns an
+        OperatorExpression ``..`` whose two parameter features (direction in)
+        carry the literal bounds as feature values.
         """
-        multiplicity = self.new("MultiplicityRange", source=self.sources[feature["@id"]])
+        source = self.sources[feature["@id"]]
+        multiplicity = self.new("MultiplicityRange", source=source)
         self.own(feature, multiplicity)
+        if len(bounds) == 1:
+            self.own(multiplicity, self.value_expression(multiplicity, bounds[0]))
+            return multiplicity
+        expression = self.new("OperatorExpression", source=source, operator="..")
+        self.own(multiplicity, expression)
         for bound in bounds:
-            self.own(multiplicity, self.value_expression(multiplicity, bound))
+            parameter = self.new("Feature", source=source, direction="in")
+            self.own(expression, parameter, kind="ParameterMembership")
+            self.own(parameter, self.value_expression(parameter, bound), kind="FeatureValue")
         return multiplicity
 
     def attribute(self, owner: dict[str, Any], name: str, value: Any,
@@ -353,16 +386,15 @@ class IncrementScenario:
     definition: dict[str, Any]
     usage: dict[str, Any]
     charter: dict[str, Any]
-    problem_statement: dict[str, Any]
     concern: dict[str, Any]
     needs_package: dict[str, Any]
     needs: list[dict[str, Any]]
     requirements: list[dict[str, Any]]
     evidence_package: dict[str, Any]
     cases: list[dict[str, Any]]
-    stakeholder_role: dict[str, Any]
-    scenario_definition: dict[str, Any]
     vocabulary: dict[str, dict[str, Any]] = field(default_factory=dict)
+    #: Handles to the model workflow the charter declares (see :func:`model_workflow`).
+    workflow: dict[str, Any] = field(default_factory=dict)
 
 
 def increment_scenario(
@@ -425,9 +457,10 @@ def increment_scenario(
     b.attribute(charter, "expectedReviewEvidence", ["fixture review evidence"])
 
     needs_package = b.package(f"DE4SDV_{name}NeedsRequirements")
-    need_def = b.definition("RequirementDefinition", f"{name}Need", needs_package, [roots["Need"]])
+    attributes = b.library["__holder__"]  # the library attribute base the model's needs specialize
+    need_def = b.definition("RequirementDefinition", f"{name}Need", needs_package, [roots["Need"], attributes])
     requirement_def = b.definition("RequirementDefinition", f"{name}Requirement", needs_package,
-                                   [roots["Requirement"]])
+                                   [roots["Requirement"], attributes])
     scenario_def = b.definition("PartDefinition", f"{name}ValidationScenario", needs_package,
                                 [roots["ValidationPlanningScenario"]])
     association_def = b.definition("ConnectionDefinition", f"{name}ValidationAssociation", needs_package,
@@ -464,10 +497,8 @@ def increment_scenario(
     b.subject(case, bench, name="verifiedBench")
     return IncrementScenario(
         builder=b, increment_id=increment_id, phases=phases, framing=framing, definition=definition,
-        usage=usage, charter=charter, problem_statement=problem, concern=concern,
-        needs_package=needs_package, needs=needs, requirements=requirements,
-        evidence_package=evidence_package, cases=[case], stakeholder_role=role,
-        scenario_definition=scenario_def, vocabulary=roots)
+        usage=usage, charter=charter, concern=concern, needs_package=needs_package, needs=needs,
+        requirements=requirements, evidence_package=evidence_package, cases=[case], vocabulary=roots)
 
 
 # ---------------------------------------------------------------------------
@@ -605,87 +636,76 @@ def attach_workflow(builder: ModelBuilder, charter: dict[str, Any], workflow: di
     return feature
 
 
-def model_workflow_steps(scenario: IncrementScenario, **changes: dict[str, Any]) -> list[WorkflowStep]:
-    """The steps, parameters and checks of the model's increment workflow (checked steps in full)."""
-    from dataclasses import replace as _replace
-
-    builder, framing = scenario.builder, scenario.framing
-    scope = builder.definition("PartDefinition", "IncrementScope", framing)
-    out_of_scope = builder.definition("PartDefinition", "OutOfScopeItem", framing)
-    builder.usage("PartUsage", "fixtureScope", framing, [scope])
-    builder.usage("PartUsage", "fixtureOutOfScopeItem", framing, [out_of_scope])
-    p, c = WorkflowParameter, WorkflowCheck
-    steps = [
-        WorkflowStep("frameIncrement", "phase0_incrementFraming", (
-            p("increment", "EngineeringIncrement"), p("charter", "IncrementTraceObligations"),
-            p("problemStatement", "ProblemStatement", "RequirementUsage"),
-            p("engineeringQuestion", "IncrementEngineeringQuestion"),
-            p("lifecycleDecision", "IncrementLifecycleDecision"),
-            p("assumptions", "Assumption", bounds=(1, INFINITY)), p("scope", scope),
-            p("outOfScopeItems", out_of_scope, bounds=(1, INFINITY)),
-            p("framedConcerns", None, "ConcernUsage", bounds=(1, INFINITY)),
-        ), (
-            c("incrementHasIdentifier", "incrementShortName", "increment"),
-            c("incrementHasCharter", "charterReferencesIncrement", "charter"),
-            c("incrementHasProblemStatement", "problemStatementSubject", "problemStatement"),
-            c("incrementHasEngineeringQuestion", "ownedByIncrementPackage", "engineeringQuestion"),
-            c("incrementHasLifecycleDecision", "ownedByIncrementPackage", "lifecycleDecision"),
-            c("incrementHasAssumption", "ownedByIncrementPackage", "assumptions"),
-            c("incrementHasStakeholder", "stakeholderMember", "problemStatement"),
-            c("incrementHasFramedConcern", "framedByIncrementView", "framedConcerns"),
-            c("incrementHasScope", "ownedByIncrementPackage", "scope"),
-            c("incrementHasOutOfScopeItem", "ownedByIncrementPackage", "outOfScopeItems"),
-            c("incrementHasOwner", "charterOwner", "charter"),
-            c("incrementDeclaresApplicablePhases", "charterApplicablePhases", "charter"),
-            c("incrementDeclaresExpectedArtifacts", "charterExpectedArtifacts", "charter"),
-            c("incrementDeclaresExpectedReviewEvidence", "charterExpectedReviewEvidence", "charter"),
-        )),
-        WorkflowStep("frameConcerns", "phase1_concernFraming", (
-            p("problemStatement", "ProblemStatement", "RequirementUsage", "in"),
-            p("concerns", None, "ConcernUsage", bounds=(1, INFINITY)),
-        )),
-        WorkflowStep("elaborateNeeds", "phase4_needs", (
-            p("problemStatement", "ProblemStatement", "RequirementUsage", "in"),
-            p("concerns", None, "ConcernUsage", "in", (0, INFINITY)),
-            p("needs", "Need", "RequirementUsage", bounds=(1, INFINITY)),
-        ), (
-            c("needHasStatement", "requireConstraint", "needs"),
-            c("needHasStakeholder", "stakeholderMember", "needs"),
-            c("needHasSource", "sourceAttribute", "needs"),
-            c("needHasRationale", "rationaleAttribute", "needs"),
-            c("needHasValidationScenario", "hasValidationScenario", "needs"),
-            c("needFramesConcern", "framesStakeholderConcern", "needs"),
-        )),
-        WorkflowStep("specifyRequirements", "phase5_requirements", (
-            p("needs", "Need", "RequirementUsage", "in", (0, INFINITY)),
-            p("requirements", "Requirement", "RequirementUsage", bounds=(1, INFINITY)),
-        ), (
-            c("requirementDerivesFromNeed", "derivesRequirementFromNeed", "requirements"),
-            c("requirementHasOneSubject", "oneNativeSubject", "requirements"),
-            c("requirementHasVerificationMethod", "oneVerificationMethodKind", "requirements"),
-            c("requirementSpecifiesFeatureOrCapability", "specifiesFeatureOrCommonCapability", "requirements",
-              advisory=True),
-        )),
-        WorkflowStep("defineFunctionalArchitecture", "phase6_functionalArchitecture", (
-            p("requirements", "Requirement", "RequirementUsage", "in", (0, INFINITY)),
-            p("functions", None, "ActionUsage", bounds=(1, INFINITY)),
-        )),
-        WorkflowStep("planVerificationAndEvidence", "phase10_vvEvidence", (
-            p("requirements", "Requirement", "RequirementUsage", "in", (0, INFINITY)),
-            p("verificationCases", None, "VerificationCaseUsage", bounds=(1, INFINITY)),
-        ), (
-            c("verificationCaseVerifiesRequirement", "verifiesIncrementRequirement", "verificationCases"),
-            c("requirementVerifiedByVerificationCase", "verifiedBy", "requirements"),
-            c("verificationCaseVerifiesAcceptanceCriterion", "verifiesAcceptanceCriterion", "verificationCases",
-              advisory=True),
-            c("verificationCaseHasEvidenceRecordOrStatus", "evidenceRecordOrStatus", "verificationCases",
-              advisory=True),
-        )),
-    ]
-    return [_replace(step, **changes.get(step.name, {})) for step in steps]
+@functools.lru_cache(maxsize=1)
+def _genuine_method_layer() -> tuple[str, tuple[tuple[tuple[str, str], ...], ...]]:
+    """The method layer of the genuine export cut (all but the feature packages) and its validated bindings."""
+    export = json.loads(gzip.decompress(GENUINE_EXPORT.read_bytes()))
+    sources = export["element_sources"]
+    elements = [e for e in export["elements"]
+                if not sources[e["@id"]].startswith("textual-notation-of-model/packages/features/")]
+    layer_sources = {e["@id"]: sources[e["@id"]] for e in elements}
+    report = validate_ontology_bindings(model_contract(), elements, layer_sources)
+    assert report.passed, report.summary
+    bindings = tuple(tuple({"ontology_class": entry.ontology_class, "element_id": entry.element_ids[0],
+                            "source_file": entry.mapping["file"], "declaration": entry.mapping["declaration"]}.items())
+                     for entry in report.entries if entry.status == "mapped" and len(entry.element_ids) == 1)
+    return json.dumps({"elements": elements, "sources": layer_sources}), bindings
 
 
-def install_model_workflow(scenario: IncrementScenario, **changes: dict[str, Any]) -> dict[str, Any]:
-    """The model's workflow, declared by the scenario's charter."""
-    scenario.builder.kernel_definition("AcceptanceCriterion")
-    return increment_workflow(scenario.builder, model_workflow_steps(scenario, **changes), charter=scenario.charter)
+def method_builder(label: str = "fixture") -> ModelBuilder:
+    """A builder holding the model's method layer (kernel, workflow, library) from the genuine export."""
+    text, bindings = _genuine_method_layer()
+    layer = json.loads(text)  # a fresh copy per builder
+    builder = ModelBuilder(label=label)
+    builder.elements.extend(layer["elements"])
+    builder.sources.update(layer["sources"])
+    builder.bindings.extend(dict(binding) for binding in bindings)
+    return builder
+
+
+def model_workflow(scenario: IncrementScenario) -> dict[str, Any]:
+    """The model's increment workflow, declared by the scenario's charter (a :func:`method_builder` scenario).
+
+    The charter definition specializes the model's ``IncrementCharter``, whose
+    ``workflow`` feature is typed by the workflow; the framing package gets a
+    scope and an out-of-scope item typed by the model's definitions. Returns
+    the workflow's steps, parameters and checks by name.
+    """
+    builder = scenario.builder
+    named = {(e["@type"], e.get("declaredName")): e for e in builder.elements
+             if builder.sources.get(e["@id"]) == WORKFLOW_SOURCE}
+    typing = next(r for r in builder.elements if r.get("@type") == "FeatureTyping"
+                  and r.get("typedFeature", {}).get("@id") == scenario.charter["@id"])
+    builder.specializes(next(e for e in builder.elements if e["@id"] == typing["type"]["@id"]),
+                        named[("PartDefinition", "IncrementCharter")])
+    for definition, usage in (("IncrementScope", "fixtureScope"), ("OutOfScopeItem", "fixtureOutOfScopeItem")):
+        (found,) = [e for e in builder.elements if e.get("declaredName") == definition and e["@type"] == "PartDefinition"]
+        builder.usage("PartUsage", usage, scenario.framing, [found])
+    workflow = named[("ActionDefinition", "IncrementWorkflow")]
+    handles: dict[str, Any] = {"workflow": workflow, "check_definition": named[("MetadataDefinition", "MethodCheck")],
+                               "steps": {}, "parameters": {}, "checks": {}}
+    by_id = {e["@id"]: e for e in builder.elements}
+    for name, step in builder.members(workflow).items():
+        if step["@type"] != "ActionUsage" or name in ("start", "done"):
+            continue
+        handles["steps"][name] = step
+        step_typing = next(by_id[r["@id"]] for r in step["ownedRelationship"]
+                           if by_id[r["@id"]].get("@type") == "FeatureTyping" and not by_id[r["@id"]].get("isImplied"))
+        for member_name, member in builder.members(by_id[step_typing["type"]["@id"]]).items():
+            if member["@type"] == "MetadataUsage":
+                handles["checks"][member_name] = member
+            elif member.get("direction"):
+                handles["parameters"][(name, member_name)] = member
+    return handles
+
+
+def set_check(scenario: IncrementScenario, workflow: dict[str, Any], check_name: str, /, **values: Any) -> None:
+    """Set (or replace) attributes of one check of the model workflow, as a redefinition in the model would."""
+    builder, metadata = scenario.builder, workflow["checks"][check_name]
+    features = builder.members(workflow["check_definition"])
+    for name, value in values.items():
+        try:
+            builder.remove(builder.feature_of(metadata, name))
+        except KeyError:
+            pass
+        builder.attribute(metadata, name, value, redefines=features[name])

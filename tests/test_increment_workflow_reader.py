@@ -23,9 +23,7 @@ from de4sdv.semantic.increment_workflow import (
     read_increment_method,
     read_revision_method,
 )
-from de4sdv.semantic.method_checks import MethodCheckRegistry
-from de4sdv.semantic.model_authority_runtime import model_facade
-from de4sdv.semantic.relation_checks import RelationCheckRegistry
+from de4sdv.semantic.method_checks import method_checks
 from increment_model_fixtures import (
     INFINITY,
     WorkflowCheck,
@@ -34,8 +32,10 @@ from increment_model_fixtures import (
     attach_workflow,
     increment_scenario,
     increment_workflow,
-    install_model_workflow,
+    method_builder,
+    model_workflow,
     ref,
+    set_check,
 )
 from test_revision_index import _traversal
 
@@ -69,9 +69,9 @@ def _evaluate(scenario):
     return evaluate_increment(_view(scenario), scenario.increment_id, revision=REVISION)
 
 
-def _scenario(applicable_phases=(P0, P4, P5, P10), **changes):
-    scenario = increment_scenario(applicable_phases=applicable_phases)
-    install_model_workflow(scenario, **changes)
+def _scenario(applicable_phases=(P0, P4, P5, P10)):
+    scenario = increment_scenario(method_builder(), applicable_phases=applicable_phases)
+    scenario.workflow = model_workflow(scenario)
     return scenario
 
 
@@ -90,7 +90,7 @@ def _owner(builder, element) -> str | None:
 
 
 def test_the_charter_declares_the_workflow_read_into_one_contract() -> None:
-    scenario = _scenario()
+    scenario = _scenario()  # its charter definition specializes the model's IncrementCharter
     method = _method(scenario)
     assert method.available, method.problems or method.reason
     assert not any(b["ontology_class"] in {"IncrementWorkflow", "MethodCheck"} for b in scenario.builder.bindings)
@@ -113,22 +113,6 @@ def test_the_charter_declares_the_workflow_read_into_one_contract() -> None:
     assert method.labels["needFramesConcern"]["check_definition"].endswith("MethodCheck")
 
 
-def test_the_workflow_is_found_through_a_definition_the_charter_specializes() -> None:
-    scenario = increment_scenario()
-    builder = scenario.builder
-    charter_definition = _named(scenario, "FixtureCharter")
-    base = builder.definition("PartDefinition", "CharterBase", scenario.framing)
-    builder.specializes(charter_definition, base)
-    made = increment_workflow(builder, [WorkflowStep("elaborateNeeds", P4, (
-        P("needs", "Need", "RequirementUsage", bounds=(1, INFINITY)),), (
-        C("needHasStatement", "requireConstraint", "needs"),))])
-    feature = builder.new("ActionUsage", name="workflow")
-    builder.own(base, feature, kind="FeatureMembership", member_name="workflow")
-    builder.typed(feature, made["workflow"])
-    method = _method(scenario)
-    assert method.available and [o.obligation_id for o in method.contract.obligations] == ["needHasStatement"]
-
-
 def test_a_charter_without_a_workflow_has_no_executable_method() -> None:
     scenario = increment_scenario()
     increment_workflow(scenario.builder, [WorkflowStep("elaborateNeeds", P4, (
@@ -140,15 +124,6 @@ def test_a_charter_without_a_workflow_has_no_executable_method() -> None:
     assert status["reason_codes"] == [me.CONTRACT_UNAVAILABLE]
 
 
-def test_two_charters_leave_the_method_unavailable() -> None:
-    scenario = _scenario()
-    builder = scenario.builder
-    second = builder.usage("PartUsage", "secondCharter", scenario.framing, [_named(scenario, "FixtureCharter")])
-    builder.attribute(second, "increment", scenario.usage, kind="PartUsage")
-    method = _method(scenario)
-    assert method.contract is None and "2 charter declarations" in method.reason
-
-
 def test_a_metadata_usage_without_a_check_attribute_is_not_a_check() -> None:
     scenario = _scenario()
     builder = scenario.builder
@@ -156,7 +131,9 @@ def test_a_metadata_usage_without_a_check_attribute_is_not_a_check() -> None:
     builder.own(note_definition, builder.new("AttributeUsage", name="text"), kind="FeatureMembership",
                 member_name="text")
     note = builder.new("MetadataUsage", name="reviewNote")
-    builder.own(_named(scenario, "ElaborateNeedsStep"), note, kind="FeatureMembership", member_name="reviewNote")
+    step_definition = next(e for e in builder.elements
+                           if e["@id"] == _typing(builder, scenario.workflow["steps"]["elaborateNeeds"])["type"]["@id"])
+    builder.own(step_definition, note, kind="FeatureMembership", member_name="reviewNote")
     builder.typed(note, note_definition)
     method = _method(scenario)
     assert method.available and "reviewNote" not in {o.obligation_id for o in method.contract.obligations}
@@ -171,8 +148,11 @@ def test_a_complete_increment_passes_every_blocking_check() -> None:
             me.COVERAGE_ASSESSED, me.STATE_COMPLETE, me.VERDICT_PASS), (unit.unit_id, unit.diagnostics)
     assert _unit(evaluation, "verificationCaseVerifiesAcceptanceCriterion").verdict == me.VERDICT_FAIL
     assert _unit(evaluation, "verificationCaseHasEvidenceRecordOrStatus").state == me.STATE_INDETERMINATE
-    assert [block["phase_exit"] for block in evaluation.status()["phases"]] == ["READY"] * 4
+    status = evaluation.status()
+    assert [(block["phase"], block["phase_exit"]) for block in status["phases"]] == [
+        (P0, "READY"), (P4, "READY"), (P5, "READY"), (P10, "READY")]
     assert evaluation.next_obligation()["next"] is None
+    assert evaluation.next_obligation()["method_side_blockers"] == []
 
 
 def test_every_check_is_evaluated_and_next_follows_workflow_order() -> None:
@@ -272,8 +252,9 @@ def test_cyclic_successions_are_invalid() -> None:
 
 
 def test_minimum_raises_the_number_of_targets_each_subject_needs() -> None:
-    evaluation = _evaluate(_scenario(specifyRequirements={"checks": (
-        C("requirementDerivesFromNeed", "derivesRequirementFromNeed", "requirements", minimum=2),)}))
+    scenario = _scenario()
+    set_check(scenario, scenario.workflow, "requirementDerivesFromNeed", minimum=2)
+    evaluation = _evaluate(scenario)
     assert _unit(evaluation, "requirementDerivesFromNeed").verdict == me.VERDICT_FAIL
 
 
@@ -344,8 +325,8 @@ def test_every_check_the_model_declares_is_supported() -> None:
     """Every check id in the model's workflow resolves in the engine's registry."""
     text = re.sub(r"/\*.*?\*/", "", WORKFLOW_FILE.read_text(encoding="utf-8"), flags=re.S)
     used = set(re.findall(r':>>\s*check\s*=\s*"([^"]+)"', text))
-    registry = MethodCheckRegistry.for_relations(RelationCheckRegistry.for_contract(model_facade()).names())
-    assert used and used <= set(registry.names()), used - set(registry.names())
+    supported = set(method_checks(_view(_scenario())))
+    assert used and used <= supported, used - supported
 
 
 def test_a_population_failure_says_how_many_elements_of_which_type_to_keep() -> None:
@@ -396,3 +377,94 @@ def test_framed_concern_check_needs_one_framed_concern_of_the_own_package() -> N
     builder.remove(*[e for e in builder.elements if e.get("@type") == "FramedConcernMembership"
                      and e.get("owningRelatedElement", {}).get("@id") == viewpoint["@id"]])
     assert _unit(_evaluate(scenario), "incrementHasFramedConcern").verdict == me.VERDICT_FAIL
+
+
+def test_a_step_multiplicity_that_cannot_be_decoded_makes_the_method_invalid() -> None:
+    """A declared multiplicity is never read as a default: the method is invalid, not mandatory."""
+    scenario = _scenario()
+    index = _view(scenario).index
+    (multiplicity,) = index.owned_members(scenario.workflow["steps"]["elaborateNeeds"]["@id"], "MultiplicityRange")
+    (expression,) = index.owned_members(multiplicity)
+    index.element(expression)["operator"] = "+"
+    method = _method(scenario)
+    assert method.contract is None
+    assert any("elaborateNeeds" in problem and "multiplicity" in problem for problem in method.problems)
+
+
+def _typing(builder, usage) -> dict:
+    by_id = {e["@id"]: e for e in builder.elements}
+    return next(by_id[r["@id"]] for r in usage["ownedRelationship"]
+                if by_id[r["@id"]].get("@type") == "FeatureTyping" and not by_id[r["@id"]].get("isImplied"))
+
+
+def _remove_need_statements(scenario) -> None:
+    builder = scenario.builder
+    builder.remove(*[e for e in builder.elements if e.get("@type") == "RequirementConstraintMembership"
+                     and e.get("owningRelatedElement", {}).get("@id") in {n["@id"] for n in scenario.needs}])
+
+
+def test_a_check_typed_by_a_method_check_specialization_is_a_check() -> None:
+    scenario = _scenario()
+    builder, workflow = scenario.builder, scenario.workflow
+    package = next(e for e in builder.elements if e["@id"] == _owner(builder, workflow["check_definition"]))
+    blocking = builder.definition("MetadataDefinition", "BlockingCheck", package, [workflow["check_definition"]])
+    typing = _typing(builder, workflow["checks"]["needHasStatement"])
+    typing["type"] = typing["general"] = ref(blocking)
+    _remove_need_statements(scenario)
+    assert _unit(_evaluate(scenario), "needHasStatement").verdict == me.VERDICT_FAIL
+
+
+def test_a_tailored_step_definition_inherits_and_redefines_its_checks_and_parameters() -> None:
+    scenario = _scenario()
+    builder, workflow = scenario.builder, scenario.workflow
+    typing = _typing(builder, workflow["steps"]["elaborateNeeds"])
+    base = next(e for e in builder.elements if e["@id"] == typing["type"]["@id"])
+    package = next(e for e in builder.elements if e["@id"] == _owner(builder, base))
+    tailored = builder.definition("ActionDefinition", "TailoredElaborateNeeds", package, [base])
+    typing["type"] = typing["general"] = ref(tailored)
+    _remove_need_statements(scenario)
+    evaluation = _evaluate(scenario)
+    assert {o.obligation_id for o in evaluation.increment_method.contract.obligations if o.phase == P4} == {
+        "needHasStatement", "needHasStakeholder", "needHasSource", "needHasRationale",
+        "needHasValidationScenario", "needFramesConcern"}
+    assert _unit(evaluation, "needHasStatement").verdict == me.VERDICT_FAIL
+    # Redefining the parameter narrows every inherited check about it.
+    needs = builder.new("RequirementUsage", name="needs", source=builder.sources[tailored["@id"]], direction="out")
+    builder.own(tailored, needs, kind="FeatureMembership", member_name="needs")
+    builder.relationship("Redefinition", needs, redefinedFeature=ref(workflow["parameters"][("elaborateNeeds", "needs")]),
+                         redefiningFeature=ref(needs), general=ref(workflow["parameters"][("elaborateNeeds", "needs")]),
+                         specific=ref(needs))
+    builder.typed(needs, scenario.vocabulary["Need"])
+    builder.multiplicity(needs, 3, INFINITY)
+    unit = _unit(_evaluate(scenario), "needHasStakeholder")
+    assert unit.reason_codes == (me.POPULATION_POLICY_VIOLATION,)
+
+
+def test_an_ambiguous_increment_identity_is_an_error_of_the_framing_checks() -> None:
+    scenario = _scenario()
+    scenario.builder.usage("PartUsage", "incFixtureTwin", scenario.framing, [scenario.definition],
+                           short=scenario.increment_id)
+    evaluation = _evaluate(scenario)
+    assert evaluation.status()["evaluation_state"] == me.STATE_ERROR
+    assert _unit(evaluation, "incrementHasIdentifier").reason_codes == (me.SCOPE_RESOLUTION_ERROR,)
+    step = evaluation.next_obligation()["next"]
+    assert step["gate"] == "incrementHasIdentifier"
+    assert step["what_to_author"].startswith("keep one part usage with the declared short name INC-FIXTURE-001")
+
+
+def test_a_charter_that_does_not_reference_the_increment_is_what_next_asks_to_author() -> None:
+    scenario = _scenario()
+    scenario.builder.remove(scenario.builder.feature_of(scenario.charter, "increment"))
+    step = _evaluate(scenario).next_obligation()["next"]
+    assert step["gate"] == "incrementHasCharter"
+    assert step["what_to_author"].startswith("reference the increment from ")
+
+
+def test_two_charters_fail_the_charter_check_of_the_framing_step() -> None:
+    scenario = _scenario()
+    builder = scenario.builder
+    second = builder.usage("PartUsage", "secondCharter", scenario.framing, [_named(scenario, "FixtureCharter")])
+    builder.attribute(second, "increment", scenario.usage, kind="PartUsage")
+    step = _evaluate(scenario).next_obligation()["next"]
+    assert step["gate"] == "incrementHasCharter"
+    assert step["what_to_author"].startswith("keep exactly 1 IncrementCharter in the increment's package")

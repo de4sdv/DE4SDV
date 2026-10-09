@@ -804,9 +804,7 @@ def model_facade(root: Path = ROOT, *, bundle_id: str = "mab-" + "0" * 32) -> Mo
 
 
 def assemble_model_services(facade: ModelAuthorityFacade, binding: Any, model_repository: Any, *,
-                            expected_git_revision: str, closure_member_ids=None,
-                            method_conformance: Any = None,
-                            method_context_provider: Any = None) -> "ModelAuthorityQueryService":
+                            expected_git_revision: str, closure_member_ids=None) -> "ModelAuthorityQueryService":
     """Assemble the live query/impact services over one facade and binding."""
     from .api_binding import OntologyApiBinder
     from .relationship_successor import route_successor_bindings
@@ -829,7 +827,6 @@ def assemble_model_services(facade: ModelAuthorityFacade, binding: Any, model_re
     return ModelAuthorityQueryService(
         repository=model_repository, binding=binding, contract=facade, binder=binder,
         traversal=traversal, impact_service=impact, expected_git_revision=expected_git_revision,
-        method_conformance=method_conformance, method_context_provider=method_context_provider,
         semantic_authority_id=facade.authority_id)
 
 
@@ -838,7 +835,6 @@ def build_model_authority_runtime(repo_root: "str | Path" = ROOT,
                                   expected_id: str | None = None, *,
                                   api_url: str, binding_path: Path, expected_git_revision: str,
                                   api_timeout: float = 600.0,
-                                  method_conformance: Any = None, method_context_provider: Any = None,
                                   environ: Mapping[str, str] | None = None,
                                   require_activation_eligible: bool = True,
                                   production: bool = False,
@@ -875,7 +871,6 @@ def build_model_authority_runtime(repo_root: "str | Path" = ROOT,
     model_repository = repository.SysMLRepository(client.ApiClient(api_url, timeout=api_timeout))
     service = assemble_model_services(
         authority.facade, binding, model_repository, expected_git_revision=expected_git_revision,
-        closure_member_ids=authority.closure_member_ids, method_conformance=method_conformance,
-        method_context_provider=method_context_provider)
+        closure_member_ids=authority.closure_member_ids)
     service.selection = replace(selection, activation_blocked=not authority.activation_eligible)
     return service

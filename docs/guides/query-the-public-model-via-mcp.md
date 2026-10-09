@@ -166,7 +166,7 @@ treat anything less as a gap, not a fact.
 | `impact` | Revision-bound requirement impact with strengths and gaps |
 | `trace` | Bounded path between two elements, ontology-mapped edges only |
 | `verification_coverage` | Verification cases covering a requirement, or explicit gaps |
-| `next_obligation`, `method_gaps`, `increment_status`, `phase_contract` | One increment against the workflow its charter declares in the model; see [drive an increment with the method tools](drive-an-increment-with-the-method-tools.md) |
+| `next_obligation`, `method_gaps`, `increment_status`, `phase_contract` | One increment (required, except for `phase_contract`) against the workflow its charter declares in the model; see [drive an increment with the method tools](drive-an-increment-with-the-method-tools.md) |
 
 All tools are read-only and deterministic; results carry exact element and
 relationship UUIDs and provenance URIs of the form

@@ -25,9 +25,17 @@ import pytest
 
 from de4sdv.semantic import corpus_cache as cc
 from de4sdv.sysml_api.errors import RevisionMismatchError
-from de4sdv.sysml_api.repository import SysMLRepository
+from de4sdv.sysml_api.repository import SysMLRepository, validated_element_corpus
 from de4sdv.sysml_api.revisions import RevisionBinding
-from increment_model_fixtures import increment_scenario, install_model_workflow
+from increment_model_fixtures import (
+    WorkflowCheck,
+    WorkflowParameter,
+    WorkflowStep,
+    increment_scenario,
+    increment_workflow,
+    method_builder,
+    model_workflow,
+)
 from model_contract_fixtures import binding_dict, model_service, synthetic_identity
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -36,8 +44,8 @@ INCREMENT = "INC-FIXTURE-001"
 
 
 def _corpus() -> tuple[list[dict], list[dict]]:
-    scenario = increment_scenario()
-    install_model_workflow(scenario)
+    scenario = increment_scenario(method_builder())
+    model_workflow(scenario)
     return scenario.builder.elements, scenario.builder.bindings
 
 
@@ -74,28 +82,14 @@ def _rewrite(path: Path, mutate) -> None:
     path.with_suffix(".json.sha256").write_text(hashlib.sha256(path.read_bytes()).hexdigest())
 
 
-# -- repository adoption ------------------------------------------------------
-
-
-def test_repository_adoption_serves_listings_and_never_displaces_the_api() -> None:
-    elements, _bindings = _corpus()
-    client = CountingClient(elements)
-    repository = SysMLRepository(client)  # type: ignore[arg-type]
-    assert repository.adopt_elements("p", "c", elements) is True
-    assert repository.list_elements("p", "c") == elements
-    assert client.element_retrievals == 0
-    fresh = SysMLRepository(CountingClient(elements))  # type: ignore[arg-type]
-    authoritative = fresh.list_elements("p", "c")
-    assert fresh.adopt_elements("p", "c", [{"@id": "other", "@type": "PartUsage"}]) is False
-    assert fresh.list_elements("p", "c") is authoritative
+# -- corpus validation --------------------------------------------------------
 
 
 @pytest.mark.parametrize("bad", [[], "not-a-list", [42], [{"@type": "PartUsage"}],
                                  [{"@id": "x", "@type": "A"}, {"@id": "x", "@type": "B"}]])
-def test_repository_adoption_refuses_malformed_corpora(bad) -> None:
-    repository = SysMLRepository(CountingClient([]))  # type: ignore[arg-type]
+def test_a_malformed_corpus_is_refused_entirely(bad) -> None:
     with pytest.raises(ValueError):
-        repository.adopt_elements("p", "c", bad)
+        validated_element_corpus(bad)
 
 
 # -- identity and snapshot validity -------------------------------------------
@@ -209,7 +203,10 @@ def _complete_corpus() -> tuple[list[dict], list[dict]]:
     kernel_elements, kernel_bindings = _elements_and_bindings()
     builder = ModelBuilder(label="Complete")
     builder.adopt(kernel_elements, kernel_bindings)
-    install_model_workflow(increment_scenario(builder))
+    scenario = increment_scenario(builder)
+    increment_workflow(builder, [WorkflowStep("frameIncrement", "phase0_incrementFraming", (
+        WorkflowParameter("increment", "EngineeringIncrement"),), (
+        WorkflowCheck("incrementHasIdentifier", "incrementShortName", "increment"),))], charter=scenario.charter)
     return builder.elements, builder.bindings
 
 
@@ -309,3 +306,27 @@ def test_a_commit_id_that_is_not_a_file_name_never_becomes_a_path(snapshot_dir, 
     assert service.repository.list_elements("project-1", commit) == elements
     assert client.element_retrievals == 1
     assert not [path for path in tmp_path.rglob("*") if path.is_file()]
+
+
+def test_a_spawned_server_writes_nothing_to_the_users_home(tmp_path, monkeypatch) -> None:
+    """The validator's real stdio server, run under a temporary HOME, leaves nothing there.
+
+    Every test's snapshot directory is its own temporary directory (tests/conftest.py), and a
+    spawned server must receive it.
+    """
+    from test_o4_validator_runtime import _run, build_inputs
+
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    assert Path(os.environ["DE4SDV_SEMANTIC_SNAPSHOT_DIR"]).is_relative_to(tmp_path)
+    binding, path, bundle, elements = build_inputs(tmp_path)
+    _run(elements, binding_path=binding, authority="model", model_bundle_path=path,
+         model_bundle_id=bundle["bundle_id"])
+    assert sorted(entry.relative_to(home).as_posix() for entry in home.rglob("*")) == []
+
+
+def test_a_tests_monkeypatch_undo_keeps_the_snapshot_directory(monkeypatch, tmp_path) -> None:
+    """A test may undo its own monkeypatch; the snapshot directory stays the test's own."""
+    monkeypatch.undo()
+    assert Path(os.environ["DE4SDV_SEMANTIC_SNAPSHOT_DIR"]).is_relative_to(tmp_path)

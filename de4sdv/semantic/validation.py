@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import asdict, dataclass
+from pathlib import Path
 from typing import Any, Literal
 
 from de4sdv.sysml_api.repository import element_id
@@ -144,3 +146,104 @@ def validate_ontology_bindings(
                        "ambiguous")
     }
     return OntologyBindingReport(tuple(entries), summary)
+
+
+#: Tracked model-provider artifacts whose rows may state a projected kernel
+#: binding contract (``grounding.kernel_binding_contract``). Batch files added
+#: under the same directories are picked up by the same pattern.
+MODEL_PROVIDER_PATTERN = "docs/method-conformance/**/*projection*.json"
+MODEL_PROVIDER_CROSS_CHECK_SCHEMA = "de4sdv.o4-model-provider-cross-check/v1"
+
+
+def _projected_kernel_bindings(document: object, identity: str | None = None):
+    if isinstance(document, dict):
+        identity = document.get("identity", identity)
+        for key, value in document.items():
+            if key == "kernel_binding_contract" and isinstance(value, dict):
+                yield identity, value
+            else:
+                yield from _projected_kernel_bindings(value, identity)
+    elif isinstance(document, list):
+        for item in document:
+            yield from _projected_kernel_bindings(item, identity)
+
+
+def cross_check_model_provider(
+    contract: object, kernel_bindings: list[dict], *, root: Path
+) -> dict[str, object]:
+    """Cross-check: model-built contract mapping vs every tracked projection.
+
+    Every identity a tracked projection (live layers and frozen O2 records)
+    grounds through a kernel binding contract must carry the SAME (source
+    file, declaration) in the model-built kernel contract. A mismatch, a
+    projected identity the contract does not file-map, or two providers
+    disagreeing on one identity is a refusal. The result lands in the
+    semantic validation report.
+    """
+    providers: dict[str, dict[str, str]] = {}
+    duplicates: list[dict[str, object]] = []
+    sources: list[str] = []
+    for path in sorted(root.glob(MODEL_PROVIDER_PATTERN)):
+        relative = path.relative_to(root).as_posix()
+        document = json.loads(path.read_text(encoding="utf-8"))
+        found = False
+        for identity, grounding in _projected_kernel_bindings(document):
+            if not identity:
+                continue
+            found = True
+            entry = {
+                "source_file": str(grounding.get("source_file") or ""),
+                "declaration": str(grounding.get("declaration") or ""),
+                "provider": relative,
+            }
+            previous = providers.get(identity)
+            if previous is None:
+                providers[identity] = entry
+            elif (previous["source_file"], previous["declaration"]) != (
+                entry["source_file"], entry["declaration"]
+            ):
+                duplicates.append({"identity": identity, "providers": [previous, entry]})
+        if found:
+            sources.append(relative)
+    ingested = {
+        str(item.get("ontology_class")): str(item.get("element_id"))
+        for item in kernel_bindings
+    }
+    rows: list[dict[str, object]] = []
+    mismatches: list[dict[str, object]] = []
+    for identity in sorted(providers):
+        entry = providers[identity]
+        try:
+            mapping = contract.mapping(identity)  # type: ignore[attr-defined]
+        except KeyError:
+            mismatches.append({"identity": identity, **entry,
+                               "reason": "projected identity has no kernel mapping in the model-built contract"})
+            continue
+        if not isinstance(mapping, KernelFileMapping):
+            mismatches.append({"identity": identity, **entry,
+                               "reason": "projected identity is not file-mapped in the model-built contract"})
+            continue
+        if (mapping.file, mapping.declaration) != (entry["source_file"], entry["declaration"]):
+            mismatches.append({"identity": identity, **entry,
+                               "contract_source_file": mapping.file,
+                               "contract_declaration": mapping.declaration,
+                               "reason": "model-built contract and projected kernel binding contracts differ"})
+            continue
+        rows.append({"identity": identity, **entry,
+                     "ingested_element_id": ingested.get(identity)})
+    if mismatches or duplicates:
+        classification = "BLOCKING_MISMATCH"
+    elif not providers:
+        classification = "NOT_YET_COMPARABLE"
+    else:
+        classification = "EQUIVALENT"
+    return {
+        "schema": MODEL_PROVIDER_CROSS_CHECK_SCHEMA,
+        "classification": classification,
+        "provider_sources": sources,
+        "projected_identity_count": len(providers),
+        "matched": len(rows),
+        "rows": rows,
+        "mismatches": mismatches,
+        "duplicate_providers": duplicates,
+    }

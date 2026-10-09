@@ -88,16 +88,6 @@ class SysMLRepository:
         self._corpus_source = source
         self._corpus_sink = sink
 
-    def adopt_elements(self, project_id: str, commit_id: str, elements: object) -> bool:
-        """Adopt a validated external listing; never displaces an API listing."""
-        validated = validated_element_corpus(elements)
-        cache_key = (project_id, commit_id)
-        with self._lock:
-            if cache_key in self._element_cache:
-                return False
-            self._element_cache[cache_key] = validated
-        return True
-
     def get_project(self, project_id: str) -> dict[str, Any]:
         value = self.client.request("GET", f"/projects/{project_id}")
         if not isinstance(value, dict):

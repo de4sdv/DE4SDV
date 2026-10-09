@@ -16,10 +16,17 @@ looked up by name:
   ordered by the successions between the steps (successions to the standard
   ``start`` and ``done`` actions are not steps);
 - step definition -> its ``phase`` (a MethodPhase literal, bound kernel
-  enumeration) and parameters (direction, multiplicity, usually a type) ->
-  its owned metadata usages whose metadata definition declares ``check``:
+  enumeration), parameters (direction, multiplicity, usually a type) and
+  metadata usages whose metadata definition declares or inherits ``check``:
   ``check`` (the check id), ``minimum`` (default 1), ``advisory`` (default
-  false: blocking), ``about`` one parameter of the step.
+  false: blocking), ``about`` one parameter of the step. Members, phase and
+  attribute values are own or inherited through the definitions' generals
+  (nearest first); a redefinition replaces what it redefines, so a tailored
+  step keeps the checks it does not redefine.
+
+Element names never identify anything; member names (``workflow``,
+``phase``, ``check``, ``minimum``, ``advisory``) select features of elements
+reached through native relations from validated identity.
 
 Contract, one obligation per check:
 
@@ -37,14 +44,17 @@ Contract, one obligation per check:
 - every check is evaluated: the successions order the steps, which ranks
   ``next``, and never block a check.
 
-An unknown check id, a check about anything but a parameter of its step, or
-cyclic successions make the method invalid.
+An unknown check id, a check about anything but a parameter of its step, an
+undecodable multiplicity or cyclic successions make the method invalid.
+Without exactly one charter (a new or ambiguous increment) the method is the
+one workflow the revision's charters declare, so the framing step still says
+what to author.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from typing import Any, Callable, Mapping
+from typing import Any, Mapping
 
 from de4sdv.sysml_api.errors import IdentityNotFoundError
 from de4sdv.sysml_api.repository import reference_ids
@@ -53,17 +63,19 @@ from . import method_evaluator as me
 from .increment_scope import (
     CHARTER_CLASS,
     IDENTITY_PROBLEM,
+    PHASE_CLASS,
     PROBLEM_INVALID,
+    SCOPE_PROBLEM,
     IncrementScope,
     ModelView,
 )
-from .method_checks import MethodCheckRegistry, method_checks
+from .method_checks import CHECK_MAXIMUM, default_claim, method_checks
 from .method_trace_adapter import CANONICAL_PHASE_LITERALS
+from .revision_index import MultiplicityError
 
 #: Upper cardinality bound standing for "unbounded" (``*``).
 UNBOUNDED = 1_000_000
 PHASE_ORDER = {literal: number for number, literal in CANONICAL_PHASE_LITERALS.items()}
-PHASE_CLASS = "MethodPhase"
 METHOD_ID = "de4sdv.increment-workflow"
 #: The charter's feature whose type is the increment workflow.
 WORKFLOW_FEATURE = "workflow"
@@ -82,25 +94,17 @@ _DIRECTIONS = {"in", "out", "inout"}
 _SUCCESSION_TYPES = ("SuccessionAsUsage", "Succession")
 
 
-def _no_remedy(*_args: Any, **_kwargs: Any) -> str:
-    return ""
-
-
 @dataclass(frozen=True)
 class IncrementMethod:
-    """The method read for an increment: its contract and what its checks resolve in."""
+    """The method read for an increment: its contract and the checks it dispatches to."""
 
     method_identity: Mapping[str, Any]
     contract: me.MethodContract | None
     phases: tuple[str, ...] = ()
-    #: Obligation id -> the model element that declares the check.
-    check_elements: Mapping[str, str] = field(default_factory=dict)
     problems: tuple[str, ...] = ()
     reason: str = ""
-    predicates: me.PredicateRegistry | None = None
-    selectors: me.SelectorRegistry | None = None
-    #: What to author for one check: ``remedy(check, increment=, view=, subject_id=)``.
-    remedy: Callable[..., str] = _no_remedy
+    #: Check id -> evaluator predicate.
+    predicates: Mapping[str, me.Predicate] = field(default_factory=dict)
     #: Display labels per obligation (step, parameter, subject type, check id).
     labels: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
 
@@ -125,12 +129,12 @@ def _scoped_subjects(spec: me.ObligationSpec, ctx: me.EvaluationContext, *,
     if view is None or increment is None:
         raise me.SubjectResolutionError(
             me.EVALUATOR_FAILURE, diagnostics=(f"selector {PARAMETER_SELECTOR!r} needs an increment evaluation context",))
-    problem = increment.problems.get(IDENTITY_PROBLEM)
-    if problem is not None:
-        kind, detail = problem
-        raise me.SubjectResolutionError(
-            me.SCOPE_RESOLUTION_ERROR if kind == PROBLEM_INVALID else me.INPUT_UNAVAILABLE,
-            diagnostics=(detail,), missing=(detail,) if kind != PROBLEM_INVALID else ())
+    for key in (IDENTITY_PROBLEM,) if own_package else (IDENTITY_PROBLEM, SCOPE_PROBLEM):
+        if key in increment.problems:
+            kind, detail = increment.problems[key]
+            raise me.SubjectResolutionError(
+                me.SCOPE_RESOLUTION_ERROR if kind == PROBLEM_INVALID else me.INPUT_UNAVAILABLE,
+                diagnostics=(detail,), missing=(detail,) if kind != PROBLEM_INVALID else ())
     elements = increment.own_elements if own_package else increment.scope_elements
     if spec.subject_selector.startswith(KIND_PREFIX):
         kind = spec.subject_selector[len(KIND_PREFIX):]
@@ -149,9 +153,9 @@ def _framing_subjects(spec: me.ObligationSpec, ctx: me.EvaluationContext) -> tup
     return _scoped_subjects(spec, ctx, own_package=True)
 
 
-WORKFLOW_SELECTORS = me.DEFAULT_SELECTORS.with_definitions(
-    me.SelectorDefinition(PARAMETER_SELECTOR, _parameter_subjects),
-    me.SelectorDefinition(OWN_PACKAGE_SELECTOR, _framing_subjects))
+#: Selector kind -> subject resolution of the workflow's checks.
+WORKFLOW_SELECTORS: Mapping[str, me.SubjectResolver] = {
+    PARAMETER_SELECTOR: _parameter_subjects, OWN_PACKAGE_SELECTOR: _framing_subjects}
 
 
 # ---------------------------------------------------------------------------
@@ -159,34 +163,12 @@ WORKFLOW_SELECTORS = me.DEFAULT_SELECTORS.with_definitions(
 # ---------------------------------------------------------------------------
 
 
-def _generals(view: ModelView, definition: str) -> list[str]:
-    """``definition`` and the definitions it specializes, nearest first."""
-
-    def build() -> dict[str, list[str]]:
-        generals: dict[str, list[str]] = {}
-        for general, children in view.index.graph_indexes().explicit_specifics.items():
-            for child in children:
-                generals.setdefault(child, []).append(general)
-        return {child: sorted(parents) for child, parents in generals.items()}
-
-    table = view.index.memo("definition-generals", build)
-    found: list[str] = []
-    frontier = [definition]
-    while frontier:
-        current = frontier.pop(0)
-        if current in found:
-            continue
-        found.append(current)
-        frontier.extend(table.get(current, ()))
-    return found
-
-
 def workflow_of(view: ModelView, charter: str) -> tuple[str | None, str]:
     """The workflow definition a charter declares, or why there is none."""
     index = view.index
     holders = [charter]
     for definition in sorted(index.typed_by(charter)):
-        holders.extend(general for general in _generals(view, definition) if general not in holders)
+        holders.extend(general for general in index.generals(definition) if general not in holders)
     for holder in holders:
         feature = index.feature(holder, WORKFLOW_FEATURE)
         if feature is None:
@@ -200,9 +182,12 @@ def workflow_of(view: ModelView, charter: str) -> tuple[str | None, str]:
 
 
 def _all_charters(view: ModelView) -> list[str]:
-    """Every IncrementTraceObligations-lineage part usage of the revision."""
+    """Every charter declaration of the revision: an IncrementTraceObligations-lineage part usage
+    declared in a package (never, for example, a step's ``charter`` parameter)."""
     found: list[str] = []
     for candidate in view.index.elements_of_type("PartUsage"):
+        if str(view.element(view.index.owner_of(candidate)).get("@type")) not in ("Package", "LibraryPackage"):
+            continue
         try:
             if view.in_lineage(candidate, CHARTER_CLASS):
                 found.append(candidate)
@@ -217,17 +202,14 @@ def _all_charters(view: ModelView) -> list[str]:
 
 
 def _unavailable(view: ModelView, identity: dict[str, Any], reason: str) -> IncrementMethod:
-    checks = method_checks(view)
-    return IncrementMethod(method_identity=identity, contract=None, reason=reason,
-                           predicates=checks.predicates(), selectors=WORKFLOW_SELECTORS, remedy=checks.remedy)
+    return IncrementMethod(method_identity=identity, contract=None, reason=reason, predicates=method_checks(view))
 
 
 def read_increment_method(view: ModelView, scope: IncrementScope, *, revision_label: str) -> IncrementMethod:
-    """The method of one increment: the workflow its charter declares."""
-    identity = {"method_id": METHOD_ID, "method_revision": revision_label}
+    """The method of one increment: the workflow its charter declares (else the revision's one workflow)."""
     if len(scope.charters) != 1:
-        return _unavailable(view, identity, f"{len(scope.charters)} charter declarations reference the increment; "
-                                            "the method is read from exactly one charter")
+        return read_revision_method(view, revision_label=revision_label)
+    identity = {"method_id": METHOD_ID, "method_revision": revision_label}
     workflow, problem = workflow_of(view, scope.charters[0])
     if workflow is None:
         return _unavailable(view, identity, problem)
@@ -240,8 +222,8 @@ def read_revision_method(view: ModelView, *, revision_label: str) -> IncrementMe
     workflows = sorted({workflow for charter in _all_charters(view)
                         if (workflow := workflow_of(view, charter)[0]) is not None})
     if len(workflows) != 1:
-        return _unavailable(view, identity, f"the revision's charters declare {len(workflows)} workflows; name the "
-                                            "increment to read the workflow its charter declares")
+        return _unavailable(view, identity, f"the revision's charters declare {len(workflows)} workflows; exactly "
+                                            "one is read without a single charter of the increment")
     return read_workflow(view, workflows[0], revision_label=revision_label)
 
 
@@ -250,8 +232,7 @@ def read_workflow(view: ModelView, workflow: str, *, revision_label: str) -> Inc
     checks = method_checks(view)
     identity = {"method_id": METHOD_ID, "method_revision": revision_label,
                 "workflow": view.index.qualified_name(workflow) or workflow}
-    common: dict[str, Any] = {"predicates": checks.predicates(), "selectors": WORKFLOW_SELECTORS,
-                              "remedy": checks.remedy}
+    common: dict[str, Any] = {"predicates": checks}
     try:
         phase_root = view.kernel_element(PHASE_CLASS)
     except IdentityNotFoundError as error:
@@ -261,39 +242,38 @@ def read_workflow(view: ModelView, workflow: str, *, revision_label: str) -> Inc
     problems: list[str] = []
     steps = index.owned_members(workflow, "ActionUsage")
     order = _step_order(view, workflow, steps, problems)
-    decoded: list[tuple[str, me.ObligationSpec, dict[str, Any], str]] = []
+    decoded: list[tuple[str, me.ObligationSpec, dict[str, Any]]] = []
     phases: list[str] = []
     for step in order:
         step_name = index.name_of(step) or step
         try:
             phase, step_checks = _step_checks(view, step, step_name, phase_root, checks, problems,
-                                              optional=(index.multiplicity(step) or (1, 1))[0] == 0)
+                                              optional=_bounds(view, step)[0] == 0)
         except _Invalid as error:
             problems.append(f"step {step_name}: {error}")
             continue
         if step_checks and phase not in phases:
             phases.append(phase)
-        decoded.extend((step, spec, label, element) for spec, label, element in step_checks)
+        decoded.extend((step, spec, label) for spec, label in step_checks)
     if not decoded and not problems:
         return IncrementMethod(method_identity=identity, contract=None,
                                reason="the increment workflow declares no checks", **common)
     decoded = _unique_identifiers(view, decoded)
-    specs = [spec for _step, spec, _label, _element in decoded]
-    labels = {spec.obligation_id: label for _step, spec, label, _element in decoded}
-    elements = {spec.obligation_id: element for _step, spec, _label, element in decoded}
+    specs = [spec for _step, spec, _label in decoded]
+    labels = {spec.obligation_id: label for _step, spec, label in decoded}
     contract = me.MethodContract(method_id=METHOD_ID, contract_id=f"{METHOD_ID}@{revision_label}",
                                  phase=",".join(phases), obligations=tuple(specs))
     try:
-        me.validate_contract(contract, predicates=checks.predicates(), selectors=WORKFLOW_SELECTORS)
+        me.validate_contract(contract, checks, selector_kinds=WORKFLOW_SELECTORS)
     except me.ContractValidationError as error:
         problems.extend(error.violations)
     if problems:
         return IncrementMethod(method_identity=identity, contract=None, phases=tuple(phases),
-                               check_elements=elements, labels=labels, problems=tuple(problems),
+                               labels=labels, problems=tuple(problems),
                                reason="the increment workflow is invalid", **common)
     return IncrementMethod(
         method_identity={**identity, "contract_id": contract.contract_id, "contract_digest": contract.digest()},
-        contract=contract, phases=tuple(phases), check_elements=elements, labels=labels, **common,
+        contract=contract, phases=tuple(phases), labels=labels, **common,
     )
 
 
@@ -340,12 +320,26 @@ def _succession_ends(view: ModelView, succession: str) -> list[str]:
 
 
 def _is_method_check(view: ModelView, metadata: str) -> bool:
-    """A metadata usage whose metadata definition declares the ``check`` attribute."""
-    return any(view.index.feature(definition, CHECK_ATTRIBUTE) is not None
-               for definition in view.index.typed_by(metadata))
+    """A metadata usage whose metadata definition declares or inherits the ``check`` attribute."""
+    return any(view.index.feature(general, CHECK_ATTRIBUTE) is not None
+               for definition in view.index.typed_by(metadata) for general in view.index.generals(definition))
 
 
-def _step_checks(view: ModelView, step: str, step_name: str, phase_root: str, checks: MethodCheckRegistry,
+def _step_members(view: ModelView, step_definition: str) -> tuple[list[str], dict[str, str]]:
+    """Own and inherited members of a step definition (nearest definition first), and
+    redefined member -> the member that redefines it."""
+    index = view.index
+    members: list[str] = []
+    replaced: dict[str, str] = {}
+    for definition in index.generals(step_definition):
+        for member in index.owned_members(definition):
+            if member not in replaced and member not in members:
+                members.append(member)
+                replaced.update((target, member) for target in index.redefined(member))
+    return [member for member in members if member not in replaced], replaced
+
+
+def _step_checks(view: ModelView, step: str, step_name: str, phase_root: str, checks: Mapping[str, Any],
                  problems: list[str], *, optional: bool):
     index = view.index
     definitions = sorted(index.typed_by(step))
@@ -353,14 +347,15 @@ def _step_checks(view: ModelView, step: str, step_name: str, phase_root: str, ch
         raise _Invalid(f"typed by {len(definitions)} definitions; one step action definition is required")
     step_definition = definitions[0]
     phase = _phase(view, step_definition, phase_root)
-    parameters = {member: index.name_of(member) or member for member in index.owned_members(step_definition)
+    members, replaced = _step_members(view, step_definition)
+    parameters = {member: index.name_of(member) or member for member in members
                   if str(index.element(member).get("direction") or "") in _DIRECTIONS}
     found = []
-    for metadata in index.owned_members(step_definition, "MetadataUsage"):
-        if not _is_method_check(view, metadata):
+    for metadata in members:
+        if str(index.element(metadata).get("@type")) != "MetadataUsage" or not _is_method_check(view, metadata):
             continue
         try:
-            found.append(_check(view, metadata, step_name, phase, parameters, checks, optional=optional))
+            found.append(_check(view, metadata, step_name, phase, parameters, replaced, checks, optional=optional))
         except _Invalid as error:
             problems.append(f"step {step_name}, check {index.name_of(metadata) or metadata}: {error}")
     return phase, found
@@ -368,7 +363,8 @@ def _step_checks(view: ModelView, step: str, step_name: str, phase_root: str, ch
 
 def _phase(view: ModelView, step_definition: str, phase_root: str) -> str:
     index = view.index
-    leaves = index.feature_values(step_definition, "phase")
+    leaves = next((found for general in index.generals(step_definition)
+                   if (found := index.feature_values(general, "phase"))), ())
     if len(leaves) != 1 or leaves[0].kind != "reference" or index.owner_of(leaves[0].value) != phase_root:
         raise _Invalid("the step definition's phase is not exactly one MethodPhase literal")
     name = index.name_of(leaves[0].value)
@@ -378,9 +374,12 @@ def _phase(view: ModelView, step_definition: str, phase_root: str) -> str:
 
 
 def _check(view: ModelView, metadata: str, step_name: str, phase: str, parameters: dict[str, str],
-           checks: MethodCheckRegistry, *, optional: bool) -> tuple[me.ObligationSpec, dict[str, Any], str]:
+           replaced: dict[str, str], checks: Mapping[str, Any], *,
+           optional: bool) -> tuple[me.ObligationSpec, dict[str, Any]]:
     index = view.index
     about = _annotated(view, metadata)
+    while len(about) == 1 and about[0] in replaced:  # a check about a redefined parameter
+        about = [replaced[about[0]]]
     if len(about) != 1 or about[0] not in parameters:
         named = ", ".join(index.qualified_name(target) or target for target in about) or "nothing"
         raise _Invalid(f"the check is about {named}, which is not a parameter of the step")
@@ -393,12 +392,9 @@ def _check(view: ModelView, metadata: str, step_name: str, phase: str, parameter
     check_id = _text(view, metadata, CHECK_ATTRIBUTE)
     minimum = _natural(view, metadata, "minimum", DEFAULT_MINIMUM)
     advisory = _boolean(view, metadata, "advisory", False)
-    lower, upper = index.multiplicity(parameter) or (1, 1)
-    definition = checks.definition(check_id) if check_id in checks else None
-    maximum = definition.maximum if definition is not None and definition.maximum is not None else UNBOUNDED
-    claim = (_documentation(view, metadata) or (definition.claim if definition is not None else "")
-             or f"model-content check {check_id}; no acceptance, compliance, certification or "
-                "evidence-adequacy claim")
+    lower, upper = _bounds(view, parameter)
+    maximum = CHECK_MAXIMUM.get(check_id, UNBOUNDED)
+    claim = _documentation(view, metadata) or default_claim(check_id, view)
     spec = me.ObligationSpec(
         obligation_id=index.name_of(metadata) or check_id,
         phase=phase,
@@ -425,19 +421,27 @@ def _check(view: ModelView, metadata: str, step_name: str, phase: str, parameter
              "direction": str(index.element(parameter).get("direction") or ""),
              "subject_type": (index.qualified_name(types[0]) or types[0]) if types else kind, "check": check_id,
              "check_definition": index.qualified_name(sorted(index.typed_by(metadata))[0])}
-    return spec, label, metadata
+    return spec, label
+
+
+def _bounds(view: ModelView, feature: str) -> tuple[int, int | None]:
+    """The feature's multiplicity (none declared: exactly one); undecodable is invalid."""
+    try:
+        return view.index.multiplicity(feature) or (1, 1)
+    except MultiplicityError as error:
+        raise _Invalid(f"{view.index.name_of(feature) or feature}: {error}") from None
 
 
 def _unique_identifiers(view: ModelView, decoded):
     """Check names qualified by their step where two steps reuse one name."""
     counts: dict[str, int] = {}
-    for _step, spec, _label, _element in decoded:
+    for _step, spec, _label in decoded:
         counts[spec.obligation_id] = counts.get(spec.obligation_id, 0) + 1
     unique = []
-    for step, spec, label, element in decoded:
+    for step, spec, label in decoded:
         if counts[spec.obligation_id] > 1:
             spec = replace(spec, obligation_id=f"{view.index.name_of(step) or step}.{spec.obligation_id}")
-        unique.append((step, spec, label, element))
+        unique.append((step, spec, label))
     return unique
 
 
@@ -456,15 +460,22 @@ def _documentation(view: ModelView, metadata: str) -> str:
     return " ".join(text for text in texts if text)
 
 
+def _values(view: ModelView, metadata: str, name: str):
+    """The check's value of ``name``, else the nearest value (a default) its definition lineage binds."""
+    holders = [metadata, *(general for definition in sorted(view.index.typed_by(metadata))
+                           for general in view.index.generals(definition))]
+    return next((leaves for holder in holders if (leaves := view.index.feature_values(holder, name))), ())
+
+
 def _text(view: ModelView, metadata: str, name: str) -> str:
-    leaves = view.index.feature_values(metadata, name)
+    leaves = _values(view, metadata, name)
     if len(leaves) != 1 or leaves[0].kind != "string" or not str(leaves[0].value or "").strip():
         raise _Invalid(f"{name} is not exactly one non-empty String value")
     return str(leaves[0].value).strip()
 
 
 def _natural(view: ModelView, metadata: str, name: str, default: int) -> int:
-    leaves = view.index.feature_values(metadata, name)
+    leaves = _values(view, metadata, name)
     if not leaves:
         return default
     leaf = leaves[0]
@@ -474,7 +485,7 @@ def _natural(view: ModelView, metadata: str, name: str, default: int) -> int:
 
 
 def _boolean(view: ModelView, metadata: str, name: str, default: bool) -> bool:
-    leaves = view.index.feature_values(metadata, name)
+    leaves = _values(view, metadata, name)
     if not leaves:
         return default
     if len(leaves) != 1 or leaves[0].kind != "boolean":

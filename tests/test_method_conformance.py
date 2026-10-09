@@ -1964,51 +1964,8 @@ def _unused() -> Any:
     return cast(Any, None)
 
 
-def _wired_query_service(context):
-    from de4sdv.semantic.query import SemanticQueryService
-
-    selection = _pilot_selection()
-    service = me.MethodConformanceService(selection)
-    return (
-        SemanticQueryService(
-            repository=_unused(),
-            binding=_unused(),
-            contract=_unused(),
-            binder=_unused(),
-            traversal=_unused(),
-            impact_service=_unused(),
-            expected_git_revision="a" * 40,
-            method_conformance=service,
-            method_context_provider=lambda: context,
-        ),
-        service,
-        selection,
-    )
-
-
 def _pilot_phase() -> str:
     return "phase10_vvEvidence"
-
-
-def _bare_context() -> me.EvaluationContext:
-    return make_context(
-        scope=make_scope(
-            usage_ids=tuple(mp.PILOT_SCOPE_USAGES), profiles=mp.PILOT_PROFILES
-        ),
-        pilot_scope_declared=None,
-    )
-
-
-def test_query_service_method_surfaces_project_one_identity() -> None:
-    query, service, _ = _wired_query_service(_bare_context())
-    status = query.increment_status(_pilot_phase())
-    gaps = query.method_gaps(_pilot_phase())
-    nxt = query.next_obligation(_pilot_phase())
-    contract_response = query.phase_contract(_pilot_phase())
-    assert status["evaluation_key"] == gaps["evaluation_key"] == nxt["evaluation_key"]
-    assert service.evaluation_count == 1
-    assert contract_response["executable_contract_available"] is True
-    assert len(contract_response["obligations"]) == 11
 
 
 def test_query_service_refuses_unconfigured_method_queries() -> None:
@@ -2029,33 +1986,19 @@ def test_query_service_refuses_unconfigured_method_queries() -> None:
         bare.phase_contract(_pilot_phase())
     with pytest.raises(RuntimeError, match="no revision binding"):
         bare.increment_status(_pilot_phase(), increment="INC-X-001")
-    # Phase-only evaluation calls still need an explicitly configured
-    # approved method selection (a declared pilot contract).
-    with pytest.raises(RuntimeError, match="not configured"):
-        bare.increment_status(_pilot_phase())
-    with pytest.raises(ValueError, match="an increment"):
-        bare.increment_status()
-
-
-def test_a_configured_selection_never_receives_a_missing_phase() -> None:
-    query, service, _ = _wired_query_service(_bare_context())
-    for call in (query.increment_status, query.method_gaps, query.next_obligation):
-        with pytest.raises(ValueError, match="an increment"):
-            call()
-    assert service.evaluation_count == 0
-    # With neither a phase nor an increment, phase_contract reads the bound
-    # model's gates; the selection is never asked for a phase named "None".
-    with pytest.raises(RuntimeError, match="no revision binding"):
-        query.phase_contract()
+    # The evaluation surfaces require the increment.
+    for call in (bare.increment_status, bare.method_gaps, bare.next_obligation):
+        with pytest.raises(TypeError, match="increment"):
+            call(_pilot_phase())
 
 
 def test_mcp_surface_exposes_c_owned_method_tools() -> None:
-    import asyncio
-
     from de4sdv.semantic.mcp_server import create_mcp_server
+    from de4sdv.semantic.query import SemanticQueryService
 
-    query, _, _ = _wired_query_service(_bare_context())
-    server = create_mcp_server(query)
+    server = create_mcp_server(SemanticQueryService(
+        repository=_unused(), binding=_unused(), contract=_unused(), binder=_unused(),
+        traversal=_unused(), impact_service=_unused(), expected_git_revision="a" * 40))
     tools = {tool.name for tool in server._tool_manager.list_tools()}
     assert {
         "phase_contract",
@@ -2065,10 +2008,3 @@ def test_mcp_surface_exposes_c_owned_method_tools() -> None:
         "model_status",
         "resolve_element",
     } <= tools
-    response = asyncio.run(
-        server._tool_manager.call_tool(
-            "phase_contract", {"phase": _pilot_phase()}
-        )
-    )
-    assert response["executable_contract_available"] is True
-    assert len(response["obligations"]) == 11

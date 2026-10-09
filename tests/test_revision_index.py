@@ -20,7 +20,7 @@ from de4sdv.semantic import traversal as traversal_module
 from de4sdv.semantic.model_authority_runtime import ModelAuthorityTraversal
 from de4sdv.semantic.model_edges import lineage_index, typing_index
 from de4sdv.semantic.relationship_successor import route_successor_bindings
-from de4sdv.semantic.revision_index import RevisionIndex, ValueLeaf
+from de4sdv.semantic.revision_index import MultiplicityError, RevisionIndex, ValueLeaf
 from de4sdv.sysml_api.revisions import KernelElementBinding
 from increment_model_fixtures import INFINITY, ModelBuilder
 from model_contract_fixtures import model_facade
@@ -180,6 +180,33 @@ def test_multiplicity_bounds_follow_the_export_shape(bounds, expected) -> None:
     builder.multiplicity(feature, *bounds)
     index = RevisionIndex(builder.elements)
     assert index.multiplicity(feature["@id"]) == expected
+
+
+def test_a_range_has_the_serializer_shape() -> None:
+    """``[1..*]`` as the licensed export writes it: an OperatorExpression ``..`` over two parameter features."""
+    builder = ModelBuilder(label="multiplicity")
+    feature = builder.usage("ReferenceUsage", "parameter", builder.package("Multiplicity"))
+    builder.multiplicity(feature, 1, INFINITY)
+    index = RevisionIndex(builder.elements)
+    (multiplicity,) = index.owned_members(feature["@id"], "MultiplicityRange")
+    (expression,) = index.owned_members(multiplicity)
+    assert index.element(expression)["@type"] == "OperatorExpression"
+    assert index.element(expression)["operator"] == ".."
+    values = [index.element(value)["@type"] for parameter in index.owned_members(expression)
+              for relationship in index.owned_relationships(parameter, "FeatureValue")
+              for value in [relationship["memberElement"]["@id"]]]
+    assert values == ["LiteralInteger", "LiteralInfinity"]
+
+
+def test_a_multiplicity_that_cannot_be_decoded_fails_closed() -> None:
+    builder = ModelBuilder(label="multiplicity")
+    package = builder.package("Multiplicity")
+    feature = builder.usage("ReferenceUsage", "parameter", package)
+    multiplicity = builder.new("MultiplicityRange")
+    builder.own(feature, multiplicity)
+    builder.own(multiplicity, builder.value_expression(multiplicity, package))  # a reference, not a literal
+    with pytest.raises(MultiplicityError):
+        RevisionIndex(builder.elements).multiplicity(feature["@id"])
 
 
 def test_a_feature_without_multiplicity_declares_none() -> None:

@@ -10,18 +10,28 @@ authors model content, the deterministic evaluation judges it.
 
 The method of an increment is the workflow its charter declares
 ([`DE4SDV_IncrementWorkflow`](../../textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml)).
-The tools reach it through native relations from validated identity, never by
-name: the increment's charter (IncrementTraceObligations lineage) -> its
-definition's `workflow` feature -> the workflow definition -> its step actions
-in succession order -> each step's `phase`, parameters and `MethodCheck`
-metadata about a parameter (`check`, `minimum`, `advisory`).
+The tools reach it through native relations from validated identity: the
+increment's charter (IncrementTraceObligations lineage) -> its definition's
+`workflow` feature -> the workflow definition -> its step actions in
+succession order -> each step's `phase`, parameters and `MethodCheck` metadata
+about a parameter (`check`, `minimum`, `advisory`). Members, phase and check
+values may be inherited from the definitions a step or check specializes; a
+redefinition replaces what it redefines, so an increment can tailor a step.
+No element is identified by its name. Member names (`workflow`, `phase`,
+`check`, `increment`, `applicablePhases`, `expectedArtifacts`) select features
+of elements reached that way, and `expectedArtifacts` names top-level packages
+by their declared names.
 
 - **Scope.** A check's subjects are the elements that conform to the
   parameter (typed by its type, or of its usage kind when it is untyped). For
   the framing step they come from the increment's own package, the package
   that owns the increment usage and its charter; for the later steps, from the
   packages the charter declares in `expectedArtifacts`, with their nested
-  packages.
+  packages. A value that names no single top-level package leaves the later
+  steps' subjects unresolved, never narrower, and fails
+  `incrementDeclaresExpectedArtifacts`. On framing subjects
+  `ownedByIncrementPackage` holds by construction; the population bounds carry
+  that rule until a model change removes the redundancy.
 - **Population.** The parameter's multiplicity bounds the number of subjects:
   `[1]` means exactly one, `[0..*]` lets an empty population mean "does not
   apply".
@@ -36,7 +46,8 @@ knows this representation.
 
 ## The four tools
 
-All four take the increment identifier: the registered `INC-<SUBJECT>-<SEQ>`
+The three evaluation tools require the increment identifier, and
+`phase_contract` takes it optionally: the registered `INC-<SUBJECT>-<SEQ>`
 identity carried as the increment usage's declared short name, for example
 `part <'INC-AEBS-010'> incAEBS010 : VisualizationIncrement`
 (see [naming conventions](../naming/naming-conventions.md)). `phase` is an
@@ -58,6 +69,9 @@ answers carry the same `evaluation_key`.
   lineage whose declared short name is the identifier. Its charter
   declaration states the applicable phases; checks of undeclared optional
   steps are not applicable, which is reported as such, never as passed.
+  Without exactly one charter (a new increment, or two charters) the
+  increment is evaluated against the one workflow the revision's charters
+  declare: framing says what to author first, the later steps stay unresolved.
 - **Blocking and advisory.** A check's `advisory` flag decides (default:
   blocking). Blocking checks hold the phase exit; advisory checks are reported
   as notes.
@@ -72,7 +86,13 @@ answers carry the same `evaluation_key`.
 - **Method side versus model.** Some inputs only a method or kernel change can
   supply, for example a declaration without a validated kernel identity or a
   relation without a SysML mapping. Those checks are listed under
-  `method_side_blockers`, not offered as authoring work.
+  `method_side_blockers`, not offered as authoring work. A check with an
+  authorable failure stays actionable; its method-side subjects are listed
+  apart as `method_side_subjects`.
+- **Library attributes.** `source`, `rationale` and `verificationMethod` count
+  only when they redefine a feature of the subject's own type lineage (in the
+  model, the ODE4HERA `RequirementsManagement` attribute bases). The contract
+  binds no library declaration, so this is a lineage rule.
 
 Results describe model content against the declared checks only. They make no
 acceptance, compliance, certification or evidence-adequacy claim.
@@ -91,8 +111,9 @@ python scripts/evaluate_increment.py \
 With the validated revision binding of the same commit, the evaluation key
 equals the one the API service computes for that revision. Without
 `--binding`, the export is evaluated as an export snapshot: kernel identity
-is validated from the export by the ingestion validator, and the revision
-identity carries the scope `export-snapshot`. Element source files appear in
+is validated from the export as the ingestion importer validates it, and the
+same failures refuse it (exit 2); the revision identity carries the scope
+`export-snapshot`. Element source files appear in
 a separate `presentation` block, because only an export records them.
 
 ## Fast restarts

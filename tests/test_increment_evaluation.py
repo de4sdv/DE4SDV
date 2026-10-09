@@ -9,8 +9,6 @@ model's steps and checks.
 
 from __future__ import annotations
 
-from types import SimpleNamespace
-
 import pytest
 
 from de4sdv.semantic import method_checks as mc
@@ -24,19 +22,19 @@ from increment_model_fixtures import (
     WorkflowStep,
     increment_scenario,
     increment_workflow,
-    install_model_workflow,
+    method_builder,
+    model_workflow,
+    set_check,
 )
 from test_revision_index import _traversal
 
 REVISION = me.RevisionIdentity("a" * 40, "project", "commit", "full-model")
 P0, P4, P5, P10 = ("phase0_incrementFraming", "phase4_needs", "phase5_requirements", "phase10_vvEvidence")
-ADVISORY = {"requirementSpecifiesFeatureOrCapability", "verificationCaseVerifiesAcceptanceCriterion",
-            "verificationCaseHasEvidenceRecordOrStatus"}
 
 
-def _scenario(applicable_phases=(P0, P4, P5, P10), **changes):
-    scenario = increment_scenario(applicable_phases=applicable_phases)
-    install_model_workflow(scenario, **changes)
+def _scenario(applicable_phases=(P0, P4, P5, P10)):
+    scenario = increment_scenario(method_builder(), applicable_phases=applicable_phases)
+    scenario.workflow = model_workflow(scenario)
     return scenario
 
 
@@ -62,19 +60,6 @@ def _remove_stakeholders(scenario, owner) -> None:
                      and e.get("owningRelatedElement", {}).get("@id") == owner["@id"]])
 
 
-def test_complete_increment_passes_every_blocking_check() -> None:
-    evaluation = _evaluate(_scenario())
-    states = {u.unit_id: (u.verdict or u.state) for u in evaluation.canonical.units}
-    blocking_failures = {check: state for check, state in states.items()
-                         if state not in {me.VERDICT_PASS, me.VERDICT_NOT_APPLICABLE} and check not in ADVISORY}
-    assert blocking_failures == {}
-    status = evaluation.status()
-    assert [b["phase"] for b in status["phases"]] == [P0, P4, P5, P10]
-    assert all(block["phase_exit"] == "READY" for block in status["phases"])
-    nxt = evaluation.next_obligation()
-    assert nxt["next"] is None and nxt["method_side_blockers"] == []
-
-
 def test_projections_share_one_evaluation_identity() -> None:
     evaluation = _evaluate(_scenario())
     keys = {
@@ -88,15 +73,17 @@ def test_projections_share_one_evaluation_identity() -> None:
     assert keys == {evaluation.evaluation_key}
 
 
-def test_an_unidentified_increment_has_no_method_and_says_why() -> None:
+def test_an_unidentified_increment_is_told_to_declare_its_identifier() -> None:
+    """A new increment: the revision's workflow still applies, and framing says what to author first."""
     scenario = _scenario()
     scenario.usage.pop("declaredShortName")
     evaluation = _evaluate(scenario)
     status = evaluation.status()
-    assert status["reason_codes"] == [me.CONTRACT_UNAVAILABLE]
     assert status["increment"]["resolved"] is False
     assert any("short name" in d for d in status["increment"]["diagnostics"])
-    assert evaluation.next_obligation()["next"] is None
+    step = evaluation.next_obligation()["next"]
+    assert (step["gate"], step["kind"]) == ("incrementHasIdentifier", "input-problem")
+    assert step["what_to_author"].startswith("declare the increment usage with its identifier")
 
 
 def test_next_takes_the_earliest_open_check_in_workflow_order() -> None:
@@ -240,11 +227,10 @@ def test_a_phase_without_checks_is_unassessed_never_a_pass() -> None:
 
 
 def test_an_empty_required_inventory_cannot_open_a_phase_exit() -> None:
-    advisory_only = (
-        WorkflowCheck("verificationCaseHasEvidenceRecordOrStatus", "evidenceRecordOrStatus", "verificationCases",
-                      advisory=True),
-    )
-    evaluation = _evaluate(_scenario(planVerificationAndEvidence={"checks": advisory_only}))
+    scenario = _scenario()
+    for check in ("verificationCaseVerifiesRequirement", "requirementVerifiedByVerificationCase"):
+        set_check(scenario, scenario.workflow, check, advisory=True)
+    evaluation = _evaluate(scenario)
     block = _phase(evaluation.status(), P10)
     assert (block["assessment_coverage"], block["evaluation_state"], block["conformance_verdict"]) == (
         me.COVERAGE_UNASSESSED, None, None)
@@ -281,6 +267,55 @@ def test_relation_remedies_are_member_text_the_model_uses() -> None:
     (entry,) = [g for g in _evaluate(scenario).gaps()["blocking"] if g["gate"] == "needHasValidationScenario"]
     assert entry["what_to_author"].endswith(
         ": connection <name> : ValidationPlanningAssociation connect need1 to <scenario>;"), entry["what_to_author"]
-    registry = mc.MethodCheckRegistry.for_relations(["frame"])
-    assert registry.remedy(SimpleNamespace(predicate="frame"), increment=None, view=None) == \
-        "add to each subject: frame <concern>;"
+    assert mc.remedy("frame", _evaluate(scenario).view) == "add to each subject: frame <concern>;"
+
+
+def test_an_unresolved_declared_artifact_leaves_the_later_steps_input_unavailable() -> None:
+    scenario = _scenario()
+    builder = scenario.builder
+    extra = builder.package("DE4SDV_FixtureExtraRequirements")
+    builder.usage("RequirementUsage", "unverifiedRequirement", extra,
+                  [next(e for e in builder.elements if e.get("declaredName") == "FixtureRequirement")])
+    builder.remove(builder.feature_of(scenario.charter, "expectedArtifacts"))
+    builder.attribute(scenario.charter, "expectedArtifacts", [
+        "DE4SDV_FixtureFraming", "DE4SDV_FixtureNeedsRequirements", "DE4SDV_FixtureVerificationEvidence",
+        "DE4SDV_FixtureExtraRequirement"])
+    evaluation = _evaluate(scenario)
+    assert _state(evaluation, "incrementDeclaresExpectedArtifacts") == me.VERDICT_FAIL
+    for check in ("needHasStatement", "requirementDerivesFromNeed", "verificationCaseVerifiesRequirement"):
+        assert _state(evaluation, check) == me.STATE_INDETERMINATE, check
+    assert evaluation.next_obligation()["next"]["gate"] == "incrementDeclaresExpectedArtifacts"
+
+
+def test_next_names_authorable_failures_next_to_method_side_subjects() -> None:
+    scenario = _scenario()
+    builder = scenario.builder
+    builder.remove(*[e for e in builder.elements if e.get("declaredName") == "need1ValidationPlanning"])
+    builder.bindings[:] = [b for b in builder.bindings if b["ontology_class"] != "ValidationPlanningScenario"]
+    step = _evaluate(scenario).next_obligation()["next"]
+    assert (step["gate"], step["kind"]) == ("needHasValidationScenario", "violation")
+    assert [s["name"] for s in step["subjects"]] == ["need1"]
+    assert [s["name"] for s in step["method_side_subjects"]] == ["need0"]
+
+
+def test_a_library_attribute_counts_only_through_the_subjects_own_lineage() -> None:
+    scenario = _scenario()
+    builder = scenario.builder
+    holder = builder.definition("PartDefinition", "LogRecord", builder.package("SomeOtherLibrary"))
+    foreign = builder.new("AttributeUsage", name="source")
+    builder.own(holder, foreign, kind="FeatureMembership", member_name="source")
+    for need in scenario.needs:
+        builder.remove(builder.feature_of(need, "source"))
+        builder.attribute(need, "source", "x", redefines=foreign)
+    assert _state(_evaluate(scenario), "needHasSource") == me.VERDICT_FAIL
+
+
+def test_population_remedies_name_where_the_subjects_belong() -> None:
+    scenario = _scenario()
+    builder = scenario.builder
+    builder.usage("PartUsage", "secondDecision", scenario.framing, [scenario.vocabulary["IncrementLifecycleDecision"]])
+    for need in scenario.needs:
+        builder.remove(need)
+    gaps = {g["gate"]: g for g in _evaluate(scenario).gaps()["blocking"]}
+    assert "in the increment's package" in gaps["incrementHasLifecycleDecision"]["what_to_author"]
+    assert "in the increment's declared packages" in gaps["needHasStatement"]["what_to_author"]

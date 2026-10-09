@@ -40,6 +40,10 @@ _LITERAL_KINDS = {
 _MAX_VALUE_DEPTH = 8
 
 
+class MultiplicityError(ValueError):
+    """A feature declares a multiplicity whose bounds cannot be decoded."""
+
+
 class GraphIndexes(NamedTuple):
     """Lineage (``general -> {specific}``) and typing (``feature -> {type}``) maps."""
 
@@ -259,23 +263,6 @@ class RevisionIndex:
         targets = self.memo("reference-shadows", build).get(identifier) or []
         return targets[0] if len(targets) == 1 else identifier
 
-    def referencing_holders(self, target: str) -> tuple[str, ...]:
-        """Elements whose owned ReferenceSubsetting names ``target``."""
-
-        def build() -> dict[str, tuple[str, ...]]:
-            found: dict[str, list[str]] = {}
-            for element in self.elements:
-                if str(element.get("@type")) != "ReferenceSubsetting":
-                    continue
-                for referenced in reference_ids(element.get("referencedFeature")):
-                    for holder in reference_ids(element.get("owningRelatedElement")):
-                        bucket = found.setdefault(referenced, [])
-                        if holder not in bucket:
-                            bucket.append(holder)
-            return {key: tuple(value) for key, value in found.items()}
-
-        return self.memo("referencing-holders", build).get(target, ())
-
     def elements_of_type(self, *types: str) -> tuple[str, ...]:
         key = ("of-type", tuple(sorted(types)))
 
@@ -307,38 +294,67 @@ class RevisionIndex:
             cache[definition] = frozenset(found)
         return cache[definition]
 
+    def generals(self, definition: str) -> tuple[str, ...]:
+        """``definition`` and the definitions it specializes (explicit lineage), nearest first."""
+
+        def build() -> dict[str, list[str]]:
+            table: dict[str, list[str]] = {}
+            for general, specifics in self.graph_indexes().explicit_specifics.items():
+                for specific in specifics:
+                    table.setdefault(specific, []).append(general)
+            return {specific: sorted(found) for specific, found in table.items()}
+
+        table = self.memo("generals", build)
+        found: list[str] = []
+        frontier = [definition]
+        while frontier:
+            current = frontier.pop(0)
+            if current not in found:
+                found.append(current)
+                frontier.extend(table.get(current, ()))
+        return tuple(found)
+
+    def redefined(self, feature: str) -> list[str]:
+        """The features ``feature`` redefines."""
+        return [target for relationship in self.owned_relationships(feature, "Redefinition")
+                for target in reference_ids(relationship.get("redefinedFeature"))]
+
     def multiplicity(self, feature: str) -> tuple[int, int | None] | None:
         """Declared multiplicity of a feature as ``(lower, upper)``; upper ``None`` is unbounded.
 
-        Reads the feature's MultiplicityRange from its owned structure (its
-        literal bound expressions), or from the derived ``lowerBound`` /
-        ``upperBound`` references when a serializer emits them. ``[n]`` is
-        ``(n, n)`` and ``[*]`` is ``(0, None)``. ``None`` when no multiplicity
-        is declared or its bounds are not literals.
+        Decodes the export's MultiplicityRange shapes: ``[n]`` and ``[*]`` own
+        one literal; ``[lower..upper]`` owns an OperatorExpression ``..`` whose
+        two parameter features carry the literal bounds as feature values.
+        ``None`` when the feature declares no multiplicity. A declared
+        multiplicity that cannot be decoded raises :class:`MultiplicityError`;
+        it is never read as a default.
         """
-        ranges = reference_ids(self.element(feature).get("multiplicity")) or self.owned_members(
-            feature, "MultiplicityRange")
+        ranges = self.owned_members(feature, "MultiplicityRange")
         if not ranges:
             return None
-        multiplicity = self.element(ranges[0])
-        bound_ids = (reference_ids(multiplicity.get("lowerBound")) + reference_ids(multiplicity.get("upperBound"))
-                     or reference_ids(multiplicity.get("bound"))
-                     or self.owned_members(ranges[0], "LiteralInteger", "LiteralInfinity"))
-        values: list[int | None] = []
-        for bound in bound_ids:
-            element = self.element(bound)
-            kind = str(element.get("@type") or "")
-            if kind == "LiteralInfinity":
-                values.append(None)
-            elif kind == "LiteralInteger" and isinstance(element.get("value"), int) and element["value"] >= 0:
-                values.append(int(element["value"]))
-            else:
-                return None
+        bounds = self.owned_members(ranges[0]) if len(ranges) == 1 else []
+        if len(bounds) == 1 and self.element(bounds[0]).get("@type") == "OperatorExpression":
+            operator = self.element(bounds[0]).get("operator")
+            if operator != "..":
+                raise MultiplicityError(f"multiplicity operator {operator!r} is not '..'")
+            bounds = [value for parameter in self.owned_members(bounds[0])
+                      for relationship in self.owned_relationships(parameter, "FeatureValue")
+                      for value in reference_ids(relationship.get("memberElement"))]
+        values = [self._bound(bound) for bound in bounds]
         if len(values) == 1:
             return (0, None) if values[0] is None else (values[0], values[0])
-        if len(values) == 2 and values[0] is not None:
+        if len(values) == 2 and values[0] is not None and (values[1] is None or values[1] >= values[0]):
             return values[0], values[1]
-        return None
+        raise MultiplicityError(f"multiplicity of {self.qualified_name(feature) or feature} has no decodable bounds")
+
+    def _bound(self, identifier: str) -> int | None:
+        element = self.element(identifier)
+        kind, value = element.get("@type"), element.get("value")
+        if kind == "LiteralInfinity":
+            return None
+        if kind == "LiteralInteger" and isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+            return value
+        raise MultiplicityError(f"multiplicity bound {kind} {value!r} is not a natural number or *")
 
     # -- feature values -----------------------------------------------------
 

@@ -7,7 +7,7 @@ the existing evaluator once and projects that single canonical evaluation as
 
 - ``status``: per phase, the aggregate verdict and the phase-exit readiness;
 - ``gaps``: unmet blocking gates (violations, input problems, method-side
-  blockers, unattempted gates and what blocks them) plus advisory notes;
+  blockers) plus advisory notes;
 - ``next``: the first actionable blocking gate in workflow order (step
   order, then check order), with what to author and where;
 - ``phase_contract``: the gates of a phase with the increment's
@@ -28,9 +28,16 @@ from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 
 from . import method_evaluator as me
-from .increment_workflow import PHASE_ORDER, UNBOUNDED, IncrementMethod, read_increment_method
+from .increment_workflow import (
+    OWN_PACKAGE_SELECTOR,
+    PHASE_ORDER,
+    UNBOUNDED,
+    WORKFLOW_SELECTORS,
+    IncrementMethod,
+    read_increment_method,
+)
 from .increment_scope import IncrementScope, ModelView, resolve_increment
-from .method_checks import IncrementEvaluationContext
+from .method_checks import IncrementEvaluationContext, remedy
 from .relation_checks import METHOD_SIDE_PREFIXES
 
 CLAIM_BOUNDARY = (
@@ -40,7 +47,6 @@ CLAIM_BOUNDARY = (
 KIND_VIOLATION = "violation"
 KIND_INPUT = "input-problem"
 KIND_METHOD_SIDE = "method-side"
-KIND_NOT_ATTEMPTED = "not-attempted"
 
 
 @dataclass
@@ -171,18 +177,21 @@ class IncrementEvaluation:
 
     def _kind(self, unit: me.EvaluationResult) -> str | None:
         """Gap kind of one gate unit (None when the gate passes or is not applicable)."""
-        if unit.coverage == me.COVERAGE_UNASSESSED:
-            return KIND_NOT_ATTEMPTED
         if unit.verdict in {me.VERDICT_PASS, me.VERDICT_NOT_APPLICABLE}:
             return None
         if unit.verdict == me.VERDICT_FAIL:
             return KIND_VIOLATION
-        children = [c for c in self._children(unit.unit_id) if c.state in {me.STATE_INDETERMINATE, me.STATE_ERROR}]
-        if children and all(_method_side(child) for child in children):
-            return KIND_METHOD_SIDE
-        if not children and _method_side(unit):
-            return KIND_METHOD_SIDE
-        return KIND_INPUT
+        # An authorable child (a failure, or an input problem that is not method
+        # side) makes the gate actionable even next to method-side children.
+        children = self._open_children(unit.unit_id)
+        if any(child.verdict == me.VERDICT_FAIL for child in children):
+            return KIND_VIOLATION
+        if any(not _method_side(child) for child in children) or not (children or _method_side(unit)):
+            return KIND_INPUT
+        return KIND_METHOD_SIDE
+
+    def _open_children(self, gate_id: str) -> list[me.EvaluationResult]:
+        return [c for c in self._children(gate_id) if c.verdict not in {me.VERDICT_PASS, me.VERDICT_NOT_APPLICABLE}]
 
     def _entry(self, gate: me.ObligationSpec, kind: str) -> dict[str, Any]:
         unit = self._unit(gate.obligation_id)
@@ -190,7 +199,6 @@ class IncrementEvaluation:
             "gate": gate.obligation_id,
             "phase": gate.phase,
             "predicate": gate.predicate,
-            "target_filters": list(gate.target_filters),
             "required": gate.required,
             "kind": kind,
             "assessment_coverage": unit.coverage,
@@ -199,31 +207,25 @@ class IncrementEvaluation:
             "reason_codes": list(unit.reason_codes),
             "claim_boundary": gate.claim_boundary,
         }
-        if kind == KIND_NOT_ATTEMPTED:
-            entry["blocked_by"] = [
-                d for d in gate.depends_on
-                if self._unit(d).verdict not in {me.VERDICT_PASS, me.VERDICT_NOT_APPLICABLE}
-            ]
-            entry["diagnostics"] = list(unit.diagnostics)
-            return entry
-        subjects = []
-        for child in self._children(gate.obligation_id):
-            if child.verdict in {me.VERDICT_PASS, me.VERDICT_NOT_APPLICABLE}:
-                continue
-            subjects.append(self._subject(child))
+        children = self._open_children(gate.obligation_id)
+        method_side = [c for c in children if kind != KIND_METHOD_SIDE and c.verdict != me.VERDICT_FAIL
+                       and _method_side(c)]
+        subjects = [self._subject(c) for c in children if c not in method_side]
+        if method_side:
+            entry["method_side_subjects"] = [self._subject(c) for c in method_side]
         if not subjects:
             entry["diagnostics"] = list(unit.diagnostics)
             entry["missing"] = list(unit.missing)
         entry["subjects"] = subjects
         if kind in {KIND_VIOLATION, KIND_INPUT}:
-            first = next((c.subject_id for c in self._children(gate.obligation_id)
-                          if c.verdict == me.VERDICT_FAIL or c.state in {me.STATE_INDETERMINATE, me.STATE_ERROR}),
-                         None)
+            first = next((c.subject_id for c in children if c not in method_side), None)
             if me.POPULATION_POLICY_VIOLATION in unit.reason_codes:
                 entry["what_to_author"] = self._population_remedy(gate, unit)
+            elif me.SCOPE_RESOLUTION_ERROR in unit.reason_codes:  # an ambiguous increment identity
+                entry["what_to_author"] = (f"keep one part usage with the declared short name {self.increment_id}"
+                                           f" ({'; '.join(unit.diagnostics)})")
             else:
-                entry["what_to_author"] = self.increment_method.remedy(
-                    gate, increment=self.scope, view=self.view, subject_id=_element_subject(first, self.view))
+                entry["what_to_author"] = remedy(gate.predicate, self.view, _element_subject(first, self.view))
             entry["where"] = self._where(subjects)
         return entry
 
@@ -239,7 +241,8 @@ class IncrementEvaluation:
         else:
             bounds = f"between {lower} and {upper}"
         observed = unit.diagnostics[0] if unit.diagnostics else ""
-        return f"keep {bounds} {subject_type} in the increment's declared packages ({observed})"
+        where = "package" if gate.selector_kind == OWN_PACKAGE_SELECTOR else "declared packages"
+        return f"keep {bounds} {subject_type} in the increment's {where} ({observed})"
 
     def _subject(self, child: me.EvaluationResult) -> dict[str, Any]:
         subject_id = child.subject_id
@@ -414,6 +417,10 @@ class IncrementEvaluation:
                 "where": entry.get("where", {}),
                 "subjects": entry.get("subjects", []),
             }
+            if entry.get("method_side_subjects"):
+                step["method_side_subjects"] = entry["method_side_subjects"]
+            if not step["subjects"]:
+                step["diagnostics"] = entry.get("diagnostics", [])
         elif method_side:
             reason = ("no gate the agent can author is open; the remaining blockers need a method or "
                       "kernel change")
@@ -465,10 +472,9 @@ def phase_contract_response(
                         reason_codes=[me.INVALID_CONTRACT if increment_method.problems else me.CONTRACT_UNAVAILABLE],
                         diagnostics=[increment_method.reason])
         return response
-    contract = me.decode_contract_filters(increment_method.contract, increment_method.predicates)
     phases = [p for p in increment_method.phases if phase is None or p == phase]
     gates = [_gate_record(gate, view, scope, increment_method) for p in phases
-             for gate in contract.obligations if gate.phase == p]
+             for gate in increment_method.contract.obligations if gate.phase == p]
     response.update(executable_contract_available=bool(gates), phases=phases, gates=gates,
                     contract_digest=increment_method.contract.digest())
     if not gates:
@@ -484,10 +490,6 @@ def _gate_record(gate: me.ObligationSpec, view: ModelView, scope: IncrementScope
         "phase": gate.phase,
         "subject_selector": gate.subject_selector,
         "predicate": gate.predicate,
-        "target_filters": list(gate.target_filters),
-        "typed_filters": [
-            {"kind": f.kind, "argument": f.argument, "values": list(f.values)} for f in gate.filters
-        ],
         "cardinality": [gate.cardinality[0], "*" if gate.cardinality[1] >= UNBOUNDED else gate.cardinality[1]],
         "minimum_population": gate.minimum_population,
         "permitted_empty": gate.permitted_empty,
@@ -498,7 +500,7 @@ def _gate_record(gate: me.ObligationSpec, view: ModelView, scope: IncrementScope
     record.update(increment_method.labels.get(gate.obligation_id, {}))
     if scope is None:
         return record
-    record["what_satisfies"] = increment_method.remedy(gate, increment=scope, view=view)
+    record["what_satisfies"] = remedy(gate.predicate, view)
     if gate.applicability_kind == me.APPLICABILITY_UNCONDITIONAL:
         record["applicability_resolution"] = "applicable"
     elif scope.declared_phases is None:
@@ -540,7 +542,7 @@ def evaluate_increment(
             increment=scope,
         )
         evaluator = me.MethodEvaluator(increment_method.contract, predicates=increment_method.predicates,
-                                       selectors=increment_method.selectors)
+                                       selectors=WORKFLOW_SELECTORS)
         canonical = evaluator.evaluate(ctx)
     return IncrementEvaluation(
         increment_id=scope.increment_id, revision=revision, increment_method=increment_method, scope=scope,

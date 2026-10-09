@@ -46,13 +46,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any, Iterable
 
 import anyio
 from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
+from mcp.client.stdio import get_default_environment, stdio_client
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -617,6 +618,9 @@ async def run_mcp_validation(
             ),
         ],
         cwd=ROOT,
+        # The MCP client passes only a default environment; forward the corpus snapshot directory.
+        env={**get_default_environment(),
+             **{key: os.environ[key] for key in ("DE4SDV_SEMANTIC_SNAPSHOT_DIR",) if key in os.environ}},
     )
     results: dict[str, dict[str, Any]] = {}
     proof_b_results: dict[str, dict[str, Any]] = {}
