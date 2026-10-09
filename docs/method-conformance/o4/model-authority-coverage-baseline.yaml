@@ -12,7 +12,7 @@ layer_digests:
   o2plus: sha256:546c56d11ebe407f97d6563e5287e20a361cb21dce36853ce7568329af6c012a
   vocabulary-carrier: sha256:b13e8034c8f9eba4ff099aaae24a5d965ac84494c72bca45addbd5ae0c0500be
   definition-batch2: sha256:dbc5adf86c5e189bc769e3c73ada7a56cab508983848311d28a6159b0a7f0e21
-  successor-contract: sha256:332249e805f4f007bce6c07a70e549c5b62e125e70c22c93f5aabff0a6d53692
+  successor-contract: sha256:c68612eb949e9c43c0b4519baeb73613f981521ddc12b1252ffba8d18bfb48be
 refused:
 - IncrementTraceabilityShell
 - derivesNeedFromConcern

@@ -40,8 +40,6 @@ RUNTIME_CONTRACT_KEYS = (
     "binding_path",
     "expected_git_revision",
     "api_timeout",
-    "method_conformance",
-    "method_context_provider",
     "require_activation_eligible",
 )
 

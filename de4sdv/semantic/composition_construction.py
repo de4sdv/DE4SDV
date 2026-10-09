@@ -14,8 +14,8 @@ from typing import Any
 from .authority_selection import AuthoritySelectionError, require_model_selection
 
 _RUNTIME_KEYS = frozenset({
-    "api_url", "binding_path", "expected_git_revision", "api_timeout", "method_conformance",
-    "method_context_provider", "require_activation_eligible", "production",
+    "api_url", "binding_path", "expected_git_revision", "api_timeout",
+    "require_activation_eligible", "production",
     "validation_artifacts", "environ", "root",
 })
 

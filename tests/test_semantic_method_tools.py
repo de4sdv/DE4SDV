@@ -55,7 +55,6 @@ def _call(server, tool, arguments):
 
 def test_method_tools_need_no_separate_wiring() -> None:
     service, _scenario, _repository = _service()
-    assert service.method_conformance is None
     status = service.increment_status(increment=INCREMENT)
     assert status["query"] == "increment_status"
     assert status["executable_contract_available"] is True
