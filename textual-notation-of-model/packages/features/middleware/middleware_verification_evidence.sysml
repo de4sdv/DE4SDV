@@ -11,17 +11,10 @@
  * loss health disposition. Full lifecycle ordering, update/OTA behavior, the
  * reverse lifecycle/status path, production deployment, full-stack Autoware,
  * safety, and certification claims remain deferred or not claimed.
- *
- * Acceptance criteria are not requirements: each records the expected
- * result of the design-input requirement it bounds, and each verification
- * case verifies that requirement next to its criterion. The claim,
- * arguments and counter-claims are assurance artifacts
- * (DE4SDV_AssuranceArgumentation), outside the requirement lineage.
  */
 
 package DE4SDV_MiddlewareVerificationEvidence {
   private import DE4SDV_MethodContext::*;
-  private import DE4SDV_AssuranceArgumentation::*;
   private import DE4SDV_MethodProcess::*;
   private import DE4SDV_ProductLine::*;
   private import DE4SDV_Stakeholders::*;
@@ -150,17 +143,14 @@ package DE4SDV_MiddlewareVerificationEvidence {
     attribute :>> scenario = MiddlewareScenarioIdentity::faultDetection;
   }
 
-  /* Each criterion records the expected result of the requirement it bounds
-   * ("will be shown to have been met when ..."). AC-MW-010-06 is a case
-   * acceptance condition that bounds no design-input requirement, and
-   * AC-MW-010-07 is the verdict-record rule applied by every case. */
-  requirement def MiddlewareAcceptanceCriterion :> AcceptanceCriterion;
+  requirement def MiddlewareAcceptanceCriterion
+    :> EvidenceContractTraceabilityRequirementCandidate, AcceptanceCriterion;
 
   requirement acceptanceCriterion010SignalTranslation : MiddlewareAcceptanceCriterion {
     doc /* AC-MW-010-01; bounded verification of the selected Vehicle.Speed slice. */
     subject bench : MiddlewareIntegrationVandVBench;
     require constraint {
-      doc /* REQ-MW-001 will be shown to have been met for the selected Vehicle.Speed slice when the selected contract preserves Vehicle.Speed [km/h] semantics, maps 36 km/h to 10 m/s and 72 km/h to 20 m/s through division by 3.6, rejects invalid or non-finite samples, and exposes the resulting VelocityReport field to an independent observer. */
+      doc /* The selected contract shall preserve Vehicle.Speed [km/h] semantics, map 36 km/h to 10 m/s and 72 km/h to 20 m/s through division by 3.6, reject invalid/non-finite samples, and expose the resulting VelocityReport field to an independent observer. */
     }
   }
 
@@ -168,7 +158,7 @@ package DE4SDV_MiddlewareVerificationEvidence {
     doc /* AC-MW-010-02; bounded verification of integration lifecycle behavior. */
     subject bench : MiddlewareIntegrationVandVBench;
     require constraint {
-      doc /* REQ-MW-003 will be shown to have been met when startup, initializing, operational, degraded, and shutdown behavior is observable at the integration boundary, the declared transition ordering is preserved, and no use occurs before the required binding and readiness. */
+      doc /* The integration boundary shall make startup, initializing, operational, degraded, and shutdown behavior observable, preserve the declared transition ordering, and prevent use before required binding/readiness. */
     }
   }
 
@@ -176,7 +166,7 @@ package DE4SDV_MiddlewareVerificationEvidence {
     doc /* AC-MW-010-03; bounded verification of health forwarding. */
     subject bench : MiddlewareIntegrationVandVBench;
     require constraint {
-      doc /* REQ-MW-004 will be shown to have been met when missing, stale, inconsistent, or unavailable provider, transport, or consumer health produces an observable degraded or unavailable disposition that is forwarded to the application boundary without being relabeled as healthy. */
+      doc /* Missing, stale, inconsistent, or unavailable provider/transport/consumer health shall produce an observable degraded or unavailable disposition and shall be forwarded to the application boundary without being relabeled as healthy. */
     }
   }
 
@@ -184,7 +174,7 @@ package DE4SDV_MiddlewareVerificationEvidence {
     doc /* AC-MW-010-04; validation of vehicle/application startup. */
     subject bench : MiddlewareIntegrationVandVBench;
     require constraint {
-      doc /* REQ-MW-007 will be shown to have been met when a configured member startup scenario shows provider registration, service discovery and binding, transport readiness, adapter readiness, and ROS 2 consumer readiness in causal order before the signal is accepted. */
+      doc /* A configured member startup scenario shall prove provider registration, service discovery/binding, transport readiness, adapter readiness, and ROS 2 consumer readiness in causal order before the signal is accepted. */
     }
   }
 
@@ -192,7 +182,7 @@ package DE4SDV_MiddlewareVerificationEvidence {
     doc /* AC-MW-010-05; validation of integration update behavior. */
     subject bench : MiddlewareIntegrationVandVBench;
     require constraint {
-      doc /* REQ-MW-005 will be shown to have been met when an update/OTA scenario, with pre-update and post-update identities and observations retained, detects rather than silently accepts loss or incompatible change of the required signal, lifecycle, health, discovery, or consumer contracts. */
+      doc /* An update/OTA scenario shall retain pre-update and post-update identities and observations and shall detect, rather than silently accept, loss or incompatible change of the required signal, lifecycle, health, discovery, or consumer contracts. */
     }
   }
 
@@ -200,7 +190,7 @@ package DE4SDV_MiddlewareVerificationEvidence {
     doc /* AC-MW-010-06; validation of fault detection and containment. */
     subject bench : MiddlewareIntegrationVandVBench;
     require constraint {
-      doc /* The fault-detection case is acceptable when provider, binding, discovery, transport, adapter, and consumer faults are detected and classified at the integration boundary and no non-safety middleware failure creates an uncontrolled emergency intervention command. This criterion bounds no design-input requirement: its traces to REQ-MW-004 and REQ-MW-006 are relevance, and the success criteria of the safety constraint REQ-MW-006 stay open (GAP-MW-029). */
+      doc /* Provider, binding, discovery, transport, adapter, and consumer faults shall be detected and classified at the integration boundary; non-safety middleware failure shall not create an uncontrolled emergency intervention command. */
     }
   }
 
@@ -208,7 +198,7 @@ package DE4SDV_MiddlewareVerificationEvidence {
     doc /* AC-MW-010-07; evidence integrity and claim-boundary criterion. */
     subject bench : MiddlewareIntegrationVandVBench;
     require constraint {
-      doc /* A retained verdict is acceptable only when it binds the configured member, execution environment, contract identities, raw observations, and independent observer evidence. Missing target-runtime evidence is recorded as inconclusive or blocked, never a runtime pass. */
+      doc /* Every retained verdict shall bind the configured member, execution environment, contract identities, raw observations, and independent observer evidence. Missing target-runtime evidence shall be inconclusive or blocked, never a runtime pass. */
     }
   }
 
@@ -354,26 +344,11 @@ package DE4SDV_MiddlewareVerificationEvidence {
     doc /* GAP-MW-028: Target-runtime lifecycle, update/OTA, health, and fault evidence was unavailable. Fault subset observed (E-MW-011 gate 7: ingress rejects non-valid envelopes); health disposition now observed (E-MW-014: degraded=stale within 5s of provider loss, restored=healthy on resume — AC-MW-010-03 satisfied); lifecycle/update/OTA and reverse path remain open (gate 8 not claimed). */
   }
 
-  /* Each objective verifies its acceptance criteria and the design-input
-   * requirement its own criterion bounds (the primary criterion of the
-   * case; criteria reused from other cases keep their requirements on their
-   * own case). The requirements are System 1 product requirements whose
-   * subject is the member product, so each verified requirement binds its
-   * subject to the bench's configured member, not to the whole bench. A
-   * verify is a planned verification objective, not a verdict: the verdict
-   * stays the case's evidence-bound return value, and deferred cases keep
-   * their deferred status. Traces that are relevance, not a bound, add no
-   * verify: AC-MW-010-04 to REQ-MW-003 (startup covers no degraded or
-   * shutdown transition), AC-MW-010-06 to REQ-MW-004 and to the safety
-   * constraint REQ-MW-006 (criteria open per GAP-MW-029), and AC-MW-010-07
-   * to REQ-MW-009 (a trace-link constraint on the increment). */
-
   verification def SignalTranslationVerification {
     subject verifiedBench : MiddlewareIntegrationVandVBench;
     objective signalTranslationObjective010 {
       verify acceptanceCriterion010SignalTranslation;
       verify acceptanceCriterion010EvidenceIndependence;
-      verify reqProvideMiddlewareSignalAccess { subject memberProduct = verifiedBench.system1MemberProduct; }
     }
     action collectData {
       @VerificationMethod{ kind = (test, inspect); }
@@ -398,7 +373,6 @@ package DE4SDV_MiddlewareVerificationEvidence {
     objective lifecycleCoordinationObjective010 {
       verify acceptanceCriterion010LifecycleCoordination;
       verify acceptanceCriterion010EvidenceIndependence;
-      verify reqCoordinateMiddlewareLifecycle { subject memberProduct = verifiedBench.system1MemberProduct; }
     }
     action collectData {
       @VerificationMethod{ kind = (test, inspect); }
@@ -423,7 +397,6 @@ package DE4SDV_MiddlewareVerificationEvidence {
     objective healthForwardingObjective010 {
       verify acceptanceCriterion010HealthForwarding;
       verify acceptanceCriterion010EvidenceIndependence;
-      verify reqMonitorMiddlewareHealth { subject memberProduct = verifiedBench.system1MemberProduct; }
     }
     action collectData {
       @VerificationMethod{ kind = (test, inspect); }
@@ -455,7 +428,6 @@ package DE4SDV_MiddlewareVerificationEvidence {
       verify acceptanceCriterion010VehicleStartup;
       verify acceptanceCriterion010LifecycleCoordination;
       verify acceptanceCriterion010EvidenceIndependence;
-      verify reqProvideServiceDiscovery { subject memberProduct = verifiedBench.system1MemberProduct; }
     }
     action collectData {
       @VerificationMethod{ kind = (test, inspect); }
@@ -488,7 +460,6 @@ package DE4SDV_MiddlewareVerificationEvidence {
       verify acceptanceCriterion010LifecycleCoordination;
       verify acceptanceCriterion010HealthForwarding;
       verify acceptanceCriterion010EvidenceIndependence;
-      verify reqCoordinateMiddlewareUpdates { subject memberProduct = verifiedBench.system1MemberProduct; }
     }
     action collectData {
       @VerificationMethod{ kind = (test, inspect); }
@@ -659,11 +630,14 @@ package DE4SDV_MiddlewareVerificationEvidence {
    * never upgrades a verdict to pass.
    */
 
-  requirement def MiddlewareClaim :> AssuranceClaim;
+  requirement def MiddlewareClaim
+    :> EvidenceContractTraceabilityRequirementCandidate;
 
-  requirement def MiddlewareAssuranceArgument :> AssuranceArgument;
+  requirement def MiddlewareAssuranceArgument
+    :> EvidenceContractTraceabilityRequirementCandidate;
 
-  requirement def MiddlewareCounterClaim :> AssuranceCounterClaim;
+  requirement def MiddlewareCounterClaim
+    :> EvidenceContractTraceabilityRequirementCandidate;
 
   requirement mw010ReferenceContractClaim : MiddlewareClaim {
     doc /*
