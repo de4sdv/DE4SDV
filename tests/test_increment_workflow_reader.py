@@ -19,6 +19,7 @@ from de4sdv.semantic.increment_evaluation import evaluate_increment
 from de4sdv.semantic.increment_scope import ModelView, resolve_increment
 from de4sdv.semantic.increment_workflow import (
     UNBOUNDED,
+    WORKFLOW_FEATURE,
     read_increment_method,
     read_revision_method,
 )
@@ -357,3 +358,11 @@ def test_a_population_failure_says_how_many_elements_of_which_type_to_keep() -> 
     assert entry["kind"] == "violation"
     assert "exactly 1" in entry["what_to_author"] and "ProblemStatement" in entry["what_to_author"]
     assert "the population has 2 subjects" in entry["what_to_author"]
+
+
+def test_the_model_charter_declares_the_workflow_feature_the_reader_follows() -> None:
+    """The model's IncrementCharter owns the workflow feature the reader starts from."""
+    text = re.sub(r"/\*.*?\*/", "", WORKFLOW_FILE.read_text(encoding="utf-8"), flags=re.S)
+    charter = re.search(r"part def IncrementCharter\b[^{]*\{(.*?)\n  \}", text, re.S)
+    assert charter is not None
+    assert re.search(rf"\baction\s+{WORKFLOW_FEATURE}\s*:\s*IncrementWorkflow\b", charter.group(1))
