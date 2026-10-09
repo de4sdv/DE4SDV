@@ -114,11 +114,14 @@ def test_requirements_use_dedicated_s2_series_without_collision() -> None:
         ("N-AEBS-013", {"REQ-AEBS-S2-005"}),
     ],
 )
-def test_requirement_derivation_dependencies_present(
+def test_requirement_derivations_present(
     need_id: str, requirement_ids: set[str]
 ) -> None:
     needs = _read(NEEDS)
-    # Dependency usage names carry the semantic target-need stem (e.g.
+    # Method rule 4: a requirement derives from a need only through the
+    # governed DerivesFromNeed connection (need -> derivedRequirement); the
+    # former plain dependencies were converted under the same names. Usage
+    # names carry the semantic target-need stem (e.g.
     # reqNonInterferenceDerivedFromNonInterference for N-AEBS-013); the legacy need ID
     # itself is pinned by each requirement's `source` attribute below.
     need_usage = {
@@ -136,13 +139,13 @@ def test_requirement_derivation_dependencies_present(
         )
         assert usage_match, f"missing requirement usage for {requirement_id}"
         requirement_usage = usage_match.group(1)
-        dependency = re.search(
-            rf"\bdependency\s+\w+\s+from\s+{re.escape(requirement_usage)}\s+"
-            rf"to\s+{re.escape(need_usage[need_id])};",
+        derivation = re.search(
+            rf"\bconnection\s+\w+\s*:\s*DerivesFromNeed\s+connect\s+"
+            rf"{re.escape(need_usage[need_id])}\s+to\s+{re.escape(requirement_usage)}\s*;",
             needs,
         )
-        assert dependency, (
-            f"missing dependency for {requirement_id} -> {need_id}"
+        assert derivation, (
+            f"missing DerivesFromNeed derivation for {requirement_id} -> {need_id}"
         )
         # The derivation matrix is additionally pinned by the requirement doc
         # and source attributes naming the legacy need IDs verbatim.
@@ -188,6 +191,14 @@ def test_moved_criterion_obligations_derive_through_derives_from_need(
         rf"{re.escape(need_usage)}\s+to\s+{re.escape(requirement_usage)}\s*;",
         needs,
     ), f"missing DerivesFromNeed derivation for {requirement_id}"
+
+
+def test_no_plain_dependency_restates_a_requirement_derivation() -> None:
+    # A plain dependency from a requirement to a need would be a parallel,
+    # non-counting trace next to the DerivesFromNeed connection.
+    needs = _read(NEEDS)
+    plain = re.findall(r"\bdependency\s+\w+\s+from\s+req\w+\s+to\s+need\w+\s*;", needs)
+    assert not plain, plain
 
 
 def test_soi_definition_types_the_framed_visualization_test_system() -> None:

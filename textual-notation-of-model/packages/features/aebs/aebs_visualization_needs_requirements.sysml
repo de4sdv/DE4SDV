@@ -281,21 +281,24 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
   public import VisualizationNeeds::*;
   public import VisualizationRequirements::*;
 
-  dependency reqSourceFidelityDerivedFromLiveVisualizationOnAAOS from reqSourceFidelity to needLiveVisualizationOnAAOS;
-  dependency reqSourceFidelityDerivedFromPreservedSourceProvenance from reqSourceFidelity to needPreservedSourceProvenance;
-  dependency reqNativeParticipationDerivedFromLiveVisualizationOnAAOS from reqNativeParticipation to needLiveVisualizationOnAAOS;
-  dependency reqNoNativeImpersonationDerivedFromPreservedSourceProvenance from reqNoNativeImpersonation to needPreservedSourceProvenance;
-  dependency reqDe4sdvParticipationDerivedFromLiveVisualizationOnAAOS from reqDe4sdvParticipation to needLiveVisualizationOnAAOS;
-  dependency reqNonInterferenceDerivedFromNonInterference from reqNonInterference to needNonInterference;
-  dependency reqFailClosedFreshnessDerivedFromFailClosedDegradation from reqFailClosedFreshness to needFailClosedDegradation;
-  dependency reqAvailabilityDispositionDerivedFromFailClosedDegradation from reqAvailabilityDisposition to needFailClosedDegradation;
-  dependency reqInvalidRejectionDerivedFromFailClosedDegradation from reqInvalidRejection to needFailClosedDegradation;
-  dependency reqRestorationBehaviorDerivedFromFailClosedDegradation from reqRestorationBehavior to needFailClosedDegradation;
-  dependency reqRealAAOSRenderingDerivedFromLiveVisualizationOnAAOS from reqRealAAOSRendering to needLiveVisualizationOnAAOS;
-  dependency reqRealAAOSRenderingDerivedFromCorrelatableEvidence from reqRealAAOSRendering to needCorrelatableEvidence;
-  dependency reqAaosEnvironmentObservationDerivedFromLiveVisualizationOnAAOS from reqAaosEnvironmentObservation to needLiveVisualizationOnAAOS;
-  dependency reqNoHostBrowserSurfaceDerivedFromLiveVisualizationOnAAOS from reqNoHostBrowserSurface to needLiveVisualizationOnAAOS;
-  dependency reqEvidenceCorrelationDerivedFromCorrelatableEvidence from reqEvidenceCorrelation to needCorrelatableEvidence;
+  /* Requirement-to-need derivation: only the governed DerivesFromNeed
+   * connection counts (need -> derivedRequirement); a plain dependency does
+   * not. Provenance only, no satisfaction claim. */
+  connection reqSourceFidelityDerivedFromLiveVisualizationOnAAOS : DerivesFromNeed connect needLiveVisualizationOnAAOS to reqSourceFidelity;
+  connection reqSourceFidelityDerivedFromPreservedSourceProvenance : DerivesFromNeed connect needPreservedSourceProvenance to reqSourceFidelity;
+  connection reqNativeParticipationDerivedFromLiveVisualizationOnAAOS : DerivesFromNeed connect needLiveVisualizationOnAAOS to reqNativeParticipation;
+  connection reqNoNativeImpersonationDerivedFromPreservedSourceProvenance : DerivesFromNeed connect needPreservedSourceProvenance to reqNoNativeImpersonation;
+  connection reqDe4sdvParticipationDerivedFromLiveVisualizationOnAAOS : DerivesFromNeed connect needLiveVisualizationOnAAOS to reqDe4sdvParticipation;
+  connection reqNonInterferenceDerivedFromNonInterference : DerivesFromNeed connect needNonInterference to reqNonInterference;
+  connection reqFailClosedFreshnessDerivedFromFailClosedDegradation : DerivesFromNeed connect needFailClosedDegradation to reqFailClosedFreshness;
+  connection reqAvailabilityDispositionDerivedFromFailClosedDegradation : DerivesFromNeed connect needFailClosedDegradation to reqAvailabilityDisposition;
+  connection reqInvalidRejectionDerivedFromFailClosedDegradation : DerivesFromNeed connect needFailClosedDegradation to reqInvalidRejection;
+  connection reqRestorationBehaviorDerivedFromFailClosedDegradation : DerivesFromNeed connect needFailClosedDegradation to reqRestorationBehavior;
+  connection reqRealAAOSRenderingDerivedFromLiveVisualizationOnAAOS : DerivesFromNeed connect needLiveVisualizationOnAAOS to reqRealAAOSRendering;
+  connection reqRealAAOSRenderingDerivedFromCorrelatableEvidence : DerivesFromNeed connect needCorrelatableEvidence to reqRealAAOSRendering;
+  connection reqAaosEnvironmentObservationDerivedFromLiveVisualizationOnAAOS : DerivesFromNeed connect needLiveVisualizationOnAAOS to reqAaosEnvironmentObservation;
+  connection reqNoHostBrowserSurfaceDerivedFromLiveVisualizationOnAAOS : DerivesFromNeed connect needLiveVisualizationOnAAOS to reqNoHostBrowserSurface;
+  connection reqEvidenceCorrelationDerivedFromCorrelatableEvidence : DerivesFromNeed connect needCorrelatableEvidence to reqEvidenceCorrelation;
   /* REQ-AEBS-S2-015..021 carry the obligations formerly stated inside
    * acceptance criteria AC-AEBS-S2-003 to AC-AEBS-S2-006. A criterion records
    * the expected result of the requirement it bounds and adds no obligation,
