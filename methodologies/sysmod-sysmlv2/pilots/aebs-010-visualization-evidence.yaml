@@ -65,6 +65,40 @@ phase10_claim:
       status: open
     - id: GAP-AEBS-010-010
       status: open_success_criteria_missing
+    # Planned items outside the bounded claim: cases not executed, criteria
+    # not assessed, and requirements that only a planned case verifies.
+    - id: VC-AEBS-S2-008
+      status: not_executed
+    - id: VC-AEBS-S2-009
+      status: not_executed
+    - id: VC-AEBS-S2-010
+      status: not_executed
+    - id: AC-AEBS-S2-009
+      status: not_assessed
+    - id: AC-AEBS-S2-010
+      status: not_assessed
+    - id: AC-AEBS-S2-011
+      status: not_assessed
+    - id: AC-AEBS-S2-012
+      status: not_assessed
+    - id: AC-AEBS-S2-013
+      status: not_assessed
+    - id: AC-AEBS-S2-014
+      status: not_assessed
+    - id: REQ-AEBS-S2-002
+      status: planned_verification_only
+    - id: REQ-AEBS-S2-003
+      status: planned_verification_only
+    - id: REQ-AEBS-S2-004
+      status: planned_verification_only
+    - id: REQ-AEBS-S2-006
+      status: planned_verification_only
+    - id: REQ-AEBS-S2-008
+      status: planned_verification_only
+    - id: REQ-AEBS-S2-012
+      status: planned_verification_only
+    - id: REQ-AEBS-S2-013
+      status: planned_verification_only
 
 known_limitations:
   - id: DEF-AEBS-S2-001

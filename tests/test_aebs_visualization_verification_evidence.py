@@ -852,3 +852,23 @@ def test_requirement_criteria_name_deciding_observables_unambiguously() -> None:
     assert "retained frame record" in statements["AC-AEBS-S2-010"]
     assert "retained bridge receipt record" in statements["AC-AEBS-S2-013"]
     assert "either artifact suffices" in statements["AC-AEBS-S2-009"]
+
+
+def test_claim_deferred_items_name_every_planned_item() -> None:
+    """Review R8: the claim's deferred list names the planned cases, the
+    criteria not assessed, and the requirements only a planned case verifies."""
+    deferred = {item["id"]: item["status"] for item in _pilot()["phase10_claim"]["deferred_items"]}
+    for case_id in PLANNED_CASES:
+        assert deferred.get(case_id) == "not_executed", case_id
+    for criterion_id in REQUIREMENT_CRITERIA:
+        assert deferred.get(criterion_id) == "not_assessed", criterion_id
+    cases = {c["id"]: c for c in _pilot()["verification_cases"]}
+    planned_only = set()
+    for case_id in PLANNED_CASES:
+        planned_only |= set(cases[case_id]["requirement_ids"])
+    executed = set()
+    for case_id, case in cases.items():
+        if case_id not in PLANNED_CASES:
+            executed |= set(case["requirement_ids"])
+    for requirement_id in planned_only - executed:
+        assert deferred.get(requirement_id) == "planned_verification_only", requirement_id
