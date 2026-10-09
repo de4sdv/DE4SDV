@@ -121,7 +121,7 @@ verification_cases:
     current_evidence:
       - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/raw-continuous.mp4
       - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/segment.yaml
-    status: contradicted_by_retained_data_recapture_pending
+    status: contradicted_by_retained_data_no_recapture_planned
   - id: VC-AEBS-S2-003
     name: Read-only boundary
     scenario: readOnlyBoundary
@@ -175,7 +175,7 @@ acceptance_criteria:
     sysml_element: acceptanceCriterionChainCorrelation
     evidence: EVID-AEBS-S2-001 (1090 callbacks, seq 22891-23980, zero gaps)
   - id: AC-AEBS-S2-002
-    status: contradicted_by_retained_data_recapture_pending
+    status: contradicted_by_retained_data_no_recapture_planned
     sysml_element: acceptanceCriterionLifecycleArc
     evidence: EVID-AEBS-S2-002 (one take; its verified-stop reading of RELEASED is contradicted by the take's frame log, GAP-AEBS-010-009)
   - id: AC-AEBS-S2-003
@@ -244,7 +244,7 @@ runtime_evidence_gaps:
   - id: GAP-AEBS-010-009
     model_element: gapRetainedEvidenceIntegrity
     owner: successor_increment
-    status: open_recapture_from_exact_clean_commit_pending
+    status: open_accepted_limitation_no_recapture_planned
 
 trace_ids:
 - verificationTestArticleTrace

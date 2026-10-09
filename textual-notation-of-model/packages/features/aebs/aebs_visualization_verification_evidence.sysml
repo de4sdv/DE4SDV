@@ -107,7 +107,8 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
    * acceptance claim without a separately justified bounded-pass
    * interpretation (none exists for the retained campaign).
    * observedUnidentifiedBuild (observed on a build that is not exactly
-   * identified, GAP-AEBS-010-009) falls to inconclusive until re-capture.
+   * identified, GAP-AEBS-010-009) falls to inconclusive; by owner decision
+   * of 2026-10-09 no re-capture is planned, so it stays inconclusive.
    * contradictedByRetainedData (an evidence statement that the retained data
    * itself contradicts, GAP-AEBS-010-009) also falls to inconclusive: the
    * contradiction defeats the record, it does not show the requirement
@@ -249,7 +250,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     attribute :>> rawObservationArtifact = "implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/app-ingress-frame.log";
     attribute :>> independentObserverIdentity = "scenario_observer (pass_observed_chain, 1597 observations, 0 errors)";
     attribute :>> disposition = VisualizationEvidenceDisposition::observedUnidentifiedBuild;
-    attribute :>> claimBoundary = "Live observation-chain evidence on the bench deployment, observed on a build that is not exactly identified (GAP-AEBS-010-009, re-capture pending); not verification of the configured test article, and not safety, braking-authority, certification, or production evidence.";
+    attribute :>> claimBoundary = "Live observation-chain evidence on the bench deployment, a scoped observation on a build derived from 4d8dc1b that is not exactly identified (GAP-AEBS-010-009; no re-capture planned, owner decision 2026-10-09); not verification of the configured test article, and not safety, braking-authority, certification, or production evidence.";
   }
 
   part lifecycleArcEvidence : RetainedVisualizationEvidence {
@@ -267,8 +268,9 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
      * 0.01 m, and RELEASED (released_verified_stop) with braking=true
      * persists on all 947 RELEASED frames. The independent observer's 6.31 s
      * window ended at release. The verified-stop reading of the RELEASED
-     * period is therefore contradicted by the retained data, pending
-     * re-capture (GAP-AEBS-010-009). Release relation recorded as
+     * period is therefore contradicted by the retained data; no re-capture
+     * is planned (owner decision 2026-10-09, GAP-AEBS-010-009). Release
+     * relation recorded as
      * release_while_native_diagnostic_retained; scenario-safety outcome
      * remains deferred_not_proven. The approved
      * publication cut composes a 3 s title card, the untouched 0-20 s of this
@@ -280,7 +282,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     attribute :>> rawObservationArtifact = "implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/raw-continuous.mp4";
     attribute :>> independentObserverIdentity = "scenario_observer state boundary extraction (segment.yaml)";
     attribute :>> disposition = VisualizationEvidenceDisposition::contradictedByRetainedData;
-    attribute :>> claimBoundary = "One continuous take of the corrected generation on a build that is not exactly identified; its verified-stop reading of the RELEASED period is contradicted by the take's own frame log (GAP-AEBS-010-009, re-capture pending); title/end cards are editing frames; not safety or certification evidence.";
+    attribute :>> claimBoundary = "One continuous take of the corrected generation on a build that is not exactly identified; its verified-stop reading of the RELEASED period is contradicted by the take's own frame log (GAP-AEBS-010-009; no re-capture planned, owner decision 2026-10-09); title/end cards are editing frames; not safety or certification evidence.";
   }
 
   part readOnlyBoundaryEvidence : RetainedVisualizationEvidence {
@@ -298,7 +300,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     attribute :>> rawObservationArtifact = "implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/state-monitoring.png";
     attribute :>> independentObserverIdentity = "tests/test_aebs_visualization_hmi_presentation_contract.py + bridge non-interference tests";
     attribute :>> disposition = VisualizationEvidenceDisposition::observedUnidentifiedBuild;
-    attribute :>> claimBoundary = "Structural and rendered-session read-only evidence; the rendered session ran on a build that is not exactly identified (GAP-AEBS-010-009, re-capture pending); no vehicle-interaction behavior is exercised or claimed.";
+    attribute :>> claimBoundary = "Structural and rendered-session read-only evidence; the rendered session ran on a build derived from 4d8dc1b that is not exactly identified (GAP-AEBS-010-009; no re-capture planned, owner decision 2026-10-09); no vehicle-interaction behavior is exercised or claimed.";
   }
 
   part provenanceSeparationEvidence : RetainedVisualizationEvidence {
@@ -318,7 +320,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     attribute :>> rawObservationArtifact = "implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/state-warning.png";
     attribute :>> independentObserverIdentity = "tests/test_aebs_visualization_hmi_presentation_contract.py";
     attribute :>> disposition = VisualizationEvidenceDisposition::observedUnidentifiedBuild;
-    attribute :>> claimBoundary = "Presentation-separation evidence for the corrected generation, observed on a build that is not exactly identified (GAP-AEBS-010-009, re-capture pending); not a claim about native Autoware AEB decision internals.";
+    attribute :>> claimBoundary = "Presentation-separation evidence for the corrected generation, a scoped observation on a build derived from 4d8dc1b that is not exactly identified (GAP-AEBS-010-009; no re-capture planned, owner decision 2026-10-09); not a claim about native Autoware AEB decision internals.";
   }
 
   part failClosedStalenessEvidence : RetainedVisualizationEvidence {
@@ -340,7 +342,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     attribute :>> rawObservationArtifact = "implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/segment.yaml";
     attribute :>> independentObserverIdentity = "app-ingress-frame.log field-level observation";
     attribute :>> disposition = VisualizationEvidenceDisposition::observedUnidentifiedBuild;
-    attribute :>> claimBoundary = "Geometry cleared while frames continued, observed within one take on a build that is not exactly identified; the cloud-silence trigger is not established (GAP-AEBS-010-009, re-capture pending); not a certification-grade freshness argument.";
+    attribute :>> claimBoundary = "Geometry cleared while frames continued, observed within one take on a build that is not exactly identified; the cloud-silence trigger is not established (GAP-AEBS-010-009; no re-capture planned, owner decision 2026-10-09); not a certification-grade freshness argument.";
   }
 
   part degradedRenderingEvidence : RetainedVisualizationEvidence {
@@ -358,7 +360,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     attribute :>> rawObservationArtifact = "implementation/aebs-aaos-sdv-visualization-bench/evidence/010/state-campaign/stale.png";
     attribute :>> independentObserverIdentity = "per-state UI hierarchy dumps (state-campaign/*.xml)";
     attribute :>> disposition = VisualizationEvidenceDisposition::observedUnidentifiedBuild;
-    attribute :>> claimBoundary = "Fixture-path rendering evidence only, on a build whose identity the state campaign does not record (GAP-AEBS-010-009, re-capture pending); not live Autoware degradation evidence.";
+    attribute :>> claimBoundary = "Fixture-path rendering evidence only, on a build whose identity the state campaign does not record (GAP-AEBS-010-009; no re-capture planned, owner decision 2026-10-09); not live Autoware degradation evidence.";
   }
 
   part restorationEvidencePlanned : PlannedExecutionEnvironmentEvidence {
@@ -585,7 +587,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
 
   doc /* VC-AEBS-S2-002 verification case usage. */
   verification lifecycleArcVerification : VisualizationLifecycleArcVerification {
-    doc /* VC-AEBS-S2-002: its retained evidence, EVID-AEBS-S2-002, rests on a verified-stop reading of RELEASED that the take's own frame log contradicts. Contradicted by the retained data, pending re-capture (GAP-AEBS-010-009, CCM-AEBS-S2-05). */
+    doc /* VC-AEBS-S2-002: its retained evidence, EVID-AEBS-S2-002, rests on a verified-stop reading of RELEASED that the take's own frame log contradicts. Contradicted by the retained data; by owner decision of 2026-10-09 no re-capture is planned, so the case stays inconclusive (GAP-AEBS-010-009, CCM-AEBS-S2-05). */
     @VerificationMethod{ kind = (test, inspect, analyze); }
     subject verifiedBench :> lifecycleArcBench;
   }
@@ -604,7 +606,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
 
   doc /* VC-AEBS-S2-005 verification case usage. */
   verification failClosedStalenessVerification : VisualizationFailClosedStalenessVerification {
-    doc /* VC-AEBS-S2-005: the retained take does not establish the cloud-silence trigger its criterion names (GAP-AEBS-010-009, CCM-AEBS-S2-05); observed on an unidentified build, re-capture pending. */
+    doc /* VC-AEBS-S2-005: the retained take does not establish the cloud-silence trigger its criterion names (GAP-AEBS-010-009, CCM-AEBS-S2-05); a scoped observation on an unidentified build; no re-capture is planned (owner decision 2026-10-09). */
     @VerificationMethod{ kind = (test, inspect, analyze); }
     subject verifiedBench :> failClosedStalenessBench;
   }
@@ -726,7 +728,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
   }
 
   requirement lifecycleArcArgument : VisualizationArgument {
-    doc /* AGT-AEBS-S2-02: argues AC-AEBS-S2-002 (one-take four-state arc with a verified zero-speed stop at release) within the claim boundary. Its evidence is contradicted by the retained data on post-release motion (CCM-AEBS-S2-05), pending re-capture. */
+    doc /* AGT-AEBS-S2-02: argues AC-AEBS-S2-002 (one-take four-state arc with a verified zero-speed stop at release) within the claim boundary. Its evidence is contradicted by the retained data on post-release motion (CCM-AEBS-S2-05); no re-capture is planned (owner decision 2026-10-09). */
     subject bench : VisualizationVerificationBench;
   }
 
@@ -766,12 +768,12 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
   }
 
   requirement counterClaimUnidentifiedBuild : VisualizationCounterClaim {
-    doc /* CCM-AEBS-S2-04: bounds the claim to observations on builds that are not exactly identified (GAP-AEBS-010-009); it verifies nothing on the configured test article until the evidence is re-captured from an exact clean commit. */
+    doc /* CCM-AEBS-S2-04: bounds the claim to observations on builds that are not exactly identified (GAP-AEBS-010-009); it verifies nothing on the configured test article. By owner decision of 2026-10-09 no re-capture is planned: the retained take stands as a scoped observation (demonstrated on a build derived from 4d8dc1b, not verification of an identified configuration), and no verification claim is made. */
     subject bench : VisualizationVerificationBench;
   }
 
   requirement counterClaimRetainedRecordContradicted : VisualizationCounterClaim {
-    doc /* CCM-AEBS-S2-05: bounds the claim where the retained records are not borne out by their own data (GAP-AEBS-010-009). The lifecycle-arc branch (AGT-AEBS-S2-02, VC-AEBS-S2-002) rests on a verified-stop reading of RELEASED that the take's frame log contradicts. The fail-closed branch (AGT-AEBS-S2-05, VC-AEBS-S2-005) cannot establish its cloud-silence trigger. The records also named an execution environment the take did not use. */
+    doc /* CCM-AEBS-S2-05: bounds the claim where the retained records are not borne out by their own data (GAP-AEBS-010-009). The lifecycle-arc branch (AGT-AEBS-S2-02, VC-AEBS-S2-002) rests on a verified-stop reading of RELEASED that the take's frame log contradicts. The fail-closed branch (AGT-AEBS-S2-05, VC-AEBS-S2-005) cannot establish its cloud-silence trigger. The records also named an execution environment the take did not use. No re-capture is planned (owner decision 2026-10-09), and no verification claim is made. */
     subject bench : VisualizationVerificationBench;
   }
 
@@ -898,10 +900,12 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
      * the earlier VM-B campaigns (evidence/010/vmb-live). EVID-AEBS-S2-001,
      * -002, -004 and -005 now carry the corrected string.
      *
-     * The retained artifacts stay as captured. The records are observations
-     * on unidentified builds, not verification; re-capture from an exact
-     * clean commit is planned separately. Owner: successor increment in this
-     * chain.
+     * The retained artifacts stay as captured. By owner decision of
+     * 2026-10-09 no re-capture is planned: the retained take stands as a
+     * scoped observation (demonstrated on a build derived from 4d8dc1b, not
+     * verification of an identified configuration), and no verification
+     * claim is made. The gap stays open as an accepted limitation; any later
+     * verification belongs to a successor increment in this chain.
      */
   }
 

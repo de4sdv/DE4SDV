@@ -278,7 +278,8 @@ def _record_block(model: str, record: str) -> str:
 def test_retained_evidence_is_scoped_to_its_integrity_gap() -> None:
     """GAP-AEBS-010-009: the retained records ran on builds that are not
     exactly identified, and EVID-AEBS-S2-002 rests on a statement its own
-    frame log contradicts. Observations, re-capture pending, never a pass."""
+    frame log contradicts. Scoped observations, never a pass; by owner
+    decision of 2026-10-09 no re-capture is planned."""
     model = _model()
     gap = re.search(r"part gapRetainedEvidenceIntegrity : IncrementGap \{.*?\n  \}", model, re.S)
     assert gap
@@ -292,12 +293,27 @@ def test_retained_evidence_is_scoped_to_its_integrity_gap() -> None:
         assert re.search(rf"\bfrom {record} to gapRetainedEvidenceIntegrity;", model), record
     pilot = _pilot()
     statuses = {case["id"]: case["status"] for case in pilot["verification_cases"]}
-    assert statuses["VC-AEBS-S2-002"] == "contradicted_by_retained_data_recapture_pending"
+    assert statuses["VC-AEBS-S2-002"] == "contradicted_by_retained_data_no_recapture_planned"
     for number in (1, 3, 4, 5):
         assert statuses[f"VC-AEBS-S2-{number:03d}"] == "observed_unidentified_build"
     assert not any(status.startswith("pass") for status in statuses.values())
     gaps = {gap["id"]: gap.get("model_element") for gap in pilot["runtime_evidence_gaps"]}
     assert gaps["GAP-AEBS-010-009"] == "gapRetainedEvidenceIntegrity"
+
+
+def test_no_recapture_is_pending_and_the_gap_stays_open() -> None:
+    """Owner decision 2026-10-09: no re-capture is planned. Nothing may say
+    one is pending, and GAP-AEBS-010-009 stays open as an accepted
+    limitation."""
+    model, pilot_text = _model(), PILOT.read_text(encoding="utf-8")
+    for text in (model, pilot_text):
+        for stale in ("re-capture pending", "pending re-capture", "until re-capture",
+                      "recapture_pending", "planned separately", "re-captured from"):
+            assert stale not in text, stale
+    gap = re.search(r"part gapRetainedEvidenceIntegrity : IncrementGap \{.*?\n  \}", model, re.S)
+    assert gap and "no re-capture is planned" in gap.group(0) and "2026-10-09" in gap.group(0)
+    status = {entry["id"]: entry["status"] for entry in _pilot()["runtime_evidence_gaps"]}
+    assert status["GAP-AEBS-010-009"] == "open_accepted_limitation_no_recapture_planned"
 
 
 def test_v21_record_errors_are_not_asserted_as_fact() -> None:

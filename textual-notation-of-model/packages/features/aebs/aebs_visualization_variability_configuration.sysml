@@ -109,7 +109,7 @@ package DE4SDV_AEBSVisualizationVariabilityConfiguration {
     attribute :>> pinnedAt = "implementation_slice";
   }
   part bindScenarioIdentity : VisualizationRuntimeBinding {
-    doc /* AO-AEBS-010-009: deterministic 009B moving-target scenario identity. */
+    doc /* AO-AEBS-010-009: 009B moving-target scenario identity. This profile is not deterministic: with the native object-velocity estimator enabled, WARNING can be absent (zero warning lead in the 2026-09-02 campaign, aebs-009d.param.yaml). */
     attribute :>> bindingName = "bench_scenario";
     attribute :>> bindingValue = "scenario-009b-moving-vehicle-target.yaml";
     attribute :>> pinnedAt = "architecture_slice";
