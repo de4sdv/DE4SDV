@@ -28,6 +28,12 @@ _PERFORM_RE = re.compile(r"\bperform\s+(\w+)\s*;")
 _PRODUCT_CLAIM_RE = re.compile(
     r"\b(?:verify|satisfy)\s+(?:/\*.*?\*/\s*)?req\w+\s*;", re.DOTALL
 )
+# A requirement verified by a case binds its subject to a part of the case's
+# bench: verify <requirement> { subject <name> = verifiedBench.<part>; }
+_BOUND_VERIFY_RE = re.compile(
+    r"\bverify\s+(\w+)\s*\{\s*subject\s+(\w+)\s*=\s*verifiedBench\.(\w+)\s*;\s*\}"
+)
+_OBJECTIVE_RE = re.compile(r"\bobjective\s+(\w+)\s*\{")
 
 # A verification model is any package file that declares at least one
 # verification definition or usage.
@@ -118,9 +124,20 @@ def performed_usages(code: str) -> list[str]:
 
 
 def has_product_claim(source: str) -> bool:
-    """True when a verify/satisfy relationship claims a product requirement.
+    """True when a bare verify/satisfy relationship claims a requirement.
 
-    Deliberately matched against the raw source (comments intact) so comment
-    insertion cannot smuggle a product claim past the check.
+    A bare ``verify req...;`` would bind the requirement's subject to the
+    whole bench. Deliberately matched against the raw source (comments
+    intact) so comment insertion cannot smuggle such a claim past the check.
     """
     return bool(_PRODUCT_CLAIM_RE.search(source))
+
+
+def bound_requirement_verifications(code: str) -> list[tuple[str, str, str, str]]:
+    """``(objective, requirement, subject, bench part)`` for each subject-bound verify."""
+    found = []
+    for match in _OBJECTIVE_RE.finditer(code):
+        body = braced_body(code, match.group(0).rstrip("{").strip())
+        for requirement, subject, part in _BOUND_VERIFY_RE.findall(body):
+            found.append((match.group(1), requirement, subject, part))
+    return found

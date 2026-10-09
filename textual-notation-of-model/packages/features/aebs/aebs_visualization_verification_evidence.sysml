@@ -7,6 +7,12 @@
  * claim-boundary semantics for the System 2 read-only AEBS forward-situation
  * visualization test system.
  *
+ * Acceptance criteria are not requirements: each records the expected
+ * result of the design-input requirement it bounds, and each verification
+ * case verifies that requirement next to its criterion. The claim, arguments
+ * and counter-claims are assurance artifacts (DE4SDV_AssuranceArgumentation),
+ * outside the requirement lineage.
+ *
  * It consumes the retained evidence committed by the implementation campaign
  * (implementation/aebs-aaos-sdv-visualization-bench/evidence/010/). Every
  * evidence part below names the exact retained artifact; the dispositions
@@ -25,6 +31,7 @@
 
 package DE4SDV_AEBSVisualizationVerificationEvidence {
   private import DE4SDV_MethodContext::*;
+  private import DE4SDV_AssuranceArgumentation::*;
   private import DE4SDV_ProductLine::*;
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_ExecutionEnvironments::*;
@@ -152,58 +159,63 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
   }
 
   /* ──────────────────────────────────────────
-   * Acceptance criteria (System 2 evidence contracts)
+   * Acceptance criteria: expected results, not requirements
    * ────────────────────────────────────────── */
 
-  requirement def VisualizationAcceptanceCriterion
-    :> EvidenceContractTraceabilityRequirementCandidate;
+  /* Each criterion records the expected result of the design-input
+   * requirement it bounds ("will be shown to have been met when ...") and
+   * adds no obligation of its own; AC-AEBS-S2-008 is the verdict-record rule
+   * applied by every case. Obligations the criteria formerly added are
+   * design-input requirements REQ-AEBS-S2-015..021 in
+   * DE4SDV_AEBSVisualizationNeedsRequirements. */
+  requirement def VisualizationAcceptanceCriterion :> AcceptanceCriterion;
 
   requirement acceptanceCriterionChainCorrelation : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-001; bounded verification of source-to-screen correlation. */
     subject bench : VisualizationVerificationBench;
-    require constraint statement { language "English" /* The visualization test system shall retain source, transport, ingress, and guest identity, sequence, timestamp, log, and guest-native capture records for each rendered state so that each rendered state can be correlated with its observed source event, with consecutive accepted callbacks and zero sequence gaps over the retained take. */ }
+    require constraint statement { language "English" /* REQ-AEBS-S2-011 will be shown to have been met when the retained take holds source, transport, ingress, and guest identity, sequence, timestamp, log, and guest-native capture records for each rendered state, each rendered state is correlated with its observed source event, and the accepted callbacks are consecutive with zero sequence gaps over the retained take. */ }
   }
 
   requirement acceptanceCriterionLifecycleArc : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-002; bounded verification of the four-state arc in one take. */
     subject bench : VisualizationVerificationBench;
-    require constraint statement { language "English" /* The visualization test system shall present the reducer-driven MONITORING, WARNING, INTERVENTION, and RELEASED dispositions from accepted frames of one uninterrupted real-time take, with the release disposition accompanied by a verified zero-speed stop observation and no edited or older-generation footage presented as part of the take. */ }
+    require constraint statement { language "English" /* REQ-AEBS-S2-010 will be shown to have been met when one uninterrupted real-time take of the native application in the booted display-capable AAOS SDV guest presents the reducer-driven MONITORING, WARNING, INTERVENTION, and RELEASED dispositions from accepted frames, the release disposition is accompanied by a verified zero-speed stop observation, and no edited or older-generation footage is presented as part of the take. */ }
   }
 
   requirement acceptanceCriterionReadOnlyBoundary : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-003; read-only boundary verification. */
     subject bench : VisualizationVerificationBench;
-    require constraint statement { language "English" /* The visualization test system shall publish nothing to the vehicle runtime and shall issue no vehicle command, and the public interface shall state the read-only engineering-visualization boundary in every rendered session. */ }
+    require constraint statement { language "English" /* REQ-AEBS-S2-005 will be shown to have been met when the visualization test system is observed to publish nothing to the vehicle runtime and to issue no vehicle command. */ }
   }
 
   requirement acceptanceCriterionProvenanceSeparation : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-004; display-derived versus native decision semantics separation. */
     subject bench : VisualizationVerificationBench;
-    require constraint statement { language "English" /* The visualization test system shall render obstacle geometry only from the display-derived filtered point cloud, shall not present coordinator-derived distance values or any display-derived scalar as a native Autoware decision metric, and shall state in the public interface that AEB decision distances are not visualized. */ }
+    require constraint statement { language "English" /* REQ-AEBS-S2-014 will be shown to have been met when no retained frame or user-interface dump presents a coordinator-derived distance value as native Autoware output. */ }
   }
 
   requirement acceptanceCriterionFailClosedStaleness : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-005; fail-closed staleness verification. */
     subject bench : VisualizationVerificationBench;
-    require constraint statement { language "English" /* When the filtered obstacle-cloud source stops updating, the visualization test system shall suppress the expired display-derived obstacle geometry while accepted live frames continue, and no interpolation, smoothing, or prediction shall substitute for missing fresh data. */ }
+    require constraint statement { language "English" /* REQ-AEBS-S2-019 will be shown to have been met when, within the retained take, the expired display-derived obstacle geometry is suppressed after the filtered obstacle-cloud source stops updating while accepted live frames continue. */ }
   }
 
   requirement acceptanceCriterionDegradedRendering : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-006; degraded-state rendering verification (fixture path). */
     subject bench : VisualizationVerificationBench;
-    require constraint statement { language "English" /* Under deterministic closed-loop frame injection, the visualization test system shall render the stale, unavailable, and invalid degraded dispositions with live geometry cleared and the health chip identifying the degraded condition, with color never the sole state cue. */ }
+    require constraint statement { language "English" /* REQ-AEBS-S2-007 will be shown to have been met when, under deterministic closed-loop frame injection, the unavailable disposition is rendered with live geometry cleared and the health chip identifying the degraded condition, as are the stale and invalid degraded dispositions. */ }
   }
 
   requirement acceptanceCriterionRestoration : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-007; restoration behavior criterion (planned). */
     subject bench : VisualizationVerificationBench;
-    require constraint statement { language "English" /* After a failure disposition, the visualization test system shall present a bounded restored indication after the selected consecutive-valid-frame criterion is met, without application restart. */ }
+    require constraint statement { language "English" /* REQ-AEBS-S2-009 will be shown to have been met when, after a failure disposition, a bounded restored indication is presented once the selected consecutive-valid-frame criterion is met, without application restart. */ }
   }
 
   requirement acceptanceCriterionEvidenceIntegrity : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-008; evidence integrity and claim-boundary criterion. */
     subject bench : VisualizationVerificationBench;
-    require constraint statement { language "English" /* Every retained verdict shall bind the configured test article, execution environment, wire contract, raw observation artifacts, and independent observer identities, and missing evidence shall be recorded as planned, partial, blocked, or not claimed, never as an observed runtime pass. */ }
+    require constraint statement { language "English" /* A retained verdict is acceptable only when it binds the configured test article, execution environment, wire contract, raw observation artifacts, and independent observer identities. Missing evidence is recorded as planned, partial, blocked, or not claimed, never as an observed runtime pass. */ }
   }
 
   /* ──────────────────────────────────────────
@@ -341,11 +353,21 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
    * Verification cases
    * ────────────────────────────────────────── */
 
+  /* Each objective verifies its acceptance criterion, the verdict-record rule
+   * (AC-AEBS-S2-008) and the design-input requirements whose expected result
+   * the criterion records, including the requirements that now carry the
+   * obligations the criterion formerly added. A requirement's subject is the
+   * visualization test system, so each verified requirement binds it to the
+   * bench's System 2 instrument instead of the whole bench. A verify is a
+   * planned verification objective, not a verdict: the verdict stays the
+   * case's evidence-bound return value. */
+
   verification def VisualizationChainCorrelationVerification {
     subject verifiedBench : VisualizationVerificationBench;
     objective chainCorrelationObjective {
       verify acceptanceCriterionChainCorrelation;
       verify acceptanceCriterionEvidenceIntegrity;
+      verify reqEvidenceCorrelation { subject visualizationTestSystem = verifiedBench.system2Instrument; }
     }
     action collectData {
       @VerificationMethod{ kind = (test, inspect); }
@@ -370,6 +392,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     objective lifecycleArcObjective {
       verify acceptanceCriterionLifecycleArc;
       verify acceptanceCriterionEvidenceIntegrity;
+      verify reqRealAAOSRendering { subject visualizationTestSystem = verifiedBench.system2Instrument; }
     }
     action collectData {
       @VerificationMethod{ kind = (test, inspect); }
@@ -394,6 +417,8 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     objective readOnlyBoundaryObjective {
       verify acceptanceCriterionReadOnlyBoundary;
       verify acceptanceCriterionEvidenceIntegrity;
+      verify reqNonInterference { subject visualizationTestSystem = verifiedBench.system2Instrument; }
+      verify reqReadOnlyBoundaryStatement { subject visualizationTestSystem = verifiedBench.system2Instrument; }
     }
     action collectData {
       @VerificationMethod{ kind = (inspect, test); }
@@ -418,6 +443,10 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     objective provenanceSeparationObjective {
       verify acceptanceCriterionProvenanceSeparation;
       verify acceptanceCriterionEvidenceIntegrity;
+      verify reqNoNativeImpersonation { subject visualizationTestSystem = verifiedBench.system2Instrument; }
+      verify reqObstacleGeometryFromFilteredCloud { subject visualizationTestSystem = verifiedBench.system2Instrument; }
+      verify reqNoDisplayDerivedDecisionMetric { subject visualizationTestSystem = verifiedBench.system2Instrument; }
+      verify reqDecisionDistanceExclusionStatement { subject visualizationTestSystem = verifiedBench.system2Instrument; }
     }
     action collectData {
       @VerificationMethod{ kind = (test, inspect); }
@@ -442,6 +471,8 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     objective failClosedStalenessObjective {
       verify acceptanceCriterionFailClosedStaleness;
       verify acceptanceCriterionEvidenceIntegrity;
+      verify reqObstacleGeometryExpiry { subject visualizationTestSystem = verifiedBench.system2Instrument; }
+      verify reqNoFreshDataSubstitution { subject visualizationTestSystem = verifiedBench.system2Instrument; }
     }
     action collectData {
       @VerificationMethod{ kind = (test, inspect); }
@@ -471,6 +502,8 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     objective degradedRenderingObjective {
       verify acceptanceCriterionDegradedRendering;
       verify acceptanceCriterionEvidenceIntegrity;
+      verify reqAvailabilityDisposition { subject visualizationTestSystem = verifiedBench.system2Instrument; }
+      verify reqNonColorStateCue { subject visualizationTestSystem = verifiedBench.system2Instrument; }
     }
     action collectData {
       @VerificationMethod{ kind = (test, inspect); }
@@ -500,6 +533,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     objective restorationObjective {
       verify acceptanceCriterionRestoration;
       verify acceptanceCriterionEvidenceIntegrity;
+      verify reqRestorationBehavior { subject visualizationTestSystem = verifiedBench.system2Instrument; }
     }
     action collectData {
       @VerificationMethod{ kind = test; }
@@ -572,8 +606,13 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
   }
 
   /* ──────────────────────────────────────────
-   * Requirement derivation dependencies (System 2 candidates only)
+   * Criterion-to-requirement traces: the requirement each criterion bounds
    * ────────────────────────────────────────── */
+
+  /* AC-AEBS-S2-005 bounds REQ-AEBS-S2-019 (expiry of obstacle geometry when
+   * its source stops while frames continue), the behavior its retained take
+   * exercised; the frame-timeout trigger of REQ-AEBS-S2-006 was not
+   * exercised by that take. */
 
   dependency chainCorrelationToEvidenceRequirement
     from acceptanceCriterionChainCorrelation
@@ -587,9 +626,9 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
   dependency provenanceSeparationToNoImpersonationRequirement
     from acceptanceCriterionProvenanceSeparation
     to reqNoNativeImpersonation;
-  dependency failClosedStalenessToFreshnessRequirement
+  dependency failClosedStalenessToGeometryExpiryRequirement
     from acceptanceCriterionFailClosedStaleness
-    to reqFailClosedFreshness;
+    to reqObstacleGeometryExpiry;
   dependency degradedRenderingToAvailabilityRequirement
     from acceptanceCriterionDegradedRendering
     to reqAvailabilityDisposition;
@@ -618,14 +657,13 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
    * Claim-argument-evidence layer (INC-AEBS-010 Phase 10)
    * ────────────────────────────────────────── */
 
-  requirement def VisualizationClaim
-    :> EvidenceContractTraceabilityRequirementCandidate;
+  /* Assurance artifacts, not requirements: they consume the verification
+   * results above and do not derive from needs. */
+  requirement def VisualizationClaim :> AssuranceClaim;
 
-  requirement def VisualizationArgument
-    :> EvidenceContractTraceabilityRequirementCandidate;
+  requirement def VisualizationArgument :> AssuranceArgument;
 
-  requirement def VisualizationCounterClaim
-    :> EvidenceContractTraceabilityRequirementCandidate;
+  requirement def VisualizationCounterClaim :> AssuranceCounterClaim;
 
   requirement visualizationInstrumentationClaim : VisualizationClaim {
     doc /*

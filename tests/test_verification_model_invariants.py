@@ -15,8 +15,12 @@ What each model must satisfy structurally:
   in the same file;
 - every ``verify`` target is declared somewhere in the file and every usage
   is performed;
-- no verify/satisfy relationship claims a product requirement (System 1
-  members are never verification targets; comment-insertion resistant);
+- a design-input requirement is verified only next to an acceptance
+  criterion of the same objective and with its subject bound to a declared
+  part of the case's bench (owner decision 2026-10-09: a case verifies the
+  requirement its criterion bounds); a bare verify/satisfy of a requirement,
+  which would bind its subject to the whole bench, is rejected
+  (comment-insertion resistant);
 - any outcome→verdict mapping stays inside the bounded VerdictKind
   vocabulary {pass, fail, inconclusive, error} and every scenario-identity
   literal referenced is a member of the corresponding enum.
@@ -29,6 +33,8 @@ import re
 import pytest
 
 from sysml_shapes import (
+    MODEL_ROOT,
+    bound_requirement_verifications,
     braced_body,
     has_product_claim,
     load_model,
@@ -125,9 +131,70 @@ def verification_usages_names(code: str) -> list[str]:
     return [usage for usage, _ in verification_usages(code)]
 
 
-def test_no_verify_or_satisfy_relationship_claims_a_product_requirement(model):
+def test_no_unbound_verify_or_satisfy_of_a_requirement(model):
     source, _ = model
     assert not has_product_claim(source)
+
+
+_REQUIREMENT_USAGE_RE = re.compile(r"\brequirement\s+(\w+)\s*:\s*(\w+)\s*\{")
+_CRITERION_DEF_RE = re.compile(r"\brequirement\s+def\s+(\w+)\s*:>\s*AcceptanceCriterion\s*;")
+
+
+def _declared_requirement_usages() -> set[str]:
+    names: set[str] = set()
+    for path in sorted(MODEL_ROOT.rglob("*.sysml")):
+        names.update(name for name, _ in _REQUIREMENT_USAGE_RE.findall(strip_comments(path.read_text(encoding="utf-8"))))
+    return names
+
+
+def _bound_verification_violations(code: str, declared: set[str]) -> list[tuple[str, str, str]]:
+    """Subject-bound requirement verifications that break the criterion/bench rule."""
+    criterion_defs = set(_CRITERION_DEF_RE.findall(code))
+    criteria = {name for name, definition in _REQUIREMENT_USAGE_RE.findall(code) if definition in criterion_defs}
+    bench_parts = set(re.findall(r"\bpart\s+(\w+)\s*:", code))
+    violations = []
+    for objective, requirement, _subject, part in bound_requirement_verifications(code):
+        body = braced_body(code, f"objective {objective}")
+        if not criteria & set(re.findall(r"\bverify\s+(\w+)\s*;", body)):
+            violations.append((objective, requirement, "no acceptance criterion verified in the objective"))
+        if part not in bench_parts:
+            violations.append((objective, requirement, f"bench part {part!r} is not declared"))
+        if requirement not in declared or requirement in criteria:
+            violations.append((objective, requirement, "target is not a declared design-input requirement"))
+    return violations
+
+
+def test_bound_requirement_verification_sits_next_to_a_criterion_on_a_bench_part(model):
+    _, code = model
+    if bound_requirement_verifications(code):
+        assert not _bound_verification_violations(code, _declared_requirement_usages())
+
+
+_SYNTHETIC_CASE = """
+  requirement def SyntheticCriterion :> AcceptanceCriterion;
+  requirement criterionA : SyntheticCriterion { }
+  requirement reqA : SyntheticRequirement { }
+  part def Bench { part unitUnderTest : Unit; }
+  verification def SyntheticVerification {
+    subject verifiedBench : Bench;
+    objective syntheticObjective {
+      %s
+      verify reqA { subject unit = verifiedBench.%s; }
+    }
+  }
+"""
+
+
+def test_bound_requirement_verification_rule_rejects_violations():
+    declared = {"criterionA", "reqA"}
+    assert not _bound_verification_violations(_SYNTHETIC_CASE % ("verify criterionA;", "unitUnderTest"), declared)
+    without_criterion = _bound_verification_violations(_SYNTHETIC_CASE % ("", "unitUnderTest"), declared)
+    assert [v[2] for v in without_criterion] == ["no acceptance criterion verified in the objective"]
+    unknown_part = _bound_verification_violations(_SYNTHETIC_CASE % ("verify criterionA;", "elsewhere"), declared)
+    assert [v[2] for v in unknown_part] == ["bench part 'elsewhere' is not declared"]
+    undeclared = _bound_verification_violations(_SYNTHETIC_CASE % ("verify criterionA;", "unitUnderTest"), {"criterionA"})
+    assert [v[2] for v in undeclared] == ["target is not a declared design-input requirement"]
+    assert has_product_claim("objective o { verify reqA; }")
 
 
 def test_no_satisfy_relationships_anywhere(model):

@@ -220,14 +220,23 @@ richest element set. The pattern, in order:
    **System 1 configured member under evaluation** with the **System 2 test
    environment**, plus the scenario identity. This makes explicit *what is
    being evaluated* and *in what environment* — the two are never conflated.
-6. **Acceptance criteria** — `requirement` usages (`AC-MW-010-…`) with a
-   `subject bench` and a `require constraint`; they are the verifiable
-   conditions the verification objectives check.
+6. **Acceptance criteria** — `requirement` usages (`AC-MW-010-…`) typed by
+   the kernel `AcceptanceCriterion`, with a `subject bench` and a
+   `require constraint`. A criterion is not a requirement: it records the
+   expected result of the design-input requirement it bounds ("REQ-MW-001
+   will be shown to have been met when …") and adds no obligation of its
+   own. An obligation a criterion would add belongs in a design-input
+   requirement derived from a need.
 7. **Verification cases** — `verification def`/`verification` with a
-   `subject` bench, `objective`s that `verify` acceptance criteria, and a
-   three-action pipeline `collectData → processData → evaluateData` with
+   `subject` bench, an `objective` that `verify`s the acceptance criterion
+   and the design-input requirement it bounds, and a three-action pipeline
+   `collectData → processData → evaluateData` with
    `@VerificationMethod{ kind = (test, inspect, analyze) }` annotations
-   (from the standard library). A `verificationSystem` part `perform`s the
+   (from the standard library). A verified requirement binds its subject to
+   the bench part under test (`verify reqX { subject memberProduct =
+   verifiedBench.system1MemberProduct; }`), never to the whole bench. A
+   `verify` plans a verification objective; the verdict stays the case's
+   evidence-bound return value. A `verificationSystem` part `perform`s the
    cases.
 8. **Evidence artifacts** — parts typed by the execution-environment
    evidence hierarchy (`ExecutionEnvironmentEvidenceArtifact` →
@@ -247,7 +256,11 @@ gap is a named element that stays visible until closed.
 ### Claims, arguments, and counter-claims
 
 On top of the verdict chain, assurance slices add an argumentation layer
-(framed by the SAF Argumentation Assurance viewpoint):
+(framed by the SAF Argumentation Assurance viewpoint). Claims, arguments and
+counter-claims are assurance artifacts, not requirements: they specialize
+the kernel `AssuranceClaim`, `AssuranceArgument` and `AssuranceCounterClaim`
+(`DE4SDV_AssuranceArgumentation`), stay outside the requirement lineage and
+consume verification results instead of deriving from needs.
 
 - **`MiddlewareClaim`** — what the configured member is asserted to
   realize, bounded by a `claimBoundary` (`CLM-MW-010-01`).

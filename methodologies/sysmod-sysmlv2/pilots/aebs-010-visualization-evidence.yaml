@@ -123,7 +123,7 @@ verification_cases:
   - id: VC-AEBS-S2-003
     name: Read-only boundary
     scenario: readOnlyBoundary
-    requirement_ids: [REQ-AEBS-S2-005]
+    requirement_ids: [REQ-AEBS-S2-005, REQ-AEBS-S2-015]
     methods: [test, inspect, analyze]
     acceptance_criterion: AC-AEBS-S2-003
     current_evidence:
@@ -132,7 +132,7 @@ verification_cases:
   - id: VC-AEBS-S2-004
     name: Display-derived versus native separation
     scenario: provenanceSeparation
-    requirement_ids: [REQ-AEBS-S2-014]
+    requirement_ids: [REQ-AEBS-S2-014, REQ-AEBS-S2-016, REQ-AEBS-S2-017, REQ-AEBS-S2-018]
     methods: [test, inspect, analyze]
     acceptance_criterion: AC-AEBS-S2-004
     current_evidence:
@@ -141,7 +141,7 @@ verification_cases:
   - id: VC-AEBS-S2-005
     name: Fail-closed staleness suppression
     scenario: failClosedStaleness
-    requirement_ids: [REQ-AEBS-S2-006]
+    requirement_ids: [REQ-AEBS-S2-019, REQ-AEBS-S2-020]
     methods: [test, inspect, analyze]
     acceptance_criterion: AC-AEBS-S2-005
     current_evidence:
@@ -151,7 +151,7 @@ verification_cases:
   - id: VC-AEBS-S2-006
     name: Degraded-state rendering (fixture path)
     scenario: degradedStateRendering
-    requirement_ids: [REQ-AEBS-S2-007]
+    requirement_ids: [REQ-AEBS-S2-007, REQ-AEBS-S2-021]
     methods: [test, inspect, analyze]
     acceptance_criterion: AC-AEBS-S2-006
     current_evidence:
