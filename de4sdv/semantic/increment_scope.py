@@ -118,28 +118,6 @@ class ModelView:
             )
         return bindings.element_id_for(ontology_class, self.index.by_id)
 
-    def class_of_declaration(self, declaration_name: str) -> str | None:
-        """The kernel-index class holding the validated binding of a declaration.
-
-        Resolution goes through the ingestion-validated kernel bindings
-        themselves (their recorded declaration), so a binding the runtime
-        files under a routed profile name still resolves. Exactly one binding
-        must carry the declaration; otherwise the declaration has no identity.
-        """
-        bindings = getattr(self.traversal.kernel_bindings, "bindings", ()) or ()
-
-        def build() -> dict[str, list[str]]:
-            found: dict[str, list[str]] = {}
-            for binding in bindings:
-                name = str(binding.declaration).split()[-1] if binding.declaration else ""
-                if name:
-                    found.setdefault(name, []).append(binding.ontology_class)
-            return found
-
-        table = self.index.memo_bound(("declaration-classes",), (self.traversal.kernel_bindings,), build)
-        classes = table.get(declaration_name) or []
-        return classes[0] if len(classes) == 1 else None
-
     def source_of(self, identifier: str | None) -> str:
         return str(self.sources.get(identifier or "", ""))
 
@@ -279,11 +257,6 @@ def resolve_increment(view: ModelView, increment_id: str) -> IncrementScope:
         problems=problems,
         diagnostics=tuple(diagnostics),
     )
-
-
-def ordered_elements(view: ModelView, identifiers: Sequence[str]) -> tuple[str, ...]:
-    """Distinct identifiers ordered by qualified name, then identifier (corpus-order independent)."""
-    return _ordered(view, identifiers)
 
 
 def _ordered(view: ModelView, identifiers: Sequence[str]) -> tuple[str, ...]:

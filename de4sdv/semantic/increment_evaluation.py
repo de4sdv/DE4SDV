@@ -28,9 +28,15 @@ from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 
 from . import method_evaluator as me
-from .increment_workflow import PHASE_ORDER, UNBOUNDED, IncrementMethod, read_increment_method
+from .increment_workflow import (
+    PHASE_ORDER,
+    UNBOUNDED,
+    WORKFLOW_SELECTORS,
+    IncrementMethod,
+    read_increment_method,
+)
 from .increment_scope import IncrementScope, ModelView, resolve_increment
-from .method_checks import IncrementEvaluationContext
+from .method_checks import IncrementEvaluationContext, remedy
 from .relation_checks import METHOD_SIDE_PREFIXES
 
 CLAIM_BOUNDARY = (
@@ -222,8 +228,7 @@ class IncrementEvaluation:
             if me.POPULATION_POLICY_VIOLATION in unit.reason_codes:
                 entry["what_to_author"] = self._population_remedy(gate, unit)
             else:
-                entry["what_to_author"] = self.increment_method.remedy(
-                    gate, increment=self.scope, view=self.view, subject_id=_element_subject(first, self.view))
+                entry["what_to_author"] = remedy(gate.predicate, self.view, _element_subject(first, self.view))
             entry["where"] = self._where(subjects)
         return entry
 
@@ -465,10 +470,9 @@ def phase_contract_response(
                         reason_codes=[me.INVALID_CONTRACT if increment_method.problems else me.CONTRACT_UNAVAILABLE],
                         diagnostics=[increment_method.reason])
         return response
-    contract = me.decode_contract_filters(increment_method.contract, increment_method.predicates)
     phases = [p for p in increment_method.phases if phase is None or p == phase]
     gates = [_gate_record(gate, view, scope, increment_method) for p in phases
-             for gate in contract.obligations if gate.phase == p]
+             for gate in increment_method.contract.obligations if gate.phase == p]
     response.update(executable_contract_available=bool(gates), phases=phases, gates=gates,
                     contract_digest=increment_method.contract.digest())
     if not gates:
@@ -484,10 +488,6 @@ def _gate_record(gate: me.ObligationSpec, view: ModelView, scope: IncrementScope
         "phase": gate.phase,
         "subject_selector": gate.subject_selector,
         "predicate": gate.predicate,
-        "target_filters": list(gate.target_filters),
-        "typed_filters": [
-            {"kind": f.kind, "argument": f.argument, "values": list(f.values)} for f in gate.filters
-        ],
         "cardinality": [gate.cardinality[0], "*" if gate.cardinality[1] >= UNBOUNDED else gate.cardinality[1]],
         "minimum_population": gate.minimum_population,
         "permitted_empty": gate.permitted_empty,
@@ -498,7 +498,7 @@ def _gate_record(gate: me.ObligationSpec, view: ModelView, scope: IncrementScope
     record.update(increment_method.labels.get(gate.obligation_id, {}))
     if scope is None:
         return record
-    record["what_satisfies"] = increment_method.remedy(gate, increment=scope, view=view)
+    record["what_satisfies"] = remedy(gate.predicate, view)
     if gate.applicability_kind == me.APPLICABILITY_UNCONDITIONAL:
         record["applicability_resolution"] = "applicable"
     elif scope.declared_phases is None:
@@ -540,7 +540,7 @@ def evaluate_increment(
             increment=scope,
         )
         evaluator = me.MethodEvaluator(increment_method.contract, predicates=increment_method.predicates,
-                                       selectors=increment_method.selectors)
+                                       selectors=WORKFLOW_SELECTORS)
         canonical = evaluator.evaluate(ctx)
     return IncrementEvaluation(
         increment_id=scope.increment_id, revision=revision, increment_method=increment_method, scope=scope,

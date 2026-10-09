@@ -9,8 +9,6 @@ model's steps and checks.
 
 from __future__ import annotations
 
-from types import SimpleNamespace
-
 import pytest
 
 from de4sdv.semantic import method_checks as mc
@@ -281,6 +279,4 @@ def test_relation_remedies_are_member_text_the_model_uses() -> None:
     (entry,) = [g for g in _evaluate(scenario).gaps()["blocking"] if g["gate"] == "needHasValidationScenario"]
     assert entry["what_to_author"].endswith(
         ": connection <name> : ValidationPlanningAssociation connect need1 to <scenario>;"), entry["what_to_author"]
-    registry = mc.MethodCheckRegistry.for_relations(["frame"])
-    assert registry.remedy(SimpleNamespace(predicate="frame"), increment=None, view=None) == \
-        "add to each subject: frame <concern>;"
+    assert mc.remedy("frame", _evaluate(scenario).view) == "add to each subject: frame <concern>;"

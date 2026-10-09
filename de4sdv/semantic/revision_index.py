@@ -263,23 +263,6 @@ class RevisionIndex:
         targets = self.memo("reference-shadows", build).get(identifier) or []
         return targets[0] if len(targets) == 1 else identifier
 
-    def referencing_holders(self, target: str) -> tuple[str, ...]:
-        """Elements whose owned ReferenceSubsetting names ``target``."""
-
-        def build() -> dict[str, tuple[str, ...]]:
-            found: dict[str, list[str]] = {}
-            for element in self.elements:
-                if str(element.get("@type")) != "ReferenceSubsetting":
-                    continue
-                for referenced in reference_ids(element.get("referencedFeature")):
-                    for holder in reference_ids(element.get("owningRelatedElement")):
-                        bucket = found.setdefault(referenced, [])
-                        if holder not in bucket:
-                            bucket.append(holder)
-            return {key: tuple(value) for key, value in found.items()}
-
-        return self.memo("referencing-holders", build).get(target, ())
-
     def elements_of_type(self, *types: str) -> tuple[str, ...]:
         key = ("of-type", tuple(sorted(types)))
 

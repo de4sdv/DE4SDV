@@ -25,7 +25,7 @@ import pytest
 
 from de4sdv.semantic import corpus_cache as cc
 from de4sdv.sysml_api.errors import RevisionMismatchError
-from de4sdv.sysml_api.repository import SysMLRepository
+from de4sdv.sysml_api.repository import SysMLRepository, validated_element_corpus
 from de4sdv.sysml_api.revisions import RevisionBinding
 from increment_model_fixtures import increment_scenario, install_model_workflow
 from model_contract_fixtures import binding_dict, model_service, synthetic_identity
@@ -74,28 +74,14 @@ def _rewrite(path: Path, mutate) -> None:
     path.with_suffix(".json.sha256").write_text(hashlib.sha256(path.read_bytes()).hexdigest())
 
 
-# -- repository adoption ------------------------------------------------------
-
-
-def test_repository_adoption_serves_listings_and_never_displaces_the_api() -> None:
-    elements, _bindings = _corpus()
-    client = CountingClient(elements)
-    repository = SysMLRepository(client)  # type: ignore[arg-type]
-    assert repository.adopt_elements("p", "c", elements) is True
-    assert repository.list_elements("p", "c") == elements
-    assert client.element_retrievals == 0
-    fresh = SysMLRepository(CountingClient(elements))  # type: ignore[arg-type]
-    authoritative = fresh.list_elements("p", "c")
-    assert fresh.adopt_elements("p", "c", [{"@id": "other", "@type": "PartUsage"}]) is False
-    assert fresh.list_elements("p", "c") is authoritative
+# -- corpus validation --------------------------------------------------------
 
 
 @pytest.mark.parametrize("bad", [[], "not-a-list", [42], [{"@type": "PartUsage"}],
                                  [{"@id": "x", "@type": "A"}, {"@id": "x", "@type": "B"}]])
-def test_repository_adoption_refuses_malformed_corpora(bad) -> None:
-    repository = SysMLRepository(CountingClient([]))  # type: ignore[arg-type]
+def test_a_malformed_corpus_is_refused_entirely(bad) -> None:
     with pytest.raises(ValueError):
-        repository.adopt_elements("p", "c", bad)
+        validated_element_corpus(bad)
 
 
 # -- identity and snapshot validity -------------------------------------------

@@ -23,9 +23,7 @@ from de4sdv.semantic.increment_workflow import (
     read_increment_method,
     read_revision_method,
 )
-from de4sdv.semantic.method_checks import MethodCheckRegistry
-from de4sdv.semantic.model_authority_runtime import model_facade
-from de4sdv.semantic.relation_checks import RelationCheckRegistry
+from de4sdv.semantic.method_checks import method_checks
 from increment_model_fixtures import (
     INFINITY,
     WorkflowCheck,
@@ -344,8 +342,8 @@ def test_every_check_the_model_declares_is_supported() -> None:
     """Every check id in the model's workflow resolves in the engine's registry."""
     text = re.sub(r"/\*.*?\*/", "", WORKFLOW_FILE.read_text(encoding="utf-8"), flags=re.S)
     used = set(re.findall(r':>>\s*check\s*=\s*"([^"]+)"', text))
-    registry = MethodCheckRegistry.for_relations(RelationCheckRegistry.for_contract(model_facade()).names())
-    assert used and used <= set(registry.names()), used - set(registry.names())
+    supported = set(method_checks(_view(_scenario())))
+    assert used and used <= supported, used - supported
 
 
 def test_a_population_failure_says_how_many_elements_of_which_type_to_keep() -> None:

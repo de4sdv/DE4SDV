@@ -44,7 +44,7 @@ cyclic successions make the method invalid.
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from typing import Any, Callable, Mapping
+from typing import Any, Mapping
 
 from de4sdv.sysml_api.errors import IdentityNotFoundError
 from de4sdv.sysml_api.repository import reference_ids
@@ -57,7 +57,7 @@ from .increment_scope import (
     IncrementScope,
     ModelView,
 )
-from .method_checks import MethodCheckRegistry, method_checks
+from .method_checks import CHECK_MAXIMUM, default_claim, method_checks
 from .method_trace_adapter import CANONICAL_PHASE_LITERALS
 from .revision_index import MultiplicityError
 
@@ -83,25 +83,17 @@ _DIRECTIONS = {"in", "out", "inout"}
 _SUCCESSION_TYPES = ("SuccessionAsUsage", "Succession")
 
 
-def _no_remedy(*_args: Any, **_kwargs: Any) -> str:
-    return ""
-
-
 @dataclass(frozen=True)
 class IncrementMethod:
-    """The method read for an increment: its contract and what its checks resolve in."""
+    """The method read for an increment: its contract and the checks it dispatches to."""
 
     method_identity: Mapping[str, Any]
     contract: me.MethodContract | None
     phases: tuple[str, ...] = ()
-    #: Obligation id -> the model element that declares the check.
-    check_elements: Mapping[str, str] = field(default_factory=dict)
     problems: tuple[str, ...] = ()
     reason: str = ""
-    predicates: me.PredicateRegistry | None = None
-    selectors: me.SelectorRegistry | None = None
-    #: What to author for one check: ``remedy(check, increment=, view=, subject_id=)``.
-    remedy: Callable[..., str] = _no_remedy
+    #: Check id -> evaluator predicate.
+    predicates: Mapping[str, me.Predicate] = field(default_factory=dict)
     #: Display labels per obligation (step, parameter, subject type, check id).
     labels: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
 
@@ -150,9 +142,9 @@ def _framing_subjects(spec: me.ObligationSpec, ctx: me.EvaluationContext) -> tup
     return _scoped_subjects(spec, ctx, own_package=True)
 
 
-WORKFLOW_SELECTORS = me.DEFAULT_SELECTORS.with_definitions(
-    me.SelectorDefinition(PARAMETER_SELECTOR, _parameter_subjects),
-    me.SelectorDefinition(OWN_PACKAGE_SELECTOR, _framing_subjects))
+#: Selector kind -> subject resolution of the workflow's checks.
+WORKFLOW_SELECTORS: Mapping[str, me.SubjectResolver] = {
+    PARAMETER_SELECTOR: _parameter_subjects, OWN_PACKAGE_SELECTOR: _framing_subjects}
 
 
 # ---------------------------------------------------------------------------
@@ -218,9 +210,7 @@ def _all_charters(view: ModelView) -> list[str]:
 
 
 def _unavailable(view: ModelView, identity: dict[str, Any], reason: str) -> IncrementMethod:
-    checks = method_checks(view)
-    return IncrementMethod(method_identity=identity, contract=None, reason=reason,
-                           predicates=checks.predicates(), selectors=WORKFLOW_SELECTORS, remedy=checks.remedy)
+    return IncrementMethod(method_identity=identity, contract=None, reason=reason, predicates=method_checks(view))
 
 
 def read_increment_method(view: ModelView, scope: IncrementScope, *, revision_label: str) -> IncrementMethod:
@@ -251,8 +241,7 @@ def read_workflow(view: ModelView, workflow: str, *, revision_label: str) -> Inc
     checks = method_checks(view)
     identity = {"method_id": METHOD_ID, "method_revision": revision_label,
                 "workflow": view.index.qualified_name(workflow) or workflow}
-    common: dict[str, Any] = {"predicates": checks.predicates(), "selectors": WORKFLOW_SELECTORS,
-                              "remedy": checks.remedy}
+    common: dict[str, Any] = {"predicates": checks}
     try:
         phase_root = view.kernel_element(PHASE_CLASS)
     except IdentityNotFoundError as error:
@@ -262,7 +251,7 @@ def read_workflow(view: ModelView, workflow: str, *, revision_label: str) -> Inc
     problems: list[str] = []
     steps = index.owned_members(workflow, "ActionUsage")
     order = _step_order(view, workflow, steps, problems)
-    decoded: list[tuple[str, me.ObligationSpec, dict[str, Any], str]] = []
+    decoded: list[tuple[str, me.ObligationSpec, dict[str, Any]]] = []
     phases: list[str] = []
     for step in order:
         step_name = index.name_of(step) or step
@@ -274,27 +263,26 @@ def read_workflow(view: ModelView, workflow: str, *, revision_label: str) -> Inc
             continue
         if step_checks and phase not in phases:
             phases.append(phase)
-        decoded.extend((step, spec, label, element) for spec, label, element in step_checks)
+        decoded.extend((step, spec, label) for spec, label in step_checks)
     if not decoded and not problems:
         return IncrementMethod(method_identity=identity, contract=None,
                                reason="the increment workflow declares no checks", **common)
     decoded = _unique_identifiers(view, decoded)
-    specs = [spec for _step, spec, _label, _element in decoded]
-    labels = {spec.obligation_id: label for _step, spec, label, _element in decoded}
-    elements = {spec.obligation_id: element for _step, spec, _label, element in decoded}
+    specs = [spec for _step, spec, _label in decoded]
+    labels = {spec.obligation_id: label for _step, spec, label in decoded}
     contract = me.MethodContract(method_id=METHOD_ID, contract_id=f"{METHOD_ID}@{revision_label}",
                                  phase=",".join(phases), obligations=tuple(specs))
     try:
-        me.validate_contract(contract, predicates=checks.predicates(), selectors=WORKFLOW_SELECTORS)
+        me.validate_contract(contract, checks, selector_kinds=WORKFLOW_SELECTORS)
     except me.ContractValidationError as error:
         problems.extend(error.violations)
     if problems:
         return IncrementMethod(method_identity=identity, contract=None, phases=tuple(phases),
-                               check_elements=elements, labels=labels, problems=tuple(problems),
+                               labels=labels, problems=tuple(problems),
                                reason="the increment workflow is invalid", **common)
     return IncrementMethod(
         method_identity={**identity, "contract_id": contract.contract_id, "contract_digest": contract.digest()},
-        contract=contract, phases=tuple(phases), check_elements=elements, labels=labels, **common,
+        contract=contract, phases=tuple(phases), labels=labels, **common,
     )
 
 
@@ -346,7 +334,7 @@ def _is_method_check(view: ModelView, metadata: str) -> bool:
                for definition in view.index.typed_by(metadata))
 
 
-def _step_checks(view: ModelView, step: str, step_name: str, phase_root: str, checks: MethodCheckRegistry,
+def _step_checks(view: ModelView, step: str, step_name: str, phase_root: str, checks: Mapping[str, Any],
                  problems: list[str], *, optional: bool):
     index = view.index
     definitions = sorted(index.typed_by(step))
@@ -379,7 +367,7 @@ def _phase(view: ModelView, step_definition: str, phase_root: str) -> str:
 
 
 def _check(view: ModelView, metadata: str, step_name: str, phase: str, parameters: dict[str, str],
-           checks: MethodCheckRegistry, *, optional: bool) -> tuple[me.ObligationSpec, dict[str, Any], str]:
+           checks: Mapping[str, Any], *, optional: bool) -> tuple[me.ObligationSpec, dict[str, Any]]:
     index = view.index
     about = _annotated(view, metadata)
     if len(about) != 1 or about[0] not in parameters:
@@ -395,11 +383,8 @@ def _check(view: ModelView, metadata: str, step_name: str, phase: str, parameter
     minimum = _natural(view, metadata, "minimum", DEFAULT_MINIMUM)
     advisory = _boolean(view, metadata, "advisory", False)
     lower, upper = _bounds(view, parameter)
-    definition = checks.definition(check_id) if check_id in checks else None
-    maximum = definition.maximum if definition is not None and definition.maximum is not None else UNBOUNDED
-    claim = (_documentation(view, metadata) or (definition.claim if definition is not None else "")
-             or f"model-content check {check_id}; no acceptance, compliance, certification or "
-                "evidence-adequacy claim")
+    maximum = CHECK_MAXIMUM.get(check_id, UNBOUNDED)
+    claim = _documentation(view, metadata) or default_claim(check_id, view)
     spec = me.ObligationSpec(
         obligation_id=index.name_of(metadata) or check_id,
         phase=phase,
@@ -426,7 +411,7 @@ def _check(view: ModelView, metadata: str, step_name: str, phase: str, parameter
              "direction": str(index.element(parameter).get("direction") or ""),
              "subject_type": (index.qualified_name(types[0]) or types[0]) if types else kind, "check": check_id,
              "check_definition": index.qualified_name(sorted(index.typed_by(metadata))[0])}
-    return spec, label, metadata
+    return spec, label
 
 
 def _bounds(view: ModelView, feature: str) -> tuple[int, int | None]:
@@ -440,13 +425,13 @@ def _bounds(view: ModelView, feature: str) -> tuple[int, int | None]:
 def _unique_identifiers(view: ModelView, decoded):
     """Check names qualified by their step where two steps reuse one name."""
     counts: dict[str, int] = {}
-    for _step, spec, _label, _element in decoded:
+    for _step, spec, _label in decoded:
         counts[spec.obligation_id] = counts.get(spec.obligation_id, 0) + 1
     unique = []
-    for step, spec, label, element in decoded:
+    for step, spec, label in decoded:
         if counts[spec.obligation_id] > 1:
             spec = replace(spec, obligation_id=f"{view.index.name_of(step) or step}.{spec.obligation_id}")
-        unique.append((step, spec, label, element))
+        unique.append((step, spec, label))
     return unique
 
 
