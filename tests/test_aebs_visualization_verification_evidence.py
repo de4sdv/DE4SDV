@@ -344,6 +344,56 @@ def test_restoration_is_deferred_not_proven() -> None:
     assert "AC-AEBS-S2-007" in deferred
 
 
+# Planned cases for the requirements that no retained campaign verifies:
+# case id -> (usage, verified requirement usages).
+PLANNED_CASES = {
+    "VC-AEBS-S2-008": (
+        "liveSourceFidelityVerification",
+        {"reqSourceFidelity", "reqNativeParticipation", "reqDe4sdvParticipation"},
+    ),
+    "VC-AEBS-S2-009": (
+        "staleAndInvalidFrameVerification",
+        {"reqFailClosedFreshness", "reqInvalidRejection"},
+    ),
+    "VC-AEBS-S2-010": (
+        "renderingEnvironmentVerification",
+        {"reqAaosEnvironmentObservation", "reqNoHostBrowserSurface"},
+    ),
+}
+
+
+def test_planned_cases_are_not_executed_and_bind_no_evidence() -> None:
+    """Planning only: no execution, no evidence record, no argument support."""
+    pilot = _pilot()
+    model = _model()
+    cases = {case["id"]: case for case in pilot["verification_cases"]}
+    for case_id, (usage, requirements) in PLANNED_CASES.items():
+        case = cases[case_id]
+        assert case["status"] == "not_executed", case_id
+        assert "current_evidence" not in case, case_id
+        block = re.search(rf"verification {usage} : (\w+) \{{.*?\n  \}}", model, re.S)
+        assert block and "not executed" in block.group(0), case_id
+        definition = re.search(
+            rf"verification def {block.group(1)} \{{.*?\n  \}}", model, re.S
+        )
+        assert definition and "not executed" in definition.group(0), case_id
+        for requirement in requirements:
+            assert f"verify {requirement} {{" in definition.group(0), (case_id, requirement)
+        assert not re.search(rf"\bfrom {usage} to ", _strip_sysml_comments(model)), case_id
+
+
+def test_every_requirement_is_verified_by_a_case_objective() -> None:
+    model = _model()
+    needs = _read(MODEL_DIR / "aebs_visualization_needs_requirements.sysml")
+    requirements = set(
+        re.findall(r"requirement (req\w+) : VisualizationInstrumentRequirementCandidate", needs)
+    )
+    assert len(requirements) == 20
+    objectives = "\n".join(re.findall(r"objective \w+ \{(.*?)\n    \}", model, re.S))
+    verified = set(re.findall(r"\bverify (req\w+)", objectives))
+    assert requirements <= verified, sorted(requirements - verified)
+
+
 def test_scenario_safety_outcome_stays_deferred() -> None:
     model = _model()
     pilot = _pilot()

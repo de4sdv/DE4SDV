@@ -93,6 +93,7 @@ scope:
     - fail-closed staleness suppression of display-derived geometry
     - fixture-path degraded-state rendering (PF-004 publisher)
     - planned restoration behavior (no retained evidence yet)
+    - planned live-source fidelity, stale and invalid frame, and rendering-environment cases (not executed)
     - ArgumentationAssuranceViewpoint
   out_of_scope:
     - AEBS braking authority, hazard control, or any safety argument
@@ -168,6 +169,30 @@ verification_cases:
     methods: [test, analyze]
     acceptance_criterion: AC-AEBS-S2-007
     status: deferred_not_proven
+  # Planned cases for the requirements no retained campaign verifies. Not
+  # executed and bound to no evidence; each verifies only the verdict-record
+  # rule AC-AEBS-S2-008 next to its requirements.
+  - id: VC-AEBS-S2-008
+    name: Live source participation and fidelity
+    scenario: liveSourceFidelity
+    requirement_ids: [REQ-AEBS-S2-002, REQ-AEBS-S2-003, REQ-AEBS-S2-004]
+    methods: [test, analyze]
+    acceptance_criterion: AC-AEBS-S2-008
+    status: not_executed
+  - id: VC-AEBS-S2-009
+    name: Stale and invalid frame handling (fixture path)
+    scenario: staleAndInvalidFrames
+    requirement_ids: [REQ-AEBS-S2-006, REQ-AEBS-S2-008]
+    methods: [test, analyze]
+    acceptance_criterion: AC-AEBS-S2-008
+    status: not_executed
+  - id: VC-AEBS-S2-010
+    name: Rendering environment of the AAOS guest session
+    scenario: renderingEnvironment
+    requirement_ids: [REQ-AEBS-S2-012, REQ-AEBS-S2-013]
+    methods: [test, inspect, analyze]
+    acceptance_criterion: AC-AEBS-S2-008
+    status: not_executed
 
 acceptance_criteria:
   - id: AC-AEBS-S2-001

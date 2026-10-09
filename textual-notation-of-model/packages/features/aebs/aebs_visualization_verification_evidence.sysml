@@ -65,6 +65,9 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     failClosedStaleness;
     degradedStateRendering;
     restorationBehavior;
+    liveSourceFidelity;
+    staleAndInvalidFrames;
+    renderingEnvironment;
   }
 
   enum def VisualizationEvidenceDisposition {
@@ -166,6 +169,15 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
   }
   part restorationBehaviorBench : VisualizationVerificationBench {
     attribute :>> scenario = VisualizationScenario::restorationBehavior;
+  }
+  part liveSourceFidelityBench : VisualizationVerificationBench {
+    attribute :>> scenario = VisualizationScenario::liveSourceFidelity;
+  }
+  part staleAndInvalidFramesBench : VisualizationVerificationBench {
+    attribute :>> scenario = VisualizationScenario::staleAndInvalidFrames;
+  }
+  part renderingEnvironmentBench : VisualizationVerificationBench {
+    attribute :>> scenario = VisualizationScenario::renderingEnvironment;
   }
 
   /* ──────────────────────────────────────────
@@ -579,6 +591,116 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     return verdict : VerdictKind = evaluateData.verdict;
   }
 
+  /* Planned verification cases for the requirements that no retained
+   * campaign verifies. They are planning only: not executed, no evidence
+   * record bound, no argument supporting the claim. Their verdict stays
+   * inconclusive until a later campaign retains evidence that meets the
+   * verdict-record rule (AC-AEBS-S2-008). */
+
+  verification def VisualizationLiveSourceFidelityVerification {
+    doc /*
+     * Planned verification case, not executed. On the live bench chain it
+     * checks that the visualization test system consumes the pinned native
+     * Autoware AEB output (RSS threshold data and the native intervention
+     * diagnostic) and the DE4SDV AEBS coordinator's warning request, braking
+     * request, and intervention lifecycle state, and that each displayed
+     * value or state keeps the source identity, timestamp, units, coordinate
+     * frame, freshness, validity, and bounded cardinality of its source frame.
+     */
+    subject verifiedBench : VisualizationVerificationBench;
+    objective liveSourceFidelityObjective {
+      verify acceptanceCriterionEvidenceIntegrity;
+      verify reqSourceFidelity { subject visualizationTestSystem = verifiedBench.system2Instrument; }
+      verify reqNativeParticipation { subject visualizationTestSystem = verifiedBench.system2Instrument; }
+      verify reqDe4sdvParticipation { subject visualizationTestSystem = verifiedBench.system2Instrument; }
+    }
+    action collectData {
+      @VerificationMethod{ kind = test; }
+      out item retainedEvidence : RetainedVisualizationEvidence;
+    }
+    action processData {
+      @VerificationMethod{ kind = analyze; }
+      in scenarioIdentity : VisualizationScenario = verifiedBench.scenario;
+      in item retainedEvidence : RetainedVisualizationEvidence = collectData.retainedEvidence;
+      out item replayedEvaluation : ReplayedVisualizationEvaluation;
+    }
+    action evaluateData {
+      @VerificationMethod{ kind = analyze; }
+      in item replayedEvaluation : ReplayedVisualizationEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind = MapVisualizationOutcomeToVerdict(replayedEvaluation.outcome);
+    }
+    return verdict : VerdictKind = evaluateData.verdict;
+  }
+
+  verification def VisualizationStaleAndInvalidFrameVerification {
+    doc /*
+     * Planned fixture-path verification case, not executed. Deterministic
+     * frame injection withholds valid frames beyond the stale timeout bound
+     * as AO-AEBS-010-005, then injects unsupported-schema, malformed,
+     * non-finite, out-of-range, stale-timestamp, and non-monotonic frames. It
+     * checks the explicit stale disposition with threat geometry suppressed,
+     * and the rejection of each invalid frame without displaying its payload
+     * values. Any verdict is bounded to the fixture path and does not transfer
+     * to degraded conditions of the live Autoware chain, which stay
+     * unobserved (GAP-AEBS-010-007).
+     */
+    subject verifiedBench : VisualizationVerificationBench;
+    objective staleAndInvalidFrameObjective {
+      verify acceptanceCriterionEvidenceIntegrity;
+      verify reqFailClosedFreshness { subject visualizationTestSystem = verifiedBench.system2Instrument; }
+      verify reqInvalidRejection { subject visualizationTestSystem = verifiedBench.system2Instrument; }
+    }
+    action collectData {
+      @VerificationMethod{ kind = test; }
+      out item retainedEvidence : RetainedVisualizationEvidence;
+    }
+    action processData {
+      @VerificationMethod{ kind = analyze; }
+      in scenarioIdentity : VisualizationScenario = verifiedBench.scenario;
+      in item retainedEvidence : RetainedVisualizationEvidence = collectData.retainedEvidence;
+      out item replayedEvaluation : ReplayedVisualizationEvaluation;
+    }
+    action evaluateData {
+      @VerificationMethod{ kind = analyze; }
+      in item replayedEvaluation : ReplayedVisualizationEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind = MapVisualizationOutcomeToVerdict(replayedEvaluation.outcome);
+    }
+    return verdict : VerdictKind = evaluateData.verdict;
+  }
+
+  verification def VisualizationRenderingEnvironmentVerification {
+    doc /*
+     * Planned verification case, not executed. In one rendered session it
+     * checks that the retained session records hold observations of the AAOS
+     * SDV guest package manager, system server, display composition, vehicle
+     * service, and SDV gateway from that same session (test). It inspects the
+     * realization and the session to confirm that the AEBS rendering surface
+     * is the native guest application, not a host-side browser page (inspect).
+     */
+    subject verifiedBench : VisualizationVerificationBench;
+    objective renderingEnvironmentObjective {
+      verify acceptanceCriterionEvidenceIntegrity;
+      verify reqAaosEnvironmentObservation { subject visualizationTestSystem = verifiedBench.system2Instrument; }
+      verify reqNoHostBrowserSurface { subject visualizationTestSystem = verifiedBench.system2Instrument; }
+    }
+    action collectData {
+      @VerificationMethod{ kind = (test, inspect); }
+      out item retainedEvidence : RetainedVisualizationEvidence;
+    }
+    action processData {
+      @VerificationMethod{ kind = analyze; }
+      in scenarioIdentity : VisualizationScenario = verifiedBench.scenario;
+      in item retainedEvidence : RetainedVisualizationEvidence = collectData.retainedEvidence;
+      out item replayedEvaluation : ReplayedVisualizationEvaluation;
+    }
+    action evaluateData {
+      @VerificationMethod{ kind = analyze; }
+      in item replayedEvaluation : ReplayedVisualizationEvaluation = processData.replayedEvaluation;
+      out verdict : VerdictKind = MapVisualizationOutcomeToVerdict(replayedEvaluation.outcome);
+    }
+    return verdict : VerdictKind = evaluateData.verdict;
+  }
+
   doc /* VC-AEBS-S2-001 verification case usage. */
   verification chainCorrelationVerification : VisualizationChainCorrelationVerification {
     @VerificationMethod{ kind = (test, inspect, analyze); }
@@ -623,6 +745,27 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     subject verifiedBench :> restorationBehaviorBench;
   }
 
+  doc /* VC-AEBS-S2-008 verification case usage. */
+  verification liveSourceFidelityVerification : VisualizationLiveSourceFidelityVerification {
+    doc /* VC-AEBS-S2-008: planned, not executed; no evidence record is bound. */
+    @VerificationMethod{ kind = (test, analyze); }
+    subject verifiedBench :> liveSourceFidelityBench;
+  }
+
+  doc /* VC-AEBS-S2-009 verification case usage. */
+  verification staleAndInvalidFrameVerification : VisualizationStaleAndInvalidFrameVerification {
+    doc /* VC-AEBS-S2-009: planned fixture-path case, not executed; no evidence record is bound. */
+    @VerificationMethod{ kind = (test, analyze); }
+    subject verifiedBench :> staleAndInvalidFramesBench;
+  }
+
+  doc /* VC-AEBS-S2-010 verification case usage. */
+  verification renderingEnvironmentVerification : VisualizationRenderingEnvironmentVerification {
+    doc /* VC-AEBS-S2-010: planned, not executed; no evidence record is bound. */
+    @VerificationMethod{ kind = (test, inspect, analyze); }
+    subject verifiedBench :> renderingEnvironmentBench;
+  }
+
   part visualizationVerificationSystem {
     perform chainCorrelationVerification;
     perform lifecycleArcVerification;
@@ -631,6 +774,9 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     perform failClosedStalenessVerification;
     perform degradedRenderingVerification;
     perform restorationVerification;
+    perform liveSourceFidelityVerification;
+    perform staleAndInvalidFrameVerification;
+    perform renderingEnvironmentVerification;
   }
 
   /* ──────────────────────────────────────────
@@ -858,8 +1004,10 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
      * conditions (stale/unavailable/invalid on the live chain) are not
      * observed in retained evidence; the retained degraded-state campaign is
      * fixture-path only. REQ-AEBS-S2-006 (no-valid-frame timeout) and
-     * REQ-AEBS-S2-008 (invalid-frame rejection) are therefore not verified by
-     * any case of this slice. Owner: successor increment in this chain.
+     * REQ-AEBS-S2-008 (invalid-frame rejection) have only the planned
+     * fixture-path case VC-AEBS-S2-009, which is not executed: no retained
+     * evidence verifies them, and a fixture-path verdict would not transfer
+     * to the live chain. Owner: successor increment in this chain.
      */
   }
   part gap010InterVmRouteDeferred : DeferredProductLineScope {
