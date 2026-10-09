@@ -29,12 +29,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from de4sdv.semantic.export_evaluation import (  # noqa: E402
-    ExportEvaluationRefused,
-    export_view,
-    load_export_snapshot,
-)
-from de4sdv.semantic.increment_evaluation import evaluate_increment  # noqa: E402
+from de4sdv.semantic.export_evaluation import ExportEvaluationRefused, evaluate_export  # noqa: E402
 from de4sdv.semantic.increment_scope import IncrementIdentifierError  # noqa: E402
 
 QUERIES = ("status", "gaps", "next", "contract")
@@ -51,19 +46,12 @@ def run(argv: list[str] | None = None) -> tuple[int, dict, Path | None]:
     parser.add_argument("--root", type=Path, default=ROOT)
     args = parser.parse_args(argv)
 
-    timings: dict[str, float] = {}
     started = time.perf_counter()
     try:
-        snapshot = load_export_snapshot(args.export, args.binding, root=args.root)
-        timings["load_seconds"] = round(time.perf_counter() - started, 3)
-        mark = time.perf_counter()
-        view = export_view(snapshot, root=args.root)
-        timings["runtime_seconds"] = round(time.perf_counter() - mark, 3)
-        mark = time.perf_counter()
-        evaluation = evaluate_increment(view, args.increment, revision=snapshot.revision)
-        timings["evaluation_seconds"] = round(time.perf_counter() - mark, 3)
+        snapshot, evaluation = evaluate_export(args.export, args.increment, binding_path=args.binding, root=args.root)
     except (ExportEvaluationRefused, IncrementIdentifierError) as error:
         return 2, {"status": "refused", "reason": str(error)}, args.output
+    timings = {"evaluation_seconds": round(time.perf_counter() - started, 3)}
     mark = time.perf_counter()
     projections = {
         "status": lambda: evaluation.status(args.phase),

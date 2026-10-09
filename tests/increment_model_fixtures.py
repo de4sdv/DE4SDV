@@ -166,6 +166,14 @@ class ModelBuilder:
                               "source_file": mapping.file, "declaration": mapping.declaration})
         return definition
 
+    def declare_kernel(self) -> None:
+        """Declare every file-mapped kernel class of the contract, as a complete export does."""
+        contract = model_contract()
+        pinned = getattr(contract, "lineage_pinned", None) or {}
+        for ontology_class in contract.classes:
+            if ontology_class not in pinned and isinstance(contract.mapping(ontology_class), KernelFileMapping):
+                self.kernel_definition(ontology_class)
+
     def enumeration(self, ontology_class: str, literals: Sequence[str]) -> dict[str, dict[str, Any]]:
         """The literals of a kernel enumeration (created once per builder)."""
         if ontology_class in self.enumerations:

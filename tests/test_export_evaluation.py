@@ -48,9 +48,11 @@ def _write(tmp_path: Path, scenario, **binding_overrides) -> tuple[Path, Path]:
     return export_path, binding_path
 
 
-def _scenario():
+def _scenario(complete_kernel: bool = True):
     scenario = increment_scenario()
     install_model_workflow(scenario)
+    if complete_kernel:
+        scenario.builder.declare_kernel()
     # Make the model gappy so every projection carries content.
     need = scenario.needs[1]
     builder = scenario.builder
@@ -135,10 +137,36 @@ def test_command_line_evaluates_and_refuses(tmp_path: Path, capsys) -> None:
     assert code == 0
     report = json.loads(output.read_text())
     assert report["next"]["next"]["gate"] == "needHasStakeholder"
-    assert set(report["timings"]) >= {"load_seconds", "evaluation_seconds", "total_seconds"}
+    assert set(report["timings"]) >= {"evaluation_seconds", "total_seconds"}
     assert report["semantic_authority"].startswith("sai-")
     assert module.main(["--export", str(export_path), "--increment", "not-an-increment"]) == 2
+    incomplete, _binding = _write(tmp_path, _scenario(complete_kernel=False))
+    assert module.main(["--export", str(incomplete), "--increment", INCREMENT]) == 2
     capsys.readouterr()
+
+
+def test_an_export_alone_whose_kernel_identity_fails_validation_is_refused(tmp_path: Path) -> None:
+    incomplete, _binding = _write(tmp_path, _scenario(complete_kernel=False))
+    with pytest.raises(ExportEvaluationRefused, match="kernel binding validation failed"):
+        evaluate_export(incomplete, INCREMENT)
+    scenario = _scenario()
+    kernel = scenario.builder.kernel["EngineeringIncrement"]
+    twin = scenario.builder.new(kernel["@type"], name=kernel["declaredName"],
+                                source=scenario.builder.sources[kernel["@id"]])
+    assert twin["@id"] != kernel["@id"]
+    ambiguous, _binding = _write(tmp_path, scenario)
+    with pytest.raises(ExportEvaluationRefused, match="kernel binding validation failed"):
+        evaluate_export(ambiguous, INCREMENT)
+
+
+def test_an_export_alone_is_refused_on_a_blocking_model_provider_mismatch(tmp_path: Path, monkeypatch) -> None:
+    from de4sdv.semantic import export_evaluation
+
+    export_path, _binding = _write(tmp_path, _scenario())
+    monkeypatch.setattr(export_evaluation, "cross_check_model_provider", lambda contract, bindings, root: {
+        "classification": "BLOCKING_MISMATCH", "mismatches": [{"identity": "Need"}], "duplicate_providers": []})
+    with pytest.raises(ExportEvaluationRefused, match="cross-check failed"):
+        evaluate_export(export_path, INCREMENT)
 
 
 def test_the_evaluation_names_the_semantic_authority_that_judged_it(tmp_path: Path) -> None:

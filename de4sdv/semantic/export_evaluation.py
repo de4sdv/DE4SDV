@@ -12,9 +12,10 @@ predicates. Two input modes, both read-only and offline:
   are used, so the evaluation key equals the API evaluation of that
   revision;
 - **export alone** (an export snapshot, for example of a pull-request head):
-  kernel identity is validated from the export by the same validator the
-  ingestion uses; the revision identity is the Git commit with scope
-  ``export-snapshot`` and no SysML API identity.
+  kernel identity is validated from the export by the same validator and
+  the same model-provider cross-check the ingestion uses, and refused on the
+  same failures (ADR 0011); the revision identity is the Git commit with
+  scope ``export-snapshot`` and no SysML API identity.
 
 Any identity mismatch refuses the evaluation; nothing falls back to another
 revision or to names.
@@ -36,6 +37,7 @@ from .increment_evaluation import IncrementEvaluation, evaluate_increment
 from .increment_scope import ModelView
 from .method_evaluator import RevisionIdentity
 from .method_pilot import establish_candidate_identity
+from .validation import cross_check_model_provider, validate_ontology_bindings
 
 ROOT = Path(__file__).resolve().parents[2]
 EXPORT_SNAPSHOT_SCOPE = "export-snapshot"
@@ -102,9 +104,9 @@ def load_export_snapshot(
             identity_mode="validated-revision-binding",
             semantic_authority_id=contract.identity.id,
         )
-    from .validation import validate_ontology_bindings
-
     report = validate_ontology_bindings(contract, elements, sources)
+    if not report.passed:
+        raise ExportEvaluationRefused(f"kernel binding validation failed closed: {report.summary}")
     # Same rule as the ingestion importer: a class whose binding resolved to
     # exactly one element carries that element, its file and declaration.
     kernel = tuple(
@@ -117,6 +119,13 @@ def load_export_snapshot(
         for entry in report.entries
         if entry.status == "mapped" and len(entry.element_ids) == 1
     )
+    cross_check = cross_check_model_provider(
+        contract, [{"ontology_class": b.ontology_class, "element_id": b.element_id} for b in kernel], root=Path(root))
+    if cross_check["classification"] == "BLOCKING_MISMATCH":
+        raise ExportEvaluationRefused(
+            "model-built contract vs projection kernel binding cross-check failed closed: "
+            f"{len(cross_check['mismatches'])} mismatch(es), "
+            f"{len(cross_check['duplicate_providers'])} conflicting provider(s)")
     git_commit = str(export.get("git_commit") or "")
     return ExportSnapshot(
         elements=elements, sources=sources, export_sha256=digest,
