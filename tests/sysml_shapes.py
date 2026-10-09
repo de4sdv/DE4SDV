@@ -133,11 +133,34 @@ def has_product_claim(source: str) -> bool:
     return bool(_PRODUCT_CLAIM_RE.search(source))
 
 
-def bound_requirement_verifications(code: str) -> list[tuple[str, str, str, str]]:
-    """``(objective, requirement, subject, bench part)`` for each subject-bound verify."""
+def _braced_span(source: str, opening: int) -> tuple[int, int]:
+    """``(start, end)`` of the balanced-brace block opened at ``opening``."""
+    depth = 0
+    for index in range(opening, len(source)):
+        if source[index] == "{":
+            depth += 1
+        elif source[index] == "}":
+            depth -= 1
+            if depth == 0:
+                return opening, index
+    raise AssertionError(f"unclosed block at offset {opening}")
+
+
+def bound_requirement_verifications(code: str) -> list[tuple[str, str, str, str, str]]:
+    """``(objective, requirement, subject, bench part, bench type)`` per subject-bound verify.
+
+    The bench type is the type of the ``verifiedBench`` subject of the
+    verification definition that owns the objective ("" when none does).
+    """
+    cases = []
+    for match in re.finditer(r"\bverification\s+def\s+\w+\s*\{", code):
+        start, end = _braced_span(code, match.end() - 1)
+        bench = re.search(r"\bsubject\s+verifiedBench\s*:\s*(\w+)\s*;", code[start:end])
+        cases.append((start, end, bench.group(1) if bench else ""))
     found = []
     for match in _OBJECTIVE_RE.finditer(code):
-        body = braced_body(code, match.group(0).rstrip("{").strip())
-        for requirement, subject, part in _BOUND_VERIFY_RE.findall(body):
-            found.append((match.group(1), requirement, subject, part))
+        start, end = _braced_span(code, match.end() - 1)
+        bench_type = next((t for s, e, t in cases if s < start and end < e), "")
+        for requirement, subject, part in _BOUND_VERIFY_RE.findall(code[start:end]):
+            found.append((match.group(1), requirement, subject, part, bench_type))
     return found

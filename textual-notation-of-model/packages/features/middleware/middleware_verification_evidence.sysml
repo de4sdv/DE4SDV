@@ -13,8 +13,8 @@
  * safety, and certification claims remain deferred or not claimed.
  *
  * Acceptance criteria are not requirements: each records the expected
- * result of the design-input requirement(s) it bounds, and each verification
- * case verifies those requirements next to its criterion. The claim,
+ * result of the design-input requirement it bounds, and each verification
+ * case verifies that requirement next to its criterion. The claim,
  * arguments and counter-claims are assurance artifacts
  * (DE4SDV_AssuranceArgumentation), outside the requirement lineage.
  */
@@ -150,9 +150,10 @@ package DE4SDV_MiddlewareVerificationEvidence {
     attribute :>> scenario = MiddlewareScenarioIdentity::faultDetection;
   }
 
-  /* Each criterion records the expected result of the requirement(s) it
-   * bounds ("will be shown to have been met when ..."); AC-MW-010-07 is the
-   * verdict-record rule applied by every case. */
+  /* Each criterion records the expected result of the requirement it bounds
+   * ("will be shown to have been met when ..."). AC-MW-010-06 is a case
+   * acceptance condition that bounds no design-input requirement, and
+   * AC-MW-010-07 is the verdict-record rule applied by every case. */
   requirement def MiddlewareAcceptanceCriterion :> AcceptanceCriterion;
 
   requirement acceptanceCriterion010SignalTranslation : MiddlewareAcceptanceCriterion {
@@ -183,7 +184,7 @@ package DE4SDV_MiddlewareVerificationEvidence {
     doc /* AC-MW-010-04; validation of vehicle/application startup. */
     subject bench : MiddlewareIntegrationVandVBench;
     require constraint {
-      doc /* REQ-MW-007 and REQ-MW-003 will be shown to have been met when a configured member startup scenario shows provider registration, service discovery and binding, transport readiness, adapter readiness, and ROS 2 consumer readiness in causal order before the signal is accepted. */
+      doc /* REQ-MW-007 will be shown to have been met when a configured member startup scenario shows provider registration, service discovery and binding, transport readiness, adapter readiness, and ROS 2 consumer readiness in causal order before the signal is accepted. */
     }
   }
 
@@ -199,7 +200,7 @@ package DE4SDV_MiddlewareVerificationEvidence {
     doc /* AC-MW-010-06; validation of fault detection and containment. */
     subject bench : MiddlewareIntegrationVandVBench;
     require constraint {
-      doc /* REQ-MW-004 and REQ-MW-006 will be shown to have been met when provider, binding, discovery, transport, adapter, and consumer faults are detected and classified at the integration boundary and no non-safety middleware failure creates an uncontrolled emergency intervention command. */
+      doc /* The fault-detection case is acceptable when provider, binding, discovery, transport, adapter, and consumer faults are detected and classified at the integration boundary and no non-safety middleware failure creates an uncontrolled emergency intervention command. This criterion bounds no design-input requirement: its traces to REQ-MW-004 and REQ-MW-006 are relevance, and the success criteria of the safety constraint REQ-MW-006 stay open (GAP-MW-029). */
     }
   }
 
@@ -354,16 +355,18 @@ package DE4SDV_MiddlewareVerificationEvidence {
   }
 
   /* Each objective verifies its acceptance criteria and the design-input
-   * requirements its own criterion bounds (the primary criterion of the
+   * requirement its own criterion bounds (the primary criterion of the
    * case; criteria reused from other cases keep their requirements on their
    * own case). The requirements are System 1 product requirements whose
    * subject is the member product, so each verified requirement binds its
    * subject to the bench's configured member, not to the whole bench. A
    * verify is a planned verification objective, not a verdict: the verdict
    * stays the case's evidence-bound return value, and deferred cases keep
-   * their deferred status. AC-MW-010-07's trace to REQ-MW-009 is relevance,
-   * not a bound: REQ-MW-009 constrains the increment's trace links and is
-   * not verified by these bench cases. */
+   * their deferred status. Traces that are relevance, not a bound, add no
+   * verify: AC-MW-010-04 to REQ-MW-003 (startup covers no degraded or
+   * shutdown transition), AC-MW-010-06 to REQ-MW-004 and to the safety
+   * constraint REQ-MW-006 (criteria open per GAP-MW-029), and AC-MW-010-07
+   * to REQ-MW-009 (a trace-link constraint on the increment). */
 
   verification def SignalTranslationVerification {
     subject verifiedBench : MiddlewareIntegrationVandVBench;
@@ -453,7 +456,6 @@ package DE4SDV_MiddlewareVerificationEvidence {
       verify acceptanceCriterion010LifecycleCoordination;
       verify acceptanceCriterion010EvidenceIndependence;
       verify reqProvideServiceDiscovery { subject memberProduct = verifiedBench.system1MemberProduct; }
-      verify reqCoordinateMiddlewareLifecycle { subject memberProduct = verifiedBench.system1MemberProduct; }
     }
     action collectData {
       @VerificationMethod{ kind = (test, inspect); }
@@ -518,8 +520,6 @@ package DE4SDV_MiddlewareVerificationEvidence {
       verify acceptanceCriterion010FaultDetection;
       verify acceptanceCriterion010HealthForwarding;
       verify acceptanceCriterion010EvidenceIndependence;
-      verify reqMonitorMiddlewareHealth { subject memberProduct = verifiedBench.system1MemberProduct; }
-      verify reqIsolateSafetyPath { subject memberProduct = verifiedBench.system1MemberProduct; }
     }
     action collectData {
       @VerificationMethod{ kind = (test, inspect); }

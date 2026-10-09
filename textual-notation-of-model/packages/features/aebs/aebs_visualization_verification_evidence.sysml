@@ -130,9 +130,10 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
      */
     /* System 1 subject: uninstrumented configured member (scope member). */
     part system1MemberProduct : DE4SDV_MiddlewareVariabilityConfiguration::MiddlewareAutowareAAOSSDVConfiguredMember;
-    /* System 2 subject: instrumented visualization test article. */
+    /* System 2 test article: the configured member instrumented with the deployed visualization chain. */
     part system2TestArticle : AEBSAutowareAAOSSDVVisualizationTestArticle;
-    part system2Instrument : System2EngineeringAndAssuranceSystem;
+    /* System 2 visualization test system framed for INC-AEBS-010: the subject the verified design-input requirements bind to. */
+    part system2Instrument : System2EngineeringAndAssuranceSystem :> system2VisualizationInstrument;
     attribute scenario : VisualizationScenario;
   }
 
@@ -185,7 +186,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
   requirement acceptanceCriterionReadOnlyBoundary : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-003; read-only boundary verification. */
     subject bench : VisualizationVerificationBench;
-    require constraint statement { language "English" /* REQ-AEBS-S2-005 will be shown to have been met when the visualization test system is observed to publish nothing to the vehicle runtime and to issue no vehicle command. */ }
+    require constraint statement { language "English" /* REQ-AEBS-S2-005 will be shown to have been met when the visualization test system publishes nothing to the vehicle runtime and issues no vehicle command. */ }
   }
 
   requirement acceptanceCriterionProvenanceSeparation : VisualizationAcceptanceCriterion {
@@ -197,19 +198,19 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
   requirement acceptanceCriterionFailClosedStaleness : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-005; fail-closed staleness verification. */
     subject bench : VisualizationVerificationBench;
-    require constraint statement { language "English" /* REQ-AEBS-S2-019 will be shown to have been met when, within the retained take, the expired display-derived obstacle geometry is suppressed after the filtered obstacle-cloud source stops updating while accepted live frames continue. */ }
+    require constraint statement { language "English" /* REQ-AEBS-S2-019 will be shown to have been met when the retained take shows the obstacle range, bearing, and points cleared within the receipt-based staleness bound after the filtered obstacle-cloud source stops updating, while the accepted frame sequence continues. */ }
   }
 
   requirement acceptanceCriterionDegradedRendering : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-006; degraded-state rendering verification (fixture path). */
     subject bench : VisualizationVerificationBench;
-    require constraint statement { language "English" /* REQ-AEBS-S2-007 will be shown to have been met when, under deterministic closed-loop frame injection, the unavailable disposition is rendered with live geometry cleared and the health chip identifying the degraded condition, as are the stale and invalid degraded dispositions. */ }
+    require constraint statement { language "English" /* REQ-AEBS-S2-007 will be shown to have been met when, under deterministic closed-loop frame injection, the unavailable disposition is rendered with live geometry cleared and the health chip identifying the degraded condition whenever no visualization source or service is available or no valid frame has yet arrived. The same campaign renders the stale and invalid degraded dispositions the same way; that observation is not a success criterion of REQ-AEBS-S2-006 or REQ-AEBS-S2-008. */ }
   }
 
   requirement acceptanceCriterionRestoration : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-007; restoration behavior criterion (planned). */
     subject bench : VisualizationVerificationBench;
-    require constraint statement { language "English" /* REQ-AEBS-S2-009 will be shown to have been met when, after a failure disposition, a bounded restored indication is presented once the selected consecutive-valid-frame criterion is met, without application restart. */ }
+    require constraint statement { language "English" /* REQ-AEBS-S2-009 will be shown to have been met when a retained run shows that, after each failure disposition, the restored indication appears once the consecutive-valid-frame count bound as AO-AEBS-010-006 is reached, stays for the selected bounded duration, and the same application process runs throughout. */ }
   }
 
   requirement acceptanceCriterionEvidenceIntegrity : VisualizationAcceptanceCriterion {
@@ -812,7 +813,9 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
      * GAP-AEBS-010-007: Degraded dispositions from real Autoware source
      * conditions (stale/unavailable/invalid on the live chain) are not
      * observed in retained evidence; the retained degraded-state campaign is
-     * fixture-path only. Owner: successor increment in this chain.
+     * fixture-path only. REQ-AEBS-S2-006 (no-valid-frame timeout) and
+     * REQ-AEBS-S2-008 (invalid-frame rejection) are therefore not verified by
+     * any case of this slice. Owner: successor increment in this chain.
      */
   }
   part gap010InterVmRouteDeferred : DeferredProductLineScope {

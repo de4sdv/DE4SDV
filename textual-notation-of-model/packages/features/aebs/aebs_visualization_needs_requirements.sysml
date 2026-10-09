@@ -207,23 +207,18 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> rationale = "Each rendered state must be correlatable with its observed source event.";
     }
 
-    /* Obligations formerly stated inside acceptance criteria AC-AEBS-S2-003
-     * to AC-AEBS-S2-006. A criterion records the expected result of the
-     * requirement it bounds and adds no obligation, so each added obligation
-     * is a design-input requirement of its own, derived from the need of the
-     * requirement its criterion bounds. */
     requirement reqReadOnlyBoundaryStatement : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-015 System 2 candidate derived from N-AEBS-013. */
       subject visualizationTestSystem :> system2VisualizationInstrument;
-      require constraint statement { language "English" /* The visualization test system shall state the read-only engineering-visualization boundary in its public interface in every rendered session. */ }
+      require constraint statement { language "English" /* The visualization test system shall state the read-only engineering-visualization boundary on its rendered display in every rendered session. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-013; obligation formerly stated in AC-AEBS-S2-003";
-      attribute :>> rationale = "Viewers must be able to see that the visualization observes AEBS behavior and cannot command it.";
+      attribute :>> rationale = "Disclosing the read-only boundary in every session supports the non-interference assurance that maintainers and verification engineers need.";
     }
     requirement reqObstacleGeometryFromFilteredCloud : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-016 System 2 candidate derived from N-AEBS-010. */
       subject visualizationTestSystem :> system2VisualizationInstrument;
-      require constraint statement { language "English" /* The visualization test system shall render obstacle geometry only from the display-derived filtered point cloud. */ }
+      require constraint statement { language "English" /* The visualization test system shall render display-derived obstacle geometry only from the native Autoware filtered obstacle point cloud. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-010; obligation formerly stated in AC-AEBS-S2-004";
       attribute :>> rationale = "Displayed obstacle geometry must keep one identified source.";
@@ -239,7 +234,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     requirement reqDecisionDistanceExclusionStatement : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-018 System 2 candidate derived from N-AEBS-010. */
       subject visualizationTestSystem :> system2VisualizationInstrument;
-      require constraint statement { language "English" /* The visualization test system shall state in its public interface that AEB decision distances are not visualized. */ }
+      require constraint statement { language "English" /* The visualization test system shall state on its rendered display that AEB decision distances are not visualized. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-010; obligation formerly stated in AC-AEBS-S2-004";
       attribute :>> rationale = "Viewers must not infer native AEB decision distances from the display.";
@@ -247,7 +242,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     requirement reqObstacleGeometryExpiry : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-019 System 2 candidate derived from N-AEBS-011. */
       subject visualizationTestSystem :> system2VisualizationInstrument;
-      require constraint statement { language "English" /* When the filtered obstacle-cloud source stops updating, the visualization test system shall suppress the expired display-derived obstacle geometry while accepted live frames continue. */ }
+      require constraint statement { language "English" /* When no filtered obstacle-cloud update has been received within the selected receipt-based staleness bound, the visualization test system shall suppress the display-derived obstacle geometry, including while accepted live frames continue. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-011; obligation formerly stated in AC-AEBS-S2-005";
       attribute :>> rationale = "Expired obstacle geometry must not be displayed as current while other fields stay live.";
@@ -255,7 +250,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     requirement reqNoFreshDataSubstitution : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-020 System 2 candidate derived from N-AEBS-011. */
       subject visualizationTestSystem :> system2VisualizationInstrument;
-      require constraint statement { language "English" /* The visualization test system shall not substitute interpolated, smoothed, or predicted values for missing fresh data. */ }
+      require constraint statement { language "English" /* When no filtered obstacle-cloud update has been received within the selected receipt-based staleness bound, the visualization test system shall not substitute interpolated, smoothed, or predicted values for the missing fresh data. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-011; obligation formerly stated in AC-AEBS-S2-005";
       attribute :>> rationale = "Synthesized values would let a lost source be misread as current AEBS state.";
@@ -263,10 +258,10 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     requirement reqNonColorStateCue : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-021 System 2 candidate derived from N-AEBS-011. */
       subject visualizationTestSystem :> system2VisualizationInstrument;
-      require constraint statement { language "English" /* The visualization test system shall not use color as the sole cue of a presented state. */ }
+      require constraint statement { language "English" /* The visualization test system shall not use color as the sole cue of a rendered degraded disposition. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-011; obligation formerly stated in AC-AEBS-S2-006";
-      attribute :>> rationale = "A degraded state must stay recognizable without relying on color alone.";
+      attribute :>> rationale = "A degraded disposition must stay recognizable without relying on color alone.";
     }
   }
 
@@ -288,6 +283,11 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
   dependency reqAaosEnvironmentObservationDerivedFromLiveVisualizationOnAAOS from reqAaosEnvironmentObservation to needLiveVisualizationOnAAOS;
   dependency reqNoHostBrowserSurfaceDerivedFromLiveVisualizationOnAAOS from reqNoHostBrowserSurface to needLiveVisualizationOnAAOS;
   dependency reqEvidenceCorrelationDerivedFromCorrelatableEvidence from reqEvidenceCorrelation to needCorrelatableEvidence;
+  /* REQ-AEBS-S2-015..021 carry the obligations formerly stated inside
+   * acceptance criteria AC-AEBS-S2-003 to AC-AEBS-S2-006. A criterion records
+   * the expected result of the requirement it bounds and adds no obligation,
+   * so each added obligation is a design-input requirement of its own,
+   * derived from the need of the requirement its criterion bounds. */
   connection reqReadOnlyBoundaryStatementDerivedFromNonInterference : DerivesFromNeed connect needNonInterference to reqReadOnlyBoundaryStatement;
   connection reqObstacleGeometryFromFilteredCloudDerivedFromPreservedSourceProvenance : DerivesFromNeed connect needPreservedSourceProvenance to reqObstacleGeometryFromFilteredCloud;
   connection reqNoDisplayDerivedDecisionMetricDerivedFromPreservedSourceProvenance : DerivesFromNeed connect needPreservedSourceProvenance to reqNoDisplayDerivedDecisionMetric;

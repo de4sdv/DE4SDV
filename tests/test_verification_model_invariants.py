@@ -151,14 +151,18 @@ def _bound_verification_violations(code: str, declared: set[str]) -> list[tuple[
     """Subject-bound requirement verifications that break the criterion/bench rule."""
     criterion_defs = set(_CRITERION_DEF_RE.findall(code))
     criteria = {name for name, definition in _REQUIREMENT_USAGE_RE.findall(code) if definition in criterion_defs}
-    bench_parts = set(re.findall(r"\bpart\s+(\w+)\s*:", code))
     violations = []
-    for objective, requirement, _subject, part in bound_requirement_verifications(code):
+    for objective, requirement, _subject, part, bench_type in bound_requirement_verifications(code):
         body = braced_body(code, f"objective {objective}")
         if not criteria & set(re.findall(r"\bverify\s+(\w+)\s*;", body)):
             violations.append((objective, requirement, "no acceptance criterion verified in the objective"))
+        bench_parts = (
+            set(re.findall(r"\bpart\s+(\w+)\s*:", braced_body(code, f"part def {bench_type}")))
+            if bench_type and re.search(rf"\bpart\s+def\s+{re.escape(bench_type)}\s*\{{", code)
+            else set()
+        )
         if part not in bench_parts:
-            violations.append((objective, requirement, f"bench part {part!r} is not declared"))
+            violations.append((objective, requirement, f"bench part {part!r} is not declared in the bench definition"))
         if requirement not in declared or requirement in criteria:
             violations.append((objective, requirement, "target is not a declared design-input requirement"))
     return violations
@@ -191,7 +195,10 @@ def test_bound_requirement_verification_rule_rejects_violations():
     without_criterion = _bound_verification_violations(_SYNTHETIC_CASE % ("", "unitUnderTest"), declared)
     assert [v[2] for v in without_criterion] == ["no acceptance criterion verified in the objective"]
     unknown_part = _bound_verification_violations(_SYNTHETIC_CASE % ("verify criterionA;", "elsewhere"), declared)
-    assert [v[2] for v in unknown_part] == ["bench part 'elsewhere' is not declared"]
+    assert [v[2] for v in unknown_part] == ["bench part 'elsewhere' is not declared in the bench definition"]
+    outside_bench = _bound_verification_violations(
+        (_SYNTHETIC_CASE % ("verify criterionA;", "evidenceRecord")) + "\n  part evidenceRecord : Record;\n", declared)
+    assert [v[2] for v in outside_bench] == ["bench part 'evidenceRecord' is not declared in the bench definition"]
     undeclared = _bound_verification_violations(_SYNTHETIC_CASE % ("verify criterionA;", "unitUnderTest"), {"criterionA"})
     assert [v[2] for v in undeclared] == ["target is not a declared design-input requirement"]
     assert has_product_claim("objective o { verify reqA; }")
