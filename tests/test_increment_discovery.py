@@ -1,7 +1,7 @@
 """The increments a model declares, found through charters and short names.
 
-Synthetic increments over the model's method layer (the genuine export cut,
-so the export passes kernel validation). An increment is the part usage in
+Synthetic increments over the method layer of the frozen genuine-export cut
+(so the export passes kernel validation). An increment is the part usage in
 the EngineeringIncrement lineage whose declared short name is an increment
 identifier; a charter (IncrementTraceObligations lineage) names it through
 its ``increment`` value. Nothing is looked up by element name.
@@ -18,7 +18,7 @@ import pytest
 from de4sdv.semantic.export_evaluation import export_view, load_export_snapshot
 from de4sdv.semantic.increment_discovery import declared_increments
 from de4sdv.sysml_api.errors import IdentityNotFoundError
-from increment_model_fixtures import ModelBuilder, increment_scenario, method_builder
+from increment_model_fixtures import ModelBuilder, increment_scenario, cut_method_builder
 
 GIT = "d" * 40
 
@@ -34,7 +34,7 @@ def _view(tmp_path: Path, builder: ModelBuilder):
 
 
 def _two_increments() -> ModelBuilder:
-    builder = method_builder("discovery")
+    builder = cut_method_builder("discovery")
     increment_scenario(builder, increment_id="INC-FIXTURE-002", name="Second")
     increment_scenario(builder, increment_id="INC-FIXTURE-001", name="First")
     return builder
@@ -98,7 +98,7 @@ def test_an_identifier_on_two_increment_usages_is_listed_once_with_a_note(tmp_pa
 
 
 def test_a_model_without_increments_declares_none(tmp_path: Path) -> None:
-    discovery = declared_increments(_view(tmp_path, method_builder("empty")))
+    discovery = declared_increments(_view(tmp_path, cut_method_builder("empty")))
     assert discovery.increment_ids == ()
     assert discovery.notes == ()
 
