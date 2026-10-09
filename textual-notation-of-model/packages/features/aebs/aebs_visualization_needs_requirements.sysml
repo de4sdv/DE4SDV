@@ -51,12 +51,19 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     }
   }
 
+  /* Each need frames visualizationScenarioConcern, the stakeholder concern of
+   * this increment's concern-framing and operational-context slice. The needs
+   * elaborate the observation story that concern frames: live state on the
+   * actual AAOS display, per-field provenance, fail-closed dispositions,
+   * display order matching source order, and separation from the unchanged
+   * System 1 AEBS story. */
   package VisualizationNeeds {
     requirement needLiveVisualizationOnAAOS : VisualizationEngineeringNeed {
       doc /* N-AEBS-009 draft System 2 need. */
       subject increment : VisualizationIncrement;
       stakeholder systemsEngineer : SystemsEngineer;
       stakeholder reviewer : OpenSourceReviewer;
+      frame visualizationScenarioConcern;
       require constraint statement { language "English" /* Systems engineers and reviewers need live AEBS threat and intervention state visible on an actual AAOS SDV display so that stakeholder-visible AEBS behavior can be reviewed without a host-side substitute. */ }
       attribute :>> status = ReqStatus::InDevelopment;
       attribute :>> source = "INC-AEBS-010 increment framing; GCP AAOS runtime proof environment";
@@ -67,6 +74,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       subject increment : VisualizationIncrement;
       stakeholder systemsEngineer : SystemsEngineer;
       stakeholder verificationEngineer : VerificationEngineer;
+      frame visualizationScenarioConcern;
       require constraint statement { language "English" /* Systems engineers need source provenance, units, coordinate frame, timestamps, rate and freshness, validity, and bounded displayed cardinality preserved between native Autoware output, DE4SDV AEBS coordination state, and display-derived presentation. */ }
       attribute :>> status = ReqStatus::InDevelopment;
       attribute :>> source = "INC-AEBS-010 increment framing";
@@ -77,6 +85,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       subject increment : VisualizationIncrement;
       stakeholder systemsEngineer : SystemsEngineer;
       stakeholder maintainer : Maintainer;
+      frame visualizationScenarioConcern;
       require constraint statement { language "English" /* Systems engineers and maintainers need stale, unavailable, invalid, and restored display behavior so that a lost or invalid source cannot be misread as current AEBS state. */ }
       attribute :>> status = ReqStatus::InDevelopment;
       attribute :>> source = "INC-AEBS-010 increment framing";
@@ -86,6 +95,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       doc /* N-AEBS-012 draft System 2 need. */
       subject increment : VisualizationIncrement;
       stakeholder verificationEngineer : VerificationEngineer;
+      frame visualizationScenarioConcern;
       require constraint statement { language "English" /* Verification engineers need source-to-screen correlation and replayable evidence so that displayed states can be traced to observed source events. */ }
       attribute :>> status = ReqStatus::InDevelopment;
       attribute :>> source = "INC-AEBS-010 increment framing";
@@ -96,6 +106,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       subject increment : VisualizationIncrement;
       stakeholder maintainer : Maintainer;
       stakeholder verificationEngineer : VerificationEngineer;
+      frame visualizationScenarioConcern;
       require constraint statement { language "English" /* Maintainers and verification engineers need assurance that visualization instrumentation cannot command or modify AEBS detection, warning, intervention, or release behavior. */ }
       attribute :>> status = ReqStatus::InDevelopment;
       attribute :>> source = "INC-AEBS-010 increment framing";
