@@ -295,3 +295,9 @@ def test_a_commit_id_that_is_not_a_file_name_never_becomes_a_path(snapshot_dir, 
     assert service.repository.list_elements("project-1", commit) == elements
     assert client.element_retrievals == 1
     assert not [path for path in tmp_path.rglob("*") if path.is_file()]
+
+
+def test_the_suite_never_writes_snapshots_to_the_users_cache() -> None:
+    """Every test's snapshot directory is its own temporary directory (tests/conftest.py)."""
+    default = Path.home() / ".cache" / "de4sdv" / "semantic-snapshots"
+    assert not Path(os.environ.get("DE4SDV_SEMANTIC_SNAPSHOT_DIR", default)).is_relative_to(Path.home() / ".cache")
