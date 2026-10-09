@@ -447,7 +447,9 @@ def test_an_ambiguous_increment_identity_is_an_error_of_the_framing_checks() -> 
     evaluation = _evaluate(scenario)
     assert evaluation.status()["evaluation_state"] == me.STATE_ERROR
     assert _unit(evaluation, "incrementHasIdentifier").reason_codes == (me.SCOPE_RESOLUTION_ERROR,)
-    assert evaluation.next_obligation()["next"]["gate"] == "incrementHasIdentifier"
+    step = evaluation.next_obligation()["next"]
+    assert step["gate"] == "incrementHasIdentifier"
+    assert step["what_to_author"].startswith("keep one part usage with the declared short name INC-FIXTURE-001")
 
 
 def test_a_charter_that_does_not_reference_the_increment_is_what_next_asks_to_author() -> None:

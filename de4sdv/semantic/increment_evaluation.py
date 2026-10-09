@@ -221,6 +221,9 @@ class IncrementEvaluation:
             first = next((c.subject_id for c in children if c not in method_side), None)
             if me.POPULATION_POLICY_VIOLATION in unit.reason_codes:
                 entry["what_to_author"] = self._population_remedy(gate, unit)
+            elif me.SCOPE_RESOLUTION_ERROR in unit.reason_codes:  # an ambiguous increment identity
+                entry["what_to_author"] = (f"keep one part usage with the declared short name {self.increment_id}"
+                                           f" ({'; '.join(unit.diagnostics)})")
             else:
                 entry["what_to_author"] = remedy(gate.predicate, self.view, _element_subject(first, self.view))
             entry["where"] = self._where(subjects)

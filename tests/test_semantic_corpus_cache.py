@@ -308,7 +308,19 @@ def test_a_commit_id_that_is_not_a_file_name_never_becomes_a_path(snapshot_dir, 
     assert not [path for path in tmp_path.rglob("*") if path.is_file()]
 
 
-def test_the_suite_never_writes_snapshots_to_the_users_cache() -> None:
-    """Every test's snapshot directory is its own temporary directory (tests/conftest.py)."""
-    default = Path.home() / ".cache" / "de4sdv" / "semantic-snapshots"
-    assert not Path(os.environ.get("DE4SDV_SEMANTIC_SNAPSHOT_DIR", default)).is_relative_to(Path.home() / ".cache")
+def test_a_spawned_server_writes_nothing_to_the_users_home(tmp_path, monkeypatch) -> None:
+    """The validator's real stdio server, run under a temporary HOME, leaves nothing there.
+
+    Every test's snapshot directory is its own temporary directory (tests/conftest.py), and a
+    spawned server must receive it.
+    """
+    from test_o4_validator_runtime import _run, build_inputs
+
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    assert Path(os.environ["DE4SDV_SEMANTIC_SNAPSHOT_DIR"]).is_relative_to(tmp_path)
+    binding, path, bundle, elements = build_inputs(tmp_path)
+    _run(elements, binding_path=binding, authority="model", model_bundle_path=path,
+         model_bundle_id=bundle["bundle_id"])
+    assert sorted(entry.relative_to(home).as_posix() for entry in home.rglob("*")) == []

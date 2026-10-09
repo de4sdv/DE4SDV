@@ -182,11 +182,11 @@ def workflow_of(view: ModelView, charter: str) -> tuple[str | None, str]:
 
 
 def _all_charters(view: ModelView) -> list[str]:
-    """Every IncrementTraceObligations-lineage part usage of the revision that is not a
-    parameter (a step's ``charter`` parameter is directed; a charter declaration is not)."""
+    """Every charter declaration of the revision: an IncrementTraceObligations-lineage part usage
+    declared in a package (never, for example, a step's ``charter`` parameter)."""
     found: list[str] = []
     for candidate in view.index.elements_of_type("PartUsage"):
-        if view.element(candidate).get("direction"):
+        if str(view.element(view.index.owner_of(candidate)).get("@type")) not in ("Package", "LibraryPackage"):
             continue
         try:
             if view.in_lineage(candidate, CHARTER_CLASS):
