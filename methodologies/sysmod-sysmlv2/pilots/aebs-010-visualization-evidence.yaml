@@ -63,6 +63,8 @@ phase10_claim:
       status: open
     - id: GAP-AEBS-010-009
       status: open
+    - id: GAP-AEBS-010-010
+      status: open_success_criteria_missing
 
 known_limitations:
   - id: DEF-AEBS-S2-001

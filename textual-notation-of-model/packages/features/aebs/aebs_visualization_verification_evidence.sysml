@@ -640,9 +640,17 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
 
   /* Planned verification cases for the requirements that no retained
    * campaign verifies. They are planning only: not executed, no evidence
-   * record bound, no argument supporting the claim. Their verdict stays
-   * inconclusive until a later campaign retains evidence that meets the
-   * verdict-record rule (AC-AEBS-S2-008). */
+   * record bound, no argument supporting the claim.
+   *
+   * Each verifies the verdict-record rule AC-AEBS-S2-008, which the slice
+   * applies to every case: it bounds what any verdict of the case may claim,
+   * so missing evidence is never a pass. It is also the acceptance criterion
+   * that the verification invariant requires next to each subject-bound
+   * requirement verification. AC-AEBS-S2-008 is not a success criterion of
+   * these requirements. Their requirement-specific success criteria are
+   * missing and recorded as GAP-AEBS-010-010, so each verdict stays
+   * inconclusive at least until those criteria exist and a later campaign
+   * retains evidence that meets them. */
 
   verification def VisualizationLiveSourceFidelityVerification {
     doc /*
@@ -1124,6 +1132,16 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
      * verification of an identified configuration), and no verification
      * claim is made. The gap stays open as an accepted limitation; any later
      * verification belongs to a successor increment in this chain.
+     */
+  }
+  part gapRequirementSuccessCriteriaMissing : IncrementGap {
+    doc /*
+     * GAP-AEBS-010-010: REQ-AEBS-S2-002, -003, -004, -006, -008, -012 and
+     * -013 have no requirement-specific success criterion. Their planned
+     * cases VC-AEBS-S2-008..010 verify only the verdict-record rule
+     * AC-AEBS-S2-008, which states when a verdict is acceptable, not when a
+     * requirement is met. The criteria are to be defined before these
+     * requirements are baselined. Owner: successor increment in this chain.
      */
   }
 

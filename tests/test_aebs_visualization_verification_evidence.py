@@ -804,3 +804,30 @@ def test_retired_s2_names_absent_from_live_source() -> None:
         if name in live_sources
     ]
     assert not residual, f"retired names still referenced in live source: {residual}"
+
+
+def test_success_criteria_gap_names_every_requirement_without_a_criterion() -> None:
+    """GAP-AEBS-010-010 names exactly the requirements that no
+    requirement-specific acceptance criterion traces to. AC-AEBS-S2-008, the
+    verdict-record rule, is not such a criterion."""
+    model = _model()
+    code = _strip_sysml_comments(model)
+    needs = _read(MODEL_DIR / "aebs_visualization_needs_requirements.sysml")
+    ids = dict(
+        re.findall(
+            r"requirement (req\w+) : VisualizationInstrumentRequirementCandidate \{\s*doc /\* (REQ-AEBS-S2-\d{3})",
+            needs,
+        )
+    )
+    traced = set(re.findall(r"\bfrom acceptanceCriterion\w+\s+to (req\w+);", code))
+    missing = sorted(ids[usage] for usage in ids if usage not in traced)
+    assert missing == [
+        "REQ-AEBS-S2-002", "REQ-AEBS-S2-003", "REQ-AEBS-S2-004", "REQ-AEBS-S2-006",
+        "REQ-AEBS-S2-008", "REQ-AEBS-S2-012", "REQ-AEBS-S2-013",
+    ]
+    gap = re.search(r"part gapRequirementSuccessCriteriaMissing : IncrementGap \{.*?\n  \}", model, re.S)
+    assert gap and "GAP-AEBS-010-010" in gap.group(0)
+    named = set(re.findall(r"-(\d{3})\b", gap.group(0)))
+    assert {req.rsplit("-", 1)[1] for req in missing} <= named
+    deferred = {item["id"] for item in _pilot()["phase10_claim"]["deferred_items"]}
+    assert "GAP-AEBS-010-010" in deferred
