@@ -27,7 +27,15 @@ from de4sdv.semantic import corpus_cache as cc
 from de4sdv.sysml_api.errors import RevisionMismatchError
 from de4sdv.sysml_api.repository import SysMLRepository, validated_element_corpus
 from de4sdv.sysml_api.revisions import RevisionBinding
-from increment_model_fixtures import increment_scenario, install_model_workflow
+from increment_model_fixtures import (
+    WorkflowCheck,
+    WorkflowParameter,
+    WorkflowStep,
+    increment_scenario,
+    increment_workflow,
+    method_builder,
+    model_workflow,
+)
 from model_contract_fixtures import binding_dict, model_service, synthetic_identity
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -36,8 +44,8 @@ INCREMENT = "INC-FIXTURE-001"
 
 
 def _corpus() -> tuple[list[dict], list[dict]]:
-    scenario = increment_scenario()
-    install_model_workflow(scenario)
+    scenario = increment_scenario(method_builder())
+    model_workflow(scenario)
     return scenario.builder.elements, scenario.builder.bindings
 
 
@@ -195,7 +203,10 @@ def _complete_corpus() -> tuple[list[dict], list[dict]]:
     kernel_elements, kernel_bindings = _elements_and_bindings()
     builder = ModelBuilder(label="Complete")
     builder.adopt(kernel_elements, kernel_bindings)
-    install_model_workflow(increment_scenario(builder))
+    scenario = increment_scenario(builder)
+    increment_workflow(builder, [WorkflowStep("frameIncrement", "phase0_incrementFraming", (
+        WorkflowParameter("increment", "EngineeringIncrement"),), (
+        WorkflowCheck("incrementHasIdentifier", "incrementShortName", "increment"),))], charter=scenario.charter)
     return builder.elements, builder.bindings
 
 

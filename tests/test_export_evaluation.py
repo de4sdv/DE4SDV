@@ -20,7 +20,7 @@ from de4sdv.semantic.export_evaluation import (
     ExportEvaluationRefused,
     evaluate_export,
 )
-from increment_model_fixtures import increment_scenario, install_model_workflow
+from increment_model_fixtures import increment_scenario, method_builder, model_workflow
 from model_contract_fixtures import binding_dict, model_service, synthetic_identity
 from de4sdv.sysml_api.revisions import RevisionBinding
 from test_semantic_method_tools import INCREMENT, _Repository
@@ -49,10 +49,10 @@ def _write(tmp_path: Path, scenario, **binding_overrides) -> tuple[Path, Path]:
 
 
 def _scenario(complete_kernel: bool = True):
-    scenario = increment_scenario()
-    install_model_workflow(scenario)
+    """The model's method from the genuine export; without it, a synthetic kernel that is incomplete."""
+    scenario = increment_scenario(method_builder() if complete_kernel else None)
     if complete_kernel:
-        scenario.builder.declare_kernel()
+        model_workflow(scenario)
     # Make the model gappy so every projection carries content.
     need = scenario.needs[1]
     builder = scenario.builder

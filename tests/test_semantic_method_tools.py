@@ -19,7 +19,7 @@ from de4sdv.semantic import method_evaluator as me
 from de4sdv.semantic.mcp_server import create_mcp_server
 from de4sdv.sysml_api.errors import RevisionMismatchError
 from de4sdv.sysml_api.repository import SysMLRepository
-from increment_model_fixtures import increment_scenario, install_model_workflow
+from increment_model_fixtures import increment_scenario, method_builder, model_workflow
 from model_contract_fixtures import binding, model_service
 
 P4 = "phase4_needs"
@@ -39,10 +39,9 @@ class _Repository(SysMLRepository):
 
 
 def _service(with_workflow: bool = True, git_commit: str = "a" * 40):
-    scenario = increment_scenario()
-    scenario.builder.kernel_definition("AcceptanceCriterion")
+    scenario = increment_scenario(method_builder())
     if with_workflow:
-        install_model_workflow(scenario)
+        model_workflow(scenario)
     revision_binding = binding(git_commit=git_commit, kernel_bindings=scenario.builder.bindings)
     repository = _Repository(scenario.builder.elements)
     return model_service(revision_binding, repository), scenario, repository

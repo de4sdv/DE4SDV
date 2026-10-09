@@ -22,19 +22,19 @@ from increment_model_fixtures import (
     WorkflowStep,
     increment_scenario,
     increment_workflow,
-    install_model_workflow,
+    method_builder,
+    model_workflow,
+    set_check,
 )
 from test_revision_index import _traversal
 
 REVISION = me.RevisionIdentity("a" * 40, "project", "commit", "full-model")
 P0, P4, P5, P10 = ("phase0_incrementFraming", "phase4_needs", "phase5_requirements", "phase10_vvEvidence")
-ADVISORY = {"requirementSpecifiesFeatureOrCapability", "verificationCaseVerifiesAcceptanceCriterion",
-            "verificationCaseHasEvidenceRecordOrStatus"}
 
 
-def _scenario(applicable_phases=(P0, P4, P5, P10), **changes):
-    scenario = increment_scenario(applicable_phases=applicable_phases)
-    install_model_workflow(scenario, **changes)
+def _scenario(applicable_phases=(P0, P4, P5, P10)):
+    scenario = increment_scenario(method_builder(), applicable_phases=applicable_phases)
+    scenario.workflow = model_workflow(scenario)
     return scenario
 
 
@@ -58,19 +58,6 @@ def _remove_stakeholders(scenario, owner) -> None:
     builder = scenario.builder
     builder.remove(*[e for e in builder.elements if e.get("@type") == "StakeholderMembership"
                      and e.get("owningRelatedElement", {}).get("@id") == owner["@id"]])
-
-
-def test_complete_increment_passes_every_blocking_check() -> None:
-    evaluation = _evaluate(_scenario())
-    states = {u.unit_id: (u.verdict or u.state) for u in evaluation.canonical.units}
-    blocking_failures = {check: state for check, state in states.items()
-                         if state not in {me.VERDICT_PASS, me.VERDICT_NOT_APPLICABLE} and check not in ADVISORY}
-    assert blocking_failures == {}
-    status = evaluation.status()
-    assert [b["phase"] for b in status["phases"]] == [P0, P4, P5, P10]
-    assert all(block["phase_exit"] == "READY" for block in status["phases"])
-    nxt = evaluation.next_obligation()
-    assert nxt["next"] is None and nxt["method_side_blockers"] == []
 
 
 def test_projections_share_one_evaluation_identity() -> None:
@@ -240,11 +227,10 @@ def test_a_phase_without_checks_is_unassessed_never_a_pass() -> None:
 
 
 def test_an_empty_required_inventory_cannot_open_a_phase_exit() -> None:
-    advisory_only = (
-        WorkflowCheck("verificationCaseHasEvidenceRecordOrStatus", "evidenceRecordOrStatus", "verificationCases",
-                      advisory=True),
-    )
-    evaluation = _evaluate(_scenario(planVerificationAndEvidence={"checks": advisory_only}))
+    scenario = _scenario()
+    for check in ("verificationCaseVerifiesRequirement", "requirementVerifiedByVerificationCase"):
+        set_check(scenario, scenario.workflow, check, advisory=True)
+    evaluation = _evaluate(scenario)
     block = _phase(evaluation.status(), P10)
     assert (block["assessment_coverage"], block["evaluation_state"], block["conformance_verdict"]) == (
         me.COVERAGE_UNASSESSED, None, None)

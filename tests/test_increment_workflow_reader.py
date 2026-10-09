@@ -32,8 +32,10 @@ from increment_model_fixtures import (
     attach_workflow,
     increment_scenario,
     increment_workflow,
-    install_model_workflow,
+    method_builder,
+    model_workflow,
     ref,
+    set_check,
 )
 from test_revision_index import _traversal
 
@@ -67,9 +69,9 @@ def _evaluate(scenario):
     return evaluate_increment(_view(scenario), scenario.increment_id, revision=REVISION)
 
 
-def _scenario(applicable_phases=(P0, P4, P5, P10), **changes):
-    scenario = increment_scenario(applicable_phases=applicable_phases)
-    install_model_workflow(scenario, **changes)
+def _scenario(applicable_phases=(P0, P4, P5, P10)):
+    scenario = increment_scenario(method_builder(), applicable_phases=applicable_phases)
+    scenario.workflow = model_workflow(scenario)
     return scenario
 
 
@@ -145,7 +147,9 @@ def test_a_metadata_usage_without_a_check_attribute_is_not_a_check() -> None:
     builder.own(note_definition, builder.new("AttributeUsage", name="text"), kind="FeatureMembership",
                 member_name="text")
     note = builder.new("MetadataUsage", name="reviewNote")
-    builder.own(_named(scenario, "ElaborateNeedsStep"), note, kind="FeatureMembership", member_name="reviewNote")
+    step_definition = next(e for e in builder.elements
+                           if e["@id"] == _typing(builder, scenario.workflow["steps"]["elaborateNeeds"])["type"]["@id"])
+    builder.own(step_definition, note, kind="FeatureMembership", member_name="reviewNote")
     builder.typed(note, note_definition)
     method = _method(scenario)
     assert method.available and "reviewNote" not in {o.obligation_id for o in method.contract.obligations}
@@ -160,8 +164,11 @@ def test_a_complete_increment_passes_every_blocking_check() -> None:
             me.COVERAGE_ASSESSED, me.STATE_COMPLETE, me.VERDICT_PASS), (unit.unit_id, unit.diagnostics)
     assert _unit(evaluation, "verificationCaseVerifiesAcceptanceCriterion").verdict == me.VERDICT_FAIL
     assert _unit(evaluation, "verificationCaseHasEvidenceRecordOrStatus").state == me.STATE_INDETERMINATE
-    assert [block["phase_exit"] for block in evaluation.status()["phases"]] == ["READY"] * 4
+    status = evaluation.status()
+    assert [(block["phase"], block["phase_exit"]) for block in status["phases"]] == [
+        (P0, "READY"), (P4, "READY"), (P5, "READY"), (P10, "READY")]
     assert evaluation.next_obligation()["next"] is None
+    assert evaluation.next_obligation()["method_side_blockers"] == []
 
 
 def test_every_check_is_evaluated_and_next_follows_workflow_order() -> None:
@@ -261,8 +268,9 @@ def test_cyclic_successions_are_invalid() -> None:
 
 
 def test_minimum_raises_the_number_of_targets_each_subject_needs() -> None:
-    evaluation = _evaluate(_scenario(specifyRequirements={"checks": (
-        C("requirementDerivesFromNeed", "derivesRequirementFromNeed", "requirements", minimum=2),)}))
+    scenario = _scenario()
+    set_check(scenario, scenario.workflow, "requirementDerivesFromNeed", minimum=2)
+    evaluation = _evaluate(scenario)
     assert _unit(evaluation, "requirementDerivesFromNeed").verdict == me.VERDICT_FAIL
 
 
@@ -390,14 +398,10 @@ def test_framed_concern_check_needs_one_framed_concern_of_the_own_package() -> N
 def test_a_step_multiplicity_that_cannot_be_decoded_makes_the_method_invalid() -> None:
     """A declared multiplicity is never read as a default: the method is invalid, not mandatory."""
     scenario = _scenario()
-    builder = scenario.builder
-    step = _named(scenario, "elaborateNeeds")
-    by_id = {e["@id"]: e for e in builder.elements}
-    (multiplicity,) = [by_id[by_id[r["@id"]]["memberElement"]["@id"]] for r in step["ownedRelationship"]
-                       if by_id[r["@id"]].get("@type") == "OwningMembership"
-                       and by_id[by_id[r["@id"]]["memberElement"]["@id"]]["@type"] == "MultiplicityRange"]
-    (expression,) = [by_id[by_id[r["@id"]]["memberElement"]["@id"]] for r in multiplicity["ownedRelationship"]]
-    expression["operator"] = "+"
+    index = _view(scenario).index
+    (multiplicity,) = index.owned_members(scenario.workflow["steps"]["elaborateNeeds"]["@id"], "MultiplicityRange")
+    (expression,) = index.owned_members(multiplicity)
+    index.element(expression)["operator"] = "+"
     method = _method(scenario)
     assert method.contract is None
     assert any("elaborateNeeds" in problem and "multiplicity" in problem for problem in method.problems)
@@ -405,7 +409,8 @@ def test_a_step_multiplicity_that_cannot_be_decoded_makes_the_method_invalid() -
 
 def _typing(builder, usage) -> dict:
     by_id = {e["@id"]: e for e in builder.elements}
-    return next(by_id[r["@id"]] for r in usage["ownedRelationship"] if by_id[r["@id"]].get("@type") == "FeatureTyping")
+    return next(by_id[r["@id"]] for r in usage["ownedRelationship"]
+                if by_id[r["@id"]].get("@type") == "FeatureTyping" and not by_id[r["@id"]].get("isImplied"))
 
 
 def _remove_need_statements(scenario) -> None:
@@ -415,9 +420,8 @@ def _remove_need_statements(scenario) -> None:
 
 
 def test_a_check_typed_by_a_method_check_specialization_is_a_check() -> None:
-    scenario = increment_scenario()
-    builder = scenario.builder
-    workflow = install_model_workflow(scenario)
+    scenario = _scenario()
+    builder, workflow = scenario.builder, scenario.workflow
     package = next(e for e in builder.elements if e["@id"] == _owner(builder, workflow["check_definition"]))
     blocking = builder.definition("MetadataDefinition", "BlockingCheck", package, [workflow["check_definition"]])
     typing = _typing(builder, workflow["checks"]["needHasStatement"])
@@ -427,9 +431,8 @@ def test_a_check_typed_by_a_method_check_specialization_is_a_check() -> None:
 
 
 def test_a_tailored_step_definition_inherits_and_redefines_its_checks_and_parameters() -> None:
-    scenario = increment_scenario()
-    builder = scenario.builder
-    workflow = install_model_workflow(scenario)
+    scenario = _scenario()
+    builder, workflow = scenario.builder, scenario.workflow
     typing = _typing(builder, workflow["steps"]["elaborateNeeds"])
     base = next(e for e in builder.elements if e["@id"] == typing["type"]["@id"])
     package = next(e for e in builder.elements if e["@id"] == _owner(builder, base))
@@ -478,4 +481,4 @@ def test_two_charters_fail_the_charter_check_of_the_framing_step() -> None:
     builder.attribute(second, "increment", scenario.usage, kind="PartUsage")
     step = _evaluate(scenario).next_obligation()["next"]
     assert step["gate"] == "incrementHasCharter"
-    assert step["what_to_author"].startswith("keep exactly 1 IncrementTraceObligations in the increment's package")
+    assert step["what_to_author"].startswith("keep exactly 1 IncrementCharter in the increment's package")
