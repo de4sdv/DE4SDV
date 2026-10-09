@@ -16,9 +16,12 @@ definition's `workflow` feature -> the workflow definition -> its step actions
 in succession order -> each step's `phase`, parameters and `MethodCheck`
 metadata about a parameter (`check`, `minimum`, `advisory`).
 
-- **Scope.** A check's subjects are the elements of the packages the charter
-  declares in `expectedArtifacts` (with their nested packages) that conform to
-  the parameter: typed by its type, or of its usage kind when it is untyped.
+- **Scope.** A check's subjects are the elements that conform to the
+  parameter (typed by its type, or of its usage kind when it is untyped). For
+  the framing step they come from the increment's own package, the package
+  that owns the increment usage and its charter; for the later steps, from the
+  packages the charter declares in `expectedArtifacts`, with their nested
+  packages.
 - **Population.** The parameter's multiplicity bounds the number of subjects:
   `[1]` means exactly one, `[0..*]` lets an empty population mean "does not
   apply".

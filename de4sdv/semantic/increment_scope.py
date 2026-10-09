@@ -14,6 +14,9 @@ relationships only:
 - the charter declaration: the IncrementTraceObligations-lineage usage whose
   ``increment`` value references the usage, and its declared applicable
   phases (MethodPhase literals);
+- the increment's own package: the package that owns the increment usage
+  (and its charter), whose directly owned elements are the framing step's
+  scope;
 - the increment's scope: the top-level packages the charter declares in
   ``expectedArtifacts`` (String values matched to the declared names of
   top-level packages, exactly and uniquely), with every element they own
@@ -184,6 +187,9 @@ class IncrementScope:
     scope_packages: tuple[str, ...] = ()
     #: Every element those packages own through nested packages.
     scope_elements: tuple[str, ...] = ()
+    #: The elements the increment's own package (the owner of the increment
+    #: usage and its charter) owns directly: the scope of the framing step.
+    own_elements: tuple[str, ...] = ()
     problems: Mapping[str, tuple[str, str]] = field(default_factory=dict)
     diagnostics: tuple[str, ...] = ()
 
@@ -232,9 +238,11 @@ def resolve_increment(view: ModelView, increment_id: str) -> IncrementScope:
     declared_phases: tuple[str, ...] | None = None
     scope_packages: tuple[str, ...] = ()
     scope_elements: tuple[str, ...] = ()
+    own_elements: tuple[str, ...] = ()
     if usage_id is not None:
         definition_ids = tuple(sorted(index.typed_by(usage_id)))
         package_id = index.owner_of(usage_id)
+        own_elements = _ordered(view, index.owned_members(package_id)) if package_id else ()
         charters, charter_problem = _charters(view, usage_id)
         if charter_problem:
             diagnostics.append(charter_problem)
@@ -267,6 +275,7 @@ def resolve_increment(view: ModelView, increment_id: str) -> IncrementScope:
         declared_phases=declared_phases,
         scope_packages=scope_packages,
         scope_elements=scope_elements,
+        own_elements=own_elements,
         problems=problems,
         diagnostics=tuple(diagnostics),
     )

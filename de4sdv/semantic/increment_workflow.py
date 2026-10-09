@@ -23,10 +23,11 @@ looked up by name:
 
 Contract, one obligation per check:
 
-- subjects: the elements of the increment's scope (the packages its charter
-  declares) that conform to the parameter: typed by its type or a
-  specialization of it, or, for an untyped parameter such as
-  ``out verification cases[1..*]``, of its usage kind;
+- subjects: the elements that conform to the parameter (typed by its type
+  or a specialization of it, or, for an untyped parameter such as
+  ``out verification cases[1..*]``, of its usage kind) in the framing step's
+  scope, the increment's own package (the mandatory step: framing always
+  applies), or in a later step's scope, the packages the charter declares;
 - population: within the parameter's multiplicity (no multiplicity: exactly
   one); a lower bound of 0 permits an empty population;
 - cardinality: ``minimum`` distinct targets, bounded above where the check
@@ -70,6 +71,8 @@ WORKFLOW_FEATURE = "workflow"
 CHECK_ATTRIBUTE = "check"
 #: Selector kind of a check's subjects: the increment's elements conforming to a parameter.
 PARAMETER_SELECTOR = "workflow-step-parameter"
+#: Selector kind of a framing check's subjects: elements of the increment's own package.
+OWN_PACKAGE_SELECTOR = "workflow-framing-parameter"
 #: Subject selector of an untyped parameter: ``kind:<usage metaclass>``.
 KIND_PREFIX = "kind:"
 APPLICABILITY_ALWAYS = "unconditional"
@@ -115,7 +118,8 @@ class _Invalid(ValueError):
 # ---------------------------------------------------------------------------
 
 
-def _parameter_subjects(spec: me.ObligationSpec, ctx: me.EvaluationContext) -> tuple[list[str], list[str]]:
+def _scoped_subjects(spec: me.ObligationSpec, ctx: me.EvaluationContext, *,
+                     own_package: bool) -> tuple[list[str], list[str]]:
     view = getattr(ctx, "model", None)
     increment = getattr(ctx, "increment", None)
     if view is None or increment is None:
@@ -127,7 +131,7 @@ def _parameter_subjects(spec: me.ObligationSpec, ctx: me.EvaluationContext) -> t
         raise me.SubjectResolutionError(
             me.SCOPE_RESOLUTION_ERROR if kind == PROBLEM_INVALID else me.INPUT_UNAVAILABLE,
             diagnostics=(detail,), missing=(detail,) if kind != PROBLEM_INVALID else ())
-    elements = increment.scope_elements
+    elements = increment.own_elements if own_package else increment.scope_elements
     if spec.subject_selector.startswith(KIND_PREFIX):
         kind = spec.subject_selector[len(KIND_PREFIX):]
         return [element for element in elements if str(view.element(element).get("@type")) == kind], []
@@ -135,8 +139,19 @@ def _parameter_subjects(spec: me.ObligationSpec, ctx: me.EvaluationContext) -> t
     return [element for element in elements if view.index.typed_by(element) & types], []
 
 
+def _parameter_subjects(spec: me.ObligationSpec, ctx: me.EvaluationContext) -> tuple[list[str], list[str]]:
+    """Subjects of a later step's check: the charter-declared scope."""
+    return _scoped_subjects(spec, ctx, own_package=False)
+
+
+def _framing_subjects(spec: me.ObligationSpec, ctx: me.EvaluationContext) -> tuple[list[str], list[str]]:
+    """Subjects of a framing check: the increment's own package."""
+    return _scoped_subjects(spec, ctx, own_package=True)
+
+
 WORKFLOW_SELECTORS = me.DEFAULT_SELECTORS.with_definitions(
-    me.SelectorDefinition(PARAMETER_SELECTOR, _parameter_subjects))
+    me.SelectorDefinition(PARAMETER_SELECTOR, _parameter_subjects),
+    me.SelectorDefinition(OWN_PACKAGE_SELECTOR, _framing_subjects))
 
 
 # ---------------------------------------------------------------------------
@@ -388,7 +403,9 @@ def _check(view: ModelView, metadata: str, step_name: str, phase: str, parameter
         obligation_id=index.name_of(metadata) or check_id,
         phase=phase,
         subject_selector=selector,
-        selector_kind=PARAMETER_SELECTOR,
+        # The framing step (the mandatory step) reads the increment's own
+        # package; the later, optional steps read the charter-declared scope.
+        selector_kind=PARAMETER_SELECTOR if optional else OWN_PACKAGE_SELECTOR,
         applicability=APPLICABILITY_DECLARED if optional else APPLICABILITY_ALWAYS,
         applicability_kind=me.APPLICABILITY_DECLARED_PHASE if optional else me.APPLICABILITY_UNCONDITIONAL,
         minimum_population=lower,
@@ -404,6 +421,7 @@ def _check(view: ModelView, metadata: str, step_name: str, phase: str, parameter
         maximum_population=upper,
     )
     label = {"step": step_name, "parameter": parameters[parameter],
+             "scope": "declared packages" if optional else "increment package",
              "direction": str(index.element(parameter).get("direction") or ""),
              "subject_type": (index.qualified_name(types[0]) or types[0]) if types else kind, "check": check_id,
              "check_definition": index.qualified_name(sorted(index.typed_by(metadata))[0])}

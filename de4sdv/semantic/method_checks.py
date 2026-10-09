@@ -171,19 +171,26 @@ def _stakeholder_member(view: ModelView, increment: IncrementScope, subject_id: 
 
 
 def _framed_by_increment_view(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
-    """The concern is framed by a viewpoint of a view the increment package owns."""
-    viewpoints, witnesses = [], []
+    """At least one concern of the increment package is framed by a viewpoint of a view of that package.
+
+    The rule is about the package: every concern subject reports the
+    package-level result (the framed concerns and their framing memberships).
+    """
+    framed, witnesses = [], []
     if increment.package_id is not None:
+        concerns = set(view.index.owned_members(increment.package_id, "ConcernUsage"))
         for view_usage in view.index.owned_members(increment.package_id, "ViewUsage"):
             for viewpoint in view.index.owned_members(view_usage, "ViewpointUsage"):
                 for relationship in view.index.owned_relationships(viewpoint, "FramedConcernMembership"):
-                    if any(view.index.declared_of(member) == subject_id
-                           for member in reference_ids(relationship.get("memberElement"))):
-                        viewpoints.append(viewpoint)
-                        witnesses.append(str(relationship.get("@id")))
-    if not viewpoints:
-        return violated(f"{_name(view, subject_id)} is framed by no viewpoint of a view owned by the increment package")
-    return satisfied(viewpoints, witnesses)
+                    for member in reference_ids(relationship.get("memberElement")):
+                        concern = view.index.declared_of(member)
+                        if concern in concerns and concern not in framed:
+                            framed.append(concern)
+                            witnesses.append(str(relationship.get("@id")))
+    if not framed:
+        package = _name(view, increment.package_id) if increment.package_id else "the increment package"
+        return violated(f"no concern of {package} is framed by a viewpoint of a view of that package")
+    return satisfied(framed, witnesses)
 
 
 def _charter_text(attribute: str) -> CheckFunction:

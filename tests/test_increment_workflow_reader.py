@@ -312,8 +312,9 @@ def test_framing_checks_name_what_is_missing() -> None:
                           [scenario.vocabulary["Assumption"]])
     evaluation = _evaluate(scenario)
     assert _unit(evaluation, "incrementHasOwner").verdict == me.VERDICT_FAIL
-    verdicts = {r.subject_id: r.verdict for r in _children(evaluation, "incrementHasAssumption")}
-    assert verdicts[stray["@id"]] == me.VERDICT_FAIL
+    # Framing reads the increment's own package: an assumption elsewhere is not counted.
+    assert stray["@id"] not in {r.subject_id for r in _children(evaluation, "incrementHasAssumption")}
+    assert _unit(evaluation, "incrementHasAssumption").verdict == me.VERDICT_PASS
 
 
 def test_the_revision_method_is_the_one_workflow_its_charters_declare() -> None:
@@ -366,3 +367,32 @@ def test_the_model_charter_declares_the_workflow_feature_the_reader_follows() ->
     charter = re.search(r"part def IncrementCharter\b[^{]*\{(.*?)\n  \}", text, re.S)
     assert charter is not None
     assert re.search(rf"\baction\s+{WORKFLOW_FEATURE}\s*:\s*IncrementWorkflow\b", charter.group(1))
+
+
+def test_framing_counts_only_the_increments_own_package() -> None:
+    """Framing checks read the package that owns the increment; later steps read the declared packages."""
+    scenario = _scenario()
+    builder = scenario.builder
+    phase_decision = builder.usage("PartUsage", "phaseDecision", scenario.needs_package,
+                                   [scenario.vocabulary["IncrementLifecycleDecision"]])
+    evaluation = _evaluate(scenario)
+    unit = _unit(evaluation, "incrementHasLifecycleDecision")
+    assert unit.verdict == me.VERDICT_PASS, unit.diagnostics
+    assert phase_decision["@id"] not in {r.subject_id for r in _children(evaluation, "incrementHasLifecycleDecision")}
+    # A need in another declared package is still a subject of the needs step.
+    assert {r.subject_id for r in _children(evaluation, "needHasStatement")} == {n["@id"] for n in scenario.needs}
+
+
+def test_framed_concern_check_needs_one_framed_concern_of_the_own_package() -> None:
+    scenario = _scenario()
+    builder = scenario.builder
+    unframed = builder.usage("ConcernUsage", "unframedConcern", scenario.framing)
+    foreign = builder.usage("ConcernUsage", "foreignConcern", scenario.needs_package)
+    evaluation = _evaluate(scenario)
+    subjects = {r.subject_id for r in _children(evaluation, "incrementHasFramedConcern")}
+    assert unframed["@id"] in subjects and foreign["@id"] not in subjects
+    assert _unit(evaluation, "incrementHasFramedConcern").verdict == me.VERDICT_PASS
+    viewpoint = _named(scenario, "selectedViewpoint")
+    builder.remove(*[e for e in builder.elements if e.get("@type") == "FramedConcernMembership"
+                     and e.get("owningRelatedElement", {}).get("@id") == viewpoint["@id"]])
+    assert _unit(_evaluate(scenario), "incrementHasFramedConcern").verdict == me.VERDICT_FAIL
