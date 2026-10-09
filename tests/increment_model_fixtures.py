@@ -386,15 +386,12 @@ class IncrementScenario:
     definition: dict[str, Any]
     usage: dict[str, Any]
     charter: dict[str, Any]
-    problem_statement: dict[str, Any]
     concern: dict[str, Any]
     needs_package: dict[str, Any]
     needs: list[dict[str, Any]]
     requirements: list[dict[str, Any]]
     evidence_package: dict[str, Any]
     cases: list[dict[str, Any]]
-    stakeholder_role: dict[str, Any]
-    scenario_definition: dict[str, Any]
     vocabulary: dict[str, dict[str, Any]] = field(default_factory=dict)
     #: Handles to the model workflow the charter declares (see :func:`model_workflow`).
     workflow: dict[str, Any] = field(default_factory=dict)
@@ -500,10 +497,8 @@ def increment_scenario(
     b.subject(case, bench, name="verifiedBench")
     return IncrementScenario(
         builder=b, increment_id=increment_id, phases=phases, framing=framing, definition=definition,
-        usage=usage, charter=charter, problem_statement=problem, concern=concern,
-        needs_package=needs_package, needs=needs, requirements=requirements,
-        evidence_package=evidence_package, cases=[case], stakeholder_role=role,
-        scenario_definition=scenario_def, vocabulary=roots)
+        usage=usage, charter=charter, concern=concern, needs_package=needs_package, needs=needs,
+        requirements=requirements, evidence_package=evidence_package, cases=[case], vocabulary=roots)
 
 
 # ---------------------------------------------------------------------------
