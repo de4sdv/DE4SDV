@@ -4,10 +4,11 @@ A method declares checks about the elements its steps produce. Each check
 names, by its id, what must hold for every subject element; :func:`method_checks`
 maps the id to the implementation that decides it for one subject:
 
-- **named checks** state one rule, for example ``framesStakeholderConcern``
-  (the need frames a concern that declares a stakeholder), ``oneNativeSubject``
-  (exactly one subject), ``oneVerificationMethodKind`` (one standard
-  verification method kind is recorded) or ``ownedByIncrementPackage``;
+- **named checks** state one rule, for example ``framedByIncrementView``
+  (a viewpoint of a view in the increment package frames a concern of that
+  package), ``oneNativeSubject`` (exactly one subject),
+  ``oneVerificationMethodKind`` (one standard verification method kind is
+  recorded) or ``ownedByIncrementPackage``;
 - **relation names**, for example ``derivesRequirementFromNeed``,
   ``hasValidationScenario`` or ``verifiedBy``: the subject reaches targets
   through that relation (see :mod:`de4sdv.semantic.relation_checks`).
@@ -350,6 +351,8 @@ NAMED_CHECKS: Mapping[str, CheckFunction] = MappingProxyType({
     "requireConstraint": _require_constraint,
     "sourceAttribute": _library_attribute("source"),
     "rationaleAttribute": _library_attribute("rationale"),
+    # Kept only for the frozen genuine-export cut, whose workflow predates the rule that needs
+    # never frame concerns and still declares this check; removed at the next re-cut.
     "framesStakeholderConcern": _frames_stakeholder_concern,
     "oneNativeSubject": _one_native_subject,
     "oneVerificationMethodKind": _library_attribute("verificationMethod", allowed=STANDARD_VERIFICATION_METHOD_KINDS),

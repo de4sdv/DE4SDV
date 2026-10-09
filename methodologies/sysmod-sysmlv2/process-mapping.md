@@ -305,7 +305,7 @@ some links are draft:
 
 ```text
 Stakeholder concern
-  -> Need
+  -> Need (provenance: stakeholder, source, rationale; not framing or derivation)
   -> Requirement / constraint
   -> Feature or common capability
   -> Architecture element / function / interface

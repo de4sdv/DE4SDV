@@ -65,8 +65,12 @@ These method rules apply to every increment:
    review evidence are plain attributes, not new kernel classes.
 2. **Needs.** Each need has a statement, at least one stakeholder, an ODE4HERA
    source and rationale, and at least one planned validation scenario.
-3. **Need to concern.** Each need frames at least one stakeholder concern
-   through native SysML v2 framing.
+3. **Needs and concerns.** Only viewpoints frame concerns. A need doesn't
+   frame the concern it comes from: a requirement that frames a concern is
+   satisfied only when the whole concern is addressed, while a need usually
+   covers only part of one. A need traces to the concerns behind it through
+   its stakeholder, source and rationale (rule 2). A repository test checks
+   that every `frame` in the model belongs to a viewpoint.
 4. **Requirement to need.** Only the governed `DerivesFromNeed` connection
    counts. Plain dependencies don't.
 5. **Requirement.** A requirement has exactly one native subject and exactly
@@ -209,7 +213,7 @@ Every substantial increment should try to establish this chain, even if some lin
 
 ```text
 Stakeholder concern
-  -> Need
+  -> Need (provenance: stakeholder, source, rationale; not framing or derivation)
   -> Requirement / constraint
   -> Feature or common capability
   -> Architecture element / function / interface

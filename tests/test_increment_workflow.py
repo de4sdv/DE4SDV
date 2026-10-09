@@ -9,8 +9,11 @@ validation stays the authority for syntax and semantics.
 
 from __future__ import annotations
 
+import gzip
+import json
 import re
 
+from increment_model_fixtures import GENUINE_EXPORT
 from sysml_shapes import MODEL_ROOT, braced_body, strip_comments
 
 WORKFLOW_FILE = MODEL_ROOT / "packages/methods/de4sdv/de4sdv_increment_workflow.sysml"
@@ -36,7 +39,7 @@ CHECKS_BY_STEP = {
     },
     "ElaborateNeeds": {
         "needHasStatement", "needHasStakeholder", "needHasSource", "needHasRationale",
-        "needHasValidationScenario", "needFramesConcern",
+        "needHasValidationScenario",
     },
     "SpecifyRequirements": {
         "requirementDerivesFromNeed", "requirementHasOneSubject",
@@ -64,6 +67,10 @@ CHECK_REGISTRY = {
     "verifiesIncrementRequirement", "verifiedBy", "verifiesAcceptanceCriterion",
     "evidenceRecordOrStatus",
 }
+# Registry entries the workflow no longer declares: the engine keeps them only for
+# the frozen genuine-export cut, whose workflow predates their removal. Needs never
+# frame concerns; only viewpoints do.
+FROZEN_CUT_ONLY_CHECKS = {"framesStakeholderConcern"}
 
 
 def _code(path) -> str:
@@ -131,7 +138,17 @@ def test_every_check_identifier_is_in_the_registry() -> None:
     used = {fields["check"].strip('"') for _, _, definition in _steps()
             for fields in _checks(definition).values()}
     assert used and used <= CHECK_REGISTRY, used - CHECK_REGISTRY
-    assert CHECK_REGISTRY <= used, CHECK_REGISTRY - used  # no stale registry entry
+    current = CHECK_REGISTRY - FROZEN_CUT_ONLY_CHECKS
+    assert current <= used, current - used  # no stale registry entry
+    assert not used & FROZEN_CUT_ONLY_CHECKS, used & FROZEN_CUT_ONLY_CHECKS
+
+
+def test_checks_kept_for_the_frozen_cut_expire_with_it() -> None:
+    """A re-cut that no longer declares such a check fails here: then remove it from
+    FROZEN_CUT_ONLY_CHECKS, CHECK_REGISTRY and the engine."""
+    cut = json.loads(gzip.decompress(GENUINE_EXPORT.read_bytes()))
+    literals = {e.get("value") for e in cut["elements"] if e.get("@type") == "LiteralString"}
+    assert FROZEN_CUT_ONLY_CHECKS <= literals, FROZEN_CUT_ONLY_CHECKS - literals
 
 
 def test_structural_checks_block_and_the_named_trace_checks_are_advisory() -> None:

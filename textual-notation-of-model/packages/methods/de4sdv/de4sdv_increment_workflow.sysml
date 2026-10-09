@@ -1,6 +1,6 @@
 /* DE4SDV increment workflow: method steps, their artifacts and their checks.
  * Source: methodologies/sysmod-sysmlv2/increment-workflow.md and the eight method
- * rules accepted by the owner on 2026-10-08. */
+ * rules accepted by the owner on 2026-10-08 (rule 3 revised on 2026-10-09). */
 package DE4SDV_IncrementWorkflow {
   doc /* The increment workflow: one step per method phase, typed by a step
        * definition whose parameters are the artifacts it reads and produces. A
@@ -176,8 +176,11 @@ package DE4SDV_IncrementWorkflow {
   action def ElaborateNeeds :> IncrementStep {
     doc /* What stakeholder needs exist and how will the needs be validated? Rules:
          * each need has a statement, at least one stakeholder, an ODE4HERA source
-         * and rationale, and at least one planned validation scenario; each need
-         * frames at least one stakeholder concern through native SysML v2 framing. */
+         * and rationale, and at least one planned validation scenario. Needs are
+         * elaborated from the concerns that viewpoints frame and trace to them
+         * through stakeholder, source and rationale. A need doesn't frame a
+         * concern: it would then be satisfied only when the whole concern is
+         * addressed, while a need usually covers only part of one. */
     attribute :>> phase = MethodPhase::phase4_needs;
     in requirement problemStatement : ProblemStatement;
     in concern concerns[0..*];
@@ -202,10 +205,6 @@ package DE4SDV_IncrementWorkflow {
     metadata needHasValidationScenario : MethodCheck about needs {
       doc /* Each need has a planned validation scenario association; planning only, no validation result. */
       :>> check = "hasValidationScenario";
-    }
-    metadata needFramesConcern : MethodCheck about needs {
-      doc /* Each need frames a stakeholder concern; framing only, no satisfaction or derivation claim. */
-      :>> check = "framesStakeholderConcern";
     }
   }
 
