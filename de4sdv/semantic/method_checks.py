@@ -390,8 +390,8 @@ _RELATION_REMEDIES = {
     "derivesRequirementFromNeed": "replace any plain dependency with: connection <name> : DerivesFromNeed "
                                   "connect <need> to {subject_name};",
     "hasValidationScenario": "add a scenario and connect it to {subject}: connection <name> : "
-                             "<:> ValidationPlanningAssociation> connect {subject_name} to <scenario>;",
-    "frame": "frame <concern> in {subject};",
+                             "ValidationPlanningAssociation connect {subject_name} to <scenario>;",
+    "frame": "add to {subject}: frame <concern>;",
     "stakeholder": "add to {subject}: stakeholder <name> : <role>;",
     "subject": "declare a subject on {subject}: subject <name> : <Definition>;",
     "verify": "add to the objective of {subject} (or its definition): verify <requirement>;",

@@ -9,8 +9,11 @@ model's steps and checks.
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 
+from de4sdv.semantic import method_checks as mc
 from de4sdv.semantic import method_evaluator as me
 from de4sdv.semantic.increment_evaluation import evaluate_increment
 from de4sdv.semantic.increment_scope import ModelView
@@ -268,3 +271,16 @@ def test_unreadable_governed_witnesses_stay_indeterminate_for_every_subject(monk
     assert {(c.state, c.verdict) for c in children} == {(me.STATE_INDETERMINATE, None)}
     (entry,) = [g for g in evaluation.gaps()["blocking"] if g["gate"] == "requirementDerivesFromNeed"]
     assert entry["kind"] == "input-problem"
+
+
+def test_relation_remedies_are_member_text_the_model_uses() -> None:
+    """What to author for a relation is SysML the model already uses; placeholders are only in angle brackets."""
+    scenario = _scenario()
+    builder = scenario.builder
+    builder.remove(*[e for e in builder.elements if e.get("declaredName") == "need1ValidationPlanning"])
+    (entry,) = [g for g in _evaluate(scenario).gaps()["blocking"] if g["gate"] == "needHasValidationScenario"]
+    assert entry["what_to_author"].endswith(
+        ": connection <name> : ValidationPlanningAssociation connect need1 to <scenario>;"), entry["what_to_author"]
+    registry = mc.MethodCheckRegistry.for_relations(["frame"])
+    assert registry.remedy(SimpleNamespace(predicate="frame"), increment=None, view=None) == \
+        "add to each subject: frame <concern>;"
