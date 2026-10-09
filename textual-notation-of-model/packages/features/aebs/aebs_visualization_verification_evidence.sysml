@@ -189,7 +189,10 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
    * adds no obligation of its own; AC-AEBS-S2-008 is the verdict-record rule
    * applied by every case. Obligations the criteria formerly added are
    * design-input requirements REQ-AEBS-S2-015..021 in
-   * DE4SDV_AEBSVisualizationNeedsRequirements. */
+   * DE4SDV_AEBSVisualizationNeedsRequirements. AC-AEBS-S2-009..014 record
+   * the expected results of REQ-AEBS-S2-015..018, -020 and -021 (AC-AEBS-S2-005
+   * bounds REQ-AEBS-S2-019); they are planning only and are not assessed
+   * against the retained evidence. */
   requirement def VisualizationAcceptanceCriterion :> AcceptanceCriterion;
 
   requirement acceptanceCriterionChainCorrelation : VisualizationAcceptanceCriterion {
@@ -238,6 +241,42 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     doc /* AC-AEBS-S2-008; evidence integrity and claim-boundary criterion. */
     subject bench : VisualizationVerificationBench;
     require constraint statement { language "English" /* A retained verdict is acceptable only when it binds the configured test article, execution environment, wire contract, raw observation artifacts, and independent observer identities. Missing evidence is recorded as planned, partial, blocked, or not claimed, never as an observed runtime pass. */ }
+  }
+
+  requirement acceptanceCriterionReadOnlyBoundaryStatement : VisualizationAcceptanceCriterion {
+    doc /* AC-AEBS-S2-009; read-only boundary statement criterion (planning only). */
+    subject bench : VisualizationVerificationBench;
+    require constraint statement { language "English" /* REQ-AEBS-S2-015 will be shown to have been met when the retained frames or user-interface dumps of every rendered session show the read-only engineering-visualization boundary stated on the rendered display. */ }
+  }
+
+  requirement acceptanceCriterionObstacleGeometrySource : VisualizationAcceptanceCriterion {
+    doc /* AC-AEBS-S2-010; obstacle geometry source criterion (planning only). */
+    subject bench : VisualizationVerificationBench;
+    require constraint statement { language "English" /* REQ-AEBS-S2-016 will be shown to have been met when the display-derived obstacle geometry in every retained frame or user-interface dump traces to the native Autoware filtered obstacle point cloud and to no other source. */ }
+  }
+
+  requirement acceptanceCriterionNoDisplayDerivedDecisionMetric : VisualizationAcceptanceCriterion {
+    doc /* AC-AEBS-S2-011; display-derived decision metric criterion (planning only). */
+    subject bench : VisualizationVerificationBench;
+    require constraint statement { language "English" /* REQ-AEBS-S2-017 will be shown to have been met when no retained frame or user-interface dump presents a display-derived scalar as a native Autoware decision metric. */ }
+  }
+
+  requirement acceptanceCriterionDecisionDistanceExclusionStatement : VisualizationAcceptanceCriterion {
+    doc /* AC-AEBS-S2-012; decision-distance exclusion statement criterion (planning only). */
+    subject bench : VisualizationVerificationBench;
+    require constraint statement { language "English" /* REQ-AEBS-S2-018 will be shown to have been met when the retained frames or user-interface dumps show the rendered display stating that AEB decision distances are not visualized. */ }
+  }
+
+  requirement acceptanceCriterionNoFreshDataSubstitution : VisualizationAcceptanceCriterion {
+    doc /* AC-AEBS-S2-013; no fresh-data substitution criterion (planning only). */
+    subject bench : VisualizationVerificationBench;
+    require constraint statement { language "English" /* REQ-AEBS-S2-020 will be shown to have been met when, for each period in which no filtered obstacle-cloud update was received within the selected receipt-based staleness bound, the retained frame log shows no interpolated, smoothed, or predicted value in place of the missing fresh data. */ }
+  }
+
+  requirement acceptanceCriterionNonColorStateCue : VisualizationAcceptanceCriterion {
+    doc /* AC-AEBS-S2-014; non-color degraded-state cue criterion (planning only). */
+    subject bench : VisualizationVerificationBench;
+    require constraint statement { language "English" /* REQ-AEBS-S2-021 will be shown to have been met when every rendered degraded disposition in the retained stills or user-interface dumps carries a cue other than color. */ }
   }
 
   /* ──────────────────────────────────────────
@@ -454,6 +493,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     subject verifiedBench : VisualizationVerificationBench;
     objective readOnlyBoundaryObjective {
       verify acceptanceCriterionReadOnlyBoundary;
+      verify acceptanceCriterionReadOnlyBoundaryStatement;
       verify acceptanceCriterionEvidenceIntegrity;
       verify reqNonInterference { subject visualizationTestSystem = verifiedBench.system2Instrument; }
       verify reqReadOnlyBoundaryStatement { subject visualizationTestSystem = verifiedBench.system2Instrument; }
@@ -480,6 +520,9 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     subject verifiedBench : VisualizationVerificationBench;
     objective provenanceSeparationObjective {
       verify acceptanceCriterionProvenanceSeparation;
+      verify acceptanceCriterionObstacleGeometrySource;
+      verify acceptanceCriterionNoDisplayDerivedDecisionMetric;
+      verify acceptanceCriterionDecisionDistanceExclusionStatement;
       verify acceptanceCriterionEvidenceIntegrity;
       verify reqNoNativeImpersonation { subject visualizationTestSystem = verifiedBench.system2Instrument; }
       verify reqObstacleGeometryFromFilteredCloud { subject visualizationTestSystem = verifiedBench.system2Instrument; }
@@ -508,6 +551,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     subject verifiedBench : VisualizationVerificationBench;
     objective failClosedStalenessObjective {
       verify acceptanceCriterionFailClosedStaleness;
+      verify acceptanceCriterionNoFreshDataSubstitution;
       verify acceptanceCriterionEvidenceIntegrity;
       verify reqObstacleGeometryExpiry { subject visualizationTestSystem = verifiedBench.system2Instrument; }
       verify reqNoFreshDataSubstitution { subject visualizationTestSystem = verifiedBench.system2Instrument; }
@@ -539,6 +583,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     subject verifiedBench : VisualizationVerificationBench;
     objective degradedRenderingObjective {
       verify acceptanceCriterionDegradedRendering;
+      verify acceptanceCriterionNonColorStateCue;
       verify acceptanceCriterionEvidenceIntegrity;
       verify reqAvailabilityDisposition { subject visualizationTestSystem = verifiedBench.system2Instrument; }
       verify reqNonColorStateCue { subject visualizationTestSystem = verifiedBench.system2Instrument; }
@@ -811,6 +856,24 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
   dependency restorationToRestorationRequirement
     from acceptanceCriterionRestoration
     to reqRestorationBehavior;
+  dependency boundaryStatementToBoundaryStatementRequirement
+    from acceptanceCriterionReadOnlyBoundaryStatement
+    to reqReadOnlyBoundaryStatement;
+  dependency obstacleGeometrySourceToFilteredCloudRequirement
+    from acceptanceCriterionObstacleGeometrySource
+    to reqObstacleGeometryFromFilteredCloud;
+  dependency decisionMetricExclusionToDecisionMetricRequirement
+    from acceptanceCriterionNoDisplayDerivedDecisionMetric
+    to reqNoDisplayDerivedDecisionMetric;
+  dependency decisionDistanceStatementToExclusionStatementRequirement
+    from acceptanceCriterionDecisionDistanceExclusionStatement
+    to reqDecisionDistanceExclusionStatement;
+  dependency freshDataSubstitutionToNoSubstitutionRequirement
+    from acceptanceCriterionNoFreshDataSubstitution
+    to reqNoFreshDataSubstitution;
+  dependency nonColorCueToStateCueRequirement
+    from acceptanceCriterionNonColorStateCue
+    to reqNonColorStateCue;
 
   /* Cross-increment traceability to the configured test article. The
    * configuration role (AEBS-CONFIG-010-001, testArticle) and the subject

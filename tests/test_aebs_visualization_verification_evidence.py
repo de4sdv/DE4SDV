@@ -157,6 +157,10 @@ def test_verification_cases_cover_all_criteria() -> None:
     model = _model()
     criteria = {c["id"] for c in pilot["acceptance_criteria"]}
     covered = {c["acceptance_criterion"] for c in pilot["verification_cases"]}
+    # A case may also verify the criteria of the further requirements it
+    # verifies (AC-AEBS-S2-009..014).
+    for case in pilot["verification_cases"]:
+        covered |= set(case.get("additional_acceptance_criteria", []))
     # AC-AEBS-S2-008 (evidence integrity) is verified inside every case
     # objective in the model rather than by its own YAML case.
     integrity_id = "AC-AEBS-S2-008"
@@ -380,6 +384,75 @@ def test_planned_cases_are_not_executed_and_bind_no_evidence() -> None:
         for requirement in requirements:
             assert f"verify {requirement} {{" in definition.group(0), (case_id, requirement)
         assert not re.search(rf"\bfrom {usage} to ", _strip_sysml_comments(model)), case_id
+
+
+# Criteria for REQ-AEBS-S2-015..018, -020 and -021:
+# criterion id -> (criterion usage, requirement usage, verifying case usage).
+REQUIREMENT_CRITERIA = {
+    "AC-AEBS-S2-009": (
+        "acceptanceCriterionReadOnlyBoundaryStatement",
+        "reqReadOnlyBoundaryStatement",
+        "readOnlyBoundaryVerification",
+    ),
+    "AC-AEBS-S2-010": (
+        "acceptanceCriterionObstacleGeometrySource",
+        "reqObstacleGeometryFromFilteredCloud",
+        "provenanceSeparationVerification",
+    ),
+    "AC-AEBS-S2-011": (
+        "acceptanceCriterionNoDisplayDerivedDecisionMetric",
+        "reqNoDisplayDerivedDecisionMetric",
+        "provenanceSeparationVerification",
+    ),
+    "AC-AEBS-S2-012": (
+        "acceptanceCriterionDecisionDistanceExclusionStatement",
+        "reqDecisionDistanceExclusionStatement",
+        "provenanceSeparationVerification",
+    ),
+    "AC-AEBS-S2-013": (
+        "acceptanceCriterionNoFreshDataSubstitution",
+        "reqNoFreshDataSubstitution",
+        "failClosedStalenessVerification",
+    ),
+    "AC-AEBS-S2-014": (
+        "acceptanceCriterionNonColorStateCue",
+        "reqNonColorStateCue",
+        "degradedRenderingVerification",
+    ),
+}
+
+
+def test_requirement_criteria_are_planned_expected_results_next_to_their_requirement() -> None:
+    """Each criterion records the expected result of one requirement, is
+    verified in the case that verifies that requirement, traces to it, and
+    carries no evidence status beyond not executed."""
+    model = _model()
+    code = _strip_sysml_comments(model)
+    criteria = {c["id"]: c for c in _pilot()["acceptance_criteria"]}
+    requirement_ids = {
+        "reqReadOnlyBoundaryStatement": "REQ-AEBS-S2-015",
+        "reqObstacleGeometryFromFilteredCloud": "REQ-AEBS-S2-016",
+        "reqNoDisplayDerivedDecisionMetric": "REQ-AEBS-S2-017",
+        "reqDecisionDistanceExclusionStatement": "REQ-AEBS-S2-018",
+        "reqNoFreshDataSubstitution": "REQ-AEBS-S2-020",
+        "reqNonColorStateCue": "REQ-AEBS-S2-021",
+    }
+    for criterion_id, (criterion, requirement, case) in REQUIREMENT_CRITERIA.items():
+        assert criteria[criterion_id]["status"] == "not_executed", criterion_id
+        assert criteria[criterion_id]["sysml_element"] == criterion, criterion_id
+        block = re.search(
+            rf"requirement {criterion} : VisualizationAcceptanceCriterion \{{.*?\n  \}}", model, re.S
+        )
+        assert block, criterion_id
+        statement = block.group(0)
+        assert f"{requirement_ids[requirement]} will be shown to have been met when" in statement
+        assert "shall" not in statement, criterion_id
+        usage = re.search(rf"verification {case} : (\w+) \{{", model)
+        assert usage, case
+        definition = re.search(rf"verification def {usage.group(1)} \{{.*?\n  \}}", model, re.S)
+        assert definition and f"verify {criterion};" in definition.group(0), criterion_id
+        assert f"verify {requirement} {{" in definition.group(0), criterion_id
+        assert re.search(rf"\bfrom {criterion}\s+to {requirement};", code), criterion_id
 
 
 def test_fixture_path_case_states_its_synthetic_scope() -> None:
