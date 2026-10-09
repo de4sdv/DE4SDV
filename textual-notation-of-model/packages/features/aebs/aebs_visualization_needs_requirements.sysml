@@ -259,11 +259,11 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> verificationMethod = "inspect";
     }
     requirement reqDecisionDistanceExclusionStatement : VisualizationInstrumentRequirementCandidate {
-      doc /* REQ-AEBS-S2-018 System 2 candidate derived from N-AEBS-010. */
+      doc /* REQ-AEBS-S2-018 System 2 candidate derived from N-AEBS-010. Reworded for owner review to the HMI contract (VISUALIZATION-CONTRACT.md section 13.4), which removed the former "AEB decision distances not visualized" row on purpose; the earlier wording required that row. Labeling the displayed obstacle range as derived from the filtered point cloud is the design means of REQ-AEBS-S2-017 and needs no requirement of its own. */
       subject visualizationTestSystem :> system2VisualizationInstrument;
-      require constraint statement { language "English" /* The visualization test system shall state on its rendered display that AEB decision distances are not visualized. */ }
+      require constraint statement { language "English" /* The visualization test system shall present no native AEB decision distance on its rendered display. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
-      attribute :>> source = "Derived from N-AEBS-010; obligation formerly stated in AC-AEBS-S2-004";
+      attribute :>> source = "Derived from N-AEBS-010; obligation formerly stated in AC-AEBS-S2-004; reworded to VISUALIZATION-CONTRACT.md section 13.4";
       attribute :>> rationale = "Viewers must not infer native AEB decision distances from the display.";
       attribute :>> verificationMethod = "inspect";
     }

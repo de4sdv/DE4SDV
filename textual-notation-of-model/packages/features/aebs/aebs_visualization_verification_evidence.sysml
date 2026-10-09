@@ -264,9 +264,9 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
   }
 
   requirement acceptanceCriterionDecisionDistanceExclusionStatement : VisualizationAcceptanceCriterion {
-    doc /* AC-AEBS-S2-012; decision-distance exclusion statement criterion (planning only). */
+    doc /* AC-AEBS-S2-012; native decision-distance exclusion criterion (planning only). */
     subject bench : VisualizationVerificationBench;
-    require constraint statement { language "English" /* REQ-AEBS-S2-018 will be shown to have been met when the retained frames or user-interface dumps show the rendered display stating that AEB decision distances are not visualized. */ }
+    require constraint statement { language "English" /* REQ-AEBS-S2-018 will be shown to have been met when no retained screen capture and no retained user-interface dump of the rendered display presents a native AEB decision distance. */ }
   }
 
   requirement acceptanceCriterionNoFreshDataSubstitution : VisualizationAcceptanceCriterion {

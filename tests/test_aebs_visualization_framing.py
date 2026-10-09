@@ -305,3 +305,22 @@ def test_yaml_classification_keeps_visualization_out_of_bof() -> None:
         "system2_engineering_instrumentation"
     )
     assert "bill of features" in classifications["CLS-AEBS-010-001"]["rationale"]
+
+
+def test_decision_distance_requirement_matches_the_hmi_contract() -> None:
+    """REQ-AEBS-S2-018 follows the HMI contract (VISUALIZATION-CONTRACT.md
+    section 13.4): the display presents no native AEB decision distance, and
+    the requirement no longer asks for the removed "not visualized" row,
+    which tests/test_aebs_visualization_hmi_presentation_contract.py forbids."""
+    needs = _read(NEEDS)
+    block = re.search(
+        r"requirement reqDecisionDistanceExclusionStatement : \w+ \{.*?\n    \}", needs, re.S
+    )
+    assert block
+    statement = re.search(r"require constraint statement \{[^}]*\}", block.group(0)).group(0)
+    assert "shall present no native AEB decision distance on its rendered display" in statement
+    assert "not visualized" not in statement
+    contract = Path(
+        "implementation/aebs-aaos-sdv-visualization-bench/VISUALIZATION-CONTRACT.md"
+    ).read_text(encoding="utf-8")
+    assert "boundary row is\n  removed" in contract or "boundary row is removed" in " ".join(contract.split())
