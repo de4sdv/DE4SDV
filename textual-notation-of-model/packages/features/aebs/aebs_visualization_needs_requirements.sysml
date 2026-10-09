@@ -114,6 +114,15 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     }
   }
 
+  /* Each requirement records one primary verification method, as planning
+   * data with no result. It is test where the statement constrains runtime
+   * behavior, checked by operating the bench under controlled conditions
+   * with recorded data. It is inspect where the statement constrains what is
+   * presented or structurally absent (no command path, no host browser page,
+   * no impersonating or display-derived decision values, stated boundaries,
+   * non-color cues), checked by examining retained frames, interface dumps,
+   * and the wire contract. Where a verification case exists, the choice
+   * follows how its collectData step checks the requirement. */
   package VisualizationRequirements {
     requirement reqSourceFidelity : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-002 System 2 candidate derived from N-AEBS-009 and N-AEBS-010. */
@@ -122,6 +131,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-009 and N-AEBS-010";
       attribute :>> rationale = "Preserves provenance for each displayed value.";
+      attribute :>> verificationMethod = "test";
     }
     requirement reqNativeParticipation : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-003 System 2 candidate derived from N-AEBS-009. */
@@ -130,6 +140,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-009";
       attribute :>> rationale = "Anchors the display to the pinned native Autoware AEB component.";
+      attribute :>> verificationMethod = "test";
     }
     requirement reqNoNativeImpersonation : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-014 System 2 candidate derived from N-AEBS-010. */
@@ -138,6 +149,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-010";
       attribute :>> rationale = "Coordinator-derived values must not masquerade as native Autoware output.";
+      attribute :>> verificationMethod = "inspect";
     }
     requirement reqDe4sdvParticipation : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-004 System 2 candidate derived from N-AEBS-009. */
@@ -146,6 +158,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-009";
       attribute :>> rationale = "Displays the DE4SDV coordinator's own warning, braking, and lifecycle state.";
+      attribute :>> verificationMethod = "test";
     }
     requirement reqNonInterference : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-005 System 2 candidate derived from N-AEBS-013. */
@@ -154,6 +167,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-013";
       attribute :>> rationale = "No command path from instrumentation into AEBS or vehicle control.";
+      attribute :>> verificationMethod = "inspect";
     }
     requirement reqFailClosedFreshness : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-006 System 2 candidate derived from N-AEBS-011. */
@@ -162,6 +176,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-011";
       attribute :>> rationale = "Stale input must suppress threat geometry rather than display it.";
+      attribute :>> verificationMethod = "test";
     }
     requirement reqAvailabilityDisposition : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-007 System 2 candidate derived from N-AEBS-011. */
@@ -170,6 +185,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-011";
       attribute :>> rationale = "Unavailable sources need an explicit disposition, not silence.";
+      attribute :>> verificationMethod = "test";
     }
     requirement reqInvalidRejection : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-008 System 2 candidate derived from N-AEBS-011. */
@@ -178,6 +194,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-011";
       attribute :>> rationale = "Malformed frames must be rejected without displaying payload values.";
+      attribute :>> verificationMethod = "test";
     }
     requirement reqRestorationBehavior : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-009 System 2 candidate derived from N-AEBS-011. */
@@ -186,6 +203,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-011";
       attribute :>> rationale = "Recovery must be bounded and observable without application restart.";
+      attribute :>> verificationMethod = "test";
     }
     requirement reqRealAAOSRendering : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-010 System 2 candidate derived from N-AEBS-009 and N-AEBS-012. */
@@ -194,6 +212,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-009 and N-AEBS-012";
       attribute :>> rationale = "The rendering surface must be the real AAOS guest application.";
+      attribute :>> verificationMethod = "test";
     }
     requirement reqAaosEnvironmentObservation : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-012 System 2 candidate derived from N-AEBS-009. */
@@ -202,6 +221,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-009";
       attribute :>> rationale = "Runtime environment evidence must come from the same rendered session.";
+      attribute :>> verificationMethod = "test";
     }
     requirement reqNoHostBrowserSurface : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-013 System 2 candidate derived from N-AEBS-009. */
@@ -210,6 +230,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-009";
       attribute :>> rationale = "A host-side browser page is not the AAOS rendering surface the need demands.";
+      attribute :>> verificationMethod = "inspect";
     }
     requirement reqEvidenceCorrelation : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-011 System 2 candidate derived from N-AEBS-012. */
@@ -218,6 +239,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-012";
       attribute :>> rationale = "Each rendered state must be correlatable with its observed source event.";
+      attribute :>> verificationMethod = "test";
     }
 
     requirement reqReadOnlyBoundaryStatement : VisualizationInstrumentRequirementCandidate {
@@ -227,6 +249,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-013; obligation formerly stated in AC-AEBS-S2-003";
       attribute :>> rationale = "Disclosing the read-only boundary in every session supports the non-interference assurance that maintainers and verification engineers need.";
+      attribute :>> verificationMethod = "inspect";
     }
     requirement reqObstacleGeometryFromFilteredCloud : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-016 System 2 candidate derived from N-AEBS-010. */
@@ -235,6 +258,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-010; obligation formerly stated in AC-AEBS-S2-004";
       attribute :>> rationale = "Displayed obstacle geometry must keep one identified source.";
+      attribute :>> verificationMethod = "inspect";
     }
     requirement reqNoDisplayDerivedDecisionMetric : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-017 System 2 candidate derived from N-AEBS-010. */
@@ -243,6 +267,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-010; obligation formerly stated in AC-AEBS-S2-004";
       attribute :>> rationale = "Display-derived values must not masquerade as native Autoware decision metrics.";
+      attribute :>> verificationMethod = "inspect";
     }
     requirement reqDecisionDistanceExclusionStatement : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-018 System 2 candidate derived from N-AEBS-010. */
@@ -251,6 +276,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-010; obligation formerly stated in AC-AEBS-S2-004";
       attribute :>> rationale = "Viewers must not infer native AEB decision distances from the display.";
+      attribute :>> verificationMethod = "inspect";
     }
     requirement reqObstacleGeometryExpiry : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-019 System 2 candidate derived from N-AEBS-011. */
@@ -259,6 +285,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-011; obligation formerly stated in AC-AEBS-S2-005";
       attribute :>> rationale = "Expired obstacle geometry must not be displayed as current while other fields stay live.";
+      attribute :>> verificationMethod = "test";
     }
     requirement reqNoFreshDataSubstitution : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-020 System 2 candidate derived from N-AEBS-011. */
@@ -267,6 +294,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-011; obligation formerly stated in AC-AEBS-S2-005";
       attribute :>> rationale = "Synthesized values would let a lost source be misread as current AEBS state.";
+      attribute :>> verificationMethod = "test";
     }
     requirement reqNonColorStateCue : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-021 System 2 candidate derived from N-AEBS-011. */
@@ -275,6 +303,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-011; obligation formerly stated in AC-AEBS-S2-006";
       attribute :>> rationale = "A degraded disposition must stay recognizable without relying on color alone.";
+      attribute :>> verificationMethod = "inspect";
     }
   }
 
