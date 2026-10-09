@@ -126,9 +126,10 @@ runs `scripts/evaluate_increment.py` for each one over that export. A run
 takes a few minutes; no ingestion is involved.
 
 The check is advisory: gaps never fail it. It fails only on a technical
-error, such as a failed export or a workflow that cannot be read
-(`INVALID_CONTRACT`). An increment whose method is unavailable, for example
-because its charter declares no workflow, is reported, not failed. Pull
+error, such as a failed or refused export, a refusal of the evaluation entry
+point (exit code 2), or a workflow that cannot be read (`INVALID_CONTRACT`).
+An increment whose method is unavailable, for example because its charter
+declares no workflow, is reported, not failed. Pull
 requests from forks get no licensed export; a maintainer can run the workflow
 by hand with the reviewed ref.
 
@@ -147,10 +148,10 @@ jq '.increments[] | {id, outcome, next: .next.gate, counts}' method-check.json
 
 | Field | Holds |
 | --- | --- |
-| `id`, `outcome` | The increment identifier, for example `INC-AEBS-010`; `evaluated`, `method-unavailable`, `method-invalid` or `error` |
+| `id`, `outcome` | The increment identifier, for example `INC-AEBS-010`; `evaluated`, `method-unavailable`, `method-invalid`, `refused` or `error` |
 | `next` | The first check to act on: `gate`, `stage`, `kind`, `what_to_author`, `where`, `subjects`; `null` when none is open |
 | `counts` | `blocking`, `blocking_by_kind`, `advisory`, `method_side_blockers` |
-| `phase_exits` | Per phase: `READY` or `BLOCKED` |
+| `phase_exits`, `phase_checks` | Per phase: `READY` or `BLOCKED`, and how many of its checks pass (`pass`, `total`, `not_applicable`) |
 | `evaluation.gaps.blocking` | Every unmet blocking check with all its subjects; `evaluation.gaps.advisory` holds the advisory notes |
 | `evaluation` | The full `scripts/evaluate_increment.py` report: `status`, `gaps`, `next`, `contract` |
 

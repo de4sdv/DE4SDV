@@ -24,14 +24,13 @@ A missing kernel binding of either lineage raises
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping
 
 from .increment_scope import (
     CHARTER_CLASS,
     INCREMENT_CLASS,
     IncrementIdentifierError,
     ModelView,
-    ordered_elements,
     parse_increment_id,
 )
 
@@ -60,6 +59,12 @@ class IncrementDiscovery:
         return tuple(increment.increment_id for increment in self.increments)
 
 
+def _ordered(view: ModelView, identifiers: Iterable[str]) -> tuple[str, ...]:
+    """Distinct identifiers by qualified name, then identifier (corpus-order independent)."""
+    unique = list(dict.fromkeys(identifiers))
+    return tuple(sorted(unique, key=lambda item: (view.index.qualified_name(item), item)))
+
+
 def _identifier(value: Any) -> str | None:
     try:
         return parse_increment_id(str(value)) if value else None
@@ -82,7 +87,7 @@ def declared_increments(view: ModelView) -> IncrementDiscovery:
         if identifier is not None and view.in_lineage(usage, INCREMENT_CLASS):
             usages.setdefault(identifier, set()).add(usage)
 
-    for charter in ordered_elements(view, [c for c in index.elements_of_type("PartUsage")
+    for charter in _ordered(view, [c for c in index.elements_of_type("PartUsage")
                                            if view.in_lineage(c, CHARTER_CLASS)]):
         referenced = [leaf.value for leaf in index.feature_values(charter, INCREMENT_ATTRIBUTE)
                       if leaf.kind == "reference" and leaf.value]
@@ -96,7 +101,7 @@ def declared_increments(view: ModelView) -> IncrementDiscovery:
             usages.setdefault(identifier, set()).add(usage)
             charters_of.setdefault(identifier, set()).add(charter)
 
-    for holder in ordered_elements(view, [e for e in index.by_id
+    for holder in _ordered(view, [e for e in index.by_id
                                           if _identifier(index.element(e).get("declaredShortName"))]):
         identifier = _identifier(index.element(holder).get("declaredShortName"))
         if holder not in usages.get(identifier, set()):
@@ -106,11 +111,11 @@ def declared_increments(view: ModelView) -> IncrementDiscovery:
 
     increments = []
     for identifier in sorted(usages):
-        ordered = ordered_elements(view, sorted(usages[identifier]))
+        ordered = _ordered(view, sorted(usages[identifier]))
         if len(ordered) > 1:
             notes.append(f"{len(ordered)} increment usages carry the identifier {identifier} "
                          f"({', '.join(label(u) for u in ordered)}); its evaluation reports the ambiguity")
-        charters = ordered_elements(view, sorted(charters_of.get(identifier, ())))
+        charters = _ordered(view, sorted(charters_of.get(identifier, ())))
         increments.append(DeclaredIncrement(
             increment_id=identifier,
             usage=view.describe(ordered[0]),

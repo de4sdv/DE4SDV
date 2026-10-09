@@ -5,27 +5,25 @@ charters and short names), runs the evaluation entry point
 ``scripts/evaluate_increment.py`` once per increment, and writes one JSON
 result plus a readable summary. Gaps never fail it; technical errors do.
 
-Synthetic export-shaped fixtures only; no network. A transport spy stands in
-for the entry-point process where a test only checks orchestration; one test
-runs the real entry point.
+Synthetic increments over the model's method layer (the genuine export cut);
+no network. A transport spy stands in for the entry-point process where a test
+only checks orchestration; one test runs the real entry point.
 """
 
 from __future__ import annotations
 
 import json
 import sys
-from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from increment_model_fixtures import (
     ModelBuilder,
-    WorkflowCheck,
     increment_scenario,
-    increment_workflow,
-    install_model_workflow,
-    model_workflow_steps,
+    method_builder,
+    model_workflow,
+    set_check,
 )
 from scripts import method_check
 
@@ -37,7 +35,7 @@ FIRST, SECOND, THIRD, FOURTH = "INC-FIXTURE-001", "INC-FIXTURE-002", "INC-FIXTUR
 def _gappy(builder: ModelBuilder) -> None:
     """First: the model workflow, one need without a stakeholder (one blocking gap)."""
     first = increment_scenario(builder, increment_id=FIRST, name="First")
-    install_model_workflow(first)
+    model_workflow(first)
     need = first.needs[1]
     builder.remove(*[e for e in builder.elements if e.get("@type") == "StakeholderMembership"
                      and e.get("owningRelatedElement", {}).get("@id") == need["@id"]])
@@ -49,25 +47,24 @@ def _without_workflow(builder: ModelBuilder) -> None:
 
 
 def _invalid_workflow(builder: ModelBuilder) -> None:
-    """Third: a workflow with an unknown check id (the method is invalid)."""
+    """Third: the model workflow with an unknown check id (the method is invalid).
+
+    The workflow is the builder's one model workflow, so this goes in an export of its own.
+    """
     third = increment_scenario(builder, increment_id=THIRD, name="Third")
-    steps = model_workflow_steps(third)
-    steps[0] = replace(steps[0], checks=steps[0].checks + (
-        WorkflowCheck("incrementHasNothing", "noSuchCheck", "increment"),))
-    increment_workflow(builder, steps, charter=third.charter, package_name="DE4SDV_ThirdWorkflow")
+    set_check(third, model_workflow(third), "incrementHasAssumption", check="noSuchCheck")
 
 
 def _overpopulated(builder: ModelBuilder) -> None:
     """Fourth: two engineering questions where the workflow allows exactly one (a population finding)."""
     fourth = increment_scenario(builder, increment_id=FOURTH, name="Fourth")
-    increment_workflow(builder, model_workflow_steps(fourth), charter=fourth.charter,
-                       package_name="DE4SDV_FourthWorkflow")
+    model_workflow(fourth)
     builder.usage("PartUsage", "fourthSecondQuestion", fourth.framing,
                   [builder.kernel_definition("IncrementEngineeringQuestion")])
 
 
-def _export(tmp_path: Path, *parts, git_commit: str = GIT) -> Path:
-    builder = ModelBuilder(label="method-check")
+def _export(tmp_path: Path, *parts, git_commit: str = GIT, kernel: str = "model") -> Path:
+    builder = method_builder("method-check") if kernel == "model" else ModelBuilder(label="method-check")
     for part in parts:
         part(builder)
     path = tmp_path / "model-export.json"
@@ -80,15 +77,17 @@ def real_reports(tmp_path_factory) -> dict[str, dict]:
     """One real entry-point report per outcome, evaluated in process once."""
     import importlib.util
 
-    tmp_path = tmp_path_factory.mktemp("reports")
-    export = _export(tmp_path, _gappy, _without_workflow, _invalid_workflow, _overpopulated)
+    exports = {
+        "valid": _export(tmp_path_factory.mktemp("valid"), _gappy, _without_workflow, _overpopulated),
+        "invalid": _export(tmp_path_factory.mktemp("invalid"), _invalid_workflow),
+    }
     spec = importlib.util.spec_from_file_location("evaluate_increment", ROOT / "scripts/evaluate_increment.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     reports = {}
-    for increment in (FIRST, SECOND, THIRD, FOURTH):
-        code, report, _output = module.run(["--export", str(export), "--increment", increment])
-        assert code == 0
+    for increment, export in ((FIRST, "valid"), (SECOND, "valid"), (FOURTH, "valid"), (THIRD, "invalid")):
+        code, report, _output = module.run(["--export", str(exports[export]), "--increment", increment])
+        assert code == 0, report
         reports[increment] = report
     return reports
 
@@ -157,6 +156,8 @@ def test_gaps_never_fail_the_check(tmp_path: Path, real_reports) -> None:
     assert entry["next"]["gate"] == "needHasStakeholder"
     assert entry["next"]["stage"] == "phase4_needs"
     assert entry["phase_exits"]["phase4_needs"] == "BLOCKED"
+    assert entry["phase_checks"]["phase0_incrementFraming"] == {"pass": 14, "total": 14, "not_applicable": 0}
+    assert entry["phase_checks"]["phase4_needs"] == {"pass": 5, "total": 6, "not_applicable": 0}
     assert entry["evaluation"]["gaps"]["blocking"][0]["gate"] == "needHasStakeholder"
 
 
@@ -181,17 +182,23 @@ def test_an_invalid_method_is_a_technical_error(tmp_path: Path, real_reports) ->
     assert "noSuchCheck" in summary
 
 
-@pytest.mark.parametrize("code, expected", [(2, "refused by the spy"), (1, "Traceback: boom")])
-def test_a_refused_or_crashed_evaluation_is_a_technical_error(tmp_path: Path, real_reports, code, expected):
+@pytest.mark.parametrize("code, outcome, expected, line", [
+    (2, "refused", "refused by the spy",
+     "**Refused by the evaluation entry point (exit code 2, technical error):** INC-FIXTURE-002 refused by the spy"),
+    (1, "error", "Traceback: boom", "**Evaluation failed (exit code 1, technical error):** Traceback: boom"),
+])
+def test_a_refused_or_crashed_evaluation_is_a_technical_error(tmp_path: Path, real_reports, code, outcome,
+                                                              expected, line):
     export = _export(tmp_path, _gappy, _without_workflow)
     spy = EntryPointSpy(real_reports, codes={SECOND: code}, stderr="Traceback: boom")
     exit_code, result, summary = _run(tmp_path, export, spy)
-    assert exit_code == 1
+    assert exit_code == 1  # never a pass
     assert len(spy.calls) == 2  # one failure never skips the other increments
     outcomes = {entry["id"]: entry["outcome"] for entry in result["increments"]}
-    assert outcomes == {FIRST: "evaluated", SECOND: "error"}
+    assert outcomes == {FIRST: "evaluated", SECOND: outcome}
     assert any(SECOND in error and expected in error for error in result["errors"])
-    assert expected in summary
+    assert line in summary.splitlines()
+    assert f"| `{SECOND}` | {outcome} | none | - | - |" in summary.splitlines()
 
 
 def test_a_stale_report_is_never_read_after_a_failed_evaluation(tmp_path: Path, real_reports) -> None:
@@ -237,18 +244,16 @@ def test_an_unreadable_export_is_a_technical_error(tmp_path: Path, real_reports)
     assert result["errors"]
 
 
-def test_an_unbound_increment_lineage_is_a_technical_error(tmp_path: Path, real_reports) -> None:
-    builder = ModelBuilder(label="method-check")
-    _gappy(builder)
-    export = builder.export(git_commit=GIT)
-    export["element_sources"][builder.kernel["EngineeringIncrement"]["@id"]] = "elsewhere.sysml"
-    path = tmp_path / "model-export.json"
-    path.write_text(json.dumps(export))
+def test_an_export_whose_kernel_identity_fails_validation_is_refused(tmp_path: Path, real_reports) -> None:
+    # The entry point refuses such an export with exit code 2; the check
+    # refuses it once, before any increment, as a technical error.
+    export = _export(tmp_path, _without_workflow, kernel="synthetic")
     spy = EntryPointSpy(real_reports)
-    code, result, _summary = _run(tmp_path, path, spy)
+    code, result, summary = _run(tmp_path, export, spy)
     assert code == 1
     assert spy.calls == []
-    assert any("EngineeringIncrement" in error for error in result["errors"])
+    assert result["errors"][0].startswith("the export is refused: kernel binding validation failed closed")
+    assert "- the export is refused: kernel binding validation failed closed" in summary
 
 
 def test_the_revision_must_be_a_full_commit_id(tmp_path: Path, real_reports) -> None:
@@ -278,8 +283,8 @@ def test_the_summary_names_next_and_the_blocking_gaps_per_increment(tmp_path: Pa
     assert "- Subjects (1): `DE4SDV_FirstNeedsRequirements::need1`" in lines
     assert "**Blocking gaps: 1** (violation: 1)" in lines
     assert "| `needHasStakeholder` | phase4_needs | violation | 1 | `need1` |" in lines
-    assert ("**Phase exits:** phase0_incrementFraming READY, phase4_needs BLOCKED, "
-            "phase5_requirements READY, phase10_vvEvidence READY") in lines
+    assert ("**Phase exits:** phase0_incrementFraming READY (14/14 pass), phase4_needs BLOCKED (5/6 pass), "
+            "phase5_requirements READY (3/4 pass), phase10_vvEvidence READY (2/4 pass)") in lines
     assert "<details><summary>Advisory notes: 3</summary>" in lines
     assert "| `verificationCaseHasEvidenceRecordOrStatus` | phase10_vvEvidence | method-side | 1 | `firstVerification` |" in lines
     assert f"gh run download 4242 -R de4sdv/DE4SDV -n method-check-{GIT}" in text

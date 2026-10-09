@@ -61,6 +61,7 @@ CLAIM_BOUNDARY = ("model-content checks of the method declared in the evaluated 
 OUTCOME_EVALUATED = "evaluated"
 OUTCOME_UNAVAILABLE = "method-unavailable"
 OUTCOME_INVALID = "method-invalid"
+OUTCOME_REFUSED = "refused"
 OUTCOME_ERROR = "error"
 
 #: Subjects shown per gap in the summary; the JSON carries all of them.
@@ -106,7 +107,11 @@ def check(export: Path, revision: str, output_dir: Path, *, runner: Runner = sub
     }
     try:
         snapshot = load_export_snapshot(export)
-    except (OSError, ValueError, KeyError, TypeError, ExportEvaluationRefused) as error:
+    except ExportEvaluationRefused as error:
+        # The entry point refuses such an export with exit code 2.
+        result["errors"].append(f"the export is refused: {error}")
+        return result
+    except (OSError, ValueError, KeyError, TypeError) as error:
         result["errors"].append(f"the export cannot be read: {error}")
         return result
     result["export"] = {
@@ -146,6 +151,13 @@ def _tail(text: str, lines: int = 20) -> str:
     return " | ".join(line for line in text.strip().splitlines()[-lines:] if line.strip())
 
 
+def _phase_checks(phase: Mapping[str, Any]) -> dict[str, int]:
+    """How many of a phase's checks pass, of how many, and how many do not apply."""
+    labels = list((phase.get("gates") or {}).values())
+    return {"pass": labels.count(me.VERDICT_PASS), "total": len(labels),
+            "not_applicable": labels.count(me.VERDICT_NOT_APPLICABLE)}
+
+
 def _evaluate(increment: DeclaredIncrement, export: Path, output_dir: Path,
               runner: Runner) -> tuple[dict[str, Any], list[str]]:
     identifier = increment.increment_id
@@ -155,20 +167,24 @@ def _evaluate(increment: DeclaredIncrement, export: Path, output_dir: Path,
     entry: dict[str, Any] = {
         "id": identifier, "outcome": OUTCOME_ERROR, "usage": dict(increment.usage),
         "charters": [dict(charter) for charter in increment.charters], "report": report_path.name,
-        "next": None, "next_reason": "", "counts": {}, "phase_exits": {}, "diagnostics": [],
-        "evaluation": None,
+        "next": None, "next_reason": "", "counts": {}, "phase_exits": {}, "phase_checks": {},
+        "diagnostics": [], "exit_code": None, "evaluation": None,
     }
     report_path.unlink(missing_ok=True)  # never read a report an earlier run left behind
     run = runner(argv)
+    entry["exit_code"] = run.returncode
     report = _read_json(report_path)
     if run.returncode != 0 or report is None or report.get("status") == "refused":
-        if run.returncode == 2 and report is not None:
-            detail = str(report.get("reason") or "refused")
-            verb = "refused the evaluation"
+        # Exit code 2 is the entry point's refusal (identity, kernel validation
+        # or input); like any other failure it is a technical error, never a pass.
+        refused = run.returncode == 2 or (report is not None and report.get("status") == "refused")
+        if refused and report is not None and report.get("reason"):
+            detail = str(report["reason"])
         else:
             detail = _tail(run.stderr) or _tail(run.stdout) or "no report was written"
-            verb = "failed"
+        entry["outcome"] = OUTCOME_REFUSED if refused else OUTCOME_ERROR
         entry["diagnostics"] = [detail]
+        verb = "refused the evaluation" if refused else "failed"
         return entry, [f"{identifier}: the evaluation entry point {verb} (exit code {run.returncode}): {detail}"]
 
     entry["evaluation"] = report
@@ -200,6 +216,7 @@ def _evaluate(increment: DeclaredIncrement, export: Path, output_dir: Path,
         "method_side_blockers": len(next_block.get("method_side_blockers") or []),
     }
     entry["phase_exits"] = {phase["phase"]: phase.get("phase_exit") for phase in status.get("phases") or []}
+    entry["phase_checks"] = {phase["phase"]: _phase_checks(phase) for phase in status.get("phases") or []}
     entry["diagnostics"] = [*(status.get("diagnostics") or []), *resolution]
     return entry, []
 
@@ -291,8 +308,13 @@ def _increment_section(entry: Mapping[str, Any]) -> list[str]:
     outcome = entry.get("outcome")
     diagnostics = list(entry.get("diagnostics") or [])
     if outcome != OUTCOME_EVALUATED:
-        label = {OUTCOME_UNAVAILABLE: "Method unavailable", OUTCOME_INVALID: "Method invalid (technical error)",
-                 OUTCOME_ERROR: "Evaluation failed (technical error)"}.get(str(outcome), str(outcome))
+        code = entry.get("exit_code")
+        label = {
+            OUTCOME_UNAVAILABLE: "Method unavailable",
+            OUTCOME_INVALID: "Method invalid (technical error)",
+            OUTCOME_REFUSED: f"Refused by the evaluation entry point (exit code {code}, technical error)",
+            OUTCOME_ERROR: f"Evaluation failed (exit code {code}, technical error)",
+        }.get(str(outcome), str(outcome))
         lines.append(f"**{label}:** {_plain('; '.join(diagnostics) or 'no diagnostic')}")
         return lines + [""]
 
@@ -333,7 +355,18 @@ def _increment_section(entry: Mapping[str, Any]) -> list[str]:
         lines.append("")
     exits = entry.get("phase_exits") or {}
     if exits:
-        lines.append("**Phase exits:** " + ", ".join(f"{_plain(p)} {_plain(r)}" for p, r in exits.items()))
+        checks = entry.get("phase_checks") or {}
+
+        def tally(phase: str) -> str:
+            count = checks.get(phase)
+            if not count:
+                return ""
+            text = f"{count['pass']}/{count['total']} pass"
+            if count.get("not_applicable"):
+                text += f", {count['not_applicable']} not applicable"
+            return f" ({text})"
+
+        lines.append("**Phase exits:** " + ", ".join(f"{_plain(p)} {_plain(r)}{tally(p)}" for p, r in exits.items()))
         lines.append("")
     if diagnostics:
         lines.append("Resolution notes: " + _plain("; ".join(diagnostics)))
