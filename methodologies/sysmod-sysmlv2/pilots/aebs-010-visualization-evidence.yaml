@@ -36,7 +36,7 @@ phase10_claim:
       status: observed_unidentified_build
     - id: EVID-AEBS-S2-002
       artifact: implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/raw-continuous.mp4
-      status: observed_unidentified_build
+      status: contradicted_by_retained_data
     - id: EVID-AEBS-S2-003
       artifact: implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/state-monitoring.png
       status: observed_unidentified_build
@@ -121,7 +121,7 @@ verification_cases:
     current_evidence:
       - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/raw-continuous.mp4
       - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/segment.yaml
-    status: observed_unidentified_build
+    status: contradicted_by_retained_data_recapture_pending
   - id: VC-AEBS-S2-003
     name: Read-only boundary
     scenario: readOnlyBoundary
@@ -175,9 +175,9 @@ acceptance_criteria:
     sysml_element: acceptanceCriterionChainCorrelation
     evidence: EVID-AEBS-S2-001 (1090 callbacks, seq 22891-23980, zero gaps)
   - id: AC-AEBS-S2-002
-    status: observed_unidentified_build
+    status: contradicted_by_retained_data_recapture_pending
     sysml_element: acceptanceCriterionLifecycleArc
-    evidence: EVID-AEBS-S2-002 (one take, verified stop)
+    evidence: EVID-AEBS-S2-002 (one take; its verified-stop reading of RELEASED is contradicted by the take's frame log, GAP-AEBS-010-009)
   - id: AC-AEBS-S2-003
     status: observed_unidentified_build
     sysml_element: acceptanceCriterionReadOnlyBoundary
@@ -189,7 +189,7 @@ acceptance_criteria:
   - id: AC-AEBS-S2-005
     status: observed_unidentified_build
     sysml_element: acceptanceCriterionFailClosedStaleness
-    evidence: EVID-AEBS-S2-005 (geometry expired after cloud silence)
+    evidence: EVID-AEBS-S2-005 (geometry cleared while frames continued; cloud-silence trigger not established, GAP-AEBS-010-009)
   - id: AC-AEBS-S2-006
     status: observed_unidentified_build_fixture_path
     sysml_element: acceptanceCriterionDegradedRendering
@@ -199,7 +199,7 @@ acceptance_criteria:
     sysml_element: acceptanceCriterionRestoration
     evidence: no scenario executed
   - id: AC-AEBS-S2-008
-    status: not_met_unidentified_build
+    status: not_met_retained_evidence_integrity
     sysml_element: acceptanceCriterionEvidenceIntegrity
     evidence: EVID-AEBS-S2-001 bound identities + observer
 
@@ -242,7 +242,7 @@ runtime_evidence_gaps:
     owner: successor_increment
     status: open_bench_route_only
   - id: GAP-AEBS-010-009
-    model_element: gapRetainedTakeBuildUnidentified
+    model_element: gapRetainedEvidenceIntegrity
     owner: successor_increment
     status: open_recapture_from_exact_clean_commit_pending
 
