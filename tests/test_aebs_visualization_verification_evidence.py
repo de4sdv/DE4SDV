@@ -382,6 +382,24 @@ def test_planned_cases_are_not_executed_and_bind_no_evidence() -> None:
         assert not re.search(rf"\bfrom {usage} to ", _strip_sysml_comments(model)), case_id
 
 
+def test_fixture_path_case_states_its_synthetic_scope() -> None:
+    """Owner decision 2026-10-09: VC-AEBS-S2-009 is acceptable on the fixture
+    path only if its doc says the inputs are synthetic and that it does not
+    verify the live chain."""
+    model = _model()
+    usage = re.search(
+        r"verification staleAndInvalidFrameVerification : (\w+) \{.*?\n  \}", model, re.S
+    )
+    assert usage
+    definition = re.search(rf"verification def {usage.group(1)} \{{.*?\n  \}}", model, re.S)
+    assert definition
+    for block in (usage.group(0), definition.group(0)):
+        # Join wrapped doc lines: drop each continuation line's leading "*".
+        text = " ".join(re.sub(r"\n\s*\*(?!/)", "\n", block).split())
+        assert "synthetic degraded inputs" in text
+        assert "does not verify the live chain" in text
+
+
 def test_every_requirement_is_verified_by_a_case_objective() -> None:
     model = _model()
     needs = _read(MODEL_DIR / "aebs_visualization_needs_requirements.sysml")

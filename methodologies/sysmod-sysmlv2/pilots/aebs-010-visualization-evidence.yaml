@@ -180,7 +180,7 @@ verification_cases:
     acceptance_criterion: AC-AEBS-S2-008
     status: not_executed
   - id: VC-AEBS-S2-009
-    name: Stale and invalid frame handling (fixture path)
+    name: Stale and invalid frame handling (fixture path, synthetic degraded inputs; does not verify the live chain)
     scenario: staleAndInvalidFrames
     requirement_ids: [REQ-AEBS-S2-006, REQ-AEBS-S2-008]
     methods: [test, analyze]

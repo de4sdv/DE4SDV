@@ -634,15 +634,17 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
 
   verification def VisualizationStaleAndInvalidFrameVerification {
     doc /*
-     * Planned fixture-path verification case, not executed. Deterministic
-     * frame injection withholds valid frames beyond the stale timeout bound
-     * as AO-AEBS-010-005, then injects unsupported-schema, malformed,
+     * Planned fixture-path verification case, not executed. Scope: synthetic
+     * degraded inputs only. Deterministic frame injection, not live Autoware
+     * output, withholds valid frames beyond the stale timeout bound as
+     * AO-AEBS-010-005, then injects unsupported-schema, malformed,
      * non-finite, out-of-range, stale-timestamp, and non-monotonic frames. It
      * checks the explicit stale disposition with threat geometry suppressed,
      * and the rejection of each invalid frame without displaying its payload
-     * values. Any verdict is bounded to the fixture path and does not transfer
-     * to degraded conditions of the live Autoware chain, which stay
-     * unobserved (GAP-AEBS-010-007).
+     * values. The case does not verify the live chain: any verdict is bounded
+     * to the fixture path, and degraded conditions of the live Autoware chain
+     * stay unobserved (GAP-AEBS-010-007). The owner accepted this
+     * fixture-path scope on 2026-10-09.
      */
     subject verifiedBench : VisualizationVerificationBench;
     objective staleAndInvalidFrameObjective {
@@ -754,7 +756,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
 
   doc /* VC-AEBS-S2-009 verification case usage. */
   verification staleAndInvalidFrameVerification : VisualizationStaleAndInvalidFrameVerification {
-    doc /* VC-AEBS-S2-009: planned fixture-path case, not executed; no evidence record is bound. */
+    doc /* VC-AEBS-S2-009: planned fixture-path case on synthetic degraded inputs, not executed; it does not verify the live chain, and no evidence record is bound. */
     @VerificationMethod{ kind = (test, analyze); }
     subject verifiedBench :> staleAndInvalidFramesBench;
   }
