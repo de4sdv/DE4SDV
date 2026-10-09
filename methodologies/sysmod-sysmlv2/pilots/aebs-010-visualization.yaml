@@ -223,6 +223,15 @@ operational_scenario_ids:
   - SC-AEBS-010-05
   - SC-AEBS-010-06
 
+# Planned validation scenarios, one per need (SysML: ValidationPlanningScenario
+# parts in aebs_visualization_needs_requirements.sysml); planning only.
+validation_scenario_ids:
+  - SC-AEBS-010-07
+  - SC-AEBS-010-08
+  - SC-AEBS-010-09
+  - SC-AEBS-010-10
+  - SC-AEBS-010-11
+
 gap_ids:
   - GAP-AEBS-010-001
   - GAP-AEBS-010-002

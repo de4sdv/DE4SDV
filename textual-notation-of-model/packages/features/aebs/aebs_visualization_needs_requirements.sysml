@@ -21,7 +21,9 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_ProductLine::*;
+  private import DE4SDV_RelationshipSuccessor::*;
   private import DE4SDV_AEBSVisualizationFraming::*;
+  private import DE4SDV_AEBSVisualizationOperationalContext::*;
   private import SAF_Viewpoints::*;
   private import Views::*;
   private import SysideViews::**;
@@ -295,6 +297,66 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
   connection reqObstacleGeometryExpiryDerivedFromFailClosedDegradation : DerivesFromNeed connect needFailClosedDegradation to reqObstacleGeometryExpiry;
   connection reqNoFreshDataSubstitutionDerivedFromFailClosedDegradation : DerivesFromNeed connect needFailClosedDegradation to reqNoFreshDataSubstitution;
   connection reqNonColorStateCueDerivedFromFailClosedDegradation : DerivesFromNeed connect needFailClosedDegradation to reqNonColorStateCue;
+
+  /* Planned validation scenarios: one per need, each drawn from the bounded
+   * operational scenarios SC-AEBS-010-01..06 of this increment and tracing
+   * them. Planning only: no execution, result, fitness-for-use verdict or
+   * acceptance. Production driver-HMI and human-factors validation stay out
+   * of scope. */
+  part liveVisualizationOnAAOSValidationPlan : ValidationPlanningScenario {
+    doc /* SC-AEBS-010-07, N-AEBS-009: planned stakeholder review. While the
+         * instrumented member runs the healthy-monitoring and
+         * warning-intervention-release scenarios, can systems engineers and
+         * reviewers review live AEBS threat and intervention state on the
+         * actual AAOS SDV display, without a host-side substitute? */
+  }
+  connection liveVisualizationOnAAOSValidationPlanning : ValidationPlanningAssociation connect needLiveVisualizationOnAAOS to liveVisualizationOnAAOSValidationPlan;
+  dependency liveVisualizationOnAAOSValidationFromHealthyMonitoring from liveVisualizationOnAAOSValidationPlan to scenarioHealthyMonitoring;
+  dependency liveVisualizationOnAAOSValidationFromWarningInterventionRelease from liveVisualizationOnAAOSValidationPlan to scenarioWarningInterventionRelease;
+
+  part preservedSourceProvenanceValidationPlan : ValidationPlanningScenario {
+    doc /* SC-AEBS-010-08, N-AEBS-010: planned stakeholder review. In the
+         * healthy-monitoring and warning-intervention-release scenarios, can
+         * systems engineers and verification engineers attribute each
+         * displayed value or state to native Autoware output, DE4SDV AEBS
+         * coordination state, or display-derived presentation, together with
+         * its units, coordinate frame, timestamp, freshness, and validity? */
+  }
+  connection preservedSourceProvenanceValidationPlanning : ValidationPlanningAssociation connect needPreservedSourceProvenance to preservedSourceProvenanceValidationPlan;
+  dependency preservedSourceProvenanceValidationFromHealthyMonitoring from preservedSourceProvenanceValidationPlan to scenarioHealthyMonitoring;
+  dependency preservedSourceProvenanceValidationFromWarningInterventionRelease from preservedSourceProvenanceValidationPlan to scenarioWarningInterventionRelease;
+
+  part failClosedDegradationValidationPlan : ValidationPlanningScenario {
+    doc /* SC-AEBS-010-09, N-AEBS-011: planned stakeholder review. Across the
+         * stale-source, unavailable-source, invalid-envelope, and restoration
+         * scenarios, can systems engineers and maintainers recognize from the
+         * display that no lost or invalid source is presented as current AEBS
+         * state, and see when the current source state is restored? */
+  }
+  connection failClosedDegradationValidationPlanning : ValidationPlanningAssociation connect needFailClosedDegradation to failClosedDegradationValidationPlan;
+  dependency failClosedDegradationValidationFromStaleSource from failClosedDegradationValidationPlan to scenarioStaleSource;
+  dependency failClosedDegradationValidationFromUnavailableSource from failClosedDegradationValidationPlan to scenarioUnavailableSource;
+  dependency failClosedDegradationValidationFromInvalidEnvelope from failClosedDegradationValidationPlan to scenarioInvalidEnvelope;
+  dependency failClosedDegradationValidationFromRestoration from failClosedDegradationValidationPlan to scenarioRestoration;
+
+  part correlatableEvidenceValidationPlan : ValidationPlanningScenario {
+    doc /* SC-AEBS-010-10, N-AEBS-012: planned stakeholder review. After a
+         * warning-intervention-release run, can verification engineers trace
+         * each displayed state to its observed source event, in source order,
+         * from the retained records, and repeat that correlation by replay? */
+  }
+  connection correlatableEvidenceValidationPlanning : ValidationPlanningAssociation connect needCorrelatableEvidence to correlatableEvidenceValidationPlan;
+  dependency correlatableEvidenceValidationFromWarningInterventionRelease from correlatableEvidenceValidationPlan to scenarioWarningInterventionRelease;
+
+  part nonInterferenceValidationPlan : ValidationPlanningScenario {
+    doc /* SC-AEBS-010-11, N-AEBS-013: planned stakeholder review. In the
+         * warning-intervention-release scenario, does what maintainers and
+         * verification engineers can inspect give them the assurance they need
+         * that the visualization neither commands nor modifies the unchanged
+         * System 1 AEBS detection, warning, intervention, and release behavior? */
+  }
+  connection nonInterferenceValidationPlanning : ValidationPlanningAssociation connect needNonInterference to nonInterferenceValidationPlan;
+  dependency nonInterferenceValidationFromWarningInterventionRelease from nonInterferenceValidationPlan to scenarioWarningInterventionRelease;
 
   /* Phase order provenance: needs/requirements (Phase 3–5) derive from the
    * framing slice of the same INC-AEBS-010; the increment part incAEBS010
