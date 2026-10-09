@@ -10,8 +10,9 @@ increment's workflow and of the library definitions whose features kept
 content redefines; the other declared packages as package elements; every
 kernel declaration; and, transitively, what kept elements reference, with
 their non-membership relationships and owner chains (owned members of a
-referenced element are not followed). Output: gzip JSON (mtime 0) with a
-``cut_from`` provenance record.
+referenced element are not followed). Output: canonical JSON (sorted keys, no
+spaces), gzip-compressed, with a ``cut_from`` record of the source export and
+the sha256 of the cut's own elements and element sources (see README.md).
 """
 
 from __future__ import annotations
@@ -30,6 +31,11 @@ from de4sdv.semantic.increment_scope import resolve_increment  # noqa: E402
 from de4sdv.semantic.increment_workflow import workflow_of  # noqa: E402
 
 OWNED = ("ownedRelationship", "ownedRelatedElement")
+
+
+def canonical(value) -> bytes:
+    """The cut's serialization: sorted keys, no spaces."""
+    return json.dumps(value, separators=(",", ":"), sort_keys=True).encode()
 
 
 def _ids(value) -> list[str]:
@@ -84,16 +90,19 @@ def main(source: Path, increment: str, target: Path, full_packages: set[str]) ->
     keep.difference_update(bases)
     close(subtrees(bases))
     elements = [element for element in raw["elements"] if element["@id"] in keep]
-    files = {raw["element_sources"][element["@id"]] for element in elements}
-    data = json.dumps({
+    sources = {element["@id"]: raw["element_sources"][element["@id"]] for element in elements}
+    data = canonical({
         "schema": raw["schema"], "git_commit": raw["git_commit"],
         "cut_from": {"export_sha256": hashlib.sha256(raw_bytes).hexdigest(), "increment": increment,
-                     "full_packages": sorted(full_packages), "elements": len(raw["elements"])},
+                     "full_packages": sorted(full_packages), "elements": len(raw["elements"]),
+                     "content_sha256": {"elements": hashlib.sha256(canonical(elements)).hexdigest(),
+                                        "element_sources": hashlib.sha256(canonical(sources)).hexdigest()}},
         "elements": elements,
-        "element_sources": {element["@id"]: raw["element_sources"][element["@id"]] for element in elements},
+        "element_sources": sources,
         "external_references": [],
-        "source_manifest": [entry for entry in raw.get("source_manifest", []) if entry.get("path") in files],
-    }, separators=(",", ":"), sort_keys=True).encode()
+        "source_manifest": [entry for entry in raw.get("source_manifest", [])
+                            if entry.get("path") in set(sources.values())],
+    })
     target.write_bytes(gzip.compress(data, compresslevel=9, mtime=0))
     print(f"kept {len(elements)} of {len(raw['elements'])} elements; {len(data) // 1024} KB, "
           f"{target.stat().st_size // 1024} KB compressed")

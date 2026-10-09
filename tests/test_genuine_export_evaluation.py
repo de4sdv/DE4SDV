@@ -1,11 +1,9 @@
-"""INC-AEBS-010, evaluated end to end on a cut of a genuine export.
+"""The frozen genuine-export cut: evaluated end to end, and checked against its own records.
 
-``fixtures/genuine_export/inc-aebs-010.json.gz`` keeps, unchanged, the
-elements of the licensed export of b64a48e0 that INC-AEBS-010's framing and
-needs depend on: its framing and needs packages, the package elements of its
-other declared packages, the increment workflow, every kernel declaration and
-what those reference (``cut_increment_export.py`` beside it states the rule
-and records the source export). It is evaluated exactly as
+``fixtures/genuine_export/inc-aebs-010.json.gz`` is a frozen sample of real
+serializer shapes (see the README beside it): a cut of the licensed export of
+one revision, kept unchanged. These tests assert outcomes of that frozen cut,
+never of the current model. It is evaluated exactly as
 ``scripts/evaluate_increment.py`` evaluates an export: kernel identity
 validated from the export, every serializer shape the real one.
 """
@@ -15,19 +13,18 @@ from __future__ import annotations
 import gzip
 import hashlib
 import json
-import subprocess
+import re
 from pathlib import Path
 
 from de4sdv.semantic import method_evaluator as me
 from de4sdv.semantic.export_evaluation import evaluate_export
 from increment_model_fixtures import GENUINE_EXPORT
 
-ROOT = Path(__file__).resolve().parents[1]
 NEEDS = ["needCorrelatableEvidence", "needFailClosedDegradation", "needLiveVisualizationOnAAOS",
          "needNonInterference", "needPreservedSourceProvenance"]
 
 
-def test_inc_aebs_010_is_framed_and_next_asks_for_validation_scenarios(tmp_path: Path) -> None:
+def test_the_frozen_cut_is_framed_and_next_asks_for_validation_scenarios(tmp_path: Path) -> None:
     export = tmp_path / "export.json"
     export.write_bytes(gzip.decompress(GENUINE_EXPORT.read_bytes()))
     snapshot, evaluation = evaluate_export(export, "INC-AEBS-010")
@@ -46,16 +43,28 @@ def test_inc_aebs_010_is_framed_and_next_asks_for_validation_scenarios(tmp_path:
     assert needs == {"needHasValidationScenario": 5, "needFramesConcern": 5}
 
 
-def _stale_sources(manifest) -> list[str]:
-    """Model files of the cut whose HEAD blob differs from the export's (libraries are not tracked)."""
-    def head_sha256(path: str) -> str:
-        shown = subprocess.run(["git", "show", f"HEAD:{path}"], cwd=ROOT, capture_output=True)
-        return hashlib.sha256(shown.stdout).hexdigest() if shown.returncode == 0 else ""
-    return [entry["path"] for entry in manifest
-            if not entry["path"].startswith(".sysand/") and head_sha256(entry["path"]) != entry["sha256"]]
+def _canonical(value) -> bytes:
+    return json.dumps(value, separators=(",", ":"), sort_keys=True).encode()
 
 
-def test_the_cut_matches_the_model_files_at_head() -> None:
-    stale = _stale_sources(json.loads(gzip.decompress(GENUINE_EXPORT.read_bytes()))["source_manifest"])
-    assert not stale, (f"{stale} changed since the cut; re-cut the fixture with "
-                       "tests/fixtures/genuine_export/cut_increment_export.py")
+def _inconsistencies(text: bytes) -> list[str]:
+    """How the cut's JSON departs from its own records (empty when self-consistent)."""
+    cut = json.loads(text)
+    found = [] if _canonical(cut) == text else ["the file is not the cut script's canonical serialization"]
+    recorded = cut["cut_from"]["content_sha256"]
+    found += [f"{part} differ from their recorded sha256" for part in ("elements", "element_sources")
+              if hashlib.sha256(_canonical(cut[part])).hexdigest() != recorded[part]]
+    if set(cut["element_sources"]) != {element["@id"] for element in cut["elements"]}:
+        found.append("the element sources do not cover exactly the elements")
+    files = {path for path in cut["element_sources"].values() if not path.startswith("@library/")}
+    manifest = {entry["path"]: entry["sha256"] for entry in cut["source_manifest"]}
+    if files != set(manifest) or not all(re.fullmatch(r"[0-9a-f]{64}", sha) for sha in manifest.values()):
+        found.append(f"the source manifest does not list the source files: {sorted(files ^ set(manifest))}")
+    if not re.fullmatch(r"[0-9a-f]{40}", str(cut.get("git_commit"))):
+        found.append("no source revision is recorded")
+    return found
+
+
+def test_the_frozen_cut_is_self_consistent() -> None:
+    """The cut matches its own records; it is never compared with the model at HEAD."""
+    assert _inconsistencies(gzip.decompress(GENUINE_EXPORT.read_bytes())) == []

@@ -33,8 +33,8 @@ from increment_model_fixtures import (
     WorkflowStep,
     increment_scenario,
     increment_workflow,
-    method_builder,
-    model_workflow,
+    cut_method_builder,
+    cut_workflow,
 )
 from model_contract_fixtures import binding_dict, model_service, synthetic_identity
 
@@ -44,8 +44,8 @@ INCREMENT = "INC-FIXTURE-001"
 
 
 def _corpus() -> tuple[list[dict], list[dict]]:
-    scenario = increment_scenario(method_builder())
-    model_workflow(scenario)
+    scenario = increment_scenario(cut_method_builder())
+    cut_workflow(scenario)
     return scenario.builder.elements, scenario.builder.bindings
 
 

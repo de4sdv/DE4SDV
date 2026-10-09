@@ -5,7 +5,7 @@ charters and short names), runs the evaluation entry point
 ``scripts/evaluate_increment.py`` once per increment, and writes one JSON
 result plus a readable summary. Gaps never fail it; technical errors do.
 
-Synthetic increments over the model's method layer (the genuine export cut);
+Synthetic increments over the method layer of the frozen genuine-export cut;
 no network. A transport spy stands in for the entry-point process where a test
 only checks orchestration; one test runs the real entry point.
 """
@@ -21,8 +21,8 @@ import pytest
 from increment_model_fixtures import (
     ModelBuilder,
     increment_scenario,
-    method_builder,
-    model_workflow,
+    cut_method_builder,
+    cut_workflow,
     set_check,
 )
 from scripts import method_check
@@ -33,9 +33,9 @@ FIRST, SECOND, THIRD, FOURTH = "INC-FIXTURE-001", "INC-FIXTURE-002", "INC-FIXTUR
 
 
 def _gappy(builder: ModelBuilder) -> None:
-    """First: the model workflow, one need without a stakeholder (one blocking gap)."""
+    """First: the cut's workflow, one need without a stakeholder (one blocking gap)."""
     first = increment_scenario(builder, increment_id=FIRST, name="First")
-    model_workflow(first)
+    cut_workflow(first)
     need = first.needs[1]
     builder.remove(*[e for e in builder.elements if e.get("@type") == "StakeholderMembership"
                      and e.get("owningRelatedElement", {}).get("@id") == need["@id"]])
@@ -47,24 +47,24 @@ def _without_workflow(builder: ModelBuilder) -> None:
 
 
 def _invalid_workflow(builder: ModelBuilder) -> None:
-    """Third: the model workflow with an unknown check id (the method is invalid).
+    """Third: the cut's workflow with an unknown check id (the method is invalid).
 
-    The workflow is the builder's one model workflow, so this goes in an export of its own.
+    The workflow is the builder's one cut workflow, so this goes in an export of its own.
     """
     third = increment_scenario(builder, increment_id=THIRD, name="Third")
-    set_check(third, model_workflow(third), "incrementHasAssumption", check="noSuchCheck")
+    set_check(third, cut_workflow(third), "incrementHasAssumption", check="noSuchCheck")
 
 
 def _overpopulated(builder: ModelBuilder) -> None:
     """Fourth: two engineering questions where the workflow allows exactly one (a population finding)."""
     fourth = increment_scenario(builder, increment_id=FOURTH, name="Fourth")
-    model_workflow(fourth)
+    cut_workflow(fourth)
     builder.usage("PartUsage", "fourthSecondQuestion", fourth.framing,
                   [builder.kernel_definition("IncrementEngineeringQuestion")])
 
 
-def _export(tmp_path: Path, *parts, git_commit: str = GIT, kernel: str = "model") -> Path:
-    builder = method_builder("method-check") if kernel == "model" else ModelBuilder(label="method-check")
+def _export(tmp_path: Path, *parts, git_commit: str = GIT, kernel: str = "cut") -> Path:
+    builder = cut_method_builder("method-check") if kernel == "cut" else ModelBuilder(label="method-check")
     for part in parts:
         part(builder)
     path = tmp_path / "model-export.json"

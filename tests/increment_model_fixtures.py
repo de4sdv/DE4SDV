@@ -9,10 +9,11 @@ ReferenceSubsetting connection ends, MultiplicityRange -> OperatorExpression
 declarations and source files, so ingestion-shaped kernel bindings resolve
 them by identity. Element identifiers are deterministic per builder.
 
-The model's own method (kernel declarations, the increment workflow, the
-library attribute bases) is never copied by hand: :func:`method_builder`
-adopts it, unchanged, from the cut of a genuine export in
-``fixtures/genuine_export``.
+The method (kernel declarations, the increment workflow, the library
+attribute bases) is never copied by hand: :func:`cut_method_builder` adopts it,
+unchanged, from the frozen genuine-export cut in ``fixtures/genuine_export``
+(see the README there). Tests built on it assert outcomes of that frozen cut,
+never of the current model.
 """
 
 from __future__ import annotations
@@ -393,7 +394,7 @@ class IncrementScenario:
     evidence_package: dict[str, Any]
     cases: list[dict[str, Any]]
     vocabulary: dict[str, dict[str, Any]] = field(default_factory=dict)
-    #: Handles to the model workflow the charter declares (see :func:`model_workflow`).
+    #: Handles to the frozen cut's workflow the charter declares (see :func:`cut_workflow`).
     workflow: dict[str, Any] = field(default_factory=dict)
 
 
@@ -652,8 +653,8 @@ def _genuine_method_layer() -> tuple[str, tuple[tuple[tuple[str, str], ...], ...
     return json.dumps({"elements": elements, "sources": layer_sources}), bindings
 
 
-def method_builder(label: str = "fixture") -> ModelBuilder:
-    """A builder holding the model's method layer (kernel, workflow, library) from the genuine export."""
+def cut_method_builder(label: str = "fixture") -> ModelBuilder:
+    """A builder holding the frozen cut's method layer (kernel, workflow, library), unchanged."""
     text, bindings = _genuine_method_layer()
     layer = json.loads(text)  # a fresh copy per builder
     builder = ModelBuilder(label=label)
@@ -663,13 +664,13 @@ def method_builder(label: str = "fixture") -> ModelBuilder:
     return builder
 
 
-def model_workflow(scenario: IncrementScenario) -> dict[str, Any]:
-    """The model's increment workflow, declared by the scenario's charter (a :func:`method_builder` scenario).
+def cut_workflow(scenario: IncrementScenario) -> dict[str, Any]:
+    """The frozen cut's increment workflow, declared by the scenario's charter (a :func:`cut_method_builder` scenario).
 
-    The charter definition specializes the model's ``IncrementCharter``, whose
+    The charter definition specializes the cut's ``IncrementCharter``, whose
     ``workflow`` feature is typed by the workflow; the framing package gets a
-    scope and an out-of-scope item typed by the model's definitions. Returns
-    the workflow's steps, parameters and checks by name.
+    scope and an out-of-scope item typed by the cut's definitions. Returns the
+    workflow's steps, parameters and checks by name.
     """
     builder = scenario.builder
     named = {(e["@type"], e.get("declaredName")): e for e in builder.elements
@@ -700,7 +701,7 @@ def model_workflow(scenario: IncrementScenario) -> dict[str, Any]:
 
 
 def set_check(scenario: IncrementScenario, workflow: dict[str, Any], check_name: str, /, **values: Any) -> None:
-    """Set (or replace) attributes of one check of the model workflow, as a redefinition in the model would."""
+    """Set (or replace) attributes of one check of the cut's workflow, as a redefinition would."""
     builder, metadata = scenario.builder, workflow["checks"][check_name]
     features = builder.members(workflow["check_definition"])
     for name, value in values.items():

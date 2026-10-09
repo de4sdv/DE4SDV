@@ -7,6 +7,8 @@ definition -> its step actions (ordered by successions from ``start`` to
 whose metadata definition declares ``check``. No kernel binding of the
 workflow declarations is needed. Every check is evaluated; the step order only
 ranks ``next``. Subjects come from the packages the charter declares.
+Scenarios use the workflow of the frozen genuine-export cut; two lexical tests
+read the checkout's live workflow file instead.
 """
 
 from __future__ import annotations
@@ -32,8 +34,8 @@ from increment_model_fixtures import (
     attach_workflow,
     increment_scenario,
     increment_workflow,
-    method_builder,
-    model_workflow,
+    cut_method_builder,
+    cut_workflow,
     ref,
     set_check,
 )
@@ -70,8 +72,8 @@ def _evaluate(scenario):
 
 
 def _scenario(applicable_phases=(P0, P4, P5, P10)):
-    scenario = increment_scenario(method_builder(), applicable_phases=applicable_phases)
-    scenario.workflow = model_workflow(scenario)
+    scenario = increment_scenario(cut_method_builder(), applicable_phases=applicable_phases)
+    scenario.workflow = cut_workflow(scenario)
     return scenario
 
 
@@ -90,7 +92,7 @@ def _owner(builder, element) -> str | None:
 
 
 def test_the_charter_declares_the_workflow_read_into_one_contract() -> None:
-    scenario = _scenario()  # its charter definition specializes the model's IncrementCharter
+    scenario = _scenario()  # its charter definition specializes the cut's IncrementCharter
     method = _method(scenario)
     assert method.available, method.problems or method.reason
     assert not any(b["ontology_class"] in {"IncrementWorkflow", "MethodCheck"} for b in scenario.builder.bindings)
@@ -322,7 +324,7 @@ def test_the_contract_projection_names_step_parameter_and_subject_type() -> None
 
 
 def test_every_check_the_model_declares_is_supported() -> None:
-    """Every check id in the model's workflow resolves in the engine's registry."""
+    """Every check id in the checkout's (live) workflow file resolves in the engine."""
     text = re.sub(r"/\*.*?\*/", "", WORKFLOW_FILE.read_text(encoding="utf-8"), flags=re.S)
     used = set(re.findall(r':>>\s*check\s*=\s*"([^"]+)"', text))
     supported = set(method_checks(_view(_scenario())))
