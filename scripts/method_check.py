@@ -221,10 +221,27 @@ def _plain(text: Any, *, cell: bool = False) -> str:
 
 def _subject_label(subject: Mapping[str, Any], *, qualified: bool) -> str:
     keys = ("qualified_name", "name") if qualified else ("name", "qualified_name")
-    for key in keys:
+    for key in (*keys, "element_id"):
         if subject.get(key):
             return str(subject[key])
-    return str(subject.get("element_id") or "?")
+    return ""
+
+
+def _split_subjects(records: Sequence[Mapping[str, Any]]) -> tuple[list[Mapping[str, Any]], list[str]]:
+    """Element subjects, and the findings of records that name no element.
+
+    A population-policy result (too many or no subjects) is reported as one
+    record without an element; its diagnostics are the finding.
+    """
+    subjects = [r for r in records if _subject_label(r, qualified=False)]
+    findings: list[str] = []
+    for record in records:
+        if record in subjects:
+            continue
+        for diagnostic in record.get("diagnostics") or []:
+            if diagnostic not in findings:
+                findings.append(str(diagnostic))
+    return subjects, findings
 
 
 def _first_subjects(subjects: Sequence[Mapping[str, Any]], *, qualified: bool, cell: bool) -> str:
@@ -236,9 +253,10 @@ def _first_subjects(subjects: Sequence[Mapping[str, Any]], *, qualified: bool, c
 def _gap_table(gaps: Sequence[Mapping[str, Any]]) -> list[str]:
     lines = ["| Check | Phase | Kind | Subjects | First subjects |", "| --- | --- | --- | ---: | --- |"]
     for gap in gaps[:MAX_ROWS]:
-        subjects = list(gap.get("subjects") or [])
-        first = _first_subjects(subjects, qualified=False, cell=True) if subjects else _plain(
-            "; ".join(gap.get("diagnostics") or gap.get("missing") or []) or "-", cell=True)
+        subjects, findings = _split_subjects(list(gap.get("subjects") or []))
+        findings += [str(item) for item in (gap.get("diagnostics") or gap.get("missing") or [])]
+        first = (_first_subjects(subjects, qualified=False, cell=True) if subjects
+                 else _plain("; ".join(findings) or "-", cell=True))
         lines.append(f"| {_code(gap.get('gate'), cell=True)} | {_plain(gap.get('phase'), cell=True)} | "
                      f"{_plain(gap.get('kind'), cell=True)} | {len(subjects)} | {first} |")
     if len(gaps) > MAX_ROWS:
@@ -286,9 +304,11 @@ def _increment_section(entry: Mapping[str, Any]) -> list[str]:
             places.append(f"packages {', '.join(_code(p) for p in where['packages'])}")
         if places:
             lines.append(f"- Where: {'; '.join(places)}")
-        subjects = list(step.get("subjects") or [])
+        subjects, findings = _split_subjects(list(step.get("subjects") or []))
         if subjects:
             lines.append(f"- Subjects ({len(subjects)}): {_first_subjects(subjects, qualified=True, cell=False)}")
+        if findings:
+            lines.append(f"- Finding: {_plain('; '.join(findings))}")
     else:
         lines.append(f"**Next:** none. {_plain(entry.get('next_reason') or '')}".rstrip())
     lines.append("")

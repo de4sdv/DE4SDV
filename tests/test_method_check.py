@@ -31,7 +31,7 @@ from scripts import method_check
 
 ROOT = Path(__file__).resolve().parents[1]
 GIT = "e" * 40
-FIRST, SECOND, THIRD = "INC-FIXTURE-001", "INC-FIXTURE-002", "INC-FIXTURE-003"
+FIRST, SECOND, THIRD, FOURTH = "INC-FIXTURE-001", "INC-FIXTURE-002", "INC-FIXTURE-003", "INC-FIXTURE-004"
 
 
 def _gappy(builder: ModelBuilder) -> None:
@@ -57,6 +57,15 @@ def _invalid_workflow(builder: ModelBuilder) -> None:
     increment_workflow(builder, steps, charter=third.charter, package_name="DE4SDV_ThirdWorkflow")
 
 
+def _overpopulated(builder: ModelBuilder) -> None:
+    """Fourth: two engineering questions where the workflow allows exactly one (a population finding)."""
+    fourth = increment_scenario(builder, increment_id=FOURTH, name="Fourth")
+    increment_workflow(builder, model_workflow_steps(fourth), charter=fourth.charter,
+                       package_name="DE4SDV_FourthWorkflow")
+    builder.usage("PartUsage", "fourthSecondQuestion", fourth.framing,
+                  [builder.kernel_definition("IncrementEngineeringQuestion")])
+
+
 def _export(tmp_path: Path, *parts, git_commit: str = GIT) -> Path:
     builder = ModelBuilder(label="method-check")
     for part in parts:
@@ -72,12 +81,12 @@ def real_reports(tmp_path_factory) -> dict[str, dict]:
     import importlib.util
 
     tmp_path = tmp_path_factory.mktemp("reports")
-    export = _export(tmp_path, _gappy, _without_workflow, _invalid_workflow)
+    export = _export(tmp_path, _gappy, _without_workflow, _invalid_workflow, _overpopulated)
     spec = importlib.util.spec_from_file_location("evaluate_increment", ROOT / "scripts/evaluate_increment.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     reports = {}
-    for increment in (FIRST, SECOND, THIRD):
+    for increment in (FIRST, SECOND, THIRD, FOURTH):
         code, report, _output = module.run(["--export", str(export), "--increment", increment])
         assert code == 0
         reports[increment] = report
@@ -252,6 +261,22 @@ def test_the_summary_names_next_and_the_blocking_gaps_per_increment(tmp_path: Pa
     assert "| `verificationCaseHasEvidenceRecordOrStatus` | phase10_vvEvidence | method-side | 1 | `firstVerification` |" in lines
     assert f"gh run download 4242 -R de4sdv/DE4SDV -n method-check-{GIT}" in text
     assert "no acceptance, compliance or certification claim" in text
+
+
+def test_a_population_finding_is_rendered_as_its_diagnostic_not_as_a_subject(tmp_path: Path, real_reports) -> None:
+    # A population-policy result names no element: the engine reports one
+    # subject record without an element id that carries the finding.
+    export = _export(tmp_path, _overpopulated)
+    _code, result, _summary = _run(tmp_path, export, EntryPointSpy(real_reports))
+    entry = result["increments"][0]
+    gap = entry["evaluation"]["gaps"]["blocking"][0]
+    assert gap["gate"] == "incrementHasEngineeringQuestion"
+    assert gap["subjects"][0]["element_id"] is None
+    text = method_check.render_summary(result)
+    finding = "the population has 2 subjects; the population policy allows at most 1"
+    assert f"| `incrementHasEngineeringQuestion` | phase0_incrementFraming | violation | 0 | {finding} |" in text
+    assert f"- Finding: {finding}" in text
+    assert "`?`" not in text and "Subjects (1)" not in text
 
 
 def test_the_summary_bounds_subjects_and_escapes_table_cells() -> None:
