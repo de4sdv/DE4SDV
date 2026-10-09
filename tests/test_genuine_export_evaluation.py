@@ -40,6 +40,7 @@ def test_the_frozen_cut_is_framed_and_next_asks_for_validation_scenarios(tmp_pat
         ": connection <name> : ValidationPlanningAssociation connect needCorrelatableEvidence to <scenario>;")
     needs = {gap["gate"]: len(gap["subjects"]) for gap in evaluation.gaps()["blocking"]
              if gap["phase"] == "phase4_needs"}
+    # The cut predates the removal of needFramesConcern from the workflow (needs never frame concerns).
     assert needs == {"needHasValidationScenario": 5, "needFramesConcern": 5}
 
 
