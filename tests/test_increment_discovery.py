@@ -85,6 +85,16 @@ def test_an_identifier_on_an_element_outside_the_increment_lineage_is_a_note(tmp
                for note in discovery.notes)
 
 
+def test_an_identifier_on_two_increment_usages_is_listed_once_with_a_note(tmp_path: Path) -> None:
+    builder = _two_increments()
+    framing = next(e for e in builder.elements if e.get("declaredName") == "DE4SDV_SecondFraming")
+    definition = next(e for e in builder.elements if e.get("declaredName") == "SecondIncrement")
+    builder.usage("PartUsage", "incSecondCopy", framing, [definition], short="INC-FIXTURE-001")
+    discovery = declared_increments(_view(tmp_path, builder))
+    assert discovery.increment_ids == ("INC-FIXTURE-001", "INC-FIXTURE-002")
+    assert any(note.startswith("2 increment usages carry the identifier INC-FIXTURE-001") for note in discovery.notes)
+
+
 def test_a_model_without_increments_declares_none(tmp_path: Path) -> None:
     builder = ModelBuilder(label="empty")
     builder.kernel_definition("EngineeringIncrement")

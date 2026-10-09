@@ -158,6 +158,7 @@ def _evaluate(increment: DeclaredIncrement, export: Path, output_dir: Path,
         "next": None, "next_reason": "", "counts": {}, "phase_exits": {}, "diagnostics": [],
         "evaluation": None,
     }
+    report_path.unlink(missing_ok=True)  # never read a report an earlier run left behind
     run = runner(argv)
     report = _read_json(report_path)
     if run.returncode != 0 or report is None or report.get("status") == "refused":
@@ -174,12 +175,16 @@ def _evaluate(increment: DeclaredIncrement, export: Path, output_dir: Path,
     status = report.get("status") or {}
     next_block = report.get("next") or {}
     resolution = list(((status.get("increment") or {}).get("diagnostics")) or [])
-    if me.INVALID_CONTRACT in (status.get("reason_codes") or []) or status.get("evaluation_state") == me.STATE_ERROR:
+    available = status.get("executable_contract_available") is not False
+    # An invalid workflow is an evaluation ERROR without an executable method;
+    # a gate error under a readable method is model feedback, reported in the gaps.
+    if me.INVALID_CONTRACT in (status.get("reason_codes") or []) or (
+            not available and status.get("evaluation_state") == me.STATE_ERROR):
         problems = list((status.get("method") or {}).get("problems") or [])
         entry["outcome"] = OUTCOME_INVALID
         entry["diagnostics"] = [*(status.get("diagnostics") or []), *problems]
         return entry, [f"{identifier}: the method cannot be read: {'; '.join(entry['diagnostics'])}"]
-    if status.get("executable_contract_available") is False:
+    if not available:
         entry["outcome"] = OUTCOME_UNAVAILABLE
         entry["diagnostics"] = [*(status.get("diagnostics") or []), *resolution]
         entry["next_reason"] = str(next_block.get("reason") or "")

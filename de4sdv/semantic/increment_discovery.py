@@ -14,10 +14,11 @@ names:
   charter (the evaluation then reports the missing charter).
 
 What cannot be evaluated is reported as a note, never guessed: a charter
-whose increment usage carries no identifier, and an identifier-shaped short
-name on an element outside the increment lineage. A missing kernel binding
-of either lineage raises :class:`IdentityNotFoundError`; it is never an empty
-result.
+whose increment usage carries no identifier, an identifier-shaped short name
+on an element outside the increment lineage, and an identifier that several
+increment usages carry (listed once; its evaluation reports the ambiguity).
+A missing kernel binding of either lineage raises
+:class:`IdentityNotFoundError`; it is never an empty result.
 """
 
 from __future__ import annotations

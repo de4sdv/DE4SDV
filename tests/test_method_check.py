@@ -97,10 +97,11 @@ class EntryPointSpy:
     """Stands in for the entry-point process: records argv, writes a canned report."""
 
     def __init__(self, reports: dict[str, dict], codes: dict[str, int] | None = None,
-                 stderr: str = "") -> None:
+                 stderr: str = "", silent: frozenset[str] = frozenset()) -> None:
         self.reports = reports
         self.codes = codes or {}
         self.stderr = stderr
+        self.silent = silent  # increments for which the process writes no report
         self.calls: list[list[str]] = []
 
     def __call__(self, argv):
@@ -109,7 +110,7 @@ class EntryPointSpy:
         increment = argv[argv.index("--increment") + 1]
         output = Path(argv[argv.index("--output") + 1])
         code = self.codes.get(increment, 0)
-        if code in (0, 2):
+        if code in (0, 2) and increment not in self.silent:
             report = (self.reports[increment] if code == 0
                       else {"status": "refused", "reason": f"{increment} refused by the spy"})
             output.write_text(json.dumps(report))
@@ -191,6 +192,28 @@ def test_a_refused_or_crashed_evaluation_is_a_technical_error(tmp_path: Path, re
     assert outcomes == {FIRST: "evaluated", SECOND: "error"}
     assert any(SECOND in error and expected in error for error in result["errors"])
     assert expected in summary
+
+
+def test_a_stale_report_is_never_read_after_a_failed_evaluation(tmp_path: Path, real_reports) -> None:
+    export = _export(tmp_path, _gappy)
+    out = tmp_path / "result"
+    out.mkdir()
+    (out / f"{FIRST}.json").write_text(json.dumps(real_reports[FIRST]))  # left by an earlier run
+    code, result, _summary = _run(tmp_path, export, EntryPointSpy(real_reports, silent=frozenset({FIRST})))
+    assert code == 1
+    assert result["increments"][0]["outcome"] == "error"
+    assert "no report was written" in result["errors"][0]
+
+
+def test_a_gate_error_under_a_readable_method_is_reported_not_failed(tmp_path: Path, real_reports) -> None:
+    # An executable method whose aggregate state is ERROR (for example a gate
+    # whose scope cannot be resolved) is model feedback, not an unreadable method.
+    report = json.loads(json.dumps(real_reports[FIRST]))
+    report["status"]["evaluation_state"] = "ERROR"
+    export = _export(tmp_path, _gappy)
+    code, result, _summary = _run(tmp_path, export, EntryPointSpy({FIRST: report}))
+    assert code == 0
+    assert result["increments"][0]["outcome"] == "evaluated"
 
 
 def test_an_export_of_another_revision_is_refused(tmp_path: Path, real_reports) -> None:
