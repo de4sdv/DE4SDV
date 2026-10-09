@@ -352,7 +352,8 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
          * systems engineers and verification engineers attribute each
          * displayed value or state to native Autoware output, DE4SDV AEBS
          * coordination state, or display-derived presentation, together with
-         * its units, coordinate frame, timestamp, freshness, and validity? */
+         * its units, coordinate frame, timestamp, rate, freshness, validity,
+         * and bounded displayed cardinality? */
   }
   connection preservedSourceProvenanceValidationPlanning : ValidationPlanningAssociation connect needPreservedSourceProvenance to preservedSourceProvenanceValidationPlan;
   dependency preservedSourceProvenanceValidationFromHealthyMonitoring from preservedSourceProvenanceValidationPlan to scenarioHealthyMonitoring;
