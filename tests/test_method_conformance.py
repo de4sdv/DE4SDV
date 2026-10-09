@@ -2023,10 +2023,30 @@ def test_query_service_refuses_unconfigured_method_queries() -> None:
         impact_service=_unused(),
         expected_git_revision="a" * 40,
     )
-    with pytest.raises(RuntimeError, match="not configured"):
+    # Method gates are read from the bound model by default; a service
+    # without a revision binding has no model to read them from.
+    with pytest.raises(RuntimeError, match="no revision binding"):
         bare.phase_contract(_pilot_phase())
+    with pytest.raises(RuntimeError, match="no revision binding"):
+        bare.increment_status(_pilot_phase(), increment="INC-X-001")
+    # Phase-only evaluation calls still need an explicitly configured
+    # approved method selection (a declared pilot contract).
     with pytest.raises(RuntimeError, match="not configured"):
         bare.increment_status(_pilot_phase())
+    with pytest.raises(ValueError, match="an increment"):
+        bare.increment_status()
+
+
+def test_a_configured_selection_never_receives_a_missing_phase() -> None:
+    query, service, _ = _wired_query_service(_bare_context())
+    for call in (query.increment_status, query.method_gaps, query.next_obligation):
+        with pytest.raises(ValueError, match="an increment"):
+            call()
+    assert service.evaluation_count == 0
+    # With neither a phase nor an increment, phase_contract reads the bound
+    # model's gates; the selection is never asked for a phase named "None".
+    with pytest.raises(RuntimeError, match="no revision binding"):
+        query.phase_contract()
 
 
 def test_mcp_surface_exposes_c_owned_method_tools() -> None:

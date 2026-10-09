@@ -4,12 +4,15 @@ This module is the reusable application layer exposed by CLI, MCP, or any other
 client protocol. It contains no MCP- or Hermes-specific behavior. All engineering
 relationships come from the ontology contract and :class:`SemanticTraversal`.
 
-Lane C adds the four method-conformance surfaces specified by the frozen
-baseline Section 13 (``phase_contract``, ``increment_status``, ``method_gaps``,
-``next_obligation``). They reuse this service and the bound revision; no
-parallel graph or second service is introduced. The three evaluation
-projections share one canonical evaluation identity through
-:class:`~de4sdv.semantic.method_evaluator.MethodConformanceService`.
+The four method-conformance surfaces of the frozen baseline Section 13
+(``phase_contract``, ``increment_status``, ``method_gaps``,
+``next_obligation``) evaluate one increment against the method gates read
+from the bound model revision; every service over a revision binding has
+them, with no separate method wiring. The three evaluation projections share
+one canonical evaluation per increment (same evaluation key). A model without
+gates answers ``CONTRACT_UNAVAILABLE``. An explicitly configured
+:class:`~de4sdv.semantic.method_evaluator.MethodConformanceService` (a
+declared pilot contract) still serves the phase-only calls.
 """
 
 from __future__ import annotations
@@ -23,13 +26,17 @@ from de4sdv.sysml_api.repository import SysMLRepository, element_id, reference_i
 from de4sdv.sysml_api.revisions import RevisionBinding
 
 from .api_binding import OntologyApiBinder
+from .increment_workflow import IncrementMethod, read_revision_method
 from .impact import ImpactService
+from .increment_evaluation import IncrementEvaluation, evaluate_increment, phase_contract_response
+from .increment_scope import ModelView, parse_increment_id
 from .kernel_contract import KernelContract
 from .method_evaluator import (
     EvaluationContext,
     MethodConformanceService,
     ReadinessTarget,
     ReadinessBlock,
+    RevisionIdentity,
 )
 from .traversal import (
     EVIDENCE_CONTRACT_BLOCKED_REASON,
@@ -60,6 +67,13 @@ class SemanticQueryService:
     _impact_cache: dict[str, dict[str, Any]] = field(
         default_factory=dict, init=False, repr=False
     )
+    _revision_methods: dict[tuple[str, str, str], IncrementMethod] = field(
+        default_factory=dict, init=False, repr=False
+    )
+    _increment_evaluations: dict[tuple[str, str, str, str], IncrementEvaluation] = field(
+        default_factory=dict, init=False, repr=False
+    )
+    method_evaluation_count: int = field(default=0, init=False)
 
     def _revision(self) -> dict[str, Any]:
         return {
@@ -582,7 +596,7 @@ class SemanticQueryService:
         }
 
     # ------------------------------------------------------------------
-    # Method-conformance surfaces (frozen baseline Section 13; Lane C)
+    # Method-conformance surfaces (frozen baseline Section 13)
     # ------------------------------------------------------------------
 
     def _require_method_conformance(self) -> MethodConformanceService:
@@ -599,26 +613,105 @@ class SemanticQueryService:
             )
         return self.method_context_provider()
 
-    def phase_contract(
-        self, phase: str, candidate_context: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
-        """Candidate-independent read of the approved phase contract.
+    def _revision_identity(self) -> RevisionIdentity:
+        return RevisionIdentity(
+            git_commit=self.binding.git_commit,
+            sysml_project_id=self.binding.sysml_project_id,
+            sysml_commit_id=self.binding.sysml_commit_id,
+            scope=self.binding.scope,
+        )
 
-        Method-only provenance; never a conformance verdict, and no candidate
-        Git/API binding is fabricated. Optional candidate context resolves
-        applicability only; obligations are never removed.
+    def _method_view(self) -> ModelView:
+        # _elements() enforces the revision gates (exact Git SHA, semantic
+        # authority) before any method answer is produced.
+        if self.binding is None or self.repository is None or self.traversal is None:
+            raise RuntimeError(
+                "no revision binding is configured for this runtime; method gates are "
+                "read from the bound model revision"
+            )
+        return ModelView(self._elements(), self.traversal)
+
+    def _revision_key(self) -> tuple[str, str, str]:
+        return (
+            self.binding.git_commit,
+            self.binding.sysml_project_id,
+            self.binding.sysml_commit_id,
+        )
+
+    def revision_method(self) -> IncrementMethod:
+        """The workflow the bound revision's charters declare, when there is exactly one (read once)."""
+        view = self._method_view()
+        key = self._revision_key()
+        if key not in self._revision_methods:
+            self._revision_methods[key] = read_revision_method(
+                view, revision_label=self.binding.git_commit
+            )
+        return self._revision_methods[key]
+
+    def increment_evaluation(self, increment: str) -> IncrementEvaluation:
+        """The canonical method evaluation of one increment (computed once).
+
+        The method is the workflow the increment's own charter declares.
         """
-        return self._require_method_conformance().phase_contract(
-            phase, candidate_context
+        identifier = parse_increment_id(increment)
+        view = self._method_view()  # revision gates before any method answer
+        key = (*self._revision_key(), identifier)
+        if key not in self._increment_evaluations:
+            self.method_evaluation_count += 1
+            self._increment_evaluations[key] = evaluate_increment(
+                view, identifier, revision=self._revision_identity()
+            )
+        return self._increment_evaluations[key]
+
+    def _with_provenance(self, response: dict[str, Any]) -> dict[str, Any]:
+        response["service_provenance"] = self._provenance()
+        return response
+
+    @staticmethod
+    def _selection_phase(phase: str | None) -> str:
+        """The phase of a call answered by a configured method selection."""
+        if phase is None:
+            raise ValueError(
+                "an increment (INC-<SUBJECT>-<SEQ>) is required; only a configured "
+                "method selection answers a phase alone"
+            )
+        return phase
+
+    def phase_contract(
+        self,
+        phase: str | None = None,
+        candidate_context: dict[str, Any] | None = None,
+        *,
+        increment: str | None = None,
+    ) -> dict[str, Any]:
+        """Candidate-independent read of the method checks (never a verdict).
+
+        With an increment: the workflow its charter declares, each check with
+        that increment's applicability. Without one: the workflow the
+        revision's charters declare, when they declare exactly one. A runtime
+        explicitly configured with an approved method selection (a declared
+        pilot contract) answers phase-only calls from it.
+        """
+        if increment is None and phase is not None and self.method_conformance is not None:
+            return self.method_conformance.phase_contract(phase, candidate_context)
+        if increment is not None:
+            return self._with_provenance(self.increment_evaluation(increment).phase_contract(phase))
+        view = self._method_view()
+        return self._with_provenance(
+            phase_contract_response(self.revision_method(), view, self._revision_identity(), phase=phase)
         )
 
     def increment_status(
         self,
-        phase: str,
+        phase: str | None = None,
         *,
+        increment: str | None = None,
         requested_readiness: list[ReadinessTarget] | None = None,
     ) -> dict[str, Any]:
-        """Scoped model-contract conformance projection."""
+        """Per-phase status of one increment against the model's method gates."""
+        if increment is not None:
+            return self._with_provenance(self.increment_evaluation(increment).status(phase))
+        phase = self._selection_phase(phase)
         service = self._require_method_conformance()
         return service.increment_status(
             phase,
@@ -626,14 +719,16 @@ class SemanticQueryService:
             requested_readiness=tuple(requested_readiness or ()),
         )
 
-    def method_gaps(self, phase: str) -> dict[str, Any]:
-        """Explicit violations, unresolved inputs, and out-of-scope obligations."""
-        return self._require_method_conformance().method_gaps(
-            phase, self._method_context()
-        )
+    def method_gaps(self, phase: str | None = None, *, increment: str | None = None) -> dict[str, Any]:
+        """Unmet blocking gates and advisory notes of one increment."""
+        if increment is not None:
+            return self._with_provenance(self.increment_evaluation(increment).gaps(phase))
+        phase = self._selection_phase(phase)
+        return self._require_method_conformance().method_gaps(phase, self._method_context())
 
-    def next_obligation(self, phase: str) -> dict[str, Any]:
-        """Deterministic next actionable obligation (no agent assignment)."""
-        return self._require_method_conformance().next_obligation(
-            phase, self._method_context()
-        )
+    def next_obligation(self, phase: str | None = None, *, increment: str | None = None) -> dict[str, Any]:
+        """The first actionable gate of one increment (no agent assignment)."""
+        if increment is not None:
+            return self._with_provenance(self.increment_evaluation(increment).next_obligation(phase))
+        phase = self._selection_phase(phase)
+        return self._require_method_conformance().next_obligation(phase, self._method_context())

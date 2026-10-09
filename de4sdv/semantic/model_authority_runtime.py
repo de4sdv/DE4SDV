@@ -544,8 +544,16 @@ class ModelAuthorityTraversal(SuccessorTraversal):
         comes from the ingestion-validated kernel binding; the closure follows
         AUTHORED subsumption only. It must contain exactly the expected number
         of specializing requirement definitions and, when attested, exactly
-        the bound members' validated element ids (ids, never names).
+        the bound members' validated element ids (ids, never names). Built
+        once per corpus; a refusal is re-raised on every call.
         """
+        return self.revision_index(elements).memo_bound(
+            "evidence-contract-definitions",
+            (self.kernel_bindings, self.closure_member_ids),
+            lambda: self._evidence_contract_definitions(elements),
+        )
+
+    def _evidence_contract_definitions(self, elements):
         from .relationships import build_relationship_graph
 
         by_id = {}
@@ -579,8 +587,15 @@ class ModelAuthorityTraversal(SuccessorTraversal):
         by the validated root or one of the bound closure definitions."""
         root_id, definitions, closure, resolver = self.evidence_contract_definitions(elements)
         types = definitions | {root_id}
-        return {element for element, typed in resolver["typed_by"].items()
-                if element not in closure and set(typed) & types}
+
+        def members():
+            return {element for element, typed in resolver["typed_by"].items()
+                    if element not in closure and set(typed) & types}
+
+        return set(self.revision_index(elements).memo_bound(
+            "evidence-contract-identity-ids",
+            (self.kernel_bindings, self.closure_member_ids),
+            lambda: frozenset(members())))
 
 
 def _component_provenance(contract) -> list[dict[str, str]]:

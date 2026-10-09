@@ -75,27 +75,30 @@ def create_mcp_server(service: SemanticQueryService) -> FastMCP:
         return service.verification_coverage(requirement_identifier)
 
     # ------------------------------------------------------------------
-    # Method-conformance surfaces (Lane C; frozen baseline Section 13)
+    # Method surfaces: one increment against the model's method gates
+    # (frozen baseline Section 13). ``increment`` is the registered
+    # identifier carried as the increment usage's declared short name;
+    # ``phase`` (a MethodPhase literal) optionally filters the projection.
     # ------------------------------------------------------------------
 
     @mcp.tool(annotations=_READ_ONLY, structured_output=True)
-    def phase_contract(phase: str) -> dict[str, Any]:
-        """Return the approved phase contract; method-only provenance, no verdict."""
-        return service.phase_contract(phase)
+    def phase_contract(phase: str | None = None, increment: str | None = None) -> dict[str, Any]:
+        """Return the method gates (optionally one phase); with an increment, also its applicability. No verdict."""
+        return service.phase_contract(phase, increment=increment)
 
     @mcp.tool(annotations=_READ_ONLY, structured_output=True)
-    def increment_status(phase: str) -> dict[str, Any]:
-        """Project scoped model-contract conformance for one phase contract."""
-        return service.increment_status(phase)
+    def increment_status(increment: str, phase: str | None = None) -> dict[str, Any]:
+        """Per-phase status of one increment: aggregate verdict and phase-exit readiness."""
+        return service.increment_status(phase, increment=increment)
 
     @mcp.tool(annotations=_READ_ONLY, structured_output=True)
-    def method_gaps(phase: str) -> dict[str, Any]:
-        """List explicit violations, unresolved inputs, and out-of-scope units."""
-        return service.method_gaps(phase)
+    def method_gaps(increment: str, phase: str | None = None) -> dict[str, Any]:
+        """Unmet blocking gates of one increment with subjects and what to author, plus advisory notes."""
+        return service.method_gaps(phase, increment=increment)
 
     @mcp.tool(annotations=_READ_ONLY, structured_output=True)
-    def next_obligation(phase: str) -> dict[str, Any]:
-        """Return the deterministic next actionable obligation, unassigned."""
-        return service.next_obligation(phase)
+    def next_obligation(increment: str, phase: str | None = None) -> dict[str, Any]:
+        """The first actionable gate of one increment, in workflow order (step order, then check order), with what to author and where."""
+        return service.next_obligation(phase, increment=increment)
 
     return mcp

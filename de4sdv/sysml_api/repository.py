@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any, Callable, Literal
 
 from .client import ApiClient
 from .errors import ApiError
 
 Direction = Literal["incoming", "outgoing", "both"]
+
+#: Lazy corpus source: (project_id, commit_id) -> elements, or None on a miss.
+CorpusSource = Callable[[str, str], "list[dict[str, Any]] | None"]
+#: Best-effort corpus sink invoked after an authoritative retrieval.
+CorpusSink = Callable[[str, str, "list[dict[str, Any]]"], None]
 
 
 def element_id(value: object) -> str | None:
@@ -17,6 +23,30 @@ def element_id(value: object) -> str | None:
         return None
     candidate = value.get("@id") or value.get("elementId") or value.get("id")
     return str(candidate) if candidate is not None else None
+
+
+def validated_element_corpus(value: object) -> list[dict[str, Any]]:
+    """Structurally validate an element listing (fail closed).
+
+    A value that is not a non-empty list of JSON objects carrying unique
+    element UUIDs is refused entirely: never partially adopted, never
+    repaired. Callers treat a refusal as a cache miss and load from the API.
+    """
+    if not isinstance(value, list) or not value:
+        raise ValueError("element corpus must be a non-empty list")
+    seen: set[str] = set()
+    validated: list[dict[str, Any]] = []
+    for index, item in enumerate(value):
+        if not isinstance(item, dict):
+            raise ValueError(f"element corpus item {index} is not a JSON object")
+        candidate_id = element_id(item)
+        if candidate_id is None:
+            raise ValueError(f"element corpus item {index} has no element UUID")
+        if candidate_id in seen:
+            raise ValueError(f"element corpus item {index} duplicates element UUID {candidate_id!r}")
+        seen.add(candidate_id)
+        validated.append(item)
+    return validated
 
 
 def reference_ids(value: object) -> list[str]:
@@ -34,13 +64,39 @@ class SysMLRepository:
 
     API commits are immutable, so element listings are memoized per
     (project, commit) revision to avoid repeated full-model fetches within one
-    process.
+    process; one retrieval per revision holds even under concurrent first
+    calls.
+
+    A lazy corpus source/sink pair may be installed
+    (:meth:`install_corpus_source`): the source is consulted before the
+    network on the first listing of a revision (persistent corpus snapshot)
+    and the sink receives the authoritative result for a best-effort write.
+    The source is never trusted by itself: its corpus is structurally
+    validated before adoption, and the caller binds its identity.
     """
 
     client: ApiClient
     _element_cache: dict[tuple[str, str], list[dict[str, Any]]] = field(
         default_factory=dict, repr=False, compare=False
     )
+    _lock: Any = field(default_factory=threading.Lock, repr=False, compare=False)
+    _corpus_source: CorpusSource | None = field(default=None, init=False, repr=False, compare=False)
+    _corpus_sink: CorpusSink | None = field(default=None, init=False, repr=False, compare=False)
+
+    def install_corpus_source(self, source: CorpusSource, *, sink: CorpusSink | None = None) -> None:
+        """Install the lazy snapshot-first hook (no I/O at install time)."""
+        self._corpus_source = source
+        self._corpus_sink = sink
+
+    def adopt_elements(self, project_id: str, commit_id: str, elements: object) -> bool:
+        """Adopt a validated external listing; never displaces an API listing."""
+        validated = validated_element_corpus(elements)
+        cache_key = (project_id, commit_id)
+        with self._lock:
+            if cache_key in self._element_cache:
+                return False
+            self._element_cache[cache_key] = validated
+        return True
 
     def get_project(self, project_id: str) -> dict[str, Any]:
         value = self.client.request("GET", f"/projects/{project_id}")
@@ -69,13 +125,27 @@ class SysMLRepository:
 
     def list_elements(self, project_id: str, commit_id: str) -> list[dict[str, Any]]:
         cache_key = (project_id, commit_id)
-        if cache_key not in self._element_cache:
+        cached = self._element_cache.get(cache_key)
+        if cached is not None:
+            return cached
+        with self._lock:
+            cached = self._element_cache.get(cache_key)
+            if cached is not None:
+                return cached
+            if self._corpus_source is not None:
+                snapshot = self._corpus_source(project_id, commit_id)
+                if snapshot is not None:
+                    self._element_cache[cache_key] = validated_element_corpus(snapshot)
+                    return self._element_cache[cache_key]
             path = f"/projects/{project_id}/commits/{commit_id}/elements?page[size]=1000"
             values = self.client.get_all(path)
             if not all(isinstance(value, dict) for value in values):
                 raise ApiError("GET", path, "element page contained a non-object value")
             self._element_cache[cache_key] = values
-        return self._element_cache[cache_key]
+        if self._corpus_sink is not None:
+            # Best-effort write-back; a cache failure is never a query failure.
+            self._corpus_sink(project_id, commit_id, values)
+        return values
 
     def check_capabilities(self, project_id: str, commit_id: str) -> dict[str, Any]:
         """Exercise the read contract required by semantic impact queries."""

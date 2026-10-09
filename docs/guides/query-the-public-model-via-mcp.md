@@ -136,14 +136,17 @@ Notes for the `hermes mcp add` syntax: all environment variables must be passed
 as a single `--env` flag with space-separated `KEY=VALUE` pairs — repeated
 `--env` flags overwrite each other — and the enable prompt reads from stdin.
 
-## First query is slow; after that it is fast
+## The first load is slow; restarts are fast
 
-The first semantic query in a server session retrieves the full model (~57k
-elements paginated from the API) into an in-process cache. Over the public
-internet this takes on the order of ten minutes. Every query afterwards runs
-against memory and returns in well under a second. The cache lives for the
-lifetime of the server process; a client that keeps the server running pays the
-cold cost once.
+The first semantic query on a machine retrieves the full model (paginated
+from the API) into an in-process cache. Over the public internet this takes
+several minutes. The server then saves an identity-bound snapshot of that
+revision's elements in `DE4SDV_SEMANTIC_SNAPSHOT_DIR` (default
+`~/.cache/de4sdv/semantic-snapshots`), so later server starts for the same
+revision load it locally instead. A snapshot is used only for the exact
+revision, binding, semantic authority and API endpoint it was written for;
+anything else loads from the API. Every query after the load runs against
+memory.
 
 `model_status` reports whether the runtime can make a current-baseline claim:
 it returns `current_baseline: true` only when the binding is synchronized with
@@ -152,7 +155,7 @@ identity matches. Every result carries the complete Git/API/semantic-authority
 provenance tuple —
 treat anything less as a gap, not a fact.
 
-## The seven tools
+## The tools
 
 | Tool | Answers |
 | --- | --- |
@@ -163,6 +166,7 @@ treat anything less as a gap, not a fact.
 | `impact` | Revision-bound requirement impact with strengths and gaps |
 | `trace` | Bounded path between two elements, ontology-mapped edges only |
 | `verification_coverage` | Verification cases covering a requirement, or explicit gaps |
+| `next_obligation`, `method_gaps`, `increment_status`, `phase_contract` | One increment against the workflow its charter declares in the model; see [drive an increment with the method tools](drive-an-increment-with-the-method-tools.md) |
 
 All tools are read-only and deterministic; results carry exact element and
 relationship UUIDs and provenance URIs of the form

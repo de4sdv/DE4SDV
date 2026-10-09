@@ -19,6 +19,7 @@ from .model_edges import (
     typing_index,
 )
 from .relationships import build_relationship_graph, is_family
+from .revision_index import RevisionIndex
 
 
 #: Reviewed c5-correction range class whose identity gate the dependency
@@ -99,7 +100,17 @@ def build_reference_subsetting_bridge(
 
 
 class SemanticTraversal:
-    """Execute only explicitly configured ontology relationship strategies."""
+    """Execute only explicitly configured ontology relationship strategies.
+
+    Structures derived from one element corpus (element lookup, relationship
+    graph, lineage and typing indexes, lineage resolvers) are built once per
+    corpus through a :class:`RevisionIndex` and reused by every traversal
+    over that exact corpus object; results are identical to rebuilding them
+    per call.
+    """
+
+    #: Number of corpora whose revision index one traversal keeps.
+    REVISION_INDEX_SLOTS = 4
 
     def __init__(
         self,
@@ -109,6 +120,49 @@ class SemanticTraversal:
         self.contract = contract
         self.kernel_bindings = kernel_bindings
         self._current_by_id: dict[str, dict[str, Any]] = {}
+        self._revision_indexes: list[RevisionIndex] = []
+
+    def revision_index(self, elements: Any) -> RevisionIndex:
+        """The revision-scoped index of exactly this corpus object (built once)."""
+        slots = self.__dict__.setdefault("_revision_indexes", [])
+        for position, index in enumerate(slots):
+            if index.elements is elements:
+                if position:
+                    slots.insert(0, slots.pop(position))
+                return index
+        index = RevisionIndex(elements)
+        slots.insert(0, index)
+        del slots[self.REVISION_INDEX_SLOTS:]
+        return index
+
+    def _index_of(self, by_id: Any) -> RevisionIndex | None:
+        """The kept revision index whose element lookup is exactly ``by_id``."""
+        for index in self.__dict__.get("_revision_indexes", ()):
+            if index.owns_lookup(by_id):
+                return index
+        return None
+
+    def _graph_of(self, by_id: dict[str, dict[str, Any]]) -> Any:
+        """The relationship graph over ``by_id`` (the index graph when kept)."""
+        index = self._index_of(by_id)
+        if index is not None:
+            return index.graph
+        return build_relationship_graph(list(by_id.values()))
+
+    def class_lineage(self, ontology_class: str, elements: Any) -> dict[str, Any]:
+        """Validated lineage resolver of one ontology class over ``elements``.
+
+        Raises :class:`IdentityNotFoundError` when the class has no
+        ingestion-validated kernel binding in this revision.
+        """
+        index = self.revision_index(elements)
+        return self._lineage_resolver(ontology_class, index.by_id, index.graph)
+
+    def grounding(
+        self, element: dict[str, Any], ontology_class: str, elements: Any
+    ) -> str | None:
+        """``"explicit"``/``"implied"`` lineage grounding of ``element``, else None."""
+        return self._endpoint_grounding(element, self.class_lineage(ontology_class, elements))
 
     def traverse(
         self,
@@ -117,11 +171,7 @@ class SemanticTraversal:
         elements: list[dict[str, Any]],
     ) -> list[TraversalHop]:
         mapping = self.contract.relationship_mapping(predicate)
-        by_id = {
-            candidate_id: item
-            for item in elements
-            if (candidate_id := element_id(item)) is not None
-        }
+        by_id = self.revision_index(elements).by_id
         source_id = element_id(source)
         if source_id is None:
             return []
@@ -232,7 +282,7 @@ class SemanticTraversal:
                 f"no governed domain lineage; the declared semantic contract "
                 f"cannot be enforced"
             )
-        graph = build_relationship_graph(list(by_id.values()))
+        graph = self._graph_of(by_id)
         domain_resolver = self._lineage_resolver(str(domain_class), by_id, graph)
         if self._endpoint_grounding(source, domain_resolver) is None:
             # Non-qualifying native relationship: the queried source is not
@@ -337,15 +387,13 @@ class SemanticTraversal:
         resolver raises :class:`IdentityNotFoundError` — names, packages,
         and source text never participate.
         """
-        by_id: dict[str, dict[str, Any]] = {}
-        for item in elements:
-            candidate_id = element_id(item)
-            if candidate_id is not None:
-                by_id[candidate_id] = item
-        graph = build_relationship_graph(list(by_id.values()))
+        index = self.revision_index(elements)
+        by_id = index.by_id
+        graph = index.graph
         resolver = self._lineage_resolver("Requirement", by_id, graph)
-        _declared_to_shadows, shadow_to_declared = (
-            build_reference_subsetting_bridge(elements)
+        _declared_to_shadows, shadow_to_declared = index.memo(
+            "reference-subsetting-bridge",
+            lambda: build_reference_subsetting_bridge(elements),
         )
         return {
             "by_id": by_id,
@@ -583,7 +631,7 @@ class SemanticTraversal:
         # shared representation-tolerant reader and keeps explicit vs
         # implied provenance separable: an implied relationship never stands
         # in for an authored derivation assertion.
-        graph = build_relationship_graph(list(by_id.values()))
+        graph = self._graph_of(by_id)
 
         # Role resolvers from the declared kernel lineages (R1 preserved):
         # Need lineage and Requirement lineage from validated kernel UUIDs.
@@ -1063,23 +1111,34 @@ class SemanticTraversal:
                 f"ingestion-validated binding metadata"
             )
         root_id = self.kernel_bindings.element_id_for(lineage_class, by_id)
-        graph = graph if graph is not None else build_relationship_graph(
-            list(by_id.values())
+        index = self._index_of(by_id)
+        if index is None:
+            graph = graph if graph is not None else build_relationship_graph(
+                list(by_id.values())
+            )
+            node_ids = list(by_id)
+            explicit_specifics, implied_specifics = lineage_index(graph, node_ids)
+            typed_by, typed_by_implied = typing_index(graph, node_ids)
+            return _resolver_record(
+                root_id, explicit_specifics, implied_specifics, typed_by, typed_by_implied
+            )
+        target_graph = graph if graph is not None else index.graph
+
+        def build() -> dict[str, Any]:
+            indexes = index.graph_indexes(target_graph)
+            return _resolver_record(
+                root_id,
+                indexes.explicit_specifics,
+                indexes.implied_specifics,
+                indexes.typed_by,
+                indexes.typed_by_implied,
+            )
+
+        return index.memo_bound(
+            ("lineage-resolver", lineage_class, root_id),
+            (self.kernel_bindings, target_graph),
+            build,
         )
-        node_ids = list(by_id)
-        explicit_specifics, implied_specifics = lineage_index(graph, node_ids)
-        typed_by, typed_by_implied = typing_index(graph, node_ids)
-        explicit_lineage = lineage_closure({root_id}, explicit_specifics)
-        full_lineage = lineage_closure(
-            {root_id}, _merge_specifics(explicit_specifics, implied_specifics)
-        )
-        return {
-            "root_id": root_id,
-            "lineage_ids": full_lineage,
-            "explicit_lineage_ids": explicit_lineage,
-            "typed_by": typed_by,
-            "typed_by_implied": typed_by_implied,
-        }
 
     def _definition_closure(
         self,
@@ -1094,7 +1153,11 @@ class SemanticTraversal:
         widen the discriminator: only authored subsumption widens what counts
         as an authored derivation typing.
         """
-        explicit_specifics, _implied = lineage_index(graph, list(by_id))
+        index = self._index_of(by_id)
+        if index is not None:
+            explicit_specifics = index.graph_indexes(graph).explicit_specifics
+        else:
+            explicit_specifics, _implied = lineage_index(graph, list(by_id))
         return lineage_closure(definition_ids, explicit_specifics)
 
     def _bound_definition_ids(
@@ -1288,11 +1351,7 @@ class SemanticTraversal:
         owner_types = {str(item) for item in config.get("owner_types", [])}
         if owner_types and str(source.get("@type")) not in owner_types:
             return []
-        by_id = {
-            candidate_id: item
-            for item in elements
-            if (candidate_id := element_id(item)) is not None
-        }
+        by_id = self.revision_index(elements).by_id
         # Candidate memberships first: a source owning no subject membership
         # at all is quiet absence — no lineage resolution (and no binding
         # requirement) is performed for it.
@@ -1318,7 +1377,7 @@ class SemanticTraversal:
                 f"governed domain/range lineage; the declared semantic "
                 f"contract cannot be enforced"
             )
-        graph = build_relationship_graph(list(by_id.values()))
+        graph = self._graph_of(by_id)
         source_resolver = self._lineage_resolver(str(source_lineage), by_id, graph)
         # Source restriction: the query source must ground in the governed
         # domain lineage. A RequirementUsage outside it (for example a
@@ -1409,11 +1468,8 @@ class SemanticTraversal:
         reference_property = str(
             config.get("reference_property", "verifiedRequirement")
         )
-        by_id = {
-            candidate_id: item
-            for item in elements
-            if (candidate_id := element_id(item)) is not None
-        }
+        index = self.revision_index(elements)
+        by_id = index.by_id
 
         def anchors_of(membership: dict[str, Any]) -> set[str]:
             return set(
@@ -1430,8 +1486,9 @@ class SemanticTraversal:
         # Reviewed ReferenceSubsetting shadow bridge: declared requirement ->
         # serialized shadow reference usage (the same keys the resolver below
         # consumes, via the shared c2-mechanism builder).
-        declared_to_shadows, _shadow_to_declared = (
-            build_reference_subsetting_bridge(elements)
+        declared_to_shadows, _shadow_to_declared = index.memo(
+            "reference-subsetting-bridge",
+            lambda: build_reference_subsetting_bridge(elements),
         )
 
         # Membership edges for upward owner walking (containment chain).
@@ -1442,20 +1499,27 @@ class SemanticTraversal:
                 ["FeatureMembership", "OwningMembership", "ObjectiveMembership"],
             )
         }
-        _owners_index: dict[str, set[str]] = {}
-        for membership in elements:
-            if str(membership.get("@type")) not in owner_chain_types:
-                continue
-            for member_ref in (
-                reference_ids(membership.get("memberElement"))
-                + reference_ids(membership.get("ownedMemberElement"))
-            ):
-                for owner_ref in (
-                    reference_ids(membership.get("owningRelatedElement"))
-                    + reference_ids(membership.get("owner"))
-                    + reference_ids(membership.get("membershipOwningNamespace"))
+
+        def build_owners_index() -> dict[str, set[str]]:
+            owners: dict[str, set[str]] = {}
+            for membership in elements:
+                if str(membership.get("@type")) not in owner_chain_types:
+                    continue
+                for member_ref in (
+                    reference_ids(membership.get("memberElement"))
+                    + reference_ids(membership.get("ownedMemberElement"))
                 ):
-                    _owners_index.setdefault(member_ref, set()).add(owner_ref)
+                    for owner_ref in (
+                        reference_ids(membership.get("owningRelatedElement"))
+                        + reference_ids(membership.get("owner"))
+                        + reference_ids(membership.get("membershipOwningNamespace"))
+                    ):
+                        owners.setdefault(member_ref, set()).add(owner_ref)
+            return owners
+
+        _owners_index = index.memo(
+            ("verification-owners", tuple(sorted(owner_chain_types))), build_owners_index
+        )
 
         # Start points: the queried semantic source and, when a shadow
         # reference usage subsettings it, the shadow (so upward walking can
@@ -1494,7 +1558,7 @@ class SemanticTraversal:
                 f"declares no governed domain lineage; the declared semantic "
                 f"contract cannot be enforced"
             )
-        graph = build_relationship_graph(list(by_id.values()))
+        graph = self._graph_of(by_id)
         resolver = self._lineage_resolver(str(domain_class), by_id, graph)
         if self._endpoint_grounding(source, resolver) is None:
             return []
@@ -1596,6 +1660,25 @@ class SemanticTraversal:
             )
             unique[key] = hop
         return list(unique.values())
+
+def _resolver_record(
+    root_id: str,
+    explicit_specifics: dict[str, set[str]],
+    implied_specifics: dict[str, set[str]],
+    typed_by: dict[str, set[str]],
+    typed_by_implied: dict[str, set[str]],
+) -> dict[str, Any]:
+    """The lineage resolver record of one validated root (read-only use)."""
+    return {
+        "root_id": root_id,
+        "lineage_ids": lineage_closure(
+            {root_id}, _merge_specifics(explicit_specifics, implied_specifics)
+        ),
+        "explicit_lineage_ids": lineage_closure({root_id}, explicit_specifics),
+        "typed_by": typed_by,
+        "typed_by_implied": typed_by_implied,
+    }
+
 
 def _merge_specifics(
     *maps: dict[str, set[str]],

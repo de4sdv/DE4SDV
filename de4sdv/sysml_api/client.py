@@ -3,21 +3,60 @@
 The transport is extracted from the live-service client proven in DE4SDV PR #36.
 It keeps the standard-library-only HTTP boundary while adding pagination,
 authentication headers, and a typed error model for production callers.
+
+Throttling: the public API allows 50 requests per 10 seconds. An HTTP 429
+response is retried a bounded number of times after waiting the server's
+``Retry-After`` (delta seconds or HTTP date) or, without that header, one
+rate window. A requested wait above the bound, or a throttle that outlasts
+the retries, raises ``ApiError`` with status 429. Other HTTP errors are never
+retried.
 """
 
 from __future__ import annotations
 
+import email.utils
 import json
+import math
 import re
+import time
 import urllib.error
 import urllib.request
 from urllib.parse import urlsplit, urlunsplit
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 from .errors import ApiError
 
 _NEXT_LINK_RE = re.compile(r'<([^>]+)>\s*;\s*rel="next"')
+
+#: Wait applied to a 429 without ``Retry-After``: one window of the public
+#: API rate limit (50 requests per 10 seconds).
+DEFAULT_RATE_LIMIT_WAIT_SECONDS = 10.0
+#: Retries of one throttled request before the 429 is raised.
+DEFAULT_RATE_LIMIT_RETRIES = 3
+#: Longest single wait the client accepts; a longer ``Retry-After`` fails.
+DEFAULT_MAX_RATE_LIMIT_WAIT_SECONDS = 30.0
+
+
+def _retry_after_seconds(value: str | None, now: float) -> float | None:
+    """Seconds requested by a ``Retry-After`` header, or None when absent/invalid."""
+    if value is None or not value.strip():
+        return None
+    text = value.strip()
+    try:
+        seconds = float(text)
+    except ValueError:
+        pass
+    else:
+        # NaN is unreadable (one rate window applies); infinity exceeds any bound.
+        return None if math.isnan(seconds) else max(0.0, seconds)
+    try:
+        moment = email.utils.parsedate_to_datetime(text)
+    except (TypeError, ValueError):
+        return None
+    if moment is None:
+        return None
+    return max(0.0, moment.timestamp() - now)
 
 
 @dataclass(frozen=True)
@@ -28,6 +67,9 @@ class ApiClient:
     token: str | None = None
     timeout: float = 30.0
     default_headers: dict[str, str] = field(default_factory=dict)
+    max_rate_limit_retries: int = DEFAULT_RATE_LIMIT_RETRIES
+    max_rate_limit_wait_seconds: float = DEFAULT_MAX_RATE_LIMIT_WAIT_SECONDS
+    sleep: Callable[[float], None] = field(default=time.sleep, repr=False, compare=False)
 
     def _url(self, path: str) -> str:
         if path.startswith(("http://", "https://")):
@@ -59,18 +101,42 @@ class ApiClient:
         if payload is not None:
             data = json.dumps(payload).encode("utf-8")
             headers["Content-Type"] = "application/json"
-        request = urllib.request.Request(
-            self._url(path), data=data, headers=headers, method=method
-        )
-        try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                raw = response.read().decode("utf-8")
-                response_headers = dict(response.headers.items())
-        except urllib.error.HTTPError as exc:
-            body = exc.read().decode("utf-8", errors="replace")
-            raise ApiError(method, path, body[:2000], status=exc.code) from exc
-        except urllib.error.URLError as exc:
-            raise ApiError(method, path, str(exc.reason)) from exc
+        attempt = 0
+        while True:
+            request = urllib.request.Request(
+                self._url(path), data=data, headers=headers, method=method
+            )
+            try:
+                with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                    raw = response.read().decode("utf-8")
+                    response_headers = dict(response.headers.items())
+                break
+            except urllib.error.HTTPError as exc:
+                body = exc.read().decode("utf-8", errors="replace")
+                if exc.code != 429:
+                    raise ApiError(method, path, body[:2000], status=exc.code) from exc
+                header = exc.headers.get("Retry-After") if exc.headers else None
+                requested = _retry_after_seconds(header, time.time())
+                wait = DEFAULT_RATE_LIMIT_WAIT_SECONDS if requested is None else requested
+                if wait > self.max_rate_limit_wait_seconds:
+                    raise ApiError(
+                        method,
+                        path,
+                        f"rate limited; Retry-After {header} exceeds the bounded "
+                        f"wait of {self.max_rate_limit_wait_seconds:g} s",
+                        status=429,
+                    ) from exc
+                if attempt >= self.max_rate_limit_retries:
+                    raise ApiError(
+                        method,
+                        path,
+                        f"rate limited after {attempt} bounded retries: {body[:1000]}",
+                        status=429,
+                    ) from exc
+                attempt += 1
+                self.sleep(wait)
+            except urllib.error.URLError as exc:
+                raise ApiError(method, path, str(exc.reason)) from exc
         if not raw:
             return None, response_headers
         try:
