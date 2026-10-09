@@ -324,3 +324,89 @@ def test_decision_distance_requirement_matches_the_hmi_contract() -> None:
         "implementation/aebs-aaos-sdv-visualization-bench/VISUALIZATION-CONTRACT.md"
     ).read_text(encoding="utf-8")
     assert "boundary row is\n  removed" in contract or "boundary row is removed" in " ".join(contract.split())
+
+
+# ---------------------------------------------------------------------------
+# S2 validation planning and verification-method vocabulary (mirrors the S1
+# guards validation_plan_population in test_w6_trace_allocation_completeness
+# and test_aebs_verification_attributes; the Method Check is advisory, so
+# these regressions must fail CI).
+# ---------------------------------------------------------------------------
+
+VERIFICATION_METHOD_VOCABULARY = {"inspect", "demo", "test", "analyze"}
+
+
+def _strip_comments(text: str) -> str:
+    text = re.sub(r"/\*.*?\*/", lambda m: re.sub(r"[^\n]", " ", m.group(0)), text, flags=re.S)
+    return re.sub(r"//[^\n]*", "", text)
+
+
+def _brace_block(text: str, open_index: int) -> str:
+    depth = 0
+    for index in range(open_index, len(text)):
+        if text[index] == "{":
+            depth += 1
+        elif text[index] == "}":
+            depth -= 1
+            if depth == 0:
+                return text[open_index + 1:index]
+    raise AssertionError("unbalanced braces")
+
+
+def _s2_validation_plan_population():
+    raw = _read(NEEDS)
+    plans = {}
+    for match in re.finditer(r"\bpart\s+(\w+)\s*:\s*ValidationPlanningScenario\s*\{", raw):
+        body = _brace_block(raw, match.end() - 1)
+        ids = re.match(r"\s*doc\s*/\*\s*(SC-AEBS-010-\d{2}),\s*(N-AEBS-\d{3}):", body)
+        assert ids, (match[1], "planning doc must start with the SC and need identifiers")
+        plans[match[1]] = (ids[1], ids[2], body)
+    code = _strip_comments(raw)
+    links = re.findall(
+        r"\bconnection\s+(\w+)\s*:\s*ValidationPlanningAssociation\s+connect\s+(\w+)\s+to\s+(\w+)\s*;", code
+    )
+    assert len(links) == len(re.findall(r"\bValidationPlanningAssociation\b", code))
+    needs = {}
+    for match in re.finditer(r"\brequirement\s+(need\w+)\s*:\s*\w+\s*\{", raw):
+        ident = re.match(r"\s*doc\s*/\*\s*(N-AEBS-\d{3})\b", _brace_block(raw, match.end() - 1))
+        if ident:
+            needs[match[1]] = ident[1]
+    return plans, links, needs
+
+
+def test_every_s2_need_has_exactly_one_planned_validation_scenario() -> None:
+    plans, links, needs = _s2_validation_plan_population()
+    assert len(needs) == 5 and len(plans) == 5
+    data = yaml.safe_load(_read(PILOT_YAML))
+    assert {sc for sc, _need, _body in plans.values()} == set(data["validation_scenario_ids"])
+    per_plan, per_need = {}, {}
+    for _name, need, plan in links:
+        assert plan in plans and need in needs, (need, plan)
+        assert needs[need] == plans[plan][1], (need, plan, "association must target the planned need")
+        per_plan.setdefault(plan, []).append(need)
+        per_need.setdefault(need, []).append(plan)
+    assert set(per_plan) == set(plans) and all(len(v) == 1 for v in per_plan.values())
+    assert set(per_need) == set(needs) and all(len(v) == 1 for v in per_need.values())
+
+
+def test_s2_validation_planning_docs_claim_no_execution_result_or_acceptance() -> None:
+    plans, _links, _needs = _s2_validation_plan_population()
+    for name, (_sc, _need, body) in plans.items():
+        text = " ".join(re.sub(r"\n\s*\*(?!/)", "\n", body).split())
+        assert "No execution, result or acceptance." in text, name
+        assert not re.search(r"\b(passed|validated|accepted|verdict)\b", text, re.I), name
+
+
+def test_every_s2_requirement_states_one_standard_verification_method() -> None:
+    """ADR 0009: verificationMethod is typed String upstream, so the
+    VerificationMethodKind vocabulary is test-enforced."""
+    needs = _read(NEEDS)
+    requirements = needs.split("package VisualizationRequirements {", 1)[1]
+    blocks = {}
+    for match in re.finditer(r"\brequirement\s+(req\w+)\s*:\s*VisualizationInstrumentRequirementCandidate\s*\{", requirements):
+        blocks[match[1]] = _brace_block(requirements, match.end() - 1)
+    assert len(blocks) == 20
+    for usage, body in blocks.items():
+        methods = re.findall(r'attribute :>> verificationMethod = "(\w+)";', body)
+        assert len(methods) == 1, (usage, methods)
+        assert methods[0] in VERIFICATION_METHOD_VOCABULARY, (usage, methods[0])

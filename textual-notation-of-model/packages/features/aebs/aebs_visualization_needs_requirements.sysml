@@ -340,7 +340,8 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
          * instrumented member runs the healthy-monitoring and
          * warning-intervention-release scenarios, can systems engineers and
          * reviewers review live AEBS threat and intervention state on the
-         * actual AAOS SDV display, without a host-side substitute? */
+         * actual AAOS SDV display, without a host-side substitute?
+         * No execution, result or acceptance. */
   }
   connection liveVisualizationOnAAOSValidationPlanning : ValidationPlanningAssociation connect needLiveVisualizationOnAAOS to liveVisualizationOnAAOSValidationPlan;
   dependency liveVisualizationOnAAOSValidationFromHealthyMonitoring from liveVisualizationOnAAOSValidationPlan to scenarioHealthyMonitoring;
@@ -353,7 +354,8 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
          * displayed value or state to native Autoware output, DE4SDV AEBS
          * coordination state, or display-derived presentation, together with
          * its units, coordinate frame, timestamp, rate, freshness, validity,
-         * and bounded displayed cardinality? */
+         * and bounded displayed cardinality?
+         * No execution, result or acceptance. */
   }
   connection preservedSourceProvenanceValidationPlanning : ValidationPlanningAssociation connect needPreservedSourceProvenance to preservedSourceProvenanceValidationPlan;
   dependency preservedSourceProvenanceValidationFromHealthyMonitoring from preservedSourceProvenanceValidationPlan to scenarioHealthyMonitoring;
@@ -364,7 +366,8 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
          * stale-source, unavailable-source, invalid-envelope, and restoration
          * scenarios, can systems engineers and maintainers recognize from the
          * display that no lost or invalid source is presented as current AEBS
-         * state, and see when the current source state is restored? */
+         * state, and see when the current source state is restored?
+         * No execution, result or acceptance. */
   }
   connection failClosedDegradationValidationPlanning : ValidationPlanningAssociation connect needFailClosedDegradation to failClosedDegradationValidationPlan;
   dependency failClosedDegradationValidationFromStaleSource from failClosedDegradationValidationPlan to scenarioStaleSource;
@@ -376,7 +379,8 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     doc /* SC-AEBS-010-10, N-AEBS-012: planned stakeholder review. After a
          * warning-intervention-release run, can verification engineers trace
          * each displayed state to its observed source event, in source order,
-         * from the retained records, and repeat that correlation by replay? */
+         * from the retained records, and repeat that correlation by replay?
+         * No execution, result or acceptance. */
   }
   connection correlatableEvidenceValidationPlanning : ValidationPlanningAssociation connect needCorrelatableEvidence to correlatableEvidenceValidationPlan;
   dependency correlatableEvidenceValidationFromWarningInterventionRelease from correlatableEvidenceValidationPlan to scenarioWarningInterventionRelease;
@@ -386,7 +390,8 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
          * warning-intervention-release scenario, does what maintainers and
          * verification engineers can inspect give them the assurance they need
          * that the visualization neither commands nor modifies the unchanged
-         * System 1 AEBS detection, warning, intervention, and release behavior? */
+         * System 1 AEBS detection, warning, intervention, and release behavior?
+         * No execution, result or acceptance. */
   }
   connection nonInterferenceValidationPlanning : ValidationPlanningAssociation connect needNonInterference to nonInterferenceValidationPlan;
   dependency nonInterferenceValidationFromWarningInterventionRelease from nonInterferenceValidationPlan to scenarioWarningInterventionRelease;
