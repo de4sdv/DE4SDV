@@ -87,7 +87,7 @@ def test_needs_continue_existing_n_aebs_series_without_collision() -> None:
 
 def test_requirements_use_dedicated_s2_series_without_collision() -> None:
     needs = _read(NEEDS)
-    planned = {f"REQ-AEBS-S2-{number:03d}" for number in range(2, 15)}
+    planned = {f"REQ-AEBS-S2-{number:03d}" for number in range(2, 22)}
     for requirement_id in planned:
         assert requirement_id in needs
     collisions = planned & _existing_aebs_requirement_ids()
@@ -157,6 +157,53 @@ def test_requirement_derivation_dependencies_present(
         )
 
 
+# Obligations moved out of acceptance criteria AC-AEBS-S2-003..006 (owner
+# decision 2026-10-09) derive from their needs through the DerivesFromNeed
+# application connection, never a plain dependency.
+@pytest.mark.parametrize(
+    "requirement_id,need_usage",
+    [
+        ("REQ-AEBS-S2-015", "needNonInterference"),
+        ("REQ-AEBS-S2-016", "needPreservedSourceProvenance"),
+        ("REQ-AEBS-S2-017", "needPreservedSourceProvenance"),
+        ("REQ-AEBS-S2-018", "needPreservedSourceProvenance"),
+        ("REQ-AEBS-S2-019", "needFailClosedDegradation"),
+        ("REQ-AEBS-S2-020", "needFailClosedDegradation"),
+        ("REQ-AEBS-S2-021", "needFailClosedDegradation"),
+    ],
+)
+def test_moved_criterion_obligations_derive_through_derives_from_need(
+    requirement_id: str, need_usage: str
+) -> None:
+    needs = _read(NEEDS)
+    usage_match = re.search(
+        rf"\brequirement\s+(\w+)\s*:[^{{]+\{{\s*"
+        rf"doc\s*/\*\s*{re.escape(requirement_id)}\b",
+        needs,
+    )
+    assert usage_match, f"missing requirement usage for {requirement_id}"
+    requirement_usage = usage_match.group(1)
+    assert re.search(
+        rf"\bconnection\s+\w+\s*:\s*DerivesFromNeed\s+connect\s+"
+        rf"{re.escape(need_usage)}\s+to\s+{re.escape(requirement_usage)}\s*;",
+        needs,
+    ), f"missing DerivesFromNeed derivation for {requirement_id}"
+
+
+def test_soi_definition_types_the_framed_visualization_test_system() -> None:
+    framing = _read(FRAMING)
+    assert "part def AEBSVisualizationTestSystem :> System2EngineeringAndAssuranceSystem {" in framing
+    assert "part system2VisualizationInstrument : AEBSVisualizationTestSystem {" in framing
+
+
+def test_requirement_subject_is_the_visualization_test_system() -> None:
+    needs = _read(NEEDS)
+    requirements = needs.split("package VisualizationRequirements")[1].split("public import")[0]
+    subjects = re.findall(r"\bsubject\s+([^;]+);", requirements)
+    assert len(subjects) == 20
+    assert set(subjects) == {"visualizationTestSystem :> system2VisualizationInstrument"}
+
+
 def test_needs_stay_technology_neutral() -> None:
     needs = _read(NEEDS)
     needs_only = needs.split("package VisualizationRequirements")[0]
@@ -212,7 +259,7 @@ def test_yaml_need_and_requirement_indexes_match_model() -> None:
         "N-AEBS-013",
     }
     assert set(data["requirement_ids"]) == {
-        f"REQ-AEBS-S2-{number:03d}" for number in range(2, 15)
+        f"REQ-AEBS-S2-{number:03d}" for number in range(2, 22)
     }
     assert set(data["gap_ids"]) == {
         f"GAP-AEBS-010-{number:03d}" for number in range(1, 6)

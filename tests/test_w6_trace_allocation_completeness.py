@@ -63,8 +63,8 @@ GOVERNED = {
 }
 NOT_ENDPOINTS = {
     VIS_F: {"AebsVisualizationFunctionalFlow"},
-    VIS_L: {"AEBSVisualizationLogicalSystem"},
-    VIS_P: {"AEBSVisualizationPhysicalSystem", "SdvIviCfGuestTarget"},
+    VIS_L: {"AEBSVisualizationLogicalSystem", "AEBSVisualizationLogicalInstrument"},
+    VIS_P: {"AEBSVisualizationPhysicalSystem", "AEBSVisualizationInstrumentRealization", "SdvIviCfGuestTarget"},
     MW_F: {"MiddlewareIntegrationFunctionalFlow"},
     MW_L: {"MiddlewareSystem"},
     MW_P: {"MiddlewarePhysicalSoftwareBoundary", "AutowareToAAOSSDVAdapterPhysical", "AutowareRos2TopicBoundary"},

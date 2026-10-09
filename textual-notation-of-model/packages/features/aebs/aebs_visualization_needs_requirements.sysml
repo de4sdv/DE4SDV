@@ -5,12 +5,16 @@
  * needs, and System 2 requirement candidates for the AEBS visualization test
  * system. Needs continue the existing N-AEBS series (N-AEBS-009..013);
  * requirements continue the dedicated System 2 series
- * (REQ-AEBS-S2-002..014) to avoid collision with System 1
+ * (REQ-AEBS-S2-002..021) to avoid collision with System 1
  * REQ-AEBS-001..015 and REQ-AEBS-S2-001 in aebs_needs_requirements.sysml.
  *
  * All requirements are System 2 engineering-instrumentation candidates.
  * None is a System 1 product obligation, and none prescribes TCP, protobuf,
- * SDV Gateway, Java, or Cuttlefish.
+ * SDV Gateway, Java, or Cuttlefish. Each requirement's subject is the
+ * visualization test system framed for INC-AEBS-010
+ * (DE4SDV_AEBSVisualizationFraming::system2VisualizationInstrument), the
+ * entity its statement constrains; the increment is the subject of the
+ * problem statement and the needs, not of the requirements.
  */
 
 package DE4SDV_AEBSVisualizationNeedsRequirements {
@@ -100,7 +104,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
   package VisualizationRequirements {
     requirement reqSourceFidelity : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-002 System 2 candidate derived from N-AEBS-009 and N-AEBS-010. */
-      subject increment : VisualizationIncrement;
+      subject visualizationTestSystem :> system2VisualizationInstrument;
       require constraint statement { language "English" /* The visualization test system shall preserve source identity, timestamp, units, coordinate frame, freshness, validity, and bounded cardinality for each displayed AEBS value or state. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-009 and N-AEBS-010";
@@ -108,7 +112,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     }
     requirement reqNativeParticipation : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-003 System 2 candidate derived from N-AEBS-009. */
-      subject increment : VisualizationIncrement;
+      subject visualizationTestSystem :> system2VisualizationInstrument;
       require constraint statement { language "English" /* The visualization test system shall consume live output from the pinned native Autoware AEB component: RSS threshold data and the exact native intervention diagnostic. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-009";
@@ -116,7 +120,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     }
     requirement reqNoNativeImpersonation : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-014 System 2 candidate derived from N-AEBS-010. */
-      subject increment : VisualizationIncrement;
+      subject visualizationTestSystem :> system2VisualizationInstrument;
       require constraint statement { language "English" /* The visualization test system shall not present coordinator-derived distance values as native Autoware output. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-010";
@@ -124,7 +128,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     }
     requirement reqDe4sdvParticipation : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-004 System 2 candidate derived from N-AEBS-009. */
-      subject increment : VisualizationIncrement;
+      subject visualizationTestSystem :> system2VisualizationInstrument;
       require constraint statement { language "English" /* The visualization test system shall consume live DE4SDV AEBS warning request, braking request, and intervention lifecycle state from the existing AEBS coordinator. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-009";
@@ -132,7 +136,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     }
     requirement reqNonInterference : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-005 System 2 candidate derived from N-AEBS-013. */
-      subject increment : VisualizationIncrement;
+      subject visualizationTestSystem :> system2VisualizationInstrument;
       require constraint statement { language "English" /* The visualization test system shall expose no command path from display, bridge, or transport into Autoware, the AEBS coordinator, or vehicle control. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-013";
@@ -140,7 +144,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     }
     requirement reqFailClosedFreshness : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-006 System 2 candidate derived from N-AEBS-011. */
-      subject increment : VisualizationIncrement;
+      subject visualizationTestSystem :> system2VisualizationInstrument;
       require constraint statement { language "English" /* When no valid frame is accepted for the selected bounded timeout, the visualization test system shall suppress threat geometry and present an explicit stale disposition. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-011";
@@ -148,7 +152,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     }
     requirement reqAvailabilityDisposition : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-007 System 2 candidate derived from N-AEBS-011. */
-      subject increment : VisualizationIncrement;
+      subject visualizationTestSystem :> system2VisualizationInstrument;
       require constraint statement { language "English" /* When no visualization source or service is available, or before the first valid frame arrives, the visualization test system shall present an explicit unavailable disposition. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-011";
@@ -156,7 +160,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     }
     requirement reqInvalidRejection : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-008 System 2 candidate derived from N-AEBS-011. */
-      subject increment : VisualizationIncrement;
+      subject visualizationTestSystem :> system2VisualizationInstrument;
       require constraint statement { language "English" /* The visualization test system shall reject unsupported schema, malformed, non-finite, out-of-range, stale-timestamp, and non-monotonic frames without displaying their payload values. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-011";
@@ -164,7 +168,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     }
     requirement reqRestorationBehavior : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-009 System 2 candidate derived from N-AEBS-011. */
-      subject increment : VisualizationIncrement;
+      subject visualizationTestSystem :> system2VisualizationInstrument;
       require constraint statement { language "English" /* After a failure disposition, the visualization test system shall present a bounded restored indication after the selected consecutive-valid-frame criterion is met, without application restart. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-011";
@@ -172,7 +176,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     }
     requirement reqRealAAOSRendering : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-010 System 2 candidate derived from N-AEBS-009 and N-AEBS-012. */
-      subject increment : VisualizationIncrement;
+      subject visualizationTestSystem :> system2VisualizationInstrument;
       require constraint statement { language "English" /* The visualization test system shall render AEBS state in a native application inside a booted display-capable AAOS SDV guest. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-009 and N-AEBS-012";
@@ -180,7 +184,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     }
     requirement reqAaosEnvironmentObservation : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-012 System 2 candidate derived from N-AEBS-009. */
-      subject increment : VisualizationIncrement;
+      subject visualizationTestSystem :> system2VisualizationInstrument;
       require constraint statement { language "English" /* While AEBS state is rendered, the visualization test system shall observe the AAOS SDV guest package manager, system server, display composition, vehicle service, and SDV gateway within the same rendered session. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-009";
@@ -188,7 +192,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     }
     requirement reqNoHostBrowserSurface : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-013 System 2 candidate derived from N-AEBS-009. */
-      subject increment : VisualizationIncrement;
+      subject visualizationTestSystem :> system2VisualizationInstrument;
       require constraint statement { language "English" /* The visualization test system shall not use a host-side browser page as the AEBS rendering surface. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-009";
@@ -196,11 +200,68 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     }
     requirement reqEvidenceCorrelation : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-011 System 2 candidate derived from N-AEBS-012. */
-      subject increment : VisualizationIncrement;
+      subject visualizationTestSystem :> system2VisualizationInstrument;
       require constraint statement { language "English" /* The visualization test system shall retain source, transport, ingress, and guest identity, sequence, timestamp, log, and guest-native capture records for each rendered state so that each rendered state can be correlated with its observed source event. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-012";
       attribute :>> rationale = "Each rendered state must be correlatable with its observed source event.";
+    }
+
+    requirement reqReadOnlyBoundaryStatement : VisualizationInstrumentRequirementCandidate {
+      doc /* REQ-AEBS-S2-015 System 2 candidate derived from N-AEBS-013. */
+      subject visualizationTestSystem :> system2VisualizationInstrument;
+      require constraint statement { language "English" /* The visualization test system shall state the read-only engineering-visualization boundary on its rendered display in every rendered session. */ }
+      attribute :>> status = ReqStatus::ReadyForReview;
+      attribute :>> source = "Derived from N-AEBS-013; obligation formerly stated in AC-AEBS-S2-003";
+      attribute :>> rationale = "Disclosing the read-only boundary in every session supports the non-interference assurance that maintainers and verification engineers need.";
+    }
+    requirement reqObstacleGeometryFromFilteredCloud : VisualizationInstrumentRequirementCandidate {
+      doc /* REQ-AEBS-S2-016 System 2 candidate derived from N-AEBS-010. */
+      subject visualizationTestSystem :> system2VisualizationInstrument;
+      require constraint statement { language "English" /* The visualization test system shall render display-derived obstacle geometry only from the native Autoware filtered obstacle point cloud. */ }
+      attribute :>> status = ReqStatus::ReadyForReview;
+      attribute :>> source = "Derived from N-AEBS-010; obligation formerly stated in AC-AEBS-S2-004";
+      attribute :>> rationale = "Displayed obstacle geometry must keep one identified source.";
+    }
+    requirement reqNoDisplayDerivedDecisionMetric : VisualizationInstrumentRequirementCandidate {
+      doc /* REQ-AEBS-S2-017 System 2 candidate derived from N-AEBS-010. */
+      subject visualizationTestSystem :> system2VisualizationInstrument;
+      require constraint statement { language "English" /* The visualization test system shall not present any display-derived scalar as a native Autoware decision metric. */ }
+      attribute :>> status = ReqStatus::ReadyForReview;
+      attribute :>> source = "Derived from N-AEBS-010; obligation formerly stated in AC-AEBS-S2-004";
+      attribute :>> rationale = "Display-derived values must not masquerade as native Autoware decision metrics.";
+    }
+    requirement reqDecisionDistanceExclusionStatement : VisualizationInstrumentRequirementCandidate {
+      doc /* REQ-AEBS-S2-018 System 2 candidate derived from N-AEBS-010. */
+      subject visualizationTestSystem :> system2VisualizationInstrument;
+      require constraint statement { language "English" /* The visualization test system shall state on its rendered display that AEB decision distances are not visualized. */ }
+      attribute :>> status = ReqStatus::ReadyForReview;
+      attribute :>> source = "Derived from N-AEBS-010; obligation formerly stated in AC-AEBS-S2-004";
+      attribute :>> rationale = "Viewers must not infer native AEB decision distances from the display.";
+    }
+    requirement reqObstacleGeometryExpiry : VisualizationInstrumentRequirementCandidate {
+      doc /* REQ-AEBS-S2-019 System 2 candidate derived from N-AEBS-011. */
+      subject visualizationTestSystem :> system2VisualizationInstrument;
+      require constraint statement { language "English" /* When no filtered obstacle-cloud update has been received within the selected receipt-based staleness bound, the visualization test system shall suppress the display-derived obstacle geometry, including while accepted live frames continue. */ }
+      attribute :>> status = ReqStatus::ReadyForReview;
+      attribute :>> source = "Derived from N-AEBS-011; obligation formerly stated in AC-AEBS-S2-005";
+      attribute :>> rationale = "Expired obstacle geometry must not be displayed as current while other fields stay live.";
+    }
+    requirement reqNoFreshDataSubstitution : VisualizationInstrumentRequirementCandidate {
+      doc /* REQ-AEBS-S2-020 System 2 candidate derived from N-AEBS-011. */
+      subject visualizationTestSystem :> system2VisualizationInstrument;
+      require constraint statement { language "English" /* When no filtered obstacle-cloud update has been received within the selected receipt-based staleness bound, the visualization test system shall not substitute interpolated, smoothed, or predicted values for the missing fresh data. */ }
+      attribute :>> status = ReqStatus::ReadyForReview;
+      attribute :>> source = "Derived from N-AEBS-011; obligation formerly stated in AC-AEBS-S2-005";
+      attribute :>> rationale = "Synthesized values would let a lost source be misread as current AEBS state.";
+    }
+    requirement reqNonColorStateCue : VisualizationInstrumentRequirementCandidate {
+      doc /* REQ-AEBS-S2-021 System 2 candidate derived from N-AEBS-011. */
+      subject visualizationTestSystem :> system2VisualizationInstrument;
+      require constraint statement { language "English" /* The visualization test system shall not use color as the sole cue of a rendered degraded disposition. */ }
+      attribute :>> status = ReqStatus::ReadyForReview;
+      attribute :>> source = "Derived from N-AEBS-011; obligation formerly stated in AC-AEBS-S2-006";
+      attribute :>> rationale = "A degraded disposition must stay recognizable without relying on color alone.";
     }
   }
 
@@ -222,6 +283,18 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
   dependency reqAaosEnvironmentObservationDerivedFromLiveVisualizationOnAAOS from reqAaosEnvironmentObservation to needLiveVisualizationOnAAOS;
   dependency reqNoHostBrowserSurfaceDerivedFromLiveVisualizationOnAAOS from reqNoHostBrowserSurface to needLiveVisualizationOnAAOS;
   dependency reqEvidenceCorrelationDerivedFromCorrelatableEvidence from reqEvidenceCorrelation to needCorrelatableEvidence;
+  /* REQ-AEBS-S2-015..021 carry the obligations formerly stated inside
+   * acceptance criteria AC-AEBS-S2-003 to AC-AEBS-S2-006. A criterion records
+   * the expected result of the requirement it bounds and adds no obligation,
+   * so each added obligation is a design-input requirement of its own,
+   * derived from the need of the requirement its criterion bounds. */
+  connection reqReadOnlyBoundaryStatementDerivedFromNonInterference : DerivesFromNeed connect needNonInterference to reqReadOnlyBoundaryStatement;
+  connection reqObstacleGeometryFromFilteredCloudDerivedFromPreservedSourceProvenance : DerivesFromNeed connect needPreservedSourceProvenance to reqObstacleGeometryFromFilteredCloud;
+  connection reqNoDisplayDerivedDecisionMetricDerivedFromPreservedSourceProvenance : DerivesFromNeed connect needPreservedSourceProvenance to reqNoDisplayDerivedDecisionMetric;
+  connection reqDecisionDistanceExclusionStatementDerivedFromPreservedSourceProvenance : DerivesFromNeed connect needPreservedSourceProvenance to reqDecisionDistanceExclusionStatement;
+  connection reqObstacleGeometryExpiryDerivedFromFailClosedDegradation : DerivesFromNeed connect needFailClosedDegradation to reqObstacleGeometryExpiry;
+  connection reqNoFreshDataSubstitutionDerivedFromFailClosedDegradation : DerivesFromNeed connect needFailClosedDegradation to reqNoFreshDataSubstitution;
+  connection reqNonColorStateCueDerivedFromFailClosedDegradation : DerivesFromNeed connect needFailClosedDegradation to reqNonColorStateCue;
 
   /* Phase order provenance: needs/requirements (Phase 3–5) derive from the
    * framing slice of the same INC-AEBS-010; the increment part incAEBS010

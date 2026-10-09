@@ -123,7 +123,16 @@ package DE4SDV_AEBSVisualizationFraming {
      * visualization. No member-product behavior is changed by this increment.
      */
   }
-  part system2VisualizationInstrument : System2EngineeringAndAssuranceSystem {
+  part def AEBSVisualizationTestSystem :> System2EngineeringAndAssuranceSystem {
+    doc /*
+     * The INC-AEBS-010 system of interest: the System 2 visualization test
+     * system that observes System 1 AEBS behavior read-only. The design-input
+     * requirements REQ-AEBS-S2-002..021 are specified on it. Its logical and
+     * physical realizations specialize it and contain no System 1 part, so a
+     * verification on a configured article counts through that typing.
+     */
+  }
+  part system2VisualizationInstrument : AEBSVisualizationTestSystem {
     doc /*
      * The visualization test system: source observation, reverse transport,
      * AAOS rendering, health supervision, and evidence recording.

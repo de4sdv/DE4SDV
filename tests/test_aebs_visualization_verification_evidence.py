@@ -234,11 +234,103 @@ def test_fixture_path_evidence_never_claims_live_chain() -> None:
     degraded = next(
         c for c in pilot["verification_cases"] if c["id"] == "VC-AEBS-S2-006"
     )
-    assert degraded["status"] == "pass_bounded_verification_fixture_path"
+    assert degraded["status"] == "observed_unidentified_build_fixture_path"
     for artifact in degraded["current_evidence"]:
         assert "state-campaign" in artifact
     ladder = {l["layer"]: l["status"] for l in pilot["evidence_ladder"]}
-    assert ladder["degraded_state_validation"] == "observed_bounded_fixture_path"
+    assert ladder["degraded_state_validation"] == "observed_unidentified_build_fixture_path"
+
+
+def test_bench_binds_the_subject_to_the_configured_article_instrument() -> None:
+    """Option C (owner decision 2026-10-09): the configuration role and the
+    subject role are separate; the subject is the visualization test system
+    as realized in AEBS-CONFIG-010-001, linked by typing, never allocation."""
+    model = _model()
+    bench = re.search(r"part def VisualizationVerificationBench \{(.*?)\n  \}", model, re.S)
+    assert bench
+    assert "part system2TestArticle :> testArticle;" in bench.group(1)
+    assert (
+        "ref part system2Instrument :> system2VisualizationInstrument = "
+        "system2TestArticle.visualizationChain.instrument;"
+    ) in bench.group(1)
+    assert not re.search(r"\ballocate\b", _strip_sysml_comments(model))
+
+
+RETAINED_RECORDS = (
+    "liveChainEvidence",
+    "lifecycleArcEvidence",
+    "readOnlyBoundaryEvidence",
+    "provenanceSeparationEvidence",
+    "failClosedStalenessEvidence",
+    "degradedRenderingEvidence",
+)
+
+
+CONTRADICTED_RECORDS = ("lifecycleArcEvidence",)
+
+
+def _record_block(model: str, record: str) -> str:
+    block = re.search(rf"part {record} : RetainedVisualizationEvidence \{{.*?\n  \}}", model, re.S)
+    assert block, record
+    return block.group(0)
+
+
+def test_retained_evidence_is_scoped_to_its_integrity_gap() -> None:
+    """GAP-AEBS-010-009: the retained records ran on builds that are not
+    exactly identified, and EVID-AEBS-S2-002 rests on a statement its own
+    frame log contradicts. Scoped observations, never a pass; by owner
+    decision of 2026-10-09 no re-capture is planned."""
+    model = _model()
+    gap = re.search(r"part gapRetainedEvidenceIntegrity : IncrementGap \{.*?\n  \}", model, re.S)
+    assert gap
+    for fact in ("GAP-AEBS-010-009", "4d8dc1b", "6.876 m/s", "de4sdv-ros2-autoware"):
+        assert fact in gap.group(0), fact
+    for record in RETAINED_RECORDS:
+        expected = (
+            "contradictedByRetainedData" if record in CONTRADICTED_RECORDS else "observedUnidentifiedBuild"
+        )
+        assert f"VisualizationEvidenceDisposition::{expected};" in _record_block(model, record), record
+        assert re.search(rf"\bfrom {record} to gapRetainedEvidenceIntegrity;", model), record
+    pilot = _pilot()
+    statuses = {case["id"]: case["status"] for case in pilot["verification_cases"]}
+    assert statuses["VC-AEBS-S2-002"] == "contradicted_by_retained_data_no_recapture_planned"
+    for number in (1, 3, 4, 5):
+        assert statuses[f"VC-AEBS-S2-{number:03d}"] == "observed_unidentified_build"
+    assert not any(status.startswith("pass") for status in statuses.values())
+    gaps = {gap["id"]: gap.get("model_element") for gap in pilot["runtime_evidence_gaps"]}
+    assert gaps["GAP-AEBS-010-009"] == "gapRetainedEvidenceIntegrity"
+
+
+def test_no_recapture_is_pending_and_the_gap_stays_open() -> None:
+    """Owner decision 2026-10-09: no re-capture is planned. Nothing may say
+    one is pending, and GAP-AEBS-010-009 stays open as an accepted
+    limitation."""
+    model, pilot_text = _model(), PILOT.read_text(encoding="utf-8")
+    for text in (model, pilot_text):
+        for stale in ("re-capture pending", "pending re-capture", "until re-capture",
+                      "recapture_pending", "planned separately", "re-captured from"):
+            assert stale not in text, stale
+    gap = re.search(r"part gapRetainedEvidenceIntegrity : IncrementGap \{.*?\n  \}", model, re.S)
+    assert gap and "no re-capture is planned" in gap.group(0) and "2026-10-09" in gap.group(0)
+    status = {entry["id"]: entry["status"] for entry in _pilot()["runtime_evidence_gaps"]}
+    assert status["GAP-AEBS-010-009"] == "open_accepted_limitation_no_recapture_planned"
+
+
+def test_v21_record_errors_are_not_asserted_as_fact() -> None:
+    """The v21 take used one bench host, and its ego re-accelerated after
+    release. No evidence record may name the second VM or assert a verified
+    stop throughout RELEASED, and the counter-claim must bound the claim."""
+    model = _model()
+    environments = re.findall(r'executionEnvironmentIdentity = "([^"]*)"', model)
+    assert environments
+    assert not [env for env in environments if "ros2-autoware" in env]
+    lifecycle = _record_block(model, "lifecycleArcEvidence")
+    assert "onward (ego speed 0.0 m/s, verified stop)" not in lifecycle
+    assert "contradicted by the retained data" in lifecycle
+    assert "is not established" in _record_block(model, "failClosedStalenessEvidence")
+    assert "requirement counterClaimRetainedRecordContradicted : VisualizationCounterClaim {" in model
+    for target in ("visualizationInstrumentationClaim", "gapRetainedEvidenceIntegrity"):
+        assert re.search(rf"\bfrom counterClaimRetainedRecordContradicted to {target};", model), target
 
 
 def test_restoration_is_deferred_not_proven() -> None:
@@ -365,10 +457,14 @@ def test_cross_increment_traces_use_accepted_chain_elements() -> None:
     model = _model()
     for target in (
         "to testArticle;",
-        "to physicalSystem;",
+        "to testArticle::visualizationChain;",
+        "to testArticle::visualizationChain::instrument;",
         "to coordinatorStateProvenance;",
     ):
         assert target in model
+    # Evidence traces point at the configured article, not the design-level
+    # Phase 8 decomposition.
+    assert "to physicalSystem" not in model
     # MW-010 predecessor decision must be referenced, never restated.
     framing = _read(FRAMING)
     assert "successorIncrementDecision010" in framing

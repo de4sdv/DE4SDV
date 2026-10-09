@@ -28,6 +28,12 @@ _PERFORM_RE = re.compile(r"\bperform\s+(\w+)\s*;")
 _PRODUCT_CLAIM_RE = re.compile(
     r"\b(?:verify|satisfy)\s+(?:/\*.*?\*/\s*)?req\w+\s*;", re.DOTALL
 )
+# A requirement verified by a case binds its subject to a part of the case's
+# bench: verify <requirement> { subject <name> = verifiedBench.<part>; }
+_BOUND_VERIFY_RE = re.compile(
+    r"\bverify\s+(\w+)\s*\{\s*subject\s+(\w+)\s*=\s*verifiedBench\.(\w+)\s*;\s*\}"
+)
+_OBJECTIVE_RE = re.compile(r"\bobjective\s+(\w+)\s*\{")
 
 # A verification model is any package file that declares at least one
 # verification definition or usage.
@@ -118,9 +124,43 @@ def performed_usages(code: str) -> list[str]:
 
 
 def has_product_claim(source: str) -> bool:
-    """True when a verify/satisfy relationship claims a product requirement.
+    """True when a bare verify/satisfy relationship claims a requirement.
 
-    Deliberately matched against the raw source (comments intact) so comment
-    insertion cannot smuggle a product claim past the check.
+    A bare ``verify req...;`` would bind the requirement's subject to the
+    whole bench. Deliberately matched against the raw source (comments
+    intact) so comment insertion cannot smuggle such a claim past the check.
     """
     return bool(_PRODUCT_CLAIM_RE.search(source))
+
+
+def _braced_span(source: str, opening: int) -> tuple[int, int]:
+    """``(start, end)`` of the balanced-brace block opened at ``opening``."""
+    depth = 0
+    for index in range(opening, len(source)):
+        if source[index] == "{":
+            depth += 1
+        elif source[index] == "}":
+            depth -= 1
+            if depth == 0:
+                return opening, index
+    raise AssertionError(f"unclosed block at offset {opening}")
+
+
+def bound_requirement_verifications(code: str) -> list[tuple[str, str, str, str, str]]:
+    """``(objective, requirement, subject, bench part, bench type)`` per subject-bound verify.
+
+    The bench type is the type of the ``verifiedBench`` subject of the
+    verification definition that owns the objective ("" when none does).
+    """
+    cases = []
+    for match in re.finditer(r"\bverification\s+def\s+\w+\s*\{", code):
+        start, end = _braced_span(code, match.end() - 1)
+        bench = re.search(r"\bsubject\s+verifiedBench\s*:\s*(\w+)\s*;", code[start:end])
+        cases.append((start, end, bench.group(1) if bench else ""))
+    found = []
+    for match in _OBJECTIVE_RE.finditer(code):
+        start, end = _braced_span(code, match.end() - 1)
+        bench_type = next((t for s, e, t in cases if s < start and end < e), "")
+        for requirement, subject, part in _BOUND_VERIFY_RE.findall(code[start:end]):
+            found.append((match.group(1), requirement, subject, part, bench_type))
+    return found

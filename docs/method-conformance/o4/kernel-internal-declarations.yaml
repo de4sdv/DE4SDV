@@ -160,3 +160,11 @@ declarations:
     use case def SYSMODSystemUseCaseBase: upstream seam adapter
     occurrence def SYSMODConstrainedOccurrenceBase: upstream seam adapter
     requirement def RequirementsManagementAttributeBase: upstream seam adapter
+  textual-notation-of-model/packages/methods/de4sdv/de4sdv_assurance_argumentation.sysml:
+    requirement def AssuranceClaim: assurance-argumentation kind for bounded claims framed by the
+      argumentation-assurance viewpoint; outside the Requirement lineage; not a kernel class pin of the
+      AssuranceClaim class at this revision
+    requirement def AssuranceArgument: assurance-argumentation kind for cited support of a claim; outside the
+      Requirement lineage; not an ontology class
+    requirement def AssuranceCounterClaim: assurance-argumentation kind for a disclosed limit on a claim's
+      scope; outside the Requirement lineage; not an ontology class

@@ -535,7 +535,7 @@ Shows the logical roles that collect, transport, present, and retain visualizati
 - **Source:** `aebs_visualization_logical_architecture.sysml`
 - **Viewpoint:** `selectedLogicalStructureViewpoint` (`SystemStructureDefinitionViewpoint`)
 - **Concern:** `visualizationLogicalStructureConcern`
-- **Exposes:** `logicalSystem`, `logicalSystem::nativeAebSource`, `logicalSystem::coordinatorSource`, `logicalSystem::sourceAdapter`, `logicalSystem::transport`, `logicalSystem::ingress`, `logicalSystem::displayService`, `logicalSystem::application`, `logicalSystem::evidence`, `logicalSystem::healthSupervisor`
+- **Exposes:** `logicalSystem`, `logicalSystem::nativeAebSource`, `logicalSystem::coordinatorSource`, `logicalSystem::instrument`, `logicalSystem::instrument::sourceAdapter`, `logicalSystem::instrument::transport`, `logicalSystem::instrument::ingress`, `logicalSystem::instrument::displayService`, `logicalSystem::instrument::application`, `logicalSystem::instrument::evidence`, `logicalSystem::instrument::healthSupervisor`
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
@@ -554,6 +554,7 @@ Shows the typed exchanges between the logical visualization roles.
 - **Render:** `asInterconnectionDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
+- **Presentation note:** This is a dense review artifact; open the SVG at full size rather than reading it from the page thumbnail.
 
 ![aebsVisualizationLogicalInternalExchangeView](diagrams/diagram-aebsVisualizationLogicalInternalExchangeView.svg)
 
@@ -614,7 +615,7 @@ Shows the deployed parts that implement the visualization evidence chain.
 - **Source:** `aebs_visualization_physical_software_realization.sysml`
 - **Viewpoint:** `selectedPhysicalStructureViewpoint` (`PhysicalStructureDefinitionViewpoint`)
 - **Concern:** `visualizationPhysicalStructureConcern`
-- **Exposes:** `physicalSystem`, `physicalSystem::pinnedAeb`, `physicalSystem::coordinator`, `physicalSystem::sourceAdapter`, `physicalSystem::transport`, `physicalSystem::iviGuest`, `physicalSystem::iviGuest::gatewayIngress`, `physicalSystem::iviGuest::dataTunnel`, `physicalSystem::iviGuest::displayApp`, `physicalSystem::evidenceRecorder`, `gateIviBuildBoot`, `gateFrameworkServices`, `gateGatewayJavaSample`, `gateNativeToJavaPayload`, `gateVmToVmConnectivity`, `gateNoUpstreamFork`, `realizationKillGate`
+- **Exposes:** `physicalSystem`, `physicalSystem::pinnedAeb`, `physicalSystem::coordinator`, `physicalSystem::instrument`, `physicalSystem::instrument::sourceAdapter`, `physicalSystem::instrument::transport`, `physicalSystem::instrument::iviGuest`, `physicalSystem::instrument::iviGuest::gatewayIngress`, `physicalSystem::instrument::iviGuest::dataTunnel`, `physicalSystem::instrument::iviGuest::displayApp`, `physicalSystem::instrument::evidenceRecorder`, `gateIviBuildBoot`, `gateFrameworkServices`, `gateGatewayJavaSample`, `gateNativeToJavaPayload`, `gateVmToVmConnectivity`, `gateNoUpstreamFork`, `realizationKillGate`
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
@@ -644,7 +645,7 @@ Maps logical visualization responsibilities to their selected physical realizati
 - **Viewpoint:** `selectedPhysicalLogicalViewpoint` (`PhysicalLogicalMappingViewpoint`)
 - **View type:** `MVD::MatrixView`
 - **Concern:** `visualizationProvenanceMappingConcern`
-- **Exposes:** `logicalSystem::nativeAebSource`, `logicalSystem::coordinatorSource`, `logicalSystem::sourceAdapter`, `logicalSystem::transport`, `logicalSystem::ingress`, `logicalSystem::displayService`, `logicalSystem::application`, `logicalSystem::evidence`, `logicalSystem::healthSupervisor`, `physicalSystem::pinnedAeb`, `physicalSystem::coordinator`, `physicalSystem::sourceAdapter`, `physicalSystem::transport`, `physicalSystem::iviGuest::gatewayIngress`, `physicalSystem::iviGuest::dataTunnel`, `physicalSystem::iviGuest::displayApp`, `physicalSystem::evidenceRecorder`, `DE4SDV_AEBSVisualizationPhysicalSoftwareRealization::*`
+- **Exposes:** `logicalSystem::nativeAebSource`, `logicalSystem::coordinatorSource`, `logicalSystem::instrument::sourceAdapter`, `logicalSystem::instrument::transport`, `logicalSystem::instrument::ingress`, `logicalSystem::instrument::displayService`, `logicalSystem::instrument::application`, `logicalSystem::instrument::evidence`, `logicalSystem::instrument::healthSupervisor`, `physicalSystem::pinnedAeb`, `physicalSystem::coordinator`, `physicalSystem::instrument::sourceAdapter`, `physicalSystem::instrument::transport`, `physicalSystem::instrument::iviGuest::gatewayIngress`, `physicalSystem::instrument::iviGuest::dataTunnel`, `physicalSystem::instrument::iviGuest::displayApp`, `physicalSystem::instrument::evidenceRecorder`, `DE4SDV_AEBSVisualizationPhysicalSoftwareRealization::*`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
 
@@ -705,7 +706,7 @@ Evidence-based assurance claim, counterclaims, retained evidence, and gaps for t
 - **Source:** `aebs_visualization_verification_evidence.sysml`
 - **Viewpoint:** `selectedOpenCounterclaimViewpoint` (`ArgumentationAssuranceViewpoint`)
 - **Concern:** `visualizationArgumentationAssuranceConcern`
-- **Exposes:** `visualizationInstrumentationClaim`, `counterClaimRestoration`, `counterClaimLiveDegradation`, `counterClaimProductionBoundaries`, `gap010RestorationUnexercised`, `gap010LiveDegradationUnproven`, `gap010InterVmRouteDeferred`, `counterClaimRestorationGapTrace`, `counterClaimLiveDegradationGapTrace`, `counterClaimProductionGapTrace`, `restorationEvidencePlanned`, `scenarioSafetyDeferred`
+- **Exposes:** `visualizationInstrumentationClaim`, `counterClaimRestoration`, `counterClaimLiveDegradation`, `counterClaimProductionBoundaries`, `counterClaimUnidentifiedBuild`, `counterClaimRetainedRecordContradicted`, `gap010RestorationUnexercised`, `gap010LiveDegradationUnproven`, `gap010InterVmRouteDeferred`, `gapRetainedEvidenceIntegrity`, `counterClaimRestorationGapTrace`, `counterClaimLiveDegradationGapTrace`, `counterClaimProductionGapTrace`, `counterClaimUnidentifiedBuildGapTrace`, `counterClaimRetainedRecordGapTrace`, `restorationEvidencePlanned`, `scenarioSafetyDeferred`
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.

@@ -263,6 +263,25 @@ DE4SDV does not hide weaknesses. Counter-claims and gaps are first-class
 model elements precisely so an assurance argument shows what is *not* yet
 established, not just what is.
 
+**Current convention (INC-AEBS-010 onwards).** Acceptance criteria,
+claims, arguments and counter-claims are not requirements:
+
+- An acceptance criterion is typed by the kernel `AcceptanceCriterion` only.
+  It records the expected result of the design-input requirement it bounds
+  ("REQ-AEBS-S2-011 will be shown to have been met when …") and adds no
+  obligation of its own.
+- Each verification case also verifies that requirement and binds the
+  requirement's subject to the bench part under test (`verify
+  reqEvidenceCorrelation { subject visualizationTestSystem =
+  verifiedBench.system2Instrument; }`).
+- Claims, arguments and counter-claims specialize the kernel
+  `AssuranceClaim`, `AssuranceArgument` and `AssuranceCounterClaim`
+  (`DE4SDV_AssuranceArgumentation`) and stay outside the requirement
+  lineage.
+
+The middleware slice described above is the immutable closure record of
+INC-MW-010 and keeps its original typing.
+
 ## Trace links
 
 Traceability is expressed as **`dependency` usages** in the SysML model —

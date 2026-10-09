@@ -91,7 +91,7 @@ def test_kernel_internal_manifest_is_the_exclusion_source():
     expected = {f"{file}::{declaration}": reason
                 for file, declarations in manifest["declarations"].items()
                 for declaration, reason in declarations.items()}
-    assert len(expected) == 98
+    assert len(expected) == 101  # + AssuranceClaim, AssuranceArgument, AssuranceCounterClaim
     # Every listed declaration is excluded with exactly its reason (disjoint
     # union: none is also projected).
     assert excluded == expected
