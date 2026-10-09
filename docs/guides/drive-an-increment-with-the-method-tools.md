@@ -116,6 +116,52 @@ same failures refuse it (exit 2); the revision identity carries the scope
 `export-snapshot`. Element source files appear in
 a separate `presentation` block, because only an export records them.
 
+## On a pull request
+
+Every pull request that touches the model runs the **Method Check** workflow
+([`method-check.yml`](../../.github/workflows/method-check.yml)). It exports
+the pull-request head with the licensed serializer, finds every increment the
+model declares (through the charters and the increments' short names), and
+runs `scripts/evaluate_increment.py` for each one over that export. A run
+takes a few minutes; no ingestion is involved.
+
+The check is advisory: gaps never fail it. It fails only on a technical
+error, such as a failed or refused export, a refusal of the evaluation entry
+point (exit code 2), or a workflow that cannot be read (`INVALID_CONTRACT`).
+An increment whose method is unavailable, for example because its charter
+declares no workflow, is reported, not failed. Pull
+requests from forks get no licensed export; a maintainer can run the workflow
+by hand with the reviewed ref.
+
+Read the result for your head commit:
+
+```bash
+sha=$(git rev-parse HEAD)
+run=$(gh api "repos/{owner}/{repo}/actions/workflows/method-check.yml/runs?head_sha=$sha" \
+  --jq '.workflow_runs[0].id')
+gh run view "$run"          # status; add --log to read the summary in the job log
+gh run download "$run" -n "method-check-$sha"
+jq '.increments[] | {id, outcome, next: .next.gate, counts}' method-check.json
+```
+
+`method-check.json` has one entry per increment in `increments`:
+
+| Field | Holds |
+| --- | --- |
+| `id`, `outcome` | The increment identifier, for example `INC-AEBS-010`; `evaluated`, `method-unavailable`, `method-invalid`, `refused` or `error` |
+| `next` | The first check to act on: `gate`, `stage`, `kind`, `what_to_author`, `where`, `subjects`; `null` when none is open |
+| `counts` | `blocking`, `blocking_by_kind`, `advisory`, `method_side_blockers` |
+| `phase_exits`, `phase_checks` | Per phase: `READY` or `BLOCKED`, and how many of its checks pass (`pass`, `total`, `not_applicable`) |
+| `evaluation.gaps.blocking` | Every unmet blocking check with all its subjects; `evaluation.gaps.advisory` holds the advisory notes |
+| `evaluation` | The full `scripts/evaluate_increment.py` report: `status`, `gaps`, `next`, `contract` |
+
+The top-level `errors` lists technical errors, and `notes` lists what could
+not be evaluated, such as a charter whose increment carries no identifier.
+The artifact also holds one `<increment id>.json` per increment and the
+summary as `method-check.md`. The export stays available for three days as
+`method-check-export-<sha>`, so you can repeat the evaluation locally with
+`--phase` or another `--query`.
+
 ## Fast restarts
 
 The semantic MCP server keeps an identity-bound snapshot of the bound

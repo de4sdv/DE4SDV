@@ -1,0 +1,221 @@
+name: Method Check
+
+# Advisory method check on pull requests that touch the model. The export job
+# exports the pull-request head with the pinned licensed serializer (the same
+# script and pin as the privileged full-model ingestion). The evaluate job
+# finds every increment the model declares (through charters and short names)
+# and runs scripts/evaluate_increment.py for each, offline over that export.
+# It reports `next` and the gaps in the job summary and uploads the full JSON
+# as method-check-<head SHA>. Gaps never fail it (owner decision 3: the
+# delivery gate stays advisory); only a technical error does, such as an
+# export failure or a method that cannot be read.
+#
+# Trigger paths and the fork/author guard are those of
+# privileged-syside-validation.yml (pinned by
+# tests/test_method_check_workflow.py). That workflow is a bound input of the
+# O2+ projection record, so the check runs as its own workflow, alongside the
+# licensed validation. Its export is itself a licensed load of the exact head
+# and refuses a model the loader rejects, so nothing is evaluated on a model
+# that fails validation.
+#
+# Secret scoping: the Syside licence reaches one step only, the export. The
+# presence check sees a boolean, never the value. The evaluation runs
+# repository Python in a separate job on a fresh runner that references no
+# secret, and its step proves at run time that it holds no credential.
+
+on:
+  pull_request:
+    paths:
+      - "textual-notation-of-model/**/*.sysml"
+      - "model-based-product-line-engineering/product-models/**/*.sysml"
+      - "model-based-product-line-engineering/scoping/**/*.sysml"
+      - "model-based-product-line-engineering/feature-models/**/*.yaml"
+      - "model-based-product-line-engineering/feature-configurations/**/*.yaml"
+      - "tools/configure_variant.py"
+      - "scripts/render_grid_csv.py"
+      - "scripts/check_svg_view_materialization.py"
+      - "scripts/check_committed_view_artifacts.py"
+      - "scripts/generate_view_index.py"
+      - "textual-notation-of-model/**/VIEWS.md"
+      - "textual-notation-of-model/**/diagrams/**"
+      - "model-based-product-line-engineering/product-models/VIEWS.md"
+      - "model-based-product-line-engineering/product-models/diagrams/**"
+      - ".project.json"
+      - "sysand-lock.toml"
+      - "textual-notation-of-model/**/.project.json"
+      - "textual-notation-of-model/**/.meta.json"
+      - ".github/workflows/privileged-syside-validation.yml"
+      # The method check's own implementation.
+      - ".github/workflows/method-check.yml"
+      - "scripts/method_check.py"
+      - "scripts/evaluate_increment.py"
+      - "scripts/export_sysml_api_baseline.py"
+      - "de4sdv/semantic/increment_discovery.py"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch, tag, or commit SHA to check after maintainer review"
+        required: true
+        default: "main"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: method-check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  export:
+    name: Export the model (licensed)
+    if: >-
+      github.event_name != 'pull_request' ||
+      (
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        contains(fromJSON('["orkunyilmaz", "de4sdv"]'), github.event.pull_request.user.login)
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      head-sha: ${{ steps.revision.outputs.sha }}
+      licensed: ${{ steps.licence.outputs.available }}
+    steps:
+      - name: Checkout the pull-request head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || inputs.ref }}
+          persist-credentials: false
+
+      - name: Resolve the exact revision
+        id: revision
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          sha="$(git rev-parse HEAD)"
+          case "$sha" in
+            (*[!0-9a-f]*|"") echo "not a lowercase full commit id: $sha" >&2; exit 1 ;;
+          esac
+          if [ "${#sha}" != "40" ]; then
+            echo "not a 40-character commit id: $sha" >&2
+            exit 1
+          fi
+          if [ -n "$EXPECTED_HEAD" ] && [ "$sha" != "$EXPECTED_HEAD" ]; then
+            echo "checked out $sha, not the pull-request head $EXPECTED_HEAD" >&2
+            exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Method check of $sha"
+
+      - name: Check the licensed Syside secret is configured
+        id: licence
+        env:
+          LICENCE_CONFIGURED: ${{ secrets.SYSIDE_LICENSE_KEY != '' }}
+        run: |
+          if [ "$LICENCE_CONFIGURED" != "true" ]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "SYSIDE_LICENSE_KEY is not configured; the method check needs the licensed export." >&2
+            if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+              exit 1
+            fi
+            echo "Skipping the method check for $GITHUB_EVENT_NAME until the secret is configured."
+            exit 0
+          fi
+          echo "available=true" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Python
+        if: steps.licence.outputs.available == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the pinned serializer and SysML library dependencies
+        if: steps.licence.outputs.available == 'true'
+        run: |
+          python -m pip install --disable-pip-version-check \
+            "syside==0.10.3" "PyYAML==6.0.2" "sysand==0.1.0"
+          sysand sync
+
+      - name: Export the pull-request head with Syside
+        if: steps.licence.outputs.available == 'true'
+        env:
+          SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
+          HEAD_SHA: ${{ steps.revision.outputs.sha }}
+        run: |
+          python scripts/export_sysml_api_baseline.py \
+            --git-commit "$HEAD_SHA" \
+            --output "$RUNNER_TEMP/method-check/model-export.json"
+
+      - name: Upload the export for the evaluation job
+        if: steps.licence.outputs.available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: method-check-export-${{ steps.revision.outputs.sha }}
+          path: ${{ runner.temp }}/method-check/model-export.json
+          if-no-files-found: error
+          retention-days: 3
+          overwrite: true
+
+  evaluate:
+    name: Method check (advisory)
+    needs: export
+    if: needs.export.outputs.licensed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout the exported revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.export.outputs.head-sha }}
+          persist-credentials: false
+
+      - name: Verify the checkout is the exported revision
+        env:
+          HEAD_SHA: ${{ needs.export.outputs.head-sha }}
+        run: |
+          if [ "$(git rev-parse HEAD)" != "$HEAD_SHA" ]; then
+            echo "checked out $(git rev-parse HEAD), not the exported revision $HEAD_SHA" >&2
+            exit 1
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install evaluation dependencies
+        run: python -m pip install --disable-pip-version-check "PyYAML==6.0.2"
+
+      - name: Download the export
+        uses: actions/download-artifact@v4
+        with:
+          name: method-check-export-${{ needs.export.outputs.head-sha }}
+          path: ${{ runner.temp }}/method-check
+
+      - name: Evaluate every declared increment (advisory)
+        env:
+          HEAD_SHA: ${{ needs.export.outputs.head-sha }}
+        run: |
+          # This step runs repository Python: it must hold no credential.
+          for name in SYSIDE_LICENSE_KEY GITHUB_TOKEN GH_TOKEN ACTIONS_RUNTIME_TOKEN ACTIONS_ID_TOKEN_REQUEST_TOKEN; do
+            if [ -n "${!name:-}" ]; then
+              echo "::error::$name is set in the evaluation environment" >&2
+              exit 1
+            fi
+          done
+          echo "No credential in the evaluation environment."
+          python scripts/method_check.py \
+            --export "$RUNNER_TEMP/method-check/model-export.json" \
+            --revision "$HEAD_SHA" \
+            --output-dir "$RUNNER_TEMP/method-check/result" \
+            --artifact "method-check-$HEAD_SHA" \
+            --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the method check
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: method-check-${{ needs.export.outputs.head-sha }}
+          path: ${{ runner.temp }}/method-check/result/
+          if-no-files-found: warn
+          retention-days: 14
+          overwrite: true
