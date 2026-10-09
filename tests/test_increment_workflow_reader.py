@@ -90,7 +90,7 @@ def _owner(builder, element) -> str | None:
 
 
 def test_the_charter_declares_the_workflow_read_into_one_contract() -> None:
-    scenario = _scenario()
+    scenario = _scenario()  # its charter definition specializes the model's IncrementCharter
     method = _method(scenario)
     assert method.available, method.problems or method.reason
     assert not any(b["ontology_class"] in {"IncrementWorkflow", "MethodCheck"} for b in scenario.builder.bindings)
@@ -111,22 +111,6 @@ def test_the_charter_declares_the_workflow_read_into_one_contract() -> None:
     assert by_id["requirementVerifiedByVerificationCase"].permitted_empty
     assert method.phases == (P0, P4, P5, P10)
     assert method.labels["needFramesConcern"]["check_definition"].endswith("MethodCheck")
-
-
-def test_the_workflow_is_found_through_a_definition_the_charter_specializes() -> None:
-    scenario = increment_scenario()
-    builder = scenario.builder
-    charter_definition = _named(scenario, "FixtureCharter")
-    base = builder.definition("PartDefinition", "CharterBase", scenario.framing)
-    builder.specializes(charter_definition, base)
-    made = increment_workflow(builder, [WorkflowStep("elaborateNeeds", P4, (
-        P("needs", "Need", "RequirementUsage", bounds=(1, INFINITY)),), (
-        C("needHasStatement", "requireConstraint", "needs"),))])
-    feature = builder.new("ActionUsage", name="workflow")
-    builder.own(base, feature, kind="FeatureMembership", member_name="workflow")
-    builder.typed(feature, made["workflow"])
-    method = _method(scenario)
-    assert method.available and [o.obligation_id for o in method.contract.obligations] == ["needHasStatement"]
 
 
 def test_a_charter_without_a_workflow_has_no_executable_method() -> None:

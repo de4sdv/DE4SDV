@@ -156,8 +156,6 @@ class IncrementScope:
     """The model-resolved scope of one requested increment."""
 
     increment_id: str
-    candidates: tuple[str, ...]
-    rejected_candidates: tuple[str, ...]
     usage_id: str | None
     definition_ids: tuple[str, ...]
     package_id: str | None
@@ -251,8 +249,6 @@ def resolve_increment(view: ModelView, increment_id: str) -> IncrementScope:
         )
     return IncrementScope(
         increment_id=identifier,
-        candidates=tuple(candidates),
-        rejected_candidates=tuple(rejected),
         usage_id=usage_id,
         definition_ids=definition_ids,
         package_id=package_id,

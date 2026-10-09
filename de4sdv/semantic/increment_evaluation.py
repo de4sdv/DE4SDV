@@ -7,7 +7,7 @@ the existing evaluator once and projects that single canonical evaluation as
 
 - ``status``: per phase, the aggregate verdict and the phase-exit readiness;
 - ``gaps``: unmet blocking gates (violations, input problems, method-side
-  blockers, unattempted gates and what blocks them) plus advisory notes;
+  blockers) plus advisory notes;
 - ``next``: the first actionable blocking gate in workflow order (step
   order, then check order), with what to author and where;
 - ``phase_contract``: the gates of a phase with the increment's
@@ -47,7 +47,6 @@ CLAIM_BOUNDARY = (
 KIND_VIOLATION = "violation"
 KIND_INPUT = "input-problem"
 KIND_METHOD_SIDE = "method-side"
-KIND_NOT_ATTEMPTED = "not-attempted"
 
 
 @dataclass
@@ -178,8 +177,6 @@ class IncrementEvaluation:
 
     def _kind(self, unit: me.EvaluationResult) -> str | None:
         """Gap kind of one gate unit (None when the gate passes or is not applicable)."""
-        if unit.coverage == me.COVERAGE_UNASSESSED:
-            return KIND_NOT_ATTEMPTED
         if unit.verdict in {me.VERDICT_PASS, me.VERDICT_NOT_APPLICABLE}:
             return None
         if unit.verdict == me.VERDICT_FAIL:
@@ -202,7 +199,6 @@ class IncrementEvaluation:
             "gate": gate.obligation_id,
             "phase": gate.phase,
             "predicate": gate.predicate,
-            "target_filters": list(gate.target_filters),
             "required": gate.required,
             "kind": kind,
             "assessment_coverage": unit.coverage,
@@ -211,13 +207,6 @@ class IncrementEvaluation:
             "reason_codes": list(unit.reason_codes),
             "claim_boundary": gate.claim_boundary,
         }
-        if kind == KIND_NOT_ATTEMPTED:
-            entry["blocked_by"] = [
-                d for d in gate.depends_on
-                if self._unit(d).verdict not in {me.VERDICT_PASS, me.VERDICT_NOT_APPLICABLE}
-            ]
-            entry["diagnostics"] = list(unit.diagnostics)
-            return entry
         children = self._open_children(gate.obligation_id)
         method_side = [c for c in children if kind != KIND_METHOD_SIDE and c.verdict != me.VERDICT_FAIL
                        and _method_side(c)]

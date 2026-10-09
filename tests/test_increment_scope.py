@@ -46,7 +46,6 @@ def test_complete_increment_resolves_identity_charter_and_scope() -> None:
     scenario = increment_scenario()
     scope = resolve_increment(_view(scenario), scenario.increment_id)
     assert scope.usage_id == scenario.usage["@id"]
-    assert scope.candidates == (scenario.usage["@id"],)
     assert scope.definition_ids == (scenario.definition["@id"],)
     assert scope.package_id == scenario.framing["@id"]
     assert scope.charters == (scenario.charter["@id"],)
@@ -103,18 +102,16 @@ def test_short_name_outside_the_increment_lineage_is_not_the_increment() -> None
     package = builder.package("ImpostorPackage")
     builder.kernel_definition("EngineeringIncrement")
     other = builder.definition("PartDefinition", "NotAnIncrement", package)
-    impostor = builder.usage("PartUsage", "impostor", package, [other], short="INC-FIXTURE-001")
+    builder.usage("PartUsage", "impostor", package, [other], short="INC-FIXTURE-001")
     scope = resolve_increment(ModelView(builder.elements, _traversal(builder)), "INC-FIXTURE-001")
     assert scope.usage_id is None
-    assert scope.candidates == ()
-    assert scope.rejected_candidates == (impostor["@id"],)
-    assert any("EngineeringIncrement lineage" in d for d in scope.diagnostics)
+    assert any("impostor" in d and "EngineeringIncrement lineage" in d for d in scope.diagnostics)
 
 
 def test_unknown_identifier_resolves_to_no_increment() -> None:
     scenario = increment_scenario()
     scope = resolve_increment(_view(scenario), "INC-FIXTURE-002")
-    assert scope.usage_id is None and scope.candidates == ()
+    assert scope.usage_id is None
     assert scope.scope_packages == () and scope.scope_elements == ()
     assert scope.declared_phases is None
 
@@ -126,8 +123,7 @@ def test_two_increments_with_one_identifier_are_ambiguous() -> None:
                   short=scenario.increment_id)
     scope = resolve_increment(_view(scenario), scenario.increment_id)
     assert scope.usage_id is None
-    assert len(scope.candidates) == 2
-    assert any("ambiguous" in d for d in scope.diagnostics)
+    assert any("ambiguous" in d and "2 part usages" in d for d in scope.diagnostics)
 
 
 def test_charter_count_other_than_one_leaves_phases_and_scope_unresolved() -> None:
