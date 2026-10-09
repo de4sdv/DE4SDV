@@ -248,19 +248,19 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
   requirement acceptanceCriterionReadOnlyBoundaryStatement : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-009; read-only boundary statement criterion (planning only). */
     subject bench : VisualizationVerificationBench;
-    require constraint statement { language "English" /* REQ-AEBS-S2-015 will be shown to have been met when the retained frames or user-interface dumps of every rendered session show the read-only engineering-visualization boundary stated on the rendered display. */ }
+    require constraint statement { language "English" /* REQ-AEBS-S2-015 will be shown to have been met when, for each retained rendered session, at least one retained screen capture or user-interface dump of that session shows the read-only engineering-visualization boundary statement on the rendered display; either artifact suffices. */ }
   }
 
   requirement acceptanceCriterionObstacleGeometrySource : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-010; obstacle geometry source criterion (planning only). */
     subject bench : VisualizationVerificationBench;
-    require constraint statement { language "English" /* REQ-AEBS-S2-016 will be shown to have been met when the display-derived obstacle geometry in every retained frame or user-interface dump traces to the native Autoware filtered obstacle point cloud and to no other source. */ }
+    require constraint statement { language "English" /* REQ-AEBS-S2-016 will be shown to have been met when inspection of the source adapter's subscriptions shows the native Autoware filtered obstacle point cloud as the only input of the obstacle geometry projection, and each retained frame record marks its obstacle geometry as display-derived. */ }
   }
 
   requirement acceptanceCriterionNoDisplayDerivedDecisionMetric : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-011; display-derived decision metric criterion (planning only). */
     subject bench : VisualizationVerificationBench;
-    require constraint statement { language "English" /* REQ-AEBS-S2-017 will be shown to have been met when no retained frame or user-interface dump presents a display-derived scalar as a native Autoware decision metric. */ }
+    require constraint statement { language "English" /* REQ-AEBS-S2-017 will be shown to have been met when no retained screen capture and no retained user-interface dump presents a display-derived scalar as a native Autoware decision metric. */ }
   }
 
   requirement acceptanceCriterionDecisionDistanceExclusionStatement : VisualizationAcceptanceCriterion {
@@ -272,13 +272,13 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
   requirement acceptanceCriterionNoFreshDataSubstitution : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-013; no fresh-data substitution criterion (planning only). */
     subject bench : VisualizationVerificationBench;
-    require constraint statement { language "English" /* REQ-AEBS-S2-020 will be shown to have been met when, for each period in which no filtered obstacle-cloud update was received within the selected receipt-based staleness bound, the retained frame log shows no interpolated, smoothed, or predicted value in place of the missing fresh data. */ }
+    require constraint statement { language "English" /* REQ-AEBS-S2-020 will be shown to have been met when, for each period in which the retained bridge receipt record of the filtered obstacle cloud shows no update within the selected receipt-based staleness bound, the retained frame log shows no interpolated, smoothed, or predicted obstacle value in place of the missing fresh data. */ }
   }
 
   requirement acceptanceCriterionNonColorStateCue : VisualizationAcceptanceCriterion {
     doc /* AC-AEBS-S2-014; non-color degraded-state cue criterion (planning only). */
     subject bench : VisualizationVerificationBench;
-    require constraint statement { language "English" /* REQ-AEBS-S2-021 will be shown to have been met when every rendered degraded disposition in the retained stills or user-interface dumps carries a cue other than color. */ }
+    require constraint statement { language "English" /* REQ-AEBS-S2-021 will be shown to have been met when each degraded disposition shown in any retained screen capture or user-interface dump carries a cue other than color. */ }
   }
 
   /* ──────────────────────────────────────────

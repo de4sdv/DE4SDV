@@ -831,3 +831,24 @@ def test_success_criteria_gap_names_every_requirement_without_a_criterion() -> N
     assert {req.rsplit("-", 1)[1] for req in missing} <= named
     deferred = {item["id"] for item in _pilot()["phase10_claim"]["deferred_items"]}
     assert "GAP-AEBS-010-010" in deferred
+
+
+def test_requirement_criteria_name_deciding_observables_unambiguously() -> None:
+    """Each criterion names an observable that can decide it, with an
+    explicit quantifier; no ambiguous "frames or user-interface dumps" list."""
+    model = _model()
+    statements = {}
+    for criterion_id, (criterion, _requirement, _case) in REQUIREMENT_CRITERIA.items():
+        block = re.search(
+            rf"requirement {criterion} : VisualizationAcceptanceCriterion \{{.*?\n  \}}", model, re.S
+        )
+        statement = re.search(r"/\* (REQ-AEBS-S2-\d{3} will be shown.*?) \*/", block.group(0), re.S)
+        statements[criterion_id] = " ".join(statement.group(1).split())
+    for criterion_id, text in statements.items():
+        assert "frames or user-interface dumps" not in text, criterion_id
+        assert "frame or user-interface dump" not in text, criterion_id
+        assert re.search(r"\b(each|no|any)\b", text), (criterion_id, "quantifier")
+    assert "source adapter's subscriptions" in statements["AC-AEBS-S2-010"]
+    assert "retained frame record" in statements["AC-AEBS-S2-010"]
+    assert "retained bridge receipt record" in statements["AC-AEBS-S2-013"]
+    assert "either artifact suffices" in statements["AC-AEBS-S2-009"]
