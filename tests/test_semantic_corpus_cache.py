@@ -324,3 +324,9 @@ def test_a_spawned_server_writes_nothing_to_the_users_home(tmp_path, monkeypatch
     _run(elements, binding_path=binding, authority="model", model_bundle_path=path,
          model_bundle_id=bundle["bundle_id"])
     assert sorted(entry.relative_to(home).as_posix() for entry in home.rglob("*")) == []
+
+
+def test_a_tests_monkeypatch_undo_keeps_the_snapshot_directory(monkeypatch, tmp_path) -> None:
+    """A test may undo its own monkeypatch; the snapshot directory stays the test's own."""
+    monkeypatch.undo()
+    assert Path(os.environ["DE4SDV_SEMANTIC_SNAPSHOT_DIR"]).is_relative_to(tmp_path)
