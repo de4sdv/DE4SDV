@@ -219,15 +219,24 @@ class ModelBuilder:
         raise TypeError(value)
 
     def multiplicity(self, feature: dict[str, Any], *bounds: Any) -> dict[str, Any]:
-        """A MultiplicityRange owned by ``feature``: ``[n]`` or ``[lower..upper]`` literal bounds.
+        """A MultiplicityRange owned by ``feature``, in the licensed export's shape.
 
-        Only the owned structure is emitted (no derived ``lowerBound`` /
-        ``upperBound`` references), so readers work from ownership.
+        ``[n]`` and ``[*]`` own one literal; ``[lower..upper]`` owns an
+        OperatorExpression ``..`` whose two parameter features (direction in)
+        carry the literal bounds as feature values.
         """
-        multiplicity = self.new("MultiplicityRange", source=self.sources[feature["@id"]])
+        source = self.sources[feature["@id"]]
+        multiplicity = self.new("MultiplicityRange", source=source)
         self.own(feature, multiplicity)
+        if len(bounds) == 1:
+            self.own(multiplicity, self.value_expression(multiplicity, bounds[0]))
+            return multiplicity
+        expression = self.new("OperatorExpression", source=source, operator="..")
+        self.own(multiplicity, expression)
         for bound in bounds:
-            self.own(multiplicity, self.value_expression(multiplicity, bound))
+            parameter = self.new("Feature", source=source, direction="in")
+            self.own(expression, parameter, kind="ParameterMembership")
+            self.own(parameter, self.value_expression(parameter, bound), kind="FeatureValue")
         return multiplicity
 
     def attribute(self, owner: dict[str, Any], name: str, value: Any,

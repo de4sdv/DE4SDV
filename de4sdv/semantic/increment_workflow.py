@@ -59,6 +59,7 @@ from .increment_scope import (
 )
 from .method_checks import MethodCheckRegistry, method_checks
 from .method_trace_adapter import CANONICAL_PHASE_LITERALS
+from .revision_index import MultiplicityError
 
 #: Upper cardinality bound standing for "unbounded" (``*``).
 UNBOUNDED = 1_000_000
@@ -267,7 +268,7 @@ def read_workflow(view: ModelView, workflow: str, *, revision_label: str) -> Inc
         step_name = index.name_of(step) or step
         try:
             phase, step_checks = _step_checks(view, step, step_name, phase_root, checks, problems,
-                                              optional=(index.multiplicity(step) or (1, 1))[0] == 0)
+                                              optional=_bounds(view, step)[0] == 0)
         except _Invalid as error:
             problems.append(f"step {step_name}: {error}")
             continue
@@ -393,7 +394,7 @@ def _check(view: ModelView, metadata: str, step_name: str, phase: str, parameter
     check_id = _text(view, metadata, CHECK_ATTRIBUTE)
     minimum = _natural(view, metadata, "minimum", DEFAULT_MINIMUM)
     advisory = _boolean(view, metadata, "advisory", False)
-    lower, upper = index.multiplicity(parameter) or (1, 1)
+    lower, upper = _bounds(view, parameter)
     definition = checks.definition(check_id) if check_id in checks else None
     maximum = definition.maximum if definition is not None and definition.maximum is not None else UNBOUNDED
     claim = (_documentation(view, metadata) or (definition.claim if definition is not None else "")
@@ -426,6 +427,14 @@ def _check(view: ModelView, metadata: str, step_name: str, phase: str, parameter
              "subject_type": (index.qualified_name(types[0]) or types[0]) if types else kind, "check": check_id,
              "check_definition": index.qualified_name(sorted(index.typed_by(metadata))[0])}
     return spec, label, metadata
+
+
+def _bounds(view: ModelView, feature: str) -> tuple[int, int | None]:
+    """The feature's multiplicity (none declared: exactly one); undecodable is invalid."""
+    try:
+        return view.index.multiplicity(feature) or (1, 1)
+    except MultiplicityError as error:
+        raise _Invalid(f"{view.index.name_of(feature) or feature}: {error}") from None
 
 
 def _unique_identifiers(view: ModelView, decoded):

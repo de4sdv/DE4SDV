@@ -396,3 +396,19 @@ def test_framed_concern_check_needs_one_framed_concern_of_the_own_package() -> N
     builder.remove(*[e for e in builder.elements if e.get("@type") == "FramedConcernMembership"
                      and e.get("owningRelatedElement", {}).get("@id") == viewpoint["@id"]])
     assert _unit(_evaluate(scenario), "incrementHasFramedConcern").verdict == me.VERDICT_FAIL
+
+
+def test_a_step_multiplicity_that_cannot_be_decoded_makes_the_method_invalid() -> None:
+    """A declared multiplicity is never read as a default: the method is invalid, not mandatory."""
+    scenario = _scenario()
+    builder = scenario.builder
+    step = _named(scenario, "elaborateNeeds")
+    by_id = {e["@id"]: e for e in builder.elements}
+    (multiplicity,) = [by_id[by_id[r["@id"]]["memberElement"]["@id"]] for r in step["ownedRelationship"]
+                       if by_id[r["@id"]].get("@type") == "OwningMembership"
+                       and by_id[by_id[r["@id"]]["memberElement"]["@id"]]["@type"] == "MultiplicityRange"]
+    (expression,) = [by_id[by_id[r["@id"]]["memberElement"]["@id"]] for r in multiplicity["ownedRelationship"]]
+    expression["operator"] = "+"
+    method = _method(scenario)
+    assert method.contract is None
+    assert any("elaborateNeeds" in problem and "multiplicity" in problem for problem in method.problems)
