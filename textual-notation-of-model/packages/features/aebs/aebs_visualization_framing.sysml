@@ -16,6 +16,7 @@
 package DE4SDV_AEBSVisualizationFraming {
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_MethodTraces::*;
+  private import DE4SDV_IncrementWorkflow::IncrementCharter;
   private import DE4SDV_MethodProcess::*;
   private import DE4SDV_MethodViewpoints::*;
   private import DE4SDV_Stakeholders::*;
@@ -26,12 +27,13 @@ package DE4SDV_AEBSVisualizationFraming {
 
   part def VisualizationIncrement :> EngineeringIncrement;
 
-  part incAEBS010 : VisualizationIncrement {
+  part <'INC-AEBS-010'> incAEBS010 : VisualizationIncrement {
     doc /*
-     * INC-AEBS-010: AEBS visualization on AAOS SDV — framing through
-     * needs and System 2 requirements. Later increments in the same
-     * increment chain carry architecture, configuration, implementation,
-     * and evidence.
+     * INC-AEBS-010: AEBS visualization on AAOS SDV. One increment identity
+     * spanning phases 0 to 10, from framing through verification evidence:
+     * this framing slice and the operational context, needs and
+     * requirements, architecture, configuration, and verification-evidence
+     * slices all belong to this increment.
      */
   }
 
@@ -81,13 +83,27 @@ package DE4SDV_AEBSVisualizationFraming {
   connection visualizationStakeholderParticipation : HasStakeholder
     connect incAEBS010 to visualizationProblemStatement.systemsEngineer;
 
-  part visualizationTraceObligations : IncrementTraceObligations {
-    doc /* Scope declaration only; traces are the native relationships of this package. */
+  part visualizationTraceObligations : IncrementCharter {
+    doc /*
+     * Charter declaration of the increment; traces are the native
+     * relationships of this package. The applicable phases cover the
+     * increment's framing, operational context, needs and requirements,
+     * architecture, configuration, and verification evidence slices; each
+     * later slice belongs to this increment and is not a second increment
+     * identity. The trace scope kind and completion claim stay as the
+     * governed trace scope selected for this increment; the later declared
+     * phases add trace obligations, never remove the governed minimum. Owner,
+     * expected artifacts and expected review evidence are declarations, not
+     * completion or review evidence.
+     */
     ref part :>> selectedMethod = DE4SDV_MethodTraces::approvedScopedTraceMethod;
     attribute :>> scopeKind = "requirements";
-    attribute :>> applicablePhases = (MethodPhase::phase0_incrementFraming, MethodPhase::phase1_concernFraming, MethodPhase::phase2_operationalContext, MethodPhase::phase3_capabilityClassification, MethodPhase::phase4_needs, MethodPhase::phase5_requirements);
+    attribute :>> applicablePhases = (MethodPhase::phase0_incrementFraming, MethodPhase::phase1_concernFraming, MethodPhase::phase2_operationalContext, MethodPhase::phase3_capabilityClassification, MethodPhase::phase4_needs, MethodPhase::phase5_requirements, MethodPhase::phase6_functionalArchitecture, MethodPhase::phase7_logicalArchitecture, MethodPhase::phase8_physicalRealization, MethodPhase::phase9_variabilityConfiguration, MethodPhase::phase10_vvEvidence);
     attribute :>> completionClaim = TraceCompletionClaim::requirementsReady;
     ref part :>> increment = DE4SDV_AEBSVisualizationFraming::incAEBS010;
+    attribute :>> owner = "DE4SDV maintainers";
+    attribute :>> expectedArtifacts = ("DE4SDV_AEBSVisualizationFraming", "DE4SDV_AEBSVisualizationOperationalContext", "DE4SDV_AEBSVisualizationNeedsRequirements", "DE4SDV_AEBSVisualizationFunctionalArchitecture", "DE4SDV_AEBSVisualizationLogicalArchitecture", "DE4SDV_AEBSVisualizationPhysicalSoftwareRealization", "DE4SDV_AEBSVisualizationVariabilityConfiguration", "DE4SDV_AEBSVisualizationVerificationEvidence");
+    attribute :>> expectedReviewEvidence = ("exact-head licensed SysML validation of the increment model slices", "repository gates check_repo and smoke_test at the reviewed head", "retained verification evidence records of the increment verification cases");
   }
 
   /* Dependency to the mandated predecessor decision (qualified reference,

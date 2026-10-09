@@ -30,6 +30,71 @@ Before starting an increment, define:
 
 If these cannot be stated, the increment is not ready.
 
+### Declaring an increment in the model
+
+The entry criteria are model content. An increment is declared in SysML in
+this shape, which the method checks read:
+
+- **Identity:** the increment usage carries its registered `INC` identifier
+  as its declared short name, for example
+  `part <'INC-AEBS-010'> incAEBS010 : VisualizationIncrement`. Its definition
+  specializes `EngineeringIncrement`, and the usage name keeps its identity.
+- **Charter declaration:** exactly one `IncrementCharter` usage references the
+  increment. It declares the applicable phases and, as plain attributes, the
+  owner, the expected artifacts and the expected review evidence. It also
+  carries the trace scope kind and completion claim of the trace method.
+- **Charter content:** the problem statement, whose native subject is typed by
+  the increment definition, with its stakeholders; the engineering question;
+  the lifecycle decision; the assumptions; the scope and the out-of-scope
+  items; and the concerns framed by a viewpoint of a view. All of them are
+  owned by the package that owns the increment usage.
+- **Later slices:** the needs and requirements of the increment have a native
+  subject typed by the increment definition. A package holding the
+  increment's verification cases declares `references` to the increment
+  usage.
+
+### Method rules and the increment workflow model
+
+These method rules apply to every increment:
+
+1. **Increment.** Every increment is declared in the model with a short
+   identifier and a charter: problem statement, engineering question,
+   lifecycle decision, at least one assumption, at least one stakeholder, at
+   least one concern framed by a viewpoint, scope and out-of-scope, and owner.
+   It also declares which phases apply. Owner, expected artifacts and expected
+   review evidence are plain attributes, not new kernel classes.
+2. **Needs.** Each need has a statement, at least one stakeholder, an ODE4HERA
+   source and rationale, and at least one planned validation scenario.
+3. **Need to concern.** Each need frames at least one stakeholder concern
+   through native SysML v2 framing.
+4. **Requirement to need.** Only the governed `DerivesFromNeed` connection
+   counts. Plain dependencies don't.
+5. **Requirement.** A requirement has exactly one native subject and exactly
+   one primary verification method from the standard kinds.
+6. **Verification.** Each verification case verifies at least one requirement
+   of the increment, and every in-scope requirement is verified by at least
+   one verification case.
+7. **Advisory, not blocking.** Requirement to feature or common capability,
+   acceptance-criterion targets, and evidence record or status.
+8. **Principle.** Structural checks block; judgment checks (wording,
+   verifiability) are advisory.
+
+[`DE4SDV_IncrementWorkflow`](../../textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml)
+models this workflow in the style of the SYSMOD default process. The
+`IncrementWorkflow` action has one step per phase in method order. Increment
+framing always applies, and each later step is optional: it applies when the
+increment charter lists the step's phase. Each step definition states its
+phase question, its phase, and the artifacts it reads and produces as typed
+parameters.
+
+The rules are `MethodCheck` metadata inside the step definitions, one check
+per rule clause, each about the step parameter it constrains. The check
+identifier names the evaluation, an unknown identifier fails closed, and
+`advisory = true` marks the advisory checks. The increment framing, needs,
+requirements, and V&V and evidence steps carry checks so far. Declaring a
+check is not evaluating it, and no check result is a conformance,
+acceptance, or certification claim.
+
 ## Workflow phases
 
 | Phase | Question | SAF domain | Main outputs |
