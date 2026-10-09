@@ -104,6 +104,9 @@ scope:
     - post-release re-approach scenarios
 
 verification_cases:
+# A case status covers only its primary acceptance_criterion. Criteria under
+# planned_acceptance_criteria were formalized after the retained take and are
+# not assessed against it (status not_assessed in acceptance_criteria).
   - id: VC-AEBS-S2-001
     name: Live chain correlation
     scenario: liveChainCorrelation
@@ -129,7 +132,7 @@ verification_cases:
     requirement_ids: [REQ-AEBS-S2-005, REQ-AEBS-S2-015]
     methods: [test, inspect, analyze]
     acceptance_criterion: AC-AEBS-S2-003
-    additional_acceptance_criteria: [AC-AEBS-S2-009]
+    planned_acceptance_criteria: [AC-AEBS-S2-009]
     current_evidence:
       - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/state-monitoring.png
     status: observed_unidentified_build
@@ -139,7 +142,7 @@ verification_cases:
     requirement_ids: [REQ-AEBS-S2-014, REQ-AEBS-S2-016, REQ-AEBS-S2-017, REQ-AEBS-S2-018]
     methods: [test, inspect, analyze]
     acceptance_criterion: AC-AEBS-S2-004
-    additional_acceptance_criteria: [AC-AEBS-S2-010, AC-AEBS-S2-011, AC-AEBS-S2-012]
+    planned_acceptance_criteria: [AC-AEBS-S2-010, AC-AEBS-S2-011, AC-AEBS-S2-012]
     current_evidence:
       - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/state-warning.png
     status: observed_unidentified_build
@@ -149,7 +152,7 @@ verification_cases:
     requirement_ids: [REQ-AEBS-S2-019, REQ-AEBS-S2-020]
     methods: [test, inspect, analyze]
     acceptance_criterion: AC-AEBS-S2-005
-    additional_acceptance_criteria: [AC-AEBS-S2-013]
+    planned_acceptance_criteria: [AC-AEBS-S2-013]
     current_evidence:
       - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/segment.yaml
       - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/app-ingress-frame.log
@@ -160,7 +163,7 @@ verification_cases:
     requirement_ids: [REQ-AEBS-S2-007, REQ-AEBS-S2-021]
     methods: [test, inspect, analyze]
     acceptance_criterion: AC-AEBS-S2-006
-    additional_acceptance_criteria: [AC-AEBS-S2-014]
+    planned_acceptance_criteria: [AC-AEBS-S2-014]
     current_evidence:
       - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/state-campaign/stale.png
       - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/state-campaign/unavailable.png
@@ -232,32 +235,34 @@ acceptance_criteria:
     sysml_element: acceptanceCriterionEvidenceIntegrity
     evidence: EVID-AEBS-S2-001 bound identities + observer
   # Expected results of REQ-AEBS-S2-015..018, -020 and -021 (AC-AEBS-S2-005
-  # bounds REQ-AEBS-S2-019). Planning only: not assessed against the retained
-  # evidence of the case that verifies them.
+  # bounds REQ-AEBS-S2-019), formalized after the retained take. Each sits in
+  # the objective of a case whose retained record holds a related observation
+  # made under the former criterion wording; none is assessed against it, and
+  # no case verdict changes.
   - id: AC-AEBS-S2-009
-    status: not_executed
+    status: not_assessed
     sysml_element: acceptanceCriterionReadOnlyBoundaryStatement
-    evidence: none; planning only (verified in VC-AEBS-S2-003)
+    evidence: EVID-AEBS-S2-003 retained (observed under the former AC-AEBS-S2-003 wording); not assessed against this criterion (objective of VC-AEBS-S2-003)
   - id: AC-AEBS-S2-010
-    status: not_executed
+    status: not_assessed
     sysml_element: acceptanceCriterionObstacleGeometrySource
-    evidence: none; planning only (verified in VC-AEBS-S2-004)
+    evidence: EVID-AEBS-S2-004 retained (observed under the former AC-AEBS-S2-004 wording); not assessed against this criterion (objective of VC-AEBS-S2-004)
   - id: AC-AEBS-S2-011
-    status: not_executed
+    status: not_assessed
     sysml_element: acceptanceCriterionNoDisplayDerivedDecisionMetric
-    evidence: none; planning only (verified in VC-AEBS-S2-004)
+    evidence: EVID-AEBS-S2-004 retained (observed under the former AC-AEBS-S2-004 wording); not assessed against this criterion (objective of VC-AEBS-S2-004)
   - id: AC-AEBS-S2-012
-    status: not_executed
+    status: not_assessed
     sysml_element: acceptanceCriterionDecisionDistanceExclusionStatement
-    evidence: none; planning only (verified in VC-AEBS-S2-004)
+    evidence: EVID-AEBS-S2-004 retained (observed under the former AC-AEBS-S2-004 wording); not assessed against this criterion (objective of VC-AEBS-S2-004)
   - id: AC-AEBS-S2-013
-    status: not_executed
+    status: not_assessed
     sysml_element: acceptanceCriterionNoFreshDataSubstitution
-    evidence: none; planning only (verified in VC-AEBS-S2-005)
+    evidence: EVID-AEBS-S2-005 retained (observed under the former AC-AEBS-S2-005 wording); not assessed against this criterion (objective of VC-AEBS-S2-005)
   - id: AC-AEBS-S2-014
-    status: not_executed
+    status: not_assessed
     sysml_element: acceptanceCriterionNonColorStateCue
-    evidence: none; planning only (verified in VC-AEBS-S2-006)
+    evidence: EVID-AEBS-S2-006 retained (observed under the former AC-AEBS-S2-006 wording); not assessed against this criterion (objective of VC-AEBS-S2-006)
 
 evidence_ladder:
   - layer: repository_and_sysml

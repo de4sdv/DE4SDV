@@ -157,10 +157,10 @@ def test_verification_cases_cover_all_criteria() -> None:
     model = _model()
     criteria = {c["id"] for c in pilot["acceptance_criteria"]}
     covered = {c["acceptance_criterion"] for c in pilot["verification_cases"]}
-    # A case may also verify the criteria of the further requirements it
-    # verifies (AC-AEBS-S2-009..014).
+    # A case may also verify the planned criteria of the further requirements
+    # it verifies (AC-AEBS-S2-009..014); its status does not cover them.
     for case in pilot["verification_cases"]:
-        covered |= set(case.get("additional_acceptance_criteria", []))
+        covered |= set(case.get("planned_acceptance_criteria", []))
     # AC-AEBS-S2-008 (evidence integrity) is verified inside every case
     # objective in the model rather than by its own YAML case.
     integrity_id = "AC-AEBS-S2-008"
@@ -424,8 +424,10 @@ REQUIREMENT_CRITERIA = {
 
 def test_requirement_criteria_are_planned_expected_results_next_to_their_requirement() -> None:
     """Each criterion records the expected result of one requirement, is
-    verified in the case that verifies that requirement, traces to it, and
-    carries no evidence status beyond not executed."""
+    verified in the case that verifies that requirement, and traces to it.
+    It was formalized after the retained take: it is indexed not_assessed,
+    points at the retained record of its case, and the case usage says the
+    case verdict does not cover it."""
     model = _model()
     code = _strip_sysml_comments(model)
     criteria = {c["id"]: c for c in _pilot()["acceptance_criteria"]}
@@ -437,9 +439,20 @@ def test_requirement_criteria_are_planned_expected_results_next_to_their_require
         "reqNoFreshDataSubstitution": "REQ-AEBS-S2-020",
         "reqNonColorStateCue": "REQ-AEBS-S2-021",
     }
+    cases = {c["id"]: c for c in _pilot()["verification_cases"]}
     for criterion_id, (criterion, requirement, case) in REQUIREMENT_CRITERIA.items():
-        assert criteria[criterion_id]["status"] == "not_executed", criterion_id
+        assert criteria[criterion_id]["status"] == "not_assessed", criterion_id
         assert criteria[criterion_id]["sysml_element"] == criterion, criterion_id
+        holder = next(c for c in cases.values() if criterion_id in c.get("planned_acceptance_criteria", []))
+        evidence = criteria[criterion_id]["evidence"]
+        assert re.match(r"EVID-AEBS-S2-\d{3} retained ", evidence), criterion_id
+        assert f"not assessed against this criterion (objective of {holder['id']})" in evidence
+        usage_block = re.search(rf"verification {case} : \w+ \{{.*?\n  \}}", model, re.S)
+        assert usage_block, case
+        usage_text = " ".join(usage_block.group(0).split())
+        assert criterion_id.replace("AC-AEBS-S2-", "") in usage_text, criterion_id
+        assert "formalized after the retained take" in usage_text, case
+        assert "case verdict does not cover" in usage_text, case
         block = re.search(
             rf"requirement {criterion} : VisualizationAcceptanceCriterion \{{.*?\n  \}}", model, re.S
         )

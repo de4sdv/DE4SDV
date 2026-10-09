@@ -191,8 +191,10 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
    * design-input requirements REQ-AEBS-S2-015..021 in
    * DE4SDV_AEBSVisualizationNeedsRequirements. AC-AEBS-S2-009..014 record
    * the expected results of REQ-AEBS-S2-015..018, -020 and -021 (AC-AEBS-S2-005
-   * bounds REQ-AEBS-S2-019); they are planning only and are not assessed
-   * against the retained evidence. */
+   * bounds REQ-AEBS-S2-019). They were formalized after the retained take:
+   * each sits in the objective of a case whose retained record holds a related
+   * observation made under the former criterion wording, but none is assessed
+   * against it, and no case verdict covers it. */
   requirement def VisualizationAcceptanceCriterion :> AcceptanceCriterion;
 
   requirement acceptanceCriterionChainCorrelation : VisualizationAcceptanceCriterion {
@@ -763,25 +765,28 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
 
   doc /* VC-AEBS-S2-003 verification case usage. */
   verification readOnlyBoundaryVerification : VisualizationReadOnlyBoundaryVerification {
+    doc /* VC-AEBS-S2-003: AC-AEBS-S2-009 was formalized after the retained take; it is not assessed against EVID-AEBS-S2-003, and the case verdict does not cover it. */
     @VerificationMethod{ kind = (test, inspect, analyze); }
     subject verifiedBench :> readOnlyBoundaryBench;
   }
 
   doc /* VC-AEBS-S2-004 verification case usage. */
   verification provenanceSeparationVerification : VisualizationProvenanceSeparationVerification {
+    doc /* VC-AEBS-S2-004: AC-AEBS-S2-010, -011 and -012 were formalized after the retained take; they are not assessed against EVID-AEBS-S2-004, and the case verdict does not cover them. */
     @VerificationMethod{ kind = (test, inspect, analyze); }
     subject verifiedBench :> provenanceSeparationBench;
   }
 
   doc /* VC-AEBS-S2-005 verification case usage. */
   verification failClosedStalenessVerification : VisualizationFailClosedStalenessVerification {
-    doc /* VC-AEBS-S2-005: the retained take does not establish the cloud-silence trigger its criterion names (GAP-AEBS-010-009, CCM-AEBS-S2-05); a scoped observation on an unidentified build; no re-capture is planned (owner decision 2026-10-09). */
+    doc /* VC-AEBS-S2-005: the retained take does not establish the cloud-silence trigger its criterion names (GAP-AEBS-010-009, CCM-AEBS-S2-05); a scoped observation on an unidentified build; no re-capture is planned (owner decision 2026-10-09). AC-AEBS-S2-013 was formalized after the retained take; it is not assessed against EVID-AEBS-S2-005, and the case verdict does not cover it. */
     @VerificationMethod{ kind = (test, inspect, analyze); }
     subject verifiedBench :> failClosedStalenessBench;
   }
 
   doc /* VC-AEBS-S2-006 verification case usage. */
   verification degradedRenderingVerification : VisualizationDegradedRenderingVerification {
+    doc /* VC-AEBS-S2-006: AC-AEBS-S2-014 was formalized after the retained take; it is not assessed against EVID-AEBS-S2-006, and the case verdict does not cover it. */
     @VerificationMethod{ kind = (test, inspect, analyze); }
     subject verifiedBench :> degradedStateRenderingBench;
   }
