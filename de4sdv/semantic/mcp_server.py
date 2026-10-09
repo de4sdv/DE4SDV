@@ -98,7 +98,7 @@ def create_mcp_server(service: SemanticQueryService) -> FastMCP:
 
     @mcp.tool(annotations=_READ_ONLY, structured_output=True)
     def next_obligation(increment: str, phase: str | None = None) -> dict[str, Any]:
-        """The first actionable gate of one increment, ranked by gate prerequisites, with what to author and where."""
+        """The first actionable gate of one increment, in workflow order (step order, then check order), with what to author and where."""
         return service.next_obligation(phase, increment=increment)
 
     return mcp

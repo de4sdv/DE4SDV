@@ -8,9 +8,8 @@ the existing evaluator once and projects that single canonical evaluation as
 - ``status``: per phase, the aggregate verdict and the phase-exit readiness;
 - ``gaps``: unmet blocking gates (violations, input problems, method-side
   blockers, unattempted gates and what blocks them) plus advisory notes;
-- ``next``: the first actionable blocking gate, ranked by gate prerequisites
-  (depth in the prerequisite graph, then phase, then gate order), with what
-  to author and where;
+- ``next``: the first actionable blocking gate in workflow order (step
+  order, then check order), with what to author and where;
 - ``phase_contract``: the gates of a phase with the increment's
   applicability, no verdict.
 
