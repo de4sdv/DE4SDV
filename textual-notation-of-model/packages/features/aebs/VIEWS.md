@@ -706,7 +706,7 @@ Evidence-based assurance claim, counterclaims, retained evidence, and gaps for t
 - **Source:** `aebs_visualization_verification_evidence.sysml`
 - **Viewpoint:** `selectedOpenCounterclaimViewpoint` (`ArgumentationAssuranceViewpoint`)
 - **Concern:** `visualizationArgumentationAssuranceConcern`
-- **Exposes:** `visualizationInstrumentationClaim`, `counterClaimRestoration`, `counterClaimLiveDegradation`, `counterClaimProductionBoundaries`, `counterClaimUnidentifiedBuild`, `gap010RestorationUnexercised`, `gap010LiveDegradationUnproven`, `gap010InterVmRouteDeferred`, `gapRetainedTakeBuildUnidentified`, `counterClaimRestorationGapTrace`, `counterClaimLiveDegradationGapTrace`, `counterClaimProductionGapTrace`, `counterClaimUnidentifiedBuildGapTrace`, `restorationEvidencePlanned`, `scenarioSafetyDeferred`
+- **Exposes:** `visualizationInstrumentationClaim`, `counterClaimRestoration`, `counterClaimLiveDegradation`, `counterClaimProductionBoundaries`, `counterClaimUnidentifiedBuild`, `counterClaimRetainedRecordContradicted`, `gap010RestorationUnexercised`, `gap010LiveDegradationUnproven`, `gap010InterVmRouteDeferred`, `gapRetainedEvidenceIntegrity`, `counterClaimRestorationGapTrace`, `counterClaimLiveDegradationGapTrace`, `counterClaimProductionGapTrace`, `counterClaimUnidentifiedBuildGapTrace`, `counterClaimRetainedRecordGapTrace`, `restorationEvidencePlanned`, `scenarioSafetyDeferred`
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
