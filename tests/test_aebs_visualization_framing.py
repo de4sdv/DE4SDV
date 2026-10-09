@@ -190,6 +190,12 @@ def test_moved_criterion_obligations_derive_through_derives_from_need(
     ), f"missing DerivesFromNeed derivation for {requirement_id}"
 
 
+def test_soi_definition_types_the_framed_visualization_test_system() -> None:
+    framing = _read(FRAMING)
+    assert "part def AEBSVisualizationTestSystem :> System2EngineeringAndAssuranceSystem {" in framing
+    assert "part system2VisualizationInstrument : AEBSVisualizationTestSystem {" in framing
+
+
 def test_requirement_subject_is_the_visualization_test_system() -> None:
     needs = _read(NEEDS)
     requirements = needs.split("package VisualizationRequirements")[1].split("public import")[0]

@@ -34,7 +34,11 @@ package DE4SDV_AEBSVisualizationVariabilityConfiguration {
      */
 
     part visualizationChain : AEBSVisualizationPhysicalSystem {
-      doc /* The selected Phase 8 reverse visualization chain, deployed. */
+      doc /*
+       * The selected Phase 8 visualization chain, deployed: the observed
+       * System 1 executions and the visualization test system realization
+       * (instrument) that observes them read-only.
+       */
     }
 
     part aebsCapabilityBaseline {
@@ -119,13 +123,13 @@ package DE4SDV_AEBSVisualizationVariabilityConfiguration {
     to DE4SDV_AEBSVisualizationPhysicalSoftwareRealization::physicalSystem;
   dependency bindingsPinPhase8Elements
     from bindVisualizationPort
-    to DE4SDV_AEBSVisualizationPhysicalSoftwareRealization::physicalSystem::transport;
+    to DE4SDV_AEBSVisualizationPhysicalSoftwareRealization::physicalSystem::instrument::transport;
   dependency bindingsPinGatewayPath
     from bindServiceUnitName
-    to DE4SDV_AEBSVisualizationPhysicalSoftwareRealization::physicalSystem::iviGuest::dataTunnel;
+    to DE4SDV_AEBSVisualizationPhysicalSoftwareRealization::physicalSystem::instrument::iviGuest::dataTunnel;
   dependency bindingsPinApplication
     from bindAppPackage
-    to DE4SDV_AEBSVisualizationPhysicalSoftwareRealization::physicalSystem::iviGuest::displayApp;
+    to DE4SDV_AEBSVisualizationPhysicalSoftwareRealization::physicalSystem::instrument::iviGuest::displayApp;
 
   /* Reused accepted configuration artifacts (index only; SysML owns semantics). */
   part reusedBoFSource : SourceContributionRecord {

@@ -131,17 +131,19 @@ def test_kill_gate_forbids_fallbacks() -> None:
         assert forbidden in phys
 
 
+# System 1 source roles sit in the observation context; System 2 roles sit
+# inside the instrument (owner decision 2026-10-09, option C).
 @pytest.mark.parametrize(
     "logical_role,physical_element",
     [
         ("nativeAebSource", "pinnedAeb"),
         ("coordinatorSource", "coordinator"),
-        ("sourceAdapter", "sourceAdapter"),
-        ("transport", "transport"),
-        ("ingress", "iviGuest.gatewayIngress"),
-        ("displayService", "iviGuest.dataTunnel"),
-        ("application", "iviGuest.displayApp"),
-        ("evidence", "evidenceRecorder"),
+        ("instrument.sourceAdapter", "instrument.sourceAdapter"),
+        ("instrument.transport", "instrument.transport"),
+        ("instrument.ingress", "instrument.iviGuest.gatewayIngress"),
+        ("instrument.displayService", "instrument.iviGuest.dataTunnel"),
+        ("instrument.application", "instrument.iviGuest.displayApp"),
+        ("instrument.evidence", "instrument.evidenceRecorder"),
     ],
 )
 def test_logical_roles_allocated_to_selected_physical_elements(
@@ -154,11 +156,40 @@ def test_logical_roles_allocated_to_selected_physical_elements(
 
 def test_physical_system_declares_no_source_side_command_ports() -> None:
     phys = _read(PHYS)
-    system = phys.split("part def AEBSVisualizationPhysicalSystem")[1].split(
+    system = phys.split("part def AEBSVisualizationInstrumentRealization")[1].split(
         "part physicalSystem :"
     )[0]
+    assert "part def AEBSVisualizationPhysicalSystem" in system
     for token in ("cmdIn", "commandIn", "controlOut", "brakeOut"):
         assert token not in system
+
+
+def _definition_body(text: str, header: str) -> str:
+    start = text.index(header)
+    depth, index = 0, text.index("{", start)
+    for position in range(index, len(text)):
+        depth += {"{": 1, "}": -1}.get(text[position], 0)
+        if depth == 0:
+            return text[index + 1:position]
+    raise AssertionError(header)
+
+
+@pytest.mark.parametrize(
+    "path,instrument_def,context_def",
+    [
+        (LOGIC, "AEBSVisualizationLogicalInstrument", "AEBSVisualizationLogicalSystem"),
+        (PHYS, "AEBSVisualizationInstrumentRealization", "AEBSVisualizationPhysicalSystem"),
+    ],
+)
+def test_instrument_specializes_the_soi_and_holds_no_system1_part(path, instrument_def, context_def) -> None:
+    text = _read(path)
+    assert f"part def {instrument_def} :> AEBSVisualizationTestSystem {{" in text
+    instrument = _definition_body(text, f"part def {instrument_def} ")
+    for system1 in ("NativeAEBSourceRole", "De4sdvCoordinatorSourceRole", "PinnedAutowareAEBExecution",
+                    "De4sdv009bCoordinatorExecution"):
+        assert system1 not in instrument, (instrument_def, system1)
+    context = _definition_body(text, f"part def {context_def} ")
+    assert f"part instrument : {instrument_def};" in context
 
 
 def test_yaml_model_artifact_paths_exist() -> None:

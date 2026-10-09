@@ -70,6 +70,7 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
   enum def VisualizationEvidenceDisposition {
     planned;
     observedBounded;
+    observedUnidentifiedBuild;
     partial;
     blocked;
     notClaimed;
@@ -104,6 +105,8 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
    * maps to inconclusive — a partial observation cannot upgrade into an
    * acceptance claim without a separately justified bounded-pass
    * interpretation (none exists for the retained campaign).
+   * observedUnidentifiedBuild (observed on a build that is not exactly
+   * identified, GAP-AEBS-010-009) falls to inconclusive until re-capture.
    */
   calc def MapVisualizationOutcomeToVerdict {
     in outcome : VisualizationEvidenceDisposition;
@@ -130,10 +133,10 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
      */
     /* System 1 subject: uninstrumented configured member (scope member). */
     part system1MemberProduct : DE4SDV_MiddlewareVariabilityConfiguration::MiddlewareAutowareAAOSSDVConfiguredMember;
-    /* System 2 test article: the configured member instrumented with the deployed visualization chain. */
-    part system2TestArticle : AEBSAutowareAAOSSDVVisualizationTestArticle;
-    /* System 2 visualization test system framed for INC-AEBS-010: the subject the verified design-input requirements bind to. */
-    part system2Instrument : System2EngineeringAndAssuranceSystem :> system2VisualizationInstrument;
+    /* Configuration role: the configured test article AEBS-CONFIG-010-001. */
+    part system2TestArticle :> testArticle;
+    /* Subject role: the visualization test system as realized in that article; the verified design-input requirements bind to it. */
+    ref part system2Instrument :> system2VisualizationInstrument = system2TestArticle.visualizationChain.instrument;
     attribute scenario : VisualizationScenario;
   }
 
@@ -240,8 +243,8 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     attribute :>> contractIdentity = "interface/aebs_visualization.proto schema v1.1, topic aebs-visualization-frame";
     attribute :>> rawObservationArtifact = "implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/app-ingress-frame.log";
     attribute :>> independentObserverIdentity = "scenario_observer (pass_observed_chain, 1597 observations, 0 errors)";
-    attribute :>> disposition = VisualizationEvidenceDisposition::observedBounded;
-    attribute :>> claimBoundary = "Live observation-chain evidence on the bench deployment; not safety, braking-authority, certification, or production evidence.";
+    attribute :>> disposition = VisualizationEvidenceDisposition::observedUnidentifiedBuild;
+    attribute :>> claimBoundary = "Live observation-chain evidence on the bench deployment, observed on a build that is not exactly identified (GAP-AEBS-010-009, re-capture pending); not verification of the configured test article, and not safety, braking-authority, certification, or production evidence.";
   }
 
   part lifecycleArcEvidence : RetainedVisualizationEvidence {
@@ -261,8 +264,8 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     attribute :>> contractIdentity = "screenrecord display 0, 1080x600";
     attribute :>> rawObservationArtifact = "implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/raw-continuous.mp4";
     attribute :>> independentObserverIdentity = "scenario_observer state boundary extraction (segment.yaml)";
-    attribute :>> disposition = VisualizationEvidenceDisposition::observedBounded;
-    attribute :>> claimBoundary = "One continuous take of the corrected generation; title/end cards are editing frames; not safety or certification evidence.";
+    attribute :>> disposition = VisualizationEvidenceDisposition::observedUnidentifiedBuild;
+    attribute :>> claimBoundary = "One continuous take of the corrected generation, observed on a build that is not exactly identified (GAP-AEBS-010-009, re-capture pending); title/end cards are editing frames; not safety or certification evidence.";
   }
 
   part readOnlyBoundaryEvidence : RetainedVisualizationEvidence {
@@ -279,8 +282,8 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     attribute :>> contractIdentity = "implementation/aebs-aaos-sdv-visualization-bench/interface/aebs_visualization.proto";
     attribute :>> rawObservationArtifact = "implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/state-monitoring.png";
     attribute :>> independentObserverIdentity = "tests/test_aebs_visualization_hmi_presentation_contract.py + bridge non-interference tests";
-    attribute :>> disposition = VisualizationEvidenceDisposition::observedBounded;
-    attribute :>> claimBoundary = "Structural and rendered-session read-only evidence; no vehicle-interaction behavior is exercised or claimed.";
+    attribute :>> disposition = VisualizationEvidenceDisposition::observedUnidentifiedBuild;
+    attribute :>> claimBoundary = "Structural and rendered-session read-only evidence; the rendered session ran on a build that is not exactly identified (GAP-AEBS-010-009, re-capture pending); no vehicle-interaction behavior is exercised or claimed.";
   }
 
   part provenanceSeparationEvidence : RetainedVisualizationEvidence {
@@ -299,8 +302,8 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     attribute :>> contractIdentity = "implementation/aebs-aaos-sdv-visualization-bench/VISUALIZATION-CONTRACT.md section 3 removal list";
     attribute :>> rawObservationArtifact = "implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/state-warning.png";
     attribute :>> independentObserverIdentity = "tests/test_aebs_visualization_hmi_presentation_contract.py";
-    attribute :>> disposition = VisualizationEvidenceDisposition::observedBounded;
-    attribute :>> claimBoundary = "Presentation-separation evidence for the corrected generation; not a claim about native Autoware AEB decision internals.";
+    attribute :>> disposition = VisualizationEvidenceDisposition::observedUnidentifiedBuild;
+    attribute :>> claimBoundary = "Presentation-separation evidence for the corrected generation, observed on a build that is not exactly identified (GAP-AEBS-010-009, re-capture pending); not a claim about native Autoware AEB decision internals.";
   }
 
   part failClosedStalenessEvidence : RetainedVisualizationEvidence {
@@ -317,8 +320,8 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     attribute :>> contractIdentity = "frame assembler receipt-based staleness bound (bridge source)";
     attribute :>> rawObservationArtifact = "implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/segment.yaml";
     attribute :>> independentObserverIdentity = "app-ingress-frame.log field-level observation";
-    attribute :>> disposition = VisualizationEvidenceDisposition::observedBounded;
-    attribute :>> claimBoundary = "Bounded staleness observation within one take; not a certification-grade freshness argument.";
+    attribute :>> disposition = VisualizationEvidenceDisposition::observedUnidentifiedBuild;
+    attribute :>> claimBoundary = "Bounded staleness observation within one take, on a build that is not exactly identified (GAP-AEBS-010-009, re-capture pending); not a certification-grade freshness argument.";
   }
 
   part degradedRenderingEvidence : RetainedVisualizationEvidence {
@@ -335,8 +338,8 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     attribute :>> contractIdentity = "PF-004 deterministic publisher injection contract";
     attribute :>> rawObservationArtifact = "implementation/aebs-aaos-sdv-visualization-bench/evidence/010/state-campaign/stale.png";
     attribute :>> independentObserverIdentity = "per-state UI hierarchy dumps (state-campaign/*.xml)";
-    attribute :>> disposition = VisualizationEvidenceDisposition::observedBounded;
-    attribute :>> claimBoundary = "Fixture-path rendering evidence only; not live Autoware degradation evidence.";
+    attribute :>> disposition = VisualizationEvidenceDisposition::observedUnidentifiedBuild;
+    attribute :>> claimBoundary = "Fixture-path rendering evidence only, on a build whose identity the state campaign does not record (GAP-AEBS-010-009, re-capture pending); not live Autoware degradation evidence.";
   }
 
   part restorationEvidencePlanned : PlannedExecutionEnvironmentEvidence {
@@ -359,7 +362,8 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
    * the criterion records, including the requirements that now carry the
    * obligations the criterion formerly added. A requirement's subject is the
    * visualization test system, so each verified requirement binds it to the
-   * bench's System 2 instrument instead of the whole bench. A verify is a
+   * bench's system2Instrument, the visualization test system as realized in
+   * the configured test article, instead of the whole bench. A verify is a
    * planned verification objective, not a verdict: the verdict stays the
    * case's evidence-bound return value. */
 
@@ -637,19 +641,22 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     from acceptanceCriterionRestoration
     to reqRestorationBehavior;
 
-  /* Cross-increment traceability to the accepted chain baseline. */
+  /* Cross-increment traceability to the configured test article. The
+   * configuration role (AEBS-CONFIG-010-001, testArticle) and the subject
+   * role (the visualization test system as realized in that article) are
+   * traced separately; no allocation relates them. */
   dependency verificationTestArticleTrace
     from visualizationVerificationSystem
     to testArticle;
-  dependency verificationPhysicalSystemTrace
+  dependency verificationInstrumentTrace
     from visualizationVerificationSystem
-    to physicalSystem;
-  dependency chainEvidenceToPhysicalSystemTrace
+    to testArticle::visualizationChain::instrument;
+  dependency chainEvidenceToTestArticleChainTrace
     from liveChainEvidence
-    to physicalSystem;
-  dependency lifecycleEvidenceToPhysicalSystemTrace
+    to testArticle::visualizationChain;
+  dependency lifecycleEvidenceToDisplayAppTrace
     from lifecycleArcEvidence
-    to physicalSystem::iviGuest::displayApp;
+    to testArticle::visualizationChain::instrument::iviGuest::displayApp;
   dependency provenanceEvidenceToSourceProvenanceTrace
     from provenanceSeparationEvidence
     to coordinatorStateProvenance;
@@ -737,6 +744,11 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     subject bench : VisualizationVerificationBench;
   }
 
+  requirement counterClaimUnidentifiedBuild : VisualizationCounterClaim {
+    doc /* CCM-AEBS-S2-04: bounds the claim to observations on builds that are not exactly identified (GAP-AEBS-010-009); it verifies nothing on the configured test article until the evidence is re-captured from an exact clean commit. */
+    subject bench : VisualizationVerificationBench;
+  }
+
   dependency claimSupportedByChainArgument
     from chainCorrelationArgument to visualizationInstrumentationClaim;
   dependency claimSupportedByLifecycleArgument
@@ -795,6 +807,8 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     from counterClaimLiveDegradation to visualizationInstrumentationClaim;
   dependency counterClaimProductionCountersClaim
     from counterClaimProductionBoundaries to visualizationInstrumentationClaim;
+  dependency counterClaimUnidentifiedBuildCountersClaim
+    from counterClaimUnidentifiedBuild to visualizationInstrumentationClaim;
 
   /* ──────────────────────────────────────────
    * Gaps (deferred scope owned by this slice's successors)
@@ -827,6 +841,20 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
      * Owner: successor increment in this chain.
      */
   }
+  part gapRetainedTakeBuildUnidentified : IncrementGap {
+    doc /*
+     * GAP-AEBS-010-009: The retained v21 take (final-hmi-v21-corrected), the
+     * source of EVID-AEBS-S2-001..005, was captured from HEAD 4d8dc1b plus 17
+     * uncommitted files. It is identified only by sha256 prefixes of six
+     * corrected sources (revision-checksums.md), so its tested build is not
+     * exactly identified. The fixture-path state campaign (EVID-AEBS-S2-006)
+     * records no build identity at all. These records are therefore
+     * observations on unidentified builds of AEBS-CONFIG-010-001, not
+     * verification of the configured test article. Re-capture from an exact
+     * clean commit is planned separately. Owner: successor increment in this
+     * chain.
+     */
+  }
 
   dependency counterClaimRestorationGapTrace
     from counterClaimRestoration to gap010RestorationUnexercised;
@@ -836,6 +864,20 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     from counterClaimProductionBoundaries to gap010InterVmRouteDeferred;
   dependency plannedRestorationEvidenceGapTrace
     from restorationEvidencePlanned to gap010RestorationUnexercised;
+  dependency counterClaimUnidentifiedBuildGapTrace
+    from counterClaimUnidentifiedBuild to gapRetainedTakeBuildUnidentified;
+  dependency liveChainEvidenceBuildGapTrace
+    from liveChainEvidence to gapRetainedTakeBuildUnidentified;
+  dependency lifecycleArcEvidenceBuildGapTrace
+    from lifecycleArcEvidence to gapRetainedTakeBuildUnidentified;
+  dependency readOnlyBoundaryEvidenceBuildGapTrace
+    from readOnlyBoundaryEvidence to gapRetainedTakeBuildUnidentified;
+  dependency provenanceSeparationEvidenceBuildGapTrace
+    from provenanceSeparationEvidence to gapRetainedTakeBuildUnidentified;
+  dependency failClosedStalenessEvidenceBuildGapTrace
+    from failClosedStalenessEvidence to gapRetainedTakeBuildUnidentified;
+  dependency degradedRenderingEvidenceBuildGapTrace
+    from degradedRenderingEvidence to gapRetainedTakeBuildUnidentified;
 
   /* Safety non-claim anchor: the scenario-safety outcome stays deferred. */
   part scenarioSafetyDeferred : DeferredProductLineScope {
@@ -898,18 +940,22 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
     }
     doc /*
      * Challenge slice: unresolved counterclaims and gaps that prevent
-     * broader restoration, live-degradation, inter-VM, and safety assurance.
+     * broader restoration, live-degradation, inter-VM, and safety assurance,
+     * and verification on an exactly identified build.
      */
     expose visualizationInstrumentationClaim;
     expose counterClaimRestoration;
     expose counterClaimLiveDegradation;
     expose counterClaimProductionBoundaries;
+    expose counterClaimUnidentifiedBuild;
     expose gap010RestorationUnexercised;
     expose gap010LiveDegradationUnproven;
     expose gap010InterVmRouteDeferred;
+    expose gapRetainedTakeBuildUnidentified;
     expose counterClaimRestorationGapTrace;
     expose counterClaimLiveDegradationGapTrace;
     expose counterClaimProductionGapTrace;
+    expose counterClaimUnidentifiedBuildGapTrace;
     expose restorationEvidencePlanned;
     expose scenarioSafetyDeferred;
     attribute maxCompartmentEntries = 0;

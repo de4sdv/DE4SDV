@@ -9,6 +9,11 @@
  * Source-side exchanges reuse the source-backed Autoware/DE4SDV physical
  * element types from the accepted AEBS physical realization; display-side
  * exchanges remain technology-neutral until Phase 8 selects them.
+ *
+ * System 1/System 2 boundary: the logical instrument specializes the system
+ * of interest (AEBSVisualizationTestSystem) and holds no System 1 role; the
+ * observed native AEB and coordinator source roles sit beside it in the
+ * observation context.
  */
 
 package DE4SDV_AEBSVisualizationLogicalArchitecture {
@@ -169,15 +174,15 @@ package DE4SDV_AEBSVisualizationLogicalArchitecture {
    * Logical system composition
    * ────────────────────────────────────────── */
 
-  part def AEBSVisualizationLogicalSystem {
+  part def AEBSVisualizationLogicalInstrument :> AEBSVisualizationTestSystem {
     doc /*
-     * Logical decomposition of the visualization test system. Information
-     * flows one way: sources → adapter → transport → ingress → service →
-     * application → evidence. No reverse flow into System 1 exists.
+     * Logical decomposition of the visualization test system (System 2). It
+     * holds no System 1 role: the native AEB and coordinator source roles it
+     * observes sit beside it in the observation context. Information flows
+     * one way: adapter → transport → ingress → service → application →
+     * evidence and health supervision.
      */
 
-    part nativeAebSource : NativeAEBSourceRole;
-    part coordinatorSource : De4sdvCoordinatorSourceRole;
     part sourceAdapter : VisualizationSourceAdapterRole;
     part transport : ReverseFrameTransportRole;
     part ingress : DisplayIngressRole;
@@ -185,20 +190,6 @@ package DE4SDV_AEBSVisualizationLogicalArchitecture {
     part application : VisualizationApplicationRole;
     part evidence : VisualizationEvidenceRole;
     part healthSupervisor : VisualizationHealthSupervisorRole;
-
-    // Source observations into the adapter.
-    connection rssDistanceObservation
-      connect nativeAebSource.rssDistanceOut to sourceAdapter.rssDistanceIn;
-    connection obstacleCloudObservation
-      connect nativeAebSource.obstacleCloudOut to sourceAdapter.obstacleCloudIn;
-    connection diagnosticObservation
-      connect nativeAebSource.diagnosticsOut to sourceAdapter.diagnosticsIn;
-    connection warningObservation
-      connect coordinatorSource.warningRequestOut to sourceAdapter.warningIn;
-    connection brakingObservation
-      connect coordinatorSource.brakingRequestOut to sourceAdapter.brakingIn;
-    connection lifecycleObservation
-      connect coordinatorSource.lifecycleStateOut to sourceAdapter.lifecycleIn;
 
     // Forward visualization flow only; no connection runs back toward sources.
     connection adapterToTransport
@@ -215,6 +206,33 @@ package DE4SDV_AEBSVisualizationLogicalArchitecture {
       connect application.renderedOut to healthSupervisor.renderedIn;
   }
 
+  part def AEBSVisualizationLogicalSystem {
+    doc /*
+     * Logical observation context: the System 1 source roles (native AEB,
+     * DE4SDV coordinator) and the visualization test system that observes
+     * them read-only. Information flows one way, from the sources into the
+     * instrument's read-only adapter. No reverse flow into System 1 exists.
+     */
+
+    part nativeAebSource : NativeAEBSourceRole;
+    part coordinatorSource : De4sdvCoordinatorSourceRole;
+    part instrument : AEBSVisualizationLogicalInstrument;
+
+    // Source observations into the instrument's adapter.
+    connection rssDistanceObservation
+      connect nativeAebSource.rssDistanceOut to instrument.sourceAdapter.rssDistanceIn;
+    connection obstacleCloudObservation
+      connect nativeAebSource.obstacleCloudOut to instrument.sourceAdapter.obstacleCloudIn;
+    connection diagnosticObservation
+      connect nativeAebSource.diagnosticsOut to instrument.sourceAdapter.diagnosticsIn;
+    connection warningObservation
+      connect coordinatorSource.warningRequestOut to instrument.sourceAdapter.warningIn;
+    connection brakingObservation
+      connect coordinatorSource.brakingRequestOut to instrument.sourceAdapter.brakingIn;
+    connection lifecycleObservation
+      connect coordinatorSource.lifecycleStateOut to instrument.sourceAdapter.lifecycleIn;
+  }
+
   part logicalSystem : AEBSVisualizationLogicalSystem;
 
   /* Logical-to-functional allocation: each role realizes functional actions. */
@@ -222,35 +240,35 @@ package DE4SDV_AEBSVisualizationLogicalArchitecture {
 
   allocation observeBySources : LogicalRoleToFunction
     allocate aebsVisualizationFunctionalFlow.observe
-    to logicalSystem.sourceAdapter;
+    to logicalSystem.instrument.sourceAdapter;
 
   allocation assembleByAdapter : LogicalRoleToFunction
     allocate aebsVisualizationFunctionalFlow.assemble
-    to logicalSystem.sourceAdapter;
+    to logicalSystem.instrument.sourceAdapter;
 
   allocation validateByAdapter : LogicalRoleToFunction
     allocate aebsVisualizationFunctionalFlow.validate
-    to logicalSystem.sourceAdapter;
+    to logicalSystem.instrument.sourceAdapter;
 
   allocation superviseByHealth : LogicalRoleToFunction
     allocate aebsVisualizationFunctionalFlow.supervise
-    to logicalSystem.healthSupervisor;
+    to logicalSystem.instrument.healthSupervisor;
 
   allocation transportByTransport : LogicalRoleToFunction
     allocate aebsVisualizationFunctionalFlow.transport
-    to logicalSystem.transport;
+    to logicalSystem.instrument.transport;
 
   allocation publishByIngress : LogicalRoleToFunction
     allocate aebsVisualizationFunctionalFlow.publish
-    to logicalSystem.ingress;
+    to logicalSystem.instrument.ingress;
 
   allocation presentByApplication : LogicalRoleToFunction
     allocate aebsVisualizationFunctionalFlow.present
-    to logicalSystem.application;
+    to logicalSystem.instrument.application;
 
   allocation recordByEvidence : LogicalRoleToFunction
     allocate aebsVisualizationFunctionalFlow.record
-    to logicalSystem.evidence;
+    to logicalSystem.instrument.evidence;
 
   /* ──────────────────────────────────────────
    * Concerns and views
@@ -276,13 +294,14 @@ package DE4SDV_AEBSVisualizationLogicalArchitecture {
     expose logicalSystem;
     expose logicalSystem::nativeAebSource;
     expose logicalSystem::coordinatorSource;
-    expose logicalSystem::sourceAdapter;
-    expose logicalSystem::transport;
-    expose logicalSystem::ingress;
-    expose logicalSystem::displayService;
-    expose logicalSystem::application;
-    expose logicalSystem::evidence;
-    expose logicalSystem::healthSupervisor;
+    expose logicalSystem::instrument;
+    expose logicalSystem::instrument::sourceAdapter;
+    expose logicalSystem::instrument::transport;
+    expose logicalSystem::instrument::ingress;
+    expose logicalSystem::instrument::displayService;
+    expose logicalSystem::instrument::application;
+    expose logicalSystem::instrument::evidence;
+    expose logicalSystem::instrument::healthSupervisor;
     render asTreeDiagram;
   }
 

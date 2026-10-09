@@ -234,11 +234,56 @@ def test_fixture_path_evidence_never_claims_live_chain() -> None:
     degraded = next(
         c for c in pilot["verification_cases"] if c["id"] == "VC-AEBS-S2-006"
     )
-    assert degraded["status"] == "pass_bounded_verification_fixture_path"
+    assert degraded["status"] == "observed_unidentified_build_fixture_path"
     for artifact in degraded["current_evidence"]:
         assert "state-campaign" in artifact
     ladder = {l["layer"]: l["status"] for l in pilot["evidence_ladder"]}
-    assert ladder["degraded_state_validation"] == "observed_bounded_fixture_path"
+    assert ladder["degraded_state_validation"] == "observed_unidentified_build_fixture_path"
+
+
+def test_bench_binds_the_subject_to_the_configured_article_instrument() -> None:
+    """Option C (owner decision 2026-10-09): the configuration role and the
+    subject role are separate; the subject is the visualization test system
+    as realized in AEBS-CONFIG-010-001, linked by typing, never allocation."""
+    model = _model()
+    bench = re.search(r"part def VisualizationVerificationBench \{(.*?)\n  \}", model, re.S)
+    assert bench
+    assert "part system2TestArticle :> testArticle;" in bench.group(1)
+    assert (
+        "ref part system2Instrument :> system2VisualizationInstrument = "
+        "system2TestArticle.visualizationChain.instrument;"
+    ) in bench.group(1)
+    assert not re.search(r"\ballocate\b", _strip_sysml_comments(model))
+
+
+RETAINED_RECORDS = (
+    "liveChainEvidence",
+    "lifecycleArcEvidence",
+    "readOnlyBoundaryEvidence",
+    "provenanceSeparationEvidence",
+    "failClosedStalenessEvidence",
+    "degradedRenderingEvidence",
+)
+
+
+def test_retained_evidence_is_scoped_to_unidentified_builds() -> None:
+    """The retained takes ran on builds that are not exactly identified
+    (GAP-AEBS-010-009): observations, re-capture pending, never a pass."""
+    model = _model()
+    assert "part gapRetainedTakeBuildUnidentified : IncrementGap" in model
+    assert "GAP-AEBS-010-009" in model and "4d8dc1b" in model
+    for record in RETAINED_RECORDS:
+        block = re.search(rf"part {record} : RetainedVisualizationEvidence \{{.*?\n  \}}", model, re.S)
+        assert block, record
+        assert "VisualizationEvidenceDisposition::observedUnidentifiedBuild" in block.group(0), record
+        assert re.search(rf"\bfrom {record} to gapRetainedTakeBuildUnidentified;", model), record
+    pilot = _pilot()
+    statuses = {case["id"]: case["status"] for case in pilot["verification_cases"]}
+    for number in range(1, 6):
+        assert statuses[f"VC-AEBS-S2-{number:03d}"] == "observed_unidentified_build"
+    assert not any(status.startswith("pass") for status in statuses.values())
+    gaps = {gap["id"] for gap in pilot["runtime_evidence_gaps"]}
+    assert "GAP-AEBS-010-009" in gaps
 
 
 def test_restoration_is_deferred_not_proven() -> None:
@@ -365,10 +410,14 @@ def test_cross_increment_traces_use_accepted_chain_elements() -> None:
     model = _model()
     for target in (
         "to testArticle;",
-        "to physicalSystem;",
+        "to testArticle::visualizationChain;",
+        "to testArticle::visualizationChain::instrument;",
         "to coordinatorStateProvenance;",
     ):
         assert target in model
+    # Evidence traces point at the configured article, not the design-level
+    # Phase 8 decomposition.
+    assert "to physicalSystem" not in model
     # MW-010 predecessor decision must be referenced, never restated.
     framing = _read(FRAMING)
     assert "successorIncrementDecision010" in framing

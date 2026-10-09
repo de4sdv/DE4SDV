@@ -19,6 +19,12 @@
  * markers, metrics, and the blocked predicted-trajectory branch remain
  * deferred. No execution evidence is claimed by this slice; the mandatory
  * readiness preflight is recorded as gates, not as results.
+ *
+ * System 1/System 2 boundary: the instrument realization
+ * (AEBSVisualizationInstrumentRealization) specializes the system of
+ * interest and contains no System 1 part; the pinned AEB node and the
+ * coordinator sit beside it in the observation context
+ * (AEBSVisualizationPhysicalSystem).
  */
 
 package DE4SDV_AEBSVisualizationPhysicalSoftwareRealization {
@@ -132,11 +138,16 @@ package DE4SDV_AEBSVisualizationPhysicalSoftwareRealization {
    * Physical composition
    * ────────────────────────────────────────── */
 
-  part def AEBSVisualizationPhysicalSystem {
-    doc /* Selected end-to-end physical decomposition across both hosts. */
+  part def AEBSVisualizationInstrumentRealization :> AEBSVisualizationTestSystem {
+    doc /*
+     * Selected realization of the visualization test system (System 2): the
+     * read-only ROS 2 source adapter, the bounded transport, the IVI guest
+     * with gateway ingress, data tunnel and display application, and the
+     * evidence recorder. It contains no System 1 part; it observes the
+     * pinned native AEB node and the coordinator through the adapter's
+     * read-only source ports.
+     */
 
-    part pinnedAeb : PinnedAutowareAEBExecution;
-    part coordinator : De4sdv009bCoordinatorExecution;
     part sourceAdapter : Ros2VisualizationSourceAdapter;
     part transport : BoundedLengthDelimitedTransport;
     part iviGuest : SdvIviCfGuestTarget {
@@ -145,22 +156,6 @@ package DE4SDV_AEBSVisualizationPhysicalSoftwareRealization {
       part displayApp : JavaCenterDisplayApplication;
     }
     part evidenceRecorder : VisualizationEvidenceRecorder;
-
-    // Source-side connections reuse the selected Autoware publications.
-    connection rssDistanceSource
-      connect pinnedAeb.rssDistanceOut to sourceAdapter.rssDistanceIn;
-    connection obstacleCloudSource
-      connect pinnedAeb.debugPointCloudOut to sourceAdapter.obstacleCloudIn;
-    connection diagnosticSource
-      connect pinnedAeb.diagnosticsOut to sourceAdapter.diagnosticsIn;
-
-    // Coordinator outputs remain DE4SDV-derived; provenance is per-field.
-    connection warningSource
-      connect coordinator.warningRequestOut to sourceAdapter.warningIn;
-    connection brakingSource
-      connect coordinator.brakingRequestOut to sourceAdapter.brakingIn;
-    connection lifecycleSource
-      connect coordinator.lifecycleStateOut to sourceAdapter.lifecycleIn;
 
     // Reverse visualization flow only; no command path exists anywhere.
     connection adapterToTransport
@@ -173,6 +168,35 @@ package DE4SDV_AEBSVisualizationPhysicalSoftwareRealization {
       connect iviGuest.dataTunnel.subscriptionOut to iviGuest.displayApp.frameIn;
     connection applicationToEvidence
       connect iviGuest.displayApp.renderedOut to evidenceRecorder.renderedIn;
+  }
+
+  part def AEBSVisualizationPhysicalSystem {
+    doc /*
+     * Observation context across both hosts: the observed System 1
+     * executions (pinned native Autoware AEB node, existing 009B coordinator)
+     * and the realization of the visualization test system (instrument) that
+     * observes them read-only.
+     */
+
+    part pinnedAeb : PinnedAutowareAEBExecution;
+    part coordinator : De4sdv009bCoordinatorExecution;
+    part instrument : AEBSVisualizationInstrumentRealization;
+
+    // Source-side connections reuse the selected Autoware publications.
+    connection rssDistanceSource
+      connect pinnedAeb.rssDistanceOut to instrument.sourceAdapter.rssDistanceIn;
+    connection obstacleCloudSource
+      connect pinnedAeb.debugPointCloudOut to instrument.sourceAdapter.obstacleCloudIn;
+    connection diagnosticSource
+      connect pinnedAeb.diagnosticsOut to instrument.sourceAdapter.diagnosticsIn;
+
+    // Coordinator outputs remain DE4SDV-derived; provenance is per-field.
+    connection warningSource
+      connect coordinator.warningRequestOut to instrument.sourceAdapter.warningIn;
+    connection brakingSource
+      connect coordinator.brakingRequestOut to instrument.sourceAdapter.brakingIn;
+    connection lifecycleSource
+      connect coordinator.lifecycleStateOut to instrument.sourceAdapter.lifecycleIn;
   }
 
   part physicalSystem : AEBSVisualizationPhysicalSystem;
@@ -189,32 +213,32 @@ package DE4SDV_AEBSVisualizationPhysicalSoftwareRealization {
     to physicalSystem.coordinator;
 
   allocation adapterAllocated : LogicalRoleToPhysicalRealization
-    allocate logicalSystem.sourceAdapter
-    to physicalSystem.sourceAdapter;
+    allocate logicalSystem.instrument.sourceAdapter
+    to physicalSystem.instrument.sourceAdapter;
 
   allocation transportAllocated : LogicalRoleToPhysicalRealization
-    allocate logicalSystem.transport
-    to physicalSystem.transport;
+    allocate logicalSystem.instrument.transport
+    to physicalSystem.instrument.transport;
 
   allocation ingressAllocated : LogicalRoleToPhysicalRealization
-    allocate logicalSystem.ingress
-    to physicalSystem.iviGuest.gatewayIngress;
+    allocate logicalSystem.instrument.ingress
+    to physicalSystem.instrument.iviGuest.gatewayIngress;
 
   allocation serviceAllocated : LogicalRoleToPhysicalRealization
-    allocate logicalSystem.displayService
-    to physicalSystem.iviGuest.dataTunnel;
+    allocate logicalSystem.instrument.displayService
+    to physicalSystem.instrument.iviGuest.dataTunnel;
 
   allocation applicationAllocated : LogicalRoleToPhysicalRealization
-    allocate logicalSystem.application
-    to physicalSystem.iviGuest.displayApp;
+    allocate logicalSystem.instrument.application
+    to physicalSystem.instrument.iviGuest.displayApp;
 
   allocation evidenceAllocated : LogicalRoleToPhysicalRealization
-    allocate logicalSystem.evidence
-    to physicalSystem.evidenceRecorder;
+    allocate logicalSystem.instrument.evidence
+    to physicalSystem.instrument.evidenceRecorder;
 
   allocation healthAllocated : LogicalRoleToPhysicalRealization
-    allocate logicalSystem.healthSupervisor
-    to physicalSystem.iviGuest.displayApp;
+    allocate logicalSystem.instrument.healthSupervisor
+    to physicalSystem.instrument.iviGuest.displayApp;
 
   /* ──────────────────────────────────────────
    * Source provenance records
@@ -270,20 +294,20 @@ package DE4SDV_AEBSVisualizationPhysicalSoftwareRealization {
     to DE4SDV_AEBSPhysicalSoftwareRealization::physicalSoftware::sourceArtifact;
 
   dependency adapterReadsPinnedAeb
-    from physicalSystem::sourceAdapter
+    from physicalSystem::instrument::sourceAdapter
     to physicalSystem::pinnedAeb;
   dependency adapterReadsCoordinator
-    from physicalSystem::sourceAdapter
+    from physicalSystem::instrument::sourceAdapter
     to physicalSystem::coordinator;
   dependency transportCarriesFrames
-    from physicalSystem::sourceAdapter
-    to physicalSystem::transport;
+    from physicalSystem::instrument::sourceAdapter
+    to physicalSystem::instrument::transport;
   dependency ingressReceivesTransport
-    from physicalSystem::iviGuest::gatewayIngress
-    to physicalSystem::transport;
+    from physicalSystem::instrument::iviGuest::gatewayIngress
+    to physicalSystem::instrument::transport;
   dependency appConsumesTunnel
-    from physicalSystem::iviGuest::displayApp
-    to physicalSystem::iviGuest::dataTunnel;
+    from physicalSystem::instrument::iviGuest::displayApp
+    to physicalSystem::instrument::iviGuest::dataTunnel;
 
   /* ──────────────────────────────────────────
    * Mandatory readiness preflight gates (planned, not results)
@@ -352,13 +376,14 @@ package DE4SDV_AEBSVisualizationPhysicalSoftwareRealization {
     expose physicalSystem;
     expose physicalSystem::pinnedAeb;
     expose physicalSystem::coordinator;
-    expose physicalSystem::sourceAdapter;
-    expose physicalSystem::transport;
-    expose physicalSystem::iviGuest;
-    expose physicalSystem::iviGuest::gatewayIngress;
-    expose physicalSystem::iviGuest::dataTunnel;
-    expose physicalSystem::iviGuest::displayApp;
-    expose physicalSystem::evidenceRecorder;
+    expose physicalSystem::instrument;
+    expose physicalSystem::instrument::sourceAdapter;
+    expose physicalSystem::instrument::transport;
+    expose physicalSystem::instrument::iviGuest;
+    expose physicalSystem::instrument::iviGuest::gatewayIngress;
+    expose physicalSystem::instrument::iviGuest::dataTunnel;
+    expose physicalSystem::instrument::iviGuest::displayApp;
+    expose physicalSystem::instrument::evidenceRecorder;
     expose gateIviBuildBoot;
     expose gateFrameworkServices;
     expose gateGatewayJavaSample;
@@ -389,24 +414,24 @@ package DE4SDV_AEBSVisualizationPhysicalSoftwareRealization {
     view :>> rowView {
       expose logicalSystem::nativeAebSource;
       expose logicalSystem::coordinatorSource;
-      expose logicalSystem::sourceAdapter;
-      expose logicalSystem::transport;
-      expose logicalSystem::ingress;
-      expose logicalSystem::displayService;
-      expose logicalSystem::application;
-      expose logicalSystem::evidence;
-      expose logicalSystem::healthSupervisor;
+      expose logicalSystem::instrument::sourceAdapter;
+      expose logicalSystem::instrument::transport;
+      expose logicalSystem::instrument::ingress;
+      expose logicalSystem::instrument::displayService;
+      expose logicalSystem::instrument::application;
+      expose logicalSystem::instrument::evidence;
+      expose logicalSystem::instrument::healthSupervisor;
       attribute :>> representation = Rep::name;
     }
     view :>> columnView {
       expose physicalSystem::pinnedAeb;
       expose physicalSystem::coordinator;
-      expose physicalSystem::sourceAdapter;
-      expose physicalSystem::transport;
-      expose physicalSystem::iviGuest::gatewayIngress;
-      expose physicalSystem::iviGuest::dataTunnel;
-      expose physicalSystem::iviGuest::displayApp;
-      expose physicalSystem::evidenceRecorder;
+      expose physicalSystem::instrument::sourceAdapter;
+      expose physicalSystem::instrument::transport;
+      expose physicalSystem::instrument::iviGuest::gatewayIngress;
+      expose physicalSystem::instrument::iviGuest::dataTunnel;
+      expose physicalSystem::instrument::iviGuest::displayApp;
+      expose physicalSystem::instrument::evidenceRecorder;
       attribute :>> representation = Rep::name;
     }
     view :>> cellView {
