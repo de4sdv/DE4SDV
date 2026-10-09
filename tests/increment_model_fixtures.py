@@ -434,9 +434,10 @@ def increment_scenario(
     b.attribute(charter, "expectedReviewEvidence", ["fixture review evidence"])
 
     needs_package = b.package(f"DE4SDV_{name}NeedsRequirements")
-    need_def = b.definition("RequirementDefinition", f"{name}Need", needs_package, [roots["Need"]])
+    attributes = b.library["__holder__"]  # the library attribute base the model's needs specialize
+    need_def = b.definition("RequirementDefinition", f"{name}Need", needs_package, [roots["Need"], attributes])
     requirement_def = b.definition("RequirementDefinition", f"{name}Requirement", needs_package,
-                                   [roots["Requirement"]])
+                                   [roots["Requirement"], attributes])
     scenario_def = b.definition("PartDefinition", f"{name}ValidationScenario", needs_package,
                                 [roots["ValidationPlanningScenario"]])
     association_def = b.definition("ConnectionDefinition", f"{name}ValidationAssociation", needs_package,

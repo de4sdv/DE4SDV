@@ -29,6 +29,7 @@ from typing import Any, Mapping, Sequence
 
 from . import method_evaluator as me
 from .increment_workflow import (
+    OWN_PACKAGE_SELECTOR,
     PHASE_ORDER,
     UNBOUNDED,
     WORKFLOW_SELECTORS,
@@ -183,12 +184,17 @@ class IncrementEvaluation:
             return None
         if unit.verdict == me.VERDICT_FAIL:
             return KIND_VIOLATION
-        children = [c for c in self._children(unit.unit_id) if c.state in {me.STATE_INDETERMINATE, me.STATE_ERROR}]
-        if children and all(_method_side(child) for child in children):
-            return KIND_METHOD_SIDE
-        if not children and _method_side(unit):
-            return KIND_METHOD_SIDE
-        return KIND_INPUT
+        # An authorable child (a failure, or an input problem that is not method
+        # side) makes the gate actionable even next to method-side children.
+        children = self._open_children(unit.unit_id)
+        if any(child.verdict == me.VERDICT_FAIL for child in children):
+            return KIND_VIOLATION
+        if any(not _method_side(child) for child in children) or not (children or _method_side(unit)):
+            return KIND_INPUT
+        return KIND_METHOD_SIDE
+
+    def _open_children(self, gate_id: str) -> list[me.EvaluationResult]:
+        return [c for c in self._children(gate_id) if c.verdict not in {me.VERDICT_PASS, me.VERDICT_NOT_APPLICABLE}]
 
     def _entry(self, gate: me.ObligationSpec, kind: str) -> dict[str, Any]:
         unit = self._unit(gate.obligation_id)
@@ -212,19 +218,18 @@ class IncrementEvaluation:
             ]
             entry["diagnostics"] = list(unit.diagnostics)
             return entry
-        subjects = []
-        for child in self._children(gate.obligation_id):
-            if child.verdict in {me.VERDICT_PASS, me.VERDICT_NOT_APPLICABLE}:
-                continue
-            subjects.append(self._subject(child))
+        children = self._open_children(gate.obligation_id)
+        method_side = [c for c in children if kind != KIND_METHOD_SIDE and c.verdict != me.VERDICT_FAIL
+                       and _method_side(c)]
+        subjects = [self._subject(c) for c in children if c not in method_side]
+        if method_side:
+            entry["method_side_subjects"] = [self._subject(c) for c in method_side]
         if not subjects:
             entry["diagnostics"] = list(unit.diagnostics)
             entry["missing"] = list(unit.missing)
         entry["subjects"] = subjects
         if kind in {KIND_VIOLATION, KIND_INPUT}:
-            first = next((c.subject_id for c in self._children(gate.obligation_id)
-                          if c.verdict == me.VERDICT_FAIL or c.state in {me.STATE_INDETERMINATE, me.STATE_ERROR}),
-                         None)
+            first = next((c.subject_id for c in children if c not in method_side), None)
             if me.POPULATION_POLICY_VIOLATION in unit.reason_codes:
                 entry["what_to_author"] = self._population_remedy(gate, unit)
             else:
@@ -244,7 +249,8 @@ class IncrementEvaluation:
         else:
             bounds = f"between {lower} and {upper}"
         observed = unit.diagnostics[0] if unit.diagnostics else ""
-        return f"keep {bounds} {subject_type} in the increment's declared packages ({observed})"
+        where = "package" if gate.selector_kind == OWN_PACKAGE_SELECTOR else "declared packages"
+        return f"keep {bounds} {subject_type} in the increment's {where} ({observed})"
 
     def _subject(self, child: me.EvaluationResult) -> dict[str, Any]:
         subject_id = child.subject_id
@@ -419,6 +425,10 @@ class IncrementEvaluation:
                 "where": entry.get("where", {}),
                 "subjects": entry.get("subjects", []),
             }
+            if entry.get("method_side_subjects"):
+                step["method_side_subjects"] = entry["method_side_subjects"]
+            if not step["subjects"]:
+                step["diagnostics"] = entry.get("diagnostics", [])
         elif method_side:
             reason = ("no gate the agent can author is open; the remaining blockers need a method or "
                       "kernel change")

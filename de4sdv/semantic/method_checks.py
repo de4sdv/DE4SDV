@@ -28,7 +28,9 @@ from typing import Any, Callable, Iterable, Mapping, Sequence
 from de4sdv.sysml_api.repository import reference_ids
 
 from . import method_evaluator as me
-from .increment_scope import IncrementScope, ModelView
+from de4sdv.sysml_api.errors import IdentityNotFoundError
+
+from .increment_scope import IncrementScope, ModelView, applicable_phase_literals, declared_artifacts
 from .relation_checks import (
     MethodSideInput,
     check_relation,
@@ -208,14 +210,22 @@ def _charter_text(attribute: str) -> CheckFunction:
 
 def _charter_applicable_phases(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
     try:
-        phase_root = view.kernel_element("MethodPhase")
-    except Exception as error:  # noqa: BLE001 - an unbound enumeration is method side
+        literals, _foreign = applicable_phase_literals(view, subject_id)
+    except IdentityNotFoundError as error:  # an unbound enumeration is method side
         return indeterminate("kernel-binding:MethodPhase", f"method side: {error}")
-    literals = [leaf.value for leaf in view.index.feature_values(subject_id, "applicablePhases")
-                if leaf.kind == "reference" and view.index.owner_of(leaf.value) == phase_root]
     if not literals:
         return violated(f"{_name(view, subject_id)} declares no applicablePhases value that is a MethodPhase literal")
     return satisfied(literals, witnesses=[subject_id])
+
+
+def _charter_expected_artifacts(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """Every expectedArtifacts value names exactly one top-level package."""
+    packages, unresolved = declared_artifacts(view, subject_id)
+    if unresolved or not packages:
+        return violated(f"{_name(view, subject_id)} expectedArtifacts "
+                        f"{', '.join(unresolved) if unresolved else 'are empty'}: every value must name "
+                        "exactly one top-level package")
+    return satisfied(packages, witnesses=[subject_id])
 
 
 def _require_constraint(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
@@ -229,20 +239,22 @@ def _require_constraint(view: ModelView, increment: IncrementScope, subject_id: 
 
 
 def _library_attribute(attribute: str, *, allowed: Sequence[str] = ()) -> CheckFunction:
-    """Non-empty values of an inherited (library) attribute, each from ``allowed`` when given.
+    """Non-empty values of an inherited attribute, each from ``allowed`` when given.
 
-    How many values a subject may carry is the check's cardinality (for
-    example exactly one verification method kind).
+    The subject's feature must redefine a feature owned by a definition in the
+    subject's own type lineage (in the model: the ODE4HERA
+    ``RequirementsManagement`` attribute bases). The contract binds no library
+    declaration, so the library itself is reached through that lineage, not by
+    kernel identity. How many values a subject may carry is the check's
+    cardinality (for example exactly one verification method kind).
     """
 
     def check(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
         feature = view.index.feature(subject_id, attribute)
-        redefined: list[str] = []
-        if feature is not None:
-            for relationship in view.index.owned_relationships(feature, "Redefinition"):
-                redefined.extend(reference_ids(relationship.get("redefinedFeature")))
-        inherited = [r for r in redefined
-                     if view.index.name_of(r) == attribute and view.index.owner_of(r) != subject_id]
+        lineage = {general for definition in view.index.typed_by(subject_id)
+                   for general in view.index.generals(definition)}
+        inherited = [r for r in (view.index.redefined(feature) if feature is not None else ())
+                     if view.index.owner_of(r) in lineage]
         name = _name(view, subject_id)
         if feature is None or not inherited:
             return violated(f"{name} sets no {attribute} value (attribute :>> {attribute} = ...)")
@@ -333,7 +345,7 @@ NAMED_CHECKS: Mapping[str, CheckFunction] = MappingProxyType({
     "framedByIncrementView": _framed_by_increment_view,
     "charterOwner": _charter_text("owner"),
     "charterApplicablePhases": _charter_applicable_phases,
-    "charterExpectedArtifacts": _charter_text("expectedArtifacts"),
+    "charterExpectedArtifacts": _charter_expected_artifacts,
     "charterExpectedReviewEvidence": _charter_text("expectedReviewEvidence"),
     "requireConstraint": _require_constraint,
     "sourceAttribute": _library_attribute("source"),

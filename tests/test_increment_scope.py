@@ -13,6 +13,7 @@ from __future__ import annotations
 import pytest
 
 from de4sdv.semantic.increment_scope import (
+    SCOPE_PROBLEM,
     IncrementIdentifierError,
     ModelView,
     parse_increment_id,
@@ -94,7 +95,7 @@ def test_a_declared_artifact_without_a_package_is_reported() -> None:
     b.attribute(scenario.charter, "expectedArtifacts", ["DE4SDV_FixtureFraming", "DE4SDV_FixtureMissing"])
     scope = resolve_increment(_view(scenario), scenario.increment_id)
     assert scope.scope_packages == (scenario.framing["@id"],)
-    assert any("DE4SDV_FixtureMissing" in d for d in scope.diagnostics)
+    assert "DE4SDV_FixtureMissing" in scope.problems[SCOPE_PROBLEM][1]
 
 
 def test_short_name_outside_the_increment_lineage_is_not_the_increment() -> None:

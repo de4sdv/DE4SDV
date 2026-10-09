@@ -86,15 +86,17 @@ def test_projections_share_one_evaluation_identity() -> None:
     assert keys == {evaluation.evaluation_key}
 
 
-def test_an_unidentified_increment_has_no_method_and_says_why() -> None:
+def test_an_unidentified_increment_is_told_to_declare_its_identifier() -> None:
+    """A new increment: the revision's workflow still applies, and framing says what to author first."""
     scenario = _scenario()
     scenario.usage.pop("declaredShortName")
     evaluation = _evaluate(scenario)
     status = evaluation.status()
-    assert status["reason_codes"] == [me.CONTRACT_UNAVAILABLE]
     assert status["increment"]["resolved"] is False
     assert any("short name" in d for d in status["increment"]["diagnostics"])
-    assert evaluation.next_obligation()["next"] is None
+    step = evaluation.next_obligation()["next"]
+    assert (step["gate"], step["kind"]) == ("incrementHasIdentifier", "input-problem")
+    assert step["what_to_author"].startswith("declare the increment usage with its identifier")
 
 
 def test_next_takes_the_earliest_open_check_in_workflow_order() -> None:
@@ -280,3 +282,54 @@ def test_relation_remedies_are_member_text_the_model_uses() -> None:
     assert entry["what_to_author"].endswith(
         ": connection <name> : ValidationPlanningAssociation connect need1 to <scenario>;"), entry["what_to_author"]
     assert mc.remedy("frame", _evaluate(scenario).view) == "add to each subject: frame <concern>;"
+
+
+def test_an_unresolved_declared_artifact_leaves_the_later_steps_input_unavailable() -> None:
+    scenario = _scenario()
+    builder = scenario.builder
+    extra = builder.package("DE4SDV_FixtureExtraRequirements")
+    builder.usage("RequirementUsage", "unverifiedRequirement", extra,
+                  [next(e for e in builder.elements if e.get("declaredName") == "FixtureRequirement")])
+    builder.remove(builder.feature_of(scenario.charter, "expectedArtifacts"))
+    builder.attribute(scenario.charter, "expectedArtifacts", [
+        "DE4SDV_FixtureFraming", "DE4SDV_FixtureNeedsRequirements", "DE4SDV_FixtureVerificationEvidence",
+        "DE4SDV_FixtureExtraRequirement"])
+    evaluation = _evaluate(scenario)
+    assert _state(evaluation, "incrementDeclaresExpectedArtifacts") == me.VERDICT_FAIL
+    for check in ("needHasStatement", "requirementDerivesFromNeed", "verificationCaseVerifiesRequirement"):
+        assert _state(evaluation, check) == me.STATE_INDETERMINATE, check
+    assert evaluation.next_obligation()["next"]["gate"] == "incrementDeclaresExpectedArtifacts"
+
+
+def test_next_names_authorable_failures_next_to_method_side_subjects() -> None:
+    scenario = _scenario()
+    builder = scenario.builder
+    builder.remove(*[e for e in builder.elements if e.get("declaredName") == "need1ValidationPlanning"])
+    builder.bindings[:] = [b for b in builder.bindings if b["ontology_class"] != "ValidationPlanningScenario"]
+    step = _evaluate(scenario).next_obligation()["next"]
+    assert (step["gate"], step["kind"]) == ("needHasValidationScenario", "violation")
+    assert [s["name"] for s in step["subjects"]] == ["need1"]
+    assert [s["name"] for s in step["method_side_subjects"]] == ["need0"]
+
+
+def test_a_library_attribute_counts_only_through_the_subjects_own_lineage() -> None:
+    scenario = _scenario()
+    builder = scenario.builder
+    holder = builder.definition("PartDefinition", "LogRecord", builder.package("SomeOtherLibrary"))
+    foreign = builder.new("AttributeUsage", name="source")
+    builder.own(holder, foreign, kind="FeatureMembership", member_name="source")
+    for need in scenario.needs:
+        builder.remove(builder.feature_of(need, "source"))
+        builder.attribute(need, "source", "x", redefines=foreign)
+    assert _state(_evaluate(scenario), "needHasSource") == me.VERDICT_FAIL
+
+
+def test_population_remedies_name_where_the_subjects_belong() -> None:
+    scenario = _scenario()
+    builder = scenario.builder
+    builder.usage("PartUsage", "secondDecision", scenario.framing, [scenario.vocabulary["IncrementLifecycleDecision"]])
+    for need in scenario.needs:
+        builder.remove(need)
+    gaps = {g["gate"]: g for g in _evaluate(scenario).gaps()["blocking"]}
+    assert "in the increment's package" in gaps["incrementHasLifecycleDecision"]["what_to_author"]
+    assert "in the increment's declared packages" in gaps["needHasStatement"]["what_to_author"]

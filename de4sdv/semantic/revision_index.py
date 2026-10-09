@@ -294,6 +294,31 @@ class RevisionIndex:
             cache[definition] = frozenset(found)
         return cache[definition]
 
+    def generals(self, definition: str) -> tuple[str, ...]:
+        """``definition`` and the definitions it specializes (explicit lineage), nearest first."""
+
+        def build() -> dict[str, list[str]]:
+            table: dict[str, list[str]] = {}
+            for general, specifics in self.graph_indexes().explicit_specifics.items():
+                for specific in specifics:
+                    table.setdefault(specific, []).append(general)
+            return {specific: sorted(found) for specific, found in table.items()}
+
+        table = self.memo("generals", build)
+        found: list[str] = []
+        frontier = [definition]
+        while frontier:
+            current = frontier.pop(0)
+            if current not in found:
+                found.append(current)
+                frontier.extend(table.get(current, ()))
+        return tuple(found)
+
+    def redefined(self, feature: str) -> list[str]:
+        """The features ``feature`` redefines."""
+        return [target for relationship in self.owned_relationships(feature, "Redefinition")
+                for target in reference_ids(relationship.get("redefinedFeature"))]
+
     def multiplicity(self, feature: str) -> tuple[int, int | None] | None:
         """Declared multiplicity of a feature as ``(lower, upper)``; upper ``None`` is unbounded.
 
