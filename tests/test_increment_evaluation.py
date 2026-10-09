@@ -3,8 +3,9 @@
 ``status`` (per phase), ``gaps`` (unmet blocking checks plus advisory notes)
 and ``next`` (the earliest actionable check in workflow order) come from one
 canonical evaluation and carry the same evaluation identity. The method is the
-workflow the increment's charter declares; the synthetic workflow mirrors the
-model's steps and checks.
+workflow the increment's charter declares: in these scenarios, the workflow of
+the frozen genuine-export cut, whose outcomes they assert (not the current
+model's).
 """
 
 from __future__ import annotations
@@ -22,8 +23,8 @@ from increment_model_fixtures import (
     WorkflowStep,
     increment_scenario,
     increment_workflow,
-    method_builder,
-    model_workflow,
+    cut_method_builder,
+    cut_workflow,
     set_check,
 )
 from test_revision_index import _traversal
@@ -33,8 +34,8 @@ P0, P4, P5, P10 = ("phase0_incrementFraming", "phase4_needs", "phase5_requiremen
 
 
 def _scenario(applicable_phases=(P0, P4, P5, P10)):
-    scenario = increment_scenario(method_builder(), applicable_phases=applicable_phases)
-    scenario.workflow = model_workflow(scenario)
+    scenario = increment_scenario(cut_method_builder(), applicable_phases=applicable_phases)
+    scenario.workflow = cut_workflow(scenario)
     return scenario
 
 
