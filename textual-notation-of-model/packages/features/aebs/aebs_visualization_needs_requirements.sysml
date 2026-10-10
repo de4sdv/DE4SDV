@@ -21,7 +21,9 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_ProductLine::*;
+  private import DE4SDV_RelationshipSuccessor::*;
   private import DE4SDV_AEBSVisualizationFraming::*;
+  private import DE4SDV_AEBSVisualizationOperationalContext::*;
   private import SAF_Viewpoints::*;
   private import Views::*;
   private import SysideViews::**;
@@ -101,6 +103,20 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     }
   }
 
+  /* Each requirement records one primary verification method, as planning
+   * data with no result. It is test where the statement constrains runtime
+   * behavior, checked by operating the bench under controlled conditions
+   * with recorded data. It is inspect where the statement constrains what is
+   * presented or structurally absent (no command path, no host browser page,
+   * no impersonating or display-derived decision values, stated boundaries,
+   * non-color cues), checked by examining retained frames, interface dumps,
+   * and the wire contract. Where a verification case exists, the choice
+   * follows how its collectData step checks the requirement.
+   *
+   * Each requirement states its success criteria in its successCriteria
+   * attribute (INCOSE A6; owner decision 2026-10-10), worded as "Met when ...".
+   * Its source records the retired acceptance-criterion ID it replaces. A
+   * requirement without success criteria is listed in GAP-AEBS-010-010. */
   package VisualizationRequirements {
     requirement reqSourceFidelity : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-002 System 2 candidate derived from N-AEBS-009 and N-AEBS-010. */
@@ -109,6 +125,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-009 and N-AEBS-010";
       attribute :>> rationale = "Preserves provenance for each displayed value.";
+      attribute :>> verificationMethod = "test";
     }
     requirement reqNativeParticipation : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-003 System 2 candidate derived from N-AEBS-009. */
@@ -117,14 +134,17 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-009";
       attribute :>> rationale = "Anchors the display to the pinned native Autoware AEB component.";
+      attribute :>> verificationMethod = "test";
     }
     requirement reqNoNativeImpersonation : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-014 System 2 candidate derived from N-AEBS-010. */
       subject visualizationTestSystem :> system2VisualizationInstrument;
       require constraint statement { language "English" /* The visualization test system shall not present coordinator-derived distance values as native Autoware output. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
-      attribute :>> source = "Derived from N-AEBS-010";
+      attribute :>> source = "Derived from N-AEBS-010; success criteria formerly AC-AEBS-S2-004";
       attribute :>> rationale = "Coordinator-derived values must not masquerade as native Autoware output.";
+      attribute :>> verificationMethod = "inspect";
+      attribute :>> successCriteria = "Met when no retained frame or user-interface dump presents a coordinator-derived distance value as native Autoware output.";
     }
     requirement reqDe4sdvParticipation : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-004 System 2 candidate derived from N-AEBS-009. */
@@ -133,14 +153,17 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-009";
       attribute :>> rationale = "Displays the DE4SDV coordinator's own warning, braking, and lifecycle state.";
+      attribute :>> verificationMethod = "test";
     }
     requirement reqNonInterference : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-005 System 2 candidate derived from N-AEBS-013. */
       subject visualizationTestSystem :> system2VisualizationInstrument;
       require constraint statement { language "English" /* The visualization test system shall expose no command path from display, bridge, or transport into Autoware, the AEBS coordinator, or vehicle control. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
-      attribute :>> source = "Derived from N-AEBS-013";
+      attribute :>> source = "Derived from N-AEBS-013; success criteria formerly AC-AEBS-S2-003";
       attribute :>> rationale = "No command path from instrumentation into AEBS or vehicle control.";
+      attribute :>> verificationMethod = "inspect";
+      attribute :>> successCriteria = "Met when the visualization test system publishes nothing to the vehicle runtime and issues no vehicle command.";
     }
     requirement reqFailClosedFreshness : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-006 System 2 candidate derived from N-AEBS-011. */
@@ -149,14 +172,17 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-011";
       attribute :>> rationale = "Stale input must suppress threat geometry rather than display it.";
+      attribute :>> verificationMethod = "test";
     }
     requirement reqAvailabilityDisposition : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-007 System 2 candidate derived from N-AEBS-011. */
       subject visualizationTestSystem :> system2VisualizationInstrument;
       require constraint statement { language "English" /* When no visualization source or service is available, or before the first valid frame arrives, the visualization test system shall present an explicit unavailable disposition. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
-      attribute :>> source = "Derived from N-AEBS-011";
+      attribute :>> source = "Derived from N-AEBS-011; success criteria formerly AC-AEBS-S2-006";
       attribute :>> rationale = "Unavailable sources need an explicit disposition, not silence.";
+      attribute :>> verificationMethod = "test";
+      attribute :>> successCriteria = "Met when, under deterministic closed-loop frame injection, the unavailable disposition is rendered with live geometry cleared and the health chip identifying the degraded condition whenever no visualization source or service is available or no valid frame has yet arrived.";
     }
     requirement reqInvalidRejection : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-008 System 2 candidate derived from N-AEBS-011. */
@@ -165,22 +191,27 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-011";
       attribute :>> rationale = "Malformed frames must be rejected without displaying payload values.";
+      attribute :>> verificationMethod = "test";
     }
     requirement reqRestorationBehavior : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-009 System 2 candidate derived from N-AEBS-011. */
       subject visualizationTestSystem :> system2VisualizationInstrument;
       require constraint statement { language "English" /* After a failure disposition, the visualization test system shall present a bounded restored indication after the selected consecutive-valid-frame criterion is met, without application restart. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
-      attribute :>> source = "Derived from N-AEBS-011";
+      attribute :>> source = "Derived from N-AEBS-011; success criteria formerly AC-AEBS-S2-007";
       attribute :>> rationale = "Recovery must be bounded and observable without application restart.";
+      attribute :>> verificationMethod = "test";
+      attribute :>> successCriteria = "Met when a retained run shows that, after each failure disposition, the restored indication appears once the consecutive-valid-frame count bound as AO-AEBS-010-006 is reached, stays for the selected bounded duration, and the same application process runs throughout.";
     }
     requirement reqRealAAOSRendering : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-010 System 2 candidate derived from N-AEBS-009 and N-AEBS-012. */
       subject visualizationTestSystem :> system2VisualizationInstrument;
       require constraint statement { language "English" /* The visualization test system shall render AEBS state in a native application inside a booted display-capable AAOS SDV guest. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
-      attribute :>> source = "Derived from N-AEBS-009 and N-AEBS-012";
+      attribute :>> source = "Derived from N-AEBS-009 and N-AEBS-012; success criteria formerly AC-AEBS-S2-002";
       attribute :>> rationale = "The rendering surface must be the real AAOS guest application.";
+      attribute :>> verificationMethod = "test";
+      attribute :>> successCriteria = "Met when one uninterrupted real-time take of the native application in the booted display-capable AAOS SDV guest presents the reducer-driven MONITORING, WARNING, INTERVENTION, and RELEASED dispositions from accepted frames, the release disposition is accompanied by a verified zero-speed stop observation, and no edited or older-generation footage is presented as part of the take.";
     }
     requirement reqAaosEnvironmentObservation : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-012 System 2 candidate derived from N-AEBS-009. */
@@ -189,6 +220,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-009";
       attribute :>> rationale = "Runtime environment evidence must come from the same rendered session.";
+      attribute :>> verificationMethod = "test";
     }
     requirement reqNoHostBrowserSurface : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-013 System 2 candidate derived from N-AEBS-009. */
@@ -197,14 +229,17 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-009";
       attribute :>> rationale = "A host-side browser page is not the AAOS rendering surface the need demands.";
+      attribute :>> verificationMethod = "inspect";
     }
     requirement reqEvidenceCorrelation : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-011 System 2 candidate derived from N-AEBS-012. */
       subject visualizationTestSystem :> system2VisualizationInstrument;
       require constraint statement { language "English" /* The visualization test system shall retain source, transport, ingress, and guest identity, sequence, timestamp, log, and guest-native capture records for each rendered state so that each rendered state can be correlated with its observed source event. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
-      attribute :>> source = "Derived from N-AEBS-012";
+      attribute :>> source = "Derived from N-AEBS-012; success criteria formerly AC-AEBS-S2-001";
       attribute :>> rationale = "Each rendered state must be correlatable with its observed source event.";
+      attribute :>> verificationMethod = "test";
+      attribute :>> successCriteria = "Met when the verification take holds source, transport, ingress, and guest identity, sequence, timestamp, log, and guest-native capture records for each rendered state, each rendered state is correlated with its observed source event, and the accepted callbacks are consecutive with zero sequence gaps over the verification take.";
     }
 
     requirement reqReadOnlyBoundaryStatement : VisualizationInstrumentRequirementCandidate {
@@ -214,6 +249,8 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-013; obligation formerly stated in AC-AEBS-S2-003";
       attribute :>> rationale = "Disclosing the read-only boundary in every session supports the non-interference assurance that maintainers and verification engineers need.";
+      attribute :>> verificationMethod = "inspect";
+      attribute :>> successCriteria = "Met when, for each retained rendered session, at least one retained screen capture or user-interface dump of that session shows the read-only engineering-visualization boundary statement on the rendered display; either artifact suffices.";
     }
     requirement reqObstacleGeometryFromFilteredCloud : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-016 System 2 candidate derived from N-AEBS-010. */
@@ -222,6 +259,8 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-010; obligation formerly stated in AC-AEBS-S2-004";
       attribute :>> rationale = "Displayed obstacle geometry must keep one identified source.";
+      attribute :>> verificationMethod = "inspect";
+      attribute :>> successCriteria = "Met when inspection of the source adapter's subscriptions shows the native Autoware filtered obstacle point cloud as the only input of the obstacle geometry projection, and each retained frame record marks its obstacle geometry as display-derived.";
     }
     requirement reqNoDisplayDerivedDecisionMetric : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-017 System 2 candidate derived from N-AEBS-010. */
@@ -230,22 +269,28 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-010; obligation formerly stated in AC-AEBS-S2-004";
       attribute :>> rationale = "Display-derived values must not masquerade as native Autoware decision metrics.";
+      attribute :>> verificationMethod = "inspect";
+      attribute :>> successCriteria = "Met when no retained screen capture and no retained user-interface dump presents a display-derived scalar as a native Autoware decision metric.";
     }
     requirement reqDecisionDistanceExclusionStatement : VisualizationInstrumentRequirementCandidate {
-      doc /* REQ-AEBS-S2-018 System 2 candidate derived from N-AEBS-010. */
+      doc /* REQ-AEBS-S2-018 System 2 candidate derived from N-AEBS-010. Reworded for owner review to the HMI contract (VISUALIZATION-CONTRACT.md section 13.4), which removed the former "AEB decision distances not visualized" row on purpose; the earlier wording required that row. Labeling the displayed obstacle range as derived from the filtered point cloud is the design means of REQ-AEBS-S2-017 and needs no requirement of its own. */
       subject visualizationTestSystem :> system2VisualizationInstrument;
-      require constraint statement { language "English" /* The visualization test system shall state on its rendered display that AEB decision distances are not visualized. */ }
+      require constraint statement { language "English" /* The visualization test system shall present no native AEB decision distance on its rendered display. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
-      attribute :>> source = "Derived from N-AEBS-010; obligation formerly stated in AC-AEBS-S2-004";
+      attribute :>> source = "Derived from N-AEBS-010; obligation formerly stated in AC-AEBS-S2-004; reworded to VISUALIZATION-CONTRACT.md section 13.4";
       attribute :>> rationale = "Viewers must not infer native AEB decision distances from the display.";
+      attribute :>> verificationMethod = "inspect";
+      attribute :>> successCriteria = "Met when no retained screen capture and no retained user-interface dump of the rendered display presents a native AEB decision distance.";
     }
     requirement reqObstacleGeometryExpiry : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-019 System 2 candidate derived from N-AEBS-011. */
       subject visualizationTestSystem :> system2VisualizationInstrument;
       require constraint statement { language "English" /* When no filtered obstacle-cloud update has been received within the selected receipt-based staleness bound, the visualization test system shall suppress the display-derived obstacle geometry, including while accepted live frames continue. */ }
       attribute :>> status = ReqStatus::ReadyForReview;
-      attribute :>> source = "Derived from N-AEBS-011; obligation formerly stated in AC-AEBS-S2-005";
+      attribute :>> source = "Derived from N-AEBS-011; obligation formerly stated in AC-AEBS-S2-005; success criteria formerly AC-AEBS-S2-005";
       attribute :>> rationale = "Expired obstacle geometry must not be displayed as current while other fields stay live.";
+      attribute :>> verificationMethod = "test";
+      attribute :>> successCriteria = "Met when the verification take shows the obstacle range, bearing, and points cleared within the receipt-based staleness bound after the filtered obstacle-cloud source stops updating, while the accepted frame sequence continues.";
     }
     requirement reqNoFreshDataSubstitution : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-020 System 2 candidate derived from N-AEBS-011. */
@@ -254,6 +299,8 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-011; obligation formerly stated in AC-AEBS-S2-005";
       attribute :>> rationale = "Synthesized values would let a lost source be misread as current AEBS state.";
+      attribute :>> verificationMethod = "test";
+      attribute :>> successCriteria = "Met when, for each period in which a retained bridge receipt record of the filtered obstacle cloud shows no update within the selected receipt-based staleness bound, the retained frame log of the same run shows no interpolated, smoothed, or predicted obstacle value in place of the missing fresh data.";
     }
     requirement reqNonColorStateCue : VisualizationInstrumentRequirementCandidate {
       doc /* REQ-AEBS-S2-021 System 2 candidate derived from N-AEBS-011. */
@@ -262,32 +309,37 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       attribute :>> status = ReqStatus::ReadyForReview;
       attribute :>> source = "Derived from N-AEBS-011; obligation formerly stated in AC-AEBS-S2-006";
       attribute :>> rationale = "A degraded disposition must stay recognizable without relying on color alone.";
+      attribute :>> verificationMethod = "inspect";
+      attribute :>> successCriteria = "Met when each degraded disposition shown in any retained screen capture or user-interface dump carries a cue other than color.";
     }
   }
 
   public import VisualizationNeeds::*;
   public import VisualizationRequirements::*;
 
-  dependency reqSourceFidelityDerivedFromLiveVisualizationOnAAOS from reqSourceFidelity to needLiveVisualizationOnAAOS;
-  dependency reqSourceFidelityDerivedFromPreservedSourceProvenance from reqSourceFidelity to needPreservedSourceProvenance;
-  dependency reqNativeParticipationDerivedFromLiveVisualizationOnAAOS from reqNativeParticipation to needLiveVisualizationOnAAOS;
-  dependency reqNoNativeImpersonationDerivedFromPreservedSourceProvenance from reqNoNativeImpersonation to needPreservedSourceProvenance;
-  dependency reqDe4sdvParticipationDerivedFromLiveVisualizationOnAAOS from reqDe4sdvParticipation to needLiveVisualizationOnAAOS;
-  dependency reqNonInterferenceDerivedFromNonInterference from reqNonInterference to needNonInterference;
-  dependency reqFailClosedFreshnessDerivedFromFailClosedDegradation from reqFailClosedFreshness to needFailClosedDegradation;
-  dependency reqAvailabilityDispositionDerivedFromFailClosedDegradation from reqAvailabilityDisposition to needFailClosedDegradation;
-  dependency reqInvalidRejectionDerivedFromFailClosedDegradation from reqInvalidRejection to needFailClosedDegradation;
-  dependency reqRestorationBehaviorDerivedFromFailClosedDegradation from reqRestorationBehavior to needFailClosedDegradation;
-  dependency reqRealAAOSRenderingDerivedFromLiveVisualizationOnAAOS from reqRealAAOSRendering to needLiveVisualizationOnAAOS;
-  dependency reqRealAAOSRenderingDerivedFromCorrelatableEvidence from reqRealAAOSRendering to needCorrelatableEvidence;
-  dependency reqAaosEnvironmentObservationDerivedFromLiveVisualizationOnAAOS from reqAaosEnvironmentObservation to needLiveVisualizationOnAAOS;
-  dependency reqNoHostBrowserSurfaceDerivedFromLiveVisualizationOnAAOS from reqNoHostBrowserSurface to needLiveVisualizationOnAAOS;
-  dependency reqEvidenceCorrelationDerivedFromCorrelatableEvidence from reqEvidenceCorrelation to needCorrelatableEvidence;
-  /* REQ-AEBS-S2-015..021 carry the obligations formerly stated inside
-   * acceptance criteria AC-AEBS-S2-003 to AC-AEBS-S2-006. A criterion records
-   * the expected result of the requirement it bounds and adds no obligation,
-   * so each added obligation is a design-input requirement of its own,
-   * derived from the need of the requirement its criterion bounds. */
+  /* Requirement-to-need derivation: only the governed DerivesFromNeed
+   * connection counts (need -> derivedRequirement); a plain dependency does
+   * not. Provenance only, no satisfaction claim. */
+  connection reqSourceFidelityDerivedFromLiveVisualizationOnAAOS : DerivesFromNeed connect needLiveVisualizationOnAAOS to reqSourceFidelity;
+  connection reqSourceFidelityDerivedFromPreservedSourceProvenance : DerivesFromNeed connect needPreservedSourceProvenance to reqSourceFidelity;
+  connection reqNativeParticipationDerivedFromLiveVisualizationOnAAOS : DerivesFromNeed connect needLiveVisualizationOnAAOS to reqNativeParticipation;
+  connection reqNoNativeImpersonationDerivedFromPreservedSourceProvenance : DerivesFromNeed connect needPreservedSourceProvenance to reqNoNativeImpersonation;
+  connection reqDe4sdvParticipationDerivedFromLiveVisualizationOnAAOS : DerivesFromNeed connect needLiveVisualizationOnAAOS to reqDe4sdvParticipation;
+  connection reqNonInterferenceDerivedFromNonInterference : DerivesFromNeed connect needNonInterference to reqNonInterference;
+  connection reqFailClosedFreshnessDerivedFromFailClosedDegradation : DerivesFromNeed connect needFailClosedDegradation to reqFailClosedFreshness;
+  connection reqAvailabilityDispositionDerivedFromFailClosedDegradation : DerivesFromNeed connect needFailClosedDegradation to reqAvailabilityDisposition;
+  connection reqInvalidRejectionDerivedFromFailClosedDegradation : DerivesFromNeed connect needFailClosedDegradation to reqInvalidRejection;
+  connection reqRestorationBehaviorDerivedFromFailClosedDegradation : DerivesFromNeed connect needFailClosedDegradation to reqRestorationBehavior;
+  connection reqRealAAOSRenderingDerivedFromLiveVisualizationOnAAOS : DerivesFromNeed connect needLiveVisualizationOnAAOS to reqRealAAOSRendering;
+  connection reqRealAAOSRenderingDerivedFromCorrelatableEvidence : DerivesFromNeed connect needCorrelatableEvidence to reqRealAAOSRendering;
+  connection reqAaosEnvironmentObservationDerivedFromLiveVisualizationOnAAOS : DerivesFromNeed connect needLiveVisualizationOnAAOS to reqAaosEnvironmentObservation;
+  connection reqNoHostBrowserSurfaceDerivedFromLiveVisualizationOnAAOS : DerivesFromNeed connect needLiveVisualizationOnAAOS to reqNoHostBrowserSurface;
+  connection reqEvidenceCorrelationDerivedFromCorrelatableEvidence : DerivesFromNeed connect needCorrelatableEvidence to reqEvidenceCorrelation;
+  /* REQ-AEBS-S2-015..021 carry the obligations formerly stated inside the
+   * retired acceptance criteria AC-AEBS-S2-003 to AC-AEBS-S2-006. A success
+   * criterion records the expected result of its own requirement and adds no
+   * obligation, so each added obligation is a design-input requirement of its
+   * own, derived from the need of the requirement whose criterion held it. */
   connection reqReadOnlyBoundaryStatementDerivedFromNonInterference : DerivesFromNeed connect needNonInterference to reqReadOnlyBoundaryStatement;
   connection reqObstacleGeometryFromFilteredCloudDerivedFromPreservedSourceProvenance : DerivesFromNeed connect needPreservedSourceProvenance to reqObstacleGeometryFromFilteredCloud;
   connection reqNoDisplayDerivedDecisionMetricDerivedFromPreservedSourceProvenance : DerivesFromNeed connect needPreservedSourceProvenance to reqNoDisplayDerivedDecisionMetric;
@@ -295,6 +347,72 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
   connection reqObstacleGeometryExpiryDerivedFromFailClosedDegradation : DerivesFromNeed connect needFailClosedDegradation to reqObstacleGeometryExpiry;
   connection reqNoFreshDataSubstitutionDerivedFromFailClosedDegradation : DerivesFromNeed connect needFailClosedDegradation to reqNoFreshDataSubstitution;
   connection reqNonColorStateCueDerivedFromFailClosedDegradation : DerivesFromNeed connect needFailClosedDegradation to reqNonColorStateCue;
+
+  /* Planned validation scenarios: one per need, each drawn from the bounded
+   * operational scenarios SC-AEBS-010-01..06 of this increment and tracing
+   * them. Planning only: no execution, result, fitness-for-use verdict or
+   * acceptance. Production driver-HMI and human-factors validation stay out
+   * of scope. */
+  part liveVisualizationOnAAOSValidationPlan : ValidationPlanningScenario {
+    doc /* SC-AEBS-010-07, N-AEBS-009: planned stakeholder review. While the
+         * instrumented member runs the healthy-monitoring and
+         * warning-intervention-release scenarios, can systems engineers and
+         * reviewers review live AEBS threat and intervention state on the
+         * actual AAOS SDV display, without a host-side substitute?
+         * No execution, result or acceptance. */
+  }
+  connection liveVisualizationOnAAOSValidationPlanning : ValidationPlanningAssociation connect needLiveVisualizationOnAAOS to liveVisualizationOnAAOSValidationPlan;
+  dependency liveVisualizationOnAAOSValidationFromHealthyMonitoring from liveVisualizationOnAAOSValidationPlan to scenarioHealthyMonitoring;
+  dependency liveVisualizationOnAAOSValidationFromWarningInterventionRelease from liveVisualizationOnAAOSValidationPlan to scenarioWarningInterventionRelease;
+
+  part preservedSourceProvenanceValidationPlan : ValidationPlanningScenario {
+    doc /* SC-AEBS-010-08, N-AEBS-010: planned stakeholder review. In the
+         * healthy-monitoring and warning-intervention-release scenarios, can
+         * systems engineers and verification engineers attribute each
+         * displayed value or state to native Autoware output, DE4SDV AEBS
+         * coordination state, or display-derived presentation, together with
+         * its units, coordinate frame, timestamp, rate, freshness, validity,
+         * and bounded displayed cardinality?
+         * No execution, result or acceptance. */
+  }
+  connection preservedSourceProvenanceValidationPlanning : ValidationPlanningAssociation connect needPreservedSourceProvenance to preservedSourceProvenanceValidationPlan;
+  dependency preservedSourceProvenanceValidationFromHealthyMonitoring from preservedSourceProvenanceValidationPlan to scenarioHealthyMonitoring;
+  dependency preservedSourceProvenanceValidationFromWarningInterventionRelease from preservedSourceProvenanceValidationPlan to scenarioWarningInterventionRelease;
+
+  part failClosedDegradationValidationPlan : ValidationPlanningScenario {
+    doc /* SC-AEBS-010-09, N-AEBS-011: planned stakeholder review. Across the
+         * stale-source, unavailable-source, invalid-envelope, and restoration
+         * scenarios, can systems engineers and maintainers recognize from the
+         * display that no lost or invalid source is presented as current AEBS
+         * state, and see when the current source state is restored?
+         * No execution, result or acceptance. */
+  }
+  connection failClosedDegradationValidationPlanning : ValidationPlanningAssociation connect needFailClosedDegradation to failClosedDegradationValidationPlan;
+  dependency failClosedDegradationValidationFromStaleSource from failClosedDegradationValidationPlan to scenarioStaleSource;
+  dependency failClosedDegradationValidationFromUnavailableSource from failClosedDegradationValidationPlan to scenarioUnavailableSource;
+  dependency failClosedDegradationValidationFromInvalidEnvelope from failClosedDegradationValidationPlan to scenarioInvalidEnvelope;
+  dependency failClosedDegradationValidationFromRestoration from failClosedDegradationValidationPlan to scenarioRestoration;
+
+  part correlatableEvidenceValidationPlan : ValidationPlanningScenario {
+    doc /* SC-AEBS-010-10, N-AEBS-012: planned stakeholder review. After a
+         * warning-intervention-release run, can verification engineers trace
+         * each displayed state to its observed source event, in source order,
+         * from the retained records, and repeat that correlation by replay?
+         * No execution, result or acceptance. */
+  }
+  connection correlatableEvidenceValidationPlanning : ValidationPlanningAssociation connect needCorrelatableEvidence to correlatableEvidenceValidationPlan;
+  dependency correlatableEvidenceValidationFromWarningInterventionRelease from correlatableEvidenceValidationPlan to scenarioWarningInterventionRelease;
+
+  part nonInterferenceValidationPlan : ValidationPlanningScenario {
+    doc /* SC-AEBS-010-11, N-AEBS-013: planned stakeholder review. In the
+         * warning-intervention-release scenario, does what maintainers and
+         * verification engineers can inspect give them the assurance they need
+         * that the visualization neither commands nor modifies the unchanged
+         * System 1 AEBS detection, warning, intervention, and release behavior?
+         * No execution, result or acceptance. */
+  }
+  connection nonInterferenceValidationPlanning : ValidationPlanningAssociation connect needNonInterference to nonInterferenceValidationPlan;
+  dependency nonInterferenceValidationFromWarningInterventionRelease from nonInterferenceValidationPlan to scenarioWarningInterventionRelease;
 
   /* Phase order provenance: needs/requirements (Phase 3–5) derive from the
    * framing slice of the same INC-AEBS-010; the increment part incAEBS010

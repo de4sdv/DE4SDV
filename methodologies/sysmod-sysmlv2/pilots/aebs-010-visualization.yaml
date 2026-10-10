@@ -223,6 +223,15 @@ operational_scenario_ids:
   - SC-AEBS-010-05
   - SC-AEBS-010-06
 
+# Planned validation scenarios, one per need (SysML: ValidationPlanningScenario
+# parts in aebs_visualization_needs_requirements.sysml); planning only.
+validation_scenario_ids:
+  - SC-AEBS-010-07
+  - SC-AEBS-010-08
+  - SC-AEBS-010-09
+  - SC-AEBS-010-10
+  - SC-AEBS-010-11
+
 gap_ids:
   - GAP-AEBS-010-001
   - GAP-AEBS-010-002
@@ -234,7 +243,7 @@ verification_planning:
   status: deferred_to_chain
   ownership: System 2 verification and assurance workflow
   note: >-
-    Verification cases, acceptance criteria, and evidence artifacts are
+    Verification cases, success criteria, and evidence artifacts are
     planned in the Phase 10 slice of the INC-AEBS-010 chain. Controlled
     dispositions for that later evidence are observed_bounded,
     deferred_not_proven, and not_claimed. No verdict exists in this slice.

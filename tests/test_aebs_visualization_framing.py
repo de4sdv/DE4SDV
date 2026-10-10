@@ -114,11 +114,14 @@ def test_requirements_use_dedicated_s2_series_without_collision() -> None:
         ("N-AEBS-013", {"REQ-AEBS-S2-005"}),
     ],
 )
-def test_requirement_derivation_dependencies_present(
+def test_requirement_derivations_present(
     need_id: str, requirement_ids: set[str]
 ) -> None:
     needs = _read(NEEDS)
-    # Dependency usage names carry the semantic target-need stem (e.g.
+    # Method rule 4: a requirement derives from a need only through the
+    # governed DerivesFromNeed connection (need -> derivedRequirement); the
+    # former plain dependencies were converted under the same names. Usage
+    # names carry the semantic target-need stem (e.g.
     # reqNonInterferenceDerivedFromNonInterference for N-AEBS-013); the legacy need ID
     # itself is pinned by each requirement's `source` attribute below.
     need_usage = {
@@ -136,13 +139,13 @@ def test_requirement_derivation_dependencies_present(
         )
         assert usage_match, f"missing requirement usage for {requirement_id}"
         requirement_usage = usage_match.group(1)
-        dependency = re.search(
-            rf"\bdependency\s+\w+\s+from\s+{re.escape(requirement_usage)}\s+"
-            rf"to\s+{re.escape(need_usage[need_id])};",
+        derivation = re.search(
+            rf"\bconnection\s+\w+\s*:\s*DerivesFromNeed\s+connect\s+"
+            rf"{re.escape(need_usage[need_id])}\s+to\s+{re.escape(requirement_usage)}\s*;",
             needs,
         )
-        assert dependency, (
-            f"missing dependency for {requirement_id} -> {need_id}"
+        assert derivation, (
+            f"missing DerivesFromNeed derivation for {requirement_id} -> {need_id}"
         )
         # The derivation matrix is additionally pinned by the requirement doc
         # and source attributes naming the legacy need IDs verbatim.
@@ -188,6 +191,14 @@ def test_moved_criterion_obligations_derive_through_derives_from_need(
         rf"{re.escape(need_usage)}\s+to\s+{re.escape(requirement_usage)}\s*;",
         needs,
     ), f"missing DerivesFromNeed derivation for {requirement_id}"
+
+
+def test_no_plain_dependency_restates_a_requirement_derivation() -> None:
+    # A plain dependency from a requirement to a need would be a parallel,
+    # non-counting trace next to the DerivesFromNeed connection.
+    needs = _read(NEEDS)
+    plain = re.findall(r"\bdependency\s+\w+\s+from\s+req\w+\s+to\s+need\w+\s*;", needs)
+    assert not plain, plain
 
 
 def test_soi_definition_types_the_framed_visualization_test_system() -> None:
@@ -294,3 +305,108 @@ def test_yaml_classification_keeps_visualization_out_of_bof() -> None:
         "system2_engineering_instrumentation"
     )
     assert "bill of features" in classifications["CLS-AEBS-010-001"]["rationale"]
+
+
+def test_decision_distance_requirement_matches_the_hmi_contract() -> None:
+    """REQ-AEBS-S2-018 follows the HMI contract (VISUALIZATION-CONTRACT.md
+    section 13.4): the display presents no native AEB decision distance, and
+    the requirement no longer asks for the removed "not visualized" row,
+    which tests/test_aebs_visualization_hmi_presentation_contract.py forbids."""
+    needs = _read(NEEDS)
+    block = re.search(
+        r"requirement reqDecisionDistanceExclusionStatement : \w+ \{.*?\n    \}", needs, re.S
+    )
+    assert block
+    statement = re.search(r"require constraint statement \{[^}]*\}", block.group(0)).group(0)
+    assert "shall present no native AEB decision distance on its rendered display" in statement
+    assert "not visualized" not in statement
+    contract = Path(
+        "implementation/aebs-aaos-sdv-visualization-bench/VISUALIZATION-CONTRACT.md"
+    ).read_text(encoding="utf-8")
+    assert "boundary row is\n  removed" in contract or "boundary row is removed" in " ".join(contract.split())
+
+
+# ---------------------------------------------------------------------------
+# S2 validation planning and verification-method vocabulary (mirrors the S1
+# guards validation_plan_population in test_w6_trace_allocation_completeness
+# and test_aebs_verification_attributes; the Method Check is advisory, so
+# these regressions must fail CI).
+# ---------------------------------------------------------------------------
+
+VERIFICATION_METHOD_VOCABULARY = {"inspect", "demo", "test", "analyze"}
+
+
+def _strip_comments(text: str) -> str:
+    text = re.sub(r"/\*.*?\*/", lambda m: re.sub(r"[^\n]", " ", m.group(0)), text, flags=re.S)
+    return re.sub(r"//[^\n]*", "", text)
+
+
+def _brace_block(text: str, open_index: int) -> str:
+    depth = 0
+    for index in range(open_index, len(text)):
+        if text[index] == "{":
+            depth += 1
+        elif text[index] == "}":
+            depth -= 1
+            if depth == 0:
+                return text[open_index + 1:index]
+    raise AssertionError("unbalanced braces")
+
+
+def _s2_validation_plan_population():
+    raw = _read(NEEDS)
+    plans = {}
+    for match in re.finditer(r"\bpart\s+(\w+)\s*:\s*ValidationPlanningScenario\s*\{", raw):
+        body = _brace_block(raw, match.end() - 1)
+        ids = re.match(r"\s*doc\s*/\*\s*(SC-AEBS-010-\d{2}),\s*(N-AEBS-\d{3}):", body)
+        assert ids, (match[1], "planning doc must start with the SC and need identifiers")
+        plans[match[1]] = (ids[1], ids[2], body)
+    code = _strip_comments(raw)
+    links = re.findall(
+        r"\bconnection\s+(\w+)\s*:\s*ValidationPlanningAssociation\s+connect\s+(\w+)\s+to\s+(\w+)\s*;", code
+    )
+    assert len(links) == len(re.findall(r"\bValidationPlanningAssociation\b", code))
+    needs = {}
+    for match in re.finditer(r"\brequirement\s+(need\w+)\s*:\s*\w+\s*\{", raw):
+        ident = re.match(r"\s*doc\s*/\*\s*(N-AEBS-\d{3})\b", _brace_block(raw, match.end() - 1))
+        if ident:
+            needs[match[1]] = ident[1]
+    return plans, links, needs
+
+
+def test_every_s2_need_has_exactly_one_planned_validation_scenario() -> None:
+    plans, links, needs = _s2_validation_plan_population()
+    assert len(needs) == 5 and len(plans) == 5
+    data = yaml.safe_load(_read(PILOT_YAML))
+    assert {sc for sc, _need, _body in plans.values()} == set(data["validation_scenario_ids"])
+    per_plan, per_need = {}, {}
+    for _name, need, plan in links:
+        assert plan in plans and need in needs, (need, plan)
+        assert needs[need] == plans[plan][1], (need, plan, "association must target the planned need")
+        per_plan.setdefault(plan, []).append(need)
+        per_need.setdefault(need, []).append(plan)
+    assert set(per_plan) == set(plans) and all(len(v) == 1 for v in per_plan.values())
+    assert set(per_need) == set(needs) and all(len(v) == 1 for v in per_need.values())
+
+
+def test_s2_validation_planning_docs_claim_no_execution_result_or_acceptance() -> None:
+    plans, _links, _needs = _s2_validation_plan_population()
+    for name, (_sc, _need, body) in plans.items():
+        text = " ".join(re.sub(r"\n\s*\*(?!/)", "\n", body).split())
+        assert "No execution, result or acceptance." in text, name
+        assert not re.search(r"\b(passed|validated|accepted|verdict)\b", text, re.I), name
+
+
+def test_every_s2_requirement_states_one_standard_verification_method() -> None:
+    """ADR 0009: verificationMethod is typed String upstream, so the
+    VerificationMethodKind vocabulary is test-enforced."""
+    needs = _read(NEEDS)
+    requirements = needs.split("package VisualizationRequirements {", 1)[1]
+    blocks = {}
+    for match in re.finditer(r"\brequirement\s+(req\w+)\s*:\s*VisualizationInstrumentRequirementCandidate\s*\{", requirements):
+        blocks[match[1]] = _brace_block(requirements, match.end() - 1)
+    assert len(blocks) == 20
+    for usage, body in blocks.items():
+        methods = re.findall(r'attribute :>> verificationMethod = "(\w+)";', body)
+        assert len(methods) == 1, (usage, methods)
+        assert methods[0] in VERIFICATION_METHOD_VOCABULARY, (usage, methods[0])

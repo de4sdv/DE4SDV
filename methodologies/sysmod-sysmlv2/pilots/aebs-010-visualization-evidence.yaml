@@ -53,8 +53,8 @@ phase10_claim:
       status: planned
       note: restoration behavior not exercised by any retained campaign
   deferred_items:
-    - id: AC-AEBS-S2-007
-      status: deferred_not_proven
+    - id: REQ-AEBS-S2-009
+      status: success_criteria_deferred_not_proven
     - id: GAP-AEBS-010-006
       status: open
     - id: GAP-AEBS-010-007
@@ -63,6 +63,42 @@ phase10_claim:
       status: open
     - id: GAP-AEBS-010-009
       status: open
+    - id: GAP-AEBS-010-010
+      status: open_success_criteria_missing
+    # Planned items outside the bounded claim: cases not executed, success
+    # criteria not assessed, and requirements that only a planned case verifies.
+    - id: VC-AEBS-S2-008
+      status: not_executed
+    - id: VC-AEBS-S2-009
+      status: not_executed
+    - id: VC-AEBS-S2-010
+      status: not_executed
+    - id: REQ-AEBS-S2-015
+      status: success_criteria_not_assessed
+    - id: REQ-AEBS-S2-016
+      status: success_criteria_not_assessed
+    - id: REQ-AEBS-S2-017
+      status: success_criteria_not_assessed
+    - id: REQ-AEBS-S2-018
+      status: success_criteria_not_assessed
+    - id: REQ-AEBS-S2-020
+      status: success_criteria_not_assessed
+    - id: REQ-AEBS-S2-021
+      status: success_criteria_not_assessed
+    - id: REQ-AEBS-S2-002
+      status: planned_verification_only
+    - id: REQ-AEBS-S2-003
+      status: planned_verification_only
+    - id: REQ-AEBS-S2-004
+      status: planned_verification_only
+    - id: REQ-AEBS-S2-006
+      status: planned_verification_only
+    - id: REQ-AEBS-S2-008
+      status: planned_verification_only
+    - id: REQ-AEBS-S2-012
+      status: planned_verification_only
+    - id: REQ-AEBS-S2-013
+      status: planned_verification_only
 
 known_limitations:
   - id: DEF-AEBS-S2-001
@@ -93,6 +129,7 @@ scope:
     - fail-closed staleness suppression of display-derived geometry
     - fixture-path degraded-state rendering (PF-004 publisher)
     - planned restoration behavior (no retained evidence yet)
+    - planned live-source fidelity, stale and invalid frame, and rendering-environment cases (not executed)
     - ArgumentationAssuranceViewpoint
   out_of_scope:
     - AEBS braking authority, hazard control, or any safety argument
@@ -103,12 +140,14 @@ scope:
     - post-release re-approach scenarios
 
 verification_cases:
+# A case status is the disposition of its retained evidence. Success criteria
+# are requirement attributes; their statuses are indexed per requirement in
+# requirement_success_criteria.
   - id: VC-AEBS-S2-001
     name: Live chain correlation
     scenario: liveChainCorrelation
     requirement_ids: [REQ-AEBS-S2-011]
     methods: [test, inspect, analyze]
-    acceptance_criterion: AC-AEBS-S2-001
     current_evidence:
       - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/app-ingress-frame.log
     status: observed_unidentified_build
@@ -117,7 +156,6 @@ verification_cases:
     scenario: lifecycleArc
     requirement_ids: [REQ-AEBS-S2-010]
     methods: [test, inspect, analyze]
-    acceptance_criterion: AC-AEBS-S2-002
     current_evidence:
       - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/raw-continuous.mp4
       - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/segment.yaml
@@ -127,7 +165,6 @@ verification_cases:
     scenario: readOnlyBoundary
     requirement_ids: [REQ-AEBS-S2-005, REQ-AEBS-S2-015]
     methods: [test, inspect, analyze]
-    acceptance_criterion: AC-AEBS-S2-003
     current_evidence:
       - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/state-monitoring.png
     status: observed_unidentified_build
@@ -136,7 +173,6 @@ verification_cases:
     scenario: provenanceSeparation
     requirement_ids: [REQ-AEBS-S2-014, REQ-AEBS-S2-016, REQ-AEBS-S2-017, REQ-AEBS-S2-018]
     methods: [test, inspect, analyze]
-    acceptance_criterion: AC-AEBS-S2-004
     current_evidence:
       - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/state-warning.png
     status: observed_unidentified_build
@@ -145,7 +181,6 @@ verification_cases:
     scenario: failClosedStaleness
     requirement_ids: [REQ-AEBS-S2-019, REQ-AEBS-S2-020]
     methods: [test, inspect, analyze]
-    acceptance_criterion: AC-AEBS-S2-005
     current_evidence:
       - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/segment.yaml
       - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/forward-ui/final-hmi-v21-corrected/app-ingress-frame.log
@@ -155,7 +190,6 @@ verification_cases:
     scenario: degradedStateRendering
     requirement_ids: [REQ-AEBS-S2-007, REQ-AEBS-S2-021]
     methods: [test, inspect, analyze]
-    acceptance_criterion: AC-AEBS-S2-006
     current_evidence:
       - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/state-campaign/stale.png
       - implementation/aebs-aaos-sdv-visualization-bench/evidence/010/state-campaign/unavailable.png
@@ -166,42 +200,105 @@ verification_cases:
     scenario: restorationBehavior
     requirement_ids: [REQ-AEBS-S2-009]
     methods: [test, analyze]
-    acceptance_criterion: AC-AEBS-S2-007
     status: deferred_not_proven
+  # Planned cases for the requirements no retained campaign verifies. Not
+  # executed and bound to no evidence; their requirements state no success
+  # criteria yet (GAP-AEBS-010-010).
+  - id: VC-AEBS-S2-008
+    name: Live source participation and fidelity
+    scenario: liveSourceFidelity
+    requirement_ids: [REQ-AEBS-S2-002, REQ-AEBS-S2-003, REQ-AEBS-S2-004]
+    methods: [test, analyze]
+    status: not_executed
+  - id: VC-AEBS-S2-009
+    name: Stale and invalid frame handling (fixture path, synthetic degraded inputs; does not verify the live chain)
+    scenario: staleAndInvalidFrames
+    requirement_ids: [REQ-AEBS-S2-006, REQ-AEBS-S2-008]
+    methods: [test, analyze]
+    status: not_executed
+  - id: VC-AEBS-S2-010
+    name: Rendering environment of the AAOS guest session
+    scenario: renderingEnvironment
+    requirement_ids: [REQ-AEBS-S2-012, REQ-AEBS-S2-013]
+    methods: [test, inspect, analyze]
+    status: not_executed
 
-acceptance_criteria:
-  - id: AC-AEBS-S2-001
+# Success criteria are the successCriteria attribute (INCOSE A6) of each
+# requirement (owner decision 2026-10-10). The acceptance-criterion IDs are
+# retired and never reused; a row whose criterion had an AC ID on main names
+# it under formerly.
+# The statuses and evidence pointers are the former criterion rows, moved
+# to requirement level. Requirements without success criteria are listed
+# in GAP-AEBS-010-010.
+requirement_success_criteria:
+  - requirement: REQ-AEBS-S2-011
+    formerly: AC-AEBS-S2-001
+    case: VC-AEBS-S2-001
     status: observed_unidentified_build
-    sysml_element: acceptanceCriterionChainCorrelation
     evidence: EVID-AEBS-S2-001 (1090 callbacks, seq 22891-23980, zero gaps)
-  - id: AC-AEBS-S2-002
+  - requirement: REQ-AEBS-S2-010
+    formerly: AC-AEBS-S2-002
+    case: VC-AEBS-S2-002
     status: contradicted_by_retained_data_no_recapture_planned
-    sysml_element: acceptanceCriterionLifecycleArc
     evidence: EVID-AEBS-S2-002 (one take; its verified-stop reading of RELEASED is contradicted by the take's frame log, GAP-AEBS-010-009)
-  - id: AC-AEBS-S2-003
+  - requirement: REQ-AEBS-S2-005
+    formerly: AC-AEBS-S2-003
+    case: VC-AEBS-S2-003
     status: observed_unidentified_build
-    sysml_element: acceptanceCriterionReadOnlyBoundary
     evidence: EVID-AEBS-S2-003
-  - id: AC-AEBS-S2-004
+  - requirement: REQ-AEBS-S2-014
+    formerly: AC-AEBS-S2-004
+    case: VC-AEBS-S2-004
     status: observed_unidentified_build
-    sysml_element: acceptanceCriterionProvenanceSeparation
     evidence: EVID-AEBS-S2-004
-  - id: AC-AEBS-S2-005
+  - requirement: REQ-AEBS-S2-019
+    formerly: AC-AEBS-S2-005
+    case: VC-AEBS-S2-005
     status: observed_unidentified_build
-    sysml_element: acceptanceCriterionFailClosedStaleness
     evidence: EVID-AEBS-S2-005 (geometry cleared while frames continued; cloud-silence trigger not established, GAP-AEBS-010-009)
-  - id: AC-AEBS-S2-006
+  - requirement: REQ-AEBS-S2-007
+    formerly: AC-AEBS-S2-006
+    case: VC-AEBS-S2-006
     status: observed_unidentified_build_fixture_path
-    sysml_element: acceptanceCriterionDegradedRendering
     evidence: EVID-AEBS-S2-006 (PF-004 deterministic publisher, not live Autoware)
-  - id: AC-AEBS-S2-007
+  - requirement: REQ-AEBS-S2-009
+    formerly: AC-AEBS-S2-007
+    case: VC-AEBS-S2-007
     status: deferred_not_proven
-    sysml_element: acceptanceCriterionRestoration
     evidence: no scenario executed
-  - id: AC-AEBS-S2-008
-    status: not_met_retained_evidence_integrity
-    sysml_element: acceptanceCriterionEvidenceIntegrity
-    evidence: EVID-AEBS-S2-001 bound identities + observer
+  - requirement: REQ-AEBS-S2-015
+    case: VC-AEBS-S2-003
+    status: not_assessed
+    evidence: EVID-AEBS-S2-003 retained (observed under the former AC-AEBS-S2-003 wording); not assessed against these success criteria (objective of VC-AEBS-S2-003)
+  - requirement: REQ-AEBS-S2-016
+    case: VC-AEBS-S2-004
+    status: not_assessed
+    evidence: EVID-AEBS-S2-004 retained (observed under the former AC-AEBS-S2-004 wording); not assessed against these success criteria (objective of VC-AEBS-S2-004)
+  - requirement: REQ-AEBS-S2-017
+    case: VC-AEBS-S2-004
+    status: not_assessed
+    evidence: EVID-AEBS-S2-004 retained (observed under the former AC-AEBS-S2-004 wording); not assessed against these success criteria (objective of VC-AEBS-S2-004)
+  - requirement: REQ-AEBS-S2-018
+    case: VC-AEBS-S2-004
+    status: not_assessed
+    evidence: EVID-AEBS-S2-004 retained (observed under the former AC-AEBS-S2-004 wording); not assessed against these success criteria (objective of VC-AEBS-S2-004)
+  - requirement: REQ-AEBS-S2-020
+    case: VC-AEBS-S2-005
+    status: not_assessed
+    evidence: EVID-AEBS-S2-005 retained (observed under the former AC-AEBS-S2-005 wording); not assessed against these success criteria (objective of VC-AEBS-S2-005)
+  - requirement: REQ-AEBS-S2-021
+    case: VC-AEBS-S2-006
+    status: not_assessed
+    evidence: EVID-AEBS-S2-006 retained (observed under the former AC-AEBS-S2-006 wording); not assessed against these success criteria (objective of VC-AEBS-S2-006)
+
+# The evidence-integrity and claim-boundary obligation of every case
+# (formerly AC-AEBS-S2-008) lives on the shared evidence record type; it is
+# not a success criterion of any requirement.
+evidence_integrity_obligation:
+  formerly: AC-AEBS-S2-008
+  sysml_element: RetainedVisualizationEvidence
+  status: not_met_retained_evidence_integrity
+  evidence: EVID-AEBS-S2-001 bound identities + observer
 
 evidence_ladder:
   - layer: repository_and_sysml
