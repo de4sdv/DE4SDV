@@ -199,9 +199,11 @@ extension.
 
 ### Phase 10 — V&V and evidence
 
-Verification cases, validation scenarios, acceptance criteria, and
-evidence records with explicit
+Verification cases, validation scenarios, and evidence records with
+explicit
 [evidence status vocabulary](increment-workflow.md#evidence-status-vocabulary).
+The success criteria that verification checks are stated on each
+requirement (phase 5), not as separate acceptance-criterion elements.
 Connect to the
 [continuous-homologation evidence register](../../continuous-homologation/evidence-register.md).
 Verification cases are SysML v2 case definitions with verification
@@ -310,7 +312,7 @@ Stakeholder concern
   -> Feature or common capability
   -> Architecture element / function / interface
   -> Verification case and validation scenario
-  -> Acceptance criterion
+  -> Success criteria stated on the requirement
   -> Evidence artifact and evidence status
   -> Baseline or release decision
 ```

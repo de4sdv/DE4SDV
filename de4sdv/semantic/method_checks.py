@@ -244,10 +244,11 @@ def _library_attribute(attribute: str, *, allowed: Sequence[str] = ()) -> CheckF
 
     The subject's feature must redefine a feature owned by a definition in the
     subject's own type lineage (in the model: the ODE4HERA
-    ``RequirementsManagement`` attribute bases). The contract binds no library
-    declaration, so the library itself is reached through that lineage, not by
-    kernel identity. How many values a subject may carry is the check's
-    cardinality (for example exactly one verification method kind).
+    ``RequirementsManagement`` attribute bases, and ``RequirementCandidate`` for
+    ``successCriteria``). The contract binds no library declaration, so the
+    library itself is reached through that lineage, not by kernel identity. How
+    many values a subject may carry is the check's cardinality (for example
+    exactly one verification method kind).
     """
 
     def check(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
@@ -356,8 +357,11 @@ NAMED_CHECKS: Mapping[str, CheckFunction] = MappingProxyType({
     "framesStakeholderConcern": _frames_stakeholder_concern,
     "oneNativeSubject": _one_native_subject,
     "oneVerificationMethodKind": _library_attribute("verificationMethod", allowed=STANDARD_VERIFICATION_METHOD_KINDS),
+    "successCriteriaAttribute": _library_attribute("successCriteria"),
     "specifiesFeatureOrCommonCapability": _feature_or_common_capability,
     "verifiesIncrementRequirement": _verifies_increment_requirement,
+    # Kept only for the frozen genuine-export cut, whose workflow predates the rule that a requirement
+    # states its success criteria and still declares this check; removed at the next re-cut.
     "verifiesAcceptanceCriterion": _verifies_acceptance_criterion,
     "evidenceRecordOrStatus": _evidence_record_or_status,
 })
@@ -366,7 +370,7 @@ NAMED_CHECKS: Mapping[str, CheckFunction] = MappingProxyType({
 CHECK_MAXIMUM: Mapping[str, int] = MappingProxyType({
     check: 1 for check in ("incrementShortName", "charterReferencesIncrement", "ownedByIncrementPackage",
                            "charterOwner", "sourceAttribute", "rationaleAttribute", "oneNativeSubject",
-                           "oneVerificationMethodKind")
+                           "oneVerificationMethodKind", "successCriteriaAttribute")
 })
 
 #: Check id -> what to author when the check fails, in model terms ({subject}, {subject_name}).
@@ -392,6 +396,8 @@ REMEDIES: Mapping[str, str] = MappingProxyType({
                                 "stakeholder)",
     "oneNativeSubject": "declare exactly one subject on {subject}: subject <name> : <Definition>;",
     "oneVerificationMethodKind": "set on {subject}: attribute :>> verificationMethod = \"<kind>\"; (one of " + _KINDS + ")",
+    "successCriteriaAttribute": "set on {subject}: attribute :>> successCriteria = \"<the observable conditions under "
+                                "which verification shows the requirement is met>\";",
     "specifiesFeatureOrCommonCapability": "trace {subject} to a feature or common capability",
     "verifiesIncrementRequirement": "add to the objective of {subject} (or its definition): verify <increment requirement>;",
     "verifiesAcceptanceCriterion": "add to the objective of {subject}: verify <acceptance criterion>;",

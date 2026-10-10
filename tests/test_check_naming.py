@@ -79,7 +79,8 @@ def test_grandfathered_legacy_identities_are_closed_sets():
         assert _yaml_errors(f"id: {identity}\n") == [], identity
     # Sibling spellings under the retired grammars are rejected
     # deterministically — grandfathering never licenses new IDs.
-    for sibling in ("E-MW-999", "E-AEBS-001", "N-AEBS-015", "N-MW-010", "N-FOO-001"):
+    for sibling in ("E-MW-999", "E-AEBS-001", "N-AEBS-015", "N-MW-010", "N-FOO-001",
+                    "AC-MW-010-08", "AC-AEBS-S2-009", "AC-AEBS-001"):
         errors = _yaml_errors(f"id: {sibling}\n")
         assert errors, f"{sibling} must be rejected"
         assert any("unregistered" in e for e in errors), (sibling, errors)

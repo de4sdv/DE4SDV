@@ -8,11 +8,11 @@ note: Reviewed ratchet for the model-authority coverage gate. Not revision-bound
 routing_digest: sha256:d8eda03b27a01b7d2c7d07629cfac317198c014f9a845f66e8af6a00988f414f
 layer_digests:
   o2-chain: sha256:61e61aba68bf131a713ddd6dc43780d180902419b0428a5546a6ad984f8e61bc
-  definition: sha256:c29dc69014551adf47c54925d1e3eac3c86bb472b96bc4b7468d5973e940fd94
+  definition: sha256:8a7362aba126f64042c29edec7d1e5051474ad3b28e8d68b154af5b373a34af6
   o2plus: sha256:546c56d11ebe407f97d6563e5287e20a361cb21dce36853ce7568329af6c012a
   vocabulary-carrier: sha256:b13e8034c8f9eba4ff099aaae24a5d965ac84494c72bca45addbd5ae0c0500be
-  definition-batch2: sha256:dbc5adf86c5e189bc769e3c73ada7a56cab508983848311d28a6159b0a7f0e21
-  successor-contract: sha256:c68612eb949e9c43c0b4519baeb73613f981521ddc12b1252ffba8d18bfb48be
+  definition-batch2: sha256:0e0876ea948bfd8f06a2fbab5a7ab68f703b5e3ac905b3070e6ce95c05846702
+  successor-contract: sha256:06a75e7394a151a0638c8de0ff4391720ce28461fe7b3a4039a856f6dc8b2ed6
 refused:
 - IncrementTraceabilityShell
 - derivesNeedFromConcern
