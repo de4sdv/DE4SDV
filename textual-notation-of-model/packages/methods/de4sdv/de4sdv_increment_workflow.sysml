@@ -1,6 +1,7 @@
 /* DE4SDV increment workflow: method steps, their artifacts and their checks.
  * Source: methodologies/sysmod-sysmlv2/increment-workflow.md and the eight method
- * rules accepted by the owner on 2026-10-08 (rule 3 revised on 2026-10-09). */
+ * rules accepted by the owner on 2026-10-08 (rule 3 revised on 2026-10-09, rule 7 on
+ * 2026-10-10). */
 package DE4SDV_IncrementWorkflow {
   doc /* The increment workflow: one step per method phase, typed by a step
        * definition whose parameters are the artifacts it reads and produces. A
@@ -213,7 +214,8 @@ package DE4SDV_IncrementWorkflow {
          * verified? Rules: only DerivesFromNeed traces a requirement to a need, plain
          * dependencies do not count; a requirement has exactly one native subject and
          * one primary verification method of the standard kinds. Advisory: a
-         * requirement traces to a feature or common capability. */
+         * requirement traces to a feature or common capability and states its success
+         * criteria. */
     attribute :>> phase = MethodPhase::phase5_requirements;
     in requirement needs[0..*] : StakeholderNeedCandidate;
     out requirement requirements[1..*] : RequirementCandidate;
@@ -233,6 +235,11 @@ package DE4SDV_IncrementWorkflow {
     metadata requirementSpecifiesFeatureOrCapability : MethodCheck about requirements {
       doc /* Advisory: each requirement traces to a feature or common capability; no native carrier exists yet. */
       :>> check = "specifiesFeatureOrCommonCapability";
+      :>> advisory = true;
+    }
+    metadata requirementStatesSuccessCriteria : MethodCheck about requirements {
+      doc /* Advisory: each requirement states its success criteria; a test-verdict criterion, no verdict or acceptance claim. */
+      :>> check = "successCriteriaAttribute";
       :>> advisory = true;
     }
   }
@@ -268,8 +275,8 @@ package DE4SDV_IncrementWorkflow {
   action def PlanVerificationAndEvidence :> IncrementStep {
     doc /* How will requirement satisfaction and stakeholder fitness-for-use be checked?
          * Rules: each verification case verifies a requirement of the increment, and
-         * every in-scope requirement is verified by a verification case. Advisory:
-         * acceptance-criterion targets, and an evidence record or status per case. */
+         * every in-scope requirement is verified by a verification case. Advisory: an
+         * evidence record or status per case. */
     attribute :>> phase = MethodPhase::phase10_vvEvidence;
     in requirement requirements[0..*] : RequirementCandidate;
     out verification verificationCases[1..*];
@@ -281,11 +288,6 @@ package DE4SDV_IncrementWorkflow {
     metadata requirementVerifiedByVerificationCase : MethodCheck about requirements {
       doc /* Each in-scope requirement is verified by a verification case; no result, evidence or acceptance claim. */
       :>> check = "verifiedBy";
-    }
-    metadata verificationCaseVerifiesAcceptanceCriterion : MethodCheck about verificationCases {
-      doc /* Advisory: each verification case verifies an acceptance criterion; test-verdict criterion, not acceptance. */
-      :>> check = "verifiesAcceptanceCriterion";
-      :>> advisory = true;
     }
     metadata verificationCaseHasEvidenceRecordOrStatus : MethodCheck about verificationCases {
       doc /* Advisory: each verification case has an evidence record or status; no adequacy or acceptance claim. */

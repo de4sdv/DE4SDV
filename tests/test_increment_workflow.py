@@ -19,6 +19,7 @@ from sysml_shapes import MODEL_ROOT, braced_body, strip_comments
 WORKFLOW_FILE = MODEL_ROOT / "packages/methods/de4sdv/de4sdv_increment_workflow.sysml"
 FRAMING_FILE = MODEL_ROOT / "packages/features/aebs/aebs_visualization_framing.sysml"
 WORKFLOW_DOC = MODEL_ROOT.parent / "methodologies/sysmod-sysmlv2/increment-workflow.md"
+METHOD_CONTEXT_FILE = MODEL_ROOT / "packages/methods/de4sdv/de4sdv_method_context.sysml"
 
 PHASES = (
     "phase0_incrementFraming", "phase1_concernFraming", "phase2_operationalContext",
@@ -44,15 +45,16 @@ CHECKS_BY_STEP = {
     "SpecifyRequirements": {
         "requirementDerivesFromNeed", "requirementHasOneSubject",
         "requirementHasVerificationMethod", "requirementSpecifiesFeatureOrCapability",
+        "requirementStatesSuccessCriteria",
     },
     "PlanVerificationAndEvidence": {
         "verificationCaseVerifiesRequirement", "requirementVerifiedByVerificationCase",
-        "verificationCaseVerifiesAcceptanceCriterion", "verificationCaseHasEvidenceRecordOrStatus",
+        "verificationCaseHasEvidenceRecordOrStatus",
     },
 }
 ADVISORY = {
     "requirementSpecifiesFeatureOrCapability",
-    "verificationCaseVerifiesAcceptanceCriterion",
+    "requirementStatesSuccessCriteria",
     "verificationCaseHasEvidenceRecordOrStatus",
 }
 # Registry contract for the evaluation engine: every check identifier the model
@@ -63,14 +65,15 @@ CHECK_REGISTRY = {
     "charterApplicablePhases", "charterExpectedArtifacts", "charterExpectedReviewEvidence",
     "requireConstraint", "sourceAttribute", "rationaleAttribute", "hasValidationScenario",
     "framesStakeholderConcern", "derivesRequirementFromNeed", "oneNativeSubject",
-    "oneVerificationMethodKind", "specifiesFeatureOrCommonCapability",
+    "oneVerificationMethodKind", "successCriteriaAttribute", "specifiesFeatureOrCommonCapability",
     "verifiesIncrementRequirement", "verifiedBy", "verifiesAcceptanceCriterion",
     "evidenceRecordOrStatus",
 }
 # Registry entries the workflow no longer declares: the engine keeps them only for
 # the frozen genuine-export cut, whose workflow predates their removal. Needs never
-# frame concerns; only viewpoints do.
-FROZEN_CUT_ONLY_CHECKS = {"framesStakeholderConcern"}
+# frame concerns (only viewpoints do), and a requirement states its own success
+# criteria instead of being verified through separate acceptance criteria.
+FROZEN_CUT_ONLY_CHECKS = {"framesStakeholderConcern", "verifiesAcceptanceCriterion"}
 
 
 def _code(path) -> str:
@@ -163,6 +166,13 @@ def test_method_check_is_a_light_metadata_definition() -> None:
     declared = re.findall(r"\battribute\s+(\w+)\s*:\s*(\w+)(?:\s+default\s+(\w+))?", body)
     assert declared == [("check", "String", ""), ("minimum", "Natural", "1"),
                         ("advisory", "Boolean", "false")]
+
+
+def test_the_requirement_type_carries_the_success_criteria_the_advisory_check_reads() -> None:
+    """successCriteriaAttribute reads this attribute through the requirement's type lineage."""
+    body = braced_body(_code(METHOD_CONTEXT_FILE), "requirement def RequirementCandidate")
+    declared = re.findall(r"\battribute\s+(\w+)\s*:\s*([\w:]+)\s*(\[[^\]]*\])?", body)
+    assert declared == [("successCriteria", "ScalarValues::String", "[0..1]")]
 
 
 def test_workflow_is_generic_and_semantically_named() -> None:

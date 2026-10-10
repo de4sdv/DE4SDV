@@ -79,7 +79,7 @@ These method rules apply to every increment:
    of the increment, and every in-scope requirement is verified by at least
    one verification case.
 7. **Advisory, not blocking.** Requirement to feature or common capability,
-   acceptance-criterion targets, and evidence record or status.
+   the requirement's success criteria, and evidence record or status.
 8. **Principle.** Structural checks block; judgment checks (wording,
    verifiability) are advisory.
 
@@ -108,12 +108,12 @@ acceptance, or certification claim.
 | 2. Operational context | What happens in the world? | Operational | context, actors, scenarios, operational processes |
 | 3. Capability / feature semantics | Is this a feature, common capability, constraint, or evidence capability? | DE4SDV ontology | feature/common-capability classification, variation points |
 | 4. Needs | What stakeholder needs exist and how will the needs be validated? | Operational | needs, sources, rationale, validation intent |
-| 5. Requirements | What shall the system or product line do and how will those requirements be verified? | Conceptual | design input requirements, constraints, verification methods, trace links |
+| 5. Requirements | What shall the system or product line do and how will those requirements be verified? | Conceptual | design input requirements, constraints, verification methods, success criteria, trace links |
 | 6. Functional architecture | What functions, flows, states, and interfaces are needed? | Conceptual | functional breakdown, interfaces, behavior slices |
 | 7. Logical architecture | What technology-independent logical elements realize the functions? | Conceptual | logical structure, exchanges, allocation/mapping |
 | 8. Physical / software realization | What software, hardware, deployment, or tool elements realize the system design? | Physical | physical/software structure, interfaces, mappings, readiness probes when required |
 | 9. Variability and configuration | How does this vary across member products or configurations? | DE4SDV product-line layer | variation points, feature configurations, applicability |
-| 10. V&V and evidence | How will requirement satisfaction and stakeholder fitness-for-use be checked? | Common / Conceptual | verification cases, validation scenarios, acceptance criteria, evidence records, open gaps |
+| 10. V&V and evidence | How will requirement satisfaction and stakeholder fitness-for-use be checked? | Common / Conceptual | verification cases, validation scenarios, evidence records, open gaps |
 | 11. Publication | What is reviewable now? | DE4SDV workflow | SysML v2, Markdown, YAML, generated views, reports, PR |
 | 12. Baseline and next slice | What is accepted, deferred, or invalidated? | Common | baseline decision, open issues, next increment |
 
@@ -220,7 +220,7 @@ Stakeholder concern
   -> System-to-software signal mapping (when a boundary is crossed)
   -> Physical/software realization or configuration
   -> Verification case and validation scenario
-  -> Acceptance criterion
+  -> Success criteria stated on the requirement
   -> Evidence artifact and evidence status
   -> Baseline or release decision
 ```
@@ -258,7 +258,7 @@ Do not collapse these into one list. DE4SDV increments must keep the distinction
 | Requirement | verifiable design-input obligation or constraint | Can the system/design satisfy this? |
 | Verification case | planned or executed check of requirement satisfaction | Did we build/specify it right? |
 | Validation scenario | check of stakeholder fitness-for-use in context | Did we address the real need? |
-| Acceptance criterion | condition for accepting a result or artifact | What outcome is enough to accept this? |
+| Success criteria | observable conditions, stated on a requirement, under which verification shows it is met | What result shows the requirement is met? |
 | Evidence artifact | reviewable result supporting a decision | What can reviewers inspect? |
 | Gap | known missing link, uncertainty, or unproven claim | What must not be treated as complete yet? |
 
@@ -303,7 +303,7 @@ Each increment PR should answer:
 - Are needs separated from requirements?
 - Are features separated from common capabilities?
 - What trace links exist and what gaps remain?
-- What verification method, validation scenario, acceptance criterion, and evidence status are recorded?
+- What verification method, success criteria, validation scenario, and evidence status are recorded?
 - Are compliance/certification claims avoided or clearly marked as not yet established?
 
 ## Publication rule

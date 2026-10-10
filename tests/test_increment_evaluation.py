@@ -311,6 +311,53 @@ def test_a_library_attribute_counts_only_through_the_subjects_own_lineage() -> N
     assert _state(_evaluate(scenario), "needHasSource") == me.VERDICT_FAIL
 
 
+def _success_criteria_scenario(value=None):
+    """A synthetic workflow, not the frozen cut's: after the mandatory framing step (which reads
+    only the increment's own package), its requirements step declares the advisory
+    success-criteria check, and the requirement type owns ``successCriteria``. With a ``value``,
+    both requirements set it."""
+    scenario = increment_scenario()
+    builder = scenario.builder
+    requirement_type = scenario.vocabulary["Requirement"]
+    feature = builder.new("AttributeUsage", name="successCriteria", source=builder.sources[requirement_type["@id"]])
+    builder.own(requirement_type, feature, kind="FeatureMembership", member_name="successCriteria")
+    if value is not None:
+        for requirement in scenario.requirements:
+            builder.attribute(requirement, "successCriteria", value, redefines=feature)
+    increment_workflow(builder, [
+        WorkflowStep("frameIncrement", P0, (WorkflowParameter("increment", "EngineeringIncrement"),)),
+        WorkflowStep("specifyRequirements", P5, (
+            WorkflowParameter("requirements", "Requirement", "RequirementUsage", bounds=(1, INFINITY)),), (
+            WorkflowCheck("requirementStatesSuccessCriteria", "successCriteriaAttribute", "requirements",
+                          advisory=True),)),
+    ], charter=scenario.charter)
+    return scenario
+
+
+def test_success_criteria_pass_when_each_requirement_states_them() -> None:
+    evaluation = _evaluate(_success_criteria_scenario("The fixture output matches its reference in 20 of 20 runs."))
+    assert _state(evaluation, "requirementStatesSuccessCriteria") == me.VERDICT_PASS
+    assert evaluation.gaps()["advisory"] == []
+
+
+def test_missing_success_criteria_are_an_advisory_note_that_says_what_to_author() -> None:
+    evaluation = _evaluate(_success_criteria_scenario())
+    assert _state(evaluation, "requirementStatesSuccessCriteria") == me.VERDICT_FAIL
+    gaps = evaluation.gaps()
+    assert gaps["blocking"] == []
+    (note,) = gaps["advisory"]
+    assert (note["gate"], note["kind"]) == ("requirementStatesSuccessCriteria", "violation")
+    assert sorted(subject["name"] for subject in note["subjects"]) == ["requirement0", "requirement1"]
+    assert "attribute :>> successCriteria = " in note["what_to_author"]
+
+
+def test_empty_success_criteria_do_not_count() -> None:
+    evaluation = _evaluate(_success_criteria_scenario(""))
+    assert _state(evaluation, "requirementStatesSuccessCriteria") == me.VERDICT_FAIL
+    (note,) = evaluation.gaps()["advisory"]
+    assert sorted(subject["name"] for subject in note["subjects"]) == ["requirement0", "requirement1"]
+
+
 def test_population_remedies_name_where_the_subjects_belong() -> None:
     scenario = _scenario()
     builder = scenario.builder

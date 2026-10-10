@@ -189,7 +189,7 @@ are not syntax-validated.
 | `REQ` | Requirement | Design-input requirement | `REQ-AEBS-014` | CANONICAL |
 | `NEED` | Stakeholder need (readable form) | Stakeholder need usage | *(none yet)* | CANONICAL — use for new need IDs |
 | `N` | Stakeholder need (legacy spelling) | Stakeholder need usage | `N-AEBS-009` | GRANDFATHERED (§5.1) — use `NEED` |
-| `AC` | Acceptance criterion | Criterion on a verification case | `AC-MW-010-02` | CANONICAL |
+| `AC` | Acceptance criterion (historical) | Criterion on a verification case | `AC-MW-010-02` | GRANDFATHERED (§5.1) — no new AC IDs; a requirement states its success criteria |
 | `VC` | Verification case | Verification activity | `VC-MW-010-01` | CANONICAL |
 | `EVID` | Evidence | Retained evidence record | `EVID-AEBS-001` | CANONICAL |
 | `E` | Evidence (retired spelling) | Retained evidence record | `E-MW-011` | GRANDFATHERED (§5.1) — use `EVID` |
@@ -202,8 +202,8 @@ are not syntax-validated.
 The retired grammars below are enforced **deterministically**:
 `scripts/check_naming.py` keeps the exact identity sets as allowlists. An
 enumerated identity remains valid wherever it is referenced; any sibling
-spelling (`E-MW-999`, `N-AEBS-015`, `N-MW-010`) is rejected like an
-unregistered prefix. New identities must use the canonical grammar.
+spelling (`E-MW-999`, `N-AEBS-015`, `N-MW-010`, `AC-MW-010-08`) is rejected
+like an unregistered prefix. New identities must use the canonical grammar.
 
 `E-<SUBJECT>-<SEQ>` — retained evidence chain of the closed INC-MW-010
 verification record. These IDs are bound inside retained evidence YAML,
@@ -220,8 +220,21 @@ pilot (traceability would silently rot if renumbered). The set is closed:
 `N-AEBS-001`…`N-AEBS-014`, `N-AEBS-OP-001`…`N-AEBS-OP-005`,
 `N-MW-001`…`N-MW-009`.
 
+`AC-<SUBJECT>-<SEQ>` — acceptance criteria recorded by earlier increments. A
+requirement now states its own success criteria (its `successCriteria`
+attribute), so no new AC IDs are allocated and none is ever reused. The set
+is closed:
+
+`AC-AEBS-FRAME-001`…`AC-AEBS-FRAME-006`, `AC-AEBS-FUNC-001`…`AC-AEBS-FUNC-004`,
+`AC-AEBS-INT-001`…`AC-AEBS-INT-005`, `AC-AEBS-LOG-001`…`AC-AEBS-LOG-010`,
+`AC-AEBS-OP-001`…`AC-AEBS-OP-005`, `AC-AEBS-PHY-001`…`AC-AEBS-PHY-008`,
+`AC-AEBS-S2-001`…`AC-AEBS-S2-008`, `AC-MW-010` (the family reference in the
+SysML elements guide), `AC-MW-010-01`…`AC-MW-010-07`,
+`AC-MW-FC-001`…`AC-MW-FC-006`, `AC-MW-OC-001`…`AC-MW-OC-006`.
+
 New need IDs use `NEED-<SUBJECT>-<SEQ>`; new evidence IDs use
-`EVID-<SUBJECT>-<SEQ>`.
+`EVID-<SUBJECT>-<SEQ>`; new requirements state their success criteria
+instead of allocating AC IDs.
 
 ### Free-form prefixes (registered; remainder is a meaningful name)
 

@@ -30,7 +30,7 @@ synthetic fixtures, generated diagrams, retained-evidence directories,
 immutable ADR history, and retained raw bench-evidence JSON records.
 
 This checker validates syntax against the registries only. Retired grammar
-families (E-, N-) are deterministically grandfathered: the exact existing
+families (E-, N-, AC-) are deterministically grandfathered: the exact existing
 identity sets are enumerated in _GRANDFATHERED_IDENTITIES, those records
 remain valid, and any sibling spelling under the retired grammar (e.g.
 E-MW-999) is rejected like any unregistered prefix. Provenance rules that
@@ -158,7 +158,6 @@ STRICT_PREFIXES = {
     "INC",
     "REQ",
     "NEED",
-    "AC",
     "VC",
     "EVID",
     "GAP",
@@ -218,7 +217,81 @@ _LEGACY_N_IDENTITIES = {
     "N-MW-009",
 }
 
-_GRANDFATHERED_IDENTITIES = _LEGACY_E_IDENTITIES | _LEGACY_N_IDENTITIES
+# AC-<SUBJECT>-<SEQ> (acceptance criterion) — historical: a requirement states
+# its own success criteria, so no new AC identity is allocated and none is
+# reused. The set is every AC identity on the governed surface when the
+# family closed, including the AC-MW-010 family reference in the SysML
+# elements guide.
+_LEGACY_AC_IDENTITIES = {
+    "AC-AEBS-FRAME-001",
+    "AC-AEBS-FRAME-002",
+    "AC-AEBS-FRAME-003",
+    "AC-AEBS-FRAME-004",
+    "AC-AEBS-FRAME-005",
+    "AC-AEBS-FRAME-006",
+    "AC-AEBS-FUNC-001",
+    "AC-AEBS-FUNC-002",
+    "AC-AEBS-FUNC-003",
+    "AC-AEBS-FUNC-004",
+    "AC-AEBS-INT-001",
+    "AC-AEBS-INT-002",
+    "AC-AEBS-INT-003",
+    "AC-AEBS-INT-004",
+    "AC-AEBS-INT-005",
+    "AC-AEBS-LOG-001",
+    "AC-AEBS-LOG-002",
+    "AC-AEBS-LOG-003",
+    "AC-AEBS-LOG-004",
+    "AC-AEBS-LOG-005",
+    "AC-AEBS-LOG-006",
+    "AC-AEBS-LOG-007",
+    "AC-AEBS-LOG-008",
+    "AC-AEBS-LOG-009",
+    "AC-AEBS-LOG-010",
+    "AC-AEBS-OP-001",
+    "AC-AEBS-OP-002",
+    "AC-AEBS-OP-003",
+    "AC-AEBS-OP-004",
+    "AC-AEBS-OP-005",
+    "AC-AEBS-PHY-001",
+    "AC-AEBS-PHY-002",
+    "AC-AEBS-PHY-003",
+    "AC-AEBS-PHY-004",
+    "AC-AEBS-PHY-005",
+    "AC-AEBS-PHY-006",
+    "AC-AEBS-PHY-007",
+    "AC-AEBS-PHY-008",
+    "AC-AEBS-S2-001",
+    "AC-AEBS-S2-002",
+    "AC-AEBS-S2-003",
+    "AC-AEBS-S2-004",
+    "AC-AEBS-S2-005",
+    "AC-AEBS-S2-006",
+    "AC-AEBS-S2-007",
+    "AC-AEBS-S2-008",
+    "AC-MW-010",
+    "AC-MW-010-01",
+    "AC-MW-010-02",
+    "AC-MW-010-03",
+    "AC-MW-010-04",
+    "AC-MW-010-05",
+    "AC-MW-010-06",
+    "AC-MW-010-07",
+    "AC-MW-FC-001",
+    "AC-MW-FC-002",
+    "AC-MW-FC-003",
+    "AC-MW-FC-004",
+    "AC-MW-FC-005",
+    "AC-MW-FC-006",
+    "AC-MW-OC-001",
+    "AC-MW-OC-002",
+    "AC-MW-OC-003",
+    "AC-MW-OC-004",
+    "AC-MW-OC-005",
+    "AC-MW-OC-006",
+}
+
+_GRANDFATHERED_IDENTITIES = _LEGACY_E_IDENTITIES | _LEGACY_N_IDENTITIES | _LEGACY_AC_IDENTITIES
 
 # FREE_FORM_PREFIXES: registered prefixes whose remainder is a free-form or
 # tool-local name (role names, catalog records, bench identities, standard

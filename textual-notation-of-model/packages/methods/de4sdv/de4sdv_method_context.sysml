@@ -264,6 +264,10 @@ package DE4SDV_MethodContext {
          * Specializes the SYSMOD requirement seam, inheriting obligation,
          * stability, and motivation metadata for requirement candidates.
          * DE4SDV candidate lifecycle semantics remain local. */
+    attribute successCriteria : ScalarValues::String[0..1] {
+      doc /* System verification success criteria: the observable conditions under which verification shows
+           * this requirement is met. A test-verdict criterion, not an acceptance decision. */
+    }
   }
 
   requirement def FunctionalRequirementCandidate :> RequirementCandidate {
@@ -298,6 +302,9 @@ package DE4SDV_MethodContext {
     /* Test-verdict criterion, not an authorized acceptance decision under
      * de4sdv.acceptance.maintainer-decision.v1. Typing supplies no result,
      * approval or acceptance; policy decisions remain separate records. */
+    comment /* Kept only in the records of closed increments. New work declares no
+             * AcceptanceCriterion elements: each requirement states its success criteria
+             * in RequirementCandidate::successCriteria. */
   }
 
   requirement def EvidenceContract :> RequirementCandidate {
