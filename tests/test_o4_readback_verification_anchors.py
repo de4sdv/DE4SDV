@@ -20,7 +20,7 @@ ANCHOR_USE = "anchor-use"
 URI = "pkg:Systems%20Library/VerificationCases.sysml#x"
 
 
-def corpus(definitions=22, usages=34):
+def corpus(definitions=25, usages=38):
     elements = []
     for i in range(definitions):
         gid, wid = f"vcd-{i}", f"sub-{i}"
@@ -85,13 +85,13 @@ def test_full_population_passes_and_is_activation_eligible():
     repo = FakeRepository(elements)
     report = run(repo, export_document(elements), semantic_report={"element_count": len(elements)})
     assert report["passed"] is True and report["activation_eligible"] is True
-    assert report["measured"] == {"definitions": 22, "usages": 34,
-                                  "proved_definitions": 22, "proved_usages": 34,
-                                  "dereferenced": 56}
+    assert report["measured"] == {"definitions": 25, "usages": 38,
+                                  "proved_definitions": 25, "proved_usages": 38,
+                                  "dereferenced": 63}
     assert report["live_grounding"]["result"] == "EQUIVALENT"
     assert report["failures"] == []
     gets = [call for call in repo.calls if call[0] == "get"]
-    assert len(gets) == 2 * 56  # witness + governed element per proved anchor
+    assert len(gets) == 2 * 63  # witness + governed element per proved anchor
     assert all(call[1:3] == ("p", "c") for call in repo.calls)
 
 
@@ -102,8 +102,8 @@ def _failing(report, needle):
 
 
 def test_population_drift_blocks_activation():
-    elements = corpus(definitions=21)
-    _failing(run(FakeRepository(elements), export_document(elements)), "expected 22")
+    elements = corpus(definitions=24)
+    _failing(run(FakeRepository(elements), export_document(elements)), "expected 25")
 
 
 def test_live_corpus_differing_from_export_blocks():
