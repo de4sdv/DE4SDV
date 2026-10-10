@@ -31,7 +31,10 @@ EVIDENCE_INDEX = Path(
     "010/VIDEO-EVIDENCE-DISPOSITION.md"
 )
 
-ALLOWED_CRITERION_KEYS = {"id", "status", "sysml_element", "evidence"}
+REQUIRED_SUCCESS_CRITERIA_KEYS = {"requirement", "case", "status", "evidence"}
+# formerly: only for criteria that had an AC ID on main (AC-AEBS-S2-001..007).
+OPTIONAL_SUCCESS_CRITERIA_KEYS = {"formerly"}
+NEEDS = MODEL_DIR / "aebs_visualization_needs_requirements.sysml"
 
 
 def _read(path: Path) -> str:
@@ -44,6 +47,24 @@ def _model() -> str:
 
 def _pilot() -> dict:
     return yaml.safe_load(_read(PILOT))
+
+
+def _requirement_blocks() -> dict[str, tuple[str, str]]:
+    """REQ ID -> (usage name, declaration block) for each S2 requirement."""
+    blocks = {}
+    for match in re.finditer(
+        r"    requirement (req\w+) : VisualizationInstrumentRequirementCandidate \{.*?\n    \}",
+        _read(NEEDS),
+        re.S,
+    ):
+        req_id = re.search(r"doc /\* (REQ-AEBS-S2-\d{3})", match.group(0)).group(1)
+        blocks[req_id] = (match.group(1), match.group(0))
+    return blocks
+
+
+def _success_criteria(block: str) -> str | None:
+    found = re.search(r'attribute :>> successCriteria = "([^"]*)";', block)
+    return found.group(1) if found else None
 
 
 def test_phase10_artifacts_exist_and_are_indexed() -> None:
@@ -137,43 +158,59 @@ def test_yaml_vc_ids_match_model_verification_usage_anchors() -> None:
         ), f"{case['id']} anchor doc missing from the model"
 
 
-def test_every_acceptance_criterion_is_status_only_in_yaml_and_modeled() -> None:
+def test_every_success_criteria_row_is_status_only_and_modeled() -> None:
+    """Owner decision 2026-10-10: success criteria are the requirement's own
+    successCriteria attribute. The index keeps status and evidence only, per
+    requirement, and names the retired criterion ID it replaced."""
     pilot = _pilot()
     model = _model()
-    for criterion in pilot["acceptance_criteria"]:
-        assert set(criterion) == ALLOWED_CRITERION_KEYS, criterion["id"]
-        element = criterion["sysml_element"]
-        assert re.search(
-            rf"requirement\s+{element}\s*:\s*VisualizationAcceptanceCriterion\s*\{{",
-            model,
-        ), f"{element} must be a modeled requirement usage"
-        assert f"{criterion['id']};" in model or f"{criterion['id']} " in model, (
-            f"{criterion['id']} must be anchored in the model doc"
+    blocks = _requirement_blocks()
+    assert "acceptance_criteria" not in pilot
+    for row in pilot["requirement_success_criteria"]:
+        assert REQUIRED_SUCCESS_CRITERIA_KEYS <= set(row) <= (
+            REQUIRED_SUCCESS_CRITERIA_KEYS | OPTIONAL_SUCCESS_CRITERIA_KEYS
+        ), row["requirement"]
+        usage, block = blocks[row["requirement"]]
+        criteria = _success_criteria(block)
+        assert criteria and criteria.startswith("Met when"), row["requirement"]
+        assert "shall" not in criteria, row["requirement"]
+        if "formerly" in row:
+            assert row["formerly"] in {f"AC-AEBS-S2-{n:03d}" for n in range(1, 8)}, row["requirement"]
+            assert f"success criteria formerly {row['formerly']}" in block, row["requirement"]
+        else:
+            assert "success criteria formerly" not in block, row["requirement"]
+        case_usage = re.search(
+            rf"doc /\* {row['case']} verification case usage\. \*/\s*verification (\w+) : (\w+)", model
         )
+        assert case_usage, row["case"]
+        definition = re.search(rf"verification def {case_usage.group(2)} \{{.*?\n  \}}", model, re.S)
+        assert definition and f"verify {usage} {{" in definition.group(0), (row["case"], usage)
 
 
-def test_verification_cases_cover_all_criteria() -> None:
+def test_success_criteria_index_matches_the_model_and_retires_the_criteria() -> None:
+    """Every requirement that states successCriteria is indexed once, the
+    acceptance-criterion elements and their verify links are gone, and the
+    evidence-integrity obligation lives on the shared evidence record."""
     pilot = _pilot()
     model = _model()
-    criteria = {c["id"] for c in pilot["acceptance_criteria"]}
-    covered = {c["acceptance_criterion"] for c in pilot["verification_cases"]}
-    # A case may also verify the planned criteria of the further requirements
-    # it verifies (AC-AEBS-S2-009..014); its status does not cover them.
+    stated = {req for req, (_usage, block) in _requirement_blocks().items() if _success_criteria(block)}
+    rows = [row["requirement"] for row in pilot["requirement_success_criteria"]]
+    assert len(rows) == len(set(rows)) and set(rows) == stated
+    formerly = [row["formerly"] for row in pilot["requirement_success_criteria"] if "formerly" in row]
+    assert len(formerly) == len(set(formerly)) == 7
+    code = _strip_sysml_comments(model)
+    assert "AcceptanceCriterion" not in code
+    assert not re.search(r"\bverify\s+acceptanceCriterion", code)
     for case in pilot["verification_cases"]:
-        covered |= set(case.get("planned_acceptance_criteria", []))
-    # AC-AEBS-S2-008 (evidence integrity) is verified inside every case
-    # objective in the model rather than by its own YAML case.
-    integrity_id = "AC-AEBS-S2-008"
-    covered |= {integrity_id}
-    assert covered == criteria
-    integrity_element = next(
-        c["sysml_element"]
-        for c in pilot["acceptance_criteria"]
-        if c["id"] == integrity_id
-    )
-    # The model must verify the integrity criterion from at least one objective.
-    objectives = re.findall(r"objective \w+ \{(.*?)\n    \}", model, re.S)
-    assert any(f"verify {integrity_element};" in o for o in objectives)
+        assert "acceptance_criterion" not in case and "planned_acceptance_criteria" not in case
+    record = re.search(r"item def RetainedVisualizationEvidence \{.*?\n  \}", model, re.S)
+    assert record
+    text = " ".join(re.sub(r"\n\s*\*(?!/)", "\n", record.group(0)).split())
+    assert "formerly AC-AEBS-S2-008" in text
+    assert "never as an observed runtime pass" in text
+    obligation = pilot["evidence_integrity_obligation"]
+    assert obligation["formerly"] == "AC-AEBS-S2-008"
+    assert obligation["sysml_element"] == "RetainedVisualizationEvidence"
 
 
 EXPECTED_VERDICT_MAPPING = (
@@ -344,8 +381,8 @@ def test_restoration_is_deferred_not_proven() -> None:
     )
     assert restoration["status"] == "deferred_not_proven"
     assert "current_evidence" not in restoration
-    deferred = {d["id"] for d in pilot["phase10_claim"]["deferred_items"]}
-    assert "AC-AEBS-S2-007" in deferred
+    deferred = {d["id"]: d["status"] for d in pilot["phase10_claim"]["deferred_items"]}
+    assert deferred.get("REQ-AEBS-S2-009") == "success_criteria_deferred_not_proven"
 
 
 # Planned cases for the requirements that no retained campaign verifies:
@@ -386,92 +423,46 @@ def test_planned_cases_are_not_executed_and_bind_no_evidence() -> None:
         assert not re.search(rf"\bfrom {usage} to ", _strip_sysml_comments(model)), case_id
 
 
-# Criteria for REQ-AEBS-S2-015..018, -020 and -021:
-# criterion id -> (criterion usage, requirement usage, verifying case usage).
-REQUIREMENT_CRITERIA = {
-    "AC-AEBS-S2-009": (
-        "acceptanceCriterionReadOnlyBoundaryStatement",
-        "reqReadOnlyBoundaryStatement",
-        "readOnlyBoundaryVerification",
-    ),
-    "AC-AEBS-S2-010": (
-        "acceptanceCriterionObstacleGeometrySource",
-        "reqObstacleGeometryFromFilteredCloud",
-        "provenanceSeparationVerification",
-    ),
-    "AC-AEBS-S2-011": (
-        "acceptanceCriterionNoDisplayDerivedDecisionMetric",
-        "reqNoDisplayDerivedDecisionMetric",
-        "provenanceSeparationVerification",
-    ),
-    "AC-AEBS-S2-012": (
-        "acceptanceCriterionDecisionDistanceExclusionStatement",
-        "reqDecisionDistanceExclusionStatement",
-        "provenanceSeparationVerification",
-    ),
-    "AC-AEBS-S2-013": (
-        "acceptanceCriterionNoFreshDataSubstitution",
-        "reqNoFreshDataSubstitution",
-        "failClosedStalenessVerification",
-    ),
-    "AC-AEBS-S2-014": (
-        "acceptanceCriterionNonColorStateCue",
-        "reqNonColorStateCue",
-        "degradedRenderingVerification",
-    ),
+# Success criteria formalized after the retained take, stated directly in the
+# requirement (no AC ID ever reached main): requirement -> verifying case usage.
+LATE_SUCCESS_CRITERIA = {
+    "REQ-AEBS-S2-015": "readOnlyBoundaryVerification",
+    "REQ-AEBS-S2-016": "provenanceSeparationVerification",
+    "REQ-AEBS-S2-017": "provenanceSeparationVerification",
+    "REQ-AEBS-S2-018": "provenanceSeparationVerification",
+    "REQ-AEBS-S2-020": "failClosedStalenessVerification",
+    "REQ-AEBS-S2-021": "degradedRenderingVerification",
 }
 
 
-def test_requirement_criteria_are_planned_expected_results_next_to_their_requirement() -> None:
-    """Each criterion records the expected result of one requirement, is
-    verified in the case that verifies that requirement, and traces to it.
-    It was formalized after the retained take: it is indexed not_assessed,
-    points at the retained record of its case, and the case usage says the
-    case verdict does not cover it."""
+def test_late_success_criteria_are_not_assessed_against_retained_evidence() -> None:
+    """The success criteria of REQ-AEBS-S2-015..018, -020 and -021 were
+    formalized after the retained take: indexed not_assessed with a pointer to
+    the case's retained record, and the case usage says its verdict does not
+    cover them (review R1)."""
     model = _model()
-    code = _strip_sysml_comments(model)
-    criteria = {c["id"]: c for c in _pilot()["acceptance_criteria"]}
-    requirement_ids = {
-        "reqReadOnlyBoundaryStatement": "REQ-AEBS-S2-015",
-        "reqObstacleGeometryFromFilteredCloud": "REQ-AEBS-S2-016",
-        "reqNoDisplayDerivedDecisionMetric": "REQ-AEBS-S2-017",
-        "reqDecisionDistanceExclusionStatement": "REQ-AEBS-S2-018",
-        "reqNoFreshDataSubstitution": "REQ-AEBS-S2-020",
-        "reqNonColorStateCue": "REQ-AEBS-S2-021",
-    }
-    cases = {c["id"]: c for c in _pilot()["verification_cases"]}
-    for criterion_id, (criterion, requirement, case) in REQUIREMENT_CRITERIA.items():
-        assert criteria[criterion_id]["status"] == "not_assessed", criterion_id
-        assert criteria[criterion_id]["sysml_element"] == criterion, criterion_id
-        holder = next(c for c in cases.values() if criterion_id in c.get("planned_acceptance_criteria", []))
-        evidence = criteria[criterion_id]["evidence"]
-        assert re.match(r"EVID-AEBS-S2-\d{3} retained ", evidence), criterion_id
-        assert f"not assessed against this criterion (objective of {holder['id']})" in evidence
+    rows = {row["requirement"]: row for row in _pilot()["requirement_success_criteria"]}
+    blocks = _requirement_blocks()
+    for req, case in LATE_SUCCESS_CRITERIA.items():
+        row = rows[req]
+        assert "formerly" not in row and row["status"] == "not_assessed", req
+        assert re.match(r"EVID-AEBS-S2-\d{3} retained ", row["evidence"]), req
+        assert f"not assessed against these success criteria (objective of {row['case']})" in row["evidence"], req
+        criteria = _success_criteria(blocks[req][1])
+        assert criteria and criteria.startswith("Met when") and "shall" not in criteria, req
         usage_block = re.search(rf"verification {case} : \w+ \{{.*?\n  \}}", model, re.S)
         assert usage_block, case
         usage_text = " ".join(usage_block.group(0).split())
-        assert criterion_id.replace("AC-AEBS-S2-", "") in usage_text, criterion_id
+        assert req.replace("REQ-AEBS-S2-", "-") in usage_text, (req, case)
         assert "formalized after the retained take" in usage_text, case
         assert "case verdict does not cover" in usage_text, case
-        block = re.search(
-            rf"requirement {criterion} : VisualizationAcceptanceCriterion \{{.*?\n  \}}", model, re.S
-        )
-        assert block, criterion_id
-        statement = block.group(0)
-        assert f"{requirement_ids[requirement]} will be shown to have been met when" in statement
-        assert "shall" not in statement, criterion_id
-        usage = re.search(rf"verification {case} : (\w+) \{{", model)
-        assert usage, case
-        definition = re.search(rf"verification def {usage.group(1)} \{{.*?\n  \}}", model, re.S)
-        assert definition and f"verify {criterion};" in definition.group(0), criterion_id
-        assert f"verify {requirement} {{" in definition.group(0), criterion_id
-        assert re.search(rf"\bfrom {criterion}\s+to {requirement};", code), criterion_id
 
 
 def test_fixture_path_case_states_its_synthetic_scope() -> None:
-    """Owner decision 2026-10-09: VC-AEBS-S2-009 is acceptable on the fixture
-    path only if its doc says the inputs are synthetic and that it does not
-    verify the live chain."""
+    """Owner decision 2026-10-09: VC-AEBS-S2-009 stays a planned fixture-path
+    case with its fixture scope stated explicitly in its doc (synthetic
+    degraded inputs; it does not verify the live chain). Live-chain
+    verification can be added if evidence is ever captured."""
     model = _model()
     usage = re.search(
         r"verification staleAndInvalidFrameVerification : (\w+) \{.*?\n  \}", model, re.S
@@ -526,7 +517,10 @@ def test_claim_boundary_forbids_safety_and_certification_reading() -> None:
 
 def test_read_only_boundary_is_claimed_in_model() -> None:
     model = _model()
-    assert "acceptanceCriterionReadOnlyBoundary" in model
+    criteria = _success_criteria(_requirement_blocks()["REQ-AEBS-S2-005"][1])
+    assert criteria and "issues no vehicle command" in criteria
+    definition = re.search(r"verification def VisualizationReadOnlyBoundaryVerification \{.*?\n  \}", model, re.S)
+    assert definition and "verify reqNonInterference {" in definition.group(0)
     assert "issues no vehicle command" in _read(PILOT).lower() or (
         "no vehicle command" in _read(PILOT)
     )
@@ -699,11 +693,12 @@ def test_v21_evidence_binds_source_identity_beyond_head_at_capture() -> None:
 
 
 def test_partial_status_never_appears_as_campaign_pass() -> None:
-    """No criterion in the pilot carries a partial-into-pass upgrade."""
+    """No success-criteria row in the pilot carries a partial-into-pass upgrade."""
     pilot = _pilot()
-    for criterion in pilot["acceptance_criteria"]:
-        assert criterion["status"] != "pass", criterion["id"]
-        assert "pass_partial" not in criterion["status"], criterion["id"]
+    for row in pilot["requirement_success_criteria"]:
+        assert row["status"] != "pass", row["requirement"]
+        assert "pass_partial" not in row["status"], row["requirement"]
+    assert "pass" not in pilot["evidence_integrity_obligation"]["status"]
 
 
 def _strip_sysml_comments(text: str) -> str:
@@ -806,62 +801,50 @@ def test_retired_s2_names_absent_from_live_source() -> None:
     assert not residual, f"retired names still referenced in live source: {residual}"
 
 
-def test_success_criteria_gap_names_every_requirement_without_a_criterion() -> None:
-    """GAP-AEBS-010-010 names exactly the requirements that no
-    requirement-specific acceptance criterion traces to. AC-AEBS-S2-008, the
-    verdict-record rule, is not such a criterion."""
-    model = _model()
-    code = _strip_sysml_comments(model)
-    needs = _read(MODEL_DIR / "aebs_visualization_needs_requirements.sysml")
-    ids = dict(
-        re.findall(
-            r"requirement (req\w+) : VisualizationInstrumentRequirementCandidate \{\s*doc /\* (REQ-AEBS-S2-\d{3})",
-            needs,
-        )
+def test_success_criteria_gap_names_every_requirement_without_success_criteria() -> None:
+    """GAP-AEBS-010-010 names exactly the requirements that state no
+    successCriteria."""
+    missing = sorted(
+        req for req, (_usage, block) in _requirement_blocks().items() if not _success_criteria(block)
     )
-    traced = set(re.findall(r"\bfrom acceptanceCriterion\w+\s+to (req\w+);", code))
-    missing = sorted(ids[usage] for usage in ids if usage not in traced)
     assert missing == [
         "REQ-AEBS-S2-002", "REQ-AEBS-S2-003", "REQ-AEBS-S2-004", "REQ-AEBS-S2-006",
         "REQ-AEBS-S2-008", "REQ-AEBS-S2-012", "REQ-AEBS-S2-013",
     ]
-    gap = re.search(r"part gapRequirementSuccessCriteriaMissing : IncrementGap \{.*?\n  \}", model, re.S)
+    gap = re.search(r"part gapRequirementSuccessCriteriaMissing : IncrementGap \{.*?\n  \}", _model(), re.S)
     assert gap and "GAP-AEBS-010-010" in gap.group(0)
-    named = set(re.findall(r"-(\d{3})\b", gap.group(0)))
-    assert {req.rsplit("-", 1)[1] for req in missing} <= named
+    assert set(re.findall(r"REQ-AEBS-S2-\d{3}", gap.group(0))) == set(missing)
     deferred = {item["id"] for item in _pilot()["phase10_claim"]["deferred_items"]}
     assert "GAP-AEBS-010-010" in deferred
 
 
-def test_requirement_criteria_name_deciding_observables_unambiguously() -> None:
-    """Each criterion names an observable that can decide it, with an
-    explicit quantifier; no ambiguous "frames or user-interface dumps" list."""
-    model = _model()
-    statements = {}
-    for criterion_id, (criterion, _requirement, _case) in REQUIREMENT_CRITERIA.items():
-        block = re.search(
-            rf"requirement {criterion} : VisualizationAcceptanceCriterion \{{.*?\n  \}}", model, re.S
-        )
-        statement = re.search(r"/\* (REQ-AEBS-S2-\d{3} will be shown.*?) \*/", block.group(0), re.S)
-        statements[criterion_id] = " ".join(statement.group(1).split())
-    for criterion_id, text in statements.items():
-        assert "frames or user-interface dumps" not in text, criterion_id
-        assert "frame or user-interface dump" not in text, criterion_id
-        assert re.search(r"\b(each|no|any)\b", text), (criterion_id, "quantifier")
-    assert "source adapter's subscriptions" in statements["AC-AEBS-S2-010"]
-    assert "retained frame record" in statements["AC-AEBS-S2-010"]
-    assert "retained bridge receipt record" in statements["AC-AEBS-S2-013"]
-    assert "either artifact suffices" in statements["AC-AEBS-S2-009"]
+def test_late_success_criteria_name_deciding_observables_unambiguously() -> None:
+    """Each late success criterion names an observable that can decide it,
+    with an explicit quantifier; no ambiguous "frames or user-interface dumps"
+    list (review R4)."""
+    blocks = _requirement_blocks()
+    texts = {req: _success_criteria(blocks[req][1]) for req in LATE_SUCCESS_CRITERIA}
+    for req, text in texts.items():
+        assert text, req
+        assert "frames or user-interface dumps" not in text, req
+        assert "frame or user-interface dump" not in text, req
+        assert re.search(r"\b(each|no|any)\b", text), (req, "quantifier")
+    assert "source adapter's subscriptions" in texts["REQ-AEBS-S2-016"]
+    assert "retained frame record" in texts["REQ-AEBS-S2-016"]
+    assert "retained bridge receipt record" in texts["REQ-AEBS-S2-020"]
+    assert "either artifact suffices" in texts["REQ-AEBS-S2-015"]
 
 
 def test_claim_deferred_items_name_every_planned_item() -> None:
     """Review R8: the claim's deferred list names the planned cases, the
-    criteria not assessed, and the requirements only a planned case verifies."""
+    success criteria not assessed, and the requirements only a planned case
+    verifies."""
     deferred = {item["id"]: item["status"] for item in _pilot()["phase10_claim"]["deferred_items"]}
     for case_id in PLANNED_CASES:
         assert deferred.get(case_id) == "not_executed", case_id
-    for criterion_id in REQUIREMENT_CRITERIA:
-        assert deferred.get(criterion_id) == "not_assessed", criterion_id
+    for req in LATE_SUCCESS_CRITERIA:
+        assert deferred.get(req) == "success_criteria_not_assessed", req
+    assert deferred.get("REQ-AEBS-S2-009") == "success_criteria_deferred_not_proven"
     cases = {c["id"]: c for c in _pilot()["verification_cases"]}
     planned_only = set()
     for case_id in PLANNED_CASES:
@@ -872,3 +855,18 @@ def test_claim_deferred_items_name_every_planned_item() -> None:
             executed |= set(case["requirement_ids"])
     for requirement_id in planned_only - executed:
         assert deferred.get(requirement_id) == "planned_verification_only", requirement_id
+
+def test_success_criteria_are_campaign_neutral() -> None:
+    """Success criteria belong to the requirement (owner decision
+    2026-10-10). Choice made during the walk, for Orkun's review: they state
+    what evidence would show the requirement met, so none may name one past
+    campaign or its retained take."""
+    for req, (_usage, block) in _requirement_blocks().items():
+        criteria = _success_criteria(block)
+        if not criteria:
+            continue
+        assert not re.search(r"\bthe retained (take|run|bridge receipt record)\b", criteria), req
+        assert not re.search(r"\b(v21|campaign|2026-\d\d-\d\d)\b", criteria, re.I), req
+    texts = {req: _success_criteria(block) for req, (_u, block) in _requirement_blocks().items()}
+    assert texts["REQ-AEBS-S2-011"].count("the verification take") == 2
+    assert texts["REQ-AEBS-S2-019"].startswith("Met when the verification take shows")

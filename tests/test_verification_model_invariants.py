@@ -17,12 +17,12 @@ What each model must satisfy structurally:
   is performed;
 - System 1 product requirements (member-product or product-line subject)
   are never verification targets of these System 2 bench cases. A System 2
-  design-input requirement is verified only next to an acceptance criterion
-  of the same objective and with its subject bound to a part declared in the
-  case's bench definition (owner decision 2026-10-09: a case verifies the
-  requirement its criterion bounds). A bare verify/satisfy of a requirement,
-  which would bind its subject to the whole bench, is rejected
-  (comment-insertion resistant);
+  design-input requirement is verified with its subject bound to a part
+  declared in the case's bench definition, and it states its success
+  criteria in its successCriteria attribute (INCOSE A6; owner decision
+  2026-10-10) or is listed in a recorded increment gap. A bare verify/satisfy
+  of a requirement, which would bind its subject to the whole bench, is
+  rejected (comment-insertion resistant);
 - any outcome→verdict mapping stays inside the bounded VerdictKind
   vocabulary {pass, fail, inconclusive, error} and every scenario-identity
   literal referenced is a member of the corresponding enum.
@@ -114,7 +114,10 @@ def test_every_verification_usage_type_resolves_to_a_local_def(model):
 def test_every_verify_target_is_declared_in_the_model(model):
     _, code = model
     targets = verify_targets(code)
-    assert targets, "a verification model must verify something"
+    # Subject-bound requirement verifications count too: since success
+    # criteria are requirement attributes, a case may verify only requirements.
+    bound = [requirement for _o, requirement, _s, _p, _b in bound_requirement_verifications(code)]
+    assert targets or bound, "a verification model must verify something"
     for target in targets:
         declared = re.search(
             rf"\b(?:requirement|part|attribute|item|action|port|enum|verification)"
@@ -122,6 +125,10 @@ def test_every_verify_target_is_declared_in_the_model(model):
             code,
         )
         assert declared, target
+    if bound:
+        declared_tree = _declared_requirement_usages()
+        for requirement in bound:
+            assert requirement in declared_tree, requirement
 
 
 def test_every_verification_usage_is_performed(model):
@@ -139,7 +146,9 @@ def test_no_verify_or_satisfy_relationship_claims_a_product_requirement(model):
 
 
 _REQUIREMENT_USAGE_RE = re.compile(r"\brequirement\s+(\w+)\s*:\s*(\w+)\s*\{")
-_CRITERION_DEF_RE = re.compile(r"\brequirement\s+def\s+(\w+)\s*:>\s*AcceptanceCriterion\s*;")
+_SUCCESS_CRITERIA_RE = re.compile(r'\battribute\s*:>>\s*successCriteria\s*=\s*"[^"]+"\s*;')
+_REQUIREMENT_ID_RE = re.compile(r"\bREQ-[A-Z0-9]+(?:-[A-Z0-9]+)*-\d{3}\b")
+_GAP_PART_RE = re.compile(r"\bpart\s+\w+\s*:\s*IncrementGap\s*\{")
 
 
 # Subject types of System 1 product requirements and needs.
@@ -147,26 +156,39 @@ _SYSTEM1_SUBJECT_TYPES = {"ProductLineMemberProduct", "SDVProductLine"}
 _SUBJECT_TYPE_RE = re.compile(r"\bsubject\s+\w+\s*:\s*(\w+)\s*;")
 
 
-def _declared_requirement_usages() -> dict[str, set[str]]:
-    """Requirement usages of the model tree and the subject types each declares."""
-    usages: dict[str, set[str]] = {}
+def _declared_requirement_usages() -> dict[str, dict]:
+    """Requirement usages of the model tree: subject types, whether the usage
+    states successCriteria, and the requirement IDs its doc names."""
+    usages: dict[str, dict] = {}
     for path in sorted(MODEL_ROOT.rglob("*.sysml")):
-        code = strip_comments(path.read_text(encoding="utf-8"))
+        raw = path.read_text(encoding="utf-8")
+        code = strip_comments(raw)
         for match in _REQUIREMENT_USAGE_RE.finditer(code):
             body = braced_body(code[match.start():], match.group(0).rstrip("{").strip())
-            usages.setdefault(match.group(1), set()).update(_SUBJECT_TYPE_RE.findall(body))
+            facts = usages.setdefault(match.group(1), {"subjects": set(), "criteria": False, "ids": set()})
+            facts["subjects"].update(_SUBJECT_TYPE_RE.findall(body))
+            facts["criteria"] = facts["criteria"] or bool(_SUCCESS_CRITERIA_RE.search(body))
+        for match in _REQUIREMENT_USAGE_RE.finditer(raw):
+            doc = re.match(r"\s*doc\s*/\*(.*?)\*/", raw[match.end():], re.DOTALL)
+            if doc and match.group(1) in usages:
+                usages[match.group(1)]["ids"].update(_REQUIREMENT_ID_RE.findall(doc.group(1).split(".")[0]))
     return usages
 
 
-def _bound_verification_violations(code: str, declared: dict[str, set[str]]) -> list[tuple[str, str, str]]:
-    """Subject-bound requirement verifications that break the criterion/bench rule."""
-    criterion_defs = set(_CRITERION_DEF_RE.findall(code))
-    criteria = {name for name, definition in _REQUIREMENT_USAGE_RE.findall(code) if definition in criterion_defs}
+def _gap_listed_requirement_ids() -> set[str]:
+    """Requirement IDs named in the docs of recorded increment gaps."""
+    listed: set[str] = set()
+    for path in sorted(MODEL_ROOT.rglob("*.sysml")):
+        raw = path.read_text(encoding="utf-8")
+        for match in _GAP_PART_RE.finditer(raw):
+            listed.update(_REQUIREMENT_ID_RE.findall(braced_body(raw[match.start():], match.group(0).rstrip("{").strip())))
+    return listed
+
+
+def _bound_verification_violations(code: str, declared: dict[str, dict], gap_ids: set[str]) -> list[tuple[str, str, str]]:
+    """Subject-bound requirement verifications that break the success-criteria/bench rule."""
     violations = []
     for objective, requirement, _subject, part, bench_type in bound_requirement_verifications(code):
-        body = braced_body(code, f"objective {objective}")
-        if not criteria & set(re.findall(r"\bverify\s+(\w+)\s*;", body)):
-            violations.append((objective, requirement, "no acceptance criterion verified in the objective"))
         bench_parts = (
             set(re.findall(r"\bpart\s+(\w+)\s*:", braced_body(code, f"part def {bench_type}")))
             if bench_type and re.search(rf"\bpart\s+def\s+{re.escape(bench_type)}\s*\{{", code)
@@ -174,49 +196,54 @@ def _bound_verification_violations(code: str, declared: dict[str, set[str]]) -> 
         )
         if part not in bench_parts:
             violations.append((objective, requirement, f"bench part {part!r} is not declared in the bench definition"))
-        if requirement not in declared or requirement in criteria:
+        facts = declared.get(requirement)
+        if facts is None:
             violations.append((objective, requirement, "target is not a declared design-input requirement"))
-        elif declared[requirement] & _SYSTEM1_SUBJECT_TYPES:
+            continue
+        if facts["subjects"] & _SYSTEM1_SUBJECT_TYPES:
             violations.append((objective, requirement, "target is a System 1 product requirement"))
+        if not facts["criteria"] and not (facts["ids"] and facts["ids"] <= gap_ids):
+            violations.append((objective, requirement, "target states no successCriteria and no recorded gap lists it"))
     return violations
 
 
-def test_bound_requirement_verification_sits_next_to_a_criterion_on_a_bench_part(model):
+def test_bound_requirement_verification_states_success_criteria_on_a_bench_part(model):
     _, code = model
     if bound_requirement_verifications(code):
-        assert not _bound_verification_violations(code, _declared_requirement_usages())
+        assert not _bound_verification_violations(code, _declared_requirement_usages(), _gap_listed_requirement_ids())
 
 
 _SYNTHETIC_CASE = """
-  requirement def SyntheticCriterion :> AcceptanceCriterion;
-  requirement criterionA : SyntheticCriterion { }
-  requirement reqA : SyntheticRequirement { }
   part def Bench { part unitUnderTest : Unit; }
   verification def SyntheticVerification {
     subject verifiedBench : Bench;
     objective syntheticObjective {
-      %s
       verify reqA { subject unit = verifiedBench.%s; }
     }
   }
 """
 
 
+def _facts(criteria: bool, subjects: set[str] | None = None) -> dict:
+    return {"subjects": subjects or set(), "criteria": criteria, "ids": {"REQ-SYN-S2-001"}}
+
+
 def test_bound_requirement_verification_rule_rejects_violations():
-    declared = {"criterionA": set(), "reqA": set()}
-    assert not _bound_verification_violations(_SYNTHETIC_CASE % ("verify criterionA;", "unitUnderTest"), declared)
-    without_criterion = _bound_verification_violations(_SYNTHETIC_CASE % ("", "unitUnderTest"), declared)
-    assert [v[2] for v in without_criterion] == ["no acceptance criterion verified in the objective"]
-    unknown_part = _bound_verification_violations(_SYNTHETIC_CASE % ("verify criterionA;", "elsewhere"), declared)
+    stated = {"reqA": _facts(True)}
+    assert not _bound_verification_violations(_SYNTHETIC_CASE % "unitUnderTest", stated, set())
+    unstated = {"reqA": _facts(False)}
+    assert [v[2] for v in _bound_verification_violations(_SYNTHETIC_CASE % "unitUnderTest", unstated, set())] == [
+        "target states no successCriteria and no recorded gap lists it"]
+    assert not _bound_verification_violations(_SYNTHETIC_CASE % "unitUnderTest", unstated, {"REQ-SYN-S2-001"})
+    unknown_part = _bound_verification_violations(_SYNTHETIC_CASE % "elsewhere", stated, set())
     assert [v[2] for v in unknown_part] == ["bench part 'elsewhere' is not declared in the bench definition"]
     outside_bench = _bound_verification_violations(
-        (_SYNTHETIC_CASE % ("verify criterionA;", "evidenceRecord")) + "\n  part evidenceRecord : Record;\n", declared)
+        (_SYNTHETIC_CASE % "evidenceRecord") + "\n  part evidenceRecord : Record;\n", stated, set())
     assert [v[2] for v in outside_bench] == ["bench part 'evidenceRecord' is not declared in the bench definition"]
-    undeclared = _bound_verification_violations(_SYNTHETIC_CASE % ("verify criterionA;", "unitUnderTest"), {"criterionA": set()})
+    undeclared = _bound_verification_violations(_SYNTHETIC_CASE % "unitUnderTest", {}, set())
     assert [v[2] for v in undeclared] == ["target is not a declared design-input requirement"]
     product = _bound_verification_violations(
-        _SYNTHETIC_CASE % ("verify criterionA;", "unitUnderTest"),
-        {"criterionA": set(), "reqA": {"ProductLineMemberProduct"}})
+        _SYNTHETIC_CASE % "unitUnderTest", {"reqA": _facts(True, {"ProductLineMemberProduct"})}, set())
     assert [v[2] for v in product] == ["target is a System 1 product requirement"]
     assert has_product_claim("objective o { verify reqA; }")
 

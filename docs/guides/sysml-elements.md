@@ -263,17 +263,23 @@ DE4SDV does not hide weaknesses. Counter-claims and gaps are first-class
 model elements precisely so an assurance argument shows what is *not* yet
 established, not just what is.
 
-**Current convention (INC-AEBS-010 onwards).** Acceptance criteria,
-claims, arguments and counter-claims are not requirements:
+**Current convention (INC-AEBS-010 onwards).** Success criteria are part
+of the requirement, and claims, arguments and counter-claims are not
+requirements:
 
-- An acceptance criterion is typed by the kernel `AcceptanceCriterion` only.
-  It records the expected result of the design-input requirement it bounds
-  ("REQ-AEBS-S2-011 will be shown to have been met when …") and adds no
-  obligation of its own.
-- Each verification case also verifies that requirement and binds the
-  requirement's subject to the bench part under test (`verify
-  reqEvidenceCorrelation { subject visualizationTestSystem =
+- A design-input requirement states its success criteria in its
+  `successCriteria` attribute (INCOSE A6; owner decision 2026-10-10),
+  worded as "Met when …". They
+  record the expected result and add no obligation of their own. A
+  requirement without success criteria is listed in a recorded gap.
+- Each verification case verifies the requirements whose success criteria
+  it checks, and binds each requirement's subject to the bench part under
+  test (`verify reqEvidenceCorrelation { subject visualizationTestSystem =
   verifiedBench.system2Instrument; }`).
+- The evidence-integrity rule that bounds every case's verdict is an
+  obligation of the shared evidence record (`RetainedVisualizationEvidence`),
+  not an attribute of a requirement. This home was chosen during the
+  INC-AEBS-010 walk and is open to owner review.
 - Claims, arguments and counter-claims specialize the kernel
   `AssuranceClaim`, `AssuranceArgument` and `AssuranceCounterClaim`
   (`DE4SDV_AssuranceArgumentation`) and stay outside the requirement
