@@ -67,8 +67,9 @@ API_SOURCES = {
         "the deployed SysML v2 API at the deployment binding, identity-checked "
         "against the export (element id set)"),
 }
-EXPECTED_DEFINITIONS = 22
-EXPECTED_USAGES = 34
+# Reviewed decision-13 population after the INC-AEBS-010 growth (population review: PR #352).
+EXPECTED_DEFINITIONS = 25
+EXPECTED_USAGES = 38
 
 _ROLES = {
     "definition_role": (vg.GOVERNED_DEFINITION_TYPE, vg.DEFINITION_KINDS,

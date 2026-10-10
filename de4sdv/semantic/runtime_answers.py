@@ -58,8 +58,8 @@ CLASS_IDENTITIES = (
 NATIVE_CLASS_IDENTITY = "VerificationCase"
 FILE_MAPPED_CLASSES = tuple(name for name in CLASS_IDENTITIES if name != NATIVE_CLASS_IDENTITY)
 K_PAIR = ("derivesRequirementFromNeed", "derivedRequirementsOfNeed")
-#: Reviewed O2.3 K-pair baseline: 5 authored DerivesFromNeed connection usages.
-READINESS_BASELINE_K_WITNESS_COUNT = 5
+#: Reviewed K-pair baseline: 27 authored DerivesFromNeed connection usages (O2.3: 5; population review: PR #352).
+READINESS_BASELINE_K_WITNESS_COUNT = 27
 
 #: Result fields compared as canonical SETS; trace paths stay ordered.
 SET_FIELDS = ("targets", "witnesses", "nodes", "diagnostics", "unsupported_predicates")
