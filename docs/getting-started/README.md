@@ -6,8 +6,15 @@ software-defined vehicles (SDVs): SysML v2 models, product-line engineering,
 digital continuity, simulation interoperability, and continuous compliance
 work. It is also a workstream within the INCOSE Automotive Working Group.
 
-This guide gets you oriented. If you want to contribute, read
-[`CONTRIBUTING`](../../CONTRIBUTING.md) afterwards.
+**Start with [DE4SDV through one case study](case-study.md)** for a
+plain-language tour of the configurable SDV stack and product line, the
+emergency-braking capability that exercises it, the engineering and CI/CD
+workflow, and bounded contribution tasks. No tools or modeling background are
+needed to read it.
+
+This guide then covers repository layout, model exploration, and local checks.
+If you want to contribute, read [`CONTRIBUTING`](../../CONTRIBUTING.md)
+afterwards.
 
 ## What DE4SDV is working on
 
@@ -125,8 +132,11 @@ python scripts/smoke_test.py
 git diff --check
 ```
 
-These are the public gates that CI runs on pull requests. SysML v2 textual
-validation is a separate, privileged step — see
+These are quick local checks, not the complete PR gate. Public CI also checks
+documentation links, runs the complete project test suite, and runs isolated
+bench unit/contract suites; see the [CI workflow](../../.github/workflows/ci.yml)
+and [contribution workflow](../../CONTRIBUTING.md#pull-request-workflow).
+SysML v2 textual validation is separate — see
 [`CONTRIBUTING`](../../CONTRIBUTING.md#sysml-v2-validation-gate) for the two
 validation paths.
 

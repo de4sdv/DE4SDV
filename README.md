@@ -1,15 +1,26 @@
 # DE4SDV — Digital Engineering for Software-Defined Vehicle
 
-An open-source project for **digitally engineered, configurable, continuously
-certifiable software-defined vehicle (SDV) product lines**. DE4SDV applies
-model-based systems engineering with SysML v2, product-line engineering, digital
-continuity, simulation interoperability, and continuous compliance — so that
-SDV variability across application domains (such as ADAS, telematics,
-connectivity), middleware, hardware abstraction layer and adapter layer is modeled explicitly as configurable
-architectures, enabling systematic comparison of alternatives, transparent
-trade-off decisions, and lifecycle-wide assurance.
+When a vehicle's software or hardware changes, which designs and tests need
+to change with it? DE4SDV builds an open engineering reference that connects
+requirements, system models, vehicle configurations, implementations, and
+test evidence so engineers can inspect those dependencies and identify gaps.
+
+The goal is **digitally engineered, configurable, continuously certifiable
+software-defined vehicle (SDV) product lines**, using model-based systems
+engineering with SysML v2, product-line engineering, simulation, and lifecycle
+traceability. SDV variability across application domains — such as ADAS,
+telematics, connectivity, middleware, hardware abstraction layer, and adapter
+layer — is modeled explicitly as configurable architectures, enabling
+systematic comparison of alternatives, transparent trade-off decisions, and
+lifecycle-wide assurance. Reference examples are not certified vehicles or
+regulatory approvals.
 
 DE4SDV is a workstream within the INCOSE Automotive Working Group.
+
+**New here? Start with [DE4SDV through one case study](docs/getting-started/case-study.md):**
+the configurable SDV stack and product line, the emergency-braking capability
+that exercises it, how the engineering and CI/CD workflow fits together, and
+small tasks you can contribute without knowing the whole project.
 
 ## Vision
 
