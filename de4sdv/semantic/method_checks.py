@@ -345,7 +345,9 @@ def _subject_is_system_of_interest(view: ModelView, increment: IncrementScope, s
     increment definition (or a specialization) violates the rule whatever the
     charter declares. Otherwise the subject must be, or narrow, a usage the
     charter references in ``systemOfInterest``, or be typed by one of its
-    types (or a specialization). Without that declaration the comparison is
+    types (or a specialization); the charter may also declare the system of
+    interest by type alone. The match is type-level: another usage of the
+    same definition passes too. Without that declaration the comparison is
     an open input, not a violation.
     """
     name = _name(view, subject_id)
@@ -394,9 +396,11 @@ def increment_content_outside_scope(view: ModelView, increment: IncrementScope) 
 
     Increment content is the increment usage itself, a requirement or need
     connected by DerivesFromNeed to an element in scope, a verification case
-    verifying a requirement in scope, and an element referencing the
-    increment usage. Such content in a package the charter does not name is
-    never evaluated by the checks, so it is reported here. Raises
+    verifying a requirement in scope, a requirement verified by a
+    verification case in scope, and an element referencing the increment
+    usage (only the usage: a reference to another increment element is not
+    content). Such content in a package the charter does not name is never
+    evaluated by the checks, so it is reported here. Raises
     :class:`MethodSideInput` when the DerivesFromNeed lineage is unbound.
     """
     packages = set(increment.scope_packages)
@@ -423,11 +427,15 @@ def increment_content_outside_scope(view: ModelView, increment: IncrementScope) 
             if end not in scope:
                 note(end, f"derives through {_name(view, connection)} with {_name(view, inside[0])}")
     for case in index.elements_of_type("VerificationCaseUsage", "VerificationCaseDefinition"):
+        verified = check_relation(view, "verify", case).targets
         if case in scope:
+            for target in verified:
+                if target not in scope:
+                    note(target, f"verified by {_name(view, case)}")
             continue
-        verified = [target for target in check_relation(view, "verify", case).targets if target in scope]
-        if verified:
-            note(case, f"verifies {_name(view, verified[0])}")
+        inside = [target for target in verified if target in scope]
+        if inside:
+            note(case, f"verifies {_name(view, inside[0])}")
     if increment.usage_id:
         for relationship in index.elements_of_type("ReferenceSubsetting"):
             element = index.element(relationship)
@@ -572,9 +580,9 @@ REMEDIES: Mapping[str, str] = MappingProxyType({
                                  "<usage>;) and take it as the subject of {subject}: subject <name> :> <usage>; "
                                  "(never the increment)",
     "charterExpectedArtifactsCoverContent": "add to the expectedArtifacts of {subject} every top-level package "
-                                            "holding increment content (elements that derive from, verify or "
-                                            "reference the increment's elements), or move that content into a "
-                                            "named package",
+                                            "holding increment content (elements connected by DerivesFromNeed to, "
+                                            "verifying, or verified by the increment's elements, or referencing "
+                                            "the increment usage), or move that content into a named package",
     "oneVerificationMethodKind": "set on {subject}: attribute :>> verificationMethod = \"<kind>\"; (one of " + _KINDS + ")",
     "successCriteriaAttribute": "set on {subject}: attribute :>> successCriteria = \"<the observable conditions under "
                                 "which verification shows the requirement is met>\";",

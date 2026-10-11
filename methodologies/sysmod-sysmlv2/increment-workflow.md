@@ -50,17 +50,23 @@ this shape, which the method checks read:
   increment usage and its charter. Nothing else puts content in scope: a
   subject typed by the increment or a `references` to the increment usage
   does not. Content in a package that is not named is never evaluated, so an
-  advisory check reports a package that holds increment content (elements
-  that derive from, verify or reference the increment's elements) but is not
-  named.
-- **System of interest:** the charter names it by reference,
-  `ref part :>> systemOfInterest = <usage>;`, a part usage in the
-  increment's packages such as the test system or the product line the
-  increment specifies. The needs and requirements take that system of
-  interest as their subject, never the increment: a requirement reads
-  "the system shall ...", so its subject is the system it constrains. An
-  advisory check reports a need or requirement whose subject is the
-  increment or is not the declared system of interest.
+  advisory check reports a package that holds increment content but is not
+  named: the increment usage itself, elements connected by `DerivesFromNeed`
+  to an element in scope, verification cases that verify an in-scope
+  requirement, requirements verified by an in-scope verification case, and
+  elements that reference the increment usage (a reference to any other
+  increment element does not count).
+- **System of interest:** the charter names it by reference to a usage,
+  `ref part :>> systemOfInterest = <usage>;`, such as the test system or the
+  product line the increment specifies, or by type,
+  `ref part :>> systemOfInterest : <Definition>;`. The needs and
+  requirements take that system of interest as their subject, never the
+  increment: a requirement reads "the system shall ...", so its subject is
+  the system it constrains. A subject matches when it is, narrows, or is
+  typed by the declared system of interest's definition or a specialization
+  of it; the match is type-level, so another usage of that definition also
+  passes. An advisory check reports a need or requirement whose subject is
+  the increment or is not the declared system of interest.
 - **Charter content:** the problem statement, whose native subject is typed by
   the increment definition, with its stakeholders; the engineering question;
   the lifecycle decision; the assumptions; the scope and the out-of-scope
@@ -84,8 +90,10 @@ These method rules apply to every increment:
    least one concern framed by a viewpoint, scope and out-of-scope, and owner.
    It also declares which phases apply. Owner, expected artifacts and expected
    review evidence are plain attributes, not new kernel classes.
-2. **Needs.** Each need has a statement, at least one stakeholder, an ODE4HERA
-   source and rationale, and at least one planned validation scenario. Its
+2. **Needs.** Each need owns a statement (a `require constraint` of its own;
+   one inherited from its definition does not count), has at least one
+   stakeholder, an ODE4HERA source and rationale, and at least one planned
+   validation scenario. Its
    subject is the system of interest the charter declares, never the
    increment (advisory).
 3. **Needs and concerns.** Only viewpoints frame concerns. A need doesn't
@@ -96,8 +104,10 @@ These method rules apply to every increment:
    that every `frame` in the model belongs to a viewpoint.
 4. **Requirement to need.** Only the governed `DerivesFromNeed` connection
    counts. Plain dependencies don't.
-5. **Requirement.** A requirement has a statement, exactly one native subject
-   and exactly one primary verification method from the standard kinds. Its
+5. **Requirement.** A requirement owns a statement (a `require constraint` of
+   its own; one inherited from its definition does not count), has exactly
+   one native subject and exactly one primary verification method from the
+   standard kinds. Its
    subject is the system of interest the charter declares, never the
    increment (advisory).
 6. **Verification.** Each verification case verifies at least one requirement

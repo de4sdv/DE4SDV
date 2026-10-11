@@ -35,8 +35,11 @@ No element is identified by its name. Member names (`workflow`, `phase`,
   the charter does not name is never evaluated;
   `charterExpectedArtifactsCoverContent` reports such a package (advisory).
 - **Subject.** Needs and requirements take the increment's system of interest
-  as subject, the usage the charter references in `systemOfInterest`, never
-  the increment; `subjectIsSystemOfInterest` reports a deviation (advisory).
+  as subject, the one the charter declares in `systemOfInterest` by
+  reference to a usage or by type, never the increment. A subject matches
+  when it is, narrows, or is typed by that system of interest's definition or
+  a specialization of it (type-level: another usage of the definition also
+  passes); `subjectIsSystemOfInterest` reports a deviation (advisory).
 - **Population.** The parameter's multiplicity bounds the number of subjects:
   `[1]` means exactly one, `[0..*]` lets an empty population mean "does not
   apply".

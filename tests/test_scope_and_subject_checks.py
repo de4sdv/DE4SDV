@@ -293,6 +293,22 @@ def test_a_verification_case_verifying_an_increment_requirement_in_an_unnamed_pa
     assert "strayVerification (verifies" in " ".join(charter_result.diagnostics)
 
 
+def test_a_requirement_verified_by_an_in_scope_case_in_an_unnamed_package_is_reported() -> None:
+    """The named evidence package's case verifies requirements that live in a package the charter dropped."""
+    scenario = _conforming_scenario()
+    b = scenario.builder
+    b.remove(b.feature_of(scenario.charter, "expectedArtifacts"))
+    b.attribute(scenario.charter, "expectedArtifacts", ["DE4SDV_FixtureFraming", "DE4SDV_FixtureVerificationEvidence"])
+    evaluation = _evaluate(scenario)
+    assert _unit(evaluation, COVERAGE).verdict == me.VERDICT_FAIL
+    (charter_result,) = _children(evaluation, COVERAGE).values()
+    diagnostics = " ".join(charter_result.diagnostics)
+    assert "DE4SDV_FixtureNeedsRequirements" in diagnostics
+    # The verifying objective is owned by the case definition, so either it or its usage is named.
+    assert "DE4SDV_FixtureNeedsRequirements::requirement0 (verified by DE4SDV_FixtureVerificationEvidence::" in diagnostics
+    assert _note(evaluation, COVERAGE)["kind"] == "violation"
+
+
 def test_a_package_that_only_references_the_increment_usage_is_reported() -> None:
     scenario = _conforming_scenario()
     b = scenario.builder

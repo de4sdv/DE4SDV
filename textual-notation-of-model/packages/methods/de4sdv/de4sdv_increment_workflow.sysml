@@ -46,7 +46,11 @@ package DE4SDV_IncrementWorkflow {
     ref part systemOfInterest[0..1] {
       doc /* The system of interest: the entity the increment's needs and requirements
            * take as subject, never the increment itself. An increment sets it by
-           * reference to a usage of its packages: ref part :>> systemOfInterest = <usage>; */
+           * reference to a usage (ref part :>> systemOfInterest = <usage>;) or by type
+           * (ref part :>> systemOfInterest : <Definition>;). A subject matches it when
+           * it is, narrows, or is typed by that usage's definition or a specialization
+           * of it: the match is type-level, so another usage of the definition also
+           * matches. */
     }
     action workflow : IncrementWorkflow {
       doc /* The workflow this increment follows; an increment may tailor it later by redefinition. */
@@ -161,8 +165,10 @@ package DE4SDV_IncrementWorkflow {
       :>> check = "charterExpectedReviewEvidence";
     }
     metadata expectedArtifactsCoverIncrementContent : MethodCheck about charter {
-      doc /* Advisory: the expected artifacts name every top-level package holding increment content
-           * (elements that derive from, verify or reference the increment's elements); content in a
+      doc /* Advisory: the expected artifacts name every top-level package holding increment content:
+           * the increment usage, elements connected by DerivesFromNeed to an element in scope,
+           * verification cases verifying an in-scope requirement, requirements verified by an
+           * in-scope verification case, and elements referencing the increment usage. Content in a
            * package they do not name is never evaluated. No completeness claim. */
       :>> check = "charterExpectedArtifactsCoverContent";
       :>> advisory = true;
@@ -227,7 +233,7 @@ package DE4SDV_IncrementWorkflow {
       :>> check = "hasValidationScenario";
     }
     metadata needSubjectIsSystemOfInterest : MethodCheck about needs {
-      doc /* Advisory: each need's subject is the system of interest the charter declares, never the increment; no satisfaction claim. */
+      doc /* Advisory: each need's subject is the system of interest the charter declares (matched by its usage or its definition's lineage), never the increment; no satisfaction claim. */
       :>> check = "subjectIsSystemOfInterest";
       :>> advisory = true;
     }
@@ -258,7 +264,7 @@ package DE4SDV_IncrementWorkflow {
       :>> check = "oneNativeSubject";
     }
     metadata requirementSubjectIsSystemOfInterest : MethodCheck about requirements {
-      doc /* Advisory: each requirement's subject is the system of interest the charter declares, never the increment; no satisfaction claim. */
+      doc /* Advisory: each requirement's subject is the system of interest the charter declares (matched by its usage or its definition's lineage), never the increment; no satisfaction claim. */
       :>> check = "subjectIsSystemOfInterest";
       :>> advisory = true;
     }
