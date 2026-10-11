@@ -247,7 +247,13 @@ def test_public_ask_workflow_is_exact_sha_gated_and_does_not_ingest():
     assert "--adapter caddyfile </dev/null" in workflow
     assert "caddy validate" in workflow
     assert "--live-query" in workflow
-    assert "if: failure()" in workflow
+    deploy_steps = yaml.safe_load(workflow)["jobs"]["deploy"]["steps"]
+    activate = next(s for s in deploy_steps if s.get("id") == "activate")
+    rollback = next(s for s in deploy_steps if s.get("name", "").startswith("Roll back source"))
+    assert activate["name"] == "Transfer and activate the fail-closed Ask service"
+    assert rollback["if"] == (
+        "failure() && (steps.activate.outcome == 'failure' || steps.activate.outcome == 'success')"
+    )
     assert "Remove runner secret material" in workflow
     assert "if: always()" in workflow
     assert "sysand sync" not in workflow

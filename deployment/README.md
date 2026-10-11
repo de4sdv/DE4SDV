@@ -314,8 +314,13 @@ release gate: revision, export digest, served model, binding and kernel
 bindings, the runtime answers over the export (K pair, EvidenceContract
 closure, VerificationCase grounding), coverage and the battery identities.
 
-The CI import rehearsal in step 1 (about 40 minutes) stays for two releases
-after the ceremony retirement, then it is dropped.
+The CI import rehearsal in step 1 stays for two releases after the ceremony
+retirement, then it is dropped. It still includes the full import, two
+candidate imports, correspondence, pilot read-back and the three API
+batteries. Release duration under this contract is not yet measured: those
+retained slow steps took 11,705 seconds (about 195 minutes), before deployment,
+in [run 38095581274](https://github.com/de4sdv/DE4SDV/actions/runs/38095581274).
+That is a historical planning baseline, not a new-contract performance result.
 
 During the first two releases after the retirement, leave the 063c4fb1 lines in
 `/srv/de4sdv/sysml2-api.env` (`DE4SDV_SEMANTIC_AUTHORITY`,
@@ -332,18 +337,25 @@ its own workflow definition and verifier, so dispatch it from the
 `release-2026-10-11` tag. Main's deploy workflows refuse that revision before
 any host change.
 
+Before step 1, set `ARTIFACT_RUN_ID=38095581274` only while its
+`full-model-api-ingestion-063c4fb1f2763a366874118f3b78d9841e0d11b4` artifact
+is unexpired. Use the same verified run ID for redeploy and R5. After expiry,
+obtain a fresh run as described below; the local archive alone does not
+satisfy either command's provider checks.
+
 ```bash
 # 0. Once, before it is needed (a repository write: Orkun).
 git tag -a release-2026-10-11 063c4fb1f2763a366874118f3b78d9841e0d11b4 -m "method release: production at 063c4fb1" && git push origin release-2026-10-11
 
 # 1. Redeploy 063c4fb1 with its own workflow; approve sysml-api-production.
+: "${ARTIFACT_RUN_ID:?set to a successful run with an unexpired exact-SHA artifact}"
 gh workflow run deploy-public-sysml-api.yml --repo de4sdv/DE4SDV --ref release-2026-10-11 \
-  -f git_sha=063c4fb1f2763a366874118f3b78d9841e0d11b4 -f artifact_run_id=38095581274 \
+  -f git_sha=063c4fb1f2763a366874118f3b78d9841e0d11b4 -f artifact_run_id="$ARTIFACT_RUN_ID" \
   -f expected_semantic_authority=mab-32da05b896fee9d5a47874e7f305f741
 
 # 2. Re-close its bundle at the new deployment binding (the redeploy minted new
 #    project/commit UUIDs, so the earlier deployment-bound closure no longer fits).
-~/release/r5-closure.sh 063c4fb1f2763a366874118f3b78d9841e0d11b4 38095581274 \
+~/release/r5-closure.sh 063c4fb1f2763a366874118f3b78d9841e0d11b4 "$ARTIFACT_RUN_ID" \
   mab-32da05b896fee9d5a47874e7f305f741 --apply
 
 # 3. Install the re-closed bundle and recreate only the ask-viewer.
@@ -355,12 +367,33 @@ gh workflow run deploy-public-sysml-api.yml --repo de4sdv/DE4SDV --ref release-2
 This is the R4→R5→R6 sequence that activated 063c4fb1 on 2026-10-11 (each
 release-kit script runs as a dry run without `--apply` first; agents re-point
 with `~/release/r7-agent-rebind.md`). It takes about 2.5 hours. Between steps 1 and 3 the Ask viewer answers only on
-the labeled regex path. Run 38095581274's artifacts expire on
-2026-10-25T02:52:40Z. After that, step 1 needs a fresh privileged run of
-063c4fb1 from the tag (about 4 hours), and step 2 must read the local archive
-in `~/release/archive/063c4fb1/`. After the second release under this
-contract, the previous release is itself a contract release, and its rollback
-is step 1 alone (`--ref main`, no bundle).
+the labeled regex path. Run 38095581274's full-model ingestion artifact expires
+on 2026-10-25T02:52:40Z. After that, before step 1, Orkun dispatches a fresh
+privileged run using the old workflow at the rollback tag:
+
+```bash
+gh workflow run privileged-full-model-api-ingestion.yml --repo de4sdv/DE4SDV \
+  --ref release-2026-10-11 -f ref=063c4fb1f2763a366874118f3b78d9841e0d11b4
+# After completion and evidence review:
+ARTIFACT_RUN_ID=<new-successful-run-id>
+```
+
+Verify the run checked out the exact old SHA, `ingest-and-validate` succeeded,
+and the exact-SHA ingestion artifact exists once and is unexpired. Then run
+steps 1–3 with that run ID. R5 validates and downloads that provider artifact;
+it has no archive-consumption option. Keep `~/release/archive/063c4fb1/` for
+recovery and diagnosis, not as an undocumented replacement for its download.
+The fresh run's duration is not guaranteed by the historical estimate.
+
+After the second release under this contract, the previous release is itself
+a contract release, and its rollback is step 1 alone (`--ref main`, no bundle).
+
+The separate Ask deployment refuses pre-retirement revisions before SSH
+setup. Its failure rollback runs only after activation was attempted and
+requires the exact run-attempt backup and promotion marker to match the
+requested SHA. Refusal, an unrelated backup or a foreign live revision cannot
+authorize it to replace the source or recreate Ask/Caddy. Success cleanup
+likewise removes only that attempt's owned recovery material.
 
 ## Known limitations
 
