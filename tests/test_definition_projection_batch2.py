@@ -146,6 +146,9 @@ def test_admitted_set_is_exactly_the_derived_family():
     assert not set(rows) & set(MIGRATED_IDENTITIES)
     assert not set(rows) & other
     by_class: dict[str, set[str]] = {}
+    # Kind-consistency guard only: ADMISSION_CLASSES is the generator's own table.
+    # The per-identity class is locked to the frozen D9 record in
+    # test_reviewed_fields_equal_the_pre_deletion_evidence.
     for identity, row in rows.items():
         admission = row["admission_class"]
         assert admission in ADMISSION_CLASSES, (identity, admission)
@@ -212,6 +215,9 @@ def test_reviewed_fields_equal_the_pre_deletion_evidence():
     assert set(held["entries"]) == set(rows)
     for identity, row in rows.items():
         entry = held["entries"][identity]
+        # Each identity's admission class is locked to the frozen record, which
+        # is independent of the generator (a relabel needs a reviewed update).
+        assert row["admission_class"] == entry["admission_class"], identity
         assert entry["equal"] is True, identity
         assert manifest_held_values(row) == entry["manifest"], identity
         if entry["authored"] is not None:
