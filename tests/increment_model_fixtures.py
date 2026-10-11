@@ -286,6 +286,16 @@ class ModelBuilder:
         self.typed(subject, typed_by)
         return subject
 
+    def subject_narrowing(self, requirement: dict[str, Any], target: dict[str, Any],
+                          name: str = "subj") -> dict[str, Any]:
+        """``subject <name> :> <target>;``: a subject subsetting a usage (the export's Subsetting shape)."""
+        subject = self.new("ReferenceUsage", name=name, source=self.sources[requirement["@id"]],
+                           direction="in")
+        self.own(requirement, subject, kind="SubjectMembership", member_name=name)
+        self.relationship("Subsetting", subject, general=ref(target), specific=ref(subject),
+                          subsettedFeature=ref(target), subsettingFeature=ref(subject))
+        return subject
+
     def stakeholder(self, owner: dict[str, Any], name: str, typed_by: dict[str, Any]) -> dict[str, Any]:
         part = self.new("PartUsage", name=name, source=self.sources[owner["@id"]], direction="in")
         self.own(owner, part, kind="StakeholderMembership", member_name=name)

@@ -28,8 +28,8 @@ declarations:
     metadata def MethodCheck: method-rule annotation of a workflow step parameter (check identifier, minimum,
       advisory); evaluation-policy data, not an ontology class or a result status
     part def IncrementCharter: increment charter declaration specializing IncrementTraceObligations with owner,
-      expected artifacts and expected review evidence as plain attributes; declaration helper, not an additional
-      ontology class or completion evidence
+      expected artifacts and expected review evidence as plain attributes and the system of interest by
+      reference; declaration helper, not an additional ontology class or completion evidence
     action def IncrementStep: abstract increment-workflow step carrying the method phase it performs; method
       structure, not an ontology class
     action def IncrementWorkflow: increment workflow (method steps in order with their artifact flows); method

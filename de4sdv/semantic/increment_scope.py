@@ -23,7 +23,12 @@ relationships only:
   through nested packages. Features of those elements (for example the
   framed-concern members of a need) are not scope elements. A declared name
   without exactly one top-level package leaves the scope unresolved (a
-  problem), never narrower.
+  problem), never narrower. Nothing else puts an element in scope: neither
+  a subject typed by the increment nor a ``references`` to the increment
+  usage;
+- the increment's system of interest: the usages the charter references in
+  ``systemOfInterest`` (optional), the entity the increment's needs and
+  requirements take as subject, and the definitions typing them.
 
 An identity that cannot be established (for example a missing kernel binding
 or an ambiguous identifier) is recorded as a problem, never as an empty scope.
@@ -52,6 +57,8 @@ CHARTER_CLASS = "IncrementTraceObligations"
 PHASE_CLASS = "MethodPhase"
 #: Charter attribute naming the increment's packages.
 SCOPE_ATTRIBUTE = "expectedArtifacts"
+#: Charter feature referencing the increment's system of interest (optional).
+SYSTEM_OF_INTEREST_ATTRIBUTE = "systemOfInterest"
 _PACKAGE_TYPES = ("Package", "LibraryPackage")
 
 PROBLEM_UNAVAILABLE = "unavailable"
@@ -168,6 +175,10 @@ class IncrementScope:
     #: The elements the increment's own package (the owner of the increment
     #: usage and its charter) owns directly: the scope of the framing step.
     own_elements: tuple[str, ...] = ()
+    #: The usages the charter references in ``systemOfInterest``, in declared order.
+    system_of_interest: tuple[str, ...] = ()
+    #: The definitions typing the charter's ``systemOfInterest`` feature or the usages it references.
+    system_of_interest_types: tuple[str, ...] = ()
     problems: Mapping[str, tuple[str, str]] = field(default_factory=dict)
     diagnostics: tuple[str, ...] = ()
 
@@ -217,6 +228,8 @@ def resolve_increment(view: ModelView, increment_id: str) -> IncrementScope:
     scope_packages: tuple[str, ...] = ()
     scope_elements: tuple[str, ...] = ()
     own_elements: tuple[str, ...] = ()
+    system_of_interest: tuple[str, ...] = ()
+    system_of_interest_types: tuple[str, ...] = ()
     if usage_id is not None:
         definition_ids = tuple(sorted(index.typed_by(usage_id)))
         package_id = index.owner_of(usage_id)
@@ -231,6 +244,8 @@ def resolve_increment(view: ModelView, increment_id: str) -> IncrementScope:
             packages, unresolved = declared_artifacts(view, charters[0])
             scope_packages = tuple(packages)
             scope_elements = _ordered(view, [e for package in packages for e in _package_contents(view, package)])
+            usages, types = declared_system_of_interest(view, charters[0])
+            system_of_interest, system_of_interest_types = tuple(usages), tuple(types)
             if unresolved or not packages:
                 scope_problem = (f"{SCOPE_ATTRIBUTE} {', '.join(unresolved)} name no single top-level package"
                                  if unresolved else f"the charter declares no {SCOPE_ATTRIBUTE}")
@@ -257,6 +272,8 @@ def resolve_increment(view: ModelView, increment_id: str) -> IncrementScope:
         scope_packages=scope_packages,
         scope_elements=scope_elements,
         own_elements=own_elements,
+        system_of_interest=system_of_interest,
+        system_of_interest_types=system_of_interest_types,
         problems=problems,
         diagnostics=tuple(diagnostics),
     )
@@ -362,3 +379,17 @@ def declared_artifacts(view: ModelView, charter: str) -> tuple[list[str], list[s
         elif matches[0] not in packages:
             packages.append(matches[0])
     return packages, unresolved
+
+
+def declared_system_of_interest(view: ModelView, charter: str) -> tuple[list[str], list[str]]:
+    """The usages the charter's ``systemOfInterest`` references, and the definitions typing
+    that feature or those usages. Both are empty when the charter declares none."""
+    usages: list[str] = []
+    for leaf in view.index.feature_values(charter, SYSTEM_OF_INTEREST_ATTRIBUTE):
+        if leaf.kind == "reference" and leaf.value in view.index.by_id and leaf.value not in usages:
+            usages.append(leaf.value)
+    feature = view.index.feature(charter, SYSTEM_OF_INTEREST_ATTRIBUTE)
+    types: set[str] = set(view.index.typed_by(feature)) if feature is not None else set()
+    for usage in usages:
+        types |= view.index.typed_by(usage)
+    return usages, sorted(types)

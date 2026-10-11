@@ -18,9 +18,9 @@ about a parameter (`check`, `minimum`, `advisory`). Members, phase and check
 values may be inherited from the definitions a step or check specializes; a
 redefinition replaces what it redefines, so an increment can tailor a step.
 No element is identified by its name. Member names (`workflow`, `phase`,
-`check`, `increment`, `applicablePhases`, `expectedArtifacts`) select features
-of elements reached that way, and `expectedArtifacts` names top-level packages
-by their declared names.
+`check`, `increment`, `applicablePhases`, `expectedArtifacts`,
+`systemOfInterest`) select features of elements reached that way, and
+`expectedArtifacts` names top-level packages by their declared names.
 
 - **Scope.** A check's subjects are the elements that conform to the
   parameter (typed by its type, or of its usage kind when it is untyped). For
@@ -31,7 +31,12 @@ by their declared names.
   steps' subjects unresolved, never narrower, and fails
   `incrementDeclaresExpectedArtifacts`. On framing subjects
   `ownedByIncrementPackage` holds by construction; the population bounds carry
-  that rule until a model change removes the redundancy.
+  that rule until a model change removes the redundancy. Content in a package
+  the charter does not name is never evaluated;
+  `charterExpectedArtifactsCoverContent` reports such a package (advisory).
+- **Subject.** Needs and requirements take the increment's system of interest
+  as subject, the usage the charter references in `systemOfInterest`, never
+  the increment; `subjectIsSystemOfInterest` reports a deviation (advisory).
 - **Population.** The parameter's multiplicity bounds the number of subjects:
   `[1]` means exactly one, `[0..*]` lets an empty population mean "does not
   apply".

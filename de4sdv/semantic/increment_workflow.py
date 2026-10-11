@@ -34,7 +34,8 @@ Contract, one obligation per check:
   or a specialization of it, or, for an untyped parameter such as
   ``out verification cases[1..*]``, of its usage kind) in the framing step's
   scope, the increment's own package (the mandatory step: framing always
-  applies), or in a later step's scope, the packages the charter declares;
+  applies), or in a later step's scope, the packages the charter names in
+  ``expectedArtifacts``;
 - population: within the parameter's multiplicity (no multiplicity: exactly
   one); a lower bound of 0 permits an empty population;
 - cardinality: ``minimum`` distinct targets, bounded above where the check
@@ -417,7 +418,7 @@ def _check(view: ModelView, metadata: str, step_name: str, phase: str, parameter
         maximum_population=upper,
     )
     label = {"step": step_name, "parameter": parameters[parameter],
-             "scope": "declared packages" if optional else "increment package",
+             "scope": "packages named in the charter's expectedArtifacts" if optional else "increment package",
              "direction": str(index.element(parameter).get("direction") or ""),
              "subject_type": (index.qualified_name(types[0]) or types[0]) if types else kind, "check": check_id,
              "check_definition": index.qualified_name(sorted(index.typed_by(metadata))[0])}

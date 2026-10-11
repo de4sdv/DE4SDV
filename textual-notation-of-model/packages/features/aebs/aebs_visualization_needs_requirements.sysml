@@ -10,11 +10,11 @@
  *
  * All requirements are System 2 engineering-instrumentation candidates.
  * None is a System 1 product obligation, and none prescribes TCP, protobuf,
- * SDV Gateway, Java, or Cuttlefish. Each requirement's subject is the
- * visualization test system framed for INC-AEBS-010
+ * SDV Gateway, Java, or Cuttlefish. Each need's and requirement's subject is
+ * the visualization test system framed for INC-AEBS-010
  * (DE4SDV_AEBSVisualizationFraming::system2VisualizationInstrument), the
- * entity its statement constrains; the increment is the subject of the
- * problem statement and the needs, not of the requirements.
+ * system of interest its charter references and the entity each statement
+ * is about; the increment is the subject of the problem statement only.
  */
 
 package DE4SDV_AEBSVisualizationNeedsRequirements {
@@ -54,7 +54,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
   package VisualizationNeeds {
     requirement needLiveVisualizationOnAAOS : VisualizationEngineeringNeed {
       doc /* N-AEBS-009 draft System 2 need. */
-      subject increment : VisualizationIncrement;
+      subject visualizationTestSystem :> system2VisualizationInstrument;
       stakeholder systemsEngineer : SystemsEngineer;
       stakeholder reviewer : OpenSourceReviewer;
       require constraint statement { language "English" /* Systems engineers and reviewers need live AEBS threat and intervention state visible on an actual AAOS SDV display so that stakeholder-visible AEBS behavior can be reviewed without a host-side substitute. */ }
@@ -64,7 +64,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     }
     requirement needPreservedSourceProvenance : VisualizationEngineeringNeed {
       doc /* N-AEBS-010 draft System 2 need. */
-      subject increment : VisualizationIncrement;
+      subject visualizationTestSystem :> system2VisualizationInstrument;
       stakeholder systemsEngineer : SystemsEngineer;
       stakeholder verificationEngineer : VerificationEngineer;
       require constraint statement { language "English" /* Systems engineers need source provenance, units, coordinate frame, timestamps, rate and freshness, validity, and bounded displayed cardinality preserved between native Autoware output, DE4SDV AEBS coordination state, and display-derived presentation. */ }
@@ -74,7 +74,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     }
     requirement needFailClosedDegradation : VisualizationEngineeringNeed {
       doc /* N-AEBS-011 draft System 2 need. */
-      subject increment : VisualizationIncrement;
+      subject visualizationTestSystem :> system2VisualizationInstrument;
       stakeholder systemsEngineer : SystemsEngineer;
       stakeholder maintainer : Maintainer;
       require constraint statement { language "English" /* Systems engineers and maintainers need stale, unavailable, invalid, and restored display behavior so that a lost or invalid source cannot be misread as current AEBS state. */ }
@@ -84,7 +84,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     }
     requirement needCorrelatableEvidence : VisualizationEngineeringNeed {
       doc /* N-AEBS-012 draft System 2 need. */
-      subject increment : VisualizationIncrement;
+      subject visualizationTestSystem :> system2VisualizationInstrument;
       stakeholder verificationEngineer : VerificationEngineer;
       require constraint statement { language "English" /* Verification engineers need source-to-screen correlation and replayable evidence so that displayed states can be traced to observed source events. */ }
       attribute :>> status = ReqStatus::InDevelopment;
@@ -93,7 +93,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     }
     requirement needNonInterference : VisualizationEngineeringNeed {
       doc /* N-AEBS-013 draft System 2 need. */
-      subject increment : VisualizationIncrement;
+      subject visualizationTestSystem :> system2VisualizationInstrument;
       stakeholder maintainer : Maintainer;
       stakeholder verificationEngineer : VerificationEngineer;
       require constraint statement { language "English" /* Maintainers and verification engineers need assurance that visualization instrumentation cannot command or modify AEBS detection, warning, intervention, or release behavior. */ }
