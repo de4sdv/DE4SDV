@@ -94,13 +94,16 @@ package DE4SDV_AEBSVisualizationFraming {
      * governed trace scope selected for this increment; the later declared
      * phases add trace obligations, never remove the governed minimum. Owner,
      * expected artifacts and expected review evidence are declarations, not
-     * completion or review evidence.
+     * completion or review evidence. The system of interest is the
+     * visualization test system: the needs and requirements take it as their
+     * subject, the problem statement keeps the increment.
      */
     ref part :>> selectedMethod = DE4SDV_MethodTraces::approvedScopedTraceMethod;
     attribute :>> scopeKind = "requirements";
     attribute :>> applicablePhases = (MethodPhase::phase0_incrementFraming, MethodPhase::phase1_concernFraming, MethodPhase::phase2_operationalContext, MethodPhase::phase3_capabilityClassification, MethodPhase::phase4_needs, MethodPhase::phase5_requirements, MethodPhase::phase6_functionalArchitecture, MethodPhase::phase7_logicalArchitecture, MethodPhase::phase8_physicalRealization, MethodPhase::phase9_variabilityConfiguration, MethodPhase::phase10_vvEvidence);
     attribute :>> completionClaim = TraceCompletionClaim::requirementsReady;
     ref part :>> increment = DE4SDV_AEBSVisualizationFraming::incAEBS010;
+    ref part :>> systemOfInterest = DE4SDV_AEBSVisualizationFraming::system2VisualizationInstrument;
     attribute :>> owner = "DE4SDV maintainers";
     attribute :>> expectedArtifacts = ("DE4SDV_AEBSVisualizationFraming", "DE4SDV_AEBSVisualizationOperationalContext", "DE4SDV_AEBSVisualizationNeedsRequirements", "DE4SDV_AEBSVisualizationFunctionalArchitecture", "DE4SDV_AEBSVisualizationLogicalArchitecture", "DE4SDV_AEBSVisualizationPhysicalSoftwareRealization", "DE4SDV_AEBSVisualizationVariabilityConfiguration", "DE4SDV_AEBSVisualizationVerificationEvidence");
     attribute :>> expectedReviewEvidence = ("exact-head licensed SysML validation of the increment model slices", "repository gates check_repo and smoke_test at the reviewed head", "retained verification evidence records of the increment verification cases");
@@ -126,8 +129,9 @@ package DE4SDV_AEBSVisualizationFraming {
   part def AEBSVisualizationTestSystem :> System2EngineeringAndAssuranceSystem {
     doc /*
      * The INC-AEBS-010 system of interest: the System 2 visualization test
-     * system that observes System 1 AEBS behavior read-only. The design-input
-     * requirements REQ-AEBS-S2-002..021 are specified on it. Its logical and
+     * system that observes System 1 AEBS behavior read-only. The needs
+     * N-AEBS-009..013 and the design-input requirements REQ-AEBS-S2-002..021
+     * take it as their subject, and the charter references it. Its logical and
      * physical realizations specialize it and contain no System 1 part, so a
      * verification on a configured article counts through that typing.
      */

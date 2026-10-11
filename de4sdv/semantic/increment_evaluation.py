@@ -241,7 +241,8 @@ class IncrementEvaluation:
         else:
             bounds = f"between {lower} and {upper}"
         observed = unit.diagnostics[0] if unit.diagnostics else ""
-        where = "package" if gate.selector_kind == OWN_PACKAGE_SELECTOR else "declared packages"
+        where = ("package" if gate.selector_kind == OWN_PACKAGE_SELECTOR
+                 else "packages named in the charter's expectedArtifacts")
         return f"keep {bounds} {subject_type} in the increment's {where} ({observed})"
 
     def _subject(self, child: me.EvaluationResult) -> dict[str, Any]:

@@ -235,7 +235,7 @@ def plain_dependency_near_misses(view: ModelView, relation: str, subject_id: str
             f"{config.get('connection_definition')} connection does",)
 
 
-def _connection_ends(view: ModelView) -> dict[str, tuple[tuple[str, ...], str]]:
+def connection_ends(view: ModelView) -> dict[str, tuple[tuple[str, ...], str]]:
     """Connection usage -> (connected usages in end order, problem), once per corpus."""
 
     def build() -> dict[str, tuple[tuple[str, ...], str]]:
@@ -308,7 +308,7 @@ def connection_carried_check(relation: str) -> RelationCheck:
         hops: list[tuple[str, str]] = []
         problems: list[str] = []
         try:
-            for connection, (ends, problem) in sorted(_connection_ends(view).items()):
+            for connection, (ends, problem) in sorted(connection_ends(view).items()):
                 if not view.index.typed_by(connection) & carriers:
                     continue
                 if problem:

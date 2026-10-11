@@ -1,7 +1,8 @@
 /* DE4SDV increment workflow: method steps, their artifacts and their checks.
  * Source: methodologies/sysmod-sysmlv2/increment-workflow.md and the eight method
  * rules accepted by the owner on 2026-10-08 (rule 3 revised on 2026-10-09, rule 7 on
- * 2026-10-10). */
+ * 2026-10-10; the statement, subject and scope-coverage clauses of rules 5 and 7 added
+ * on 2026-10-11). */
 package DE4SDV_IncrementWorkflow {
   doc /* The increment workflow: one step per method phase, typed by a step
        * definition whose parameters are the artifacts it reads and produces. A
@@ -35,11 +36,22 @@ package DE4SDV_IncrementWorkflow {
   part def IncrementCharter :> IncrementTraceObligations {
     doc /* Charter declaration of one increment: the inherited increment reference,
          * trace method, scope kind, applicable phases and completion claim, plus the
-         * plain attributes owner, expected artifacts and expected review evidence. The
-         * rest of the charter is native content of the increment package. */
+         * plain attributes owner, expected artifacts and expected review evidence, and
+         * the system of interest by reference. The expected artifacts name the
+         * top-level packages the checks evaluate; content elsewhere is never evaluated.
+         * The rest of the charter is native content of the increment package. */
     attribute owner : String;
     attribute expectedArtifacts : String[1..*];
     attribute expectedReviewEvidence : String[1..*];
+    ref part systemOfInterest[0..1] {
+      doc /* The system of interest: the entity the increment's needs and requirements
+           * take as subject, never the increment itself. An increment sets it by
+           * reference to a usage (ref part :>> systemOfInterest = <usage>;) or by type
+           * (ref part :>> systemOfInterest : <Definition>;). A subject matches it when
+           * it is, narrows, or is typed by that usage's definition or a specialization
+           * of it: the match is type-level, so another usage of the definition also
+           * matches. */
+    }
     action workflow : IncrementWorkflow {
       doc /* The workflow this increment follows; an increment may tailor it later by redefinition. */
     }
@@ -82,7 +94,9 @@ package DE4SDV_IncrementWorkflow {
          * short identifier and a charter: problem statement, engineering question,
          * lifecycle decision, at least one assumption, stakeholder and viewpoint-framed
          * concern, scope and out-of-scope, and owner; it declares which phases apply.
-         * Owner, expected artifacts and expected review evidence are plain attributes. */
+         * Owner, expected artifacts and expected review evidence are plain attributes.
+         * The expected artifacts name the packages the checks evaluate. Advisory: they
+         * name every package holding increment content. */
     attribute :>> phase = MethodPhase::phase0_incrementFraming;
     out part increment : EngineeringIncrement;
     out part charter : IncrementCharter;
@@ -150,6 +164,15 @@ package DE4SDV_IncrementWorkflow {
       doc /* The charter lists at least one expected review evidence item; no review outcome claim. */
       :>> check = "charterExpectedReviewEvidence";
     }
+    metadata expectedArtifactsCoverIncrementContent : MethodCheck about charter {
+      doc /* Advisory: the expected artifacts name every top-level package holding increment content:
+           * the increment usage, elements connected by DerivesFromNeed to an element in scope,
+           * verification cases verifying an in-scope requirement, requirements verified by an
+           * in-scope verification case, and elements referencing the increment usage. Content in a
+           * package they do not name is never evaluated. No completeness claim. */
+      :>> check = "charterExpectedArtifactsCoverContent";
+      :>> advisory = true;
+    }
   }
 
   action def FrameConcerns :> IncrementStep {
@@ -181,7 +204,9 @@ package DE4SDV_IncrementWorkflow {
          * elaborated from the concerns that viewpoints frame and trace to them
          * through stakeholder, source and rationale. A need doesn't frame a
          * concern: it would then be satisfied only when the whole concern is
-         * addressed, while a need usually covers only part of one. */
+         * addressed, while a need usually covers only part of one. Advisory: a
+         * need takes the system of interest the charter declares as subject,
+         * never the increment. */
     attribute :>> phase = MethodPhase::phase4_needs;
     in requirement problemStatement : ProblemStatement;
     in concern concerns[0..*];
@@ -207,19 +232,29 @@ package DE4SDV_IncrementWorkflow {
       doc /* Each need has a planned validation scenario association; planning only, no validation result. */
       :>> check = "hasValidationScenario";
     }
+    metadata needSubjectIsSystemOfInterest : MethodCheck about needs {
+      doc /* Advisory: each need's subject is the system of interest the charter declares (matched by its usage or its definition's lineage), never the increment; no satisfaction claim. */
+      :>> check = "subjectIsSystemOfInterest";
+      :>> advisory = true;
+    }
   }
 
   action def SpecifyRequirements :> IncrementStep {
     doc /* What shall the system or product line do and how will those requirements be
          * verified? Rules: only DerivesFromNeed traces a requirement to a need, plain
-         * dependencies do not count; a requirement has exactly one native subject and
-         * one primary verification method of the standard kinds. Advisory: a
-         * requirement traces to a feature or common capability and states its success
-         * criteria. */
+         * dependencies do not count; a requirement has a statement, exactly one native
+         * subject and one primary verification method of the standard kinds. Advisory:
+         * a requirement's subject is the system of interest the charter declares, never
+         * the increment; a requirement traces to a feature or common capability and
+         * states its success criteria. */
     attribute :>> phase = MethodPhase::phase5_requirements;
     in requirement needs[0..*] : StakeholderNeedCandidate;
     out requirement requirements[1..*] : RequirementCandidate;
 
+    metadata requirementHasStatement : MethodCheck about requirements {
+      doc /* Each requirement owns a require constraint as its statement; no wording or verifiability claim. */
+      :>> check = "requireConstraint";
+    }
     metadata requirementDerivesFromNeed : MethodCheck about requirements {
       doc /* Each requirement derives from a need through DerivesFromNeed only; provenance, no satisfaction claim. */
       :>> check = "derivesRequirementFromNeed";
@@ -227,6 +262,11 @@ package DE4SDV_IncrementWorkflow {
     metadata requirementHasOneSubject : MethodCheck about requirements {
       doc /* Each requirement has exactly one native subject; no satisfaction claim. */
       :>> check = "oneNativeSubject";
+    }
+    metadata requirementSubjectIsSystemOfInterest : MethodCheck about requirements {
+      doc /* Advisory: each requirement's subject is the system of interest the charter declares (matched by its usage or its definition's lineage), never the increment; no satisfaction claim. */
+      :>> check = "subjectIsSystemOfInterest";
+      :>> advisory = true;
     }
     metadata requirementHasVerificationMethod : MethodCheck about requirements {
       doc /* Each requirement records exactly one of inspect, demo, test or analyze; planning only, no result. */

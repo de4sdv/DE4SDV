@@ -224,6 +224,23 @@ def test_requirement_subject_is_the_visualization_test_system() -> None:
         assert subjects == ["visualizationTestSystem :> system2VisualizationInstrument"], (usage, subjects)
 
 
+def test_need_subject_is_the_visualization_test_system() -> None:
+    """Needs take the system of interest as subject, never the increment (the problem statement keeps it)."""
+    needs = _read(NEEDS)
+    needs_only = needs.split("package VisualizationNeeds")[1].split("package VisualizationRequirements")[0]
+    subjects = re.findall(r"\bsubject\s+([^;]+);", needs_only)
+    assert len(subjects) == 5
+    assert set(subjects) == {"visualizationTestSystem :> system2VisualizationInstrument"}
+    assert "subject increment" not in needs
+
+
+def test_charter_declares_the_visualization_test_system_as_system_of_interest() -> None:
+    framing = _read(FRAMING)
+    charter = framing.split("part visualizationTraceObligations : IncrementCharter")[1].split("\n  }")[0]
+    assert ("ref part :>> systemOfInterest = DE4SDV_AEBSVisualizationFraming::system2VisualizationInstrument;"
+            in charter)
+
+
 def test_needs_stay_technology_neutral() -> None:
     needs = _read(NEEDS)
     needs_only = needs.split("package VisualizationRequirements")[0]
