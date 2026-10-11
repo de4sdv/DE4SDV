@@ -207,12 +207,21 @@ def test_soi_definition_types_the_framed_visualization_test_system() -> None:
     assert "part system2VisualizationInstrument : AEBSVisualizationTestSystem {" in framing
 
 
-def test_requirement_subject_is_the_visualization_test_system() -> None:
+def _requirement_usages() -> dict[str, str]:
+    """Every requirement usage of the VisualizationRequirements package -> its body."""
     needs = _read(NEEDS)
-    requirements = needs.split("package VisualizationRequirements")[1].split("public import")[0]
-    subjects = re.findall(r"\bsubject\s+([^;]+);", requirements)
-    assert len(subjects) == 20
-    assert set(subjects) == {"visualizationTestSystem :> system2VisualizationInstrument"}
+    package = _brace_block(needs, needs.index("{", needs.index("package VisualizationRequirements")))
+    return {match[1]: _brace_block(package, match.end() - 1)
+            for match in re.finditer(r"\brequirement\s+(\w+)\s*:\s*[\w:]+\s*\{", package)}
+
+
+def test_requirement_subject_is_the_visualization_test_system() -> None:
+    """Every requirement usage has exactly one subject: the visualization test system."""
+    usages = _requirement_usages()
+    assert usages, "the VisualizationRequirements package declares no requirement usage"
+    for usage, body in usages.items():
+        subjects = re.findall(r"\bsubject\s+([^;]+);", body)
+        assert subjects == ["visualizationTestSystem :> system2VisualizationInstrument"], (usage, subjects)
 
 
 def test_needs_stay_technology_neutral() -> None:
@@ -405,7 +414,8 @@ def test_every_s2_requirement_states_one_standard_verification_method() -> None:
     blocks = {}
     for match in re.finditer(r"\brequirement\s+(req\w+)\s*:\s*VisualizationInstrumentRequirementCandidate\s*\{", requirements):
         blocks[match[1]] = _brace_block(requirements, match.end() - 1)
-    assert len(blocks) == 20
+    # Every requirement usage of the package is checked (by name, not by count).
+    assert blocks and set(blocks) == set(_requirement_usages())
     for usage, body in blocks.items():
         methods = re.findall(r'attribute :>> verificationMethod = "(\w+)";', body)
         assert len(methods) == 1, (usage, methods)

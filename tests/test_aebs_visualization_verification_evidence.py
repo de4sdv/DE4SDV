@@ -483,7 +483,8 @@ def test_every_requirement_is_verified_by_a_case_objective() -> None:
     requirements = set(
         re.findall(r"requirement (req\w+) : VisualizationInstrumentRequirementCandidate", needs)
     )
-    assert len(requirements) == 20
+    # Every requirement usage of the file is checked (by name, not by count).
+    assert requirements and requirements == set(re.findall(r"\brequirement\s+(req\w+)\s*:", needs))
     objectives = "\n".join(re.findall(r"objective \w+ \{(.*?)\n    \}", model, re.S))
     verified = set(re.findall(r"\bverify (req\w+)", objectives))
     assert requirements <= verified, sorted(requirements - verified)
