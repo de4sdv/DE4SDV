@@ -26,12 +26,13 @@ SCRIPT = ROOT / "scripts" / "query_model_impact.py"
 
 
 def test_list_requirements_returns_every_declared_requirement_and_need():
-    """Exactly the requirement and need usages the requirements file declares
-    (each typed ``requirement <name> : <Type>``), each once: compared by name,
-    not by count."""
+    """Exactly the ``req``/``need`` usages the requirements file declares, each
+    once: compared by name, not by count. The expected set is read
+    independently of the tool (own comment stripping, declaration lines only)."""
     names = qmi.list_requirements()
-    code = qmi._strip_comments(qmi.REQUIREMENTS_FILE.read_text(encoding="utf-8"))
-    declared = set(re.findall(r"\brequirement\s+((?:req|need)[A-Za-z_]\w*)\s*:\s*\w", code))
+    text = qmi.REQUIREMENTS_FILE.read_text(encoding="utf-8")
+    code = re.sub(r"//[^\n]*", "", re.sub(r"/\*.*?\*/", "", text, flags=re.S))
+    declared = set(re.findall(r"^\s*requirement\s+((?:req|need)[A-Za-z_]\w*)\b", code, re.M))
     assert declared, "the AEBS requirements file declares no requirement or need usage"
     assert len(names) == len(set(names))
     assert set(names) == declared
