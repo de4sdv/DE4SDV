@@ -1,4 +1,4 @@
-"""Validation consumers under the model authority (O4 Wave C2; synthetic inputs)."""
+"""Validation consumers under the deployed runtime (synthetic inputs; no bundle)."""
 from __future__ import annotations
 
 import json
@@ -12,7 +12,6 @@ from scripts import validate_product_line_scope_api as scope
 from scripts import validate_semantic_mcp as mcp
 
 ROOT = Path(__file__).resolve().parents[1]
-MAB_ID = "mab-" + "b" * 32
 
 
 # -- import: model-built contract vs projection cross-check ------------------------------
@@ -136,10 +135,11 @@ def test_queries_model_requires_resolved_evidence_edges():
         queries.evidence_contract_state(_braking([]))
 
 
-def test_queries_model_bundle_id_must_be_literal(tmp_path):
-    with pytest.raises(ValueError, match="mab-"):
-        queries.run_queries(api_url="u", binding_path=tmp_path / "b", semantic_report_path=tmp_path,
-                            authority="model", model_bundle_id="mab-nothex")
+def test_queries_take_no_selector_or_bundle_arguments(tmp_path):
+    import inspect
+
+    assert set(inspect.signature(queries.run_queries).parameters) == {
+        "api_url", "binding_path", "semantic_report_path"}
 
 
 # -- MCP Proof A under model ------------------------------------------------------
@@ -185,43 +185,31 @@ def test_mcp_proof_a_is_the_resolved_range_only(monkeypatch):
     assert not hasattr(mcp, "_require_blocked_evidence_state")
 
 
-def test_mcp_server_arguments_carry_model_bundle(tmp_path):
-    args = mcp.server_authority_arguments(authority="model",
-                                          model_bundle_path=tmp_path / "mab.json",
-                                          model_bundle_id=MAB_ID)
-    assert args == ["--semantic-authority", "model",
-                    "--model-authority-bundle", str(tmp_path / "mab.json"),
-                    "--model-authority-bundle-id", MAB_ID]
-    candidate = mcp.server_authority_arguments(authority="model", model_bundle_path=None,
-                                               model_bundle_id=MAB_ID,
-                                               allow_candidate_bundle=True)
-    assert candidate[-1] == "--allow-candidate-bundle"
+def test_mcp_validation_launches_the_server_without_selector_or_bundle_flags():
+    import inspect
+
+    assert not hasattr(mcp, "server_authority_arguments")
+    assert set(inspect.signature(mcp.run_mcp_validation).parameters) == {
+        "api_url", "binding_path", "expected_git_revision"}
 
 
 # -- product-line scope: contract from the selected runtime -----------------------
 
 
-def test_scope_runtime_is_built_through_the_entry_seam(monkeypatch, tmp_path):
+def test_scope_runtime_is_the_deployed_runtime(monkeypatch, tmp_path):
     seen = {}
 
-    def build(**kwargs):
-        seen.update(kwargs)
-        return "runtime", "selection"
+    def build(root, **kwargs):
+        seen.update(kwargs, root=root)
+        return "runtime"
 
-    from de4sdv.semantic import entry_authority
+    from de4sdv.semantic import deployment_runtime
 
-    monkeypatch.setattr(entry_authority, "build_entry_semantic_runtime", build)
-    got = scope.selected_runtime(
-        api_url="u", binding_path=tmp_path / "b.json", git_commit="c" * 40,
-        authority="model", model_bundle_path="/m.json", model_bundle_id=MAB_ID)
-    assert got == ("runtime", "selection")
-    assert seen["authority"] == "model" and seen["model_bundle_id"] == MAB_ID
-    assert seen["environ"] == {}
-    assert "require_activation_eligible" not in seen
-    scope.selected_runtime(api_url="u", binding_path=tmp_path / "b.json", git_commit="c" * 40,
-                           authority="model", model_bundle_path="/m.json",
-                           model_bundle_id=MAB_ID, allow_candidate_bundle=True)
-    assert seen["require_activation_eligible"] is False
+    monkeypatch.setattr(deployment_runtime, "build_deployment_runtime", build)
+    got = scope.selected_runtime(api_url="u", binding_path=tmp_path / "b.json", git_commit="c" * 40)
+    assert got == "runtime"
+    assert seen == {"root": scope.ROOT, "api_url": "u", "binding_path": tmp_path / "b.json",
+                    "expected_git_revision": "c" * 40}
 
 
 def test_scope_has_no_authored_contract_default():

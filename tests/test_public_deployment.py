@@ -80,6 +80,12 @@ def _evidence_bundle(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
         },
         "semantic_authority": authority,
     }
+    served_model = {
+        "schema": "de4sdv.served-model/v1",
+        "source_export_sha256": export_digest,
+        "element_count": 56745,
+        "content_sha256": "sha256:" + "d" * 64,
+    }
     binding = {
         "schema": "de4sdv.revision-binding/v2",
         "git_repository": "de4sdv/DE4SDV",
@@ -91,6 +97,7 @@ def _evidence_bundle(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
         "semantic_validation": "passed",
         "semantic_authority": authority,
         "scope": "full-model",
+        "served_model": served_model,
     }
     mcp = {
         "read_only": True,
@@ -110,7 +117,7 @@ def _evidence_bundle(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
     ):
         (tmp_path / name).write_text(json.dumps(payload), encoding="utf-8")
     return tmp_path, {"git_sha": git_sha, "semantic_authority": authority,
-                      "export_digest": export_digest}
+                      "export_digest": export_digest, "served_model": served_model}
 
 
 # ---------------------------------------------------------------- blockers 1/6
@@ -265,6 +272,7 @@ def test_import_accepts_deployment_specific_identities(
             "semantic_validation": "passed",
             "scope": "full-model",
             "semantic_authority": facts["semantic_authority"],
+            "served_model": facts["served_model"],
         }
         report = {
             "source_export_sha256": facts["export_digest"],
@@ -293,6 +301,82 @@ def test_import_accepts_deployment_specific_identities(
     # Deployment-specific identities, NOT the privileged run's ci-project/ci-commit.
     assert deployment["sysml_project_id"] == "deployment-project"
     assert deployment["sysml_commit_id"] == "deployment-commit"
+    # The deployment serves the same content the privileged import served.
+    assert deployment["served_model"] == facts["served_model"]
+
+
+def _fake_import(tmp_path, facts, *, served_model):
+    def fake_run(cmd, **_kwargs):
+        binding = {"git_commit": facts["git_sha"], "sysml_project_id": "deployment-project",
+                   "sysml_commit_id": "deployment-commit", "semantic_validation": "passed",
+                   "scope": "full-model", "semantic_authority": facts["semantic_authority"]}
+        if served_model is not None:
+            binding["served_model"] = served_model
+        report = {"source_export_sha256": facts["export_digest"], "element_count": 56745,
+                  "internal_reference_count": 189930, "source_document_count": 59,
+                  "kernel_binding_validation": {"passed": True,
+                                                "summary": {"unresolved": 0, "ambiguous": 0}}}
+        artifacts = tmp_path / "artifacts" / "current"
+        artifacts.mkdir(parents=True, exist_ok=True)
+        (artifacts / "de4sdv-full-model-binding.json").write_text(json.dumps(binding))
+        (artifacts / "de4sdv-full-model-semantic-validation.json").write_text(json.dumps(report))
+        return type("R", (), {})()
+    return fake_run
+
+
+@pytest.mark.parametrize("change,match", [
+    (None, "records no served model"),
+    ({"content_sha256": "sha256:" + "e" * 64}, "served model differs from the privileged import"),
+    ({"source_export_sha256": "f" * 64}, "served model differs from the privileged import"),
+])
+def test_import_refuses_a_deployment_that_serves_another_model(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, change, match
+) -> None:
+    bundle_dir, facts = _evidence_bundle(tmp_path / "bundle")
+    evidence = deploy.validate_bundle(bundle_dir)
+    repo = tmp_path / "repo"
+    _init_repo(repo)
+    served = None if change is None else {**facts["served_model"], **change}
+    monkeypatch.setattr(deploy.subprocess, "run", _fake_import(tmp_path, facts, served_model=served))
+    monkeypatch.setattr(deploy, "wait_for_api", lambda *_a, **_k: None)
+    monkeypatch.setattr(deploy, "api_base_url_from_docker", lambda: "http://127.0.0.1:1")
+    monkeypatch.setattr(deploy, "DEPLOY_DIR", tmp_path)
+    with pytest.raises(deploy.DeployError, match=match):
+        deploy.import_baseline(repo, evidence)
+
+
+@pytest.mark.parametrize("mutate,match", [
+    (lambda b: b.pop("served_model"), "records no served model"),
+    (lambda b: b["served_model"].__setitem__("source_export_sha256", "0" * 64),
+     "served model does not name the validated export"),
+    (lambda b: b["served_model"].__setitem__("element_count", 1),
+     "served model does not name the validated export"),
+    (lambda b: b["served_model"].__setitem__("content_sha256", "not-a-digest"),
+     "served model record is malformed"),
+])
+def test_bundle_requires_the_served_model_of_the_validated_export(
+    tmp_path: Path, mutate, match
+) -> None:
+    bundle_dir, _facts = _evidence_bundle(tmp_path)
+    path = bundle_dir / "de4sdv-full-model-binding.json"
+    binding = json.loads(path.read_text())
+    mutate(binding)
+    path.write_text(json.dumps(binding), encoding="utf-8")
+    with pytest.raises(deploy.DeployError, match=match):
+        deploy.validate_bundle(bundle_dir)
+
+
+def test_status_publishes_the_served_model(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    bundle_dir, facts = _evidence_bundle(tmp_path / "bundle")
+    evidence = deploy.validate_bundle(bundle_dir)
+    monkeypatch.setattr(deploy, "STATUS_DIR", tmp_path / "status")
+    target = deploy.write_status(evidence, {
+        "sysml_project_id": "p", "sysml_commit_id": "c", "element_count": 56745,
+        "kernel_binding_summary": {"unresolved": 0, "ambiguous": 0},
+        "served_model": facts["served_model"]})
+    baseline = json.loads(target.read_text())["baseline"]
+    assert baseline["served_model"] == facts["served_model"]
+    assert baseline["semantic_authority"] == facts["semantic_authority"]
 
 
 def test_import_rejects_count_drift_vs_privileged_evidence(
@@ -311,6 +395,7 @@ def test_import_rejects_count_drift_vs_privileged_evidence(
             "semantic_validation": "passed",
             "scope": "full-model",
             "semantic_authority": facts["semantic_authority"],
+            "served_model": facts["served_model"],
         }
         report = {
             "source_export_sha256": facts["export_digest"],

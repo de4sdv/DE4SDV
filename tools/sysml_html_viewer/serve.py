@@ -476,10 +476,10 @@ class _Handler(SimpleHTTPRequestHandler):
                 "service": "DE4SDV public Ask-model viewer",
                 "application_git_commit": server.application_revision,
                 "model_git_commit": server.model_revision,
-                # Deployment provenance: which semantic authority serves
-                # answers (model + exact mab- bundle id + revision); an
-                # invalid selector surfaces its error here and semantic
-                # answers are refused in that state.
+                # Deployment provenance: the semantic authority that serves
+                # answers (the startup-checked sai- identity, model revision
+                # and served model); a refused startup surfaces its error
+                # here and semantic answers are refused in that state.
                 "semantic_authority": semantic_authority_status(),
                 "semantic_warmup": {
                     "status": warmup_state.get("status", "unknown")

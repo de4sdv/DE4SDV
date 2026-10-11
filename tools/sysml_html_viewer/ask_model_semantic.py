@@ -19,9 +19,11 @@ Cold-load policy (visitors never wait):
     present (seconds) or starts the network load in a background thread;
   - while warming, /ask serves the regex path immediately, labeled
     "regex:warming" — it never blocks on the cold load;
-  - the snapshot is only trusted AFTER the runtime's binding checks pass
-    (expected Git SHA, semantic-authority identity) and only when its recorded
-    project/commit identity matches the binding exactly.
+  - the snapshot is only trusted AFTER the runtime's startup check passes
+    (exact commit, clean tree, semantic-authority identity, served-model
+    record), only when its recorded identity matches the binding exactly, and
+    only when its content is the validated export the binding records (any
+    other snapshot is a miss).
 
 Fallback ladder (explicit, never silent about which path produced the
 answer's evidence):
@@ -53,10 +55,11 @@ _SEMANTIC_CTX_CACHE: dict[str, dict] = {}
 # /ask never blocks on it — see build_method_context_api)
 _COLD_LOCK = threading.Lock()
 _WARM_STATE: dict = {"status": "idle", "error": None}
-# v2: authority-bundle-aware snapshot identity — a snapshot produced under
-# one semantic authority must never load under another (identity mismatch is
-# a cache miss, never reinterpretation).
-_SNAPSHOT_FORMAT = 2
+# v3: keyed by the served semantic authority (sai-) and checked against the
+# binding's served-model record — a snapshot produced under one authority or
+# for another served model never loads (a mismatch is a miss, never
+# reinterpretation).
+_SNAPSHOT_FORMAT = 3
 
 
 def warm_status() -> dict:
@@ -70,39 +73,36 @@ def warm_status() -> dict:
 
 
 def semantic_authority_status() -> dict:
-    """Deployment provenance: which semantic authority is requested/served.
+    """Deployment provenance: the semantic authority this viewer serves.
 
-    Always available (even before warmup or after a fail-closed startup):
-    reports the explicit selector, the exact model-authority bundle id, and
-    — once the runtime is built — the served authority id. An invalid
-    selector surfaces its error here; semantic answers are refused in that
-    state (the explicitly labeled regex path never consults semantic
-    authority).
+    Always available (even before warmup or after a fail-closed startup).
+    Before the runtime is built it reports ``state: starting``; once the
+    startup check passed, its report (commit, ``sai-`` identity, served
+    model); a refused startup reports ``kind: invalid`` with the error.
+    Semantic answers are refused in that state (the explicitly labeled regex
+    path never consults semantic authority).
     """
     if _AUTHORITY_SELECTION is not None:
         block = dict(_AUTHORITY_SELECTION)
+    elif _SEMANTIC_ERROR is not None:
+        block = {
+            "kind": "invalid",
+            "error": _SEMANTIC_ERROR,
+            "note": (
+                "the semantic runtime refused to start; semantic answers are "
+                "refused (no fallback to another authority)"
+            ),
+        }
     else:
-        try:
-            # model only (unset, legacy, o3 are refused); the seam never
-            # builds a runtime here and reports an invalid selector instead
-            # of raising.
-            from de4sdv.semantic.entry_authority import entry_authority_status
-
-            block = entry_authority_status(os.environ)
-        except Exception as exc:  # noqa: BLE001 — status must survive
-            block = {
-                "kind": "invalid",
-                "error": str(exc),
-                "note": (
-                    "semantic authority selector is invalid; semantic "
-                    "answers are refused (no fallback to another authority)"
-                ),
-            }
+        block = {"kind": "model", "state": "starting"}
     service = _SEMANTIC_RUNTIME
     if service is not None:
         block["semantic_authority_id"] = str(
             getattr(service, "semantic_authority_id", "") or ""
         )
+        status = getattr(service, "authority_status", None)
+        if callable(status):
+            block["served_model_check"] = status().get("served_model_check")
     return block
 
 
@@ -113,11 +113,11 @@ def semantic_enabled() -> bool:
 def _runtime():
     """Build the semantic runtime once per process (fail-closed contract).
 
-    Authority is selected explicitly through the deployment environment
-    (``DE4SDV_SEMANTIC_AUTHORITY=model`` with the model-authority bundle
-    path and id; there is no default). A selector or bundle that fails
-    selection or startup verification raises here — the viewer serves NO
-    semantic answers in that state; the failure is surfaced through
+    The runtime starts from the mounted checkout, the deployment binding and
+    the deployed API, after the one startup check (exact commit, clean tree,
+    the same ``sai-`` identity recomputed from the checkout, a binding that
+    records the served model). A refused check raises here — the viewer
+    serves NO semantic answers in that state; the failure is surfaced through
     ``semantic_authority_status()`` and ``warm_status()``.
     """
     global _SEMANTIC_RUNTIME, _SEMANTIC_ERROR, _AUTHORITY_SELECTION
@@ -142,15 +142,21 @@ def _runtime():
         )
         raise RuntimeError(_SEMANTIC_ERROR)
     try:
-        from de4sdv.semantic import entry_authority
+        from de4sdv.semantic.deployment_runtime import build_deployment_runtime
 
-        _SEMANTIC_RUNTIME, selection = entry_authority.build_entry_semantic_runtime(
+        repo_root = Path(os.environ.get(
+            "DE4SDV_REPO_ROOT", str(Path(__file__).resolve().parents[2])))
+        _SEMANTIC_RUNTIME = build_deployment_runtime(
+            repo_root,
             api_url=api_url,
             binding_path=Path(binding),
             expected_git_revision=expected,
+            # The deployed application revision (the entrypoint already
+            # proved it descends from the model revision without drift).
+            application_revision=os.environ.get("DE4SDV_APP_GIT_SHA") or None,
             api_timeout=float(os.environ.get("DE4SDV_API_TIMEOUT", "900")),
         )
-        _AUTHORITY_SELECTION = selection.provenance()
+        _AUTHORITY_SELECTION = _SEMANTIC_RUNTIME.authority_status()
     except Exception as exc:  # noqa: BLE001 — fail-closed, error kept
         _SEMANTIC_ERROR = f"semantic runtime unavailable: {exc}"
         raise RuntimeError(_SEMANTIC_ERROR) from exc
@@ -238,16 +244,19 @@ def _load_elements_with_snapshot(service) -> list[dict]:
     """Binding checks FIRST, then snapshot, then network.
 
     A snapshot is never trusted without the runtime contract passing; a
-    corrupted or stale snapshot is ignored (network load overwrites it).
+    corrupted, stale or foreign snapshot (not the validated export the
+    binding records) is ignored and the network load overwrites it. The
+    network corpus is refused unless it is that export.
     """
     service._require_valid_revision()
     if service._element_cache is not None:
         return service._element_cache
     snap = _snapshot_load(service)
-    if snap is not None:
+    matches = getattr(service, "corpus_matches", None)
+    if snap is not None and (not callable(matches) or matches(snap)):
         service._element_cache = snap
         return snap
-    elements = service._elements()  # network cold load (binding enforced)
+    elements = service._elements()  # network cold load (served model enforced)
     try:
         _snapshot_write(service, elements)
     except OSError:

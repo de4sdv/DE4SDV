@@ -101,21 +101,13 @@ services:
       # Application identity for the fail-closed runtime contract: the
       # entrypoint refuses to serve when the mounted checkout HEAD does not
       # equal this SHA. deploy.py always sets it to the deployed SHA.
+      # The semantic runtime starts from exactly this checkout, the binding
+      # mounted below and the API, after one startup check (exact commit,
+      # clean tree, the same sai- semantic authority recomputed from the
+      # checkout, the served model the binding records); there is no
+      # authority selector and no bundle (owner decision 2026-10-11).
+      # Contract: deployment/README.md, "Runtime contract".
       DE4SDV_APP_GIT_SHA: ${DE4SDV_APP_GIT_SHA:?DE4SDV_APP_GIT_SHA is required (set to the exact deployed SHA)}
-      # Semantic-authority selection (O4 Wave C2: model authority only).
-      # There is no default (owner decision D6): an unset or empty selector,
-      # and the retired values legacy and o3, refuse the semantic runtime and
-      # /ask-status.json reports .semantic_authority.kind == "invalid".
-      # Values come from the compose substitution environment (the --env-file
-      # passed by deployment/scripts/deploy.py, e.g. /srv/de4sdv/sysml2-api.env),
-      # never from the service env file, which this section overrides. The
-      # request is bundle-id-bound (mab-...) and verified at startup against
-      # the exact revision and revision binding; any mismatch refuses the
-      # runtime. Rollback is a redeploy of the pre-Wave-C production revision.
-      # Procedure: docs/method-conformance/o4/model-authority-activation.md
-      DE4SDV_SEMANTIC_AUTHORITY: ${DE4SDV_SEMANTIC_AUTHORITY:-}
-      DE4SDV_MODEL_AUTHORITY_BUNDLE: ${DE4SDV_MODEL_AUTHORITY_BUNDLE:-/run/de4sdv/model/de4sdv-model-authority-bundle.json}
-      DE4SDV_MODEL_AUTHORITY_BUNDLE_ID: ${DE4SDV_MODEL_AUTHORITY_BUNDLE_ID:-}
     expose:
       - "8787"
     read_only: true
@@ -128,9 +120,6 @@ services:
     volumes:
       - ${DEPLOY_SOURCE_DIR:-/srv/de4sdv/DE4SDV}:/srv/de4sdv/DE4SDV:ro
       - ${DEPLOY_DIR}/artifacts/current/de4sdv-full-model-binding.json:/run/de4sdv/de4sdv-full-model-binding.json:ro
-      # Model-authority bundle delivery directory: kept outside the repo
-      # checkout so deploy-time cleanliness stays authoritative.
-      - ${DEPLOY_DIR}/artifacts/model:/run/de4sdv/model:ro
       - ask_viewer_cache:/var/cache/de4sdv-viewer
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8787/ask-status.json', timeout=5)"]

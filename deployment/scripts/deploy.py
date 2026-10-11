@@ -30,11 +30,15 @@ Fail-closed stages:
     0 ambiguous; only then is a deployment-specific binding written.
 4.  Cross-check: the deployment import must preserve the immutable evidence
     the privileged run pinned (element count, internal reference count,
-    export digest, semantic-authority identity, source-document count). Project/commit
-    UUIDs are intentionally deployment-specific and are NOT compared against
-    the privileged run's ephemeral UUIDs.
+    export digest, semantic-authority identity, source-document count) and
+    serve the same model: its binding records the same served-model content
+    digest the privileged import's full-payload read-back recorded.
+    Project/commit UUIDs are intentionally deployment-specific and are NOT
+    compared against the privileged run's ephemeral UUIDs.
 5.  Status + proxy: only after all of the above succeed is
-    deployment-status.json written and the public proxy started.
+    deployment-status.json written (including the served model, which the
+    runtime and the post-deploy verification compare against) and the
+    public proxy started.
 
 Availability guarantee (honest wording): this is a single-host compose
 stack without a blue/green switch. Bringing up postgres/API before the
@@ -95,6 +99,28 @@ def load_json(path: Path) -> dict[str, Any]:
     value = json.loads(path.read_text(encoding="utf-8"))
     require(isinstance(value, dict), f"{path.name} is not a JSON object")
     return value
+
+
+SERVED_MODEL_SCHEMA = "de4sdv.served-model/v1"
+
+
+def served_model_record(binding: dict[str, Any], label: str) -> dict[str, Any]:
+    """The binding's served-model record (shape-checked; stdlib only)."""
+    record = binding.get("served_model")
+    require(isinstance(record, dict), f"{label} binding records no served model")
+    content = str(record.get("content_sha256") or "")
+    export = str(record.get("source_export_sha256") or "")
+    count = record.get("element_count")
+    require(
+        set(record) == {"schema", "source_export_sha256", "element_count", "content_sha256"}
+        and record.get("schema") == SERVED_MODEL_SCHEMA
+        and len(export) == 64 and set(export) <= set("0123456789abcdef")
+        and content.startswith("sha256:") and len(content) == 71
+        and set(content[7:]) <= set("0123456789abcdef")
+        and isinstance(count, int) and not isinstance(count, bool) and count > 0,
+        f"{label} binding served model record is malformed: {record}",
+    )
+    return record
 
 
 def git_head(repo: Path) -> str:
@@ -162,6 +188,13 @@ def validate_bundle(bundle_dir: Path) -> dict[str, Any]:
         recorded_digest == actual_digest,
         f"export digest mismatch: report={recorded_digest} actual={actual_digest}",
     )
+    served_model = served_model_record(binding, "privileged")
+    require(
+        served_model["source_export_sha256"] == actual_digest
+        and served_model["element_count"] == report.get("element_count"),
+        "privileged binding served model does not name the validated export "
+        f"(export {actual_digest}, {report.get('element_count')} elements): {served_model}",
+    )
 
     require(
         mcp.get("read_only") is True and mcp.get("tool_count") == 7,
@@ -183,6 +216,7 @@ def validate_bundle(bundle_dir: Path) -> dict[str, Any]:
         "expected_internal_reference_count": report.get("internal_reference_count"),
         "expected_source_document_count": report.get("source_document_count"),
         "kernel_binding_summary": summary,
+        "served_model": served_model,
     }
 
 
@@ -432,6 +466,12 @@ def import_baseline(repo: Path, evidence: dict[str, Any]) -> dict[str, Any]:
         deployment_report.get("source_export_sha256") == evidence["export_sha256"],
         "deployment import consumed different export bytes than the validated bundle",
     )
+    deployment_served = served_model_record(binding, "deployment")
+    require(
+        deployment_served == evidence["served_model"],
+        "deployment served model differs from the privileged import's: "
+        f"{deployment_served} != {evidence['served_model']}",
+    )
 
     # Immutable evidence from the privileged run must hold for the deployment
     # import too. Project/commit UUIDs are deployment-specific by design and
@@ -459,6 +499,7 @@ def import_baseline(repo: Path, evidence: dict[str, Any]) -> dict[str, Any]:
         "sysml_commit_id": binding["sysml_commit_id"],
         "element_count": deployment_report.get("element_count"),
         "kernel_binding_summary": deployment_summary,
+        "served_model": deployment_served,
     }
 
 
@@ -485,6 +526,9 @@ def write_status(
             "export_sha256": evidence["export_sha256"],
             "element_count": deployment["element_count"],
             "kernel_binding_summary": deployment["kernel_binding_summary"],
+            # The validated export this deployment serves; the runtime refuses
+            # any other corpus and the post-deploy verification compares it.
+            "served_model": deployment["served_model"],
         },
         "deployed_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }

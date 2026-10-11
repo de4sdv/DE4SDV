@@ -21,15 +21,23 @@ A comparison is meaningful only over the same SysML API elements: both
 reports must have read the same SysML project/commit with the same subject
 populations, otherwise the basis mismatch blocks. Element ids are never
 mapped by name.
+
+The K pair is checked against the export, not against a reviewed count: the
+forward and the inverse navigation must each return exactly the export's
+``DerivesFromNeed`` connections, compared as sets of element ids
+(:func:`k_export_witnesses`, :func:`k_self_evidence`).
 """
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, Iterable
 
 from de4sdv.sysml_api.errors import IdentityNotFoundError
 from de4sdv.sysml_api.repository import element_id, reference_ids
 
+from .kernel_binding_index import require_validated_binding_id
+from .model_edges import closure as lineage_closure
+from .model_edges import lineage_index, typing_index
 from .relationships import build_relationship_graph
 
 ANSWER_REPORT_SCHEMA = "de4sdv.runtime-answer-report/v1"
@@ -58,8 +66,6 @@ CLASS_IDENTITIES = (
 NATIVE_CLASS_IDENTITY = "VerificationCase"
 FILE_MAPPED_CLASSES = tuple(name for name in CLASS_IDENTITIES if name != NATIVE_CLASS_IDENTITY)
 K_PAIR = ("derivesRequirementFromNeed", "derivedRequirementsOfNeed")
-#: Reviewed K-pair baseline: 27 authored DerivesFromNeed connection usages (O2.3: 5; population review: PR #352).
-READINESS_BASELINE_K_WITNESS_COUNT = 27
 
 #: Result fields compared as canonical SETS; trace paths stay ordered.
 SET_FIELDS = ("targets", "witnesses", "nodes", "diagnostics", "unsupported_predicates")
@@ -240,10 +246,54 @@ def class_identities(service, *, verification_case_grounding: dict[str, Any] | N
     return identities
 
 
-def k_self_evidence(collected: dict[str, dict[str, Any]]) -> dict[str, Any]:
-    """One runtime's K pair: forward and inverse share one witness population
-    of the reviewed size, each fact appears once per navigation, no unresolved
-    subject. Insufficient coverage is never equivalence."""
+def k_connection_definition(contract) -> str:
+    """The one connection definition both K navigations discriminate by."""
+    names = {str((contract.relationship_mapping(predicate).configuration or {})
+                 .get("connection_definition") or "") for predicate in K_PAIR}
+    if len(names) != 1 or "" in names:
+        raise ValueError(f"the K pair does not name one connection definition: {sorted(names)}")
+    return names.pop()
+
+
+def k_export_witnesses(elements: list[dict[str, Any]], *, connection_definition: str,
+                       kernel_bindings) -> list[str]:
+    """The export's K facts, by element id.
+
+    Every ``ConnectionUsage`` with an authored typing to the connection
+    definition or to an authored specialization of it: the discriminator the K
+    navigation applies, evaluated over the export without navigating anything.
+    The definition's identity is its ingestion-validated kernel binding
+    (ADR 0011), never its name; a missing binding, or a bound element absent
+    from these elements, raises :class:`IdentityNotFoundError`.
+    """
+    by_id = {candidate: element for element in elements
+             if isinstance(element, dict) and (candidate := element_id(element)) is not None}
+    root = require_validated_binding_id(kernel_bindings, connection_definition, by_id)
+    graph = build_relationship_graph(list(by_id.values()))
+    specifics, _implied = lineage_index(graph, list(by_id))
+    definitions = lineage_closure({root}, specifics)
+    usages = [candidate for candidate, element in by_id.items()
+              if str(element.get("@type")) == "ConnectionUsage"]
+    typed, _implied_typing = typing_index(graph, usages)
+    return sorted(usage for usage in usages if typed.get(usage, set()) & definitions)
+
+
+def _sample(ids: list[str], limit: int = 5) -> str:
+    return ", ".join(ids[:limit]) + (f" (+{len(ids) - limit} more)" if len(ids) > limit else "")
+
+
+def k_self_evidence(collected: dict[str, dict[str, Any]],
+                    export_witnesses: Iterable[str] | None = None, *,
+                    export_error: str | None = None) -> dict[str, Any]:
+    """One runtime's K pair, checked against the export's modeled facts.
+
+    ``export_witnesses`` (:func:`k_export_witnesses`) is the reference: the
+    forward and the inverse navigation must each return exactly that set of
+    connection ids, each fact once per navigation, with no unresolved subject.
+    Ids are compared, never counts. Without a reference, or with an empty
+    one, the pair is never equivalent: insufficient coverage is never
+    equivalence.
+    """
     forward_predicate, inverse_predicate = "derivedRequirementsOfNeed", "derivesRequirementFromNeed"
 
     def witnesses(predicate: str) -> list[str]:
@@ -259,11 +309,24 @@ def k_self_evidence(collected: dict[str, dict[str, Any]]) -> dict[str, Any]:
 
     forward, inverse = witnesses(forward_predicate), witnesses(inverse_predicate)
     unresolved = [entry for p in K_PAIR for entry in collected[p].get("unresolved", [])]
+    reference = None if export_witnesses is None else sorted(set(export_witnesses))
     errors, missing = [], []
-    for direction, population in (("forward", forward), ("inverse", inverse)):
-        if len(population) != READINESS_BASELINE_K_WITNESS_COUNT:
-            missing.append(f"{direction} witness population is {len(population)}; the reviewed "
-                           f"baseline is {READINESS_BASELINE_K_WITNESS_COUNT}")
+    if reference is None:
+        missing.append(export_error or "no export reference: the K pair is never equivalent "
+                                       "without the export's DerivesFromNeed connections")
+    else:
+        if not reference:
+            missing.append("the export carries no DerivesFromNeed connection; an empty K "
+                           "population is never equivalence")
+        for direction, population in (("forward", forward), ("inverse", inverse)):
+            absent = sorted(set(reference) - set(population))
+            extra = sorted(set(population) - set(reference))
+            if absent:
+                missing.append(f"{direction} navigation misses {len(absent)} DerivesFromNeed "
+                               f"connection(s) of the export: {_sample(absent)}")
+            if extra:
+                errors.append(f"{direction} navigation returns {len(extra)} witness(es) that are "
+                              f"not DerivesFromNeed connections of the export: {_sample(extra)}")
     if not unresolved and forward != inverse:
         errors.append("forward and inverse navigations do not share one witness population")
     for predicate in K_PAIR:
@@ -275,13 +338,39 @@ def k_self_evidence(collected: dict[str, dict[str, Any]]) -> dict[str, Any]:
     classification = ("BLOCKING_MISMATCH" if errors else "NOT_YET_COMPARABLE" if missing
                       else "EQUIVALENT")
     return {"classification": classification, "forward_witness_population": forward,
-            "inverse_witness_population": inverse, "population_complete": not errors and not missing,
+            "inverse_witness_population": inverse, "export_witness_population": reference,
+            "population_complete": not errors and not missing,
             "errors": errors, "missing": missing}
 
 
+def k_pair_evidence(service, collected: dict[str, dict[str, Any]],
+                    export_elements: list[dict[str, Any]] | None) -> dict[str, Any]:
+    """The K pair of one runtime, checked against the supplied export.
+
+    The export's connections are resolved with the runtime's own connection
+    definition and kernel binding index; an unresolvable reference is
+    recorded (never equivalence), not raised.
+    """
+    if export_elements is None:
+        return k_self_evidence(collected)
+    try:
+        reference = k_export_witnesses(
+            export_elements, connection_definition=k_connection_definition(service.contract),
+            kernel_bindings=getattr(service.traversal, "kernel_bindings", None))
+    except (IdentityNotFoundError, ValueError) as exc:
+        return k_self_evidence(collected, export_error=(
+            f"the export's DerivesFromNeed connections cannot be resolved: {exc}"))
+    return k_self_evidence(collected, reference)
+
+
 def collect_answers(service, elements: list[dict[str, Any]], *, label: str,
-                    verification_case_grounding: dict[str, Any] | None = None) -> dict[str, Any]:
-    """One runtime's answer report over the migrated identity set."""
+                    verification_case_grounding: dict[str, Any] | None = None,
+                    export_elements: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    """One runtime's answer report over the migrated identity set.
+
+    ``export_elements`` (the same revision's export) is the K pair's
+    reference population; without it the K pair is never equivalent.
+    """
     if not str(label or "").strip():
         raise ValueError("an answer report needs the runtime's authority label")
     collected = {predicate: collect_predicate(service, predicate, elements)
@@ -298,7 +387,7 @@ def collect_answers(service, elements: list[dict[str, Any]], *, label: str,
         "element_count": len(elements),
         "predicates": collected,
         "classes": class_identities(service, verification_case_grounding=verification_case_grounding),
-        "k_pair": k_self_evidence(collected),
+        "k_pair": k_pair_evidence(service, collected, export_elements),
     }
 
 
@@ -462,5 +551,6 @@ def compare_answer_reports(old: dict[str, Any], new: dict[str, Any], *,
 __all__ = ["ANSWER_REPORT_SCHEMA", "COMPARISON_MANIFEST_SCHEMA", "COMPARISON_REPORT_SCHEMA",
            "CLASS_IDENTITIES", "K_PAIR", "RELATIONSHIP_PREDICATES", "collect_answers",
            "collect_predicate", "compare_answer_reports", "compare_collected",
-           "compare_semantic_results", "comparison_manifest", "k_self_evidence",
+           "compare_semantic_results", "comparison_manifest", "k_connection_definition",
+           "k_export_witnesses", "k_pair_evidence", "k_self_evidence",
            "subject_population", "validate_manifest_pair", "worst_classification"]

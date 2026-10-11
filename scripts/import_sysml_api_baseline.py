@@ -22,6 +22,7 @@ from de4sdv.sysml_api.client import ApiClient
 from de4sdv.sysml_api.ingestion import import_baseline
 from de4sdv.sysml_api.repository import SysMLRepository
 from de4sdv.sysml_api.revisions import KernelElementBinding, RevisionBinding
+from de4sdv.sysml_api.served_model import ServedModel
 
 
 def _git_head() -> str:
@@ -89,12 +90,23 @@ def run_import(
         for entry in ontology.entries
         if entry.status == "mapped" and len(entry.element_ids) == 1
     ]
+    # The served model: the export this deployment serves, identified by its
+    # file digest and by the content digest the full-payload read-back
+    # verified element by element. The runtime refuses any other corpus.
+    export_sha256 = hashlib.sha256(export_path.read_bytes()).hexdigest()
+    served_model = ServedModel.from_dict({
+        "schema": "de4sdv.served-model/v1",
+        "source_export_sha256": export_sha256,
+        "element_count": imported.element_count,
+        "content_sha256": imported.content_sha256,
+    })
     report = {
         "schema": "de4sdv-full-model-semantic-validation/v2",
         "git_commit": head,
         "sysml_project_id": imported.project_id,
         "sysml_commit_id": imported.commit_id,
-        "source_export_sha256": hashlib.sha256(export_path.read_bytes()).hexdigest(),
+        "source_export_sha256": export_sha256,
+        "served_model": served_model.to_dict(),
         "export_scope": "candidate" if candidate else "full-model",
         "source_document_count": len(set(bundle.element_sources.values())),
         "element_count": imported.element_count,
@@ -133,6 +145,7 @@ def run_import(
         kernel_bindings=tuple(
             KernelElementBinding.from_dict(item) for item in kernel_bindings
         ),
+        served_model=served_model,
     )
     _write_json(binding_path, binding.to_dict())
     return {

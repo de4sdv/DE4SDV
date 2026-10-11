@@ -27,6 +27,10 @@ class RevisionMismatchError(SysMLApiError):
     """The bound SysML commit is not known to represent the requested Git SHA."""
 
 
+class ServedModelMismatchError(RevisionMismatchError):
+    """The served element corpus is not the validated export the binding records."""
+
+
 class BaselineImportError(SysMLApiError):
     """A production baseline import or exact readback verification failed."""
 

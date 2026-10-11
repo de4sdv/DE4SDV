@@ -187,24 +187,6 @@ def require_proof_a(neighbors: dict[str, Any], coverage: dict[str, Any]) -> None
     require_resolved_evidence_state(neighbors, coverage)
 
 
-def server_authority_arguments(
-    *,
-    authority: str | None,
-    model_bundle_path: "str | Path | None" = None,
-    model_bundle_id: str | None = None,
-    allow_candidate_bundle: bool = False,
-) -> list[str]:
-    """The stdio server's authority flags (same selection as the in-process runtime)."""
-    return [
-        *(["--semantic-authority", str(authority)] if authority is not None else []),
-        *(["--model-authority-bundle", str(model_bundle_path)]
-          if model_bundle_path is not None else []),
-        *(["--model-authority-bundle-id", model_bundle_id]
-          if model_bundle_id is not None else []),
-        *(["--allow-candidate-bundle"] if allow_candidate_bundle else []),
-    ]
-
-
 def _require_native_verification_proof(
     impact: dict[str, Any], coverage: dict[str, Any], trace: dict[str, Any]
 ) -> None:
@@ -564,33 +546,18 @@ async def run_mcp_validation(
     api_url: str,
     binding_path: Path,
     expected_git_revision: str,
-    authority: str | None = None,
-    model_bundle_path: str | Path | None = None,
-    model_bundle_id: str | None = None,
-    allow_candidate_bundle: bool = False,
 ) -> dict[str, Any]:
-    from de4sdv.semantic import entry_authority
+    from de4sdv.semantic.deployment_runtime import build_deployment_runtime
 
-    if model_bundle_id is not None and not entry_authority.is_model_bundle_id(model_bundle_id):
-        raise ValueError(
-            "model-authority bundle ID must be a literal mab-<32 or 64 lowercase hex> token"
-        )
     # The stdio server changes cwd; both processes must read the caller's files.
     binding_path = binding_path.resolve()
-    if model_bundle_path is not None:
-        model_bundle_path = Path(model_bundle_path).resolve()
-    model_request = entry_authority.resolve_model_request(
-        authority=authority, bundle_path=model_bundle_path, bundle_id=model_bundle_id,
-        environ={},
-    )
-    runtime, selection = entry_authority.build_model_runtime(
-        model_request, api_url=api_url, binding_path=binding_path,
+    # The production construction (the startup check, then the deployed
+    # services), the same one the stdio server below runs.
+    runtime = build_deployment_runtime(
+        ROOT, api_url=api_url, binding_path=binding_path,
         expected_git_revision=expected_git_revision,
-        **({"require_activation_eligible": False} if allow_candidate_bundle else {}),
     )
     binding = runtime.binding
-    binding.require_current(expected_git_revision)
-    binding.require_semantic_authority(runtime.contract.identity)
     if binding.scope != "full-model":
         raise RuntimeError(f"MCP proof requires full-model scope, got {binding.scope}")
     expected_revision = {
@@ -611,11 +578,6 @@ async def run_mcp_validation(
             str(binding_path),
             "--expected-git-revision",
             expected_git_revision,
-            *server_authority_arguments(
-                authority=authority or "model", model_bundle_path=model_bundle_path,
-                model_bundle_id=model_bundle_id,
-                allow_candidate_bundle=allow_candidate_bundle,
-            ),
         ],
         cwd=ROOT,
         # The MCP client passes only a default environment; forward the corpus snapshot directory.
@@ -750,7 +712,7 @@ async def run_mcp_validation(
         "schema": "de4sdv-semantic-mcp-validation/v2",
         "read_only": True,
         "revision": expected_revision,
-        "semantic_authority": selection.provenance(),
+        "semantic_authority": runtime.authority_status(),
         "proof_a_resolved_evidence_contract": True,
         "proof_b_native_verification": True,
         "proof_a_root": proof_a_root_id,
@@ -776,22 +738,12 @@ def main() -> int:
     parser.add_argument("--binding", type=Path, required=True)
     parser.add_argument("--expected-git-revision", required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--semantic-authority",
-                        help="model (the only accepted value; default DE4SDV_SEMANTIC_AUTHORITY)")
-    parser.add_argument("--model-authority-bundle")
-    parser.add_argument("--model-authority-bundle-id")
-    parser.add_argument("--allow-candidate-bundle", action="store_true",
-                        help="serve an unclosed candidate bundle (privileged evidence steps only)")
     args = parser.parse_args()
     result = anyio.run(
         lambda: run_mcp_validation(
             api_url=args.api_url,
             binding_path=args.binding,
             expected_git_revision=args.expected_git_revision,
-            authority=args.semantic_authority,
-            model_bundle_path=args.model_authority_bundle,
-            model_bundle_id=args.model_authority_bundle_id,
-            allow_candidate_bundle=args.allow_candidate_bundle,
         )
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)

@@ -18,7 +18,7 @@ PACKAGE = "DE4SDV_RelationshipSuccessor"
 PROGRAM_INPUTS = (
     "de4sdv/semantic/relationship_successor_contract.py",
     "de4sdv/semantic/relationship_successor.py",
-    "de4sdv/semantic/composition_construction.py",
+    "de4sdv/semantic/deployment_runtime.py",
     "de4sdv/semantic/model_contract.py",
     "de4sdv/semantic/traversal.py",
     "de4sdv/semantic/query.py",

@@ -51,6 +51,9 @@ on:
       - "scripts/evaluate_increment.py"
       - "scripts/export_sysml_api_baseline.py"
       - "de4sdv/semantic/increment_discovery.py"
+      # The evaluation builds the model-authority facade over the export.
+      - "de4sdv/semantic/export_evaluation.py"
+      - "de4sdv/semantic/model_authority_runtime.py"
   workflow_dispatch:
     inputs:
       ref:

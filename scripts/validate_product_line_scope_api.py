@@ -15,9 +15,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from de4sdv.sysml_api.baseline import BaselineExportBundle, BaselineManifest
-from de4sdv.sysml_api.client import ApiClient
 from de4sdv.sysml_api.product_line_scope import validate_scope_elements
-from de4sdv.sysml_api.repository import SysMLRepository, element_id
+from de4sdv.sysml_api.repository import element_id
 from de4sdv.sysml_api.revisions import RevisionBinding
 
 
@@ -27,34 +26,17 @@ def _git_head() -> str:
     ).strip()
 
 
-def selected_runtime(
-    *,
-    api_url: str,
-    binding_path: Path,
-    git_commit: str,
-    authority: str | None = None,
-    model_bundle_path: "str | Path | None" = None,
-    model_bundle_id: str | None = None,
-    allow_candidate_bundle: bool = False,
-):
-    """The model-authority runtime the scope check binds (fail closed).
+def selected_runtime(*, api_url: str, binding_path: Path, git_commit: str):
+    """The deployed runtime the scope check binds (fail closed).
 
-    Built through the entry seam, so the scope check binds the same
-    authority the production surfaces answer from. ``allow_candidate_bundle``
-    serves an unclosed candidate bundle (privileged evidence steps only).
+    The production construction: the startup check (exact commit, clean
+    tree, ``sai-`` identity, served-model record), then the deployed
+    services, whose corpus is refused unless it is the validated export.
     """
-    from de4sdv.semantic import entry_authority
+    from de4sdv.semantic.deployment_runtime import build_deployment_runtime
 
-    kwargs = {"require_activation_eligible": False} if allow_candidate_bundle else {}
-    return entry_authority.build_entry_semantic_runtime(
-        api_url=api_url,
-        binding_path=binding_path,
-        expected_git_revision=git_commit,
-        authority=authority,
-        model_bundle_path=model_bundle_path,
-        model_bundle_id=model_bundle_id,
-        environ={},
-        **kwargs,
+    return build_deployment_runtime(
+        ROOT, api_url=api_url, binding_path=binding_path, expected_git_revision=git_commit,
     )
 
 
@@ -63,21 +45,13 @@ def validate_api_scope(
     api_url: str,
     binding_path: Path,
     export_path: Path,
-    authority: str | None = None,
-    model_bundle_path: "str | Path | None" = None,
-    model_bundle_id: str | None = None,
-    allow_candidate_bundle: bool = False,
 ) -> dict[str, Any]:
     git_commit = _git_head()
     binding = RevisionBinding.load(binding_path)
     binding.require_current(git_commit)
 
-    runtime, selection = selected_runtime(
-        api_url=api_url, binding_path=binding_path, git_commit=git_commit,
-        authority=authority, model_bundle_path=model_bundle_path,
-        model_bundle_id=model_bundle_id, allow_candidate_bundle=allow_candidate_bundle,
-    )
-    binding.require_semantic_authority(runtime.contract.identity)
+    runtime = selected_runtime(api_url=api_url, binding_path=binding_path,
+                               git_commit=git_commit)
 
     bundle = BaselineExportBundle.load(export_path)
     if bundle.git_commit != git_commit:
@@ -86,11 +60,9 @@ def validate_api_scope(
         )
     bundle.require_current_sources(BaselineManifest.discover(ROOT))
 
-    repository = SysMLRepository(ApiClient(api_url, timeout=600.0))
-    elements = repository.list_elements(
-        binding.sysml_project_id,
-        binding.sysml_commit_id,
-    )
+    # The runtime's corpus: listed once from the API and accepted only when
+    # its content is the validated export the binding records.
+    elements = runtime._elements()
     api_ids = {identifier for item in elements if (identifier := element_id(item))}
     export_ids = set(bundle.elements)
     if api_ids != export_ids:
@@ -110,7 +82,7 @@ def validate_api_scope(
             "sysml_commit_id": binding.sysml_commit_id,
             "semantic_authority": binding.semantic_authority.to_dict(),
         },
-        "model_authority": selection.provenance(),
+        "model_authority": runtime.authority_status(),
         "api_element_count": len(elements),
     }
 
@@ -121,22 +93,12 @@ def main() -> int:
     parser.add_argument("--binding", required=True, type=Path)
     parser.add_argument("--export", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
-    parser.add_argument("--semantic-authority",
-                        help="model (the only accepted value; default DE4SDV_SEMANTIC_AUTHORITY)")
-    parser.add_argument("--model-authority-bundle")
-    parser.add_argument("--model-authority-bundle-id")
-    parser.add_argument("--allow-candidate-bundle", action="store_true",
-                        help="serve an unclosed candidate bundle (privileged evidence steps only)")
     args = parser.parse_args()
 
     report = validate_api_scope(
         api_url=args.api_url,
         binding_path=args.binding,
         export_path=args.export,
-        authority=args.semantic_authority,
-        model_bundle_path=args.model_authority_bundle,
-        model_bundle_id=args.model_authority_bundle_id,
-        allow_candidate_bundle=args.allow_candidate_bundle,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
