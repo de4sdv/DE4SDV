@@ -56,14 +56,6 @@ OTHER_LAYERS = {
 }
 W6_NEW_SUCCESSORS = {"hasValidationScenario", "hasRegulatorySource"}
 MERGED_ALIASES = {"validatesFitnessForUse"}
-EXPECTED_COUNTS = {
-    "definition": 31,
-    "external-reference": 4,
-    "relationship-vocabulary": 12,
-    "relationship-runtime": 2,
-    "successor": 3,
-    "retired-name": 5,
-}
 #: Owner decision 2026-10-06 (ADR 0020 D4 follow-up): the closure is exactly these.
 AEBS = "textual-notation-of-model/packages/features/aebs/"
 EC_CLOSURE = {
@@ -145,16 +137,25 @@ def test_admitted_set_is_exactly_the_derived_family():
     retained = {i for i, r in register.items() if r["accounting_status"] == "retained" and not r["o3_complete"]}
     unregistered = authored_classes - set(register)
     family = (retained - other) | unregistered | W6_NEW_SUCCESSORS | MERGED_ALIASES
+    from de4sdv.semantic.definition_projection_batch2 import ADMISSION_CLASSES
+
     rows = _rows()
+    # Content, not counts: admitting another definition must not trip this test.
     assert set(rows) == family
-    assert len(rows) == 57 == len(_manifest()["admitted"])
-    assert len(retained - other) == 42 and len(unregistered) == 12
+    assert len(rows) == len(_manifest()["admitted"])  # one admitted entry per identity
     assert not set(rows) & set(MIGRATED_IDENTITIES)
     assert not set(rows) & other
-    counts = {}
-    for row in rows.values():
-        counts[row["admission_class"]] = counts.get(row["admission_class"], 0) + 1
-    assert counts == EXPECTED_COUNTS
+    by_class: dict[str, set[str]] = {}
+    # Kind-consistency guard only: ADMISSION_CLASSES is the generator's own table.
+    # The per-identity class is locked to the frozen D9 record in
+    # test_reviewed_fields_equal_the_pre_deletion_evidence.
+    for identity, row in rows.items():
+        admission = row["admission_class"]
+        assert admission in ADMISSION_CLASSES, (identity, admission)
+        assert ADMISSION_CLASSES[admission] in (None, row["semantic_kind"]), (identity, admission)
+        by_class.setdefault(admission, set()).add(identity)
+    assert W6_NEW_SUCCESSORS <= by_class.get("successor", set())
+    assert MERGED_ALIASES <= by_class.get("retired-name", set())
     # The new successors are neither register rows nor authored identities.
     assert not W6_NEW_SUCCESSORS & (set(register) | authored_relationships)
     assert register["validatesFitnessForUse"]["accounting_status"] == "merged"
@@ -214,6 +215,9 @@ def test_reviewed_fields_equal_the_pre_deletion_evidence():
     assert set(held["entries"]) == set(rows)
     for identity, row in rows.items():
         entry = held["entries"][identity]
+        # Each identity's admission class is locked to the frozen record, which
+        # is independent of the generator (a relabel needs a reviewed update).
+        assert row["admission_class"] == entry["admission_class"], identity
         assert entry["equal"] is True, identity
         assert manifest_held_values(row) == entry["manifest"], identity
         if entry["authored"] is not None:
@@ -405,7 +409,10 @@ def test_generated_rows_carry_no_governance_fields_or_executable_claims():
 
     outputs = _outputs()
     rows = _rows()
-    assert len(outputs["projection_rows"]) == len(outputs["profile_entries"]) == 57
+    # One projection row and one profile entry per admitted identity (by id, not count).
+    projected = sorted(row["identity"] for row in outputs["projection_rows"])
+    assert projected == sorted(rows)
+    assert sorted(entry["for_concept"] for entry in outputs["profile_entries"]) == projected
     for row in outputs["projection_rows"]:
         serialized = json.dumps(row)
         for field in O1_GOVERNANCE_FIELDS + ("sysml_mapping", "gates", "forward_obligations"):

@@ -9,6 +9,7 @@ verification case across the INC-AEBS-009B/009C/009D/009G/009I slices.
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -24,9 +25,17 @@ SCRIPT = ROOT / "scripts" / "query_model_impact.py"
 # --- Requirement listing ---------------------------------------------------
 
 
-def test_list_requirements_returns_all_25_names():
+def test_list_requirements_returns_every_declared_requirement_and_need():
+    """Exactly the ``req``/``need`` usages the requirements file declares, each
+    once: compared by name, not by count. The expected set is read
+    independently of the tool (own comment stripping, declaration lines only)."""
     names = qmi.list_requirements()
-    assert len(names) == 25, f"expected 25 requirement/need names, got {len(names)}"
+    text = qmi.REQUIREMENTS_FILE.read_text(encoding="utf-8")
+    code = re.sub(r"//[^\n]*", "", re.sub(r"/\*.*?\*/", "", text, flags=re.S))
+    declared = set(re.findall(r"^\s*requirement\s+((?:req|need)[A-Za-z_]\w*)\b", code, re.M))
+    assert declared, "the AEBS requirements file declares no requirement or need usage"
+    assert len(names) == len(set(names))
+    assert set(names) == declared
 
 
 def test_list_requirements_contains_expected_names():

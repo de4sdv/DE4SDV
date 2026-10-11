@@ -1,5 +1,6 @@
 """INC-AEBS-010 Phase 6–8 architecture guard tests."""
 
+import re
 from pathlib import Path
 
 import pytest
@@ -39,11 +40,20 @@ def test_functional_slice_models_health_state_machine_with_guards() -> None:
 
 
 def test_every_s2_requirement_allocated_to_a_function() -> None:
+    """The functional slice allocates exactly the requirements the pilot's
+    ``requirement_allocations`` declare, compared as sets of REQ ids (each
+    requirement usage's doc names its id), never as a count."""
     func = _read(FUNC)
-    for number in range(2, 12):
-        assert f"allocate req" in func or True
-    allocations = [line for line in func.splitlines() if "allocate req" in line]
-    assert len(allocations) == 10
+    needs = _read(MODEL_DIR / "aebs_visualization_needs_requirements.sysml")
+    req_ids = dict(re.findall(
+        r"requirement (req\w+) : VisualizationInstrumentRequirementCandidate \{\s*"
+        r"doc /\* (REQ-AEBS-S2-\d+)\b", needs))
+    allocated = set(re.findall(r"^\s*allocate (req\w+) to \w+::\w+;", func, re.M))
+    declared = {req for entry in yaml.safe_load(_read(PILOT))["traceability"]["requirement_allocations"]
+                for req in entry}
+    assert declared, "the pilot declares no requirement allocation"
+    assert allocated <= set(req_ids), sorted(allocated - set(req_ids))
+    assert {req_ids[name] for name in allocated} == declared
 
 
 def test_logical_adapter_has_no_command_path() -> None:

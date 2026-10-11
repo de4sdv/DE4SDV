@@ -91,7 +91,9 @@ def test_kernel_internal_manifest_is_the_exclusion_source():
     expected = {f"{file}::{declaration}": reason
                 for file, declarations in manifest["declarations"].items()
                 for declaration, reason in declarations.items()}
-    assert len(expected) == 101  # + AssuranceClaim, AssuranceArgument, AssuranceCounterClaim
+    # No count is pinned: a new kernel-internal declaration is a manifest
+    # entry, and the content comparison below covers it.
+    assert expected, "the kernel-internal manifest lists no declaration"
     # Every listed declaration is excluded with exactly its reason (disjoint
     # union: none is also projected).
     assert excluded == expected
