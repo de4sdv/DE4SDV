@@ -36,16 +36,16 @@ CHECKS_BY_STEP = {
         "incrementHasAssumption", "incrementHasStakeholder", "incrementHasFramedConcern",
         "incrementHasScope", "incrementHasOutOfScopeItem", "incrementHasOwner",
         "incrementDeclaresApplicablePhases", "incrementDeclaresExpectedArtifacts",
-        "incrementDeclaresExpectedReviewEvidence",
+        "incrementDeclaresExpectedReviewEvidence", "expectedArtifactsCoverIncrementContent",
     },
     "ElaborateNeeds": {
         "needHasStatement", "needHasStakeholder", "needHasSource", "needHasRationale",
-        "needHasValidationScenario",
+        "needHasValidationScenario", "needSubjectIsSystemOfInterest",
     },
     "SpecifyRequirements": {
-        "requirementDerivesFromNeed", "requirementHasOneSubject",
-        "requirementHasVerificationMethod", "requirementSpecifiesFeatureOrCapability",
-        "requirementStatesSuccessCriteria",
+        "requirementHasStatement", "requirementDerivesFromNeed", "requirementHasOneSubject",
+        "requirementSubjectIsSystemOfInterest", "requirementHasVerificationMethod",
+        "requirementSpecifiesFeatureOrCapability", "requirementStatesSuccessCriteria",
     },
     "PlanVerificationAndEvidence": {
         "verificationCaseVerifiesRequirement", "requirementVerifiedByVerificationCase",
@@ -53,6 +53,9 @@ CHECKS_BY_STEP = {
     },
 }
 ADVISORY = {
+    "expectedArtifactsCoverIncrementContent",
+    "needSubjectIsSystemOfInterest",
+    "requirementSubjectIsSystemOfInterest",
     "requirementSpecifiesFeatureOrCapability",
     "requirementStatesSuccessCriteria",
     "verificationCaseHasEvidenceRecordOrStatus",
@@ -65,6 +68,7 @@ CHECK_REGISTRY = {
     "charterApplicablePhases", "charterExpectedArtifacts", "charterExpectedReviewEvidence",
     "requireConstraint", "sourceAttribute", "rationaleAttribute", "hasValidationScenario",
     "framesStakeholderConcern", "derivesRequirementFromNeed", "oneNativeSubject",
+    "subjectIsSystemOfInterest", "charterExpectedArtifactsCoverContent",
     "oneVerificationMethodKind", "successCriteriaAttribute", "specifiesFeatureOrCommonCapability",
     "verifiesIncrementRequirement", "verifiedBy", "verifiesAcceptanceCriterion",
     "evidenceRecordOrStatus",
@@ -168,6 +172,12 @@ def test_method_check_is_a_light_metadata_definition() -> None:
                         ("advisory", "Boolean", "false")]
 
 
+def test_the_charter_declares_the_system_of_interest_by_reference() -> None:
+    """IncrementCharter owns the optional systemOfInterest reference the subject checks read."""
+    body = braced_body(_code(WORKFLOW_FILE), "part def IncrementCharter :> IncrementTraceObligations")
+    assert re.search(r"\bref\s+part\s+systemOfInterest\s*\[0\.\.1\]", body)
+
+
 def test_the_requirement_type_carries_the_success_criteria_the_advisory_check_reads() -> None:
     """successCriteriaAttribute reads this attribute through the requirement's type lineage."""
     body = braced_body(_code(METHOD_CONTEXT_FILE), "requirement def RequirementCandidate")
@@ -195,6 +205,8 @@ def test_inc_aebs_010_is_declared_with_identifier_and_charter() -> None:
     phases = re.search(r"attribute\s+:>>\s+applicablePhases\s*=\s*\(([^)]*)\)\s*;", body).group(1)
     assert [p.strip().removeprefix("MethodPhase::") for p in phases.split(",")] == list(PHASES[:11])
     assert re.search(r'attribute\s+:>>\s+owner\s*=\s*"[^"]+"\s*;', body)
+    assert re.search(r"ref\s+part\s+:>>\s+systemOfInterest\s*=\s*"
+                     r"DE4SDV_AEBSVisualizationFraming::system2VisualizationInstrument\s*;", body)
     artifacts = re.search(r"attribute\s+:>>\s+expectedArtifacts\s*=\s*\(([^)]*)\)\s*;", body).group(1)
     packages = set(re.findall(r'"([^"]+)"', artifacts))
     declared = {match for path in MODEL_ROOT.rglob("*.sysml")

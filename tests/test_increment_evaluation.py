@@ -366,4 +366,5 @@ def test_population_remedies_name_where_the_subjects_belong() -> None:
         builder.remove(need)
     gaps = {g["gate"]: g for g in _evaluate(scenario).gaps()["blocking"]}
     assert "in the increment's package" in gaps["incrementHasLifecycleDecision"]["what_to_author"]
-    assert "in the increment's declared packages" in gaps["needHasStatement"]["what_to_author"]
+    assert ("in the increment's packages named in the charter's expectedArtifacts"
+            in gaps["needHasStatement"]["what_to_author"])

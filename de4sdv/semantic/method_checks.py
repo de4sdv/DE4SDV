@@ -8,7 +8,11 @@ maps the id to the implementation that decides it for one subject:
   (a viewpoint of a view in the increment package frames a concern of that
   package), ``oneNativeSubject`` (exactly one subject),
   ``oneVerificationMethodKind`` (one standard verification method kind is
-  recorded) or ``ownedByIncrementPackage``;
+  recorded), ``ownedByIncrementPackage``, ``subjectIsSystemOfInterest``
+  (the subject is the system of interest the charter declares, never the
+  increment) or ``charterExpectedArtifactsCoverContent`` (no package
+  holding increment content is missing from the charter's
+  ``expectedArtifacts``, the scope the checks evaluate);
 - **relation names**, for example ``derivesRequirementFromNeed``,
   ``hasValidationScenario`` or ``verifiedBy``: the subject reaches targets
   through that relation (see :mod:`de4sdv.semantic.relation_checks`).
@@ -31,10 +35,19 @@ from de4sdv.sysml_api.repository import reference_ids
 from . import method_evaluator as me
 from de4sdv.sysml_api.errors import IdentityNotFoundError
 
-from .increment_scope import IncrementScope, ModelView, applicable_phase_literals, declared_artifacts
+from .increment_scope import (
+    SCOPE_ATTRIBUTE,
+    SCOPE_PROBLEM,
+    SYSTEM_OF_INTEREST_ATTRIBUTE,
+    IncrementScope,
+    ModelView,
+    applicable_phase_literals,
+    declared_artifacts,
+)
 from .relation_checks import (
     MethodSideInput,
     check_relation,
+    connection_ends,
     element_name,
     in_class,
     membership_members,
@@ -286,6 +299,172 @@ def _one_native_subject(view: ModelView, increment: IncrementScope, subject_id: 
     return satisfied(found)
 
 
+#: Declared (never implied) relations from a usage to the usages it narrows.
+_NARROWING = (("Subsetting", "subsettedFeature"), ("Redefinition", "redefinedFeature"),
+              ("ReferenceSubsetting", "referencedFeature"))
+
+
+def _narrowed_usages(view: ModelView, usage: str) -> list[str]:
+    """``usage`` and every usage it subsets, redefines or references, transitively."""
+    found: list[str] = []
+    frontier = [usage]
+    while frontier:
+        current = frontier.pop(0)
+        if current in found:
+            continue
+        found.append(current)
+        for relationship_type, key in _NARROWING:
+            for relationship in view.index.owned_relationships(current, relationship_type):
+                if relationship.get("isImplied"):
+                    continue
+                frontier.extend(reference_ids(relationship.get(key)))
+    return found
+
+
+def _usage_reaches(view: ModelView, usage: str, usages: set[str], types: set[str]) -> bool:
+    """The usage is, or narrows, one of ``usages``, or is typed (itself or through what it
+    narrows) by one of ``types``."""
+    narrowed = _narrowed_usages(view, usage)
+    if usages & set(narrowed):
+        return True
+    return any(view.index.typed_by(candidate) & types for candidate in narrowed)
+
+
+def _lineage_types(view: ModelView, definitions: Iterable[str]) -> set[str]:
+    """The definitions and every definition specializing them."""
+    found: set[str] = set()
+    for definition in definitions:
+        found |= view.index.specializations(definition)
+    return found
+
+
+def _subject_is_system_of_interest(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """The subject of a need or requirement is the system of interest the charter declares, never the increment.
+
+    A subject that is, or narrows, the increment usage or is typed by the
+    increment definition (or a specialization) violates the rule whatever the
+    charter declares. Otherwise the subject must be, or narrow, a usage the
+    charter references in ``systemOfInterest``, or be typed by one of its
+    types (or a specialization); the charter may also declare the system of
+    interest by type alone. The match is type-level: another usage of the
+    same definition passes too. Without that declaration the comparison is
+    an open input, not a violation.
+    """
+    name = _name(view, subject_id)
+    subjects = check_relation(view, "subject", subject_id).targets
+    if not subjects:
+        return violated(f"{name} declares no subject; needs and requirements take the system of interest "
+                        "as subject")
+    increment_usages = {increment.usage_id} if increment.usage_id else set()
+    offending = [s for s in subjects
+                 if _usage_reaches(view, s, increment_usages, _lineage_types(view, increment.definition_ids))]
+    if offending:
+        named = ", ".join(view.index.name_of(s) or s for s in offending)
+        return violated(f"{name} takes the increment as its subject ({named}); the subject is the system of "
+                        "interest the charter declares, never the increment")
+    if not increment.system_of_interest and not increment.system_of_interest_types:
+        return indeterminate(f"charter:{SYSTEM_OF_INTEREST_ATTRIBUTE}",
+                             f"the charter declares no {SYSTEM_OF_INTEREST_ATTRIBUTE}; the subject of {name} "
+                             "cannot be compared with it")
+    declared_types = _lineage_types(view, increment.system_of_interest_types)
+    matched = [s for s in subjects if _usage_reaches(view, s, set(increment.system_of_interest), declared_types)]
+    if not matched:
+        named = ", ".join(view.index.name_of(s) or s for s in subjects)
+        wanted = ", ".join(_name(view, u) for u in (increment.system_of_interest
+                                                     or increment.system_of_interest_types))
+        return violated(f"{name} subject ({named}) is not the declared system of interest ({wanted})")
+    return satisfied(matched, witnesses=list(increment.charters) or matched)
+
+
+#: Elements named per package when the expected artifacts omit content (the diagnostics carry all).
+_CONTENT_EXAMPLES = 3
+
+
+def _named_holder(view: ModelView, element: str | None) -> str | None:
+    """The element, or its nearest owner, that carries a declared name."""
+    current, seen = element, set()
+    while current and current not in seen:
+        seen.add(current)
+        if view.element(current).get("declaredName"):
+            return current
+        current = view.index.owner_of(current)
+    return element
+
+
+def increment_content_outside_scope(view: ModelView, increment: IncrementScope) -> dict[str, dict[str, str]]:
+    """Top-level package -> {element: why} of increment content outside the charter's expectedArtifacts.
+
+    Increment content is the increment usage itself, a requirement or need
+    connected by DerivesFromNeed to an element in scope, a verification case
+    verifying a requirement in scope, a requirement verified by a
+    verification case in scope, and an element referencing the increment
+    usage (only the usage: a reference to another increment element is not
+    content). Such content in a package the charter does not name is never
+    evaluated by the checks, so it is reported here. Raises
+    :class:`MethodSideInput` when the DerivesFromNeed lineage is unbound.
+    """
+    packages = set(increment.scope_packages)
+    scope = set(increment.scope_elements)
+    found: dict[str, dict[str, str]] = {}
+
+    def note(element: str | None, why: str) -> None:
+        holder = _named_holder(view, element)
+        top = view.top_package(holder) if holder else None
+        if holder is None or top is None or top in packages:
+            return
+        found.setdefault(top, {}).setdefault(holder, why)
+
+    if increment.usage_id and increment.package_id and increment.package_id not in packages:
+        note(increment.usage_id, "declares the increment")
+    index = view.index
+    for connection, (ends, problem) in sorted(connection_ends(view).items()):
+        if problem or not in_class(view, connection, "DerivesFromNeed"):
+            continue
+        inside = [end for end in ends if end in scope]
+        if not inside:
+            continue
+        for end in ends:
+            if end not in scope:
+                note(end, f"derives through {_name(view, connection)} with {_name(view, inside[0])}")
+    for case in index.elements_of_type("VerificationCaseUsage", "VerificationCaseDefinition"):
+        verified = check_relation(view, "verify", case).targets
+        if case in scope:
+            for target in verified:
+                if target not in scope:
+                    note(target, f"verified by {_name(view, case)}")
+            continue
+        inside = [target for target in verified if target in scope]
+        if inside:
+            note(case, f"verifies {_name(view, inside[0])}")
+    if increment.usage_id:
+        for relationship in index.elements_of_type("ReferenceSubsetting"):
+            element = index.element(relationship)
+            if increment.usage_id in reference_ids(element.get("referencedFeature")):
+                for holder in reference_ids(element.get("owningRelatedElement")) + reference_ids(element.get("owner")):
+                    note(holder, "references the increment")
+        for expression in index.elements_of_type("FeatureReferenceExpression"):
+            for relationship in index.owned_relationships(expression, "Membership"):
+                if increment.usage_id in reference_ids(relationship.get("memberElement")):
+                    note(expression, "references the increment")
+    return found
+
+
+def _expected_artifacts_cover_content(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """Every package holding increment content is named in the charter's expectedArtifacts."""
+    if SCOPE_PROBLEM in increment.problems:
+        return indeterminate(f"charter:{SCOPE_ATTRIBUTE}", increment.problems[SCOPE_PROBLEM][1])
+    outside = increment_content_outside_scope(view, increment)
+    if outside:
+        details = []
+        for package, elements in sorted(outside.items(), key=lambda item: _name(view, item[0])):
+            shown = ", ".join(f"{_name(view, element)} ({why})" for element, why in list(elements.items())[:_CONTENT_EXAMPLES])
+            more = f" and {len(elements) - _CONTENT_EXAMPLES} more" if len(elements) > _CONTENT_EXAMPLES else ""
+            details.append(f"{_name(view, package)}: {shown}{more}")
+        return violated(f"{_name(view, subject_id)} {SCOPE_ATTRIBUTE} omit {len(outside)} package(s) holding "
+                        "increment content, which the checks never evaluate", details, witnesses=[subject_id])
+    return satisfied(list(increment.scope_packages), witnesses=[subject_id])
+
+
 def _feature_or_common_capability(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
     targets, witnesses, method_side = [], [], []
     for relation in ("specifiesFeature", "specifiesCommonCapability"):
@@ -356,6 +535,8 @@ NAMED_CHECKS: Mapping[str, CheckFunction] = MappingProxyType({
     # never frame concerns and still declares this check; removed at the next re-cut.
     "framesStakeholderConcern": _frames_stakeholder_concern,
     "oneNativeSubject": _one_native_subject,
+    "subjectIsSystemOfInterest": _subject_is_system_of_interest,
+    "charterExpectedArtifactsCoverContent": _expected_artifacts_cover_content,
     "oneVerificationMethodKind": _library_attribute("verificationMethod", allowed=STANDARD_VERIFICATION_METHOD_KINDS),
     "successCriteriaAttribute": _library_attribute("successCriteria"),
     "specifiesFeatureOrCommonCapability": _feature_or_common_capability,
@@ -395,6 +576,13 @@ REMEDIES: Mapping[str, str] = MappingProxyType({
     "framesStakeholderConcern": "frame a stakeholder concern in {subject}: frame <concern>; (the concern declares a "
                                 "stakeholder)",
     "oneNativeSubject": "declare exactly one subject on {subject}: subject <name> : <Definition>;",
+    "subjectIsSystemOfInterest": "declare the system of interest on the charter (ref part :>> systemOfInterest = "
+                                 "<usage>;) and take it as the subject of {subject}: subject <name> :> <usage>; "
+                                 "(never the increment)",
+    "charterExpectedArtifactsCoverContent": "add to the expectedArtifacts of {subject} every top-level package "
+                                            "holding increment content (elements connected by DerivesFromNeed to, "
+                                            "verifying, or verified by the increment's elements, or referencing "
+                                            "the increment usage), or move that content into a named package",
     "oneVerificationMethodKind": "set on {subject}: attribute :>> verificationMethod = \"<kind>\"; (one of " + _KINDS + ")",
     "successCriteriaAttribute": "set on {subject}: attribute :>> successCriteria = \"<the observable conditions under "
                                 "which verification shows the requirement is met>\";",
