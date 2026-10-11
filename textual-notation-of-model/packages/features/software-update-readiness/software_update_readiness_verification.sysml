@@ -10,8 +10,7 @@ package DE4SDV_SoftwareUpdateReadinessVerification {
     private import DE4SDV_SoftwareUpdateReadinessFraming::*;
     private import DE4SDV_SoftwareUpdateReadinessNeedsRequirements::*;
 
-    // The package holding the increment's verification cases references the increment usage.
-    ref part verifiedIncrement references DE4SDV_SoftwareUpdateReadinessFraming::incTEST001;
+    // PROBE (reverted in the next commit): the references declaration to the increment usage is removed.
 
     verification <'VC-TEST-001-01'> parkedStatePreconditionTest {
         doc /*
