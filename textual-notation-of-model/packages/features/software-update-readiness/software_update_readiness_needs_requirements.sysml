@@ -134,23 +134,6 @@ package DE4SDV_SoftwareUpdateReadinessNeedsRequirements {
         attribute :>> successCriteria = "For each single unmet precondition and for all of them unmet together, the display and the backend log name every unmet precondition within 5 s of the refusal.";
     }
 
-
-    // ---- PROBE (reverted in the next commit): a requirement whose subject is the system, not the increment ----
-
-    part def VehicleUpdateClient {
-        doc /* Vehicle-side software update client (probe only). */
-    }
-
-    requirement <'REQ-TEST-005'> reqInstallationWindowProbe : RequirementCandidate {
-        doc /* PROBE: no DerivesFromNeed, no verification method, no verification case. */
-        subject updateClient : VehicleUpdateClient;
-        require constraint statement {
-            language "English"
-            /* The vehicle update client shall not start an installation between 06:00 and 22:00 local time
-               unless the driver selects immediate installation. */
-        }
-    }
-
     // ---- Requirement provenance (DerivesFromNeed only) --------------------------
 
     connection parkedStateDerivesFromVehicleSecured : DerivesFromNeed
