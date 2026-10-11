@@ -20,10 +20,10 @@ and [ADR 0013](../architecture-decisions/0013-deploy-experimental-readonly-publi
 - A machine-readable status document at
   [`/deployment-status.json`](https://sysml-api.de4sdv.org/deployment-status.json)
   publishing the deployed Git SHA, the deployment's SysML Project/Commit UUIDs,
-  and the semantic identity the baseline was validated against:
-  `baseline.semantic_authority` (the model-built semantic-authority identity,
-  `sai-…`) for a revision that contains O4 Wave C2, `baseline.ontology` (the
-  retired authored-ontology identity) for an earlier revision.
+  the semantic-authority identity the baseline was validated against
+  (`baseline.semantic_authority`, `sai-…`) and the served model
+  (`baseline.served_model`: the validated export's digest, element count and
+  content digest).
 
 Project/Commit UUIDs are specific to each deployment (the importer generates
 them fresh); element UUIDs are stable across deployments. Never reuse a binding
@@ -47,73 +47,53 @@ UUIDs that do not exist in the public deployment.
   git checkout <DEPLOYED_SHA>          # from deployment-status.json
   ```
 
-## Step 1 — Build a client revision binding
+## Step 1 — Get the deployment binding
 
-The server needs a revision-binding JSON file (`de4sdv.revision-binding/v2`).
-For the public deployment, build it from the live status document
-(Project/Commit UUIDs and the semantic-authority identity come straight from
-what is actually deployed). This works for a deployment whose status carries
-`baseline.semantic_authority`; a binding v1 (`ontology` block) is refused:
+The server needs the deployment's own revision binding
+(`de4sdv.revision-binding/v2`), exactly as the deploy wrote it. It carries the
+ingestion-validated kernel bindings (ADR 0011) and the served-model record
+that the server checks the API listing against. It cannot be rebuilt from
+`deployment-status.json`, which does not publish the kernel bindings. Public
+distribution of the binding file is not set up yet: maintainers copy it from
+the host (`/srv/de4sdv/artifacts/current/de4sdv-full-model-binding.json`),
+and others request it from the maintainers.
+
+Check that the binding is the deployment's:
 
 ```bash
 python - <<'EOF'
 import json, urllib.request
 s = json.load(urllib.request.urlopen(
-    'https://sysml-api.de4sdv.org/deployment-status.json'))
-b = s['baseline']
-if "semantic_authority" not in b:
-    raise SystemExit("deployment predates O4 Wave C2 (baseline.ontology): "
-                     "use that revision's copy of this guide")
-binding = {
-    "schema": "de4sdv.revision-binding/v2",
-    "git_repository": "de4sdv/DE4SDV",
-    "git_commit": b["git_commit"],
-    "sysml_project_id": b["sysml_project_id"],
-    "sysml_commit_id": b["sysml_commit_id"],
-    "import_timestamp": s["deployed_at_utc"],
-    "import_tool_version": "de4sdv-full-model-import/1+official-syside-json",
-    "semantic_validation": "passed",
-    "scope": "full-model",
-    "semantic_authority": b["semantic_authority"],
-}
-with open("public-model-binding.json", "w") as f:
-    f.write(json.dumps(binding, indent=2) + "\n")
-print("wrote public-model-binding.json for Git", b["git_commit"][:12])
+    'https://sysml-api.de4sdv.org/deployment-status.json'))["baseline"]
+b = json.load(open("public-model-binding.json"))
+assert b["git_commit"] == s["git_commit"]
+assert (b["sysml_project_id"], b["sysml_commit_id"]) == (s["sysml_project_id"], s["sysml_commit_id"])
+assert b["semantic_authority"]["id"] == s["semantic_authority"]["id"]
+assert b["served_model"] == s["served_model"]
+print("binding matches the deployment at Git", s["git_commit"][:12])
 EOF
 ```
 
 ## Step 2 — Launch the server and verify
 
-The server fails closed unless binding, semantic-authority identity,
-expected Git SHA and the model-authority bundle all match. That is
-deliberate: an agent cannot reason over a stale or mismatched model and
-present the results as current.
-
-The semantic authority is selected explicitly: `--semantic-authority model`
-with the closed model-authority bundle accepted for the deployed revision and
-its exact `mab-` id (the deployed id is published at
-`https://viewer.de4sdv.org/ask-status.json` as `.semantic_authority.bundle_id`).
-There is no default; an unset selector refuses to start. The bundle closure
-is bound to the deployment binding, so only the bundle closed for this
-deployment starts. Public distribution of that bundle file is not set up yet;
-until it is, the public MCP route needs the bundle from the maintainers (see
-[model-authority activation](../method-conformance/o4/model-authority-activation.md)).
+The server starts only when its startup check passes: the checkout is the
+expected Git SHA with a clean tree, the binding is that revision's, and the
+semantic-authority identity recomputed from the checkout equals the
+binding's. It then answers only from a corpus whose content is the validated
+export the binding records. That is deliberate: an agent cannot reason over
+a stale or mismatched model and present the results as current. There is no
+authority selector and no bundle.
 
 ```bash
 python scripts/semantic_mcp_server.py \
   --api-url https://sysml-api.de4sdv.org \
   --binding public-model-binding.json \
-  --expected-git-revision <DEPLOYED_SHA> \
-  --semantic-authority model \
-  --model-authority-bundle /path/to/de4sdv-model-authority-bundle.json \
-  --model-authority-bundle-id mab-<DEPLOYED_BUNDLE_ID>
+  --expected-git-revision <DEPLOYED_SHA>
 ```
 
 Equivalent environment variables (`DE4SDV_SYSML_API_URL`,
-`DE4SDV_REVISION_BINDING`, `DE4SDV_EXPECTED_GIT_SHA`,
-`DE4SDV_SEMANTIC_AUTHORITY`, `DE4SDV_MODEL_AUTHORITY_BUNDLE`,
-`DE4SDV_MODEL_AUTHORITY_BUNDLE_ID`) are available for stdio clients that
-pass configuration through the environment.
+`DE4SDV_REVISION_BINDING`, `DE4SDV_EXPECTED_GIT_SHA`) are available for stdio
+clients that pass configuration through the environment.
 
 ## Step 3 — Register with your MCP client
 
@@ -126,9 +106,6 @@ hermes mcp add de4sdv-semantic \
   --env DE4SDV_SYSML_API_URL=https://sysml-api.de4sdv.org \
     DE4SDV_REVISION_BINDING=/absolute/path/to/public-model-binding.json \
     DE4SDV_EXPECTED_GIT_SHA=<DEPLOYED_SHA> \
-    DE4SDV_SEMANTIC_AUTHORITY=model \
-    DE4SDV_MODEL_AUTHORITY_BUNDLE=/absolute/path/to/de4sdv-model-authority-bundle.json \
-    DE4SDV_MODEL_AUTHORITY_BUNDLE_ID=mab-<DEPLOYED_BUNDLE_ID> \
   --args /path/to/DE4SDV/scripts/semantic_mcp_server.py --api-timeout 600
 ```
 
@@ -144,7 +121,8 @@ several minutes. The server then saves an identity-bound snapshot of that
 revision's elements in `DE4SDV_SEMANTIC_SNAPSHOT_DIR` (default
 `~/.cache/de4sdv/semantic-snapshots`), so later server starts for the same
 revision load it locally instead. A snapshot is used only for the exact
-revision, binding, semantic authority and API endpoint it was written for;
+revision, binding, semantic authority and API endpoint it was written for,
+and only when its content is the validated export the binding records;
 anything else loads from the API. Every query after the load runs against
 memory.
 
@@ -175,9 +153,9 @@ relationship UUIDs and provenance URIs of the form
 ## After a new deployment
 
 Each deployment generates fresh Project/Commit UUIDs and may advance the Git
-SHA. When `deployment-status.json` changes, rebuild the binding (Step 1),
-update `DE4SDV_EXPECTED_GIT_SHA`, and re-checkout the repository at the new
-deployed SHA. The server refuses queries against a stale binding by design.
+SHA. When `deployment-status.json` changes, get the new deployment binding
+(Step 1), update `DE4SDV_EXPECTED_GIT_SHA`, and re-checkout the repository at
+the new deployed SHA. The server refuses to start on a stale binding by design.
 
 ## Browsing without an agent
 

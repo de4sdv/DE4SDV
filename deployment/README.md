@@ -27,11 +27,10 @@ for the separate application/model identity contract and abuse controls.
 - Swagger/OpenAPI documentation from the implementation at `/docs`.
 - A machine-readable status document at `/deployment-status.json` with the
   served Git SHA, the deployment-specific SysML project/commit UUIDs, the
-  semantic identity (`baseline.semantic_authority` since O4 Wave C2;
-  `baseline.ontology` for an earlier revision, e.g. a rollback target),
-  deployment timestamp, and read-only/experimental status.
-  `scripts/verify_public_api.py` accepts exactly one of the two, each with a
-  strict shape.
+  semantic-authority identity (`baseline.semantic_authority`, `sai-…`), the
+  served model (`baseline.served_model`: export digest, element count and
+  content digest), deployment timestamp, and read-only/experimental status.
+  `scripts/verify_public_api.py` checks both with a strict shape.
 
 ## What is blocked (by design)
 
@@ -238,36 +237,130 @@ and an independent rate-limit budget (`guide_global`, `guide_daily`,
 hourly/daily spend. No server-side user memory or accounts exist in V1;
 conversation state is browser-local.
 
-## Semantic authority selection (O4 Wave C2)
+## Runtime contract
 
-The ask-viewer and the semantic MCP server select their semantic authority
-explicitly, and since O4 Wave C2 the model authority is the only one:
-`DE4SDV_SEMANTIC_AUTHORITY=model` selects a closed, activation-eligible
-model-authority bundle (`DE4SDV_MODEL_AUTHORITY_BUNDLE`,
-`DE4SDV_MODEL_AUTHORITY_BUNDLE_ID=mab-…`), supplied through the compose
-substitution environment (`/srv/de4sdv/sysml2-api.env` or the deploy
-session) and delivered under `/srv/de4sdv/artifacts/model/` (mounted
-read-only at `/run/de4sdv/model`). The request is bundle-id-bound and
-fail-closed. An unset selector and the retired values `legacy` and `o3`
-refuse startup (the authored ontology and the O3 bundle runtime were
-deleted); the `DE4SDV_O3_*` variables are no longer read. The deployed
-authority is visible at `GET /ask-status.json` (`.semantic_authority`).
+The Ask viewer and the semantic MCP server start from four things and
+nothing else (owner decision 2026-10-11: the model-authority bundle, closure
+and activation ceremony is retired):
 
-The environment is edited **before** a deploy (C2 or a rollback): the deploy
-recreates the ask-viewer from it. Both deploy workflows require the declared
-authority (`expected_semantic_authority` for the API deploy,
-`model_authority_bundle_id` for the Ask deploy); `verify_public_api.py`
-fails the run when `.semantic_authority.kind` is not the declared one
-(`invalid` included) or the bundle id differs, `verify_public_ask.py` fails
-unless the runtime serves the accepted `mab:` id, and
-`monitor_public_ask.py` alerts on `invalid`.
+1. **A clean checkout of the deployed commit.** On the host,
+   `/srv/de4sdv/DE4SDV`, mounted read-only into the ask-viewer.
+2. **The deployment binding.** `/srv/de4sdv/artifacts/current/de4sdv-full-model-binding.json`,
+   written by this deploy's own import: a revision binding v2 with the
+   ingestion-validated kernel bindings (ADR 0011) and the `served_model`
+   record. That record names the validated export (file digest), its element
+   count and its content digest. The importer writes it only after the
+   full-payload read-back found every element of the API listing equal to the
+   export (schema padding without a value is ignored; numbers compare by value).
+3. **The deployed API.** `http://sysml2-api:9000` inside the compose network.
+4. **One startup check** (`de4sdv/semantic/deployment_runtime.py`). It
+   refuses unless all of these hold:
+   - **right commit:** the checkout HEAD is the deployed commit, the binding
+     is a passed full-model binding of the expected model revision, and the
+     application revision descends from it;
+   - **clean tree:** `git status --porcelain` is empty;
+   - **same semantic authority:** the `sai-` identity recomputed from the
+     checkout equals the binding's;
+   - **served model = validated export:** the binding records the served
+     model, and no corpus is used unless its content digest is exactly that
+     record's. This part runs when the corpus loads (the warm-up). A snapshot
+     that is not the export is ignored; an API corpus that is not the export
+     is refused, and every semantic answer is refused with it.
 
-Rollback is a redeploy of the pre-C2 revision (`ff0311b`, its
-ingestion artifact expires 2026-10-22). Activation, the rollback procedure,
-the production rollback proof (C2 → redeploy `ff0311b` → C2, three
-batteries) and the owner-gated steps live in
-`docs/method-conformance/o4/model-authority-activation.md`. Merging the C2
-change activates nothing.
+Environment. The ask-viewer needs `DE4SDV_APP_GIT_SHA` (the deployed commit;
+`deploy.py` and the Ask deploy workflow set it); the binding path and API URL
+are fixed in `compose.yaml`. The MCP server takes `--api-url`, `--binding` and
+`--expected-git-revision` (or `DE4SDV_SYSML_API_URL`, `DE4SDV_REVISION_BINDING`
+and `DE4SDV_EXPECTED_GIT_SHA`) and runs from a clean checkout of that commit.
+There is no authority selector and no bundle variable: compose no longer
+reads `DE4SDV_SEMANTIC_AUTHORITY` or `DE4SDV_MODEL_AUTHORITY_BUNDLE[_ID]`.
+
+Refusal is loud. A refused startup makes `/ask-status.json` report
+`semantic_authority.kind == "invalid"` with the reason, and the viewer then
+answers only on the labeled regex path. The MCP server exits with status 2
+and does not start. `/ask-status.json` reports `startup_check`, the served
+`semantic_authority` (`sai-…`), `served_model` and `served_model_check`. The
+post-deploy verifier (`verify_public_api.py`), the Ask verifier
+(`verify_public_ask.py`) and the scheduled monitor (`monitor_public_ask.py`)
+compare them with `deployment-status.json`. Nothing is declared by hand.
+
+## Release
+
+Three commands. The only owner gate is the `sysml-api-production` approval.
+
+```bash
+# 1. Privileged run at the exact main tip (licensed export, CI import
+#    rehearsal with the three batteries, release evidence over the export).
+gh workflow run privileged-full-model-api-ingestion.yml --repo de4sdv/DE4SDV \
+  --ref main -f ref=<SHA>
+
+# 2. Deploy that SHA; approve sysml-api-production when GitHub asks. The
+#    verifier waits for the Ask warm-up and its served-model check.
+gh workflow run deploy-public-sysml-api.yml --repo de4sdv/DE4SDV \
+  --ref main -f git_sha=<SHA>
+
+# 3. Re-point the agents' MCP server: the byte-exact deployment binding and
+#    a clean checkout of <SHA>; then restart the agent sessions.
+scp deploy@<host>:/srv/de4sdv/artifacts/current/de4sdv-full-model-binding.json \
+  ~/.hermes/de4sdv-semantic/binding.json && \
+  git -C ~/.hermes/de4sdv-semantic-worktree checkout --detach <SHA>
+```
+
+Agents set `DE4SDV_EXPECTED_GIT_SHA=<SHA>` and drop any
+`DE4SDV_SEMANTIC_AUTHORITY` or `DE4SDV_MODEL_AUTHORITY_*` entries from their
+MCP configuration. Step 1 must finish green: the deploy refuses a SHA without a
+successful privileged run. `scripts/check_release_evidence.py` is that run's
+release gate: revision, export digest, served model, binding and kernel
+bindings, the runtime answers over the export (K pair, EvidenceContract
+closure, VerificationCase grounding), coverage and the battery identities.
+
+The CI import rehearsal in step 1 (about 40 minutes) stays for two releases
+after the ceremony retirement, then it is dropped.
+
+During the first two releases after the retirement, leave the 063c4fb1 lines in
+`/srv/de4sdv/sysml2-api.env` (`DE4SDV_SEMANTIC_AUTHORITY`,
+`DE4SDV_MODEL_AUTHORITY_BUNDLE`, `DE4SDV_MODEL_AUTHORITY_BUNDLE_ID`) and the
+bundle under `/srv/de4sdv/artifacts/model/` in place. Current compose ignores
+them, and the rollback below needs them.
+
+## Rollback
+
+Rollback is a redeploy of the previous release. The release before the
+ceremony retirement is `063c4fb1f2763a366874118f3b78d9841e0d11b4` (bundle
+`mab-32da05b896fee9d5a47874e7f305f741`, privileged run `38095581274`). It needs
+its own workflow definition and verifier, so dispatch it from the
+`rollback/063c4fb1` tag. Main's deploy workflows refuse that revision before
+any host change.
+
+```bash
+# 0. Once, before it is needed (a repository write: Orkun).
+git tag rollback/063c4fb1 063c4fb1f2763a366874118f3b78d9841e0d11b4 && git push origin rollback/063c4fb1
+
+# 1. Redeploy 063c4fb1 with its own workflow; approve sysml-api-production.
+gh workflow run deploy-public-sysml-api.yml --repo de4sdv/DE4SDV --ref rollback/063c4fb1 \
+  -f git_sha=063c4fb1f2763a366874118f3b78d9841e0d11b4 -f artifact_run_id=38095581274 \
+  -f expected_semantic_authority=mab-32da05b896fee9d5a47874e7f305f741
+
+# 2. Re-close its bundle at the new deployment binding (the redeploy minted new
+#    project/commit UUIDs, so the earlier deployment-bound closure no longer fits).
+~/release/r5-closure.sh 063c4fb1f2763a366874118f3b78d9841e0d11b4 38095581274 \
+  mab-32da05b896fee9d5a47874e7f305f741 --apply
+
+# 3. Install the re-closed bundle and recreate only the ask-viewer.
+~/release/r6-activate.sh 063c4fb1f2763a366874118f3b78d9841e0d11b4 \
+  mab-32da05b896fee9d5a47874e7f305f741 \
+  ~/release/work/063c4fb1f276/r5/out/closed/de4sdv-model-authority-bundle.json --apply
+```
+
+This is the R4→R5→R6 sequence that activated 063c4fb1 on 2026-10-11 (each
+release-kit script runs as a dry run without `--apply` first; agents re-point
+with `~/release/r7-agent-rebind.md`). It takes about 2.5 hours. Between steps 1 and 3 the Ask viewer answers only on
+the labeled regex path. Run 38095581274's artifacts expire on
+2026-10-25T02:52:40Z. After that, step 1 needs a fresh privileged run of
+063c4fb1 from the tag (about 4 hours), and step 2 must read the local archive
+in `~/release/archive/063c4fb1/`. After the second release under this
+contract, the previous release is itself a contract release, and its rollback
+is step 1 alone (`--ref main`, no bundle).
 
 ## Known limitations
 

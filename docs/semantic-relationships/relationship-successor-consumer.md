@@ -64,7 +64,8 @@ missing or blank endpoint, typing or specialization identity is incomplete
 evidence, not a member that may be discarded before cardinality or lineage checks.
 
 `relationship_successor_contract.py` extracts and verifies source-derived records
-at bootstrap, through `composition_construction.py`. The live relationship service
+when the runtime is built (`model_contract.generate_model_successor_contract`,
+called by the deployed runtime's startup check and facade). The live relationship service
 cannot import that source-reading extractor; queries consume the constructed
 profile and API binding only. The repository layering guard enforces this split.
 Construction masks comments and both quoted-token forms together; comment markers
@@ -90,10 +91,9 @@ O4 Wave C2 retired the separate non-production sidecar CLI
 model-authority runtime as default predicates, and the retired names
 (`realizedBy`, `deployedTo`, `validatedBy`, `validatesFitnessForUse`,
 `constrainedBy`) are refused as `retired; use <successor>`. Query them
-through the semantic MCP server (`scripts/semantic_mcp_server.py
---semantic-authority model --model-authority-bundle PATH
---model-authority-bundle-id mab-…`) or the impact CLI
-(`scripts/query_model_impact.py`), both read-only. See
+through the semantic MCP server (`scripts/semantic_mcp_server.py --api-url URL
+--binding BINDING --expected-git-revision SHA`) or the impact CLI
+(`scripts/query_model_impact.py --backend api`), both read-only. See
 `docs/method-conformance/o4/model-authority-runtime.md`.
 
 ## Evidence boundary

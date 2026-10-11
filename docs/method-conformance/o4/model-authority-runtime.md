@@ -1,11 +1,11 @@
-# Model-authority runtime (O4 Wave B, closed by Wave C2)
+# Model-authority runtime
 
-Status: **draft, not activated by this record.** This record describes the
-runtime core for the owner decisions of 2026-10-07 (Wave B) and the closure
-decisions of Wave C (2026-10-07/08). It does not claim production
-activation, live API closure, compliance or certification. Production
-deployment and the activation decision naming the `mab-` id stay with the
-owner ([activation and rollback](model-authority-activation.md)).
+Status: **draft.** This record describes the runtime that serves the
+model-built kernel contract: Wave B and the Wave C closure decisions
+(2026-10-07/08), and the retirement of the model-authority bundle, closure
+and activation ceremony (owner decision 2026-10-11). It claims no
+compliance or certification. Deployment, release and rollback are in
+[`deployment/README.md`](../../../deployment/README.md).
 
 ## Problem
 
@@ -65,71 +65,54 @@ contract fields held by the admission manifest (domain/range/strength,
 mechanics, kernel mapping kind, ontology relations) are recorded there with
 their pre-deletion equality (owner decision D9).
 
-## Bundle
+## Runtime construction
 
-`de4sdv/semantic/model_authority_runtime.py` builds and verifies the
-model-authority bundle (`de4sdv.model-authority-bundle/v2`). Its id is
-`mab-<32 hex>`, the digest of `schema`, `git_revision` and `components`. The
-service authority id is `mab:<bundle id>`.
+`de4sdv/semantic/deployment_runtime.py` builds the production runtime of the
+Ask viewer, the semantic MCP server and the batteries from four inputs: a
+clean checkout of the deployed commit, the deployment's revision binding, the
+deployed API, and one startup check (`verify_startup`). The check refuses
+unless:
 
-| Component | Content |
-| --- | --- |
-| `layers` | Projection/profile pairs (path, schema, sha256, source revision) of every model layer, and the frozen O2-chain records |
-| `semantic_authority` | The `sai-` identity of the model-built contract |
-| `successor_contract` | Id, digest and relation names of the model-generated successor contract, and the `retired` table (name → successor navigation) |
-| `routing` | Exactly one provider per identity, agreeing corroborations, duplicates (must be empty), the residual (must be empty: bundle construction refuses otherwise) and the retired names |
-| `implementation_manifest` | sha256 of each executed runtime source (21 files) |
+- **right commit:** the checkout HEAD is the application revision, the
+  binding is a passed full-model binding of the expected model revision, and
+  the application revision descends from it;
+- **clean tree:** `git status --porcelain` is empty;
+- **same semantic authority:** the `sai-` identity that
+  `build_model_contract` recomputes from the checkout equals the binding's;
+- **served model = validated export:** the binding records the served model
+  (`served_model`: export file digest, element count, content digest; written
+  by the importer after its full-payload read-back), and the service accepts
+  a corpus only when its content digest is exactly that record's
+  (`de4sdv/sysml_api/served_model.py`). This runs when a corpus loads, from
+  the API or from a snapshot. A refused snapshot is a miss; a refused API
+  corpus raises `ServedModelMismatchError` on every call.
 
-Closure (`de4sdv.model-authority-closure/v2`) binds the bundle to one
-revision binding: binding digest, SysML project/commit, whether the
-definition closure is closed, the bound `EvidenceContract` closure members
-with the element id each one validated to, and the required validations
-`model_projection_coverage`, `model_runtime_answers`,
-`verification_anchor_readback`, `full_model_semantic_queries`,
-`product_line_scope` and `semantic_mcp`. Each must be exactly `passed` and
-carry the sha256 of its artifact. Activation eligibility (definition
-closure closed and every validation passed) is recomputed during
-verification, never trusted. The requirement-population delta is measured,
-not gating.
-
-Verification recomputes every component from the checkout and refuses any
-mismatch: layer bytes, the regenerated successor contract, routing, the
-semantic-authority identity and the implementation sources (an external
-substitute is refused).
-
-## Selection and rollback
-
-```text
-DE4SDV_SEMANTIC_AUTHORITY=model
-DE4SDV_MODEL_AUTHORITY_BUNDLE=<path to closed bundle JSON>
-DE4SDV_MODEL_AUTHORITY_BUNDLE_ID=mab-<32 hex>
-```
-
-`authority_selection.require_model_selection` accepts only `model`. Unset
-(owner decision D6), `legacy`, `o3` or any other value is refused; the
-message names the rollback procedure (rollback is a redeploy of the pre-C2
-revision). `composition_construction.build_explicit_semantic_runtime`
-routes the model selection to `build_model_authority_runtime`; every entry
-point delegates to it. Activation eligibility is required by default; only
-an explicit `require_activation_eligible=False` (the
-`--allow-candidate-bundle` flag of the evidence scripts) serves a candidate
-bundle, for evidence runs and tests. `ModelAuthorityRefused` is an
-`AuthoritySelectionError`.
+`build_deployment_runtime` then assembles the facade over the verified
+contract (`model_authority_runtime.model_facade`) and the services
+(`assemble_model_services`). It installs the served-model guard on the
+repository. The served semantic-authority id is the contract identity
+(`sai-…`). Every refusal raises `StartupCheckError` before the API is read;
+nothing falls back.
 
 ```python
-from de4sdv.semantic.model_authority_runtime import (
-    ModelAuthorityRefused, build_model_authority_runtime)
+from de4sdv.semantic.deployment_runtime import build_deployment_runtime
 
-runtime = build_model_authority_runtime(
-    repo_root, bundle_path, expected_id,  # None -> the two environment variables
-    api_url=..., binding_path=..., expected_git_revision=...,
-    require_activation_eligible=True)
+runtime = build_deployment_runtime(
+    repo_root, api_url=..., binding_path=..., expected_git_revision=...)
 runtime.authority_status()
-# {"authority": "model", "bundle_id": "mab-...", "authority_id": "mab:mab-...",
-#  "source_revision": "<40 hex>", "semantic_authority": "sai-...",
-#  "refused": [...], "rollback": "redeploy the pre-Wave-C production revision",
-#  "activation_blocked": <bool>}
+# {"kind": "model", "startup_check": "passed", "semantic_authority": "sai-...",
+#  "semantic_authority_id": "sai-...", "git_commit": "<40 hex>",
+#  "served_model": "sha256:...", "served_model_check": "pending|passed|failed: ...",
+#  "refused": [...], "rollback": "redeploy the previous release", ...}
 ```
+
+There is no bundle, closure attestation, activation-eligibility gate or
+authority selector. The bundle bound a digest of what the checkout already
+fixes. Its closure re-ran evidence against the deployed API. Both chose
+between two authorities, and after Wave C2 there is one. The exact commit,
+the clean tree, the `sai-` equality and the served-model digest guard the
+same things at every start. Release evidence over the export runs in the
+privileged run (`scripts/check_release_evidence.py`).
 
 ## Successor exposure and retired names
 
@@ -176,10 +159,11 @@ class-mapped kernel name.
 
 It compares the result with `model-authority-coverage-baseline.yaml`
 (schema v3, no binding block), which ratchets the refused and retired sets,
-the routing digest and the layer digests. With `--bundle`, it also fails
-when a bundle differs from the checkout. `scripts/check_repo.py` runs it.
-Current summary: 101 projected, 0 residual, 2 refused, 5 retired, 138
-governed declarations (0 residual).
+the routing digest and the layer digests (the successor-contract digest
+moves whenever one of its bound program inputs changes; regenerate the
+baseline with `--write-baseline`). `scripts/check_repo.py` runs it. Current
+summary: 101 projected, 0 residual, 2 refused, 5 retired, 158 governed
+declarations (0 residual).
 
 The model-contract → kernel mapping direction (every class mapping resolves
 to its declaration in the named file) is `scripts/check_model_sync.py` sync
