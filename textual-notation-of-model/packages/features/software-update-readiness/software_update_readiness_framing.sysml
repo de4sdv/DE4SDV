@@ -124,6 +124,7 @@ package DE4SDV_SoftwareUpdateReadinessFraming {
          * An update must never start in a situation where the vehicle could move,
          * run out of energy mid-installation, or be updated against the driver's will.
          */
+        subject increment : SoftwareUpdateReadinessIncrement;
         stakeholder vehicleOwner : VehicleOwner;
         stakeholder updateCampaignOperator : UpdateCampaignOperator;
     }
