@@ -134,6 +134,6 @@ def test_deploy_readme_documents_the_runtime_contract_release_and_rollback():
     text = (ROOT / "deployment/README.md").read_text(encoding="utf-8")
     for needle in ("## Runtime contract", "startup check", "served model", "## Release",
                    "## Rollback", "063c4fb1f2763a366874118f3b78d9841e0d11b4", "sysml-api-production",
-                   "rollback/063c4fb1"):
+                   "release-2026-10-11"):
         assert needle in text, needle
     assert "model-authority-activation.md" not in text

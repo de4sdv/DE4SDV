@@ -329,15 +329,15 @@ Rollback is a redeploy of the previous release. The release before the
 ceremony retirement is `063c4fb1f2763a366874118f3b78d9841e0d11b4` (bundle
 `mab-32da05b896fee9d5a47874e7f305f741`, privileged run `38095581274`). It needs
 its own workflow definition and verifier, so dispatch it from the
-`rollback/063c4fb1` tag. Main's deploy workflows refuse that revision before
+`release-2026-10-11` tag. Main's deploy workflows refuse that revision before
 any host change.
 
 ```bash
 # 0. Once, before it is needed (a repository write: Orkun).
-git tag rollback/063c4fb1 063c4fb1f2763a366874118f3b78d9841e0d11b4 && git push origin rollback/063c4fb1
+git tag -a release-2026-10-11 063c4fb1f2763a366874118f3b78d9841e0d11b4 -m "method release: production at 063c4fb1" && git push origin release-2026-10-11
 
 # 1. Redeploy 063c4fb1 with its own workflow; approve sysml-api-production.
-gh workflow run deploy-public-sysml-api.yml --repo de4sdv/DE4SDV --ref rollback/063c4fb1 \
+gh workflow run deploy-public-sysml-api.yml --repo de4sdv/DE4SDV --ref release-2026-10-11 \
   -f git_sha=063c4fb1f2763a366874118f3b78d9841e0d11b4 -f artifact_run_id=38095581274 \
   -f expected_semantic_authority=mab-32da05b896fee9d5a47874e7f305f741
 
