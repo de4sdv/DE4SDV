@@ -11,16 +11,19 @@ Proves, from OUTSIDE the server, that:
   - the known element reqCommandEmergencyBraking is retrievable by its API
     UUID through the standard element path;
   - full-model pagination exceeds 50,000 elements;
-  - the Ask viewer reports exactly the declared semantic authority
-    (``--expected-semantic-authority``; ``invalid`` always fails).
+  - the Ask viewer serves the deployment: its startup check passed, it
+    serves the ``sai-`` semantic authority and the served model the status
+    document records, and its warm-up reached ``ready`` (its corpus passed the
+    served-model check). Nothing is declared by the operator; ``invalid``
+    always fails.
 
 Exits nonzero on any failure. Read-only: the script never sends a mutation
 payload beyond the method probes (which carry no body and must be rejected).
 
 Usage:
-  python3 verify_public_api.py --expected-semantic-authority mab-<hex> \
+  python3 verify_public_api.py \
       [--base-url https://sysml-api.de4sdv.org] [--ask-url https://viewer.de4sdv.org] \
-      [--json OUT.json] [--skip-full-pagination]
+      [--json OUT.json] [--skip-full-pagination] [--semantic-ready-timeout SECONDS]
 """
 from __future__ import annotations
 
@@ -37,7 +40,8 @@ from urllib.parse import urlsplit, urlunsplit
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from semantic_authority_check import (  # noqa: E402
     AuthorityCheckError,
-    check_expected_authority,
+    check_served_authority,
+    deployment_expectation,
 )
 
 KNOWN_ELEMENT_NAME = "reqCommandEmergencyBraking"
@@ -143,7 +147,7 @@ def _is_lower_hex(value: Any, length: int) -> bool:
 
 
 def _check_semantic_authority_identity(authority: Any) -> None:
-    """O4 Wave C2 status identity: exactly schema + id (sai-<32 hex>) + layers.
+    """Status identity: exactly schema + id (sai-<32 hex>) + layers.
 
     The same shape deploy.validate_bundle requires of the binding.
     """
@@ -161,51 +165,22 @@ def _check_semantic_authority_identity(authority: Any) -> None:
     )
 
 
-def _check_pre_c2_ontology_identity(ontology: Any) -> None:
-    """Pre-C2 status identity (rollback revisions such as ff0311b): exactly
-    path + sha256 of the authored ontology, as those revisions' deploy.py
-    required of the binding."""
-    require(
-        isinstance(ontology, dict)
-        and set(ontology) == {"path", "sha256"}
-        and isinstance(ontology.get("path"), str)
-        and bool(ontology["path"])
-        and _is_lower_hex(ontology.get("sha256"), 64),
-        "status document baseline.ontology (pre-C2) must be exactly "
-        "path + sha256 (lowercase SHA-256)",
-    )
-
-
 def check_status_payload(status_doc: dict[str, Any]) -> dict[str, Any]:
-    """Validate a deployment-status document.
-
-    The semantic identity is ``baseline.semantic_authority`` (O4 Wave C2 and
-    later) or ``baseline.ontology`` (pre-C2 revisions, the rollback path);
-    exactly one must be present and it is validated with a strict shape.
-    """
+    """Validate a deployment-status document (semantic authority + served model)."""
     require(status_doc.get("read_only") is True, "status document does not declare read-only")
     require(
         status_doc.get("service") == "DE4SDV Experimental Read-Only Systems Modeling API",
         "status document has the wrong service label",
     )
     baseline = status_doc.get("baseline") or {}
-    for field in ("git_commit", "sysml_project_id", "sysml_commit_id"):
+    for field in ("git_commit", "sysml_project_id", "sysml_commit_id", "semantic_authority",
+                  "served_model"):
         require(field in baseline, f"status document baseline missing {field}")
-    present = [key for key in ("semantic_authority", "ontology") if key in baseline]
-    require(
-        bool(present),
-        "status document baseline carries neither semantic_authority (C2) nor "
-        "ontology (pre-C2)",
-    )
-    require(
-        len(present) == 1,
-        "status document baseline must carry exactly one semantic identity "
-        f"(semantic_authority or ontology), found {present}",
-    )
-    if present == ["semantic_authority"]:
-        _check_semantic_authority_identity(baseline["semantic_authority"])
-    else:
-        _check_pre_c2_ontology_identity(baseline["ontology"])
+    _check_semantic_authority_identity(baseline["semantic_authority"])
+    try:
+        deployment_expectation(status_doc, require_served_model=True)
+    except AuthorityCheckError as exc:
+        raise VerificationError(str(exc)) from exc
     text = json.dumps(status_doc)
     require("password" not in text.lower(), "status document may contain a secret")
     return status_doc
@@ -216,31 +191,52 @@ def check_status_document(base_url: str) -> dict[str, Any]:
 
 
 def check_ask_semantic_authority(
-    ask_status: dict[str, Any], *, expected: str, status_doc: dict[str, Any],
+    ask_status: dict[str, Any], *, status_doc: dict[str, Any], require_built: bool = True,
 ) -> dict[str, Any]:
-    """O4 Wave C2 (review R3): the deploy is not green unless the Ask viewer
-    reports exactly the declared semantic authority.
+    """The deploy is not green unless the Ask viewer serves the deployment.
 
-    ``expected`` is ``mab-<hex>`` (the accepted bundle; C2 revisions), or for
-    a pre-C2 rollback the authority that revision serves (``legacy``,
-    ``o3:<bundle id>`` or its Wave B ``mab-`` id). ``invalid`` always fails.
-    Right after a C2 deploy the runtime may still be only *requested* (the
-    bundle is re-closed at the new deployment binding afterwards, activation
-    step 0); the served check is the Ask verifier's (verify_public_ask.py).
-    A pre-C2 rollback with a model expectation must SERVE that bundle (its
-    bundle was closed at that revision's own binding): a request the revision
-    cannot serve, such as a C2 mab- id left in the environment, fails.
-
-    A failure here marks the run red; it does NOT roll back the API (the
-    stack swap has already happened).
+    The expectation comes from the status document this deploy wrote: the
+    ``sai-`` semantic authority and the served model. ``invalid`` (a refused
+    startup) always fails. A failure here marks the run red; it does NOT roll
+    back the API (the stack swap has already happened).
     """
-    pre_c2 = "ontology" in (status_doc.get("baseline") or {})
     try:
-        return check_expected_authority(
-            ask_status, expected=expected, pre_c2=pre_c2, require_served=pre_c2,
-        )
+        expectation = deployment_expectation(status_doc, require_served_model=True)
+        return check_served_authority(ask_status, expectation, require_built=require_built)
     except AuthorityCheckError as exc:
         raise VerificationError(f"Ask semantic authority: {exc}") from exc
+
+
+def wait_for_ask_semantic_runtime(
+    ask_url: str, status_doc: dict[str, Any], *, ready: bool, timeout_seconds: float,
+    delay_seconds: float = 10.0,
+) -> dict[str, Any]:
+    """Poll /ask-status.json until the runtime is built (``ready``: warm-up done).
+
+    Stops at once on a refused startup, a failed served-model check or a
+    failed warm-up; otherwise checks the last observation at the deadline.
+    """
+    deadline = time.monotonic() + timeout_seconds
+    while True:
+        ask_status = fetch_ask_status(ask_url)
+        block = ask_status.get("semantic_authority") or {}
+        warmup = (ask_status.get("semantic_warmup") or {}).get("status")
+        fatal = (block.get("kind") == "invalid" or warmup == "error"
+                 or str(block.get("served_model_check") or "").startswith("failed"))
+        built = bool(block.get("semantic_authority_id"))
+        done = built and (not ready or (warmup == "ready"
+                                        and block.get("served_model_check") == "passed"))
+        if fatal or done or time.monotonic() >= deadline:
+            checked = check_ask_semantic_authority(ask_status, status_doc=status_doc)
+            if warmup == "error":
+                raise VerificationError("Ask semantic warm-up failed (see /ask-status.json)")
+            if not done:
+                raise VerificationError(
+                    f"Ask semantic warm-up not ready after {timeout_seconds:.0f}s "
+                    f"(warm-up {warmup!r}, served-model check "
+                    f"{block.get('served_model_check')!r})")
+            return checked
+        time.sleep(delay_seconds)
 
 
 def fetch_ask_status(ask_url: str, attempts: int = 12, delay_seconds: float = 5.0) -> dict[str, Any]:
@@ -331,11 +327,9 @@ def main() -> int:
     parser.add_argument("--skip-full-pagination", action="store_true")
     parser.add_argument("--ask-url", default=DEFAULT_ASK_URL)
     parser.add_argument(
-        "--expected-semantic-authority",
-        required=True,
-        help="the semantic authority the Ask viewer must report after this deploy: "
-             "mab-<hex> (the accepted model bundle), or for a pre-C2 rollback "
-             "legacy | o3:<bundle id> | that revision's mab- id",
+        "--semantic-ready-timeout", type=float, default=1800.0,
+        help="seconds to wait for the Ask semantic warm-up (the first full corpus "
+             "load and its served-model check; about 10-11 minutes measured)",
     )
     args = parser.parse_args()
     base = args.base_url.rstrip("/")
@@ -356,15 +350,18 @@ def main() -> int:
         model = check_model(base, status_doc)
         report["model"] = model
 
-        report["ask_semantic_authority"] = check_ask_semantic_authority(
-            fetch_ask_status(args.ask_url),
-            expected=args.expected_semantic_authority,
-            status_doc=status_doc,
-        )
+        # The runtime is built seconds after start (the startup check); the
+        # warm-up (full corpus load + served-model check) runs while the
+        # pagination check below pages the public API.
+        report["ask_semantic_authority"] = wait_for_ask_semantic_runtime(
+            args.ask_url, status_doc, ready=False, timeout_seconds=300.0)
 
         if not args.skip_full_pagination:
             total = check_pagination_and_known_element(base, model["project"], model["commit"])
             report["paginated_elements"] = total
+
+        report["ask_semantic_ready"] = wait_for_ask_semantic_runtime(
+            args.ask_url, status_doc, ready=True, timeout_seconds=args.semantic_ready_timeout)
 
         report["verdict"] = "pass"
     except (VerificationError, URLError, json.JSONDecodeError) as exc:

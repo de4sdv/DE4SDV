@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Literal
 
 from .client import ApiClient
-from .errors import ApiError
+from .errors import ApiError, ServedModelMismatchError
 
 Direction = Literal["incoming", "outgoing", "both"]
 
@@ -15,6 +15,9 @@ Direction = Literal["incoming", "outgoing", "both"]
 CorpusSource = Callable[[str, str], "list[dict[str, Any]] | None"]
 #: Best-effort corpus sink invoked after an authoritative retrieval.
 CorpusSink = Callable[[str, str, "list[dict[str, Any]]"], None]
+#: Corpus guard: (project_id, commit_id, elements) -> None; raises
+#: :class:`ServedModelMismatchError` to refuse a corpus before it is adopted.
+CorpusGuard = Callable[[str, str, "list[dict[str, Any]]"], None]
 
 
 def element_id(value: object) -> str | None:
@@ -73,6 +76,11 @@ class SysMLRepository:
     and the sink receives the authoritative result for a best-effort write.
     The source is never trusted by itself: its corpus is structurally
     validated before adoption, and the caller binds its identity.
+
+    A corpus guard may be installed (:meth:`install_corpus_guard`): no corpus
+    is adopted, memoized or written back unless it passes. A refused snapshot
+    is a miss (the network corpus is loaded instead); a refused network corpus
+    raises :class:`ServedModelMismatchError`.
     """
 
     client: ApiClient
@@ -82,11 +90,25 @@ class SysMLRepository:
     _lock: Any = field(default_factory=threading.Lock, repr=False, compare=False)
     _corpus_source: CorpusSource | None = field(default=None, init=False, repr=False, compare=False)
     _corpus_sink: CorpusSink | None = field(default=None, init=False, repr=False, compare=False)
+    _corpus_guard: CorpusGuard | None = field(default=None, init=False, repr=False, compare=False)
 
     def install_corpus_source(self, source: CorpusSource, *, sink: CorpusSink | None = None) -> None:
         """Install the lazy snapshot-first hook (no I/O at install time)."""
         self._corpus_source = source
         self._corpus_sink = sink
+
+    def install_corpus_guard(self, guard: CorpusGuard) -> None:
+        """Every corpus this repository adopts must pass ``guard`` first."""
+        self._corpus_guard = guard
+
+    def _guard_accepts(self, project_id: str, commit_id: str, elements: list[dict[str, Any]]) -> bool:
+        if self._corpus_guard is None:
+            return True
+        try:
+            self._corpus_guard(project_id, commit_id, elements)
+        except ServedModelMismatchError:
+            return False
+        return True
 
     def get_project(self, project_id: str) -> dict[str, Any]:
         value = self.client.request("GET", f"/projects/{project_id}")
@@ -125,12 +147,17 @@ class SysMLRepository:
             if self._corpus_source is not None:
                 snapshot = self._corpus_source(project_id, commit_id)
                 if snapshot is not None:
-                    self._element_cache[cache_key] = validated_element_corpus(snapshot)
-                    return self._element_cache[cache_key]
+                    validated = validated_element_corpus(snapshot)
+                    if self._guard_accepts(project_id, commit_id, validated):
+                        self._element_cache[cache_key] = validated
+                        return validated
             path = f"/projects/{project_id}/commits/{commit_id}/elements?page[size]=1000"
             values = self.client.get_all(path)
             if not all(isinstance(value, dict) for value in values):
                 raise ApiError("GET", path, "element page contained a non-object value")
+            if self._corpus_guard is not None:
+                # Raises: a refused corpus is never memoized or written back.
+                self._corpus_guard(project_id, commit_id, values)
             self._element_cache[cache_key] = values
         if self._corpus_sink is not None:
             # Best-effort write-back; a cache failure is never a query failure.

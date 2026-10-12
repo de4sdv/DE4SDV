@@ -14,7 +14,8 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from semantic_authority_check import (  # noqa: E402
     AuthorityCheckError,
-    check_expected_authority,
+    check_served_authority,
+    deployment_expectation,
 )
 
 
@@ -58,7 +59,7 @@ def _json_request(*args, **kwargs) -> tuple[int, dict[str, Any]]:
     return status, payload
 
 
-def _deployed_model_revision() -> str:
+def _deployment_status() -> dict[str, Any]:
     status, payload = _json_request(
         "https://sysml-api.de4sdv.org/deployment-status.json"
     )
@@ -70,24 +71,28 @@ def _deployed_model_revision() -> str:
     revision = baseline.get("git_commit") if isinstance(baseline, dict) else None
     if not isinstance(revision, str) or len(revision) != 40:
         raise VerificationError("SysML API status has no baseline git_commit")
-    return revision
+    return payload
 
 
 def check_semantic_authority(
-    status: dict[str, Any], *, expected_bundle_id: str,
+    status: dict[str, Any], *, deployment_status: dict[str, Any],
 ) -> dict[str, Any]:
-    """O4 Wave C2 (review R3): the viewer must SERVE the accepted bundle.
+    """The viewer must SERVE the deployment's semantic authority.
 
-    ``kind == "model"``, the exact ``mab-`` bundle id and the built runtime's
-    ``semantic_authority_id == mab:<id>``; ``invalid`` (an unset or retired
-    selector) or any stale id fails the verification.
+    ``kind == "model"``, the built runtime's ``sai-`` identity and served
+    model equal to the deployment status, and a served-model check that
+    passed; ``invalid`` (a refused startup) fails the verification.
     """
     try:
-        return check_expected_authority(
-            status, expected=expected_bundle_id, pre_c2=False, require_served=True,
-        )
+        expectation = deployment_expectation(deployment_status, require_served_model=True)
+        block = check_served_authority(status, expectation, require_built=True)
     except AuthorityCheckError as exc:
         raise VerificationError(f"public Ask semantic authority: {exc}") from exc
+    if block.get("served_model_check") != "passed":
+        raise VerificationError(
+            "public Ask served-model check has not passed: "
+            f"{block.get('served_model_check')!r}")
+    return block
 
 
 _TLS_READINESS_ATTEMPTS = 12
@@ -122,10 +127,10 @@ def verify_public_ask(
     base_url: str,
     *,
     application_sha: str,
-    expected_model_authority_bundle_id: str,
     model_sha: str | None = None,
     live_query: bool = False,
     tls_attempts: int = _TLS_READINESS_ATTEMPTS,
+    deployment_status: dict[str, Any] | None = None,
 ) -> dict[str, str]:
     base_url = base_url.rstrip("/")
     _tls_ready(
@@ -133,7 +138,8 @@ def verify_public_ask(
         attempts=tls_attempts,
         delay_seconds=_TLS_READINESS_DELAY_SECONDS,
     )
-    model_sha = model_sha or _deployed_model_revision()
+    deployment_status = deployment_status or _deployment_status()
+    model_sha = model_sha or deployment_status["baseline"]["git_commit"]
 
     status_code, status = _json_request(f"{base_url}/ask-status.json")
     if status_code != 200:
@@ -142,9 +148,7 @@ def verify_public_ask(
         raise VerificationError("public Ask application revision mismatch")
     if status.get("model_git_commit") != model_sha:
         raise VerificationError("public Ask model revision mismatch")
-    authority = check_semantic_authority(
-        status, expected_bundle_id=expected_model_authority_bundle_id,
-    )
+    authority = check_semantic_authority(status, deployment_status=deployment_status)
     warmup = status.get("semantic_warmup")
     if not isinstance(warmup, dict) or warmup.get("status") != "ready":
         raise VerificationError("public Ask semantic warmup is not ready")
@@ -210,11 +214,6 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base-url", default="https://viewer.de4sdv.org")
     parser.add_argument("--application-sha", required=True)
-    parser.add_argument(
-        "--expected-model-authority-bundle-id",
-        required=True,
-        help="the accepted mab-<hex> id the viewer must serve",
-    )
     parser.add_argument("--model-sha")
     parser.add_argument("--live-query", action="store_true")
     parser.add_argument("--element", default="evidenceObjective")
@@ -223,7 +222,6 @@ def main(argv: list[str] | None = None) -> int:
         result = verify_public_ask(
             args.base_url,
             application_sha=args.application_sha,
-            expected_model_authority_bundle_id=args.expected_model_authority_bundle_id,
             model_sha=args.model_sha,
             live_query=args.live_query,
         )

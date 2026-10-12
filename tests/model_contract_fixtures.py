@@ -5,7 +5,7 @@ contract use :func:`model_contract` (``KernelContract.from_layers`` over this
 checkout); tests that need a revision binding use :func:`binding_dict` (a
 revision binding v2 carrying the contract's semantic-authority identity);
 tests that exercise the runtime over a synthetic API use :func:`model_service`
-(the unverified model facade plus the production service assembly). Synthetic
+(the model facade plus the production service assembly). Synthetic
 contracts are built with ``KernelContract.from_records``; no copy of any
 model or ontology file is used.
 """
@@ -25,7 +25,6 @@ from de4sdv.sysml_api.revisions import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-FACADE_BUNDLE_ID = "mab-" + "0" * 32
 
 
 @lru_cache(maxsize=1)
@@ -76,18 +75,17 @@ def binding(**kwargs: Any) -> RevisionBinding:
 def _facade_parts():
     from de4sdv.semantic import model_authority_runtime as mar
 
-    facade = mar.model_facade(REPO_ROOT, bundle_id=FACADE_BUNDLE_ID)
+    facade = mar.model_facade(REPO_ROOT)
     return facade._contract, facade._routing, facade.profile, facade._components
 
 
-def model_facade(bundle_id: str = FACADE_BUNDLE_ID):
-    """A fresh unverified model facade over this checkout (parts cached)."""
+def model_facade():
+    """A fresh model facade over this checkout (parts cached; no binding)."""
     from de4sdv.semantic import model_authority_runtime as mar
 
     contract, routing, successor, components = _facade_parts()
     return mar.ModelAuthorityFacade(contract=contract, routing=routing,
-                                    successor_contract=successor, bundle_id=bundle_id,
-                                    components=components)
+                                    successor_contract=successor, components=components)
 
 
 def model_service(revision_binding: RevisionBinding, repository: Any, *,
@@ -172,5 +170,5 @@ def manifest_held_values(row: dict[str, Any]) -> dict[str, Any]:
 
 
 __all__ = ["admission_row", "manifest_held_values", "authored_definition", "contract_equivalence_evidence",
-           "reviewed_definition", "REPO_ROOT", "FACADE_BUNDLE_ID", "binding", "binding_dict", "model_contract",
+           "reviewed_definition", "REPO_ROOT", "binding", "binding_dict", "model_contract",
            "model_facade", "model_service", "semantic_authority_dict", "synthetic_identity"]

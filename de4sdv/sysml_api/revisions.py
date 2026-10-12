@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from .errors import RevisionMismatchError
+from .served_model import ServedModel
 
 BindingStatus = Literal["synchronized", "stale", "unvalidated"]
 _FULL_SHA = re.compile(r"^[0-9a-f]{40}$")
@@ -116,6 +117,10 @@ class RevisionBinding:
     scope: str = "full-model"
     kernel_bindings: tuple[KernelElementBinding, ...] = ()
     schema: str = BINDING_SCHEMA
+    #: The validated export this deployment serves, recorded by the importer
+    #: after the full-payload read-back (:mod:`de4sdv.sysml_api.served_model`).
+    #: Optional in the schema; the deployed runtime refuses a binding without it.
+    served_model: ServedModel | None = None
 
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> "RevisionBinding":
@@ -154,6 +159,10 @@ class RevisionBinding:
                 KernelElementBinding.from_dict(item)
                 for item in raw_kernel_bindings
             ),
+            served_model=(
+                ServedModel.from_dict(value["served_model"])
+                if value.get("served_model") is not None else None
+            ),
         )
 
     @classmethod
@@ -166,6 +175,10 @@ class RevisionBinding:
     def to_dict(self) -> dict[str, Any]:
         value = asdict(self)
         value["semantic_authority"] = self.semantic_authority.to_dict()
+        if self.served_model is None:
+            value.pop("served_model")
+        else:
+            value["served_model"] = self.served_model.to_dict()
         return value
 
     def status(self, git_revision: str) -> BindingStatus:

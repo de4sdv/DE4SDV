@@ -1,4 +1,11 @@
-"""Entry-point selection of ``model`` authority (synthetic; no API, no bundle)."""
+"""Entry points build the deployed runtime (synthetic; no API, no bundle).
+
+The MCP server, the Ask viewer and the impact CLI start through
+:func:`de4sdv.semantic.deployment_runtime.build_deployment_runtime` (the one
+startup check, then the deployed services). There is no authority selector,
+no bundle flag and no candidate opt-out (owner decision 2026-10-11, release
+ceremony retired); a refused startup refuses loudly.
+"""
 from __future__ import annotations
 
 import sys
@@ -7,40 +14,36 @@ from types import SimpleNamespace
 
 import pytest
 
-from de4sdv.semantic import entry_authority as ea
+from de4sdv.semantic import deployment_runtime as dr
 
-MAB_ID = "mab-" + "a" * 32
 REVISION = "c" * 40
+SAI = "sai-" + "a" * 32
 
 
-class _Selection:
-    def __init__(self, kind="model"):
-        self.kind = kind
-
-    def provenance(self):
-        return {"kind": self.kind, "authority_id": f"mab:{MAB_ID}"}
+def _service(**status):
+    return SimpleNamespace(
+        semantic_authority_id=SAI,
+        authority_status=lambda: {"kind": "model", "semantic_authority": SAI,
+                                  "startup_check": "passed", "served_model_check": "pending",
+                                  **status})
 
 
 # -- MCP server ------------------------------------------------------------------
 
 
-def _run_server(monkeypatch, argv, environ=None):
+def _run_server(monkeypatch, argv, *, build=None):
     from scripts import semantic_mcp_server as server
 
     seen = {}
 
-    def build(**kwargs):
-        seen.update(kwargs)
-        return SimpleNamespace(semantic_authority_id=f"mab:{MAB_ID}"), _Selection()
+    def default_build(root, **kwargs):
+        seen.update(kwargs, root=root)
+        return _service()
 
-    monkeypatch.setattr(server, "build_selected_semantic_runtime", build)
+    monkeypatch.setattr(server, "build_deployment_runtime", build or default_build)
+    monkeypatch.setattr(server.corpus_cache, "install_corpus_snapshot", lambda service: True)
     monkeypatch.setattr(server, "create_mcp_server",
                         lambda service: SimpleNamespace(run=lambda transport: None))
-    for key in ("DE4SDV_SEMANTIC_AUTHORITY", "DE4SDV_MODEL_AUTHORITY_BUNDLE",
-                "DE4SDV_MODEL_AUTHORITY_BUNDLE_ID"):
-        monkeypatch.delenv(key, raising=False)
-    for key, value in (environ or {}).items():
-        monkeypatch.setenv(key, value)
     monkeypatch.setattr(sys, "argv", ["semantic_mcp_server.py", "--api-url", "http://api",
                                       "--binding", "b.json", "--expected-git-revision",
                                       REVISION, *argv])
@@ -48,72 +51,48 @@ def _run_server(monkeypatch, argv, environ=None):
     return seen
 
 
-def test_mcp_server_routes_through_entry_seam():
+def test_mcp_server_builds_the_deployed_runtime_from_the_checkout(monkeypatch):
     from scripts import semantic_mcp_server as server
 
-    assert server.build_selected_semantic_runtime is ea.build_entry_semantic_runtime
+    assert server.build_deployment_runtime is dr.build_deployment_runtime
+    seen = _run_server(monkeypatch, [])
+    assert seen["root"] == server.ROOT
+    assert seen["api_url"] == "http://api" and seen["binding_path"] == Path("b.json")
+    assert seen["expected_git_revision"] == REVISION
 
 
-def test_mcp_server_passes_explicit_model_bundle_flags(monkeypatch):
-    seen = _run_server(monkeypatch, ["--semantic-authority", "model",
-                                     "--model-authority-bundle", "/b/mab.json",
-                                     "--model-authority-bundle-id", MAB_ID])
-    assert seen["authority"] == "model"
-    assert seen["model_bundle_path"] == "/b/mab.json"
-    assert seen["model_bundle_id"] == MAB_ID
-
-
-def test_mcp_server_model_selection_from_environment(monkeypatch):
-    seen = _run_server(monkeypatch, [], environ={"DE4SDV_SEMANTIC_AUTHORITY": "model"})
-    # The environment is resolved by the seam (os.environ), never re-read here.
-    assert seen["authority"] is None
-    assert seen["model_bundle_path"] is None and seen["model_bundle_id"] is None
-
-
-@pytest.mark.parametrize("retired", [["--o3-authority-bundle", "/b/o3.json"],
-                                     ["--o3-authority-bundle-id", "o3b-" + "1" * 32],
-                                     ["--ontology", "o.yaml"],
-                                     ["--runtime-composition", "o3+definitions"]])
-def test_mcp_server_retired_flags_are_refused(monkeypatch, retired):
+@pytest.mark.parametrize("retired", [["--semantic-authority", "model"],
+                                     ["--model-authority-bundle", "/b/mab.json"],
+                                     ["--model-authority-bundle-id", "mab-" + "1" * 32],
+                                     ["--allow-candidate-bundle"],
+                                     ["--o3-authority-bundle", "/b/o3.json"],
+                                     ["--ontology", "o.yaml"]])
+def test_mcp_server_has_no_selector_or_bundle_flags(monkeypatch, retired):
     with pytest.raises(SystemExit) as raised:
-        _run_server(monkeypatch, ["--semantic-authority", "model", *retired])
+        _run_server(monkeypatch, retired)
     assert raised.value.code == 2
 
 
-def test_mcp_server_candidate_bundle_is_explicit(monkeypatch):
-    seen = _run_server(monkeypatch, ["--semantic-authority", "model"])
-    assert "require_activation_eligible" not in seen
-    seen = _run_server(monkeypatch, ["--semantic-authority", "model", "--allow-candidate-bundle"])
-    assert seen["require_activation_eligible"] is False
+def test_mcp_server_refuses_to_start_when_the_startup_check_refuses(monkeypatch, capsys):
+    def refuse(root, **kwargs):
+        raise dr.StartupCheckError("startup check refused: dirty tree: 1 changed path")
+
+    with pytest.raises(SystemExit) as raised:
+        _run_server(monkeypatch, [], build=refuse)
+    assert raised.value.code == 2
+    assert "startup check refused: dirty tree" in capsys.readouterr().err
 
 
-def test_mcp_server_refuses_retired_selectors_for_real(monkeypatch, capsys):
+def test_mcp_server_requires_the_runtime_contract(monkeypatch, capsys):
     from scripts import semantic_mcp_server as server
 
-    for value in ("o3", "legacy"):
-        monkeypatch.setattr(sys, "argv", ["s", "--api-url", "u", "--binding", "b",
-                                          "--expected-git-revision", REVISION,
-                                          "--semantic-authority", value])
-        with pytest.raises(SystemExit) as raised:
-            server.main()
-        assert raised.value.code == 2
-        assert "retired by O4 Wave C2" in capsys.readouterr().err
-
-
-def test_mcp_server_refuses_on_model_selection_error(monkeypatch, capsys):
-    from scripts import semantic_mcp_server as server
-
-    def refuse(**kwargs):
-        raise ea.ModelAuthoritySelectionError("model-authority bundle not found: x")
-
-    monkeypatch.setattr(server, "build_selected_semantic_runtime", refuse)
-    monkeypatch.setattr(sys, "argv", ["s", "--api-url", "u", "--binding", "b",
-                                      "--expected-git-revision", REVISION,
-                                      "--semantic-authority", "model"])
+    for key in ("DE4SDV_SYSML_API_URL", "DE4SDV_REVISION_BINDING", "DE4SDV_EXPECTED_GIT_SHA"):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setattr(sys, "argv", ["s", "--api-url", "u"])
     with pytest.raises(SystemExit) as raised:
         server.main()
     assert raised.value.code == 2
-    assert "semantic authority selection failed" in capsys.readouterr().err
+    assert "missing runtime contract" in capsys.readouterr().err
 
 
 # -- viewer ----------------------------------------------------------------------
@@ -127,94 +106,120 @@ def viewer(monkeypatch):
     monkeypatch.setattr(ams, "_SEMANTIC_ERROR", None)
     monkeypatch.setattr(ams, "_AUTHORITY_SELECTION", None)
     monkeypatch.setenv("DE4SDV_EXPECTED_GIT_SHA", REVISION)
+    for key in ("DE4SDV_SEMANTIC_AUTHORITY", "DE4SDV_MODEL_AUTHORITY_BUNDLE",
+                "DE4SDV_MODEL_AUTHORITY_BUNDLE_ID"):
+        monkeypatch.delenv(key, raising=False)
     return ams
 
 
-def test_viewer_runtime_builds_through_entry_seam(viewer, monkeypatch):
+def test_viewer_runtime_builds_the_deployed_runtime(viewer, monkeypatch):
     seen = {}
 
-    def build(**kwargs):
-        seen.update(kwargs)
-        return SimpleNamespace(semantic_authority_id=f"mab:{MAB_ID}"), _Selection()
+    def build(root, **kwargs):
+        seen.update(kwargs, root=root)
+        return _service()
 
-    monkeypatch.setattr(ea, "build_entry_semantic_runtime", build)
+    monkeypatch.setattr(dr, "build_deployment_runtime", build)
+    monkeypatch.setenv("DE4SDV_APP_GIT_SHA", "d" * 40)
+    monkeypatch.delenv("DE4SDV_REPO_ROOT", raising=False)
     service = viewer._runtime()
-    assert service.semantic_authority_id == f"mab:{MAB_ID}"
-    assert viewer._AUTHORITY_SELECTION == {"kind": "model", "authority_id": f"mab:{MAB_ID}"}
-    assert "composition" not in seen and "environ" not in seen  # os.environ selection
+    assert service.semantic_authority_id == SAI
+    assert seen["expected_git_revision"] == REVISION
+    assert seen["application_revision"] == "d" * 40
+    assert seen["root"] == Path(viewer.__file__).resolve().parents[2]
+    assert viewer._AUTHORITY_SELECTION["semantic_authority"] == SAI
 
 
-def test_viewer_status_reports_requested_model_before_build(viewer, monkeypatch, tmp_path):
-    bundle = tmp_path / "mab.json"
-    bundle.write_text("{}", encoding="utf-8")
-    monkeypatch.setenv("DE4SDV_SEMANTIC_AUTHORITY", "model")
-    monkeypatch.setenv("DE4SDV_MODEL_AUTHORITY_BUNDLE", str(bundle))
-    monkeypatch.setenv("DE4SDV_MODEL_AUTHORITY_BUNDLE_ID", MAB_ID)
+def test_viewer_status_reports_starting_before_build(viewer):
+    assert viewer.semantic_authority_status() == {"kind": "model", "state": "starting"}
+
+
+def test_viewer_status_surfaces_a_refused_startup(viewer, monkeypatch):
+    def refuse(root, **kwargs):
+        raise dr.StartupCheckError("startup check refused: wrong semantic authority")
+
+    monkeypatch.setattr(dr, "build_deployment_runtime", refuse)
+    with pytest.raises(RuntimeError):
+        viewer._runtime()
     block = viewer.semantic_authority_status()
-    assert block["kind"] == "model" and block["authority_id"] == f"mab:{MAB_ID}"
+    assert block["kind"] == "invalid" and "wrong semantic authority" in block["error"]
 
 
-def test_viewer_status_invalid_model_selection_surfaces_error(viewer, monkeypatch):
-    monkeypatch.setenv("DE4SDV_SEMANTIC_AUTHORITY", "model")
-    monkeypatch.delenv("DE4SDV_MODEL_AUTHORITY_BUNDLE", raising=False)
+def test_viewer_status_after_build_carries_the_served_model_check(viewer, monkeypatch):
+    monkeypatch.setattr(dr, "build_deployment_runtime",
+                        lambda root, **kwargs: _service(served_model_check="passed"))
+    viewer._runtime()
     block = viewer.semantic_authority_status()
-    assert block["kind"] == "invalid"
+    assert block["semantic_authority_id"] == SAI and block["served_model_check"] == "passed"
 
 
-def test_viewer_snapshot_identity_is_keyed_by_mab_id(viewer):
+def test_viewer_snapshot_identity_is_keyed_by_the_served_authority(viewer):
     service = SimpleNamespace(
-        semantic_authority_id=f"mab:{MAB_ID}",
+        semantic_authority_id=SAI,
         binding=SimpleNamespace(git_commit=REVISION, sysml_project_id="p", sysml_commit_id="c"),
     )
-    other = SimpleNamespace(semantic_authority_id="mab:mab-" + "b" * 32, binding=service.binding)
-    assert viewer._snapshot_identity(service)["semantic_authority_id"] == f"mab:{MAB_ID}"
+    other = SimpleNamespace(semantic_authority_id="sai-" + "b" * 32, binding=service.binding)
+    assert viewer._snapshot_identity(service)["semantic_authority_id"] == SAI
+    assert viewer._snapshot_identity(service)["format"] == 3
     assert viewer._snapshot_path(service) != viewer._snapshot_path(other)
 
 
-def test_viewer_status_unset_selector_is_invalid(viewer, monkeypatch):
-    monkeypatch.delenv("DE4SDV_SEMANTIC_AUTHORITY", raising=False)
-    block = viewer.semantic_authority_status()
-    assert block["kind"] == "invalid" and "is unset" in block["error"]
+def test_viewer_adopts_only_a_snapshot_that_is_the_validated_export(viewer, monkeypatch):
+    elements = [{"@id": "a"}]
+    loaded = []
+
+    class Service:
+        _element_cache = None
+
+        def _require_valid_revision(self):
+            pass
+
+        def corpus_matches(self, corpus):
+            return corpus is not elements
+
+        def _elements(self):
+            loaded.append("network")
+            self._element_cache = [{"@id": "network"}]
+            return self._element_cache
+
+    monkeypatch.setattr(viewer, "_snapshot_load", lambda service: elements)
+    monkeypatch.setattr(viewer, "_snapshot_write", lambda service, corpus: None)
+    assert viewer._load_elements_with_snapshot(Service()) == [{"@id": "network"}]
+    assert loaded == ["network"]
 
 
-def test_viewer_reads_no_ontology_path():
+def test_viewer_reads_no_selector_bundle_or_ontology_path():
     source = (Path(__file__).resolve().parents[1]
               / "tools/sysml_html_viewer/ask_model_semantic.py").read_text(encoding="utf-8")
-    assert "DE4SDV_ONTOLOGY_PATH" not in source and "de4sdv-basic-ontology" not in source
+    for retired in ("DE4SDV_ONTOLOGY_PATH", "de4sdv-basic-ontology", "DE4SDV_SEMANTIC_AUTHORITY",
+                    "DE4SDV_MODEL_AUTHORITY_BUNDLE", "entry_authority"):
+        assert retired not in source, retired
 
 
 # -- impact CLI ------------------------------------------------------------------
 
 
-def test_impact_cli_passes_model_flags(monkeypatch, capsys):
+def test_impact_cli_builds_the_deployed_runtime(monkeypatch, capsys):
     from scripts import query_model_impact as qmi
 
     seen = {}
 
-    def build(**kwargs):
+    def build(root, **kwargs):
         seen.update(kwargs)
         impact = SimpleNamespace(impact=lambda target, git_revision: {"target": target})
-        return SimpleNamespace(impact_service=impact), _Selection()
+        return SimpleNamespace(impact_service=impact)
 
-    monkeypatch.setattr(ea, "build_entry_semantic_runtime", build)
+    monkeypatch.setattr(dr, "build_deployment_runtime", build)
     assert qmi.main(["reqX", "--backend", "api", "--binding", "b.json", "--git-revision",
-                     REVISION, "--semantic-authority", "model",
-                     "--model-authority-bundle", "/b/mab.json",
-                     "--model-authority-bundle-id", MAB_ID, "--json"]) == 0
-    assert seen["authority"] == "model" and seen["model_bundle_id"] == MAB_ID
-    assert seen["model_bundle_path"] == "/b/mab.json" and seen["environ"] == {}
+                     REVISION, "--json"]) == 0
+    assert seen["expected_git_revision"] == REVISION and seen["binding_path"] == Path("b.json")
 
 
-def test_impact_cli_model_flags_require_api_backend():
+@pytest.mark.parametrize("retired", [["--semantic-authority", "model"],
+                                     ["--model-authority-bundle-id", "mab-" + "1" * 32],
+                                     ["--ontology", "o.yaml"], ["--o3-authority-bundle", "x"]])
+def test_impact_cli_has_no_selector_bundle_ontology_or_o3_flags(retired):
     from scripts import query_model_impact as qmi
 
     with pytest.raises(SystemExit):
-        qmi.main(["reqX", "--model-authority-bundle-id", MAB_ID])
-
-
-def test_impact_cli_has_no_ontology_or_o3_flags():
-    from scripts import query_model_impact as qmi
-
-    for retired in (["--ontology", "o.yaml"], ["--o3-authority-bundle", "x"]):
-        with pytest.raises(SystemExit):
-            qmi.main(["reqX", "--backend", "api", "--binding", "b.json", *retired])
+        qmi.main(["reqX", "--backend", "api", "--binding", "b.json", *retired])

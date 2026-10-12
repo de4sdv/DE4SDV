@@ -32,7 +32,6 @@ from typing import Any, Mapping
 
 from de4sdv.sysml_api.revisions import SEMANTIC_AUTHORITY_SCHEMA, SemanticAuthorityIdentity
 
-from .authority_selection import AuthoritySelectionError
 from .kernel_contract import (
     KernelContract,
     KernelExternalMapping,
@@ -96,8 +95,8 @@ CONTRACT_SOURCE = "model-authority://projection-layers"
 
 
 
-class ModelAuthorityRefused(AuthoritySelectionError):
-    """The model-authority request or bundle is invalid (fail closed)."""
+class ModelAuthorityRefused(ValueError):
+    """The model-built contract cannot be built from this checkout (fail closed)."""
 
 
 
@@ -451,7 +450,7 @@ def _layer_provisions(spec: LayerSpec, projection: dict[str, Any],
 
 
 def load_projection_layers(root: Path = ROOT) -> tuple[list[dict[str, Any]], list[Provision]]:
-    """Read every live projection layer: (bundle records, provisions)."""
+    """Read every live projection layer: (layer records, provisions)."""
     records: list[dict[str, Any]] = []
     provisions: list[Provision] = []
     for spec in LAYERS + BATCH2_LAYERS:
@@ -584,7 +583,7 @@ def compute_routing(*, provisions: list[Provision], successor_contract: Mapping[
     ``seed`` are the fixed first providers (the frozen O2-chain layer); no
     later layer may re-provide a seeded identity. The residual is every
     retained register row no layer provides (it must be empty: the coverage
-    gate and bundle construction refuse a non-empty residual).
+    gate and the facade construction refuse a non-empty residual).
     """
     providers: dict[str, Provision] = {}
     corroborations: dict[str, list[str]] = {}

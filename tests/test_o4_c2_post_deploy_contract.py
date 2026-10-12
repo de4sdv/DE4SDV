@@ -1,31 +1,33 @@
-"""Post-deploy contract of the O4 Wave C2 deployment (independent review R1/R3).
+"""Post-deploy contract after the release-ceremony retirement (owner decision 2026-10-11).
 
-R1: the first C2 deploy must pass its own mandatory post-deploy check. The
-status document written by ``deploy.write_status`` carries
-``baseline.semantic_authority`` (C2); a pre-C2 rollback revision (``ff0311b``)
-writes ``baseline.ontology``. ``verify_public_api.check_status_payload``
-accepts exactly one of the two, each validated with a strict shape.
+A deploy is green only when the public Ask viewer serves the deployment: its
+startup check passed, it serves the ``sai-`` semantic authority and the served
+model that the deployment's own status document records, and its corpus
+passed the served-model check. Nothing is declared by an operator; there is
+no bundle id. A revision from before the retirement is refused before any
+host change and is rolled back from the rollback tag instead.
 
-The tests run the REAL ``deploy.write_status`` output through the verifier,
-and a document in the exact pre-C2 shape (synthetic values, the field set
-``ff0311b``'s ``write_status`` produces).
+The tests run the REAL ``deploy.write_status`` output through the verifier.
 """
 from __future__ import annotations
 
 import copy
 import importlib.util
 import json
+import subprocess
 from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 
 REPO = Path(__file__).resolve().parents[1]
 SCRIPTS = REPO / "deployment" / "scripts"
+API_WORKFLOW = REPO / ".github" / "workflows" / "deploy-public-sysml-api.yml"
 
 
 def _load(name: str):
-    spec = importlib.util.spec_from_file_location(f"c2_{name}", SCRIPTS / f"{name}.py")
+    spec = importlib.util.spec_from_file_location(f"post_deploy_{name}", SCRIPTS / f"{name}.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -35,10 +37,10 @@ deploy = _load("deploy")
 verify_api = _load("verify_public_api")
 
 
-def _c2_status_document(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
+def _status_document(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     from test_public_deployment import _evidence_bundle
 
-    bundle_dir, _meta = _evidence_bundle(tmp_path / "bundle")
+    bundle_dir, meta = _evidence_bundle(tmp_path / "bundle")
     evidence = deploy.validate_bundle(bundle_dir)
     monkeypatch.setattr(deploy, "STATUS_DIR", tmp_path / "status")
     deployment = {
@@ -46,59 +48,37 @@ def _c2_status_document(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict
         "sysml_commit_id": "deploy-commit",
         "element_count": 5,
         "kernel_binding_summary": {"mapped": 30, "unresolved": 0, "ambiguous": 0},
+        "served_model": meta["served_model"],
     }
     path = deploy.write_status(evidence, deployment)
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _pre_c2_status_document() -> dict[str, Any]:
-    """The field set ff0311b's deploy.write_status publishes (synthetic values)."""
-    return {
-        "service": "DE4SDV Experimental Read-Only Systems Modeling API",
-        "status": "experimental",
-        "read_only": True,
-        "api_implementation": {
-            "repository": "https://github.com/Systems-Modeling/SysML-v2-API-Services",
-            "revision": "0af711b1",
-        },
-        "baseline": {
-            "git_commit": "f" * 40,
-            "sysml_project_id": "deploy-project",
-            "sysml_commit_id": "deploy-commit",
-            "ontology": {
-                "path": "synthetic/pre-c2-authored-ontology.yaml",
-                "sha256": "d" * 64,
-            },
-            "export_sha256": "e" * 64,
-            "element_count": 5,
-            "ontology_summary": {"mapped": 30, "unresolved": 0, "ambiguous": 0},
-        },
-        "deployed_at_utc": "2026-10-07T00:00:00Z",
-    }
+def _block(document: dict[str, Any], **changes) -> dict[str, Any]:
+    baseline = document["baseline"]
+    block = {"kind": "model", "startup_check": "passed",
+             "semantic_authority": baseline["semantic_authority"]["id"],
+             "semantic_authority_id": baseline["semantic_authority"]["id"],
+             "served_model": baseline["served_model"]["content_sha256"],
+             "served_model_check": "passed"}
+    block.update(changes)
+    return block
 
 
-def test_real_c2_write_status_output_passes_the_mandatory_check(tmp_path, monkeypatch):
-    document = _c2_status_document(tmp_path, monkeypatch)
-    assert "semantic_authority" in document["baseline"]
-    assert "ontology" not in document["baseline"]
+# -- the status document the deploy writes ------------------------------------------
+
+
+def test_real_write_status_output_passes_the_mandatory_check(tmp_path, monkeypatch):
+    document = _status_document(tmp_path, monkeypatch)
+    assert {"semantic_authority", "served_model"} <= set(document["baseline"])
     verify_api.check_status_payload(document)
 
 
-def test_pre_c2_rollback_status_document_passes_the_mandatory_check():
-    verify_api.check_status_payload(_pre_c2_status_document())
-
-
-def test_status_document_without_any_authority_identity_is_refused(tmp_path, monkeypatch):
-    document = _c2_status_document(tmp_path, monkeypatch)
-    del document["baseline"]["semantic_authority"]
-    with pytest.raises(verify_api.VerificationError, match="semantic_authority.*ontology"):
-        verify_api.check_status_payload(document)
-
-
-def test_status_document_with_both_identities_is_refused(tmp_path, monkeypatch):
-    document = _c2_status_document(tmp_path, monkeypatch)
-    document["baseline"]["ontology"] = _pre_c2_status_document()["baseline"]["ontology"]
-    with pytest.raises(verify_api.VerificationError, match="exactly one"):
+@pytest.mark.parametrize("field", ["semantic_authority", "served_model", "git_commit"])
+def test_a_status_document_missing_its_identity_is_refused(tmp_path, monkeypatch, field):
+    document = _status_document(tmp_path, monkeypatch)
+    del document["baseline"][field]
+    with pytest.raises(verify_api.VerificationError, match=field):
         verify_api.check_status_payload(document)
 
 
@@ -111,275 +91,165 @@ def test_status_document_with_both_identities_is_refused(tmp_path, monkeypatch):
     lambda a: a.pop("layers"),
 ])
 def test_malformed_semantic_authority_is_refused(tmp_path, monkeypatch, mutate):
-    document = _c2_status_document(tmp_path, monkeypatch)
+    document = _status_document(tmp_path, monkeypatch)
     mutate(document["baseline"]["semantic_authority"])
     with pytest.raises(verify_api.VerificationError, match="semantic_authority"):
         verify_api.check_status_payload(document)
 
 
-@pytest.mark.parametrize("mutate", [
-    lambda o: o.update(sha256="D" * 64),
-    lambda o: o.update(sha256="d" * 63),
-    lambda o: o.update(path=""),
-    lambda o: o.update(extra="x"),
-    lambda o: o.pop("path"),
-])
-def test_malformed_pre_c2_ontology_identity_is_refused(mutate):
-    document = _pre_c2_status_document()
-    mutate(document["baseline"]["ontology"])
-    with pytest.raises(verify_api.VerificationError, match="ontology"):
+def test_malformed_served_model_is_refused(tmp_path, monkeypatch):
+    document = _status_document(tmp_path, monkeypatch)
+    document["baseline"]["served_model"]["content_sha256"] = "not-a-digest"
+    with pytest.raises(verify_api.VerificationError, match="served_model"):
         verify_api.check_status_payload(document)
 
 
-def test_check_status_document_delegates_to_the_payload_check(monkeypatch):
-    """The fetching wrapper runs exactly the payload check (no second contract)."""
-    document = copy.deepcopy(_pre_c2_status_document())
+def test_a_pre_retirement_status_document_is_not_this_verifier_s_to_pass(tmp_path, monkeypatch):
+    """063c4fb1's deploy wrote no served model; its own verifier checks it."""
+    document = _status_document(tmp_path, monkeypatch)
+    document["baseline"]["served_model"] = None
+    with pytest.raises(verify_api.VerificationError, match="predates the release-ceremony retirement"):
+        verify_api.check_status_payload(document)
+
+
+def test_check_status_document_delegates_to_the_payload_check(tmp_path, monkeypatch):
+    document = copy.deepcopy(_status_document(tmp_path, monkeypatch))
     monkeypatch.setattr(verify_api, "fetch_json", lambda url: document)
     assert verify_api.check_status_document("https://example.invalid") is document
-    del document["baseline"]["ontology"]
+    del document["baseline"]["served_model"]
     with pytest.raises(verify_api.VerificationError):
         verify_api.check_status_document("https://example.invalid")
 
 
-# ---------------------------------------------------------------------------
-# R3: an unset or stale selector must not deploy green.
-#
-# /ask-status.json .semantic_authority is checked after the API deploy
-# (verify_public_api.check_ask_semantic_authority, against the operator's
-# declared expectation), by the Ask verifier (served authority must equal the
-# accepted mab: id) and by the monitor (invalid alerts).
-
-MAB = "mab-" + "1" * 32
-OTHER_MAB = "mab-" + "2" * 32
+# -- the Ask viewer must serve the deployment --------------------------------------
 
 
-def _model_block(bundle_id: str = MAB, *, served: bool = True) -> dict[str, Any]:
-    block = {
-        "kind": "model",
-        "authority_id": "mab:" + bundle_id,
-        "bundle_id": bundle_id,
-        "bundle_path": "/run/de4sdv/model/de4sdv-model-authority-bundle.json",
-    }
-    if served:
-        block["semantic_authority_id"] = block["authority_id"]
-    else:
-        block["state"] = "requested"
-    return block
+def test_the_served_deployment_passes(tmp_path, monkeypatch):
+    document = _status_document(tmp_path, monkeypatch)
+    block = verify_api.check_ask_semantic_authority(
+        {"semantic_authority": _block(document)}, status_doc=document)
+    assert block["served_model_check"] == "passed"
 
 
-_INVALID_UNSET = {
-    "kind": "invalid",
-    "error": "DE4SDV_SEMANTIC_AUTHORITY is unset; the only accepted value is model",
-    "note": "semantic authority selector is invalid; semantic answers are refused",
-}
-
-
-def test_model_authority_ids_use_the_runtime_formula():
-    from de4sdv.semantic.entry_authority import model_authority_id
-
-    import semantic_authority_check as sac
-
-    assert _model_block()["authority_id"] == model_authority_id(MAB)
-    assert sac.model_authority_id(MAB) == model_authority_id(MAB)
-
-
-def test_post_deploy_accepts_the_declared_model_bundle(tmp_path, monkeypatch):
-    status = _c2_status_document(tmp_path, monkeypatch)
-    for served in (True, False):  # before re-closing, the runtime is only requested
-        result = verify_api.check_ask_semantic_authority(
-            {"semantic_authority": _model_block(served=served)},
-            expected=MAB, status_doc=status,
-        )
-        assert result["kind"] == "model" and result["bundle_id"] == MAB
-
-
-@pytest.mark.parametrize("block, message", [
-    (_INVALID_UNSET, "invalid"),
-    ({"kind": "invalid", "error": "retired value legacy"}, "invalid"),
-    (_model_block(OTHER_MAB), "bundle"),
-    ({**_model_block(), "authority_id": "mab:" + "3" * 32}, "authority_id"),
-    ({**_model_block(), "semantic_authority_id": "mab:" + "3" * 32}, "serves"),
-    ({"kind": "legacy", "authority_id": "legacy"}, "kind"),
+@pytest.mark.parametrize("changes,match", [
+    ({"kind": "invalid", "error": "startup check refused: dirty tree"}, "refused to start"),
+    ({"kind": "legacy"}, "kind is 'legacy'"),
+    ({"semantic_authority_id": None, "state": "starting"}, "not built"),
+    ({"semantic_authority": "sai-" + "9" * 32}, "serves semantic authority"),
+    ({"served_model": "sha256:" + "9" * 64}, "served model"),
+    ({"served_model_check": "failed: the corpus holds 1 elements"}, "served-model check failed"),
 ])
-def test_post_deploy_fails_an_unset_stale_or_mismatched_selector(
-    tmp_path, monkeypatch, block, message,
-):
-    status = _c2_status_document(tmp_path, monkeypatch)
-    with pytest.raises(verify_api.VerificationError, match=message):
+def test_a_viewer_that_does_not_serve_the_deployment_fails(tmp_path, monkeypatch, changes, match):
+    document = _status_document(tmp_path, monkeypatch)
+    with pytest.raises(verify_api.VerificationError, match=match):
         verify_api.check_ask_semantic_authority(
-            {"semantic_authority": block}, expected=MAB, status_doc=status,
-        )
+            {"semantic_authority": _block(document, **changes)}, status_doc=document)
 
 
-def test_post_deploy_refuses_a_missing_authority_block(tmp_path, monkeypatch):
-    status = _c2_status_document(tmp_path, monkeypatch)
-    with pytest.raises(verify_api.VerificationError, match="semantic_authority"):
-        verify_api.check_ask_semantic_authority({}, expected=MAB, status_doc=status)
+def test_a_missing_authority_block_fails(tmp_path, monkeypatch):
+    document = _status_document(tmp_path, monkeypatch)
+    with pytest.raises(verify_api.VerificationError, match="no semantic_authority block"):
+        verify_api.check_ask_semantic_authority({}, status_doc=document)
 
 
-def test_post_deploy_refuses_a_non_model_expectation_on_a_c2_revision(tmp_path, monkeypatch):
-    status = _c2_status_document(tmp_path, monkeypatch)
-    with pytest.raises(verify_api.VerificationError, match="pre-C2"):
-        verify_api.check_ask_semantic_authority(
-            {"semantic_authority": {"kind": "legacy", "authority_id": "legacy"}},
-            expected="legacy", status_doc=status,
-        )
+def test_the_wait_returns_when_the_warm_up_is_ready(tmp_path, monkeypatch):
+    document = _status_document(tmp_path, monkeypatch)
+    observations = iter([
+        {"semantic_authority": {"kind": "model", "state": "starting"},
+         "semantic_warmup": {"status": "warming"}},
+        {"semantic_authority": _block(document, served_model_check="pending"),
+         "semantic_warmup": {"status": "warming"}},
+        {"semantic_authority": _block(document), "semantic_warmup": {"status": "ready"}},
+    ])
+    monkeypatch.setattr(verify_api, "fetch_ask_status", lambda url: next(observations))
+    monkeypatch.setattr(verify_api.time, "sleep", lambda seconds: None)
+    block = verify_api.wait_for_ask_semantic_runtime(
+        "https://ask.invalid", document, ready=True, timeout_seconds=60)
+    assert block["served_model_check"] == "passed"
 
 
-@pytest.mark.parametrize("expected", ["", "model", "mab-XYZ", "o3", "o3:", "sai-" + "1" * 32])
-def test_post_deploy_refuses_a_malformed_expectation(tmp_path, monkeypatch, expected):
-    status = _c2_status_document(tmp_path, monkeypatch)
-    with pytest.raises(verify_api.VerificationError, match="expected semantic authority"):
-        verify_api.check_ask_semantic_authority(
-            {"semantic_authority": _model_block()}, expected=expected, status_doc=status,
-        )
+def test_the_wait_fails_at_once_on_a_failed_served_model_check(tmp_path, monkeypatch):
+    document = _status_document(tmp_path, monkeypatch)
+    observed = {"semantic_authority": _block(document, served_model_check="failed: drift"),
+                "semantic_warmup": {"status": "error"}}
+    calls = []
+    monkeypatch.setattr(verify_api, "fetch_ask_status", lambda url: calls.append(1) or observed)
+    with pytest.raises(verify_api.VerificationError, match="served-model check failed"):
+        verify_api.wait_for_ask_semantic_runtime(
+            "https://ask.invalid", document, ready=True, timeout_seconds=600)
+    assert calls == [1]
 
 
-def test_pre_c2_rollback_declares_the_authority_that_revision_serves():
-    status = _pre_c2_status_document()
-    legacy = {"kind": "legacy", "authority_id": "legacy"}
-    o3 = {"kind": "o3", "authority_id": "o3:abc", "bundle_id": "o3b-abc"}
-    verify_api.check_ask_semantic_authority(
-        {"semantic_authority": legacy}, expected="legacy", status_doc=status)
-    verify_api.check_ask_semantic_authority(
-        {"semantic_authority": o3}, expected="o3:o3b-abc", status_doc=status)
-    verify_api.check_ask_semantic_authority(
-        {"semantic_authority": _model_block()}, expected=MAB, status_doc=status)
-    # a stale C2 environment left in place for the rollback is caught
-    with pytest.raises(verify_api.VerificationError, match="kind"):
-        verify_api.check_ask_semantic_authority(
-            {"semantic_authority": _model_block(OTHER_MAB)}, expected="legacy",
-            status_doc=status)
-    with pytest.raises(verify_api.VerificationError, match="bundle"):
-        verify_api.check_ask_semantic_authority(
-            {"semantic_authority": o3}, expected="o3:o3b-other", status_doc=status)
-    with pytest.raises(verify_api.VerificationError, match="invalid"):
-        verify_api.check_ask_semantic_authority(
-            {"semantic_authority": _INVALID_UNSET}, expected="legacy", status_doc=status)
+def test_the_wait_names_a_warm_up_that_never_finishes(tmp_path, monkeypatch):
+    document = _status_document(tmp_path, monkeypatch)
+    observed = {"semantic_authority": _block(document, served_model_check="pending"),
+                "semantic_warmup": {"status": "warming"}}
+    monkeypatch.setattr(verify_api, "fetch_ask_status", lambda url: observed)
+    monkeypatch.setattr(verify_api.time, "sleep", lambda seconds: None)
+    with pytest.raises(verify_api.VerificationError, match="warm-up not ready"):
+        verify_api.wait_for_ask_semantic_runtime(
+            "https://ask.invalid", document, ready=True, timeout_seconds=0)
 
 
-def test_verify_public_api_cli_requires_the_expected_authority():
-    import subprocess
+# -- no declared authority anywhere -------------------------------------------------
+
+
+def _verify_api_main(argv):
     import sys
 
-    result = subprocess.run(
-        [sys.executable, str(SCRIPTS / "verify_public_api.py"),
-         "--base-url", "https://example.invalid"],
-        capture_output=True, text=True,
-    )
-    assert result.returncode == 2
-    assert "--expected-semantic-authority" in result.stderr
+    saved = sys.argv
+    sys.argv = ["verify_public_api.py", *argv]
+    try:
+        return verify_api.main()
+    finally:
+        sys.argv = saved
 
 
-def test_deploy_workflow_passes_the_declared_authority_to_the_mandatory_check():
-    workflow = (REPO / ".github" / "workflows" / "deploy-public-sysml-api.yml").read_text(
-        encoding="utf-8")
-    assert "expected_semantic_authority:" in workflow
-    step = workflow[workflow.index("Post-deploy public verification (mandatory)"):]
-    step = step[: step.index("- name:", 10)]
-    assert '--expected-semantic-authority "$EXPECTED_SEMANTIC_AUTHORITY"' in step
-    assert "inputs.expected_semantic_authority" in workflow
+def test_the_verifiers_take_no_declared_authority():
+    with pytest.raises(SystemExit):
+        _verify_api_main(["--expected-semantic-authority", "mab-" + "1" * 32])
+    ask = _load("verify_public_ask")
+    with pytest.raises(SystemExit):
+        ask.main(["--application-sha", "a" * 40,
+                  "--expected-model-authority-bundle-id", "mab-" + "1" * 32])
 
 
-# --- Ask verifier: the served authority must be the accepted bundle ---------
-
-verify_ask = _load("verify_public_ask")
-
-
-@pytest.mark.parametrize("block, message", [
-    (_INVALID_UNSET, "invalid"),
-    (_model_block(OTHER_MAB), "bundle"),
-    (_model_block(served=False), "serves"),  # requested but not served
-    ({"kind": "legacy", "authority_id": "legacy"}, "kind"),
-])
-def test_ask_verifier_requires_the_served_accepted_bundle(block, message):
-    with pytest.raises(verify_ask.VerificationError, match=message):
-        verify_ask.check_semantic_authority(
-            {"semantic_authority": block}, expected_bundle_id=MAB)
+def test_the_api_deploy_workflow_declares_no_authority():
+    workflow = yaml.safe_load(API_WORKFLOW.read_text(encoding="utf-8"))
+    triggers = workflow.get("on", workflow.get(True))
+    assert set(triggers["workflow_dispatch"]["inputs"]) == {"git_sha", "artifact_run_id"}
+    text = API_WORKFLOW.read_text(encoding="utf-8")
+    assert "expected_semantic_authority" not in text and "EXPECTED_SEMANTIC_AUTHORITY" not in text
+    assert "verify_public_api.py --json /tmp/verify.json\n" in text
 
 
-def test_ask_verifier_accepts_the_served_accepted_bundle():
-    result = verify_ask.check_semantic_authority(
-        {"semantic_authority": _model_block()}, expected_bundle_id=MAB)
-    assert result["semantic_authority_id"] == "mab:" + MAB
+def _guard_script() -> str:
+    workflow = yaml.safe_load(API_WORKFLOW.read_text(encoding="utf-8"))
+    step = next(s for s in workflow["jobs"]["deploy"]["steps"]
+                if s.get("name") == "Validate deployment ref (fail closed on PR heads)")
+    run = step["run"]
+    return run[run.index("# A revision from before the release-ceremony retirement"):]
 
 
-def test_ask_verifier_cli_requires_the_expected_bundle_id():
-    import subprocess
-    import sys
-
-    result = subprocess.run(
-        [sys.executable, str(SCRIPTS / "verify_public_ask.py"),
-         "--application-sha", "a" * 40],
-        capture_output=True, text=True,
-    )
-    assert result.returncode == 2
-    assert "--expected-model-authority-bundle-id" in result.stderr
-
-
-def test_ask_deploy_workflow_passes_the_accepted_bundle_id():
-    workflow = (REPO / ".github" / "workflows" / "deploy-public-ask-viewer.yml").read_text(
-        encoding="utf-8")
-    assert "model_authority_bundle_id:" in workflow
-    assert '--expected-model-authority-bundle-id "$MODEL_AUTHORITY_BUNDLE_ID"' in workflow
-
-
-# --- Monitor: invalid alerts ------------------------------------------------
-
-monitor = _load("monitor_public_ask")
-
-
-def _ask_status(block: dict[str, Any] | None) -> dict[str, Any]:
-    status = {
-        "application_git_commit": "a" * 40,
-        "model_git_commit": "b" * 40,
-        "semantic_warmup": {"status": "ready"},
-    }
-    if block is not None:
-        status["semantic_authority"] = block
-    return status
-
-
-def _patched_monitor(monkeypatch, ask_status):
-    def fake_get(url):
-        if url.endswith("/ask-status.json"):
-            return ask_status
-        return {"baseline": {"git_commit": "b" * 40}}
-
-    monkeypatch.setattr(monitor, "_get_json", fake_get)
-    return monitor.monitor_public_ask(ask_url="https://ask.invalid",
-                                      model_status_url="https://api.invalid/s.json")
-
-
-@pytest.mark.parametrize("block, message", [
-    (_INVALID_UNSET, "invalid"),
-    (None, "semantic_authority"),
-    ({**_model_block(), "semantic_authority_id": "mab:" + "3" * 32}, "serves"),
-])
-def test_monitor_alerts_on_an_invalid_or_inconsistent_authority(monkeypatch, block, message):
-    with pytest.raises(monitor.MonitorError, match=message):
-        _patched_monitor(monkeypatch, _ask_status(block))
-
-
-@pytest.mark.parametrize("block", [
-    _model_block(),
-    {"kind": "legacy", "authority_id": "legacy"},  # pre-C2 production is not an alert
-])
-def test_monitor_reports_the_served_authority(monkeypatch, block):
-    result = _patched_monitor(monkeypatch, _ask_status(block))
-    assert result["status"] == "healthy"
-    assert result["semantic_authority_kind"] == block["kind"]
-
-
-def test_pre_c2_rollback_with_a_model_expectation_requires_the_served_bundle():
-    """F3: a pre-C2 revision is deployed with its bundle already closed at
-    its own binding, so a model expectation must be SERVED there. ff0311b left
-    with a request it cannot serve (for example the C2 mab- id) reports the
-    request but no served id, and fails the post-deploy verification."""
-    status = _pre_c2_status_document()
-    with pytest.raises(verify_api.VerificationError, match="serves"):
-        verify_api.check_ask_semantic_authority(
-            {"semantic_authority": _model_block(served=False)}, expected=MAB,
-            status_doc=status)
-    verify_api.check_ask_semantic_authority(
-        {"semantic_authority": _model_block(served=True)}, expected=MAB, status_doc=status)
+@pytest.mark.parametrize("pre_retirement,refused", [(True, True), (False, False)])
+def test_the_api_deploy_refuses_a_pre_retirement_revision_before_any_host_change(
+        tmp_path, pre_retirement, refused):
+    repo = tmp_path / "repo"
+    (repo / "deployment").mkdir(parents=True)
+    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    compose = "services:\n  ask-viewer:\n    environment:\n"
+    if pre_retirement:
+        compose += "      DE4SDV_MODEL_AUTHORITY_BUNDLE_ID: ${DE4SDV_MODEL_AUTHORITY_BUNDLE_ID:-}\n"
+    (repo / "deployment" / "compose.yaml").write_text(compose)
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@t",
+                    "commit", "-qm", "c"], check=True)
+    sha = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], check=True,
+                         capture_output=True, text=True).stdout.strip()
+    result = subprocess.run(["bash", "-e", "-o", "pipefail", "-c", _guard_script()], cwd=repo,
+                            env={"DEPLOY_SHA": sha, "PATH": "/usr/bin:/bin"},
+                            capture_output=True, text=True)
+    assert (result.returncode != 0) is refused, result.stdout + result.stderr
+    if refused:
+        assert "predates the release-ceremony retirement" in result.stderr
+        assert "rollback tag" in result.stderr

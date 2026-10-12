@@ -18,10 +18,10 @@ _GOVERNED_MODEL_PATHS = (
     # Model-authority inputs: the generated projection/profile pairs (and the
     # frozen O2-chain records), the admission manifests, the O4 register whose
     # dispositions decide refusals, and the kernel-internal manifest; the
-    # model-built kernel contract and the mab- bundle derive from them. A
-    # code-only consumer deploy must not run against drifted authority inputs;
-    # design notes and other documentation stay outside the gate. (The
-    # authored ontology was deleted in O4 Wave C2.)
+    # model-built kernel contract and its sai- identity derive from them. A
+    # code-only consumer deploy must not run against drifted authority inputs
+    # (the runtime's startup check also recomputes the sai- identity); design
+    # notes and other documentation stay outside the gate.
     ":(glob)docs/method-conformance/o2/*.json",
     ":(glob)docs/method-conformance/o2/*admission*.yaml",
     ":(glob)docs/method-conformance/o2plus/*.json",

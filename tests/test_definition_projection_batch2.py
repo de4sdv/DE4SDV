@@ -807,7 +807,7 @@ def test_batch2_machinery_is_never_imported_by_the_runtime_path():
         "de4sdv/semantic/query.py", "de4sdv/semantic/traversal.py",
         "de4sdv/semantic/impact.py", "de4sdv/semantic/mcp_server.py", "de4sdv/semantic/api_binding.py",
         "de4sdv/semantic/kernel_binding_index.py", "de4sdv/semantic/o3_bundle.py",
-        "de4sdv/semantic/authority_selection.py", "de4sdv/semantic/composition_construction.py",
+        "de4sdv/semantic/deployment_runtime.py",
     ):
         text = (REPO_ROOT / relative).read_text(encoding="utf-8")
         for token in ("definition_projection_batch2", "definition-batch2", "definition-admission-batch2"):

@@ -17,7 +17,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from semantic_authority_check import (  # noqa: E402
     AuthorityCheckError,
     authority_block,
-    check_served_consistency,
+    check_served_authority,
+    deployment_expectation,
 )
 
 ASK_URL = "https://viewer.de4sdv.org"
@@ -56,12 +57,10 @@ def monitor_public_ask(
         raise MonitorError("invalid public Ask application revision")
     if not isinstance(model_revision, str) or not _SHA.fullmatch(model_revision):
         raise MonitorError("invalid public Ask model revision")
-    # O4 Wave C2 (review R3): an invalid selector refuses every semantic
-    # answer; alert on it (and on a runtime serving another authority than
-    # the requested one) before the generic warmup state.
+    # A refused startup refuses every semantic answer: alert on it before the
+    # generic warmup state.
     try:
-        authority = authority_block(ask_status)
-        check_served_consistency(authority)
+        authority_block(ask_status)
     except AuthorityCheckError as exc:
         raise MonitorError(f"semantic authority: {exc}") from exc
     warmup = ask_status.get("semantic_warmup")
@@ -70,9 +69,16 @@ def monitor_public_ask(
 
     model_status = _get_json(model_status_url)
     baseline = model_status.get("baseline")
-    served_model = baseline.get("git_commit") if isinstance(baseline, dict) else None
-    if served_model != model_revision:
+    served_revision = baseline.get("git_commit") if isinstance(baseline, dict) else None
+    if served_revision != model_revision:
         raise MonitorError("Ask-model revision differs from the public model API")
+    # The viewer must serve the deployment's sai- semantic authority (and,
+    # for a deployment that records it, its served model).
+    try:
+        authority = check_served_authority(
+            ask_status, deployment_expectation(model_status, require_served_model=False))
+    except AuthorityCheckError as exc:
+        raise MonitorError(f"semantic authority: {exc}") from exc
 
     if repo is not None:
         result = subprocess.run(

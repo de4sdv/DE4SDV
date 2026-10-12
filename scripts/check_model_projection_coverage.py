@@ -3,12 +3,10 @@
 
     python scripts/check_model_projection_coverage.py            # check vs baseline
     python scripts/check_model_projection_coverage.py --json OUT # write the report
-    python scripts/check_model_projection_coverage.py --bundle B # also verify a bundle
     python scripts/check_model_projection_coverage.py --write-baseline
 
 Exit 0 = empty residual, clean kernel accounting and no ratchet drift; 1 = any
-residual, kernel-accounting error, duplicate provider, ratchet drift or bundle
-mismatch.
+residual, kernel-accounting error, duplicate provider or ratchet drift.
 """
 from __future__ import annotations
 
@@ -27,7 +25,6 @@ from de4sdv.semantic import model_projection_coverage as coverage  # noqa: E402
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--json", type=Path, help="write the full coverage report")
-    parser.add_argument("--bundle", type=Path, help="model-authority bundle to cross-check")
     parser.add_argument("--write-baseline", action="store_true",
                         help="rewrite the reviewed baseline from the current checkout")
     args = parser.parse_args(argv)
@@ -43,8 +40,6 @@ def main(argv: list[str] | None = None) -> int:
         print(f"wrote {coverage.BASELINE_PATH}")
         return 0
     errors = coverage.compare(report, coverage.load_baseline(ROOT))
-    if args.bundle:
-        errors += coverage.bundle_errors(report, json.loads(args.bundle.read_text(encoding="utf-8")), ROOT)
     summary = report["summary"]
     print(f"model-projection coverage ({report['mode']}): "
           f"{summary['projected_identities']} projected, {summary['residual_identities']} "

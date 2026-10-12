@@ -242,33 +242,44 @@ def counting_api_server():
         thread.join()
 
 
-def test_stdio_restart_lists_zero_elements(snapshot_dir, counting_api_server, tmp_path) -> None:
+@pytest.fixture(scope="module")
+def deployed_checkout(tmp_path_factory) -> tuple[Path, str]:
+    """A clean shared clone of this repository at HEAD (the deployed commit)."""
+    import subprocess
+
+    head = subprocess.run(["git", "-C", str(REPO_ROOT), "rev-parse", "HEAD"], check=True,
+                          capture_output=True, text=True).stdout.strip()
+    root = tmp_path_factory.mktemp("deployed") / "DE4SDV"
+    subprocess.run(["git", "clone", "--quiet", "--shared", "--no-checkout", str(REPO_ROOT), str(root)],
+                   check=True)
+    subprocess.run(["git", "-C", str(root), "checkout", "--quiet", "--detach", head], check=True)
+    return root, head
+
+
+def test_stdio_restart_lists_zero_elements(snapshot_dir, counting_api_server, deployed_checkout,
+                                           tmp_path) -> None:
     import anyio
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
 
-    from test_model_authority_runtime import _close
-    from de4sdv.semantic import model_authority_runtime as mar
+    from de4sdv.sysml_api.served_model import ServedModel
 
-    handler, api_url, _elements, bindings = counting_api_server
-    document = binding_dict(git_repository="de4sdv/DE4SDV", git_commit=REVISION,
+    root, head = deployed_checkout
+    handler, api_url, elements, bindings = counting_api_server
+    document = binding_dict(git_repository="de4sdv/DE4SDV", git_commit=head,
                             sysml_project_id="project-1", sysml_commit_id="commit-1",
-                            kernel_bindings=bindings)
+                            kernel_bindings=bindings,
+                            served_model=ServedModel.from_elements(
+                                elements, source_export_sha256="e" * 64).to_dict())
     binding_path = tmp_path / "binding.json"
     binding_path.write_text(json.dumps(document))
-    bundle = mar.build_model_bundle(REPO_ROOT, git_revision=REVISION)
-    closed = _close(bundle, RevisionBinding.load(binding_path), binding_path, tmp_path)
-    bundle_path = tmp_path / "model.json"
-    bundle_path.write_text(json.dumps(closed))
 
     def params() -> StdioServerParameters:
         return StdioServerParameters(
             command=sys.executable,
             args=["scripts/semantic_mcp_server.py", "--api-url", api_url, "--binding", str(binding_path),
-                  "--expected-git-revision", REVISION, "--semantic-authority", "model",
-                  "--model-authority-bundle", str(bundle_path),
-                  "--model-authority-bundle-id", closed["bundle_id"]],
-            cwd=str(REPO_ROOT),
+                  "--expected-git-revision", head],
+            cwd=str(root),
             env=dict(os.environ),
         )
 
@@ -308,21 +319,24 @@ def test_a_commit_id_that_is_not_a_file_name_never_becomes_a_path(snapshot_dir, 
     assert not [path for path in tmp_path.rglob("*") if path.is_file()]
 
 
-def test_a_spawned_server_writes_nothing_to_the_users_home(tmp_path, monkeypatch) -> None:
+def test_a_spawned_server_writes_nothing_to_the_users_home(tmp_path, monkeypatch,
+                                                          deployed_checkout) -> None:
     """The validator's real stdio server, run under a temporary HOME, leaves nothing there.
 
     Every test's snapshot directory is its own temporary directory (tests/conftest.py), and a
     spawned server must receive it.
     """
+    from scripts import validate_semantic_mcp as validator
     from test_o4_validator_runtime import _run, build_inputs
 
+    root, head = deployed_checkout
+    monkeypatch.setattr(validator, "ROOT", root)
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
     assert Path(os.environ["DE4SDV_SEMANTIC_SNAPSHOT_DIR"]).is_relative_to(tmp_path)
-    binding, path, bundle, elements = build_inputs(tmp_path)
-    _run(elements, binding_path=binding, authority="model", model_bundle_path=path,
-         model_bundle_id=bundle["bundle_id"])
+    binding, elements = build_inputs(tmp_path, head)
+    _run(elements, head, binding_path=binding)
     assert sorted(entry.relative_to(home).as_posix() for entry in home.rglob("*")) == []
 
 

@@ -8,6 +8,7 @@ from typing import Any
 from .baseline import BaselineExportBundle
 from .errors import BaselineImportError
 from .repository import element_id
+from .served_model import digest_of_element_digests, element_digests
 
 
 @dataclass(frozen=True)
@@ -16,6 +17,9 @@ class BaselineImportResult:
     commit_id: str
     element_count: int
     internal_reference_count: int
+    #: Served-model digest of the read-back, equal to the export's
+    #: (:func:`de4sdv.sysml_api.served_model.served_model_digest`).
+    content_sha256: str
 
 
 def baseline_commit_payload(
@@ -43,7 +47,13 @@ def import_baseline(
     *,
     project_name: str,
 ) -> BaselineImportResult:
-    """Create an immutable project/commit and verify exact UUID/ref readback."""
+    """Create an immutable project/commit and verify the exact read-back.
+
+    The read-back must hold exactly the export's element UUIDs and internal
+    references, and every element must carry exactly the export's field
+    values (full-payload read-back; valueless API schema padding and the
+    API's number spelling are not differences). Any difference fails closed.
+    """
     project = client.request(
         "POST",
         "/projects",
@@ -92,11 +102,23 @@ def import_baseline(
         raise BaselineImportError(
             f"API readback lost {len(lost_refs)} internal references: {lost_refs[:20]}"
         )
+    expected_digests = element_digests(bundle.elements.values())
+    actual_digests = element_digests(readback.values())
+    differing = sorted(
+        candidate_id for candidate_id, digest in expected_digests.items()
+        if actual_digests.get(candidate_id) != digest
+    )
+    if differing:
+        raise BaselineImportError(
+            f"API full-payload read-back differs from the export in {len(differing)} "
+            f"element(s): {differing[:20]}"
+        )
     return BaselineImportResult(
         project_id=project_id,
         commit_id=commit_id,
         element_count=len(readback),
         internal_reference_count=len(expected_refs),
+        content_sha256=digest_of_element_digests(expected_digests),
     )
 
 

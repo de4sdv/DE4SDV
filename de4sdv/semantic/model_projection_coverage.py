@@ -2,7 +2,7 @@
 
 Replaces the old bidirectional hand-maintained ontology/kernel gate with
 model-to-generated-projection coverage plus justified exclusions. It
-classifies, using the routing the model-authority bundle binds
+classifies, using the routing the model-built contract is served with
 (:func:`model_contract.compute_routing`):
 
 - every O4 register row and every identity of the model-built contract
@@ -347,23 +347,6 @@ def compare(report: Mapping[str, Any], baseline: Mapping[str, Any]) -> list[str]
     return errors
 
 
-def bundle_errors(report: Mapping[str, Any], bundle: Mapping[str, Any], root: Path = ROOT) -> list[str]:
-    """A bundle must bind exactly the checkout's routing, layers and authority."""
-    components = (bundle or {}).get("components") or {}
-    errors = []
-    if mc._canonical_digest(components.get("routing")) != report["routing_digest"]:
-        errors.append("bundle routing digest differs from the checkout")
-    recorded = _layer_digests(list(components.get("layers") or ()))
-    current = {k: v for k, v in report["layer_digests"].items() if k != "successor-contract"}
-    if recorded != current:
-        errors.append("bundle layer digests differ from the checkout")
-    if (components.get("successor_contract") or {}).get("id") != report["layer_digests"]["successor-contract"]:
-        errors.append("bundle successor contract differs from the checkout")
-    if components.get("semantic_authority") != report["semantic_authority"]:
-        errors.append("bundle semantic authority differs from the checkout")
-    return errors
-
-
 def run_check_errors(root: Path = ROOT) -> list[str]:
     try:
         report = build_report(root)
@@ -383,6 +366,6 @@ def report_digest(report: Mapping[str, Any]) -> str:
     return "sha256:" + hashlib.sha256(canonical_json(report).encode()).hexdigest()
 
 
-__all__ = ["build_report", "compare", "bundle_errors", "run_check_errors", "load_baseline",
+__all__ = ["build_report", "compare", "run_check_errors", "load_baseline",
            "baseline_from_report", "render_baseline", "report_digest", "BASELINE_PATH",
            "KERNEL_INTERNAL_PATH", "kernel_accounting", "load_kernel_internal"]

@@ -1,32 +1,34 @@
 """Shared check of the public Ask viewer's served semantic authority.
 
-``/ask-status.json`` reports ``.semantic_authority``. Since O4 Wave C2 the
-only accepted authority is ``model`` with an exact ``mab-`` bundle id; an
-unset or retired selector reports ``kind == "invalid"`` and the viewer
-refuses every semantic answer. These checks make that state fail a
-deployment run and alert the monitor instead of passing green.
+``/ask-status.json`` reports ``.semantic_authority``. The viewer serves the
+model-built contract after one startup check (exact commit, clean tree, the
+same ``sai-`` identity recomputed from the checkout, the served model the
+deployment binding records); a refused startup reports ``kind == "invalid"``
+and the viewer refuses every semantic answer.
 
-Used by ``verify_public_api.py`` (post-deploy, against the operator's
-declared expectation), ``verify_public_ask.py`` (the served authority must be
-the accepted bundle) and ``monitor_public_ask.py`` (``invalid`` alerts).
-Procedure: docs/method-conformance/o4/model-authority-activation.md.
+The expectation is never declared by an operator: it is read from the
+deployment's own status document (``deployment-status.json``,
+``baseline.semantic_authority.id`` and ``baseline.served_model``). The checks
+use only fields every served runtime reports (``kind``, the ``sai-`` id under
+``semantic_authority`` and the built runtime's ``semantic_authority_id``), so
+the scheduled monitor also accepts a deployment from before the
+release-ceremony retirement, whose status document records no served model.
+
+Used by ``verify_public_api.py`` (post-deploy), ``verify_public_ask.py``
+(Ask deploy) and ``monitor_public_ask.py`` (scheduled). Contract:
+``deployment/README.md``, "Runtime contract".
 """
 from __future__ import annotations
 
 import re
 from typing import Any
 
-MODEL_BUNDLE_ID = re.compile(r"mab-(?:[0-9a-f]{32}|[0-9a-f]{64})")
+SEMANTIC_AUTHORITY_ID = re.compile(r"sai-[0-9a-f]{32}")
+SERVED_MODEL_DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 
 
 class AuthorityCheckError(RuntimeError):
-    """The served semantic authority is not the declared one."""
-
-
-def model_authority_id(bundle_id: str) -> str:
-    """The runtime's served id for a model bundle: ``mab:<bundle id>``
-    (``mab:mab-<hex>``, de4sdv.semantic.entry_authority.model_authority_id)."""
-    return f"mab:{bundle_id}"
+    """The served semantic authority is not the deployment's."""
 
 
 def authority_block(ask_status: Any) -> dict[str, Any]:
@@ -36,76 +38,65 @@ def authority_block(ask_status: Any) -> dict[str, Any]:
         raise AuthorityCheckError("/ask-status.json carries no semantic_authority block")
     if block.get("kind") == "invalid":
         raise AuthorityCheckError(
-            "semantic authority is invalid; every semantic answer is refused: "
+            "the semantic runtime refused to start; every semantic answer is refused: "
             f"{block.get('error') or 'no reason given'}"
         )
     return block
 
 
-def check_served_consistency(block: dict[str, Any]) -> None:
-    """A built model runtime must serve exactly the requested bundle."""
-    served = block.get("semantic_authority_id")
-    if block.get("kind") == "model" and served and served != block.get("authority_id"):
+def deployment_expectation(status_doc: Any, *, require_served_model: bool) -> dict[str, Any]:
+    """What the deployment says the viewer must serve (``deployment-status.json``)."""
+    baseline = status_doc.get("baseline") if isinstance(status_doc, dict) else None
+    if not isinstance(baseline, dict):
+        raise AuthorityCheckError("deployment-status.json carries no baseline")
+    authority = baseline.get("semantic_authority")
+    identifier = authority.get("id") if isinstance(authority, dict) else None
+    if not isinstance(identifier, str) or not SEMANTIC_AUTHORITY_ID.fullmatch(identifier):
         raise AuthorityCheckError(
-            f"runtime serves {served!r} but the requested authority is "
-            f"{block.get('authority_id')!r}"
-        )
+            f"deployment-status baseline.semantic_authority.id is not sai-<32 hex>: {identifier!r}")
+    served = baseline.get("served_model")
+    digest = served.get("content_sha256") if isinstance(served, dict) else None
+    if digest is not None and not (isinstance(digest, str) and SERVED_MODEL_DIGEST.fullmatch(digest)):
+        raise AuthorityCheckError(
+            f"deployment-status baseline.served_model.content_sha256 is malformed: {digest!r}")
+    if require_served_model and digest is None:
+        raise AuthorityCheckError(
+            "deployment-status records no served model: the deployment predates the "
+            "release-ceremony retirement; verify it with its own revision's verifier")
+    return {"semantic_authority": identifier, "served_model": digest}
 
 
-def parse_expectation(expected: str) -> tuple[str, str | None]:
-    """``mab-<hex>`` -> model; ``legacy`` or ``o3:<bundle id>`` (pre-C2 only)."""
-    value = (expected or "").strip()
-    if MODEL_BUNDLE_ID.fullmatch(value):
-        return "model", value
-    if value == "legacy":
-        return "legacy", None
-    if value.startswith("o3:") and value[3:]:
-        return "o3", value[3:]
-    raise AuthorityCheckError(
-        f"expected semantic authority must be mab-<32|64 hex>, legacy or "
-        f"o3:<bundle id>, got {expected!r}"
-    )
+def check_served_authority(ask_status: Any, expectation: dict[str, Any], *,
+                           require_built: bool = True) -> dict[str, Any]:
+    """The viewer serves the deployment's semantic authority (and served model).
 
-
-def check_expected_authority(
-    ask_status: Any, *, expected: str, pre_c2: bool, require_served: bool,
-) -> dict[str, Any]:
-    """Require the served authority to be exactly the declared expectation.
-
-    ``legacy`` and ``o3`` exist only on pre-C2 revisions (a rollback);
-    ``require_served`` additionally requires the built runtime's
-    ``semantic_authority_id`` (not only the requested selection).
+    ``require_built`` requires the runtime to be built (its
+    ``semantic_authority_id`` is reported); a served-model check that failed
+    always refuses.
     """
-    expected_kind, expected_id = parse_expectation(expected)
-    if expected_kind != "model" and not pre_c2:
-        raise AuthorityCheckError(
-            f"expected authority {expected!r} exists only on a pre-C2 revision; "
-            "a C2 revision serves model only"
-        )
     block = authority_block(ask_status)
-    kind = block.get("kind")
-    if kind != expected_kind:
+    if block.get("kind") != "model":
+        raise AuthorityCheckError(f"semantic authority kind is {block.get('kind')!r}, expected 'model'")
+    served_id = block.get("semantic_authority_id")
+    if require_built and not served_id:
         raise AuthorityCheckError(
-            f"semantic authority kind is {kind!r}, expected {expected_kind!r} "
-            "(stale or unset selector in the compose substitution environment)"
-        )
-    if expected_id is not None and block.get("bundle_id") != expected_id:
+            "the semantic runtime is not built yet "
+            f"(state {block.get('state') or 'unknown'!r})")
+    if (require_built or "semantic_authority" in block) and \
+            block.get("semantic_authority") != expectation["semantic_authority"]:
         raise AuthorityCheckError(
-            f"semantic authority bundle is {block.get('bundle_id')!r}, expected "
-            f"{expected_id!r} (stale DE4SDV_MODEL_AUTHORITY_BUNDLE_ID?)"
-        )
-    if expected_kind == "model":
-        assert expected_id is not None
-        if block.get("authority_id") != model_authority_id(expected_id):
-            raise AuthorityCheckError(
-                f"semantic authority authority_id is {block.get('authority_id')!r}, "
-                f"expected {model_authority_id(expected_id)!r}"
-            )
-        check_served_consistency(block)
-        if require_served and block.get("semantic_authority_id") != model_authority_id(expected_id):
-            raise AuthorityCheckError(
-                "the model runtime is not built: it serves "
-                f"{block.get('semantic_authority_id')!r}, expected "
-                f"{model_authority_id(expected_id)!r}"
-            )
+            f"the viewer serves semantic authority {block.get('semantic_authority')!r}, the "
+            f"deployment records {expectation['semantic_authority']!r}")
+    if expectation.get("served_model") is not None and require_built and \
+            block.get("served_model") != expectation["served_model"]:
+        raise AuthorityCheckError(
+            f"the viewer's served model {block.get('served_model')!r} is not the deployment's "
+            f"{expectation['served_model']!r}")
+    check = str(block.get("served_model_check") or "")
+    if check.startswith("failed"):
+        raise AuthorityCheckError(f"the served-model check failed: {check}")
     return block
+
+
+__all__ = ["AuthorityCheckError", "authority_block", "check_served_authority",
+           "deployment_expectation"]

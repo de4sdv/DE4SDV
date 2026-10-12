@@ -607,24 +607,11 @@ def test_mcp_surface_exposes_only_the_declared_read_only_semantic_tools(
     }
 
 
-def _placeholder_bundle(tmp_path: Path) -> tuple[Path, str]:
-    """A schema-valid bundle file so selection passes and the binding is reached."""
-    from de4sdv.semantic import model_authority_runtime as mar
-
-    bundle_id = "mab-" + "1" * 32
-    path = tmp_path / "bundle.json"
-    path.write_text(json.dumps({"schema": mar.MODEL_BUNDLE_SCHEMA, "bundle_id": bundle_id}),
-                    encoding="utf-8")
-    return path, bundle_id
-
-
 def test_runtime_builder_requires_explicit_api_binding_and_expected_git(
     tmp_path: Path,
 ) -> None:
-    from de4sdv.semantic import model_authority_runtime as mar
-    from de4sdv.sysml_api.errors import RevisionMismatchError
+    from de4sdv.semantic import deployment_runtime as dr
 
-    bundle_path, bundle_id = _placeholder_bundle(tmp_path)
     binding = tmp_path / "binding.json"
     binding.write_text(
         json.dumps(
@@ -646,13 +633,13 @@ def test_runtime_builder_requires_explicit_api_binding_and_expected_git(
     # The runtime contract is keyword-only and explicit: no API URL, binding
     # or expected Git revision is ever defaulted.
     with pytest.raises(TypeError):
-        mar.build_model_authority_runtime(ROOT, bundle_path, bundle_id,  # type: ignore[call-arg]
-                                          binding_path=binding, expected_git_revision="a" * 40)
-    # A stale binding (expected Git differs) is refused before any assembly.
-    with pytest.raises(RevisionMismatchError, match="stale"):
-        mar.build_model_authority_runtime(
-            ROOT, bundle_path, bundle_id, api_url="http://127.0.0.1:9",
-            binding_path=binding, expected_git_revision="b" * 40,
+        dr.build_deployment_runtime(ROOT, binding_path=binding,  # type: ignore[call-arg]
+                                    expected_git_revision="a" * 40)
+    # A checkout that is not the expected revision is refused before any assembly.
+    with pytest.raises(dr.StartupCheckError, match="wrong commit"):
+        dr.build_deployment_runtime(
+            ROOT, api_url="http://127.0.0.1:9", binding_path=binding,
+            expected_git_revision="b" * 40,
         )
 
 
@@ -750,11 +737,12 @@ def test_mcp_server_over_the_service_exposes_the_read_only_tools(semantic_servic
     anyio.run(exercise)
 
 
-def test_stdio_mcp_server_refuses_an_unset_semantic_authority(
+def test_stdio_mcp_server_refuses_a_binding_of_another_commit(
     tmp_path: Path, semantic_api_server: str
 ) -> None:
-    """Owner decision D6: the real server process never selects an authority
-    implicitly; an unset selector refuses to start."""
+    """The real server process refuses to start when its startup check
+    refuses (here: the checkout is not the binding's commit); the refusal is
+    a clean usage error, never a traceback."""
     import os
     import subprocess
     import sys
@@ -767,14 +755,14 @@ def test_stdio_mcp_server_refuses_an_unset_semantic_authority(
         "semantic_validation": "passed", "scope": "fixture", "schema": BINDING_SCHEMA,
         "semantic_authority": semantic_authority(),
     }), encoding="utf-8")
-    env = {k: v for k, v in os.environ.items() if k != "DE4SDV_SEMANTIC_AUTHORITY"}
     result = subprocess.run(
         [sys.executable, "scripts/semantic_mcp_server.py", "--api-url", semantic_api_server,
          "--binding", str(binding), "--expected-git-revision", "a" * 40],
-        cwd=ROOT, env=env, capture_output=True, text=True, timeout=60, stdin=subprocess.DEVNULL,
+        cwd=ROOT, env=dict(os.environ), capture_output=True, text=True, timeout=60,
+        stdin=subprocess.DEVNULL,
     )
-    assert result.returncode != 0
-    assert "DE4SDV_SEMANTIC_AUTHORITY is unset" in result.stderr
+    assert result.returncode == 2
+    assert "startup check refused: wrong commit" in result.stderr
     assert "Traceback" not in result.stderr
 
 

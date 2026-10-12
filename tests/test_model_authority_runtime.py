@@ -1,12 +1,12 @@
-"""Model-authority runtime (O4 Wave C2, bundle v2): synthetic exact-binding fixtures.
+"""Model-authority runtime: the model-built contract served through the live services.
 
-Real constructors and the real router run; only API transport is replaced.
-No privileged closure, activation or live-API claim follows from these tests.
-The authored ontology, the O3 bundle and the legacy/o3 selectors were removed
-in Wave C2; the contract is the model-built kernel contract.
+Synthetic exact-binding fixtures over the real model-built contract; the real
+facade and the production service assembly run, only the API transport is
+replaced. The startup check that precedes this assembly in production (exact
+commit, clean tree, ``sai-`` identity, served model) is tested in
+``test_deployment_runtime.py``; there is no bundle, closure or activation
+step (owner decision 2026-10-11). No live-API claim follows from these tests.
 """
-import copy
-import hashlib
 import json
 from pathlib import Path
 
@@ -16,7 +16,6 @@ import mcp.client.stdio  # noqa: F401 — bind stderr during collection
 from de4sdv.semantic import model_authority_runtime as mar
 from de4sdv.semantic import model_contract as mc
 from de4sdv.semantic import model_projection_coverage as coverage
-from de4sdv.semantic.definition_candidate import load_definition_candidate
 from de4sdv.semantic.kernel_contract import (
     KernelFileMapping,
     KernelNativeMapping,
@@ -32,18 +31,17 @@ REVISION = "a" * 40
 EC_DEFS = 8
 
 
-def _sha(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def _elements_and_bindings(ec_defs=EC_DEFS):
-    candidate = load_definition_candidate(ROOT)
+    """Synthetic API elements and ingestion-validated kernel bindings.
+
+    Every file-mapped class of the model-built contract (and the successor
+    profile pins) gets one root element and one kernel binding, so lineage,
+    successor routing and the EvidenceContract discriminator resolve by
+    validated identity, never by name.
+    """
     contract = mar.generate_successor_contract(ROOT)
     model = model_contract()
     pins = {}
-    for name in candidate.identities:
-        row = candidate.row_for(name)["grounding"]["kernel_binding_contract"]
-        pins[name] = (row["source_file"], row["declaration"])
     for name, pin in {**contract["classes"], **contract["carriers"]}.items():
         pins.setdefault(name, (pin["file"], pin["declaration"]))
     ec = model.class_mapping("EvidenceContract")
@@ -80,32 +78,12 @@ def _elements_and_bindings(ec_defs=EC_DEFS):
     return elements, bindings
 
 
-def _attested_members(ids=None):
-    """The bound closure members, attested with the fixture's ec-def ids."""
-    ids = ids or [f"ec-def-{i}" for i in range(EC_DEFS)]
-    return [{**member, "element_id": element}
-            for member, element in zip(mar.bound_evidence_contract_closure(ROOT), ids)]
-
-
 def _edge(kind, source, target, name, **kwargs):
     return {"@id": name, "@type": kind, "source": [{"@id": source}], "target": [{"@id": target}],
             "owningNamespace": {"@id": "context"}, **kwargs}
 
 
-def _close(bundle, binding, binding_path, tmp_path, *, eligible=True, generated_at=None):
-    validations = {}
-    for name in mar.REQUIRED_MODEL_VALIDATIONS:
-        evidence = tmp_path / f"model-{name}.json"
-        evidence.write_text(json.dumps({"synthetic": name}))
-        validations[name] = dict(status="passed" if eligible else "failed", path=str(evidence),
-                                 sha256=_sha(evidence))
-    return mar.close_model_bundle(bundle, mar.build_model_closure_attestation(
-        bundle, binding=binding, binding_sha256=_sha(binding_path), definition_closure_closed=True,
-        validations=validations, generated_at=generated_at or "1970-01-01T00:00:00+00:00",
-        evidence_contract_closure=_attested_members()))
-
-
-def _fixture(tmp_path, *, eligible=True, ec_defs=EC_DEFS):
+def _fixture(tmp_path, *, ec_defs=EC_DEFS):
     elements, bindings = _elements_and_bindings(ec_defs)
     elements += [
         _edge("AllocationUsage", "use-Requirement", "use-Function", "alloc-rf"),
@@ -121,13 +99,8 @@ def _fixture(tmp_path, *, eligible=True, ec_defs=EC_DEFS):
                             import_tool_version="fixture", kernel_bindings=bindings)
     binding_path = tmp_path / "binding.json"
     binding_path.write_text(json.dumps(document))
-    binding = RevisionBinding.load(binding_path)
-    bundle = mar.build_model_bundle(ROOT, git_revision=REVISION)
-    closed = _close(bundle, binding, binding_path, tmp_path, eligible=eligible)
-    bundle_path = tmp_path / "model.json"
-    bundle_path.write_text(json.dumps(closed))
-    return dict(elements=elements, binding_path=binding_path, binding=binding,
-                bundle=closed, bundle_path=bundle_path, candidate=bundle, tmp_path=tmp_path)
+    return dict(elements=elements, binding_path=binding_path,
+                binding=RevisionBinding.load(binding_path), tmp_path=tmp_path)
 
 
 @pytest.fixture
@@ -137,188 +110,28 @@ def fx(tmp_path, monkeypatch):
     return data
 
 
-def _build(fx, *, authority, environ=None, **kwargs):
-    from de4sdv.semantic.composition_construction import build_explicit_semantic_runtime
-    args = dict(api_url="http://127.0.0.1:1", binding_path=fx["binding_path"],
-                expected_git_revision=REVISION)
-    if authority == "model":
-        args.update(model_bundle_path=fx["bundle_path"], model_bundle_id=fx["bundle"]["bundle_id"])
-    args.update(kwargs)
-    return build_explicit_semantic_runtime(authority=authority if environ is None else None,
-                                           environ=environ if environ is not None else {}, **args)
+def _service(fx):
+    """The production service assembly over the synthetic transport."""
+    from de4sdv.sysml_api.client import ApiClient
+
+    return mar.assemble_model_services(
+        mar.model_facade(ROOT), fx["binding"], SysMLRepository(ApiClient("http://127.0.0.1:1")),
+        expected_git_revision=REVISION)
 
 
-# -- bundle schema / id / closure / tamper / disjointness -------------------
-
-
-def test_bundle_schema_id_and_components(fx):
-    bundle = fx["bundle"]
-    assert bundle["schema"] == mar.MODEL_BUNDLE_SCHEMA == "de4sdv.model-authority-bundle/v2"
-    assert mar.BUNDLE_ID_RE.fullmatch(bundle["bundle_id"])
-    assert bundle["bundle_id"] == mar.compute_model_bundle_id(bundle)
-    assert mar.verify_model_bundle(fx["candidate"], root=ROOT) == []
-    assert mar.verify_model_bundle(bundle, root=ROOT, binding=fx["binding"],
-                                   binding_sha256=_sha(fx["binding_path"]), require_closed=True) == []
-    assert "o3_document" not in bundle and "ontology_compatibility_identity" not in bundle
-    components = bundle["components"]
-    assert set(components) == {"layers", "semantic_authority", "successor_contract", "routing",
-                               "implementation_manifest"}
-    assert [r["layer"] for r in components["layers"]] == [
-        "o2-chain", "definition", "o2plus", "vocabulary-carrier", "definition-batch2"]
-    chain = components["layers"][0]
-    assert chain["frozen"] is True and len(chain["chain"]) == 6
-    for item in chain["chain"]:
-        assert item["sha256"] == _sha(ROOT / item["path"])
-    for record in components["layers"][1:]:
-        for side in ("projection", "profile"):
-            assert record[side]["sha256"] == _sha(ROOT / record[side]["path"])
-    assert components["semantic_authority"] == model_contract().identity.to_dict()
-    assert components["routing"]["residual"] == {}
-    assert set(components["implementation_manifest"]["files"]) == set(mar.IMPLEMENTATION_FILES)
-    assert components["successor_contract"]["id"] == mar.generate_successor_contract(ROOT)["id"]
-    assert bundle["closure"]["activation_eligible"] is True
-    assert bundle["closure"]["semantic_authority_id"] == components["semantic_authority"]["id"]
-
-
-def _tamper(bundle, path, value):
-    target = bundle
-    for key in path[:-1]:
-        target = target[key]
-    target[path[-1]] = value
-
-
-@pytest.mark.parametrize("path,value,message", [
-    (("components", "routing", "residual"), {"Planted": "x"}, "routing"),
-    (("components", "layers", 1, "projection", "sha256"), "sha256:" + "0" * 64, "layers"),
-    (("components", "layers", 0, "chain", 0, "sha256"), "sha256:" + "0" * 64, "layers"),
-    (("components", "semantic_authority", "id"), "sai-" + "0" * 32, "semantic_authority"),
-    (("components", "successor_contract", "id"), "sha256:" + "1" * 64, "successor_contract"),
-    (("components", "implementation_manifest", "id"), "mai-" + "2" * 32, "implementation_manifest"),
-    (("git_revision",), "b" * 40, "content digest"),
-])
-def test_tampered_component_is_refused_even_with_recomputed_id(fx, path, value, message):
-    bundle = copy.deepcopy(fx["bundle"])
-    _tamper(bundle, path, value)
-    errors = mar.verify_model_bundle(bundle, root=ROOT)
-    assert any("content digest" in e for e in errors)
-    bundle["bundle_id"] = mar.compute_model_bundle_id(bundle)  # coherent rewrite
-    bundle["closure"]["bundle_id"] = bundle["bundle_id"]
-    errors = mar.verify_model_bundle(bundle, root=ROOT)
-    assert errors and any(message in e or "revision" in e for e in errors), errors
-
-
-def test_closure_eligibility_is_recomputed_not_trusted(fx):
-    bundle = copy.deepcopy(fx["bundle"])
-    bundle["closure"]["validation"]["verification_anchor_readback"]["status"] = "failed"
-    assert any("recomputed" in e for e in mar.verify_model_bundle(bundle, root=ROOT))
-    del bundle["closure"]["validation"]["verification_anchor_readback"]
-    bundle["closure"]["activation_eligible"] = False
-    assert mar.verify_model_bundle(bundle, root=ROOT) == []
-    assert mar._eligibility(bundle["closure"]) is False
-
-
-def test_required_validations_include_the_three_batteries():
-    assert set(mar.REQUIRED_MODEL_VALIDATIONS) == {
-        "model_projection_coverage", "model_runtime_answers", "verification_anchor_readback",
-        "full_model_semantic_queries", "product_line_scope", "semantic_mcp"}
-
-
-def _deployment_binding(fx, tmp_path, *, commit_id, generated_at, **changes):
-    document = json.loads(fx["binding_path"].read_text())
-    document.update(sysml_commit_id=commit_id, import_timestamp=generated_at, **changes)
-    path = tmp_path / f"binding-{commit_id}.json"
-    path.write_text(json.dumps(document))
-    return RevisionBinding.load(path), path
-
-
-def test_mab_id_is_reproducible_across_deployment_reclosure(fx, tmp_path):
-    """The deployment re-closure reproduces the privileged mab- id exactly."""
-    binding, binding_path = _deployment_binding(
-        fx, tmp_path, commit_id="cid-deployment", generated_at="2026-10-08T12:00:00+00:00")
-    redeployed = mar.build_model_bundle(ROOT, git_revision=REVISION)
-    assert redeployed["bundle_id"] == fx["candidate"]["bundle_id"] == fx["bundle"]["bundle_id"]
-    # The closure attestation, not the id, carries the deployment binding.
-    closed = _close(redeployed, binding, binding_path, tmp_path,
-                    generated_at="2026-10-08T12:00:01+00:00")
-    assert closed["bundle_id"] == fx["bundle"]["bundle_id"]
-    assert closed["closure"]["sysml_commit_id"] == "cid-deployment"
-    assert closed["closure"]["binding_sha256"] != fx["bundle"]["closure"]["binding_sha256"]
-    assert mar.verify_model_bundle(closed, root=ROOT, binding=binding,
-                                   binding_sha256=_sha(binding_path), require_closed=True) == []
-    # The privileged closure is refused against the deployment binding.
-    assert any("binding" in e for e in mar.verify_model_bundle(
-        fx["bundle"], root=ROOT, binding=binding, binding_sha256=_sha(binding_path)))
-    # A model layer digest change still changes the id.
-    for index, record in enumerate(fx["candidate"]["components"]["layers"]):
-        changed = copy.deepcopy(fx["candidate"])
-        if record.get("frozen"):
-            changed["components"]["layers"][index]["chain"][0]["sha256"] = "sha256:" + "0" * 64
-            assert mar.compute_model_bundle_id(changed) != fx["candidate"]["bundle_id"]
-            continue
-        for side in ("projection", "profile"):
-            changed = copy.deepcopy(fx["candidate"])
-            changed["components"]["layers"][index][side]["sha256"] = "sha256:" + "0" * 64
-            assert mar.compute_model_bundle_id(changed) != fx["candidate"]["bundle_id"]
-    changed = copy.deepcopy(fx["candidate"])
-    changed["components"]["semantic_authority"]["id"] = "sai-" + "0" * 32
-    assert mar.compute_model_bundle_id(changed) != fx["candidate"]["bundle_id"]
-
-
-def test_binding_with_another_semantic_authority_is_refused(fx, tmp_path):
-    other = dict(model_contract().identity.to_dict(), id="sai-" + "1" * 32)
-    binding, binding_path = _deployment_binding(
-        fx, tmp_path, commit_id="cid-other", generated_at="2026-10-09T00:00:00+00:00",
-        semantic_authority=other)
-    closed = _close(fx["candidate"], binding, binding_path, tmp_path)
-    errors = mar.verify_model_bundle(closed, root=ROOT, binding=binding,
-                                     binding_sha256=_sha(binding_path), require_closed=True)
-    assert any("semantic authority" in e for e in errors), errors
-
-
-def test_closure_semantic_authority_swap_is_refused(fx):
-    bundle = copy.deepcopy(fx["bundle"])
-    bundle["closure"]["semantic_authority_id"] = "sai-" + "2" * 32
-    assert any("semantic_authority_id" in e for e in mar.verify_model_bundle(bundle, root=ROOT))
-
-
-def test_v1_bundle_is_refused(fx, tmp_path):
-    bundle = copy.deepcopy(fx["bundle"])
-    bundle["schema"] = "de4sdv.model-authority-bundle/v1"
-    assert mar.verify_model_bundle(bundle, root=ROOT)[0].startswith("model bundle schema mismatch")
-    path = tmp_path / "v1.json"
-    path.write_text(json.dumps(bundle))
-    with pytest.raises(mar.ModelAuthorityRefused, match="schema mismatch"):
-        _build(fx, authority="model", model_bundle_path=path)
-
-
-def test_activation_eligibility_is_required_by_default(tmp_path, monkeypatch):
-    """Fail closed: only an explicit opt-out (evidence/test) serves an ineligible bundle."""
-    data = _fixture(tmp_path, eligible=False)
-    monkeypatch.setattr(SysMLRepository, "list_elements", lambda self, *a, **k: data["elements"])
-    with pytest.raises(mar.ModelAuthorityRefused, match="activation-eligible"):
-        _build(data, authority="model")
-    with pytest.raises(mar.ModelAuthorityRefused, match="activation-eligible"):
-        _build(data, authority="model", require_activation_eligible=False, production=True)
-    service, selection = _build(data, authority="model", require_activation_eligible=False)
-    assert selection.activation_blocked is True
-    assert service.authority_status()["activation_blocked"] is True
-
-
-def test_candidate_bundle_builds_only_with_the_explicit_opt_out(fx, tmp_path):
-    path = tmp_path / "candidate.json"
-    path.write_text(json.dumps(fx["candidate"]))
-    args = dict(model_bundle_path=path, model_bundle_id=fx["candidate"]["bundle_id"])
-    with pytest.raises(mar.ModelAuthorityRefused, match="not closed"):
-        _build(fx, authority="model", **args)
-    service, selection = _build(fx, authority="model", require_activation_eligible=False, **args)
-    assert selection.activation_blocked is True
-    assert service.authority_status()["bundle_id"] == fx["candidate"]["bundle_id"]
-
-
-def test_model_refusal_is_an_authority_selection_error():
-    from de4sdv.semantic.authority_selection import AuthoritySelectionError
-    assert issubclass(mar.ModelAuthorityRefused, AuthoritySelectionError)
+def test_model_refusal_is_a_value_error():
     assert issubclass(mar.ModelAuthorityRefused, ValueError)
+
+
+def test_served_authority_is_the_contract_identity(fx):
+    service = _service(fx)
+    identity = model_contract().identity.id
+    assert service.semantic_authority_id == identity == service.contract.authority_id
+    status = service.model_status()["semantic_authority"]
+    assert status["id"] == status["semantic_authority"] == identity
+    sources = [entry["source"] for entry in service._provenance()]
+    assert f"semantic-authority://{identity}" in sources
+    assert not any(s.startswith(("model-authority://", "implementation://")) for s in sources)
 
 
 def _split(provisions):
@@ -326,8 +139,8 @@ def _split(provisions):
             [p for p in provisions if p.layer == mc.O2_CHAIN_LAYER])
 
 
-def test_routing_is_disjoint_and_a_planted_duplicate_is_refused(fx):
-    routing = fx["bundle"]["components"]["routing"]
+def test_routing_is_disjoint_and_a_planted_duplicate_is_refused():
+    routing = mar.model_facade(ROOT)._components["routing"]
     assert routing["duplicates"] == [] and routing["residual"] == {}
     assert sum(1 for v in routing["providers"].values() if v == "o2-chain") == 13
     _, provisions = mar.load_layers(ROOT)
@@ -338,10 +151,10 @@ def test_routing_is_disjoint_and_a_planted_duplicate_is_refused(fx):
     assert result.duplicates
     with pytest.raises(mar.ModelAuthorityRefused, match="duplicate"):
         mar.ModelAuthorityFacade(contract=model_contract(), routing=result, successor_contract=successor,
-                                 bundle_id="mab-" + "0" * 32, components={})
+                                 components={})
 
 
-def test_retained_row_without_provider_is_a_refused_residual(fx):
+def test_retained_row_without_provider_is_a_refused_residual():
     _, provisions = mar.load_layers(ROOT)
     layered, chain = _split(provisions)
     dropped = [p for p in layered if p.identity != "specifiesFunction"]
@@ -352,7 +165,7 @@ def test_retained_row_without_provider_is_a_refused_residual(fx):
     with pytest.raises(mar.ModelAuthorityRefused, match="residual"):
         mar.ModelAuthorityFacade(contract=model_contract(), routing=result,
                                  successor_contract=mar.generate_successor_contract(ROOT),
-                                 bundle_id="mab-" + "0" * 32, components={})
+                                 components={})
 
 
 # -- batch-2 layer loader (schema de4sdv.o4-definition-batch2-*/v1) ----------
@@ -525,117 +338,13 @@ def test_batch2_disagreement_is_refused_not_guessed(tmp_path, mutate, match):
     assert any(match in d for d in routing.duplicates), routing.duplicates
 
 
-# -- router: model only ------------------------------------------------------
-
-
-def test_model_selection_via_environment(fx):
-    environ = {mar.AUTHORITY_ENV: "model", mar.MODEL_BUNDLE_PATH_ENV: str(fx["bundle_path"]),
-               mar.MODEL_BUNDLE_ID_ENV: fx["bundle"]["bundle_id"]}
-    from de4sdv.semantic.composition_construction import build_explicit_semantic_runtime
-    service, selection = build_explicit_semantic_runtime(
-        api_url="http://127.0.0.1:1", binding_path=fx["binding_path"],
-        expected_git_revision=REVISION, environ=environ)
-    assert service.semantic_authority_id == "mab:" + fx["bundle"]["bundle_id"]
-    assert selection.provenance()["kind"] == "model"
-    status = service.model_status()
-    assert status["semantic_authority"]["kind"] == "model"
-    assert status["semantic_authority"]["id"].startswith("mab:mab-")
-    assert status["semantic_authority"]["semantic_authority"] == model_contract().identity.id
-
-
-def test_entry_contract_positional_builder_and_authority_status(fx):
-    """Entry seam: builder(repo_root, bundle_path, expected_id, **runtime) -> runtime."""
-    bundle_id = fx["bundle"]["bundle_id"]
-    service = mar.build_model_authority_runtime(
-        mar.ROOT, fx["bundle_path"], bundle_id, api_url="http://127.0.0.1:1",
-        binding_path=fx["binding_path"], expected_git_revision=REVISION, environ={})
-    status = service.authority_status()
-    assert {"authority", "bundle_id", "source_revision", "refused", "rollback"} <= set(status)
-    assert status["authority"] == "model"
-    assert status["rollback"] == "redeploy the pre-Wave-C production revision"
-    assert status["bundle_id"] == bundle_id and status["source_revision"] == REVISION
-    assert status["refused"] == sorted(model_contract().refused)
-    assert service.semantic_authority_id == f"mab:{bundle_id}"
-    assert service.selection.bundle_id == bundle_id
-    other = "mab-" + "f" * 32
-    with pytest.raises(mar.ModelAuthorityRefused, match="does not equal"):
-        mar.build_model_authority_runtime(
-            mar.ROOT, fx["bundle_path"], other, api_url="http://127.0.0.1:1",
-            binding_path=fx["binding_path"], expected_git_revision=REVISION, environ={})
-
-
-def test_v1_binding_is_refused_at_construction(fx, tmp_path):
-    document = json.loads(fx["binding_path"].read_text())
-    document.pop("schema")
-    document.pop("semantic_authority")
-    document["ontology"] = {"path": "approach/framework/ontology/de4sdv-basic-ontology.yaml",
-                            "sha256": "0" * 64}
-    path = tmp_path / "v1-binding.json"
-    path.write_text(json.dumps(document))
-    with pytest.raises(mar.ModelAuthorityRefused, match="revision binding v1"):
-        _build(fx, authority="model", binding_path=path)
-
-
-@pytest.mark.parametrize("environ,match", [
-    ({mar.AUTHORITY_ENV: "model"}, "DE4SDV_MODEL_AUTHORITY_BUNDLE"),
-    ({mar.AUTHORITY_ENV: "model", mar.MODEL_BUNDLE_PATH_ENV: "x", mar.MODEL_BUNDLE_ID_ENV: " mab-" + "0" * 32},
-     "exact mab-"),
-])
-def test_incomplete_model_selection_fails_closed(fx, environ, match):
-    from de4sdv.semantic.composition_construction import build_explicit_semantic_runtime
-    with pytest.raises(mar.ModelAuthorityRefused, match=match):
-        build_explicit_semantic_runtime(api_url="http://127.0.0.1:1", binding_path=fx["binding_path"],
-                                        expected_git_revision=REVISION, environ=environ)
-
-
-def test_tampered_model_bundle_never_falls_back(fx, tmp_path):
-    bundle = copy.deepcopy(fx["bundle"])
-    bundle["components"]["routing"]["residual"] = {"Planted": "x"}
-    bundle["bundle_id"] = mar.compute_model_bundle_id(bundle)
-    path = tmp_path / "tampered.json"
-    path.write_text(json.dumps(bundle))
-    with pytest.raises(mar.ModelAuthorityRefused, match="routing"):
-        _build(fx, authority="model", model_bundle_path=path, model_bundle_id=bundle["bundle_id"])
-
-
-def test_retired_runtime_arguments_are_refused(fx):
-    from de4sdv.semantic.authority_selection import AuthoritySelectionError
-    with pytest.raises(AuthoritySelectionError, match="unsupported semantic-runtime arguments"):
-        _build(fx, authority="model", bundle_path="o3.json")
-    with pytest.raises(AuthoritySelectionError, match="unsupported semantic-runtime arguments"):
-        _build(fx, authority="model", ontology_path=ROOT / "x.yaml")
-    with pytest.raises(AuthoritySelectionError, match="retired by O4 Wave C2"):
-        _build(fx, authority="legacy", model_bundle_id=fx["bundle"]["bundle_id"])
-    with pytest.raises(AuthoritySelectionError, match="retired"):
-        _build(fx, authority="model", composition="o3+definitions")
-
-
-@pytest.mark.parametrize("authority,environ,match", [
-    ("legacy", {}, "retired by O4 Wave C2"),
-    ("o3", {}, "retired by O4 Wave C2"),
-    (None, {}, "is unset"),
-    (None, {"DE4SDV_SEMANTIC_AUTHORITY": ""}, "is unset"),
-    (None, {"DE4SDV_SEMANTIC_AUTHORITY": "o3"}, "retired by O4 Wave C2"),
-    ("other", {}, "unknown DE4SDV_SEMANTIC_AUTHORITY value"),
-])
-def test_only_the_model_authority_is_selectable(fx, authority, environ, match):
-    """D6: an unset selector is refused; legacy and o3 are retired (rollback = redeploy)."""
-    from de4sdv.semantic import composition_construction as cc
-    from de4sdv.semantic.authority_selection import AuthoritySelectionError
-    with pytest.raises(AuthoritySelectionError, match=match):
-        cc.build_explicit_semantic_runtime(api_url="u", binding_path=fx["binding_path"],
-                                           expected_git_revision=REVISION, authority=authority,
-                                           environ=environ)
-
-
 def _answer(service, identifier, predicate):
     report = service.semantic_neighbors(identifier, predicates=[predicate])
     return {key: report[key] for key in ("edges", "gaps", "nodes", "root")}
 
 
-def test_the_13_are_served_from_the_frozen_o2_chain_with_isolated_caches(fx, tmp_path):
-    from tools.sysml_html_viewer import ask_model_semantic as viewer
-    service, _ = _build(fx, authority="model")
+def test_the_13_are_served_from_the_frozen_o2_chain(fx):
+    service = _service(fx)
     chain = {p.identity: p for p in mc.o2_chain_provisions(ROOT)}
     assert set(chain) == set(mc.O2_CHAIN_IDENTITIES) and len(chain) == 13
     for name in mc.O2_CHAIN_CLASSES:
@@ -645,28 +354,13 @@ def test_the_13_are_served_from_the_frozen_o2_chain_with_isolated_caches(fx, tmp
         assert service.contract.relationship_mapping(name) == chain[name].relationship
         for identifier in ("use-Requirement", "use-Need"):
             assert _answer(service, identifier, name)["root"]["element_id"] == identifier
-    # A second (re-closed) candidate is another authority: no shared cache slot.
-    path = tmp_path / "candidate.json"
-    path.write_text(json.dumps(fx["candidate"]))
-    other_bundle = copy.deepcopy(fx["candidate"])
-    other_bundle["claim_boundary"] = "x"  # not part of the id
-    services = [service]
-    services.append(mar.assemble_model_services(
-        mar.model_facade(ROOT, bundle_id="mab-" + "e" * 32), fx["binding"],
-        service.repository, expected_git_revision=REVISION))
-    assert len({s.semantic_authority_id for s in services}) == 2
-    assert len({viewer._snapshot_path(s) for s in services}) == 2
-    services[0]._impact_cache["probe"] = {"authority": services[0].semantic_authority_id}
-    assert "probe" not in services[1]._impact_cache
-    identities = [viewer._snapshot_identity(s)["semantic_authority_id"] for s in services]
-    assert len(set(identities)) == 2
 
 
 # -- discriminator -----------------------------------------------------------
 
 
 def test_evidence_contract_discriminator_population(fx):
-    service, _ = _build(fx, authority="model")
+    service = _service(fx)
     assert "hasRelevantEvidenceContract" not in service.traversal.blocked_predicates()
     report = service.semantic_neighbors("use-Requirement", predicates=["hasRelevantEvidenceContract"])
     targets = sorted(edge["target"] for edge in report["edges"])
@@ -679,7 +373,7 @@ def test_evidence_contract_discriminator_population(fx):
 def test_evidence_contract_closure_with_wrong_population_fails_closed(tmp_path, monkeypatch, defs):
     data = _fixture(tmp_path, ec_defs=defs)
     monkeypatch.setattr(SysMLRepository, "list_elements", lambda self, *a, **k: data["elements"])
-    service, _ = _build(data, authority="model")
+    service = _service(data)
     report = service.semantic_neighbors("use-Requirement", predicates=["hasRelevantEvidenceContract"])
     assert report["edges"] == []
     assert report["semantic_status"] == "incomplete"
@@ -687,47 +381,20 @@ def test_evidence_contract_closure_with_wrong_population_fails_closed(tmp_path, 
                for r in report["unsupported_predicates"])
 
 
-def test_evidence_contract_member_swap_keeping_the_count_fails_closed(tmp_path, monkeypatch):
-    """Eight live definitions are not enough; they must be the bound eight (by id)."""
-    data = _fixture(tmp_path)
-    swapped = []
-    for element in data["elements"]:
-        element = dict(element)
-        if element["@id"] == "ec-def-7":
-            element["@id"] = "ec-def-impostor"
-        if element.get("type") == [{"@id": "ec-def-7"}]:
-            element["type"] = [{"@id": "ec-def-impostor"}]
-        swapped.append(element)
-    monkeypatch.setattr(SysMLRepository, "list_elements", lambda self, *a, **k: swapped)
-    service, _ = _build(data, authority="model")
-    assert service.traversal.closure_member_ids == {f"ec-def-{i}" for i in range(EC_DEFS)}
-    report = service.semantic_neighbors("use-Requirement", predicates=["hasRelevantEvidenceContract"])
-    assert report["edges"] == [] and report["semantic_status"] == "incomplete"
-    assert any("attested bound members" in r["reason"] for r in report["unsupported_predicates"])
-
-
-def test_closure_must_attest_exactly_the_bound_members(fx):
-    for mutate in (lambda m: m.pop(), lambda m: m[0].update(declaration="requirement def Impostor"),
-                   lambda m: m[1].update(element_id=m[0]["element_id"])):
-        bundle = copy.deepcopy(fx["bundle"])
-        mutate(bundle["closure"]["evidence_contract_closure"])
-        assert any("evidence_contract_closure" in e for e in mar.verify_model_bundle(bundle, root=ROOT))
-
-
 def test_closure_members_are_validated_by_the_ingestion_binding_rule():
-    members = mar.bound_evidence_contract_closure(ROOT)
+    members = mc.bound_evidence_contract_closure(ROOT)
     assert len(members) == mar.EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS
     elements, sources = [], {}
     for index, member in enumerate(members):
         name, kind = declaration_identity(member["declaration"])
         elements.append({"@id": f"id-{index}", "@type": kind, "declaredName": name})
         sources[f"id-{index}"] = member["source_file"]
-    validated = mar.validate_closure_members(members, elements, sources)
+    validated = mc.validate_closure_members(members, elements, sources)
     assert [m["element_id"] for m in validated] == [f"id-{i}" for i in range(len(members))]
     # Same name and type from another source file is not the bound member.
     sources["id-0"] = "elsewhere.sysml"
     with pytest.raises(mar.ModelAuthorityRefused, match="not validated"):
-        mar.validate_closure_members(members, elements, sources)
+        mc.validate_closure_members(members, elements, sources)
 
 
 # -- successor exposure, retired names (D4) and exceptions (D5) --------------
@@ -742,7 +409,7 @@ def test_closure_members_are_validated_by_the_ingestion_binding_rule():
     ("use-Requirement", "hasRegulatorySource", "use-RegulatorySource", "source"),
 ])
 def test_successor_predicates_are_exposed(fx, source, predicate, target, api):
-    service, _ = _build(fx, authority="model")
+    service = _service(fx)
     assert predicate in service._mapped_predicates()
     report = service.semantic_neighbors(source, predicates=[predicate])
     assert [(e["predicate"], e["target"], e["api_object_id"]) for e in report["edges"]] == [
@@ -759,7 +426,7 @@ def test_successor_predicates_are_exposed(fx, source, predicate, target, api):
 ])
 def test_retired_names_are_refused_with_their_successor(fx, source, name, successor):
     """D4: the five former deprecated aliases answer no fact: 'retired; use <successor>'."""
-    service, _ = _build(fx, authority="model")
+    service = _service(fx)
     assert name not in service._mapped_predicates()
     assert service.contract.refused[name] == f"retired; use {successor}"
     with pytest.raises(RetiredIdentityError, match=f"retired; use {successor}"):
@@ -777,7 +444,7 @@ def test_retired_names_are_refused_with_their_successor(fx, source, name, succes
 ])
 def test_owner_visible_exceptions_are_refused_with_their_register_disposition(fx, name, kind, disposition):
     """D5: no source serves them; derivesNeedFromConcern moves from gap to refusal."""
-    service, _ = _build(fx, authority="model")
+    service = _service(fx)
     assert disposition in service.contract.refused[name]
     lookup = service.contract.mapping if kind == "class" else service.contract.relationship_mapping
     with pytest.raises(RetiredIdentityError, match=disposition):
@@ -786,33 +453,12 @@ def test_owner_visible_exceptions_are_refused_with_their_register_disposition(fx
 
 
 def test_default_impact_carries_no_retired_edges(fx):
-    service, _ = _build(fx, authority="model")
+    service = _service(fx)
     report = service.impact("use-Requirement")
     predicates = {edge["predicate"] for edge in report["edges"]}
     assert "allocatedTo" in predicates
     assert not predicates & set(model_contract().refused)
     assert "deprecated_aliases" not in report
-
-
-def test_successor_contract_mismatch_refuses_construction(fx, monkeypatch):
-    original = mar.generate_model_successor_contract
-    def changed(root, **kwargs):
-        contract = copy.deepcopy(original(root, **kwargs))
-        contract["id"] = "sha256:" + "9" * 64
-        return contract
-    monkeypatch.setattr(mar, "generate_model_successor_contract", changed)
-    with pytest.raises(mar.ModelAuthorityRefused):
-        _build(fx, authority="model")
-
-
-def test_external_implementation_source_is_refused(monkeypatch, tmp_path):
-    fake = tmp_path / "relationship_successor.py"
-    fake.write_text((ROOT / "de4sdv/semantic/relationship_successor.py").read_text())
-    sources = mar._executed_sources()
-    monkeypatch.setattr(mar, "_executed_sources", lambda: {
-        **sources, "de4sdv/semantic/relationship_successor.py": str(fake)})
-    with pytest.raises(mar.ModelAuthorityRefused, match="implementation source"):
-        mar.implementation_manifest(ROOT)
 
 
 # -- coverage gate -----------------------------------------------------------
@@ -863,17 +509,6 @@ def test_coverage_compare_detects_residual_duplicates_and_digest_mismatch():
     assert coverage.compare(dict(report, duplicates=["X: a and b"]), baseline)
     assert coverage.compare(report, dict(baseline, routing_digest="sha256:" + "0" * 64))
     assert coverage.compare(report, dict(baseline, layer_digests={}))
-
-
-def test_coverage_bundle_cross_check(fx):
-    report = coverage.build_report(ROOT)
-    assert coverage.bundle_errors(report, fx["bundle"], ROOT) == []
-    bundle = copy.deepcopy(fx["bundle"])
-    bundle["components"]["layers"][1]["profile"]["sha256"] = "sha256:" + "0" * 64
-    assert any("layer digests" in e for e in coverage.bundle_errors(report, bundle, ROOT))
-    bundle = copy.deepcopy(fx["bundle"])
-    bundle["components"]["semantic_authority"]["id"] = "sai-" + "0" * 32
-    assert any("semantic authority" in e for e in coverage.bundle_errors(report, bundle, ROOT))
 
 
 def test_coverage_baseline_has_no_binding_block():

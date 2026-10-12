@@ -267,6 +267,61 @@ def test_import_baseline_fails_closed_when_internal_reference_is_lost() -> None:
         )
 
 
+def _two_element_bundle():
+    from de4sdv.sysml_api.baseline import build_export_bundle
+
+    parent_id = "00000000-0000-4000-8000-000000000001"
+    child_id = "00000000-0000-4000-8000-000000000002"
+    return build_export_bundle(
+        git_commit="a" * 40,
+        source_documents={
+            "a.sysml": [
+                {"@type": "Package", "@id": parent_id, "declaredName": "A",
+                 "ownedElement": [{"@id": child_id}]},
+                {"@type": "LiteralRational", "@id": child_id, "value": 0},
+            ]
+        },
+    )
+
+
+def test_full_payload_readback_accepts_valueless_padding_and_number_spelling() -> None:
+    """The pinned API pads every element with valueless schema fields and
+    writes a LiteralRational 0 as 0.0; that is the same served model."""
+    from de4sdv.sysml_api.ingestion import import_baseline
+    from de4sdv.sysml_api.served_model import served_model_digest
+
+    bundle = _two_element_bundle()
+    readback = []
+    for element in bundle.elements.values():
+        api = {**element, "qualifiedName": None, "documentation": [], "aliasIds": []}
+        if api["@type"] == "LiteralRational":
+            api["value"] = 0.0
+        readback.append(api)
+
+    result = import_baseline(_RecordingApiClient(readback), bundle, project_name="t")
+
+    assert result.content_sha256 == served_model_digest(bundle.elements.values())
+    assert result.content_sha256 == served_model_digest(readback)
+
+
+@pytest.mark.parametrize("mutation", [
+    lambda e: e.__setitem__("declaredName", "renamed") if e["@type"] == "Package" else None,
+    lambda e: e.__setitem__("documentation", ["carried"]) if e["@type"] == "Package" else None,
+    lambda e: e.__setitem__("value", 0.5) if e["@type"] == "LiteralRational" else None,
+])
+def test_full_payload_readback_fails_closed_on_any_carried_difference(mutation) -> None:
+    from de4sdv.sysml_api.errors import BaselineImportError
+    from de4sdv.sysml_api.ingestion import import_baseline
+
+    bundle = _two_element_bundle()
+    readback = [dict(element) for element in bundle.elements.values()]
+    for element in readback:
+        mutation(element)
+
+    with pytest.raises(BaselineImportError, match="full-payload read-back"):
+        import_baseline(_RecordingApiClient(readback), bundle, project_name="t")
+
+
 def test_kernel_binding_validation_reports_all_binding_categories_explicitly() -> None:
     from de4sdv.semantic.validation import validate_ontology_bindings
     from tests.model_contract_fixtures import model_contract
@@ -332,3 +387,48 @@ def test_full_model_query_matrix_covers_three_distinct_model_concerns() -> None:
         "reqProvideMiddlewareSignalAccess",
         "reqAuthenticateServiceBinding",
     }
+
+
+def test_importer_records_the_served_model_in_binding_and_report(tmp_path, monkeypatch) -> None:
+    """The binding the deploy writes carries the served-model record: the
+    export's file digest, its element count and the content digest the
+    full-payload read-back verified."""
+    import hashlib
+    import json
+    from types import SimpleNamespace
+
+    from scripts import import_sysml_api_baseline as importer
+    from de4sdv.sysml_api.ingestion import BaselineImportResult
+    from de4sdv.sysml_api.revisions import RevisionBinding
+
+    head = "b" * 40
+    export_path = tmp_path / "export.json"
+    export_path.write_bytes(b'{"synthetic": "export bytes"}')
+    bundle = SimpleNamespace(git_commit=head, elements={}, element_sources={},
+                             source_manifest=[], external_references=[],
+                             require_current_sources=lambda manifest: None)
+    passing = SimpleNamespace(passed=True, summary={"unresolved": 0}, entries=[],
+                              to_dict=lambda: {"passed": True})
+    monkeypatch.setattr(importer, "_git_head", lambda: head)
+    monkeypatch.setattr(importer.BaselineExportBundle, "load", staticmethod(lambda path: bundle))
+    monkeypatch.setattr(importer.BaselineManifest, "discover", staticmethod(lambda root: None))
+    monkeypatch.setattr(importer, "import_baseline", lambda client, b, project_name: BaselineImportResult(
+        project_id="p-1", commit_id="c-1", element_count=3, internal_reference_count=1,
+        content_sha256="sha256:" + "c" * 64))
+    monkeypatch.setattr(importer.SysMLRepository, "list_elements", lambda self, p, c: [])
+    monkeypatch.setattr(importer, "validate_ontology_bindings", lambda *a, **k: passing)
+    monkeypatch.setattr(importer, "cross_check_model_provider",
+                        lambda *a, **k: {"classification": "EQUIVALENT"})
+
+    importer.run_import(api_url="http://api.invalid", export_path=export_path,
+                        binding_path=tmp_path / "binding.json", report_path=tmp_path / "report.json",
+                        project_name="t", git_repository="de4sdv/DE4SDV")
+
+    expected = {"schema": "de4sdv.served-model/v1",
+                "source_export_sha256": hashlib.sha256(export_path.read_bytes()).hexdigest(),
+                "element_count": 3, "content_sha256": "sha256:" + "c" * 64}
+    binding = RevisionBinding.load(tmp_path / "binding.json")
+    assert binding.served_model is not None and binding.served_model.to_dict() == expected
+    report = json.loads((tmp_path / "report.json").read_text())
+    assert report["served_model"] == expected
+    assert report["source_export_sha256"] == expected["source_export_sha256"]

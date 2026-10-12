@@ -297,18 +297,18 @@ def query_api_impact(
     api_url: str,
     binding_path: Path,
     git_revision: str,
-    authority: str | None = None,
-    model_bundle_path: str | Path | None = None,
-    model_bundle_id: str | None = None,
 ) -> dict:
-    """Query one exact API revision through the model-authority traversal layer."""
-    from de4sdv.semantic import entry_authority
+    """Query one exact API revision through the deployed runtime.
 
-    service, _ = entry_authority.build_entry_semantic_runtime(
-        api_url=api_url, binding_path=binding_path,
+    The production construction: the startup check (exact commit, clean
+    tree, ``sai-`` identity, served-model record), then the model-authority
+    traversal layer over a corpus that must be the validated export.
+    """
+    from de4sdv.semantic.deployment_runtime import build_deployment_runtime
+
+    service = build_deployment_runtime(
+        ROOT, api_url=api_url, binding_path=binding_path,
         expected_git_revision=git_revision,
-        authority=authority, model_bundle_path=model_bundle_path,
-        model_bundle_id=model_bundle_id, environ={},
     )
     return service.impact_service.impact(target, git_revision=git_revision)
 
@@ -436,19 +436,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--git-revision",
         help="Full Git SHA to compare with the API binding (default: current HEAD).",
     )
-    parser.add_argument("--semantic-authority",
-                        help="model (the only accepted value; required for --backend api)")
-    parser.add_argument("--model-authority-bundle",
-                        help="model-authority bundle JSON (with --semantic-authority model)")
-    parser.add_argument("--model-authority-bundle-id",
-                        help="exact model-authority bundle id (mab-...)")
     args = parser.parse_args(argv)
-    if args.backend != "api" and (
-        args.semantic_authority is not None
-        or args.model_authority_bundle is not None
-        or args.model_authority_bundle_id is not None
-    ):
-        parser.error("semantic authority arguments require --backend api")
 
     if args.list_requirements:
         names = list_requirements()
@@ -483,9 +471,6 @@ def main(argv: Optional[List[str]] = None) -> int:
             api_url=args.api_url,
             binding_path=args.binding,
             git_revision=args.git_revision or current_git_revision(),
-            authority=args.semantic_authority,
-            model_bundle_path=args.model_authority_bundle,
-            model_bundle_id=args.model_authority_bundle_id,
         )
         if args.json:
             json.dump(api_report, sys.stdout, indent=2)

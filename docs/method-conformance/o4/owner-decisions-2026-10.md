@@ -48,6 +48,9 @@ Still open for later waves: the production cutover to a model-authority
 bundle with O3 kept as rollback, including the live-API anchor read-back
 (decision 13) (Wave B); and freezing the historical O1/O2/O3 records instead
 of regenerating them (Wave C). The freeze was decided on 2026-10-07 (below).
+*Superseded by owner decision 2026-10-11: release ceremony retired.* The bundle cutover and the live-API read-back as an
+activation gate are gone; the decision-13 anchors are checked over the
+export in the privileged run (2026-10-11, below).
 
 ## 2026-10-07 — Wave C
 
@@ -57,11 +60,11 @@ All recommendations of the Wave C design brief were accepted.
 |---|---|---|
 | Q7 | Historical O1/O2/O3 records | Freeze them; do not regenerate. Implemented in Wave C1: [frozen-records.md](../frozen-records.md). |
 | D1 | PR slicing | Two PRs: C1 gates and frozen records (squash OK), then C2 closure (merge commit required; a single rebind PR if it is squashed). |
-| D2 | Rollback after Wave C | Redeploy the soaked pre-Wave-C production SHA through the normal deploy workflows, with a mandatory post-C2 production drill. Soak of at least 7 days, at least one green nightly privileged run, no rollback. |
+| D2 | Rollback after Wave C | Redeploy the soaked pre-Wave-C production SHA through the normal deploy workflows, with a mandatory post-C2 production drill. Soak of at least 7 days, at least one green nightly privileged run, no rollback. *Superseded by owner decision 2026-10-11: release ceremony retired.* Rollback is a redeploy of the previous release (`deployment/README.md`). |
 | D3 | Kernel-internal declarations | A governance manifest, not model comments: [kernel-internal-declarations.yaml](kernel-internal-declarations.yaml) (Wave C1). |
 | D4 | Deprecated aliases | Refused with "retired; use `<successor>`"; the model retirement records are kept (Wave C2). |
 | D5 | `IncrementTraceabilityShell`, `derivesNeedFromConcern` | Refused with their register disposition; the `derivesNeedFromConcern` change from gap to refusal is reviewed as an intentional migration (Wave C2). Until then they stay ratcheted, allowed exceptions of the coverage gate. |
-| D6 | Unset authority selector | Refused; no default to `model` (Wave C2). |
+| D6 | Unset authority selector | Refused; no default to `model` (Wave C2). *Superseded by owner decision 2026-10-11: release ceremony retired.* There is no selector: one authority, nothing to select. |
 | D7 | Consumer-ledger `KernelContract` markers | Redefined; no class rename (Wave C2). |
 | D8 | `scripts/prove_derivation_slice.py` | Rewire or retire; decided during Wave C2. |
 | D9 | The 54 batch-2 contract fields | Stay in the admission manifest, labelled honestly with pre-deletion comparison evidence; accepted for O4 closure; moving them into the model is a follow-up. |
@@ -72,7 +75,7 @@ All recommendations of the Wave C design brief were accepted.
 
 | # | Topic | Answer |
 |---|---|---|
-| D2 | Soak before C2 | No fixed soak. The gate for merging C2 is the owner's own production test of the Wave B activation, plus the rollback drill (model → o3 → model) at the Wave B revision. C2's own merged-SHA privileged run supplies fresh evidence. Retained mitigation: the post-C2 rollback target is the activated pre-C revision `ff0311b`; its ingestion artifact expires 2026-10-22, so C2 lands and is verified before then, or the rollback path needs a fresh ingestion. |
+| D2 | Soak before C2 | No fixed soak. The gate for merging C2 is the owner's own production test of the Wave B activation, plus the rollback drill (model → o3 → model) at the Wave B revision. C2's own merged-SHA privileged run supplies fresh evidence. Retained mitigation: the post-C2 rollback target is the activated pre-C revision `ff0311b`; its ingestion artifact expires 2026-10-22, so C2 lands and is verified before then, or the rollback path needs a fresh ingestion. *Superseded by owner decision 2026-10-11: release ceremony retired.* The rollback target is the previous release (now `063c4fb1`). |
 | — | Comparison pair-manifest labels | The Wave B model comparison labelled its pair manifests `legacy`/`o3` regardless of the compared authorities (authority ids were correct). Fixed in Wave C2: the runtime-answers comparison labels each side from its own report and refuses equal labels. |
 
 ### Wave C2 implementation choices (delegated decisions)
@@ -80,4 +83,12 @@ All recommendations of the Wave C design brief were accepted.
 | # | Choice | Reason |
 |---|---|---|
 | D3 | The six relationship-carrier pins C1 carried over from the authored list (`HasStakeholder`, `AddressesConcern`, `ProducesView`, `RecordsAssumption`, `RecordsGap`, `SelectedViewpoint`) were removed from the manifest (81 entries). | Each is projected through a model-generated layer (definition batch 2 or the vocabulary-carrier layer); keeping it listed would give one declaration two homes. Since C2 projected and listed are a disjoint union, enforced by the coverage gate. |
-| D8 | `scripts/prove_derivation_slice.py` was rewired to the model-authority runtime (`--semantic-authority model --model-authority-bundle … --model-authority-bundle-id …`), not retired. | The rewire is small (one runtime-construction seam), and the script remains the only end-to-end proof of the derivation (K) slice against a deployed API; retiring it would drop that capability. |
+| D8 | `scripts/prove_derivation_slice.py` was rewired to the model-authority runtime (`--semantic-authority model --model-authority-bundle … --model-authority-bundle-id …`), not retired. *Superseded by owner decision 2026-10-11: release ceremony retired.* It builds the deployed runtime; the bundle flags are gone. | The rewire is small (one runtime-construction seam), and the script remains the only end-to-end proof of the derivation (K) slice against a deployed API; retiring it would drop that capability. |
+
+## 2026-10-11 — release ceremony retired
+
+| # | Decision | Answer |
+|---|---|---|
+| D-M1 | Model-authority bundle, closure and activation | Retired. Production serves from the deployed SysML v2 API with the deployment's own binding (its ingestion-validated kernel bindings, ADR 0011) after one startup check: right commit, clean tree, the same `sai-` identity recomputed from the checkout, and the served model equal to the validated export. The deploy approval is the single owner gate; rollback is a redeploy of the previous release. Supersedes D6 (2026-10-07), the rollback drill of D2 (2026-10-07 and 2026-10-08), and the activation-gate role of Wave B decisions 4 (a failed read-back blocks activation) and 13 (live-API anchor read-back). The full-payload import read-back compares every element; the decision-13 anchors, the K pair and the EvidenceContract closure are checked over the export in the privileged run (`scripts/check_release_evidence.py`). |
+| D-M2 | CI import rehearsal in the privileged run | Kept for two releases after the retirement, then dropped. |
+| D-M3 | Serving straight from the verified export | Later and separate: decide after two releases under this contract (a new ADR amends the "live model store" wording of ADRs 0005, 0010, 0011, 0012 and 0017). |

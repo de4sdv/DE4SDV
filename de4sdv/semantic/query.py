@@ -20,7 +20,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from de4sdv.sysml_api.errors import ApiError
+from de4sdv.sysml_api.errors import ApiError, ServedModelMismatchError
 from de4sdv.sysml_api.identity import IdentityResolution, resolve_identity
 from de4sdv.sysml_api.repository import SysMLRepository, element_id, reference_ids
 from de4sdv.sysml_api.revisions import RevisionBinding
@@ -192,6 +192,9 @@ class SemanticQueryService:
             try:
                 elements = self._elements()
                 element_count = len(elements)
+            except ServedModelMismatchError as exc:
+                current = False
+                gaps.append({"category": "runtime-served-model", "reason": str(exc)})
             except ApiError as exc:
                 current = False
                 gaps.append(
@@ -216,8 +219,8 @@ class SemanticQueryService:
         """Deployment provenance: which semantic authority produced answers.
 
         Always present. The model-authority service overrides it with the
-        verified ``mab:`` bundle identity; this base block only names the
-        authority id it was constructed with (empty when none was selected).
+        model-built ``sai-`` identity it serves; this base block only names
+        the authority id it was constructed with (empty when none was given).
         """
         identifier = self.semantic_authority_id
         return {

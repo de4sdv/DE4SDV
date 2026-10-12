@@ -5,7 +5,9 @@
 > deleted in O4 Wave C2 together with the authored ontology and the O3 bundle
 > runtime. The model-authority runtime replaced it:
 > [model-authority-runtime.md](model-authority-runtime.md). The record is kept
-> as history.
+> as history; `composition_construction.py` and the definition-migration path
+> it names were deleted when the release ceremony was retired (owner decision
+> 2026-10-11).
 
 The definition-only path could not serve the reviewed O3 relationships at
 once. `de4sdv/semantic/composition_construction.py` verifies both components

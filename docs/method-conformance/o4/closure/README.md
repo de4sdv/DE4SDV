@@ -1,9 +1,9 @@
 # O4 closure record (Wave C2, draft)
 
 Status: **draft.** This record states what O4 Wave C2 closed and where its
-evidence is. It is not a production activation record (production
-deployment of a C2 revision is owner-gated:
-[activation and rollback](../model-authority-activation.md)) and makes no
+evidence is. It is not a production deployment record (deployment is
+owner-gated by the `sysml-api-production` approval; release and rollback:
+[`deployment/README.md`](../../../../deployment/README.md)) and makes no
 compliance, certification or homologation claim.
 
 ## What closed
@@ -18,6 +18,10 @@ compliance, certification or homologation claim.
   composed O3 + definitions runtime were deleted; the model-authority
   runtime is the only one. `DE4SDV_SEMANTIC_AUTHORITY` accepts only
   `model`; unset, `legacy` and `o3` are refused (owner decision D6).
+  *Superseded by owner decision 2026-10-11 (release ceremony retired):
+  there is no selector any more; the runtime starts from the deployment
+  binding after one startup check
+  ([model-authority-runtime.md](../model-authority-runtime.md)).*
 - **Retired names refused** (D4): `realizedBy`, `deployedTo`,
   `validatedBy`, `validatesFitnessForUse`, `constrainedBy` answer
   `retired; use <successor>`; their model retirement records are kept.

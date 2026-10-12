@@ -73,18 +73,18 @@ entries:
     role: governance-machinery
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract). Deleted when the release ceremony was retired (owner decision 2026-10-11).'
   de4sdv/semantic/composition_construction.py:
     role: closure-preparation-machinery
     markers: []
     retirement_status: retired
     note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
-      Previously: Non-production bootstrap verification only; live query routing is in runtime_composition.py.'
+      Previously: Non-production bootstrap verification only; live query routing is in runtime_composition.py. Deleted when the release ceremony was retired (owner decision 2026-10-11).'
   de4sdv/semantic/definition_candidate_provider.py:
     role: closure-preparation-machinery
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract). Deleted when the release ceremony was retired (owner decision 2026-10-11).'
   de4sdv/semantic/definition_migration.py:
     role: closure-preparation-machinery
     markers: []
@@ -93,7 +93,7 @@ entries:
       Previously: Verified, explicitly selected, non-production definition-migration path (verified candidate
       load, explicit fallback provider, fail-closed activation prerequisite, offline probe). Consumes
       the authored contract only as the explicit fallback for unadmitted identities and as the probe comparison
-      oracle; never semantic authority for the admitted set. This row claims no retirement.'
+      oracle; never semantic authority for the admitted set. This row claims no retirement. Deleted when the release ceremony was retired (owner decision 2026-10-11).'
   de4sdv/semantic/impact.py:
     role: runtime-consumer
     markers: []
@@ -397,7 +397,7 @@ entries:
     retirement_status: retired
     note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
       Previously: Migration-path design record; references the authored contract as the explicit fallback
-      and probe comparison oracle. Not a consumer to retire.'
+      and probe comparison oracle. Not a consumer to retire. Deleted when the release ceremony was retired (owner decision 2026-10-11).'
   docs/method-conformance/o4/o4-execution-plan.md:
     role: documentation
     markers:
@@ -515,7 +515,7 @@ entries:
     retirement_status: retired
     note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
       Previously: O4 Wave B privileged-run measurement (owner decision 6). Passes the authored ontology
-      path to the selected entry runtime (legacy/o3/model); measured evidence, not an activation gate.'
+      path to the selected entry runtime (legacy/o3/model); measured evidence, not an activation gate. Deleted when the release ceremony was retired (owner decision 2026-10-11).'
   scripts/ontology_review/arch_recheck.py:
     role: governance-machinery
     markers:
@@ -550,7 +550,7 @@ entries:
     note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
       Previously: O4 Wave B model-authority bundle/compare/close CLI. The authored ontology path is only
       the legacy side of the model-vs-O3-vs-legacy comparison; the model bundle itself is built by the
-      model-authority runtime.'
+      model-authority runtime. Deleted when the release ceremony was retired (owner decision 2026-10-11).'
   scripts/run_o3_equivalence.py:
     role: governance-machinery
     markers: []
@@ -632,7 +632,7 @@ entries:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract). Deleted when the release ceremony was retired (owner decision 2026-10-11).'
   tests/test_definition_candidate_seam.py:
     role: test-reference
     markers: []
@@ -642,14 +642,14 @@ entries:
     role: test-reference
     markers: []
     retirement_status: retired
-    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
+    note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract). Deleted when the release ceremony was retired (owner decision 2026-10-11).'
   tests/test_definition_migration_ingestion.py:
     role: test-reference
     markers: []
     retirement_status: retired
     note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).
       Previously: Synthetic binding/probe tests and privileged workflow input-selection checks; no API
-      closure or consumer retirement evidence.'
+      closure or consumer retirement evidence. Deleted when the release ceremony was retired (owner decision 2026-10-11).'
   tests/test_definition_projection.py:
     role: test-reference
     markers:
@@ -694,10 +694,10 @@ entries:
     note: 'Retired in O4 Wave C2: no longer references the authored ontology (model-built kernel contract).'
   tests/test_model_authority_runtime.py:
     role: test-reference
-    markers:
-    - ontology_dir_token
-    - ontology_path_token
-    retirement_status: not-applicable
+    markers: []
+    retirement_status: retired
+    note: 'No longer references the authored ontology: rewritten when the release ceremony
+      was retired (owner decision 2026-10-11).'
   tests/test_native_semantic_traversal.py:
     role: test-reference
     markers: []
@@ -778,9 +778,10 @@ entries:
       inputs.
   tests/test_o4_model_authority_workflow.py:
     role: test-reference
-    markers:
-    - ontology_path_token
-    retirement_status: not-applicable
+    markers: []
+    retirement_status: retired
+    note: 'No longer references the authored ontology: rewritten when the release ceremony
+      was retired (owner decision 2026-10-11).'
   tests/test_o4_model_entry_points.py:
     role: test-reference
     markers:

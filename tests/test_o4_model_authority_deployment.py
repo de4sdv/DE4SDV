@@ -1,4 +1,4 @@
-"""Deployment wiring for the model-authority selector, O4 Wave C2 (synthetic)."""
+"""Deployment wiring of the deployed runtime: no selector, no bundle (synthetic)."""
 from __future__ import annotations
 
 import json
@@ -57,7 +57,7 @@ def runtime_repo(tmp_path):
     _write(repo, "textual-notation-of-model/model.sysml", "package Model;\n")
     for relative in MODEL_INPUTS:
         _write(repo, relative, "{}\n")
-    _write(repo, "docs/method-conformance/o4/model-authority-activation.md", "# doc\n")
+    _write(repo, "docs/method-conformance/o4/model-authority-runtime.md", "# doc\n")
     model_revision = _commit(repo, "model")
     binding = tmp_path / "binding.json"
     binding.write_text(json.dumps({"git_commit": model_revision}), encoding="utf-8")
@@ -94,7 +94,7 @@ def test_new_batch_projection_file_is_governed(runtime_repo):
 
 def test_documentation_only_change_still_starts(runtime_repo):
     repo, binding = runtime_repo
-    _write(repo, "docs/method-conformance/o4/model-authority-activation.md", "# doc v2\n")
+    _write(repo, "docs/method-conformance/o4/model-authority-runtime.md", "# doc v2\n")
     _write(repo, "docs/method-conformance/o2/o2-1-design.md", "# design\n")
     revision = _commit(repo, "docs only")
     contract = validate_runtime_contract(repo, binding, _env(revision))
@@ -109,50 +109,31 @@ def _ask_viewer():
     return compose["services"]["ask-viewer"]
 
 
-def test_compose_passes_model_selection_through_substitution_environment():
+def test_compose_passes_no_selector_and_no_bundle():
     environment = _ask_viewer()["environment"]
-    # D6: no default; an empty selector is refused by the runtime.
-    assert environment["DE4SDV_SEMANTIC_AUTHORITY"] == "${DE4SDV_SEMANTIC_AUTHORITY:-}"
-    assert environment["DE4SDV_MODEL_AUTHORITY_BUNDLE"] == (
-        "${DE4SDV_MODEL_AUTHORITY_BUNDLE:-/run/de4sdv/model/de4sdv-model-authority-bundle.json}"
-    )
-    assert environment["DE4SDV_MODEL_AUTHORITY_BUNDLE_ID"] == "${DE4SDV_MODEL_AUTHORITY_BUNDLE_ID:-}"
-    # The O3 rollback selector is retired (rollback = redeploy).
+    for retired in ("DE4SDV_SEMANTIC_AUTHORITY", "DE4SDV_MODEL_AUTHORITY_BUNDLE",
+                    "DE4SDV_MODEL_AUTHORITY_BUNDLE_ID", "DE4SDV_ONTOLOGY_PATH"):
+        assert retired not in environment, retired
     assert not any(key.startswith("DE4SDV_O3_") for key in environment)
-    assert "DE4SDV_ONTOLOGY_PATH" not in environment
+    # The runtime contract: the deployed commit, the binding and the API.
+    assert environment["DE4SDV_APP_GIT_SHA"].startswith("${DE4SDV_APP_GIT_SHA:?")
+    assert environment["DE4SDV_REVISION_BINDING"] == "/run/de4sdv/de4sdv-full-model-binding.json"
+    assert environment["DE4SDV_SYSML_API_URL"] == "http://sysml2-api:9000"
 
 
-def test_empty_compose_selector_is_refused_at_runtime():
-    from de4sdv.semantic.authority_selection import AuthoritySelectionError, require_model_selection
-
-    with pytest.raises(AuthoritySelectionError, match="is unset"):
-        require_model_selection(None, {"DE4SDV_SEMANTIC_AUTHORITY": ""})
-
-
-def test_compose_mounts_model_artifacts_read_only_outside_checkout():
+def test_compose_mounts_only_the_checkout_and_the_binding_read_only():
     volumes = _ask_viewer()["volumes"]
-    assert "${DEPLOY_DIR}/artifacts/model:/run/de4sdv/model:ro" in volumes
-    assert not any("/run/de4sdv/o3" in volume for volume in volumes)
+    assert "${DEPLOY_SOURCE_DIR:-/srv/de4sdv/DE4SDV}:/srv/de4sdv/DE4SDV:ro" in volumes
+    assert ("${DEPLOY_DIR}/artifacts/current/de4sdv-full-model-binding.json:"
+            "/run/de4sdv/de4sdv-full-model-binding.json:ro") in volumes
+    assert not any("/run/de4sdv/model" in volume or "/run/de4sdv/o3" in volume
+                   for volume in volumes)
 
 
-def test_activation_document_names_owner_gates_and_rollback():
-    text = (ROOT / "docs/method-conformance/o4/model-authority-activation.md").read_text(
-        encoding="utf-8")
-    for needle in (
-        "DE4SDV_SEMANTIC_AUTHORITY=model",
-        "DE4SDV_MODEL_AUTHORITY_BUNDLE_ID=mab-",
-        "sysml-api-production",
-        "rollback", "redeploy", "ff0311b",
-        "activation_eligible",
-    ):
-        assert needle in text, needle
-    assert "three batteries" in text.lower() or "3 batteries" in text.lower()
-    # Wave C2: the selector rollback to o3/legacy no longer exists.
-    for retired in ("DE4SDV_SEMANTIC_AUTHORITY=o3", "DE4SDV_SEMANTIC_AUTHORITY=legacy"):
-        assert retired not in text, retired
-
-
-def test_deploy_readme_points_to_model_activation_procedure():
+def test_deploy_readme_documents_the_runtime_contract_release_and_rollback():
     text = (ROOT / "deployment/README.md").read_text(encoding="utf-8")
-    assert "model-authority-activation.md" in text
-    assert "artifacts/model" in text
+    for needle in ("## Runtime contract", "startup check", "served model", "## Release",
+                   "## Rollback", "063c4fb1f2763a366874118f3b78d9841e0d11b4", "sysml-api-production",
+                   "release-2026-10-11"):
+        assert needle in text, needle
+    assert "model-authority-activation.md" not in text

@@ -35,6 +35,8 @@ OWN_PATHS = {
     "scripts/evaluate_increment.py",
     "scripts/export_sysml_api_baseline.py",
     "de4sdv/semantic/increment_discovery.py",
+    "de4sdv/semantic/export_evaluation.py",
+    "de4sdv/semantic/model_authority_runtime.py",
 }
 LICENCE_VALUE = "${{ secrets.SYSIDE_LICENSE_KEY }}"
 LICENCE_PRESENCE = "${{ secrets.SYSIDE_LICENSE_KEY != '' }}"

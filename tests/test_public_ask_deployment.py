@@ -247,7 +247,13 @@ def test_public_ask_workflow_is_exact_sha_gated_and_does_not_ingest():
     assert "--adapter caddyfile </dev/null" in workflow
     assert "caddy validate" in workflow
     assert "--live-query" in workflow
-    assert "if: failure()" in workflow
+    deploy_steps = yaml.safe_load(workflow)["jobs"]["deploy"]["steps"]
+    activate = next(s for s in deploy_steps if s.get("id") == "activate")
+    rollback = next(s for s in deploy_steps if s.get("name", "").startswith("Roll back source"))
+    assert activate["name"] == "Transfer and activate the fail-closed Ask service"
+    assert rollback["if"] == (
+        "failure() && (steps.activate.outcome == 'failure' || steps.activate.outcome == 'success')"
+    )
     assert "Remove runner secret material" in workflow
     assert "if: always()" in workflow
     assert "sysand sync" not in workflow
@@ -295,10 +301,93 @@ def test_public_ask_monitor_is_non_paid_and_schedule_safe():
     assert "semantic warmup is not ready" in script
 
 
+SAI = "sai-" + "1" * 32
+SERVED = "sha256:" + "2" * 64
+
+
+def _deployment_status(model_sha, *, served=SERVED, sai=SAI):
+    baseline = {"git_commit": model_sha,
+                "semantic_authority": {"schema": "de4sdv.semantic-authority/v1", "id": sai,
+                                       "layers": [{"path": "x.json", "sha256": "sha256:" + "3" * 64}]}}
+    if served is not None:
+        baseline["served_model"] = {"schema": "de4sdv.served-model/v1",
+                                    "source_export_sha256": "4" * 64, "element_count": 3,
+                                    "content_sha256": served}
+    return {"baseline": baseline}
+
+
+def _ask_server(app_sha, model_sha, block, status_doc):
+    seen = {"live": False}
+
+    class Handler(BaseHTTPRequestHandler):
+        def _json(self, status, payload):
+            body = json.dumps(payload).encode()
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def do_GET(self):
+            if self.path == "/ask-status.json":
+                self._json(200, {"application_git_commit": app_sha, "model_git_commit": model_sha,
+                                 "semantic_warmup": {"status": "ready"},
+                                 "semantic_authority": block})
+            elif self.path == "/deployment-status.json":
+                self._json(200, status_doc)
+            else:
+                self.send_response(404)
+                self.end_headers()
+
+        def log_message(self, format, *args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server, f"http://127.0.0.1:{server.server_address[1]}", seen
+
+
+def test_monitor_accepts_the_pre_retirement_production_shape():
+    """Until the next release production runs 063c4fb1: its viewer reports the
+    mab: label next to the sai- identity, and its status records no served
+    model. Main's monitor checks the fields both runtimes report."""
+    app_sha = model_sha = "e" * 40
+    block = {"kind": "model", "authority_id": "mab:mab-" + "5" * 32,
+             "bundle_id": "mab-" + "5" * 32, "semantic_authority": SAI,
+             "semantic_authority_id": "mab:mab-" + "5" * 32}
+    server, url, _ = _ask_server(app_sha, model_sha, block, _deployment_status(model_sha, served=None))
+    try:
+        result = monitor_public_ask(ask_url=url, model_status_url=f"{url}/deployment-status.json")
+        assert result["status"] == "healthy" and result["semantic_authority_kind"] == "model"
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+@pytest.mark.parametrize("block,status,match", [
+    ({"kind": "model", "semantic_authority": "sai-" + "9" * 32, "semantic_authority_id": SAI},
+     _deployment_status("e" * 40), "serves semantic authority"),
+    ({"kind": "model", "semantic_authority": SAI, "semantic_authority_id": SAI,
+      "served_model": "sha256:" + "8" * 64}, _deployment_status("e" * 40), "served model"),
+    ({"kind": "model", "semantic_authority": SAI, "semantic_authority_id": SAI,
+      "served_model": SERVED, "served_model_check": "failed: drift"},
+     _deployment_status("e" * 40), "served-model check failed"),
+    ({"kind": "invalid", "error": "startup check refused: dirty tree"},
+     _deployment_status("e" * 40), "refused to start"),
+])
+def test_monitor_alerts_when_the_viewer_does_not_serve_the_deployment(block, status, match):
+    server, url, _ = _ask_server("e" * 40, "e" * 40, block, status)
+    try:
+        with pytest.raises(Exception, match=match):
+            monitor_public_ask(ask_url=url, model_status_url=f"{url}/deployment-status.json")
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
 def test_public_verifier_checks_identity_policy_and_live_grounding():
     app_sha = "a" * 40
     model_sha = "b" * 40
-    bundle_id = "mab-" + "1" * 32
     seen = {"live": False}
     expected_origin = ""
 
@@ -319,13 +408,15 @@ def test_public_verifier_checks_identity_policy_and_live_grounding():
                     "semantic_warmup": {"status": "ready"},
                     "semantic_authority": {
                         "kind": "model",
-                        "authority_id": "mab:" + bundle_id,
-                        "bundle_id": bundle_id,
-                        "semantic_authority_id": "mab:" + bundle_id,
+                        "startup_check": "passed",
+                        "semantic_authority": SAI,
+                        "semantic_authority_id": SAI,
+                        "served_model": SERVED,
+                        "served_model_check": "passed",
                     },
                 })
             elif self.path == "/deployment-status.json":
-                self._json(200, {"baseline": {"git_commit": model_sha}})
+                self._json(200, _deployment_status(model_sha))
             elif self.path == "/assets/viewer.js":
                 body = b"function renderAskAnswer() {}"
                 self.send_response(200)
@@ -371,10 +462,10 @@ def test_public_verifier_checks_identity_policy_and_live_grounding():
         result = verify_public_ask(
             expected_origin,
             application_sha=app_sha,
-            expected_model_authority_bundle_id=bundle_id,
             model_sha=model_sha,
             live_query=True,
             tls_attempts=1,
+            deployment_status=_deployment_status(model_sha),
         )
         assert result["application_git_commit"] == app_sha
         assert result["model_git_commit"] == model_sha
@@ -389,7 +480,7 @@ def test_public_verifier_checks_identity_policy_and_live_grounding():
             "application_git_commit": app_sha,
             "model_git_commit": model_sha,
             "semantic_authority_kind": "model",
-            "semantic_authority_id": "mab:" + bundle_id,
+            "semantic_authority_id": SAI,
         }
     finally:
         server.shutdown()
@@ -435,9 +526,9 @@ def test_public_verifier_retries_tls_readiness_before_giving_up():
             verify_public_ask(
                 base,
                 application_sha=app_sha,
-                expected_model_authority_bundle_id="mab-" + "1" * 32,
                 model_sha=model_sha,
                 tls_attempts=2,
+                deployment_status=_deployment_status(model_sha),
             )
         assert "TLS endpoint not ready" in str(excinfo.value)
     finally:

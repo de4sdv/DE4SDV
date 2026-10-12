@@ -75,15 +75,9 @@ def _git_head() -> str:
 
 def run_queries(
     *, api_url: str, binding_path: Path, semantic_report_path: Path,
-    authority: str | None = None, model_bundle_path: str | Path | None = None,
-    model_bundle_id: str | None = None, allow_candidate_bundle: bool = False,
 ) -> dict[str, Any]:
-    from de4sdv.semantic import entry_authority
+    from de4sdv.semantic.deployment_runtime import build_deployment_runtime
 
-    if model_bundle_id is not None and not entry_authority.is_model_bundle_id(model_bundle_id):
-        raise ValueError(
-            "model-authority bundle ID must be a literal mab-<32 or 64 lowercase hex> token"
-        )
     git_commit = _git_head()
     binding = RevisionBinding.load(binding_path)
     binding.require_current(git_commit)
@@ -111,13 +105,11 @@ def run_queries(
         raise RuntimeError(
             "semantic report semantic authority does not match the validated binding"
         )
-    runtime, selection = entry_authority.build_entry_semantic_runtime(
-        api_url=api_url, binding_path=binding_path, expected_git_revision=git_commit,
-        authority=authority, model_bundle_path=model_bundle_path,
-        model_bundle_id=model_bundle_id, environ={},
-        **({"require_activation_eligible": False} if allow_candidate_bundle else {}),
+    # The production construction: the startup check (exact commit, clean
+    # tree, sai- identity, served-model record), then the deployed services.
+    runtime = build_deployment_runtime(
+        ROOT, api_url=api_url, binding_path=binding_path, expected_git_revision=git_commit,
     )
-    binding.require_semantic_authority(runtime.contract.identity)
     service = runtime.impact_service
     results: list[dict[str, Any]] = []
     allowed_strengths = {
@@ -199,7 +191,7 @@ def run_queries(
         "sysml_commit_id": binding.sysml_commit_id,
         "concern_count": len({case.concern for case in QUERY_CASES}),
         "results": results,
-        "semantic_authority": selection.provenance(),
+        "semantic_authority": runtime.authority_status(),
         "evidence_contract_state": evidence_state,
     }
     return report
@@ -211,21 +203,11 @@ def main() -> int:
     parser.add_argument("--binding", type=Path, required=True)
     parser.add_argument("--semantic-report", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--semantic-authority",
-                        help="model (the only accepted value; default DE4SDV_SEMANTIC_AUTHORITY)")
-    parser.add_argument("--model-authority-bundle")
-    parser.add_argument("--model-authority-bundle-id")
-    parser.add_argument("--allow-candidate-bundle", action="store_true",
-                        help="serve an unclosed candidate bundle (privileged evidence steps only)")
     args = parser.parse_args()
     result = run_queries(
         api_url=args.api_url,
         binding_path=args.binding,
         semantic_report_path=args.semantic_report,
-        authority=args.semantic_authority,
-        model_bundle_path=args.model_authority_bundle,
-        model_bundle_id=args.model_authority_bundle_id,
-        allow_candidate_bundle=args.allow_candidate_bundle,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(

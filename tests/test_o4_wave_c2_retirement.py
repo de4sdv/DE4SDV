@@ -140,9 +140,6 @@ def test_o3_bundle_name_is_only_the_frozen_identity_list():
 #: construction verifiers listed below.
 BUILD_TIME_GOVERNANCE_MODULES = (
     "authority_inventory.py",
-    "definition_candidate.py",
-    "definition_candidate_provider.py",
-    "definition_migration.py",
     "relationship_successor_contract.py",
     "scoped_assurance.py",
     "definition_projection.py",
@@ -154,7 +151,6 @@ BUILD_TIME_GOVERNANCE_MODULES = (
 #: Construction-time verifiers: runtime modules that verify build-time
 #: artifacts once at construction. Only the named imports are allowed.
 CONSTRUCTION_VERIFIER_IMPORTS = {
-    "model_authority_runtime.py": frozenset({"definition_migration"}),
     "model_contract.py": frozenset({"relationship_successor_contract"}),
 }
 
