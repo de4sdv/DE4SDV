@@ -394,6 +394,9 @@ requires the exact run-attempt backup and promotion marker to match the
 requested SHA. Refusal, an unrelated backup or a foreign live revision cannot
 authorize it to replace the source or recreate Ask/Caddy. Success cleanup
 likewise removes only that attempt's owned recovery material.
+Before failure rollback mutates source or invokes Compose, the owned backup
+must resolve to a Git commit and contain the required Compose file. A damaged
+backup is retained for diagnosis without replacing the valid live checkout.
 
 ## Known limitations
 

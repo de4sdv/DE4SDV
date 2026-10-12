@@ -133,6 +133,8 @@ def test_rollback_restores_the_previous_checkout_and_recreates_the_ask_viewer(tm
         directory.mkdir(parents=True)
         subprocess.run(["git", "init", "-q", str(directory)], check=True)
         (directory / "marker").write_text(marker)
+        (directory / "deployment").mkdir()
+        (directory / "deployment/compose.yaml").write_text("services: {}\n")
         _git(directory, "add", ".")
         _git(directory, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", marker)
     previous_sha = _git(backup_dir, "rev-parse", "HEAD")
@@ -222,6 +224,8 @@ def test_activation_creates_owned_recovery_state_and_cleanup_preserves_foreign_b
         directory.mkdir(parents=True)
         subprocess.run(["git", "init", "-q", str(directory)], check=True)
         (directory / "marker").write_text(marker)
+        (directory / "deployment").mkdir()
+        (directory / "deployment/compose.yaml").write_text("services: {}\n")
         _git(directory, "add", ".")
         _git(directory, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", marker)
     previous_sha = _git(live, "rev-parse", "HEAD")
@@ -316,4 +320,45 @@ def test_rollback_refuses_to_overwrite_a_foreign_live_revision(tmp_path):
     assert "no longer belongs" in result.stderr
     assert (_git(live, "rev-parse", "HEAD"), _git(backup, "rev-parse", "HEAD")) == before
     assert marker.exists()
+    assert not docker_log.exists()
+
+
+@pytest.mark.parametrize("backup_kind", ["empty-git", "unborn-head", "missing-compose"])
+def test_rollback_refuses_damaged_owned_backup_before_any_mutation(tmp_path, backup_kind):
+    ws = _workspace(tmp_path, pre_retirement_verifier=False)
+    deploy_dir = tmp_path / "srv"
+    live = deploy_dir / "DE4SDV"
+    backup = deploy_dir / f"DE4SDV-ask-backup-{RUN_KEY}"
+    live.mkdir(parents=True)
+    subprocess.run(["git", "init", "-q", str(live)], check=True)
+    (live / "marker").write_text("valid-candidate")
+    _git(live, "add", ".")
+    _git(live, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "candidate")
+    live_sha = _git(live, "rev-parse", "HEAD")
+    backup.mkdir()
+    (backup / "marker").write_text("damaged-backup")
+    if backup_kind == "empty-git":
+        (backup / ".git").mkdir()
+    else:
+        subprocess.run(["git", "init", "-q", str(backup)], check=True)
+        if backup_kind == "missing-compose":
+            _git(backup, "add", ".")
+            _git(backup, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "incomplete backup")
+    marker = deploy_dir / f"DE4SDV-ask-activated-{RUN_KEY}"
+    marker.write_text(live_sha + "\n")
+    _stub(tmp_path / "bin", "sudo", 'exec "$@"\n')
+    docker_log = tmp_path / "docker.log"
+    _stub(tmp_path / "bin", "docker", f'echo "$*" >> "{docker_log}"\n')
+    before = {path.relative_to(deploy_dir).as_posix(): path.read_bytes()
+              for path in deploy_dir.rglob("*") if path.is_file()}
+    result = subprocess.run(
+        ["bash", "-s", "--", live_sha, RUN_KEY],
+        input=_remote_script(ROLLBACK).replace("/srv/de4sdv", str(deploy_dir)),
+        text=True, capture_output=True, env=ws["env"], timeout=30,
+    )
+    assert result.returncode != 0, result.stdout + result.stderr
+    assert _git(live, "rev-parse", "HEAD") == live_sha
+    assert {path.relative_to(deploy_dir).as_posix(): path.read_bytes()
+            for path in deploy_dir.rglob("*") if path.is_file()} == before
+    assert marker.exists() and backup.exists()
     assert not docker_log.exists()

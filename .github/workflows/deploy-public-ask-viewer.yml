@@ -277,12 +277,17 @@ jobs:
             echo "Refusing rollback: live checkout no longer belongs to this activation" >&2
             exit 1
           fi
+          # Resolve before any Compose/source mutation. An export assignment
+          # would mask Git failure and could promote a damaged owned backup.
+          BACKUP_SHA="$(git -C "$BACKUP_DIR" rev-parse --verify 'HEAD^{commit}')"
+          [[ "$BACKUP_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test -f "$BACKUP_DIR/deployment/compose.yaml"
           export DEPLOY_DIR
           export DE4SDV_ASK_ENV_FILE="$DEPLOY_DIR/ask-viewer.env"
           # The backup checkout is the previously deployed revision; compose
           # interpolates the required variable for EVERY command (even ones
           # that do not touch ask-viewer), so it must be set here too.
-          export DE4SDV_APP_GIT_SHA="$(git -C "$BACKUP_DIR" rev-parse HEAD)"
+          export DE4SDV_APP_GIT_SHA="$BACKUP_SHA"
           # Same env exports as the deploy path. Every compose call reads
           # /dev/null: this script is streamed over stdin (bash -s), and a
           # compose call reading stdin would swallow the rest of it.
