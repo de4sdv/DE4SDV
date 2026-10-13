@@ -36,6 +36,7 @@ on:
       - "scripts/check_svg_view_materialization.py"
       - "scripts/check_committed_view_artifacts.py"
       - "scripts/generate_view_index.py"
+      - "scripts/list_view_folders.py"
       - "textual-notation-of-model/**/VIEWS.md"
       - "textual-notation-of-model/**/diagrams/**"
       - "model-based-product-line-engineering/product-models/VIEWS.md"

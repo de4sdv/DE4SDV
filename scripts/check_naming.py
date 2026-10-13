@@ -418,13 +418,8 @@ _UPSTREAM_NAMED_FILES = {
     "textual-notation-of-model/packages/methods/saf/SAF_Viewpoints.sysml",
 }
 
-_REGISTERED_GENERATED_VIEWS = {
-    "textual-notation-of-model/packages/features/aebs",
-    "textual-notation-of-model/packages/features/middleware",
-    "textual-notation-of-model/packages/architecture",
-    "textual-notation-of-model/packages/methods/de4sdv",
-    "model-based-product-line-engineering/product-models",
-}
+# The folders with generated views come from the model
+# (scripts/list_view_folders.py); none is named here.
 
 # diagram-<table|matrix>-> prefixes are inserted by artifact_filename().
 _DIAGRAM_NAME = re.compile(r"^diagram-(?:(?:table|matrix)-)?([A-Za-z][A-Za-z0-9]*)\.svg$")
@@ -685,10 +680,11 @@ def check_view_diagram_names() -> list[str]:
     """Committed diagram names must be generator-consistent (no stale view ids)."""
     errors: list[str] = []
     try:
-        from scripts import generate_view_index
+        from scripts import generate_view_index, list_view_folders
     except ImportError:  # Direct execution from scripts/.
         import generate_view_index  # type: ignore
-    for rel_dir in _REGISTERED_GENERATED_VIEWS:
+        import list_view_folders  # type: ignore
+    for rel_dir in list_view_folders.view_folders(repository=ROOT):
         folder = ROOT / rel_dir
         diagrams = folder / "diagrams"
         if not diagrams.is_dir():

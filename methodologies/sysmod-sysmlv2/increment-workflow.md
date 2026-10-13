@@ -82,6 +82,10 @@ this shape, which the method checks read:
   (file and directory naming, SysML naming, concern vocabulary). No
   registration is needed: the licensed export loads every `.sysml` file of
   the model project whether or not the sysand index (`.meta.json`) lists it.
+  A folder whose files declare a view also publishes it: commit the folder's
+  `VIEWS.md` (`python scripts/generate_view_index.py <folder>`) and the
+  diagrams the licensed validation renders for it (the `syside-diagrams`
+  artifact of its run); CI checks both.
 
 ### Method rules and the increment workflow model
 
