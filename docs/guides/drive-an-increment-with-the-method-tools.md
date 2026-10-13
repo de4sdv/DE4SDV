@@ -95,12 +95,13 @@ covers: see coverage and revision below.
   lists every step in `steps`, with its phase, documentation, inputs and
   outputs (name, kind, type, multiplicity) and its checks; a step without
   checks has the coverage "no executable checks at this revision". In
-  `increment_status`, a phase the charter declares whose step has no checks is
-  listed with that coverage and what its step declares: it is never evaluated
-  (`UNASSESSED`), so its exit stays `BLOCKED`. Every evaluation answer carries
-  `coverage`: the phases with executable checks, and the declared phases
-  without them. Zero blocking gaps, or `next` none, says nothing about the
-  latter, and `next_obligation`'s `reason` names them.
+  `increment_status`, every phase the charter declares that no executable
+  check judges is listed with that coverage and what its step declares (no
+  step: `step` null), also when the workflow cannot be read: it is never
+  evaluated (`UNASSESSED`), so its exit stays `BLOCKED`. Every evaluation
+  answer carries `coverage`: the phases with executable checks, and the
+  declared phases without them. Zero blocking gaps, or `next` none, says
+  nothing about the latter, and `next_obligation`'s `reason` names them.
 - **Revision.** An answer evaluates the bound revision, named in `revision`,
   and nothing else. When no increment usage there carries the requested
   identifier, the `increment` block has the `reason_code`

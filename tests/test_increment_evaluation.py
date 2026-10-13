@@ -297,6 +297,54 @@ def test_a_phase_without_checks_still_lists_what_its_step_declares() -> None:
     assert whole["phases"] == [P0, P4, P5, P10]
 
 
+
+P1 = "phase1_concernFraming"
+NO_CHECKS = "no executable checks at this revision"
+
+
+def _two_step_scenario(*, with_workflow: bool = True):
+    """A charter declaring phases 0, 1 and 4 over a workflow with steps for phases 0 and 4 only."""
+    scenario = increment_scenario(applicable_phases=(P0, P1, P4))
+    if with_workflow:
+        increment_workflow(scenario.builder, [
+            WorkflowStep("frameIncrement", P0, (WorkflowParameter("increment", "EngineeringIncrement"),), (
+                WorkflowCheck("incrementHasIdentifier", "incrementShortName", "increment"),)),
+            WorkflowStep("elaborateNeeds", P4, (
+                WorkflowParameter("needs", "Need", "RequirementUsage", bounds=(1, INFINITY)),), (
+                WorkflowCheck("needHasStatement", "requireConstraint", "needs"),)),
+        ], charter=scenario.charter)
+    return scenario
+
+
+def _unchecked(block: dict, phase: str) -> None:
+    """A declared phase no executable check judges, whether or not the workflow has a step for it."""
+    assert (block["phase"], block["coverage"], block["executable_checks"]) == (phase, NO_CHECKS, 0)
+    assert (block["assessment_coverage"], block["evaluation_state"], block["conformance_verdict"]) == (
+        me.COVERAGE_UNASSESSED, None, None)
+    assert block["phase_exit"] == "BLOCKED"
+
+
+def test_a_declared_phase_without_a_workflow_step_is_reported_too() -> None:
+    evaluation = _evaluate(_two_step_scenario())
+    status = evaluation.status()
+    assert [block["phase"] for block in status["phases"]] == [P0, P1, P4]
+    (block,) = [b for b in status["phases"] if b["phase"] == P1]
+    _unchecked(block, P1)
+    assert (block["step"], block["outputs"]) == (None, [])
+    assert status["coverage"]["declared_phases_without_executable_checks"] == [P1]
+    assert evaluation.next_obligation()["coverage"]["declared_phases_without_executable_checks"] == [P1]
+
+
+def test_without_a_workflow_every_declared_phase_is_reported() -> None:
+    status = _evaluate(_two_step_scenario(with_workflow=False)).status()
+    assert status["executable_contract_available"] is False
+    assert status["reason_codes"] == [me.CONTRACT_UNAVAILABLE]
+    assert status["coverage"]["declared_phases_without_executable_checks"] == [P0, P1, P4]
+    assert [block["phase"] for block in status["phases"]] == [P0, P1, P4]
+    for block, phase in zip(status["phases"], (P0, P1, P4)):
+        _unchecked(block, phase)
+        assert (block["step"], block["outputs"]) == (None, [])
+
 def test_an_empty_required_inventory_cannot_open_a_phase_exit() -> None:
     scenario = _scenario()
     for check in ("verificationCaseVerifiesRequirement", "requirementVerifiedByVerificationCase"):

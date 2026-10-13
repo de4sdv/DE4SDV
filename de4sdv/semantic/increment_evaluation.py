@@ -117,12 +117,11 @@ class IncrementEvaluation:
         }
 
     def _coverage(self) -> dict[str, Any]:
-        """Which phases the answer's verdicts cover, and which declared phases no check judges."""
+        """Which phases the answer's verdicts cover, and which declared phases no check judges:
+        every declared phase without executable checks, whether or not the workflow has a step for it."""
         checked = list(self.increment_method.phases)
         declared = self.scope.declared_phases
-        unchecked = None if declared is None else list(dict.fromkeys(
-            step["phase"] for step in self.increment_method.steps
-            if not step["checks"] and step["phase"] in declared and step["phase"] not in checked))
+        unchecked = None if declared is None else [p for p in self._status_phases(None) if p not in checked]
         note = COVERAGE_NOTE if declared is not None else (
             COVERAGE_NOTE + "; the increment's declared phases are unresolved")
         return {"phases_with_executable_checks": checked,
@@ -180,13 +179,18 @@ class IncrementEvaluation:
         return self._selected(list(self.increment_method.phases), phase)
 
     def _status_phases(self, phase: str | None) -> list[str]:
-        """The phases a status reports, in workflow order: those with executable checks, and
-        those the charter declares whose steps have none (reported, never evaluated)."""
+        """The phases a status reports, in workflow order: those with executable checks, and every
+        phase the charter declares (reported, never evaluated, when no check judges it). A declared
+        phase the workflow has no step for takes its place in method order."""
         checked = set(self.increment_method.phases)
-        declared = set(self.scope.declared_phases or ())
-        ordered = dict.fromkeys([*(step["phase"] for step in self.increment_method.steps),
-                                 *self.increment_method.phases])
-        return self._selected([p for p in ordered if p in checked or p in declared], phase)
+        declared = list(self.scope.declared_phases or ())
+        listed = [p for p in dict.fromkeys([*(step["phase"] for step in self.increment_method.steps),
+                                            *self.increment_method.phases]) if p in checked or p in declared]
+        for missing in (p for p in declared if p not in listed):
+            rank = PHASE_ORDER.get(missing, len(PHASE_ORDER))
+            at = next((i for i, p in enumerate(listed) if PHASE_ORDER.get(p, len(PHASE_ORDER)) > rank), len(listed))
+            listed.insert(at, missing)
+        return self._selected(listed, phase)
 
     @staticmethod
     def _selected(phases: list[str], phase: str | None) -> list[str]:
@@ -222,14 +226,25 @@ class IncrementEvaluation:
     def _phase_exit(self, phase: str, ids: Sequence[str]) -> me.ReadinessBlock:
         """Phase-exit readiness; an empty required inventory never opens an exit."""
         assert self.canonical is not None
+        if not ids:
+            return self._unchecked_exit(phase)
         target = me.ReadinessTarget("PHASE_EXIT", f"{self.increment_id}/{phase}")
         if not self._required(ids):
-            missing = f"{phase} has {NO_EXECUTABLE_CHECKS}" if not ids else f"no blocking gate is declared for {phase}"
             return me.ReadinessBlock(
                 target=target, readiness="BLOCKED", reason_codes=(me.CONTRACT_UNAVAILABLE,),
-                diagnostics=(f"{missing}; an empty required inventory cannot authorize a phase exit",),
+                diagnostics=(f"no blocking gate is declared for {phase}; an empty required inventory cannot "
+                             "authorize a phase exit",),
             )
         return me.subset_readiness(self.canonical, ids, target)
+
+    def _unchecked_exit(self, phase: str) -> me.ReadinessBlock:
+        """The exit of a phase no executable check judges: no evaluation can open it."""
+        return me.ReadinessBlock(
+            target=me.ReadinessTarget("PHASE_EXIT", f"{self.increment_id}/{phase}"), readiness="BLOCKED",
+            reason_codes=(me.CONTRACT_UNAVAILABLE,),
+            diagnostics=(f"{phase} has {NO_EXECUTABLE_CHECKS}; an empty required inventory cannot authorize a "
+                         "phase exit",),
+        )
 
     def _kind(self, unit: me.EvaluationResult) -> str | None:
         """Gap kind of one gate unit (None when the gate passes or is not applicable)."""
@@ -350,7 +365,12 @@ class IncrementEvaluation:
     def status(self, phase: str | None = None) -> dict[str, Any]:
         """Per-phase aggregate and phase-exit readiness."""
         if self.canonical is None:
-            return self._unavailable("increment_status")
+            # Nothing is executable: every declared phase is reported, none is evaluated.
+            response = self._unavailable("increment_status")
+            declared = set(self.scope.declared_phases or ())
+            response["phases"] = [self._unchecked_phase_status(p) for p in self._status_phases(phase)
+                                  if p in declared]
+            return response
         response = self._header("increment_status")
         phases = self._status_phases(phase)
         selected = [g.obligation_id for p in phases for g in self._gates(p)]
@@ -375,11 +395,11 @@ class IncrementEvaluation:
     def _phase_status(self, phase: str) -> dict[str, Any]:
         assert self.canonical is not None
         gates = self._gates(phase)
+        if not gates:
+            return self._unchecked_phase_status(phase)
         ids = [g.obligation_id for g in gates]
         coverage, state, verdict = self._aggregate(ids)
         readiness = self._phase_exit(phase, ids)
-        if not gates:
-            return self._unchecked_phase_status(phase, coverage, state, verdict, readiness)
         blocking, advisory = [], []
         for gate in gates:
             kind = self._kind(self._unit(gate.obligation_id))
@@ -401,21 +421,21 @@ class IncrementEvaluation:
             "advisory_open": advisory,
         }
 
-    def _unchecked_phase_status(self, phase: str, coverage: str, state: str | None, verdict: str | None,
-                                readiness: me.ReadinessBlock) -> dict[str, Any]:
-        """A declared phase whose steps have no executable checks: reported with what its steps
-        declare, never evaluated (UNASSESSED, and its exit stays BLOCKED)."""
+    def _unchecked_phase_status(self, phase: str) -> dict[str, Any]:
+        """A declared phase no executable check judges: reported with its step's declared outputs
+        (none when the workflow has no step for it), never evaluated (UNASSESSED, exit BLOCKED)."""
         steps = [step for step in self.increment_method.steps if step["phase"] == phase]
+        readiness = self._unchecked_exit(phase)
         return {
             "phase": phase,
             "applicability": "declared",
             "executable_checks": 0,
             "coverage": NO_EXECUTABLE_CHECKS,
-            "step": ", ".join(step["step"] for step in steps),
+            "step": ", ".join(step["step"] for step in steps) or None,
             "outputs": copy.deepcopy([output for step in steps for output in step["outputs"]]),
-            "assessment_coverage": coverage,
-            "evaluation_state": state,
-            "conformance_verdict": verdict,
+            "assessment_coverage": me.COVERAGE_UNASSESSED,
+            "evaluation_state": None,
+            "conformance_verdict": None,
             "phase_exit": readiness.readiness,
             "readiness": readiness.as_dict(),
             "gates": {},
