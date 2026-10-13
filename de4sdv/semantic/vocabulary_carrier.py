@@ -599,13 +599,17 @@ def run_check_errors(root: Path) -> list[str]:
     ).read_bytes():
         errors.append(
             f"{PROJECTION_CARRIER_PATH}: committed projection differs from "
-            "regeneration from current inputs (regenerate and commit)"
+            "regeneration from current inputs; run "
+            "scripts/generate_vocabulary_carriers.py and commit the output with "
+            "the source change (docs/guides/generated-semantic-assets.md)"
         )
     if canonical_json(artifacts["profile"]).encode("utf-8") != (
         root / PROFILE_CARRIER_PATH
     ).read_bytes():
         errors.append(
             f"{PROFILE_CARRIER_PATH}: committed profile differs from "
-            "regeneration from current inputs (regenerate and commit)"
+            "regeneration from current inputs; run "
+            "scripts/generate_vocabulary_carriers.py and commit the output with "
+            "the source change (docs/guides/generated-semantic-assets.md)"
         )
     return errors

@@ -1012,6 +1012,8 @@ def run_check_errors(root: Path) -> list[str]:
         elif canonical_json(artifacts[key]).encode("utf-8") != path.read_bytes():
             errors.append(
                 f"{relative}: committed {key} differs from regeneration from "
-                "current inputs (regenerate and commit)"
+                "current inputs; run scripts/generate_definition_projection.py "
+                "and commit the output with the source change "
+                "(docs/guides/generated-semantic-assets.md)"
             )
     return errors

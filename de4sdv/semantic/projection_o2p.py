@@ -539,13 +539,17 @@ def run_check_errors_o2p(root: Path) -> list[str]:
     ):
         errors.append(
             f"{PROJECTION_O2P_PATH}: committed projection differs from "
-            "regeneration from current inputs (regenerate and commit)"
+            "regeneration from current inputs; run "
+            "scripts/generate_semantic_projection_o2p.py and commit the output "
+            "with the source change (docs/guides/generated-semantic-assets.md)"
         )
     if canonical_json(artifacts["profile"]).encode("utf-8") != (
         profile_path.read_bytes()
     ):
         errors.append(
             f"{PROFILE_O2P_PATH}: committed profile differs from regeneration "
-            "from current inputs (regenerate and commit)"
+            "from current inputs; run scripts/generate_semantic_projection_o2p.py "
+            "and commit the output with the source change "
+            "(docs/guides/generated-semantic-assets.md)"
         )
     return errors

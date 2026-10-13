@@ -89,6 +89,12 @@ When a change touches the method kernel:
   fail CI.
 - Renaming or removing a kernel declaration requires updating its projection
   or kernel-internal entry in the same commit; stale entries fail the gate.
+- The projection files are generated from the current sources. When
+  `check_repo.py` reports one as stale or missing, regenerate it as described
+  in [`docs/guides/generated-semantic-assets.md`](docs/guides/generated-semantic-assets.md)
+  and commit the output together with the source change. A model change is
+  one commit and can be squash-merged; never split it into a source commit
+  and a regeneration commit.
 - Kernel-internal entries must stay inside the governed directory and must
   not also be projected (as a class pin or a relationship-carrier pin).
 - When a feature slice introduces a concept that is reusable method

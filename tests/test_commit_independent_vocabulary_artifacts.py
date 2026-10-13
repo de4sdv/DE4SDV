@@ -1,7 +1,8 @@
 """Live freshness is exact regeneration, never a Git binding.
 
 Use synthetic declarations, not mirrors of the authoritative model. The
-legacy source_revision arguments remain accepted but supply no authority.
+generator CLIs reject the retired --source-revision option; a legacy
+source_revision function argument supplies no authority.
 """
 from __future__ import annotations
 
@@ -138,7 +139,9 @@ def test_native_current_input_edit_requires_regeneration_not_a_commit(tmp_path, 
     manifest["admitted"][0]["claim_boundary"] = "Edited synthetic boundary; still vocabulary-only."
     path.write_text(yaml.safe_dump(manifest), encoding="utf-8")
     assert native_cli.main(["--check"]) == 1
-    assert native_cli.main(["--source-revision", "0" * 40]) == 0
+    with pytest.raises(SystemExit):
+        native_cli.main(["--source-revision", "0" * 40])
+    assert native_cli.main([]) == 0
     assert native_cli.main(["--check"]) == 0
     first = native.build_pair_o2p(tmp_path)
     assert first == native.build_pair_o2p(tmp_path, source_revision="1" * 40)

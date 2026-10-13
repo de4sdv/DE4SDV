@@ -42,9 +42,9 @@ from de4sdv.semantic.vocabulary_carrier import (  # noqa: E402
 )
 
 
-def generate(root: Path, *, source_revision: str | None = None) -> dict:
-    """Build from current inputs; legacy source_revision is accepted but ignored."""
-    return build_artifact_pair(root, source_revision=source_revision)
+def generate(root: Path) -> dict:
+    """Build both artifacts from current inputs."""
+    return build_artifact_pair(root)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -53,11 +53,6 @@ def main(argv: list[str] | None = None) -> int:
         "--check",
         action="store_true",
         help="verify the committed artifacts equal regeneration (no writes)",
-    )
-    parser.add_argument(
-        "--source-revision",
-        default=None,
-        help="deprecated compatibility option; ignored (uses current source inputs)",
     )
     args = parser.parse_args(argv)
 
@@ -72,7 +67,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     try:
-        artifacts = generate(ROOT, source_revision=args.source_revision)
+        artifacts = generate(ROOT)
     except CarrierError as exc:
         print(f"Vocabulary-carrier generation refused: {exc}")
         return 1

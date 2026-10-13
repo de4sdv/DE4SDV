@@ -1,20 +1,28 @@
 # Generate semantic assets with the source change
 
-A model edit should not need a second commit or a repair PR after a squash
-merge. Live projection/profile files are deterministic outputs of the current
-working tree. Their generators' check modes compare the complete regenerated
-output with the stored file; missing, altered or stale output fails.
+A model edit is one commit. The projection and profile files that the runtime
+reads are generated from the current sources, so you regenerate them in the
+same commit as the model change. They name no Git commit, so the pull request
+can be squash-merged.
 
-## Edit, regenerate, check, commit once
+## When you need this
 
-From the repository root, with the repository's pinned dependencies installed:
+`python scripts/check_repo.py` compares each generated file with a fresh
+regeneration. It fails when a file is missing or stale and names the
+generator to run. Typical triggers are edits to a definition or its `doc`
+text in the method kernel (`textual-notation-of-model/packages/methods/de4sdv/`),
+to the few feature files that witness a projected concept, or to an
+admission manifest.
+
+## Regenerate, check, commit once
+
+From the repository root, with the pinned dependencies installed:
 
 ```bash
 sysand sync
 python scripts/generate_definition_projection.py --batch all
 python scripts/generate_semantic_projection_o2p.py
 python scripts/generate_vocabulary_carriers.py
-python scripts/check_model_projection_coverage.py --write-baseline
 python scripts/check_repo.py
 python scripts/smoke_test.py
 python tools/check_markdown_links.py
@@ -22,86 +30,52 @@ python -m pytest tests -q -p no:cacheprovider
 python tools/run_bench_unit_tests.py
 ```
 
-Run the generators in the listed order. Vocabulary relationships validate
-their end types against the generated class-source pairs; their generator
-never reads its own output files. Regenerate class-source pairs first if
-they are missing or stale, then regenerate vocabulary output, without an
-intermediate source commit.
+Run the generators in this order. The vocabulary generator checks its
+relationship ends against the class files the first two write; it never
+reads its own output.
 
-Stage the intended source changes and regenerated live files together, then
-make one commit. Do not pass a source revision or create an intermediate
-source-only commit for generation. `check_repo.py` runs each live freshness
-check and the coverage-baseline comparison; regeneration cannot admit a
-residual identity, unaccounted kernel declaration or duplicate provider.
+Stage the source change and the regenerated files together and make one
+commit. Do not create a source-only commit first, and do not pass a source
+revision: the generators no longer accept one.
 
-Model-owned documentation stays in the model. Admission manifests retain
-reviewed scope and representation fields, not duplicate kernel definition
-text. Removing that duplicate text oracle does not admit new identities,
-change runtime support or turn review evidence into certification.
+### The coverage baseline
 
-## Historical records are different
+`check_repo.py` also compares the model-authority coverage with
+`docs/method-conformance/o4/model-authority-coverage-baseline.yaml`. The
+baseline is a reviewed ratchet for the provider routing and the refused and
+retired names. A residual identity, an unaccounted kernel declaration or a
+duplicate provider fails regardless of the baseline. Rewrite the baseline
+only when the change is meant to alter routing, refusals or retirements, and
+say so in the pull request:
 
-The [frozen records](../method-conformance/frozen-records.md) and their manifest
-remain byte-identical. `scripts/verify_generated_chain.py` checks their bytes,
-record set, historical source revisions and references only. Never regenerate
-those records against current source. Their historical references to a deleted
-input are evidence, not a live authority.
+```bash
+python scripts/check_model_projection_coverage.py --write-baseline
+```
 
-The closed consumer ledger is retired. Its replacement guard prevents the
-deleted ontology file and ledger from being restored and scans live tracked
-files case-insensitively, without extension filtering or content truncation.
-Historical documentation, test references and the retained historical review
-helper are explicitly outside live consumption; their mentions remain intact.
+## Frozen records are different
 
-## Identity and release boundary
+The [frozen records](../method-conformance/frozen-records.md) and their
+manifest never change. `scripts/verify_generated_chain.py` checks their bytes,
+record set, recorded source revisions and references. Never regenerate them
+against current sources. Their mentions of deleted inputs are history, not a
+live dependency.
 
-Semantic-authority identity represents semantic contract content, not application
-code provenance. Incidental Git commits or runtime source-file bytes must not
-change that identity. A semantic payload change must change it. The deployment's
-application revision and validated-export binding remain separate startup guards;
-this is not permission to substitute unreviewed code or an unvalidated model.
+The closed consumer ledger is retired. A guard test keeps the deleted
+ontology file and the ledger from coming back. It scans all live tracked
+files case-insensitively and leaves historical documents and tests alone.
 
-The successor digest selects `schema`, `supersedes`, `classes`, `carriers`,
-`relations` and `retired`. The authority digest includes declared provider
-records, projection/profile meaning, served class and relationship mappings,
-refusal strings, lineage ownership and that full successor payload. File paths
-label the semantic layer digests; the digest values are not raw file checksums.
+## Identity and releases
 
-Explicit record provenance exclusions are `wave`, `register_wave`, `review_ref`,
-`accepted_ref` and `api_identity`; profile provenance also excludes
-`mechanics_source` and `mechanics_refs`. Within semantic records only
-`representation.toolchain` and `external_reference.accepted_ref` are excluded.
-Other nested meaning remains covered, including documentation, declaration
-witnesses, subtype/disjointness constraints, endpoint direction, strength,
-discriminator pins, representation metaclasses and serializer rules. Unknown
-record fields refuse instead of silently becoming metadata. Object/record
-ordering is incidental; nested semantic-list ordering remains significant.
+The semantic-authority identity (`sai-…`) digests what the generated files
+mean: definitions and their documentation, groundings, relationship ends,
+strength and support, serializer mappings, refusals, retirements and the
+successor contract. It does not digest Git commits, file bytes, Python code,
+review pointers or toolchain receipts. `de4sdv/semantic/model_contract.py`
+declares which fields carry meaning and which are provenance. A field in
+neither list makes the loader refuse, so a new field is classified before it
+can ship.
 
-Live document wrappers are closed by layer and role. Every wrapper admits
-`schema`, `status` and `warning`; definition, batch-2 and O2+ projections also
-admit `scope` and `rows`, while vocabulary projections admit `candidates`,
-`admitted` and `rows`. Profiles admit `entries`, not projection fields. These
-wrapper meanings, including complete nested scope and population declarations,
-enter the live semantic digest. Legacy `binding` is allowed only as incidental
-provenance and remains excluded. Unknown wrapper fields refuse before decoding.
-The frozen O2 document loaders and their semantic digest contract are unchanged.
-
-Live rows and profile entries must be object lists with unique, nonempty,
-unambiguous string identities. Live JSON object keys must be unique at every
-depth; duplicate keys refuse before decoding instead of choosing a last value.
-Duplicate record identities refuse even if they agree;
-conflicting duplicates cannot select a last-wins serializer mapping. Entries
-must join to a projection row. Definition, batch-2 and vocabulary pairs require
-one entry per row. O2+ requires entries only for modeled API-profile outputs
-(`outputs.api_profile_entry`, or `outputs.api_profile_required` when supplied):
-its current eight rows have only the `Variant` and `VariationPoint` entries.
-Unmarked synthetic O2+ rows may have no entry. The optional absent batch-2 pair
-remains optional. Consumed enum/string, object and list shapes are validated
-before provider lookups; malformed JSON inputs raise `ModelAuthorityRefused`,
-not incidental Python type errors. This is a bounded JSON-input contract, not
-a replacement SysML parser or a frozen-history migration.
-
-The next privileged run must mint a deployment binding with the new identity.
-Ship this change with that next release, never hot-apply it to a deployment that
-uses an older binding. This workflow does not dispatch a release, approve a
-production environment or change kernel bindings.
+A change in meaning changes the identity. Deployment still checks the
+application revision and the validated-export binding separately. The next
+privileged run mints a deployment binding with the new identity; never
+hot-apply a new identity to a deployment bound to an older one.

@@ -258,7 +258,8 @@ def test_carrier_cli_constructs_and_checks_without_git(tmp_path, monkeypatch):
     assert artifacts["projection"]["rows"][0]["traversal"] is False
     assert artifacts["profile"]["entries"][0]["identity"] == "recordsGap"
     assert cli.main(["--check"]) == 0
-    assert cli.main(["--source-revision", "0" * 40]) == 0
+    with pytest.raises(SystemExit):
+        cli.main(["--source-revision", "0" * 40])
     assert emitted == [(root / path).read_bytes() for path in paths]
     assert artifacts == build_artifact_pair(root, source_revision="1" * 40)
 
@@ -789,7 +790,9 @@ def test_carrier_current_definition_edit_requires_regeneration_not_a_commit(tmp_
         encoding="utf-8",
     )
     assert cli.main(["--check"]) == 1
-    assert cli.main(["--source-revision", "0" * 40]) == 0
+    with pytest.raises(SystemExit):
+        cli.main(["--source-revision", "0" * 40])
+    assert cli.main([]) == 0
     assert cli.main(["--check"]) == 0
     assert build_artifact_pair(root)["projection"]["rows"][0]["definition"] == changed
 
