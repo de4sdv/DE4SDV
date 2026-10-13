@@ -159,7 +159,10 @@ a separate `presentation` block, because only an export records them.
 
 ## On a pull request
 
-Every pull request that touches the model runs the **Method Check** workflow
+Every pull request that touches the model, the check's own scripts and
+workflow, or a module or data file the evaluation reads (the `de4sdv`
+semantic and SysML API packages, and the files the successor contract is
+built from) runs the **Method Check** workflow
 ([`method-check.yml`](../../.github/workflows/method-check.yml)). It exports
 the pull-request head with the licensed serializer, finds every increment the
 model declares (through the charters and the increments' short names), and

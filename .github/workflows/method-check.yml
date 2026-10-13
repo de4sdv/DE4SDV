@@ -1,6 +1,9 @@
 name: Method Check
 
-# Advisory method check on pull requests that touch the model. The export job
+# Advisory method check on pull requests that touch the model, the check's
+# own implementation, or a module or data file the evaluation reads (the
+# path filter below; tests/test_method_check_workflow.py walks the imports
+# and the successor contract's inputs to keep it complete). The export job
 # exports the pull-request head with the pinned licensed serializer (the same
 # script and pin as the privileged full-model ingestion). The evaluate job
 # finds every increment the model declares (through charters and short names)
@@ -65,10 +68,17 @@ on:
       - "scripts/method_check.py"
       - "scripts/evaluate_increment.py"
       - "scripts/export_sysml_api_baseline.py"
-      # Everything the export evaluation imports, and the contract data it
-      # reads, lives in these two packages.
+      # What the evaluation imports: these two packages (the contract data
+      # under de4sdv/semantic/contract-data included) and their parent
+      # package's __init__.py.
+      - "de4sdv/__init__.py"
       - "de4sdv/semantic/**"
       - "de4sdv/sysml_api/**"
+      # Data files outside them that building the successor contract reads
+      # (relationship_successor_contract.PROGRAM_INPUTS; the .sysml inputs
+      # are covered above).
+      - "methodologies/sysmod-sysmlv2/pilots/aebs-needs-requirements.yaml"
+      - "methodologies/sysmod-sysmlv2/pilots/aebs-regulatory-source.yaml"
   workflow_dispatch:
     inputs:
       ref:

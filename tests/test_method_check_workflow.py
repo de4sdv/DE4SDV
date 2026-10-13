@@ -30,14 +30,18 @@ WORKFLOW = ROOT / ".github/workflows/method-check.yml"
 VALIDATION = ROOT / ".github/workflows/privileged-syside-validation.yml"
 INGESTION = ROOT / ".github/workflows/privileged-full-model-api-ingestion.yml"
 REV = "a" * 40
-#: Paths the method check adds to the privileged validation's filters: its own implementation.
+#: Paths the method check adds to the privileged validation's filters: its own implementation, and
+#: the modules and data files the evaluation reads.
 OWN_PATHS = {
     ".github/workflows/method-check.yml",
     "scripts/method_check.py",
     "scripts/evaluate_increment.py",
     "scripts/export_sysml_api_baseline.py",
+    "de4sdv/__init__.py",
     "de4sdv/semantic/**",
     "de4sdv/sysml_api/**",
+    "methodologies/sysmod-sysmlv2/pilots/aebs-needs-requirements.yaml",
+    "methodologies/sysmod-sysmlv2/pilots/aebs-regulatory-source.yaml",
 }
 LICENCE_VALUE = "${{ secrets.SYSIDE_LICENSE_KEY }}"
 LICENCE_PRESENCE = "${{ secrets.SYSIDE_LICENSE_KEY != '' }}"
@@ -134,9 +138,37 @@ def _repository_imports(script: Path, seen: set[Path]) -> None:
         elif isinstance(node, ast.Import):
             names = [alias.name for alias in node.names]
         for name in names:
-            for candidate in (ROOT / (name.replace(".", "/") + ".py"),
+            parts = name.split(".")
+            # Importing a.b.c runs a/__init__.py and a/b/__init__.py before the module itself.
+            parents = [ROOT.joinpath(*parts[:count], "__init__.py") for count in range(1, len(parts))]
+            for candidate in (*parents, ROOT / (name.replace(".", "/") + ".py"),
                               ROOT / name.replace(".", "/") / "__init__.py"):
                 _repository_imports(candidate, seen)
+
+
+def _glob(pattern: str) -> re.Pattern[str]:
+    """A workflow path filter as a regular expression (GitHub glob: ** spans directories, * does not)."""
+    parts, index = [], 0
+    while index < len(pattern):
+        if pattern.startswith("**/", index):
+            parts.append("(?:.*/)?")
+            index += 3
+        elif pattern.startswith("**", index):
+            parts.append(".*")
+            index += 2
+        elif pattern[index] == "*":
+            parts.append("[^/]*")
+            index += 1
+        else:
+            parts.append(re.escape(pattern[index]))
+            index += 1
+    return re.compile("".join(parts) + r"\Z")
+
+
+def _uncovered(paths, filters) -> list[str]:
+    """The repository paths no pull_request path filter matches."""
+    compiled = [_glob(f) for f in filters]
+    return [path for path in paths if not any(pattern.match(path) for pattern in compiled)]
 
 
 def test_every_module_the_check_runs_triggers_it() -> None:
@@ -147,10 +179,19 @@ def test_every_module_the_check_runs_triggers_it() -> None:
         _repository_imports(ROOT / script, seen)
     modules = sorted(path.relative_to(ROOT).as_posix() for path in seen)
     assert any(module.startswith("de4sdv/semantic/") for module in modules)
-    uncovered = [module for module in modules
-                 if module not in filters
-                 and not any(f.endswith("/**") and module.startswith(f[:-2]) for f in filters)]
-    assert uncovered == []
+    assert "de4sdv/__init__.py" in modules  # parent packages run on import too
+    assert _uncovered(modules, filters) == []
+
+
+def test_every_data_file_the_evaluation_reads_triggers_it() -> None:
+    """The evaluation builds the successor contract, whose construction receipt reads (and digests) each
+    file of PROGRAM_INPUTS: a change to any of them must run the check. Python inputs are covered by the
+    import walk above; this pins the others (models and pilot YAML)."""
+    from de4sdv.semantic.relationship_successor_contract import PROGRAM_INPUTS
+
+    data = [path for path in PROGRAM_INPUTS if not path.endswith(".py")]
+    assert data and all((ROOT / path).is_file() for path in data)
+    assert _uncovered(data, _triggers(_workflow())["pull_request"]["paths"]) == []
 
 
 def test_the_export_job_keeps_the_privileged_validation_guard() -> None:
