@@ -45,6 +45,25 @@ def test_deploy_py_recreates_and_health_checks_ask_viewer() -> None:
     assert "wait_for_ask_viewer()" in source
 
 
+def test_deploy_py_rebuilds_the_ask_viewer_image() -> None:
+    """Without --build the recreate reuses whatever image exists, so a
+    Dockerfile change never reaches production."""
+    tree = ast.parse(DEPLOY_PY.read_text(encoding="utf-8"))
+    recreate = next(
+        node for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef) and node.name == "recreate_ask_viewer"
+    )
+    command = next(
+        [element.value for element in node.elts if isinstance(element, ast.Constant)]
+        for node in ast.walk(recreate)
+        if isinstance(node, ast.List)
+        and any(isinstance(e, ast.Constant) and e.value == "ask-viewer" for e in node.elts)
+    )
+    up = command.index("up")
+    assert "--build" in command[up:]
+    assert command.index("--build") < command.index("ask-viewer")
+
+
 def test_deploy_workflow_exports_app_git_sha_in_every_remote_block() -> None:
     """Live evidence 2026-09-09 (run 34392701140): the activation step's
     remote script never exported DE4SDV_APP_GIT_SHA, so compose refused to

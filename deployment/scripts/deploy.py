@@ -269,7 +269,8 @@ def recreate_ask_viewer(repo: Path, git_commit: str) -> None:
     element, and warmup crashed the worker mid-request). The compose file
     requires DE4SDV_APP_GIT_SHA (the entrypoint fails closed unless the
     mounted checkout HEAD matches it) and DE4SDV_ASK_ENV_FILE carries the
-    ask-model credentials.
+    ask-model credentials. ``--build`` applies image changes from the
+    deployed revision; a build that changes nothing reuses the cached image.
     """
     env = dict(os.environ)
     env["DEPLOY_DIR"] = str(DEPLOY_DIR)
@@ -287,6 +288,7 @@ def recreate_ask_viewer(repo: Path, git_commit: str) -> None:
             str(DEPLOY_DIR / "sysml2-api.env"),
             "up",
             "-d",
+            "--build",
             "--force-recreate",
             "ask-viewer",
         ],

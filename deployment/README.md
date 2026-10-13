@@ -44,8 +44,8 @@ for the separate application/model identity contract and abuse controls.
 ```text
 deployment/
   compose.yaml                  proxy, Ask viewer, model API, and database stack
-  ask_viewer/Dockerfile         pinned non-root Ask-model runtime
-  ask_viewer/entrypoint.py      application/model revision compatibility gate
+  ask_viewer/Dockerfile         pinned non-root Python runtime; no application files
+  ask_viewer/entrypoint.py      revision gate, run from the mounted checkout
   sysml2-api/Dockerfile         pinned upstream + restart-safety config patch
   sysml2-api/conf/…             production config layer
   sysml2-api/docker-entrypoint.sh
@@ -244,7 +244,10 @@ nothing else (owner decision 2026-10-11: the model-authority bundle, closure
 and activation ceremony is retired):
 
 1. **A clean checkout of the deployed commit.** On the host,
-   `/srv/de4sdv/DE4SDV`, mounted read-only into the ask-viewer.
+   `/srv/de4sdv/DE4SDV`, mounted read-only into the ask-viewer. The
+   ask-viewer image holds only the Python runtime: its entry point and the
+   viewer run from this checkout, and `deploy.py` rebuilds the image on
+   every deploy so a Dockerfile change takes effect.
 2. **The deployment binding.** `/srv/de4sdv/artifacts/current/de4sdv-full-model-binding.json`,
    written by this deploy's own import: a revision binding v2 with the
    ingestion-validated kernel bindings (ADR 0011) and the `served_model`
