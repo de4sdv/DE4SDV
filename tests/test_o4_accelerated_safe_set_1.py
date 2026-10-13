@@ -4,7 +4,7 @@ One accelerated PR (the expansion of the W5 batch-1 PR) carrying:
 
 * W3 ``IncrementSize`` definitions parity (normalized-exact, enum-level doc);
 * the O2+ native/library grounding + projection layer for the reviewed safe
-  subset (see ``tests/test_semantic_projection_o2p.py`` for the layer locks);
+  subset (see ``tests/test_native_grounding_projection.py`` for the layer locks);
 * the previously accepted W5 boundary-record parity
   (``ArchitectureDecisionRecord``, ``Baseline`` — locked in
   ``tests/test_o4_w5_batch1_definitions_parity.py``).

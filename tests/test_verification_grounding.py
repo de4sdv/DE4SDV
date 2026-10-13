@@ -55,7 +55,7 @@ import pytest
 from de4sdv.semantic import authority_inventory as ai
 from de4sdv.semantic.traversal import SemanticTraversal
 
-from test_lane_b_v11_round import (  # noqa: E402 - shared real-shape fixtures
+from test_candidate_export_correspondence_readback import (  # noqa: E402 - shared real-shape fixtures
     LIBRARY_DEFINITION_ANCHOR,
     LIBRARY_USAGE_SET_ANCHOR,
     _full_pilot_import,

@@ -2,7 +2,7 @@
 # fixture (owner decision 2026-10-06). Copied verbatim from the `pilot_queries`
 # block of approach/framework/ontology/de4sdv-basic-ontology.yaml.
 #
-# tests/test_o4_wave_a_vocabulary_roles.py asserts this list equals the YAML
+# tests/test_vocabulary_roles.py asserts this list equals the YAML
 # block while the block still exists, so a later change can delete the YAML
 # block safely. These are review questions, not executable queries; the
 # parenthetical names the review or tool that answers each one today.

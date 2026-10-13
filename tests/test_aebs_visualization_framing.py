@@ -397,7 +397,7 @@ def test_decision_distance_requirement_matches_the_hmi_contract() -> None:
 
 # ---------------------------------------------------------------------------
 # S2 validation planning and verification-method vocabulary (mirrors the S1
-# guards validation_plan_population in test_w6_trace_allocation_completeness
+# guards validation_plan_population in test_trace_allocation_completeness
 # and test_aebs_verification_attributes; the Method Check is advisory, so
 # these regressions must fail CI).
 # ---------------------------------------------------------------------------

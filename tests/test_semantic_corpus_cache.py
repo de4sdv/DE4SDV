@@ -327,7 +327,7 @@ def test_a_spawned_server_writes_nothing_to_the_users_home(tmp_path, monkeypatch
     spawned server must receive it.
     """
     from scripts import validate_semantic_mcp as validator
-    from test_o4_validator_runtime import _run, build_inputs
+    from test_validator_runtime import _run, build_inputs
 
     root, head = deployed_checkout
     monkeypatch.setattr(validator, "ROOT", root)
