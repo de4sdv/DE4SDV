@@ -1,4 +1,4 @@
-"""K reader repair: minimized fixtures reproducing the REAL R6 serializer shapes.
+"""Connection-end reader: minimized fixtures reproducing the real serializer shapes.
 
 The privileged R6 run (34597175486, head 77e3c42) exposed reader defects,
 all now repaired. This module pins the connection-end reader of the live

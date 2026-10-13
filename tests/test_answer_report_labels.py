@@ -1,4 +1,4 @@
-"""Answer-report pair manifests carry each report's real label (O4 Wave C2, G3).
+"""Answer-report pair manifests carry each report's real label.
 
 The O3 runner hard-coded ``legacy-authored``/``o3-authority`` for every pair,
 mislabelling the model pairs (owner amendment 2026-10-08). The comparison now

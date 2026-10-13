@@ -1,4 +1,4 @@
-"""F2 guard tests: the AEBS composite reference product binds its instances
+"""Guard tests: the AEBS composite reference product binds its instances
 to the canonical architecture usages.
 
 Source-level guards (the repo has no local licensed SysML on aarch64; the
