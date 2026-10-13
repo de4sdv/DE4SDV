@@ -474,8 +474,10 @@ def _validate_gates(identity: str, row: dict[str, Any]) -> None:
         _require(gate["gate"] not in seen, f"{identity}: duplicate gate {gate['gate']}")
         seen.add(gate["gate"])
         refs = gate["resolved_by"]
+        # A record archived at a release tag is cited as <tag>:<path>#fragment.
         _require(isinstance(refs, list) and refs and all(
-            isinstance(ref, str) and re.fullmatch(r"docs/[A-Za-z0-9_./-]+\.(?:md|yaml)#[A-Za-z0-9_.-]+", ref)
+            isinstance(ref, str) and re.fullmatch(
+                r"(?:release-\d{4}-\d{2}-\d{2}:)?docs/[A-Za-z0-9_./-]+\.(?:md|yaml)#[A-Za-z0-9_.-]+", ref)
             and ".." not in ref for ref in refs), f"{identity}: resolved_by must list docs/ record fragments")
     obligations = row["forward_obligations"]
     _require(isinstance(obligations, list) and all(_nonempty(item) for item in obligations),

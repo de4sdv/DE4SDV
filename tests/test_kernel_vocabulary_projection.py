@@ -496,6 +496,8 @@ _NEGATIVE_MANIFESTS = {
     "decoy declaration in comment": lambda r, m: r["Alpha"]["grounding"]["kernel_mapping"].update(
         {"declaration": "part def Ghost"}),
     "gate without record fragment": lambda r, m: r["oldAlphaLink"]["gates"][0].update({"resolved_by": ["free text"]}),
+    "gate qualified by a branch, not a release tag": lambda r, m: r["oldAlphaLink"]["gates"][0].update(
+        {"resolved_by": ["main:docs/fixture.md#topic"]}),
     "ple row with runtime class": lambda r, m: r["betaLink"].update({"boundary": "ple-no-configurator-authority",
                                                                       "admission_class": "relationship-runtime",
                                                                       "mechanics": {"strategy": "dependency"}}),
@@ -520,10 +522,37 @@ _NEGATIVE_REASONS = {
     "exception overlaps admitted": "cannot also be admitted",
     "decoy declaration in comment": "part def Ghost not found",
     "gate without record fragment": "record fragments",
+    "gate qualified by a branch, not a release tag": "record fragments",
     "ple row with runtime class": "PLE configuration rows stay vocabulary-only",
     "retired name without retirement home": "homed by a retirement record",
     "traversal claim key": "unknown keys",
 }
+
+
+def test_gate_records_archived_at_a_release_tag_are_tag_qualified(tmp_path):
+    """A decision record that moved to a release tag is cited as
+    ``<tag>:<path>#fragment`` (git's revision:path form)."""
+    manifest = _mutated(lambda r, m: r["oldAlphaLink"]["gates"][0].update(
+        {"resolved_by": ["release-2026-10-11:docs/fixture.md#topic"]}))
+    rows = {row["identity"]: row for row in _build(_fixture(tmp_path, manifest=manifest))["projection_rows"]}
+    assert rows["oldAlphaLink"]["retired"]["refusal"] == "retired; use alphaLink"
+
+
+def test_every_gate_record_resolves_in_the_tree_or_at_its_release_tag():
+    """An untagged gate record names a tracked file; a record archived at the
+    release tag carries the tag, so no citation points at a deleted path."""
+    import subprocess
+
+    tracked = set(subprocess.check_output(["git", "ls-files"], cwd=REPO_ROOT, text=True).splitlines())
+    references = [ref for row in _rows().values() for gate in row["gates"] for ref in gate["resolved_by"]]
+    assert references
+    for ref in references:
+        revision, _, located = ref.rpartition(":")
+        path = located.split("#", 1)[0]
+        if revision:
+            assert revision == "release-2026-10-11", ref
+        else:
+            assert path in tracked, ref
 
 
 @pytest.mark.parametrize("case", sorted(_NEGATIVE_MANIFESTS))
