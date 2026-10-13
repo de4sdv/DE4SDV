@@ -5,17 +5,17 @@ from pathlib import Path
 import pytest
 import yaml
 
-from de4sdv.semantic import definition_projection as batch1
-from de4sdv.semantic import kernel_vocabulary_projection as batch2
+from de4sdv.semantic import definition_projection as class_definition
+from de4sdv.semantic import kernel_vocabulary_projection as kernel_vocabulary
 
 
 MODEL_FILE = "textual-notation-of-model/fixture_definition.sysml"
 
 
-def _batch1_source(root: Path) -> None:
+def _class_definition_source(root: Path) -> None:
     files = {
         MODEL_FILE: "package Fixture {\n  part def Alpha {\n    doc /*Alpha documentation.*/\n  }\n}\n",
-        batch1.ADMISSION_PATH: yaml.safe_dump({
+        class_definition.ADMISSION_PATH: yaml.safe_dump({
             "schema": "de4sdv.o4-definition-admission/v1",
             "status": "admitted",
             "admitted": [{
@@ -34,7 +34,7 @@ def _batch1_source(root: Path) -> None:
         target.write_text(text, encoding="utf-8")
 
 
-def _expected_batch1_pair():
+def _expected_class_definition_pair():
     return {
         "projection": {
             "schema": "de4sdv.o4-definition-projection/v1",
@@ -75,16 +75,16 @@ def _expected_batch1_pair():
 
 
 
-def test_batch1_construction_needs_only_current_sources_not_git(tmp_path):
-    _batch1_source(tmp_path)
-    assert batch1.build_artifact_pair(tmp_path) == _expected_batch1_pair()
+def test_class_definition_construction_needs_only_current_sources_not_git(tmp_path):
+    _class_definition_source(tmp_path)
+    assert class_definition.build_artifact_pair(tmp_path) == _expected_class_definition_pair()
 
 
-def _batch2_source(root: Path) -> None:
+def _kernel_vocabulary_source(root: Path) -> None:
     files = {
         MODEL_FILE: "package Fixture {\n  part def Alpha {\n    doc /*Alpha documentation.*/\n  }\n}\n",
-        batch2.SUCCESSOR_FILE: 'package DE4SDV_RelationshipSuccessor {\n  part version : SuccessorVersionRecord {\n    attribute :>> version = "de4sdv.relationship-successor/v1";\n    attribute :>> supersedes = "synthetic";\n  }\n}\n',
-        batch2.ADMISSION_PATH: yaml.safe_dump({
+        kernel_vocabulary.SUCCESSOR_FILE: 'package DE4SDV_RelationshipSuccessor {\n  part version : SuccessorVersionRecord {\n    attribute :>> version = "de4sdv.relationship-successor/v1";\n    attribute :>> supersedes = "synthetic";\n  }\n}\n',
+        kernel_vocabulary.ADMISSION_PATH: yaml.safe_dump({
             "schema": "de4sdv.o4-definition-admission-batch2/v1", "status": "admitted", "exceptions": [],
             "admitted": [{
                 "identity": "Alpha", "semantic_kind": "class", "admission_class": "definition",
@@ -102,7 +102,7 @@ def _batch2_source(root: Path) -> None:
         target.write_text(text, encoding="utf-8")
 
 
-def _expected_batch2_pair():
+def _expected_kernel_vocabulary_pair():
     warning = ("no traversal proof, no API element identity, no authority retirement; the "
                "runtime reads this artifact to build the kernel contract; retired names "
                "answer no fact (retired; use the successor)")
@@ -148,15 +148,15 @@ def _expected_batch2_pair():
     }
 
 
-def test_batch2_construction_needs_only_current_sources_not_git(tmp_path):
-    _batch2_source(tmp_path)
-    assert batch2.build_artifact_pair(tmp_path) == _expected_batch2_pair()
+def test_kernel_vocabulary_construction_needs_only_current_sources_not_git(tmp_path):
+    _kernel_vocabulary_source(tmp_path)
+    assert kernel_vocabulary.build_artifact_pair(tmp_path) == _expected_kernel_vocabulary_pair()
 
 
 @pytest.mark.parametrize("module,source,expected", [
-    (batch1, _batch1_source, _expected_batch1_pair),
-    (batch2, _batch2_source, _expected_batch2_pair),
-], ids=["batch1", "batch2"])
+    (class_definition, _class_definition_source, _expected_class_definition_pair),
+    (kernel_vocabulary, _kernel_vocabulary_source, _expected_kernel_vocabulary_pair),
+], ids=["class-definition", "kernel-vocabulary"])
 def test_gate_accepts_independent_literal_pair_without_any_binding(tmp_path, module, source, expected):
     source(tmp_path)
     pair = expected()
@@ -165,7 +165,7 @@ def test_gate_accepts_independent_literal_pair_without_any_binding(tmp_path, mod
     assert module.run_check_errors(tmp_path) == []
 
 
-@pytest.mark.parametrize("module,source", [(batch1, _batch1_source), (batch2, _batch2_source)], ids=["batch1", "batch2"])
+@pytest.mark.parametrize("module,source", [(class_definition, _class_definition_source), (kernel_vocabulary, _kernel_vocabulary_source)], ids=["class-definition", "kernel-vocabulary"])
 def test_missing_artifacts_fail_without_a_commit_first_prerequisite(tmp_path, module, source):
     source(tmp_path)
     errors = module.run_check_errors(tmp_path)
@@ -176,9 +176,9 @@ def test_missing_artifacts_fail_without_a_commit_first_prerequisite(tmp_path, mo
 
 
 @pytest.mark.parametrize("module,source,expected", [
-    (batch1, _batch1_source, _expected_batch1_pair),
-    (batch2, _batch2_source, _expected_batch2_pair),
-], ids=["batch1", "batch2"])
+    (class_definition, _class_definition_source, _expected_class_definition_pair),
+    (kernel_vocabulary, _kernel_vocabulary_source, _expected_kernel_vocabulary_pair),
+], ids=["class-definition", "kernel-vocabulary"])
 def test_model_documentation_edit_needs_no_second_text_authority(tmp_path, module, source, expected):
     source(tmp_path)
     admission = tmp_path / module.ADMISSION_PATH
@@ -200,12 +200,12 @@ def test_model_documentation_edit_needs_no_second_text_authority(tmp_path, modul
     assert module.run_check_errors(tmp_path) == []
 
 
-@pytest.mark.parametrize("module,source", [(batch1, _batch1_source), (batch2, _batch2_source)], ids=["batch1", "batch2"])
+@pytest.mark.parametrize("module,source", [(class_definition, _class_definition_source), (kernel_vocabulary, _kernel_vocabulary_source)], ids=["class-definition", "kernel-vocabulary"])
 def test_empty_model_documentation_is_refused(tmp_path, module, source):
     source(tmp_path)
     path = tmp_path / MODEL_FILE
     path.write_text(path.read_text(encoding="utf-8").replace("Alpha documentation.", "   "), encoding="utf-8")
-    error = batch1.DefinitionAdmissionError if module is batch1 else batch2.KernelVocabularyError
+    error = class_definition.DefinitionAdmissionError if module is class_definition else kernel_vocabulary.KernelVocabularyError
     with pytest.raises(error, match="empty documentation"):
         module.build_artifact_pair(tmp_path)
     assert module.run_check_errors(tmp_path)
@@ -215,13 +215,13 @@ def test_empty_model_documentation_is_refused(tmp_path, module, source):
 def test_generator_cli_writes_and_checks_current_sources_without_git(tmp_path, monkeypatch, selected):
     from scripts import generate_definition_projection as generator
 
-    _batch1_source(tmp_path)
-    _batch2_source(tmp_path)
+    _class_definition_source(tmp_path)
+    _kernel_vocabulary_source(tmp_path)
     monkeypatch.setattr(generator, "ROOT", tmp_path)
     assert generator.main(["--batch", selected]) == 0
-    pairs = [(batch1, _expected_batch1_pair)] if selected == "1" else [(batch2, _expected_batch2_pair)]
+    pairs = [(class_definition, _expected_class_definition_pair)] if selected == "1" else [(kernel_vocabulary, _expected_kernel_vocabulary_pair)]
     if selected == "all":
-        pairs = [(batch1, _expected_batch1_pair), (batch2, _expected_batch2_pair)]
+        pairs = [(class_definition, _expected_class_definition_pair), (kernel_vocabulary, _expected_kernel_vocabulary_pair)]
     for module, expected in pairs:
         pair = expected()
         for key, relative in (("projection", module.PROJECTION_PATH), ("profile", module.PROFILE_PATH)):
@@ -242,9 +242,9 @@ def test_generator_rejects_retired_source_revision_option(tmp_path, monkeypatch)
 
 
 @pytest.mark.parametrize("module,source,expected", [
-    (batch1, _batch1_source, _expected_batch1_pair),
-    (batch2, _batch2_source, _expected_batch2_pair),
-], ids=["batch1", "batch2"])
+    (class_definition, _class_definition_source, _expected_class_definition_pair),
+    (kernel_vocabulary, _kernel_vocabulary_source, _expected_kernel_vocabulary_pair),
+], ids=["class-definition", "kernel-vocabulary"])
 @pytest.mark.parametrize("target,mutation", [
     ("projection", "semantic"), ("profile", "mechanics"),
     ("projection", "binding"), ("profile", "binding"),
@@ -280,9 +280,9 @@ def test_gate_rejects_missing_or_nonexact_artifact_bytes(tmp_path, module, sourc
 
 
 @pytest.mark.parametrize("module,source,expected", [
-    (batch1, _batch1_source, _expected_batch1_pair),
-    (batch2, _batch2_source, _expected_batch2_pair),
-], ids=["batch1", "batch2"])
+    (class_definition, _class_definition_source, _expected_class_definition_pair),
+    (kernel_vocabulary, _kernel_vocabulary_source, _expected_kernel_vocabulary_pair),
+], ids=["class-definition", "kernel-vocabulary"])
 def test_model_edit_is_stale_until_independently_expected_regeneration(tmp_path, module, source, expected):
     source(tmp_path)
     pair = expected()
@@ -297,7 +297,7 @@ def test_model_edit_is_stale_until_independently_expected_regeneration(tmp_path,
     assert module.run_check_errors(tmp_path) == []
 
 
-@pytest.mark.parametrize("module,source", [(batch1, _batch1_source), (batch2, _batch2_source)], ids=["batch1", "batch2"])
+@pytest.mark.parametrize("module,source", [(class_definition, _class_definition_source), (kernel_vocabulary, _kernel_vocabulary_source)], ids=["class-definition", "kernel-vocabulary"])
 def test_empty_admission_population_cannot_pass_when_artifacts_are_absent(tmp_path, module, source):
     source(tmp_path)
     path = tmp_path / module.ADMISSION_PATH

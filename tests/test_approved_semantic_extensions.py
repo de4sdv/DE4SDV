@@ -16,7 +16,7 @@ from model_contract_fixtures import model_contract
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml"
-BATCH2_PATH = "de4sdv/semantic/contract-data/kernel-vocabulary-projection.json"
+KERNEL_VOCABULARY_PROJECTION = "de4sdv/semantic/contract-data/kernel-vocabulary-projection.json"
 ASSURANCE_RECORDS = (
     "EvidenceSupportCitation",
     "ScopedVVActivityRecord",
@@ -38,7 +38,7 @@ EXTENSIONS = ASSURANCE_RECORDS + TRACE_RECORDS + tuple(RELATIONSHIP_EXTENSIONS)
 
 
 def _observation(identity):
-    rows = {r["identity"]: r for r in json.loads((ROOT / BATCH2_PATH).read_text())["rows"]}
+    rows = {r["identity"]: r for r in json.loads((ROOT / KERNEL_VOCABULARY_PROJECTION).read_text())["rows"]}
     definition = rows[identity]["definition"]
     assert isinstance(definition["documentation"], str) and definition["documentation"].strip(), identity
     return definition["documentation_observation"]
@@ -53,7 +53,7 @@ def test_assurance_extension_has_exact_model_mapping_and_no_closure_promotion(id
     assert identity not in MIGRATED_IDENTITIES
 
 
-def test_historical_o4_review_population_is_not_silently_expanded():
+def test_historical_ontology_review_population_is_not_silently_expanded():
     review = json.loads((ROOT / "de4sdv/semantic/contract-data/ontology-review.json").read_text())
     rows = review["rows"]
     assert len(rows) == len({r["identity"] for r in rows}) == 93

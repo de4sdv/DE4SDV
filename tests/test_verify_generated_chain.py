@@ -17,7 +17,7 @@ from scripts.verify_generated_chain import verify_generated_chain  # noqa: E402
 INPUT_REL = "src/input.txt"
 ARTIFACT_A = "live/artifact-a.json"
 
-# Synthetic frozen lane: the records are frozen in ``old/`` and later live in
+# Synthetic frozen records: the records are frozen in ``old/`` and later live in
 # ``frozen/``, so the historical-path mapping is exercised as well.
 HISTORICAL = "old"
 FROZEN = "frozen"
@@ -77,8 +77,8 @@ def _fixture(tmp_path: Path) -> tuple[Path, str]:
 
 
 @pytest.fixture
-def lane(monkeypatch):
-    """Point the frozen lane at the synthetic record set."""
+def synthetic_frozen_records(monkeypatch):
+    """Point the frozen-record check at the synthetic record set."""
     monkeypatch.setattr(verifier, "FROZEN_MANIFEST_PATH", MANIFEST)
     monkeypatch.setattr(verifier, "FROZEN_DIRECTORY", FROZEN)
     monkeypatch.setattr(verifier, "FROZEN_DIRECTORIES", (FROZEN,))
@@ -132,7 +132,7 @@ def test_real_repo_chain_is_consistent():
     assert verify_generated_chain(REPO_ROOT) == []
 
 
-def test_report_is_deterministic(lane, tmp_path):
+def test_report_is_deterministic(synthetic_frozen_records, tmp_path):
     root, _, _ = _frozen_fixture(tmp_path)
     first = verify_generated_chain(root, include_passing=True)
     second = verify_generated_chain(root, include_passing=True)
@@ -154,24 +154,24 @@ def test_cli_json_mode_on_the_real_repo():
     assert report, "the historical inventory must not disappear"
 
 # ---------------------------------------------------------------------------
-# Frozen lane
+# Frozen records
 # ---------------------------------------------------------------------------
 
 
-def test_frozen_fixture_chain_passes(lane, tmp_path):
+def test_frozen_fixture_chain_passes(synthetic_frozen_records, tmp_path):
     root, _, _ = _frozen_fixture(tmp_path)
     report = verify_generated_chain(root, include_passing=True)
     assert [e for e in report if not e["ok"]] == []
     assert {e["artifact"] for e in report} == {FROZEN_A, FROZEN_B, FROZEN_NOTE, MANIFEST}
 
 
-def test_frozen_byte_flip_fails(lane, tmp_path):
+def test_frozen_byte_flip_fails(synthetic_frozen_records, tmp_path):
     root, _, _ = _frozen_fixture(tmp_path)
     (root / FROZEN_NOTE).write_text("frozen prose!\n", encoding="utf-8")
     assert any("frozen record bytes changed" in e for e in _frozen_errors(root, FROZEN_NOTE))
 
 
-def test_frozen_directory_addition_fails(lane, tmp_path):
+def test_frozen_directory_addition_fails(synthetic_frozen_records, tmp_path):
     root, _, _ = _frozen_fixture(tmp_path)
     (root / FROZEN / "new-record.json").write_text("{}\n", encoding="utf-8")
     assert any("not a frozen record" in e for e in _frozen_errors(root, MANIFEST))
@@ -179,7 +179,7 @@ def test_frozen_directory_addition_fails(lane, tmp_path):
     assert any("not a frozen record" in e for e in _frozen_errors(root, MANIFEST))
 
 
-def test_frozen_record_removal_fails_even_with_the_manifest_row_removed(lane, tmp_path):
+def test_frozen_record_removal_fails_even_with_the_manifest_row_removed(synthetic_frozen_records, tmp_path):
     root, _, _ = _frozen_fixture(tmp_path)
     (root / FROZEN_NOTE).unlink()
     assert any("missing from the checkout" in e for e in _frozen_errors(root, MANIFEST))
@@ -189,7 +189,7 @@ def test_frozen_record_removal_fails_even_with_the_manifest_row_removed(lane, tm
     assert any("differs from its rendering" in e for e in _frozen_errors(root, MANIFEST))
 
 
-def test_frozen_binding_survives_input_edit_and_deletion_at_head(lane, tmp_path):
+def test_frozen_binding_survives_input_edit_and_deletion_at_head(synthetic_frozen_records, tmp_path):
     """The point of freezing: inputs may change at HEAD; history still verifies."""
     root, _, _ = _frozen_fixture(tmp_path)
     (root / INPUT_REL).write_text("payload-v2\n", encoding="utf-8")
@@ -205,21 +205,21 @@ def test_frozen_binding_survives_input_edit_and_deletion_at_head(lane, tmp_path)
         assert _frozen_errors(root, frozen) == [], frozen
 
 
-def test_frozen_forged_bound_input_digest_fails_the_historical_check(lane, tmp_path):
+def test_frozen_forged_bound_input_digest_fails_the_historical_check(synthetic_frozen_records, tmp_path):
     root, _, _ = _frozen_fixture(tmp_path, b_binding=lambda root, revision: {
         "source_revision": revision, "bound_inputs": {INPUT_REL: "sha256:" + "0" * 64}})
     errors = _frozen_errors(root, FROZEN_B)
     assert any("does not match its bytes at source revision" in e for e in errors), errors
 
 
-def test_frozen_missing_bound_input_at_its_revision_fails(lane, tmp_path):
+def test_frozen_missing_bound_input_at_its_revision_fails(synthetic_frozen_records, tmp_path):
     root, _, _ = _frozen_fixture(tmp_path, b_binding=lambda root, revision: {
         "source_revision": revision, "bound_inputs": {"src/absent.txt": "sha256:" + "0" * 64}})
     errors = _frozen_errors(root, FROZEN_B)
     assert any("does not exist at source revision" in e for e in errors), errors
 
 
-def test_frozen_non_ancestor_source_revision_fails(lane, tmp_path):
+def test_frozen_non_ancestor_source_revision_fails(synthetic_frozen_records, tmp_path):
     root, _ = _fixture(tmp_path)
     branch = _git(root, "symbolic-ref", "--short", "HEAD")
     _git(root, "checkout", "-q", "-b", "side")
@@ -236,7 +236,7 @@ def test_frozen_non_ancestor_source_revision_fails(lane, tmp_path):
     assert any("not an ancestor" in e for e in _frozen_errors(root, FROZEN_A))
 
 
-def test_frozen_manifest_tamper_and_binding_key_fail(lane, tmp_path):
+def test_frozen_manifest_tamper_and_binding_key_fail(synthetic_frozen_records, tmp_path):
     root, _, _ = _frozen_fixture(tmp_path)
     path = root / MANIFEST
     manifest = json.loads(path.read_text(encoding="utf-8"))
@@ -249,7 +249,7 @@ def test_frozen_manifest_tamper_and_binding_key_fail(lane, tmp_path):
     assert any("must not carry a 'binding' key" in e for e in _frozen_errors(root, MANIFEST))
 
 
-def test_frozen_manifest_revision_must_be_an_ancestor(lane, tmp_path):
+def test_frozen_manifest_revision_must_be_an_ancestor(synthetic_frozen_records, tmp_path):
     root, _, _ = _frozen_fixture(tmp_path)
     path = root / MANIFEST
     manifest = json.loads(path.read_text(encoding="utf-8"))
@@ -258,7 +258,7 @@ def test_frozen_manifest_revision_must_be_an_ancestor(lane, tmp_path):
     assert any("frozen_at_revision" in e for e in _frozen_errors(root, MANIFEST))
 
 
-def test_frozen_manifest_missing_fails(lane, tmp_path):
+def test_frozen_manifest_missing_fails(synthetic_frozen_records, tmp_path):
     root, _, _ = _frozen_fixture(tmp_path)
     (root / MANIFEST).unlink()
     entries = verifier._frozen_lane_entries(root)
@@ -266,8 +266,8 @@ def test_frozen_manifest_missing_fails(lane, tmp_path):
                         "errors": ["frozen-records manifest is missing"]}]
 
 
-def test_extends_resolves_historical_paths_to_the_current_directory(lane, tmp_path):
-    """A record keeps its historical ``extends`` path after the move; the lane
+def test_extends_resolves_historical_paths_to_the_current_directory(synthetic_frozen_records, tmp_path):
+    """A record keeps its historical ``extends`` path after the move; the check
     resolves it to the current record and still checks digest and revision."""
     root, revision, _ = _frozen_fixture(tmp_path)
     b = json.loads((root / FROZEN_B).read_text(encoding="utf-8"))
@@ -328,8 +328,8 @@ def test_real_frozen_records_pass_although_their_bound_inputs_changed_at_head():
     assert verifier.frozen_record_errors(REPO_ROOT) == []
 
 
-def test_frozen_lane_does_not_read_the_authored_ontology_at_head(monkeypatch):
-    """The frozen lane never opens a bound input from the working tree."""
+def test_frozen_record_check_does_not_read_the_authored_ontology_at_head(monkeypatch):
+    """The frozen-record check never opens a bound input from the working tree."""
     opened = []
     original = Path.read_bytes
 

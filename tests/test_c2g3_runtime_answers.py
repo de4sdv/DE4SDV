@@ -56,7 +56,7 @@ def test_manifests_carry_each_reports_own_label():
     assert result["manifests"]["old"]["authority_id"] == "mab:mab-" + "1" * 32
 
 
-def test_hard_coded_o3_labels_never_appear():
+def test_hard_coded_authority_labels_never_appear():
     text = json.dumps(ra.compare_answer_reports(report(OLD_LABEL), report(NEW_LABEL)))
     assert "legacy-authored" not in text and "o3-authority" not in text
 

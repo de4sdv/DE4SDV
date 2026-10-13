@@ -1,4 +1,4 @@
-"""c5 integration closure: service-to-validator shape contract (R1+R2).
+"""MCP validator shape contract: real service output passes the validator's two proofs.
 
 Guards against the recurrence of the contradiction
 ``unit fixture passes but real service output makes validate_semantic_mcp.py

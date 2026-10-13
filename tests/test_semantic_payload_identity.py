@@ -20,12 +20,12 @@ CLASS_PINS = {
     "Origin": {"file": PIN_FILE, "declaration": "part def Origin"},
     "Destination": {"file": PIN_FILE, "declaration": "part def Destination"},
 }
-EXPECTED_O2_CLASSES = (
+EXPECTED_FROZEN_RECORD_CLASSES = (
     "MethodPhase", "MethodContractObligation", "EvaluationScopeMembership", "EvaluationSourceKind",
     "TestedScopeDeclaration", "RetainedExecutionRecordReference", "AcceptanceAttestationReference",
     "VerificationCase",
 )
-EXPECTED_O2_RELATIONSHIPS = (
+EXPECTED_FROZEN_RECORD_RELATIONSHIPS = (
     "hasSubject", "verifiedBy", "derivesRequirementFromNeed", "derivedRequirementsOfNeed",
     "hasRelevantArchitecture",
 )
@@ -195,7 +195,7 @@ def synthetic_layers_root(synthetic_successor_root):
     _write(root, PIN_FILE, (root / PIN_FILE).read_text().replace(
         "\n}", "\n  connection def Documents {}\n}"))
     o2_classes = []
-    for name in EXPECTED_O2_CLASSES:
+    for name in EXPECTED_FROZEN_RECORD_CLASSES:
         if name == "VerificationCase":
             o2_classes.append({"identity": name, "construct": {
                 "kind": "native", "native_grounding": {"identity": "SysML::VerificationCaseUsage"}}})
@@ -205,10 +205,10 @@ def synthetic_layers_root(synthetic_successor_root):
     o2_relations = [{"identity": name, "relation": {
         "domain": {"ontology_class": "MethodPhase"},
         "range": {"ontology_class": "VerificationCase"}, "semantic_strength": "trace-only"}}
-        for name in EXPECTED_O2_RELATIONSHIPS]
+        for name in EXPECTED_FROZEN_RECORD_RELATIONSHIPS]
     o2_profiles = [{"for_identity": name, "serializer_mechanics": {
         "strategy": "synthetic-o2-membership", "property": "memberElement"}}
-        for name in EXPECTED_O2_RELATIONSHIPS]
+        for name in EXPECTED_FROZEN_RECORD_RELATIONSHIPS]
     for index, (relative, schema) in enumerate(mc.O2_PROJECTION_CHAIN):
         _write_json(root, relative, {"schema": schema, "concepts": o2_classes if index == 0 else [],
                                     "predicates": o2_relations if index == 0 else [],
@@ -217,7 +217,7 @@ def synthetic_layers_root(synthetic_successor_root):
         _write_json(root, relative, {"schema": schema, "profiles": o2_profiles if index == 0 else [],
                                     "binding": {"source_revision": "c" * 40}})
     _write(root, "synthetic/o2.sysml", "package SyntheticO2 {\n" + "".join(
-        "  part def " + name + " {}\n" for name in EXPECTED_O2_CLASSES if name != "VerificationCase") + "}\n")
+        "  part def " + name + " {}\n" for name in EXPECTED_FROZEN_RECORD_CLASSES if name != "VerificationCase") + "}\n")
     _write_json(root, "de4sdv/semantic/contract-data/ontology-identity-register.json", {"rows": [
         {"identity": "Origin", "accounting_status": "retained"},
         {"identity": "RemovedName", "accounting_status": "removed", "final_disposition": "REMOVE",
@@ -231,8 +231,8 @@ def synthetic_layers_root(synthetic_successor_root):
 def test_authority_identity_ignores_live_git_binding_metadata(synthetic_layers_root):
     root = synthetic_layers_root
     before = mc.build_model_contract(root)
-    assert set(before.classes) == set(EXPECTED_O2_CLASSES) | {"Origin", "Destination", "SyntheticNative"}
-    assert set(before.relationships) == set(EXPECTED_O2_RELATIONSHIPS) | {
+    assert set(before.classes) == set(EXPECTED_FROZEN_RECORD_CLASSES) | {"Origin", "Destination", "SyntheticNative"}
+    assert set(before.relationships) == set(EXPECTED_FROZEN_RECORD_RELATIONSHIPS) | {
         "documents", "describes", "linksTo", "linkedFrom"}
     assert dict(before.refused) == {
         "RemovedName": "refused: removed (register disposition REMOVE, synthetic); no replacement",
@@ -608,7 +608,7 @@ def test_live_profile_duplicate_projection_identity_refuses_before_join(syntheti
 
 
 @pytest.mark.parametrize("flag", ["api_profile_required", "api_profile_entry"])
-def test_live_profile_o2plus_requires_only_modeled_outputs(synthetic_layers_root, flag):
+def test_live_profile_native_grounding_requires_only_modeled_outputs(synthetic_layers_root, flag):
     root = synthetic_layers_root
     spec = mc.LAYERS[1]
     projection = json.loads((root / spec.projection_path).read_text())
@@ -625,7 +625,7 @@ def test_live_profile_o2plus_requires_only_modeled_outputs(synthetic_layers_root
         mc.KernelContract.from_layers(root)
 
 
-def test_o2plus_partial_profile_witness_uses_actual_generated_documents():
+def test_native_grounding_partial_profile_witness_uses_actual_generated_documents():
     root = Path(__file__).resolve().parents[1]
     spec = mc.LAYERS[1]
     projection = json.loads((root / spec.projection_path).read_text())
@@ -637,7 +637,7 @@ def test_o2plus_partial_profile_witness_uses_actual_generated_documents():
     assert required <= set(contract.classes)
 
 
-def test_live_profile_o2plus_unmarked_synthetic_rows_allow_empty_population(synthetic_layers_root):
+def test_live_profile_native_grounding_unmarked_synthetic_rows_allow_empty_population(synthetic_layers_root):
     root = synthetic_layers_root
     spec = mc.LAYERS[1]
     document = json.loads((root / spec.profile_path).read_text())
@@ -646,7 +646,7 @@ def test_live_profile_o2plus_unmarked_synthetic_rows_allow_empty_population(synt
     assert "SyntheticNative" in mc.KernelContract.from_layers(root).classes
 
 
-def test_optional_batch2_absent_pair_stays_optional(synthetic_layers_root):
+def test_optional_kernel_vocabulary_absent_pair_stays_optional(synthetic_layers_root):
     root = synthetic_layers_root
     definition = mc.LAYERS[0]
     projection = json.loads((root / definition.projection_path).read_text())

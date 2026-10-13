@@ -1,15 +1,15 @@
-"""Machine locks for the O2+ native/library grounding & projection layer.
+"""Machine locks for the native-grounding projection layer.
 
 The layer is governed by review Deliverable 8 wave 3 (native/library
-projection rows over already-native constructs) and the O4 execution
+projection rows over already-native constructs) and the ontology identity
 register rows for the admitted identities. These tests lock:
 
 * the admitted set is EXACTLY the reviewed safe subset (eight identities)
   with per-row flags equal to the reviewed values;
 * the excluded set carries a reason for every considered-but-not-admitted
   row and contains the hard gates that must never be admitted;
-* no frozen O2 (v1/v1.1/v1.2 thirteen) and no frozen O3 identity is
-  admitted or emitted;
+* no identity of the frozen records (the thirteen of projection
+  v1/v1.1/v1.2) is admitted or emitted;
 * generation is deterministic and read-only; the committed pair equals
   regeneration from current governed inputs without a live Git binding;
 * support stays vocabulary-only, traversal is false everywhere, and no
@@ -218,7 +218,7 @@ def test_admitted_rows_are_disjoint_from_excluded(manifest: dict) -> None:
     assert admitted & excluded == set()
 
 
-def test_frozen_o2_surface_is_never_admitted(manifest: dict) -> None:
+def test_frozen_projection_identities_are_never_admitted(manifest: dict) -> None:
     admitted = {row["identity"] for row in manifest["admitted"]}
     assert admitted & set(native.FROZEN_RECORD_IDENTITIES) == set()
     # The frozen list itself must equal the actual committed v1/v1.1/v1.2 rows.
@@ -232,12 +232,12 @@ def test_frozen_o2_surface_is_never_admitted(manifest: dict) -> None:
     assert sorted(actual) == sorted(native.FROZEN_RECORD_IDENTITIES)
 
 
-def test_frozen_o3_surface_is_never_admitted(manifest: dict) -> None:
-    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
+def test_identities_served_from_frozen_records_are_never_admitted(manifest: dict) -> None:
+    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as SERVED_FROM_FROZEN_RECORDS
 
     admitted = {row["identity"] for row in manifest["admitted"]}
-    assert admitted & set(MIGRATED_IDENTITIES) == set()
-    assert len(MIGRATED_IDENTITIES) == 13
+    assert admitted & set(SERVED_FROM_FROZEN_RECORDS) == set()
+    assert len(SERVED_FROM_FROZEN_RECORDS) == 13
 
 
 def test_witnesses_exist_in_the_model() -> None:
@@ -274,11 +274,11 @@ def test_projection_row_outputs_match_reviewed_flags(
 
 
 def test_no_frozen_identity_is_emitted(artifacts: dict) -> None:
-    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
+    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as SERVED_FROM_FROZEN_RECORDS
 
     emitted = {row["identity"] for row in artifacts["projection"]["rows"]}
     assert emitted & set(native.FROZEN_RECORD_IDENTITIES) == set()
-    assert emitted & set(MIGRATED_IDENTITIES) == set()
+    assert emitted & set(SERVED_FROM_FROZEN_RECORDS) == set()
 
 
 def test_profile_entries_are_exactly_the_api_profile_rows(artifacts: dict) -> None:

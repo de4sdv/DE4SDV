@@ -1,4 +1,4 @@
-"""O1 c3 — hasSubject native-semantics / DE4SDV-scope review (PR #249).
+"""Subject grounding: hasSubject over native subject membership, within DE4SDV scope.
 
 Covers the c3 claim for exactly one identity:
 
@@ -66,7 +66,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 TRAVERSAL_SOURCE = REPO_ROOT / "de4sdv/semantic/traversal.py"
 
 #: The c3 batch is exactly this one identity — no second entry.
-C3_IDENTITIES: tuple[str, ...] = ("hasSubject",)
+SUBJECT_IDENTITIES: tuple[str, ...] = ("hasSubject",)
 
 
 #: Retained-export replay numbers (full-model candidate export at
@@ -76,8 +76,8 @@ C3_IDENTITIES: tuple[str, ...] = ("hasSubject",)
 #: legitimate hops. Locked as constants: a regression that silently widens
 #: the traversal must break these.
 REPLAY_TOTAL_MEMBERSHIPS = 289
-REPLAY_PRE_C3_HOPS = 131
-REPLAY_POST_C3_HOPS = 21
+REPLAY_UNENFORCED_HOPS = 131
+REPLAY_ENFORCED_HOPS = 21
 REPLAY_REMOVED_NON_REQUIREMENT_SOURCES = 57
 REPLAY_REMOVED_NON_MEMBERPRODUCT_TARGETS = 53
 
@@ -271,13 +271,13 @@ def _qualifying_fixture() -> tuple[list[dict], dict]:
 
 
 # ---------------------------------------------------------------------------
-# c3 scope, decisions, and inventory state
+# Scope, decisions, and inventory state
 # ---------------------------------------------------------------------------
 
 
-class TestC3ScopeAndCounts:
-    def test_c3_is_exactly_one_identity(self):
-        assert C3_IDENTITIES == ("hasSubject",)
+class TestSubjectGroundingScope:
+    def test_scope_is_exactly_has_subject(self):
+        assert SUBJECT_IDENTITIES == ("hasSubject",)
 
 
     def test_runtime_does_not_read_the_inventory(self):
@@ -1135,9 +1135,9 @@ class TestImpactServiceBoundary:
 class TestReplayEvidence:
     def test_replay_numbers_are_locked_and_consistent(self):
         assert REPLAY_TOTAL_MEMBERSHIPS == 289
-        assert REPLAY_PRE_C3_HOPS == REPLAY_POST_C3_HOPS + (
+        assert REPLAY_UNENFORCED_HOPS == REPLAY_ENFORCED_HOPS + (
             REPLAY_REMOVED_NON_REQUIREMENT_SOURCES
             + REPLAY_REMOVED_NON_MEMBERPRODUCT_TARGETS
         )
-        assert REPLAY_PRE_C3_HOPS == 131
-        assert REPLAY_POST_C3_HOPS == 21
+        assert REPLAY_UNENFORCED_HOPS == 131
+        assert REPLAY_ENFORCED_HOPS == 21

@@ -1,4 +1,4 @@
-"""O1 c2 — verification native/library semantic grounding (PR #249).
+"""Verification grounding: VerificationCase and verifiedBy in native verification semantics.
 
 Covers the c2 claim for exactly two identities:
 
@@ -71,7 +71,7 @@ PILOT_MODEL = (
 )
 
 #: The c2 batch is exactly these two identities — no third entry.
-C2_IDENTITIES: tuple[str, ...] = ("VerificationCase", "verifiedBy")
+VERIFICATION_IDENTITIES: tuple[str, ...] = ("VerificationCase", "verifiedBy")
 
 
 #: Synthetic serializer fixtures (synthetic ids, real machinery).
@@ -207,14 +207,14 @@ def _objective_chain_elements(*, case_kind: str = "VerificationCaseDefinition"):
 
 
 # ---------------------------------------------------------------------------
-# c2 scope and inventory state
+# Scope and inventory state
 # ---------------------------------------------------------------------------
 
 
-class TestC2ScopeAndCounts:
-    def test_c2_is_exactly_two_identities(self):
-        assert len(C2_IDENTITIES) == 2
-        assert len(set(C2_IDENTITIES)) == 2
+class TestVerificationGroundingScope:
+    def test_scope_is_exactly_verification_case_and_verified_by(self):
+        assert len(VERIFICATION_IDENTITIES) == 2
+        assert len(set(VERIFICATION_IDENTITIES)) == 2
 
 
 # ---------------------------------------------------------------------------

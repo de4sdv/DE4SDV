@@ -1,5 +1,5 @@
-"""W6 Wave A model completeness: allocatedTo endpoints, validation planning
-and the governed transition record.
+"""Relationship-redesign model completeness: allocatedTo endpoints, validation
+planning and the governed transition record.
 
 Lexical guards only. They do not parse SysML, resolve imports like the
 licensed validator, or prove live API closure; privileged Syside validation
@@ -413,7 +413,7 @@ def test_each_successor_predicate_owns_one_vocabulary_role_definition():
     assert mentioned == retired, "every retired name must name its successor definition"
 
 
-def test_transition_record_accounts_for_every_w6_identity_against_the_plan():
+def test_relationship_and_trace_redesign_elements_stay_in_place():
     """The model elements of the relationship and trace redesign stay in place:
     retirement and successor records, trace obligations and their usages. The
     transition record and plan that accounted for them are archived."""

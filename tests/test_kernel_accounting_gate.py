@@ -1,4 +1,4 @@
-"""O4 Wave C1: coverage-gate kernel accounting and the blocking retained residual.
+"""Coverage-gate kernel accounting and the blocking retained residual.
 
 Two changes are under test:
 

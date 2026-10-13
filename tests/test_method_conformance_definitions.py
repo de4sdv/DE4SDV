@@ -1,4 +1,4 @@
-"""O1 c1 — bounded method-conformance class parity batch (PR #249).
+"""Method-conformance class definitions: documentation ownership and structural fit.
 
 Covers the c1 claim after the independent review: **seven of the eight
 identities are accepted as parity-reviewed; `MethodEvaluationScope` remains
@@ -72,7 +72,7 @@ PROCESS_FILE = (
 )
 
 #: The c1 batch is exactly these eight identities — no ninth entry.
-C1_IDENTITIES: tuple[str, ...] = (
+METHOD_CONFORMANCE_CLASSES: tuple[str, ...] = (
     "MethodPhase",
     "MethodContractObligation",
     "MethodEvaluationScope",
@@ -85,7 +85,7 @@ C1_IDENTITIES: tuple[str, ...] = (
 
 
 #: YAML definition location + text of the eight (the O1 semantic authority for c1).
-_C1_YAML: dict[str, tuple[Path, str]] = {
+_CLASS_SOURCES: dict[str, tuple[Path, str]] = {
     "MethodPhase": (
         PROCESS_FILE,
         "One of the 13 phases of the DE4SDV increment workflow.",
@@ -153,23 +153,23 @@ REVIEW_REQUIRED_OBSERVATIONS = frozenset(
 
 
 def _file_text(name: str) -> str:
-    path, _ = _C1_YAML[name]
+    path, _ = _CLASS_SOURCES[name]
     return path.read_text(encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
-# c1 scope
+# Scope
 # ---------------------------------------------------------------------------
 
 
-class TestC1Scope:
+class TestMethodConformanceClassScope:
     def test_exactly_eight_identities(self):
-        assert len(C1_IDENTITIES) == 8
-        assert len(set(C1_IDENTITIES)) == 8
+        assert len(METHOD_CONFORMANCE_CLASSES) == 8
+        assert len(set(METHOD_CONFORMANCE_CLASSES)) == 8
 
     def test_all_eight_are_ontology_classes(self):
         contract = model_contract()
-        for name in C1_IDENTITIES:
+        for name in METHOD_CONFORMANCE_CLASSES:
             assert name in contract.classes, name
             assert name not in contract.relationships, name
 
@@ -647,16 +647,16 @@ class TestDirectBodyDocOwnership:
 # ---------------------------------------------------------------------------
 
 
-class TestC1TextParity:
+class TestMethodConformanceDocumentationOwnership:
 
 
-    def test_ownership_is_containment_not_adjacency_for_c1_classes(self):
+    def test_ownership_is_containment_not_adjacency_for_method_conformance_classes(self):
         """Uniform containment on the real files: a synthetic NESTED member
         doc never enters a class observation; a synthetic DIRECT-body doc
         always does — regardless of adjacency, ordering, or a preceding
         leading doc block."""
         contract = model_contract()
-        for name in C1_IDENTITIES:
+        for name in METHOD_CONFORMANCE_CLASSES:
             spec = contract.classes[name]
             declaration = str(spec["kernel"]["declaration"])
             file_text = _file_text(name)
@@ -690,7 +690,7 @@ class TestC1TextParity:
 # ---------------------------------------------------------------------------
 
 
-class TestC1StructuralFit:
+class TestMethodConformanceStructuralFit:
     def test_method_phase_enum_with_thirteen_literals(self):
         text = _file_text("MethodPhase")
         block, bodyless = ai.declaration_block(text, "enum def MethodPhase")
@@ -862,14 +862,14 @@ class TestC1StructuralFit:
 
 
 class TestRuntimeUnchanged:
-    def test_traversal_and_projection_sources_do_not_reference_c1(self):
+    def test_traversal_and_projection_sources_do_not_reference_method_conformance_classes(self):
         """No runtime module consumes the c1 classes (runtime behavior is
         unchanged by c1; the YAML remains the semantic authority)."""
         for module in (
             "de4sdv/semantic/traversal.py",
         ):
             source = (REPO_ROOT / module).read_text(encoding="utf-8")
-            for name in C1_IDENTITIES:
+            for name in METHOD_CONFORMANCE_CLASSES:
                 assert name not in source, (module, name)
 
     def test_inventory_generator_is_runtime_inert(self):

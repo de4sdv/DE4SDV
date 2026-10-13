@@ -218,7 +218,7 @@ def test_impact_cli_builds_the_deployed_runtime(monkeypatch, capsys):
 @pytest.mark.parametrize("retired", [["--semantic-authority", "model"],
                                      ["--model-authority-bundle-id", "mab-" + "1" * 32],
                                      ["--ontology", "o.yaml"], ["--o3-authority-bundle", "x"]])
-def test_impact_cli_has_no_selector_bundle_ontology_or_o3_flags(retired):
+def test_impact_cli_has_no_retired_authority_flags(retired):
     from scripts import query_model_impact as qmi
 
     with pytest.raises(SystemExit):

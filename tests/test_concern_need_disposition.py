@@ -1,4 +1,4 @@
-"""O1 c4 — concern–need semantic disposition review (PR #249).
+"""Concern–need disposition: derivesNeedFromConcern stays retired without replacement.
 
 Covers the c4 disposition for exactly one identity:
 
@@ -56,7 +56,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 TRAVERSAL_SOURCE = REPO_ROOT / "de4sdv/semantic/traversal.py"
 
-C4_IDENTITIES: tuple[str, ...] = ("derivesNeedFromConcern",)
+DISPOSITION_IDENTITIES: tuple[str, ...] = ("derivesNeedFromConcern",)
 
 
 #: Governed model roots for the frame/concern scan.
@@ -129,9 +129,9 @@ def _iter_governed_sites():  # type: ignore[no-untyped-def]
 # ---------------------------------------------------------------------------
 
 
-class TestC4ScopeAndCounts:
-    def test_c4_is_exactly_one_identity(self):
-        assert C4_IDENTITIES == ("derivesNeedFromConcern",)
+class TestConcernNeedDispositionScope:
+    def test_scope_is_exactly_derives_need_from_concern(self):
+        assert DISPOSITION_IDENTITIES == ("derivesNeedFromConcern",)
 
 
     def test_runtime_does_not_read_the_inventory_or_the_retired_identity(self):

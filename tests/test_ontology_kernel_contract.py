@@ -54,7 +54,7 @@ from model_contract_fixtures import model_contract  # noqa: E402
 CONTRACT_TAG = "[ONTOLOGY-KERNEL]"
 GOVERNED_DIR = "textual-notation-of-model/packages/methods/de4sdv"
 MANIFEST = "de4sdv/semantic/contract-data/kernel-internal-declarations.yaml"
-BATCH2 = "de4sdv/semantic/contract-data/kernel-vocabulary-projection.json"
+KERNEL_VOCABULARY_PROJECTION = "de4sdv/semantic/contract-data/kernel-vocabulary-projection.json"
 
 
 def _kernel_path(name: str) -> Path:
@@ -240,7 +240,7 @@ class ContractMappingDirection(unittest.TestCase):
 
     def test_catches_corrupt_model_layer(self):
         """A real layer file that does not parse fails the gate (no fallback)."""
-        target = ROOT / BATCH2
+        target = ROOT / KERNEL_VOCABULARY_PROJECTION
         original_text, original_bytes = Path.read_text, Path.read_bytes
 
         def fake_text(self, *args, **kwargs):
@@ -367,13 +367,13 @@ class ContractSliceGuard(unittest.TestCase):
 class ContractSemanticsPins(unittest.TestCase):
     """Content pins tying the model contract to semantics the gate cannot see."""
 
-    def _batch2(self, identity):
-        rows = json.loads((ROOT / BATCH2).read_text(encoding="utf-8"))["rows"]
+    def _kernel_vocabulary_row(self, identity):
+        rows = json.loads((ROOT / KERNEL_VOCABULARY_PROJECTION).read_text(encoding="utf-8"))["rows"]
         return next(row for row in rows if row["identity"] == identity)
 
     def test_feature_common_capability_disjointness_is_symmetric(self):
-        feature = self._batch2("Feature")["grounding"]
-        common = self._batch2("CommonCapability")["grounding"]
+        feature = self._kernel_vocabulary_row("Feature")["grounding"]
+        common = self._kernel_vocabulary_row("CommonCapability")["grounding"]
         self.assertEqual(feature["ontology_relations"]["disjoint_with"], ["CommonCapability"])
         self.assertEqual(common["ontology_relations"]["disjoint_with"], ["Feature"])
         contract = model_contract()
@@ -401,7 +401,7 @@ class ContractSemanticsPins(unittest.TestCase):
         self.assertTrue(identity.id.startswith("sai-"))
         paths = {path for path, _ in identity.layers}
         self.assertNotIn("approach/framework/ontology/de4sdv-basic-ontology.yaml", paths)
-        self.assertIn(BATCH2, paths)
+        self.assertIn(KERNEL_VOCABULARY_PROJECTION, paths)
 
     def test_method_context_kernel_declares_pinned_declarations(self):
         context_file = GOVERNED_DIR + "/de4sdv_method_context.sysml"

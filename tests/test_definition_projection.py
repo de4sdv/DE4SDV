@@ -69,7 +69,7 @@ ADMITTED_ROWS = (
 #: Layer-B reviewed-decision field names that must never leak into generated
 #: semantic rows (identical to the O1 governance guard used by the other
 #: projection suites).
-O1_GOVERNANCE_FIELDS = (
+INVENTORY_GOVERNANCE_FIELDS = (
     "authority_current",
     "authority_target",
     "evidence_state",
@@ -215,13 +215,13 @@ def test_generated_rows_stay_vocabulary_only_and_free_of_governance_fields():
         assert row["traversal"] is False
         assert row["api_identity"] == "unclaimed"
         serialized = json.dumps(row)
-        for field in O1_GOVERNANCE_FIELDS:
+        for field in INVENTORY_GOVERNANCE_FIELDS:
             assert f'"{field}"' not in serialized, (row["identity"], field)
     for entry in outputs["profile_entries"]:
         assert entry["profile_identity"] == f"{PROFILE_SCHEMA}#{entry['for_concept']}"
         assert entry["binding_contract_echo"]["api_metaclass"] in set(API_METACLASSES.values())
         serialized = json.dumps(entry)
-        for field in O1_GOVERNANCE_FIELDS:
+        for field in INVENTORY_GOVERNANCE_FIELDS:
             assert f'"{field}"' not in serialized, (entry["for_concept"], field)
     assert [row["identity"] for row in outputs["projection_rows"]] == sorted(
         entry["for_concept"] for entry in outputs["profile_entries"]
@@ -414,7 +414,7 @@ def test_declaration_without_documentation_is_refused(tmp_path):
         build_outputs(root, load_document(root))
 
 
-def test_decoy_o1_artifacts_cannot_change_the_output(tmp_path):
+def test_decoy_inventory_artifacts_cannot_change_the_output(tmp_path):
     from de4sdv.semantic.definition_projection import build_outputs, load_document
     from de4sdv.semantic.native_grounding_projection import canonical_json
 

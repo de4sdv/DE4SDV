@@ -1,4 +1,4 @@
-"""Remaining definition admission: model homes, scope and reviewed contracts.
+"""Kernel-vocabulary projection: model homes, scope and reviewed contracts.
 
 This cleanup retires live Git binding and the copied documentation oracle, not model
 ownership or contract validation. The manifest holds the reviewed contract
@@ -35,7 +35,7 @@ OTHER_LAYERS = {
     "o2plus": [(DATA + "native-grounding-projection.json", ("rows",))],
     "vocabulary-carriers": [(DATA + "increment-relationship-projection.json", ("rows",))],
 }
-W6_NEW_SUCCESSORS = {"hasValidationScenario", "hasRegulatorySource"}
+NEW_SUCCESSOR_PREDICATES = {"hasValidationScenario", "hasRegulatorySource"}
 MERGED_ALIASES = {"validatesFitnessForUse"}
 #: Owner decision 2026-10-06 (ADR 0020 D4 follow-up): the closure is exactly these.
 AEBS = "textual-notation-of-model/packages/features/aebs/"
@@ -54,7 +54,7 @@ MODEL_ROOTS = (
     "model-based-product-line-engineering/product-models",
     "model-based-product-line-engineering/scoping",
 )
-O1_GOVERNANCE_FIELDS = (
+INVENTORY_GOVERNANCE_FIELDS = (
     "authority_current", "authority_target", "evidence_state", "adoption_status",
     "transition_gate", "conditional_target", "disposition", "confidence", "stage",
     "unknowns", "required_evidence", "exact_fit_decision",
@@ -90,9 +90,9 @@ def _rows():
 
 
 def _outputs():
-    from de4sdv.semantic import kernel_vocabulary_projection as b2
+    from de4sdv.semantic import kernel_vocabulary_projection as kernel_vocabulary
 
-    return b2.build_outputs(REPO_ROOT, b2.load_document(REPO_ROOT))
+    return kernel_vocabulary.build_outputs(REPO_ROOT, kernel_vocabulary.load_document(REPO_ROOT))
 
 
 # ---------------------------------------------------------------------------
@@ -106,7 +106,7 @@ def test_admitted_set_is_exactly_the_derived_family():
     register = _register()
     other = set().union(*_layer_identities().values())
     retained = {i for i, r in register.items() if r["accounting_status"] == "retained" and not r["o3_complete"]}
-    family = (retained - other) | W6_NEW_SUCCESSORS | MERGED_ALIASES
+    family = (retained - other) | NEW_SUCCESSOR_PREDICATES | MERGED_ALIASES
     from de4sdv.semantic.kernel_vocabulary_projection import ADMISSION_CLASSES
 
     rows = _rows()
@@ -127,10 +127,10 @@ def test_admitted_set_is_exactly_the_derived_family():
         assert admission in ADMISSION_CLASSES, (identity, admission)
         assert ADMISSION_CLASSES[admission] in (None, row["semantic_kind"]), (identity, admission)
         by_class.setdefault(admission, set()).add(identity)
-    assert W6_NEW_SUCCESSORS <= by_class.get("successor", set())
+    assert NEW_SUCCESSOR_PREDICATES <= by_class.get("successor", set())
     assert MERGED_ALIASES <= by_class.get("retired-name", set())
     # The new successors are not register rows.
-    assert not W6_NEW_SUCCESSORS & set(register)
+    assert not NEW_SUCCESSOR_PREDICATES & set(register)
     assert register["validatesFitnessForUse"]["accounting_status"] == "merged"
 
 
@@ -221,7 +221,7 @@ def test_every_contract_row_is_labeled_manifest_held():
     assert labeled == 54
 
 
-def test_successors_and_retired_names_follow_the_w6_transition_plan():
+def test_successors_and_retired_names_follow_the_relationship_redesign():
     """Replaces ``test_successors_and_aliases_follow_the_w6_transition_plan``:
     the former deprecated aliases are retired names (owner decision D4)."""
     rows = _rows()
@@ -307,7 +307,7 @@ def test_generated_rows_carry_no_governance_fields_or_executable_claims():
     assert sorted(entry["for_concept"] for entry in outputs["profile_entries"]) == projected
     for row in outputs["projection_rows"]:
         serialized = json.dumps(row)
-        for field in O1_GOVERNANCE_FIELDS + ("sysml_mapping", "gates", "forward_obligations"):
+        for field in INVENTORY_GOVERNANCE_FIELDS + ("sysml_mapping", "gates", "forward_obligations"):
             assert f'"{field}"' not in serialized, (row["identity"], field)
         assert row["traversal"] is False and row["api_identity"] == "unclaimed"
         assert row["support"] == SUPPORT[row["admission_class"]]
@@ -318,7 +318,7 @@ def test_generated_rows_carry_no_governance_fields_or_executable_claims():
     for entry in outputs["profile_entries"]:
         assert entry["profile_identity"] == f"{PROFILE_SCHEMA}#{entry['for_concept']}"
         serialized = json.dumps(entry)
-        for field in O1_GOVERNANCE_FIELDS + ("sysml_mapping",):
+        for field in INVENTORY_GOVERNANCE_FIELDS + ("sysml_mapping",):
             assert f'"{field}"' not in serialized, (entry["for_concept"], field)
         boundary = rows[entry["for_concept"]]["boundary"]
         assert ("configurator_authority" in entry) == (boundary == "ple-no-configurator-authority")
@@ -440,13 +440,13 @@ _FIXTURE_MANIFEST = {
 
 
 def _fixture(tmp_path, manifest=None, sysml=None, carriers=None):
-    from de4sdv.semantic import kernel_vocabulary_projection as b2
+    from de4sdv.semantic import kernel_vocabulary_projection as kernel_vocabulary
 
     root = tmp_path / "repo"
     files = {
         _FIXTURE_FILE: sysml if sysml is not None else _FIXTURE_SYSML,
         SUCCESSOR_FILE: carriers if carriers is not None else _FIXTURE_CARRIERS,
-        b2.ADMISSION_PATH: yaml.safe_dump(manifest if manifest is not None else _FIXTURE_MANIFEST, sort_keys=False),
+        kernel_vocabulary.ADMISSION_PATH: yaml.safe_dump(manifest if manifest is not None else _FIXTURE_MANIFEST, sort_keys=False),
     }
     for relative, text in files.items():
         target = root / relative
@@ -455,9 +455,9 @@ def _fixture(tmp_path, manifest=None, sysml=None, carriers=None):
     return root
 
 def _build(root):
-    from de4sdv.semantic import kernel_vocabulary_projection as b2
+    from de4sdv.semantic import kernel_vocabulary_projection as kernel_vocabulary
 
-    return b2.build_outputs(root, b2.load_document(root))
+    return kernel_vocabulary.build_outputs(root, kernel_vocabulary.load_document(root))
 
 
 def _mutated(mutate):
@@ -609,23 +609,23 @@ def test_discriminator_pin_must_specialize_and_import_the_kernel_lineage(tmp_pat
 
 
 def test_generation_projects_current_synthetic_sources_without_git_binding(tmp_path):
-    from de4sdv.semantic import kernel_vocabulary_projection as b2
+    from de4sdv.semantic import kernel_vocabulary_projection as kernel_vocabulary
 
     root = _fixture(tmp_path)
     path = root / _FIXTURE_FILE
     path.write_text(path.read_text(encoding="utf-8").replace("Alpha is an exact fixture definition.", "Alpha meaning was edited."), encoding="utf-8")
-    pair = b2.build_artifact_pair(root)
+    pair = kernel_vocabulary.build_artifact_pair(root)
     rows = {row["identity"]: row for row in pair["projection"]["rows"]}
     assert rows["Alpha"]["definition"]["documentation"] == "Alpha meaning was edited."
     assert "binding" not in pair["projection"] and "binding" not in pair["profile"]
     assert rows["oldAlphaLink"]["retired"]["refusal"] == "retired; use alphaLink"
 
 def test_committed_artifacts_match_regeneration():
-    from de4sdv.semantic import kernel_vocabulary_projection as b2
+    from de4sdv.semantic import kernel_vocabulary_projection as kernel_vocabulary
 
-    assert (REPO_ROOT / b2.PROJECTION_PATH).is_file()
-    assert (REPO_ROOT / b2.PROFILE_PATH).is_file()
-    assert b2.run_check_errors(REPO_ROOT) == []
+    assert (REPO_ROOT / kernel_vocabulary.PROJECTION_PATH).is_file()
+    assert (REPO_ROOT / kernel_vocabulary.PROFILE_PATH).is_file()
+    assert kernel_vocabulary.run_check_errors(REPO_ROOT) == []
 
 # This cleanup explicitly retires test_chain_verifier_requires_the_batch2_pair: its
 # only subject was the removed live bound-input set. The verifier now checks
@@ -636,7 +636,7 @@ def test_committed_artifacts_match_regeneration():
 # ---------------------------------------------------------------------------
 
 
-def test_batch2_machinery_is_never_imported_by_the_runtime_path():
+def test_kernel_vocabulary_machinery_is_never_imported_by_the_runtime_path():
     for relative in (
         "de4sdv/semantic/query.py", "de4sdv/semantic/traversal.py",
         "de4sdv/semantic/impact.py", "de4sdv/semantic/mcp_server.py", "de4sdv/semantic/api_binding.py",
@@ -664,7 +664,7 @@ def _passing_gate_mocks():
     return shared()
 
 
-def test_check_repo_actually_invokes_the_batch2_gate():
+def test_check_repo_actually_invokes_the_kernel_vocabulary_gate():
     from unittest import mock
 
     from de4sdv.semantic import kernel_vocabulary_projection
@@ -681,11 +681,11 @@ def test_check_repo_actually_invokes_the_batch2_gate():
     finally:
         for m in mocks:
             m.stop()
-    assert calls, "check_repo did not invoke the batch-2 gate"
+    assert calls, "check_repo did not invoke the kernel-vocabulary gate"
     assert result == 0
 
 
-def test_check_repo_fails_when_the_batch2_gate_fails():
+def test_check_repo_fails_when_the_kernel_vocabulary_gate_fails():
     from unittest import mock
 
     from de4sdv.semantic import kernel_vocabulary_projection
@@ -696,7 +696,7 @@ def test_check_repo_fails_when_the_batch2_gate_fails():
         m.start()
     try:
         with mock.patch.object(kernel_vocabulary_projection, "run_check_errors",
-                               return_value=["sentinel batch-2 error"]):
+                               return_value=["sentinel kernel-vocabulary error"]):
             assert check_repo.main() == 1
     finally:
         for m in mocks:

@@ -1,4 +1,4 @@
-"""Tests for the v1.1-round bounded fixes:
+"""Candidate export, re-import correspondence and pilot read-back:
 
 - isolated exact-SHA candidate export production (real path, distinct artifacts);
 - MC-14 independent-transaction correspondence fail-closed behavior;

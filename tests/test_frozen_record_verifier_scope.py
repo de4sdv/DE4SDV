@@ -2,17 +2,17 @@
 import json
 
 from scripts.verify_generated_chain import verify_generated_chain
-from tests.test_verify_generated_chain import (  # noqa: F401 (``lane`` is a fixture)
+from tests.test_verify_generated_chain import (  # noqa: F401 (``synthetic_frozen_records`` is a fixture)
     FROZEN_A,
     FROZEN_B,
     FROZEN_NOTE,
     MANIFEST,
     _frozen_fixture,
-    lane,
+    synthetic_frozen_records,
 )
 
 
-def test_live_outputs_are_not_historical_revision_evidence(lane, tmp_path):
+def test_live_outputs_are_not_historical_revision_evidence(synthetic_frozen_records, tmp_path):
     root, _, _ = _frozen_fixture(tmp_path)
     live = root / "live/definition-projection.json"
     live.parent.mkdir(parents=True, exist_ok=True)
