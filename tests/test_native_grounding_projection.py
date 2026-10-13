@@ -134,6 +134,90 @@ def test_admitted_and_excluded_are_disjoint(manifest: dict) -> None:
     assert admitted & excluded == set()
 
 
+# Per-row precision for the excluded rows: every considered-but-excluded row is
+# recorded in the admission manifest with its concrete reason, and no aggregate
+# assertion lets a row slip in or out silently.
+
+#: The admitted native and library-mapped rows (``IncrementSize`` is the
+#: model-resident vocabulary row admitted with them).
+NATIVE_AND_LIBRARY_ROWS: tuple[str, ...] = (
+    "VariationPoint",
+    "Variant",
+    "Concern",
+    "Viewpoint",
+    "View",
+    "VerificationMethod",
+    "usesVerificationMethod",
+)
+
+#: Excluded rows pinned with a reason keyword (from the admission manifest).
+EXCLUDED_REASON_KEYWORDS: dict[str, str] = {
+    "EvidenceStatus": "decision-4",
+    "hasEvidenceStatus": "decision-4",
+    "allocatedTo": "W7-held",
+    "variesAt": "PLE-Q/S",
+    "FeatureConfiguration": "decision-9",
+    "selectsFeature": "decision-9",
+    "appliesToMemberProduct": "decision-9",
+    "includesCommonCapability": "decision-9",
+    "selectsVariant": "decision-9",
+    "instantiatesCanonicalArchitecture": "decision-10",
+    "Interface": "decision-5",
+    "ValidationScenario": "validatedBy",
+    "hasStakeholder": "decision-11",
+    "specifiesFeature": "PLE-Q/S",
+    "specifiesCommonCapability": "PLE-Q/S",
+    "recordsGap": "W4 batch 1 treated",
+    "recordsAssumption": "W4 batch 1 treated",
+    "addressesConcern": "W4 batch 1 treated",
+    "selectedViewpoint": "W4 batch 1 treated",
+    "producesView": "W4 batch 1 treated",
+    "EvidenceArtifact": "W5 batch 3 treated",
+    "hasEvidence": "W5 batch 3 treated",
+    "capturedInBaseline": "W5 batch 3 treated",
+    # The class-definition admission treated these two rows after this manifest
+    # was written; the reasons were refreshed to record the treatment while
+    # the rows remain outside this admission (their representation belongs
+    # to the class-definition layer).
+    "Scenario": "Definition admission batch 1 treated",
+    "CommonCapability": "decision-14",
+    "Feature": "decision-14",
+    "MethodEvaluationScope": "decision-7",
+    "ProductLineCharacteristic": "Definition admission batch 1 treated",
+    "Stakeholder": "decision-11",
+    "AssuranceClaim": "decision-3",
+    "ArchitectureElement": "decision-5",
+    "Function": "decision-5",
+    "LogicalElement": "decision-5",
+    "PhysicalElement": "decision-5",
+    "AcceptanceCriterion": "decision-6",
+    "hasAcceptanceCriterion": "decision-6",
+    "EvidenceContract": "evidence-lineage",
+    "hasRelevantEvidenceContract": "evidence-lineage",
+    "constrainedBy": "decision-2",
+    "realizedBy": "decision-1",
+    "deployedTo": "decision-1",
+    "validatedBy": "decision-1",
+    "supportedByEvidence": "decision-3",
+    "TraceLink": "decision-8",
+    "RequiredTraceChain": "decision-8",
+}
+
+
+def test_excluded_matrix_matches_the_admission_manifest(manifest: dict) -> None:
+    manifest_excluded = {row["identity"]: row["reason"] for row in manifest["excluded"]}
+    assert set(manifest_excluded) == set(EXCLUDED_REASON_KEYWORDS)
+    for identity, keyword in EXCLUDED_REASON_KEYWORDS.items():
+        assert keyword in manifest_excluded[identity], identity
+
+
+def test_admitted_rows_are_disjoint_from_excluded(manifest: dict) -> None:
+    admitted = {row["identity"] for row in manifest["admitted"]}
+    excluded = {row["identity"] for row in manifest["excluded"]}
+    assert admitted == set(NATIVE_AND_LIBRARY_ROWS) | {"IncrementSize"}
+    assert admitted & excluded == set()
+
+
 def test_frozen_o2_surface_is_never_admitted(manifest: dict) -> None:
     admitted = {row["identity"] for row in manifest["admitted"]}
     assert admitted & set(native.FROZEN_RECORD_IDENTITIES) == set()
