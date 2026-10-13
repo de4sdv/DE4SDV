@@ -36,6 +36,16 @@ REQUIRED_SUCCESS_CRITERIA_KEYS = {"requirement", "case", "status", "evidence"}
 OPTIONAL_SUCCESS_CRITERIA_KEYS = {"formerly"}
 NEEDS = MODEL_DIR / "aebs_visualization_needs_requirements.sysml"
 
+#: An optional SysML short name before a usage name (`requirement <'ID'> name`),
+#: so a short-named usage never drops out of a population (#355 review R4).
+SHORT_NAME = r"(?:<'[^']*'>\s*)?"
+REQUIREMENT_BLOCK = re.compile(
+    rf"    requirement {SHORT_NAME}(req\w+) : VisualizationInstrumentRequirementCandidate \{{.*?\n    \}}",
+    re.S,
+)
+CANDIDATE_REQUIREMENT = re.compile(rf"requirement {SHORT_NAME}(req\w+) : VisualizationInstrumentRequirementCandidate")
+ANY_REQUIREMENT = re.compile(rf"\brequirement\s+{SHORT_NAME}(req\w+)\s*:")
+
 
 def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
@@ -52,14 +62,22 @@ def _pilot() -> dict:
 def _requirement_blocks() -> dict[str, tuple[str, str]]:
     """REQ ID -> (usage name, declaration block) for each S2 requirement."""
     blocks = {}
-    for match in re.finditer(
-        r"    requirement (req\w+) : VisualizationInstrumentRequirementCandidate \{.*?\n    \}",
-        _read(NEEDS),
-        re.S,
-    ):
+    for match in REQUIREMENT_BLOCK.finditer(_read(NEEDS)):
         req_id = re.search(r"doc /\* (REQ-AEBS-S2-\d{3})", match.group(0)).group(1)
         blocks[req_id] = (match.group(1), match.group(0))
     return blocks
+
+
+def test_population_patterns_see_short_named_usages() -> None:
+    """`requirement <'ID'> name : T {` is a form the AEBS model uses, so a short
+    name must not hide a usage from a population (#355 review R4)."""
+    for short_name in ("", "<'planted short name'> ", "<'planted short name'>"):
+        declaration = (
+            f"    requirement {short_name}reqPlanted : VisualizationInstrumentRequirementCandidate {{\n"
+            "      attribute planted;\n    }"
+        )
+        for pattern in (REQUIREMENT_BLOCK, CANDIDATE_REQUIREMENT, ANY_REQUIREMENT):
+            assert [m[1] for m in pattern.finditer(declaration)] == ["reqPlanted"], (pattern.pattern, short_name)
 
 
 def _success_criteria(block: str) -> str | None:
@@ -480,11 +498,9 @@ def test_fixture_path_case_states_its_synthetic_scope() -> None:
 def test_every_requirement_is_verified_by_a_case_objective() -> None:
     model = _model()
     needs = _read(MODEL_DIR / "aebs_visualization_needs_requirements.sysml")
-    requirements = set(
-        re.findall(r"requirement (req\w+) : VisualizationInstrumentRequirementCandidate", needs)
-    )
+    requirements = set(CANDIDATE_REQUIREMENT.findall(needs))
     # Every requirement usage of the file is checked (by name, not by count).
-    assert requirements and requirements == set(re.findall(r"\brequirement\s+(req\w+)\s*:", needs))
+    assert requirements and requirements == set(ANY_REQUIREMENT.findall(needs))
     objectives = "\n".join(re.findall(r"objective \w+ \{(.*?)\n    \}", model, re.S))
     verified = set(re.findall(r"\bverify (req\w+)", objectives))
     assert requirements <= verified, sorted(requirements - verified)
