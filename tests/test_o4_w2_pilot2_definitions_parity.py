@@ -1,32 +1,9 @@
-"""O4 W2 pilot 2 — bounded method-context definitions-parity batch (six rows).
+"""Historical definition records and current model boundaries.
 
-Pilot scope (exactly six retained, ungated ``MODEL_AUTHORITY_PARITY`` rows,
-all grounded in ``de4sdv_method_context.sysml``): ``IncrementEngineeringQuestion``,
-``IncrementLifecycleDecision``, ``SystemLayer``, ``ProblemStatement``,
-``Assumption``, ``Gap``. The batch closes definition-level doc parity per the
-O4 execution register's W2 evidence requirement (``model-side definition
-parity (normalized-exact text or explicit reviewed equivalence record)``):
-
-1.  the live model doc text of each declaration equals the authored-YAML
-    definition under the inventory's cosmetic normalization only
-    (``normalized-exact`` for all six; no reviewed-equivalence record needed);
-2.  the committed inventory records it: ``doc_text_observation``
-    normalized-exact, ``semantic_text_equivalence`` null, stage
-    ``o4-w2 pilot 2 (definitions parity)``, the remaining O2-admission
-    obligation under O4 (no O3 transition requirement), and a populated
-    exact-fit decision (parity evidence only — no authority cutover);
-3.  the authored YAML remains the untouched comparison source (definitions
-    pinned verbatim);
-4.  no runtime-support promotion, no traversal claim, no conditional target,
-    no closure evidence — and the O4 register rows stay ungated W2 parity
-    rows;
-5.  O3 stays frozen: none of the pilot rows carries an O3 transition
-    requirement and none is a member of the frozen thirteen;
-6.  the batch boundaries hold: ``IncrementEngineeringQuestion`` stays bounded
-    framing vocabulary, ``IncrementLifecycleDecision`` introduces no
-    structural state model, ``SystemLayer`` leaves ADR 0004 framing authority
-    intact, ``ProblemStatement`` remains a requirement definition, and
-    ``Gap`` remains distinct from the realization-record classes.
+This cleanup retires current-documentation equality with copied or frozen definitions.
+Live checks retain owned nonempty documentation, structure and claim boundaries.
+Inventory/decision parity fields below describe frozen historical evidence only;
+they are not recomputed from, or imposed on, current model wording.
 """
 
 from __future__ import annotations
@@ -36,8 +13,7 @@ from pathlib import Path
 
 import yaml
 
-from de4sdv.semantic.authority_inventory import doc_text_observation
-from model_contract_fixtures import reviewed_definition
+from model_contract_fixtures import admission_row, owned_definition_documentation
 from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
 
 REPO = Path(__file__).resolve().parents[1]
@@ -58,31 +34,6 @@ PILOT_ROWS: dict[str, str] = {
     "Gap": "part def IncrementGap",
 }
 
-REVIEWED_DEFINITIONS: dict[str, str] = {
-    "IncrementEngineeringQuestion": (
-        "The engineering question that an increment answers."
-    ),
-    "IncrementLifecycleDecision": (
-        "A lifecycle decision that an increment supports "
-        "(accepted, deferred, or invalidated)."
-    ),
-    "SystemLayer": (
-        "Coarse ASELCM-style layer used to frame DE4SDV increments and their "
-        "environments."
-    ),
-    "ProblemStatement": (
-        "The problem that is to be solved by the system or increment, modeled "
-        "as a requirement."
-    ),
-    "Assumption": (
-        "A stated condition treated as true for the purpose of an increment, "
-        "model, scenario, analysis, or evidence record."
-    ),
-    "Gap": (
-        "A known missing trace link, missing evidence item, unresolved "
-        "uncertainty, or unproven claim that must not be hidden."
-    ),
-}
 
 #: The remaining forward obligation under O4 for a parity-closed W2 row: O2
 #: admission / generated projection from the reviewed model representation.
@@ -127,13 +78,11 @@ def _declaration_block(text: str, declaration: str) -> list[str]:
     return block
 
 
-def test_live_model_doc_parity_is_normalized_exact() -> None:
+def test_live_model_definitions_have_owned_nonempty_documentation() -> None:
+    # This cleanup retired live normalized-exact prose parity; keep the real owned homes.
     file_text = MODEL_PATH.read_text(encoding="utf-8")
     for identity, declaration in PILOT_ROWS.items():
-        definition = reviewed_definition(identity)
-        assert definition == REVIEWED_DEFINITIONS[identity]
-        observation = doc_text_observation(file_text, declaration, definition)
-        assert observation == "normalized-exact", identity
+        assert owned_definition_documentation(file_text, declaration).strip(), identity
 
 
 def test_inventory_records_the_closed_parity() -> None:
@@ -272,12 +221,18 @@ def test_all_six_blocks_are_doc_only() -> None:
         assert inner[0].strip().startswith("doc /*"), identity
 
 
-def test_admission_manifest_reviewed_definitions_are_untouched() -> None:
-    """Replaces ``test_yaml_comparison_source_is_untouched``: since O4 Wave C2
-    the reviewed definitions live in the admission manifests (proven equal to
-    the deleted authored ontology in closure/contract-equivalence.json)."""
-    for identity, definition in REVIEWED_DEFINITIONS.items():
-        assert reviewed_definition(identity) == definition, identity
+def test_admission_manifest_has_locators_not_copied_definition_oracles() -> None:
+    # This cleanup retired the unchanged copied-definition subject, not admission scope.
+    for identity, declaration in PILOT_ROWS.items():
+        row = admission_row(identity)
+        assert row["declaration"] == {
+            "file": MODEL_PATH.relative_to(REPO).as_posix(),
+            "declaration": declaration,
+        }, identity
+        assert not {
+            "reviewed_definition", "expected_documentation_observation",
+            "semantic_text_equivalence",
+        } & set(row), identity
 
 
 def test_unrelated_reviewed_rows_are_unchanged() -> None:

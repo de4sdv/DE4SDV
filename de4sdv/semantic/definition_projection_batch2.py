@@ -14,8 +14,8 @@ locates and reads itself, fail-closed:
 
 * ``owned-doc`` / ``named-doc`` — a definition declaration (``<kind> def``) or
   a package, and ONE directly owned Documentation (anonymous or named, selected
-  by name + index). The reviewed definition is the parity oracle; the recomputed
-  observation must be ``normalized-exact`` (cosmetic normalization only).
+  by name + index). The model is the documentation authority; no copied
+  reviewed definition is required or used as a second text-parity oracle.
 * ``vocabulary-role`` — a directly owned named comment
   ``comment <Name> about <targets> /* ... */`` of the owning package; every
   ``about`` target must be a live definition or named documentation of the
@@ -52,11 +52,15 @@ Rows claim no traversal proof and no API element identity; a retired name
 answers no fact and never translates an old signature into a broader
 successor contract.
 
+Construction uses current admitted sources, including uncommitted edits,
+without a Git source-revision binding. The live gate requires exact regenerated
+bytes for both artifacts; missing and stale outputs fail closed. Frozen
+historical evidence retains its separate revision-bound contract unchanged.
+
 Read-only and offline; never imported by the runtime.
 """
 from __future__ import annotations
 
-import json
 import re
 from pathlib import Path
 from typing import Any
@@ -159,7 +163,7 @@ SUCCESSOR_PACKAGE = "DE4SDV_RelationshipSuccessor"
 
 _COMMON_KEYS = frozenset(
     {"identity", "semantic_kind", "admission_class", "register", "boundary", "home",
-     "reviewed_definition", "gates", "forward_obligations"}
+     "gates", "forward_obligations"}
 )
 _CLASS_KEYS = frozenset({"grounding", "external_reference"})
 _RELATIONSHIP_KEYS = frozenset(
@@ -499,11 +503,6 @@ def _validate_row(row: Any) -> str:
     _require(row["boundary"] in BOUNDARIES, f"{identity}: unknown boundary")
     _validate_home(identity, row["home"])
     form = row["home"]["form"]
-    reviewed = row["reviewed_definition"]
-    if form in ("owned-doc", "named-doc"):
-        _require(_nonempty(reviewed), f"{identity}: a documentation home needs the reviewed definition oracle")
-    else:
-        _require(reviewed is None, f"{identity}: {form} homes carry no authored definition")
     _validate_gates(identity, row)
     if kind == "class":
         _require(form in ("owned-doc", "named-doc"), f"{identity}: classes need a definition documentation home")
@@ -621,12 +620,6 @@ def load_document(root: Path) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def _inventory():  # type: ignore[no-untyped-def]
-    from de4sdv.semantic import authority_inventory
-
-    return authority_inventory
-
-
 class _Model:
     def __init__(self, root: Path) -> None:
         self.root = root
@@ -676,14 +669,11 @@ def _definition_text(model: _Model, row: dict[str, Any]) -> tuple[dict[str, Any]
         _require(len(docs) > home["index"],
                  f"{identity}: {home['owner']} owns no {'named ' + name if name else 'anonymous'} documentation at index {home['index']}")
         body = clean_body(docs[home["index"]]["body"])
-        normalize = _inventory().normalize_text
-        observation = "normalized-exact" if normalize(body) == normalize(row["reviewed_definition"]) else "differs"
-        _require(observation == "normalized-exact",
-                 f"{identity}: model documentation and reviewed definition differ (batch 2 admits normalized-exact only)")
+        _require(bool(body), f"{identity}: {home['owner']} owns empty documentation")
         witness = {"source_file": home["file"], "owner": home["owner"], "form": form,
                    "documentation_name": name, "documentation_index": home["index"]}
         return {"documentation": body, "documentation_witness": witness,
-                "documentation_observation": observation}, form
+                "documentation_observation": "model-owned-documentation"}, form
     if form == "vocabulary-role":
         comments = [a for a in annotations if a["kind"] == "comment" and a["name"] == home["name"]]
         _require(len(comments) == 1, f"{identity}: {home['owner']} must own exactly one comment {home['name']}")
@@ -958,6 +948,7 @@ def build_outputs(root: Path, document: dict[str, Any]) -> dict[str, Any]:
 
 
 def collect_bound_inputs(root: Path, outputs: dict[str, Any]) -> dict[str, str]:
+    """Legacy diagnostic input inventory; live construction emits no digest binding."""
     from de4sdv.semantic.authority_inventory import file_digest
 
     paths = {ADMISSION_PATH, DESIGN_PATH, MODULE_PATH, GENERATOR_PATH,
@@ -969,55 +960,14 @@ def collect_bound_inputs(root: Path, outputs: dict[str, Any]) -> dict[str, str]:
     return bound
 
 
-def build_artifact_pair(root: Path, *, source_revision: str) -> dict[str, Any]:
-    from de4sdv.semantic.authority_inventory import InventoryError, verify_source_revision_contains_inputs
-
+def build_artifact_pair(root: Path) -> dict[str, Any]:
+    """Build the live pair from current admitted model sources, without Git pins."""
     document = load_document(root)
     outputs = build_outputs(root, document)
-    bound_inputs = collect_bound_inputs(root, outputs)
-    try:
-        verify_source_revision_contains_inputs(root, source_revision, bound_inputs)
-    except InventoryError as exc:
-        raise DefinitionBatch2Error(str(exc)) from exc
-    model_inputs = [path for path in outputs["model_inputs"] if path.startswith("textual-notation-of-model/")]
-    binding = {
-        "source_revision": source_revision,
-        "source_revision_note": (
-            "Git commit that contains every bound input byte-for-byte. The gate "
-            "validates commit existence, ancestry of the checked-out revision, "
-            "per-input content equality and the recorded content digests."
-        ),
-        "artifact_commit": None,
-        "artifact_commit_note": "Unknowable at generation; left explicitly unclaimed.",
-        "generation_software": {
-            "program_inputs": [MODULE_PATH, GENERATOR_PATH, AUTHORITY_INVENTORY_PATH, PROJECTION_O2P_PATH],
-            "note": (
-                "The batch-2 module, the shared generator script, and the two shared "
-                "modules executed at generation time (normalization, digests and "
-                "revision containment; canonical JSON)."
-            ),
-        },
-        "semantic_model_revision": {
-            "model_inputs": model_inputs,
-            "note": "The governed model files read by the generator, contained byte-for-byte in source_revision.",
-        },
-        "governance_inputs": {
-            "admission_document": {"path": ADMISSION_PATH, "digest": bound_inputs[ADMISSION_PATH]},
-            "design_record": {"path": DESIGN_PATH, "digest": bound_inputs[DESIGN_PATH]},
-            "external_reference_profile": (
-                {"path": EXTERNAL_REFERENCE_PROFILE_PATH, "digest": bound_inputs[EXTERNAL_REFERENCE_PROFILE_PATH]}
-                if EXTERNAL_REFERENCE_PROFILE_PATH in bound_inputs else None
-            ),
-        },
-        "api_binding": {"status": "unclaimed",
-                        "note": "No SysML API element UUID is claimed; profile entries state representation mechanics only."},
-        "bound_inputs": bound_inputs,
-    }
     projection = {
         "schema": PROJECTION_SCHEMA,
         "status": "admitted",
         "warning": WARNING,
-        "binding": binding,
         "scope": {
             "admission": "O4 definition-admission batch 2 (definition-admission-batch2.yaml)",
             "admitted": outputs["admitted"],
@@ -1033,44 +983,37 @@ def build_artifact_pair(root: Path, *, source_revision: str) -> dict[str, Any]:
         "schema": PROFILE_SCHEMA,
         "status": "admitted",
         "warning": WARNING,
-        "binding": binding,
         "entries": outputs["profile_entries"],
     }
     return {"projection": projection, "profile": profile}
 
 
 def run_check_errors(root: Path) -> list[str]:
-    """Fail-closed repository check for the batch-2 admissions and artifacts."""
-    from de4sdv.semantic.authority_inventory import validate_source_binding
+    """Require the live pair to equal deterministic regeneration byte-for-byte.
+
+    Current admitted sources are validated even when artifacts are missing.
+    Uncommitted model edits are allowed; missing or stale outputs are not.
+    """
     from de4sdv.semantic.projection_o2p import canonical_json
 
     try:
-        document = load_document(root)
-        build_outputs(root, document)
+        artifacts = build_artifact_pair(root)
     except DefinitionBatch2Error as exc:
         return [f"{ADMISSION_PATH}: {exc}"]
-    missing = [rel for rel in (PROJECTION_PATH, PROFILE_PATH) if not (root / rel).is_file()]
-    if missing:
-        return [
-            f"{rel}: batch-2 definition artifacts not generated yet; commit the "
-            "admission inputs first, then run scripts/generate_definition_projection.py "
-            "(two-commit source binding)"
-            for rel in missing
-        ]
-    try:
-        committed = json.loads((root / PROJECTION_PATH).read_text(encoding="utf-8"))
-        binding = committed["binding"]
-    except (KeyError, ValueError, TypeError) as exc:
-        return [f"{PROJECTION_PATH}: cannot read binding for validation: {exc}"]
-    binding_errors = validate_source_binding(root, binding)
-    if binding_errors:
-        return [f"{PROJECTION_PATH}: source-revision binding invalid: {error}" for error in binding_errors]
-    try:
-        artifacts = build_artifact_pair(root, source_revision=binding["source_revision"])
-    except DefinitionBatch2Error as exc:
-        return [f"batch-2 definition artifact generation failed: {exc}"]
-    errors = []
+    errors: list[str] = []
     for key, relative in (("projection", PROJECTION_PATH), ("profile", PROFILE_PATH)):
-        if canonical_json(artifacts[key]) != (root / relative).read_text(encoding="utf-8"):
-            errors.append(f"{relative}: committed {key} differs from regeneration from current inputs (regenerate and commit)")
+        path = root / relative
+        if not path.is_file():
+            errors.append(
+                f"{relative}: batch-2 definition artifact missing; run "
+                "scripts/generate_definition_projection.py (regenerate and commit "
+                "with the current sources)"
+            )
+        elif canonical_json(artifacts[key]).encode("utf-8") != path.read_bytes():
+            errors.append(
+                f"{relative}: committed {key} differs from regeneration from "
+                "current inputs; run scripts/generate_definition_projection.py "
+                "and commit the output with the source change "
+                "(docs/guides/generated-semantic-assets.md)"
+            )
     return errors

@@ -1,16 +1,9 @@
-"""O4 W2 batch 5 — realization-gap record definitions parity (two rows).
+"""Historical definition records and current model boundaries.
 
-Batch scope (exactly two retained, ungated ``MODEL_AUTHORITY_PARITY`` rows
-grounded in ``de4sdv_method_context.sysml``):
-
-* ``MissingRealizationRecord``      -> ``part def MissingRealizationRecord``
-* ``BlockedRealizationBranchRecord`` -> ``part def BlockedRealizationBranchRecord``
-
-Both close definition-level parity normalized-exact: the model doc carries
-the reviewed definition text verbatim under cosmetic normalization only.  The
-records remain bounded gap/blockage records — distinct from the ``Gap``
-identity and from the c5 realization relationships — and are not authority
-for realization semantics.
+This cleanup retires current-documentation equality with copied or frozen definitions.
+Live checks retain owned nonempty documentation, structure and claim boundaries.
+Inventory/decision parity fields below describe frozen historical evidence only;
+they are not recomputed from, or imposed on, current model wording.
 """
 
 from __future__ import annotations
@@ -22,6 +15,7 @@ import pytest
 import yaml
 
 from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
+from model_contract_fixtures import owned_definition_documentation
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 METHOD_CONTEXT = REPO_ROOT / "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
@@ -34,14 +28,6 @@ BATCH_ROWS = ("MissingRealizationRecord", "BlockedRealizationBranchRecord")
 MAPPING = {
     "MissingRealizationRecord": "part def MissingRealizationRecord",
     "BlockedRealizationBranchRecord": "part def BlockedRealizationBranchRecord",
-}
-ACCEPTED_DEFINITION = {
-    "MissingRealizationRecord": (
-        "A record of a missing or blocked realization allocation for a conceptual element."
-    ),
-    "BlockedRealizationBranchRecord": (
-        "A record of a realization branch blocked by a source defect or gap."
-    ),
 }
 # later-batch convention (definition admission batch 1): the parity stage
 # is superseded by the shared admission stage.
@@ -140,10 +126,10 @@ def test_declaration_mapping(inventory):
         assert observed["yaml_path"] == f"classes:{identity}"
 
 
-def test_accepted_definitions_are_carried(model_text):
+def test_definitions_have_owned_nonempty_documentation(model_text):
+    # This cleanup retired accepted-definition copied prose, not the declaration homes.
     for identity in BATCH_ROWS:
-        block = _flat(" ".join(_declaration_block(model_text, MAPPING[identity])))
-        assert ACCEPTED_DEFINITION[identity] in block, identity
+        assert owned_definition_documentation(model_text, MAPPING[identity]).strip(), identity
 
 
 def test_honest_parity_state(inventory, decisions):

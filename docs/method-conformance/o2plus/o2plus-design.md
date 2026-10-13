@@ -1,5 +1,10 @@
 # O2+ design — native/library grounding & projection layer (accelerated safe-set 1)
 
+> **Current generation workflow.** The source-binding and delivery sequence
+> below describe historical work. Live outputs now use deterministic
+> [current-source generation](../../guides/generated-semantic-assets.md) and
+> ship with their source changes in one squash-safe commit.
+
 Date: 2026-09-19 · Plan: O4 execution plan (`docs/method-conformance/o4/o4-execution-plan.md`)
 · Review: Deliverable 8 wave 3 (native/library projection rows) · Base: `main` after
 W2 batch 6 recovery = `2668342c40b0477dab8bb73f353463f0a09cd7b6`.

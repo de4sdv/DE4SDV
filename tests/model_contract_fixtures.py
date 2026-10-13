@@ -136,27 +136,50 @@ def admission_row(identity: str) -> dict[str, Any]:
     return _admission_rows()[identity]
 
 
-def reviewed_definition(identity: str) -> str:
-    """The reviewed definition text of one identity.
+def owned_definition_documentation(source: str, declaration: str) -> str:
+    """Require nonempty immediately owned Documentation, not copied prose."""
+    from de4sdv.semantic import authority_inventory as inventory
 
-    Since O4 Wave C2 the admission manifests hold the reviewed definitions
-    (proven equal to the deleted authored ontology before its deletion:
-    docs/method-conformance/o4/closure/contract-equivalence.json).
+    block, bodyless = inventory.declaration_block(source, declaration)
+    if not block or bodyless:
+        raise ValueError(f"{declaration}: missing current definition home")
+    text = " ".join(inventory._owned_doc_bodies(block))
+    if not text.strip():
+        raise ValueError(f"{declaration}: empty current model-owned documentation")
+    return text
+
+
+def current_definition(identity: str) -> str:
+    """Read current model-owned meaning for synthetic runtime consumers.
+
+    This cleanup retired the live copied-definition oracle. Admission rows locate model
+    documentation; neither frozen authored prose nor generated JSON is a
+    fallback. This helper is not an expected-output oracle for generators.
+    ``authored_definition`` remains exclusively a frozen-evidence fixture.
     """
-    text = admission_row(identity).get("reviewed_definition")
-    if not text:
-        raise KeyError(f"{identity} has no reviewed definition in the admission manifests")
+    row = admission_row(identity)
+    if "declaration" in row:
+        locator = row["declaration"]
+        source = (REPO_ROOT / locator["file"]).read_text(encoding="utf-8")
+        text = owned_definition_documentation(source, locator["declaration"])
+    else:
+        from de4sdv.semantic.definition_projection_batch2 import _Model, _definition_text
+
+        definition, _ = _definition_text(_Model(REPO_ROOT), row)
+        text = definition["documentation"]
+    if not text.strip():
+        raise ValueError(f"{identity}: empty current model-owned documentation")
     return text
 
 
 def manifest_held_values(row: dict[str, Any]) -> dict[str, Any]:
     """The contract fields one batch-2 manifest row holds (owner decision D9).
 
-    Same extraction as the pre-deletion comparison
-    (``scripts/compare_model_contract.py`` at the stage-4 commit of O4 Wave
-    C2, recorded in contract-equivalence.json ``manifest_held_fields``).
+    Preserve the structural fields recorded by the pre-deletion comparison.
+    This cleanup retired its copied prose field; historical evidence remains unchanged.
     """
-    values: dict[str, Any] = {"reviewed_definition": row.get("reviewed_definition")}
+    # This cleanup retired copied prose; retain only the structural manifest-held fields.
+    values: dict[str, Any] = {}
     if row["semantic_kind"] == "class":
         grounding = row["grounding"]
         values.update(kernel_mapping=grounding["kernel_mapping"],
@@ -170,5 +193,5 @@ def manifest_held_values(row: dict[str, Any]) -> dict[str, Any]:
 
 
 __all__ = ["admission_row", "manifest_held_values", "authored_definition", "contract_equivalence_evidence",
-           "reviewed_definition", "REPO_ROOT", "binding", "binding_dict", "model_contract",
+           "current_definition", "owned_definition_documentation", "REPO_ROOT", "binding", "binding_dict", "model_contract",
            "model_facade", "model_service", "semantic_authority_dict", "synthetic_identity"]

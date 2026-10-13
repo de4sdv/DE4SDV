@@ -1,32 +1,9 @@
-"""O4 W2 pilot 1 — bounded definitions-parity batch (three method-increment classes).
+"""Historical definition records and current model boundaries.
 
-Pilot scope (exactly three retained, ungated ``MODEL_AUTHORITY_PARITY``
-rows): ``EngineeringIncrement``, ``FeatureIncrement``,
-``NeedsRequirementsIncrement`` — the method-increment classes of
-``de4sdv_method_context.sysml``. The batch closes definition-level doc
-parity per the O4 execution register's W2 evidence requirement
-(``model-side definition parity (normalized-exact text or explicit reviewed
-equivalence record)``):
-
-1.  the live model doc text of each declaration equals the authored-YAML
-    definition under the inventory's cosmetic normalization only
-    (``normalized-exact``; no reviewed-equivalence record is needed);
-2.  the committed inventory records it: ``doc_text_observation``
-    normalized-exact, ``semantic_text_equivalence`` null, stage
-    ``o4-w2 pilot 1 (definitions parity)``, the remaining O2-admission
-    obligation under O4 (no O3 transition requirement), and a populated
-    exact-fit decision (evidence of parity only — no authority cutover);
-3.  the authored YAML remains the untouched comparison source (definitions
-    pinned verbatim);
-4.  no runtime-support promotion, no traversal claim, no conditional
-    target, no closure evidence — and the O4 register rows stay ungated
-    W2 parity rows whose retirement condition still requires O2 admission;
-5.  O3 stays frozen: none of the pilot rows carries an O3 transition
-    requirement, none is a member of the frozen thirteen
-    ``MIGRATED_IDENTITIES``, and the O3 equivalence scope stays at exactly
-    its thirteen frozen identities;
-6.  unrelated reviewed rows keep their states (W1-corrected demotion, c1
-    batch outcomes, the K row).
+This cleanup retires current-documentation equality with copied or frozen definitions.
+Live checks retain owned nonempty documentation, structure and claim boundaries.
+Inventory/decision parity fields below describe frozen historical evidence only;
+they are not recomputed from, or imposed on, current model wording.
 """
 
 from __future__ import annotations
@@ -36,8 +13,7 @@ from pathlib import Path
 
 import yaml
 
-from de4sdv.semantic.authority_inventory import doc_text_observation
-from model_contract_fixtures import reviewed_definition
+from model_contract_fixtures import admission_row, owned_definition_documentation
 from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
 
 REPO = Path(__file__).resolve().parents[1]
@@ -55,20 +31,6 @@ PILOT_ROWS: dict[str, str] = {
     "NeedsRequirementsIncrement": "part def NeedsRequirementsIncrement",
 }
 
-REVIEWED_DEFINITIONS: dict[str, str] = {
-    "EngineeringIncrement": (
-        "A bounded DE4SDV work package that changes, tests, or publishes "
-        "engineering knowledge."
-    ),
-    "FeatureIncrement": (
-        "An engineering increment focused on a product-line feature, common "
-        "capability, or native SysML v2 variation/variant choice."
-    ),
-    "NeedsRequirementsIncrement": (
-        "An engineering increment focused on needs, draft requirements, "
-        "traceability, and V&V planning."
-    ),
-}
 
 #: The remaining forward obligation under O4 for a parity-closed W2 row: O2
 #: admission / generated projection from the reviewed model representation.
@@ -100,13 +62,11 @@ def _entries(inventory: dict, identities=None) -> dict:
     return {identity: entries[identity] for identity in identities}
 
 
-def test_live_model_doc_parity_is_normalized_exact() -> None:
+def test_live_model_definitions_have_owned_nonempty_documentation() -> None:
+    # This cleanup retired live normalized-exact prose parity; keep the real owned homes.
     file_text = MODEL_PATH.read_text(encoding="utf-8")
     for identity, declaration in PILOT_ROWS.items():
-        definition = reviewed_definition(identity)
-        assert definition == REVIEWED_DEFINITIONS[identity]
-        observation = doc_text_observation(file_text, declaration, definition)
-        assert observation == "normalized-exact", identity
+        assert owned_definition_documentation(file_text, declaration).strip(), identity
 
 
 def test_inventory_records_the_closed_parity() -> None:
@@ -200,12 +160,18 @@ def test_feature_increment_note_preserves_ple_qualification() -> None:
     assert "does not decide configurator authority or decision-9" in note
 
 
-def test_admission_manifest_reviewed_definitions_are_untouched() -> None:
-    """Replaces ``test_yaml_comparison_source_is_untouched``: since O4 Wave C2
-    the reviewed definitions live in the admission manifests (proven equal to
-    the deleted authored ontology in closure/contract-equivalence.json)."""
-    for identity, definition in REVIEWED_DEFINITIONS.items():
-        assert reviewed_definition(identity) == definition, identity
+def test_admission_manifest_has_locators_not_copied_definition_oracles() -> None:
+    # This cleanup retired the unchanged copied-definition subject, not admission scope.
+    for identity, declaration in PILOT_ROWS.items():
+        row = admission_row(identity)
+        assert row["declaration"] == {
+            "file": MODEL_PATH.relative_to(REPO).as_posix(),
+            "declaration": declaration,
+        }, identity
+        assert not {
+            "reviewed_definition", "expected_documentation_observation",
+            "semantic_text_equivalence",
+        } & set(row), identity
 
 
 def test_unrelated_reviewed_rows_are_unchanged() -> None:

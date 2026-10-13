@@ -1,5 +1,10 @@
 # O4 definition-admission batch 1 — design record
 
+> **Current generation workflow.** This is a historical design record. Its
+> source-binding procedure and duplicate definition-text comparison are
+> superseded by [current-source generation](../../guides/generated-semantic-assets.md).
+> Live outputs ship with their source changes in one squash-safe commit.
+
 > **O4 Wave C2 note.** The authored ontology this record compares against was
 > deleted in Wave C2. The batch-1 pair is now a layer of the model-built kernel
 > contract; its last authored-ontology parity is recorded in

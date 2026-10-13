@@ -15,6 +15,8 @@ PACKAGE = "DE4SDV_RelationshipSuccessor"
 # mappings (``model_contract.model_class_pins``), not by file-path records
 # inside the successor package: the layers carry the class-to-declaration
 # mapping, and the pin files are bound inputs of the contract.
+SEMANTIC_FIELDS = ("schema", "supersedes", "classes", "carriers", "relations", "retired")
+# Construction provenance only; these bytes never contribute to semantic id.
 PROGRAM_INPUTS = (
     "de4sdv/semantic/relationship_successor_contract.py",
     "de4sdv/semantic/relationship_successor.py",
@@ -41,6 +43,20 @@ PROGRAM_INPUTS = (
 
 def digest(data):
     return "sha256:" + hashlib.sha256(data).hexdigest()
+
+
+def semantic_payload(contract: dict) -> dict:
+    """The complete successor meaning allowed into semantic identity.
+
+    Covers the version/supersedes declaration, exact class and carrier
+    file/declaration pins, every relation record (predicate, carrier, mechanism,
+    strength, endpoint classes/usages and inverse), and retirement reasons.
+    ``id`` is derived; ``bound_inputs`` is an exact-byte construction receipt,
+    not meaning: Python bytes, source formatting/comments, projection bindings,
+    pilot YAML and unrelated AEBS content are explicitly excluded from id.
+    Source/pin validation and receipt verification remain separate checks.
+    """
+    return {key: contract[key] for key in SEMANTIC_FIELDS}
 
 
 def _lexical_mask(text: str, *, mask_strings: bool) -> str:
@@ -242,6 +258,9 @@ def generate_contract(root: Path, *, class_pins: dict, pin_inputs: tuple[str, ..
             raise ValueError(f"missing complete record {name}")
         values = {}
         fields, field_code = _owned_matches(block, r"attribute\s+:>>\s+\w+\s*=\s*[^;]*;")
+        attributes, _ = _owned_matches(block, r"\battribute\b")
+        if {attribute.start() for attribute in attributes} != {field.start() for field in fields}:
+            raise ValueError(f"unsupported record field in {name}")
         for field in fields:
             parsed = re.fullmatch(r'attribute\s+:>>\s+(\w+)\s*=\s*("(?:[^"\\]|\\.)*")\s*;',
                                   field_code[field.start():field.end()])
@@ -351,14 +370,16 @@ def generate_contract(root: Path, *, class_pins: dict, pin_inputs: tuple[str, ..
     inverse_names = [rows[0]["inverse"] for rows in relations.values() if rows[0]["inverse"]]
     if len(inverse_names) != len(set(inverse_names)) or set(inverse_names) & (set(relations) | set(retirements)) or set(relations) & set(retirements):
         raise ValueError("overlapping relationship identities")
-    payload = dict(schema=versions[0]["version"], supersedes=versions[0]["supersedes"],
+    payload: dict = dict(schema=versions[0]["version"], supersedes=versions[0]["supersedes"],
                    classes=classes, carriers=carriers, relations=relations, retired=retirements,
                    bound_inputs={p: digest((root / p).read_bytes()) for p in sorted(inputs)})
-    payload["id"] = digest(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode())
+    payload["id"] = digest(json.dumps(semantic_payload(payload), sort_keys=True,
+                                      separators=(",", ":")).encode())
     return payload
 
 
 def verify_contract(contract, root, *, class_pins, pin_inputs):
+    """Verify an exact construction receipt, separately from semantic equality."""
     regenerated = generate_contract(root, class_pins=class_pins, pin_inputs=pin_inputs)
     if regenerated != contract:
         changed = sorted(p for p, d in contract.get("bound_inputs", {}).items()

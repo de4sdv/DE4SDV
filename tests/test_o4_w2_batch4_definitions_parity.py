@@ -1,18 +1,9 @@
-"""O4 W2 batch 4 — requirements-lineage definitions parity (three rows).
+"""Historical definition records and current model boundaries.
 
-Batch scope (exactly three retained, ungated ``MODEL_AUTHORITY_PARITY`` rows
-grounded in ``de4sdv_method_context.sysml``):
-
-* ``Need``                 -> ``requirement def StakeholderNeedCandidate``
-* ``Requirement``          -> ``requirement def RequirementCandidate``
-* ``RegulatoryConstraint`` -> ``requirement def RegulatoryConstraintCandidate``
-
-All three close their definition-level parity by explicit reviewed-equivalence
-records: the model doc carries the accepted definition verbatim plus preserved
-reviewed content (NRM/ADR-0009 lineage; SYSMOD seam/candidate context; R003
-derivation grounding).  The tests below machine-pin the batch scope, the
-mappings, the accepted definitions, the honest classification, the lifecycle
-state, and the structural boundaries that must remain unchanged.
+This cleanup retires current-documentation equality with copied or frozen definitions.
+Live checks retain owned nonempty documentation, structure and claim boundaries.
+Inventory/decision parity fields below describe frozen historical evidence only;
+they are not recomputed from, or imposed on, current model wording.
 """
 
 from __future__ import annotations
@@ -25,6 +16,7 @@ import pytest
 import yaml
 
 from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
+from model_contract_fixtures import owned_definition_documentation
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 METHOD_CONTEXT = REPO_ROOT / "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
@@ -43,17 +35,6 @@ DECLARATION_NAME = {
     "Need": "StakeholderNeedCandidate",
     "Requirement": "RequirementCandidate",
     "RegulatoryConstraint": "RegulatoryConstraintCandidate",
-}
-ACCEPTED_DEFINITION = {
-    "Need": "Stakeholder-expressed problem-space intent, before conversion into design-input requirements.",
-    "Requirement": (
-        "A verifiable design input obligation or constraint derived from needs, standards, "
-        "or architecture decisions."
-    ),
-    "RegulatoryConstraint": (
-        "A constraint or reference derived from a standard, regulation, or "
-        "homologation-relevant source, with controlled source identity and no compliance claim."
-    ),
 }
 # later-batch convention (definition admission batch 1): the parity stage
 # is superseded by the shared admission stage.
@@ -139,10 +120,10 @@ def test_declaration_mapping(inventory):
         assert observed["yaml_path"] == f"classes:{identity}"
 
 
-def test_accepted_definitions_are_carried(model_text):
+def test_definitions_have_owned_nonempty_documentation(model_text):
+    # This cleanup retired accepted-definition copied prose, not the declaration homes.
     for identity in BATCH_ROWS:
-        block = _flat(" ".join(_declaration_block(model_text, MAPPING[identity])))
-        assert ACCEPTED_DEFINITION[identity] in block, identity
+        assert owned_definition_documentation(model_text, MAPPING[identity]).strip(), identity
 
 
 # ---------------------------------------------------------------------------

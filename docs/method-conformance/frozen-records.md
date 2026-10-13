@@ -56,10 +56,10 @@ The frozen lane of `scripts/verify_generated_chain.py` checks, fail-closed:
    and must match their frozen digests; the O3 `comparison_base_revision`
    exists and is an ancestor of `HEAD`.
 
-`scripts/check_repo.py` runs the frozen lane instead of the former O1 and O2
-v1 to v1.2 regeneration checks. The live lanes of the verifier no longer
-cover frozen records, and no longer read the authored ontology to derive their
-inputs.
+`scripts/check_repo.py` runs these historical checks separately from current-source
+generation checks. `scripts/verify_generated_chain.py` verifies historical records
+only. Live projection/profile freshness is enforced by deterministic regeneration
+and exact comparison in each generator's check mode, not Git-commit bindings.
 
 ## Retired generators
 

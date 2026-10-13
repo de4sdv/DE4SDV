@@ -32,10 +32,10 @@ review evidence (see the bounded acceptance review document), never as a
 personal approval.
 
 Generated artifacts: ``build_artifact_pair`` emits the carrier Projection and
-Profile documents bound to a Git source revision, reusing the verified
-O1/O2+ binding machinery (bound-input digests, revision containment check,
-regeneration equality). ``run_check_errors`` refuses a repository where the
-admissions exist but the artifacts are missing or stale.
+Profile documents deterministically from current governed inputs, without
+Git-revision or input-digest bindings. ``run_check_errors`` validates those
+inputs and refuses missing artifacts or bytes differing from regeneration.
+No input commit is required to construct or check this live pair.
 
 Read-only and offline; never imported by the runtime.
 """
@@ -194,22 +194,24 @@ def _owned_doc_bodies(block: str) -> list[str]:
 
 
 def _ontology_kernel_index(root: Path) -> dict[str, tuple[str, str] | None]:
-    """Reviewed-identity -> kernel mapping, from the model-built contract.
+    """Reviewed-identity -> kernel mapping, from the class-source layers.
 
-    Every class identity of the model-built kernel contract
-    (``KernelContract.from_layers``) maps either to a ``(file, declaration)``
+    Every class identity of the model-built contract maps to a ``(file, declaration)``
     pair (repo-resident semantics) or to ``None`` (native/external semantics
     with no kernel declaration). An end whose reviewed identity is not a
     contract class at all is refused by the caller: the reviewed
     domain/range must be a governed identity. Validation input only; the
     generated rows do not depend on it beyond refusal.
     """
-    from de4sdv.semantic.kernel_contract import KernelContract, KernelFileMapping
+    from de4sdv.semantic.kernel_contract import KernelFileMapping
+    from de4sdv.semantic.model_contract import ModelAuthorityRefused, _carrier_class_mappings
 
-    contract = KernelContract.from_layers(root)
+    try:
+        mappings = _carrier_class_mappings(root)
+    except ModelAuthorityRefused as exc:
+        raise CarrierError(f"carrier class-source construction refused: {exc}") from exc
     index: dict[str, tuple[str, str] | None] = {}
-    for name in contract.classes:
-        mapping = contract.mapping(name)
+    for name, mapping in mappings.items():
         if isinstance(mapping, KernelFileMapping):
             index[str(name)] = (mapping.file, mapping.declaration)
         else:
@@ -493,7 +495,7 @@ def build_carrier_outputs(
 def collect_bound_inputs(
     root: Path, document: dict[str, Any], outputs: dict[str, Any]
 ) -> dict[str, str]:
-    """Every input the generated artifacts depend on, as path -> sha256."""
+    """Legacy path/digest inventory; live construction/check emits no binding."""
     from de4sdv.semantic.authority_inventory import file_digest
 
     paths = {
@@ -517,79 +519,13 @@ def collect_bound_inputs(
     return bound
 
 
-def build_artifact_pair(root: Path, *, source_revision: str) -> dict[str, Any]:
-    """Build both carrier artifacts bound to one Git source revision.
-
-    Reuses the verified O1/O2+ binding machinery: the source revision must
-    contain every bound input byte-for-byte, and the artifact records the
-    bound-input digests so a stale revision cannot pass by string reuse.
-    """
-    from de4sdv.semantic.authority_inventory import (
-        InventoryError,
-        verify_source_revision_contains_inputs,
-    )
-    from de4sdv.semantic.projection_o2p import canonical_json  # noqa: F401 (re-export)
-
+def build_artifact_pair(
+    root: Path, *, source_revision: str | None = None
+) -> dict[str, Any]:
+    """Build from current inputs; accept but ignore legacy source_revision."""
     document = load_carriers(root / CARRIERS_PATH)
     review = load_review(root)
     outputs = build_carrier_outputs(root, document, review)
-    bound_inputs = collect_bound_inputs(root, document, outputs)
-    try:
-        verify_source_revision_contains_inputs(root, source_revision, bound_inputs)
-    except InventoryError as exc:
-        raise CarrierError(str(exc)) from exc
-    binding = {
-        "source_revision": source_revision,
-        "source_revision_note": (
-            "Git commit that contains every bound input byte-for-byte. The "
-            "gate validates commit existence, ancestry of the checked-out "
-            "revision, per-input content equality, and the recorded content "
-            "digests - a stale revision cannot pass by string reuse."
-        ),
-        "artifact_commit": None,
-        "artifact_commit_note": (
-            "The commit that introduces these artifacts cannot be known when "
-            "they are generated; left explicitly unclaimed."
-        ),
-        "generation_software": {
-            "program_inputs": [MODULE_CARRIER_PATH, GENERATOR_CARRIER_PATH],
-            "note": (
-                "Generation-software revision: the commit containing these "
-                "program inputs byte-for-byte."
-            ),
-        },
-        "semantic_model_revision": {
-            "model_inputs": sorted(
-                {row["carrier"]["file"] for row in outputs["projection_rows"]}
-            ),
-            "note": (
-                "Semantic-model revision: ONLY the governed model files "
-                "carrying the admitted carrier declarations, contained "
-                "byte-for-byte in source_revision."
-            ),
-        },
-        "admission_document": {
-            "path": CARRIERS_PATH,
-            "digest": bound_inputs[CARRIERS_PATH],
-        },
-        "acceptance_review": {
-            "paths": sorted(
-                {row["accepted_ref"].split("#", 1)[0].strip() for row in outputs["projection_rows"]}
-            ),
-            "note": (
-                "Engineering-review acceptance evidence bound as a governed "
-                "input; the marker and identity records are machine-checked."
-            ),
-        },
-        "api_binding": {
-            "status": "unclaimed",
-            "note": (
-                "No SysML API element UUID is claimed for these carriers; the "
-                "profile entries state representation mechanics only."
-            ),
-        },
-        "bound_inputs": bound_inputs,
-    }
     projection = {
         "schema": "de4sdv.vocabulary-carrier-projection/v1",
         "status": (
@@ -602,7 +538,6 @@ def build_artifact_pair(root: Path, *, source_revision: str) -> dict[str, Any]:
             "traversal is implemented or claimed, no support state is "
             "promoted, and the runtime does not read this artifact."
         ),
-        "binding": binding,
         "candidates": outputs["candidates"],
         "admitted": outputs["admitted"],
         "rows": outputs["projection_rows"],
@@ -619,7 +554,6 @@ def build_artifact_pair(root: Path, *, source_revision: str) -> dict[str, Any]:
             "exclusions, or claim boundaries. The runtime does not read this "
             "artifact."
         ),
-        "binding": binding,
         "entries": outputs["profile_entries"],
     }
     return {"projection": projection, "profile": profile}
@@ -629,10 +563,9 @@ def run_check_errors(root: Path) -> list[str]:
     """Fail-closed repository check for the carrier admissions and artifacts.
 
     Inputs are always validated. Once admissions exist, the generated
-    artifacts are required: missing artifacts, an invalid source binding, or
-    committed bytes differing from regeneration are all errors.
+    artifacts are required: missing artifacts or committed bytes differing
+    from deterministic regeneration from current inputs are errors.
     """
-    from de4sdv.semantic.authority_inventory import validate_source_binding
     from de4sdv.semantic.projection_o2p import canonical_json
 
     try:
@@ -652,40 +585,31 @@ def run_check_errors(root: Path) -> list[str]:
     if missing:
         return [
             f"{relative}: carrier artifacts not generated yet for "
-            f"{len(outputs['admitted'])} admitted identities; commit the admission "
-            "inputs first, then run scripts/generate_vocabulary_carriers.py "
-            "(two-commit source binding)"
+            f"{len(outputs['admitted'])} admitted identities; run "
+            "scripts/generate_vocabulary_carriers.py (no input commit required)"
             for relative in missing
         ]
     try:
-        committed = json.loads((root / PROJECTION_CARRIER_PATH).read_text(encoding="utf-8"))
-        binding = committed["binding"]
-    except (KeyError, ValueError) as exc:
-        return [f"{PROJECTION_CARRIER_PATH}: cannot read binding for validation: {exc}"]
-    binding_errors = validate_source_binding(root, binding)
-    if binding_errors:
-        return [
-            f"{PROJECTION_CARRIER_PATH}: source-revision binding invalid: {error}"
-            for error in binding_errors
-        ]
-    source_revision = binding["source_revision"]
-    try:
-        artifacts = build_artifact_pair(root, source_revision=source_revision)
+        artifacts = build_artifact_pair(root)
     except CarrierError as exc:
         return [f"vocabulary-carrier artifact generation failed: {exc}"]
     errors: list[str] = []
-    if canonical_json(artifacts["projection"]) != (
+    if canonical_json(artifacts["projection"]).encode("utf-8") != (
         root / PROJECTION_CARRIER_PATH
-    ).read_text(encoding="utf-8"):
+    ).read_bytes():
         errors.append(
             f"{PROJECTION_CARRIER_PATH}: committed projection differs from "
-            "regeneration from current inputs (regenerate and commit)"
+            "regeneration from current inputs; run "
+            "scripts/generate_vocabulary_carriers.py and commit the output with "
+            "the source change (docs/guides/generated-semantic-assets.md)"
         )
-    if canonical_json(artifacts["profile"]) != (
+    if canonical_json(artifacts["profile"]).encode("utf-8") != (
         root / PROFILE_CARRIER_PATH
-    ).read_text(encoding="utf-8"):
+    ).read_bytes():
         errors.append(
             f"{PROFILE_CARRIER_PATH}: committed profile differs from "
-            "regeneration from current inputs (regenerate and commit)"
+            "regeneration from current inputs; run "
+            "scripts/generate_vocabulary_carriers.py and commit the output with "
+            "the source change (docs/guides/generated-semantic-assets.md)"
         )
     return errors

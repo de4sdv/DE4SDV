@@ -1,59 +1,25 @@
-"""O4 definition-admission batch 1: governed definition projection + API profile.
+"""Live definition admission: model-owned projection + API profile.
 
-ONE reusable, governed representation for the admitted definition family of
-the pinned ``definition-admission.yaml`` batch (22 rows after the
-batch-1 amendment): each admitted
-identity is backed by a model-resident SysML v2 definition declaration whose
-owned documentation carries — or is bounded-review-equivalent to — the
-reviewed definition:
+Each admitted identity is grounded in its named, non-bodyless definition
+and its directly owned documentation, collected in authored source order.
+The model is the documentation authority; admission carries locators and
+scope, not a copied definition or a second text-parity oracle.
 
-* **Model side (witness):** the owning definition declaration and its
-  directly owned ``doc`` bodies (``ownedRelationship -> OwningMembership ->
-  Documentation``), collected in authored source order by the verified O1
-  documentation-ownership machinery. The declaration block must exist and be
-  non-bodyless, and at least one owned documentation body is required.
-* **Projection side (semantic meaning):** the identity, the recomputed
-  documentation observation (``normalized-exact`` / ``differs`` with a
-  recorded ``reviewed-equivalent`` bounded review), and the kernel-binding
-  contract (file + declaration) as grounding.
-* **Profile side (representation mechanics only):** the declaration-form
-  representation class and API metaclass echo; never a second semantic
-  statement, never an API element identity or UUID claim.
-* **Bound inputs:** the four executed program inputs — this module
-  (``de4sdv/semantic/definition_projection.py``),
-  ``scripts/generate_definition_projection.py``, and the two shared modules
-  this machinery executes (``de4sdv/semantic/authority_inventory.py`` for
-  declaration/doc-scan normalization, digests and the revision containment
-  check, and ``de4sdv/semantic/projection_o2p.py`` for canonical JSON) — plus
-  the admission document, the design record, and the governed model files
-  carrying the admitted declarations. Every one is digest-bound and must be
-  contained byte-for-byte in the bound source revision.
-* **Runtime:** ``vocabulary-only``; NO traversal is implemented or claimed,
-  no runtime module reads these artifacts, and admission is NOT an authority
-  transition (O3 owns that), NOT authored-YAML retirement (O4 closure owns
-  that), and NOT support promotion.
+Projection rows carry meaning, ownership witnesses and kernel grounding.
+Profile entries carry declaration-form representation mechanics and API
+metaclass echoes only. Support remains vocabulary-only: no traversal proof,
+API identity, authority transition or support promotion is claimed.
 
-Fail-closed: the manifest shape (exact admitted-row keys, identity
-uniqueness, ``semantic_kind == class``, wave, declaration resolution, the
-observation/equivalence rule), the recomputed documentation observation
-matching ``expected_documentation_observation``, the bound-input digests,
-and the source-revision containment check are all machine-checked. No O1
-artifact is read anywhere in this module; the reviewed definition in the
-manifest is the parity oracle only. A review or model edit that invalidates
-any admitted assumption breaks generation instead of silently changing an
-output.
-
-Generated artifacts: ``build_artifact_pair`` emits the definition Projection
-and Profile documents bound to a Git source revision, reusing the verified
-O1/O2+ binding machinery (bound-input digests, revision containment check,
-regeneration equality). ``run_check_errors`` refuses a repository where the
-admissions exist but the artifacts are missing or stale.
+Construction is deterministic from the current source tree, including
+uncommitted edits. Live artifacts contain no Git source-revision binding.
+The repository gate validates every admitted row and requires both exact
+regenerated artifact byte strings; missing and stale artifacts fail closed.
+Frozen evidence retains its separate revision-bound contract unchanged.
 
 Read-only and offline; never imported by the runtime.
 """
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
 
@@ -106,14 +72,9 @@ _ADMITTED_ROW_KEYS = frozenset(
         "declaration",
         "evidence_state",
         "authority_current",
-        "reviewed_definition",
-        "expected_documentation_observation",
-        "semantic_text_equivalence",
         "required_runtime_support_target",
     }
 )
-_OBSERVATIONS = frozenset({"normalized-exact", "differs"})
-_REVIEWED_EQUIVALENT = "reviewed-equivalent"
 _WAVES = frozenset({"W2", "W5"})
 
 
@@ -191,27 +152,6 @@ def load_admission(path: Path) -> dict[str, Any]:
             value = row[key]
             if not isinstance(value, str) or not value.strip():
                 raise DefinitionAdmissionError(f"{identity}: {key} is required")
-        reviewed = row["reviewed_definition"]
-        if not isinstance(reviewed, str) or not reviewed.strip():
-            raise DefinitionAdmissionError(f"{identity}: reviewed_definition is required")
-        observation = row["expected_documentation_observation"]
-        if observation not in _OBSERVATIONS:
-            raise DefinitionAdmissionError(
-                f"{identity}: expected_documentation_observation must be one of "
-                f"{sorted(_OBSERVATIONS)}"
-            )
-        equivalence = row["semantic_text_equivalence"]
-        if observation == "differs":
-            if equivalence != _REVIEWED_EQUIVALENT:
-                raise DefinitionAdmissionError(
-                    f"{identity}: a 'differs' observation requires a recorded "
-                    f"'{_REVIEWED_EQUIVALENT}' bounded review"
-                )
-        elif equivalence is not None:
-            raise DefinitionAdmissionError(
-                f"{identity}: a 'normalized-exact' observation requires a null "
-                "semantic_text_equivalence"
-            )
     return document
 
 
@@ -260,15 +200,9 @@ def _projection_row(root: Path, row: dict[str, Any]) -> tuple[dict[str, Any], di
         raise DefinitionAdmissionError(
             f"{identity}: declaration owns no documentation body: {declaration_text}"
         )
-    observation = inventory.doc_text_observation(
-        file_text, declaration_text, row["reviewed_definition"]
-    )
-    if observation != row["expected_documentation_observation"]:
+    if not any(body.strip() for body in bodies):
         raise DefinitionAdmissionError(
-            f"{identity}: recomputed documentation observation {observation!r} does "
-            f"not match expected_documentation_observation "
-            f"{row['expected_documentation_observation']!r} (reviewed definition "
-            "text and model documentation disagree)"
+            f"{identity}: declaration owns empty documentation: {declaration_text}"
         )
     projection_row = {
         "identity": identity,
@@ -281,8 +215,7 @@ def _projection_row(root: Path, row: dict[str, Any]) -> tuple[dict[str, Any], di
                 "declaration": declaration_text,
                 "doc_count": len(bodies),
             },
-            "documentation_observation": observation,
-            "semantic_text_equivalence": row["semantic_text_equivalence"],
+            "documentation_observation": "model-owned-documentation",
         },
         "grounding": {
             "kernel_binding_contract": {
@@ -329,7 +262,7 @@ def build_outputs(root: Path, document: dict[str, Any]) -> dict[str, Any]:
 
 
 def collect_bound_inputs(root: Path, outputs: dict[str, Any]) -> dict[str, str]:
-    """Every input the generated artifacts depend on, as path -> sha256."""
+    """Legacy diagnostic input inventory; live construction emits no digest binding."""
     from de4sdv.semantic.authority_inventory import file_digest
 
     paths = {
@@ -351,89 +284,18 @@ def collect_bound_inputs(root: Path, outputs: dict[str, Any]) -> dict[str, str]:
     return bound
 
 
-def build_artifact_pair(root: Path, *, source_revision: str) -> dict[str, Any]:
-    """Build both definition artifacts bound to one Git source revision.
+def build_artifact_pair(root: Path) -> dict[str, Any]:
+    """Build the live pair deterministically from current admitted model sources.
 
-    Reuses the verified O1/O2+ binding machinery: the source revision must
-    contain every bound input byte-for-byte, and the artifact records the
-    bound-input digests so a stale revision cannot pass by string reuse.
+    No Git commit is a prerequisite or part of the generated payload. Frozen
+    evidence keeps its separate revision-bound construction contract.
     """
-    from de4sdv.semantic.authority_inventory import (
-        InventoryError,
-        verify_source_revision_contains_inputs,
-    )
-    from de4sdv.semantic.projection_o2p import canonical_json  # noqa: F401 (re-export)
-
     document = load_document(root)
     outputs = build_outputs(root, document)
-    bound_inputs = collect_bound_inputs(root, outputs)
-    try:
-        verify_source_revision_contains_inputs(root, source_revision, bound_inputs)
-    except InventoryError as exc:
-        raise DefinitionAdmissionError(str(exc)) from exc
-    binding = {
-        "source_revision": source_revision,
-        "source_revision_note": (
-            "Git commit that contains every bound input byte-for-byte. The "
-            "gate validates commit existence, ancestry of the checked-out "
-            "revision, per-input content equality, and the recorded content "
-            "digests - a stale revision cannot pass by string reuse."
-        ),
-        "artifact_commit": None,
-        "artifact_commit_note": (
-            "The commit that introduces these artifacts cannot be known when "
-            "they are generated; left explicitly unclaimed."
-        ),
-        "generation_software": {
-            "program_inputs": [
-                MODULE_PATH,
-                GENERATOR_PATH,
-                AUTHORITY_INVENTORY_PATH,
-                PROJECTION_O2P_PATH,
-            ],
-            "note": (
-                "Generation-software revision: the commit containing these "
-                "program inputs byte-for-byte. Both shared modules are listed "
-                "because this machinery executes them at generation time "
-                "(declaration/doc-scan normalization, digests, revision "
-                "containment, canonical JSON)."
-            ),
-        },
-        "semantic_model_revision": {
-            "model_inputs": sorted(
-                {
-                    row["grounding"]["kernel_binding_contract"]["source_file"]
-                    for row in outputs["projection_rows"]
-                }
-            ),
-            "note": (
-                "Semantic-model revision: ONLY the governed model files "
-                "carrying the admitted definition declarations, contained "
-                "byte-for-byte in source_revision."
-            ),
-        },
-        "admission_document": {
-            "path": ADMISSION_PATH,
-            "digest": bound_inputs[ADMISSION_PATH],
-        },
-        "design_record": {
-            "path": DESIGN_PATH,
-            "digest": bound_inputs[DESIGN_PATH],
-        },
-        "api_binding": {
-            "status": "unclaimed",
-            "note": (
-                "No SysML API element UUID is claimed for these definitions; "
-                "the profile entries state representation mechanics only."
-            ),
-        },
-        "bound_inputs": bound_inputs,
-    }
     projection = {
         "schema": PROJECTION_SCHEMA,
         "status": "admitted",
         "warning": WARNING,
-        "binding": binding,
         "scope": {
             "admission": "O4 definition-admission batch 1 (definition-admission.yaml)",
             "admitted": outputs["admitted"],
@@ -445,71 +307,37 @@ def build_artifact_pair(root: Path, *, source_revision: str) -> dict[str, Any]:
         "schema": PROFILE_SCHEMA,
         "status": "admitted",
         "warning": WARNING,
-        "binding": binding,
         "entries": outputs["profile_entries"],
     }
     return {"projection": projection, "profile": profile}
 
 
 def run_check_errors(root: Path) -> list[str]:
-    """Fail-closed repository check for the definition admissions and artifacts.
+    """Require the live pair to equal deterministic regeneration byte-for-byte.
 
-    Inputs are always validated. Once admissions exist, the generated
-    artifacts are required: missing artifacts, an invalid source binding, or
-    committed bytes differing from regeneration are all errors.
+    Current admitted sources are validated even when artifacts are missing.
+    Uncommitted model edits are allowed; missing or stale outputs are not.
     """
-    from de4sdv.semantic.authority_inventory import validate_source_binding
     from de4sdv.semantic.projection_o2p import canonical_json
 
     try:
-        document = load_document(root)
-        outputs = build_outputs(root, document)
+        artifacts = build_artifact_pair(root)
     except DefinitionAdmissionError as exc:
         return [f"{ADMISSION_PATH}: {exc}"]
-    if not outputs["admitted"]:
-        return []
-    missing = [
-        relative
-        for relative in (PROJECTION_PATH, PROFILE_PATH)
-        if not (root / relative).is_file()
-    ]
-    if missing:
-        return [
-            f"{relative}: definition-projection artifacts not generated yet for "
-            f"{len(outputs['admitted'])} admitted identities; commit the admission "
-            "inputs first, then run scripts/generate_definition_projection.py "
-            "(two-commit source binding)"
-            for relative in missing
-        ]
-    try:
-        committed = json.loads((root / PROJECTION_PATH).read_text(encoding="utf-8"))
-        binding = committed["binding"]
-    except (KeyError, ValueError) as exc:
-        return [f"{PROJECTION_PATH}: cannot read binding for validation: {exc}"]
-    binding_errors = validate_source_binding(root, binding)
-    if binding_errors:
-        return [
-            f"{PROJECTION_PATH}: source-revision binding invalid: {error}"
-            for error in binding_errors
-        ]
-    source_revision = binding["source_revision"]
-    try:
-        artifacts = build_artifact_pair(root, source_revision=source_revision)
-    except DefinitionAdmissionError as exc:
-        return [f"definition-projection artifact generation failed: {exc}"]
     errors: list[str] = []
-    if canonical_json(artifacts["projection"]) != (
-        root / PROJECTION_PATH
-    ).read_text(encoding="utf-8"):
-        errors.append(
-            f"{PROJECTION_PATH}: committed projection differs from regeneration "
-            "from current inputs (regenerate and commit)"
-        )
-    if canonical_json(artifacts["profile"]) != (
-        root / PROFILE_PATH
-    ).read_text(encoding="utf-8"):
-        errors.append(
-            f"{PROFILE_PATH}: committed profile differs from regeneration from "
-            "current inputs (regenerate and commit)"
-        )
+    for key, relative in (("projection", PROJECTION_PATH), ("profile", PROFILE_PATH)):
+        path = root / relative
+        if not path.is_file():
+            errors.append(
+                f"{relative}: definition artifact missing; run "
+                "scripts/generate_definition_projection.py (regenerate and commit "
+                "with the current sources)"
+            )
+        elif canonical_json(artifacts[key]).encode("utf-8") != path.read_bytes():
+            errors.append(
+                f"{relative}: committed {key} differs from regeneration from "
+                "current inputs; run scripts/generate_definition_projection.py "
+                "and commit the output with the source change "
+                "(docs/guides/generated-semantic-assets.md)"
+            )
     return errors

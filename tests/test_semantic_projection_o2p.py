@@ -11,7 +11,7 @@ register rows for the admitted identities. These tests lock:
 * no frozen O2 (v1/v1.1/v1.2 thirteen) and no frozen O3 identity is
   admitted or emitted;
 * generation is deterministic and read-only; the committed pair equals
-  regeneration from the recorded source revision;
+  regeneration from current governed inputs without a live Git binding;
 * support stays vocabulary-only, traversal is false everywhere, and no
   support promotion can slip through the generation path.
 """
@@ -23,16 +23,10 @@ import json
 from pathlib import Path
 
 import pytest
-import yaml
 
 from de4sdv.semantic import projection_o2p as po2p
-from de4sdv.semantic.authority_inventory import validate_source_binding
 
 ROOT = Path(__file__).resolve().parents[1]
-
-# Permanent O4 Wave A squash 5b20411 (#333): the O2+ pair binds this permanent
-# main-history revision.
-COMMITTED_SOURCE_REVISION = "5b20411d0e653ea786d781b033acfd5bc36a831c"
 
 REVIEWED_ADMITTED: dict[str, dict[str, bool | str]] = {
     "VariationPoint": {
@@ -217,18 +211,20 @@ def test_profile_entries_are_exactly_the_api_profile_rows(artifacts: dict) -> No
         assert representation["toolchain"]["syside_modeler_cli"].strip()
 
 
-def test_pair_is_bound_to_the_committed_source_revision(artifacts: dict) -> None:
-    for document in (artifacts["projection"], artifacts["profile"]):
-        assert document["binding"]["source_revision"] == COMMITTED_SOURCE_REVISION
-        assert validate_source_binding(ROOT, document["binding"]) == []
+def test_pair_has_no_live_source_binding() -> None:
+    # This cleanup retires only live binding assertions, not the frozen O2 locks above.
+    generated = po2p.build_pair_o2p(ROOT)
+    for document in generated.values():
+        assert "binding" not in document
+    assert all(
+        "bound_revision" not in row["review_ref"]
+        for row in generated["projection"]["rows"]
+    )
 
 
 def test_regeneration_is_deterministic() -> None:
-    revision = json.loads(
-        (ROOT / po2p.PROJECTION_O2P_PATH).read_text(encoding="utf-8")
-    )["binding"]["source_revision"]
-    first = po2p.build_pair_o2p(ROOT, source_revision=revision)
-    second = po2p.build_pair_o2p(ROOT, source_revision=revision)
+    first = po2p.build_pair_o2p(ROOT)
+    second = po2p.build_pair_o2p(ROOT, source_revision="0" * 40)
     assert po2p.canonical_json(first["projection"]) == po2p.canonical_json(
         second["projection"]
     )
@@ -293,7 +289,8 @@ def test_no_traversal_outputs_anywhere(artifacts: dict) -> None:
 
 
 def test_provenance_classification_separates_model_and_tooling(artifacts: dict) -> None:
-    binding = artifacts["projection"]["binding"]
+    # Binding classification is retired; preserve the model/tooling distinction
+    # at the actual semantic-witness and representation-mechanics locations.
     witness_files = sorted(
         {
             row["witness"]["file"]
@@ -302,18 +299,18 @@ def test_provenance_classification_separates_model_and_tooling(artifacts: dict) 
             )["admitted"]
         }
     )
-    assert binding["semantic_model_revision"]["model_inputs"] == witness_files
-    assert po2p.SYSIDE_WORKFLOW_PATH not in binding["semantic_model_revision"][
-        "model_inputs"
-    ]
-    # Still revision-bound for reproducibility...
-    assert binding["tooling_revision"]["tooling_inputs"] == [
-        po2p.SYSIDE_WORKFLOW_PATH
-    ]
-    assert po2p.SYSIDE_WORKFLOW_PATH in binding["bound_inputs"]
-    # ...but classified as tooling, never as a semantic-model input.
-    for path in binding["semantic_model_revision"]["model_inputs"]:
+    actual_witnesses = sorted({
+        row["grounding"]["witness"]["file"]
+        for row in artifacts["projection"]["rows"]
+    })
+    assert actual_witnesses == witness_files
+    assert po2p.SYSIDE_WORKFLOW_PATH not in actual_witnesses
+    for path in actual_witnesses:
         assert path.endswith(".sysml")
+    for entry in artifacts["profile"]["entries"]:
+        assert entry["representation"]["toolchain"]["syside_modeler_cli"] == (
+            po2p.read_syside_pin(ROOT)
+        )
 
 
 def test_categories_are_not_flattened(artifacts: dict) -> None:
@@ -424,9 +421,6 @@ def test_generator_bug_cannot_silently_emit_projection_for_false_flag(
 ) -> None:
     """A derive bug emitting projection rows for reviewed-false rows must be
     caught by the post-derivation validation before any artifact is built."""
-    revision = json.loads(
-        (ROOT / po2p.PROJECTION_O2P_PATH).read_text(encoding="utf-8")
-    )["binding"]["source_revision"]
     real_derive = po2p.derive_rows_o2p
 
     def corrupted_derive(root, manifest, source_revision):
@@ -437,15 +431,12 @@ def test_generator_bug_cannot_silently_emit_projection_for_false_flag(
 
     monkeypatch.setattr(po2p, "derive_rows_o2p", corrupted_derive)
     with pytest.raises(po2p.ProjectionO2PError):
-        po2p.build_pair_o2p(ROOT, source_revision=revision)
+        po2p.build_pair_o2p(ROOT)
 
 
 def test_generator_bug_cannot_silently_drop_profile_entries(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    revision = json.loads(
-        (ROOT / po2p.PROJECTION_O2P_PATH).read_text(encoding="utf-8")
-    )["binding"]["source_revision"]
     real_derive = po2p.derive_rows_o2p
 
     def corrupted_derive(root, manifest, source_revision):
@@ -454,4 +445,4 @@ def test_generator_bug_cannot_silently_drop_profile_entries(
 
     monkeypatch.setattr(po2p, "derive_rows_o2p", corrupted_derive)
     with pytest.raises(po2p.ProjectionO2PError):
-        po2p.build_pair_o2p(ROOT, source_revision=revision)
+        po2p.build_pair_o2p(ROOT)

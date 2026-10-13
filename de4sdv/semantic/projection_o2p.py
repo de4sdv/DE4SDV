@@ -14,12 +14,10 @@ Canonical artifacts:
 - ``docs/method-conformance/o2plus/api-representation-profile-o2plus.json``
   (representation mechanics entries for the ``api_profile_required`` rows).
 
-Determinism and revision binding: identical inputs produce byte-identical
-output. The artifacts bind a ``source_revision`` — a Git commit that contains
-every bound input byte-for-byte — plus per-input content digests. ``--check``
-validates the binding against the repository (commit existence, ancestry,
-per-input content equality, recorded digests) and then regenerates with the
-recorded source revision and compares bytes.
+Deterministic freshness: identical current source inputs produce
+byte-identical output. The live artifacts carry no Git revision or input
+digest binding. ``--check`` validates the governed current inputs, regenerates
+both documents, and compares exact bytes; construction needs no input commit.
 
 Boundaries: offline and read-only; no network; no runtime semantic change;
 generation is not authority activation; the runtime never reads these
@@ -31,8 +29,6 @@ Usage:
 
     python scripts/generate_semantic_projection_o2p.py              # write
     python scripts/generate_semantic_projection_o2p.py --check      # verify
-    python scripts/generate_semantic_projection_o2p.py \\
-        --source-revision <40-hex commit id>
 """
 
 from __future__ import annotations
@@ -45,10 +41,7 @@ from typing import Any
 
 import yaml
 
-from de4sdv.semantic.authority_inventory import (
-    file_digest,
-    validate_source_binding,
-)
+from de4sdv.semantic.authority_inventory import file_digest
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -177,6 +170,7 @@ def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
 
 
 def resolve_source_revision(root: Path) -> str:
+    """Legacy Git helper for existing consumers; unused by live construction."""
     result = _git(root, "rev-parse", "HEAD")
     if result.returncode != 0:
         raise ProjectionO2PError(f"cannot resolve HEAD: {result.stderr.strip()}")
@@ -316,12 +310,12 @@ def read_syside_pin(root: Path) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Bound inputs and binding block
+# Legacy input inventory (compatibility for existing consumers)
 # ---------------------------------------------------------------------------
 
 
 def collect_bound_inputs_o2p(root: Path, manifest: dict[str, Any]) -> dict[str, str]:
-    """Every source consumed to produce the O2+ artifacts."""
+    """Legacy path/digest inventory; live construction/check emits no binding."""
     paths: set[str] = {
         ADMISSION_O2P_PATH,
         MODULE_O2P_PATH,
@@ -339,78 +333,15 @@ def collect_bound_inputs_o2p(root: Path, manifest: dict[str, Any]) -> dict[str, 
     return inputs
 
 
-def _binding_block_o2p(
-    source_revision: str,
-    bound_inputs: dict[str, str],
-    manifest: dict[str, Any],
-) -> dict[str, Any]:
-    program_inputs = sorted(
-        {ADMISSION_O2P_PATH, MODULE_O2P_PATH, GENERATOR_O2P_PATH}
-    )
-    return {
-        "source_revision": source_revision,
-        "source_revision_note": (
-            "Git commit that contains every bound input byte-for-byte. The "
-            "gate validates commit existence, ancestry of the checked-out "
-            "revision, per-input content equality, and the recorded content "
-            "digests - a stale revision cannot pass by string reuse."
-        ),
-        "artifact_commit": None,
-        "artifact_commit_note": (
-            "The commit that introduces these artifacts cannot be known when "
-            "they are generated; left explicitly unclaimed."
-        ),
-        "generation_software": {
-            "program_inputs": program_inputs,
-            "note": (
-                "Generation-software revision: the commit containing these "
-                "program inputs byte-for-byte."
-            ),
-        },
-        "semantic_model_revision": {
-            "model_inputs": sorted(
-                {row["witness"]["file"] for row in manifest["admitted"]}
-            ),
-            "note": (
-                "Semantic-model revision: ONLY the governed model files "
-                "carrying the admitted constructs' witnesses, contained "
-                "byte-for-byte in source_revision. Tooling/toolchain "
-                "provenance is classified separately below."
-            ),
-        },
-        "tooling_revision": {
-            "tooling_inputs": [SYSIDE_WORKFLOW_PATH],
-            "note": (
-                "Tooling/toolchain provenance: the pinned Syside "
-                "workflow/version reference is revision-bound for "
-                "reproducibility but is NOT a semantic-model input and "
-                "supplies no semantics."
-            ),
-        },
-        "api_binding": {
-            "status": "unclaimed",
-            "note": (
-                "No validated SysML API project/commit closure is produced and "
-                "no current API element UUID is claimed; the pinned toolchain "
-                "reference is recorded in the profile entries."
-            ),
-        },
-        "admission_manifest": {
-            "path": ADMISSION_O2P_PATH,
-            "digest": bound_inputs[ADMISSION_O2P_PATH],
-        },
-        "bound_inputs": bound_inputs,
-    }
-
-
 # ---------------------------------------------------------------------------
 # Row derivation and pair build
 # ---------------------------------------------------------------------------
 
 
 def derive_rows_o2p(
-    root: Path, manifest: dict[str, Any], source_revision: str
+    root: Path, manifest: dict[str, Any], source_revision: str | None = None
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Derive from current model witnesses; legacy source_revision is ignored."""
     rows: list[dict[str, Any]] = []
     profile_entries: list[dict[str, Any]] = []
     syside_pin = read_syside_pin(root)
@@ -447,10 +378,9 @@ def derive_rows_o2p(
                 "review_ref": {
                     "wave": "W3",
                     "evidence": (
-                        "exact-fit + standard-construct grounding record at a "
-                        "bound revision"
+                        "exact-fit + standard-construct grounding record from "
+                        "current model inputs"
                     ),
-                    "bound_revision": source_revision,
                 },
             }
         )
@@ -485,15 +415,13 @@ def derive_rows_o2p(
     return rows, profile_entries
 
 
-def build_pair_o2p(root: Path, *, source_revision: str) -> dict[str, Any]:
+def build_pair_o2p(
+    root: Path, *, source_revision: str | None = None
+) -> dict[str, Any]:
+    """Build from current inputs; accept but ignore legacy source_revision."""
     manifest = load_admission_o2p(root / ADMISSION_O2P_PATH)
     validate_admission_o2p(manifest)
     verify_witnesses(root, manifest)
-    bound_inputs = collect_bound_inputs_o2p(root, manifest)
-
-    from de4sdv.semantic.authority_inventory import verify_source_revision_contains_inputs
-
-    verify_source_revision_contains_inputs(root, source_revision, bound_inputs)
 
     rows, profile_entries = derive_rows_o2p(root, manifest, source_revision)
     # Defense in depth: a derivation bug must not be able to silently emit a
@@ -513,7 +441,7 @@ def build_pair_o2p(root: Path, *, source_revision: str) -> dict[str, Any]:
             f"rows: got {sorted(profile_identities)!r}"
         )
     admitted = sorted(row["identity"] for row in manifest["admitted"])
-    binding = _binding_block_o2p(source_revision, bound_inputs, manifest)
+
     projection_outputs = sorted(
         row["identity"] for row in rows if row["outputs"]["projection_row"]
     )
@@ -548,7 +476,6 @@ def build_pair_o2p(root: Path, *, source_revision: str) -> dict[str, Any]:
             "are never re-emitted. Generated by "
             "scripts/generate_semantic_projection_o2p.py."
         ),
-        "binding": binding,
         "scope": {
             "layer": "o2plus",
             "admitted": admitted,
@@ -580,7 +507,6 @@ def build_pair_o2p(root: Path, *, source_revision: str) -> dict[str, Any]:
             "exclusions, or claim boundaries. The runtime does not read this "
             "artifact."
         ),
-        "binding": binding,
         "entries": profile_entries,
     }
     return {"projection": projection, "profile": profile}
@@ -597,42 +523,39 @@ def run_check_errors_o2p(root: Path) -> list[str]:
     projection_path = root / PROJECTION_O2P_PATH
     profile_path = root / PROFILE_O2P_PATH
     if not projection_path.is_file():
-        errors.append(f"o2plus semantic projection missing: {PROJECTION_O2P_PATH}")
+        errors.append(
+            f"{PROJECTION_O2P_PATH}: o2plus semantic projection missing; run "
+            "scripts/generate_semantic_projection_o2p.py and commit the output "
+            "with the source change (docs/guides/generated-semantic-assets.md)"
+        )
     if not profile_path.is_file():
         errors.append(
-            f"o2plus api representation profile missing: {PROFILE_O2P_PATH}"
+            f"{PROFILE_O2P_PATH}: o2plus api representation profile missing; run "
+            "scripts/generate_semantic_projection_o2p.py and commit the output "
+            "with the source change (docs/guides/generated-semantic-assets.md)"
         )
     if errors:
         return errors
     try:
-        committed = json.loads(projection_path.read_text(encoding="utf-8"))
-        committed_profile = json.loads(profile_path.read_text(encoding="utf-8"))
-        binding = committed["binding"]
-    except (KeyError, ValueError) as exc:
-        return [f"{PROJECTION_O2P_PATH}: cannot read binding for validation: {exc}"]
-    binding_errors = validate_source_binding(root, binding)
-    if binding_errors:
-        return [
-            f"{PROJECTION_O2P_PATH}: source-revision binding invalid: {error}"
-            for error in binding_errors
-        ]
-    source_revision = binding["source_revision"]
-    try:
-        artifacts = build_pair_o2p(root, source_revision=source_revision)
+        artifacts = build_pair_o2p(root)
     except ProjectionO2PError as exc:
         return [f"o2plus projection generation failed: {exc}"]
-    if canonical_json(artifacts["projection"]) != projection_path.read_text(
-        encoding="utf-8"
+    if canonical_json(artifacts["projection"]).encode("utf-8") != (
+        projection_path.read_bytes()
     ):
         errors.append(
             f"{PROJECTION_O2P_PATH}: committed projection differs from "
-            "regeneration from current inputs (regenerate and commit)"
+            "regeneration from current inputs; run "
+            "scripts/generate_semantic_projection_o2p.py and commit the output "
+            "with the source change (docs/guides/generated-semantic-assets.md)"
         )
-    if canonical_json(artifacts["profile"]) != profile_path.read_text(
-        encoding="utf-8"
+    if canonical_json(artifacts["profile"]).encode("utf-8") != (
+        profile_path.read_bytes()
     ):
         errors.append(
             f"{PROFILE_O2P_PATH}: committed profile differs from regeneration "
-            "from current inputs (regenerate and commit)"
+            "from current inputs; run scripts/generate_semantic_projection_o2p.py "
+            "and commit the output with the source change "
+            "(docs/guides/generated-semantic-assets.md)"
         )
     return errors

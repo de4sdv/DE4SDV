@@ -1,5 +1,10 @@
 # O4 definition-admission batch 2 — design record
 
+> **Current generation workflow.** This is a historical design record. Its
+> source-binding procedure and duplicate definition-text comparison are
+> superseded by [current-source generation](../../guides/generated-semantic-assets.md).
+> Live outputs ship with their source changes in one squash-safe commit.
+
 > **O4 Wave C2 note.** The authored ontology was deleted in Wave C2. The 54
 > manifest-held contract fields (domain/range/strength, kernel mapping kinds,
 > ontology relations, serializer mechanics) are now governed by the admission

@@ -15,16 +15,15 @@
 #
 # Machine-locked properties (tests, fail-closed):
 #   * admitted set == the register-derived family above (drift fails);
-#   * every declaration anchor resolves in its named file, and the model
-#     documentation observation recomputed from the model equals
-#     ``expected_documentation_observation``;
-#   * a ``differs`` observation requires a recorded ``reviewed-equivalent``
-#     bounded review; ``normalized-exact`` requires a null equivalence;
+#   * every declaration anchor resolves in its named file and owns
+#     documentation; the model remains the documentation authority;
+#   * live generation and exact regeneration checks use current sources,
+#     without a Git-commit prerequisite or a copied definition-text oracle;
 #   * no frozen O3 identity, no gated/held row, and no W4 carrier identity
 #     may appear as an admitted row.
 #
-# Boundaries: generation reads the governed model documentation; the
-# reviewed definition below is the parity oracle only. Admission is NOT
+# Boundaries: generation reads authoritative governed model documentation.
+# Historical parity reviews remain historical evidence. Admission is NOT
 # authority transition (O3 owns that), NOT authored-YAML retirement (O4
 # closure owns that), and NOT support promotion: every generated row stays
 # vocabulary-only with traversal false and no API element identity claimed.
@@ -46,9 +45,6 @@ admitted:
     declaration: part def IncrementAssumption
   evidence_state: repository-evidenced
   authority_current: legacy-yaml
-  reviewed_definition: A stated condition treated as true for the purpose of an increment, model, scenario, analysis, or evidence record.
-  expected_documentation_observation: normalized-exact
-  semantic_text_equivalence: null
   required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
 - identity: BlockedRealizationBranchRecord
   semantic_kind: class
@@ -59,9 +55,6 @@ admitted:
     declaration: part def BlockedRealizationBranchRecord
   evidence_state: repository-evidenced
   authority_current: legacy-yaml
-  reviewed_definition: A record of a realization branch blocked by a source defect or gap.
-  expected_documentation_observation: normalized-exact
-  semantic_text_equivalence: null
   required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
 - identity: DeferredProductLineScope
   semantic_kind: class
@@ -72,9 +65,6 @@ admitted:
     declaration: part def DeferredProductLineScope
   evidence_state: repository-evidenced
   authority_current: legacy-yaml
-  reviewed_definition: Product-line scope deliberately deferred from the current increment, including recorded gaps.
-  expected_documentation_observation: normalized-exact
-  semantic_text_equivalence: null
   required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
 - identity: EngineeringIncrement
   semantic_kind: class
@@ -85,9 +75,6 @@ admitted:
     declaration: part def EngineeringIncrement
   evidence_state: repository-evidenced
   authority_current: legacy-yaml
-  reviewed_definition: A bounded DE4SDV work package that changes, tests, or publishes engineering knowledge.
-  expected_documentation_observation: normalized-exact
-  semantic_text_equivalence: null
   required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
 - identity: FeatureIncrement
   semantic_kind: class
@@ -98,9 +85,6 @@ admitted:
     declaration: part def FeatureIncrement
   evidence_state: repository-evidenced
   authority_current: legacy-yaml
-  reviewed_definition: An engineering increment focused on a product-line feature, common capability, or native SysML v2 variation/variant choice.
-  expected_documentation_observation: normalized-exact
-  semantic_text_equivalence: null
   required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
 - identity: Gap
   semantic_kind: class
@@ -111,9 +95,6 @@ admitted:
     declaration: part def IncrementGap
   evidence_state: repository-evidenced
   authority_current: legacy-yaml
-  reviewed_definition: A known missing trace link, missing evidence item, unresolved uncertainty, or unproven claim that must not be hidden.
-  expected_documentation_observation: normalized-exact
-  semantic_text_equivalence: null
   required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
 - identity: IncrementEngineeringQuestion
   semantic_kind: class
@@ -124,9 +105,6 @@ admitted:
     declaration: part def IncrementEngineeringQuestion
   evidence_state: repository-evidenced
   authority_current: legacy-yaml
-  reviewed_definition: The engineering question that an increment answers.
-  expected_documentation_observation: normalized-exact
-  semantic_text_equivalence: null
   required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
 - identity: IncrementLifecycleDecision
   semantic_kind: class
@@ -137,9 +115,6 @@ admitted:
     declaration: part def IncrementLifecycleDecision
   evidence_state: repository-evidenced
   authority_current: legacy-yaml
-  reviewed_definition: A lifecycle decision that an increment supports (accepted, deferred, or invalidated).
-  expected_documentation_observation: normalized-exact
-  semantic_text_equivalence: null
   required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
 - identity: LogicalToSoftwareSignalMappingRecord
   semantic_kind: class
@@ -150,9 +125,6 @@ admitted:
     declaration: item def LogicalToSoftwareSignalMappingRecord
   evidence_state: repository-evidenced
   authority_current: legacy-yaml
-  reviewed_definition: A control record for a logical or semantic information item crossing into a software, service, topic, API, or physical boundary; preserves trace and review obligations without claiming runtime interoperability.
-  expected_documentation_observation: differs
-  semantic_text_equivalence: reviewed-equivalent
   required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
 - identity: MemberProduct
   semantic_kind: class
@@ -163,9 +135,6 @@ admitted:
     declaration: part def ProductLineMemberProduct
   evidence_state: repository-evidenced
   authority_current: legacy-yaml
-  reviewed_definition: A configured product or product variant that belongs to a product line.
-  expected_documentation_observation: normalized-exact
-  semantic_text_equivalence: null
   required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
 - identity: MissingRealizationRecord
   semantic_kind: class
@@ -176,9 +145,6 @@ admitted:
     declaration: part def MissingRealizationRecord
   evidence_state: repository-evidenced
   authority_current: legacy-yaml
-  reviewed_definition: A record of a missing or blocked realization allocation for a conceptual element.
-  expected_documentation_observation: normalized-exact
-  semantic_text_equivalence: null
   required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
 - identity: Need
   semantic_kind: class
@@ -189,9 +155,6 @@ admitted:
     declaration: requirement def StakeholderNeedCandidate
   evidence_state: repository-evidenced
   authority_current: legacy-yaml
-  reviewed_definition: Stakeholder-expressed problem-space intent, before conversion into design input requirements. The kernel models needs as requirement usages of StakeholderNeedCandidate specializations carrying the ADR 0009 attribute set.
-  expected_documentation_observation: differs
-  semantic_text_equivalence: reviewed-equivalent
   required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
 - identity: NeedsRequirementsIncrement
   semantic_kind: class
@@ -202,9 +165,6 @@ admitted:
     declaration: part def NeedsRequirementsIncrement
   evidence_state: repository-evidenced
   authority_current: legacy-yaml
-  reviewed_definition: An engineering increment focused on needs, draft requirements, traceability, and V&V planning.
-  expected_documentation_observation: normalized-exact
-  semantic_text_equivalence: null
   required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
 - identity: ProblemStatement
   semantic_kind: class
@@ -215,9 +175,6 @@ admitted:
     declaration: requirement def ProblemStatement
   evidence_state: repository-evidenced
   authority_current: legacy-yaml
-  reviewed_definition: The problem that is to be solved by the system or increment, modeled as a requirement.
-  expected_documentation_observation: normalized-exact
-  semantic_text_equivalence: null
   required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
 - identity: ProductLine
   semantic_kind: class
@@ -228,9 +185,6 @@ admitted:
     declaration: part def ProductLine
   evidence_state: repository-evidenced
   authority_current: legacy-yaml
-  reviewed_definition: A family of related member products managed through shared assets and variability.
-  expected_documentation_observation: normalized-exact
-  semantic_text_equivalence: null
   required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
 - identity: ProductLineCharacteristic
   semantic_kind: class
@@ -241,9 +195,6 @@ admitted:
     declaration: part def ProductLineCharacteristic
   evidence_state: repository-evidenced
   authority_current: legacy-yaml
-  reviewed_definition: 'The product-line classification base: a characteristic is a common capability, a feature candidate, deferred scope, or a native SysML v2 variation choice.'
-  expected_documentation_observation: normalized-exact
-  semantic_text_equivalence: null
   required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
 - identity: RegulatoryConstraint
   semantic_kind: class
@@ -254,9 +205,6 @@ admitted:
     declaration: requirement def RegulatoryConstraintCandidate
   evidence_state: repository-evidenced
   authority_current: legacy-yaml
-  reviewed_definition: A constraint or reference derived from a standard, regulation, or homologation-relevant source, with controlled source identity and no compliance claim.
-  expected_documentation_observation: differs
-  semantic_text_equivalence: reviewed-equivalent
   required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
 - identity: Requirement
   semantic_kind: class
@@ -267,9 +215,6 @@ admitted:
     declaration: requirement def RequirementCandidate
   evidence_state: repository-evidenced
   authority_current: legacy-yaml
-  reviewed_definition: A verifiable design input obligation or constraint derived from needs, standards, or architecture decisions. The kernel models requirement candidates on the SYSMOD requirement seam with ADR 0009 attributes.
-  expected_documentation_observation: differs
-  semantic_text_equivalence: reviewed-equivalent
   required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
 - identity: Scenario
   semantic_kind: class
@@ -280,9 +225,6 @@ admitted:
     declaration: part def Scenario
   evidence_state: repository-evidenced
   authority_current: legacy-yaml
-  reviewed_definition: A bounded operational, validation, test, or threat situation used to reason about behavior and evidence.
-  expected_documentation_observation: normalized-exact
-  semantic_text_equivalence: null
   required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
 - identity: SignalMappingDisposition
   semantic_kind: class
@@ -293,9 +235,6 @@ admitted:
     declaration: enum def SignalMappingDisposition
   evidence_state: repository-evidenced
   authority_current: legacy-yaml
-  reviewed_definition: The disposition of a logical-to-software signal mapping (mapped, candidate, deferred, or notApplicable).
-  expected_documentation_observation: normalized-exact
-  semantic_text_equivalence: null
   required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
 - identity: SystemLayer
   semantic_kind: class
@@ -306,9 +245,6 @@ admitted:
     declaration: part def SystemLayer
   evidence_state: repository-evidenced
   authority_current: legacy-yaml
-  reviewed_definition: Coarse ASELCM-style layer used to frame DE4SDV increments and their environments.
-  expected_documentation_observation: normalized-exact
-  semantic_text_equivalence: null
   required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
 - identity: SystemToSoftwareSignalMappingCandidate
   semantic_kind: class
@@ -319,9 +255,6 @@ admitted:
     declaration: allocation def SystemToSoftwareSignalMappingCandidate
   evidence_state: repository-evidenced
   authority_current: legacy-yaml
-  reviewed_definition: A reusable non-claiming allocation relationship from a logical/function signal responsibility to a concrete software or adapter signal endpoint; the allocation alone never proves field identity or runtime interoperability.
-  expected_documentation_observation: differs
-  semantic_text_equivalence: reviewed-equivalent
   required_runtime_support_target: runtime-queryable (post-migration, exact-revision evidence required)
 
 # Considered and NOT admitted (recorded so nothing silently disappears).

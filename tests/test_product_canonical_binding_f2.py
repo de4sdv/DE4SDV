@@ -255,16 +255,16 @@ def test_composite_keeps_bounded_projection_limitation_wording() -> None:
     assert "reachability through the revision-bound API is not claimed" in normalized
 
 
-def test_ontology_declares_instantiates_canonical_architecture_vocabulary() -> None:
+def test_model_declares_instantiates_canonical_architecture_vocabulary() -> None:
     import sys
 
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from model_contract_fixtures import model_contract, reviewed_definition
+    from model_contract_fixtures import model_contract, current_definition
 
-    # O4 Wave C2: the model-built contract (batch-2 projection row) and the
-    # reviewed admission definition replace the deleted authored YAML entry.
+    # Current construction: use current model-owned meaning; copied admission prose is retired.
+    # Preserve domain/range and every non-queryability/claim-boundary check.
     relationship = dict(model_contract().relationships["instantiatesCanonicalArchitecture"])
-    relationship["definition"] = reviewed_definition("instantiatesCanonicalArchitecture")
+    relationship["definition"] = current_definition("instantiatesCanonicalArchitecture")
     assert relationship["domain"] == "MemberProduct"
     assert relationship["range"] == "ArchitectureElement"
     # Vocabulary only: no executable mapping until a canonical-usage selector

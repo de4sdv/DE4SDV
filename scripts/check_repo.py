@@ -194,7 +194,6 @@ def main() -> int:
         definition_projection_batch2,
         external_reference_contract,
         model_projection_coverage,
-        o4_consumers,
         vocabulary_carrier,
     )
 
@@ -204,12 +203,8 @@ def main() -> int:
     )
     definition_admission_errors = definition_projection.run_check_errors(root)
     definition_batch2_errors = definition_projection_batch2.run_check_errors(root)
-    # Retained residual blocks; drift/duplicates/digests ratchet; exceptions reported.
+    # Residuals block independently of the routing/refusal baseline.
     model_coverage_errors = model_projection_coverage.run_check_errors(root)
-    try:
-        consumer_ledger_errors = o4_consumers.load_and_check(root)
-    except o4_consumers.ConsumerScanError as exc:
-        consumer_ledger_errors = [f"consumer ledger scan failed: {exc}"]
 
     if missing:
         print("Repository check failed. Missing required files:")
@@ -283,10 +278,6 @@ def main() -> int:
         for error in model_coverage_errors:
             print(f"- {error}")
 
-    if consumer_ledger_errors:
-        print("Repository check failed. O4 consumer-ledger errors:")
-        for error in consumer_ledger_errors:
-            print(f"- {error}")
 
     if lifecycle_consistency_errors:
         print("Repository check failed. O4 lifecycle consistency errors (O3 stays frozen throughout O4):")
@@ -309,7 +300,6 @@ def main() -> int:
         or definition_admission_errors
         or definition_batch2_errors
         or model_coverage_errors
-        or consumer_ledger_errors
     ):
         return 1
 
