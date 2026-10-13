@@ -104,6 +104,18 @@ def test_an_increment_not_declared_at_the_revision_is_named_with_a_distinct_reas
     assert answer["next"]["gate"] == "incrementHasIdentifier"  # a new increment still learns how to declare itself
 
 
+
+def test_the_not_declared_message_covers_a_usage_that_lacks_its_short_name() -> None:
+    """Review R5: a legacy increment usage exists at the revision without its identifier as short name
+    (like incMW002 for INC-MW-002); the message must not suggest only branch work."""
+    scenario = _scenario()
+    scenario.usage.pop("declaredShortName")
+    block = _evaluate(scenario).status()["increment"]
+    assert block["resolution"] == "not-declared"
+    assert ("An increment usage that exists without that short name, such as a legacy increment, is not found "
+            "either; the Method Check report lists such usages.") in block["message"]
+    assert "the PR Method Check evaluates the head of a pull request" in block["message"]
+
 def test_a_declared_increment_has_no_such_reason_and_next_always_says_why() -> None:
     complete = _evaluate(_scenario())
     assert (complete.status()["increment"]["resolution"], "message" in complete.status()["increment"]) == (

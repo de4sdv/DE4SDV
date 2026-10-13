@@ -111,11 +111,13 @@ covers: see coverage and revision below.
   usages carry it), `lineage-unavailable` (the `EngineeringIncrement`
   lineage cannot be established) or `not-declared` (no increment usage
   carries it). For `not-declared` the block adds a `message` that names the
-  revision, and `next_obligation` gives it as its `reason`. Work on a branch
-  is invisible to the deployed revision: the PR Method Check evaluates the
-  head of a pull request. `next` still names the framing check that declares
-  a new increment (for example `INC-EXAMPLE-001`). `resolution` is not a
-  reason code of the result algebra, so it never appears in `reason_codes`.
+  revision and says that a usage without the identifier as its short name,
+  such as a legacy increment, is not found either; `next_obligation` gives
+  it as its `reason`. Work on a branch is invisible to the deployed
+  revision: the PR Method Check evaluates the head of a pull request. `next`
+  still names the framing check that declares a new increment (for example
+  `INC-EXAMPLE-001`). `resolution` is not a reason code of the result
+  algebra, so it never appears in `reason_codes`.
 - **Relations.** A check that names a relation is decided by the relation check
   of that name in `de4sdv/semantic/relation_checks.py`: a relation of the
   model-built contract through the production traversal (a connection-carried

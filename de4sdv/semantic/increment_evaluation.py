@@ -715,9 +715,10 @@ def _declaration_reason(scope: IncrementScope, revision: me.RevisionIdentity) ->
     if resolution != NOT_DECLARED:
         return {"resolution": resolution}
     message = (f"{scope.increment_id} isn't declared at revision {revision.git_commit or '(none)'} "
-               f"({revision.scope}): no increment usage there carries it as its declared short name. Work on a "
-               "branch or another commit is not part of this evaluation; the PR Method Check evaluates the "
-               "head of a pull request.")
+               f"({revision.scope}): no increment usage there carries it as its declared short name. An "
+               "increment usage that exists without that short name, such as a legacy increment, is not found "
+               "either; the Method Check report lists such usages. Work on a branch or another commit is not "
+               "part of this evaluation; the PR Method Check evaluates the head of a pull request.")
     return {"resolution": resolution, "message": message}
 
 
