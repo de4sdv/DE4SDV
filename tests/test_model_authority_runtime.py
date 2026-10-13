@@ -310,6 +310,16 @@ def test_batch2_rows_route_through_the_batch2_layer(tmp_path):
         assert routing.retired_names[name] == navigation
 
 
+def _retired_without_model_record(rows):
+    # Keep the profile complete so this reaches the model-retirement check.
+    row, entry = rows[3]
+    row.update(identity="hasStakeholder2", admission_class="retired-name",
+               retired={"successor": "allocatedTo",
+                        "successor_navigation": "allocatedTo",
+                        "refusal": "retired; use allocatedTo"})
+    entry["retired_resolution"] = {"successor": "allocatedTo", "navigation": "allocatedTo"}
+
+
 @pytest.mark.parametrize("mutate,match", [
     (lambda rows: rows[8][0]["retired"].update(successor="hasValidationScenario"), "retired name"),
     (lambda rows: rows[9][0]["retired"].update(refusal="retired"), "retired name"),
@@ -320,11 +330,7 @@ def test_batch2_rows_route_through_the_batch2_layer(tmp_path):
     (lambda rows: rows[11][0]["grounding"]["ontology_relations"].update(sub_class_of=None), "Function"),
     (lambda rows: rows[12][1]["retired_resolution"].update(navigation="hasValidationScenario"),
      "retired name"),
-    (lambda rows: rows[3][0].update(identity="hasStakeholder2", admission_class="retired-name",
-                                    retired={"successor": "allocatedTo",
-                                             "successor_navigation": "allocatedTo",
-                                             "refusal": "retired; use allocatedTo"}),
-     "retirement record"),
+    (_retired_without_model_record, "retirement record"),
 ])
 def test_batch2_disagreement_is_refused_not_guessed(tmp_path, mutate, match):
     rows = _b2_rows()
@@ -508,7 +514,8 @@ def test_coverage_compare_detects_residual_duplicates_and_digest_mismatch():
     assert any("residual is blocking" in e for e in coverage.compare(grown, coverage.baseline_from_report(grown)))
     assert coverage.compare(dict(report, duplicates=["X: a and b"]), baseline)
     assert coverage.compare(report, dict(baseline, routing_digest="sha256:" + "0" * 64))
-    assert coverage.compare(report, dict(baseline, layer_digests={}))
+    assert "layer_digests" not in baseline
+    assert coverage.compare(report, dict(baseline, layer_digests={})) == []
 
 
 def test_coverage_baseline_has_no_binding_block():
@@ -518,16 +525,9 @@ def test_coverage_baseline_has_no_binding_block():
 
 def _gate_mocks():
     """Every other check_repo gate passes; each attribute is patched once."""
-    from unittest import mock
-    from de4sdv.semantic import external_reference_contract, o4_consumers
-    from tests.test_o4_consumer_ledger import _passing_gate_mocks
-    mocks = list(_passing_gate_mocks())
-    patched = {(id(m.getter()), m.attribute) for m in mocks}
-    for target, attribute in ((external_reference_contract, "run_check_errors"),
-                              (o4_consumers, "load_and_check")):
-        if (id(target), attribute) not in patched:
-            mocks.append(mock.patch.object(target, attribute, return_value=[]))
-    return mocks
+    from tests.test_retired_semantic_authority import _passing_gate_mocks
+
+    return list(_passing_gate_mocks())
 
 
 def _run_check_repo(patch):

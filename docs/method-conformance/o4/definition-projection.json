@@ -2,54 +2,6 @@
   "schema": "de4sdv.o4-definition-projection/v1",
   "status": "admitted",
   "warning": "vocabulary-only, no traversal, no runtime read, no authority retirement",
-  "binding": {
-    "source_revision": "208eb935e2f120e9f183f12e69b5fc9dcbbba122",
-    "source_revision_note": "Git commit that contains every bound input byte-for-byte. The gate validates commit existence, ancestry of the checked-out revision, per-input content equality, and the recorded content digests - a stale revision cannot pass by string reuse.",
-    "artifact_commit": null,
-    "artifact_commit_note": "The commit that introduces these artifacts cannot be known when they are generated; left explicitly unclaimed.",
-    "generation_software": {
-      "program_inputs": [
-        "de4sdv/semantic/definition_projection.py",
-        "scripts/generate_definition_projection.py",
-        "de4sdv/semantic/authority_inventory.py",
-        "de4sdv/semantic/projection_o2p.py"
-      ],
-      "note": "Generation-software revision: the commit containing these program inputs byte-for-byte. Both shared modules are listed because this machinery executes them at generation time (declaration/doc-scan normalization, digests, revision containment, canonical JSON)."
-    },
-    "semantic_model_revision": {
-      "model_inputs": [
-        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
-        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
-        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
-        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml"
-      ],
-      "note": "Semantic-model revision: ONLY the governed model files carrying the admitted definition declarations, contained byte-for-byte in source_revision."
-    },
-    "admission_document": {
-      "path": "docs/method-conformance/o4/definition-admission.yaml",
-      "digest": "sha256:94822c3054031563735153c7620bb03a8c723ec6cc0cd647c9c543176f142697"
-    },
-    "design_record": {
-      "path": "docs/method-conformance/o4/definition-admission-design.md",
-      "digest": "sha256:dd4cf60c8a842af7d2503b956944af014efd2aecc495d9c40f1914da30c1a680"
-    },
-    "api_binding": {
-      "status": "unclaimed",
-      "note": "No SysML API element UUID is claimed for these definitions; the profile entries state representation mechanics only."
-    },
-    "bound_inputs": {
-      "de4sdv/semantic/authority_inventory.py": "sha256:a073c4f61cf4504a645f6465e4a2b067494a41bb2898d4188d5df38e2825408d",
-      "de4sdv/semantic/definition_projection.py": "sha256:49c451436f66a0c0e0def029809fb15de2a46baa40da5f165c2624caba64e679",
-      "de4sdv/semantic/projection_o2p.py": "sha256:03ed5509e02126cabd2234aa84725c761b42f1b454172fbc4b6a9ef66c4e7817",
-      "docs/method-conformance/o4/definition-admission-design.md": "sha256:dd4cf60c8a842af7d2503b956944af014efd2aecc495d9c40f1914da30c1a680",
-      "docs/method-conformance/o4/definition-admission.yaml": "sha256:94822c3054031563735153c7620bb03a8c723ec6cc0cd647c9c543176f142697",
-      "scripts/generate_definition_projection.py": "sha256:8a06c0692f1f043454421a7826257b8a2695cfb43b76446fcc172675621c338d",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml": "sha256:bcd55ff6348e6761d88a8a38e2e3958d02908e8cd2c52f5b3e0fc54d9f973d6f",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml": "sha256:0db2f91dcda080d6bfedf0a5795b84261388326ff73faa411b49fdd91cec2108",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml": "sha256:9a566d02964af2b2af5d6508601d7623d7c5b06235630dcf1413fa774cba9edb",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml": "sha256:3d669f980fd985c5c0e40682c9ea347b140dbf331b526869101ab73f39aed1ef"
-    }
-  },
   "scope": {
     "admission": "O4 definition-admission batch 1 (definition-admission.yaml)",
     "admitted": [
@@ -90,8 +42,7 @@
           "declaration": "part def IncrementAssumption",
           "doc_count": 1
         },
-        "documentation_observation": "normalized-exact",
-        "semantic_text_equivalence": null
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -114,8 +65,7 @@
           "declaration": "part def BlockedRealizationBranchRecord",
           "doc_count": 1
         },
-        "documentation_observation": "normalized-exact",
-        "semantic_text_equivalence": null
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -138,8 +88,7 @@
           "declaration": "part def DeferredProductLineScope",
           "doc_count": 1
         },
-        "documentation_observation": "normalized-exact",
-        "semantic_text_equivalence": null
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -162,8 +111,7 @@
           "declaration": "part def EngineeringIncrement",
           "doc_count": 1
         },
-        "documentation_observation": "normalized-exact",
-        "semantic_text_equivalence": null
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -186,8 +134,7 @@
           "declaration": "part def FeatureIncrement",
           "doc_count": 1
         },
-        "documentation_observation": "normalized-exact",
-        "semantic_text_equivalence": null
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -210,8 +157,7 @@
           "declaration": "part def IncrementGap",
           "doc_count": 1
         },
-        "documentation_observation": "normalized-exact",
-        "semantic_text_equivalence": null
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -234,8 +180,7 @@
           "declaration": "part def IncrementEngineeringQuestion",
           "doc_count": 1
         },
-        "documentation_observation": "normalized-exact",
-        "semantic_text_equivalence": null
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -258,8 +203,7 @@
           "declaration": "part def IncrementLifecycleDecision",
           "doc_count": 1
         },
-        "documentation_observation": "normalized-exact",
-        "semantic_text_equivalence": null
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -282,8 +226,7 @@
           "declaration": "item def LogicalToSoftwareSignalMappingRecord",
           "doc_count": 1
         },
-        "documentation_observation": "differs",
-        "semantic_text_equivalence": "reviewed-equivalent"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -306,8 +249,7 @@
           "declaration": "part def ProductLineMemberProduct",
           "doc_count": 1
         },
-        "documentation_observation": "normalized-exact",
-        "semantic_text_equivalence": null
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -330,8 +272,7 @@
           "declaration": "part def MissingRealizationRecord",
           "doc_count": 1
         },
-        "documentation_observation": "normalized-exact",
-        "semantic_text_equivalence": null
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -354,8 +295,7 @@
           "declaration": "requirement def StakeholderNeedCandidate",
           "doc_count": 1
         },
-        "documentation_observation": "differs",
-        "semantic_text_equivalence": "reviewed-equivalent"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -378,8 +318,7 @@
           "declaration": "part def NeedsRequirementsIncrement",
           "doc_count": 1
         },
-        "documentation_observation": "normalized-exact",
-        "semantic_text_equivalence": null
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -402,8 +341,7 @@
           "declaration": "requirement def ProblemStatement",
           "doc_count": 1
         },
-        "documentation_observation": "normalized-exact",
-        "semantic_text_equivalence": null
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -426,8 +364,7 @@
           "declaration": "part def ProductLine",
           "doc_count": 1
         },
-        "documentation_observation": "normalized-exact",
-        "semantic_text_equivalence": null
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -450,8 +387,7 @@
           "declaration": "part def ProductLineCharacteristic",
           "doc_count": 1
         },
-        "documentation_observation": "normalized-exact",
-        "semantic_text_equivalence": null
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -474,8 +410,7 @@
           "declaration": "requirement def RegulatoryConstraintCandidate",
           "doc_count": 1
         },
-        "documentation_observation": "differs",
-        "semantic_text_equivalence": "reviewed-equivalent"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -498,8 +433,7 @@
           "declaration": "requirement def RequirementCandidate",
           "doc_count": 1
         },
-        "documentation_observation": "differs",
-        "semantic_text_equivalence": "reviewed-equivalent"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -522,8 +456,7 @@
           "declaration": "part def Scenario",
           "doc_count": 1
         },
-        "documentation_observation": "normalized-exact",
-        "semantic_text_equivalence": null
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -546,8 +479,7 @@
           "declaration": "enum def SignalMappingDisposition",
           "doc_count": 1
         },
-        "documentation_observation": "normalized-exact",
-        "semantic_text_equivalence": null
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -570,8 +502,7 @@
           "declaration": "part def SystemLayer",
           "doc_count": 1
         },
-        "documentation_observation": "normalized-exact",
-        "semantic_text_equivalence": null
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -594,8 +525,7 @@
           "declaration": "allocation def SystemToSoftwareSignalMappingCandidate",
           "doc_count": 1
         },
-        "documentation_observation": "differs",
-        "semantic_text_equivalence": "reviewed-equivalent"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {

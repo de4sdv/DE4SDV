@@ -22,13 +22,15 @@ _LAYER_DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 @dataclass(frozen=True)
 class SemanticAuthorityIdentity:
-    """Identity of the model-built semantic contract (O4 Wave C2).
+    """Identity of the model-built semantic contract, not application bytes.
 
-    ``id`` digests the contract content (class and relationship mappings,
-    refusals) together with ``layers``: the repository path and sha256 of
-    every model-generated projection/profile file and frozen O2-chain record
-    the contract is built from. Two contracts are the same authority exactly
-    when their identities are equal.
+    ``id`` covers declared layer meaning, served mappings and refusals,
+    lineage pins and the complete successor semantic payload. ``layers``
+    associates source paths with semantic digests, not raw file checksums:
+    both paths of a live pair share its semantic digest, and historical
+    paths carry their selected historical semantic-output digest. Raw byte
+    receipts and source revisions remain separate construction provenance.
+    Two contracts have the same semantic identity when these values match.
     """
 
     schema: str

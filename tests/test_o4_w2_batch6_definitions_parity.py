@@ -1,16 +1,9 @@
-"""O4 W2 batch 6 — product-line class definitions parity (three rows).
+"""Historical definition records and current model boundaries.
 
-Batch scope (exactly three retained, ungated ``MODEL_AUTHORITY_PARITY`` rows
-grounded in ``de4sdv_product_line.sysml``):
-
-* ``ProductLine``              -> ``part def ProductLine``
-* ``MemberProduct``            -> ``part def ProductLineMemberProduct``
-* ``DeferredProductLineScope`` -> ``part def DeferredProductLineScope``
-
-All three close definition-level parity normalized-exact: the model docs
-carry the reviewed definition texts verbatim under cosmetic normalization
-only.  Declarations and their names are unchanged; the native variation
-mechanism and the other classification rows are untouched.
+This cleanup retires current-documentation equality with copied or frozen definitions.
+Live checks retain owned nonempty documentation, structure and claim boundaries.
+Inventory/decision parity fields below describe frozen historical evidence only;
+they are not recomputed from, or imposed on, current model wording.
 """
 
 from __future__ import annotations
@@ -22,6 +15,7 @@ import pytest
 import yaml
 
 from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
+from model_contract_fixtures import owned_definition_documentation
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PRODUCT_LINE = REPO_ROOT / "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml"
@@ -35,13 +29,6 @@ MAPPING = {
     "ProductLine": "part def ProductLine",
     "MemberProduct": "part def ProductLineMemberProduct",
     "DeferredProductLineScope": "part def DeferredProductLineScope",
-}
-ACCEPTED_DEFINITION = {
-    "ProductLine": "A family of related member products managed through shared assets and variability.",
-    "MemberProduct": "A configured product or product variant that belongs to a product line.",
-    "DeferredProductLineScope": (
-        "Product-line scope deliberately deferred from the current increment, including recorded gaps."
-    ),
 }
 # later-batch convention (definition admission batch 1): the parity stage
 # is superseded by the shared admission stage.
@@ -140,10 +127,10 @@ def test_declaration_mapping(inventory):
         assert observed["yaml_path"] == f"classes:{identity}"
 
 
-def test_accepted_definitions_are_carried(model_text):
+def test_definitions_have_owned_nonempty_documentation(model_text):
+    # This cleanup retired accepted-definition copied prose, not the declaration homes.
     for identity in BATCH_ROWS:
-        block = _flat(" ".join(_declaration_block(model_text, MAPPING[identity])))
-        assert ACCEPTED_DEFINITION[identity] in block, identity
+        assert owned_definition_documentation(model_text, MAPPING[identity]).strip(), identity
 
 
 def test_honest_parity_state(inventory, decisions):

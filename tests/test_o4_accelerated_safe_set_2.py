@@ -104,16 +104,18 @@ def register_rows() -> dict:
 
 @pytest.fixture(scope="module")
 def ontology() -> dict:
-    """O4 Wave C2: the reviewed admission definitions and the model-built
-    contract mappings stand in for the deleted authored ontology."""
+    """Current model meaning and mappings for synthetic runtime consumers.
+
+    This cleanup retires the reviewed admission prose; there is no historical fallback.
+    """
     import sys
 
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from model_contract_fixtures import model_contract, reviewed_definition
+    from model_contract_fixtures import model_contract, current_definition
 
     contract = model_contract()
     return {"classes": {name: {"kernel": contract.classes[name]["kernel"],
-                               "definition": reviewed_definition(name)}
+                               "definition": current_definition(name)}
                         for name in ("ProductLineCharacteristic", "Scenario")}}
 
 
@@ -163,16 +165,11 @@ def test_exactly_the_batch_rows_carry_the_batch_stages(decisions):
     assert sorted(staged) == admitted
 
 
-def test_product_line_characteristic_definition_parity_is_machine_checked(
-    model_text, ontology
-):
-    definition = ontology["classes"]["ProductLineCharacteristic"]["definition"]
-    assert (
-        ai.doc_text_observation(model_text, "part def ProductLineCharacteristic", definition)
-        == "normalized-exact"
-    )
-    # The old unaligned wording is gone: parity is carried, not approximated.
-    assert "classification concept for common capabilities" not in model_text
+def test_product_line_characteristic_has_owned_model_documentation(model_text):
+    # This cleanup retired copied-definition parity, not the actual owned definition home.
+    from model_contract_fixtures import owned_definition_documentation
+
+    assert owned_definition_documentation(model_text, "part def ProductLineCharacteristic").strip()
 
 
 def test_product_line_characteristic_row_state(decisions):
@@ -278,10 +275,10 @@ def test_scenario_operational_context_pattern_anchored():
     assert "part def SubjectVehicle :> OperationalEntity {" in text
     # The definition home added by definition admission batch 1 (amended).
     assert "part def Scenario {" in text
-    assert (
-        "A bounded operational, validation, test, or threat situation used to "
-        "reason about behavior and evidence."
-    ) in text
+    # This cleanup retires the copied Scenario definition sentence; keep owned docs.
+    from model_contract_fixtures import owned_definition_documentation
+
+    assert owned_definition_documentation(text, "part def Scenario").strip()
 
 
 # ---------------------------------------------------------------------------
@@ -376,12 +373,10 @@ def test_prior_batch_rows_unchanged(decisions):
 
 
 def test_inventory_artifact_reproduces_source_rows_commit_b_gate(inventory, decisions):
-    """Expected RED until the parent regenerates the inventory (Commit B).
+    """The frozen inventory retains its recorded review and parity observation.
 
-    The generated reviewed row must reproduce the decisions row exactly
-    (plus the joined ``runtime_consumption`` field); the generated observed
-    row must carry the source-recomputed observation. The gate is the
-    two-commit binding working, not a defect to fix by regenerating early.
+    This historical comparison neither regenerates the inventory nor imposes
+    its documentation observation on current model wording.
     """
     for identity in BATCH_ROWS:
         entry = _entry(inventory, identity)

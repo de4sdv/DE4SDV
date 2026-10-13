@@ -1,68 +1,20 @@
 #!/usr/bin/env python3
-"""Verify the whole generated-artifact chain (read-only, runtime-inert).
+"""Verify immutable historical records (read-only, runtime-inert).
 
-Single verifier over the generated-artifact chain that carries the repository's
-recovery diagnostics and closure-reproducibility evidence: every artifact under
-``docs/method-conformance/**`` that declares a ``binding`` block, plus the
-committed O3 equivalence scope document.
+The frozen-records manifest must equal its deterministic rendering from the
+recorded ancestor. Directory membership and every frozen file's bytes must
+match that manifest. Historical bindings are checked against their own source
+revisions, never against current inputs; referenced records and comparison
+bases remain subject to digest, existence and ancestry checks.
 
-What is validated (all fail-closed, all against the repository itself — a
-recorded string never passes by reuse):
+Live projection/profile freshness is a separate current-source comparison in
+each generator's check mode, aggregated by ``scripts/check_repo.py``. This
+verifier neither discovers nor validates live generated outputs.
 
-1. ``binding.source_revision`` exists as a commit and is an ancestor of the
-   checked-out revision (``git merge-base --is-ancestor``).
-2. Every ``binding.bound_inputs`` entry: the bytes at ``source_revision``
-   equal the CURRENT working-tree bytes, and the recorded digest
-   (``sha256:<64-hex>`` or bare 64-hex) matches the current content digest.
-3. ``extends`` blocks (where present): the referenced artifact file exists,
-   its digest recorded in ``extends.artifact_digest`` matches the current
-   bytes, and ``extends.source_revision`` equals the referenced artifact's own
-   ``binding.source_revision``.
-4. A top-level ``source_revision`` claim on frozen records without a binding
-   block (the ontology-review and validation report) must be a full commit id
-   that exists and is an ancestor of the checked-out revision.
-5. Frozen records (owner decisions Q7 and D10, 2026-10-07): every file under
-   ``docs/method-conformance/{o1,o2,o3}/`` is a frozen record pinned by
-   ``docs/method-conformance/frozen-records.json``
-   (``de4sdv.frozen-records/v1``). Frozen records are never regenerated and
-   never compared with the live tree's inputs. The frozen lane checks, all
-   fail-closed:
-
-   a. the manifest equals its deterministic rendering from the tree at its
-      ``frozen_at_revision`` (an existing ancestor of the checked-out
-      revision), so its record set, digests and record metadata are exactly
-      the historical bytes;
-   b. the files present under the three directories equal the record set
-      (nothing added, nothing removed) and each file's current bytes match
-      its recorded ``sha256`` (no edit, no regeneration);
-   c. a record that carries a ``binding`` block is checked HISTORICALLY: its
-      ``source_revision`` exists and is an ancestor of the checked-out
-      revision, and every ``bound_inputs`` entry exists at that revision
-      (``git show <rev>:<path>``) with the recorded digest. The current
-      working-tree bytes of those inputs are deliberately not consulted, so a
-      bound input may be edited or deleted at HEAD without breaking the
-      record;
-   d. ``extends`` blocks and the O3 equivalence scope basis may reference
-      frozen records only, and must match their frozen digests; the O3
-      ``comparison_base_revision`` exists and is an ancestor of the
-      checked-out revision.
-
-Report: ``{artifact, ok, errors[]}`` entries sorted by path; the CLI prints a
-human summary and exits 0 iff every artifact is ok, else 1. ``--json`` emits
-the machine-readable report.
-
-Boundaries: read-only and runtime-inert. This module opens files and runs
-``git`` read commands only; it never writes, never commits, and is never
-imported by the semantic runtime. It reuses the shared authority-inventory
-lane helpers (``file_digest`` and the binding validator behind
-``verify_source_revision_contains_inputs``) instead of re-implementing the
-revision-binding contract.
-
-Usage:
-
-    python scripts/verify_generated_chain.py            # human summary
-    python scripts/verify_generated_chain.py --json     # machine report
-    python scripts/verify_generated_chain.py --render-frozen-manifest <rev>
+Reports are sorted ``{artifact, ok, errors[]}`` entries. The CLI exits nonzero
+on any historical failure; ``--json`` emits the complete report.
+``--render-frozen-manifest <revision>`` is a read-only review aid. Historical
+records must never be regenerated or repaired to match current source.
 """
 
 from __future__ import annotations
@@ -151,12 +103,6 @@ _RECORD_KEYS = (
 _FULL_SHA = re.compile(r"^[0-9a-f]{40}$")
 _BARE_SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
-from de4sdv.semantic.authority_inventory import (  # noqa: E402
-    validate_source_binding,
-    file_digest,
-)
-
-
 def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["git", "-C", str(root), *args],
@@ -178,83 +124,6 @@ def _canonical_digest(value: Any) -> Any:
     if _BARE_SHA256.match(text):
         return "sha256:" + text
     return value
-
-
-def _binding_problems(root: Path, binding: dict[str, Any]) -> list[str]:
-    """Validate one artifact's ``binding`` block against the repository."""
-    source_revision = binding.get("source_revision")
-    if not isinstance(source_revision, str):
-        return [
-            "binding.source_revision is required (full commit id of a revision "
-            "containing every bound input)"
-        ]
-    bound_inputs = binding.get("bound_inputs")
-    if not isinstance(bound_inputs, dict) or not bound_inputs:
-        return ["binding.bound_inputs must be a non-empty path -> sha256 mapping"]
-    normalized = {
-        str(path): _canonical_digest(value) for path, value in bound_inputs.items()
-    }
-    return list(validate_source_binding(root, {**binding, "bound_inputs": normalized}))
-
-
-def _revision_claim_problems(root: Path, revision: Any, label: str) -> list[str]:
-    """Validate a bare revision claim (frozen record top-level revisions)."""
-    if not isinstance(revision, str) or not _FULL_SHA.fullmatch(revision):
-        return [f"{label} must be a full 40-hex commit id"]
-    if _git(root, "merge-base", "--is-ancestor", revision, "HEAD").returncode:
-        return [f"{label} must exist and be an ancestor of HEAD"]
-    return []
-
-
-def _extends_problems(
-    root: Path, artifact: dict[str, Any]
-) -> list[str]:
-    """Validate one artifact's ``extends`` block against the repository."""
-    extends = artifact.get("extends")
-    if extends is None:
-        return []
-    if not isinstance(extends, dict):
-        return ["extends must be a mapping"]
-    errors: list[str] = []
-    referenced = extends.get("artifact")
-    if not isinstance(referenced, str) or not referenced.strip():
-        return [
-            "extends.artifact is required (repository-relative path of the "
-            "extended artifact)"
-        ]
-    target = root / referenced
-    if Path(referenced).is_absolute() or ".." in Path(referenced).parts or not target.resolve().is_relative_to(root.resolve()):
-        return ["extends.artifact must stay inside the repository"]
-    revision = extends.get("source_revision")
-    if not isinstance(revision, str) or not _FULL_SHA.fullmatch(revision):
-        return ["extends.source_revision must be a full commit id"]
-    if _git(root, "merge-base", "--is-ancestor", revision, "HEAD").returncode:
-        return ["extends.source_revision must exist and be an ancestor of HEAD"]
-    if not target.is_file():
-        return [f"extends.artifact {referenced} does not exist in the checkout"]
-    try:
-        referenced_document = json.loads(target.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        return [f"extends.artifact {referenced} is not readable JSON: {exc}"]
-    actual = file_digest(root, referenced)
-    recorded = extends.get("artifact_digest")
-    if _canonical_digest(recorded) != actual:
-        errors.append(
-            f"extends.artifact_digest {recorded!r} does not match the current "
-            f"bytes of {referenced} ({actual})"
-        )
-    referenced_revision = None
-    if isinstance(referenced_document, dict):
-        referenced_binding = referenced_document.get("binding")
-        if isinstance(referenced_binding, dict):
-            referenced_revision = referenced_binding.get("source_revision")
-    if extends.get("source_revision") != referenced_revision:
-        errors.append(
-            f"extends.source_revision {extends.get('source_revision')!r} does "
-            "not match the referenced artifact's binding.source_revision "
-            f"{referenced_revision!r} ({referenced})"
-        )
-    return errors
 
 
 def _is_frozen_path(relative: str) -> bool:
@@ -596,130 +465,11 @@ def frozen_record_errors(root: Path) -> list[str]:
     ]
 
 
-def _expected_inputs(root: Path) -> dict[str, set[str]]:
-    """Required coverage comes from supported lanes, never artifact declarations."""
-    # Frozen O1/O2 records (owner decision Q7) are not live lanes: the frozen
-    # lane checks their bindings at their own revisions instead.
-    from de4sdv.semantic import projection_o2p as plus
-    from de4sdv.semantic import definition_projection as definitions
-    from de4sdv.semantic import definition_projection_batch2 as definitions_b2
-    from de4sdv.semantic import vocabulary_carrier as carriers
-
-    expected: dict[str, set[str]] = {}
-    admission = plus.load_admission_o2p(root / plus.ADMISSION_O2P_PATH)
-    inputs = set(plus.collect_bound_inputs_o2p(root, admission))
-    for prefix in ("semantic-projection", "api-representation-profile"):
-        expected[f"docs/method-conformance/o2plus/{prefix}-o2plus.json"] = inputs
-    outputs = definitions.build_outputs(root, definitions.load_document(root))
-    inputs = set(definitions.collect_bound_inputs(root, outputs))
-    for suffix in ("projection", "profile"):
-        expected[f"docs/method-conformance/o4/definition-{suffix}.json"] = inputs
-    outputs = definitions_b2.build_outputs(root, definitions_b2.load_document(root))
-    inputs = set(definitions_b2.collect_bound_inputs(root, outputs))
-    for relative in (definitions_b2.PROJECTION_PATH, definitions_b2.PROFILE_PATH):
-        expected[relative] = inputs
-    document = carriers.load_carriers(root / carriers.CARRIERS_PATH)
-    outputs = carriers.build_carrier_outputs(root, document, carriers.load_review(root))
-    inputs = set(carriers.collect_bound_inputs(root, document, outputs))
-    for suffix in ("projection", "profile"):
-        expected[f"docs/method-conformance/o4/vocabulary-carriers-{suffix}.json"] = inputs
-    return expected
-
-
-def _chain_artifacts(root: Path) -> list[Path]:
-    base = root / METHOD_CONFORMANCE_DIR
-    if not base.is_dir():
-        return []
-    return [
-        path
-        for path in sorted(base.rglob("*.json"))
-        if path.is_file()
-        and "__pycache__" not in path.parts
-        and not _is_frozen_path(path.relative_to(root).as_posix())
-        and path.relative_to(root).as_posix() != FROZEN_MANIFEST_PATH
-    ]
-
-
-def _artifact_entry(root: Path, path: Path) -> dict[str, Any] | None:
-    """One report entry for an artifact carrying a ``binding`` block."""
-    try:
-        document = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        relative = path.relative_to(root).as_posix()
-        return {
-            "artifact": relative,
-            "ok": False,
-            "errors": [f"artifact is not readable JSON: {exc}"],
-        }
-    if not isinstance(document, dict):
-        # A non-object JSON document cannot carry a binding/extends block, so
-        # it is outside this verifier's scope (e.g. list-shaped record files).
-        return None
-    relative = path.relative_to(root).as_posix()
-    if _is_frozen_path(relative) or relative == FROZEN_MANIFEST_PATH:
-        return None  # validated by the frozen lane
-    binding = document.get("binding")
-    errors: list[str] = []
-    if isinstance(binding, dict):
-        errors.extend(_binding_problems(root, binding))
-    elif "binding" in document:
-        errors.append("binding block must be a mapping")
-    else:
-        # No binding block: an extends block (if any) is still chain evidence;
-        # a top-level source_revision claim (frozen review/validation records)
-        # is validated too, never trusted as a recorded string.
-        if "extends" in document:
-            errors.extend(_extends_problems(root, document))
-            return {"artifact": relative, "ok": not errors, "errors": errors}
-        top_revision = document.get("source_revision")
-        if top_revision is None:
-            return None
-        errors.extend(
-            _revision_claim_problems(root, top_revision, "top-level source_revision")
-        )
-        return {"artifact": relative, "ok": not errors, "errors": errors}
-    errors.extend(_extends_problems(root, document))
-    return {"artifact": relative, "ok": not errors, "errors": errors}
-
-
 def verify_generated_chain(
     root: Path, *, include_passing: bool = False
 ) -> list[dict[str, Any]]:
-    """Verify every binding-carrying artifact under ``docs/method-conformance``.
-
-    Returns the report entries — ``{artifact, ok, errors[]}`` sorted by path —
-    for the artifacts that failed. An empty list therefore means the whole
-    chain is consistent. Pass ``include_passing=True`` for the full report
-    (one entry per verified artifact, passing ones included).
-    """
-    root = Path(root)
-    entries: list[dict[str, Any]] = []
-    try:
-        expected = _expected_inputs(root)
-    except (ValueError, OSError, KeyError, TypeError) as exc:
-        return [{"artifact": METHOD_CONFORMANCE_DIR, "ok": False,
-                 "errors": [f"cannot derive required chain inputs: {exc}"]}]
-    paths = set(_chain_artifacts(root)) | {root / path for path in expected}
-    for path in sorted(paths):
-        entry = _artifact_entry(root, path)
-        relative = path.relative_to(root).as_posix()
-        if relative in expected:
-            if entry is None:
-                entry = {"artifact": relative, "ok": False,
-                         "errors": ["required generated artifact has no binding"]}
-            try:
-                document = json.loads(path.read_text(encoding="utf-8"))
-                binding = document.get("binding") if isinstance(document, dict) else None
-                inputs = binding.get("bound_inputs") if isinstance(binding, dict) else None
-                if not isinstance(inputs, dict) or set(inputs) != expected[relative]:
-                    entry["errors"].append("bound_inputs differs from generator-required input set")
-            except (OSError, ValueError):
-                pass  # _artifact_entry already reports unreadable artifacts.
-            entry["ok"] = not entry["errors"]
-        if entry is not None:
-            entries.append(entry)
-    entries.extend(_frozen_lane_entries(root))
-    entries.sort(key=lambda entry: entry["artifact"])
+    """Report historical failures, or the complete nonempty historical inventory."""
+    entries = sorted(_frozen_lane_entries(Path(root)), key=lambda entry: entry["artifact"])
     if include_passing:
         return entries
     return [entry for entry in entries if not entry["ok"]]
@@ -760,17 +510,17 @@ def main(argv: list[str] | None = None) -> int:
         return 1 if failing else 0
 
     if failing:
-        print("Generated-artifact chain verification FAILED.")
+        print("Historical-record verification FAILED.")
         for entry in failing:
             for error in entry["errors"]:
                 print(f"  - {entry['artifact']}: {error}")
         print(
             f"{len(failing)} of {len(report)} artifact(s) failed; "
-            "regenerate the artifact bound to a commit that contains the "
-            "current inputs."
+            "restore the recorded historical bytes; never regenerate them "
+            "against current inputs."
         )
         return 1
-    print("Generated-artifact chain verification passed.")
+    print("Historical-record verification passed.")
     print(f"artifacts checked: {len(report)}")
     for entry in report:
         print(f"  OK  {entry['artifact']}")

@@ -13,23 +13,23 @@ Batch 2 (``definition-admission-batch2.yaml``, module
 the remaining retained identities, the unregistered ontology classes and the
 W6 successor predicates; ``--batch`` selects one pair (default: both).
 
-The artifacts carry the 21 admitted definition identities of the pinned
+The batch-1 artifacts carry the 22 admitted definition identities of the governed
 ``docs/method-conformance/o4/definition-admission.yaml`` batch: the generated
-Semantic Projection rows (recomputed documentation observation against the
-reviewed definitions, kernel-binding-contract grounding) and the API
+Semantic Projection rows (model-owned documentation and ownership witnesses,
+kernel-binding-contract grounding) and the API
 Representation Profile entries (declaration-form representation mechanics and
 metaclass echo only). Support stays ``vocabulary-only``; no traversal is
 implemented or claimed and no API element identity is claimed.
 
-Two-commit source binding (the O2+/O1 pattern): the admission inputs must be
-committed first, then this generator binds the artifacts to that commit.
+Both live pairs are constructed deterministically from current sources,
+including uncommitted model edits, without Git source-revision bindings.
+Commit the model edit and regenerated live artifacts together. Frozen historical
+records keep their separate revision-bound contract unchanged.
 
 Usage:
 
     python scripts/generate_definition_projection.py              # write
     python scripts/generate_definition_projection.py --check      # verify
-    python scripts/generate_definition_projection.py \\
-        --source-revision <40-hex commit id>
     python scripts/generate_definition_projection.py --batch 2
 """
 
@@ -43,7 +43,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from de4sdv.semantic.projection_o2p import canonical_json, resolve_source_revision  # noqa: E402
+from de4sdv.semantic.projection_o2p import canonical_json  # noqa: E402
 from de4sdv.semantic.definition_projection import (  # noqa: E402
     PROFILE_PATH,
     PROJECTION_PATH,
@@ -54,18 +54,14 @@ from de4sdv.semantic.definition_projection import (  # noqa: E402
 from de4sdv.semantic import definition_projection_batch2 as batch2  # noqa: E402
 
 
-def generate(root: Path, *, source_revision: str | None = None) -> dict:
-    """Build both definition artifacts bound to a source revision."""
-    if source_revision is None:
-        source_revision = resolve_source_revision(root)
-    return build_artifact_pair(root, source_revision=source_revision)
+def generate(root: Path) -> dict:
+    """Build the first definition pair from current model sources."""
+    return build_artifact_pair(root)
 
 
-def generate_batch2(root: Path, *, source_revision: str | None = None) -> dict:
-    """Build both batch-2 definition artifacts bound to a source revision."""
-    if source_revision is None:
-        source_revision = resolve_source_revision(root)
-    return batch2.build_artifact_pair(root, source_revision=source_revision)
+def generate_batch2(root: Path) -> dict:
+    """Build the remaining definition pair from current model sources."""
+    return batch2.build_artifact_pair(root)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -74,11 +70,6 @@ def main(argv: list[str] | None = None) -> int:
         "--check",
         action="store_true",
         help="verify the committed artifacts equal regeneration (no writes)",
-    )
-    parser.add_argument(
-        "--source-revision",
-        default=None,
-        help="commit id containing every bound input byte-for-byte (default: HEAD)",
     )
     parser.add_argument(
         "--batch",
@@ -105,10 +96,10 @@ def main(argv: list[str] | None = None) -> int:
     for batch in batches:
         try:
             if batch == "1":
-                artifacts = generate(ROOT, source_revision=args.source_revision)
+                artifacts = generate(ROOT)
                 projection_rel, profile_rel = PROJECTION_PATH, PROFILE_PATH
             else:
-                artifacts = generate_batch2(ROOT, source_revision=args.source_revision)
+                artifacts = generate_batch2(ROOT)
                 projection_rel, profile_rel = batch2.PROJECTION_PATH, batch2.PROFILE_PATH
         except (DefinitionAdmissionError, batch2.DefinitionBatch2Error) as exc:
             print(f"Definition-admission batch {batch} generation refused: {exc}")
@@ -118,8 +109,7 @@ def main(argv: list[str] | None = None) -> int:
         projection = artifacts["projection"]
         print(
             f"Wrote {projection_rel} ({len(projection['rows'])} rows) and {profile_rel} "
-            f"({len(artifacts['profile']['entries'])} entries) bound to "
-            f"{projection['binding']['source_revision']}."
+            f"({len(artifacts['profile']['entries'])} entries) from current model sources."
         )
     return 0
 

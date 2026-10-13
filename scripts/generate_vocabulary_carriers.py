@@ -13,15 +13,13 @@ model-resident carrier lineage (kernel ``connection def``, typed ends), the
 generated Projection rows, and the API-representation profile entries.
 Support stays ``vocabulary-only``; no traversal is implemented or claimed.
 
-Two-commit source binding (the O2+/O1 pattern): the admission inputs must be
-committed first, then this generator binds the artifacts to that commit.
+Deterministic current-input regeneration is the freshness gate. Construction
+does not require an input commit or emit Git-revision/input-digest bindings.
 
 Usage:
 
     python scripts/generate_vocabulary_carriers.py              # write
     python scripts/generate_vocabulary_carriers.py --check      # verify
-    python scripts/generate_vocabulary_carriers.py \\
-        --source-revision <40-hex commit id>
 """
 
 from __future__ import annotations
@@ -34,7 +32,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from de4sdv.semantic.projection_o2p import canonical_json, resolve_source_revision  # noqa: E402
+from de4sdv.semantic.projection_o2p import canonical_json  # noqa: E402
 from de4sdv.semantic.vocabulary_carrier import (  # noqa: E402
     PROFILE_CARRIER_PATH,
     PROJECTION_CARRIER_PATH,
@@ -45,9 +43,7 @@ from de4sdv.semantic.vocabulary_carrier import (  # noqa: E402
 
 
 def generate(root: Path, *, source_revision: str | None = None) -> dict:
-    """Build both carrier artifacts bound to a source revision."""
-    if source_revision is None:
-        source_revision = resolve_source_revision(root)
+    """Build from current inputs; legacy source_revision is accepted but ignored."""
     return build_artifact_pair(root, source_revision=source_revision)
 
 
@@ -61,7 +57,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--source-revision",
         default=None,
-        help="commit id containing every bound input byte-for-byte (default: HEAD)",
+        help="deprecated compatibility option; ignored (uses current source inputs)",
     )
     args = parser.parse_args(argv)
 
@@ -90,8 +86,7 @@ def main(argv: list[str] | None = None) -> int:
     print(
         f"Wrote {PROJECTION_CARRIER_PATH} "
         f"({len(projection['rows'])} rows) and {PROFILE_CARRIER_PATH} "
-        f"({len(artifacts['profile']['entries'])} entries) bound to "
-        f"{projection['binding']['source_revision']}."
+        f"({len(artifacts['profile']['entries'])} entries) from current inputs."
     )
     return 0
 

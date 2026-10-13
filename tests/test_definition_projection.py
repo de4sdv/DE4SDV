@@ -1,26 +1,14 @@
-"""O4 definition-admission batch 1 — governed, fail-closed, separated outputs.
+"""First definition admission: scope, model-owned docs and mechanics.
 
-The machinery admits exactly the 21 pinned rows of
-``docs/method-conformance/o4/definition-admission.yaml`` (retained, ungated
-W2 definitions-parity rows requiring both a generated projection row and an
-API-representation-profile entry). Each admitted identity is backed by a
-model-resident declaration whose owned documentation carries — or is
-bounded-review-equivalent to — the reviewed definition.
-
-Boundaries machine-locked here: the admitted set equals the register-derived
-family; every anchor resolves and the recomputed documentation observation
-matches the manifest; ``differs`` requires a recorded ``reviewed-equivalent``
-review; generated rows carry no O1 governance fields and stay
-``vocabulary-only`` with traversal false and no API identity claim; the
-generator never reads O1 artifacts; the runtime never imports this machinery.
-The committed-artifact test is the Commit-B gate (red between the A1 input
-commit and the A2 artifact commit by design).
+This cleanup retires live revision containment and copied-definition parity. Independent
+literal artifact oracles and strict synthetic current-source gate tests live in
+``test_commit_independent_definition_artifacts.py``. Scope, grounding,
+non-claims, runtime independence and repository wiring remain covered here.
+Frozen source bindings and historical reviews are not changed.
 """
 from __future__ import annotations
 
 import json
-import re
-import subprocess
 from pathlib import Path
 
 import pytest
@@ -112,9 +100,6 @@ _FIXTURE_MANIFEST = {
             "declaration": {"file": _MODEL_FILE, "declaration": "part def FixtureAlpha"},
             "evidence_state": "repository-evidenced",
             "authority_current": "legacy-yaml",
-            "reviewed_definition": "An exact fixture definition for alpha.",
-            "expected_documentation_observation": "normalized-exact",
-            "semantic_text_equivalence": None,
             "required_runtime_support_target": (
                 "runtime-queryable (post-migration, exact-revision evidence required)"
             ),
@@ -127,9 +112,6 @@ _FIXTURE_MANIFEST = {
             "declaration": {"file": _MODEL_FILE, "declaration": "part def FixtureBeta"},
             "evidence_state": "repository-evidenced",
             "authority_current": "legacy-yaml",
-            "reviewed_definition": "A differing fixture definition for beta.",
-            "expected_documentation_observation": "differs",
-            "semantic_text_equivalence": "reviewed-equivalent",
             "required_runtime_support_target": (
                 "runtime-queryable (post-migration, exact-revision evidence required)"
             ),
@@ -229,30 +211,24 @@ def test_family_invariant_from_canonical_governance():
     assert not (set(ADMITTED_ROWS) & set(MIGRATED_IDENTITIES))
 
 
-def test_every_admitted_row_resolves_and_recomputes_expected_observation():
-    from de4sdv.semantic.authority_inventory import doc_text_observation
-
+def test_every_admitted_row_resolves_to_authoritative_model_documentation():
     from de4sdv.semantic.definition_projection import build_outputs, load_document
 
     document = load_document(REPO_ROOT)
     outputs = build_outputs(REPO_ROOT, document)
+    assert len(outputs["projection_rows"]) == 22
+    assert {row["identity"] for row in outputs["projection_rows"]} == set(ADMITTED_ROWS)
     for row in outputs["projection_rows"]:
-        witness = row["definition"]["documentation_witness"]
+        definition = row["definition"]
+        witness = definition["documentation_witness"]
         file_text = (REPO_ROOT / witness["source_file"]).read_text(encoding="utf-8")
+        assert witness["declaration"] in file_text, row["identity"]
         assert witness["doc_count"] >= 1, row["identity"]
-        assert row["definition"]["documentation"].strip(), row["identity"]
-        if row["definition"]["documentation_observation"] == "differs":
-            assert row["definition"]["semantic_text_equivalence"] == "reviewed-equivalent"
-
-    # Independent recomputation against the manifest oracle.
-    manifest = yaml.safe_load((REPO_ROOT / MANIFEST_PATH).read_text(encoding="utf-8"))
-    for admitted in manifest["admitted"]:
-        file_text = (REPO_ROOT / admitted["declaration"]["file"]).read_text(encoding="utf-8")
-        observation = doc_text_observation(
-            file_text, admitted["declaration"]["declaration"], admitted["reviewed_definition"]
-        )
-        assert observation == admitted["expected_documentation_observation"], admitted["identity"]
-
+        assert definition["documentation"].strip(), row["identity"]
+        assert definition["documentation_observation"] == "model-owned-documentation"
+        assert "semantic_text_equivalence" not in definition
+    for admitted in document["admitted"]:
+        assert not {"reviewed_definition", "expected_documentation_observation", "semantic_text_equivalence"} & set(admitted)
 
 def test_generated_rows_stay_vocabulary_only_and_free_of_governance_fields():
     from de4sdv.semantic.definition_projection import (
@@ -319,22 +295,20 @@ def test_unknown_row_key_is_refused(tmp_path):
         load_admission(_write_manifest(tmp_path, document))
 
 
-def test_differs_without_reviewed_equivalence_is_refused(tmp_path):
+def test_retired_reviewed_definition_oracle_is_refused(tmp_path):
     from de4sdv.semantic.definition_projection import DefinitionAdmissionError, load_admission
 
-    document = json.loads(json.dumps(_FIXTURE_MANIFEST))
-    document["admitted"][1]["semantic_text_equivalence"] = None
-    with pytest.raises(DefinitionAdmissionError, match="bounded review"):
+    document = _mutated(reviewed_definition="A second text authority.")
+    with pytest.raises(DefinitionAdmissionError, match="unknown keys"):
         load_admission(_write_manifest(tmp_path, document))
 
-
-def test_exact_observation_with_equivalence_is_refused(tmp_path):
+@pytest.mark.parametrize("key", ["expected_documentation_observation", "semantic_text_equivalence"])
+def test_retired_live_parity_metadata_is_refused(tmp_path, key):
     from de4sdv.semantic.definition_projection import DefinitionAdmissionError, load_admission
 
-    document = _mutated(semantic_text_equivalence="reviewed-equivalent")
-    with pytest.raises(DefinitionAdmissionError, match="null"):
+    document = _mutated(**{key: "reviewed-equivalent"})
+    with pytest.raises(DefinitionAdmissionError, match="unknown keys"):
         load_admission(_write_manifest(tmp_path, document))
-
 
 def test_duplicate_identity_is_refused(tmp_path):
     from de4sdv.semantic.definition_projection import DefinitionAdmissionError, load_admission
@@ -364,105 +338,40 @@ def test_missing_required_key_is_refused(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# 3. Fixture generation, binding, and refusal behaviour
+# 3. Current-source fixture generation and refusal behaviour
 # ---------------------------------------------------------------------------
 
 
-def _git(root: Path, *args: str) -> str:
-    result = subprocess.run(
-        ["git", *args], cwd=root, capture_output=True, text=True, check=True
-    )
-    return result.stdout.strip()
-
-
-def _fixture_repo(tmp_path: Path, *, commit: bool = True) -> Path:
+def _fixture_repo(tmp_path: Path) -> Path:
     root = tmp_path / "repo"
-    model = root / _MODEL_FILE
-    model.parent.mkdir(parents=True, exist_ok=True)
-    model.write_text(_FIXTURE_SYSML, encoding="utf-8")
-    manifest = root / MANIFEST_PATH
-    manifest.parent.mkdir(parents=True, exist_ok=True)
-    manifest.write_text(yaml.safe_dump(_FIXTURE_MANIFEST), encoding="utf-8")
-    design = root / DESIGN_PATH
-    design.parent.mkdir(parents=True, exist_ok=True)
-    design.write_text("# fixture design\n", encoding="utf-8")
-    module = root / MODULE_PATH
-    module.parent.mkdir(parents=True, exist_ok=True)
-    module.write_text("# bound module stand-in\n", encoding="utf-8")
-    generator = root / GENERATOR_PATH
-    generator.parent.mkdir(parents=True, exist_ok=True)
-    generator.write_text("# bound generator stand-in\n", encoding="utf-8")
-    # Both shared modules are executed by the generation path, so the fixture
-    # carries their real repository bytes (read at fixture creation) and the
-    # same content contract applies to them as to the module/generator.
-    for relative in (AUTHORITY_INVENTORY_PATH, PROJECTION_O2P_PATH):
+    for relative, text in ((_MODEL_FILE, _FIXTURE_SYSML), (MANIFEST_PATH, yaml.safe_dump(_FIXTURE_MANIFEST))):
         target = root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes((REPO_ROOT / relative).read_bytes())
-    if commit:
-        _git(root, "init", "-q")
-        _git(root, "config", "user.email", "review@example.invalid")
-        _git(root, "config", "user.name", "review")
-        _git(root, "add", "-A")
-        _git(root, "commit", "-q", "-m", "admission inputs")
+        target.write_text(text, encoding="utf-8")
     return root
 
+def test_generation_from_synthetic_sources_preserves_projection_profile_separation(tmp_path):
+    from de4sdv.semantic.definition_projection import build_artifact_pair
 
-def test_generation_binds_to_committed_inputs_and_check_passes(tmp_path):
-    from de4sdv.semantic.definition_projection import (
-        PROFILE_PATH,
-        PROJECTION_PATH,
-        build_artifact_pair,
-        run_check_errors,
-    )
-    from de4sdv.semantic.projection_o2p import canonical_json
+    pair = build_artifact_pair(_fixture_repo(tmp_path))
+    assert "binding" not in pair["projection"] and "binding" not in pair["profile"]
+    rows = pair["projection"]["rows"]
+    assert [row["identity"] for row in rows] == ["FixtureAlpha", "FixtureBeta"]
+    assert [row["definition"]["documentation"] for row in rows] == [
+        " An exact fixture definition for alpha. ",
+        " A differing fixture definition for beta that carries extra words. ",
+    ]
+    assert [entry["for_concept"] for entry in pair["profile"]["entries"]] == ["FixtureAlpha", "FixtureBeta"]
 
-    root = _fixture_repo(tmp_path)
-    revision = _git(root, "rev-parse", "HEAD")
-    artifacts = build_artifact_pair(root, source_revision=revision)
-    binding = artifacts["projection"]["binding"]
-    assert binding["source_revision"] == revision
-    assert binding["artifact_commit"] is None
-    assert binding["api_binding"]["status"] == "unclaimed"
-    # The executed shared modules are generation software and are bound.
-    assert binding["generation_software"]["program_inputs"] == list(
-        BOUND_PROGRAM_INPUTS
-    )
-    for relative in (AUTHORITY_INVENTORY_PATH, PROJECTION_O2P_PATH):
-        assert relative in binding["generation_software"]["program_inputs"]
-        assert relative in binding["bound_inputs"]
-    assert set(binding["bound_inputs"]) == {
-        MANIFEST_PATH,
-        DESIGN_PATH,
-        MODULE_PATH,
-        GENERATOR_PATH,
-        AUTHORITY_INVENTORY_PATH,
-        PROJECTION_O2P_PATH,
-        _MODEL_FILE,
-    }
-    assert artifacts["projection"]["rows"][0]["traversal"] is False
-    assert artifacts["profile"]["entries"][0]["for_concept"] == "FixtureAlpha"
-    (root / PROJECTION_PATH).write_text(
-        canonical_json(artifacts["projection"]), encoding="utf-8"
-    )
-    (root / PROFILE_PATH).write_text(
-        canonical_json(artifacts["profile"]), encoding="utf-8"
-    )
-    assert run_check_errors(root) == []
-
-
-def test_generation_refuses_uncommitted_inputs(tmp_path):
-    from de4sdv.semantic.definition_projection import (
-        DefinitionAdmissionError,
-        build_artifact_pair,
-    )
+def test_generation_accepts_source_changes_without_git_metadata(tmp_path):
+    from de4sdv.semantic.definition_projection import build_artifact_pair
 
     root = _fixture_repo(tmp_path)
     model = root / _MODEL_FILE
     model.write_text(model.read_text(encoding="utf-8") + "\n", encoding="utf-8")
-    with pytest.raises(DefinitionAdmissionError):
-        build_artifact_pair(root, source_revision=_git(root, "rev-parse", "HEAD"))
-
+    pair = build_artifact_pair(root)
+    assert len(pair["projection"]["rows"]) == 2
+    assert "binding" not in pair["projection"]
 
 def test_module_declares_the_executed_shared_modules_as_bound_inputs():
     """The real bound-input set is the four executed program inputs + models."""
@@ -488,100 +397,20 @@ def test_module_declares_the_executed_shared_modules_as_bound_inputs():
         assert bound[relative].startswith("sha256:")
 
 
-#: One unique in-body mutation per executed shared module (the executed-path
-#: audit named both of them; changing either body must break generation when
-#: the bound revision does not contain the change).
-_SHARED_MODULE_MUTATIONS = {
-    AUTHORITY_INVENTORY_PATH: (
-        '    return re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()',
-        '    return re.sub(r"[^a-z0-9]+", " ", text.lower()).strip() + "."',
-    ),
-    PROJECTION_O2P_PATH: (
-        '    return json.dumps(document, indent=2, sort_keys=False) + "\\n"',
-        '    return json.dumps(document, indent=2, sort_keys=True) + "\\n"',
-    ),
-}
+# This cleanup retires the live shared-module Git-containment test. Independent literal
+# gate tests live in test_commit_independent_definition_artifacts.py; frozen
+# binding tests in other suites are unchanged.
 
-
-@pytest.mark.parametrize("relative", [AUTHORITY_INVENTORY_PATH, PROJECTION_O2P_PATH])
-def test_uncommitted_shared_module_edit_is_refused_naming_that_file(tmp_path, relative):
-    from de4sdv.semantic.authority_inventory import file_digest
-
-    from de4sdv.semantic.definition_projection import (
-        PROFILE_PATH,
-        PROJECTION_PATH,
-        DefinitionAdmissionError,
-        build_artifact_pair,
-        run_check_errors,
-    )
-    from de4sdv.semantic.projection_o2p import canonical_json
-
-    root = _fixture_repo(tmp_path)
-    revision = _git(root, "rev-parse", "HEAD")
-    module = root / relative
-    original = module.read_text(encoding="utf-8")
-    before, after = _SHARED_MODULE_MUTATIONS[relative]
-    assert original.count(before) == 1, relative
-    baseline_digest = file_digest(root, relative)
-
-    # (a) mutation WITHOUT committing: the recorded revision no longer
-    # contains this bound input byte-for-byte, so generation refuses and the
-    # refusal names the mutated shared module.
-    module.write_text(original.replace(before, after), encoding="utf-8")
-    assert file_digest(root, relative) != baseline_digest
-    with pytest.raises(DefinitionAdmissionError, match=re.escape(relative)):
-        build_artifact_pair(root, source_revision=revision)
-
-    # (b) commit the edit and rebind to the new revision: generation passes
-    # again and the digest moves with the mutation.
-    _git(root, "add", "-A")
-    _git(root, "commit", "-q", "-m", f"mutate {relative}")
-    new_revision = _git(root, "rev-parse", "HEAD")
-    artifacts = build_artifact_pair(root, source_revision=new_revision)
-    binding = artifacts["projection"]["binding"]
-    assert binding["bound_inputs"][relative] == file_digest(root, relative)
-    assert binding["bound_inputs"][relative] != baseline_digest
-
-    # The committed artifacts are valid at the new revision ...
-    (root / PROJECTION_PATH).write_text(
-        canonical_json(artifacts["projection"]), encoding="utf-8"
-    )
-    (root / PROFILE_PATH).write_text(
-        canonical_json(artifacts["profile"]), encoding="utf-8"
-    )
-    assert run_check_errors(root) == []
-
-    # ... and a further uncommitted edit to that same shared module makes the
-    # repository gate refuse, naming the file.
-    module.write_text(
-        module.read_text(encoding="utf-8") + "# uncommitted probe\n",
-        encoding="utf-8",
-    )
-    errors = run_check_errors(root)
-    assert errors, "an uncommitted shared-module edit must fail the gate"
-    assert any(relative in error for error in errors), errors
-
-
-def test_observation_mismatch_after_committed_edit_is_refused(tmp_path):
-    from de4sdv.semantic.definition_projection import (
-        DefinitionAdmissionError,
-        build_artifact_pair,
-    )
+def test_model_documentation_change_is_projected_without_manifest_text_edit(tmp_path):
+    from de4sdv.semantic.definition_projection import build_artifact_pair
 
     root = _fixture_repo(tmp_path)
     model = root / _MODEL_FILE
-    model.write_text(
-        model.read_text(encoding="utf-8").replace(
-            "An exact fixture definition for alpha.",
-            "A substantially reworded fixture definition for alpha.",
-        ),
-        encoding="utf-8",
-    )
-    _git(root, "add", "-A")
-    _git(root, "commit", "-q", "-m", "reworded doc")
-    with pytest.raises(DefinitionAdmissionError, match="observation"):
-        build_artifact_pair(root, source_revision=_git(root, "rev-parse", "HEAD"))
-
+    model.write_text(model.read_text(encoding="utf-8").replace(
+        "An exact fixture definition for alpha.", "A substantially reworded fixture definition for alpha."), encoding="utf-8")
+    pair = build_artifact_pair(root)
+    assert pair["projection"]["rows"][0]["definition"]["documentation"] == " A substantially reworded fixture definition for alpha. "
+    assert pair["projection"]["rows"][0]["definition"]["documentation_observation"] == "model-owned-documentation"
 
 def test_missing_declaration_file_is_refused(tmp_path):
     from de4sdv.semantic.definition_projection import (
@@ -592,7 +421,7 @@ def test_missing_declaration_file_is_refused(tmp_path):
     root = _fixture_repo(tmp_path)
     (root / _MODEL_FILE).unlink()
     with pytest.raises(DefinitionAdmissionError):
-        build_artifact_pair(root, source_revision=_git(root, "rev-parse", "HEAD"))
+        build_artifact_pair(root)
 
 
 def test_declaration_without_documentation_is_refused(tmp_path):
@@ -621,7 +450,7 @@ def test_decoy_o1_artifacts_cannot_change_the_output(tmp_path):
     from de4sdv.semantic.definition_projection import build_outputs, load_document
     from de4sdv.semantic.projection_o2p import canonical_json
 
-    root = _fixture_repo(tmp_path, commit=False)
+    root = _fixture_repo(tmp_path)
     baseline = canonical_json(build_outputs(root, load_document(root)))
     decoy = root / "docs/method-conformance/o1/semantic-authority-inventory.json"
     decoy.parent.mkdir(parents=True, exist_ok=True)
@@ -643,41 +472,16 @@ def test_decoy_o1_artifacts_cannot_change_the_output(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# 4. Commit-B gate: committed artifacts equal regeneration (red until A2)
+# 4. Strict live gate: committed artifact bytes equal current-source regeneration
 # ---------------------------------------------------------------------------
 
 
 def test_committed_artifacts_match_regeneration():
-    from de4sdv.semantic.authority_inventory import validate_source_binding
+    from de4sdv.semantic.definition_projection import PROFILE_PATH, PROJECTION_PATH, run_check_errors
 
-    from de4sdv.semantic.definition_projection import (
-        PROFILE_PATH,
-        PROJECTION_PATH,
-        build_artifact_pair,
-        run_check_errors,
-    )
-    from de4sdv.semantic.projection_o2p import canonical_json
-
-    projection_path = REPO_ROOT / PROJECTION_PATH
-    profile_path = REPO_ROOT / PROFILE_PATH
-    assert projection_path.is_file(), (
-        "Commit-B gate: definition-projection.json is published in the artifact "
-        "commit (A2); expected red between A1 and A2 by design"
-    )
-    assert profile_path.is_file()
-    committed = json.loads(projection_path.read_text(encoding="utf-8"))
-    assert validate_source_binding(REPO_ROOT, committed["binding"]) == []
-    artifacts = build_artifact_pair(
-        REPO_ROOT, source_revision=committed["binding"]["source_revision"]
-    )
-    assert canonical_json(artifacts["projection"]) == projection_path.read_text(
-        encoding="utf-8"
-    )
-    assert canonical_json(artifacts["profile"]) == profile_path.read_text(
-        encoding="utf-8"
-    )
+    assert (REPO_ROOT / PROJECTION_PATH).is_file()
+    assert (REPO_ROOT / PROFILE_PATH).is_file()
     assert run_check_errors(REPO_ROOT) == []
-
 
 # ---------------------------------------------------------------------------
 # 5. Runtime independence and repository wiring
@@ -708,11 +512,11 @@ def test_definition_projection_is_never_imported_by_the_runtime_path():
 
 
 def _passing_gate_mocks():
-    """All other check_repo gates mocked passing (shared with the ledger suite)."""
+    """All other aggregate gates mocked passing through shared controls."""
     import sys
 
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from test_o4_consumer_ledger import _passing_gate_mocks as shared
+    from test_retired_semantic_authority import _passing_gate_mocks as shared
 
     return shared()
 

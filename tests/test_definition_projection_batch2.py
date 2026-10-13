@@ -1,34 +1,16 @@
-"""O4 definition-admission batch 2 — derived family, model homes, coverage.
+"""Remaining definition admission: model homes, scope and reviewed contracts.
 
-Machine-locked here (fail-closed):
-
-* the admitted set equals the derived family (retained register rows no other
-  generated layer projects + unregistered ontology classes + W6 successors +
-  the retired name of the merged validatesFitnessForUse row), and the
-  exceptions are exactly the remaining non-retained identities;
-* every retained register row and every authored-ontology identity has exactly
-  one generated provider layer (or is a listed exception); the O3 13 are not
-  re-admitted;
-* the reviewed manifest fields equal the authored ontology (definition text,
-  kernel mappings, ontology relations, domain/range/strength, mechanics) and
-  the documentation locators equal ``kernel-definition-homes.json``;
-* every register gate is resolved by an existing governance record fragment;
-* the ``hasRelevantEvidenceContract`` closure is exactly the eight AEBS
-  contracts across every model root;
-* generated rows never carry O1 governance fields or a sysml_mapping, claim no
-  traversal and no API identity; PLE rows claim no configurator authority;
-* negative fixtures (synthetic SysML, never copies of model files) prove each
-  model-home guard refuses.
-
-The committed-artifact test is the Commit-B gate (red between the source
-commit and the artifact commit by design).
+This cleanup retires live Git binding and the copied documentation oracle, not model
+ownership or contract validation. Historical contract-equivalence evidence
+still pins every non-documentation manifest contract field and admission class.
+Synthetic negative tests preserve successor, retirement, about-target, carrier,
+lineage, external-reference, PLE and non-claim guards. No real model copies.
 """
 from __future__ import annotations
 
 import copy
 import json
 import re
-import subprocess
 from pathlib import Path
 
 import pytest
@@ -199,8 +181,8 @@ def test_projection_scope_echoes_the_owner_visible_exceptions():
 
 def test_reviewed_fields_equal_the_pre_deletion_evidence():
     """Replaces ``test_reviewed_fields_equal_the_authored_ontology`` (O4 Wave C2,
-    owner decision D9): the manifest-held contract fields (reviewed definition,
-    kernel mapping kind, ontology relations, domain/range/strength, mechanics)
+    owner decision D9): the retained manifest contract fields (kernel mapping
+    kind, ontology relations, domain/range/strength, mechanics)
     are locked to the values the last executable comparison proved equal to the
     authored ontology before its deletion. Changing one needs a reviewed
     evidence update (the follow-up moves them into the model)."""
@@ -219,7 +201,11 @@ def test_reviewed_fields_equal_the_pre_deletion_evidence():
         # is independent of the generator (a relabel needs a reviewed update).
         assert row["admission_class"] == entry["admission_class"], identity
         assert entry["equal"] is True, identity
-        assert manifest_held_values(row) == entry["manifest"], identity
+        actual = manifest_held_values(row)
+        actual.pop("reviewed_definition", None)
+        expected = {key: value for key, value in entry["manifest"].items() if key != "reviewed_definition"}
+        assert actual == expected, identity
+        assert "reviewed_definition" not in row, identity
         if entry["authored"] is not None:
             assert entry["authored"] == entry["manifest"], identity
         else:
@@ -421,7 +407,7 @@ def test_generated_rows_carry_no_governance_fields_or_executable_claims():
         assert row["support"] == SUPPORT[row["admission_class"]]
         observation = row["definition"]["documentation_observation"]
         if rows[row["identity"]]["home"]["form"] in ("owned-doc", "named-doc"):
-            assert observation == "normalized-exact", row["identity"]
+            assert observation == "model-owned-documentation", row["identity"]
         assert row["definition"]["documentation"].strip(), row["identity"]
     for entry in outputs["profile_entries"]:
         assert entry["profile_identity"] == f"{PROFILE_SCHEMA}#{entry['for_concept']}"
@@ -506,7 +492,6 @@ _FIXTURE_MANIFEST = {
             "identity": "Alpha", "semantic_kind": "class", "admission_class": "definition",
             "register": {"wave": "W2", "accounting": "retained"}, "boundary": "none",
             "home": {"form": "owned-doc", "file": _FIXTURE_FILE, "owner": "part def Alpha", "index": 0},
-            "reviewed_definition": "Alpha is an exact fixture definition.",
             "grounding": {"kernel_mapping": {"file": _FIXTURE_FILE, "declaration": "part def Alpha"},
                           "sub_class_of": None, "disjoint_with": []},
             "gates": [], "forward_obligations": [],
@@ -516,7 +501,6 @@ _FIXTURE_MANIFEST = {
             "register": {"wave": None, "accounting": "unregistered"}, "boundary": "native-grounding",
             "home": {"form": "named-doc", "file": _FIXTURE_FILE, "owner": "package FixtureBatch2",
                      "name": "BetaOntologyDefinition", "index": 0},
-            "reviewed_definition": "Beta is a package-owned fixture definition.",
             "grounding": {"kernel_mapping": {"native": "fixture native"}, "sub_class_of": "Alpha", "disjoint_with": []},
             "gates": [], "forward_obligations": [],
         },
@@ -525,7 +509,6 @@ _FIXTURE_MANIFEST = {
             "register": {"wave": "W4", "accounting": "retained"}, "boundary": "none",
             "home": {"form": "vocabulary-role", "file": _FIXTURE_FILE, "owner": "package FixtureBatch2",
                      "name": "betaLinkVocabularyRole", "about": ["Alpha", "BetaOntologyDefinition"], "about_imports": {}},
-            "reviewed_definition": None,
             "relation": {"domain": "Alpha", "range": "Beta", "semantic_strength": None},
             "gates": [], "forward_obligations": [],
         },
@@ -534,14 +517,13 @@ _FIXTURE_MANIFEST = {
             "register": {"wave": None, "accounting": "w6-successor"}, "boundary": "none",
             "home": {"form": "vocabulary-role", "file": SUCCESSOR_FILE, "owner": _PKG,
                      "name": "alphaLinkVocabularyRole", "about": ["AlphaLink"], "about_imports": {}},
-            "reviewed_definition": None, "successor": {"records": ["alphaRecord"]},
+            "successor": {"records": ["alphaRecord"]},
             "gates": [], "forward_obligations": [],
         },
         {
             "identity": "oldAlphaLink", "semantic_kind": "relationship", "admission_class": "retired-name",
             "register": {"wave": "W6", "accounting": "retained"}, "boundary": "none",
             "home": {"form": "retirement-record", "file": SUCCESSOR_FILE, "owner": _PKG, "name": "oldAlpha"},
-            "reviewed_definition": None,
             "relation": {"domain": "Alpha", "range": "Alpha", "semantic_strength": None},
             "retired": {"successor": "alphaLink", "successor_carrier": "AlphaLink", "direction": "forward"},
             "gates": [{"gate": "decision-1", "resolved_by": ["docs/fixture.md#topic"]}],
@@ -549,17 +531,9 @@ _FIXTURE_MANIFEST = {
         },
     ],
 }
-_PROGRAM_FILES = (
-    "de4sdv/semantic/authority_inventory.py",
-    "de4sdv/semantic/projection_o2p.py",
-)
 
 
-def _git(root, *args):
-    return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, check=True).stdout.strip()
-
-
-def _fixture(tmp_path, manifest=None, sysml=None, carriers=None, commit=False):
+def _fixture(tmp_path, manifest=None, sysml=None, carriers=None):
     from de4sdv.semantic import definition_projection_batch2 as b2
 
     root = tmp_path / "repo"
@@ -567,26 +541,12 @@ def _fixture(tmp_path, manifest=None, sysml=None, carriers=None, commit=False):
         _FIXTURE_FILE: sysml if sysml is not None else _FIXTURE_SYSML,
         SUCCESSOR_FILE: carriers if carriers is not None else _FIXTURE_CARRIERS,
         b2.ADMISSION_PATH: yaml.safe_dump(manifest if manifest is not None else _FIXTURE_MANIFEST, sort_keys=False),
-        b2.DESIGN_PATH: "# fixture design\n",
-        b2.MODULE_PATH: "# bound module stand-in\n",
-        b2.GENERATOR_PATH: "# bound generator stand-in\n",
     }
     for relative, text in files.items():
         target = root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(text, encoding="utf-8")
-    for relative in _PROGRAM_FILES:
-        target = root / relative
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes((REPO_ROOT / relative).read_bytes())
-    if commit:
-        _git(root, "init", "-q")
-        _git(root, "config", "user.email", "review@example.invalid")
-        _git(root, "config", "user.name", "review")
-        _git(root, "add", "-A")
-        _git(root, "commit", "-q", "-m", "batch-2 fixture inputs")
     return root
-
 
 def _build(root):
     from de4sdv.semantic import definition_projection_batch2 as b2
@@ -613,7 +573,7 @@ def test_fixture_baseline_builds_and_is_comment_and_quote_inert(tmp_path):
 
 _NEGATIVE_MANIFESTS = {
     "unknown key": lambda r, m: r["Alpha"].update({"sysml_mapping": {}}),
-    "documentation differs": lambda r, m: r["Alpha"].update({"reviewed_definition": "Alpha is a different definition."}),
+    "retired definition oracle": lambda r, m: r["Alpha"].update({"reviewed_definition": "Alpha is a different definition."}),
     "wrong doc index": lambda r, m: r["Alpha"]["home"].update({"index": 1}),
     "missing named doc": lambda r, m: r["Beta"]["home"].update({"name": "GammaOntologyDefinition"}),
     "wrong about targets": lambda r, m: r["betaLink"]["home"].update({"about": ["Alpha"]}),
@@ -639,7 +599,7 @@ _NEGATIVE_MANIFESTS = {
 #: The refusal must come from the intended guard, not an incidental failure.
 _NEGATIVE_REASONS = {
     "unknown key": "unknown keys",
-    "documentation differs": "reviewed definition differ",
+    "retired definition oracle": "unknown keys",
     "wrong doc index": "anonymous documentation at index 1",
     "missing named doc": "named GammaOntologyDefinition",
     "wrong about targets": "annotates",
@@ -738,64 +698,32 @@ def test_discriminator_pin_must_specialize_and_import_the_kernel_lineage(tmp_pat
 
 
 # ---------------------------------------------------------------------------
-# 7. Binding (two-commit pattern) and the Commit-B gate
+# 7. Commit-independent current-source construction and strict live artifact gate
 # ---------------------------------------------------------------------------
 
 
-def test_generation_binds_committed_inputs_and_refuses_uncommitted_edits(tmp_path):
+def test_generation_projects_current_synthetic_sources_without_git_binding(tmp_path):
     from de4sdv.semantic import definition_projection_batch2 as b2
-    from de4sdv.semantic.projection_o2p import canonical_json
 
-    root = _fixture(tmp_path, commit=True)
-    revision = _git(root, "rev-parse", "HEAD")
-    artifacts = b2.build_artifact_pair(root, source_revision=revision)
-    binding = artifacts["projection"]["binding"]
-    assert binding["source_revision"] == revision
-    assert binding["generation_software"]["program_inputs"] == [
-        b2.MODULE_PATH, b2.GENERATOR_PATH, b2.AUTHORITY_INVENTORY_PATH, b2.PROJECTION_O2P_PATH]
-    assert set(binding["bound_inputs"]) == {
-        b2.ADMISSION_PATH, b2.DESIGN_PATH, b2.MODULE_PATH, b2.GENERATOR_PATH,
-        b2.AUTHORITY_INVENTORY_PATH, b2.PROJECTION_O2P_PATH, _FIXTURE_FILE, SUCCESSOR_FILE}
-    for key, relative in (("projection", b2.PROJECTION_PATH), ("profile", b2.PROFILE_PATH)):
-        (root / relative).write_text(canonical_json(artifacts[key]), encoding="utf-8")
-    assert b2.run_check_errors(root) == []
-    for relative in (_FIXTURE_FILE, b2.AUTHORITY_INVENTORY_PATH, b2.MODULE_PATH):
-        path = root / relative
-        original = path.read_text(encoding="utf-8")
-        path.write_text(original + "\n// uncommitted probe\n", encoding="utf-8")
-        with pytest.raises(b2.DefinitionBatch2Error, match=re.escape(relative)):
-            b2.build_artifact_pair(root, source_revision=revision)
-        errors = b2.run_check_errors(root)
-        assert errors and any(relative in error for error in errors), errors
-        path.write_text(original, encoding="utf-8")
-    assert b2.run_check_errors(root) == []
-
+    root = _fixture(tmp_path)
+    path = root / _FIXTURE_FILE
+    path.write_text(path.read_text(encoding="utf-8").replace("Alpha is an exact fixture definition.", "Alpha meaning was edited."), encoding="utf-8")
+    pair = b2.build_artifact_pair(root)
+    rows = {row["identity"]: row for row in pair["projection"]["rows"]}
+    assert rows["Alpha"]["definition"]["documentation"] == "Alpha meaning was edited."
+    assert "binding" not in pair["projection"] and "binding" not in pair["profile"]
+    assert rows["oldAlphaLink"]["retired"]["refusal"] == "retired; use alphaLink"
 
 def test_committed_artifacts_match_regeneration():
     from de4sdv.semantic import definition_projection_batch2 as b2
-    from de4sdv.semantic.authority_inventory import validate_source_binding
-    from de4sdv.semantic.projection_o2p import canonical_json
 
-    projection_path = REPO_ROOT / b2.PROJECTION_PATH
-    assert projection_path.is_file(), "Commit-B gate: the batch-2 pair is published in the artifact commit"
-    committed = json.loads(projection_path.read_text(encoding="utf-8"))
-    assert validate_source_binding(REPO_ROOT, committed["binding"]) == []
-    artifacts = b2.build_artifact_pair(REPO_ROOT, source_revision=committed["binding"]["source_revision"])
-    assert canonical_json(artifacts["projection"]) == projection_path.read_text(encoding="utf-8")
-    assert canonical_json(artifacts["profile"]) == (REPO_ROOT / b2.PROFILE_PATH).read_text(encoding="utf-8")
+    assert (REPO_ROOT / b2.PROJECTION_PATH).is_file()
+    assert (REPO_ROOT / b2.PROFILE_PATH).is_file()
     assert b2.run_check_errors(REPO_ROOT) == []
 
-
-def test_chain_verifier_requires_the_batch2_pair():
-    from de4sdv.semantic import definition_projection_batch2 as b2
-    from scripts import verify_generated_chain
-
-    expected = verify_generated_chain._expected_inputs(REPO_ROOT)
-    for relative in (b2.PROJECTION_PATH, b2.PROFILE_PATH):
-        assert relative in expected
-        assert b2.EXTERNAL_REFERENCE_PROFILE_PATH in expected[relative]
-        assert SUCCESSOR_FILE in expected[relative]
-
+# This cleanup explicitly retires test_chain_verifier_requires_the_batch2_pair: its
+# only subject was the removed live bound-input set. The verifier now checks
+# frozen records only; frozen-binding tests remain owned by the integration lane.
 
 # ---------------------------------------------------------------------------
 # 8. Runtime independence and repository wiring
@@ -825,7 +753,7 @@ def _passing_gate_mocks():
     import sys
 
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from test_o4_consumer_ledger import _passing_gate_mocks as shared
+    from test_retired_semantic_authority import _passing_gate_mocks as shared
 
     return shared()
 

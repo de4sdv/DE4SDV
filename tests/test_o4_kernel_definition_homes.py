@@ -6,8 +6,8 @@ import pytest
 
 
 from de4sdv.semantic.authority_inventory import declaration_block, normalize_text
-from model_contract_fixtures import (authored_definition, contract_equivalence_evidence,
-                                     model_contract, reviewed_definition)
+from model_contract_fixtures import (contract_equivalence_evidence, model_contract,
+                                     owned_definition_documentation)
 
 ROOT = Path(__file__).resolve().parents[1]
 KERNEL = "textual-notation-of-model/packages/methods/de4sdv/"
@@ -34,7 +34,8 @@ def test_acceptance_criterion_has_kernel_home_and_middleware_specialization():
     assert model_contract().classes["AcceptanceCriterion"]["kernel"] == {
         "file": CONTEXT, "declaration": "requirement def AcceptanceCriterion"
     }
-    assert normalize_text(reviewed_definition("AcceptanceCriterion")) in normalize_text(block)
+    # This cleanup retires copied-definition equality, not ownership or requirement typing.
+    assert owned_definition_documentation(text, "requirement def AcceptanceCriterion").strip()
     assert "de4sdv.acceptance.maintainer-decision.v1" in block
     middleware = re.sub(r"/\*.*?\*/|//[^\n]*", "", (ROOT / MIDDLEWARE).read_text(), flags=re.S)
     header = re.search(r"requirement\s+def\s+MiddlewareAcceptanceCriterion\s*:>\s*([^;{]+)", middleware)
@@ -48,7 +49,8 @@ def test_evidence_contract_is_a_planning_requirement_and_slices_are_typed():
     assert model_contract().classes["EvidenceContract"]["kernel"] == {
         "file": CONTEXT, "declaration": "requirement def EvidenceContract"
     }
-    assert normalize_text(reviewed_definition("EvidenceContract")) in normalize_text(block)
+    # This cleanup retires copied-definition equality, not ownership or requirement typing.
+    assert owned_definition_documentation(text, "requirement def EvidenceContract").strip()
     for path, declaration in AEBS_EVIDENCE_CONTRACTS.items():
         source = re.sub(r"/\*.*?\*/|//[^\n]*", "", (ROOT / path).read_text(), flags=re.S)
         header = re.search(r"requirement\s+def\s+" + declaration + r"\s*:>\s*([^;{]+)", source)
@@ -307,10 +309,12 @@ def _home_docs(row):
     return _direct_documentation(block)
 
 
-def test_all_authored_definitions_have_exact_owned_model_documentation_homes():
-    """Replaces ``test_all_yaml_definitions_have_exact_owned_model_documentation_homes``:
-    the authored definitions are read from the pre-deletion evidence
-    (closure/contract-equivalence.json) since O4 Wave C2 deleted the YAML."""
+def test_all_recorded_definition_homes_have_owned_nonempty_model_documentation():
+    """Keep all 76 owned locators; never make frozen authored prose live authority.
+
+    This cleanup retires ``test_all_authored_definitions_have_exact_owned_model_documentation_homes``
+    as a current-text parity oracle. The evidence supplies historical identities only.
+    """
     import json
     document = json.loads((ROOT / "docs/method-conformance/o4/kernel-definition-homes.json").read_text())
     authored = contract_equivalence_evidence()["authored_definitions"]["entries"]
@@ -321,9 +325,9 @@ def test_all_authored_definitions_have_exact_owned_model_documentation_homes():
     for row in entries:
         candidates = [body for name, body in _home_docs(row) if name == row["documentation_name"]]
         assert len(candidates) > row["documentation_index"], row["identity"]
-        assert normalize_text(candidates[row["documentation_index"]]) == normalize_text(
-            authored_definition(row["kind"], row["identity"])
-        ), row["identity"]
+        # This cleanup retires frozen-prose equality for current homes. Frozen identities
+        # still bound inventory coverage; the selected current doc must exist.
+        assert normalize_text(candidates[row["documentation_index"]]), row["identity"]
 
 
 def test_definition_home_inventory_covers_all_requested_register_targets():
@@ -560,3 +564,55 @@ def test_canonical_architecture_remains_non_queryable_documentation_only():
     assert "sysml_mapping" not in contract.relationships["instantiatesCanonicalArchitecture"]
     with pytest.raises(KeyError, match="no SysML mapping"):
         contract.relationship_mapping("instantiatesCanonicalArchitecture")
+
+
+@pytest.mark.parametrize("body", [
+    "", "doc /*   */", "part nested { doc /* borrowed */ }",
+    "/* doc / * commented out * / */",
+])
+def test_owned_definition_documentation_refuses_empty_or_borrowed_bodies(body):
+    with pytest.raises(ValueError, match="empty current model-owned documentation"):
+        owned_definition_documentation("part def Synthetic { " + body + " }", "part def Synthetic")
+
+
+@pytest.mark.parametrize("source", [
+    "part def Other { doc /* wrong owner */ }",
+    "part def Synthetic; part def Other { doc /* wrong sibling */ }",
+])
+def test_owned_definition_documentation_refuses_missing_or_bodyless_homes(source):
+    with pytest.raises(ValueError, match="missing current definition home"):
+        owned_definition_documentation(source, "part def Synthetic")
+
+
+def test_owned_definition_documentation_accepts_current_wording_without_a_prose_oracle():
+    for wording in ("Synthetic initial meaning.", "Synthetic edited meaning."):
+        source = "part def Synthetic { doc /* " + wording + " */ }"
+        assert owned_definition_documentation(source, "part def Synthetic").strip() == wording
+
+
+def test_current_definition_uses_current_model_docs_without_frozen_or_output_fallback(tmp_path, monkeypatch):
+    import model_contract_fixtures as fixtures
+
+    model = tmp_path / "synthetic.sysml"
+    row = {"identity": "Synthetic", "declaration": {
+        "file": model.name, "declaration": "part def Synthetic",
+    }}
+    monkeypatch.setattr(fixtures, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(fixtures, "admission_row", lambda identity: row)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("a current fixture must not consult frozen prose or generated output")
+
+    monkeypatch.setattr(fixtures, "authored_definition", forbidden)
+    monkeypatch.setattr(fixtures, "contract_equivalence_evidence", forbidden)
+    monkeypatch.setattr(fixtures, "model_contract", forbidden)
+    for wording in ("Synthetic current meaning.", "Synthetic changed meaning."):
+        model.write_text("part def Synthetic { doc /* " + wording + " */ }", encoding="utf-8")
+        assert fixtures.current_definition("Synthetic").strip() == wording
+    # No fallback when the model ceases to supply immediately owned meaning.
+    model.write_text("part def Synthetic { part nested { doc /* borrowed */ } }", encoding="utf-8")
+    with pytest.raises(ValueError, match="empty current model-owned documentation"):
+        fixtures.current_definition("Synthetic")
+    model.unlink()
+    with pytest.raises(FileNotFoundError):
+        fixtures.current_definition("Synthetic")

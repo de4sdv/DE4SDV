@@ -155,11 +155,20 @@ def _canonical_digest(value: Any) -> str:
     return _sha256_bytes(canonical_json(value).encode("utf-8"))
 
 
+def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    document = {}
+    for key, value in pairs:
+        if key in document:
+            raise ValueError(f"duplicate JSON object key: {key!r}")
+        document[key] = value
+    return document
+
+
 def _read_json(root: Path, relative: str, schema: str) -> tuple[dict[str, Any], bytes]:
     path = Path(root) / relative
     try:
         raw = path.read_bytes()
-        document = json.loads(raw)
+        document = json.loads(raw, object_pairs_hook=_unique_json_object)
     except (OSError, ValueError) as exc:
         raise ModelAuthorityRefused(f"projection layer file unreadable: {relative}: {exc}") from exc
     if not isinstance(document, dict) or document.get("schema") != schema:
@@ -167,11 +176,25 @@ def _read_json(root: Path, relative: str, schema: str) -> tuple[dict[str, Any], 
     return document, raw
 
 
+def _object(value: Any, label: str) -> Mapping[str, Any]:
+    if not isinstance(value, Mapping):
+        raise ModelAuthorityRefused(f"{label}: expected an object, got {value!r}")
+    return value
+
+
+def _token(value: Any, label: str) -> str:
+    if not isinstance(value, str) or not value or value != value.strip():
+        raise ModelAuthorityRefused(f"{label}: malformed string token {value!r}")
+    return value
+
+
 def _row_identity(row: Mapping[str, Any]) -> str:
-    identity = row.get("identity") or row.get("for_identity") or row.get("for_concept")
-    if not isinstance(identity, str) or not identity or identity != identity.strip():
-        raise ModelAuthorityRefused(f"projection row has a malformed identity: {identity!r}")
-    return identity
+    row = _object(row, "projection/profile record")
+    identities = [_token(row[key], f"record {key}")
+                  for key in ("identity", "for_identity", "for_concept") if key in row]
+    if not identities or len(set(identities)) != 1:
+        raise ModelAuthorityRefused(f"record has missing or conflicting identities: {identities!r}")
+    return identities[0]
 
 
 @dataclass(frozen=True)
@@ -184,6 +207,91 @@ class Provision:
     mapping: Any = None  # Kernel*Mapping for classes
     spec: Any = None  # relationship spec (ontology-shaped dict)
     relationship: RelationshipMapping | None = None
+
+
+_SEMANTIC_ROW_FIELDS = frozenset({
+    "identity", "semantic_kind", "category", "construct", "definition", "grounding",
+    "domain", "range", "direction", "semantic_strength", "support", "traversal", "outputs",
+    "claim_boundary", "accounting", "admission_class", "boundary", "carrier", "relation",
+    "retired", "successor", "structure", "support_state", "model_evidence",
+})
+_ROW_PROVENANCE_FIELDS = frozenset({"wave", "register_wave", "review_ref", "accepted_ref", "api_identity"})
+_SEMANTIC_PROFILE_FIELDS = frozenset({
+    "identity", "for_identity", "for_concept", "profile_identity", "representation_class",
+    "binding_contract_echo", "witness_forms", "representation", "carrier", "mechanics",
+    "configurator_authority", "external_reference", "retired_resolution", "serializer_mechanics",
+    "successor_mechanics", "api_metaclass_note", "api_metaclasses", "library_grounding_mechanics",
+    "resolution", "runtime_mapping_state", "runtime_mapping_note", "semantic_contract_echo",
+})
+_PROFILE_PROVENANCE_FIELDS = frozenset({"mechanics_source", "mechanics_refs"})
+
+# Document wrappers are meaning too, not a catch-all metadata envelope.
+_DOCUMENT_COMMON_FIELDS = frozenset({"schema", "status", "warning"})
+_PROJECTION_DOCUMENT_FIELDS = {
+    "definition": _DOCUMENT_COMMON_FIELDS | {"scope", "rows"},
+    "definition-batch2": _DOCUMENT_COMMON_FIELDS | {"scope", "rows"},
+    "o2plus": _DOCUMENT_COMMON_FIELDS | {"scope", "rows"},
+    "vocabulary-carrier": _DOCUMENT_COMMON_FIELDS | {"candidates", "admitted", "rows"},
+}
+_PROFILE_DOCUMENT_FIELDS = _DOCUMENT_COMMON_FIELDS | {"entries"}
+_DOCUMENT_PROVENANCE_FIELDS = frozenset({"binding"})
+
+
+def _semantic_document(document: Mapping[str, Any], spec: LayerSpec, *,
+                       profile: bool) -> dict[str, Any]:
+    fields = _PROJECTION_DOCUMENT_FIELDS.get(spec.name)
+    if fields is None:
+        raise ModelAuthorityRefused(f"unsupported live projection layer: {spec.name}")
+    if profile:
+        fields = _PROFILE_DOCUMENT_FIELDS
+    unknown = set(document) - fields - _DOCUMENT_PROVENANCE_FIELDS
+    if unknown:
+        raise ModelAuthorityRefused("unclassified semantic document fields: " + ", ".join(sorted(unknown)))
+    # Collections have their own closed record contract and order-independent digest.
+    return {key: json.loads(json.dumps(document[key])) for key in fields - {"rows", "entries"}
+            if key in document}
+
+
+def _semantic_record(record: Mapping[str, Any], fields: frozenset[str],
+                     provenance: frozenset[str]) -> dict[str, Any]:
+    """Select declared meaning; unknown fields require explicit classification.
+
+    All nested values of semantic fields are kept, except the explicitly named
+    toolchain receipt in ``representation.toolchain`` and review pointer in
+    ``external_reference.accepted_ref``. Definition text, source/declaration
+    witnesses, disjointness and representation rules are NOT mere metadata just
+    because runtime traversal does not consume them.
+    """
+    unknown = set(record) - fields - provenance
+    if unknown:
+        raise ModelAuthorityRefused("unclassified semantic record fields: " + ", ".join(sorted(unknown)))
+    value = {key: json.loads(json.dumps(record[key])) for key in fields if key in record}
+    for key, excluded in (("representation", "toolchain"), ("external_reference", "accepted_ref")):
+        if isinstance(value.get(key), dict):
+            value[key].pop(excluded, None)
+    return value
+
+
+def _provisions_digest(provisions: list[Provision], *, rows: list[Mapping[str, Any]],
+                       entries: list[Mapping[str, Any]],
+                       documents: Mapping[str, Any] | None = None) -> str:
+    """Digest decoded providers AND explicitly declared projection/profile meaning.
+
+    Covers definitions, source pins, lineage/disjointness, domain/range/direction,
+    strength/support/claim boundaries, carrier/discriminator pins, serializer
+    mechanics and retired resolutions. Review references, API-UUID claims,
+    implementation pointers and toolchain receipts are separate provenance.
+    Document binding blocks, byte hashes and Git source revisions never enter.
+    Record/JSON object order is incidental; nested semantic list order is kept.
+    """
+    return _canonical_digest({
+        "providers": [asdict(p) for p in sorted(provisions, key=lambda p: (p.identity, p.kind, p.layer))],
+        "rows": sorted((_semantic_record(row, _SEMANTIC_ROW_FIELDS, _ROW_PROVENANCE_FIELDS)
+                        for row in rows), key=canonical_json),
+        "entries": sorted((_semantic_record(entry, _SEMANTIC_PROFILE_FIELDS, _PROFILE_PROVENANCE_FIELDS)
+                           for entry in entries), key=canonical_json),
+        **({"documents": documents} if documents is not None else {}),
+    })
 
 
 def _file_mapping(contract: Any, identity: str) -> KernelFileMapping:
@@ -205,11 +313,11 @@ def _definition_row_provider(row: Mapping[str, Any], entry: Mapping[str, Any] | 
                              layer: str) -> Provision:
     """Batch-1 definition rows: ``semantic_kind: class`` with a kernel binding contract."""
     identity = _row_identity(row)
-    kind = str(row.get("semantic_kind") or "class")
+    kind = _token(row.get("semantic_kind", "class"), f"{identity}: semantic_kind")
     if kind != "class":
         raise ModelAuthorityRefused(
             f"{identity}: unsupported definition row semantic_kind {kind!r}")
-    grounding = row.get("grounding") if isinstance(row.get("grounding"), Mapping) else {}
+    grounding = _object(row.get("grounding"), f"{identity}: grounding")
     return Provision(identity, "class", layer,
                      mapping=_file_mapping(grounding.get("kernel_binding_contract"), identity))
 
@@ -221,20 +329,19 @@ _BATCH2_RELATION_ADMISSIONS = frozenset({
 
 
 def _batch2_class(identity: str, row: Mapping[str, Any], layer: str) -> Provision:
-    grounding = row.get("grounding") if isinstance(row.get("grounding"), Mapping) else {}
+    grounding = _object(row.get("grounding"), f"{identity}: grounding")
     kinds = [key for key in ("kernel_binding_contract", "kernel_native", "kernel_external")
              if grounding.get(key)]
     if len(kinds) != 1:
         raise ModelAuthorityRefused(
             f"{identity}: batch-2 class row needs exactly one kernel grounding, got {kinds}")
     value = grounding[kinds[0]]
-    relations = grounding.get("ontology_relations") if isinstance(
-        grounding.get("ontology_relations"), Mapping) else {}
-    spec = {"sub_class_of": relations.get("sub_class_of")} if relations.get("sub_class_of") else None
+    relations = _object(grounding.get("ontology_relations", {}), f"{identity}: ontology_relations")
+    parent = relations.get("sub_class_of")
+    spec = {"sub_class_of": _token(parent, f"{identity}: sub_class_of")} if parent is not None else None
     if kinds[0] == "kernel_binding_contract":
         return Provision(identity, "class", layer, mapping=_file_mapping(value, identity), spec=spec)
-    if not isinstance(value, str) or value != value.strip():
-        raise ModelAuthorityRefused(f"{identity}: malformed {kinds[0]} grounding")
+    value = _token(value, f"{identity}: {kinds[0]} grounding")
     mapping = KernelNativeMapping(value) if kinds[0] == "kernel_native" else KernelExternalMapping(value)
     return Provision(identity, "class", layer, mapping=mapping, spec=spec)
 
@@ -316,36 +423,40 @@ def validate_closure_members(members: list[Mapping[str, str]], elements: list[Ma
 def _batch2_relation(identity: str, row: Mapping[str, Any], entry: Mapping[str, Any] | None,
                      layer: str) -> Provision:
     admission = row.get("admission_class")
+    support = _token(row.get("support", "vocabulary-only"), f"{identity}: support")
     if admission == "successor":
-        successor = row.get("successor") if isinstance(row.get("successor"), Mapping) else {}
-        pairs = [[str(p.get("source_class") or ""), str(p.get("target_class") or "")]
-                 for p in successor.get("end_pairs") or () if isinstance(p, Mapping)]
-        if not pairs or not all(all(pair) for pair in pairs):
+        successor = _object(row.get("successor"), f"{identity}: successor")
+        end_pairs = successor.get("end_pairs")
+        if not isinstance(end_pairs, list) or not end_pairs:
             raise ModelAuthorityRefused(f"{identity}: successor row lacks its end pairs")
+        pairs = []
+        for pair in end_pairs:
+            pair = _object(pair, f"{identity}: successor end pair")
+            pairs.append([_token(pair.get(key), f"{identity}: successor {key}")
+                          for key in ("source_class", "target_class")])
         return Provision(identity, "relationship", layer,
-                         spec={"end_pairs": pairs, "support": str(row.get("support") or "")})
-    relation = row.get("relation")
-    if not isinstance(relation, Mapping):
-        raise ModelAuthorityRefused(f"{identity}: relationship row lacks a relation declaration")
-    domain = str((relation.get("domain") or {}).get("ontology_class") or "")
-    range_record = relation.get("range") or {}
-    range_ = str(range_record.get("ontology_class") or "")
-    if not domain or not range_:
-        raise ModelAuthorityRefused(f"{identity}: incomplete relationship domain/range")
+                         spec={"end_pairs": pairs, "support": support})
+    relation = _object(row.get("relation"), f"{identity}: relation")
+    domain_record = _object(relation.get("domain"), f"{identity}: relation domain")
+    range_record = _object(relation.get("range"), f"{identity}: relation range")
+    domain = _token(domain_record.get("ontology_class"), f"{identity}: domain ontology_class")
+    range_ = _token(range_record.get("ontology_class"), f"{identity}: range ontology_class")
     strength = relation.get("semantic_strength")
+    if strength is not None:
+        strength = _token(strength, f"{identity}: semantic_strength")
     if admission == "retired-name":
-        retired = row.get("retired") if isinstance(row.get("retired"), Mapping) else {}
-        resolution = (entry or {}).get("retired_resolution") or {}
-        spec = {"successor": retired.get("successor"),
-                "navigation": retired.get("successor_navigation"),
-                "refusal": retired.get("refusal"),
-                "profile_successor": resolution.get("successor"),
-                "profile_navigation": resolution.get("navigation")}
+        retired = _object(row.get("retired"), f"{identity}: retired")
+        resolution = _object((entry or {}).get("retired_resolution"), f"{identity}: retired_resolution")
+        spec = {"successor": _token(retired.get("successor"), f"{identity}: retired successor"),
+                "navigation": _token(retired.get("successor_navigation"), f"{identity}: retired navigation"),
+                "refusal": _token(retired.get("refusal"), f"{identity}: retired refusal"),
+                "profile_successor": _token(resolution.get("successor"), f"{identity}: profile successor"),
+                "profile_navigation": _token(resolution.get("navigation"), f"{identity}: profile navigation")}
         return Provision(identity, "retired", layer, spec=spec)
     spec: dict[str, Any] = {"domain": domain, "range": range_,
-                            "support": str(row.get("support") or "vocabulary-only")}
+                            "support": support}
     if strength is not None:
-        spec["semantic_strength"] = str(strength)
+        spec["semantic_strength"] = strength
     discriminator = _batch2_discriminator(identity, range_record)
     if discriminator is not None:
         spec["range_discriminator"] = discriminator
@@ -353,13 +464,13 @@ def _batch2_relation(identity: str, row: Mapping[str, Any], entry: Mapping[str, 
     if carrier is not None:
         pinned = _file_mapping(carrier, identity)
         spec["carrier"] = {"file": pinned.file, "declaration": pinned.declaration}
-    mechanics = dict((entry or {}).get("serializer_mechanics") or {})
-    strategy = str(mechanics.pop("strategy", "") or "")
-    if not strategy:
+    mechanics = dict(_object((entry or {}).get("serializer_mechanics", {}), f"{identity}: serializer_mechanics"))
+    if "strategy" not in mechanics:
         return Provision(identity, "relationship", layer, spec=spec)
+    strategy = _token(mechanics.pop("strategy"), f"{identity}: serializer strategy")
     if not strength:
         raise ModelAuthorityRefused(f"{identity}: serialized relationship lacks a semantic strength")
-    mapping = RelationshipMapping(name=identity, strategy=strategy, semantic_strength=str(strength),
+    mapping = RelationshipMapping(name=identity, strategy=strategy, semantic_strength=strength,
                                   configuration=mechanics, domain=domain, range=range_)
     spec["sysml_mapping"] = {"strategy": strategy, **mechanics}
     return Provision(identity, "relationship", layer, spec=spec, relationship=mapping)
@@ -374,8 +485,8 @@ def _batch2_provider(row: Mapping[str, Any], entry: Mapping[str, Any] | None,
     identity = _row_identity(row)
     if entry is None:
         raise ModelAuthorityRefused(f"{identity}: batch-2 row has no profile entry")
-    kind = row.get("semantic_kind")
-    admission = row.get("admission_class")
+    kind = _token(row.get("semantic_kind"), f"{identity}: semantic_kind")
+    admission = _token(row.get("admission_class"), f"{identity}: admission_class")
     if kind == "class" and admission in _BATCH2_CLASS_ADMISSIONS:
         return _batch2_class(identity, row, layer)
     if kind == "relationship" and admission in _BATCH2_RELATION_ADMISSIONS:
@@ -390,20 +501,20 @@ _RELATIONSHIP_O2P = frozenset({"usesVerificationMethod"})
 
 def _o2plus_provider(row: Mapping[str, Any], layer: str) -> Provision:
     identity = _row_identity(row)
-    category = str(row.get("category") or "")
-    construct = str(row.get("construct") or "")
-    if not construct:
-        raise ModelAuthorityRefused(f"{identity}: O2+ row lacks its construct")
+    category = _token(row.get("category"), f"{identity}: O2+ category")
+    construct = _token(row.get("construct"), f"{identity}: O2+ construct")
     if identity in _RELATIONSHIP_O2P or row.get("semantic_kind") == "relationship":
-        spec = {"support": str(row.get("support") or "vocabulary-only"), "construct": construct}
+        spec = {"support": _token(row.get("support", "vocabulary-only"), f"{identity}: support"),
+                "construct": construct}
         return Provision(identity, "relationship", layer, spec=spec)
     if category == "native":
         return Provision(identity, "class", layer, mapping=KernelNativeMapping(construct))
     if category == "library-mapped-native":
         return Provision(identity, "class", layer, mapping=KernelExternalMapping(construct))
     if category == "model-resident-vocabulary":
-        witness = (row.get("grounding") or {}).get("witness") or {}
-        contains = str(witness.get("contains") or "").strip()
+        grounding = _object(row.get("grounding"), f"{identity}: O2+ grounding")
+        witness = _object(grounding.get("witness"), f"{identity}: O2+ witness")
+        contains = _token(witness.get("contains"), f"{identity}: witness contains")
         if contains.endswith("{"):
             contains = contains[:-1].strip()
         return Provision(identity, "class", layer,
@@ -414,30 +525,59 @@ def _o2plus_provider(row: Mapping[str, Any], layer: str) -> Provision:
 
 def _carrier_provider(row: Mapping[str, Any], layer: str) -> Provision:
     identity = _row_identity(row)
-    domain = (row.get("domain") or {}).get("identity")
-    range_ = (row.get("range") or {}).get("identity")
+    domain_record = _object(row.get("domain"), f"{identity}: carrier domain")
+    range_record = _object(row.get("range"), f"{identity}: carrier range")
+    domain = _token(domain_record.get("identity"), f"{identity}: domain identity")
+    range_ = _token(range_record.get("identity"), f"{identity}: range identity")
     carrier = _file_mapping(row.get("carrier"), identity)
-    if not domain or not range_:
-        raise ModelAuthorityRefused(f"{identity}: carrier row lacks domain/range")
-    spec = {"domain": str(domain), "range": str(range_),
+    spec = {"domain": domain, "range": range_,
             "carrier": {"file": carrier.file, "declaration": carrier.declaration},
-            "support": str(row.get("support") or "vocabulary-only")}
+            "support": _token(row.get("support", "vocabulary-only"), f"{identity}: support")}
     return Provision(identity, "relationship", layer, spec=spec)
+
+
+def _live_record_index(document: Mapping[str, Any], spec: LayerSpec, *,
+                       profile: bool) -> dict[str, Mapping[str, Any]]:
+    section, role = ("entries", "profile") if profile else ("rows", "projection")
+    records = document.get(section)
+    if not isinstance(records, list) or (not profile and not records):
+        raise ModelAuthorityRefused(f"{spec.name}: {section} must be a list" +
+                                    ("" if profile else " of nonempty projection rows"))
+    fields = _SEMANTIC_PROFILE_FIELDS if profile else _SEMANTIC_ROW_FIELDS
+    provenance = _PROFILE_PROVENANCE_FIELDS if profile else _ROW_PROVENANCE_FIELDS
+    indexed = {}
+    for record in records:
+        record = _object(record, f"{spec.name}: {role} record")
+        _semantic_record(record, fields, provenance)
+        identity = _row_identity(record)
+        if identity in indexed:
+            raise ModelAuthorityRefused(f"{spec.name}: duplicate {role} identity: {identity}")
+        indexed[identity] = record
+    return indexed
 
 
 def _layer_provisions(spec: LayerSpec, projection: dict[str, Any],
                       profile: dict[str, Any]) -> list[Provision]:
-    entries = {}
-    for entry in profile.get("entries") or ():
-        entries[_row_identity(entry)] = entry
-    rows = projection.get("rows")
-    if not isinstance(rows, list) or not rows:
-        raise ModelAuthorityRefused(f"{spec.name}: projection has no rows")
+    rows = _live_record_index(projection, spec, profile=False)
+    entries = _live_record_index(profile, spec, profile=True)
+    required = set(rows)
+    if spec.name == "o2plus":
+        required = set()
+        for identity, row in rows.items():
+            outputs = _object(row.get("outputs", {}), f"{identity}: outputs")
+            for flag in ("api_profile_required", "api_profile_entry"):
+                if flag in outputs and not isinstance(outputs[flag], bool):
+                    raise ModelAuthorityRefused(f"{identity}: outputs.{flag} must be boolean")
+                if outputs.get(flag) is True:
+                    required.add(identity)
+    orphan = set(entries) - set(rows)
+    if orphan:
+        raise ModelAuthorityRefused(f"{spec.name}: orphan profile identities: {sorted(orphan)}")
+    missing = required - set(entries)
+    if missing:
+        raise ModelAuthorityRefused(f"{spec.name}: missing required profile identities: {sorted(missing)}")
     result = []
-    for row in rows:
-        if not isinstance(row, Mapping):
-            raise ModelAuthorityRefused(f"{spec.name}: malformed projection row")
-        identity = _row_identity(row)
+    for identity, row in rows.items():
         if spec.name == "o2plus":
             result.append(_o2plus_provider(row, spec.name))
         elif spec.name == "vocabulary-carrier":
@@ -449,28 +589,41 @@ def _layer_provisions(spec: LayerSpec, projection: dict[str, Any],
     return result
 
 
-def load_projection_layers(root: Path = ROOT) -> tuple[list[dict[str, Any]], list[Provision]]:
-    """Read every live projection layer: (layer records, provisions)."""
+def _read_projection_layers(root: Path, specs: tuple[LayerSpec, ...]) -> tuple[list[dict[str, Any]], list[Provision]]:
+    """Read live semantic outputs, with byte provenance separate from meaning.
+
+    No live commit binding is required. ``sha256`` in the file records remains
+    diagnostic raw-byte provenance; ``semantic_sha256`` digests declared meaning
+    and is the only layer digest allowed into semantic-authority identity.
+    """
     records: list[dict[str, Any]] = []
     provisions: list[Provision] = []
-    for spec in LAYERS + BATCH2_LAYERS:
+    for spec in specs:
         if not spec.required and not (Path(root) / spec.projection_path).exists():
             continue
         projection, projection_raw = _read_json(root, spec.projection_path, spec.projection_schema)
         profile, profile_raw = _read_json(root, spec.profile_path, spec.profile_schema)
+        documents = {"projection": _semantic_document(projection, spec, profile=False),
+                     "profile": _semantic_document(profile, spec, profile=True)}
         layer_provisions = _layer_provisions(spec, projection, profile)
         records.append({
             "layer": spec.name,
+            "semantic_sha256": _provisions_digest(layer_provisions, rows=projection["rows"],
+                                                   entries=profile.get("entries") or [],
+                                                   documents=documents),
             "projection": {"path": spec.projection_path, "schema": spec.projection_schema,
-                           "sha256": _sha256_bytes(projection_raw),
-                           "source_revision": (projection.get("binding") or {}).get("source_revision")},
+                           "sha256": _sha256_bytes(projection_raw)},
             "profile": {"path": spec.profile_path, "schema": spec.profile_schema,
-                        "sha256": _sha256_bytes(profile_raw),
-                        "source_revision": (profile.get("binding") or {}).get("source_revision")},
+                        "sha256": _sha256_bytes(profile_raw)},
             "identities": sorted(p.identity for p in layer_provisions),
         })
         provisions.extend(layer_provisions)
     return records, provisions
+
+
+def load_projection_layers(root: Path = ROOT) -> tuple[list[dict[str, Any]], list[Provision]]:
+    """Read the complete live layer set for runtime construction."""
+    return _read_projection_layers(root, LAYERS + BATCH2_LAYERS)
 
 
 def _successor_names(contract: Mapping[str, Any]) -> dict[str, str]:
@@ -826,9 +979,51 @@ def load_model_layers(root: Path = ROOT) -> tuple[list[dict[str, Any]], list[Any
     The frozen O2-chain record comes first; its provisions seed the routing.
     """
     records, provisions = load_projection_layers(root)
+    return _with_frozen_layer(root, records, provisions)
+
+
+def _with_frozen_layer(root: Path, records: list[dict[str, Any]],
+                       provisions: list[Provision]) -> tuple[list[dict[str, Any]], list[Provision]]:
+    frozen_provisions = o2_chain_provisions(root)
+    frozen_rows, frozen_entries = load_o2_chain_rows(root)
     chain = {"layer": O2_CHAIN_LAYER, "frozen": True, "chain": o2_chain_records(root),
+             "semantic_sha256": _provisions_digest(
+                 frozen_provisions, rows=[frozen_rows[name] for name in O2_CHAIN_IDENTITIES],
+                 entries=[frozen_entries[name] for name in O2_CHAIN_IDENTITIES if name in frozen_entries]),
              "identities": sorted(O2_CHAIN_IDENTITIES)}
-    return [chain] + records, o2_chain_provisions(root) + list(provisions)
+    return [chain] + records, frozen_provisions + list(provisions)
+
+
+def _carrier_class_mappings(root: Path) -> dict[str, Any]:
+    """Construction-only class pins without consuming the carrier outputs.
+
+    The omitted layer provides relationships, never classes. Preserve the
+    normal source, successor, duplicate and refusal rules for class mappings;
+    this partial routing is not a runtime authority or coverage result.
+    """
+    specs = tuple(spec for spec in LAYERS + BATCH2_LAYERS
+                  if spec.name != "vocabulary-carrier")
+    records, provisions = _with_frozen_layer(root, *_read_projection_layers(root, specs))
+    successor = generate_model_successor_contract(root, records=records, provisions=provisions)
+    register = load_register_rows(root)
+    routing = compute_routing(
+        provisions=[p for p in provisions if p.layer != O2_CHAIN_LAYER],
+        successor_contract=successor, register_rows=register,
+        seed=[p for p in provisions if p.layer == O2_CHAIN_LAYER],
+    )
+    if routing.duplicates:
+        raise ModelAuthorityRefused("duplicate providers: " + "; ".join(routing.duplicates))
+    refused = set(register_refusals(register)) | set(successor.get("retired") or ()) | set(routing.retired_names)
+    mappings = {}
+    for name, provision in routing.providers.items():
+        if provision.kind != "class":
+            continue
+        if name in refused:
+            raise ModelAuthorityRefused(f"{name}: refused identity has a construction class provider")
+        mappings[name] = provision.mapping
+    if not mappings:
+        raise ModelAuthorityRefused("carrier construction has no class providers")
+    return mappings
 
 
 def load_kernel_exclusions(root: Path = ROOT) -> tuple[str, dict[str, dict[str, str]]]:
@@ -882,7 +1077,14 @@ def _mapping_record(mapping: Any) -> dict[str, Any]:
 
 def contract_content(classes: Mapping[str, Any], relationship_mappings: Mapping[str, Any],
                      relationships: Mapping[str, Any], refused: Mapping[str, str]) -> dict[str, Any]:
-    """Canonical semantic content of a contract (identity digest input)."""
+    """Served meaning: exact class pins, full relationship specs/mappings, refusals.
+
+    Relationship specs include endpoint contracts, strength/support, carrier and
+    discriminator pins and serializer configuration; refusal text includes retired
+    navigation and register dispositions. Build construction adds lineage pins
+    and the complete successor payload (including endpoint usages and version),
+    never raw layer bytes or binding provenance.
+    """
     return {
         "classes": {name: _mapping_record(mapping) for name, mapping in sorted(classes.items())},
         "relationships": {name: {"spec": json.loads(json.dumps(relationships[name], sort_keys=True)),
@@ -909,7 +1111,18 @@ def lineage_pins(routing: Routing, provisions: list[Any]) -> dict[str, str]:
 
 
 def build_model_contract(root: Path = ROOT) -> KernelContract:
-    """Build the kernel contract from the model-generated layers (fail closed)."""
+    """Build from generated meaning, not live commit bindings (fail closed).
+
+    Identity covers served contract content, lineage pins, the full successor
+    semantic payload and path-labelled declared layer semantics. Identity layer
+    ``sha256`` values hash provider meaning, not file bytes: both paths of a live
+    pair share its semantic digest; frozen paths share the frozen provider digest.
+    Raw file receipts (including frozen source revisions) remain distinct
+    provenance records. Python/pilot/unrelated model bytes and binding metadata
+    never enter identity. Kernel exclusions stay a separate blocking gate.
+    """
+    from .relationship_successor_contract import semantic_payload
+
     root = Path(root)
     records, provisions = load_model_layers(root)
     chain = [p for p in provisions if p.layer == O2_CHAIN_LAYER]
@@ -944,13 +1157,15 @@ def build_model_contract(root: Path = ROOT) -> KernelContract:
     directory, exclusions = load_kernel_exclusions(root)
     content = contract_content(class_mappings, relationship_mappings, relationships, refused)
     content["lineage_pinned"] = dict(sorted(lineage_pinned.items()))
+    content["successor"] = semantic_payload(successor)
     layers = []
     for record in records:
+        semantic_digest = record["semantic_sha256"]
         if record.get("layer") == O2_CHAIN_LAYER:
-            layers.extend((item["path"], item["sha256"]) for item in record["chain"])
+            layers.extend((item["path"], semantic_digest) for item in record["chain"])
         else:
-            layers.extend(((record["projection"]["path"], record["projection"]["sha256"]),
-                           (record["profile"]["path"], record["profile"]["sha256"])))
+            layers.extend(((record["projection"]["path"], semantic_digest),
+                           (record["profile"]["path"], semantic_digest)))
     layers = sorted(layers)
     identity_id = "sai-" + hashlib.sha256(canonical_json(
         {"schema": SEMANTIC_AUTHORITY_SCHEMA, "layers": layers, "content": content}).encode()).hexdigest()[:32]

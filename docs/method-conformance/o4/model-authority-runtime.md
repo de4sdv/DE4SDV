@@ -35,11 +35,25 @@ built by `de4sdv/semantic/model_contract.py`) assembles the contract from:
   ([kernel-internal-declarations.yaml](kernel-internal-declarations.yaml),
   owner decision D3), the governed-directory accounting.
 
-Its identity is the **semantic-authority identity** (`sai-<32 hex>`,
-schema `de4sdv.semantic-authority/v1`): a digest over every layer path and
-sha256 and the contract content. Revision bindings v2 carry it as
-`semantic_authority`; a v1 binding (authored-YAML `ontology` block) is
-refused.
+Its **semantic-authority identity** (`sai-<32 hex>`) hashes semantic payload,
+not raw application or artifact bytes. It covers:
+
+- path-labelled declared projection/profile semantics, including definition
+  text, exact grounding, representation rules and claim boundaries;
+- the served class mappings, full relationship specifications/mappings and
+  refusal/disposition strings;
+- lineage ownership and the complete successor payload: schema, supersession,
+  class/carrier file-declaration pins, relationship records and retirements.
+
+The identity's layer `sha256` values are semantic digests, not file checksums.
+Both paths of a live pair carry that pair's semantic digest; historical paths
+carry the selected historical semantic-output digest. Raw file hashes and
+historical source revisions remain separate provenance. Incidental Git commits,
+Python bytes, pilot data, unrelated model bytes and review/toolchain receipts
+are excluded. Unknown record fields require explicit classification and refuse.
+See [the generation workflow](../../guides/generated-semantic-assets.md) for
+the exact exclusions and release boundary. Revision bindings carry this value
+as `semantic_authority`; old authored-ontology bindings remain refused.
 
 The contract also carries:
 
@@ -157,11 +171,12 @@ listed declaration that is also projected fails); a stale, reason-less or
 out-of-directory entry fails; a feature slice must not re-declare a
 class-mapped kernel name.
 
-It compares the result with `model-authority-coverage-baseline.yaml`
-(schema v3, no binding block), which ratchets the refused and retired sets,
-the routing digest and the layer digests (the successor-contract digest
-moves whenever one of its bound program inputs changes; regenerate the
-baseline with `--write-baseline`). `scripts/check_repo.py` runs it. Current
+It compares the result with `model-authority-coverage-baseline.yaml`, which
+ratchets the routing digest and the refused/retired sets only. Report layer
+digests remain diagnostic provenance, not baseline inputs. Regenerate the
+baseline with `--write-baseline` after a reviewed routing or disposition change.
+Residuals, duplicates and kernel-accounting errors remain absolute blockers.
+`scripts/check_repo.py` runs it. Current
 summary: 101 projected, 0 residual, 2 refused, 5 retired, 158 governed
 declarations (0 residual).
 

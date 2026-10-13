@@ -36,10 +36,17 @@ compliance, certification or homologation claim.
   semantic-authority identity (`sai-…`); v1 bindings are refused.
 - **Consumer ledger closed** (D7): every remaining reference to the
   authored ontology is documentation, a frozen record, historical tooling,
-  a test reference, or the governance machinery that names the tokens
-  ([consumer-ledger.yaml](../consumer-ledger.yaml)).
+  a test reference, or the governance machinery that names the tokens.
+  The closed inventory has since been retired; its historical contents remain in
+  Git, while a retirement guard blocks restoring the deleted authority or live
+  code references to it.
 
 ## Evidence
+
+The branch-bound delivery instructions below describe the historical closure,
+not the current merge workflow. Live generated files now use current-source
+freshness checks and can ship with their sources in one squash-safe commit.
+See [the generation workflow](../../../guides/generated-semantic-assets.md).
 
 - [contract-equivalence.json](contract-equivalence.json): the last
   executable comparison of the authored ontology (oracle: the Wave B

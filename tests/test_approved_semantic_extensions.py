@@ -47,7 +47,9 @@ def _decisions():
 
 def _observation(identity):
     rows = {r["identity"]: r for r in json.loads((ROOT / BATCH2_PATH).read_text())["rows"]}
-    return rows[identity]["definition"]["documentation_observation"]
+    definition = rows[identity]["definition"]
+    assert isinstance(definition["documentation"], str) and definition["documentation"].strip(), identity
+    return definition["documentation_observation"]
 
 
 @pytest.mark.parametrize("identity", ASSURANCE_RECORDS)
@@ -55,7 +57,7 @@ def test_assurance_extension_has_exact_model_mapping_and_no_closure_promotion(id
     contract = model_contract()
     assert contract.classes[identity]["kernel"] == {
         "file": MODEL, "declaration": f"item def {identity}"}
-    assert _observation(identity) == "normalized-exact"
+    assert _observation(identity) == "model-owned-documentation"
     reviewed = _decisions()[identity]
     assert reviewed["evidence_state"] == "proposed"
     assert reviewed["adoption_status"] == "not-applicable"
@@ -81,7 +83,7 @@ def test_every_new_record_is_reviewed_and_model_mapped_without_waiving_coverage(
     for identity in EXTENSIONS:
         assert identity in decisions, identity
         assert identity in contract.classes, identity
-        assert _observation(identity) == "normalized-exact", identity
+        assert _observation(identity) == "model-owned-documentation", identity
     report = coverage.build_report(ROOT)
     assert report["residual"] == [] and report["residual_declarations"] == []
     assert report["duplicates"] == [] and report["kernel_accounting_errors"] == []
@@ -99,7 +101,7 @@ def test_relationship_extension_is_ingestable_but_not_promoted(identity, declara
     assert row["closure_evidence_ref"] is None
     assert row["transition_gate"]
     assert row["semantic_text_equivalence"] is None
-    assert _observation(identity) == "normalized-exact"
+    assert _observation(identity) == "model-owned-documentation"
     assert identity not in MIGRATED_IDENTITIES
 
 
@@ -159,7 +161,7 @@ def test_trace_extension_has_exact_model_mapping_without_runtime_admission(ident
     contract = model_contract()
     assert contract.classes[identity]["kernel"] == {
         "file": TRACE_MODEL, "declaration": f"part def {identity}"}
-    assert _observation(identity) == "normalized-exact"
+    assert _observation(identity) == "model-owned-documentation"
     row = _decisions()[identity]
     assert row["evidence_state"] == "proposed"
     assert row["closure_evidence_ref"] is None

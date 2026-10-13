@@ -1,20 +1,9 @@
-"""O4 W5 batch 1 — external-boundary reference record definitions parity.
+"""Historical definition records and current model boundaries.
 
-First bounded W5 (review Deliverable 8 wave 4) definitions-parity sub-step.
-Exactly two retained, ungated ``MODEL_AUTHORITY_PARITY`` rows:
-
-* ``ArchitectureDecisionRecord`` -> ``part def ArchitectureDecisionRecord``
-  (``de4sdv_method_context.sysml``)
-* ``Baseline`` -> ``part def DE4SDVEvidenceBaseline``
-  (``de4sdv_operational_context.sysml``)
-
-Both close definition-level parity by explicit reviewed-equivalence records:
-the model docs carry the reviewed definitional text plus model-resident
-reviewed content (the R003 derivation-grounding sentence; the non-claim
-boundary) that the review requires to stay carried.  Both remain external
-**reference identities** — content authority stays external; the model never
-mirrors ADR or baseline contents.  This is the parity sub-step only; the wave
-exit (governed external-authority contract docs) remains outstanding.
+This cleanup retires current-documentation equality with copied or frozen definitions.
+Live checks retain owned nonempty documentation, structure and claim boundaries.
+Inventory/decision parity fields below describe frozen historical evidence only;
+they are not recomputed from, or imposed on, current model wording.
 """
 
 from __future__ import annotations
@@ -26,6 +15,7 @@ import pytest
 import yaml
 
 from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
+from model_contract_fixtures import owned_definition_documentation
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 INVENTORY = REPO_ROOT / "docs/method-conformance/o1/semantic-authority-inventory.json"
@@ -42,16 +32,6 @@ MAPPING = {
     "Baseline": (
         "part def DE4SDVEvidenceBaseline",
         "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
-    ),
-}
-ACCEPTED_DEFINITION = {
-    "ArchitectureDecisionRecord": (
-        "A reviewed architecture or method decision recorded as an ADR in Git that can "
-        "serve as the semantic origin of a design-input requirement."
-    ),
-    "Baseline": (
-        "A reviewed and controlled state of model, evidence, configuration, or "
-        "publication artifacts, referenced without implying accepted evidence."
     ),
 }
 STAGE = "o4-w5 batch 1 (definitions parity)"
@@ -152,9 +132,12 @@ def test_declaration_mapping(inventory):
         assert observed["yaml_path"] == f"classes:{identity}"
 
 
-def test_accepted_definitions_are_carried():
+def test_definitions_have_owned_nonempty_documentation():
+    # This cleanup retired copied parity prose; external-reference/non-claim guards remain.
     for identity in BATCH_ROWS:
-        assert ACCEPTED_DEFINITION[identity] in _model_flat(identity), identity
+        declaration, path = MAPPING[identity]
+        source = (REPO_ROOT / path).read_text(encoding="utf-8")
+        assert owned_definition_documentation(source, declaration).strip(), identity
 
 
 def test_honest_parity_state(inventory, decisions):

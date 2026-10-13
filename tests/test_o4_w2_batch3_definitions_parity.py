@@ -1,27 +1,9 @@
-"""O4 W2 batch 3 — definitions-parity batch (three signal-mapping rows).
+"""Historical definition records and current model boundaries.
 
-Batch scope (exactly three retained, ungated ``MODEL_AUTHORITY_PARITY`` rows
-grounded in ``de4sdv_method_process.sysml``):
-
-* ``SignalMappingDisposition`` — parity closed **normalized-exact**: the
-  enum-level doc now carries the reviewed definition text verbatim; the
-  literal set and literal docs are unchanged.
-* ``LogicalToSoftwareSignalMappingRecord`` — parity closed by an explicit
-  **reviewed-equivalence** record: the model doc carries the reviewed
-  strengthened control-record wording (a reviewed documented superset of the
-  YAML comparison-source definition); the record must not become a second
-  authority for external contract facts, and the string-vs-reference
-  endpoint-field representation stays unresolved by design.
-* ``SystemToSoftwareSignalMappingCandidate`` — parity closed by an explicit
-  **reviewed-equivalence** record: the model doc carries the reviewed
-  non-claiming allocation semantics plus the reviewed specialization-payload
-  delta; no ``realizedBy -> allocatedToArchitecture`` redesign is implemented
-  or pre-empted.
-
-Lifecycle: stage ``o4-w2 batch 3 (definitions parity)``; remaining obligation
-``O2 admission / generated Semantic Projection from the reviewed model
-representation``; no O3 transition/admission obligation; ``authority_current``
-remains ``legacy-yaml``; no closure evidence; no authority cutover.
+This cleanup retires current-documentation equality with copied or frozen definitions.
+Live checks retain owned nonempty documentation, structure and claim boundaries.
+Inventory/decision parity fields below describe frozen historical evidence only;
+they are not recomputed from, or imposed on, current model wording.
 """
 
 from __future__ import annotations
@@ -32,8 +14,7 @@ from pathlib import Path
 
 import yaml
 
-from de4sdv.semantic.authority_inventory import doc_text_observation
-from model_contract_fixtures import reviewed_definition
+from model_contract_fixtures import owned_definition_documentation
 from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
 
 REPO = Path(__file__).resolve().parents[1]
@@ -50,23 +31,6 @@ PILOT_ROWS: dict[str, str] = {
     "SystemToSoftwareSignalMappingCandidate": "allocation def SystemToSoftwareSignalMappingCandidate",
 }
 
-REVIEWED_DEFINITIONS: dict[str, str] = {
-    "SignalMappingDisposition": (
-        "The disposition of a logical-to-software signal mapping "
-        "(mapped, candidate, deferred, or notApplicable)."
-    ),
-    "LogicalToSoftwareSignalMappingRecord": (
-        "A control record for a logical or semantic information item crossing "
-        "into a software, service, topic, API, or physical boundary; preserves "
-        "trace and review obligations without claiming runtime interoperability."
-    ),
-    "SystemToSoftwareSignalMappingCandidate": (
-        "A reusable non-claiming allocation relationship from a logical/function "
-        "signal responsibility to a concrete software or adapter signal endpoint; "
-        "the allocation alone never proves field identity or runtime "
-        "interoperability."
-    ),
-}
 
 # later-batch convention (definition admission batch 1): the O2-admission
 # obligation of these rows is discharged by the generated definition
@@ -153,14 +117,10 @@ def test_exact_three_row_scope() -> None:
         assert row["migration_class"] == "MODEL_AUTHORITY_PARITY", identity
 
 
-def test_enum_level_doc_is_normalized_exact() -> None:
+def test_enum_has_owned_documentation_and_recorded_parity() -> None:
+    # This cleanup retired enum prose parity; retain owned documentation and the record.
     file_text = MODEL_PATH.read_text(encoding="utf-8")
-    definition = reviewed_definition("SignalMappingDisposition")
-    assert definition == REVIEWED_DEFINITIONS["SignalMappingDisposition"]
-    observation = doc_text_observation(
-        file_text, "enum def SignalMappingDisposition", definition
-    )
-    assert observation == "normalized-exact"
+    assert owned_definition_documentation(file_text, "enum def SignalMappingDisposition").strip()
     reviewed = _entries(_inventory(), ["SignalMappingDisposition"])[
         "SignalMappingDisposition"
     ]["reviewed"]
@@ -171,14 +131,9 @@ def test_enum_level_doc_is_normalized_exact() -> None:
 
 
 def test_reviewed_equivalence_rows_record_their_equivalence() -> None:
-    file_text = MODEL_PATH.read_text(encoding="utf-8")
+    # This cleanup retired current-vs-copied "differs"; these are recorded review outcomes.
     entries = _entries(_inventory(), EQUIVALENCE_ROWS)
     for identity in EQUIVALENCE_ROWS:
-        declaration = PILOT_ROWS[identity]
-        definition = reviewed_definition(identity)
-        assert definition == REVIEWED_DEFINITIONS[identity]
-        observation = doc_text_observation(file_text, declaration, definition)
-        assert observation == "differs", identity
         reviewed = entries[identity]["reviewed"]
         assert reviewed["semantic_text_equivalence"] == "reviewed-equivalent", identity
         assert reviewed["stage"] == TREATED_STAGE, identity
@@ -241,7 +196,8 @@ def test_enum_literal_set_unchanged() -> None:
         if line.strip().startswith("doc /*") and len(line) - len(line.lstrip()) == 4
     ]
     assert len(direct_docs) == 1
-    assert "The disposition of a logical-to-software signal mapping" in direct_docs[0]
+    # This cleanup retires the copied enum-definition phrase, not its documentation home.
+    assert owned_definition_documentation(file_text, "enum def SignalMappingDisposition").strip()
 
 
 def test_record_boundaries_hold() -> None:

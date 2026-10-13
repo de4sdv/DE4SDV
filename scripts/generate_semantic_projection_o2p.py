@@ -16,8 +16,6 @@ Usage:
 
     python scripts/generate_semantic_projection_o2p.py              # write
     python scripts/generate_semantic_projection_o2p.py --check      # verify
-    python scripts/generate_semantic_projection_o2p.py \\
-        --source-revision <40-hex commit id>
 """
 
 from __future__ import annotations
@@ -36,15 +34,12 @@ from de4sdv.semantic.projection_o2p import (  # noqa: E402
     ProjectionO2PError,
     build_pair_o2p,
     canonical_json,
-    resolve_source_revision,
     run_check_errors_o2p,
 )
 
 
 def generate(root: Path, *, source_revision: str | None = None) -> dict:
-    """Build both O2+ artifacts bound to a source revision."""
-    if source_revision is None:
-        source_revision = resolve_source_revision(root)
+    """Build from current inputs; legacy source_revision is accepted but ignored."""
     return build_pair_o2p(root, source_revision=source_revision)
 
 
@@ -58,10 +53,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--source-revision",
         default=None,
-        help=(
-            "explicit Git commit id that contains every bound input "
-            "byte-for-byte (default: HEAD)"
-        ),
+        help="deprecated compatibility option; ignored (uses current source inputs)",
     )
     args = parser.parse_args(argv)
 
@@ -89,10 +81,6 @@ def main(argv: list[str] | None = None) -> int:
     )
     print(f"wrote {PROJECTION_O2P_PATH}")
     print(f"wrote {PROFILE_O2P_PATH}")
-    print(
-        "source revision: "
-        f"{artifacts['projection']['binding']['source_revision']}"
-    )
     return 0
 
 

@@ -490,14 +490,15 @@ def test_commented_duplicate_record_cannot_override_the_active_record():
                                    "attribute 'noise /*' : String;",
                                    'attribute noise : String = "} // /*";'])
 def test_quoted_nonfield_tokens_do_not_move_the_record_boundary(noise):
-    """R2-SPEC-2: an unrestricted name is one inert token at any boundary."""
+    """Quoted tokens in a nested owner cannot supply direct record fields."""
     from de4sdv.semantic.relationship_successor_contract import MODEL
     text = (ROOT / MODEL).read_text()
     anchor = "  part version : SuccessorVersionRecord {\n"
     assert anchor in text
     baseline = _semantics(_contract_from_model_text(text))
+    nested = "    part def SyntheticNoise { " + noise + " }\n"
     inserted = _semantics(_contract_from_model_text(
-        text.replace(anchor, anchor + "    " + noise + "\n", 1)))
+        text.replace(anchor, anchor + nested, 1)))
     assert inserted == baseline
 
 

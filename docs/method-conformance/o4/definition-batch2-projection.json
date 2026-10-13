@@ -2,85 +2,6 @@
   "schema": "de4sdv.o4-definition-batch2-projection/v1",
   "status": "admitted",
   "warning": "no traversal proof, no runtime read by this artifact, no API element identity, no authority retirement; retired names answer no fact (retired; use the successor)",
-  "binding": {
-    "source_revision": "208eb935e2f120e9f183f12e69b5fc9dcbbba122",
-    "source_revision_note": "Git commit that contains every bound input byte-for-byte. The gate validates commit existence, ancestry of the checked-out revision, per-input content equality and the recorded content digests.",
-    "artifact_commit": null,
-    "artifact_commit_note": "Unknowable at generation; left explicitly unclaimed.",
-    "generation_software": {
-      "program_inputs": [
-        "de4sdv/semantic/definition_projection_batch2.py",
-        "scripts/generate_definition_projection.py",
-        "de4sdv/semantic/authority_inventory.py",
-        "de4sdv/semantic/projection_o2p.py"
-      ],
-      "note": "The batch-2 module, the shared generator script, and the two shared modules executed at generation time (normalization, digests and revision containment; canonical JSON)."
-    },
-    "semantic_model_revision": {
-      "model_inputs": [
-        "textual-notation-of-model/packages/features/aebs/aebs_bicycle_verification.sysml",
-        "textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml",
-        "textual-notation-of-model/packages/features/aebs/aebs_evidence.sysml",
-        "textual-notation-of-model/packages/features/aebs/aebs_non_activation_verification.sysml",
-        "textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml",
-        "textual-notation-of-model/packages/features/aebs/aebs_partial_intervention_verification.sysml",
-        "textual-notation-of-model/packages/features/aebs/aebs_pedestrian_verification.sysml",
-        "textual-notation-of-model/packages/features/aebs/aebs_regulatory_criterion_verification.sysml",
-        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml",
-        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
-        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
-        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
-        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
-        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
-        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml"
-      ],
-      "note": "The governed model files read by the generator, contained byte-for-byte in source_revision."
-    },
-    "governance_inputs": {
-      "admission_document": {
-        "path": "docs/method-conformance/o4/definition-admission-batch2.yaml",
-        "digest": "sha256:6bf6b1dfb34b65e53152cb7891bd82aaea9b6e88a6a855d3a3b1a70e05286db6"
-      },
-      "design_record": {
-        "path": "docs/method-conformance/o4/definition-admission-batch2-design.md",
-        "digest": "sha256:80ef67d24bdccd8a8a0c198c79643e4d0d3d90daa6b211cd834c9d6b6fd694d8"
-      },
-      "external_reference_profile": {
-        "path": "docs/method-conformance/o4/external-reference-profile.yaml",
-        "digest": "sha256:3ebff0476f11ec176819012bcd0337e41efb6752f3091f45532ed67b6b34bed7"
-      }
-    },
-    "api_binding": {
-      "status": "unclaimed",
-      "note": "No SysML API element UUID is claimed; profile entries state representation mechanics only."
-    },
-    "bound_inputs": {
-      "de4sdv/semantic/authority_inventory.py": "sha256:a073c4f61cf4504a645f6465e4a2b067494a41bb2898d4188d5df38e2825408d",
-      "de4sdv/semantic/definition_projection_batch2.py": "sha256:a330321b9c76cfb3cc76b647ee1a8794dc77784c9de2e848dfdbe62a9b2e8db6",
-      "de4sdv/semantic/projection_o2p.py": "sha256:03ed5509e02126cabd2234aa84725c761b42f1b454172fbc4b6a9ef66c4e7817",
-      "docs/method-conformance/o4/definition-admission-batch2-design.md": "sha256:80ef67d24bdccd8a8a0c198c79643e4d0d3d90daa6b211cd834c9d6b6fd694d8",
-      "docs/method-conformance/o4/definition-admission-batch2.yaml": "sha256:6bf6b1dfb34b65e53152cb7891bd82aaea9b6e88a6a855d3a3b1a70e05286db6",
-      "docs/method-conformance/o4/external-reference-profile.yaml": "sha256:3ebff0476f11ec176819012bcd0337e41efb6752f3091f45532ed67b6b34bed7",
-      "scripts/generate_definition_projection.py": "sha256:8a06c0692f1f043454421a7826257b8a2695cfb43b76446fcc172675621c338d",
-      "textual-notation-of-model/packages/features/aebs/aebs_bicycle_verification.sysml": "sha256:b5cfb9604a1c1b0adcbc08332c8d3fb2b3db2a6d8ca1ee7a9b56ff4cb8e3a2f2",
-      "textual-notation-of-model/packages/features/aebs/aebs_degraded_input_verification.sysml": "sha256:b291c4bddd2b4fe75ddcd174bb172328b22ea0f1687a5961975fa7eda35a41d1",
-      "textual-notation-of-model/packages/features/aebs/aebs_evidence.sysml": "sha256:6598cabd353a80e4a2bd977350319cc7e10c938b0ed6bcd352d6037f215107ad",
-      "textual-notation-of-model/packages/features/aebs/aebs_non_activation_verification.sysml": "sha256:a7258c4f5c43644cb331d85fc46f8897340a02688a35f02735af3ebe8f862002",
-      "textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml": "sha256:4102557bd8a7ff32d6243534dfb8868e233cafb30bdd4d04669b13a7a98beb84",
-      "textual-notation-of-model/packages/features/aebs/aebs_partial_intervention_verification.sysml": "sha256:35c89ec4a674e3acb82de2d1f7b1b22adbfb295e84c4ce8829148a69b7ad48d3",
-      "textual-notation-of-model/packages/features/aebs/aebs_pedestrian_verification.sysml": "sha256:8be0a0afff343c1e1a6316d251952386e61e0bf436e5f464a43e2aedf590362c",
-      "textual-notation-of-model/packages/features/aebs/aebs_regulatory_criterion_verification.sysml": "sha256:64247cc55f0f2e0d526bab8d3d89e48411e323dc151896e759c2219b864ed370",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml": "sha256:ff876eced31482a41ffe45a7864d7b2266681fac352d63b03761664d34143546",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml": "sha256:bcd55ff6348e6761d88a8a38e2e3958d02908e8cd2c52f5b3e0fc54d9f973d6f",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml": "sha256:a4b2cba28cc6f29534db455ef47f1e0aed3ded7ccdc690bebf475cf3e732efd7",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml": "sha256:9a566d02964af2b2af5d6508601d7623d7c5b06235630dcf1413fa774cba9edb",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml": "sha256:3d669f980fd985c5c0e40682c9ea347b140dbf331b526869101ab73f39aed1ef",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml": "sha256:bf92d6e7dfd948fa02c710cc3c66c7a2496097a2b281c04862d81d6fb343451b",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml": "sha256:f97f906d9d82269ecb80863ee5d6429fcec6a87de9137cd3c054091a9428b218",
-      "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml": "sha256:90ea9a644770d519364393387caaa9435c699104656a82a1531eff059bb05ac4"
-    }
-  },
   "scope": {
     "admission": "O4 definition-admission batch 2 (definition-admission-batch2.yaml)",
     "admitted": [
@@ -173,7 +94,7 @@
           "documentation_name": null,
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -206,7 +127,7 @@
           "documentation_name": null,
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -239,7 +160,7 @@
           "documentation_name": null,
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -272,7 +193,7 @@
           "documentation_name": "ontologyDefinition",
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -305,7 +226,7 @@
           "documentation_name": "ArchitectureElementOntologyDefinition",
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_native": "part def, port def, and behavior definitions in feature and architecture slices",
@@ -335,7 +256,7 @@
           "documentation_name": "AssuranceClaimOntologyDefinition",
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_native": "Claim usages framed by the argumentation-assurance viewpoint",
@@ -365,7 +286,7 @@
           "documentation_name": "ontologyDefinition",
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -398,7 +319,7 @@
           "documentation_name": "ontologyDefinition",
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -433,7 +354,7 @@
           "documentation_name": "ontologyDefinition",
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -466,7 +387,7 @@
           "documentation_name": "EvidenceArtifactOntologyDefinition",
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_external": "Evidence registers and retained-evidence items referenced by verification slices (for example RetainedMiddlewareEvidence) and bench evidence YAML records",
@@ -496,7 +417,7 @@
           "documentation_name": null,
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -529,7 +450,7 @@
           "documentation_name": "EvidenceStatusOntologyDefinition",
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_external": "ODE4HERA requirements-management library VVStatus (NRM A13+A14) via the DE4SDV method-context adapter",
@@ -559,7 +480,7 @@
           "documentation_name": null,
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -592,7 +513,7 @@
           "documentation_name": "ontologyDefinition",
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -627,7 +548,7 @@
           "documentation_name": "FeatureConfigurationOntologyDefinition",
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_external": "Bill-of-Features records under model-based-product-line-engineering/feature-configurations/ resolved against the feature catalogue in model-based-product-line-engineering/feature-models/",
@@ -657,7 +578,7 @@
           "documentation_name": "FunctionOntologyDefinition",
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_native": "SysML v2 action/state/behavior definitions in functional-architecture slices",
@@ -687,7 +608,7 @@
           "documentation_name": null,
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -720,7 +641,7 @@
           "documentation_name": "InterfaceOntologyDefinition",
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_native": "SysML v2 port def and connection elements",
@@ -750,7 +671,7 @@
           "documentation_name": null,
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -783,7 +704,7 @@
           "documentation_name": "LogicalElementOntologyDefinition",
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_native": "part def elements in logical-architecture slices",
@@ -813,7 +734,7 @@
           "documentation_name": null,
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -846,7 +767,7 @@
           "documentation_name": null,
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -879,7 +800,7 @@
           "documentation_name": "PhysicalElementOntologyDefinition",
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_native": "part def elements in physical/software realization slices",
@@ -909,7 +830,7 @@
           "documentation_name": null,
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -942,7 +863,7 @@
           "documentation_name": null,
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -975,7 +896,7 @@
           "documentation_name": "RequiredTraceChainOntologyDefinition",
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_external": "Historical pre-Topic-5 universal-chain vocabulary retained for compatibility; not a successor completion policy",
@@ -1005,7 +926,7 @@
           "documentation_name": null,
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -1038,7 +959,7 @@
           "documentation_name": null,
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -1071,7 +992,7 @@
           "documentation_name": "ontologyDefinition",
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -1104,7 +1025,7 @@
           "documentation_name": "TraceLinkOntologyDefinition",
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_external": "Historical pre-Topic-5 string-endpoint record; successor source-reference witnesses require identified owning references, not category strings",
@@ -1134,7 +1055,7 @@
           "documentation_name": null,
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -1167,7 +1088,7 @@
           "documentation_name": null,
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_binding_contract": {
@@ -1200,7 +1121,7 @@
           "documentation_name": "ValidationScenarioOntologyDefinition",
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "grounding": {
         "kernel_native": "Scenario parts with bounded validation outcomes (for example passBoundedValidation)",
@@ -1882,7 +1803,7 @@
           "documentation_name": "instantiatesCanonicalArchitectureOntologyDefinition",
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "relation": {
         "domain": {
@@ -2100,7 +2021,7 @@
           "documentation_name": "specifiesFunctionOntologyDefinition",
           "documentation_index": 0
         },
-        "documentation_observation": "normalized-exact"
+        "documentation_observation": "model-owned-documentation"
       },
       "relation": {
         "domain": {

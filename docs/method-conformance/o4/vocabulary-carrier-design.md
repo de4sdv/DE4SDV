@@ -1,5 +1,10 @@
 # O4 vocabulary-relationship definition carriers — design
 
+> **Current generation workflow.** The source-binding instructions below
+> describe the historical delivery. Live outputs now use deterministic
+> [current-source generation](../../guides/generated-semantic-assets.md) and
+> ship with their source changes in one squash-safe commit.
+
 > **O4 Wave C2 note.** The authored ontology was deleted in Wave C2. The
 > carrier generator now validates carrier ends against the class mappings of
 > the model-built kernel contract instead of the authored kernel mappings; the

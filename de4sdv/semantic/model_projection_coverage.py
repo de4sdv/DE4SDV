@@ -25,8 +25,9 @@ also projected, or a feature slice re-declaring a class-mapped kernel name.
 
 The committed baseline
 ``docs/method-conformance/o4/model-authority-coverage-baseline.yaml`` is a
-reviewed ratchet for the routing digest, the layer digests and the refused /
-retired sets: any change needs a reviewed baseline update. It carries no
+reviewed ratchet for the routing digest and the refused / retired sets: any
+change needs a reviewed baseline update. Layer digests in reports are diagnostic
+provenance, not baseline identity or closure evidence. The baseline carries no
 binding block.
 """
 from __future__ import annotations
@@ -302,12 +303,12 @@ def baseline_from_report(report: Mapping[str, Any]) -> dict[str, Any]:
         "note": ("Reviewed ratchet for the model-authority coverage gate. "
                  "Not revision-bound evidence; no binding block. Regenerate with "
                  "scripts/check_model_projection_coverage.py --write-baseline after "
-                 "a reviewed projection change. Any residual identity or declaration "
+                 "a reviewed routing or disposition change. Layer byte digests are "
+                 "diagnostic provenance only. Any residual identity or declaration "
                  "and any kernel-accounting error block regardless of this baseline "
                  "(O4 Wave C2); refused and retired list the identities answered only "
                  "with their disposition."),
         "routing_digest": report["routing_digest"],
-        "layer_digests": dict(report["layer_digests"]),
         "refused": list(report["refused"]),
         "retired": list(report["retired"]),
     }
@@ -342,8 +343,6 @@ def compare(report: Mapping[str, Any], baseline: Mapping[str, Any]) -> list[str]
             errors.append(f"{key} drift: baseline lists {name!r} as {key}; update the baseline")
     if report["routing_digest"] != baseline.get("routing_digest"):
         errors.append("routing digest differs from the baseline (provider set changed)")
-    if dict(report["layer_digests"]) != dict(baseline.get("layer_digests") or {}):
-        errors.append("projection layer digests differ from the baseline")
     return errors
 
 
