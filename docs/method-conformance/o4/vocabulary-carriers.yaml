@@ -18,11 +18,11 @@
 # hasStakeholder stays EXCLUDED (decision-11 gates its range), in addition to
 # the shared acceptance requirement.
 #
-# Generated Projection/Profile artifacts are produced by
-# scripts/generate_vocabulary_carriers.py under the two-commit source binding:
-# commit these admission inputs first, then generate and commit the artifacts.
+# Generated Projection/Profile artifacts are produced from current sources by
+# scripts/generate_vocabulary_carriers.py; commit them with the input change
+# (docs/guides/generated-semantic-assets.md).
 schema: de4sdv.o4-vocabulary-carriers/v1
-status: ADMITTED - five carriers admitted as engineering review evidence; artifacts generated under two-commit binding
+status: ADMITTED - five carriers admitted as engineering review evidence; artifacts generated from current sources
 warning: >-
   Governance data, not generated output, and NOT authority activation. The
   carrier machinery is fail-closed: family drift against the canonical review,

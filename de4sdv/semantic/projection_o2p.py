@@ -523,10 +523,16 @@ def run_check_errors_o2p(root: Path) -> list[str]:
     projection_path = root / PROJECTION_O2P_PATH
     profile_path = root / PROFILE_O2P_PATH
     if not projection_path.is_file():
-        errors.append(f"o2plus semantic projection missing: {PROJECTION_O2P_PATH}")
+        errors.append(
+            f"{PROJECTION_O2P_PATH}: o2plus semantic projection missing; run "
+            "scripts/generate_semantic_projection_o2p.py and commit the output "
+            "with the source change (docs/guides/generated-semantic-assets.md)"
+        )
     if not profile_path.is_file():
         errors.append(
-            f"o2plus api representation profile missing: {PROFILE_O2P_PATH}"
+            f"{PROFILE_O2P_PATH}: o2plus api representation profile missing; run "
+            "scripts/generate_semantic_projection_o2p.py and commit the output "
+            "with the source change (docs/guides/generated-semantic-assets.md)"
         )
     if errors:
         return errors

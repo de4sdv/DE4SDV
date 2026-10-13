@@ -139,8 +139,9 @@ def test_native_current_input_edit_requires_regeneration_not_a_commit(tmp_path, 
     manifest["admitted"][0]["claim_boundary"] = "Edited synthetic boundary; still vocabulary-only."
     path.write_text(yaml.safe_dump(manifest), encoding="utf-8")
     assert native_cli.main(["--check"]) == 1
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit) as rejected:
         native_cli.main(["--source-revision", "0" * 40])
+    assert rejected.value.code == 2
     assert native_cli.main([]) == 0
     assert native_cli.main(["--check"]) == 0
     first = native.build_pair_o2p(tmp_path)

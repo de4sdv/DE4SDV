@@ -11,8 +11,16 @@ can be squash-merged.
 regeneration. It fails when a file is missing or stale and names the
 generator to run. Typical triggers are edits to a definition or its `doc`
 text in the method kernel (`textual-notation-of-model/packages/methods/de4sdv/`),
-to the few feature files that witness a projected concept, or to an
-admission manifest.
+to the few feature files that witness a projected concept, to an admission
+manifest, or to the Syside version pin in
+`.github/workflows/privileged-syside-validation.yml`.
+
+One exception: the five `connection def`s in
+`de4sdv_method_vocabulary_carriers.sysml` must keep a `doc` comment equal to
+their reviewed definition in
+`docs/method-conformance/o4/ontology-review/integrated-review.json`. Changing
+that text is a review change, not a regeneration; the vocabulary generator
+refuses until both agree.
 
 ## Regenerate, check, commit once
 
@@ -61,8 +69,10 @@ against current sources. Their mentions of deleted inputs are history, not a
 live dependency.
 
 The closed consumer ledger is retired. A guard test keeps the deleted
-ontology file and the ledger from coming back. It scans all live tracked
-files case-insensitively and leaves historical documents and tests alone.
+ontology file and the ledger from coming back. It scans every tracked file
+outside `docs/` and `tests/`, except the retained review helper
+`scripts/ontology_review/arch_recheck.py`, case-insensitively and without
+extension filtering or truncation.
 
 ## Identity and releases
 
