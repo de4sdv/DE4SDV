@@ -100,7 +100,8 @@ def create_mcp_server(service: SemanticQueryService) -> FastMCP:
     def increment_status(increment: str, phase: str | None = None) -> dict[str, Any]:
         """Per-phase status of one increment at the bound revision: aggregate verdict and phase-exit
         readiness of the executable checks. A declared phase without executable checks is listed with
-        what its step declares, never evaluated; `coverage` names the phases the verdicts cover. If the
+        its step's declared outputs, never evaluated. Such a phase's exit is BLOCKED by the method
+        (CONTRACT_UNAVAILABLE), never by a gap. `coverage` names the phases the verdicts cover. If the
         revision does not declare the increment, `increment.reason_code` is INCREMENT_NOT_DECLARED."""
         return service.increment_status(phase, increment=increment)
 

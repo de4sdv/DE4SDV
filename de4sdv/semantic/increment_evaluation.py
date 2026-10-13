@@ -62,6 +62,9 @@ EXECUTABLE_CHECKS = "executable checks at this revision"
 NO_EXECUTABLE_CHECKS = "no executable checks at this revision"
 COVERAGE_NOTE = ("the verdicts, gaps and next cover only the phases with executable checks at this revision; "
                  "a declared phase without executable checks is reported, never evaluated")
+#: Why the exit of a phase no check judges stays BLOCKED: the method, never a gap in the model.
+UNCHECKED_EXIT_NOTE = ("BLOCKED by the method, not by the model: no executable check judges this phase at this "
+                       "revision, so no gap is open here and nothing you author opens this exit.")
 #: Answer-level reason, not a reason of the result algebra: no increment usage carries the requested
 #: identifier at the evaluated revision. Content on another branch or commit is invisible to it.
 INCREMENT_NOT_DECLARED = "INCREMENT_NOT_DECLARED"
@@ -238,12 +241,12 @@ class IncrementEvaluation:
         return me.subset_readiness(self.canonical, ids, target)
 
     def _unchecked_exit(self, phase: str) -> me.ReadinessBlock:
-        """The exit of a phase no executable check judges: no evaluation can open it."""
+        """The exit of a phase no executable check judges: no evaluation can open it, and no gap blocks it."""
         return me.ReadinessBlock(
             target=me.ReadinessTarget("PHASE_EXIT", f"{self.increment_id}/{phase}"), readiness="BLOCKED",
             reason_codes=(me.CONTRACT_UNAVAILABLE,),
-            diagnostics=(f"{phase} has {NO_EXECUTABLE_CHECKS}; an empty required inventory cannot authorize a "
-                         "phase exit",),
+            diagnostics=(f"{phase} has {NO_EXECUTABLE_CHECKS}: its exit stays BLOCKED until the method adds "
+                         "checks; this is not a gap",),
         )
 
     def _kind(self, unit: me.EvaluationResult) -> str | None:
@@ -436,7 +439,9 @@ class IncrementEvaluation:
             "assessment_coverage": me.COVERAGE_UNASSESSED,
             "evaluation_state": None,
             "conformance_verdict": None,
+            "reason_codes": [me.CONTRACT_UNAVAILABLE],
             "phase_exit": readiness.readiness,
+            "exit_note": UNCHECKED_EXIT_NOTE,
             "readiness": readiness.as_dict(),
             "gates": {},
             "blocking": [],

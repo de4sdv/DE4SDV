@@ -345,6 +345,23 @@ def test_without_a_workflow_every_declared_phase_is_reported() -> None:
         _unchecked(block, phase)
         assert (block["step"], block["outputs"]) == (None, [])
 
+
+def test_an_unchecked_phase_exit_is_blocked_by_the_method_never_by_a_gap() -> None:
+    """Review R2: BLOCKED beside the step's outputs must not read like a gap to author against."""
+    evaluation = _evaluate(_scenario(applicable_phases=(P0, P1, P4, P5, P10)))
+    (block,) = [b for b in evaluation.status()["phases"] if b["phase"] == P1]
+    assert block["reason_codes"] == [me.CONTRACT_UNAVAILABLE]  # an UNASSESSED result names its reason
+    for phrase in ("BLOCKED by the method, not by the model", "no gap is open here",
+                   "nothing you author opens this exit"):
+        assert phrase in block["exit_note"], phrase
+    (diagnostic,) = block["readiness"]["diagnostics"]
+    assert diagnostic.endswith("its exit stays BLOCKED until the method adds checks; this is not a gap")
+    gaps = evaluation.gaps()
+    assert P1 not in {gap["phase"] for gap in gaps["blocking"] + gaps["advisory"]}
+    assert evaluation.next_obligation()["next"] is None
+    (unread,) = [b for b in _evaluate(_two_step_scenario(with_workflow=False)).status()["phases"] if b["phase"] == P1]
+    assert unread["reason_codes"] == [me.CONTRACT_UNAVAILABLE] and unread["exit_note"] == block["exit_note"]
+
 def test_an_empty_required_inventory_cannot_open_a_phase_exit() -> None:
     scenario = _scenario()
     for check in ("verificationCaseVerifiesRequirement", "requirementVerifiedByVerificationCase"):

@@ -136,6 +136,14 @@ def test_the_tool_descriptions_say_what_each_answer_covers() -> None:
         assert "INCREMENT_NOT_DECLARED" in tools[name], name
 
 
+def test_the_status_description_says_an_unchecked_exit_is_never_a_gap() -> None:
+    service, _scenario, _repository = _service()
+    tools = {tool.name: " ".join(tool.description.split())  # docstrings wrap their lines
+             for tool in create_mcp_server(service)._tool_manager.list_tools()}
+    assert "BLOCKED by the method (CONTRACT_UNAVAILABLE), never by a gap" in tools["increment_status"]
+    assert "declared outputs" in tools["increment_status"]
+
+
 def test_malformed_increment_identifier_is_refused() -> None:
     service, _scenario, _repository = _service()
     with pytest.raises(ValueError, match="INC-<SUBJECT>-<SEQ>"):
