@@ -76,10 +76,11 @@ The equivalence of this contract with the deleted authored ontology was
 proven before the deletion and is committed as evidence:
 [closure/contract-equivalence.json](https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/docs/method-conformance/o4/closure/contract-equivalence.json). The
 served contract differs from the authored one in exactly seven identities:
-the two refused exceptions and the five retired names. The 54 batch-2
-contract fields held by the admission manifest (domain/range/strength,
-mechanics, kernel mapping kind, ontology relations) are recorded there with
-their pre-deletion equality (owner decision D9).
+the two refused exceptions and the five retired names. The 54
+kernel-vocabulary contract fields held by the admission manifest
+(domain/range/strength, mechanics, kernel mapping kind, ontology relations),
+which the model does not carry structurally, are recorded there with their
+pre-deletion equality.
 
 ## Runtime construction
 

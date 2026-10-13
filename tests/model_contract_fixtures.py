@@ -157,7 +157,8 @@ def current_definition(identity: str) -> str:
 
 def manifest_held_values(row: dict[str, Any]) -> dict[str, Any]:
     """The contract fields one kernel-vocabulary manifest row holds itself
-    (owner decision D9): class pins, or a relation with its mechanics.
+    (the model does not carry them structurally): class pins, or a relation
+    with its mechanics.
     Definition text is excluded; the model owns it."""
     values: dict[str, Any] = {}
     if row["semantic_kind"] == "class":

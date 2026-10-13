@@ -128,8 +128,9 @@ def _expected_kernel_vocabulary_pair():
                     "kernel_binding_contract": {"source_file": MODEL_FILE, "declaration": "part def Alpha"},
                     "ontology_relations": {"sub_class_of": None, "disjoint_with": []},
                     "contract_source": ("kernel mapping kind and ontology relations: reviewed admission-manifest "
-                        "fields (manifest-held; owner decision D9); file mappings are resolved in "
-                        "the model by this generator; authored-ontology parity proven before its "
+                        "fields (manifest-held: the model does not carry them structurally, so the "
+                        "reviewed manifest is their authority); file mappings are resolved in the "
+                        "model by this generator; authored-ontology parity proven before its "
                         "deletion: https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/"
                         "docs/method-conformance/o4/closure/contract-equivalence.json"),
                 },

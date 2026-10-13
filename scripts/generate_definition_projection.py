@@ -5,16 +5,17 @@ Canonical artifacts:
 
 - ``de4sdv/semantic/contract-data/class-definition-projection.json``
 - ``de4sdv/semantic/contract-data/class-definition-profile.json``
-- ``de4sdv/semantic/contract-data/kernel-vocabulary-projection.json`` (batch 2)
-- ``de4sdv/semantic/contract-data/kernel-vocabulary-profile.json`` (batch 2)
+- ``de4sdv/semantic/contract-data/kernel-vocabulary-projection.json``
+- ``de4sdv/semantic/contract-data/kernel-vocabulary-profile.json``
 
-Batch 2 (``kernel-vocabulary-admission.yaml``, module
+The kernel-vocabulary pair (``kernel-vocabulary-admission.yaml``, module
 ``de4sdv/semantic/kernel_vocabulary_projection.py``) is a separate pair for
 the remaining retained identities, the unregistered ontology classes and the
-W6 successor predicates; ``--batch`` selects one pair (default: both).
+successor predicates. ``--batch 1`` selects the class-definition pair,
+``--batch 2`` the kernel-vocabulary pair (default: both).
 
-The batch-1 artifacts carry the 22 admitted definition identities of the governed
-``de4sdv/semantic/contract-data/class-definition-admission.yaml`` batch: the generated
+The class-definition artifacts carry the 22 admitted definition identities of the governed
+``de4sdv/semantic/contract-data/class-definition-admission.yaml``: the generated
 Semantic Projection rows (model-owned documentation and ownership witnesses,
 kernel-binding-contract grounding) and the API
 Representation Profile entries (declaration-form representation mechanics and

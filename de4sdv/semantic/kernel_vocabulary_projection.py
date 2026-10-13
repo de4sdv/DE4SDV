@@ -37,8 +37,8 @@ owning kernel package.
 Contract fields the model does not structurally carry (relationship
 domain/range of vocabulary-only predicates, kernel mapping kind of
 native/external classes, serializer mechanics of the runtime-mapped
-predicates) are reviewed admission-manifest fields (owner decision D9): the
-manifest is their authority. They were proven equal to the authored ontology
+predicates) are reviewed admission-manifest fields: the manifest is their
+authority. They were proven equal to the authored ontology
 before its deletion. That comparison is archived at the ``release-2026-10-11``
 tag (``PARITY_EVIDENCE``), and every generated row labels these fields with it
 (``contract_source``); nothing is inferred from names.
@@ -804,8 +804,9 @@ def _row_outputs(root: Path, model: _Model, row: dict[str, Any], successors: dic
                                         "disjoint_with": list(grounding["disjoint_with"])}
         ground["contract_source"] = (
             "kernel mapping kind and ontology relations: reviewed admission-manifest "
-            "fields (manifest-held; owner decision D9); file mappings are resolved in "
-            "the model by this generator; authored-ontology parity proven before its "
+            "fields (manifest-held: the model does not carry them structurally, so the "
+            "reviewed manifest is their authority); file mappings are resolved in the "
+            "model by this generator; authored-ontology parity proven before its "
             "deletion: " + PARITY_EVIDENCE
         )
         projection["grounding"] = ground
@@ -838,9 +839,9 @@ def _row_outputs(root: Path, model: _Model, row: dict[str, Any], successors: dic
             "semantic_strength": relation["semantic_strength"],
             "contract_source": (
                 "domain/range/strength: reviewed admission-manifest fields "
-                "(manifest-held, model-witnessed declaration; no structural domain/range "
-                "in the model; owner decision D9); authored-ontology parity proven before "
-                "its deletion: " + PARITY_EVIDENCE
+                "(manifest-held, model-witnessed declaration: the model carries no "
+                "structural domain/range, so the reviewed manifest is their authority); "
+                "authored-ontology parity proven before its deletion: " + PARITY_EVIDENCE
             ),
         }
     if "carrier" in row:
@@ -876,9 +877,9 @@ def _row_outputs(root: Path, model: _Model, row: dict[str, Any], successors: dic
     if "mechanics" in row:
         profile["serializer_mechanics"] = dict(row["mechanics"])
         profile["mechanics_source"] = (
-            "reviewed admission-manifest field (representation mechanics; owner decision "
-            "D9); authored-ontology parity proven before its deletion: "
-            + PARITY_EVIDENCE
+            "reviewed admission-manifest field (representation mechanics, manifest-held: "
+            "the model does not carry them, so the reviewed manifest is their authority); "
+            "authored-ontology parity proven before its deletion: " + PARITY_EVIDENCE
         )
     if admission == "retired-name":
         retired = row["retired"]

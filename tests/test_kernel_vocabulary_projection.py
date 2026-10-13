@@ -19,7 +19,8 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DATA = "de4sdv/semantic/contract-data/"
-#: Recorded values of the manifest-held contract fields (owner decision D9).
+#: Recorded values of the manifest-held contract fields (fields the model does
+#: not carry structurally, held by the reviewed admission manifest).
 MANIFEST_HELD_FIXTURE = "tests/fixtures/manifest-held-contract-fields.json"
 MANIFEST_PATH = DATA + "kernel-vocabulary-admission.yaml"
 REGISTER_PATH = DATA + "ontology-identity-register.json"
@@ -171,7 +172,8 @@ def test_projection_scope_echoes_the_owner_visible_exceptions():
 
 def test_manifest_held_contract_fields_equal_the_recorded_values():
     """The manifest holds 54 rows' contract fields itself instead of the model
-    (owner decision D9): kernel mapping, subclass and disjointness pins, and
+    (the model does not carry them structurally): kernel mapping, subclass and
+    disjointness pins, and
     relation domain/range/direction/strength with mechanics. They feed the served
     class mappings and relationship specs, so each value and each row's admission
     class stay locked to the record made when they were last proven equal to the
@@ -207,7 +209,7 @@ def test_manifest_gates_match_the_register_gate_decisions():
 
 
 def test_every_contract_row_is_labeled_manifest_held():
-    """D9: every generated row with manifest-held contract fields says so."""
+    """Every generated row with manifest-held contract fields says so."""
     projected = {row["identity"]: row for row in _outputs()["projection_rows"]}
     labeled = 0
     for identity, row in projected.items():
