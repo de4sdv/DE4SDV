@@ -5,6 +5,13 @@ on:
   push:
     branches: [ main ]
 
+# A newer push to a pull request cancels its superseded run. A push to main
+# is never cancelled: each push run has its own group (its run id), so it is
+# neither cancelled nor queued behind another run.
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   checks:
     runs-on: ubuntu-latest

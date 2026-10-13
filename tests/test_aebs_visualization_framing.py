@@ -23,6 +23,16 @@ MW_EVIDENCE = (
 )
 
 
+#: An optional SysML short name before a usage name (`requirement <'ID'> name`),
+#: so a short-named usage never drops out of a population (#355 review R4).
+SHORT_NAME = r"(?:<(?:'[^']*'|\w+)>\s*)?"
+REQUIREMENT_USAGE = re.compile(rf"\brequirement\s+{SHORT_NAME}(\w+)\s*:\s*[\w:]+\s*\{{")
+CANDIDATE_REQUIREMENT_USAGE = re.compile(
+    rf"\brequirement\s+{SHORT_NAME}(req\w+)\s*:\s*VisualizationInstrumentRequirementCandidate\s*\{{"
+)
+NEED_USAGE = re.compile(rf"\brequirement\s+{SHORT_NAME}(need\w+)\s*:\s*\w+\s*\{{")
+
+
 def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
@@ -212,7 +222,40 @@ def _requirement_usages() -> dict[str, str]:
     needs = _read(NEEDS)
     package = _brace_block(needs, needs.index("{", needs.index("package VisualizationRequirements")))
     return {match[1]: _brace_block(package, match.end() - 1)
-            for match in re.finditer(r"\brequirement\s+(\w+)\s*:\s*[\w:]+\s*\{", package)}
+            for match in REQUIREMENT_USAGE.finditer(package)}
+
+
+def test_population_patterns_see_short_named_usages() -> None:
+    """`requirement <'ID'> name : T {` is a form the AEBS model uses, so a short
+    name must not hide a usage from a population (#355 review R4)."""
+    for pattern, name, kind in (
+        (REQUIREMENT_USAGE, "reqPlanted", "VisualizationInstrumentRequirementCandidate"),
+        (CANDIDATE_REQUIREMENT_USAGE, "reqPlanted", "VisualizationInstrumentRequirementCandidate"),
+        (NEED_USAGE, "needPlanted", "VisualizationNeed"),
+    ):
+        for declaration in (
+            f"requirement {name} : {kind} {{",
+            f"requirement <'planted short name'> {name} : {kind} {{",
+            f"requirement <'planted short name'>{name} : {kind} {{",
+            f"requirement <R9> {name} : {kind} {{",
+        ):
+            assert [m[1] for m in pattern.finditer(declaration)] == [name], (pattern.pattern, declaration)
+
+
+def test_the_requirement_population_includes_a_short_named_usage(monkeypatch) -> None:
+    real = _read(NEEDS)
+    start = real.index("{", real.index("package VisualizationRequirements")) + 1
+    planted = (
+        real[:start]
+        + "\n    requirement <'planted short name'> reqPlantedShortNamed"
+        " : VisualizationInstrumentRequirementCandidate {\n    }\n"
+        + real[start:]
+    )
+    unplanted = set(_requirement_usages())
+    assert unplanted
+    original = _read
+    monkeypatch.setitem(globals(), "_read", lambda path: planted if path == NEEDS else original(path))
+    assert set(_requirement_usages()) == unplanted | {"reqPlantedShortNamed"}
 
 
 def test_requirement_subject_is_the_visualization_test_system() -> None:
@@ -393,7 +436,7 @@ def _s2_validation_plan_population():
     )
     assert len(links) == len(re.findall(r"\bValidationPlanningAssociation\b", code))
     needs = {}
-    for match in re.finditer(r"\brequirement\s+(need\w+)\s*:\s*\w+\s*\{", raw):
+    for match in NEED_USAGE.finditer(raw):
         ident = re.match(r"\s*doc\s*/\*\s*(N-AEBS-\d{3})\b", _brace_block(raw, match.end() - 1))
         if ident:
             needs[match[1]] = ident[1]
@@ -429,7 +472,7 @@ def test_every_s2_requirement_states_one_standard_verification_method() -> None:
     needs = _read(NEEDS)
     requirements = needs.split("package VisualizationRequirements {", 1)[1]
     blocks = {}
-    for match in re.finditer(r"\brequirement\s+(req\w+)\s*:\s*VisualizationInstrumentRequirementCandidate\s*\{", requirements):
+    for match in CANDIDATE_REQUIREMENT_USAGE.finditer(requirements):
         blocks[match[1]] = _brace_block(requirements, match.end() - 1)
     # Every requirement usage of the package is checked (by name, not by count).
     assert blocks and set(blocks) == set(_requirement_usages())

@@ -51,11 +51,21 @@ the committed SVG when the render passed publication QA:
 - [DE4SDV method](../../textual-notation-of-model/packages/methods/de4sdv/VIEWS.md)
 - [product models](../../model-based-product-line-engineering/product-models/VIEWS.md)
 
+These are today's folders; `python scripts/list_view_folders.py` prints the
+current list, which CI derives from the model.
+
 The landing page keeps a visible status entry when a diagram is withheld. Empty
 view frames, exposure-only renders, and empty table/matrix frames are not
 published as if they were usable diagrams. Dense or degraded-but-informative
 renders stay available with a presentation note and should be opened at full
 size.
+
+No workflow or script lists these folders by hand:
+`python scripts/list_view_folders.py` derives them from the model, and CI
+checks every one. A new model folder whose files declare a view therefore
+commits its own `VIEWS.md` (`python scripts/generate_view_index.py <folder>`)
+and the diagrams the Privileged Syside Validation run renders for it (the
+run's `syside-diagrams` artifact).
 
 ## Run it locally (your own work)
 

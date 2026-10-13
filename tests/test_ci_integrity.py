@@ -14,6 +14,38 @@ def test_required_ci_runs_complete_repository_test_suite() -> None:
     assert "pytest tests/test_semantic_mcp.py" not in workflow
 
 
+def _ci() -> dict:
+    import yaml
+
+    return yaml.safe_load(CI.read_text(encoding="utf-8"))
+
+
+def test_ci_runs_for_pull_requests_and_pushes_to_main() -> None:
+    triggers = _ci()[True]  # YAML 1.1: on -> True
+    assert set(triggers) == {"pull_request", "push"}
+    assert triggers["push"] == {"branches": ["main"]}
+
+
+def test_a_newer_push_cancels_the_superseded_pull_request_run() -> None:
+    """One pull request piled up four full runs of about 16 minutes (#353)."""
+    concurrency = _ci()["concurrency"]
+    # A pull request's runs share one group; a newer run cancels the older one.
+    assert concurrency["cancel-in-progress"] == "${{ github.event_name == 'pull_request' }}"
+    assert concurrency["group"].startswith("ci-${{ github.event_name }}-")
+
+
+def test_a_push_to_main_is_never_cancelled() -> None:
+    # cancel-in-progress is false for a push, and a group that two pushes
+    # shared would still cancel a queued run, so every push run has its own
+    # group: its run id (a pull request has a number, a push has none).
+    concurrency = _ci()["concurrency"]
+    assert concurrency["group"] == (
+        "ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}"
+    )
+    for name, job in _ci()["jobs"].items():
+        assert "concurrency" not in job, name
+
+
 def test_ci_runs_bench_unit_contract_suites() -> None:
     """Implementation benches are not in the root suite; CI must run them.
 

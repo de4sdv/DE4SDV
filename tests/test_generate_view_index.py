@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import yaml
+
 from scripts.generate_view_index import (
     DIAGRAM_PUBLICATION_GAPS,
     artifact_filename,
@@ -8,16 +10,17 @@ from scripts.generate_view_index import (
     render_markdown,
     _table_statement_notes,
 )
-from scripts.check_committed_view_artifacts import check_committed_view_artifacts
-
-
-PUBLISHED_VIEW_FOLDERS = (
-    Path("textual-notation-of-model/packages/architecture"),
-    Path("textual-notation-of-model/packages/features/aebs"),
-    Path("textual-notation-of-model/packages/features/middleware"),
-    Path("textual-notation-of-model/packages/methods/de4sdv"),
-    Path("model-based-product-line-engineering/product-models"),
+from scripts import check_committed_view_artifacts as committed_view_checker
+from scripts.check_committed_view_artifacts import (
+    PUBLICATION_ALLOWANCES,
+    check_committed_view_artifacts,
 )
+from scripts.list_view_folders import view_folders
+
+
+ROOT = Path(__file__).resolve().parents[1]
+#: Derived from the model (scripts/list_view_folders.py), never listed by hand.
+PUBLISHED_VIEW_FOLDERS = tuple(Path(folder) for folder in view_folders())
 WORKFLOW = Path(".github/workflows/privileged-syside-validation.yml")
 
 
@@ -180,6 +183,7 @@ def test_anonymous_comment_boxes_get_attachment_note(tmp_path: Path) -> None:
 
 
 def test_all_published_diagrams_match_current_view_sets() -> None:
+    assert PUBLISHED_VIEW_FOLDERS, "the model declares no view"
     for folder in PUBLISHED_VIEW_FOLDERS:
         collected = collect_views(folder)
         expected = {
@@ -265,14 +269,80 @@ def test_committed_artifact_checker_allows_only_nonmaterialized_svg(
     ) == [f"missing committed diagram: {model / 'diagrams' / expected}"]
 
 
-def test_privileged_workflow_rejects_stale_committed_diagrams() -> None:
-    workflow = WORKFLOW.read_text(encoding="utf-8")
+def _published_views_step() -> str:
+    workflow = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
+    steps = workflow["jobs"]["syside-validation"]["steps"]
+    matches = [s for s in steps if s.get("name") == "Check published view collections"]
+    assert len(matches) == 1
+    return matches[0]["run"]
 
-    assert "Check published view collections" in workflow
-    assert "scripts/check_committed_view_artifacts.py" in workflow
-    assert "scripts/generate_view_index.py" in workflow
-    assert "git diff --exit-code" in workflow
-    assert "--allow-missing" in workflow
-    assert "--allow-nonmaterialized" in workflow
+
+def test_privileged_workflow_rejects_stale_committed_diagrams() -> None:
+    step = _published_views_step()
+
+    # The folders come from the model; no folder or allowance is named by hand.
+    assert 'python scripts/list_view_folders.py "${model_paths[@]}"' in step
     for folder in PUBLISHED_VIEW_FOLDERS:
-        assert folder.as_posix() in workflow
+        assert folder.as_posix() not in step
+    assert "--allow-" not in step
+    # Each folder's VIEWS.md is committed and current, and its committed
+    # diagrams match the fresh renders.
+    assert 'python scripts/generate_view_index.py "${folder}"' in step
+    assert 'git ls-files --error-unmatch -- "${folder}/VIEWS.md"' in step
+    assert 'git diff --exit-code -- "${folder}/VIEWS.md"' in step
+    assert 'python scripts/check_committed_view_artifacts.py "${folder}" diagrams' in step
+    # A failing folder does not hide the others, and the step still fails.
+    assert "|| true" not in step and "set +e" not in step
+    assert step.rstrip().endswith('exit "${status}"')
+    # A change to the derivation runs the licensed validation.
+    triggers = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))[True]
+    for event in ("pull_request", "push"):
+        assert "scripts/list_view_folders.py" in triggers[event]["paths"], event
+
+
+def test_publication_allowances_are_exactly_the_withheld_views() -> None:
+    """A folder may leave a diagram uncommitted only for a view whose VIEWS.md
+    entry says why it is withheld (DIAGRAM_PUBLICATION_GAPS), in that folder."""
+    allowed = {
+        (folder, name)
+        for folder, kinds in PUBLICATION_ALLOWANCES.items()
+        for kind, names in kinds.items()
+        for name in names
+    }
+    withheld = {
+        (folder.as_posix(), artifact_filename(spec.name, spec.view_type))
+        for folder in PUBLISHED_VIEW_FOLDERS
+        for _, views in collect_views(ROOT / folder)
+        for spec in views
+        if spec.name in DIAGRAM_PUBLICATION_GAPS
+    }
+    found = {
+        spec.name
+        for folder in PUBLISHED_VIEW_FOLDERS
+        for _, views in collect_views(ROOT / folder)
+        for spec in views
+    }
+    assert set(DIAGRAM_PUBLICATION_GAPS) <= found
+    assert allowed == withheld
+    for kinds in PUBLICATION_ALLOWANCES.values():
+        assert set(kinds) <= {"missing", "nonmaterialized"}
+
+
+def test_the_checker_command_applies_the_allowances_of_its_folder(monkeypatch) -> None:
+    seen = {}
+
+    def spy(model_folder, generated_folder, *, allowed_missing=None, allowed_nonmaterialized=None):
+        seen[model_folder] = (allowed_missing, allowed_nonmaterialized)
+        return []
+
+    monkeypatch.setattr(committed_view_checker, "check_committed_view_artifacts", spy)
+    for folder, kinds in PUBLICATION_ALLOWANCES.items():
+        argv = [str(ROOT / folder), "diagrams", "--allow-missing", "diagram-extraView.svg"]
+        assert committed_view_checker.main(argv) == 0
+        assert seen[(ROOT / folder).resolve()] == (
+            {*kinds.get("missing", ()), "diagram-extraView.svg"},
+            set(kinds.get("nonmaterialized", ())),
+        )
+    other = next(f for f in PUBLISHED_VIEW_FOLDERS if f.as_posix() not in PUBLICATION_ALLOWANCES)
+    assert committed_view_checker.main([str(ROOT / other), "diagrams"]) == 0
+    assert seen[(ROOT / other).resolve()] == (set(), set())

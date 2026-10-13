@@ -10,18 +10,28 @@ name: Method Check
 # delivery gate stays advisory); only a technical error does, such as an
 # export failure or a method that cannot be read.
 #
+# A failed export still leaves a report. The export records why it failed
+# (its refusal text with Syside's model diagnostics, or only the type of any
+# other error) and the export job uploads that file. The report job then
+# writes method-check-<head SHA> with those diagnostics; nothing is evaluated.
+#
 # Trigger paths and the fork/author guard are those of
 # privileged-syside-validation.yml (pinned by
-# tests/test_method_check_workflow.py). That workflow is a bound input of the
-# O2+ projection record, so the check runs as its own workflow, alongside the
-# licensed validation. Its export is itself a licensed load of the exact head
-# and refuses a model the loader rejects, so nothing is evaluated on a model
-# that fails validation.
+# tests/test_method_check_workflow.py). Since #357 no generated record binds
+# that workflow: the O2+ generator only reads its SYSIDE_VERSION pin. The
+# check still runs as its own workflow, alongside the licensed validation,
+# because it is advisory where that validation is a gate, it runs on pull
+# requests and on demand (never on a push to main) and cancels its superseded
+# runs, and it keeps the licence in
+# one step of a job of its own. Its export is itself a licensed load of the
+# exact head and refuses a model the loader rejects, so nothing is evaluated
+# on a model that fails validation.
 #
 # Secret scoping: the Syside licence reaches one step only, the export. The
-# presence check sees a boolean, never the value. The evaluation runs
-# repository Python in a separate job on a fresh runner that references no
-# secret, and its step proves at run time that it holds no credential.
+# presence check sees a boolean, never the value. The evaluation and the
+# failure report run repository Python in separate jobs on fresh runners that
+# reference no secret, and their steps prove at run time that they hold no
+# credential.
 
 on:
   pull_request:
@@ -36,10 +46,15 @@ on:
       - "scripts/check_svg_view_materialization.py"
       - "scripts/check_committed_view_artifacts.py"
       - "scripts/generate_view_index.py"
+      - "scripts/list_view_folders.py"
       - "textual-notation-of-model/**/VIEWS.md"
       - "textual-notation-of-model/**/diagrams/**"
       - "model-based-product-line-engineering/product-models/VIEWS.md"
       - "model-based-product-line-engineering/product-models/diagrams/**"
+      - "model-based-product-line-engineering/product-models/**/VIEWS.md"
+      - "model-based-product-line-engineering/product-models/**/diagrams/**"
+      - "model-based-product-line-engineering/scoping/**/VIEWS.md"
+      - "model-based-product-line-engineering/scoping/**/diagrams/**"
       - ".project.json"
       - "sysand-lock.toml"
       - "textual-notation-of-model/**/.project.json"
@@ -143,6 +158,9 @@ jobs:
         env:
           SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
           HEAD_SHA: ${{ steps.revision.outputs.sha }}
+          # Where a failed export records why. An environment variable, not an
+          # option: the head's export script may predate it, and ignores it.
+          DE4SDV_EXPORT_DIAGNOSTICS: ${{ runner.temp }}/method-check-diagnostics/export-diagnostics.txt
         run: |
           python scripts/export_sysml_api_baseline.py \
             --git-commit "$HEAD_SHA" \
@@ -155,6 +173,16 @@ jobs:
           name: method-check-export-${{ steps.revision.outputs.sha }}
           path: ${{ runner.temp }}/method-check/model-export.json
           if-no-files-found: error
+          retention-days: 3
+          overwrite: true
+
+      - name: Upload the diagnostics of a failed export for the report job
+        if: ${{ failure() && steps.licence.outputs.available == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: method-check-export-diagnostics-${{ steps.revision.outputs.sha }}
+          path: ${{ runner.temp }}/method-check-diagnostics/
+          if-no-files-found: ignore
           retention-days: 3
           overwrite: true
 
@@ -208,6 +236,66 @@ jobs:
           echo "No credential in the evaluation environment."
           python scripts/method_check.py \
             --export "$RUNNER_TEMP/method-check/model-export.json" \
+            --revision "$HEAD_SHA" \
+            --output-dir "$RUNNER_TEMP/method-check/result" \
+            --artifact "method-check-$HEAD_SHA" \
+            --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the method check
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: method-check-${{ needs.export.outputs.head-sha }}
+          path: ${{ runner.temp }}/method-check/result/
+          if-no-files-found: warn
+          retention-days: 14
+          overwrite: true
+
+  export-failure-report:
+    name: Report a failed export
+    needs: export
+    if: ${{ failure() && needs.export.outputs.licensed == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout the workflow's revision
+        uses: actions/checkout@v4
+        with:
+          # The report renders what the export recorded and evaluates nothing,
+          # so it uses the workflow's own revision: that renderer knows
+          # --export-failed even when the exported head predates it.
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install report dependencies
+        run: python -m pip install --disable-pip-version-check "PyYAML==6.0.2"
+
+      - name: Download the export diagnostics
+        uses: actions/download-artifact@v4
+        with:
+          pattern: method-check-export-diagnostics-${{ needs.export.outputs.head-sha }}
+          path: ${{ runner.temp }}/method-check-diagnostics
+          merge-multiple: true
+
+      - name: Report the failed export
+        env:
+          HEAD_SHA: ${{ needs.export.outputs.head-sha }}
+        run: |
+          # This step runs repository Python: it must hold no credential.
+          for name in SYSIDE_LICENSE_KEY GITHUB_TOKEN GH_TOKEN ACTIONS_RUNTIME_TOKEN ACTIONS_ID_TOKEN_REQUEST_TOKEN; do
+            if [ -n "${!name:-}" ]; then
+              echo "::error::$name is set in the report environment" >&2
+              exit 1
+            fi
+          done
+          echo "No credential in the report environment."
+          python scripts/method_check.py \
+            --export-failed "$RUNNER_TEMP/method-check-diagnostics/export-diagnostics.txt" \
             --revision "$HEAD_SHA" \
             --output-dir "$RUNNER_TEMP/method-check/result" \
             --artifact "method-check-$HEAD_SHA" \

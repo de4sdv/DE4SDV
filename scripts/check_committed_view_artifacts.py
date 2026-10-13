@@ -1,16 +1,50 @@
 #!/usr/bin/env python3
-"""Check that committed view SVGs match exact generated artifacts."""
+"""Check that committed view SVGs match exact generated artifacts.
+
+The command also applies the allowances PUBLICATION_ALLOWANCES records for the
+folder it checks, so a workflow can check every view folder the same way.
+"""
 
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
 import sys
+from typing import Sequence
 
 try:
     from scripts.generate_view_index import _svg_labels, artifact_filename, collect_views
 except ModuleNotFoundError:  # Direct execution from scripts/.
     from generate_view_index import _svg_labels, artifact_filename, collect_views
+
+ROOT = Path(__file__).resolve().parents[1]
+
+#: Diagrams a view folder may leave uncommitted, by repository-relative folder:
+#: "missing" only while the current render also lacks it, "nonmaterialized"
+#: only while the current render shows nothing but the view frame and its
+#: expose rows. Each one is a withheld view whose VIEWS.md entry says why
+#: (DIAGRAM_PUBLICATION_GAPS in scripts/generate_view_index.py).
+PUBLICATION_ALLOWANCES: dict[str, dict[str, tuple[str, ...]]] = {
+    "textual-notation-of-model/packages/features/aebs": {
+        "missing": (
+            "diagram-matrix-aebsVisualizationFunctionRequirementMappingView.svg",
+        ),
+        "nonmaterialized": (
+            "diagram-aebsVisualizationFramingView.svg",
+            "diagram-aebsVisualizationFunctionInternalExchangeView.svg",
+        ),
+    },
+}
+
+
+def allowances_for(model_folder: Path) -> tuple[set[str], set[str]]:
+    """The (missing, nonmaterialized) allowances recorded for one folder."""
+    try:
+        key = model_folder.resolve().relative_to(ROOT).as_posix()
+    except ValueError:  # Outside the repository: nothing is recorded.
+        return set(), set()
+    entry = PUBLICATION_ALLOWANCES.get(key, {})
+    return set(entry.get("missing", ())), set(entry.get("nonmaterialized", ()))
 
 
 def _is_nonmaterialized(svg: Path) -> bool:
@@ -64,7 +98,7 @@ def check_committed_view_artifacts(
     return errors
 
 
-def main() -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("model_folder", type=Path)
     parser.add_argument("generated_folder", type=Path)
@@ -87,13 +121,15 @@ def main() -> int:
             "materialized model elements"
         ),
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
+    model_folder = args.model_folder.resolve()
+    missing, nonmaterialized = allowances_for(model_folder)
     errors = check_committed_view_artifacts(
-        args.model_folder.resolve(),
+        model_folder,
         args.generated_folder.resolve(),
-        allowed_missing=set(args.allow_missing),
-        allowed_nonmaterialized=set(args.allow_nonmaterialized),
+        allowed_missing=set(args.allow_missing) | missing,
+        allowed_nonmaterialized=set(args.allow_nonmaterialized) | nonmaterialized,
     )
     if errors:
         for error in errors:

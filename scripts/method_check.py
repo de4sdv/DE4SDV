@@ -17,11 +17,17 @@ increment, and writes:
         --revision <40-hex commit> --output-dir method-check \\
         [--summary "$GITHUB_STEP_SUMMARY"] [--artifact method-check-<commit>]
 
+When the licensed export of the revision failed, ``--export-failed
+<diagnostics file>`` replaces ``--export``: nothing is evaluated, and the same
+three outputs report the failure with the diagnostics the export recorded
+(``scripts/export_sysml_api_baseline.py --diagnostics``; a missing file is
+reported as such).
+
 Advisory: gaps never fail the check (owner decision 3: the delivery gate stays
 advisory). Exit code 1 only for a technical error: an unreadable or refused
-export, an export of another revision, increments that cannot be identified,
-an entry point that refuses or fails, or a method that cannot be read (an
-invalid workflow). Read-only; no API or network.
+export, a failed export, an export of another revision, increments that
+cannot be identified, an entry point that refuses or fails, or a method that
+cannot be read (an invalid workflow). Read-only; no API or network.
 """
 
 from __future__ import annotations
@@ -57,6 +63,7 @@ ENTRY_POINT_TIMEOUT_SECONDS = 900
 POLICY = "advisory: gaps never fail this check; only a technical error does"
 CLAIM_BOUNDARY = ("model-content checks of the method declared in the evaluated revision; "
                   "no acceptance, compliance or certification claim")
+EXPORT_FAILED = "the licensed export of this revision failed, so no increment was evaluated"
 
 OUTCOME_EVALUATED = "evaluated"
 OUTCOME_UNAVAILABLE = "method-unavailable"
@@ -137,6 +144,20 @@ def check(export: Path, revision: str, output_dir: Path, *, runner: Runner = sub
         result["errors"].extend(errors)
     result["timings"]["total_seconds"] = round(time.perf_counter() - started, 3)
     return result
+
+
+def export_failure(diagnostics: Path, revision: str) -> dict[str, Any]:
+    """The result for a revision whose licensed export failed: nothing is evaluated."""
+    try:
+        text = diagnostics.read_text(encoding="utf-8")
+    except (OSError, ValueError):
+        text = ""  # the export job failed before the export recorded anything
+    return {
+        "schema": SCHEMA, "revision": revision, "policy": POLICY, "claim_boundary": CLAIM_BOUNDARY,
+        "export": {}, "increments": [], "notes": [], "errors": [EXPORT_FAILED],
+        "export_diagnostics": [line.rstrip() for line in text.splitlines() if line.strip()],
+        "timings": {},
+    }
 
 
 def _read_json(path: Path) -> dict[str, Any] | None:
@@ -378,6 +399,17 @@ def _increment_section(entry: Mapping[str, Any]) -> list[str]:
     return lines
 
 
+def _export_diagnostics_section(diagnostics: Sequence[str]) -> list[str]:
+    """What the failed export recorded, verbatim in a text block (bounded)."""
+    if not diagnostics:
+        return ["**Export diagnostics:** none recorded; see the export job log.", ""]
+    shown = [line.replace("```", "'''") for line in diagnostics[:MAX_ROWS]]
+    lines = ["**Export diagnostics:**", "", "```text", *shown, "```", ""]
+    if len(diagnostics) > MAX_ROWS:
+        lines += [f"{len(diagnostics) - MAX_ROWS} more in the JSON.", ""]
+    return lines + ["Nothing was evaluated. Fix what the diagnostics name and push again.", ""]
+
+
 def render_summary(result: Mapping[str, Any], *, artifact: str | None = None, run_id: str | None = None,
                    repository: str | None = None) -> str:
     """The readable summary of one method-check result (deterministic)."""
@@ -387,18 +419,24 @@ def render_summary(result: Mapping[str, Any], *, artifact: str | None = None, ru
     lines = ["## Method check", "",
              "Advisory: gaps never fail this check; only a technical error does. Model-content checks of the "
              "method declared in the evaluated revision; no acceptance, compliance or certification claim.", ""]
+    failed_export = "export_diagnostics" in result
     facts = [f"Revision {_code(revision[:12])}"]
     if export.get("sha256"):
         facts.append(f"export sha256 {_code(str(export['sha256'])[:12])}")
     if export.get("element_count") is not None:
         facts.append(f"{export['element_count']} elements")
-    facts.append(f"{len(increments)} increment{'s' if len(increments) != 1 else ''}")
+    if failed_export:
+        facts.append("the licensed export failed")
+    else:
+        facts.append(f"{len(increments)} increment{'s' if len(increments) != 1 else ''}")
     lines += [", ".join(facts), ""]
 
     errors = list(result.get("errors") or [])
     if errors:
         lines.append(f"**Technical error{'s' if len(errors) != 1 else ''}** (the check fails):")
         lines += [f"- {_plain(error)}" for error in errors] + [""]
+    if failed_export:
+        lines += _export_diagnostics_section([str(line) for line in result.get("export_diagnostics") or []])
 
     if increments:
         lines += ["| Increment | Outcome | Next | Blocking | Advisory |", "| --- | --- | --- | ---: | ---: |"]
@@ -438,7 +476,11 @@ def _full_commit(value: str) -> str:
 
 def main(argv: Sequence[str] | None = None, *, runner: Runner = subprocess_runner) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--export", type=Path, required=True, help="full-model JSON export of the revision")
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--export", type=Path, help="full-model JSON export of the revision")
+    source.add_argument("--export-failed", type=Path, metavar="DIAGNOSTICS",
+                        help="the licensed export of the revision failed: report the diagnostics it "
+                             "recorded in this file (which may be missing); nothing is evaluated")
     parser.add_argument("--revision", type=_full_commit, required=True,
                         help="the full commit id the export must be of")
     parser.add_argument("--output-dir", type=Path, required=True)
@@ -446,7 +488,10 @@ def main(argv: Sequence[str] | None = None, *, runner: Runner = subprocess_runne
     parser.add_argument("--artifact", help="name of the artifact that carries the output directory")
     args = parser.parse_args(argv)
 
-    result = check(args.export, args.revision, args.output_dir, runner=runner)
+    if args.export_failed is not None:
+        result = export_failure(args.export_failed, args.revision)
+    else:
+        result = check(args.export, args.revision, args.output_dir, runner=runner)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     (args.output_dir / RESULT_FILE).write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     summary = render_summary(result, artifact=args.artifact, run_id=os.environ.get("GITHUB_RUN_ID"),

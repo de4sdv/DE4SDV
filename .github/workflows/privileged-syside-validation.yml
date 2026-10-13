@@ -23,10 +23,15 @@ on:
       - "scripts/check_svg_view_materialization.py"
       - "scripts/check_committed_view_artifacts.py"
       - "scripts/generate_view_index.py"
+      - "scripts/list_view_folders.py"
       - "textual-notation-of-model/**/VIEWS.md"
       - "textual-notation-of-model/**/diagrams/**"
       - "model-based-product-line-engineering/product-models/VIEWS.md"
       - "model-based-product-line-engineering/product-models/diagrams/**"
+      - "model-based-product-line-engineering/product-models/**/VIEWS.md"
+      - "model-based-product-line-engineering/product-models/**/diagrams/**"
+      - "model-based-product-line-engineering/scoping/**/VIEWS.md"
+      - "model-based-product-line-engineering/scoping/**/diagrams/**"
       - ".project.json"
       - "sysand-lock.toml"
       - "textual-notation-of-model/**/.project.json"
@@ -45,10 +50,15 @@ on:
       - "scripts/check_svg_view_materialization.py"
       - "scripts/check_committed_view_artifacts.py"
       - "scripts/generate_view_index.py"
+      - "scripts/list_view_folders.py"
       - "textual-notation-of-model/**/VIEWS.md"
       - "textual-notation-of-model/**/diagrams/**"
       - "model-based-product-line-engineering/product-models/VIEWS.md"
       - "model-based-product-line-engineering/product-models/diagrams/**"
+      - "model-based-product-line-engineering/product-models/**/VIEWS.md"
+      - "model-based-product-line-engineering/product-models/**/diagrams/**"
+      - "model-based-product-line-engineering/scoping/**/VIEWS.md"
+      - "model-based-product-line-engineering/scoping/**/diagrams/**"
       - ".project.json"
       - "sysand-lock.toml"
       - "textual-notation-of-model/**/.project.json"
@@ -258,30 +268,30 @@ jobs:
       - name: Check published view collections
         if: steps.syside-secret.outputs.available == 'true'
         run: |
-          view_folders=(
-            textual-notation-of-model/packages/architecture
-            textual-notation-of-model/packages/features/aebs
-            textual-notation-of-model/packages/features/middleware
-            textual-notation-of-model/packages/methods/de4sdv
-            model-based-product-line-engineering/product-models
-          )
+          # The view folders come from the model: every folder whose .sysml
+          # files declare a view, or that holds published views. The
+          # allowances for withheld diagrams are data in
+          # scripts/check_committed_view_artifacts.py. Every folder is checked
+          # before the step fails, so one failure does not hide another.
+          read -r -a model_paths <<< "${MODEL_PATHS}"
+          folders="$(python scripts/list_view_folders.py "${model_paths[@]}")"
+          mapfile -t view_folders <<< "${folders}"
+          status=0
           for folder in "${view_folders[@]}"; do
+            echo "Checking the published views of ${folder}"
             python scripts/generate_view_index.py "${folder}"
-            git diff --exit-code -- "${folder}/VIEWS.md"
-            extra_args=()
-            if [ "${folder}" = "textual-notation-of-model/packages/features/aebs" ]; then
-              extra_args+=(
-                --allow-missing
-                diagram-matrix-aebsVisualizationFunctionRequirementMappingView.svg
-                --allow-nonmaterialized
-                diagram-aebsVisualizationFramingView.svg
-                --allow-nonmaterialized
-                diagram-aebsVisualizationFunctionInternalExchangeView.svg
-              )
+            if ! git ls-files --error-unmatch -- "${folder}/VIEWS.md" > /dev/null 2>&1; then
+              echo "::error::${folder}/VIEWS.md is not committed: run python scripts/generate_view_index.py ${folder} and commit it."
+              status=1
+            elif ! git diff --exit-code -- "${folder}/VIEWS.md"; then
+              echo "::error::${folder}/VIEWS.md is stale: run python scripts/generate_view_index.py ${folder} and commit it."
+              status=1
             fi
-            python scripts/check_committed_view_artifacts.py \
-              "${folder}" diagrams "${extra_args[@]}"
+            if ! python scripts/check_committed_view_artifacts.py "${folder}" diagrams; then
+              status=1
+            fi
           done
+          exit "${status}"
 
       - name: Upload generated diagrams
         if: always()

@@ -4,15 +4,25 @@
 This script intentionally imports Syside only at runtime. Syside is the textual
 parser/semantic engine; this repository only adapts its standard JSON output to
 the Systems Modeling API Services commit format.
+
+With ``--diagnostics FILE`` a failed export records why in FILE, for a report
+outside the licensed job: this script's own refusal text verbatim (Syside's
+model diagnostics included, with repository-relative paths), and any other
+error by its type only, because its message comes from the toolchain and stays
+in the job log. Without the option, the ``DE4SDV_EXPORT_DIAGNOSTICS``
+environment variable names FILE; the Method Check workflow sets it, so a
+revision whose script predates the option still exports.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import Sequence
 from urllib.parse import unquote, urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,6 +30,16 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from de4sdv.sysml_api.baseline import BaselineManifest, build_export_bundle
+
+
+class ExportRefused(RuntimeError):
+    """The export refused the model or its toolchain; the message is this script's own."""
+
+
+#: Names the diagnostics file when --diagnostics is absent.
+DIAGNOSTICS_VARIABLE = "DE4SDV_EXPORT_DIAGNOSTICS"
+#: Holds the Syside licence in the export step; its value never reaches the diagnostics file.
+LICENCE_VARIABLE = "SYSIDE_LICENSE_KEY"
 
 
 def _git_head() -> str:
@@ -91,7 +111,7 @@ def _verification_method_library_closure(model) -> list[dict[str, object]]:
         roots = [e for e in elements if e.get("@type") == "EnumerationDefinition"
                  and e.get("declaredName") == "VerificationMethodKind"]
         if len(roots) != 1:
-            raise RuntimeError("VerificationMethodKind library definition missing or ambiguous")
+            raise ExportRefused("VerificationMethodKind library definition missing or ambiguous")
         pending = [str(roots[0]["@id"])]
         selected = set()
         while pending:
@@ -108,9 +128,9 @@ def _verification_method_library_closure(model) -> list[dict[str, object]]:
         literals = {str(by_id[eid].get("declaredName")) for eid in selected
                     if by_id[eid].get("@type") == "EnumerationUsage"}
         if literals != {"inspect", "demo", "test", "analyze"}:
-            raise RuntimeError(f"VerificationMethodKind library literal closure incomplete: {sorted(literals)}")
+            raise ExportRefused(f"VerificationMethodKind library literal closure incomplete: {sorted(literals)}")
         return [by_id[eid] for eid in sorted(selected)]
-    raise RuntimeError("VerificationMethodKind library document unavailable in licensed load")
+    raise ExportRefused("VerificationMethodKind library document unavailable in licensed load")
 
 
 def _relative_document_path(url: object) -> str:
@@ -120,27 +140,27 @@ def _relative_document_path(url: object) -> str:
     try:
         return candidate.relative_to(ROOT).as_posix()
     except ValueError as exc:
-        raise RuntimeError(f"Syside exported document outside repository: {raw}") from exc
+        raise ExportRefused(f"Syside exported document outside repository: {raw}") from exc
 
 
 def export_baseline(output: Path, git_commit: str) -> dict[str, object]:
     try:
         import syside  # type: ignore[import-not-found]
     except ImportError as exc:
-        raise RuntimeError(
+        raise ExportRefused(
             "Syside Automator is required for production export; use the privileged "
             "workflow on platforms where its native package is unavailable"
         ) from exc
 
     if git_commit != _git_head():
-        raise RuntimeError(
+        raise ExportRefused(
             f"requested Git commit {git_commit} does not match checked-out HEAD {_git_head()}"
         )
     manifest = BaselineManifest.discover(ROOT)
     paths = [ROOT / source.path for source in manifest.sources]
     model, diagnostics = syside.try_load_model(paths)
     if diagnostics.contains_errors(warnings_as_errors=False):
-        raise RuntimeError(f"Syside rejected the reviewed baseline:\n{diagnostics}")
+        raise ExportRefused(f"Syside rejected the reviewed baseline:\n{diagnostics}")
 
     serialization_options = _serialization_options()
     library_anchors = _resolve_library_anchors(model)
@@ -150,7 +170,7 @@ def export_baseline(output: Path, git_commit: str) -> dict[str, object]:
         if f"VerificationCases::{name}" not in library_anchors
     )
     if missing_anchors:
-        raise RuntimeError(
+        raise ExportRefused(
             "could not resolve Systems Model Library anchor ids (pinned "
             f"toolchain closure incomplete): {missing_anchors}"
         )
@@ -167,13 +187,13 @@ def export_baseline(output: Path, git_commit: str) -> dict[str, object]:
         if not isinstance(elements, list) or not all(
             isinstance(element, dict) for element in elements
         ):
-            raise RuntimeError(f"Syside JSON for {source_path} is not an element array")
+            raise ExportRefused(f"Syside JSON for {source_path} is not an element array")
         source_documents[source_path] = elements
 
     expected_paths = {source.path for source in manifest.sources}
     actual_paths = set(source_documents)
     if expected_paths != actual_paths:
-        raise RuntimeError(
+        raise ExportRefused(
             "Syside document coverage mismatch: "
             f"missing={sorted(expected_paths - actual_paths)}, "
             f"unexpected={sorted(actual_paths - expected_paths)}"
@@ -202,12 +222,34 @@ def export_baseline(output: Path, git_commit: str) -> dict[str, object]:
     }
 
 
-def main() -> int:
+def write_failure_diagnostics(path: Path, error: BaseException) -> None:
+    """Record why the export failed: a refusal's own text, any other error by type."""
+    if isinstance(error, ExportRefused):
+        text = str(error).replace(f"{ROOT.as_posix()}/", "")
+    else:
+        text = f"The export failed with {type(error).__name__}; its message is in the export job log."
+    # GitHub masks secrets in job logs, not in artifacts.
+    licence = os.environ.get(LICENCE_VARIABLE, "")
+    if licence:
+        text = text.replace(licence, "***")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text.rstrip("\n") + "\n", encoding="utf-8")
+
+
+def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--git-commit", default=None)
-    args = parser.parse_args()
-    result = export_baseline(args.output, args.git_commit or _git_head())
+    parser.add_argument("--diagnostics", type=Path, default=os.environ.get(DIAGNOSTICS_VARIABLE) or None,
+                        help="file that records why the export failed (written only on failure; "
+                             f"default: ${DIAGNOSTICS_VARIABLE})")
+    args = parser.parse_args(argv)
+    try:
+        result = export_baseline(args.output, args.git_commit or _git_head())
+    except Exception as error:
+        if args.diagnostics is not None:
+            write_failure_diagnostics(args.diagnostics, error)
+        raise
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0
 
