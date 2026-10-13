@@ -151,7 +151,7 @@ def validate_ontology_bindings(
 #: Tracked model-provider artifacts whose rows may state a projected kernel
 #: binding contract (``grounding.kernel_binding_contract``). Batch files added
 #: under the same directories are picked up by the same pattern.
-MODEL_PROVIDER_PATTERN = "docs/method-conformance/**/*projection*.json"
+MODEL_PROVIDER_PATTERN = "de4sdv/semantic/contract-data/**/*projection*.json"
 MODEL_PROVIDER_CROSS_CHECK_SCHEMA = "de4sdv.o4-model-provider-cross-check/v1"
 
 

@@ -1,7 +1,7 @@
 {
   "schema": "de4sdv.api-representation-profile.o2plus/v1",
   "status": "generated O2+ API Representation Profile (representation mechanics for the api_profile_required rows)",
-  "warning": "Generated artifact. Representation mechanics only: this profile cannot redefine domain, range, direction, semantic strength, exclusions, or claim boundaries. The runtime does not read this artifact.",
+  "warning": "Generated artifact. Representation mechanics only: this profile cannot redefine domain, range, direction, semantic strength, exclusions, or claim boundaries. The runtime reads this artifact to build the kernel contract.",
   "entries": [
     {
       "identity": "VariationPoint",

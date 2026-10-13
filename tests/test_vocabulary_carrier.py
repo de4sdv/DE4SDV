@@ -21,7 +21,7 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-_ACCEPTANCE_DOC = "docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md"
+_ACCEPTANCE_DOC = "docs/semantic-relationships/increment-relationship-acceptance-review.md"
 _CARRIER_FILE = (
     "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml"
 )
@@ -79,7 +79,7 @@ def _model(tmp_path: Path) -> Path:
     carrier = root / _CARRIER_FILE
     carrier.parent.mkdir(parents=True)
     carrier.write_text(_SYSML, encoding="utf-8")
-    docs = root / "docs" / "method-conformance" / "o4"
+    docs = root / "docs" / "semantic-relationships"
     docs.mkdir(parents=True)
     acceptance = root / _ACCEPTANCE_DOC
     acceptance.write_text(
@@ -225,10 +225,10 @@ def test_positive_admitted_carrier_emits_separate_outputs(tmp_path):
 
 def _input_repo(tmp_path: Path) -> Path:
     root = _model(tmp_path)
-    review_path = root / "docs/method-conformance/o4/ontology-review/integrated-review.json"
+    review_path = root / "de4sdv/semantic/contract-data/ontology-review.json"
     review_path.parent.mkdir(parents=True, exist_ok=True)
     review_path.write_text(json.dumps(_review()), encoding="utf-8")
-    (root / "docs/method-conformance/o4/vocabulary-carriers.yaml").write_text(
+    (root / "de4sdv/semantic/contract-data/increment-relationship-admission.yaml").write_text(
         yaml.safe_dump(_document()), encoding="utf-8"
     )
     return root
@@ -331,7 +331,7 @@ def test_acceptance_reference_must_resolve_to_a_real_document(tmp_path):
 
     root = _model(tmp_path)
     document = _document()
-    document["admitted"][0]["accepted_ref"] = "docs/method-conformance/o4/does-not-exist.md"
+    document["admitted"][0]["accepted_ref"] = "docs/semantic-relationships/does-not-exist.md"
     with pytest.raises(CarrierError, match="does not resolve"):
         _build(root, document, _review())
 
@@ -355,7 +355,7 @@ def test_acceptance_reference_parent_traversal_is_refused(tmp_path):
         _build(root, document, _review())
     document = _document()
     document["admitted"][0]["accepted_ref"] = (
-        "docs/method-conformance/o4/../../tests/planted.md#recordsGap"
+        "docs/semantic-relationships/../../tests/planted.md#recordsGap"
     )
     with pytest.raises(CarrierError, match="parent traversal"):
         _build(root, document, _review())
@@ -484,7 +484,7 @@ def test_check_errors_fail_closed_on_mutated_candidate_family(tmp_path):
         CarrierError, load_carriers, validate_candidate_family,
     )
 
-    document = load_carriers(REPO_ROOT / "docs/method-conformance/o4/vocabulary-carriers.yaml")
+    document = load_carriers(REPO_ROOT / "de4sdv/semantic/contract-data/increment-relationship-admission.yaml")
     import copy
 
     mutated = copy.deepcopy(document)

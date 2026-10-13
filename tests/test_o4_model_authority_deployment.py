@@ -32,17 +32,17 @@ def _write(repo, relative, text):
 
 
 MODEL_INPUTS = (
-    "docs/method-conformance/o2/semantic-projection-v1.json",
-    "docs/method-conformance/o2/api-representation-profile-v1.json",
-    "docs/method-conformance/o2plus/semantic-projection-o2plus.json",
-    "docs/method-conformance/o4/definition-projection.json",
-    "docs/method-conformance/o4/definition-profile.json",
-    "docs/method-conformance/o4/definition-admission.yaml",
-    "docs/method-conformance/o4/vocabulary-carriers-projection.json",
-    "docs/method-conformance/o4/vocabulary-carriers-profile.json",
-    "docs/method-conformance/o4/vocabulary-carriers.yaml",
-    "docs/method-conformance/o4/o4-execution-register.json",
-    "docs/method-conformance/o4/kernel-internal-declarations.yaml",
+    "de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.json",
+    "de4sdv/semantic/contract-data/frozen-records/api-representation-profile-v1.json",
+    "de4sdv/semantic/contract-data/native-grounding-projection.json",
+    "de4sdv/semantic/contract-data/class-definition-projection.json",
+    "de4sdv/semantic/contract-data/class-definition-profile.json",
+    "de4sdv/semantic/contract-data/class-definition-admission.yaml",
+    "de4sdv/semantic/contract-data/increment-relationship-projection.json",
+    "de4sdv/semantic/contract-data/increment-relationship-profile.json",
+    "de4sdv/semantic/contract-data/increment-relationship-admission.yaml",
+    "de4sdv/semantic/contract-data/ontology-identity-register.json",
+    "de4sdv/semantic/contract-data/kernel-internal-declarations.yaml",
 )
 
 
@@ -56,7 +56,7 @@ def runtime_repo(tmp_path):
     _write(repo, "textual-notation-of-model/model.sysml", "package Model;\n")
     for relative in MODEL_INPUTS:
         _write(repo, relative, "{}\n")
-    _write(repo, "docs/method-conformance/o4/model-authority-runtime.md", "# doc\n")
+    _write(repo, "docs/references/model-authority-runtime.md", "# doc\n")
     model_revision = _commit(repo, "model")
     binding = tmp_path / "binding.json"
     binding.write_text(json.dumps({"git_commit": model_revision}), encoding="utf-8")
@@ -77,7 +77,7 @@ def test_every_governed_path_matches_a_tracked_file():
 def test_deleted_authored_yaml_is_no_longer_a_governed_path():
     assert not any("de4sdv-basic-ontology" in path for path in entrypoint._GOVERNED_MODEL_PATHS)
     assert "textual-notation-of-model" in entrypoint._GOVERNED_MODEL_PATHS
-    assert "docs/method-conformance/o4/o4-execution-register.json" in entrypoint._GOVERNED_MODEL_PATHS
+    assert "de4sdv/semantic/contract-data/ontology-identity-register.json" in entrypoint._GOVERNED_MODEL_PATHS
 
 
 @pytest.mark.parametrize("relative", MODEL_INPUTS)
@@ -89,19 +89,20 @@ def test_projection_profile_admission_drift_refuses_code_only_start(runtime_repo
         validate_runtime_contract(repo, binding, _env(revision))
 
 
-def test_new_batch_projection_file_is_governed(runtime_repo):
-    # Admission batch 2 may add a projection/profile pair under o4/.
+def test_new_projection_file_is_governed(runtime_repo):
+    # A projection/profile pair added to the contract data is governed.
     repo, binding = runtime_repo
-    _write(repo, "docs/method-conformance/o4/definition-batch2-projection.json", "{}\n")
-    revision = _commit(repo, "batch 2 projection")
+    _write(repo, "de4sdv/semantic/contract-data/new-vocabulary-projection.json", "{}\n")
+    revision = _commit(repo, "new projection")
     with pytest.raises(RuntimeContractError, match="drift"):
         validate_runtime_contract(repo, binding, _env(revision))
 
 
 def test_documentation_only_change_still_starts(runtime_repo):
     repo, binding = runtime_repo
-    _write(repo, "docs/method-conformance/o4/model-authority-runtime.md", "# doc v2\n")
-    _write(repo, "docs/method-conformance/o2/o2-1-design.md", "# design\n")
+    _write(repo, "docs/references/model-authority-runtime.md", "# doc v2\n")
+    _write(repo, "docs/method-evaluation/result-algebra.md", "# algebra\n")
+    _write(repo, "de4sdv/semantic/contract-data/README.md", "# contract data\n")
     revision = _commit(repo, "docs only")
     contract = validate_runtime_contract(repo, binding, _env(revision))
     assert contract.application_revision == revision

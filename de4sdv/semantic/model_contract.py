@@ -9,7 +9,7 @@ only:
 - the frozen O2-chain layer: the O2 v1-v1.2 Semantic Projection / API
   Representation Profile records (frozen O2 records, owner decision Q7) for
   the 13 identities the O3 cutover migrated. They are read-only data; their
-  bytes are pinned by ``docs/method-conformance/frozen-records.json``;
+  bytes are pinned by ``de4sdv/semantic/contract-data/frozen-records.json``;
 - the relationship-successor contract generated from the model
   (``de4sdv_relationship_carriers.sysml``), with class pins taken from the
   layers above (:func:`model_class_pins`);
@@ -59,14 +59,14 @@ def canonical_json(value: Any) -> str:
 #: The frozen O2 chain (dependency order). Frozen O2 records; read-only data.
 O2_CHAIN_LAYER = "o2-chain"
 O2_PROJECTION_CHAIN = (
-    ("docs/method-conformance/o2/semantic-projection-v1.json", "de4sdv.semantic-projection.v1"),
-    ("docs/method-conformance/o2/semantic-projection-v1.1.json", "de4sdv.semantic-projection.v1.1"),
-    ("docs/method-conformance/o2/semantic-projection-v1.2.json", "de4sdv.semantic-projection.v1.2"),
+    ("de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.json", "de4sdv.semantic-projection.v1"),
+    ("de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.1.json", "de4sdv.semantic-projection.v1.1"),
+    ("de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.2.json", "de4sdv.semantic-projection.v1.2"),
 )
 O2_PROFILE_CHAIN = (
-    ("docs/method-conformance/o2/api-representation-profile-v1.json", "de4sdv.api-representation-profile.v1"),
-    ("docs/method-conformance/o2/api-representation-profile-v1.1.json", "de4sdv.api-representation-profile.v1.1"),
-    ("docs/method-conformance/o2/api-representation-profile-v1.2.json", "de4sdv.api-representation-profile.v1.2"),
+    ("de4sdv/semantic/contract-data/frozen-records/api-representation-profile-v1.json", "de4sdv.api-representation-profile.v1"),
+    ("de4sdv/semantic/contract-data/frozen-records/api-representation-profile-v1.1.json", "de4sdv.api-representation-profile.v1.1"),
+    ("de4sdv/semantic/contract-data/frozen-records/api-representation-profile-v1.2.json", "de4sdv.api-representation-profile.v1.2"),
 )
 #: The identities the O3 cutover migrated, served from the frozen O2 chain.
 O2_CHAIN_CLASSES = (
@@ -88,7 +88,7 @@ O2_CHAIN_RELATIONSHIPS = (
 )
 O2_CHAIN_IDENTITIES = O2_CHAIN_CLASSES + O2_CHAIN_RELATIONSHIPS
 
-KERNEL_INTERNAL_PATH = "docs/method-conformance/o4/kernel-internal-declarations.yaml"
+KERNEL_INTERNAL_PATH = "de4sdv/semantic/contract-data/kernel-internal-declarations.yaml"
 CONTRACT_SOURCE = "model-authority://projection-layers"
 
 
@@ -118,19 +118,19 @@ class LayerSpec:
 #: Precedence order. A later layer may never re-provide an identity.
 LAYERS: tuple[LayerSpec, ...] = (
     LayerSpec("definition",
-              "docs/method-conformance/o4/definition-projection.json",
+              "de4sdv/semantic/contract-data/class-definition-projection.json",
               "de4sdv.o4-definition-projection/v1",
-              "docs/method-conformance/o4/definition-profile.json",
+              "de4sdv/semantic/contract-data/class-definition-profile.json",
               "de4sdv.o4-definition-profile/v1"),
     LayerSpec("o2plus",
-              "docs/method-conformance/o2plus/semantic-projection-o2plus.json",
+              "de4sdv/semantic/contract-data/native-grounding-projection.json",
               "de4sdv.semantic-projection.o2plus/v1",
-              "docs/method-conformance/o2plus/api-representation-profile-o2plus.json",
+              "de4sdv/semantic/contract-data/native-grounding-profile.json",
               "de4sdv.api-representation-profile.o2plus/v1"),
     LayerSpec("vocabulary-carrier",
-              "docs/method-conformance/o4/vocabulary-carriers-projection.json",
+              "de4sdv/semantic/contract-data/increment-relationship-projection.json",
               "de4sdv.vocabulary-carrier-projection/v1",
-              "docs/method-conformance/o4/vocabulary-carriers-profile.json",
+              "de4sdv/semantic/contract-data/increment-relationship-profile.json",
               "de4sdv.vocabulary-carrier-profile/v1"),
 )
 
@@ -139,9 +139,9 @@ LAYERS: tuple[LayerSpec, ...] = (
 #: optional only while the pair is absent from the checkout; once present it
 #: is bound like every other layer. Rows flow through :func:`_batch2_provider`.
 BATCH2_LAYER = LayerSpec("definition-batch2",
-                         "docs/method-conformance/o4/definition-batch2-projection.json",
+                         "de4sdv/semantic/contract-data/kernel-vocabulary-projection.json",
                          "de4sdv.o4-definition-batch2-projection/v1",
-                         "docs/method-conformance/o4/definition-batch2-profile.json",
+                         "de4sdv/semantic/contract-data/kernel-vocabulary-profile.json",
                          "de4sdv.o4-definition-batch2-profile/v1",
                          required=False)
 BATCH2_LAYERS: tuple[LayerSpec, ...] = (BATCH2_LAYER,)
@@ -811,7 +811,7 @@ def compute_routing(*, provisions: list[Provision], successor_contract: Mapping[
 
 
 def load_register_rows(root: Path = ROOT) -> dict[str, dict[str, Any]]:
-    path = Path(root) / "docs/method-conformance/o4/o4-execution-register.json"
+    path = Path(root) / "de4sdv/semantic/contract-data/ontology-identity-register.json"
     document = json.loads(path.read_text(encoding="utf-8"))
     return {row["identity"]: row for row in document["rows"]}
 

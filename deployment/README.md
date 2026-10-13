@@ -264,7 +264,8 @@ and activation ceremony is retired):
      application revision descends from it;
    - **clean tree:** `git status --porcelain` is empty;
    - **same semantic authority:** the `sai-` identity recomputed from the
-     checkout equals the binding's;
+     checkout equals the binding's. It is computed from the contract data in
+     `de4sdv/semantic/contract-data/`, file paths included;
    - **served model = validated export:** the binding records the served
      model, and no corpus is used unless its content digest is exactly that
      record's. This part runs when the corpus loads (the warm-up). A snapshot

@@ -1,7 +1,7 @@
 {
   "schema": "de4sdv.o4-definition-profile/v1",
   "status": "admitted",
-  "warning": "vocabulary-only, no traversal, no runtime read, no authority retirement",
+  "warning": "vocabulary-only, no traversal, no authority retirement; the runtime reads this artifact to build the kernel contract",
   "entries": [
     {
       "profile_identity": "de4sdv.o4-definition-profile/v1#Assumption",

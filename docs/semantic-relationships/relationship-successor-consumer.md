@@ -94,7 +94,7 @@ model-authority runtime as default predicates, and the retired names
 through the semantic MCP server (`scripts/semantic_mcp_server.py --api-url URL
 --binding BINDING --expected-git-revision SHA`) or the impact CLI
 (`scripts/query_model_impact.py --backend api`), both read-only. See
-`docs/method-conformance/o4/model-authority-runtime.md`.
+`docs/references/model-authority-runtime.md`.
 
 ## Evidence boundary
 

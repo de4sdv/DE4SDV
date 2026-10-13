@@ -40,10 +40,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-FROZEN_MANIFEST_PATH = "docs/method-conformance/frozen-records.json"
+FROZEN_MANIFEST_PATH = "de4sdv/semantic/contract-data/frozen-records.json"
 FROZEN_SCHEMA = "de4sdv.frozen-records/v2"
 #: The directory that holds exactly the frozen records.
-FROZEN_DIRECTORY = "docs/method-conformance/o2"
+FROZEN_DIRECTORY = "de4sdv/semantic/contract-data/frozen-records"
 FROZEN_DIRECTORIES = (FROZEN_DIRECTORY,)
 #: Where the records lived at ``frozen_at_revision``. Their own ``extends``
 #: blocks keep naming these paths.

@@ -16,7 +16,7 @@ from model_contract_fixtures import admission_row, owned_definition_documentatio
 from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
 
 REPO = Path(__file__).resolve().parents[1]
-REGISTER_PATH = REPO / "docs/method-conformance/o4/o4-execution-register.json"
+REGISTER_PATH = REPO / "de4sdv/semantic/contract-data/ontology-identity-register.json"
 MODEL_PATH = (
     REPO / "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
 )

@@ -1,7 +1,7 @@
 """Real Phase-10 pilot binding for INC-AEBS-009D (Lane C input assembly).
 
 Assembles the typed evaluation context for the governed pilot declared in
-``docs/method-conformance/pilot-scope.md``: the model branch binds the six
+``docs/method-evaluation/pilot-scope.md``: the model branch binds the six
 declared verification usages through the merged Lane B primitives
 (``de4sdv.semantic.method_contract.bind_pilot_usages``), and the evidence
 branch reads the retained campaign artifacts at the evaluated revision.
@@ -787,7 +787,7 @@ def _decode_decision(blob: bytes) -> tuple[Mapping[str, Any] | None, str | None]
     """Decode and schema-check one acceptance decision record.
 
     Returns (record, error). The schema is the one declared by
-    ``docs/method-conformance/acceptance-policy.md``.
+    ``docs/method-evaluation/acceptance-policy.md``.
     """
     import yaml
 

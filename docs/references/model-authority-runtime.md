@@ -5,7 +5,7 @@ model-built kernel contract: Wave B and the Wave C closure decisions
 (2026-10-07/08), and the retirement of the model-authority bundle, closure
 and activation ceremony (owner decision 2026-10-11). It claims no
 compliance or certification. Deployment, release and rollback are in
-[`deployment/README.md`](../../../deployment/README.md).
+[`deployment/README.md`](../../deployment/README.md).
 
 ## Problem
 
@@ -21,18 +21,20 @@ semantic authority, and nothing at runtime reads an authored ontology.
 `KernelContract.from_layers(root)` (`de4sdv/semantic/kernel_contract.py`,
 built by `de4sdv/semantic/model_contract.py`) assembles the contract from:
 
-- the model-generated layers: definition admission batch 1
-  (`definition-projection.json` / `-profile.json`), batch 2
-  (`definition-batch2-…`), the O2+ pair (`o2plus-…`) and the
-  vocabulary-carrier pair (`vocabulary-carriers-…`);
-- the frozen O2-chain layer: the 13 O3-migrated identities read from the
-  frozen O2 Projection/Profile records (`o2/semantic-projection-v1…v1.2`
-  and profiles), unchanged since O3;
+- the model-generated pairs in
+  [`de4sdv/semantic/contract-data/`](../../de4sdv/semantic/contract-data/README.md):
+  class definitions (`class-definition-projection.json` / `-profile.json`),
+  kernel vocabulary (`kernel-vocabulary-…`), native groundings
+  (`native-grounding-…`) and increment relationships
+  (`increment-relationship-…`);
+- the frozen-record layer: 13 identities read from the six frozen
+  projection/profile records (`frozen-records/semantic-projection-v1…v1.2`
+  and their profiles), which never change;
 - the successor contract generated from the model
   (`relationship_successor_contract.generate_contract`, class pins from the
   layers);
 - the kernel-internal declarations manifest
-  ([kernel-internal-declarations.yaml](kernel-internal-declarations.yaml),
+  ([kernel-internal-declarations.yaml](../../de4sdv/semantic/contract-data/kernel-internal-declarations.yaml),
   owner decision D3), the governed-directory accounting.
 
 Its **semantic-authority identity** (`sai-<32 hex>`) hashes semantic payload,
@@ -51,7 +53,7 @@ carry the selected historical semantic-output digest. Raw file hashes and
 historical source revisions remain separate provenance. Incidental Git commits,
 Python bytes, pilot data, unrelated model bytes and review/toolchain receipts
 are excluded. Unknown record fields require explicit classification and refuse.
-See [the generation workflow](../../guides/generated-semantic-assets.md) for
+See [the generation workflow](../guides/generated-semantic-assets.md) for
 the exact exclusions and release boundary. Revision bindings carry this value
 as `semantic_authority`; old authored-ontology bindings remain refused.
 

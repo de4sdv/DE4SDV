@@ -296,7 +296,7 @@ def mode_build(args: argparse.Namespace) -> int:
         )
         return 2
 
-    spec_path: Path = args.spec or repo / "docs/method-conformance/pilot-obligations.yaml"
+    spec_path: Path = args.spec or repo / "de4sdv/semantic/contract-data/pilot-obligations.yaml"
     contract = _load_approved(spec_path)
     spec_copy = out_dir / "spec-copy.yaml"
     shutil.copyfile(spec_path, spec_copy)

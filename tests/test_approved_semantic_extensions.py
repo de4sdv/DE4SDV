@@ -16,7 +16,7 @@ from model_contract_fixtures import model_contract
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml"
-BATCH2_PATH = "docs/method-conformance/o4/definition-batch2-projection.json"
+BATCH2_PATH = "de4sdv/semantic/contract-data/kernel-vocabulary-projection.json"
 ASSURANCE_RECORDS = (
     "EvidenceSupportCitation",
     "ScopedVVActivityRecord",
@@ -54,7 +54,7 @@ def test_assurance_extension_has_exact_model_mapping_and_no_closure_promotion(id
 
 
 def test_historical_o4_review_population_is_not_silently_expanded():
-    review = json.loads((ROOT / "docs/method-conformance/o4/ontology-review/integrated-review.json").read_text())
+    review = json.loads((ROOT / "de4sdv/semantic/contract-data/ontology-review.json").read_text())
     rows = review["rows"]
     assert len(rows) == len({r["identity"] for r in rows}) == 93
     assert set(EXTENSIONS).isdisjoint(r["identity"] for r in rows)

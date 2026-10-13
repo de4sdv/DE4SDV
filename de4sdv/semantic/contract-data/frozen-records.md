@@ -2,8 +2,9 @@
 
 The model-built kernel contract still serves 13 identities from six
 historical records: the Semantic Projection and API Representation Profile
-records v1, v1.1 and v1.2 in [`o2/`](o2/). They were generated from the
-authored ontology, which no longer exists, so they can never be regenerated.
+records v1, v1.1 and v1.2 in [`frozen-records/`](frozen-records/). They were
+generated from the authored ontology, which no longer exists, so they can
+never be regenerated.
 They are frozen: pinned by digest and never edited. Their revision bindings
 are checked at their own historical revisions, never against the live tree.
 

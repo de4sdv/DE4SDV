@@ -88,6 +88,7 @@ GOVERNED_TEXT_AREAS = (
     "simulation",
     "sysmlv2-api",
     "docs",
+    "de4sdv/semantic/contract-data",
 )
 
 # Named exclusions from identifier scanning, each with a reason:

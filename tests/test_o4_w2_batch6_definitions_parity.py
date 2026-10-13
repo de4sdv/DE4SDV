@@ -18,7 +18,7 @@ from model_contract_fixtures import owned_definition_documentation
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PRODUCT_LINE = REPO_ROOT / "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml"
-REGISTER = REPO_ROOT / "docs/method-conformance/o4/o4-execution-register.json"
+REGISTER = REPO_ROOT / "de4sdv/semantic/contract-data/ontology-identity-register.json"
 
 BATCH_ROWS = ("ProductLine", "MemberProduct", "DeferredProductLineScope")
 MAPPING = {
@@ -145,11 +145,11 @@ def test_existing_usages_remain_intact():
 
 def test_no_new_projection_rows():
     expected_rows = {
-        "docs/method-conformance/o2/semantic-projection-v1.1.json": (
+        "de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.1.json": (
             ["VerificationCase"],
             ["hasSubject", "verifiedBy"],
         ),
-        "docs/method-conformance/o2/semantic-projection-v1.2.json": (
+        "de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.2.json": (
             [],
             ["derivesRequirementFromNeed", "derivedRequirementsOfNeed", "hasRelevantArchitecture"],
         ),

@@ -43,7 +43,7 @@ def _runtime_repo(tmp_path):
     model.write_text("package Model;\n", encoding="utf-8")
     # A model-authority input (O4 Wave C2: the authored ontology is gone;
     # the kernel-internal manifest is one of the governed inputs).
-    manifest = repo / "docs" / "method-conformance" / "o4" / "kernel-internal-declarations.yaml"
+    manifest = repo / "de4sdv" / "semantic" / "contract-data" / "kernel-internal-declarations.yaml"
     manifest.parent.mkdir(parents=True)
     manifest.write_text("declarations: {}\n", encoding="utf-8")
     model_revision = _commit(repo, "model")
@@ -106,7 +106,7 @@ def test_runtime_contract_rejects_model_drift_after_bound_revision(tmp_path):
 
 def test_runtime_contract_rejects_authority_input_drift_after_bound_revision(tmp_path):
     repo, binding, _, _ = _runtime_repo(tmp_path)
-    manifest = repo / "docs" / "method-conformance" / "o4" / "kernel-internal-declarations.yaml"
+    manifest = repo / "de4sdv" / "semantic" / "contract-data" / "kernel-internal-declarations.yaml"
     manifest.write_text("declarations: {changed: {}}\n", encoding="utf-8")
     changed_revision = _commit(repo, "change kernel-internal manifest")
 

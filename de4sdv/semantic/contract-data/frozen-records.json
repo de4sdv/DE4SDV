@@ -9,46 +9,46 @@
   "frozen_at_revision": "ff0311b76db3cce81f68bcacd34dcb7d5024ab70",
   "historical_directory": "docs/method-conformance/o2",
   "directories": [
-    "docs/method-conformance/o2"
+    "de4sdv/semantic/contract-data/frozen-records"
   ],
   "records": [
     {
-      "path": "docs/method-conformance/o2/api-representation-profile-v1.1.json",
+      "path": "de4sdv/semantic/contract-data/frozen-records/api-representation-profile-v1.1.json",
       "sha256": "sha256:196fe6dcf9f1afaf7e62d9c18b3e76d5047fbe068e59931449522efe24d7ba35",
       "kind": "generated",
       "binding_source_revision": "39870d140d26a61430f1d3b82ecedc045d6fe5ca",
       "live_consumer": "frozen layer of the model-built kernel contract (read-only data)"
     },
     {
-      "path": "docs/method-conformance/o2/api-representation-profile-v1.2.json",
+      "path": "de4sdv/semantic/contract-data/frozen-records/api-representation-profile-v1.2.json",
       "sha256": "sha256:1094534f4bd1308b731fb76a8e63e9fd3a4b69d4aec4bceafbf529198cd89d2c",
       "kind": "generated",
       "binding_source_revision": "74149bb8c9095fe5a6f0f979490fde3040f7f661",
       "live_consumer": "frozen layer of the model-built kernel contract (read-only data)"
     },
     {
-      "path": "docs/method-conformance/o2/api-representation-profile-v1.json",
+      "path": "de4sdv/semantic/contract-data/frozen-records/api-representation-profile-v1.json",
       "sha256": "sha256:411621265ee76fa8e387c4c6b418d5689f4f47b696fb908b1083187b671bbaf1",
       "kind": "generated",
       "binding_source_revision": "a660ae03770bed426073af9316e833b5525a04ab",
       "live_consumer": "frozen layer of the model-built kernel contract (read-only data)"
     },
     {
-      "path": "docs/method-conformance/o2/semantic-projection-v1.1.json",
+      "path": "de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.1.json",
       "sha256": "sha256:6742c3289e324f74fc7aae239cde5d97ca7a77bc12815181770e3d39d92a28de",
       "kind": "generated",
       "binding_source_revision": "39870d140d26a61430f1d3b82ecedc045d6fe5ca",
       "live_consumer": "frozen layer of the model-built kernel contract (read-only data)"
     },
     {
-      "path": "docs/method-conformance/o2/semantic-projection-v1.2.json",
+      "path": "de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.2.json",
       "sha256": "sha256:b4ab78638398d8c5cf304b0a9b180507016e4c7e3aa7b821c1f41098302df002",
       "kind": "generated",
       "binding_source_revision": "74149bb8c9095fe5a6f0f979490fde3040f7f661",
       "live_consumer": "frozen layer of the model-built kernel contract (read-only data)"
     },
     {
-      "path": "docs/method-conformance/o2/semantic-projection-v1.json",
+      "path": "de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.json",
       "sha256": "sha256:a5b87d491135380d0858ed775bf7c7efc0b40ab19d39130262517920fe400156",
       "kind": "generated",
       "binding_source_revision": "a660ae03770bed426073af9316e833b5525a04ab",

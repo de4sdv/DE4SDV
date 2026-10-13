@@ -52,11 +52,11 @@ def test_cross_check_matches_on_real_repository():
     assert report["classification"] == "EQUIVALENT"
     assert report["projected_identity_count"] >= 29
     assert report["mismatches"] == [] and report["duplicate_providers"] == []
-    assert "docs/method-conformance/o4/definition-projection.json" in report["provider_sources"]
+    assert "de4sdv/semantic/contract-data/class-definition-projection.json" in report["provider_sources"]
 
 
 def test_cross_check_refuses_declaration_mismatch(tmp_path):
-    _projection(tmp_path, "docs/method-conformance/o4/definition-projection.json",
+    _projection(tmp_path, "de4sdv/semantic/contract-data/class-definition-projection.json",
                 [_row("Need", "m.sysml", "part def Need"),
                  _row("Gap", "m.sysml", "part def RenamedGap")])
     contract = _Contract({"Need": ("m.sysml", "part def Need"), "Gap": ("m.sysml", "part def Gap")})
@@ -67,7 +67,7 @@ def test_cross_check_refuses_declaration_mismatch(tmp_path):
 
 
 def test_cross_check_refuses_projected_identity_without_file_mapping(tmp_path):
-    _projection(tmp_path, "docs/method-conformance/o2/semantic-projection-v1.json",
+    _projection(tmp_path, "de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.json",
                 [_row("Orphan", "m.sysml", "part def Orphan"),
                  _row("Native", "m.sysml", "part def Native")])
     report = importer.cross_check_model_provider(_Contract({"Native": "native"}), [],
@@ -80,9 +80,9 @@ def test_cross_check_refuses_projected_identity_without_file_mapping(tmp_path):
 
 
 def test_cross_check_refuses_conflicting_duplicate_providers(tmp_path):
-    _projection(tmp_path, "docs/method-conformance/o4/a-projection.json",
+    _projection(tmp_path, "de4sdv/semantic/contract-data/a-projection.json",
                 [_row("Need", "m.sysml", "part def Need")])
-    _projection(tmp_path, "docs/method-conformance/o4/b-projection.json",
+    _projection(tmp_path, "de4sdv/semantic/contract-data/b-projection.json",
                 [_row("Need", "other.sysml", "part def Need")])
     report = importer.cross_check_model_provider(
         _Contract({"Need": ("m.sysml", "part def Need")}), [], root=tmp_path)
@@ -91,7 +91,7 @@ def test_cross_check_refuses_conflicting_duplicate_providers(tmp_path):
 
 
 def test_cross_check_records_ingestion_resolution(tmp_path):
-    _projection(tmp_path, "docs/method-conformance/o4/definition-projection.json",
+    _projection(tmp_path, "de4sdv/semantic/contract-data/class-definition-projection.json",
                 [_row("Need", "m.sysml", "part def Need")])
     bindings = [{"ontology_class": "Need", "element_id": "uuid-1",
                  "source_file": "m.sysml", "declaration": "part def Need"}]
@@ -99,7 +99,7 @@ def test_cross_check_records_ingestion_resolution(tmp_path):
         _Contract({"Need": ("m.sysml", "part def Need")}), bindings, root=tmp_path)
     assert report["rows"] == [{"identity": "Need", "source_file": "m.sysml",
                                "declaration": "part def Need",
-                               "provider": "docs/method-conformance/o4/definition-projection.json",
+                               "provider": "de4sdv/semantic/contract-data/class-definition-projection.json",
                                "ingested_element_id": "uuid-1"}]
 
 

@@ -146,8 +146,8 @@ def _declaration(name: str) -> str:
     return str(contract.classes[name]["kernel"]["declaration"])
 
 
-#: Frozen O1 doc-observation vocabulary (the O1 inventory generator that held
-#: these constants was deleted in O4 Wave C2; its output is a frozen record).
+#: Doc-observation vocabulary of the deleted semantic-authority inventory
+#: generator (its last output is archived at the ``release-2026-10-11`` tag).
 REVIEW_REQUIRED_OBSERVATIONS = frozenset(
     {"differs", "doc-absent", "doc-absent (bodyless declaration)", "block-not-located"})
 
@@ -719,7 +719,7 @@ class TestC1StructuralFit:
     def test_method_contract_obligation_schema_fields(self):
         """Every frozen Section 7 schema field is carried by typed attributes.
 
-        The frozen schema (docs/method-conformance/conformance-baseline.md
+        The frozen schema (docs/method-evaluation/conformance-baseline.md
         Section 7) lists 12 semantic fields; the model materializes them as 14
         attribute declarations because population policy and cardinality each
         require two attributes. The earlier "15 fields" figure was wrong and is
@@ -755,7 +755,7 @@ class TestC1StructuralFit:
         """Cross-check the frozen Section 7 field list against the model: all
         12 schema fields are represented and no field is absent."""
         baseline = (
-            REPO_ROOT / "docs/method-conformance/conformance-baseline.md"
+            REPO_ROOT / "docs/method-evaluation/conformance-baseline.md"
         ).read_text(encoding="utf-8")
         start = baseline.index("## 7. Minimal typed method-contract schema")
         end = baseline.index("## 8.", start)

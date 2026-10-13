@@ -19,7 +19,7 @@ from model_contract_fixtures import owned_definition_documentation
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 METHOD_CONTEXT = REPO_ROOT / "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
-REGISTER = REPO_ROOT / "docs/method-conformance/o4/o4-execution-register.json"
+REGISTER = REPO_ROOT / "de4sdv/semantic/contract-data/ontology-identity-register.json"
 
 BATCH_ROWS = ("Need", "Requirement", "RegulatoryConstraint")
 MAPPING = {
@@ -141,11 +141,11 @@ def test_no_runtime_or_projection_promotion(register_rows):
     # (bare class names may still appear as frozen relation domain/range
     # references — that is pre-existing O3 semantics, not a batch-4 row).
     expected_rows = {
-        "docs/method-conformance/o2/semantic-projection-v1.1.json": (
+        "de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.1.json": (
             ["VerificationCase"],
             ["hasSubject", "verifiedBy"],
         ),
-        "docs/method-conformance/o2/semantic-projection-v1.2.json": (
+        "de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.2.json": (
             [],
             ["derivesRequirementFromNeed", "derivedRequirementsOfNeed", "hasRelevantArchitecture"],
         ),

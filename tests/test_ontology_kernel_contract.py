@@ -10,7 +10,7 @@ contract is complete in both directions:
   point 5);
 - every SysML declaration in the governed method-kernel directory is either
   projected by a model-generated layer or listed in
-  ``docs/method-conformance/o4/kernel-internal-declarations.yaml`` with a
+  ``de4sdv/semantic/contract-data/kernel-internal-declarations.yaml`` with a
   reason, as a disjoint union (the model-projection coverage gate, owner
   decision D3);
 - mappings, listed declarations and actual declarations are compared as exact
@@ -53,8 +53,8 @@ from model_contract_fixtures import model_contract  # noqa: E402
 
 CONTRACT_TAG = "[ONTOLOGY-KERNEL]"
 GOVERNED_DIR = "textual-notation-of-model/packages/methods/de4sdv"
-MANIFEST = "docs/method-conformance/o4/kernel-internal-declarations.yaml"
-BATCH2 = "docs/method-conformance/o4/definition-batch2-projection.json"
+MANIFEST = "de4sdv/semantic/contract-data/kernel-internal-declarations.yaml"
+BATCH2 = "de4sdv/semantic/contract-data/kernel-vocabulary-projection.json"
 
 
 def _kernel_path(name: str) -> Path:

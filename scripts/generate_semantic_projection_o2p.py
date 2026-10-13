@@ -3,8 +3,8 @@
 
 Canonical artifacts:
 
-- ``docs/method-conformance/o2plus/semantic-projection-o2plus.json``
-- ``docs/method-conformance/o2plus/api-representation-profile-o2plus.json``
+- ``de4sdv/semantic/contract-data/native-grounding-projection.json``
+- ``de4sdv/semantic/contract-data/native-grounding-profile.json``
 
 The layer records exact-fit standard-construct grounding for the reviewed
 safe subset of already-native/library constructs (W3) and emits

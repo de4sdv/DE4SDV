@@ -1317,13 +1317,13 @@ def test_mc33_evaluator_source_has_no_phase_branches() -> None:
 
 def _pilot_selection() -> me.ApprovedMethodSelection:
     contract = mp.load_approved_contract_from_yaml(
-        ROOT / "docs" / "method-conformance" / "pilot-obligations.yaml"
+        ROOT / "de4sdv" / "semantic" / "contract-data" / "pilot-obligations.yaml"
     )
     return me.ApprovedMethodSelection(
         method_id=contract.method_id,
         contract_id=contract.contract_id,
         policy_bundle_id=contract.policy_bundle_id,
-        source="docs/method-conformance/pilot-obligations.yaml (approved)",
+        source="de4sdv/semantic/contract-data/pilot-obligations.yaml (approved)",
         contracts={contract.phase: contract},
     )
 
@@ -1584,7 +1584,7 @@ def test_target_filtering_rejects_wrong_element_type() -> None:
 
 def test_projections_share_one_evaluation_identity() -> None:
     contract = mp.load_approved_contract_from_yaml(
-        ROOT / "docs" / "method-conformance" / "pilot-obligations.yaml"
+        ROOT / "de4sdv" / "semantic" / "contract-data" / "pilot-obligations.yaml"
     )
     selection = me.ApprovedMethodSelection(
         method_id=contract.method_id,
@@ -1619,7 +1619,7 @@ def test_projections_share_one_evaluation_identity() -> None:
 
 def test_approved_twin_decode_matches_frozen_contract() -> None:
     contract = mp.load_approved_contract_from_yaml(
-        ROOT / "docs" / "method-conformance" / "pilot-obligations.yaml"
+        ROOT / "de4sdv" / "semantic" / "contract-data" / "pilot-obligations.yaml"
     )
     assert contract.phase == "phase10_vvEvidence"
     ids = [o.obligation_id for o in contract.obligations]

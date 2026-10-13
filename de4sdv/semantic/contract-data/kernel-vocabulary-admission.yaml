@@ -26,9 +26,10 @@
 #   * kernel mapping kinds, ontology relations, relationship
 #     domain/range/strength and serializer mechanics are reviewed contract
 #     fields held by this manifest, not model witnesses (owner decision D9);
-#     they were proven equal to the authored ontology before its deletion in
-#     O4 Wave C2 and tests lock them to that evidence
-#     (docs/method-conformance/o4/closure/contract-equivalence.json);
+#     they were proven equal to the authored ontology before its deletion, and
+#     the generated rows label them with that comparison, archived at the
+#     release-2026-10-11 tag (https://github.com/de4sdv/DE4SDV/blob/
+#     release-2026-10-11/docs/method-conformance/o4/closure/contract-equivalence.json);
 #   * successor rows equal the model successor relation records (set equality)
 #     and carry their carrier ends; retired names resolve to exactly one
 #     successor record; the hasRelevantEvidenceContract closure pins each
@@ -44,9 +45,8 @@ schema: de4sdv.o4-definition-admission-batch2/v1
 status: admitted
 warning: >-
   Admission is bounded to definition/representation generation from the
-  model-resident homes. No traversal proof, no runtime read by the artifact,
-  no authority retirement, no external-content absorption, no configurator
-  authority.
+  model-resident homes. No traversal proof, no authority retirement, no
+  external-content absorption, no configurator authority.
 
 exceptions:
 - identity: IncrementTraceabilityShell

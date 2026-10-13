@@ -23,7 +23,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 
-ADMISSION = ROOT / "docs/method-conformance/o2plus/o2p-admission.yaml"
+ADMISSION = ROOT / "de4sdv/semantic/contract-data/native-grounding-admission.yaml"
 
 
 #: O2+ grounding/projection rows closed by this safe-set (stage in O1).

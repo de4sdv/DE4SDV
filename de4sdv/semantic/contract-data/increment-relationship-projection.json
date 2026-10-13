@@ -1,7 +1,7 @@
 {
   "schema": "de4sdv.vocabulary-carrier-projection/v1",
   "status": "generated O4 W4 vocabulary-relationship carrier projection (reviewed definitions, model-resident carriers)",
-  "warning": "Generated artifact. Vocabulary-only: every row carries an admitted reviewed definition with its carrier lineage; no traversal is implemented or claimed, no support state is promoted, and the runtime does not read this artifact.",
+  "warning": "Generated artifact. Vocabulary-only: every row carries an admitted reviewed definition with its carrier lineage; no traversal is implemented or claimed, and no support state is promoted. The runtime reads this artifact to build the kernel contract.",
   "candidates": [
     "addressesConcern",
     "hasStakeholder",
@@ -33,7 +33,7 @@
       "semantic_strength": "not-declared",
       "support": "vocabulary-only",
       "traversal": false,
-      "accepted_ref": "docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md#addressesConcern",
+      "accepted_ref": "docs/semantic-relationships/increment-relationship-acceptance-review.md#addressesConcern",
       "carrier": {
         "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml",
         "declaration": "connection def AddressesConcern"
@@ -54,7 +54,7 @@
       "semantic_strength": "not-declared",
       "support": "vocabulary-only",
       "traversal": false,
-      "accepted_ref": "docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md#producesView",
+      "accepted_ref": "docs/semantic-relationships/increment-relationship-acceptance-review.md#producesView",
       "carrier": {
         "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml",
         "declaration": "connection def ProducesView"
@@ -75,7 +75,7 @@
       "semantic_strength": "not-declared",
       "support": "vocabulary-only",
       "traversal": false,
-      "accepted_ref": "docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md#recordsAssumption",
+      "accepted_ref": "docs/semantic-relationships/increment-relationship-acceptance-review.md#recordsAssumption",
       "carrier": {
         "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml",
         "declaration": "connection def RecordsAssumption"
@@ -96,7 +96,7 @@
       "semantic_strength": "not-declared",
       "support": "vocabulary-only",
       "traversal": false,
-      "accepted_ref": "docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md#recordsGap",
+      "accepted_ref": "docs/semantic-relationships/increment-relationship-acceptance-review.md#recordsGap",
       "carrier": {
         "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml",
         "declaration": "connection def RecordsGap"
@@ -117,7 +117,7 @@
       "semantic_strength": "not-declared",
       "support": "vocabulary-only",
       "traversal": false,
-      "accepted_ref": "docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md#selectedViewpoint",
+      "accepted_ref": "docs/semantic-relationships/increment-relationship-acceptance-review.md#selectedViewpoint",
       "carrier": {
         "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml",
         "declaration": "connection def SelectedViewpoint"

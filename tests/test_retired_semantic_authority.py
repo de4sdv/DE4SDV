@@ -11,6 +11,23 @@ RETIRED_LEDGER = {
     "docs/method-conformance/o4/consumer-ledger.yaml",
     "tests/test_o4_consumer_ledger.py",
 }
+#: Records that moved out of docs/ with the contract data and name the deleted
+#: file as provenance: the six frozen records never change, and the review is
+#: the record of what was reviewed. Neither is an authority.
+HISTORICAL_RECORDS = frozenset({
+    "de4sdv/semantic/contract-data/ontology-review.json",
+    *(
+        f"de4sdv/semantic/contract-data/frozen-records/{name}"
+        for name in (
+            "api-representation-profile-v1.json",
+            "api-representation-profile-v1.1.json",
+            "api-representation-profile-v1.2.json",
+            "semantic-projection-v1.json",
+            "semantic-projection-v1.1.json",
+            "semantic-projection-v1.2.json",
+        )
+    ),
+})
 
 
 def _assert_retirement(root, tracked):
@@ -18,7 +35,10 @@ def _assert_retirement(root, tracked):
     assert not RETIRED_LEDGER.intersection(tracked), "closed ledger must stay retired"
     assert not any(Path(p).name.casefold() == RETIRED_AUTHORITY.casefold() for p in tracked)
     # Historical documents and test references are evidence, not live authorities.
-    live = [p for p in tracked if not p.startswith(("docs/", "tests/"))]
+    live = [
+        p for p in tracked
+        if not p.startswith(("docs/", "tests/")) and p not in HISTORICAL_RECORDS
+    ]
     assert live, "live-source discovery must not be empty"
     marker = RETIRED_AUTHORITY.encode("ascii").lower()
     for relative in live:
@@ -28,6 +48,8 @@ def _assert_retirement(root, tracked):
 def test_deleted_authority_and_closed_ledger_stay_retired(tmp_path):
     tracked = subprocess.check_output(["git", "ls-files", "-z"], cwd=ROOT).decode().split("\0")
     _assert_retirement(ROOT, [p for p in tracked if p])
+    # The exemption stays exact: every exempted record is tracked.
+    assert HISTORICAL_RECORDS <= set(tracked)
 
     source = tmp_path / "de4sdv" / "example.asset"
     source.parent.mkdir()

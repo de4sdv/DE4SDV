@@ -1,7 +1,7 @@
 {
   "schema": "de4sdv.o4-definition-batch2-profile/v1",
   "status": "admitted",
-  "warning": "no traversal proof, no runtime read by this artifact, no API element identity, no authority retirement; retired names answer no fact (retired; use the successor)",
+  "warning": "no traversal proof, no API element identity, no authority retirement; the runtime reads this artifact to build the kernel contract; retired names answer no fact (retired; use the successor)",
   "entries": [
     {
       "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#AcceptanceCriterion",
@@ -94,7 +94,7 @@
         "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
       ],
       "external_reference": {
-        "profile": "docs/method-conformance/o4/external-reference-profile.yaml",
+        "profile": "de4sdv/semantic/contract-data/external-reference-profile.yaml",
         "accepted_ref": "docs/method-conformance/o4/external-reference-acceptance-review.md#Baseline",
         "representation_class": "model-resident-boundary-identity"
       }
@@ -138,7 +138,7 @@
         "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
       ],
       "external_reference": {
-        "profile": "docs/method-conformance/o4/external-reference-profile.yaml",
+        "profile": "de4sdv/semantic/contract-data/external-reference-profile.yaml",
         "accepted_ref": "docs/method-conformance/o4/external-reference-acceptance-review.md#EvidenceArtifact",
         "representation_class": "external-reference-record"
       }
@@ -506,7 +506,7 @@
         "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)"
       ],
       "external_reference": {
-        "profile": "docs/method-conformance/o4/external-reference-profile.yaml",
+        "profile": "de4sdv/semantic/contract-data/external-reference-profile.yaml",
         "accepted_ref": "docs/method-conformance/o4/external-reference-acceptance-review.md#capturedInBaseline",
         "representation_class": "external-reference-record"
       }
@@ -575,9 +575,9 @@
       "serializer_mechanics": {
         "strategy": "external"
       },
-      "mechanics_source": "reviewed admission-manifest field (representation mechanics; owner decision D9); authored-ontology parity proven before its deletion: docs/method-conformance/o4/closure/contract-equivalence.json",
+      "mechanics_source": "reviewed admission-manifest field (representation mechanics; owner decision D9); authored-ontology parity proven before its deletion: https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/docs/method-conformance/o4/closure/contract-equivalence.json",
       "external_reference": {
-        "profile": "docs/method-conformance/o4/external-reference-profile.yaml",
+        "profile": "de4sdv/semantic/contract-data/external-reference-profile.yaml",
         "accepted_ref": "docs/method-conformance/o4/external-reference-acceptance-review.md#hasEvidence",
         "representation_class": "external-reference-record"
       }
@@ -641,7 +641,7 @@
           "RequirementUsage"
         ]
       },
-      "mechanics_source": "reviewed admission-manifest field (representation mechanics; owner decision D9); authored-ontology parity proven before its deletion: docs/method-conformance/o4/closure/contract-equivalence.json"
+      "mechanics_source": "reviewed admission-manifest field (representation mechanics; owner decision D9); authored-ontology parity proven before its deletion: https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/docs/method-conformance/o4/closure/contract-equivalence.json"
     },
     {
       "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#hasStakeholder",
@@ -805,7 +805,7 @@
           "ActionDefinition"
         ]
       },
-      "mechanics_source": "reviewed admission-manifest field (representation mechanics; owner decision D9); authored-ontology parity proven before its deletion: docs/method-conformance/o4/closure/contract-equivalence.json"
+      "mechanics_source": "reviewed admission-manifest field (representation mechanics; owner decision D9); authored-ontology parity proven before its deletion: https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/docs/method-conformance/o4/closure/contract-equivalence.json"
     },
     {
       "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#supportedByEvidence",

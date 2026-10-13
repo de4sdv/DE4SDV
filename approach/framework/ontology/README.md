@@ -49,9 +49,9 @@ delete at closure, no generated YAML copy). There is one semantic authority:
 | What | Where |
 |---|---|
 | Definitions, typed ends, carriers, successor and retirement records | the method kernel `.sysml` files |
-| Class and relationship mappings (identity → kernel declaration, native construct or external artifact; domain/range; mechanics) | the generated projection/profile pairs under `docs/method-conformance/o4/` and `docs/method-conformance/o2plus/`, plus the frozen O2 chain under `docs/method-conformance/o2/` |
+| Class and relationship mappings (identity → kernel declaration, native construct or external artifact; domain/range; mechanics) | the generated projection/profile pairs in `de4sdv/semantic/contract-data/`, plus the frozen records in `de4sdv/semantic/contract-data/frozen-records/` |
 | The runtime kernel contract built from them | `KernelContract.from_layers` (`de4sdv/semantic/model_contract.py`) |
-| Kernel declarations that are deliberately not projected vocabulary, each with a reason | `docs/method-conformance/o4/kernel-internal-declarations.yaml` |
+| Kernel declarations that are deliberately not projected vocabulary, each with a reason | `de4sdv/semantic/contract-data/kernel-internal-declarations.yaml` |
 | Validation rules R001–R010 | `de4sdv_ontology_validation_rules.sysml` (one model home per rule) |
 | Kernel accounting gate | `de4sdv/semantic/model_projection_coverage.py` |
 

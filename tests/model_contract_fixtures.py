@@ -99,8 +99,8 @@ def model_service(revision_binding: RevisionBinding, repository: Any, *,
 
 
 ADMISSION_MANIFESTS = (
-    "docs/method-conformance/o4/definition-admission.yaml",
-    "docs/method-conformance/o4/definition-admission-batch2.yaml",
+    "de4sdv/semantic/contract-data/class-definition-admission.yaml",
+    "de4sdv/semantic/contract-data/kernel-vocabulary-admission.yaml",
 )
 
 

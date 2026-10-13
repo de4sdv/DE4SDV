@@ -41,7 +41,7 @@ PRODUCT_LINE = (
 OPERATIONAL_CONTEXT = (
     REPO_ROOT / "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml"
 )
-REGISTER = REPO_ROOT / "docs/method-conformance/o4/o4-execution-register.json"
+REGISTER = REPO_ROOT / "de4sdv/semantic/contract-data/ontology-identity-register.json"
 SYNC_SCRIPT = REPO_ROOT / "scripts/check_model_sync.py"
 
 BATCH_ROWS = ("ProductLineCharacteristic", "Scenario")
@@ -203,11 +203,11 @@ def test_no_runtime_or_o3_promotion(register_rows):
 
 def test_no_new_projection_rows():
     expected_rows = {
-        "docs/method-conformance/o2/semantic-projection-v1.1.json": (
+        "de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.1.json": (
             ["VerificationCase"],
             ["hasSubject", "verifiedBy"],
         ),
-        "docs/method-conformance/o2/semantic-projection-v1.2.json": (
+        "de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.2.json": (
             [],
             ["derivesRequirementFromNeed", "derivedRequirementsOfNeed", "hasRelevantArchitecture"],
         ),

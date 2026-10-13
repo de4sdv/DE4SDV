@@ -16,7 +16,7 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-MANIFEST_PATH = "docs/method-conformance/o4/definition-admission.yaml"
+MANIFEST_PATH = "de4sdv/semantic/contract-data/class-definition-admission.yaml"
 MODULE_PATH = "de4sdv/semantic/definition_projection.py"
 GENERATOR_PATH = "scripts/generate_definition_projection.py"
 #: The two shared modules the generation path EXECUTES (proved by the
@@ -149,26 +149,26 @@ def test_family_invariant_from_canonical_governance():
 
     other = set()
     v1 = json.loads(
-        (REPO_ROOT / "docs/method-conformance/o2/semantic-projection-v1.json").read_text()
+        (REPO_ROOT / "de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.json").read_text()
     )
     other |= {row["identity"] for row in v1["concepts"]}
     v11 = json.loads(
-        (REPO_ROOT / "docs/method-conformance/o2/semantic-projection-v1.1.json").read_text()
+        (REPO_ROOT / "de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.1.json").read_text()
     )
     other |= {row["identity"] for row in v11["concepts"] + v11["predicates"]}
     v12 = json.loads(
-        (REPO_ROOT / "docs/method-conformance/o2/semantic-projection-v1.2.json").read_text()
+        (REPO_ROOT / "de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.2.json").read_text()
     )
     other |= {row["identity"] for row in v12["predicates"]}
     o2p = json.loads(
         (
-            REPO_ROOT / "docs/method-conformance/o2plus/semantic-projection-o2plus.json"
+            REPO_ROOT / "de4sdv/semantic/contract-data/native-grounding-projection.json"
         ).read_text()
     )
     other |= {row["identity"] for row in o2p["rows"]}
     carriers = json.loads(
         (
-            REPO_ROOT / "docs/method-conformance/o4/vocabulary-carriers-projection.json"
+            REPO_ROOT / "de4sdv/semantic/contract-data/increment-relationship-projection.json"
         ).read_text()
     )
     other |= {row["identity"] for row in carriers["rows"]}

@@ -1,6 +1,6 @@
 """Lane D: validated snapshot path — acceptance matrix (MC-21, MC-22, MC-28, MC-32).
 
-Covers the D-owned snapshot cases (docs/method-conformance/mc-outcome-owner-matrix.md)
+Covers the D-owned snapshot cases (docs/method-evaluation/mc-outcome-owner-matrix.md)
 plus the adversarial set required by the Lane D brief:
 
 - corrupt / incomplete / wrong-bound / self-attested snapshots are rejected;
@@ -763,7 +763,7 @@ def _evaluate_snapshot(
         expectations=exp or expectations(),
     )
     approved = mp.load_approved_contract_from_yaml(
-        ROOT / "docs/method-conformance/pilot-obligations.yaml"
+        ROOT / "de4sdv/semantic/contract-data/pilot-obligations.yaml"
     )
     assembly = mp.assemble_pilot_context(
         approved_contract=approved,
@@ -788,7 +788,7 @@ def _parity_pair(tmp_path: Path, *, git_commit: str = REV_SHA, scope: str = "can
     sn.write_snapshot(payload, snapshot_path)
 
     approved = mp.load_approved_contract_from_yaml(
-        ROOT / "docs/method-conformance/pilot-obligations.yaml"
+        ROOT / "de4sdv/semantic/contract-data/pilot-obligations.yaml"
     )
     revision = me.RevisionIdentity(
         git_commit=git_commit,

@@ -17,7 +17,7 @@ from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENT
 from model_contract_fixtures import owned_definition_documentation
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-REGISTER = REPO_ROOT / "docs/method-conformance/o4/o4-execution-register.json"
+REGISTER = REPO_ROOT / "de4sdv/semantic/contract-data/ontology-identity-register.json"
 
 BATCH_ROWS = ("ArchitectureDecisionRecord", "Baseline")
 MAPPING = {
@@ -130,11 +130,11 @@ def test_existing_usages_remain_intact():
 
 def test_no_new_projection_rows():
     expected_rows = {
-        "docs/method-conformance/o2/semantic-projection-v1.1.json": (
+        "de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.1.json": (
             ["VerificationCase"],
             ["hasSubject", "verifiedBy"],
         ),
-        "docs/method-conformance/o2/semantic-projection-v1.2.json": (
+        "de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.2.json": (
             [],
             ["derivesRequirementFromNeed", "derivedRequirementsOfNeed", "hasRelevantArchitecture"],
         ),

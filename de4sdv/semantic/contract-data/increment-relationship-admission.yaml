@@ -10,7 +10,7 @@
 #
 # The five admitted entries close their definition acceptance as ENGINEERING
 # REVIEW EVIDENCE: accepted_ref names the bounded review document
-# (docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md), which
+# (docs/semantic-relationships/increment-relationship-acceptance-review.md), which
 # carries the `accepted-as-engineering-review-evidence` marker and records each
 # identity. No personal owner approval is claimed; free-text acceptance
 # references are refused by the machinery.
@@ -32,7 +32,7 @@ warning: >-
   unresolved carrier declaration or end typing, or any reviewed-flag drift
   refuses generation. The runtime never reads this document; traversal
   remains unimplemented and unclaimed.
-review_source: docs/method-conformance/o4/ontology-review/integrated-review.json
+review_source: de4sdv/semantic/contract-data/ontology-review.json
 expected_candidates:
   - recordsGap
   - recordsAssumption
@@ -60,7 +60,7 @@ admitted:
       range:
         feature: gap
         type: IncrementGap
-    accepted_ref: docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md#recordsGap
+    accepted_ref: docs/semantic-relationships/increment-relationship-acceptance-review.md#recordsGap
   - identity: recordsAssumption
     carrier:
       file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml
@@ -72,7 +72,7 @@ admitted:
       range:
         feature: assumption
         type: IncrementAssumption
-    accepted_ref: docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md#recordsAssumption
+    accepted_ref: docs/semantic-relationships/increment-relationship-acceptance-review.md#recordsAssumption
   - identity: addressesConcern
     carrier:
       file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml
@@ -91,7 +91,7 @@ admitted:
         declaration:
           file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml
           declaration: concern def IncrementConcern
-    accepted_ref: docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md#addressesConcern
+    accepted_ref: docs/semantic-relationships/increment-relationship-acceptance-review.md#addressesConcern
   - identity: selectedViewpoint
     carrier:
       file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml
@@ -108,7 +108,7 @@ admitted:
         declaration:
           file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml
           declaration: viewpoint def IncrementViewpoint
-    accepted_ref: docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md#selectedViewpoint
+    accepted_ref: docs/semantic-relationships/increment-relationship-acceptance-review.md#selectedViewpoint
   - identity: producesView
     carrier:
       file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml
@@ -125,4 +125,4 @@ admitted:
     # with its package qualification, and the carrier file imports the package.
     library_types:
       - Views::View
-    accepted_ref: docs/method-conformance/o4/vocabulary-carrier-acceptance-review.md#producesView
+    accepted_ref: docs/semantic-relationships/increment-relationship-acceptance-review.md#producesView

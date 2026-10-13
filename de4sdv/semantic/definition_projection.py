@@ -23,9 +23,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-ADMISSION_PATH = "docs/method-conformance/o4/definition-admission.yaml"
-PROJECTION_PATH = "docs/method-conformance/o4/definition-projection.json"
-PROFILE_PATH = "docs/method-conformance/o4/definition-profile.json"
+ADMISSION_PATH = "de4sdv/semantic/contract-data/class-definition-admission.yaml"
+PROJECTION_PATH = "de4sdv/semantic/contract-data/class-definition-projection.json"
+PROFILE_PATH = "de4sdv/semantic/contract-data/class-definition-profile.json"
 MODULE_PATH = "de4sdv/semantic/definition_projection.py"
 GENERATOR_PATH = "scripts/generate_definition_projection.py"
 AUTHORITY_INVENTORY_PATH = "de4sdv/semantic/authority_inventory.py"
@@ -36,7 +36,8 @@ PROFILE_SCHEMA = "de4sdv.o4-definition-profile/v1"
 ADMISSION_SCHEMA = "de4sdv.o4-definition-admission/v1"
 SUPPORT = "vocabulary-only"
 WARNING = (
-    "vocabulary-only, no traversal, no runtime read, no authority retirement"
+    "vocabulary-only, no traversal, no authority retirement; the runtime reads "
+    "this artifact to build the kernel contract"
 )
 
 #: Declaration keyword -> representation class / API metaclass. Only the
@@ -295,7 +296,7 @@ def build_artifact_pair(root: Path) -> dict[str, Any]:
         "status": "admitted",
         "warning": WARNING,
         "scope": {
-            "admission": "O4 definition-admission batch 1 (definition-admission.yaml)",
+            "admission": "class-definition admission (class-definition-admission.yaml)",
             "admitted": outputs["admitted"],
             "note": "no frozen O3 or gated identity is admitted",
         },

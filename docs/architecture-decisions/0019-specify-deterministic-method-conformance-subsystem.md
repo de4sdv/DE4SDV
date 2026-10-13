@@ -123,8 +123,8 @@ correction. Repairs, all bounded to the A contract and its guards:
 
 ## Links
 
-- Frozen baseline: `docs/method-conformance/conformance-baseline.md`
-- Active authorization policy: `docs/method-conformance/acceptance-policy.md`
+- Frozen baseline: `docs/method-evaluation/conformance-baseline.md`
+- Active authorization policy: `docs/method-evaluation/acceptance-policy.md`
   (`de4sdv.acceptance.maintainer-decision.v1`, activated as written by
   Orkun Yilmaz, 2026-10-05; no campaign acceptance decision)
 - Unified plan: DE4SDV_Unified_Semantic_Engineering_Plan_Final.md (§13, §16)

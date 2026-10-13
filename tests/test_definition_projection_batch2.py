@@ -18,20 +18,20 @@ import pytest
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-O4 = "docs/method-conformance/o4/"
-MANIFEST_PATH = O4 + "definition-admission-batch2.yaml"
-REGISTER_PATH = O4 + "o4-execution-register.json"
+DATA = "de4sdv/semantic/contract-data/"
+MANIFEST_PATH = DATA + "kernel-vocabulary-admission.yaml"
+REGISTER_PATH = DATA + "ontology-identity-register.json"
 SUCCESSOR_FILE = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
 
 OTHER_LAYERS = {
     "o2-chain": [
-        ("docs/method-conformance/o2/semantic-projection-v1.json", ("concepts",)),
-        ("docs/method-conformance/o2/semantic-projection-v1.1.json", ("concepts", "predicates")),
-        ("docs/method-conformance/o2/semantic-projection-v1.2.json", ("predicates",)),
+        ("de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.json", ("concepts",)),
+        ("de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.1.json", ("concepts", "predicates")),
+        ("de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.2.json", ("predicates",)),
     ],
-    "definition-batch-1": [(O4 + "definition-projection.json", ("rows",))],
-    "o2plus": [("docs/method-conformance/o2plus/semantic-projection-o2plus.json", ("rows",))],
-    "vocabulary-carriers": [(O4 + "vocabulary-carriers-projection.json", ("rows",))],
+    "definition-batch-1": [(DATA + "class-definition-projection.json", ("rows",))],
+    "o2plus": [(DATA + "native-grounding-projection.json", ("rows",))],
+    "vocabulary-carriers": [(DATA + "increment-relationship-projection.json", ("rows",))],
 }
 W6_NEW_SUCCESSORS = {"hasValidationScenario", "hasRegulatorySource"}
 MERGED_ALIASES = {"validatesFitnessForUse"}
@@ -605,14 +605,14 @@ def test_batch2_machinery_is_never_imported_by_the_runtime_path():
         "de4sdv/semantic/deployment_runtime.py",
     ):
         text = (REPO_ROOT / relative).read_text(encoding="utf-8")
-        for token in ("definition_projection_batch2", "definition-batch2", "definition-admission-batch2"):
+        for token in ("definition_projection_batch2", "definition-batch2", "kernel-vocabulary"):
             assert token not in text, (relative, token)
     # The model-authority runtime reads the generated batch-2 pair as a data
     # layer; it never imports the generator or reads the admission manifest.
     for relative in ("de4sdv/semantic/model_authority_runtime.py",
                      "de4sdv/semantic/model_contract.py"):
         text = (REPO_ROOT / relative).read_text(encoding="utf-8")
-        for token in ("definition_projection_batch2", "definition-admission-batch2"):
+        for token in ("definition_projection_batch2", "kernel-vocabulary-admission"):
             assert token not in text, (relative, token)
 
 

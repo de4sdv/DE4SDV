@@ -261,8 +261,8 @@ never mistaken for a project ID.
 | `LCOMP` | Logical component | pilot index | `LCOMP-AEBS-001` | CANONICAL |
 | `LPORT` | Logical port | pilot index | `LPORT-AEBS-IN-001` | CANONICAL |
 | `MAP` | Signal mapping record | pilot index | `MAP-MW-008-VEHICLE-SPEED` | CANONICAL |
-| `MC` | Method-conformance matrix case | method-conformance specification (`docs/method-conformance/`) | `MC-01` | CANONICAL |
-| `PC` | Pilot contract obligation | declared method-conformance pilot (`docs/method-conformance/pilot-scope.md`) | `PC-009D-VC-EXISTS` | CANONICAL |
+| `MC` | Method-conformance matrix case | method-conformance specification (`docs/method-evaluation/`) | `MC-01` | CANONICAL |
+| `PC` | Pilot contract obligation | declared method-conformance pilot (`docs/method-evaluation/pilot-scope.md`) | `PC-009D-VC-EXISTS` | CANONICAL |
 | `PSC` | Pilot scope record | model-resident evaluation scope for a declared pilot (`textual-notation-of-model/`) | `PSC-009D` | CANONICAL |
 | `UG` | Unified-plan general acceptance case | unified semantic engineering plan (handoff records archived at the `release-2026-10-11` tag) | `UG-05` | CANONICAL |
 | `R0` | Reconciliation work-package handoff item | unified-plan R0 handoff (archived at the `release-2026-10-11` tag) | `R0-4` | CANONICAL |
@@ -448,7 +448,8 @@ IDs actually live — `.sysml`, `.yaml`/`.yml`, and `.md` under:
 `textual-notation-of-model/packages`, `methodologies/sysmod-sysmlv2`,
 `approach/`, `model-based-product-line-engineering/`, `implementation/`,
 `configuration-management/`, `continuous-homologation/`, `compliance/`,
-`devsecops/`, `simulation/`, `sysmlv2-api/`, `docs/`.
+`devsecops/`, `simulation/`, `sysmlv2-api/`, `docs/`,
+`de4sdv/semantic/contract-data/`.
 
 Artifact-aware rules (small and explicit, no heuristic parser):
 

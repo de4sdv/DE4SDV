@@ -13,7 +13,7 @@ classifies, using the routing the model-built contract is served with
 - every governed kernel declaration: projected by a model-generated layer
   (class pin or relationship-carrier pin), or listed in the kernel-internal
   declarations manifest with a reason (owner decision D3,
-  ``docs/method-conformance/o4/kernel-internal-declarations.yaml``). The
+  ``de4sdv/semantic/contract-data/kernel-internal-declarations.yaml``). The
   equation is a disjoint union: a declaration is projected or listed, never
   both.
 
@@ -24,7 +24,7 @@ manifest entry outside the governed directory, a listed declaration that is
 also projected, or a feature slice re-declaring a class-mapped kernel name.
 
 The committed baseline
-``docs/method-conformance/o4/model-authority-coverage-baseline.yaml`` is a
+``de4sdv/semantic/contract-data/model-authority-coverage-baseline.yaml`` is a
 reviewed ratchet for the routing digest and the refused / retired sets: any
 change needs a reviewed baseline update. Layer digests in reports are diagnostic
 provenance, not baseline identity or closure evidence. The baseline carries no
@@ -43,10 +43,10 @@ from .kernel_contract import KernelContract, KernelFileMapping
 from .model_contract import canonical_json
 
 ROOT = Path(__file__).resolve().parents[2]
-BASELINE_PATH = "docs/method-conformance/o4/model-authority-coverage-baseline.yaml"
+BASELINE_PATH = "de4sdv/semantic/contract-data/model-authority-coverage-baseline.yaml"
 REPORT_SCHEMA = "de4sdv.model-projection-coverage/v3"
 BASELINE_SCHEMA = "de4sdv.model-authority-coverage-baseline/v3"
-KERNEL_INTERNAL_PATH = "docs/method-conformance/o4/kernel-internal-declarations.yaml"
+KERNEL_INTERNAL_PATH = "de4sdv/semantic/contract-data/kernel-internal-declarations.yaml"
 KERNEL_INTERNAL_SCHEMA = "de4sdv.kernel-internal-declarations/v1"
 FEATURES_DIRECTORY = "textual-notation-of-model/packages/features"
 MODE = "blocking"

@@ -33,7 +33,7 @@ status: admitted
 warning: >-
   Admission is bounded to definition/representation generation from the
   reviewed model representation. Support stays vocabulary-only; no traversal,
-  no runtime read, no authority retirement, no external-content absorption.
+  no authority retirement, no external-content absorption.
 
 admitted:
 - identity: Assumption

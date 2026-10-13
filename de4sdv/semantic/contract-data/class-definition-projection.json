@@ -1,9 +1,9 @@
 {
   "schema": "de4sdv.o4-definition-projection/v1",
   "status": "admitted",
-  "warning": "vocabulary-only, no traversal, no runtime read, no authority retirement",
+  "warning": "vocabulary-only, no traversal, no authority retirement; the runtime reads this artifact to build the kernel contract",
   "scope": {
-    "admission": "O4 definition-admission batch 1 (definition-admission.yaml)",
+    "admission": "class-definition admission (class-definition-admission.yaml)",
     "admitted": [
       "Assumption",
       "BlockedRealizationBranchRecord",
