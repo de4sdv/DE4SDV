@@ -1,4 +1,5 @@
 import json
+import re
 import subprocess
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -142,6 +143,30 @@ def test_ask_viewer_container_is_pinned_non_root_and_minimal():
     assert "USER 10001:10001" in dockerfile
     assert "WORKDIR /srv/de4sdv/DE4SDV" in dockerfile
     assert "ENTRYPOINT" in dockerfile
+
+
+def test_ask_viewer_runs_the_entrypoint_of_the_mounted_checkout():
+    """The image bakes no application file: a baked entry point stays at the
+    revision the image was built from while every deploy changes the
+    checkout, so its startup gate would check stale paths."""
+    dockerfile = (
+        Path("deployment/ask_viewer/Dockerfile").read_text(encoding="utf-8")
+    )
+    assert not re.search(r"(?im)^\s*(COPY|ADD)\b", dockerfile)
+    assert (
+        'ENTRYPOINT ["python", '
+        '"/srv/de4sdv/DE4SDV/deployment/ask_viewer/entrypoint.py"]'
+    ) in dockerfile
+    assert Path("deployment/ask_viewer/entrypoint.py").is_file()
+    compose = yaml.safe_load(
+        Path("deployment/compose.yaml").read_text(encoding="utf-8")
+    )
+    targets = [
+        mount.split(":")[-2]
+        for mount in compose["services"]["ask-viewer"]["volumes"]
+        if mount.endswith(":ro")
+    ]
+    assert "/srv/de4sdv/DE4SDV" in targets
 
 
 def test_compose_keeps_ask_viewer_internal_and_mounts_identity_read_only():

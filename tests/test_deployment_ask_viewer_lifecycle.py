@@ -45,6 +45,30 @@ def test_deploy_py_recreates_and_health_checks_ask_viewer() -> None:
     assert "wait_for_ask_viewer()" in source
 
 
+def test_deploy_py_builds_the_ask_viewer_image_before_the_proxy_stops() -> None:
+    """Without a build the recreate reuses whatever image exists, so a
+    Dockerfile change never reaches production. The build runs before the
+    proxy stops, so a failed build changes nothing, and it builds the Ask
+    viewer only: `up --build` after the import would also rebuild the API
+    image it depends on."""
+    source = DEPLOY_PY.read_text(encoding="utf-8")
+    build_at = source.index('compose("build", "ask-viewer", repo=args.repo)')
+    assert build_at < source.index("stop_public_proxy(args.repo)")
+    tree = ast.parse(source)
+    recreate = next(
+        node for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef) and node.name == "recreate_ask_viewer"
+    )
+    command = next(
+        [element.value for element in node.elts if isinstance(element, ast.Constant)]
+        for node in ast.walk(recreate)
+        if isinstance(node, ast.List)
+        and any(isinstance(e, ast.Constant) and e.value == "ask-viewer" for e in node.elts)
+    )
+    assert command.index("up") < command.index("ask-viewer")
+    assert "--build" not in command
+
+
 def test_deploy_workflow_exports_app_git_sha_in_every_remote_block() -> None:
     """Live evidence 2026-09-09 (run 34392701140): the activation step's
     remote script never exported DE4SDV_APP_GIT_SHA, so compose refused to

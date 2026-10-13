@@ -9,11 +9,12 @@ RUN apt-get update \
     && mkdir -p /var/cache/de4sdv-viewer \
     && chown 10001:10001 /var/cache/de4sdv-viewer
 
-COPY --chown=10001:10001 entrypoint.py /opt/de4sdv/entrypoint.py
-
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
+# The entry point runs from the read-only checkout mounted at WORKDIR, so the
+# startup gate is always the deployed revision's, never a copy baked into an
+# older image.
 WORKDIR /srv/de4sdv/DE4SDV
 USER 10001:10001
-ENTRYPOINT ["python", "/opt/de4sdv/entrypoint.py"]
+ENTRYPOINT ["python", "/srv/de4sdv/DE4SDV/deployment/ask_viewer/entrypoint.py"]
