@@ -1,13 +1,14 @@
 """Method Check workflow wiring (static + argument spy; no network, no dispatch).
 
 The method check exports the pull-request head with the pinned licensed
-serializer in one job and evaluates every declared increment in a second job.
-These tests pin: the trigger (the privileged validation's path filters), the
-fork and author guard, the secret scoping (the licence reaches exactly one
-step, the export; the job that runs the evaluation references no secret), the
-exact-revision handoff between the jobs, the advisory exit policy, the
-artifact names, and that every workflow command line parses against the real
-script parser (the parser is spied; nothing executes).
+serializer in one job and evaluates every declared increment in a second job;
+a third job reports a failed export. These tests pin: the trigger (the
+privileged validation's path filters), the fork and author guard, the secret
+scoping (the licence reaches exactly one step, the export; the jobs that run
+the evaluation and the failure report reference no secret), the exact-revision
+handoff between the jobs, the advisory exit policy, the artifact names, the
+report of a failed export, and that every workflow command line parses against
+the real script parser (the parser is spied; nothing executes).
 """
 
 from __future__ import annotations
@@ -43,6 +44,11 @@ LICENCE_PRESENCE = "${{ secrets.SYSIDE_LICENSE_KEY != '' }}"
 EXPORT_SCRIPT = "scripts/export_sysml_api_baseline.py"
 CHECK_SCRIPT = "scripts/method_check.py"
 HEAD = "${{ needs.export.outputs.head-sha }}"
+#: The job that reports a failed export (the evaluation job never runs then).
+REPORT_JOB = "export-failure-report"
+DIAGNOSTICS = "method-check-diagnostics/export-diagnostics.txt"
+DIAGNOSTICS_VARIABLE = "DE4SDV_EXPORT_DIAGNOSTICS"
+CREDENTIALS = ("SYSIDE_LICENSE_KEY", "GITHUB_TOKEN", "ACTIONS_RUNTIME_TOKEN", "ACTIONS_ID_TOKEN_REQUEST_TOKEN")
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -157,7 +163,8 @@ def test_the_licence_reaches_exactly_one_step_the_export() -> None:
     # The step that holds the licence runs the export command and nothing else.
     commands = [line.strip() for line in re.sub(r"\\\n\s*", " ", export["run"]).splitlines() if line.strip()]
     assert len(commands) == 1 and commands[0].startswith(f"python {EXPORT_SCRIPT} ")
-    assert set(export["env"]) == {"SYSIDE_LICENSE_KEY", "HEAD_SHA"}
+    # Besides the licence and the revision, only the (non-secret) path where a failed export records why.
+    assert set(export["env"]) == {"SYSIDE_LICENSE_KEY", "HEAD_SHA", DIAGNOSTICS_VARIABLE}
     # The presence check sees a boolean, never the value, and runs no repository code.
     licence_step = steps[presence[0][3]]
     assert licence_step["id"] == "licence"
@@ -190,12 +197,14 @@ def test_no_repository_code_runs_in_the_export_job_besides_the_export() -> None:
         run = step.get("run") or ""
         assert not re.search(r"scripts/|tools/|de4sdv/|python3? -c|\./", run), step.get("name")
         assert re.sub(r"python -m pip install[^\n]*", "", run).count("python") == 0, step.get("name")
+    # After the export only uploads run: the export, or the diagnostics of a failed export.
     after = steps[export_index + 1:]
-    assert [s.get("uses", "").split("@")[0] for s in after] == ["actions/upload-artifact"]
+    assert [s.get("uses", "").split("@")[0] for s in after] == ["actions/upload-artifact"] * 2
+    assert all("run" not in step for step in after)
 
 
 def test_every_checkout_keeps_no_credentials() -> None:
-    for name in ("export", "evaluate"):
+    for name in ("export", "evaluate", REPORT_JOB):
         checkouts = _step_using(name, "actions/checkout")
         assert len(checkouts) == 1, name
         assert checkouts[0]["with"]["persist-credentials"] is False, name
@@ -260,6 +269,65 @@ def test_the_result_is_uploaded_with_the_head_sha_even_after_a_technical_error()
     assert '--summary "$GITHUB_STEP_SUMMARY"' in step["run"]
 
 
+def test_a_failed_export_leaves_its_diagnostics_for_the_report() -> None:
+    # The export records why it failed (its own refusal text, Syside's model
+    # diagnostics included; any other error by its type only) and the export
+    # job uploads that file only on failure. The success path is unchanged.
+    _index, export = _step_running("export", EXPORT_SCRIPT)
+    # The workflow of a pull-request event comes from the merge commit, but the
+    # export script from the head, which may predate --diagnostics. So the path
+    # travels in the environment, which an older script ignores, and the
+    # command line keeps the options every export script has.
+    assert export["env"][DIAGNOSTICS_VARIABLE] == "${{ runner.temp }}/" + DIAGNOSTICS
+    assert re.findall(r"--[a-z-]+", export["run"]) == ["--git-commit", "--output"]
+    success, failure = _step_using("export", "actions/upload-artifact")
+    assert success["if"] == "steps.licence.outputs.available == 'true'"
+    assert success["with"]["name"] == "method-check-export-${{ steps.revision.outputs.sha }}"
+    assert failure["if"] == "${{ failure() && steps.licence.outputs.available == 'true' }}"
+    assert failure["with"]["name"] == "method-check-export-diagnostics-${{ steps.revision.outputs.sha }}"
+    assert failure["with"]["path"] == "${{ runner.temp }}/method-check-diagnostics/"
+    assert failure["with"]["if-no-files-found"] == "ignore"
+
+
+def test_a_failed_export_is_reported_by_a_job_that_holds_no_secret() -> None:
+    job = _job(REPORT_JOB)
+    assert job["needs"] == "export"
+    # Only after a licensed export that failed: never after a skipped,
+    # cancelled or successful export (the evaluation reports those).
+    assert job["if"] == "${{ failure() && needs.export.outputs.licensed == 'true' }}"
+    text = yaml.safe_dump(job)
+    assert "secrets." not in text and "github.token" not in text
+    # It renders what the export recorded and evaluates nothing, so it runs the
+    # workflow's own revision: that renderer knows --export-failed even when
+    # the exported head predates it.
+    checkout = _step_using(REPORT_JOB, "actions/checkout")[0]
+    assert checkout["with"] == {"ref": "${{ github.sha }}", "persist-credentials": False}
+    # The diagnostics artifact may be absent (the export job can fail before
+    # the export runs), so it is matched by pattern, which tolerates no match.
+    download = _step_using(REPORT_JOB, "actions/download-artifact")[0]["with"]
+    assert download == {
+        "pattern": f"method-check-export-diagnostics-{HEAD}",
+        "path": "${{ runner.temp }}/method-check-diagnostics",
+        "merge-multiple": True,
+    }
+    _index, step = _step_running(REPORT_JOB, CHECK_SCRIPT)
+    assert step["env"] == {"HEAD_SHA": HEAD}
+    guard = step["run"].split(f"python {CHECK_SCRIPT}")[0]
+    for name in CREDENTIALS:
+        assert name in guard, name
+    assert "exit 1" in guard
+    assert f'--export-failed "$RUNNER_TEMP/{DIAGNOSTICS}"' in step["run"]
+    assert '--output-dir "$RUNNER_TEMP/method-check/result"' in step["run"]
+    assert '--artifact "method-check-$HEAD_SHA"' in step["run"]
+    assert '--summary "$GITHUB_STEP_SUMMARY"' in step["run"]
+    # The same artifact name as an evaluation, so one download recipe serves both.
+    upload = _step_using(REPORT_JOB, "actions/upload-artifact")
+    assert len(upload) == 1
+    assert upload[0]["if"] == "${{ !cancelled() }}"
+    assert upload[0]["with"]["name"] == f"method-check-{HEAD}"
+    assert upload[0]["with"]["path"] == "${{ runner.temp }}/method-check/result/"
+
+
 def test_the_serializer_is_the_pinned_privileged_toolchain() -> None:
     from de4sdv.semantic.projection_o2p import read_syside_pin
 
@@ -277,7 +345,7 @@ def test_the_serializer_is_the_pinned_privileged_toolchain() -> None:
 
 def _commands() -> list[tuple[str, list[str]]]:
     out = []
-    for job in ("export", "evaluate"):
+    for job in ("export", "evaluate", REPORT_JOB):
         for step in _steps(job):
             joined = re.sub(r"\\\n\s*", " ", step.get("run") or "")
             for line in joined.splitlines():
@@ -294,7 +362,8 @@ class _Parsed(Exception):
 
 
 def test_both_scripts_appear_on_the_command_lines() -> None:
-    assert sorted(argv[1] for _name, argv in _commands()) == [EXPORT_SCRIPT, CHECK_SCRIPT]
+    # The export once; the method check for an evaluation and for a failed export.
+    assert sorted(argv[1] for _name, argv in _commands()) == [EXPORT_SCRIPT, CHECK_SCRIPT, CHECK_SCRIPT]
 
 
 @pytest.mark.parametrize("name, argv", _commands(), ids=[c[0] for c in _commands()])

@@ -263,6 +263,68 @@ def test_the_revision_must_be_a_full_commit_id(tmp_path: Path, real_reports) -> 
                           runner=EntryPointSpy(real_reports))
 
 
+# -- a failed licensed export ----------------------------------------------------
+
+EXPORT_DIAGNOSTIC = (
+    "textual-notation-of-model/packages/features/area/area_framing.sysml:122:5: error "
+    "(requirement-usage-subject-parameter-position): Subject must be the first input parameter"
+)
+
+
+def _report_export_failure(tmp_path: Path, diagnostics: Path):
+    out = tmp_path / "result"
+    summary = tmp_path / "summary.md"
+    spy = EntryPointSpy({})
+    code = method_check.main(["--export-failed", str(diagnostics), "--revision", GIT, "--output-dir", str(out),
+                              "--summary", str(summary), "--artifact", f"method-check-{GIT}"], runner=spy)
+    result = json.loads((out / "method-check.json").read_text())
+    assert spy.calls == []  # nothing is evaluated
+    assert (out / "method-check.md").read_text() == summary.read_text()
+    return code, result, summary.read_text()
+
+
+def test_a_failed_export_is_reported_with_its_diagnostics(tmp_path: Path) -> None:
+    diagnostics = tmp_path / "export-diagnostics.txt"
+    diagnostics.write_text(f"Syside rejected the reviewed baseline:\n{EXPORT_DIAGNOSTIC}\n")
+    code, result, summary = _report_export_failure(tmp_path, diagnostics)
+    assert code == 1  # a technical error, never a pass
+    assert result["revision"] == GIT and result["increments"] == []
+    assert result["errors"] == [method_check.EXPORT_FAILED]
+    assert result["export_diagnostics"] == ["Syside rejected the reviewed baseline:", EXPORT_DIAGNOSTIC]
+    assert f"- {method_check.EXPORT_FAILED}" in summary
+    assert f"```text\nSyside rejected the reviewed baseline:\n{EXPORT_DIAGNOSTIC}\n```" in summary
+    assert "The model declares no increment" not in summary
+    assert "0 increments" not in summary
+    assert f"artifact `method-check-{GIT}`" in summary
+
+
+def test_a_failed_export_without_diagnostics_still_leaves_a_report(tmp_path: Path) -> None:
+    # The export job can fail before the export runs (setup, network).
+    code, result, summary = _report_export_failure(tmp_path, tmp_path / "absent.txt")
+    assert code == 1
+    assert result["errors"] == [method_check.EXPORT_FAILED]
+    assert result["export_diagnostics"] == []
+    assert "**Export diagnostics:** none recorded; see the export job log." in summary
+
+
+def test_an_export_or_a_failed_export_is_required_not_both(tmp_path: Path) -> None:
+    common = ["--revision", GIT, "--output-dir", str(tmp_path / "o")]
+    with pytest.raises(SystemExit):
+        method_check.main(["--export", "e.json", "--export-failed", "d.txt", *common])
+    with pytest.raises(SystemExit):
+        method_check.main(common)
+
+
+def test_the_summary_bounds_the_export_diagnostics_and_keeps_its_fence() -> None:
+    lines = [f"model.sysml:{n}:1: error (rule): message {n}" for n in range(method_check.MAX_ROWS + 5)]
+    result = {"revision": "a" * 40, "export": {}, "increments": [], "notes": [],
+              "errors": [method_check.EXPORT_FAILED], "export_diagnostics": ["```", *lines]}
+    text = method_check.render_summary(result)
+    fenced = text.split("```text\n", 1)[1].split("\n```", 1)[0].splitlines()
+    assert len(fenced) == method_check.MAX_ROWS and "```" not in fenced
+    assert "6 more in the JSON." in text
+
+
 # -- summary rendering ---------------------------------------------------------
 
 
