@@ -14,6 +14,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+import pytest
+
 from de4sdv.semantic import method_evaluator as me
 from de4sdv.semantic.increment_evaluation import evaluate_increment
 from de4sdv.semantic.increment_scope import ModelView
@@ -37,6 +39,14 @@ METACLASS = {"part": "PartUsage", "requirement": "RequirementUsage", "concern": 
              "action": "ActionUsage", "view": "ViewUsage", "verification": "VerificationCaseUsage"}
 #: The phases INC-AEBS-010's charter declares: 0 to 10, so phases 11 and 12 stay undeclared.
 DECLARED = PHASE_LITERALS[:11]
+
+
+def _metaclass(keyword: str) -> str:
+    """The usage metaclass of a parameter keyword; a keyword this test does not know stops it clearly."""
+    if keyword not in METACLASS:
+        pytest.fail(f"the workflow file declares a step parameter with the keyword {keyword!r}; map it to its "
+                    "usage metaclass in METACLASS")
+    return METACLASS[keyword]
 
 
 @dataclass(frozen=True)
@@ -127,7 +137,7 @@ def _scenario(steps: list[Step], applicable_phases=DECLARED):
 
     increment_workflow(builder, [
         WorkflowStep(step.usage, step.phase, tuple(
-            WorkflowParameter(p.name, typed(p.type), kind=METACLASS[p.keyword], direction=p.direction,
+            WorkflowParameter(p.name, typed(p.type), kind=_metaclass(p.keyword), direction=p.direction,
                               bounds=(p.multiplicity[0], INFINITY if p.multiplicity[1] == "*" else p.multiplicity[1]))
             for p in step.parameters), tuple(
             WorkflowCheck(c.name, c.check, c.about, advisory=True if c.advisory else None, doc=c.claim)
@@ -142,11 +152,11 @@ def _evaluate(scenario):
     return evaluate_increment(view, scenario.increment_id, revision=REVISION)
 
 
-def test_the_workflow_file_declares_thirteen_steps_some_without_checks() -> None:
-    """The premise of the coverage answers: phases exist that no executable check judges."""
+def test_the_oracle_finds_one_step_per_phase() -> None:
+    """The lexical oracle reads the 13 steps (whether or not a phase has checks yet)."""
     steps = _workflow_steps()
     assert [step.phase for step in steps] == list(PHASE_LITERALS)
-    assert any(not step.checks for step in steps) and any(step.checks for step in steps)
+    assert any(step.checks for step in steps)
 
 
 def test_phase_contract_lists_every_step_the_file_declares_with_its_outputs() -> None:
@@ -157,7 +167,7 @@ def test_phase_contract_lists_every_step_the_file_declares_with_its_outputs() ->
     for record, step in zip(listed, steps):
         assert [(o["parameter"], o["multiplicity"]) for o in record["outputs"]] == [
             (p.name, p.multiplicity) for p in step.outputs], step.usage
-        assert [o["sysml_type"] for o in record["outputs"]] == [METACLASS[p.keyword] for p in step.outputs]
+        assert [o["sysml_type"] for o in record["outputs"]] == [_metaclass(p.keyword) for p in step.outputs]
         assert [(o["type"] or "").rsplit("::", 1)[-1] or None for o in record["outputs"]] == [
             p.type for p in step.outputs], step.usage
         assert record["checks"] == [check.name for check in step.checks], step.usage
@@ -176,8 +186,7 @@ def test_status_reports_every_declared_phase_and_says_which_no_check_judges() ->
     assert [block["phase"] for block in status["phases"]] == [
         step.phase for step in steps if step.checks or step.phase in DECLARED]
     blocks = {block["phase"]: block for block in status["phases"]}
-    unchecked = [step.phase for step in steps if not step.checks and step.phase in DECLARED]
-    assert unchecked  # phases 1-3 and 6-9 at the time of writing
+    unchecked = [step.phase for step in steps if not step.checks and step.phase in DECLARED]  # 1-3, 6-9 today
     for step in steps:
         block = blocks.get(step.phase)
         if step.checks:
@@ -198,8 +207,10 @@ def test_status_reports_every_declared_phase_and_says_which_no_check_judges() ->
     coverage = status["coverage"]
     assert coverage["declared_phases_without_executable_checks"] == unchecked
     assert coverage["phases_with_executable_checks"] == [step.phase for step in steps if step.checks]
-    assert [b["phase"] for b in evaluation.status(phase=unchecked[0])["phases"]] == [unchecked[0]]
-    assert evaluation.status(phase=PHASE_LITERALS[12])["phases"] == []
+    for phase in unchecked[:1]:  # once every declared phase has checks, the frozen-cut tests still cover this
+        assert [b["phase"] for b in evaluation.status(phase=phase)["phases"]] == [phase]
+    last = steps[-1]  # declared by no charter here: listed only when checks judge it
+    assert [b["phase"] for b in evaluation.status(phase=last.phase)["phases"]] == ([last.phase] if last.checks else [])
     for answer in (evaluation.gaps(), evaluation.next_obligation()):
         assert answer["coverage"] == coverage
 
