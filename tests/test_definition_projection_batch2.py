@@ -19,6 +19,8 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DATA = "de4sdv/semantic/contract-data/"
+#: Recorded values of the manifest-held contract fields (owner decision D9).
+MANIFEST_HELD_FIXTURE = "tests/fixtures/manifest-held-contract-fields.json"
 MANIFEST_PATH = DATA + "kernel-vocabulary-admission.yaml"
 REGISTER_PATH = DATA + "ontology-identity-register.json"
 SUCCESSOR_FILE = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
@@ -165,6 +167,43 @@ def test_projection_scope_echoes_the_owner_visible_exceptions():
 # ---------------------------------------------------------------------------
 # 2. Manifest-held contract labels, successors and retired names
 # ---------------------------------------------------------------------------
+
+
+def test_manifest_held_contract_fields_equal_the_recorded_values():
+    """The manifest holds 54 rows' contract fields itself instead of the model
+    (owner decision D9): kernel mapping, subclass and disjointness pins, and
+    relation domain/range/direction/strength with mechanics. They feed the served
+    class mappings and relationship specs, so each value and each row's admission
+    class stay locked to the record made when they were last proven equal to the
+    authored ontology. Changing one needs a reviewed update of the fixture."""
+    from model_contract_fixtures import manifest_held_values
+
+    recorded = _json(MANIFEST_HELD_FIXTURE)
+    rows = _rows()
+    assert set(recorded["entries"]) == set(rows)
+    held = {identity: entry for identity, entry in recorded["entries"].items() if entry["manifest"]}
+    assert len(held) == recorded["rows_with_manifest_held_contract_fields"] == 54
+    for identity, row in rows.items():
+        entry = recorded["entries"][identity]
+        assert row["admission_class"] == entry["admission_class"], identity
+        assert manifest_held_values(row) == entry["manifest"], identity
+    assert {i for i, r in rows.items() if "mechanics" in r} == {
+        "specifiesFunction", "hasRelevantEvidenceContract", "hasEvidence"}
+    assert rows["realizedBy"]["admission_class"] == "retired-name"
+
+
+def test_manifest_gates_match_the_register_gate_decisions():
+    """Each retained row's gates are exactly the register's gate decisions (plus
+    its row blocker); the merged retired name keeps only its blocker."""
+    register = _register()
+    for identity, row in _rows().items():
+        reg = register.get(identity)
+        expected = set()
+        if reg is not None and reg["accounting_status"] == "retained":
+            expected = set(reg["gate_decisions"]) | ({"row-blocker"} if reg["blockers"] else set())
+        elif reg is not None:
+            expected = {"row-blocker"} if reg["blockers"] else set()
+        assert {gate["gate"] for gate in row["gates"]} == expected, identity
 
 
 def test_every_contract_row_is_labeled_manifest_held():

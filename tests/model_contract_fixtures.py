@@ -155,6 +155,23 @@ def current_definition(identity: str) -> str:
     return text
 
 
-__all__ = ["admission_row",
+def manifest_held_values(row: dict[str, Any]) -> dict[str, Any]:
+    """The contract fields one kernel-vocabulary manifest row holds itself
+    (owner decision D9): class pins, or a relation with its mechanics.
+    Definition text is excluded; the model owns it."""
+    values: dict[str, Any] = {}
+    if row["semantic_kind"] == "class":
+        grounding = row["grounding"]
+        values.update(kernel_mapping=grounding["kernel_mapping"],
+                      sub_class_of=grounding["sub_class_of"],
+                      disjoint_with=list(grounding["disjoint_with"]))
+    elif row["admission_class"] != "successor":
+        values["relation"] = dict(row["relation"])
+        if "mechanics" in row:
+            values["mechanics"] = dict(row["mechanics"])
+    return values
+
+
+__all__ = ["admission_row", "manifest_held_values",
            "current_definition", "owned_definition_documentation", "REPO_ROOT", "binding", "binding_dict", "model_contract",
            "model_facade", "model_service", "semantic_authority_dict", "synthetic_identity"]
