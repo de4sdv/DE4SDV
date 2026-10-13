@@ -328,6 +328,7 @@ Unregistered prefixes or subjects fail `scripts/check_naming.py`.
 | `AEBS` | Autonomous Emergency Braking System | System 1 AEBS product-line subject; includes the AEBS visualization System 2 test system |
 | `MW` | Middleware | Registered compact trace namespace: `MW = Middleware` inside identifiers (`INC-MW-010`, `REQ-MW-*`, `AC-MW-010-02`, `MW-CONFIG-001`). Canonical semantic names never use it: filenames use `middleware_*`, SysML packages use `Middleware` (batch 1 migrated these). New trace-ID families SHOULD pick a readable subject code; `MW` is retained because existing AC/VC/EVID/E/GAP/BL/CLM/AGT/CCM/REQ/N families for the middleware subject are stable, provenance-bearing identities. |
 | `UNECE` | UNECE regulation anchor | Subject of the `SRC-UNECE-R152` form (`TYPE=SRC`, `SUBJECT=UNECE`, remainder `R152` is the free-form rest segment, not a subject) |
+| `EXAMPLE` | Method tests (reserved) | Reserved for method tests and throwaway increments (for example `INC-EXAMPLE-001`), so they never edit this registry; real engineering content never uses it. |
 
 New subjects (e.g. a future `PER` perception subject) must be added here in
 the same commit that first uses them.

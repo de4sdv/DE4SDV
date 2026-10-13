@@ -162,6 +162,14 @@ def test_sysml_short_names_follow_the_grandfathered_sets():
     assert any("unregistered" in e for e in errors), errors
 
 
+def test_reserved_example_subject_serves_method_tests():
+    """EXAMPLE is reserved for method tests and throwaway increments (decision
+    D12), so they never edit the subject registry."""
+    assert "EXAMPLE" in check_naming.REGISTERED_SUBJECTS
+    assert _sysml_errors("part <'INC-EXAMPLE-001'> incExample : SomeIncrement;\n") == []
+    assert _yaml_errors("requirement_id: REQ-EXAMPLE-001\n") == []
+
+
 def test_sysml_short_name_shapes_in_prose_or_strings_are_not_scanned():
     text = (
         "doc /* the form <'BOGUS-AEBS-001'> is prose here */\n"

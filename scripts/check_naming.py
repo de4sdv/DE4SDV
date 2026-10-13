@@ -381,6 +381,7 @@ REGISTERED_SUBJECTS = {
     "AEBS",
     "MW",  # legacy registered code; canonical spelling is `middleware`
     "UNECE",
+    "EXAMPLE",  # reserved for method tests and throwaway increments (decision D12)
 }
 
 # ID-shaped token: PREFIX-SUBJECT(-...). Governed IDs are all-caps tokens
