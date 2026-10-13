@@ -467,7 +467,7 @@ def test_an_increment_without_identifier_is_reported_as_not_evaluated(tmp_path: 
     assert legacy["reason"].startswith("its increment usage carries no increment identifier")
     assert any("legacyCharter" in note for note in result["notes"])  # the JSON keeps the note
     lines = summary.splitlines()
-    assert "| `incLegacy` | not evaluated | none | - | - |" in lines
+    assert "| `incLegacy` | not evaluated | - | - | - |" in lines  # "none" would read as "no open check"
     assert "### `incLegacy` (not evaluated)" in lines
     assert ("Increment usage `DE4SDV_FirstFraming::incLegacy`; charter `DE4SDV_FirstFraming::legacyCharter`"
             in lines)

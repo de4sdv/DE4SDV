@@ -480,7 +480,8 @@ def render_summary(result: Mapping[str, Any], *, artifact: str | None = None, ru
     if increments or not_evaluated:
         lines += ["| Increment | Outcome | Next | Blocking | Advisory |", "| --- | --- | --- | ---: | ---: |"]
         lines += [_overview_row(entry) for entry in increments]
-        lines += [f"| {_code(_usage_label(entry), cell=True)} | not evaluated | none | - | - |"
+        # Nothing was evaluated, so Next is "-": "none" would claim no check is open.
+        lines += [f"| {_code(_usage_label(entry), cell=True)} | not evaluated | - | - | - |"
                   for entry in not_evaluated] + [""]
         for entry in increments:
             lines += _increment_section(entry)
