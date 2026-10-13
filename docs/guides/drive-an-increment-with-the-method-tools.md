@@ -190,6 +190,10 @@ jq '.increments[] | {id, outcome, next: .next.gate, counts}' method-check.json
 
 The top-level `errors` lists technical errors, and `notes` lists what could
 not be evaluated, such as a charter whose increment carries no identifier.
+Such an increment is also listed in `not_evaluated` with its `usage`,
+`charters` and `reason` (outcome `not-evaluated`), and the summary shows it
+as a "not evaluated" row: the method finds an increment only by its
+identifier, so it never evaluates one without it.
 The artifact also holds one `<increment id>.json` per increment and the
 summary as `method-check.md`. The export stays available for three days as
 `method-check-export-<sha>`, so you can repeat the evaluation locally with

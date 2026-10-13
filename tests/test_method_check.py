@@ -73,6 +73,16 @@ def _declares_unchecked_phases(builder: ModelBuilder) -> None:
     cut_workflow(fifth)
 
 
+def _legacy_increment(builder: ModelBuilder) -> None:
+    """After _gappy: a charter whose increment usage carries no identifier, like a legacy increment."""
+    framing = next(e for e in builder.elements if e.get("declaredName") == "DE4SDV_FirstFraming")
+    definition = next(e for e in builder.elements if e.get("declaredName") == "FirstIncrement")
+    legacy = builder.usage("PartUsage", "incLegacy", framing, [definition])
+    charter = builder.usage("PartUsage", "legacyCharter", framing,
+                            [builder.kernel_definition("IncrementTraceObligations")])
+    builder.attribute(charter, "increment", legacy, kind="PartUsage")
+
+
 def _export(tmp_path: Path, *parts, git_commit: str = GIT, kernel: str = "cut") -> Path:
     builder = cut_method_builder("method-check") if kernel == "cut" else ModelBuilder(label="method-check")
     for part in parts:
@@ -441,3 +451,27 @@ def test_declared_phases_without_executable_checks_are_reported_never_dropped(tm
             "phase2_operationalContext (specifyOperationalContext: operationalContext)") in lines
     assert ("**Next:** none. every required gate passes or is not applicable; no executable checks at this revision "
             "judge the declared phases phase1_concernFraming, phase2_operationalContext") in lines
+
+
+def test_an_increment_without_identifier_is_reported_as_not_evaluated(tmp_path: Path, real_reports) -> None:
+    """Owner decision D14: a charter's increment the method cannot identify is listed as not evaluated,
+    with the reason, beside the evaluated increments; it is reported, never a technical error."""
+    export = _export(tmp_path, _gappy, _legacy_increment)
+    code, result, summary = _run(tmp_path, export, EntryPointSpy(real_reports))
+    assert code == 0 and result["errors"] == []
+    assert [entry["id"] for entry in result["increments"]] == [FIRST]
+    (legacy,) = result["not_evaluated"]
+    assert (legacy["outcome"], legacy["usage"]["qualified_name"]) == (
+        "not-evaluated", "DE4SDV_FirstFraming::incLegacy")
+    assert [charter["qualified_name"] for charter in legacy["charters"]] == ["DE4SDV_FirstFraming::legacyCharter"]
+    assert legacy["reason"].startswith("its increment usage carries no increment identifier")
+    assert any("legacyCharter" in note for note in result["notes"])  # the JSON keeps the note
+    lines = summary.splitlines()
+    assert "| `incLegacy` | not evaluated | none | - | - |" in lines
+    assert "### `incLegacy` (not evaluated)" in lines
+    assert ("Increment usage `DE4SDV_FirstFraming::incLegacy`; charter `DE4SDV_FirstFraming::legacyCharter`"
+            in lines)
+    assert ("**Not evaluated:** its increment usage carries no increment identifier (INC-&lt;SUBJECT&gt;-&lt;SEQ&gt;) "
+            "as its declared short name, and the method finds an increment only by that short name") in lines
+    assert not any(line.startswith("- charter") for line in lines)  # not repeated among the notes
+    assert ", 1 increment, 1 not evaluated" in summary

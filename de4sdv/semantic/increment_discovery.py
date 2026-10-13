@@ -17,6 +17,10 @@ What cannot be evaluated is reported as a note, never guessed: a charter
 whose increment usage carries no identifier, an identifier-shaped short name
 on an element outside the increment lineage, and an identifier that several
 increment usages carry (listed once; its evaluation reports the ambiguity).
+A charter's increment that cannot be identified is also recorded as not
+evaluated, with its usage, charters and reason, so reports can list it
+beside the evaluated increments (owner decision D14); it is never matched to
+an identifier by its name.
 A missing kernel binding of either lineage raises
 :class:`IdentityNotFoundError`; it is never an empty result.
 """
@@ -48,11 +52,24 @@ class DeclaredIncrement:
 
 
 @dataclass(frozen=True)
+class UnidentifiedIncrement:
+    """A charter's increment usage the method cannot evaluate: it is not identified as an increment."""
+
+    usage: Mapping[str, Any]
+    charters: tuple[Mapping[str, Any], ...]
+    reason: str
+    #: The notes this record stands for (one per charter that references the usage).
+    notes: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class IncrementDiscovery:
     """Every declared increment (identifier order) and what could not be evaluated."""
 
     increments: tuple[DeclaredIncrement, ...]
     notes: tuple[str, ...]
+    #: The charters' increments that are not evaluated (qualified-name order).
+    not_evaluated: tuple[UnidentifiedIncrement, ...] = ()
 
     @property
     def increment_ids(self) -> tuple[str, ...]:
@@ -87,6 +104,7 @@ def declared_increments(view: ModelView) -> IncrementDiscovery:
         if identifier is not None and view.in_lineage(usage, INCREMENT_CLASS):
             usages.setdefault(identifier, set()).add(usage)
 
+    unidentified: dict[str, dict[str, list[str]]] = {}
     for charter in _ordered(view, [c for c in index.elements_of_type("PartUsage")
                                            if view.in_lineage(c, CHARTER_CLASS)]):
         referenced = [leaf.value for leaf in index.feature_values(charter, INCREMENT_ATTRIBUTE)
@@ -94,9 +112,12 @@ def declared_increments(view: ModelView) -> IncrementDiscovery:
         for usage in referenced:
             identifier = _identifier(index.element(usage).get("declaredShortName"))
             if identifier is None or not view.in_lineage(usage, INCREMENT_CLASS):
-                notes.append(
-                    f"charter {label(charter)} references {label(usage)}, which carries no increment "
-                    "identifier as the declared short name of an increment usage; it is not evaluated")
+                note = (f"charter {label(charter)} references {label(usage)}, which carries no increment "
+                        "identifier as the declared short name of an increment usage; it is not evaluated")
+                notes.append(note)
+                record = unidentified.setdefault(usage, {"charters": [], "notes": []})
+                record["charters"].append(charter)
+                record["notes"].append(note)
                 continue
             usages.setdefault(identifier, set()).add(usage)
             charters_of.setdefault(identifier, set()).add(charter)
@@ -121,4 +142,21 @@ def declared_increments(view: ModelView) -> IncrementDiscovery:
             usage=view.describe(ordered[0]),
             charters=tuple(view.describe(charter) for charter in charters),
         ))
-    return IncrementDiscovery(increments=tuple(increments), notes=tuple(notes))
+    not_evaluated = tuple(
+        UnidentifiedIncrement(
+            usage=view.describe(usage),
+            charters=tuple(view.describe(charter) for charter in unidentified[usage]["charters"]),
+            reason=_not_evaluated_reason(view, usage),
+            notes=tuple(unidentified[usage]["notes"]),
+        )
+        for usage in _ordered(view, unidentified))
+    return IncrementDiscovery(increments=tuple(increments), notes=tuple(notes), not_evaluated=not_evaluated)
+
+
+def _not_evaluated_reason(view: ModelView, usage: str) -> str:
+    """Why a charter's increment usage is not evaluated."""
+    if _identifier(view.index.element(usage).get("declaredShortName")) is None:
+        return ("its increment usage carries no increment identifier (INC-<SUBJECT>-<SEQ>) as its declared short "
+                "name, and the method finds an increment only by that short name")
+    return ("its increment usage carries an increment identifier but is not a part usage in the "
+            "EngineeringIncrement lineage, so the method cannot evaluate it as an increment")
