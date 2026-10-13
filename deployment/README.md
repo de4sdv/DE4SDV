@@ -246,8 +246,9 @@ and activation ceremony is retired):
 1. **A clean checkout of the deployed commit.** On the host,
    `/srv/de4sdv/DE4SDV`, mounted read-only into the ask-viewer. The
    ask-viewer image holds only the Python runtime: its entry point and the
-   viewer run from this checkout, and `deploy.py` rebuilds the image on
-   every deploy so a Dockerfile change takes effect.
+   viewer run from this checkout. `deploy.py` builds the image before it
+   stops the proxy, so a Dockerfile change takes effect and a failed build
+   changes nothing.
 2. **The deployment binding.** `/srv/de4sdv/artifacts/current/de4sdv-full-model-binding.json`,
    written by this deploy's own import: a revision binding v2 with the
    ingestion-validated kernel bindings (ADR 0011) and the `served_model`

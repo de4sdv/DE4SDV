@@ -269,8 +269,8 @@ def recreate_ask_viewer(repo: Path, git_commit: str) -> None:
     element, and warmup crashed the worker mid-request). The compose file
     requires DE4SDV_APP_GIT_SHA (the entrypoint fails closed unless the
     mounted checkout HEAD matches it) and DE4SDV_ASK_ENV_FILE carries the
-    ask-model credentials. ``--build`` applies image changes from the
-    deployed revision; a build that changes nothing reuses the cached image.
+    ask-model credentials. ``main`` builds the image before the proxy
+    stops, so this step only recreates the container from it.
     """
     env = dict(os.environ)
     env["DEPLOY_DIR"] = str(DEPLOY_DIR)
@@ -288,7 +288,6 @@ def recreate_ask_viewer(repo: Path, git_commit: str) -> None:
             str(DEPLOY_DIR / "sysml2-api.env"),
             "up",
             "-d",
-            "--build",
             "--force-recreate",
             "ask-viewer",
         ],
@@ -553,6 +552,14 @@ def main() -> int:
 
         validate_repo_head(args.repo, evidence["git_commit"])
         print("exact Git checkout verified at the bundle SHA")
+
+        # Build the Ask viewer image from this checkout before anything on
+        # the host changes: a failed build (registry or network outage)
+        # refuses the deploy while the previous stack still serves.
+        # `build ask-viewer` builds that service only; `up --build` would
+        # also rebuild its depends_on chain (the API image) after the import.
+        compose("build", "ask-viewer", repo=args.repo)
+        print("ask-viewer image built for the deployed revision")
 
         # Fail-closed redeploy sequence: the public proxy is stopped FIRST
         # and only started again after the new deployment-status.json has

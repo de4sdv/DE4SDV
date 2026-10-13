@@ -1,4 +1,5 @@
 import json
+import re
 import subprocess
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -151,7 +152,7 @@ def test_ask_viewer_runs_the_entrypoint_of_the_mounted_checkout():
     dockerfile = (
         Path("deployment/ask_viewer/Dockerfile").read_text(encoding="utf-8")
     )
-    assert "COPY" not in dockerfile
+    assert not re.search(r"(?im)^\s*(COPY|ADD)\b", dockerfile)
     assert (
         'ENTRYPOINT ["python", '
         '"/srv/de4sdv/DE4SDV/deployment/ask_viewer/entrypoint.py"]'
