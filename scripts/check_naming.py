@@ -12,7 +12,8 @@ naming convention (docs/naming/naming-conventions.md):
 Governed textual surface (documented in naming-conventions.md section 11):
 
 - .sysml under the model roots — comment/doc/string content is scrubbed
-  (SysML prose is not a governed identifier surface); code tokens are governed.
+  (SysML prose is not a governed identifier surface); code tokens are governed,
+  including short names (`<'INC-AEBS-010'>`), which carry an element's identity.
 - .yaml/.yml under the governed areas — scanned RAW: identifiers inside
   normal scalar values, including quoted values, are governed data.
 - .md — fenced code blocks are illustrative examples and are stripped;
@@ -482,19 +483,40 @@ def _is_ignored_runtime_path(path: Path, repository: Path | None = None) -> bool
 # section 5.
 _URL_LINE_ANCHOR = re.compile(r"#L\d+(?:-L\d+)?")
 
+# A quoted SysML short name (`<'INC-AEBS-010'>`) is an element's identity, not
+# prose. A basic short name (`<incTest>`) is an unquoted code token that the
+# scrub keeps anyway, and it cannot hold a hyphenated identifier.
+_SYSML_SHORT_NAME = re.compile(r"<\s*'((?:\\.|[^'\\\n])*)'\s*>")
+
+
+def _scrub_sysml_keeping_short_names(text: str) -> str:
+    """Scrub SysML comments, doc blocks and strings, but keep short names.
+
+    The scrub preserves positions, so a candidate is a short name exactly when
+    its `<` and `>` survive it (both are code, outside any comment or string);
+    its quoted text is then restored in place.
+    """
+    scrubbed = _check_repo._scrub_comments_and_strings(text)
+    kept = list(scrubbed)
+    for match in _SYSML_SHORT_NAME.finditer(text):
+        if scrubbed[match.start()] == "<" and scrubbed[match.end() - 1] == ">":
+            kept[match.start(1):match.end(1)] = text[match.start(1):match.end(1)]
+    return "".join(kept)
+
 
 def _prepare_text_for_suffix(text: str, suffix: str) -> str:
     """Artifact-aware preparation before ID scanning.
 
-    - SysML: comments, doc blocks, and quoted strings are scrubbed (SysML
-      prose is not a governed identifier surface; code tokens are).
+    - SysML: comments, doc blocks, and strings are scrubbed (SysML prose is
+      not a governed identifier surface; code tokens are). Short names
+      (`<'INC-AEBS-010'>`) are identities and stay governed.
     - Markdown: fenced code blocks are illustrative examples and are
       stripped; inline and prose text stays governed.
     - YAML (and everything else): returned raw — quoted scalar values ARE
       governed identifiers.
     """
     if suffix == ".sysml":
-        text = _check_repo._scrub_comments_and_strings(text)
+        text = _scrub_sysml_keeping_short_names(text)
     elif suffix == ".md":
         text = _MD_FENCE.sub(" ", text)
     text = _URL_LINE_ANCHOR.sub(" ", text)

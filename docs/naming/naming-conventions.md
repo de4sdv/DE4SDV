@@ -453,7 +453,9 @@ Artifact-aware rules (small and explicit, no heuristic parser):
 
 - **SysML**: comments, doc blocks, and quoted strings are scrubbed before
   scanning — SysML prose is not a governed identifier surface; code tokens
-  are. Governed IDs appear in YAML/MD companions, not SysML prose.
+  are. A short name (`part <'INC-AEBS-010'> incAEBS010`) is a code token that
+  carries the element's identity, so it is scanned like a YAML value. Other
+  governed IDs appear in YAML/MD companions, not SysML prose.
 - **YAML**: scanned raw — identifiers inside normal scalar values, including
   quoted values, are governed data (`requirement_id: "REQ-AEBS-001"` is
   checked).

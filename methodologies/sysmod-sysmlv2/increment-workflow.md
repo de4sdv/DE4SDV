@@ -39,6 +39,9 @@ this shape, which the method checks read:
   as its declared short name, for example
   `part <'INC-AEBS-010'> incAEBS010 : VisualizationIncrement`. Its definition
   specializes `EngineeringIncrement`, and the usage name keeps its identity.
+  The repository check validates every short name against the identifier and
+  subject registries of the
+  [naming conventions](../../docs/naming/naming-conventions.md).
 - **Charter declaration:** exactly one `IncrementCharter` usage references the
   increment. It declares the applicable phases and, as plain attributes, the
   owner, the expected artifacts and the expected review evidence. It also

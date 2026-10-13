@@ -130,6 +130,61 @@ def test_sysml_quoted_charset_fragment_does_not_false_positive():
     assert _sysml_errors(text) == []
 
 
+# ---------------------------------------------------------------------------
+# SysML short names are identities, not prose (they are scanned)
+# ---------------------------------------------------------------------------
+
+
+def test_sysml_short_name_with_unregistered_subject_is_rejected():
+    """`<'INC-TEST-001'>` is the increment's identity: its subject must be registered."""
+    errors = _sysml_errors("part <'INC-TEST-001'> incTest : SomeIncrement;\n")
+    assert any("'TEST'" in e for e in errors), errors
+
+
+def test_sysml_short_name_with_unregistered_prefix_is_rejected():
+    errors = _sysml_errors("requirement <'BOGUS-AEBS-001'>reqBogus : SomeRequirement;\n")
+    assert any("'BOGUS-'" in e for e in errors), errors
+
+
+def test_sysml_short_names_with_registered_identities_are_accepted():
+    text = (
+        "part <'INC-AEBS-010'> incAEBS010 : VisualizationIncrement;\n"
+        "verification <'VC-AEBS-009D-01'>overrideVerification : SomeVerification;\n"
+        "requirement < 'REQ-MW-001' > reqMiddleware : SomeRequirement;\n"
+        "requirement <'EC-009D-01'>evidenceContract : SomeContract;\n"
+    )
+    assert _sysml_errors(text) == []
+
+
+def test_sysml_short_names_follow_the_grandfathered_sets():
+    assert _sysml_errors("requirement <'N-AEBS-001'> needLegacy : SomeNeed;\n") == []
+    errors = _sysml_errors("requirement <'N-AEBS-015'> needSibling : SomeNeed;\n")
+    assert any("unregistered" in e for e in errors), errors
+
+
+def test_sysml_short_name_shapes_in_prose_or_strings_are_not_scanned():
+    text = (
+        "doc /* the form <'BOGUS-AEBS-001'> is prose here */\n"
+        "// <'BOGUS-AEBS-002'> in a note\n"
+        "attribute example = \"<'BOGUS-AEBS-003'>\";\n"
+    )
+    assert _sysml_errors(text) == []
+
+
+def test_real_model_short_names_are_on_the_scanned_surface():
+    """The reference increment's short name reaches the scan; the same file with
+    an unregistered subject in that short name fails (planted on a copy)."""
+    framing = ROOT / "textual-notation-of-model/packages/features/aebs/aebs_visualization_framing.sysml"
+    text = framing.read_text(encoding="utf-8")
+    prepared = check_naming._prepare_text_for_suffix(text, suffix=".sysml")
+    assert "INC-AEBS-010" in [m.group(0) for m in check_naming._ID_TOKEN.finditer(prepared)]
+    assert _sysml_errors(text, name="framing.sysml") == []
+    planted = text.replace("<'INC-AEBS-010'>", "<'INC-TEST-010'>", 1)
+    assert planted != text
+    errors = _sysml_errors(planted, name="framing.sysml")
+    assert errors == ["unregistered identifier subject 'TEST' in framing.sysml"], errors
+
+
 def test_markdown_fenced_example_is_exempt():
     """Fenced code blocks are illustrative examples, not governed IDs."""
     text = "Example:\n\n```yaml\nrequirement_id: \"BOGUS-AEBS-001\"\n```\n"
