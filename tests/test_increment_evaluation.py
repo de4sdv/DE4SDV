@@ -87,6 +87,52 @@ def test_an_unidentified_increment_is_told_to_declare_its_identifier() -> None:
     assert step["what_to_author"].startswith("declare the increment usage with its identifier")
 
 
+def test_an_increment_not_declared_at_the_revision_is_named_with_a_distinct_reason() -> None:
+    """Branch work is invisible to another revision: every answer says the increment isn't declared at
+    this revision, names the revision and points to the PR Method Check, instead of an empty reason."""
+    evaluation = _evaluate(_scenario(), "INC-EXAMPLE-001")
+    answers = (evaluation.status(), evaluation.gaps(), evaluation.next_obligation(), evaluation.phase_contract())
+    for answer in answers:
+        block = answer["increment"]
+        assert (block["id"], block["resolved"], block["reason_code"]) == (
+            "INC-EXAMPLE-001", False, "INCREMENT_NOT_DECLARED"), answer["query"]
+        assert block["message"].startswith(f"INC-EXAMPLE-001 isn't declared at revision {REVISION.git_commit}")
+        assert "PR Method Check" in block["message"]
+    answer = evaluation.next_obligation()
+    assert (answer["reason_code"], answer["reason"]) == ("INCREMENT_NOT_DECLARED", answer["increment"]["message"])
+    assert answer["next"]["gate"] == "incrementHasIdentifier"  # a new increment still learns how to declare itself
+
+
+def test_a_declared_increment_has_no_such_reason_and_next_always_says_why() -> None:
+    complete = _evaluate(_scenario())
+    assert "reason_code" not in complete.status()["increment"]
+    assert "reason_code" not in complete.next_obligation()
+    assert complete.next_obligation()["reason"] == "every required gate passes or is not applicable"
+    scenario = _scenario()
+    scenario.builder.remove(scenario.builder.feature_of(scenario.charter, "owner"))
+    gappy = _evaluate(scenario).next_obligation()
+    assert gappy["next"]["gate"] == "incrementHasOwner"
+    assert gappy["reason"] == "the first open blocking check in workflow order (step order, then check order)"
+    ambiguous = _scenario()  # declared twice: ambiguous, not undeclared
+    ambiguous.builder.usage("PartUsage", "incFixtureCopy", ambiguous.framing, [ambiguous.definition],
+                            short=ambiguous.increment_id)
+    block = _evaluate(ambiguous).status()["increment"]
+    assert block["resolved"] is False and "reason_code" not in block
+
+
+def test_next_none_says_which_declared_phases_no_check_judges() -> None:
+    """0 blocking says nothing about a declared phase without executable checks; the reason says so."""
+    evaluation = _evaluate(_scenario(applicable_phases=(P0, "phase1_concernFraming", P4, P5, P10)))
+    answer = evaluation.next_obligation()
+    assert answer["next"] is None
+    assert answer["reason"] == ("every required gate passes or is not applicable; no executable checks at this "
+                                "revision judge the declared phase phase1_concernFraming")
+    assert answer["coverage"]["declared_phases_without_executable_checks"] == ["phase1_concernFraming"]
+    (block,) = [b for b in evaluation.status()["phases"] if b["phase"] == "phase1_concernFraming"]
+    assert (block["coverage"], block["phase_exit"]) == ("no executable checks at this revision", "BLOCKED")
+    assert [output["parameter"] for output in block["outputs"]] == ["stakeholders", "concerns"]
+
+
 def test_next_takes_the_earliest_open_check_in_workflow_order() -> None:
     scenario = _scenario()
     builder = scenario.builder
@@ -204,6 +250,16 @@ def test_phase_contract_lists_checks_with_increment_applicability_and_no_verdict
     assert evaluation.phase_contract()["phases"] == [P0, P4, P5, P10]
 
 
+
+def test_at_least_one_assumption_reads_on_the_population_not_the_cardinality() -> None:
+    """T4 finding L2: "owns at least one assumption" showed cardinality [1, 1]. The cardinality counts the
+    owning package of each assumption (exactly one); the population counts the assumptions."""
+    gates = {gate["obligation_id"]: gate for gate in _evaluate(_scenario()).phase_contract(phase=P0)["gates"]}
+    for name in ("incrementHasAssumption", "incrementHasOutOfScopeItem"):
+        assert "at least one" in gates[name]["claim_boundary"]
+        assert (gates[name]["population"], gates[name]["cardinality"]) == ([1, "*"], [1, 1]), name
+    assert gates["incrementHasScope"]["population"] == [1, 1]  # "owns exactly one scope"
+
 @pytest.mark.parametrize("increment_id", ["INC-FIXTURE-001"])
 def test_status_names_the_resolved_increment_and_its_scope(increment_id: str) -> None:
     status = _evaluate(_scenario(), increment_id).status()
@@ -225,6 +281,20 @@ def test_a_phase_without_checks_is_unassessed_never_a_pass() -> None:
     contract = evaluation.phase_contract(phase="phase1_concernFraming")
     assert contract["executable_contract_available"] is False
     assert contract["reason_codes"] == [me.CONTRACT_UNAVAILABLE]
+
+
+def test_a_phase_without_checks_still_lists_what_its_step_declares() -> None:
+    evaluation = _evaluate(_scenario())
+    contract = evaluation.phase_contract(phase="phase1_concernFraming")
+    (step,) = contract["steps"]
+    assert (step["step"], step["executable_checks"], step["coverage"]) == (
+        "frameConcerns", 0, "no executable checks at this revision")
+    assert [output["parameter"] for output in step["outputs"]] == ["stakeholders", "concerns"]
+    assert step["applicability_resolution"] == "not_applicable"  # the charter declares phases 0, 4, 5 and 10
+    assert contract["phases_without_executable_checks"] == ["phase1_concernFraming"]
+    whole = evaluation.phase_contract()
+    assert len(whole["steps"]) == 13
+    assert whole["phases"] == [P0, P4, P5, P10]
 
 
 def test_an_empty_required_inventory_cannot_open_a_phase_exit() -> None:

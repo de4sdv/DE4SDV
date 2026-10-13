@@ -7,7 +7,8 @@ the evaluation entry point ``scripts/evaluate_increment.py`` once per
 increment, and writes:
 
 - ``<output-dir>/method-check.json``: per increment, ``next`` (the first
-  check the agent can act on), the gap counts, the phase exits and the full
+  check the agent can act on), the gap counts, the phase exits, the declared
+  phases without executable checks (reported, never evaluated) and the full
   entry-point report under ``evaluation``;
 - ``<output-dir>/<increment id>.json``: each entry-point report;
 - ``<output-dir>/method-check.md``: a readable summary, also appended to
@@ -189,7 +190,7 @@ def _evaluate(increment: DeclaredIncrement, export: Path, output_dir: Path,
         "id": identifier, "outcome": OUTCOME_ERROR, "usage": dict(increment.usage),
         "charters": [dict(charter) for charter in increment.charters], "report": report_path.name,
         "next": None, "next_reason": "", "counts": {}, "phase_exits": {}, "phase_checks": {},
-        "diagnostics": [], "exit_code": None, "evaluation": None,
+        "phases_without_checks": [], "diagnostics": [], "exit_code": None, "evaluation": None,
     }
     report_path.unlink(missing_ok=True)  # never read a report an earlier run left behind
     run = runner(argv)
@@ -236,8 +237,15 @@ def _evaluate(increment: DeclaredIncrement, export: Path, output_dir: Path,
         "advisory": len(gaps.get("advisory") or []),
         "method_side_blockers": len(next_block.get("method_side_blockers") or []),
     }
-    entry["phase_exits"] = {phase["phase"]: phase.get("phase_exit") for phase in status.get("phases") or []}
-    entry["phase_checks"] = {phase["phase"]: _phase_checks(phase) for phase in status.get("phases") or []}
+    # A declared phase without executable checks is reported apart: it has no evaluated exit.
+    phases = list(status.get("phases") or [])
+    evaluated = [phase for phase in phases if phase.get("executable_checks") != 0]
+    entry["phase_exits"] = {phase["phase"]: phase.get("phase_exit") for phase in evaluated}
+    entry["phase_checks"] = {phase["phase"]: _phase_checks(phase) for phase in evaluated}
+    entry["phases_without_checks"] = [
+        {"phase": phase["phase"], "step": str(phase.get("step") or ""),
+         "outputs": [str(output.get("parameter") or "") for output in phase.get("outputs") or []]}
+        for phase in phases if phase.get("executable_checks") == 0]
     entry["diagnostics"] = [*(status.get("diagnostics") or []), *resolution]
     return entry, []
 
@@ -388,6 +396,13 @@ def _increment_section(entry: Mapping[str, Any]) -> list[str]:
             return f" ({text})"
 
         lines.append("**Phase exits:** " + ", ".join(f"{_plain(p)} {_plain(r)}{tally(p)}" for p, r in exits.items()))
+        lines.append("")
+    unchecked = list(entry.get("phases_without_checks") or [])
+    if unchecked:
+        shown = ", ".join(f"{_plain(item.get('phase'))} ({_plain(item.get('step'))}: "
+                          f"{_plain(', '.join(item.get('outputs') or []) or 'no outputs')})" for item in unchecked)
+        lines.append("**Declared phases without executable checks at this revision** (reported, never evaluated; "
+                     f"the counts above say nothing about them): {shown}")
         lines.append("")
     if diagnostics:
         lines.append("Resolution notes: " + _plain("; ".join(diagnostics)))

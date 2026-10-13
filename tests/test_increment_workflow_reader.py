@@ -28,6 +28,7 @@ from de4sdv.semantic.increment_workflow import (
 from de4sdv.semantic.method_checks import method_checks
 from increment_model_fixtures import (
     INFINITY,
+    PHASE_LITERALS,
     WorkflowCheck,
     WorkflowParameter,
     WorkflowStep,
@@ -113,6 +114,27 @@ def test_the_charter_declares_the_workflow_read_into_one_contract() -> None:
     assert by_id["requirementVerifiedByVerificationCase"].permitted_empty
     assert method.phases == (P0, P4, P5, P10)
     assert method.labels["needFramesConcern"]["check_definition"].endswith("MethodCheck")
+
+
+def test_the_method_lists_every_step_with_its_parameters_whether_or_not_it_has_checks() -> None:
+    """The frozen cut's workflow declares checks in 4 of its 13 steps; the other 9 are listed too."""
+    method = _method(_scenario())
+    steps = method.steps
+    assert [step["phase"] for step in steps] == list(PHASE_LITERALS)
+    assert [step["phase"] for step in steps if step["checks"]] == [P0, P4, P5, P10]
+    assert steps[0]["checks"][:2] == ["incrementHasIdentifier", "incrementHasCharter"]
+    assert len([check for step in steps for check in step["checks"]]) == len(method.contract.obligations)
+    concerns = steps[1]
+    assert (concerns["step"], concerns["definition"], concerns["optional"]) == (
+        "frameConcerns", "DE4SDV_IncrementWorkflow::FrameConcerns", True)
+    assert concerns["documentation"] == "Who cares and why?"
+    assert [(p["parameter"], p["direction"], p["sysml_type"], p["type"], p["multiplicity"])
+            for p in concerns["inputs"] + concerns["outputs"]] == [
+        ("problemStatement", "in", "RequirementUsage", "DE4SDV_MethodContext::ProblemStatement", [1, 1]),
+        ("stakeholders", "out", "PartUsage", "DE4SDV_Stakeholders::Stakeholder", [1, "*"]),
+        ("concerns", "out", "ConcernUsage", None, [1, "*"]),
+    ]
+    assert steps[0]["optional"] is False
 
 
 def test_a_charter_without_a_workflow_has_no_executable_method() -> None:

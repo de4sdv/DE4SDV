@@ -101,6 +101,41 @@ def test_a_model_without_a_workflow_answers_contract_unavailable() -> None:
     assert contract["executable_contract_available"] is False
 
 
+def test_an_increment_the_bound_revision_does_not_declare_is_answered_as_such() -> None:
+    """The served answers evaluate the bound revision only: work on a branch answers
+    INCREMENT_NOT_DECLARED, naming that revision, never an empty reason."""
+    service, _scenario, _repository = _service()
+    server = create_mcp_server(service)
+    answer = _call(server, "next_obligation", {"increment": "INC-EXAMPLE-001"})
+    assert answer["reason_code"] == "INCREMENT_NOT_DECLARED"
+    assert answer["reason"].startswith(f"INC-EXAMPLE-001 isn't declared at revision {'a' * 40} (full-model)")
+    status = _call(server, "increment_status", {"increment": "INC-EXAMPLE-001"})
+    assert status["increment"]["reason_code"] == "INCREMENT_NOT_DECLARED"
+    assert status["increment"]["message"] == answer["reason"]
+
+
+def test_the_served_contract_lists_every_step_and_the_phases_no_check_judges() -> None:
+    service, _scenario, _repository = _service()
+    contract = _call(create_mcp_server(service), "phase_contract", {})
+    assert len(contract["steps"]) == 13
+    assert [step["phase"] for step in contract["steps"] if step["executable_checks"]] == contract["phases"]
+    assert contract["phases_without_executable_checks"] == [
+        step["phase"] for step in contract["steps"] if step["coverage"] == "no executable checks at this revision"]
+
+
+def test_the_tool_descriptions_say_what_each_answer_covers() -> None:
+    service, _scenario, _repository = _service()
+    tools = {tool.name: tool.description for tool in create_mcp_server(service)._tool_manager.list_tools()}
+    for name in ("phase_contract", "increment_status", "method_gaps", "next_obligation"):
+        assert "bound revision" in tools[name], name
+    assert "no executable checks at this revision" in tools["phase_contract"]
+    assert "`population`" in tools["phase_contract"] and "`cardinality`" in tools["phase_contract"]
+    for name in ("increment_status", "method_gaps"):
+        assert "`coverage`" in tools[name], name
+    for name in ("increment_status", "next_obligation"):
+        assert "INCREMENT_NOT_DECLARED" in tools[name], name
+
+
 def test_malformed_increment_identifier_is_refused() -> None:
     service, _scenario, _repository = _service()
     with pytest.raises(ValueError, match="INC-<SUBJECT>-<SEQ>"):

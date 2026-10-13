@@ -27,7 +27,11 @@ def create_mcp_server(service: SemanticQueryService) -> FastMCP:
         "DE4SDV Semantic Queries",
         instructions=(
             "Read-only, revision-bound SysML v2 semantic queries. Results use "
-            "ontology-declared mappings and preserve UUID/revision provenance."
+            "ontology-declared mappings and preserve UUID/revision provenance. "
+            "The method tools evaluate the bound revision only and state what "
+            "they cover: a workflow phase without executable checks is reported, "
+            "never evaluated, and an increment the revision does not declare is "
+            "answered as such (work on a branch is evaluated by the PR Method Check)."
         ),
     )
 
@@ -79,26 +83,40 @@ def create_mcp_server(service: SemanticQueryService) -> FastMCP:
     # (frozen baseline Section 13). ``increment`` is the registered
     # identifier carried as the increment usage's declared short name;
     # ``phase`` (a MethodPhase literal) optionally filters the projection.
+    # Every answer evaluates the bound revision only and says what it
+    # covers (docs/guides/drive-an-increment-with-the-method-tools.md).
     # ------------------------------------------------------------------
 
     @mcp.tool(annotations=_READ_ONLY, structured_output=True)
     def phase_contract(phase: str | None = None, increment: str | None = None) -> dict[str, Any]:
-        """Return the method gates (optionally one phase); with an increment, also its applicability. No verdict."""
+        """Return the method of the bound revision (optionally one phase): every workflow step with its
+        declared inputs and outputs (`steps`; one with coverage "no executable checks at this revision" is
+        never evaluated) and the executable checks (`gates`). Per gate, `population` bounds the number of
+        subjects (the multiplicity of the step parameter) and `cardinality` the distinct targets each subject
+        must reach. With an increment, also whether each step and gate applies to it. No verdict."""
         return service.phase_contract(phase, increment=increment)
 
     @mcp.tool(annotations=_READ_ONLY, structured_output=True)
     def increment_status(increment: str, phase: str | None = None) -> dict[str, Any]:
-        """Per-phase status of one increment: aggregate verdict and phase-exit readiness."""
+        """Per-phase status of one increment at the bound revision: aggregate verdict and phase-exit
+        readiness of the executable checks. A declared phase without executable checks is listed with
+        what its step declares, never evaluated; `coverage` names the phases the verdicts cover. If the
+        revision does not declare the increment, `increment.reason_code` is INCREMENT_NOT_DECLARED."""
         return service.increment_status(phase, increment=increment)
 
     @mcp.tool(annotations=_READ_ONLY, structured_output=True)
     def method_gaps(increment: str, phase: str | None = None) -> dict[str, Any]:
-        """Unmet blocking gates of one increment with subjects and what to author, plus advisory notes."""
+        """Unmet blocking gates of one increment at the bound revision, with subjects and what to author,
+        plus advisory notes. Only phases with executable checks have gates: an empty list says nothing
+        about the declared phases `coverage` lists without executable checks."""
         return service.method_gaps(phase, increment=increment)
 
     @mcp.tool(annotations=_READ_ONLY, structured_output=True)
     def next_obligation(increment: str, phase: str | None = None) -> dict[str, Any]:
-        """The first actionable gate of one increment, in workflow order (step order, then check order), with what to author and where."""
+        """The first actionable gate of one increment at the bound revision, in workflow order (step order,
+        then check order), with what to author and where. `reason` always says why; `reason_code`
+        INCREMENT_NOT_DECLARED means the bound revision does not declare the increment: work on a branch
+        is evaluated by the PR Method Check, not by this revision."""
         return service.next_obligation(phase, increment=increment)
 
     return mcp

@@ -30,6 +30,9 @@ from scripts import method_check
 ROOT = Path(__file__).resolve().parents[1]
 GIT = "e" * 40
 FIRST, SECOND, THIRD, FOURTH = "INC-FIXTURE-001", "INC-FIXTURE-002", "INC-FIXTURE-003", "INC-FIXTURE-004"
+FIFTH = "INC-FIXTURE-005"
+P0, P1, P2, P4, P5, P10 = ("phase0_incrementFraming", "phase1_concernFraming", "phase2_operationalContext",
+                          "phase4_needs", "phase5_requirements", "phase10_vvEvidence")
 
 
 def _gappy(builder: ModelBuilder) -> None:
@@ -61,6 +64,13 @@ def _overpopulated(builder: ModelBuilder) -> None:
     cut_workflow(fourth)
     builder.usage("PartUsage", "fourthSecondQuestion", fourth.framing,
                   [builder.kernel_definition("IncrementEngineeringQuestion")])
+
+
+def _declares_unchecked_phases(builder: ModelBuilder) -> None:
+    """Fifth: complete, and its charter also declares phases 1 and 2, whose steps carry no checks in the cut."""
+    fifth = increment_scenario(builder, increment_id=FIFTH, name="Fifth",
+                               applicable_phases=(P0, P1, P2, P4, P5, P10))
+    cut_workflow(fifth)
 
 
 def _export(tmp_path: Path, *parts, git_commit: str = GIT, kernel: str = "cut") -> Path:
@@ -410,3 +420,24 @@ def test_the_entry_point_evaluates_every_increment_of_a_synthetic_export(tmp_pat
     assert (tmp_path / "result" / f"{FIRST}.json").is_file()
     assert (tmp_path / "result" / "method-check.md").read_text() in summary
     assert "`needHasStakeholder`" in summary
+
+
+def test_declared_phases_without_executable_checks_are_reported_never_dropped(tmp_path: Path) -> None:
+    """0 blocking says nothing about a declared phase that no check judges: the report names those phases
+    and what their steps declare, apart from the evaluated phase exits."""
+    export = _export(tmp_path, _declares_unchecked_phases)
+    code, result, summary = _run(tmp_path, export, method_check.subprocess_runner)
+    assert code == 0, result["errors"]
+    (entry,) = result["increments"]
+    assert (entry["counts"]["blocking"], entry["next"]) == (0, None)
+    assert list(entry["phase_exits"]) == [P0, P4, P5, P10]  # the evaluated exits only
+    assert entry["phases_without_checks"] == [
+        {"phase": P1, "step": "frameConcerns", "outputs": ["stakeholders", "concerns"]},
+        {"phase": P2, "step": "specifyOperationalContext", "outputs": ["operationalContext"]},
+    ]
+    lines = summary.splitlines()
+    assert ("**Declared phases without executable checks at this revision** (reported, never evaluated; the "
+            "counts above say nothing about them): phase1_concernFraming (frameConcerns: stakeholders, concerns), "
+            "phase2_operationalContext (specifyOperationalContext: operationalContext)") in lines
+    assert ("**Next:** none. every required gate passes or is not applicable; no executable checks at this revision "
+            "judge the declared phases phase1_concernFraming, phase2_operationalContext") in lines
