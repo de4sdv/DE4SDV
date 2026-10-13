@@ -19,7 +19,6 @@ discipline on that graph shape:
 from __future__ import annotations
 
 import sys
-from pathlib import Path
 
 import pytest
 
@@ -29,7 +28,6 @@ from de4sdv.semantic.traversal import SemanticTraversal
 from de4sdv.sysml_api.revisions import KernelElementBinding
 from model_contract_fixtures import model_contract  # noqa: E402
 
-ROOT = Path(__file__).resolve().parents[1]
 
 LIB_URI = "https://www.omg.org/spec/SysML/20250201/sysml.library/Systems%20Library/VerificationCases.sysml"
 LIB_ANCHOR = "lib-verification-case-anchor"
@@ -42,7 +40,6 @@ REQ_ID = "req-graph-0005"
 CONN_ID = "conn-graph-0006"
 DEF_END_NEED = "def-end-need-graph-0007"
 DEF_END_REQ = "def-end-req-graph-0008"
-
 
 
 def _contract() -> KernelContract:
@@ -269,40 +266,6 @@ def test_implied_library_noise_alone_never_creates_a_derivation() -> None:
 def test_definition_owned_member_shape_still_resolves() -> None:
     hops = _traverse(_base_elements(definition_shape="owned-member"))
     assert len(hops) == 1
-
-
-def test_projection_resolves_definition_ends_from_the_graph() -> None:
-    """The projection's model authority reads the same graph shapes."""
-    from de4sdv.semantic.projection import (
-        RevisionIdentity,
-        build_projection,
-    )
-
-    elements = _base_elements()
-    by_id = {element["@id"]: element for element in elements}
-    projection = build_projection(
-        _contract(),
-        _binding_index(),
-        RevisionIdentity("0" * 40, "proj", "commit"),
-        by_id,
-        repository_root=ROOT,
-    )
-    predicate = projection["predicate"]
-    assert predicate["domain"] == "Requirement"
-    assert predicate["range"] == "Need"
-    authority = projection["revision_binding"]["generated_from"]["model_semantic_authority"]
-    assert authority["need_end_type"] == "Need"
-    assert authority["requirement_end_type"] == "Requirement"
-    assert authority["need_end_type_declaration"] == "StakeholderNeedCandidate"
-    assert authority["requirement_end_type_declaration"] == "RequirementCandidate"
-    assert authority["end_type_provenance"] == "explicit"
-    # Direction/strength/claim boundary come from the model, not Python.
-    assert authority["native_direction"] == "Need -> Requirement"
-    assert authority["canonical_direction"] == "Requirement -> Need"
-    assert authority["query_direction"] == "inverse"
-    assert authority["semantic_strength"] == "derivation"
-    assert "provenance only" in authority["claim_boundary"]
-    assert predicate["support_state"] == "vocabulary-only"
 
 
 def test_implied_subclassification_cannot_ground_an_unknown_end() -> None:

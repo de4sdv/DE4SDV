@@ -34,7 +34,6 @@ def _write(repo, relative, text):
 MODEL_INPUTS = (
     "docs/method-conformance/o2/semantic-projection-v1.json",
     "docs/method-conformance/o2/api-representation-profile-v1.json",
-    "docs/method-conformance/o2/o21-admission.yaml",
     "docs/method-conformance/o2plus/semantic-projection-o2plus.json",
     "docs/method-conformance/o4/definition-projection.json",
     "docs/method-conformance/o4/definition-profile.json",
@@ -66,6 +65,13 @@ def runtime_repo(tmp_path):
 
 def _env(revision):
     return {"NOUS_API_KEY": "k", "DE4SDV_APP_GIT_SHA": revision}
+
+
+def test_every_governed_path_matches_a_tracked_file():
+    """A governed path that matches nothing makes the drift gate pass vacuously."""
+    for pathspec in entrypoint._GOVERNED_MODEL_PATHS:
+        tracked = _git(ROOT, "ls-files", "--", pathspec)
+        assert tracked, f"governed path matches no tracked file: {pathspec}"
 
 
 def test_deleted_authored_yaml_is_no_longer_a_governed_path():

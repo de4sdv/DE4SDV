@@ -98,22 +98,6 @@ def model_service(revision_binding: RevisionBinding, repository: Any, *,
         expected_git_revision=expected_git_revision or revision_binding.git_commit, **kwargs)
 
 
-CONTRACT_EQUIVALENCE_PATH = "docs/method-conformance/o4/closure/contract-equivalence.json"
-
-
-@lru_cache(maxsize=1)
-def contract_equivalence_evidence() -> dict[str, Any]:
-    """The committed pre-deletion authored-vs-model comparison (design E6, D9)."""
-    import json
-
-    return json.loads((REPO_ROOT / CONTRACT_EQUIVALENCE_PATH).read_text(encoding="utf-8"))
-
-
-def authored_definition(kind: str, identity: str) -> str:
-    """The authored definition text recorded by the pre-deletion evidence."""
-    return contract_equivalence_evidence()["authored_definitions"]["entries"][f"{kind}:{identity}"]
-
-
 ADMISSION_MANIFESTS = (
     "docs/method-conformance/o4/definition-admission.yaml",
     "docs/method-conformance/o4/definition-admission-batch2.yaml",
@@ -155,7 +139,6 @@ def current_definition(identity: str) -> str:
     This cleanup retired the live copied-definition oracle. Admission rows locate model
     documentation; neither frozen authored prose nor generated JSON is a
     fallback. This helper is not an expected-output oracle for generators.
-    ``authored_definition`` remains exclusively a frozen-evidence fixture.
     """
     row = admission_row(identity)
     if "declaration" in row:
@@ -172,26 +155,6 @@ def current_definition(identity: str) -> str:
     return text
 
 
-def manifest_held_values(row: dict[str, Any]) -> dict[str, Any]:
-    """The contract fields one batch-2 manifest row holds (owner decision D9).
-
-    Preserve the structural fields recorded by the pre-deletion comparison.
-    This cleanup retired its copied prose field; historical evidence remains unchanged.
-    """
-    # This cleanup retired copied prose; retain only the structural manifest-held fields.
-    values: dict[str, Any] = {}
-    if row["semantic_kind"] == "class":
-        grounding = row["grounding"]
-        values.update(kernel_mapping=grounding["kernel_mapping"],
-                      sub_class_of=grounding["sub_class_of"],
-                      disjoint_with=list(grounding["disjoint_with"]))
-    elif row["admission_class"] != "successor":
-        values["relation"] = dict(row["relation"])
-        if "mechanics" in row:
-            values["mechanics"] = dict(row["mechanics"])
-    return values
-
-
-__all__ = ["admission_row", "manifest_held_values", "authored_definition", "contract_equivalence_evidence",
+__all__ = ["admission_row",
            "current_definition", "owned_definition_documentation", "REPO_ROOT", "binding", "binding_dict", "model_contract",
            "model_facade", "model_service", "semantic_authority_dict", "synthetic_identity"]

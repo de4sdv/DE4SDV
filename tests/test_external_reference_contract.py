@@ -324,15 +324,20 @@ def test_accepted_ref_to_a_missing_document_fails_closed():
         module.validate_profile(REPO_ROOT, mutated, register, review)
 
 
-def test_acceptance_document_without_the_marker_fails_closed():
+def test_acceptance_document_without_the_marker_fails_closed(tmp_path):
     module, document, register, review = _load()
 
-    marker_free = "docs/method-conformance/o4/external-reference-preparation.md"
-    text = (REPO_ROOT / marker_free).read_text(encoding="utf-8")
-    assert module.ACCEPTANCE_MARKER not in text
+    pinned = tmp_path / ACCEPTANCE_DOC
+    pinned.parent.mkdir(parents=True)
+    pinned.write_bytes((REPO_ROOT / ACCEPTANCE_DOC).read_bytes())
+    marker_free = "docs/synthetic/marker-free-review.md"
+    (tmp_path / marker_free).parent.mkdir(parents=True)
+    (tmp_path / marker_free).write_text(
+        "# Synthetic review record\n\n| EvidenceArtifact | reviewed |\n", encoding="utf-8")
+    assert module.ACCEPTANCE_MARKER not in (tmp_path / marker_free).read_text(encoding="utf-8")
     mutated = _with_accepted_ref(document, "EvidenceArtifact", f"{marker_free}#EvidenceArtifact")
     with pytest.raises(module.EvidenceReferenceError, match="acceptance marker"):
-        module.validate_profile(REPO_ROOT, mutated, register, review)
+        module.validate_profile(tmp_path, mutated, register, review)
 
 
 def test_acceptance_document_without_the_identity_row_fails_closed(tmp_path):

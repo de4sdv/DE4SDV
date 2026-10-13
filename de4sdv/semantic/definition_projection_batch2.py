@@ -68,7 +68,6 @@ from typing import Any
 ADMISSION_PATH = "docs/method-conformance/o4/definition-admission-batch2.yaml"
 PROJECTION_PATH = "docs/method-conformance/o4/definition-batch2-projection.json"
 PROFILE_PATH = "docs/method-conformance/o4/definition-batch2-profile.json"
-DESIGN_PATH = "docs/method-conformance/o4/definition-admission-batch2-design.md"
 MODULE_PATH = "de4sdv/semantic/definition_projection_batch2.py"
 GENERATOR_PATH = "scripts/generate_definition_projection.py"
 AUTHORITY_INVENTORY_PATH = "de4sdv/semantic/authority_inventory.py"
@@ -951,7 +950,7 @@ def collect_bound_inputs(root: Path, outputs: dict[str, Any]) -> dict[str, str]:
     """Legacy diagnostic input inventory; live construction emits no digest binding."""
     from de4sdv.semantic.authority_inventory import file_digest
 
-    paths = {ADMISSION_PATH, DESIGN_PATH, MODULE_PATH, GENERATOR_PATH,
+    paths = {ADMISSION_PATH, MODULE_PATH, GENERATOR_PATH,
              AUTHORITY_INVENTORY_PATH, PROJECTION_O2P_PATH, *outputs["model_inputs"]}
     bound: dict[str, str] = {}
     for relative in sorted(paths):

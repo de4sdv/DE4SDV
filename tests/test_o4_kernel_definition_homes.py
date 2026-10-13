@@ -6,7 +6,7 @@ import pytest
 
 
 from de4sdv.semantic.authority_inventory import declaration_block, normalize_text
-from model_contract_fixtures import (contract_equivalence_evidence, model_contract,
+from model_contract_fixtures import (model_contract,
                                      owned_definition_documentation)
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -296,82 +296,6 @@ def test_braced_block_stops_at_the_matching_brace():
     assert _direct_documentation(_braced_block(text, text.index("{"))) == []
 
 
-def _home_docs(row):
-    text = (ROOT / row["file"]).read_text()
-    declaration = row["declaration"]
-    if declaration.startswith("package "):
-        package = re.search(r"\b" + re.escape(declaration) + r"\s*\{", text)
-        assert package, declaration
-        block = _braced_block(text, package.end() - 1)
-    else:
-        block, bodyless = declaration_block(text, declaration)
-        assert block and not bodyless, declaration
-    return _direct_documentation(block)
-
-
-def test_all_recorded_definition_homes_have_owned_nonempty_model_documentation():
-    """Keep all 76 owned locators; never make frozen authored prose live authority.
-
-    This cleanup retires ``test_all_authored_definitions_have_exact_owned_model_documentation_homes``
-    as a current-text parity oracle. The evidence supplies historical identities only.
-    """
-    import json
-    document = json.loads((ROOT / "docs/method-conformance/o4/kernel-definition-homes.json").read_text())
-    authored = contract_equivalence_evidence()["authored_definitions"]["entries"]
-    required = {tuple(key.split(":", 1)) for key in authored}
-    entries = document["definitions"]
-    assert len(entries) == len(required) == 76
-    assert {(row["kind"], row["identity"]) for row in entries} == required
-    for row in entries:
-        candidates = [body for name, body in _home_docs(row) if name == row["documentation_name"]]
-        assert len(candidates) > row["documentation_index"], row["identity"]
-        # This cleanup retires frozen-prose equality for current homes. Frozen identities
-        # still bound inventory coverage; the selected current doc must exist.
-        assert normalize_text(candidates[row["documentation_index"]]), row["identity"]
-
-
-def test_definition_home_inventory_covers_all_requested_register_targets():
-    import json
-    homes = json.loads((ROOT / "docs/method-conformance/o4/kernel-definition-homes.json").read_text())
-    register = json.loads((ROOT / "docs/method-conformance/o4/o4-execution-register.json").read_text())
-    expected = {row["identity"]: row for row in register["rows"]
-                if row["base_wave"] in {"W2", "W4"}
-                and row["migration_class"] in {"MODEL_AUTHORITY_PARITY", "NEW_APPLICATION_SEMANTICS"}}
-    assert "register_targets" in homes, "List the requested W2/W4 rows without rewriting generated closure state"
-    rows = homes["register_targets"]
-    assert len(rows) == len(expected) == 40
-    assert {row["identity"] for row in rows} == set(expected)
-    definitions = {row["identity"]: row for row in homes["definitions"]}
-    for row in rows:
-        assert row["base_wave"] == expected[row["identity"]]["base_wave"]
-        assert row["migration_class"] == expected[row["identity"]]["migration_class"]
-        assert row["claim"] == "definition-home-only; no runtime admission or row-lifecycle closure"
-        assert (ROOT / row["file"]).is_file()
-        if row["identity"] in definitions:
-            home = definitions[row["identity"]]
-            assert row["file"] == home["file"]
-            assert row["declaration"] == home["declaration"]
-            assert row["parity"] == "normalized-exact owned model documentation"
-        else:
-            # These seven YAML rows declare only domain/range, not definition
-            # prose; do not fabricate a text-parity claim for them.
-            assert row["parity"] == "no authored definition; model vocabulary role documented"
-            existing_homes = {
-                "addressesConcern": (KERNEL + "de4sdv_method_vocabulary_carriers.sysml", "connection def AddressesConcern"),
-                "selectedViewpoint": (KERNEL + "de4sdv_method_vocabulary_carriers.sysml", "connection def SelectedViewpoint"),
-                "producesView": (KERNEL + "de4sdv_method_vocabulary_carriers.sysml", "connection def ProducesView"),
-                "recordsAssumption": (KERNEL + "de4sdv_method_vocabulary_carriers.sysml", "connection def RecordsAssumption"),
-                "recordsGap": (KERNEL + "de4sdv_method_vocabulary_carriers.sysml", "connection def RecordsGap"),
-                "hasStakeholder": (CONTEXT, "part def EngineeringIncrement"),
-                "hasAcceptanceCriterion": (CONTEXT, "requirement def AcceptanceCriterion"),
-            }
-            assert (row["file"], row["declaration"]) == existing_homes[row["identity"]]
-            if row["identity"] == "hasStakeholder":
-                assert "comment hasStakeholderVocabularyRole about EngineeringIncrement, Stakeholder" in (ROOT / CONTEXT).read_text()
-            elif row["identity"] != "hasAcceptanceCriterion":
-                assert _home_docs(row), row["identity"]
-
-
 def test_no_documentation_name_shadows_a_model_or_library_name():
     """Licensed Syside run 37411981652: ``doc VerificationMethod`` shadowed the
     library metadata for every importer. Kernel Documentation names must be
@@ -407,17 +331,8 @@ def _blank_comment_bodies(text):
 def test_definition_owned_ontology_docs_are_private_and_package_homes_are_named():
     """Definition-owned exact docs are private so specializations do not
     inherit them; package-owned homes link to their concept only by the
-    ``<Term>OntologyDefinition`` name, which must match the inventory row."""
-    import json
-    rows = json.loads((ROOT / "docs/method-conformance/o4/kernel-definition-homes.json").read_text())["definitions"]
-    package_rows = [row for row in rows if row["declaration"].startswith("package ")]
-    definition_rows = [row for row in rows if not row["declaration"].startswith("package ")]
-    assert (len(package_rows), len(definition_rows)) == (25, 51)
-    for row in package_rows:
-        assert row["documentation_name"] == row["identity"] + "OntologyDefinition", row["identity"]
-    named_definition_rows = [row for row in definition_rows if row["documentation_name"]]
-    assert len(named_definition_rows) == 11
-    assert {row["documentation_name"] for row in named_definition_rows} == {"ontologyDefinition"}
+    ``<Term>OntologyDefinition`` name, and every such name is an identity of
+    the model-built kernel contract."""
     public = []
     total = 0
     for path in sorted((ROOT / KERNEL).glob("*.sysml")):
@@ -426,12 +341,13 @@ def test_definition_owned_ontology_docs_are_private_and_package_homes_are_named(
             if "private" not in match[1].split():
                 public.append(path.name)
     assert total == 11 and public == [], public
-    # Model -> inventory: no orphan <Term>OntologyDefinition carrier.
-    carriers = set()
+    # Model -> contract: no orphan <Term>OntologyDefinition carrier.
+    terms = set()
     for path in sorted((ROOT / KERNEL).glob("*.sysml")):
-        carriers |= set(re.findall(r"\bdoc\s+(\w+OntologyDefinition)\s*/\*", _blank_comment_bodies(path.read_text())))
-    assert carriers == {row["documentation_name"] for row in package_rows}, carriers ^ {
-        row["documentation_name"] for row in package_rows}
+        terms |= set(re.findall(r"\bdoc\s+(\w+)OntologyDefinition\s*/\*", _blank_comment_bodies(path.read_text())))
+    contract = model_contract()
+    identities = set(contract.classes) | set(contract.relationships) | set(contract.refused)
+    assert terms and terms <= identities, sorted(terms - identities)
 
 
 def test_kernel_evidence_contract_specializations_are_exactly_the_claimed_population():
@@ -603,8 +519,6 @@ def test_current_definition_uses_current_model_docs_without_frozen_or_output_fal
     def forbidden(*args, **kwargs):
         raise AssertionError("a current fixture must not consult frozen prose or generated output")
 
-    monkeypatch.setattr(fixtures, "authored_definition", forbidden)
-    monkeypatch.setattr(fixtures, "contract_equivalence_evidence", forbidden)
     monkeypatch.setattr(fixtures, "model_contract", forbidden)
     for wording in ("Synthetic current meaning.", "Synthetic changed meaning."):
         model.write_text("part def Synthetic { doc /* " + wording + " */ }", encoding="utf-8")

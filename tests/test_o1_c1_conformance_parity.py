@@ -51,20 +51,16 @@ substring containment.
 
 from __future__ import annotations
 
-import json
 import re
 from pathlib import Path
 
 import pytest
-import yaml
 
 from de4sdv.semantic import authority_inventory as ai
 from model_contract_fixtures import model_contract  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-INVENTORY_PATH = REPO_ROOT / "docs/method-conformance/o1/semantic-authority-inventory.json"
-DECISIONS_PATH = REPO_ROOT / "docs/method-conformance/o1/authority-review-decisions.yaml"
 
 CONFORMANCE_FILE = (
     REPO_ROOT
@@ -87,50 +83,6 @@ C1_IDENTITIES: tuple[str, ...] = (
     "AcceptanceAttestationReference",
 )
 
-#: The one c1 identity that is NOT yet parity-reviewed (R1 review correction):
-#: the model carries increment identity and eligible subject types, but not the
-#: explicit exclusions with rationale that the YAML definition requires.
-C1_INCOMPLETE: tuple[str, ...] = ("MethodEvaluationScope",)
-
-#: The seven c1 identities accepted as parity-reviewed after the review.
-C1_ACCEPTED: tuple[str, ...] = tuple(
-    name for name in C1_IDENTITIES if name not in C1_INCOMPLETE
-)
-
-#: Machine-checked doc observations after the uniform-containment correction
-#: (final-O1 R1 follow-up). Direct-body docs join the definition text in
-#: source order; nested member-body docs never do. The five `differs` rows
-#: carry their attribute documentation (serialized after the attributes at the
-#: body's direct depth).
-C1_DOC_OBSERVATIONS: dict[str, str] = {
-    "MethodPhase": "normalized-exact",
-    "MethodContractObligation": "differs",
-    "MethodEvaluationScope": "differs",
-    "EvaluationSourceKind": "normalized-exact",
-    "EvaluationScopeMembership": "differs",
-    "TestedScopeDeclaration": "differs",
-    "RetainedExecutionRecordReference": "normalized-exact",
-    "AcceptanceAttestationReference": "differs",
-}
-
-#: Per-class reviewed text-equivalence state after the final bounded c1
-#: documentation-equivalence reconciliation. Five rows received the completed
-#: bounded-review state `reviewed-equivalent` (Layer-B governance metadata:
-#: the differing direct-body documentation was reviewed as semantically
-#: equivalent to the authoritative definition; for `MethodContractObligation`
-#: after the one corrected applicability-doc sentence). Exact-text rows carry
-#: no manual record; `DerivesFromNeed` (outside c1; locked here as the
-#: negative control) remains `review-required` — no auto-promotion.
-C1_EQUIVALENCE: dict[str, str | None] = {
-    "MethodPhase": None,
-    "MethodContractObligation": "reviewed-equivalent",
-    "MethodEvaluationScope": "reviewed-equivalent",
-    "EvaluationSourceKind": None,
-    "EvaluationScopeMembership": "reviewed-equivalent",
-    "TestedScopeDeclaration": "reviewed-equivalent",
-    "RetainedExecutionRecordReference": None,
-    "AcceptanceAttestationReference": "reviewed-equivalent",
-}
 
 #: YAML definition location + text of the eight (the O1 semantic authority for c1).
 _C1_YAML: dict[str, tuple[Path, str]] = {
@@ -198,35 +150,11 @@ def _declaration(name: str) -> str:
 #: these constants was deleted in O4 Wave C2; its output is a frozen record).
 REVIEW_REQUIRED_OBSERVATIONS = frozenset(
     {"differs", "doc-absent", "doc-absent (bodyless declaration)", "block-not-located"})
-REVIEWED_EQUIVALENT = "reviewed-equivalent"
-REVIEWED_EQUIVALENT_OBSERVATIONS = frozenset({"differs"})
-
-
-def _authored_classes() -> dict:
-    """The authored ontology classes AT the frozen O1 inventory's own bound
-    revision (historical, read from Git like the frozen lane; the authored
-    ontology was deleted in O4 Wave C2 and is never read from the tree)."""
-    import subprocess
-
-    revision = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))["binding"]["source_revision"]
-    text = subprocess.run(
-        ["git", "show", f"{revision}:approach/framework/ontology/de4sdv-basic-ontology.yaml"],
-        cwd=REPO_ROOT, check=True, capture_output=True, text=True).stdout
-    return yaml.safe_load(text)["classes"]
-
-
-def _definition(name: str) -> str:
-    return str(_authored_classes()[name]["definition"])
 
 
 def _file_text(name: str) -> str:
     path, _ = _C1_YAML[name]
     return path.read_text(encoding="utf-8")
-
-
-@pytest.fixture(scope="module")
-def inventory() -> dict:
-    return json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
 
 
 # ---------------------------------------------------------------------------
@@ -245,264 +173,10 @@ class TestC1Scope:
             assert name in contract.classes, name
             assert name not in contract.relationships, name
 
-    def test_the_seven_accepted_rows_are_parity_reviewed(self, inventory):
-        """The seven accepted c1 identities are parity-reviewed and the
-        incomplete MethodEvaluationScope is not. The GLOBAL parity set is
-        owned by the executing batch's test file: after c2 it is these seven
-        plus VerificationCase and verifiedBy — asserted exactly in
-        tests/test_o1_c2_verification_grounding.py."""
-        entries = _entries(inventory)
-        for name in C1_ACCEPTED:
-            assert (
-                entries[name]["reviewed"]["evidence_state"] == "parity-reviewed"
-            ), name
-        for name in C1_INCOMPLETE:
-            assert (
-                entries[name]["reviewed"]["evidence_state"]
-                == "repository-evidenced"
-            ), name
-
-    def test_authority_current_remains_legacy_yaml(self, inventory):
-        for entry in _entries(inventory, C1_IDENTITIES).values():
-            assert entry["reviewed"]["authority_current"] == "legacy-yaml"
-
-    def test_authority_target_is_model_authoritative(self, inventory):
-        for entry in _entries(inventory, C1_IDENTITIES).values():
-            assert entry["reviewed"]["authority_target"] == "model-authoritative"
-
-    def test_accepted_rows_are_parity_reviewed(self, inventory):
-        for name in C1_ACCEPTED:
-            entry = _entries(inventory, (name,))[name]
-            assert entry["reviewed"]["evidence_state"] == "parity-reviewed", name
-
-    def test_no_c1_row_receives_closure_evidence(self, inventory):
-        for entry in _entries(inventory, C1_IDENTITIES).values():
-            assert entry["reviewed"]["closure_evidence_ref"] is None
-            assert entry["reviewed"]["evidence_state"] != "privileged-closure-proven"
-
-    def test_no_c1_row_is_marked_supported(self, inventory):
-        """No support-state promotion: adoption stays not-applicable and no
-        consumer support claim changes."""
-        for entry in _entries(inventory, C1_IDENTITIES).values():
-            assert entry["reviewed"]["adoption_status"] == "not-applicable"
-            consumption = entry["reviewed"].get("runtime_consumption") or {}
-            assert consumption.get("support") != "supported (closure-verified)"
-
-    def test_no_c1_row_is_conditional(self, inventory):
-        for entry in _entries(inventory, C1_IDENTITIES).values():
-            assert entry["reviewed"]["conditional_target"] is False
-            assert entry["reviewed"]["transition_gate"] is None
-
-    def test_no_c1_row_becomes_a_semantic_projection_row(self):
-        """The Semantic Projection consumer de4sdv/semantic/projection.py is
-        bound to the K-slice classes only; c1 rows are governance rows in the
-        inventory, not generated projection rows."""
-        source = (REPO_ROOT / "de4sdv/semantic/projection.py").read_text(
-            encoding="utf-8"
-        )
-        for name in C1_IDENTITIES:
-            assert f'"{name}"' not in source, name
-
-    def test_later_batch_entries_stay_pinned(self, inventory):
-        """Later-batch entries stay pinned to their reviewed states. The c2
-        batch has since executed (PR #249 c2): its two rows advanced exactly
-        as recorded there. The c3 batch has also since executed (PR #249 c3):
-        hasSubject advanced exactly as recorded in its own batch file —
-        current authority unchanged (legacy-yaml), target corrected to the
-        Case B decision, evidence maturity advanced to parity-reviewed, stage
-        renamed to the executed batch. The c4 batch has also since executed
-        (PR #249 c4): derivesNeedFromConcern was retired without replacement
-        (target 'retired', disposition retire-without-replacement, evidence
-        parity-reviewed, stage renamed) as recorded in its own batch file.
-        The c5 batch has also since executed (PR #249 c5), and its
-        hasRelevantEvidenceContract row was then corrected by the
-        independent review (c5 correction): three rows advanced exactly as
-        recorded in their own batch file — current authority unchanged
-        (legacy-yaml), evidence maturity parity-reviewed, stage renamed to
-        the executed batch — while the corrected row is governed
-        blocked/defer (the declared EvidenceContract range is not
-        machine-resolvable at the reviewed revision)."""
-        entries = _entries(inventory)
-        expected = {
-            "VerificationCase": (
-                "c2 (verification batch)",
-                "native-sysml",
-                "parity-reviewed",
-            ),
-            "verifiedBy": (
-                "c2 (verification batch)",
-                "legacy-yaml",
-                "parity-reviewed",
-            ),
-            "hasSubject": (
-                "c3 (hasSubject review batch)",
-                "legacy-yaml",
-                "parity-reviewed",
-            ),
-            "derivesNeedFromConcern": (
-                "c4 (concern-need disposition review)",
-                "legacy-yaml",
-                "parity-reviewed",
-            ),
-            "realizedBy": (
-                "c5 (relevance and realization review batch)",
-                "legacy-yaml",
-                "parity-reviewed",
-            ),
-            "specifiesFunction": (
-                "c5 (relevance and realization review batch)",
-                "legacy-yaml",
-                "parity-reviewed",
-            ),
-            "hasRelevantArchitecture": (
-                "c5 (relevance and realization review batch)",
-                "legacy-yaml",
-                "parity-reviewed",
-            ),
-            "hasRelevantEvidenceContract": (
-                "c5 (relevance and realization review batch)",
-                "legacy-yaml",
-                "blocked",
-            ),
-        }
-        for identity, (stage, authority, evidence) in expected.items():
-            row = entries[identity]["reviewed"]
-            assert row["stage"] == stage, identity
-            assert row["authority_current"] == authority, identity
-            assert row["evidence_state"] == evidence, identity
-
-    def test_ple_classifications_unchanged(self, inventory):
-        entries = _entries(inventory)
-        for identity in (
-            "FeatureConfiguration",
-            "specifiesFeature",
-            "specifiesCommonCapability",
-            "appliesToMemberProduct",
-            "selectsFeature",
-            "includesCommonCapability",
-            "variesAt",
-            "selectsVariant",
-        ):
-            entry = entries[identity]
-            assert entry["reviewed"]["evidence_state"] == "blocked"
-            assert entry["reviewed"]["adoption_status"] == "pinned-not-adopted"
-            assert entry["reviewed"]["conditional_target"] is True
-
-    def test_k_triple_unchanged(self, inventory):
-        entries = _entries(inventory)
-        for identity in (
-            "DerivesFromNeed",
-            "derivesRequirementFromNeed",
-            "derivedRequirementsOfNeed",
-        ):
-            entry = entries[identity]
-            assert entry["reviewed"]["authority_current"] == "model-authoritative"
-            assert entry["reviewed"]["evidence_state"] == "privileged-closure-proven"
-            assert entry["reviewed"]["closure_evidence_ref"] == "r6-3"
-
-
-def _entries(
-    inventory: dict, names: list[str] | tuple[str, ...] | None = None
-) -> dict[str, dict]:
-    by_identity = {entry["identity"]: entry for entry in inventory["entries"]}
-    if names is None:
-        return by_identity
-    return {name: by_identity[name] for name in names}
-
 
 # ---------------------------------------------------------------------------
 # R1 review correction: MethodEvaluationScope stays incomplete
 # ---------------------------------------------------------------------------
-
-
-class TestMethodEvaluationScopeIncomplete:
-    """Text parity and structural semantic parity are separate dimensions.
-
-    The independent review corrected the first c1 pass: the definition text is
-    NOT structural parity — the model does not yet structurally carry explicit
-    exclusions with rationale, so MethodEvaluationScope must NOT be claimed
-    parity-reviewed. After the uniform-containment correction (final-O1 R1
-    follow-up) its doc observation is `differs` (the direct-body attribute
-    docs join the definition text). The runtime exclusions input is
-    implementation evidence for the delivered A–D execution, not
-    model-authority parity.
-    """
-
-    def _row(self, inventory: dict) -> dict:
-        return _entries(inventory, ("MethodEvaluationScope",))["MethodEvaluationScope"]
-
-    def test_authority_current_is_legacy_yaml(self, inventory):
-        assert self._row(inventory)["reviewed"]["authority_current"] == "legacy-yaml"
-
-    def test_authority_target_is_model_authoritative(self, inventory):
-        assert (
-            self._row(inventory)["reviewed"]["authority_target"]
-            == "model-authoritative"
-        )
-
-    def test_evidence_state_is_repository_evidenced(self, inventory):
-        reviewed = self._row(inventory)["reviewed"]
-        assert reviewed["evidence_state"] == "repository-evidenced"
-        assert reviewed["evidence_state"] != "parity-reviewed"
-
-    def test_text_observation_and_evidence_are_separate(self, inventory):
-        """Text observation may be `differs` with a completed bounded review
-        (`reviewed-equivalent`) while evidence maturity stays
-        repository-evidenced because the separate structural gap remains:
-        documentation equivalence does NOT close the exclusions gap."""
-        entry = self._row(inventory)
-        assert entry["observed"]["doc_text_observation"] == "differs"
-        assert entry["reviewed"]["semantic_text_equivalence"] == "reviewed-equivalent"
-        assert entry["reviewed"]["evidence_state"] == "repository-evidenced"
-
-    def test_structural_gap_names_exclusions_and_rationale(self):
-        """The reviewed decision explicitly records the structural gap: the
-        model does not yet carry explicit exclusions with rationale."""
-        decisions = yaml.safe_load(DECISIONS_PATH.read_text(encoding="utf-8"))
-        row = decisions["entries"]["MethodEvaluationScope"]
-        decision = row["exact_fit_decision"]
-        assert "not exact structural fit" in decision
-        assert "exclusions" in decision
-        unknowns = " ".join(row["unknowns"])
-        assert "exclusions" in unknowns
-        assert "rationale" in unknowns
-        assert "model-authority parity" in unknowns
-        # No approval-style promotion: evidence state lives in the dataset too.
-        assert row["evidence_state"] == "repository-evidenced"
-
-    def test_required_evidence_sequence_starts_with_representation_decision(self):
-        """O2 cannot close this gap alone: the sequence starts with a reviewed
-        semantic/model representation decision, then implementation + parity
-        review, then O2 admission/generation under O4. O3 stays frozen
-        throughout O4, so no O3 transition obligation may appear (lifecycle
-        consistency correction)."""
-        decisions = yaml.safe_load(DECISIONS_PATH.read_text(encoding="utf-8"))
-        row = decisions["entries"]["MethodEvaluationScope"]
-        required = row["required_evidence"]
-        assert required
-        assert "representation decision" in required[0]
-        joined = " ".join(required)
-        assert "parity review" in joined
-        assert "O2" in joined
-        assert "O3" not in joined
-
-    def test_runtime_exclusions_are_not_model_authority(self, inventory):
-        """The runtime exclusions input is implementation evidence for the
-        delivered A–D execution; it is neither removed nor treated as
-        model-resident authority, and the model must NOT carry an exclusions
-        field (no redesign in this correction pass)."""
-        decision = self._row(inventory)["reviewed"]["exact_fit_decision"]
-        assert "implementation evidence" in decision
-        assert "not model-authority parity" in decision
-        # The runtime input still exists (unchanged by this correction) ...
-        runtime = (REPO_ROOT / "de4sdv/semantic/method_contract.py").read_text(
-            encoding="utf-8"
-        )
-        assert "exclusions" in runtime
-        # ... and the model does not gain an exclusions field.
-        text = _file_text("MethodEvaluationScope")
-        block, _ = ai.declaration_block(text, "part def MethodEvaluationScope")
-        assert "attribute exclusions" not in block
 
 
 # ---------------------------------------------------------------------------
@@ -735,18 +409,6 @@ class TestDefinitionDocExtraction:
         block, _ = ai.declaration_block(file_text, "part def Widget")
         docs = ai._owned_doc_bodies(block)
         assert [d.strip() for d in docs] == ["The widget meaning."]
-
-    def test_no_c1_definitions_hardcoded_in_python(self):
-        """The parity machinery must not embed the eight definitions as
-        Python constants; the comparison inputs are the authored definitions at
-        the frozen O1 record's own revision (read from Git at test time)."""
-        source = (REPO_ROOT / "de4sdv/semantic/authority_inventory.py").read_text(
-            encoding="utf-8"
-        )
-        for name in C1_IDENTITIES:
-            definition = _definition(name)
-            first_clause = " ".join(definition.split())[:40]
-            assert first_clause not in source, name
 
 
 class TestDirectBodyDocOwnership:
@@ -986,105 +648,7 @@ class TestDirectBodyDocOwnership:
 
 
 class TestC1TextParity:
-    def test_c1_observations_recomputed_from_source(self):
-        authored = _authored_classes()
-        contract = model_contract()
-        for name in C1_IDENTITIES:
-            file_text = _file_text(name)
-            observation = ai.doc_text_observation(
-                file_text,
-                str(contract.classes[name]["kernel"]["declaration"]),
-                str(authored[name]["definition"]),
-            )
-            assert observation == C1_DOC_OBSERVATIONS[name], name
 
-    def test_inventory_rows_carry_the_recomputed_observation(self, inventory):
-        for name, entry in _entries(inventory, C1_IDENTITIES).items():
-            observation = entry["observed"]["doc_text_observation"]
-            assert observation == C1_DOC_OBSERVATIONS[name], name
-            equivalence = entry["reviewed"]["semantic_text_equivalence"]
-            # Layer-B reviewed state per class: None for exact text, the
-            # completed bounded-review state for the five differing rows.
-            assert equivalence == C1_EQUIVALENCE[name], name
-
-    def test_equivalence_consistent_with_observation(self, inventory):
-        for entry in inventory["entries"]:
-            observation = entry["observed"].get("doc_text_observation")
-            equivalence = entry["reviewed"]["semantic_text_equivalence"]
-            if observation in REVIEW_REQUIRED_OBSERVATIONS:
-                assert equivalence in (
-                    "review-required",
-                    REVIEWED_EQUIVALENT,
-                ), entry["identity"]
-                if equivalence == REVIEWED_EQUIVALENT:
-                    # The completed-review state is limited to material
-                    # wording drift (the concrete reviewed case).
-                    assert (
-                        observation in REVIEWED_EQUIVALENT_OBSERVATIONS
-                    ), entry["identity"]
-            elif observation == "normalized-exact":
-                # No manual equivalence when exact parity is machine-checked.
-                assert equivalence is None, entry["identity"]
-
-    def test_reviewed_equivalence_states_locked_per_row(self, inventory):
-        """§18 lock: per-row observation + equivalence + evidence state for
-        the five reconciled rows; `DerivesFromNeed` remains the negative
-        control; no other identity carries the reviewed-equivalent state."""
-        expected = {
-            "MethodContractObligation": ("differs", "reviewed-equivalent", "parity-reviewed"),
-            "MethodEvaluationScope": ("differs", "reviewed-equivalent", "repository-evidenced"),
-            "EvaluationScopeMembership": ("differs", "reviewed-equivalent", "parity-reviewed"),
-            "TestedScopeDeclaration": ("differs", "reviewed-equivalent", "parity-reviewed"),
-            "AcceptanceAttestationReference": ("differs", "reviewed-equivalent", "parity-reviewed"),
-        }
-        entries = _entries(inventory, tuple(expected) + ("DerivesFromNeed",))
-        for name, (observation, equivalence, evidence) in expected.items():
-            entry = entries[name]
-            assert entry["observed"]["doc_text_observation"] == observation, name
-            assert entry["reviewed"]["semantic_text_equivalence"] == equivalence, name
-            assert entry["reviewed"]["evidence_state"] == evidence, name
-        control = entries["DerivesFromNeed"]
-        assert control["observed"]["doc_text_observation"] == "differs"
-        assert control["reviewed"]["semantic_text_equivalence"] == "review-required"
-        # No accidental propagation: reviewed-equivalent exists exactly on the
-        # five reconciled identities plus the W2 batch 3 rows (doc parity closed
-        # by explicit reviewed-equivalence records), the W2 batch 4 rows
-        # (Need, Requirement, RegulatoryConstraint: accepted definition carried
-        # verbatim plus preserved lineage/seam/R003 content), and the W5 batch 1
-        # rows (ArchitectureDecisionRecord, Baseline: reviewed definitional text
-        # plus model-resident reviewed content).
-        with_equivalence = {
-            entry["identity"]
-            for entry in inventory["entries"]
-            if entry["reviewed"]["semantic_text_equivalence"] == "reviewed-equivalent"
-        }
-        assert with_equivalence == set(expected) | {
-            "LogicalToSoftwareSignalMappingRecord",
-            "SystemToSoftwareSignalMappingCandidate",
-            "Need",
-            "Requirement",
-            "RegulatoryConstraint",
-            "ArchitectureDecisionRecord",
-            "Baseline",
-        }
-
-    def test_stale_normalized_exact_prose_removed_from_five_rows(self):
-        """§18: the five rows no longer claim machine-checked normalized-exact
-        parity or member-doc ownership for their direct-body attribute docs."""
-        decisions = yaml.safe_load(DECISIONS_PATH.read_text(encoding="utf-8"))
-        for name in (
-            "MethodContractObligation",
-            "MethodEvaluationScope",
-            "EvaluationScopeMembership",
-            "TestedScopeDeclaration",
-            "AcceptanceAttestationReference",
-        ):
-            row = decisions["entries"][name]
-            prose = " ".join(
-                str(row.get(field) or "") for field in ("note", "exact_fit_decision")
-            )
-            assert "normalized-exact" not in prose, name
-            assert "member docs" not in prose, name
 
     def test_ownership_is_containment_not_adjacency_for_c1_classes(self):
         """Uniform containment on the real files: a synthetic NESTED member
@@ -1303,7 +867,6 @@ class TestRuntimeUnchanged:
         unchanged by c1; the YAML remains the semantic authority)."""
         for module in (
             "de4sdv/semantic/traversal.py",
-            "de4sdv/semantic/projection.py",
         ):
             source = (REPO_ROOT / module).read_text(encoding="utf-8")
             for name in C1_IDENTITIES:
@@ -1320,35 +883,3 @@ class TestRuntimeUnchanged:
             encoding="utf-8"
         )
         assert "semantic-authority-inventory.json" not in kernel
-
-    def test_no_new_traversal_strategy(self, inventory):
-        """The runtime strategy registry is unchanged by c1 (no runtime
-        change): same eight strategies with the same associations."""
-        strategies = {
-            row["strategy"]: row
-            for row in inventory["runtime_strategy_registry"]["strategies"]
-        }
-        assert set(strategies) == {
-            "allocation",
-            "dependency",
-            "derivation-connection",
-            "external",
-            "property-reference",
-            "subject-membership",
-            "verification",
-            "verification-membership",
-        }
-        assert strategies["verification"]["association"] == "unassociated-capability"
-        assert (
-            strategies["property-reference"]["association"]
-            == "unassociated-capability"
-        )
-        for associated in (
-            "allocation",
-            "dependency",
-            "derivation-connection",
-            "external",
-            "subject-membership",
-            "verification-membership",
-        ):
-            assert strategies[associated]["association"] == "ontology-mapping"

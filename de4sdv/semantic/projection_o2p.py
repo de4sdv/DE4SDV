@@ -50,7 +50,6 @@ from de4sdv.semantic.authority_inventory import file_digest
 ADMISSION_O2P_PATH = "docs/method-conformance/o2plus/o2p-admission.yaml"
 PROJECTION_O2P_PATH = "docs/method-conformance/o2plus/semantic-projection-o2plus.json"
 PROFILE_O2P_PATH = "docs/method-conformance/o2plus/api-representation-profile-o2plus.json"
-DESIGN_O2P_PATH = "docs/method-conformance/o2plus/o2plus-design.md"
 MODULE_O2P_PATH = "de4sdv/semantic/projection_o2p.py"
 GENERATOR_O2P_PATH = "scripts/generate_semantic_projection_o2p.py"
 SYSIDE_WORKFLOW_PATH = ".github/workflows/privileged-syside-validation.yml"
@@ -270,9 +269,9 @@ def validate_admission_o2p(manifest: dict[str, Any]) -> None:
 
 
 def _frozen_o3_identities() -> frozenset[str]:
-    from de4sdv.semantic.o3_bundle import MIGRATED_IDENTITIES
+    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES
 
-    return frozenset(MIGRATED_IDENTITIES)
+    return frozenset(O2_CHAIN_IDENTITIES)
 
 
 def verify_witnesses(root: Path, manifest: dict[str, Any]) -> None:

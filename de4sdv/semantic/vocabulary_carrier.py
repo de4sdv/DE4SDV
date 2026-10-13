@@ -50,7 +50,6 @@ CARRIERS_PATH = "docs/method-conformance/o4/vocabulary-carriers.yaml"
 REVIEW_PATH = "docs/method-conformance/o4/ontology-review/integrated-review.json"
 PROJECTION_CARRIER_PATH = "docs/method-conformance/o4/vocabulary-carriers-projection.json"
 PROFILE_CARRIER_PATH = "docs/method-conformance/o4/vocabulary-carriers-profile.json"
-DESIGN_CARRIER_PATH = "docs/method-conformance/o4/vocabulary-carrier-design.md"
 MODULE_CARRIER_PATH = "de4sdv/semantic/vocabulary_carrier.py"
 GENERATOR_CARRIER_PATH = "scripts/generate_vocabulary_carriers.py"
 
@@ -501,7 +500,6 @@ def collect_bound_inputs(
     paths = {
         CARRIERS_PATH,
         REVIEW_PATH,
-        DESIGN_CARRIER_PATH,
         MODULE_CARRIER_PATH,
         GENERATOR_CARRIER_PATH,
     }

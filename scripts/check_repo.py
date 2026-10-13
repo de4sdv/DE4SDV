@@ -38,21 +38,6 @@ try:
 except ImportError:  # Direct execution sets scripts/ as sys.path[0].
     import generate_semantic_projection_o2p
 
-try:
-    from scripts.ontology_review import validate_review
-except ImportError:  # Direct execution sets scripts/ as sys.path[0].
-    from ontology_review import validate_review
-
-try:
-    from scripts import generate_o4_execution_register
-except ImportError:  # Direct execution sets scripts/ as sys.path[0].
-    import generate_o4_execution_register
-
-try:
-    from scripts import check_o4_lifecycle_consistency
-except ImportError:  # Direct execution sets scripts/ as sys.path[0].
-    import check_o4_lifecycle_consistency
-
 REQUIRED_FILES = [
     "README.md",
     "CONTRIBUTING.md",
@@ -181,14 +166,11 @@ def main() -> int:
     model_sync_errors = check_model_sync.run_all_checks()
     manifest_errors = generate_scenario_manifest.run_check_errors()
     naming_errors = check_naming.run_all_checks()
-    # Owner decision Q7 (2026-10-07): the O1/O2/O3 records are frozen. They are
-    # never regenerated; the frozen lane pins their bytes and checks their
-    # bindings at their own historical revisions.
+    # The frozen records the runtime still serves are never regenerated; the
+    # frozen lane pins their bytes and checks their bindings at their own
+    # historical revisions.
     frozen_record_errors = verify_generated_chain.frozen_record_errors(root)
     projection_o2p_errors = generate_semantic_projection_o2p.run_check_errors_o2p(root)
-    ontology_review_errors = validate_review.run_check_errors(root)
-    o4_register_errors = generate_o4_execution_register.run_check_errors(root)
-    lifecycle_consistency_errors = check_o4_lifecycle_consistency.run_all_checks(root)
     from de4sdv.semantic import (
         definition_projection,
         definition_projection_batch2,
@@ -239,23 +221,13 @@ def main() -> int:
             print(f"- {error}")
 
     if frozen_record_errors:
-        print("Repository check failed. Frozen O1/O2/O3 record errors (frozen lane):")
+        print("Repository check failed. Frozen record errors (frozen lane):")
         for error in frozen_record_errors:
             print(f"- {error}")
 
     if projection_o2p_errors:
         print("Repository check failed. O2+ native/library projection errors:")
         for error in projection_o2p_errors:
-            print(f"- {error}")
-
-    if ontology_review_errors:
-        print("Repository check failed. O4 ontology-review package errors:")
-        for error in ontology_review_errors:
-            print(f"- {error}")
-
-    if o4_register_errors:
-        print("Repository check failed. O4 execution register errors:")
-        for error in o4_register_errors:
             print(f"- {error}")
 
     if preparation_errors:
@@ -278,12 +250,6 @@ def main() -> int:
         for error in model_coverage_errors:
             print(f"- {error}")
 
-
-    if lifecycle_consistency_errors:
-        print("Repository check failed. O4 lifecycle consistency errors (O3 stays frozen throughout O4):")
-        for error in lifecycle_consistency_errors:
-            print(f"- {error}")
-
     if (
         missing
         or duplicate_packages
@@ -293,9 +259,6 @@ def main() -> int:
         or naming_errors
         or frozen_record_errors
         or projection_o2p_errors
-        or ontology_review_errors
-        or o4_register_errors
-        or lifecycle_consistency_errors
         or preparation_errors
         or definition_admission_errors
         or definition_batch2_errors

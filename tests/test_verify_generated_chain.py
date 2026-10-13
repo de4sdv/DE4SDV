@@ -11,10 +11,23 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from scripts import verify_generated_chain as verifier  # noqa: E402
 from scripts.verify_generated_chain import verify_generated_chain  # noqa: E402
 
 INPUT_REL = "src/input.txt"
-ARTIFACT_A = "docs/method-conformance/artifact-a.json"
+ARTIFACT_A = "live/artifact-a.json"
+
+# Synthetic frozen lane: the records are frozen in ``old/`` and later live in
+# ``frozen/``, so the historical-path mapping is exercised as well.
+HISTORICAL = "old"
+FROZEN = "frozen"
+RECORD_A = "a.json"
+RECORD_B = "b.json"
+NOTE = "note.md"
+FROZEN_A = f"{FROZEN}/{RECORD_A}"
+FROZEN_B = f"{FROZEN}/{RECORD_B}"
+FROZEN_NOTE = f"{FROZEN}/{NOTE}"
+MANIFEST = "frozen-records.json"
 
 
 def _git(root: Path, *args: str) -> str:
@@ -63,11 +76,63 @@ def _fixture(tmp_path: Path) -> tuple[Path, str]:
     return root, revision
 
 
+@pytest.fixture
+def lane(monkeypatch):
+    """Point the frozen lane at the synthetic record set."""
+    monkeypatch.setattr(verifier, "FROZEN_MANIFEST_PATH", MANIFEST)
+    monkeypatch.setattr(verifier, "FROZEN_DIRECTORY", FROZEN)
+    monkeypatch.setattr(verifier, "FROZEN_DIRECTORIES", (FROZEN,))
+    monkeypatch.setattr(verifier, "HISTORICAL_DIRECTORY", HISTORICAL)
+    monkeypatch.setattr(verifier, "FROZEN_RECORD_NAMES", (RECORD_A, RECORD_B, NOTE))
+    return verifier
+
+
+def _freeze(root: Path, records: dict[str, object]) -> str:
+    """Commit ``records`` under the historical directory, freeze them, move them."""
+    for name, content in records.items():
+        path = root / HISTORICAL / name
+        if isinstance(content, dict):
+            _write_artifact(path, content)
+        else:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(str(content), encoding="utf-8")
+    frozen_revision = _commit(root, "records to be frozen")
+    _git(root, "mv", HISTORICAL, FROZEN)
+    _commit(root, "records move to their current directory")
+    (root / MANIFEST).write_text(
+        verifier.render_frozen_manifest_text(root, frozen_revision), encoding="utf-8")
+    _commit(root, "freeze manifest")
+    return frozen_revision
+
+
+def _frozen_fixture(tmp_path: Path, *, b_binding=None) -> tuple[Path, str, str]:
+    """Records a/b (bound to the input revision, b extends a) and a prose note.
+
+    Returns ``(root, input_revision, frozen_revision)``.
+    """
+    root, revision = _fixture(tmp_path)
+    (root / HISTORICAL).mkdir()
+    a = {"schema": "test/a", "binding": _binding(root, revision)}
+    _write_artifact(root / HISTORICAL / RECORD_A, a)
+    a_digest = _sha256((root / HISTORICAL / RECORD_A).read_bytes())
+    binding = b_binding(root, revision) if b_binding else _binding(root, revision)
+    b = {"schema": "test/b", "binding": binding,
+         "extends": {"artifact": f"{HISTORICAL}/{RECORD_A}", "artifact_digest": a_digest,
+                     "source_revision": revision}}
+    frozen_revision = _freeze(root, {RECORD_B: b, NOTE: "frozen prose\n"})
+    return root, revision, frozen_revision
+
+
+def _frozen_errors(root: Path, artifact: str) -> list[str]:
+    entries = verify_generated_chain(root, include_passing=True)
+    return [e for entry in entries if entry["artifact"] == artifact for e in entry["errors"]]
+
+
 def test_real_repo_chain_is_consistent():
     assert verify_generated_chain(REPO_ROOT) == []
 
 
-def test_report_is_deterministic(tmp_path):
+def test_report_is_deterministic(lane, tmp_path):
     root, _, _ = _frozen_fixture(tmp_path)
     first = verify_generated_chain(root, include_passing=True)
     second = verify_generated_chain(root, include_passing=True)
@@ -89,85 +154,42 @@ def test_cli_json_mode_on_the_real_repo():
     assert report, "the historical inventory must not disappear"
 
 # ---------------------------------------------------------------------------
-# Frozen lane (owner decisions Q7 + D10, 2026-10-07)
+# Frozen lane
 # ---------------------------------------------------------------------------
 
-FROZEN_O1 = "docs/method-conformance/o1/inventory.json"
-FROZEN_O1_NOTE = "docs/method-conformance/o1/review.md"
-FROZEN_O2 = "docs/method-conformance/o2/semantic-projection-v1.json"
-FROZEN_O3 = "docs/method-conformance/o3/o3-equivalence-scope.json"
 
-
-def _frozen_fixture(tmp_path: Path, *, o2_binding=None) -> tuple[Path, str, str]:
-    """A chain with frozen o1/o2/o3 records, then a manifest pinned at a revision.
-
-    Returns ``(root, input_revision, frozen_revision)``.
-    """
-    from scripts import verify_generated_chain as verifier
-
-    root, revision = _fixture(tmp_path)
-    _write_artifact(root / FROZEN_O1, {"schema": "test/o1",
-                                        "binding": _binding(root, revision)})
-    (root / FROZEN_O1_NOTE).write_text("frozen prose\n", encoding="utf-8")
-    binding = o2_binding(root, revision) if o2_binding else _binding(root, revision)
-    _write_artifact(root / FROZEN_O2, {"schema": "test/o2", "binding": binding})
-    o1_digest = _sha256((root / FROZEN_O1).read_bytes())
-    o2_digest = _sha256((root / FROZEN_O2).read_bytes())
-    _write_artifact(root / FROZEN_O3, {"basis": {
-        "comparison_base_revision": revision,
-        "o1_inventory": {"path": FROZEN_O1, "sha256": o1_digest},
-        "o2_chain": [{"path": FROZEN_O2, "sha256": o2_digest}],
-    }})
-    frozen_revision = _commit(root, "records to be frozen")
-    (root / verifier.FROZEN_MANIFEST_PATH).write_text(
-        verifier.render_frozen_manifest_text(root, frozen_revision), encoding="utf-8")
-    _commit(root, "freeze manifest")
-    return root, revision, frozen_revision
-
-
-def _frozen_errors(root: Path, artifact: str) -> list[str]:
-    entries = verify_generated_chain(root, include_passing=True)
-    return [e for entry in entries if entry["artifact"] == artifact for e in entry["errors"]]
-
-
-def _manifest_path():
-    from scripts import verify_generated_chain as verifier
-    return verifier.FROZEN_MANIFEST_PATH
-
-
-def test_frozen_fixture_chain_passes(tmp_path):
+def test_frozen_fixture_chain_passes(lane, tmp_path):
     root, _, _ = _frozen_fixture(tmp_path)
     report = verify_generated_chain(root, include_passing=True)
     assert [e for e in report if not e["ok"]] == []
-    assert {FROZEN_O1, FROZEN_O1_NOTE, FROZEN_O2, FROZEN_O3, _manifest_path()} <= {
-        e["artifact"] for e in report}
+    assert {e["artifact"] for e in report} == {FROZEN_A, FROZEN_B, FROZEN_NOTE, MANIFEST}
 
 
-def test_frozen_byte_flip_fails(tmp_path):
+def test_frozen_byte_flip_fails(lane, tmp_path):
     root, _, _ = _frozen_fixture(tmp_path)
-    (root / FROZEN_O1_NOTE).write_text("frozen prose!\n", encoding="utf-8")
-    assert any("frozen record bytes changed" in e for e in _frozen_errors(root, FROZEN_O1_NOTE))
+    (root / FROZEN_NOTE).write_text("frozen prose!\n", encoding="utf-8")
+    assert any("frozen record bytes changed" in e for e in _frozen_errors(root, FROZEN_NOTE))
 
 
-def test_frozen_directory_addition_fails(tmp_path):
+def test_frozen_directory_addition_fails(lane, tmp_path):
     root, _, _ = _frozen_fixture(tmp_path)
-    (root / "docs/method-conformance/o2/new-record.json").write_text("{}\n", encoding="utf-8")
-    assert any("not a frozen record" in e for e in _frozen_errors(root, _manifest_path()))
+    (root / FROZEN / "new-record.json").write_text("{}\n", encoding="utf-8")
+    assert any("not a frozen record" in e for e in _frozen_errors(root, MANIFEST))
     _commit(root, "commit the addition too")
-    assert any("not a frozen record" in e for e in _frozen_errors(root, _manifest_path()))
+    assert any("not a frozen record" in e for e in _frozen_errors(root, MANIFEST))
 
 
-def test_frozen_record_removal_fails_even_with_the_manifest_row_removed(tmp_path):
+def test_frozen_record_removal_fails_even_with_the_manifest_row_removed(lane, tmp_path):
     root, _, _ = _frozen_fixture(tmp_path)
-    (root / FROZEN_O1_NOTE).unlink()
-    assert any("missing from the checkout" in e for e in _frozen_errors(root, _manifest_path()))
-    manifest = json.loads((root / _manifest_path()).read_text(encoding="utf-8"))
-    manifest["records"] = [r for r in manifest["records"] if r["path"] != FROZEN_O1_NOTE]
-    (root / _manifest_path()).write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    assert any("differs from its rendering" in e for e in _frozen_errors(root, _manifest_path()))
+    (root / FROZEN_NOTE).unlink()
+    assert any("missing from the checkout" in e for e in _frozen_errors(root, MANIFEST))
+    manifest = json.loads((root / MANIFEST).read_text(encoding="utf-8"))
+    manifest["records"] = [r for r in manifest["records"] if r["path"] != FROZEN_NOTE]
+    (root / MANIFEST).write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    assert any("differs from its rendering" in e for e in _frozen_errors(root, MANIFEST))
 
 
-def test_frozen_binding_survives_input_edit_and_deletion_at_head(tmp_path):
+def test_frozen_binding_survives_input_edit_and_deletion_at_head(lane, tmp_path):
     """The point of freezing: inputs may change at HEAD; history still verifies."""
     root, _, _ = _frozen_fixture(tmp_path)
     (root / INPUT_REL).write_text("payload-v2\n", encoding="utf-8")
@@ -175,155 +197,139 @@ def test_frozen_binding_survives_input_edit_and_deletion_at_head(tmp_path):
     # Current-source outputs are checked by their generators, not this verifier.
     assert ARTIFACT_A not in {
         row["artifact"] for row in verify_generated_chain(root, include_passing=True)}
-    for frozen in (FROZEN_O1, FROZEN_O2, FROZEN_O3, _manifest_path()):
+    for frozen in (FROZEN_A, FROZEN_B, MANIFEST):
         assert _frozen_errors(root, frozen) == [], frozen
     (root / INPUT_REL).unlink()
     _commit(root, "input deleted at head")
-    for frozen in (FROZEN_O1, FROZEN_O2, FROZEN_O3, _manifest_path()):
+    for frozen in (FROZEN_A, FROZEN_B, MANIFEST):
         assert _frozen_errors(root, frozen) == [], frozen
 
 
-def test_frozen_forged_bound_input_digest_fails_the_historical_check(tmp_path):
-    root, _, _ = _frozen_fixture(tmp_path, o2_binding=lambda root, revision: {
+def test_frozen_forged_bound_input_digest_fails_the_historical_check(lane, tmp_path):
+    root, _, _ = _frozen_fixture(tmp_path, b_binding=lambda root, revision: {
         "source_revision": revision, "bound_inputs": {INPUT_REL: "sha256:" + "0" * 64}})
-    errors = _frozen_errors(root, FROZEN_O2)
+    errors = _frozen_errors(root, FROZEN_B)
     assert any("does not match its bytes at source revision" in e for e in errors), errors
 
 
-def test_frozen_missing_bound_input_at_its_revision_fails(tmp_path):
-    root, _, _ = _frozen_fixture(tmp_path, o2_binding=lambda root, revision: {
+def test_frozen_missing_bound_input_at_its_revision_fails(lane, tmp_path):
+    root, _, _ = _frozen_fixture(tmp_path, b_binding=lambda root, revision: {
         "source_revision": revision, "bound_inputs": {"src/absent.txt": "sha256:" + "0" * 64}})
-    errors = _frozen_errors(root, FROZEN_O2)
+    errors = _frozen_errors(root, FROZEN_B)
     assert any("does not exist at source revision" in e for e in errors), errors
 
 
-def test_frozen_non_ancestor_source_revision_fails(tmp_path):
+def test_frozen_non_ancestor_source_revision_fails(lane, tmp_path):
     root, _ = _fixture(tmp_path)
     branch = _git(root, "symbolic-ref", "--short", "HEAD")
     _git(root, "checkout", "-q", "-b", "side")
     (root / "src" / "side.txt").write_text("side\n", encoding="utf-8")
     side_revision = _commit(root, "side commit")
     _git(root, "checkout", "-q", branch)
-    from scripts import verify_generated_chain as verifier
-    _write_artifact(root / FROZEN_O1, {"schema": "test/o1", "binding": {
-        "source_revision": side_revision,
-        "bound_inputs": {"src/side.txt": _sha256(b"side\n")}}})
-    _write_artifact(root / FROZEN_O3, {"basis": {
-        "comparison_base_revision": _git(root, "rev-parse", "HEAD"),
-        "o1_inventory": {"path": FROZEN_O1, "sha256": _sha256((root / FROZEN_O1).read_bytes())},
-        "o2_chain": []}})
-    frozen_revision = _commit(root, "records")
-    (root / verifier.FROZEN_MANIFEST_PATH).write_text(
-        verifier.render_frozen_manifest_text(root, frozen_revision), encoding="utf-8")
-    _commit(root, "freeze")
-    assert any("not an ancestor" in e for e in _frozen_errors(root, FROZEN_O1))
+    _freeze(root, {
+        RECORD_A: {"schema": "test/a", "binding": {
+            "source_revision": side_revision,
+            "bound_inputs": {"src/side.txt": _sha256(b"side\n")}}},
+        RECORD_B: {"schema": "test/b"},
+        NOTE: "frozen prose\n",
+    })
+    assert any("not an ancestor" in e for e in _frozen_errors(root, FROZEN_A))
 
 
-def test_frozen_manifest_tamper_and_binding_key_fail(tmp_path):
+def test_frozen_manifest_tamper_and_binding_key_fail(lane, tmp_path):
     root, _, _ = _frozen_fixture(tmp_path)
-    path = root / _manifest_path()
+    path = root / MANIFEST
     manifest = json.loads(path.read_text(encoding="utf-8"))
     manifest["records"][0]["sha256"] = "sha256:" + "3" * 64
     path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    assert any("differs from its rendering" in e for e in _frozen_errors(root, _manifest_path()))
+    assert any("differs from its rendering" in e for e in _frozen_errors(root, MANIFEST))
     manifest = json.loads(path.read_text(encoding="utf-8"))
     manifest["binding"] = {"source_revision": "0" * 40}
     path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    assert any("must not carry a 'binding' key" in e for e in _frozen_errors(root, _manifest_path()))
+    assert any("must not carry a 'binding' key" in e for e in _frozen_errors(root, MANIFEST))
 
 
-def test_frozen_manifest_revision_must_be_an_ancestor(tmp_path):
+def test_frozen_manifest_revision_must_be_an_ancestor(lane, tmp_path):
     root, _, _ = _frozen_fixture(tmp_path)
-    path = root / _manifest_path()
+    path = root / MANIFEST
     manifest = json.loads(path.read_text(encoding="utf-8"))
     manifest["frozen_at_revision"] = "e" * 40
     path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    assert any("frozen_at_revision" in e for e in _frozen_errors(root, _manifest_path()))
+    assert any("frozen_at_revision" in e for e in _frozen_errors(root, MANIFEST))
 
 
-def test_frozen_manifest_missing_fails(tmp_path, monkeypatch):
-    from scripts import verify_generated_chain as verifier
-    monkeypatch.undo()  # the real lane, not the synthetic-registry wrapper
+def test_frozen_manifest_missing_fails(lane, tmp_path):
     root, _, _ = _frozen_fixture(tmp_path)
-    (root / verifier.FROZEN_MANIFEST_PATH).unlink()
+    (root / MANIFEST).unlink()
     entries = verifier._frozen_lane_entries(root)
-    assert entries == [{"artifact": verifier.FROZEN_MANIFEST_PATH, "ok": False,
+    assert entries == [{"artifact": MANIFEST, "ok": False,
                         "errors": ["frozen-records manifest is missing"]}]
 
 
-def test_frozen_o3_basis_digest_and_base_checks(tmp_path):
-    """Replaces the former live O3 scope lane test: the basis is frozen data."""
-    from scripts import verify_generated_chain as verifier
-    root, revision = _fixture(tmp_path)
-    _write_artifact(root / FROZEN_O1, {"schema": "test/o1"})
-    o1_digest = _sha256((root / FROZEN_O1).read_bytes())
+def test_extends_resolves_historical_paths_to_the_current_directory(lane, tmp_path):
+    """A record keeps its historical ``extends`` path after the move; the lane
+    resolves it to the current record and still checks digest and revision."""
+    root, revision, _ = _frozen_fixture(tmp_path)
+    b = json.loads((root / FROZEN_B).read_text(encoding="utf-8"))
+    assert b["extends"]["artifact"] == f"{HISTORICAL}/{RECORD_A}"
+    assert not (root / HISTORICAL).exists()
+    assert _frozen_errors(root, FROZEN_B) == []
 
-    def _freeze(basis: dict) -> None:
-        _write_artifact(root / FROZEN_O3, {"basis": basis})
-        frozen_revision = _commit(root, "o3 scope")
-        (root / verifier.FROZEN_MANIFEST_PATH).write_text(
-            verifier.render_frozen_manifest_text(root, frozen_revision), encoding="utf-8")
-        _commit(root, "freeze")
-
-    _freeze({"comparison_base_revision": revision,
-             "o1_inventory": {"path": FROZEN_O1, "sha256": o1_digest}, "o2_chain": []})
-    assert _frozen_errors(root, FROZEN_O3) == []
-    _freeze({"comparison_base_revision": revision,
-             "o1_inventory": {"path": FROZEN_O1, "sha256": "sha256:" + "2" * 64}, "o2_chain": []})
-    assert any("o3 basis.o1_inventory" in e for e in _frozen_errors(root, FROZEN_O3))
-    _freeze({"comparison_base_revision": "e" * 40,
-             "o1_inventory": {"path": FROZEN_O1, "sha256": o1_digest}, "o2_chain": []})
-    assert any("comparison_base_revision" in e for e in _frozen_errors(root, FROZEN_O3))
-    _freeze({"comparison_base_revision": revision,
-             "o1_inventory": {"path": ARTIFACT_A, "sha256": _sha256((root / ARTIFACT_A).read_bytes())},
-             "o2_chain": []})
-    assert any("must be a frozen record" in e for e in _frozen_errors(root, FROZEN_O3))
+    (tmp_path / "forged").mkdir()
+    other, revision = _fixture(tmp_path / "forged")
+    _write_artifact(other / HISTORICAL / RECORD_A, {"schema": "test/a"})
+    _freeze(other, {
+        RECORD_B: {"schema": "test/b", "extends": {
+            "artifact": f"{HISTORICAL}/{RECORD_A}", "artifact_digest": "sha256:" + "4" * 64,
+            "source_revision": revision}},
+        NOTE: "frozen prose\n",
+    })
+    assert any("does not match the frozen digest" in e for e in _frozen_errors(other, FROZEN_B))
 
 
 # -- real repository ---------------------------------------------------------
 
 
 def _real_manifest() -> dict:
-    from scripts import verify_generated_chain as verifier
     return json.loads((REPO_ROOT / verifier.FROZEN_MANIFEST_PATH).read_text(encoding="utf-8"))
 
 
-def test_real_frozen_manifest_covers_whole_directories():
-    from scripts import verify_generated_chain as verifier
+def test_real_frozen_manifest_covers_exactly_the_records_the_runtime_serves():
+    from de4sdv.semantic.model_contract import O2_PROFILE_CHAIN, O2_PROJECTION_CHAIN
+
     manifest = _real_manifest()
     assert manifest["directories"] == list(verifier.FROZEN_DIRECTORIES)
     tracked = _git(REPO_ROOT, "ls-files", "--", *verifier.FROZEN_DIRECTORIES).splitlines()
-    assert sorted(r["path"] for r in manifest["records"]) == sorted(tracked)
-    assert len(tracked) == 29
+    paths = sorted(r["path"] for r in manifest["records"])
+    assert paths == sorted(tracked)
+    served = sorted(path for path, _schema in O2_PROJECTION_CHAIN + O2_PROFILE_CHAIN)
+    assert paths == served
     assert not {"binding", "source_revision", "extends"} & set(manifest)
-    assert sum(r["kind"] == "generated" for r in manifest["records"]) == 7
+    assert {r["kind"] for r in manifest["records"]} == {"generated"}
 
 
 def test_real_frozen_manifest_equals_its_rendering():
-    from scripts import verify_generated_chain as verifier
     manifest = _real_manifest()
     rendered = verifier.render_frozen_manifest_text(REPO_ROOT, manifest["frozen_at_revision"])
     assert rendered == (REPO_ROOT / verifier.FROZEN_MANIFEST_PATH).read_text(encoding="utf-8")
 
 
-def test_real_frozen_records_pass_although_frozen_o1_inputs_changed_at_head():
-    """check_model_sync.py is a bound input of the frozen O1 inventory: editing
-    it (O4 Wave C1) no longer breaks the record, whose binding is historical."""
-    from scripts import verify_generated_chain as verifier
-    inventory = json.loads((REPO_ROOT / "docs/method-conformance/o1/"
-                            "semantic-authority-inventory.json").read_text(encoding="utf-8"))
-    bound = inventory["binding"]["bound_inputs"]
-    changed = [path for path in ("scripts/check_model_sync.py",
-               "textual-notation-of-model/packages/methods/de4sdv/"
-               "de4sdv_ontology_validation_rules.sysml")
-               if _sha256((REPO_ROOT / path).read_bytes()) != bound[path]]
-    assert changed, "expected at least one frozen O1 bound input to differ at HEAD"
+def test_real_frozen_records_pass_although_their_bound_inputs_changed_at_head():
+    """The frozen records bind inputs that have since changed or been deleted;
+    their bindings are historical, so the records still verify."""
+    record = json.loads((REPO_ROOT / verifier.FROZEN_DIRECTORY /
+                         "semantic-projection-v1.json").read_text(encoding="utf-8"))
+    bound = record["binding"]["bound_inputs"]
+    changed = [path for path, digest in bound.items()
+               if (REPO_ROOT / path).is_file() and _sha256((REPO_ROOT / path).read_bytes()) != digest]
+    absent = [path for path in bound if not (REPO_ROOT / path).exists()]
+    assert changed, "expected at least one bound input to differ at HEAD"
+    assert absent, "expected at least one bound input to be deleted at HEAD"
     assert verifier.frozen_record_errors(REPO_ROOT) == []
 
 
 def test_frozen_lane_does_not_read_the_authored_ontology_at_head(monkeypatch):
     """The frozen lane never opens a bound input from the working tree."""
-    from scripts import verify_generated_chain as verifier
     opened = []
     original = Path.read_bytes
 

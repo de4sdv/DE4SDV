@@ -12,16 +12,12 @@ import json
 from pathlib import Path
 
 import pytest
-import yaml
 
 from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
 from model_contract_fixtures import owned_definition_documentation
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-INVENTORY = REPO_ROOT / "docs/method-conformance/o1/semantic-authority-inventory.json"
-DECISIONS = REPO_ROOT / "docs/method-conformance/o1/authority-review-decisions.yaml"
 REGISTER = REPO_ROOT / "docs/method-conformance/o4/o4-execution-register.json"
-SCOPE = REPO_ROOT / "docs/method-conformance/o3/o3-equivalence-scope.json"
 
 BATCH_ROWS = ("ArchitectureDecisionRecord", "Baseline")
 MAPPING = {
@@ -34,15 +30,6 @@ MAPPING = {
         "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
     ),
 }
-STAGE = "o4-w5 batch 1 (definitions parity)"
-# later-batch convention (W5 batch 3): Baseline moved to the acceptance stage
-# recorded by external-reference-acceptance-review.md.
-ACCEPTANCE_STAGE = "o4-w5 batch 3 (external-reference acceptance)"
-OBLIGATION = (
-    "reviewed revision-bound closure binding of the accepted external-boundary contract "
-    "and typed-reference schema/profile entries (O4 closure precondition; external "
-    "authority retained, no traversal)"
-)
 
 USAGES = {
     "scripts/check_model_sync.py": [
@@ -76,22 +63,8 @@ def _declaration_block(text: str, decl_start: str) -> list[str]:
 
 
 @pytest.fixture(scope="module")
-def inventory() -> dict:
-    return json.loads(INVENTORY.read_text())
-
-
-@pytest.fixture(scope="module")
-def decisions() -> dict:
-    return yaml.safe_load(DECISIONS.read_text())["entries"]
-
-
-@pytest.fixture(scope="module")
 def register_rows() -> dict:
     return {row["identity"]: row for row in json.loads(REGISTER.read_text())["rows"]}
-
-
-def _entry(inventory: dict, identity: str) -> dict:
-    return next(e for e in inventory["entries"] if e["identity"] == identity)
 
 
 def _model_flat(identity: str) -> str:
@@ -115,64 +88,12 @@ def test_exact_two_row_scope(register_rows):
     assert len(BATCH_ROWS) == 2
 
 
-def test_exactly_the_batch_rows_carry_the_batch_stage(decisions):
-    # later-batch convention (W5 batch 3): the ADR row keeps its parity stage
-    # (with a bounded retention note); Baseline moved to the acceptance stage.
-    staged = [name for name, row in decisions.items() if row.get("stage") == STAGE]
-    assert staged == ["ArchitectureDecisionRecord"]
-    assert decisions["Baseline"]["stage"] == ACCEPTANCE_STAGE
-
-
-def test_declaration_mapping(inventory):
-    for identity in BATCH_ROWS:
-        entry = _entry(inventory, identity)
-        observed = entry["observed"]
-        assert observed["declaration"] == MAPPING[identity][0]
-        assert observed["file"] == MAPPING[identity][1]
-        assert observed["yaml_path"] == f"classes:{identity}"
-
-
 def test_definitions_have_owned_nonempty_documentation():
     # This cleanup retired copied parity prose; external-reference/non-claim guards remain.
     for identity in BATCH_ROWS:
         declaration, path = MAPPING[identity]
         source = (REPO_ROOT / path).read_text(encoding="utf-8")
         assert owned_definition_documentation(source, declaration).strip(), identity
-
-
-def test_honest_parity_state(inventory, decisions):
-    for identity in BATCH_ROWS:
-        entry = _entry(inventory, identity)
-        assert entry["observed"]["doc_text_observation"] == "differs", identity
-        assert entry["reviewed"]["semantic_text_equivalence"] == "reviewed-equivalent", identity
-        row = decisions[identity]
-        assert row["semantic_text_equivalence"] == "reviewed-equivalent"
-        expected_stage = (
-            ACCEPTANCE_STAGE if identity == "Baseline" else STAGE
-        )
-        assert row["stage"] == expected_stage
-        assert "batch-1 parity-reviewed" in row["note"]
-        assert row["exact_fit_decision"].startswith(
-            "reviewed-equivalence: definition-level parity closed (o4-w5 batch 1)"
-        )
-
-
-def test_legacy_yaml_authority_remains(decisions, inventory):
-    for identity in BATCH_ROWS:
-        row = decisions[identity]
-        assert row["authority_current"] == "legacy-yaml"
-        assert row["authority_target"] == "model-authoritative"
-        assert row["conditional_target"] is False
-        assert row["transition_gate"] is None
-        assert row["closure_evidence_ref"] is None
-        assert _entry(inventory, identity)["reviewed"]["authority_current"] == "legacy-yaml"
-
-
-def test_remaining_obligation_is_o4_o2_only(decisions):
-    for identity in BATCH_ROWS:
-        evidence = decisions[identity]["required_evidence"]
-        assert evidence == [OBLIGATION], identity
-        assert all("O3" not in item for item in evidence)
 
 
 # ---------------------------------------------------------------------------
@@ -193,13 +114,6 @@ def test_baseline_non_claim_boundary_kept():
     assert "part def DE4SDVEvidenceBaseline :> OperationalEntity {" in (
         REPO_ROOT / MAPPING["Baseline"][1]
     ).read_text()
-
-
-def test_external_content_never_mirrored(decisions):
-    # The records stay reference identities: review notes pin that content
-    # authority stays external for both rows.
-    assert "ADR content stays external" in decisions["ArchitectureDecisionRecord"]["note"]
-    assert "must not mirror baseline contents" in decisions["Baseline"]["note"]
 
 
 def test_existing_usages_remain_intact():
@@ -234,40 +148,6 @@ def test_no_new_projection_rows():
 
 
 def test_no_runtime_or_o3_promotion(register_rows):
-    scope = json.loads(SCOPE.read_text())
-    identities = {row["identity"] for row in scope["identities"]}
-    assert identities == set(MIGRATED_IDENTITIES)
-    assert len(identities) == 13
     for identity in BATCH_ROWS:
-        assert identity not in identities
+        assert identity not in MIGRATED_IDENTITIES
         assert register_rows[identity].get("gate_wave") is None
-
-
-def test_prior_batch_rows_unchanged(decisions):
-    # later-batch convention (definition admission batch 1): prior parity rows now
-    # carry the shared admission stage.
-    expected_stage = {
-        "EngineeringIncrement": "o4 definition admission batch 1 (projection + profile)",
-        "FeatureIncrement": "o4 definition admission batch 1 (projection + profile)",
-        "NeedsRequirementsIncrement": "o4 definition admission batch 1 (projection + profile)",
-        "IncrementEngineeringQuestion": "o4 definition admission batch 1 (projection + profile)",
-        "IncrementLifecycleDecision": "o4 definition admission batch 1 (projection + profile)",
-        "SystemLayer": "o4 definition admission batch 1 (projection + profile)",
-        "ProblemStatement": "o4 definition admission batch 1 (projection + profile)",
-        "Assumption": "o4 definition admission batch 1 (projection + profile)",
-        "Gap": "o4 definition admission batch 1 (projection + profile)",
-        "SignalMappingDisposition": "o4 definition admission batch 1 (projection + profile)",
-        "LogicalToSoftwareSignalMappingRecord": "o4 definition admission batch 1 (projection + profile)",
-        "SystemToSoftwareSignalMappingCandidate": "o4 definition admission batch 1 (projection + profile)",
-        "Need": "o4 definition admission batch 1 (projection + profile)",
-        "Requirement": "o4 definition admission batch 1 (projection + profile)",
-        "RegulatoryConstraint": "o4 definition admission batch 1 (projection + profile)",
-        "MissingRealizationRecord": "o4 definition admission batch 1 (projection + profile)",
-        "BlockedRealizationBranchRecord": "o4 definition admission batch 1 (projection + profile)",
-        "ProductLine": "o4 definition admission batch 1 (projection + profile)",
-        "MemberProduct": "o4 definition admission batch 1 (projection + profile)",
-        "DeferredProductLineScope": "o4 definition admission batch 1 (projection + profile)",
-    }
-    for identity, stage in expected_stage.items():
-        assert decisions[identity]["stage"] == stage, identity
-        assert decisions[identity]["authority_current"] == "legacy-yaml", identity

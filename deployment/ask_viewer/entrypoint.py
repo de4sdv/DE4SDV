@@ -23,7 +23,6 @@ _GOVERNED_MODEL_PATHS = (
     # (the runtime's startup check also recomputes the sai- identity); design
     # notes and other documentation stay outside the gate.
     ":(glob)docs/method-conformance/o2/*.json",
-    ":(glob)docs/method-conformance/o2/*admission*.yaml",
     ":(glob)docs/method-conformance/o2plus/*.json",
     ":(glob)docs/method-conformance/o2plus/*admission*.yaml",
     ":(glob)docs/method-conformance/o4/*projection*.json",

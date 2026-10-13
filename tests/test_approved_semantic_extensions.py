@@ -1,24 +1,21 @@
 """Approved extensions are accounted model vocabulary, never closure claims.
 
 O4 Wave C2: the authored ontology and the O1 inventory generator are gone.
-Mappings are read from the model-built kernel contract, the reviewed O1
-decisions from their frozen record, the documentation observation from the
-generated definition-batch-2 projection row, and the kernel accounting from
-the model-projection coverage gate.
+Mappings are read from the model-built kernel contract, the documentation
+observation from the generated definition-batch-2 projection row, and the
+kernel accounting from the model-projection coverage gate.
 """
 import json
 from pathlib import Path
 import re
 
 import pytest
-import yaml
 
 from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
 from model_contract_fixtures import model_contract
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml"
-DECISIONS_PATH = "docs/method-conformance/o1/authority-review-decisions.yaml"
 BATCH2_PATH = "docs/method-conformance/o4/definition-batch2-projection.json"
 ASSURANCE_RECORDS = (
     "EvidenceSupportCitation",
@@ -40,11 +37,6 @@ RELATIONSHIP_EXTENSIONS = {
 EXTENSIONS = ASSURANCE_RECORDS + TRACE_RECORDS + tuple(RELATIONSHIP_EXTENSIONS)
 
 
-def _decisions():
-    """The reviewed O1 decisions (a frozen O1 record)."""
-    return yaml.safe_load((ROOT / DECISIONS_PATH).read_text())["entries"]
-
-
 def _observation(identity):
     rows = {r["identity"]: r for r in json.loads((ROOT / BATCH2_PATH).read_text())["rows"]}
     definition = rows[identity]["definition"]
@@ -58,12 +50,6 @@ def test_assurance_extension_has_exact_model_mapping_and_no_closure_promotion(id
     assert contract.classes[identity]["kernel"] == {
         "file": MODEL, "declaration": f"item def {identity}"}
     assert _observation(identity) == "model-owned-documentation"
-    reviewed = _decisions()[identity]
-    assert reviewed["evidence_state"] == "proposed"
-    assert reviewed["adoption_status"] == "not-applicable"
-    assert reviewed["closure_evidence_ref"] is None
-    assert reviewed["transition_gate"]
-    assert reviewed["semantic_text_equivalence"] is None
     assert identity not in MIGRATED_IDENTITIES
 
 
@@ -76,12 +62,11 @@ def test_historical_o4_review_population_is_not_silently_expanded():
 
 
 def test_every_new_record_is_reviewed_and_model_mapped_without_waiving_coverage():
-    """Replaces the O1 inventory join: every extension has a reviewed decision,
-    a model-built mapping and a generated row, and coverage stays exact."""
+    """Every extension has a model-built mapping and a generated row, and
+    coverage stays exact."""
     from de4sdv.semantic import model_projection_coverage as coverage
-    contract, decisions = model_contract(), _decisions()
+    contract = model_contract()
     for identity in EXTENSIONS:
-        assert identity in decisions, identity
         assert identity in contract.classes, identity
         assert _observation(identity) == "model-owned-documentation", identity
     report = coverage.build_report(ROOT)
@@ -96,11 +81,6 @@ def test_relationship_extension_is_ingestable_but_not_promoted(identity, declara
     assert identity in contract.classes
     assert contract.classes[identity]["kernel"] == {
         "file": RELATIONSHIP_MODEL, "declaration": declaration}
-    row = _decisions()[identity]
-    assert row["evidence_state"] == "proposed"
-    assert row["closure_evidence_ref"] is None
-    assert row["transition_gate"]
-    assert row["semantic_text_equivalence"] is None
     assert _observation(identity) == "model-owned-documentation"
     assert identity not in MIGRATED_IDENTITIES
 
@@ -162,11 +142,6 @@ def test_trace_extension_has_exact_model_mapping_without_runtime_admission(ident
     assert contract.classes[identity]["kernel"] == {
         "file": TRACE_MODEL, "declaration": f"part def {identity}"}
     assert _observation(identity) == "model-owned-documentation"
-    row = _decisions()[identity]
-    assert row["evidence_state"] == "proposed"
-    assert row["closure_evidence_ref"] is None
-    assert row["transition_gate"]
-    assert row["semantic_text_equivalence"] is None
     assert identity not in MIGRATED_IDENTITIES
 
 
@@ -176,12 +151,6 @@ def test_historical_trace_identity_is_retained_but_not_a_successor_witness(ident
     mapping = contract.classes[identity]["kernel"]
     assert set(mapping) == {"external"}
     assert "Historical pre-Topic-5" in mapping["external"]
-    row = _decisions()[identity]
-    assert row["authority_current"] == "legacy-yaml"
-    assert row["evidence_state"] == "repository-evidenced"
-    assert row["closure_evidence_ref"] is None
-    assert row["semantic_text_equivalence"] is None
-    assert any("whole-consumer migration" in text for text in row["required_evidence"])
 
 
 def test_merged_trace_shell_is_refused_with_its_register_disposition():
@@ -215,6 +184,31 @@ def test_reusable_stakeholder_roles_and_relationship_carrier_are_not_authority_g
     report = coverage.build_report(ROOT)
     assert not report["kernel_accounting_errors"]
     assert not report["residual_declarations"]
+
+
+def test_saf_adaptation_notices_and_stakeholder_carrier_are_bounded():
+    kernel = ROOT / "textual-notation-of-model/packages/methods/de4sdv"
+    roles = (kernel / "de4sdv_stakeholders.sysml").read_text()
+    assert "c57bd42db60a00c51168f6aba8e2229ba0165b6c" in roles
+    assert "not forbidden" in roles
+    assert "locally adapted" in roles
+    context = (kernel / "de4sdv_method_context.sysml").read_text()
+    assert "connection def HasStakeholder" in context
+    assert "end increment : EngineeringIncrement;" in context
+    assert "end stakeholderRole : Stakeholder;" in context
+
+
+def test_eight_adapted_and_seven_local_roles_remain_reusable():
+    text = (ROOT / "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml").read_text()
+    local, adapted = text.split("// ─── Eight locally adapted GfSE SAF roles", 1)
+    assert set(re.findall(r"part def (\w+) :> Stakeholder", local)) == {
+        "RoadUser", "VehicleOccupant", "SystemsEngineer", "ProductLineEngineer",
+        "ComplianceEngineer", "VerificationEngineer", "OpenSourceReviewer"}
+    assert set(re.findall(r"part def (\w+) :> Stakeholder", adapted)) == {
+        "SafetyExpert", "SecurityExpert", "SystemArchitect", "SoftwareDeveloper",
+        "HardwareDeveloper", "Maintainer", "Supplier", "ProjectManager"}
+    code = re.sub(r"/\*.*?\*/|//[^\n]*", " ", text, flags=re.S)
+    assert not re.search(r"\bindividual\s+(?:part|item)\s+def", code)
 
 
 def _constructor_record(name, kind, **values):

@@ -49,11 +49,9 @@ The batch tests:
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
-import yaml
 
 from de4sdv.semantic import authority_inventory as ai
 from de4sdv.semantic.kernel_contract import KernelContract
@@ -61,15 +59,6 @@ from model_contract_fixtures import model_contract  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-INVENTORY_PATH = (
-    REPO_ROOT / "docs/method-conformance/o1/semantic-authority-inventory.json"
-)
-DECISIONS_PATH = (
-    REPO_ROOT / "docs/method-conformance/o1/authority-review-decisions.yaml"
-)
-REVIEW_DOC = (
-    REPO_ROOT / "docs/method-conformance/o1/c5-relevance-realization-review.md"
-)
 TRAVERSAL_SOURCE = REPO_ROOT / "de4sdv/semantic/traversal.py"
 
 C5_IDENTITIES: tuple[str, ...] = (
@@ -79,64 +68,6 @@ C5_IDENTITIES: tuple[str, ...] = (
     "hasRelevantEvidenceContract",
 )
 
-C5_STAGE = "c5 (relevance and realization review batch)"
-RENAME_DISPOSITION = "rename-required"
-
-#: The seven c1 identities accepted as parity-reviewed (unchanged by c5).
-C1_ACCEPTED: tuple[str, ...] = (
-    "MethodPhase",
-    "MethodContractObligation",
-    "EvaluationSourceKind",
-    "EvaluationScopeMembership",
-    "TestedScopeDeclaration",
-    "RetainedExecutionRecordReference",
-    "AcceptanceAttestationReference",
-)
-
-C1_INCOMPLETE: tuple[str, ...] = ("MethodEvaluationScope",)
-C2_IDENTITIES: tuple[str, ...] = ("VerificationCase", "verifiedBy")
-C3_IDENTITIES: tuple[str, ...] = ("hasSubject",)
-C4_IDENTITIES: tuple[str, ...] = ("derivesNeedFromConcern",)
-
-PLE_GATED: tuple[str, ...] = (
-    "FeatureConfiguration",
-    "specifiesFeature",
-    "specifiesCommonCapability",
-    "appliesToMemberProduct",
-    "selectsFeature",
-    "includesCommonCapability",
-    "variesAt",
-    "selectsVariant",
-)
-
-K_TRIPLE: tuple[str, ...] = (
-    "DerivesFromNeed",
-    "derivesRequirementFromNeed",
-    "derivedRequirementsOfNeed",
-)
-
-BLOCKED_ROWS_AFTER_C5: tuple[str, ...] = tuple(
-    sorted(
-        PLE_GATED
-        + (
-            "allocatedTo",
-            "deployedTo",
-            "instantiatesCanonicalArchitecture",
-            "validatedBy",
-            "validatesFitnessForUse",
-            "hasRelevantEvidenceContract",
-        )
-    )
-)
-
-#: The c5 rows that remain on the global parity-reviewed set after the
-#: correction; the EvidenceContract row is governed ``blocked``/``defer``.
-C5_PARITY_ROWS: tuple[str, ...] = (
-    "realizedBy",
-    "specifiesFunction",
-    "hasRelevantArchitecture",
-)
-C5_BLOCKED_ROWS: tuple[str, ...] = ("hasRelevantEvidenceContract",)
 
 #: Retained-run replay literals (full-model candidate export at
 #: 0a23902370de9fc74d6118afe480382e0b0d8aa0; read offline; supporting
@@ -189,35 +120,6 @@ def _contract() -> KernelContract:
     return model_contract()
 
 
-@pytest.fixture(scope="module")
-def inventory() -> dict:
-    return json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
-
-
-@pytest.fixture(scope="module")
-def decisions() -> dict:
-    return yaml.safe_load(DECISIONS_PATH.read_text(encoding="utf-8"))
-
-
-def _entries(inventory: dict, names=None) -> dict[str, dict]:
-    by_identity = {entry["identity"]: entry for entry in inventory["entries"]}
-    if names is None:
-        return by_identity
-    return {name: by_identity[name] for name in names}
-
-
-def _decision_text(row: dict) -> str:
-    parts = [str(row.get("note") or ""), str(row.get("exact_fit_decision") or "")]
-    parts.extend(str(item) for item in row.get("required_evidence") or [])
-    parts.extend(str(item) for item in row.get("unknowns") or [])
-    return "\n".join(parts)
-
-
-def _review_text() -> str:
-    """Whitespace-normalized review-doc text (markdown wraps lines)."""
-    return " ".join(REVIEW_DOC.read_text(encoding="utf-8").split())
-
-
 # ---------------------------------------------------------------------------
 # Scope, decisions, and inventory state
 # ---------------------------------------------------------------------------
@@ -232,277 +134,10 @@ class TestC5ScopeAndCounts:
             "hasRelevantEvidenceContract",
         )
 
-    def test_only_c5_identities_carry_the_c5_stage(self, inventory):
-        staged = [
-            entry["identity"]
-            for entry in inventory["entries"]
-            if str(entry["reviewed"]["stage"]).startswith("c5")
-        ]
-        assert sorted(staged) == sorted(C5_IDENTITIES)
-
-    def test_global_parity_set_advances_by_exactly_the_c5_rows(self, inventory):
-        """This file owns the global parity-reviewed set from c5 onward.
-        c1(7) + c2(2) + c3(1) + c4(1) + c5(3) = 14: the corrected
-        EvidenceContract row is governed ``blocked``, not parity."""
-        parity = {
-            entry["identity"]
-            for entry in inventory["entries"]
-            if entry["reviewed"]["evidence_state"] == "parity-reviewed"
-        }
-        assert parity == (
-            set(C1_ACCEPTED)
-            | set(C2_IDENTITIES)
-            | set(C3_IDENTITIES)
-            | set(C4_IDENTITIES)
-            | set(C5_PARITY_ROWS)
-        )
-        assert len(parity) == 14
-        assert not (set(C5_BLOCKED_ROWS) & parity)
-
-    def test_authority_current_remains_legacy_yaml(self, inventory):
-        for identity in C5_IDENTITIES:
-            entry = _entries(inventory, (identity,))[identity]
-            assert entry["reviewed"]["authority_current"] == "legacy-yaml", identity
-
-    def test_expected_evidence_state_counts(self, inventory):
-        """c5 advanced evidence maturity for its rows (repository-evidenced
-        65 -> 61, parity 11 -> 15); the correction moves the EvidenceContract
-        row back out of parity into the governed blocked state: parity 14 /
-        blocked 14 / repository-evidenced 61."""
-        # Approved-directive implementation (Topics 1-6) added twelve reviewed
-        # model-authoritative rows; the state distribution gains `proposed`.
-        assert inventory["evidence_state_counts"] == {
-            "blocked": 14,
-            "parity-reviewed": 14,
-            "privileged-closure-proven": 3,
-            "proposed": 12,
-            "repository-evidenced": 61,
-            "unknown": 1,
-        }
-
-    def test_authority_target_counts_unchanged(self, inventory):
-        """The c5 rename rows keep their location targets; the O4 review
-        correction batch (W1) later moved three target descriptions
-        (accepted-library-grounded 12 -> 10; native-sysml 7 -> 8;
-        de4sdv-application-semantic 4 -> 5)."""
-        assert inventory["authority_target_counts"] == {
-            "accepted-library-grounded": 10,
-            "de4sdv-application-semantic": 5,
-            "external-reference": 2,
-            "model-authoritative": 73,
-            "native-sysml": 8,
-            "retired": 1,
-            "unknown": 6,
-        }
-
-    def test_authority_current_counts_unchanged(self, inventory):
-        assert inventory["authority_current_counts"] == {
-            "accepted-library-grounded": 2,
-            "external-reference": 3,
-            "legacy-yaml": 78,
-            "model-authoritative": 15,
-            "native-sysml": 6,
-            "unknown": 1,
-        }
-
-    def test_conditional_counts_unchanged(self, inventory):
-        assert inventory["authority_target_conditional_counts"] == {
-            "accepted-library-grounded": 8,
-        }
-
-    def test_blocked_rows_after_c5_are_exactly_expected(self, inventory):
-        blocked = sorted(
-            entry["identity"]
-            for entry in inventory["entries"]
-            if entry["reviewed"]["evidence_state"] == "blocked"
-        )
-        assert blocked == sorted(BLOCKED_ROWS_AFTER_C5)
-
-    def test_c1_rows_unchanged(self, inventory):
-        entries = _entries(inventory)
-        for name in C1_ACCEPTED:
-            row = entries[name]["reviewed"]
-            assert row["authority_current"] == "legacy-yaml", name
-            assert row["authority_target"] == "model-authoritative", name
-            assert row["evidence_state"] == "parity-reviewed", name
-        for name in C1_INCOMPLETE:
-            row = entries[name]["reviewed"]
-            assert row["evidence_state"] == "repository-evidenced", name
-
-    def test_c2_rows_unchanged(self, inventory):
-        entries = _entries(inventory)
-        verification = entries["VerificationCase"]["reviewed"]
-        assert verification["authority_current"] == "native-sysml"
-        assert verification["evidence_state"] == "parity-reviewed"
-        verified_by = entries["verifiedBy"]["reviewed"]
-        # O4 review correction (W1, finding 17): corrected from native-sysml.
-        assert verified_by["authority_target"] == "de4sdv-application-semantic"
-        assert verified_by["evidence_state"] == "parity-reviewed"
-
-    def test_c3_row_unchanged(self, inventory):
-        row = _entries(inventory)["hasSubject"]["reviewed"]
-        assert row["stage"] == "c3 (hasSubject review batch)"
-        assert row["authority_target"] == "de4sdv-application-semantic"
-        assert row["evidence_state"] == "parity-reviewed"
-
-    def test_c4_retirement_unchanged(self, inventory):
-        row = _entries(inventory)["derivesNeedFromConcern"]["reviewed"]
-        assert row["authority_target"] == "retired"
-        assert row["disposition"] == "retire-without-replacement"
-        assert row["evidence_state"] == "parity-reviewed"
-
-    def test_k_rows_unchanged(self, inventory):
-        entries = _entries(inventory)
-        for identity in K_TRIPLE:
-            row = entries[identity]["reviewed"]
-            assert row["authority_current"] == "model-authoritative", identity
-            assert row["evidence_state"] == "privileged-closure-proven", identity
-            assert row["closure_evidence_ref"] == "r6-3", identity
-
-    def test_ple_rows_unchanged(self, inventory):
-        entries = _entries(inventory)
-        for identity in PLE_GATED:
-            row = entries[identity]["reviewed"]
-            assert row["evidence_state"] == "blocked", identity
-            assert row["adoption_status"] == "pinned-not-adopted", identity
-            assert row["conditional_target"] is True, identity
-
 
 # ---------------------------------------------------------------------------
 # Reviewed decisions (the source rows)
 # ---------------------------------------------------------------------------
-
-
-class TestReviewedDecisions:
-    def _row(self, decisions, identity) -> dict:
-        return decisions["entries"][identity]
-
-    def test_stage_and_common_fields(self, decisions):
-        for identity in C5_PARITY_ROWS:
-            row = self._row(decisions, identity)
-            assert row["stage"] == C5_STAGE, identity
-            assert row["authority_current"] == "legacy-yaml", identity
-            assert row["evidence_state"] == "parity-reviewed", identity
-            assert row["adoption_status"] == "not-applicable", identity
-            assert row["conditional_target"] is False, identity
-            assert row["transition_gate"] is None, identity
-            assert row["unknowns"] == [], identity
-            assert row["closure_evidence_ref"] is None, identity
-            assert row["semantic_text_equivalence"] is None, identity
-
-    def test_evidencecontract_row_is_blocked_deferred(self, decisions):
-        """c5 correction: the declared range is not machine-resolvable at the
-        reviewed revision, so the row is governed blocked/defer — never
-        parity-reviewed on a measured wrong/broader population."""
-        row = self._row(decisions, "hasRelevantEvidenceContract")
-        assert row["stage"] == C5_STAGE
-        assert row["authority_current"] == "legacy-yaml"
-        assert row["authority_target"] == "de4sdv-application-semantic"
-        assert row["evidence_state"] == "blocked"
-        assert row["disposition"] == "defer"
-        assert row["adoption_status"] == "not-applicable"
-        assert row["conditional_target"] is False
-        assert isinstance(row["transition_gate"], str) and row["transition_gate"]
-        assert row["unknowns"], "the unresolved discriminator must be recorded"
-        assert row["closure_evidence_ref"] is None
-        assert row["semantic_text_equivalence"] is None
-        assert row["confidence"] in ("high", "medium", "low")
-        text = _decision_text(row)
-        # The exact blocker statement required by the independent review.
-        assert (
-            "EvidenceContract-specific identity is not machine-resolvable at "
-            "the reviewed revision" in text
-        )
-        assert (
-            "native verification membership also admits AcceptanceCriterion "
-            "and therefore cannot establish the declared EvidenceContract "
-            "range" in text
-        )
-        assert "34 hops over 29 distinct sources" in text
-        assert "0 hops over 0 sources" in text
-        assert "acceptance-criterion-role hops after correction: 0" in text
-        unknowns = " ".join(str(item) for item in row["unknowns"])
-        assert "identity discriminator" in unknowns
-        assert "no shared specialization lineage" in unknowns
-
-    def test_realizedby_is_rename_required(self, decisions):
-        row = self._row(decisions, "realizedBy")
-        assert row["disposition"] == RENAME_DISPOSITION
-        assert row["authority_target"] == "model-authoritative"
-        text = _decision_text(row)
-        assert "Outcome D" in text
-        assert "rename/replacement required" in text
-        assert "allocation is not realization" in text
-        assert "10 Function / 0 LogicalElement / 0 PhysicalElement / 0 other" in text
-        assert "zero hops against the real serialized model" in text
-        assert "not the canonical RFLP realization chain" in _review_text()
-
-    def test_specifiesfunction_is_rename_required(self, decisions):
-        row = self._row(decisions, "specifiesFunction")
-        assert row["disposition"] == RENAME_DISPOSITION
-        assert row["authority_target"] == "de4sdv-application-semantic"
-        text = _decision_text(row)
-        assert "Outcome D" in text
-        assert "relevance" in text
-        assert "does not prove specification" in text
-        assert "no strengthening" in text
-
-    def test_hasrelevantarchitecture_is_retained(self, decisions):
-        row = self._row(decisions, "hasRelevantArchitecture")
-        assert row["disposition"] == "prove-existing-model-authority"
-        assert row["authority_target"] == "de4sdv-application-semantic"
-        text = _decision_text(row)
-        assert "Outcome B" in text
-        assert "MemberProduct" in text
-        assert "143" in text and "42" in text and "101" in text
-
-    def test_hasrelevantevidencecontract_is_blocked_with_the_exact_blocker(
-        self, decisions
-    ):
-        row = self._row(decisions, "hasRelevantEvidenceContract")
-        assert row["disposition"] == "defer"
-        assert row["evidence_state"] == "blocked"
-        assert row["authority_target"] == "de4sdv-application-semantic"
-        text = _decision_text(row)
-        assert "Outcome B" in text
-        assert "no machine-resolvable" in text
-        assert "RequirementVerificationMembership != EvidenceContract automatically" in text
-        assert "verified AcceptanceCriterion != EvidenceContract" in text
-        assert "140" in text and "34" in text
-        assert "acceptance-criterion-role" in text
-        assert "wrong/broader population" in text
-
-    def test_exact_fit_decisions_populated_and_not_native(self, decisions):
-        for identity in C5_IDENTITIES:
-            decision = self._row(decisions, identity)["exact_fit_decision"]
-            assert isinstance(decision, str) and decision.strip(), identity
-            assert decision.startswith("not exact"), identity
-
-    def test_required_evidence_is_forward_only(self, decisions):
-        """Completed c5 work must not remain under required_evidence; every
-        item lists a forward migration stage (rename obligation, O2
-        admission/generation under O4). O3 stays frozen throughout O4: only
-        the frozen-thirteen row (hasRelevantArchitecture) legitimately keeps
-        an O3 transition item; the three non-O3 rows must not carry one
-        (lifecycle consistency correction)."""
-        for identity in C5_IDENTITIES:
-            items = self._row(decisions, identity)["required_evidence"]
-            assert items, identity
-            joined = " ".join(items)
-            assert "O2 " in joined, identity
-            if identity == "hasRelevantArchitecture":
-                assert "O3 " in joined, identity
-            else:
-                assert "O3 " not in joined, identity
-            for banned in ("replay", "review completed", "c5 review", "test"):
-                assert banned not in joined.lower(), (identity, banned)
-        for identity in ("realizedBy", "specifiesFunction"):
-            joined = " ".join(self._row(decisions, identity)["required_evidence"])
-            assert "rename" in joined.lower(), identity
-        joined = " ".join(
-            self._row(decisions, "hasRelevantEvidenceContract")["required_evidence"]
-        )
-        assert "identity/lineage contract" in joined
 
 
 # ---------------------------------------------------------------------------
@@ -703,16 +338,6 @@ class TestRequirementDomainEnforcement:
 
 
 class TestRealizedByLaws:
-    def test_allocation_is_not_realization(self):
-        """The hop keeps allocation strength and the row records the rename;
-        nothing in the batch presents the witness as realization."""
-        row = yaml.safe_load(DECISIONS_PATH.read_text(encoding="utf-8"))["entries"][
-            "realizedBy"
-        ]
-        assert row["disposition"] == RENAME_DISPOSITION
-        text = _decision_text(row)
-        assert "AllocationUsage != realization automatically" in text
-        assert "!= physical realization automatically" in text
 
     def test_realized_by_answers_no_allocation_fact(self):
         """O4 Wave C2: the retired name is refused (owner decision D4)."""
@@ -723,8 +348,6 @@ class TestRealizedByLaws:
         assert "realizedBy" not in _contract().relationships
 
 
-
-
 # O4 Wave C2 review R4: restored from base 6dab3e9 verbatim. They cover live
 # traversal behavior (specifiesFunction laws, the blocked EvidenceContract
 # range gate) and pass on the model-built contract and the revision binding
@@ -733,13 +356,7 @@ class TestRealizedByLaws:
 
 class TestSpecifiesFunctionLaws:
     def test_generic_dependency_is_not_specification(self):
-        """The hop is relevance strength; the row records Outcome D for the
-        overclaiming name and no specification semantics are claimed."""
-        row = yaml.safe_load(DECISIONS_PATH.read_text(encoding="utf-8"))["entries"][
-            "specifiesFunction"
-        ]
-        assert row["disposition"] == RENAME_DISPOSITION
-        assert "does not prove specification" in _decision_text(row)
+        """The hop is relevance strength; no specification semantics are claimed."""
         traversal = _traversal(_kernel_bindings())
         hops = traversal.traverse(
             "specifiesFunction", _by_id(_elements())["req-1"], _elements()
@@ -1198,76 +815,9 @@ class TestReplayEvidence:
         assert REPLAY_HEC_CORRECTED == 0
         assert REPLAY_HEC_CORRECTED_SOURCES == 0
 
-    def test_replay_numbers_are_recorded_in_the_decisions_and_review_doc(
-        self, decisions
-    ):
-        doc = _review_text()
-        for token in ("143", "101", "42", "140", "89", "34", "16", "18"):
-            assert token in doc, token
-        realized = _decision_text(decisions["entries"]["realizedBy"])
-        assert "71" in realized and "10 Function / 0 LogicalElement" in realized
-        architecture = _decision_text(
-            decisions["entries"]["hasRelevantArchitecture"]
-        )
-        assert "143" in architecture and "101" in architecture and "42" in architecture
-        evidence = _decision_text(
-            decisions["entries"]["hasRelevantEvidenceContract"]
-        )
-        assert "140" in evidence and "34" in evidence and "0 hops over 0 sources" in evidence
-
-    def test_retained_evidence_is_supporting_only(self):
-        doc = _review_text()
-        assert "0a23902370de9fc74d6118afe480382e0b0d8aa0" in doc
-        assert "34576049742" in doc
-        assert "10195168006" in doc
-        assert (
-            "sha256:e1c13b2e9d525dadddf4e861b52035e05252c7079b0e6ac989c7fef702a1718d"
-            in doc
-        )
-        assert "supporting evidence only" in doc
-        assert "not current-head privileged closure" in doc
-
-    def test_no_privileged_ingestion_dispatched(self):
-        doc = _review_text()
-        assert "No privileged ingestion was dispatched for c5" in doc
-
 
 class TestDocumentAndBoundaryLaws:
-    def test_review_doc_exists_and_names_the_decisions(self):
-        text = _review_text()
-        for fragment in (
-            "Outcome D",
-            "Outcome B",
-            "rename/replacement required",
-            "not the canonical RFLP realization chain",
-            "a query shortcut is not automatically a new engineering fact",
-            "10 Function / 0 LogicalElement / 0 PhysicalElement / 0 other",
-            "zero hops against the real serialized model",
-            "RequirementVerificationMembership",
-            "kernel rule",
-            "disjoint",
-            "No `.sysml` file changed",
-            "No privileged ingestion was dispatched for c5",
-            "The c4 retirement remains intact",
-            "allocatedTo",
-            "deployedTo",
-            "untouched",
-            # c5 correction fragments (whitespace-normalized doc text):
-            "c5 correction (independent review, this revision)",
-            "machine-resolvable, non-heuristic `EvidenceContract` discriminator",
-            "Exact blocker:",
-            "native verification membership also admits AcceptanceCriterion",
-            "Verification association vs identity",
-            "not emitted as evidence-contract hops under",
-            "no returned target without proven `EvidenceContract` identity",
-        ):
-            assert fragment in text, fragment
 
-    def test_review_doc_records_c5a_c5b_split_and_non_claims(self):
-        text = _review_text()
-        assert "c5a" in text and "c5b" in text
-        assert "explicitly distinguished and not interchangeable" in text
-        assert "No composite realization query exists" in text
 
     def test_no_sysml_or_ontology_semantic_change_by_this_batch(self):
         """The c5 contracts are stable in the model-built kernel contract (the
@@ -1344,46 +894,3 @@ class TestDocumentAndBoundaryLaws:
         source = TRAVERSAL_SOURCE.read_text(encoding="utf-8")
         for banned in ("read_text(", "rglob", "open(", "Path("):
             assert banned not in source, banned
-
-    def test_inventory_row_is_consistent_with_the_decisions_row(
-        self, inventory, decisions
-    ):
-        """The generated artifact must reproduce the reviewed decision rows
-        (governance consistency; red between Commit A and Commit B by design)."""
-        entries = _entries(inventory)
-        for identity in C5_IDENTITIES:
-            reviewed = entries[identity]["reviewed"]
-            source = decisions["entries"][identity]
-            for field in (
-                "authority_current",
-                "authority_target",
-                "disposition",
-                "evidence_state",
-                "conditional_target",
-                "transition_gate",
-                "unknowns",
-                "required_evidence",
-                "exact_fit_decision",
-                "stage",
-                "confidence",
-            ):
-                assert reviewed[field] == source[field], (identity, field)
-
-    def test_no_conditional_and_no_closure_evidence_for_c5(self, inventory):
-        entries = _entries(inventory)
-        for identity in C5_IDENTITIES:
-            row = entries[identity]["reviewed"]
-            assert row["conditional_target"] is False, identity
-            assert row["closure_evidence_ref"] is None, identity
-        for identity in C5_PARITY_ROWS:
-            row = entries[identity]["reviewed"]
-            assert row["evidence_state"] not in {
-                "blocked",
-                "unknown",
-                "privileged-closure-proven",
-                "exact-toolchain-validated",
-            }, identity
-        assert (
-            entries["hasRelevantEvidenceContract"]["reviewed"]["evidence_state"]
-            == "blocked"
-        )

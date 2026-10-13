@@ -18,8 +18,6 @@ ROOT = Path(__file__).resolve().parents[1]
 FEATURES = ROOT / "textual-notation-of-model/packages/features"
 KERNEL = ROOT / "textual-notation-of-model/packages/methods/de4sdv"
 CARRIERS = KERNEL / "de4sdv_relationship_carriers.sysml"
-RECORD = ROOT / "docs/method-conformance/o4/w6-transition-record.md"
-PLAN = ROOT / "docs/method-conformance/o4/w6-transition-plan.yaml"
 
 VIS_F = FEATURES / "aebs/aebs_visualization_functional_architecture.sysml"
 VIS_L = FEATURES / "aebs/aebs_visualization_logical_architecture.sysml"
@@ -283,26 +281,6 @@ def test_every_model_allocation_file_is_governed():
     assert found == set(ALLOCATION_FILES), sorted(str(p.relative_to(ROOT)) for p in found ^ set(ALLOCATION_FILES))
 
 
-def test_aebs_core_pre_existing_counts_match_the_transition_record():
-    """Pins the AEBS core counts the record states (needs 7 R->F, logical 10
-    F->L, software 7 L->P, simulation 7 L->P plus 4 item realizations)."""
-    totals = {}
-    for path in (AEBS_NEEDS, AEBS_L, AEBS_P, AEBS_SIM):
-        for pair, count in ALLOCATION_FILES[path][1].items():
-            totals[pair] = totals.get(pair, 0) + count
-    assert totals == {(REQUIREMENT, FUNCTION): 7, (FUNCTION, LOGICAL): 10, (LOGICAL, PHYSICAL): 14}
-    witnesses = {}
-    for path, (_, counts, _, _) in ALLOCATION_FILES.items():
-        for pair, count in counts.items():
-            witnesses[pair] = witnesses.get(pair, 0) + count
-    assert witnesses == {(REQUIREMENT, FUNCTION): 17, (FUNCTION, LOGICAL): 25, (LOGICAL, PHYSICAL): 29}
-    record = " ".join(RECORD.read_text(encoding="utf-8").split())
-    for phrase in ("17 requirement-to-function (AEBS needs 7, INC-AEBS-010 10)",
-                   "25 function-to-logical (AEBS 10, INC-AEBS-010 8, middleware 7)",
-                   "29 logical-to-physical (AEBS software 7, AEBS simulation 7, INC-AEBS-010 9, middleware 6)"):
-        assert phrase in record, phrase
-
-
 def test_recorded_composite_deviations_are_never_allocation_endpoints():
     ends = set()
     for path, (files, _, _, _) in ALLOCATION_FILES.items():
@@ -321,9 +299,6 @@ def test_aebs_core_endpoint_lineage_is_pinned_with_named_composite_deviations(pa
     assert actual == names
     others = {FUNCTION, LOGICAL, PHYSICAL} - {base}
     assert not any(re.search(rf":>\s*[^{{;]*\b{other}\b", code) for other in others), "second layer meaning"
-    record = " ".join(RECORD.read_text(encoding="utf-8").split())
-    for name in names & AEBS_CORE_COMPOSITE_DEVIATIONS:
-        assert f"`{name}`" in record, (name, "composite lineage must stay a recorded deviation")
 
 
 def test_signal_mapping_allocation_stays_outside_the_allocated_to_pairs():
@@ -439,47 +414,26 @@ def test_each_successor_predicate_owns_one_vocabulary_role_definition():
 
 
 def test_transition_record_accounts_for_every_w6_identity_against_the_plan():
-    plan = yaml.safe_load(PLAN.read_text(encoding="utf-8"))
-    text = RECORD.read_text(encoding="utf-8")
-    rows = {}
-    for line in text.splitlines():
-        cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if len(cells) == 6 and cells[0].startswith("`"):
-            rows[re.match(r"`(\w+)`", cells[0])[1]] = cells
-    identities = {entry["identity"] for entry in plan["entries"]}
-    assert set(rows) == identities | {"allocatedTo", "validatesFitnessForUse", "hasEvidenceStatus", "supportedByEvidence"}
-    # The two W6 evidence predicates point at their A1 successors and model homes.
-    for identity, successors, role in (
-            ("hasEvidenceStatus", ("`VVStatus`", "`ScopedVVActivityRecord`"), "`hasEvidenceStatusVocabularyRole`"),
-            ("supportedByEvidence", ("`EvidenceSupportCitation`", "`ScopedEvidenceAdequacyAssessment`"),
-             "`supportedByEvidenceVocabularyRole`")):
-        cells = rows[identity]
-        assert "redesign" in cells[1], identity
-        assert all(name in cells[2] for name in successors), identity
-        assert role in cells[3] and "de4sdv_scoped_assurance.sysml" in cells[3], identity
-        assert cells[5].strip(), identity
-        assured = (KERNEL / "de4sdv_scoped_assurance.sysml").read_text(encoding="utf-8")
-        assert re.search(rf"\bcomment\s+{role.strip('`')}\s+about\b", assured), identity
-    for entry in plan["entries"]:
-        cells = rows[entry["identity"]]
-        assert entry["disposition"].replace("-", " ").split()[0] in cells[1], entry["identity"]
-        if entry["successor"]:
-            assert f"`{entry['successor']}`" in cells[2], entry["identity"]
+    """The model elements of the relationship and trace redesign stay in place:
+    retirement and successor records, trace obligations and their usages. The
+    transition record and plan that accounted for them are archived."""
+    assured = (KERNEL / "de4sdv_scoped_assurance.sysml").read_text(encoding="utf-8")
+    for role in ("hasEvidenceStatusVocabularyRole", "supportedByEvidenceVocabularyRole"):
+        assert re.search(rf"\bcomment\s+{role}\s+about\b", assured), role
     carriers = _carriers_code()
     for name in ("oldRealization", "oldDeployment", "oldRegulatoryName", "oldValidationForward",
                  "oldValidationInverse", "requirementAllocation", "functionAllocation", "physicalAllocation",
                  "validationPlanning", "regulatoryProvenance"):
-        assert f"`{name}`" in text and re.search(rf"\bpart\s+{name}\s*:", carriers), name
+        assert re.search(rf"\bpart\s+{name}\s*:", carriers), name
     traces = (KERNEL / "de4sdv_method_traces.sysml").read_text(encoding="utf-8")
     for name in ("IncrementTraceObligations", "approvedScopedTraceMethod", "ApprovedTraceMethod"):
-        assert f"`{name}`" in text and name in traces, name
+        assert name in traces, name
     # A declaration is typed by IncrementTraceObligations or by the increment
     # charter, which the increment-workflow package declares as its specialization.
     workflow = (KERNEL / "de4sdv_increment_workflow.sysml").read_text(encoding="utf-8")
     assert re.search(r"\bpart\s+def\s+IncrementCharter\s*:>\s*IncrementTraceObligations\b", workflow)
     for usage, framing in (("visualizationTraceObligations", "aebs/aebs_visualization_framing.sysml"),
                            ("traceObligationsMW002", "middleware/middleware_increment_framing.sysml")):
-        assert f"`{usage}`" in text
         assert re.search(rf"\bpart\s+{usage}\s*:\s*(?:IncrementTraceObligations|IncrementCharter)\b",
                          (FEATURES / framing).read_text())
 

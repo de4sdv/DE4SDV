@@ -1,8 +1,9 @@
 """Remaining definition admission: model homes, scope and reviewed contracts.
 
 This cleanup retires live Git binding and the copied documentation oracle, not model
-ownership or contract validation. Historical contract-equivalence evidence
-still pins every non-documentation manifest contract field and admission class.
+ownership or contract validation. The manifest holds the reviewed contract
+fields; the generated rows label them with their pre-deletion comparison
+evidence, which is archived at the release-2026-10-11 tag.
 Synthetic negative tests preserve successor, retirement, about-target, carrier,
 lineage, external-reference, PLE and non-claim guards. No real model copies.
 """
@@ -19,10 +20,6 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[1]
 O4 = "docs/method-conformance/o4/"
 MANIFEST_PATH = O4 + "definition-admission-batch2.yaml"
-#: O4 Wave C2 deleted the authored ontology; its last executable comparison
-#: (identities, definitions, the manifest-held contract fields) is committed
-#: evidence that these tests lock the manifest to (owner decision D9).
-EVIDENCE_PATH = O4 + "closure/contract-equivalence.json"
 REGISTER_PATH = O4 + "o4-execution-register.json"
 SUCCESSOR_FILE = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
 
@@ -70,15 +67,6 @@ def _manifest():
     return yaml.safe_load((REPO_ROOT / MANIFEST_PATH).read_text(encoding="utf-8"))
 
 
-def _evidence():
-    return _json(EVIDENCE_PATH)
-
-
-def _authored_identities():
-    evidence = _evidence()["authored_identities"]
-    return set(evidence["classes"]), set(evidence["relationships"])
-
-
 def _register():
     return {row["identity"]: row for row in _json(REGISTER_PATH)["rows"]}
 
@@ -114,23 +102,24 @@ def test_admitted_set_is_exactly_the_derived_family():
     from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
 
     register = _register()
-    authored_classes, authored_relationships = _authored_identities()
     other = set().union(*_layer_identities().values())
     retained = {i for i, r in register.items() if r["accounting_status"] == "retained" and not r["o3_complete"]}
-    unregistered = authored_classes - set(register)
-    family = (retained - other) | unregistered | W6_NEW_SUCCESSORS | MERGED_ALIASES
+    family = (retained - other) | W6_NEW_SUCCESSORS | MERGED_ALIASES
     from de4sdv.semantic.definition_projection_batch2 import ADMISSION_CLASSES
 
     rows = _rows()
     # Content, not counts: admitting another definition must not trip this test.
-    assert set(rows) == family
+    # Every retained register row that no other layer projects is admitted here,
+    # with the named successors and the merged retired name; every other
+    # admitted row is a class outside the register.
+    assert family <= set(rows)
+    assert all(rows[i]["semantic_kind"] == "class" for i in set(rows) - family)
+    assert not (set(rows) - family) & set(register)
     assert len(rows) == len(_manifest()["admitted"])  # one admitted entry per identity
     assert not set(rows) & set(MIGRATED_IDENTITIES)
     assert not set(rows) & other
     by_class: dict[str, set[str]] = {}
     # Kind-consistency guard only: ADMISSION_CLASSES is the generator's own table.
-    # The per-identity class is locked to the frozen D9 record in
-    # test_reviewed_fields_equal_the_pre_deletion_evidence.
     for identity, row in rows.items():
         admission = row["admission_class"]
         assert admission in ADMISSION_CLASSES, (identity, admission)
@@ -138,18 +127,17 @@ def test_admitted_set_is_exactly_the_derived_family():
         by_class.setdefault(admission, set()).add(identity)
     assert W6_NEW_SUCCESSORS <= by_class.get("successor", set())
     assert MERGED_ALIASES <= by_class.get("retired-name", set())
-    # The new successors are neither register rows nor authored identities.
-    assert not W6_NEW_SUCCESSORS & (set(register) | authored_relationships)
+    # The new successors are not register rows.
+    assert not W6_NEW_SUCCESSORS & set(register)
     assert register["validatesFitnessForUse"]["accounting_status"] == "merged"
 
 
 def test_every_retained_row_and_ontology_identity_has_exactly_one_provider():
     register = _register()
-    authored_classes, authored_relationships = _authored_identities()
     layers = _layer_identities()
     layers["definition-batch-2"] = set(_rows())
     exceptions = {entry["identity"]: entry for entry in _manifest()["exceptions"]}
-    universe = set(register) | authored_classes | authored_relationships
+    universe = set(register)
     providers = {identity: [name for name, ids in layers.items() if identity in ids] for identity in universe}
     duplicates = {i: p for i, p in providers.items() if len(p) > 1}
     assert duplicates == {}
@@ -175,46 +163,8 @@ def test_projection_scope_echoes_the_owner_visible_exceptions():
 
 
 # ---------------------------------------------------------------------------
-# 2. Reviewed manifest fields equal the authored ontology and the homes inventory
+# 2. Manifest-held contract labels, successors and retired names
 # ---------------------------------------------------------------------------
-
-
-def test_reviewed_fields_equal_the_pre_deletion_evidence():
-    """Replaces ``test_reviewed_fields_equal_the_authored_ontology`` (O4 Wave C2,
-    owner decision D9): the retained manifest contract fields (kernel mapping
-    kind, ontology relations, domain/range/strength, mechanics)
-    are locked to the values the last executable comparison proved equal to the
-    authored ontology before its deletion. Changing one needs a reviewed
-    evidence update (the follow-up moves them into the model)."""
-    from model_contract_fixtures import manifest_held_values
-
-    held = _evidence()["manifest_held_fields"]
-    assert held["unequal"] == []
-    assert held["rows"] == 57
-    assert held["rows_with_manifest_held_contract_fields"] == 54
-    assert (held["relation_rows"], held["kernel_mapping_rows"]) == (21, 33)
-    rows = _rows()
-    assert set(held["entries"]) == set(rows)
-    for identity, row in rows.items():
-        entry = held["entries"][identity]
-        # Each identity's admission class is locked to the frozen record, which
-        # is independent of the generator (a relabel needs a reviewed update).
-        assert row["admission_class"] == entry["admission_class"], identity
-        assert entry["equal"] is True, identity
-        actual = manifest_held_values(row)
-        actual.pop("reviewed_definition", None)
-        expected = {key: value for key, value in entry["manifest"].items() if key != "reviewed_definition"}
-        assert actual == expected, identity
-        assert "reviewed_definition" not in row, identity
-        if entry["authored"] is not None:
-            assert entry["authored"] == entry["manifest"], identity
-        else:
-            assert identity in W6_NEW_SUCCESSORS or row["admission_class"] == "successor", identity
-    # The authored executable mappings outside the O3 13 are accounted:
-    # runtime-mapped, external reference, or the retired realizedBy name.
-    assert {i for i, r in rows.items() if "mechanics" in r} == {
-        "specifiesFunction", "hasRelevantEvidenceContract", "hasEvidence"}
-    assert rows["realizedBy"]["admission_class"] == "retired-name"
 
 
 def test_every_contract_row_is_labeled_manifest_held():
@@ -232,30 +182,10 @@ def test_every_contract_row_is_labeled_manifest_held():
     assert labeled == 54
 
 
-def test_documentation_homes_equal_the_kernel_definition_homes_inventory():
-    homes = {row["identity"]: row for row in _json(O4 + "kernel-definition-homes.json")["definitions"]}
-    for identity, row in _rows().items():
-        home = row["home"]
-        if home["form"] not in ("owned-doc", "named-doc"):
-            assert identity not in homes, identity
-            continue
-        recorded = homes[identity]
-        assert (home["file"], home["owner"], home.get("name"), home["index"]) == (
-            recorded["file"], recorded["declaration"], recorded["documentation_name"],
-            recorded["documentation_index"],
-        ), identity
-        assert (home["form"] == "named-doc") == bool(recorded["documentation_name"]), identity
-
-
 def test_successors_and_retired_names_follow_the_w6_transition_plan():
     """Replaces ``test_successors_and_aliases_follow_the_w6_transition_plan``:
     the former deprecated aliases are retired names (owner decision D4)."""
-    plan = {entry["identity"]: entry for entry in yaml.safe_load(
-        (REPO_ROOT / (O4 + "w6-transition-plan.yaml")).read_text(encoding="utf-8"))["entries"]}
     rows = _rows()
-    for identity in ("realizedBy", "deployedTo", "validatedBy", "constrainedBy"):
-        assert rows[identity]["retired"]["successor"] == plan[identity]["successor"], identity
-    assert plan["specifiesFunction"]["successor"] is None
     assert rows["specifiesFunction"]["admission_class"] == "relationship-runtime"
     assert {row["retired"]["successor"] for row in rows.values() if "retired" in row} <= {
         identity for identity, row in rows.items() if row["admission_class"] == "successor"
@@ -274,74 +204,11 @@ def test_successors_and_retired_names_follow_the_w6_transition_plan():
         assert retired["refusal"] == f"retired; use {navigation}", identity
         assert projected[identity]["support"] == "retired", identity
         assert "alias" not in projected[identity], identity
-    # The authored allocatedTo signature is the second successor end pair.
-    old = _evidence()["authored_contract"]["differences"]["allocatedTo"]["authored"]["domain_range"]
-    pair = projected["allocatedTo"]["successor"]["end_pairs"][1]
-    assert (pair["source_class"], pair["target_class"]) == (old["domain"], old["range"])
 
 
 # ---------------------------------------------------------------------------
-# 3. Gate resolution references resolve to governance record fragments
+# 3. Forward obligations
 # ---------------------------------------------------------------------------
-
-_ADR = "docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md"
-_OWNER = O4 + "owner-decisions-2026-10.md"
-_FRAGMENT_PHRASES = {
-    (_ADR, "d1"): "**D1 — architecture umbrella terms.**",
-    (_ADR, "d2"): "**D2 — acceptance criterion.**",
-    (_ADR, "d3"): "**D3 — evaluation exclusions.**",
-    (_ADR, "d4"): "**D4 — evidence contract.**",
-    (_ADR, "d4-follow-up"): "**D4 follow-up (2026-10-06).**",
-    (_ADR, "decision-7"): "**Decision 7 — feature/common-capability disjointness.**",
-    (_ADR, "decision-8"): "**Decision 8 — canonical architecture.**",
-    (_OWNER, "2026-10-05-7"): "| 7 | Feature/common-capability disjointness (open decision 14) |",
-    (_OWNER, "2026-10-05-8"): "| 8 | Canonical architecture source (open decision 10) |",
-    (_OWNER, "wave-a-decision-9"): "| Decision 9 — product-line configurator authority |",
-}
-_DECISION_FOR_FRAGMENT = {
-    (_ADR, "d1"): "decision-5", (_ADR, "d2"): "decision-6", (_ADR, "d3"): "decision-7",
-    (_ADR, "decision-7"): "decision-14", (_ADR, "decision-8"): "decision-10",
-    (_OWNER, "2026-10-05-7"): "decision-14", (_OWNER, "2026-10-05-8"): "decision-10",
-    (_OWNER, "wave-a-decision-9"): "decision-9",
-}
-
-
-def _resolve_reference(reference):
-    path, _, fragment = reference.partition("#")
-    assert ".." not in Path(path).parts and path.startswith("docs/")
-    target = REPO_ROOT / path
-    assert target.is_file(), reference
-    if path.endswith("approved-semantic-decisions.yaml"):
-        topics = yaml.safe_load(target.read_text(encoding="utf-8"))["topics"]
-        assert fragment in topics, reference
-        return set(topics[fragment]["decisions"])
-    if path.endswith("w6-transition-plan.yaml"):
-        entries = {e["identity"]: e for e in yaml.safe_load(target.read_text(encoding="utf-8"))["entries"]}
-        assert fragment in entries, reference
-        return set(entries[fragment]["authorization"]["decisions"])
-    phrase = _FRAGMENT_PHRASES.get((path, fragment))
-    assert phrase, f"unknown record fragment {reference}"
-    assert phrase in target.read_text(encoding="utf-8"), reference
-    decision = _DECISION_FOR_FRAGMENT.get((path, fragment))
-    return {decision} if decision else set()
-
-
-def test_every_register_gate_is_resolved_by_an_existing_record():
-    register = _register()
-    for identity, row in _rows().items():
-        reg = register.get(identity)
-        expected = set()
-        if reg is not None and reg["accounting_status"] == "retained":
-            expected = set(reg["gate_decisions"]) | ({"row-blocker"} if reg["blockers"] else set())
-        elif reg is not None:  # the merged retired name keeps its own blocker resolution
-            expected = {"row-blocker"} if reg["blockers"] else set()
-        assert {gate["gate"] for gate in row["gates"]} == expected, identity
-        for gate in row["gates"]:
-            named = set()
-            for reference in gate["resolved_by"]:
-                named |= _resolve_reference(reference)
-            if gate["gate"] != "row-blocker":
-                assert gate["gate"] in named, (identity, gate)
 
 
 def test_runtime_queryable_targets_keep_their_forward_obligation():
@@ -734,7 +601,7 @@ def test_batch2_machinery_is_never_imported_by_the_runtime_path():
     for relative in (
         "de4sdv/semantic/query.py", "de4sdv/semantic/traversal.py",
         "de4sdv/semantic/impact.py", "de4sdv/semantic/mcp_server.py", "de4sdv/semantic/api_binding.py",
-        "de4sdv/semantic/kernel_binding_index.py", "de4sdv/semantic/o3_bundle.py",
+        "de4sdv/semantic/kernel_binding_index.py",
         "de4sdv/semantic/deployment_runtime.py",
     ):
         text = (REPO_ROOT / relative).read_text(encoding="utf-8")

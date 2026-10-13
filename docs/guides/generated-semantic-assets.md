@@ -70,9 +70,8 @@ live dependency.
 
 The closed consumer ledger is retired. A guard test keeps the deleted
 ontology file and the ledger from coming back. It scans every tracked file
-outside `docs/` and `tests/`, except the retained review helper
-`scripts/ontology_review/arch_recheck.py`, case-insensitively and without
-extension filtering or truncation.
+outside `docs/` and `tests/` case-insensitively and without extension
+filtering or truncation.
 
 ## Identity and releases
 

@@ -72,7 +72,7 @@ The contract also carries:
 
 The equivalence of this contract with the deleted authored ontology was
 proven before the deletion and is committed as evidence:
-[closure/contract-equivalence.json](closure/contract-equivalence.json). The
+[closure/contract-equivalence.json](https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/docs/method-conformance/o4/closure/contract-equivalence.json). The
 served contract differs from the authored one in exactly seven identities:
 the two refused exceptions and the five retired names. The 54 batch-2
 contract fields held by the admission manifest (domain/range/strength,

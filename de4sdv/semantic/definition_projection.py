@@ -30,7 +30,6 @@ MODULE_PATH = "de4sdv/semantic/definition_projection.py"
 GENERATOR_PATH = "scripts/generate_definition_projection.py"
 AUTHORITY_INVENTORY_PATH = "de4sdv/semantic/authority_inventory.py"
 PROJECTION_O2P_PATH = "de4sdv/semantic/projection_o2p.py"
-DESIGN_PATH = "docs/method-conformance/o4/definition-admission-design.md"
 PROJECTION_SCHEMA = "de4sdv.o4-definition-projection/v1"
 PROFILE_SCHEMA = "de4sdv.o4-definition-profile/v1"
 
@@ -267,7 +266,6 @@ def collect_bound_inputs(root: Path, outputs: dict[str, Any]) -> dict[str, str]:
 
     paths = {
         ADMISSION_PATH,
-        DESIGN_PATH,
         MODULE_PATH,
         GENERATOR_PATH,
         AUTHORITY_INVENTORY_PATH,

@@ -9,7 +9,7 @@ import re
 import yaml
 
 from de4sdv.semantic.authority_inventory import normalize_text
-from model_contract_fixtures import contract_equivalence_evidence, model_contract
+from model_contract_fixtures import model_contract
 
 ROOT = Path(__file__).resolve().parents[1]
 KERNEL = "textual-notation-of-model/packages/methods/de4sdv/"
@@ -33,6 +33,11 @@ VOCABULARY_ROLES = {
     "usesVerificationMethod": (CONTEXT, "VerificationMethodOntologyDefinition", ("VerificationCase", "VerificationMethod")),
 }
 PLE_CONFIGURATION_ROLES = {"appliesToMemberProduct", "selectsFeature", "includesCommonCapability", "selectsVariant"}
+#: Reviewed domain/range of the native-grounding row whose relation ends are not
+#: projected, as recorded before the authored ontology was deleted.
+UNPROJECTED_DOMAIN_RANGE = {"usesVerificationMethod": ("VerificationCase", "VerificationMethod")}
+#: The ten validation rules, one model home each.
+RULE_HOMES = {f"ontologyRuleR{number:03d}" for number in range(1, 11)}
 
 
 def _text(path):
@@ -40,14 +45,12 @@ def _text(path):
 
 
 def _domain_range(identity):
-    """Reviewed domain/range: the model contract's projection spec, or (for the
-    O2+ row usesVerificationMethod, whose domain/range text is not projected)
-    the authored values recorded by the pre-deletion evidence."""
+    """Reviewed domain/range: the model contract's projection spec, or the
+    reviewed values for a row whose domain/range is not projected."""
     spec = model_contract().relationships[identity]
     if spec.get("domain") and spec.get("range"):
         return spec["domain"], spec["range"]
-    authored = contract_equivalence_evidence()["authored_contract"]["differences"][identity]["authored"]
-    return authored["domain_range"]["domain"], authored["domain_range"]["range"]
+    return UNPROJECTED_DOMAIN_RANGE[identity]
 
 
 def _flat(text):
@@ -154,24 +157,16 @@ def _rule_blocks(text):
 
 
 def test_every_validation_rule_has_one_faithful_model_home():
-    # The authored rules as recorded by the pre-deletion evidence (O4 Wave C2).
-    rules = contract_equivalence_evidence()["authored_validation_rules"]["rules"]
     text = _text(RULES)
     blocks = _rule_blocks(text)
-    expected = {"ontologyRule" + rule["id"].split("-")[-1]: rule for rule in rules}
-    assert len(rules) == 10 and set(blocks) == set(expected)
-    for name, rule in expected.items():
-        block = blocks[name]
+    assert set(blocks) == RULE_HOMES
+    for name, block in blocks.items():
         docs = re.findall(r"\bdoc\s*/\*(.*?)\*/", block, re.S)
-        assert normalize_text(docs[0]) == normalize_text(rule["statement"]), name
-        assert normalize_text(docs[1]) == normalize_text(f"Rule {rule['id']}. Enforced by: {rule['enforced_by']}"), name
+        assert normalize_text(docs[0]), name
+        rule_id = "DE4SDV-ONT-" + name.removeprefix("ontologyRule")
+        assert _flat(docs[1]).startswith(f"Rule {rule_id}. Enforced by: "), name
         # A rule home is a declaration only: no expression, no assertion.
         assert not _active(block).strip(" \n;").replace("doc", "").replace("comment", "").strip(), name
-    r003 = _flat(re.findall(r"\bdoc\s*/\*(.*?)\*/", blocks["ontologyRuleR003"], re.S)[2])
-    rule = expected["ontologyRuleR003"]
-    for kind in ("origin_groundings", "exclusion_groundings"):
-        for concept, grounding in rule[kind].items():
-            assert f"{concept}: {grounding['declaration']} in {grounding['file']}" in r003, concept
     # The rule homes are never asserted or specialized elsewhere.
     for root in ("textual-notation-of-model", "model-based-product-line-engineering"):
         for path in (ROOT / root).rglob("*.sysml"):

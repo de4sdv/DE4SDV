@@ -25,7 +25,6 @@ _ACCEPTANCE_DOC = "docs/method-conformance/o4/vocabulary-carrier-acceptance-revi
 _CARRIER_FILE = (
     "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml"
 )
-_DESIGN_DOC = "docs/method-conformance/o4/vocabulary-carrier-design.md"
 
 
 _DEFINITIONS = {
@@ -94,7 +93,6 @@ def _model(tmp_path: Path) -> Path:
         + "\n",
         encoding="utf-8",
     )
-    (root / _DESIGN_DOC).write_text("# design\n", encoding="utf-8")
     # Synthetic kernel index (identity -> [file, declaration] or null for
     # native/external semantics): stands in for the model-built contract's
     # class mappings of this synthetic repository (O4 Wave C2; no ontology file).

@@ -6,7 +6,7 @@ Accepted
 
 The owner accepted implementation decisions I1–I4 on 2026-10-06. I4 is
 superseded by the D4 follow-up in O4 Wave A; see
-[owner decisions](../method-conformance/o4/owner-decisions-2026-10.md).
+[owner decisions](https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/docs/method-conformance/o4/owner-decisions-2026-10.md).
 
 ## Context
 
@@ -136,7 +136,7 @@ taken while building PR #328; the owner accepted them on 2026-10-06.
 
 ## Links
 
-- [O4 kernel definition homes](../method-conformance/o4/kernel-definition-homes.md)
-- [kernel-definition-homes.json](../method-conformance/o4/kernel-definition-homes.json)
+- [O4 kernel definition homes](https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/docs/method-conformance/o4/kernel-definition-homes.md)
+- [kernel-definition-homes.json](https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/docs/method-conformance/o4/kernel-definition-homes.json)
 - [ADR 0019](0019-specify-deterministic-method-conformance-subsystem.md)
 - Pull request #328
