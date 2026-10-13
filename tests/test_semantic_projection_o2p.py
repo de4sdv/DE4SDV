@@ -141,7 +141,7 @@ def test_frozen_o2_surface_is_never_admitted(manifest: dict) -> None:
     actual: list[str] = []
     for name in ("semantic-projection-v1.json", "semantic-projection-v1.1.json", "semantic-projection-v1.2.json"):
         document = json.loads(
-            (ROOT / "docs/method-conformance/o2" / name).read_text(encoding="utf-8")
+            (ROOT / "de4sdv/semantic/contract-data/frozen-records" / name).read_text(encoding="utf-8")
         )
         actual.extend(r["identity"] for r in document.get("concepts", []))
         actual.extend(r["identity"] for r in document.get("predicates", []))

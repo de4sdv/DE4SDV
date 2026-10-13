@@ -39,9 +39,10 @@ def _expected_batch1_pair():
         "projection": {
             "schema": "de4sdv.o4-definition-projection/v1",
             "status": "admitted",
-            "warning": "vocabulary-only, no traversal, no runtime read, no authority retirement",
+            "warning": ("vocabulary-only, no traversal, no authority retirement; the runtime "
+                        "reads this artifact to build the kernel contract"),
             "scope": {
-                "admission": "O4 definition-admission batch 1 (definition-admission.yaml)",
+                "admission": "class-definition admission (class-definition-admission.yaml)",
                 "admitted": ["Alpha"],
                 "note": "no frozen O3 or gated identity is admitted",
             },
@@ -60,7 +61,8 @@ def _expected_batch1_pair():
         },
         "profile": {
             "schema": "de4sdv.o4-definition-profile/v1", "status": "admitted",
-            "warning": "vocabulary-only, no traversal, no runtime read, no authority retirement",
+            "warning": ("vocabulary-only, no traversal, no authority retirement; the runtime "
+                        "reads this artifact to build the kernel contract"),
             "entries": [{
                 "profile_identity": "de4sdv.o4-definition-profile/v1#Alpha", "for_concept": "Alpha",
                 "representation_class": "part-definition",
@@ -101,14 +103,14 @@ def _batch2_source(root: Path) -> None:
 
 
 def _expected_batch2_pair():
-    warning = ("no traversal proof, no runtime read by this artifact, no API element "
-               "identity, no authority retirement; retired names answer no fact (retired; "
-               "use the successor)")
+    warning = ("no traversal proof, no API element identity, no authority retirement; the "
+               "runtime reads this artifact to build the kernel contract; retired names "
+               "answer no fact (retired; use the successor)")
     return {
         "projection": {
             "schema": "de4sdv.o4-definition-batch2-projection/v1", "status": "admitted", "warning": warning,
             "scope": {
-                "admission": "O4 definition-admission batch 2 (definition-admission-batch2.yaml)",
+                "admission": "kernel-vocabulary admission (kernel-vocabulary-admission.yaml)",
                 "admitted": ["Alpha"], "exceptions": [],
                 "note": ("no frozen O3 identity and no identity of another generated layer "
                          "is admitted; exceptions are owner-visible and never silently fall back"),
@@ -128,7 +130,8 @@ def _expected_batch2_pair():
                     "contract_source": ("kernel mapping kind and ontology relations: reviewed admission-manifest "
                         "fields (manifest-held; owner decision D9); file mappings are resolved in "
                         "the model by this generator; authored-ontology parity proven before its "
-                        "deletion: docs/method-conformance/o4/closure/contract-equivalence.json"),
+                        "deletion: https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/"
+                        "docs/method-conformance/o4/closure/contract-equivalence.json"),
                 },
                 "support": "vocabulary-only", "traversal": False, "api_identity": "unclaimed",
             }],

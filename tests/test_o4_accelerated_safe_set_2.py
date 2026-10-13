@@ -30,7 +30,6 @@ import re
 from pathlib import Path
 
 import pytest
-import yaml
 
 from de4sdv.semantic import authority_inventory as ai
 from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
@@ -42,17 +41,10 @@ PRODUCT_LINE = (
 OPERATIONAL_CONTEXT = (
     REPO_ROOT / "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml"
 )
-INVENTORY = REPO_ROOT / "docs/method-conformance/o1/semantic-authority-inventory.json"
-DECISIONS = REPO_ROOT / "docs/method-conformance/o1/authority-review-decisions.yaml"
-REGISTER = REPO_ROOT / "docs/method-conformance/o4/o4-execution-register.json"
-SCOPE = REPO_ROOT / "docs/method-conformance/o3/o3-equivalence-scope.json"
+REGISTER = REPO_ROOT / "de4sdv/semantic/contract-data/ontology-identity-register.json"
 SYNC_SCRIPT = REPO_ROOT / "scripts/check_model_sync.py"
 
 BATCH_ROWS = ("ProductLineCharacteristic", "Scenario")
-# later-batch convention (definition admission batch 1): the parity stage is
-# superseded by the shared admission stage.
-TREATED_STAGE = "o4 definition admission batch 1 (projection + profile)"
-OBLIGATION = "runtime-queryable support (post-migration) requires exact-revision traversal evidence; support remains vocabulary-only"
 
 #: Scenario identity enums present in the governed model (representation only).
 SCENARIO_IDENTITY_ENUMS = {
@@ -88,16 +80,6 @@ def model_text() -> str:
 
 
 @pytest.fixture(scope="module")
-def inventory() -> dict:
-    return json.loads(INVENTORY.read_text())
-
-
-@pytest.fixture(scope="module")
-def decisions() -> dict:
-    return yaml.safe_load(DECISIONS.read_text())["entries"]
-
-
-@pytest.fixture(scope="module")
 def register_rows() -> dict:
     return {row["identity"]: row for row in json.loads(REGISTER.read_text())["rows"]}
 
@@ -117,10 +99,6 @@ def ontology() -> dict:
     return {"classes": {name: {"kernel": contract.classes[name]["kernel"],
                                "definition": current_definition(name)}
                         for name in ("ProductLineCharacteristic", "Scenario")}}
-
-
-def _entry(inventory: dict, identity: str) -> dict:
-    return next(e for e in inventory["entries"] if e["identity"] == identity)
 
 
 def _sync_module():
@@ -147,24 +125,6 @@ def test_exact_two_row_scope(register_rows):
     assert len(BATCH_ROWS) == 2
 
 
-def test_exactly_the_batch_rows_carry_the_batch_stages(decisions):
-    staged = {
-        name: row.get("stage")
-        for name, row in decisions.items()
-        if row.get("stage") == TREATED_STAGE
-    }
-    # later-batch convention (definition admission batch 1, amended): Scenario
-    # joined the admitted family once its definition home landed; the staged
-    # set equals the governed admitted set exactly and contains this batch.
-    assert staged["ProductLineCharacteristic"] == TREATED_STAGE
-    assert staged["Scenario"] == TREATED_STAGE
-    manifest = yaml.safe_load(
-        (REPO_ROOT / "docs/method-conformance/o4/definition-admission.yaml").read_text()
-    )
-    admitted = sorted(row["identity"] for row in manifest["admitted"])
-    assert sorted(staged) == admitted
-
-
 def test_product_line_characteristic_has_owned_model_documentation(model_text):
     # This cleanup retired copied-definition parity, not the actual owned definition home.
     from model_contract_fixtures import owned_definition_documentation
@@ -172,87 +132,20 @@ def test_product_line_characteristic_has_owned_model_documentation(model_text):
     assert owned_definition_documentation(model_text, "part def ProductLineCharacteristic").strip()
 
 
-def test_product_line_characteristic_row_state(decisions):
-    row = decisions["ProductLineCharacteristic"]
-    assert row["authority_current"] == "legacy-yaml"
-    assert row["authority_target"] == "model-authoritative"
-    assert row["evidence_state"] == "repository-evidenced"
-    assert row["adoption_status"] == "not-applicable"
-    assert row["conditional_target"] is False
-    assert row["transition_gate"] is None
-    assert row["closure_evidence_ref"] is None
-    assert row["semantic_text_equivalence"] is None
-    assert row["stage"] == TREATED_STAGE
-    assert "batch-7 parity-reviewed" in row["note"]
-    assert row["exact_fit_decision"].startswith(
-        "exact fit: definition-level parity complete (o4-w2 batch 7)"
-    )
-    assert row["required_evidence"] == [OBLIGATION]
-
-
-def test_product_line_characteristic_inventory_mapping_stable(inventory):
-    observed = _entry(inventory, "ProductLineCharacteristic")["observed"]
-    assert observed["declaration"] == "part def ProductLineCharacteristic"
-    assert observed["file"] == (
-        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml"
-    )
-    assert observed["yaml_path"] == "classes:ProductLineCharacteristic"
-
-
-def test_scenario_row_stays_bounded_no_native_claim(decisions):
-    row = decisions["Scenario"]
-    assert row["authority_current"] == "legacy-yaml"
-    assert row["authority_target"] == "model-authoritative"
-    assert row["evidence_state"] == "repository-evidenced"
-    assert row["confidence"] == "medium"
-    assert row["unknowns"] == []
-    assert row["adoption_status"] == "not-applicable"
-    assert row["conditional_target"] is False
-    assert row["transition_gate"] is None
-    assert row["closure_evidence_ref"] is None
-    assert row["semantic_text_equivalence"] is None
-    assert row["stage"] == TREATED_STAGE
-    assert "RECLASSIFIED from native-sysml" in row["note"]
-    assert "Bounded pattern grounding reviewed (o4-w2 batch 7)" in row["note"]
-    assert "Definition-level parity was completed" in row["note"]
-    assert row["exact_fit_decision"].startswith("not exact-fit native")
-    assert "Bounded pattern grounding complete (o4-w2 batch 7)" in row["exact_fit_decision"]
-    assert "definition-level text parity was completed" in row["exact_fit_decision"]
-
-
-def test_scenario_required_evidence_is_forward_only(decisions):
-    evidence = decisions["Scenario"]["required_evidence"]
-    # later-batch convention (definition admission batch 1, amended): the
-    # parity and admission obligations are discharged by the generated
-    # definition projection/profile pair; the forward obligation is the
-    # runtime note (support stays vocabulary-only; no O3 transition text).
-    assert evidence == [OBLIGATION]
-    assert all("O3" not in item for item in evidence)
-
-
 # ---------------------------------------------------------------------------
 # 2. Scenario: bounded pattern grounding on the existing machinery
 # ---------------------------------------------------------------------------
 
 
-def test_scenario_definition_home_is_model_resident(inventory, ontology):
-    # later-batch convention (definition admission batch 1, amended): the
-    # definition home landed as part def Scenario with normalized-exact text
-    # parity; the ontology class maps to that declaration (no native mapping).
-    observed = _entry(inventory, "Scenario")["observed"]
-    assert observed["grounding_kind"] == "file-declaration"
-    assert observed["file"] == (
-        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml"
-    )
-    assert observed["declaration"] == "part def Scenario"
-    assert observed["doc_text_observation"] == "normalized-exact"
+def test_scenario_definition_home_is_model_resident(ontology):
+    # The definition home is part def Scenario in the operational context; the
+    # ontology class maps to that declaration (no native mapping).
     kernel = ontology["classes"]["Scenario"]["kernel"]
     assert "native" not in kernel
     assert kernel["declaration"] == "part def Scenario"
-    assert kernel["file"] == observed["file"]
-    # Reviewed-equivalent was representable only for a differing doc
-    # observation; this frozen row's parity is normalized-exact.
-    assert _entry(inventory, "Scenario")["reviewed"]["semantic_text_equivalence"] is None
+    assert kernel["file"] == (
+        "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml"
+    )
 
 
 def test_scenario_identity_enums_present_in_model():
@@ -303,22 +196,18 @@ def test_product_line_characteristic_is_still_the_classification_root(model_text
 
 
 def test_no_runtime_or_o3_promotion(register_rows):
-    scope = json.loads(SCOPE.read_text())
-    identities = {row["identity"] for row in scope["identities"]}
-    assert identities == set(MIGRATED_IDENTITIES)
-    assert len(identities) == 13
     for identity in BATCH_ROWS:
-        assert identity not in identities
+        assert identity not in MIGRATED_IDENTITIES
         assert register_rows[identity].get("gate_wave") is None
 
 
 def test_no_new_projection_rows():
     expected_rows = {
-        "docs/method-conformance/o2/semantic-projection-v1.1.json": (
+        "de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.1.json": (
             ["VerificationCase"],
             ["hasSubject", "verifiedBy"],
         ),
-        "docs/method-conformance/o2/semantic-projection-v1.2.json": (
+        "de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.2.json": (
             [],
             ["derivesRequirementFromNeed", "derivedRequirementsOfNeed", "hasRelevantArchitecture"],
         ),
@@ -331,127 +220,11 @@ def test_no_new_projection_rows():
         assert not (row_ids & set(BATCH_ROWS)), artifact
 
 
-def test_prior_batch_rows_unchanged(decisions):
-    # later-batch convention (definition admission batch 1): prior parity rows now
-    # carry the shared admission stage.
-    expected_stage = {
-        "EngineeringIncrement": "o4 definition admission batch 1 (projection + profile)",
-        "FeatureIncrement": "o4 definition admission batch 1 (projection + profile)",
-        "NeedsRequirementsIncrement": "o4 definition admission batch 1 (projection + profile)",
-        "IncrementEngineeringQuestion": "o4 definition admission batch 1 (projection + profile)",
-        "IncrementLifecycleDecision": "o4 definition admission batch 1 (projection + profile)",
-        "SystemLayer": "o4 definition admission batch 1 (projection + profile)",
-        "ProblemStatement": "o4 definition admission batch 1 (projection + profile)",
-        "Assumption": "o4 definition admission batch 1 (projection + profile)",
-        "Gap": "o4 definition admission batch 1 (projection + profile)",
-        "SignalMappingDisposition": "o4 definition admission batch 1 (projection + profile)",
-        "LogicalToSoftwareSignalMappingRecord": "o4 definition admission batch 1 (projection + profile)",
-        "SystemToSoftwareSignalMappingCandidate": "o4 definition admission batch 1 (projection + profile)",
-        "Need": "o4 definition admission batch 1 (projection + profile)",
-        "Requirement": "o4 definition admission batch 1 (projection + profile)",
-        "RegulatoryConstraint": "o4 definition admission batch 1 (projection + profile)",
-        "MissingRealizationRecord": "o4 definition admission batch 1 (projection + profile)",
-        "BlockedRealizationBranchRecord": "o4 definition admission batch 1 (projection + profile)",
-        "ProductLine": "o4 definition admission batch 1 (projection + profile)",
-        "MemberProduct": "o4 definition admission batch 1 (projection + profile)",
-        "DeferredProductLineScope": "o4 definition admission batch 1 (projection + profile)",
-        "IncrementSize": "o4-w3 batch 1 (definitions parity)",
-        "ArchitectureDecisionRecord": "o4-w5 batch 1 (definitions parity)",
-        "Baseline": "o4-w5 batch 3 (external-reference acceptance)",
-    }
-    for identity, stage in expected_stage.items():
-        assert decisions[identity]["stage"] == stage, identity
-        assert decisions[identity]["authority_current"] == "legacy-yaml", identity
-    # Untreated W2 rows keep their pre-parity stage.
-    for identity in ("Feature", "CommonCapability"):
-        assert decisions[identity]["stage"] == "batched-parity (post-0a/0b)", identity
-
-
 # ---------------------------------------------------------------------------
 # 4. Commit-B gate: artifact rows reproduce the source decisions
 # ---------------------------------------------------------------------------
 
 
-def test_inventory_artifact_reproduces_source_rows_commit_b_gate(inventory, decisions):
-    """The frozen inventory retains its recorded review and parity observation.
-
-    This historical comparison neither regenerates the inventory nor imposes
-    its documentation observation on current model wording.
-    """
-    for identity in BATCH_ROWS:
-        entry = _entry(inventory, identity)
-        expected = dict(decisions[identity])
-        expected["runtime_consumption"] = entry["reviewed"].get("runtime_consumption")
-        assert entry["reviewed"] == expected, identity
-    assert (
-        _entry(inventory, "ProductLineCharacteristic")["observed"]["doc_text_observation"]
-        == "normalized-exact"
-    )
-
-
 # ---------------------------------------------------------------------------
 # 5. Same safe set: W4 carrier-parity and W5 external-reference-design rows
 # ---------------------------------------------------------------------------
-
-W4_CARRIER_STAGE = "o4-w4 batch 1 (carrier definitions parity)"
-# later-batch convention (W5 batch 3): the trio moved to the acceptance stage.
-W5_REFERENCE_STAGE = "o4-w5 batch 3 (external-reference acceptance)"
-W4_ROWS = (
-    "recordsGap",
-    "recordsAssumption",
-    "addressesConcern",
-    "selectedViewpoint",
-    "producesView",
-)
-W5_ROWS = ("EvidenceArtifact", "hasEvidence", "capturedInBaseline")
-
-
-def test_w4_and_w5_rows_carry_the_safe_set_stages(decisions):
-    staged_w4 = {
-        name for name, row in decisions.items() if row.get("stage") == W4_CARRIER_STAGE
-    }
-    staged_w5 = {
-        name for name, row in decisions.items() if row.get("stage") == W5_REFERENCE_STAGE
-    }
-    assert staged_w4 == set(W4_ROWS)
-    # later-batch convention (W5 batch 3): Baseline shares the acceptance
-    # stage recorded by external-reference-acceptance-review.md.
-    assert staged_w5 == set(W5_ROWS) | {"Baseline"}
-
-
-def test_w4_rows_record_carrier_parity_with_forward_closure_evidence(decisions):
-    for identity in W4_ROWS:
-        row = decisions[identity]
-        assert row["authority_current"] == "legacy-yaml", identity
-        assert row["authority_target"] == "model-authoritative", identity
-        assert "o4-w4 batch 1" in row["exact_fit_decision"], identity
-        assert any(
-            "O4 closure precondition" in item for item in row["required_evidence"]
-        ), identity
-        assert any("no traversal" in item for item in row["required_evidence"]), identity
-
-
-def test_w5_rows_record_the_design_with_forward_closure_evidence(decisions):
-    for identity in W5_ROWS:
-        row = decisions[identity]
-        assert "o4-w5 batch-2" in row["note"], identity
-        assert any(
-            "O4 closure precondition" in item for item in row["required_evidence"]
-        ), identity
-    # The design resolves the previous unknown; the boundary row keeps its
-    # external-current authority and never claims approval.
-    assert decisions["EvidenceArtifact"]["unknowns"] == []
-    assert decisions["hasEvidence"]["authority_current"] == "external-reference"
-    assert decisions["capturedInBaseline"]["authority_current"] == "legacy-yaml"
-    assert (
-        "not silently resolved" in decisions["capturedInBaseline"]["note"]
-    ), "the recorded classification tension must stay documented"
-
-
-def test_has_stakeholder_stays_excluded_and_untreated(decisions):
-    row = decisions["hasStakeholder"]
-    # Topic 6 reviewed the typed role-participation carrier without treating the
-    # row: the vocabulary-only HasStakeholder meaning is recorded, and the row
-    # stays excluded and untreated (authored YAML remains the active authority).
-    assert row["stage"] == "approved-topic06 typed role participation carrier"
-    assert row["authority_current"] == "legacy-yaml"

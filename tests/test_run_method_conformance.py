@@ -277,7 +277,7 @@ def test_runner_proceeds_past_identity_gate_when_sha_is_exact(tmp_path: Path) ->
         candidate_export=export,
         candidate_binding=binding,
         candidate_revision=None,
-        spec=ROOT / "docs" / "method-conformance" / "pilot-obligations.yaml",
+        spec=ROOT / "de4sdv" / "semantic" / "contract-data" / "pilot-obligations.yaml",
         output=output,
     )
 

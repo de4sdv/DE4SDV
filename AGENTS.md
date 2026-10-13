@@ -68,7 +68,7 @@ these gates to make a change pass:
   ```
 
   Kernel-internal declarations are listed in
-  `docs/method-conformance/o4/kernel-internal-declarations.yaml` (owner
+  `de4sdv/semantic/contract-data/kernel-internal-declarations.yaml` (owner
   decision D3), the only home of that list. Any residual (a retained O4
   register row or a governed declaration without a model provider) fails the
   gate regardless of the baseline.
@@ -104,9 +104,10 @@ When a change touches the method kernel:
 - Do not re-declare class-mapped kernel names as local `def`s inside feature
   slices; specialize or import the kernel declarations instead.
 
-The historical O1, O2 and O3 records under `docs/method-conformance/` are
-frozen; never regenerate or edit them. See
-[`docs/method-conformance/frozen-records.md`](docs/method-conformance/frozen-records.md).
+The historical records the runtime still serves are frozen; never regenerate
+or edit them. See
+[`de4sdv/semantic/contract-data/frozen-records.md`](de4sdv/semantic/contract-data/frozen-records.md).
+The other historical records are archived at the `release-2026-10-11` tag.
 
 ## SysML v2 textual notation validation
 

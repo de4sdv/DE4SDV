@@ -130,7 +130,7 @@ def test_external_boundary_rows_gain_no_model_content_mirror():
     """W5 rows stay external-reference contracts: no new definition mirrors
     artifact, baseline or ADR content, and the accepted profile keeps its
     declaration-free reference records."""
-    profile = yaml.safe_load((ROOT / "docs/method-conformance/o4/external-reference-profile.yaml").read_text())
+    profile = yaml.safe_load((ROOT / "de4sdv/semantic/contract-data/external-reference-profile.yaml").read_text())
     entries = {row["identity"]: row for row in profile["profile_entries"]}
     for identity in ("EvidenceArtifact", "hasEvidence", "capturedInBaseline"):
         assert entries[identity]["declaration"] is None

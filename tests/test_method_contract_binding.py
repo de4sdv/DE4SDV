@@ -1,6 +1,6 @@
 """Lane B: method-contract binding and candidate production tests.
 
-Tests are written against the A specification (docs/method-conformance/)
+Tests are written against the A specification (docs/method-evaluation/)
 and the frozen baseline (Increment B, Section 12). They fail before the
 binder/traversal/candidate-path implementation exists — that is the point
 (test-first per Increment B task list).

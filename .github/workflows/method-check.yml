@@ -69,6 +69,8 @@ on:
       # The evaluation builds the model-authority facade over the export.
       - "de4sdv/semantic/export_evaluation.py"
       - "de4sdv/semantic/model_authority_runtime.py"
+      # The contract data that facade is built from.
+      - "de4sdv/semantic/contract-data/**"
   workflow_dispatch:
     inputs:
       ref:

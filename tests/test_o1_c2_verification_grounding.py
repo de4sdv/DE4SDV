@@ -51,7 +51,6 @@ import re
 from pathlib import Path
 
 import pytest
-import yaml
 
 from de4sdv.semantic import authority_inventory as ai
 from de4sdv.semantic.traversal import SemanticTraversal
@@ -66,13 +65,6 @@ from model_contract_fixtures import model_contract  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-INVENTORY_PATH = (
-    REPO_ROOT / "docs/method-conformance/o1/semantic-authority-inventory.json"
-)
-DECISIONS_PATH = (
-    REPO_ROOT / "docs/method-conformance/o1/authority-review-decisions.yaml"
-)
-CLOSURE_PATH = REPO_ROOT / "docs/method-conformance/o1/closure-evidence.json"
 PILOT_MODEL = (
     REPO_ROOT
     / "textual-notation-of-model/packages/features/aebs/aebs_override_verification.sysml"
@@ -81,88 +73,12 @@ PILOT_MODEL = (
 #: The c2 batch is exactly these two identities — no third entry.
 C2_IDENTITIES: tuple[str, ...] = ("VerificationCase", "verifiedBy")
 
-#: The seven c1 identities accepted as parity-reviewed (unchanged by c2).
-C1_ACCEPTED: tuple[str, ...] = (
-    "MethodPhase",
-    "MethodContractObligation",
-    "EvaluationSourceKind",
-    "EvaluationScopeMembership",
-    "TestedScopeDeclaration",
-    "RetainedExecutionRecordReference",
-    "AcceptanceAttestationReference",
-)
-
-#: The one c1 identity that stays incomplete (no c2 silent closure).
-C1_INCOMPLETE: tuple[str, ...] = ("MethodEvaluationScope",)
-
-#: The c3 batch identity (executed after c2 on the same PR; the c3 file owns
-#: the global parity set from its batch onward — referenced here so this
-#: file's global-set pin stays consistent with the executed chain).
-C3_IDENTITIES: tuple[str, ...] = ("hasSubject",)
-
-#: The c4 batch identity (executed after c3 on the same PR; the c4 file owns
-#: the global parity set from its batch onward — referenced here so this
-#: file's global-set pin stays consistent with the executed chain).
-C4_IDENTITIES: tuple[str, ...] = ("derivesNeedFromConcern",)
-C5_IDENTITIES: tuple[str, ...] = (
-    "realizedBy",
-    "specifiesFunction",
-    "hasRelevantArchitecture",
-    "hasRelevantEvidenceContract",
-)
-
-#: PLE-family rows under the adoption gate (unchanged by c2).
-PLE_GATED: tuple[str, ...] = (
-    "FeatureConfiguration",
-    "specifiesFeature",
-    "specifiesCommonCapability",
-    "appliesToMemberProduct",
-    "selectsFeature",
-    "includesCommonCapability",
-    "variesAt",
-    "selectsVariant",
-)
-
-#: K rows with the r6-3 closure record (unchanged by c2).
-K_TRIPLE: tuple[str, ...] = (
-    "DerivesFromNeed",
-    "derivesRequirementFromNeed",
-    "derivedRequirementsOfNeed",
-)
 
 #: Synthetic serializer fixtures (synthetic ids, real machinery).
 DEFINITION_ELEMENT_ID = "00000000-0000-4000-8000-0000000000d0"
 DEFINITION_GROUNDING_EDGE_ID = "99999999-0000-4000-8000-0000000000d1"
 USAGE_01_TYPING_EDGE_ID = "00000000-0000-4000-8000-0000000000g1"
 USAGE_01_SUBSETTING_EDGE_ID = "00000000-0000-4000-8000-00000000ss01"
-
-#: Outcome/evidence vocabulary that must never appear as a c2 claim.
-_FORBIDDEN_CLAIM_PATTERNS = (
-    (re.compile(r"\bexecuted successfully\b", re.IGNORECASE), "executed successfully"),
-    (re.compile(r"\bPASS\b"), "PASS"),
-    (re.compile(r"\baccepted\b", re.IGNORECASE), "accepted"),
-    (re.compile(r"\bevidence complete\b", re.IGNORECASE), "evidence complete"),
-    (re.compile(r"\bsatisfied by\b", re.IGNORECASE), "satisfied by"),
-    (re.compile(r"\bvalidated\b", re.IGNORECASE), "validated"),
-    (re.compile(r"\bcertified\b", re.IGNORECASE), "certified"),
-)
-
-
-@pytest.fixture(scope="module")
-def inventory() -> dict:
-    return json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
-
-
-@pytest.fixture(scope="module")
-def decisions() -> dict:
-    return yaml.safe_load(DECISIONS_PATH.read_text(encoding="utf-8"))
-
-
-def _entries(inventory: dict, names=None) -> dict[str, dict]:
-    by_identity = {entry["identity"]: entry for entry in inventory["entries"]}
-    if names is None:
-        return by_identity
-    return {name: by_identity[name] for name in names}
 
 
 def _contract() -> ai.KernelContract:
@@ -290,14 +206,6 @@ def _objective_chain_elements(*, case_kind: str = "VerificationCaseDefinition"):
     ]
 
 
-def _decision_text(row: dict) -> str:
-    """The bounded reviewed-decision fields of one c2 row."""
-    parts = [str(row.get("note") or ""), str(row.get("exact_fit_decision") or "")]
-    parts.extend(str(item) for item in row.get("required_evidence") or [])
-    parts.extend(str(item) for item in row.get("unknowns") or [])
-    return "\n".join(parts)
-
-
 # ---------------------------------------------------------------------------
 # c2 scope and inventory state
 # ---------------------------------------------------------------------------
@@ -308,333 +216,10 @@ class TestC2ScopeAndCounts:
         assert len(C2_IDENTITIES) == 2
         assert len(set(C2_IDENTITIES)) == 2
 
-    def test_both_identities_are_ontology_entries(self, inventory, decisions):
-        entries = _entries(inventory)
-        assert set(C2_IDENTITIES) <= set(entries)
-        assert entries["VerificationCase"]["kind"] == "class"
-        assert entries["verifiedBy"]["kind"] == "relationship"
-        assert set(C2_IDENTITIES) <= set(decisions["entries"])
-
-    def test_only_c2_identities_carry_the_c2_stage(self, inventory):
-        """Exactly the two c2 rows are staged to the verification batch: no
-        third identity was moved into c2."""
-        staged = [
-            entry["identity"]
-            for entry in inventory["entries"]
-            if str(entry["reviewed"]["stage"]).startswith("c2")
-        ]
-        assert sorted(staged) == sorted(C2_IDENTITIES)
-
-    def test_global_parity_set_is_c1_plus_c2(self, inventory):
-        """The parity-reviewed set advanced exactly by the executing batches:
-        the seven c1 rows plus the two c2 rows, plus the c3, c4, and c5 rows
-        when those batches execute (the c5 batch's file,
-        tests/test_o1_c5_relevance_realization.py, owns the global set
-        from c5 onward and, after the c5 correction, pins
-        c1+c2+c3+c4+c5(3) = 14: the corrected hasRelevantEvidenceContract
-        row is governed blocked/defer, not parity)."""
-        parity = {
-            entry["identity"]
-            for entry in inventory["entries"]
-            if entry["reviewed"]["evidence_state"] == "parity-reviewed"
-        }
-        expected = (
-            set(C1_ACCEPTED)
-            | set(C2_IDENTITIES)
-            | set(C3_IDENTITIES)
-            | set(C4_IDENTITIES)
-            | (set(C5_IDENTITIES) - {"hasRelevantEvidenceContract"})
-        )
-        assert parity == expected
-        assert len(parity) == 14
-
-    def test_authority_current_unchanged(self, inventory):
-        entries = _entries(inventory)
-        assert (
-            entries["VerificationCase"]["reviewed"]["authority_current"]
-            == "native-sysml"
-        )
-        assert entries["verifiedBy"]["reviewed"]["authority_current"] == "legacy-yaml"
-
-    def test_authority_targets_reviewed_outcomes(self, inventory):
-        """The reviewed c2 outcomes as corrected by the O4 review correction
-        batch (W1, finding 17): VerificationCase keeps native-sysml, while
-        verifiedBy's authority-target description is corrected to
-        de4sdv-application-semantic (c5 applied the same Requirement-lineage
-        source restriction c3 recorded for hasSubject)."""
-        entries = _entries(inventory, C2_IDENTITIES)
-        assert (
-            entries["VerificationCase"]["reviewed"]["authority_target"]
-            == "native-sysml"
-        )
-        assert (
-            entries["verifiedBy"]["reviewed"]["authority_target"]
-            == "de4sdv-application-semantic"
-        )
-
-    def test_evidence_states_are_parity_reviewed(self, inventory):
-        for entry in _entries(inventory, C2_IDENTITIES).values():
-            assert entry["reviewed"]["evidence_state"] == "parity-reviewed"
-
-    def test_no_closure_evidence_and_no_privileged_claim(self, inventory):
-        for entry in _entries(inventory, C2_IDENTITIES).values():
-            assert entry["reviewed"]["closure_evidence_ref"] is None
-            assert entry["reviewed"]["evidence_state"] != "privileged-closure-proven"
-        # The retained closure dataset still carries only the K record.
-        closure = json.loads(CLOSURE_PATH.read_text(encoding="utf-8"))
-        assert len(closure["records"]) == 1
-        assert closure["records"][0]["id"] == "r6-3"
-        for name in C2_IDENTITIES:
-            assert name not in closure["records"][0]["subject_identities"]
-
-    def test_no_supported_promotion(self, inventory):
-        entries = _entries(inventory, C2_IDENTITIES)
-        for entry in entries.values():
-            assert entry["reviewed"]["adoption_status"] == "not-applicable"
-            consumption = entry["reviewed"].get("runtime_consumption") or {}
-            assert consumption.get("support") != "supported (closure-verified)"
-        # The reviewed consumer provenance of VerificationCase is unchanged.
-        consumption = entries["VerificationCase"]["reviewed"]["runtime_consumption"]
-        assert consumption["support"] == "consumed (verifiedBy)"
-        # The verifiedBy runtime support is unchanged (still the legacy-yaml
-        # mapping driving the native-verification traversal).
-        assert (
-            entries["verifiedBy"]["observed"]["runtime_support"]
-            == "implemented (verification-membership)"
-        )
-
-    def test_no_c2_row_is_conditional(self, inventory):
-        for entry in _entries(inventory, C2_IDENTITIES).values():
-            assert entry["reviewed"]["conditional_target"] is False
-            assert entry["reviewed"]["transition_gate"] is None
-
-    def test_no_new_semantic_projection_row(self):
-        """The Semantic Projection consumer de4sdv/semantic/projection.py is
-        bound to the K-slice classes only; c2 rows are governance rows in the
-        inventory, not generated projection rows."""
-        source = (REPO_ROOT / "de4sdv/semantic/projection.py").read_text(
-            encoding="utf-8"
-        )
-        for name in C2_IDENTITIES:
-            assert f'"{name}"' not in source, name
-
-    def test_expected_evidence_state_counts(self, inventory):
-        """c2 changes evidence maturity only: parity 7 -> 9, evidence 68 -> 66;
-        the c3 batch later moved hasSubject to parity-reviewed, the c4 batch
-        retired derivesNeedFromConcern to parity-reviewed, and the c5 batch
-        moved three rows to parity-reviewed while its correction moved the
-        hasRelevantEvidenceContract row to the governed blocked state (the
-        executed counts live in their own batch files: parity 14 /
-        repository 61 / blocked 14)."""
-        # Approved-directive implementation (Topics 1-6) added twelve reviewed
-        # model-authoritative rows: the state distribution gains `proposed` and
-        # the pre-state counts move with the decisions dataset. Re-derived from
-        # the regenerated inventory, never relaxed.
-        assert inventory["evidence_state_counts"] == {
-            "blocked": 14,
-            "parity-reviewed": 14,
-            "privileged-closure-proven": 3,
-            "proposed": 12,
-            "repository-evidenced": 61,
-            "unknown": 1,
-        }
-
-    def test_authority_current_counts_unchanged(self, inventory):
-        assert inventory["authority_current_counts"] == {
-            "accepted-library-grounded": 2,
-            "external-reference": 3,
-            "legacy-yaml": 78,
-            "model-authoritative": 15,
-            "native-sysml": 6,
-            "unknown": 1,
-        }
-
-    def test_c1_rows_unchanged(self, inventory):
-        entries = _entries(inventory)
-        for name in C1_ACCEPTED:
-            row = entries[name]["reviewed"]
-            assert row["authority_current"] == "legacy-yaml", name
-            assert row["authority_target"] == "model-authoritative", name
-            assert row["evidence_state"] == "parity-reviewed", name
-            assert row["closure_evidence_ref"] is None, name
-        for name in C1_INCOMPLETE:
-            row = entries[name]["reviewed"]
-            assert row["authority_current"] == "legacy-yaml", name
-            assert row["evidence_state"] == "repository-evidenced", name
-
-    def test_c3_to_c5_rows_unchanged(self, inventory):
-        """The c3 batch has since executed (PR #249 c3): hasSubject advanced
-        exactly as recorded in its own batch file
-        (tests/test_o1_c3_subject_grounding.py). The c4 batch has also since
-        executed (PR #249 c4): derivesNeedFromConcern was retired without
-        replacement as recorded in its own batch file — current authority
-        unchanged, target 'retired', evidence maturity parity-reviewed. The
-        c5 batch has also since executed (PR #249 c5), and its
-        hasRelevantEvidenceContract row was then corrected by the
-        independent review (c5 correction): three rows advanced exactly as
-        recorded in their own batch file — current authority unchanged
-        (legacy-yaml), evidence maturity parity-reviewed, stage renamed to
-        the executed batch — while the corrected row is governed
-        blocked/defer."""
-        entries = _entries(inventory)
-        expected = {
-            "hasSubject": (
-                "c3 (hasSubject review batch)",
-                "legacy-yaml",
-                "parity-reviewed",
-            ),
-            "derivesNeedFromConcern": (
-                "c4 (concern-need disposition review)",
-                "legacy-yaml",
-                "parity-reviewed",
-            ),
-            "realizedBy": (
-                "c5 (relevance and realization review batch)",
-                "legacy-yaml",
-                "parity-reviewed",
-            ),
-            "specifiesFunction": (
-                "c5 (relevance and realization review batch)",
-                "legacy-yaml",
-                "parity-reviewed",
-            ),
-            "hasRelevantArchitecture": (
-                "c5 (relevance and realization review batch)",
-                "legacy-yaml",
-                "parity-reviewed",
-            ),
-            "hasRelevantEvidenceContract": (
-                "c5 (relevance and realization review batch)",
-                "legacy-yaml",
-                "blocked",
-            ),
-        }
-        for identity, (stage, authority, evidence) in expected.items():
-            row = entries[identity]["reviewed"]
-            assert row["stage"] == stage, identity
-            assert row["authority_current"] == authority, identity
-            assert row["evidence_state"] == evidence, identity
-
-    def test_ple_rows_unchanged(self, inventory):
-        entries = _entries(inventory)
-        for identity in PLE_GATED:
-            row = entries[identity]["reviewed"]
-            assert row["evidence_state"] == "blocked", identity
-            assert row["adoption_status"] == "pinned-not-adopted", identity
-            assert row["conditional_target"] is True, identity
-
-    def test_k_rows_unchanged(self, inventory):
-        entries = _entries(inventory)
-        for identity in K_TRIPLE:
-            row = entries[identity]["reviewed"]
-            assert row["authority_current"] == "model-authoritative", identity
-            assert row["evidence_state"] == "privileged-closure-proven", identity
-            assert row["closure_evidence_ref"] == "r6-3", identity
-
 
 # ---------------------------------------------------------------------------
 # Reviewed decision record content and claim boundary
 # ---------------------------------------------------------------------------
-
-
-class TestC2DecisionRecord:
-    def _row(self, decisions: dict, name: str) -> dict:
-        return decisions["entries"][name]
-
-    def test_verificationcase_records_definition_and_usage_anchors(self, decisions):
-        row = self._row(decisions, "VerificationCase")
-        text = _decision_text(row)
-        assert "VerificationCases::VerificationCase" in text
-        assert "VerificationCases::verificationCases" in text
-        # The definition/usage distinction is explicit.
-        assert "definition" in text and "usage" in text
-
-    def test_verificationcase_records_metaclass_vs_grounding_separation(self, decisions):
-        row = self._row(decisions, "VerificationCase")
-        text = _decision_text(row)
-        assert "separate evidence field from the library grounding" in text
-        assert "UG-28" in text
-        assert "metaclass alone is not the semantic proof" in text
-
-    def test_verificationcase_records_grounding_provenance(self, decisions):
-        row = self._row(decisions, "VerificationCase")
-        text = _decision_text(row)
-        assert "toolchain-implied" in text
-        assert "explicitly authored" in text
-        assert "implied" in text
-
-    def test_verificationcase_records_retained_evidence_reference(self, decisions):
-        """The retained Lane B evidence is cited as supporting evidence only,
-        not as a revision-bound carry-forward claim."""
-        row = self._row(decisions, "VerificationCase")
-        text = _decision_text(row)
-        assert "34576049742" in text
-        assert "0a23902370de9fc74d6118afe480382e0b0d8aa0" in text
-        assert "supporting evidence only" in text
-
-    def test_verificationcase_exact_fit_decision(self, decisions):
-        row = self._row(decisions, "VerificationCase")
-        decision = row["exact_fit_decision"]
-        assert decision.startswith("exact fit:")
-        assert "native construct" in decision
-        assert "no parallel application class" in decision
-
-    def test_verifiedby_records_native_identity_and_query(self, decisions):
-        row = self._row(decisions, "verifiedBy")
-        text = _decision_text(row)
-        assert "RequirementVerificationMembership" in text
-        assert "Requirement -> VerificationCase" in text
-        assert "reverse navigation" in text
-
-    def test_verifiedby_records_mechanics_boundary(self, decisions):
-        row = self._row(decisions, "verifiedBy")
-        note = row["note"]
-        assert "sysml_mapping" in note
-        assert "not themselves the engineering meaning" in note
-        # Mechanics recorded as such: owner chain, reference property, direction.
-        assert "owner-chain" in note
-        assert "reference property" in note
-
-    def test_verifiedby_records_claim_boundary(self, decisions):
-        row = self._row(decisions, "verifiedBy")
-        note = row["note"]
-        assert "declared as a verification objective" in note
-        assert "declared verification-objective / coverage relation only" in note
-        assert "no execution, outcome, satisfaction" in note
-        # Authority boundary: legacy-yaml stays the O1 authority.
-        assert "remains current authority during O1" in note
-
-    def test_verifiedby_exact_fit_decision_names_the_laws(self, decisions):
-        row = self._row(decisions, "verifiedBy")
-        decision = row["exact_fit_decision"]
-        assert decision.startswith("exact fit:")
-        for fragment in (
-            "RequirementVerificationMembership",
-            "generic Dependency",
-            "SubjectMembership",
-            "VerificationMethod",
-            "name-only correspondence",
-            "no name-based fallback",
-        ):
-            assert fragment in decision, fragment
-
-    def test_claim_boundary_fields_free_of_outcome_claims(self, decisions):
-        """Pin the bounded reviewed c2 decision fields: no stronger claim
-        (execution outcome, PASS-like verdict, acceptance,
-        evidence-completeness, satisfaction-by-product, validation,
-        certification) appears in either c2 decision record."""
-        for name in C2_IDENTITIES:
-            text = _decision_text(self._row(decisions, name))
-            for pattern, label in _FORBIDDEN_CLAIM_PATTERNS:
-                assert pattern.search(text) is None, (name, label)
-
-    def test_required_evidence_is_a_forward_path(self, decisions):
-        for name in C2_IDENTITIES:
-            row = self._row(decisions, name)
-            assert row["required_evidence"], name
-            joined = " ".join(row["required_evidence"])
-            assert "O2" in joined, name
-            assert "closure" not in joined.lower(), name
 
 
 # ---------------------------------------------------------------------------
@@ -958,7 +543,7 @@ class TestNegativeSemanticLaws:
         ]
         assert _traverse(requirement, elements) == []
 
-    def test_law11_retained_evidence_presence_is_not_semantic_proof(self, decisions):
+    def test_law11_retained_evidence_presence_is_not_semantic_proof(self):
         """Retained evidence — however strong — is not the relationship, and
         the retained Lane B run does not promote either row."""
         # Mechanism: retained-record-shaped elements plus even a Dependency
@@ -992,12 +577,6 @@ class TestNegativeSemanticLaws:
             },
         ]
         assert _traverse(requirement, elements) == []
-        # Governance: the retained exact-toolchain run stays supporting
-        # evidence only; the rows are not promoted and carry no closure ref.
-        for name in C2_IDENTITIES:
-            row = decisions["entries"][name]
-            assert row["evidence_state"] == "parity-reviewed", name
-            assert row["closure_evidence_ref"] is None, name
 
     def test_law12_outcome_metadata_does_not_create_the_relationship(self):
         """PASS-like/evaluation metadata around the case is not the semantic

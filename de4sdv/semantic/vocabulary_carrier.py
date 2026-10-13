@@ -46,11 +46,10 @@ import re
 from pathlib import Path
 from typing import Any
 
-CARRIERS_PATH = "docs/method-conformance/o4/vocabulary-carriers.yaml"
-REVIEW_PATH = "docs/method-conformance/o4/ontology-review/integrated-review.json"
-PROJECTION_CARRIER_PATH = "docs/method-conformance/o4/vocabulary-carriers-projection.json"
-PROFILE_CARRIER_PATH = "docs/method-conformance/o4/vocabulary-carriers-profile.json"
-DESIGN_CARRIER_PATH = "docs/method-conformance/o4/vocabulary-carrier-design.md"
+CARRIERS_PATH = "de4sdv/semantic/contract-data/increment-relationship-admission.yaml"
+REVIEW_PATH = "de4sdv/semantic/contract-data/ontology-review.json"
+PROJECTION_CARRIER_PATH = "de4sdv/semantic/contract-data/increment-relationship-projection.json"
+PROFILE_CARRIER_PATH = "de4sdv/semantic/contract-data/increment-relationship-profile.json"
 MODULE_CARRIER_PATH = "de4sdv/semantic/vocabulary_carrier.py"
 GENERATOR_CARRIER_PATH = "scripts/generate_vocabulary_carriers.py"
 
@@ -501,7 +500,6 @@ def collect_bound_inputs(
     paths = {
         CARRIERS_PATH,
         REVIEW_PATH,
-        DESIGN_CARRIER_PATH,
         MODULE_CARRIER_PATH,
         GENERATOR_CARRIER_PATH,
     }
@@ -535,8 +533,9 @@ def build_artifact_pair(
         "warning": (
             "Generated artifact. Vocabulary-only: every row carries an "
             "admitted reviewed definition with its carrier lineage; no "
-            "traversal is implemented or claimed, no support state is "
-            "promoted, and the runtime does not read this artifact."
+            "traversal is implemented or claimed, and no support state is "
+            "promoted. The runtime reads this artifact to build the kernel "
+            "contract."
         ),
         "candidates": outputs["candidates"],
         "admitted": outputs["admitted"],
@@ -551,8 +550,8 @@ def build_artifact_pair(
         "warning": (
             "Generated artifact. Representation mechanics only: this profile "
             "cannot redefine domain, range, direction, semantic strength, "
-            "exclusions, or claim boundaries. The runtime does not read this "
-            "artifact."
+            "exclusions, or claim boundaries. The runtime reads this artifact "
+            "to build the kernel contract."
         ),
         "entries": outputs["profile_entries"],
     }

@@ -1,0 +1,625 @@
+{
+  "description": "Contract fields the kernel-vocabulary admission manifest holds itself instead of the model (owner decision D9): kernel mapping, subclass and disjointness pins, relation domain/range/direction/strength and mechanics. Extracted once from the comparison that proved them equal to the authored ontology before its deletion; definition text is excluded (the model owns it). Changing a value needs a reviewed update of this file.",
+  "source": {
+    "tag": "release-2026-10-11",
+    "commit": "063c4fb1f2763a366874118f3b78d9841e0d11b4",
+    "path": "docs/method-conformance/o4/closure/contract-equivalence.json",
+    "permalink": "https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/docs/method-conformance/o4/closure/contract-equivalence.json",
+    "sha256": "2d24c4b1c642738c3857f33552042fe2189cf9b255cd19d5bc71e717cc8058ee",
+    "section": "manifest_held_fields"
+  },
+  "rows": 57,
+  "rows_with_manifest_held_contract_fields": 54,
+  "relation_rows": 21,
+  "kernel_mapping_rows": 33,
+  "entries": {
+    "AcceptanceCriterion": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "declaration": "requirement def AcceptanceCriterion",
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
+        },
+        "sub_class_of": null
+      }
+    },
+    "AllocatableFunction": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "declaration": "action def AllocatableFunction",
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+        },
+        "sub_class_of": "Function"
+      }
+    },
+    "ApprovedTraceMethod": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "declaration": "part def ApprovedTraceMethod",
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml"
+        },
+        "sub_class_of": null
+      }
+    },
+    "ArchitectureDecisionRecord": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "declaration": "part def ArchitectureDecisionRecord",
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
+        },
+        "sub_class_of": null
+      }
+    },
+    "ArchitectureElement": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "native": "part def, port def, and behavior definitions in feature and architecture slices"
+        },
+        "sub_class_of": null
+      }
+    },
+    "AssuranceClaim": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "native": "Claim usages framed by the argumentation-assurance viewpoint"
+        },
+        "sub_class_of": null
+      }
+    },
+    "Baseline": {
+      "admission_class": "external-reference",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "declaration": "part def DE4SDVEvidenceBaseline",
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml"
+        },
+        "sub_class_of": null
+      }
+    },
+    "CommonCapability": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [
+          "Feature"
+        ],
+        "kernel_mapping": {
+          "declaration": "part def CommonProductLineCapability",
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml"
+        },
+        "sub_class_of": null
+      }
+    },
+    "DerivesFromNeed": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "declaration": "connection def DerivesFromNeed",
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
+        },
+        "sub_class_of": null
+      }
+    },
+    "EvidenceArtifact": {
+      "admission_class": "external-reference",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "external": "Evidence registers and retained-evidence items referenced by verification slices (for example RetainedMiddlewareEvidence) and bench evidence YAML records"
+        },
+        "sub_class_of": null
+      }
+    },
+    "EvidenceContract": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "declaration": "requirement def EvidenceContract",
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
+        },
+        "sub_class_of": "Requirement"
+      }
+    },
+    "EvidenceStatus": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "external": "ODE4HERA requirements-management library VVStatus (NRM A13+A14) via the DE4SDV method-context adapter"
+        },
+        "sub_class_of": null
+      }
+    },
+    "EvidenceSupportCitation": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "declaration": "item def EvidenceSupportCitation",
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml"
+        },
+        "sub_class_of": null
+      }
+    },
+    "Feature": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [
+          "CommonCapability"
+        ],
+        "kernel_mapping": {
+          "declaration": "part def ProductLineFeatureCandidate",
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml"
+        },
+        "sub_class_of": null
+      }
+    },
+    "FeatureConfiguration": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "external": "Bill-of-Features records under model-based-product-line-engineering/feature-configurations/ resolved against the feature catalogue in model-based-product-line-engineering/feature-models/"
+        },
+        "sub_class_of": null
+      }
+    },
+    "Function": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "native": "SysML v2 action/state/behavior definitions in functional-architecture slices"
+        },
+        "sub_class_of": "ArchitectureElement"
+      }
+    },
+    "IncrementTraceObligations": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "declaration": "part def IncrementTraceObligations",
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml"
+        },
+        "sub_class_of": null
+      }
+    },
+    "Interface": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "native": "SysML v2 port def and connection elements"
+        },
+        "sub_class_of": "ArchitectureElement"
+      }
+    },
+    "LogicalAllocationElement": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "declaration": "part def LogicalAllocationElement",
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+        },
+        "sub_class_of": "LogicalElement"
+      }
+    },
+    "LogicalElement": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "native": "part def elements in logical-architecture slices"
+        },
+        "sub_class_of": "ArchitectureElement"
+      }
+    },
+    "MethodEvaluationScope": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "declaration": "part def MethodEvaluationScope",
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_conformance.sysml"
+        },
+        "sub_class_of": null
+      }
+    },
+    "PhysicalAllocationElement": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "declaration": "part def PhysicalAllocationElement",
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+        },
+        "sub_class_of": "PhysicalElement"
+      }
+    },
+    "PhysicalElement": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "native": "part def elements in physical/software realization slices"
+        },
+        "sub_class_of": "ArchitectureElement"
+      }
+    },
+    "RegulatorySource": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "declaration": "part def ControlledRegulatorySource",
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+        },
+        "sub_class_of": null
+      }
+    },
+    "RegulatorySourceAssociation": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "declaration": "connection def RegulatorySourceAssociation",
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+        },
+        "sub_class_of": null
+      }
+    },
+    "RequiredTraceChain": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "external": "Historical pre-Topic-5 universal-chain vocabulary retained for compatibility; not a successor completion policy"
+        },
+        "sub_class_of": null
+      }
+    },
+    "ScopedEvidenceAdequacyAssessment": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "declaration": "item def ScopedEvidenceAdequacyAssessment",
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml"
+        },
+        "sub_class_of": null
+      }
+    },
+    "ScopedVVActivityRecord": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "declaration": "item def ScopedVVActivityRecord",
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml"
+        },
+        "sub_class_of": null
+      }
+    },
+    "Stakeholder": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "declaration": "part def Stakeholder",
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml"
+        },
+        "sub_class_of": null
+      }
+    },
+    "TraceLink": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "external": "Historical pre-Topic-5 string-endpoint record; successor source-reference witnesses require identified owning references, not category strings"
+        },
+        "sub_class_of": null
+      }
+    },
+    "ValidationPlanningAssociation": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "declaration": "connection def ValidationPlanningAssociation",
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+        },
+        "sub_class_of": null
+      }
+    },
+    "ValidationPlanningScenario": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "declaration": "part def ValidationPlanningScenario",
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+        },
+        "sub_class_of": "ValidationScenario"
+      }
+    },
+    "ValidationScenario": {
+      "admission_class": "definition",
+      "manifest": {
+        "disjoint_with": [],
+        "kernel_mapping": {
+          "native": "Scenario parts with bounded validation outcomes (for example passBoundedValidation)"
+        },
+        "sub_class_of": null
+      }
+    },
+    "allocatedTo": {
+      "admission_class": "successor",
+      "manifest": {}
+    },
+    "appliesToMemberProduct": {
+      "admission_class": "relationship-vocabulary",
+      "manifest": {
+        "relation": {
+          "domain": "FeatureConfiguration",
+          "range": "MemberProduct",
+          "semantic_strength": null
+        }
+      }
+    },
+    "capturedInBaseline": {
+      "admission_class": "external-reference",
+      "manifest": {
+        "relation": {
+          "domain": "EvidenceArtifact",
+          "range": "Baseline",
+          "semantic_strength": null
+        }
+      }
+    },
+    "constrainedBy": {
+      "admission_class": "retired-name",
+      "manifest": {
+        "relation": {
+          "domain": "Requirement",
+          "range": "RegulatoryConstraint",
+          "semantic_strength": null
+        }
+      }
+    },
+    "deployedTo": {
+      "admission_class": "retired-name",
+      "manifest": {
+        "relation": {
+          "domain": "LogicalElement",
+          "range": "PhysicalElement",
+          "semantic_strength": null
+        }
+      }
+    },
+    "hasAcceptanceCriterion": {
+      "admission_class": "relationship-vocabulary",
+      "manifest": {
+        "relation": {
+          "domain": "VerificationCase",
+          "range": "AcceptanceCriterion",
+          "semantic_strength": null
+        }
+      }
+    },
+    "hasEvidence": {
+      "admission_class": "external-reference",
+      "manifest": {
+        "mechanics": {
+          "strategy": "external"
+        },
+        "relation": {
+          "domain": "VerificationCase",
+          "range": "EvidenceArtifact",
+          "semantic_strength": "external-data-required"
+        }
+      }
+    },
+    "hasEvidenceStatus": {
+      "admission_class": "relationship-vocabulary",
+      "manifest": {
+        "relation": {
+          "domain": "EvidenceArtifact",
+          "range": "EvidenceStatus",
+          "semantic_strength": null
+        }
+      }
+    },
+    "hasRegulatorySource": {
+      "admission_class": "successor",
+      "manifest": {}
+    },
+    "hasRelevantEvidenceContract": {
+      "admission_class": "relationship-runtime",
+      "manifest": {
+        "mechanics": {
+          "direction": "incoming",
+          "relationship_types": [
+            "Dependency"
+          ],
+          "source_property": "source",
+          "source_types": [
+            "RequirementUsage"
+          ],
+          "strategy": "dependency",
+          "target_property": "target"
+        },
+        "relation": {
+          "domain": "Requirement",
+          "range": "EvidenceContract",
+          "semantic_strength": "relevance"
+        }
+      }
+    },
+    "hasStakeholder": {
+      "admission_class": "relationship-vocabulary",
+      "manifest": {
+        "relation": {
+          "domain": "EngineeringIncrement",
+          "range": "Stakeholder",
+          "semantic_strength": null
+        }
+      }
+    },
+    "hasValidationScenario": {
+      "admission_class": "successor",
+      "manifest": {}
+    },
+    "includesCommonCapability": {
+      "admission_class": "relationship-vocabulary",
+      "manifest": {
+        "relation": {
+          "domain": "FeatureConfiguration",
+          "range": "CommonCapability",
+          "semantic_strength": null
+        }
+      }
+    },
+    "instantiatesCanonicalArchitecture": {
+      "admission_class": "relationship-vocabulary",
+      "manifest": {
+        "relation": {
+          "domain": "MemberProduct",
+          "range": "ArchitectureElement",
+          "semantic_strength": null
+        }
+      }
+    },
+    "realizedBy": {
+      "admission_class": "retired-name",
+      "manifest": {
+        "relation": {
+          "domain": "Requirement",
+          "range": "ArchitectureElement",
+          "semantic_strength": "allocation"
+        }
+      }
+    },
+    "selectsFeature": {
+      "admission_class": "relationship-vocabulary",
+      "manifest": {
+        "relation": {
+          "domain": "FeatureConfiguration",
+          "range": "Feature",
+          "semantic_strength": null
+        }
+      }
+    },
+    "selectsVariant": {
+      "admission_class": "relationship-vocabulary",
+      "manifest": {
+        "relation": {
+          "domain": "FeatureConfiguration",
+          "range": "Variant",
+          "semantic_strength": null
+        }
+      }
+    },
+    "specifiesCommonCapability": {
+      "admission_class": "relationship-vocabulary",
+      "manifest": {
+        "relation": {
+          "domain": "Requirement",
+          "range": "CommonCapability",
+          "semantic_strength": null
+        }
+      }
+    },
+    "specifiesFeature": {
+      "admission_class": "relationship-vocabulary",
+      "manifest": {
+        "relation": {
+          "domain": "Requirement",
+          "range": "Feature",
+          "semantic_strength": null
+        }
+      }
+    },
+    "specifiesFunction": {
+      "admission_class": "relationship-runtime",
+      "manifest": {
+        "mechanics": {
+          "direction": "outgoing",
+          "relationship_types": [
+            "Dependency"
+          ],
+          "source_property": "source",
+          "source_types": [
+            "RequirementUsage"
+          ],
+          "strategy": "dependency",
+          "target_property": "target",
+          "target_types": [
+            "ActionUsage",
+            "ActionDefinition"
+          ]
+        },
+        "relation": {
+          "domain": "Requirement",
+          "range": "Function",
+          "semantic_strength": "relevance"
+        }
+      }
+    },
+    "supportedByEvidence": {
+      "admission_class": "relationship-vocabulary",
+      "manifest": {
+        "relation": {
+          "domain": "AssuranceClaim",
+          "range": "EvidenceArtifact",
+          "semantic_strength": null
+        }
+      }
+    },
+    "validatedBy": {
+      "admission_class": "retired-name",
+      "manifest": {
+        "relation": {
+          "domain": "Need",
+          "range": "ValidationScenario",
+          "semantic_strength": null
+        }
+      }
+    },
+    "validatesFitnessForUse": {
+      "admission_class": "retired-name",
+      "manifest": {
+        "relation": {
+          "domain": "ValidationScenario",
+          "range": "Need",
+          "semantic_strength": null
+        }
+      }
+    },
+    "variesAt": {
+      "admission_class": "relationship-vocabulary",
+      "manifest": {
+        "relation": {
+          "domain": "Feature",
+          "range": "VariationPoint",
+          "semantic_strength": null
+        }
+      }
+    }
+  }
+}

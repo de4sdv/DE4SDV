@@ -1,9 +1,9 @@
 """Shared revision-binding and model-documentation helpers.
 
-Originally the O1 Semantic Authority Inventory generator. O4 Wave C2 deleted
-the inventory generator (it read the retired authored ontology; its output is
-a frozen O1 record, ``docs/method-conformance/frozen-records.json``). What
-remains is the shared machinery the live generators and gates use:
+Originally the semantic-authority inventory generator. That generator was
+deleted with the authored ontology it read; its last output is archived at the
+``release-2026-10-11`` tag. What remains is the shared machinery the live
+generators and gates use:
 
 - revision binding: :func:`validate_source_binding`,
   :func:`verify_source_revision_contains_inputs`,

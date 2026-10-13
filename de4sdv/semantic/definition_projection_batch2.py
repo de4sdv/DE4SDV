@@ -39,9 +39,8 @@ domain/range of vocabulary-only predicates, kernel mapping kind of
 native/external classes, serializer mechanics of the runtime-mapped
 predicates) are reviewed admission-manifest fields (owner decision D9): the
 manifest is their authority. They were proven equal to the authored ontology
-before its deletion in O4 Wave C2
-(``docs/method-conformance/o4/closure/contract-equivalence.json``, which tests
-lock them to). They are labeled as such in every generated row
+before its deletion. That comparison is archived at the ``release-2026-10-11``
+tag (``PARITY_EVIDENCE``), and every generated row labels these fields with it
 (``contract_source``); nothing is inferred from names.
 
 Boundaries: generation reads ONLY the admission manifest, the governed model
@@ -65,15 +64,14 @@ import re
 from pathlib import Path
 from typing import Any
 
-ADMISSION_PATH = "docs/method-conformance/o4/definition-admission-batch2.yaml"
-PROJECTION_PATH = "docs/method-conformance/o4/definition-batch2-projection.json"
-PROFILE_PATH = "docs/method-conformance/o4/definition-batch2-profile.json"
-DESIGN_PATH = "docs/method-conformance/o4/definition-admission-batch2-design.md"
+ADMISSION_PATH = "de4sdv/semantic/contract-data/kernel-vocabulary-admission.yaml"
+PROJECTION_PATH = "de4sdv/semantic/contract-data/kernel-vocabulary-projection.json"
+PROFILE_PATH = "de4sdv/semantic/contract-data/kernel-vocabulary-profile.json"
 MODULE_PATH = "de4sdv/semantic/definition_projection_batch2.py"
 GENERATOR_PATH = "scripts/generate_definition_projection.py"
 AUTHORITY_INVENTORY_PATH = "de4sdv/semantic/authority_inventory.py"
 PROJECTION_O2P_PATH = "de4sdv/semantic/projection_o2p.py"
-EXTERNAL_REFERENCE_PROFILE_PATH = "docs/method-conformance/o4/external-reference-profile.yaml"
+EXTERNAL_REFERENCE_PROFILE_PATH = "de4sdv/semantic/contract-data/external-reference-profile.yaml"
 
 ADMISSION_SCHEMA = "de4sdv.o4-definition-admission-batch2/v1"
 PROJECTION_SCHEMA = "de4sdv.o4-definition-batch2-projection/v1"
@@ -81,9 +79,15 @@ PROFILE_SCHEMA = "de4sdv.o4-definition-batch2-profile/v1"
 SUCCESSOR_CONTRACT = "de4sdv.relationship-successor/v1"
 
 WARNING = (
-    "no traversal proof, no runtime read by this artifact, no API element "
-    "identity, no authority retirement; retired names answer no fact (retired; "
-    "use the successor)"
+    "no traversal proof, no API element identity, no authority retirement; the "
+    "runtime reads this artifact to build the kernel contract; retired names "
+    "answer no fact (retired; use the successor)"
+)
+#: The pre-deletion comparison that proved the manifest-held contract fields
+#: equal to the deleted authored ontology, archived at the release tag.
+PARITY_EVIDENCE = (
+    "https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/"
+    "docs/method-conformance/o4/closure/contract-equivalence.json"
 )
 
 SEMANTIC_KINDS = frozenset({"class", "relationship"})
@@ -802,7 +806,7 @@ def _row_outputs(root: Path, model: _Model, row: dict[str, Any], successors: dic
             "kernel mapping kind and ontology relations: reviewed admission-manifest "
             "fields (manifest-held; owner decision D9); file mappings are resolved in "
             "the model by this generator; authored-ontology parity proven before its "
-            "deletion: docs/method-conformance/o4/closure/contract-equivalence.json"
+            "deletion: " + PARITY_EVIDENCE
         )
         projection["grounding"] = ground
     if admission == "successor":
@@ -836,7 +840,7 @@ def _row_outputs(root: Path, model: _Model, row: dict[str, Any], successors: dic
                 "domain/range/strength: reviewed admission-manifest fields "
                 "(manifest-held, model-witnessed declaration; no structural domain/range "
                 "in the model; owner decision D9); authored-ontology parity proven before "
-                "its deletion: docs/method-conformance/o4/closure/contract-equivalence.json"
+                "its deletion: " + PARITY_EVIDENCE
             ),
         }
     if "carrier" in row:
@@ -874,7 +878,7 @@ def _row_outputs(root: Path, model: _Model, row: dict[str, Any], successors: dic
         profile["mechanics_source"] = (
             "reviewed admission-manifest field (representation mechanics; owner decision "
             "D9); authored-ontology parity proven before its deletion: "
-            "docs/method-conformance/o4/closure/contract-equivalence.json"
+            + PARITY_EVIDENCE
         )
     if admission == "retired-name":
         retired = row["retired"]
@@ -951,7 +955,7 @@ def collect_bound_inputs(root: Path, outputs: dict[str, Any]) -> dict[str, str]:
     """Legacy diagnostic input inventory; live construction emits no digest binding."""
     from de4sdv.semantic.authority_inventory import file_digest
 
-    paths = {ADMISSION_PATH, DESIGN_PATH, MODULE_PATH, GENERATOR_PATH,
+    paths = {ADMISSION_PATH, MODULE_PATH, GENERATOR_PATH,
              AUTHORITY_INVENTORY_PATH, PROJECTION_O2P_PATH, *outputs["model_inputs"]}
     bound: dict[str, str] = {}
     for relative in sorted(paths):
@@ -969,7 +973,7 @@ def build_artifact_pair(root: Path) -> dict[str, Any]:
         "status": "admitted",
         "warning": WARNING,
         "scope": {
-            "admission": "O4 definition-admission batch 2 (definition-admission-batch2.yaml)",
+            "admission": "kernel-vocabulary admission (kernel-vocabulary-admission.yaml)",
             "admitted": outputs["admitted"],
             "exceptions": outputs["exceptions"],
             "note": (

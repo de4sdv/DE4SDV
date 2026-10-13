@@ -12,7 +12,8 @@ import json
 import re
 from pathlib import Path
 
-DOCS = Path(__file__).resolve().parents[1] / "docs" / "method-conformance"
+DOCS = Path(__file__).resolve().parents[1] / "docs" / "method-evaluation"
+DATA = Path(__file__).resolve().parents[1] / "de4sdv" / "semantic" / "contract-data"
 FROZEN_DIGEST = "427410f3070ed591287ec0dd3b819be7e95ee22fa7608b4c87d1e82192abd661"
 
 # Exact finite reason vocabulary declared by result-algebra.md (normative set).
@@ -205,7 +206,7 @@ def test_state_reason_compatibility_table_structure() -> None:
 def _load_pilot_yaml() -> dict:
     import yaml
 
-    return yaml.safe_load((DOCS / "pilot-obligations.yaml").read_text(encoding="utf-8"))
+    return yaml.safe_load((DATA / "pilot-obligations.yaml").read_text(encoding="utf-8"))
 
 
 def _norm_cell(s: str) -> str:
@@ -448,7 +449,7 @@ def test_reason_legality_per_row_is_pinned() -> None:
     must fail (set membership, not wording)."""
     import yaml as _yaml
 
-    spec = _yaml.safe_load((DOCS / "pilot-obligations.yaml").read_text(encoding="utf-8"))
+    spec = _yaml.safe_load((DATA / "pilot-obligations.yaml").read_text(encoding="utf-8"))
     text = (DOCS / "result-algebra.md").read_text(encoding="utf-8")
     rows = _compat_table_rows(text)
     by_state = {(r[0], r[1], r[2]): r[3] for r in rows}
@@ -512,7 +513,7 @@ def test_expected_disposition_mapping_is_exact() -> None:
     fail)."""
     import yaml as _yaml
 
-    spec = _yaml.safe_load((DOCS / "pilot-obligations.yaml").read_text(encoding="utf-8"))
+    spec = _yaml.safe_load((DATA / "pilot-obligations.yaml").read_text(encoding="utf-8"))
     text = (DOCS / "pilot-scope.md").read_text(encoding="utf-8")
     # The markdown row 9 must enumerate each profile->disposition pair exactly.
     rows = _pilot_table_rows(text)

@@ -1,7 +1,7 @@
 """Deterministic method-conformance evaluator (Lane C).
 
 Implements the frozen result algebra and the generic, phase-neutral evaluation
-engine specified by ``docs/method-conformance/`` (conformance-baseline.md,
+engine specified by ``docs/method-evaluation/`` (conformance-baseline.md,
 result-algebra.md, pilot-scope.md) under ADR 0019. Scope boundary:
 
 - this module evaluates approved method contracts against one bound revision
@@ -25,7 +25,7 @@ from dataclasses import dataclass, field, replace
 from typing import Any, Callable, Iterable, Mapping, Protocol, Sequence
 
 # ---------------------------------------------------------------------------
-# Result algebra (frozen: docs/method-conformance/result-algebra.md)
+# Result algebra (frozen: docs/method-evaluation/result-algebra.md)
 # ---------------------------------------------------------------------------
 
 CONTRACT_UNAVAILABLE = "CONTRACT_UNAVAILABLE"

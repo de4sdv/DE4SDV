@@ -1,11 +1,20 @@
 #!/usr/bin/env python3
-"""Verify immutable historical records (read-only, runtime-inert).
+"""Verify the frozen records the runtime still serves (read-only, runtime-inert).
+
+The frozen records are the historical Semantic Projection and API
+Representation Profile records (v1 to v1.2) that the model-built kernel
+contract reads as its frozen layer. They are never regenerated.
 
 The frozen-records manifest must equal its deterministic rendering from the
-recorded ancestor. Directory membership and every frozen file's bytes must
-match that manifest. Historical bindings are checked against their own source
-revisions, never against current inputs; referenced records and comparison
-bases remain subject to digest, existence and ancestry checks.
+recorded ancestor ``frozen_at_revision``. Directory membership and every
+frozen file's bytes must match that manifest. Historical bindings are checked
+against their own source revisions, never against current inputs; ``extends``
+references must name a frozen record at its frozen digest.
+
+The records keep the paths they had when they were frozen inside their own
+``extends`` blocks; ``HISTORICAL_DIRECTORY`` maps those paths to the current
+directory. Records frozen by the same decision that the runtime no longer
+serves are archived at the ``release-2026-10-11`` tag.
 
 Live projection/profile freshness is a separate current-source comparison in
 each generator's check mode, aggregated by ``scripts/check_repo.py``. This
@@ -31,77 +40,43 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-METHOD_CONFORMANCE_DIR = "docs/method-conformance"
-O3_SCOPE_PATH = "docs/method-conformance/o3/o3-equivalence-scope.json"
-
-#: Owner decisions Q7 + D10 (2026-10-07): the whole O1/O2/O3 directories are
-#: frozen records. They are never regenerated; their bindings are checked at
-#: their own historical revisions (see the module docstring, item 5).
-FROZEN_MANIFEST_PATH = "docs/method-conformance/frozen-records.json"
-FROZEN_SCHEMA = "de4sdv.frozen-records/v1"
-FROZEN_DIRECTORIES = (
-    "docs/method-conformance/o1",
-    "docs/method-conformance/o2",
-    "docs/method-conformance/o3",
+FROZEN_MANIFEST_PATH = "de4sdv/semantic/contract-data/frozen-records.json"
+FROZEN_SCHEMA = "de4sdv.frozen-records/v2"
+#: The directory that holds exactly the frozen records.
+FROZEN_DIRECTORY = "de4sdv/semantic/contract-data/frozen-records"
+FROZEN_DIRECTORIES = (FROZEN_DIRECTORY,)
+#: Where the records lived at ``frozen_at_revision``. Their own ``extends``
+#: blocks keep naming these paths.
+HISTORICAL_DIRECTORY = "docs/method-conformance/o2"
+#: The records the runtime still serves (the frozen layer of
+#: ``de4sdv/semantic/model_contract.py``).
+FROZEN_RECORD_NAMES = (
+    "api-representation-profile-v1.1.json",
+    "api-representation-profile-v1.2.json",
+    "api-representation-profile-v1.json",
+    "semantic-projection-v1.1.json",
+    "semantic-projection-v1.2.json",
+    "semantic-projection-v1.json",
 )
+ARCHIVE_TAG = "release-2026-10-11"
+#: The owner decision that froze the records, quoted as recorded.
 FROZEN_DECISION = {
     "owner_decisions": "Q7 and D10 (Orkun, 2026-10-07)",
     "statement": (
         "Freeze the historical O1, O2 and O3 records (the whole o1/, o2/ and "
         "o3/ directories); do not regenerate them."
     ),
-    "record": "docs/method-conformance/o4/owner-decisions-2026-10.md",
+    "record": (
+        "https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/"
+        "docs/method-conformance/o4/owner-decisions-2026-10.md"
+    ),
 }
-#: Generators whose outputs are frozen. Their CLIs refuse to write or check
-#: and point here; their library code is retired in O4 Wave C2.
-RETIRED_GENERATORS = {
-    "docs/method-conformance/o1/authority-inventory.md":
-        "scripts/generate_semantic_authority_inventory.py",
-    "docs/method-conformance/o1/semantic-authority-inventory.json":
-        "scripts/generate_semantic_authority_inventory.py",
-    "docs/method-conformance/o2/api-representation-profile-v1.json":
-        "scripts/generate_semantic_projection_v1.py",
-    "docs/method-conformance/o2/semantic-projection-v1.json":
-        "scripts/generate_semantic_projection_v1.py",
-    "docs/method-conformance/o2/api-representation-profile-v1.1.json":
-        "scripts/generate_semantic_projection_o22.py",
-    "docs/method-conformance/o2/semantic-projection-v1.1.json":
-        "scripts/generate_semantic_projection_o22.py",
-    "docs/method-conformance/o2/api-representation-profile-v1.2.json":
-        "scripts/generate_semantic_projection_o23.py",
-    "docs/method-conformance/o2/semantic-projection-v1.2.json":
-        "scripts/generate_semantic_projection_o23.py",
-    "docs/method-conformance/o3/o3-equivalence-scope.json":
-        "scripts/generate_o3_equivalence_scope.py",
-}
-#: Frozen records that live code still reads as read-only data.
-LIVE_CONSUMERS = {
-    "docs/method-conformance/o1/authority-review-decisions.yaml":
-        "O4 lifecycle-consistency gate (read-only data)",
-    "docs/method-conformance/o1/semantic-authority-inventory.json":
-        "O3 equivalence basis (read-only data)",
-    "docs/method-conformance/o2/api-representation-profile-v1.json":
-        "model-authority runtime o2-chain layer and O3 bundle (read-only data)",
-    "docs/method-conformance/o2/semantic-projection-v1.json":
-        "model-authority runtime o2-chain layer and O3 bundle (read-only data)",
-    "docs/method-conformance/o2/api-representation-profile-v1.1.json":
-        "model-authority runtime o2-chain layer and O3 bundle (read-only data)",
-    "docs/method-conformance/o2/semantic-projection-v1.1.json":
-        "model-authority runtime o2-chain layer and O3 bundle (read-only data)",
-    "docs/method-conformance/o2/api-representation-profile-v1.2.json":
-        "model-authority runtime o2-chain layer and O3 bundle (read-only data)",
-    "docs/method-conformance/o2/semantic-projection-v1.2.json":
-        "model-authority runtime o2-chain layer and O3 bundle (read-only data)",
-    "docs/method-conformance/o3/o3-equivalence-scope.json":
-        "O3 equivalence lane (read-only data)",
-}
-_RECORD_KEYS = (
-    "path", "sha256", "kind", "binding_source_revision", "live_consumer",
-    "retired_generator",
-)
+LIVE_CONSUMER = "frozen layer of the model-built kernel contract (read-only data)"
+_RECORD_KEYS = ("path", "sha256", "kind", "binding_source_revision", "live_consumer")
 
 _FULL_SHA = re.compile(r"^[0-9a-f]{40}$")
 _BARE_SHA256 = re.compile(r"^[0-9a-f]{64}$")
+
 
 def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
@@ -115,10 +90,9 @@ def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
 def _canonical_digest(value: Any) -> Any:
     """Canonical ``sha256:<64-hex>`` for a bare-hex digest; anything else as-is.
 
-    Recorded digests appear in both forms across the chain (the O3 basis uses
-    bare hex for one identity); both must be able to match, and anything that
-    is neither form is left untouched so the mismatch is reported against the
-    recorded value itself.
+    Recorded digests appear in both forms; both must be able to match, and
+    anything that is neither form is left untouched so the mismatch is
+    reported against the recorded value itself.
     """
     text = str(value)
     if _BARE_SHA256.match(text):
@@ -131,6 +105,14 @@ def _is_frozen_path(relative: str) -> bool:
         relative == directory or relative.startswith(directory + "/")
         for directory in FROZEN_DIRECTORIES
     )
+
+
+def _current_path(relative: Any) -> Any:
+    """The current path of a record named by its path at ``frozen_at_revision``."""
+    prefix = HISTORICAL_DIRECTORY + "/"
+    if isinstance(relative, str) and relative.startswith(prefix):
+        return FROZEN_DIRECTORY + "/" + relative[len(prefix):]
+    return relative
 
 
 def _git_bytes(root: Path, revision: str, relative: str) -> bytes | None:
@@ -168,13 +150,6 @@ def _commit_problems(root: Path, revision: Any, label: str) -> list[str]:
     return []
 
 
-def _tree_paths(root: Path, revision: str) -> list[str]:
-    result = _git(root, "ls-tree", "-r", "--name-only", revision, "--", *FROZEN_DIRECTORIES)
-    if result.returncode != 0:
-        raise ValueError(f"cannot list the frozen directories at {revision}")
-    return sorted(line for line in result.stdout.splitlines() if line)
-
-
 def _worktree_paths(root: Path) -> list[str]:
     paths: list[str] = []
     for directory in FROZEN_DIRECTORIES:
@@ -205,18 +180,20 @@ def _record_kind(relative: str, data: bytes) -> str:
 def render_frozen_manifest(root: Path, revision: str) -> dict[str, Any]:
     """Deterministic frozen-records manifest from the tree at ``revision``.
 
-    Every field is derived from the historical bytes (path, sha256, kind,
-    binding source revision) or from the reviewed constants in this module
-    (live consumer, retired generator), so the committed manifest can be
-    re-derived and compared byte-for-byte.
+    Every field is derived from the historical bytes (sha256, kind, binding
+    source revision) or from the reviewed constants in this module, so the
+    committed manifest can be re-derived and compared byte-for-byte. Each
+    record is read at ``revision`` under ``HISTORICAL_DIRECTORY`` and listed
+    under its current path.
     """
     records = []
-    for relative in _tree_paths(root, revision):
-        data = _git_bytes(root, revision, relative)
+    for name in sorted(FROZEN_RECORD_NAMES):
+        historical = f"{HISTORICAL_DIRECTORY}/{name}"
+        data = _git_bytes(root, revision, historical)
         if data is None:
-            raise ValueError(f"{relative} is unreadable at {revision}")
+            raise ValueError(f"{historical} is unreadable at {revision}")
         binding_revision = None
-        if relative.endswith(".json"):
+        if name.endswith(".json"):
             try:
                 document = json.loads(data.decode("utf-8"))
             except (UnicodeDecodeError, json.JSONDecodeError):
@@ -224,24 +201,26 @@ def render_frozen_manifest(root: Path, revision: str) -> dict[str, Any]:
             if isinstance(document, dict) and isinstance(document.get("binding"), dict):
                 binding_revision = document["binding"].get("source_revision")
         records.append({
-            "path": relative,
+            "path": f"{FROZEN_DIRECTORY}/{name}",
             "sha256": _bytes_digest(data),
-            "kind": _record_kind(relative, data),
+            "kind": _record_kind(name, data),
             "binding_source_revision": binding_revision,
-            "live_consumer": LIVE_CONSUMERS.get(relative),
-            "retired_generator": RETIRED_GENERATORS.get(relative),
+            "live_consumer": LIVE_CONSUMER,
         })
     return {
         "schema": FROZEN_SCHEMA,
         "note": (
-            "Frozen historical records. Never regenerated; never compared with "
-            "the live tree's inputs. Bindings are verified at their own "
-            "source revisions by scripts/verify_generated_chain.py (frozen "
-            "lane), which scripts/check_repo.py runs. Not revision-bound "
-            "evidence itself: no binding block."
+            "Frozen historical records the runtime still serves. Never "
+            "regenerated; never compared with the live tree's inputs. Bindings "
+            "are verified at their own source revisions by "
+            "scripts/verify_generated_chain.py (frozen lane), which "
+            "scripts/check_repo.py runs. Not revision-bound evidence itself: "
+            "no binding block. The other records frozen by the same decision "
+            f"are archived at the {ARCHIVE_TAG} tag."
         ),
         "decision": dict(FROZEN_DECISION),
         "frozen_at_revision": revision,
+        "historical_directory": HISTORICAL_DIRECTORY,
         "directories": list(FROZEN_DIRECTORIES),
         "records": records,
     }
@@ -295,9 +274,9 @@ def _frozen_extends_problems(
         return []
     if not isinstance(extends, dict):
         return ["extends must be a mapping"]
-    referenced = extends.get("artifact")
+    referenced = _current_path(extends.get("artifact"))
     if referenced not in digests:
-        return [f"extends.artifact {referenced!r} must be a frozen record"]
+        return [f"extends.artifact {extends.get('artifact')!r} must be a frozen record"]
     errors = []
     if _canonical_digest(extends.get("artifact_digest")) != digests[referenced]:
         errors.append(
@@ -317,41 +296,6 @@ def _frozen_extends_problems(
             f"match the referenced record's binding.source_revision "
             f"{target_revision!r} ({referenced})"
         )
-    return errors
-
-
-def _o3_basis_problems(
-    root: Path, document: dict[str, Any], digests: dict[str, str]
-) -> list[str]:
-    """The O3 scope basis may reference frozen records only, at their digests."""
-    basis = document.get("basis")
-    if not isinstance(basis, dict):
-        return ["o3 equivalence scope has no basis block"]
-    errors: list[str] = []
-
-    def _basis_digest(label: str, record: Any) -> None:
-        if not isinstance(record, dict) or not isinstance(record.get("path"), str):
-            errors.append(f"o3 basis.{label} must be a mapping with a path")
-            return
-        relative = record["path"]
-        if relative not in digests:
-            errors.append(f"o3 basis.{label} {relative} must be a frozen record")
-            return
-        if _canonical_digest(record.get("sha256")) != digests[relative]:
-            errors.append(
-                f"o3 basis.{label} digest {record.get('sha256')!r} does not match "
-                f"the frozen digest of {relative} ({digests[relative]})"
-            )
-
-    _basis_digest("o1_inventory", basis.get("o1_inventory"))
-    chain = basis.get("o2_chain")
-    if not isinstance(chain, list):
-        errors.append("o3 basis.o2_chain must be a list")
-    else:
-        for index, item in enumerate(chain):
-            _basis_digest(f"o2_chain[{index}]", item)
-    errors.extend(_commit_problems(root, basis.get("comparison_base_revision"),
-                                   "o3 basis.comparison_base_revision"))
     return errors
 
 
@@ -377,7 +321,7 @@ def _frozen_lane_entries(root: Path) -> list[dict[str, Any]]:
     if manifest.get("directories") != list(FROZEN_DIRECTORIES):
         errors.append(
             "frozen-records directories must be exactly "
-            f"{list(FROZEN_DIRECTORIES)} (owner decision D10)"
+            f"{list(FROZEN_DIRECTORIES)}"
         )
     revision = manifest.get("frozen_at_revision")
     revision_errors = _commit_problems(root, revision, "frozen_at_revision")
@@ -446,13 +390,8 @@ def _frozen_lane_entries(root: Path) -> list[dict[str, Any]]:
                     record_errors.extend(_commit_problems(
                         root, document["source_revision"], "top-level source_revision"))
                 record_errors.extend(_frozen_extends_problems(root, document, digests))
-                if relative == O3_SCOPE_PATH:
-                    record_errors.extend(_o3_basis_problems(root, document, digests))
         entries.append({"artifact": relative, "ok": not record_errors,
                         "errors": record_errors})
-    if O3_SCOPE_PATH not in digests:
-        entries.append({"artifact": O3_SCOPE_PATH, "ok": False,
-                        "errors": ["required O3 scope artifact is not a frozen record"]})
     return entries
 
 

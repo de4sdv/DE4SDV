@@ -21,7 +21,7 @@ outputs, which makes them invisible to contributors and CI.
 
 ## Decision
 
-1. Adopt `docs/method-conformance/` as the governing specification home:
+1. Adopt `docs/method-evaluation/` as the governing specification home:
    - `conformance-baseline.md` — the frozen baseline, committed byte-unchanged;
    - `result-algebra.md` — the normative field spellings, allowed values, and
      the complete finite reason vocabulary fixed by this ADR;
@@ -57,7 +57,7 @@ outputs, which makes them invisible to contributors and CI.
    the tested boundary changes or cannot be established — documentation or
    acceptance-record commits rebind without replay.
 6. Enforce baseline integrity mechanically: a test recomputes the SHA-256 of
-   `docs/method-conformance/conformance-baseline.md` over raw bytes and fails
+   `docs/method-evaluation/conformance-baseline.md` over raw bytes and fails
    on any drift (including line-ending or encoding mutation); `mc-matrix.json`
    must match a re-extraction from the committed baseline; the reason
    vocabulary is pinned by exact set equality with negative probes (removals
@@ -123,8 +123,8 @@ correction. Repairs, all bounded to the A contract and its guards:
 
 ## Links
 
-- Frozen baseline: `docs/method-conformance/conformance-baseline.md`
-- Active authorization policy: `docs/method-conformance/acceptance-policy.md`
+- Frozen baseline: `docs/method-evaluation/conformance-baseline.md`
+- Active authorization policy: `docs/method-evaluation/acceptance-policy.md`
   (`de4sdv.acceptance.maintainer-decision.v1`, activated as written by
   Orkun Yilmaz, 2026-10-05; no campaign acceptance decision)
 - Unified plan: DE4SDV_Unified_Semantic_Engineering_Plan_Final.md (§13, §16)

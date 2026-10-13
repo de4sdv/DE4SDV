@@ -3,18 +3,18 @@
 
 Canonical artifacts:
 
-- ``docs/method-conformance/o4/definition-projection.json``
-- ``docs/method-conformance/o4/definition-profile.json``
-- ``docs/method-conformance/o4/definition-batch2-projection.json`` (batch 2)
-- ``docs/method-conformance/o4/definition-batch2-profile.json`` (batch 2)
+- ``de4sdv/semantic/contract-data/class-definition-projection.json``
+- ``de4sdv/semantic/contract-data/class-definition-profile.json``
+- ``de4sdv/semantic/contract-data/kernel-vocabulary-projection.json`` (batch 2)
+- ``de4sdv/semantic/contract-data/kernel-vocabulary-profile.json`` (batch 2)
 
-Batch 2 (``definition-admission-batch2.yaml``, module
+Batch 2 (``kernel-vocabulary-admission.yaml``, module
 ``de4sdv/semantic/definition_projection_batch2.py``) is a separate pair for
 the remaining retained identities, the unregistered ontology classes and the
 W6 successor predicates; ``--batch`` selects one pair (default: both).
 
 The batch-1 artifacts carry the 22 admitted definition identities of the governed
-``docs/method-conformance/o4/definition-admission.yaml`` batch: the generated
+``de4sdv/semantic/contract-data/class-definition-admission.yaml`` batch: the generated
 Semantic Projection rows (model-owned documentation and ownership witnesses,
 kernel-binding-contract grounding) and the API
 Representation Profile entries (declaration-form representation mechanics and

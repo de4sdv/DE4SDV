@@ -16,8 +16,7 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-MANIFEST_PATH = "docs/method-conformance/o4/definition-admission.yaml"
-DESIGN_PATH = "docs/method-conformance/o4/definition-admission-design.md"
+MANIFEST_PATH = "de4sdv/semantic/contract-data/class-definition-admission.yaml"
 MODULE_PATH = "de4sdv/semantic/definition_projection.py"
 GENERATOR_PATH = "scripts/generate_definition_projection.py"
 #: The two shared modules the generation path EXECUTES (proved by the
@@ -66,8 +65,6 @@ ADMITTED_ROWS = (
     "SystemLayer",
     "SystemToSoftwareSignalMappingCandidate",
 )
-
-TREATED_STAGE = "o4 definition admission batch 1 (projection + profile)"
 
 #: Layer-B reviewed-decision field names that must never leak into generated
 #: semantic rows (identical to the O1 governance guard used by the other
@@ -145,68 +142,40 @@ def test_manifest_scope_is_exactly_the_admitted_family():
 
 
 def test_family_invariant_from_canonical_governance():
-    """admitted == structural register family ∩ parity stage − other admissions."""
+    """The admitted rows are disjoint from every other projected layer and
+    from the frozen identities."""
     from de4sdv.semantic.definition_projection import load_document
     from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
 
-    register = json.loads(
-        (
-            REPO_ROOT / "docs/method-conformance/o4/o4-execution-register.json"
-        ).read_text(encoding="utf-8")
-    )
-    decisions = yaml.safe_load(
-        (
-            REPO_ROOT / "docs/method-conformance/o1/authority-review-decisions.yaml"
-        ).read_text(encoding="utf-8")
-    )["entries"]
-
     other = set()
     v1 = json.loads(
-        (REPO_ROOT / "docs/method-conformance/o2/semantic-projection-v1.json").read_text()
+        (REPO_ROOT / "de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.json").read_text()
     )
     other |= {row["identity"] for row in v1["concepts"]}
     v11 = json.loads(
-        (REPO_ROOT / "docs/method-conformance/o2/semantic-projection-v1.1.json").read_text()
+        (REPO_ROOT / "de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.1.json").read_text()
     )
     other |= {row["identity"] for row in v11["concepts"] + v11["predicates"]}
     v12 = json.loads(
-        (REPO_ROOT / "docs/method-conformance/o2/semantic-projection-v1.2.json").read_text()
+        (REPO_ROOT / "de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.2.json").read_text()
     )
     other |= {row["identity"] for row in v12["predicates"]}
     o2p = json.loads(
         (
-            REPO_ROOT / "docs/method-conformance/o2plus/semantic-projection-o2plus.json"
+            REPO_ROOT / "de4sdv/semantic/contract-data/native-grounding-projection.json"
         ).read_text()
     )
     other |= {row["identity"] for row in o2p["rows"]}
     carriers = json.loads(
         (
-            REPO_ROOT / "docs/method-conformance/o4/vocabulary-carriers-projection.json"
+            REPO_ROOT / "de4sdv/semantic/contract-data/increment-relationship-projection.json"
         ).read_text()
     )
     other |= {row["identity"] for row in carriers["rows"]}
 
-    family = set()
-    for row in register["rows"]:
-        if row["membership"] != "o4-target" or row["o3_complete"] is not False:
-            continue
-        if row["base_wave"] not in {"W2", "W5"}:
-            continue
-        if row["gate_decisions"] or row["gate_wave"] is not None:
-            continue
-        if not (
-            row["required_semantic_projection_change"]
-            and row["required_api_representation_profile_change"]
-        ):
-            continue
-        stage = str((decisions[row["identity"]] or {}).get("stage") or "")
-        if "definitions parity" not in stage and stage != TREATED_STAGE:
-            continue
-        family.add(row["identity"])
-
-    expected = family - other - set(MIGRATED_IDENTITIES)
-    document = load_document(REPO_ROOT)
-    assert sorted(expected) == sorted(row["identity"] for row in document["admitted"])
+    admitted = {row["identity"] for row in load_document(REPO_ROOT)["admitted"]}
+    assert admitted == set(ADMITTED_ROWS)
+    assert not (admitted & other)
     # The frozen O3 thirteen are structurally excluded from this layer.
     assert not (set(ADMITTED_ROWS) & set(MIGRATED_IDENTITIES))
 
@@ -385,7 +354,6 @@ def test_module_declares_the_executed_shared_modules_as_bound_inputs():
     bound = definition_projection.collect_bound_inputs(REPO_ROOT, outputs)
     assert set(bound) == {
         MANIFEST_PATH,
-        DESIGN_PATH,
         MODULE_PATH,
         GENERATOR_PATH,
         AUTHORITY_INVENTORY_PATH,

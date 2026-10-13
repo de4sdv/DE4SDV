@@ -3,8 +3,8 @@
 
 Canonical artifacts:
 
-- ``docs/method-conformance/o4/vocabulary-carriers-projection.json``
-- ``docs/method-conformance/o4/vocabulary-carriers-profile.json``
+- ``de4sdv/semantic/contract-data/increment-relationship-projection.json``
+- ``de4sdv/semantic/contract-data/increment-relationship-profile.json``
 
 The artifacts carry the five admitted vocabulary-only relationship carriers
 (``recordsGap``, ``recordsAssumption``, ``addressesConcern``,

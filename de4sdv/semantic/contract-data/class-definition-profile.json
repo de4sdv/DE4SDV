@@ -1,0 +1,293 @@
+{
+  "schema": "de4sdv.o4-definition-profile/v1",
+  "status": "admitted",
+  "warning": "vocabulary-only, no traversal, no authority retirement; the runtime reads this artifact to build the kernel contract",
+  "entries": [
+    {
+      "profile_identity": "de4sdv.o4-definition-profile/v1#Assumption",
+      "for_concept": "Assumption",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "declaration": "part def IncrementAssumption",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (definition documentation, authored source order)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-profile/v1#BlockedRealizationBranchRecord",
+      "for_concept": "BlockedRealizationBranchRecord",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "declaration": "part def BlockedRealizationBranchRecord",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (definition documentation, authored source order)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-profile/v1#DeferredProductLineScope",
+      "for_concept": "DeferredProductLineScope",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+        "declaration": "part def DeferredProductLineScope",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (definition documentation, authored source order)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-profile/v1#EngineeringIncrement",
+      "for_concept": "EngineeringIncrement",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "declaration": "part def EngineeringIncrement",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (definition documentation, authored source order)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-profile/v1#FeatureIncrement",
+      "for_concept": "FeatureIncrement",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "declaration": "part def FeatureIncrement",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (definition documentation, authored source order)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-profile/v1#Gap",
+      "for_concept": "Gap",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "declaration": "part def IncrementGap",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (definition documentation, authored source order)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-profile/v1#IncrementEngineeringQuestion",
+      "for_concept": "IncrementEngineeringQuestion",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "declaration": "part def IncrementEngineeringQuestion",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (definition documentation, authored source order)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-profile/v1#IncrementLifecycleDecision",
+      "for_concept": "IncrementLifecycleDecision",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "declaration": "part def IncrementLifecycleDecision",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (definition documentation, authored source order)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-profile/v1#LogicalToSoftwareSignalMappingRecord",
+      "for_concept": "LogicalToSoftwareSignalMappingRecord",
+      "representation_class": "item-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
+        "declaration": "item def LogicalToSoftwareSignalMappingRecord",
+        "api_metaclass": "ItemDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (definition documentation, authored source order)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-profile/v1#MemberProduct",
+      "for_concept": "MemberProduct",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+        "declaration": "part def ProductLineMemberProduct",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (definition documentation, authored source order)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-profile/v1#MissingRealizationRecord",
+      "for_concept": "MissingRealizationRecord",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "declaration": "part def MissingRealizationRecord",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (definition documentation, authored source order)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-profile/v1#Need",
+      "for_concept": "Need",
+      "representation_class": "requirement-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "declaration": "requirement def StakeholderNeedCandidate",
+        "api_metaclass": "RequirementDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (definition documentation, authored source order)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-profile/v1#NeedsRequirementsIncrement",
+      "for_concept": "NeedsRequirementsIncrement",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "declaration": "part def NeedsRequirementsIncrement",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (definition documentation, authored source order)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-profile/v1#ProblemStatement",
+      "for_concept": "ProblemStatement",
+      "representation_class": "requirement-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "declaration": "requirement def ProblemStatement",
+        "api_metaclass": "RequirementDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (definition documentation, authored source order)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-profile/v1#ProductLine",
+      "for_concept": "ProductLine",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+        "declaration": "part def ProductLine",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (definition documentation, authored source order)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-profile/v1#ProductLineCharacteristic",
+      "for_concept": "ProductLineCharacteristic",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+        "declaration": "part def ProductLineCharacteristic",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (definition documentation, authored source order)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-profile/v1#RegulatoryConstraint",
+      "for_concept": "RegulatoryConstraint",
+      "representation_class": "requirement-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "declaration": "requirement def RegulatoryConstraintCandidate",
+        "api_metaclass": "RequirementDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (definition documentation, authored source order)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-profile/v1#Requirement",
+      "for_concept": "Requirement",
+      "representation_class": "requirement-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "declaration": "requirement def RequirementCandidate",
+        "api_metaclass": "RequirementDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (definition documentation, authored source order)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-profile/v1#Scenario",
+      "for_concept": "Scenario",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml",
+        "declaration": "part def Scenario",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (definition documentation, authored source order)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-profile/v1#SignalMappingDisposition",
+      "for_concept": "SignalMappingDisposition",
+      "representation_class": "enumeration-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
+        "declaration": "enum def SignalMappingDisposition",
+        "api_metaclass": "EnumerationDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (definition documentation, authored source order)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-profile/v1#SystemLayer",
+      "for_concept": "SystemLayer",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "declaration": "part def SystemLayer",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (definition documentation, authored source order)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-profile/v1#SystemToSoftwareSignalMappingCandidate",
+      "for_concept": "SystemToSoftwareSignalMappingCandidate",
+      "representation_class": "allocation-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
+        "declaration": "allocation def SystemToSoftwareSignalMappingCandidate",
+        "api_metaclass": "AllocationDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (definition documentation, authored source order)"
+      ]
+    }
+  ]
+}

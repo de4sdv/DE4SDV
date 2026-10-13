@@ -69,7 +69,7 @@ def main() -> int:
         "--spec",
         type=Path,
         default=None,
-        help="Approved contract twin (default: docs/method-conformance/pilot-obligations.yaml)",
+        help="Approved contract twin (default: de4sdv/semantic/contract-data/pilot-obligations.yaml)",
     )
     parser.add_argument("--output", type=Path, default=None)
     args = parser.parse_args()
@@ -200,7 +200,7 @@ def run(
     report["claim_boundary"] = boundary
 
     approved = mp.load_approved_contract_from_yaml(
-        spec or repo / "docs/method-conformance/pilot-obligations.yaml"
+        spec or repo / "de4sdv/semantic/contract-data/pilot-obligations.yaml"
     )
 
     candidate_source = mp.GitRevisionFileSource(repo, revision)
@@ -274,7 +274,7 @@ def run(
         method_id=approved.method_id,
         contract_id=approved.contract_id,
         policy_bundle_id=approved.policy_bundle_id,
-        source="docs/method-conformance/pilot-obligations.yaml (approved)",
+        source="de4sdv/semantic/contract-data/pilot-obligations.yaml (approved)",
         contracts={approved.phase: approved},
     )
     service = MethodConformanceService(selection)

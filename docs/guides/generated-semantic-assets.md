@@ -18,7 +18,7 @@ manifest, or to the Syside version pin in
 One exception: the five `connection def`s in
 `de4sdv_method_vocabulary_carriers.sysml` must keep a `doc` comment equal to
 their reviewed definition in
-`docs/method-conformance/o4/ontology-review/integrated-review.json`. Changing
+`de4sdv/semantic/contract-data/ontology-review.json`. Changing
 that text is a review change, not a regeneration; the vocabulary generator
 refuses until both agree.
 
@@ -49,7 +49,7 @@ revision: the generators no longer accept one.
 ### The coverage baseline
 
 `check_repo.py` also compares the model-authority coverage with
-`docs/method-conformance/o4/model-authority-coverage-baseline.yaml`. The
+`de4sdv/semantic/contract-data/model-authority-coverage-baseline.yaml`. The
 baseline is a reviewed ratchet for the provider routing and the refused and
 retired names. A residual identity, an unaccounted kernel declaration or a
 duplicate provider fails regardless of the baseline. Rewrite the baseline
@@ -62,17 +62,17 @@ python scripts/check_model_projection_coverage.py --write-baseline
 
 ## Frozen records are different
 
-The [frozen records](../method-conformance/frozen-records.md) and their
-manifest never change. `scripts/verify_generated_chain.py` checks their bytes,
-record set, recorded source revisions and references. Never regenerate them
-against current sources. Their mentions of deleted inputs are history, not a
-live dependency.
+The [frozen records](../../de4sdv/semantic/contract-data/frozen-records.md)
+and their manifest never change. `scripts/verify_generated_chain.py` checks
+their bytes, record set, recorded source revisions and references. Never
+regenerate them against current sources. Their mentions of deleted inputs are
+history, not a live dependency.
 
 The closed consumer ledger is retired. A guard test keeps the deleted
 ontology file and the ledger from coming back. It scans every tracked file
-outside `docs/` and `tests/`, except the retained review helper
-`scripts/ontology_review/arch_recheck.py`, case-insensitively and without
-extension filtering or truncation.
+outside `docs/` and `tests/` case-insensitively and without extension
+filtering or truncation. It exempts only the six frozen records and the
+ontology review record, which name the deleted file as history.
 
 ## Identity and releases
 
@@ -80,10 +80,11 @@ The semantic-authority identity (`sai-…`) digests what the generated files
 mean: definitions and their documentation, groundings, relationship ends,
 strength and support, serializer mappings, refusals, retirements and the
 successor contract. It does not digest Git commits, file bytes, Python code,
-review pointers or toolchain receipts. `de4sdv/semantic/model_contract.py`
-declares which fields carry meaning and which are provenance. A field in
-neither list makes the loader refuse, so a new field is classified before it
-can ship.
+review pointers or toolchain receipts. It does label each layer with its
+file path, so moving or renaming a projection, profile or frozen record
+changes the identity. `de4sdv/semantic/model_contract.py` declares which
+fields carry meaning and which are provenance. A field in neither list makes
+the loader refuse, so a new field is classified before it can ship.
 
 A change in meaning changes the identity. Deployment still checks the
 application revision and the validated-export binding separately. The next

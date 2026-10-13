@@ -1,0 +1,127 @@
+{
+  "schema": "de4sdv.vocabulary-carrier-projection/v1",
+  "status": "generated O4 W4 vocabulary-relationship carrier projection (reviewed definitions, model-resident carriers)",
+  "warning": "Generated artifact. Vocabulary-only: every row carries an admitted reviewed definition with its carrier lineage; no traversal is implemented or claimed, and no support state is promoted. The runtime reads this artifact to build the kernel contract.",
+  "candidates": [
+    "addressesConcern",
+    "hasStakeholder",
+    "producesView",
+    "recordsAssumption",
+    "recordsGap",
+    "selectedViewpoint"
+  ],
+  "admitted": [
+    "addressesConcern",
+    "producesView",
+    "recordsAssumption",
+    "recordsGap",
+    "selectedViewpoint"
+  ],
+  "rows": [
+    {
+      "identity": "addressesConcern",
+      "definition": "Engineering increment records an explicitly reviewed concern within its scope; no automatic concern satisfaction.",
+      "domain": {
+        "identity": "EngineeringIncrement",
+        "type": "EngineeringIncrement"
+      },
+      "range": {
+        "identity": "Concern",
+        "type": "IncrementConcern"
+      },
+      "direction": "not-applicable",
+      "semantic_strength": "not-declared",
+      "support": "vocabulary-only",
+      "traversal": false,
+      "accepted_ref": "docs/semantic-relationships/increment-relationship-acceptance-review.md#addressesConcern",
+      "carrier": {
+        "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml",
+        "declaration": "connection def AddressesConcern"
+      }
+    },
+    {
+      "identity": "producesView",
+      "definition": "Engineering increment identifies a view artifact produced as an increment deliverable.",
+      "domain": {
+        "identity": "EngineeringIncrement",
+        "type": "EngineeringIncrement"
+      },
+      "range": {
+        "identity": "View",
+        "type": "View"
+      },
+      "direction": "not-applicable",
+      "semantic_strength": "not-declared",
+      "support": "vocabulary-only",
+      "traversal": false,
+      "accepted_ref": "docs/semantic-relationships/increment-relationship-acceptance-review.md#producesView",
+      "carrier": {
+        "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml",
+        "declaration": "connection def ProducesView"
+      }
+    },
+    {
+      "identity": "recordsAssumption",
+      "definition": "Engineering increment explicitly records an assumption relevant to its bounded work.",
+      "domain": {
+        "identity": "EngineeringIncrement",
+        "type": "EngineeringIncrement"
+      },
+      "range": {
+        "identity": "Assumption",
+        "type": "IncrementAssumption"
+      },
+      "direction": "not-applicable",
+      "semantic_strength": "not-declared",
+      "support": "vocabulary-only",
+      "traversal": false,
+      "accepted_ref": "docs/semantic-relationships/increment-relationship-acceptance-review.md#recordsAssumption",
+      "carrier": {
+        "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml",
+        "declaration": "connection def RecordsAssumption"
+      }
+    },
+    {
+      "identity": "recordsGap",
+      "definition": "Engineering increment explicitly records an unresolved engineering/evidence gap.",
+      "domain": {
+        "identity": "EngineeringIncrement",
+        "type": "EngineeringIncrement"
+      },
+      "range": {
+        "identity": "Gap",
+        "type": "IncrementGap"
+      },
+      "direction": "not-applicable",
+      "semantic_strength": "not-declared",
+      "support": "vocabulary-only",
+      "traversal": false,
+      "accepted_ref": "docs/semantic-relationships/increment-relationship-acceptance-review.md#recordsGap",
+      "carrier": {
+        "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml",
+        "declaration": "connection def RecordsGap"
+      }
+    },
+    {
+      "identity": "selectedViewpoint",
+      "definition": "Engineering increment records a viewpoint explicitly selected for its review questions.",
+      "domain": {
+        "identity": "EngineeringIncrement",
+        "type": "EngineeringIncrement"
+      },
+      "range": {
+        "identity": "Viewpoint",
+        "type": "IncrementViewpoint"
+      },
+      "direction": "not-applicable",
+      "semantic_strength": "not-declared",
+      "support": "vocabulary-only",
+      "traversal": false,
+      "accepted_ref": "docs/semantic-relationships/increment-relationship-acceptance-review.md#selectedViewpoint",
+      "carrier": {
+        "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml",
+        "declaration": "connection def SelectedViewpoint"
+      }
+    }
+  ]
+}

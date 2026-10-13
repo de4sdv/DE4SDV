@@ -16,7 +16,7 @@ Checks repository contracts using text extraction from SysML textual notation:
    every file mapping resolves to its declaration in the named kernel file.
    (The kernel -> model direction and the feature-slice guard are enforced by
    the model-projection coverage gate against model-projected pins and
-   ``docs/method-conformance/o4/kernel-internal-declarations.yaml``. The
+   ``de4sdv/semantic/contract-data/kernel-internal-declarations.yaml``. The
    authored ontology was deleted in O4 Wave C2.)
 6. Requirement-derivation coverage (ontology R003): every design-input
    requirement usage in a governed requirements slice must carry at least one

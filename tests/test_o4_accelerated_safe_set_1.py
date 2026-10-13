@@ -23,18 +23,8 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 
-INVENTORY = ROOT / "docs/method-conformance/o1/semantic-authority-inventory.json"
-DECISIONS = ROOT / "docs/method-conformance/o1/authority-review-decisions.yaml"
-ADMISSION = ROOT / "docs/method-conformance/o2plus/o2p-admission.yaml"
+ADMISSION = ROOT / "de4sdv/semantic/contract-data/native-grounding-admission.yaml"
 
-#: W3 parity row closed by this safe-set.
-W3_PARITY_ROWS: dict[str, dict[str, str | None]] = {
-    "IncrementSize": {
-        "stage": "o4-w3 batch 1 (definitions parity)",
-        "observation": "normalized-exact",
-        "equivalence": None,
-    },
-}
 
 #: O2+ grounding/projection rows closed by this safe-set (stage in O1).
 O2P_ROWS: tuple[str, ...] = (
@@ -46,8 +36,6 @@ O2P_ROWS: tuple[str, ...] = (
     "VerificationMethod",
     "usesVerificationMethod",
 )
-O2P_STAGE = "o2+ safe-set 1 (grounding + projection)"
-O2P_STAGE_RECORD = "o2+ safe-set 1 (grounding record)"
 
 #: Excluded rows pinned with a reason keyword (from the admission manifest).
 EXCLUDED_REASON_KEYWORDS: dict[str, str] = {
@@ -104,79 +92,11 @@ EXCLUDED_REASON_KEYWORDS: dict[str, str] = {
 
 
 @pytest.fixture(scope="module")
-def inventory() -> dict:
-    import json
-
-    return json.loads(INVENTORY.read_text(encoding="utf-8"))
-
-
-@pytest.fixture(scope="module")
-def decisions() -> dict:
-    return yaml.safe_load(DECISIONS.read_text(encoding="utf-8"))["entries"]
-
-
-@pytest.fixture(scope="module")
 def admission() -> dict:
     return yaml.safe_load(ADMISSION.read_text(encoding="utf-8"))
 
 
-def _entry(inventory: dict, identity: str) -> dict:
-    return next(e for e in inventory["entries"] if e["identity"] == identity)
-
-
 # --- included rows ----------------------------------------------------------
-
-
-@pytest.mark.parametrize("identity", sorted(W3_PARITY_ROWS))
-def test_w3_parity_rows_are_closed(
-    inventory: dict, decisions: dict, identity: str
-) -> None:
-    expected = W3_PARITY_ROWS[identity]
-    entry = _entry(inventory, identity)
-    assert entry["observed"]["doc_text_observation"] == expected["observation"]
-    assert (
-        entry["reviewed"]["semantic_text_equivalence"] == expected["equivalence"]
-    )
-    assert decisions[identity]["stage"] == expected["stage"]
-
-
-@pytest.mark.parametrize("identity", O2P_ROWS)
-def test_o2p_rows_carry_their_recorded_stage(
-    decisions: dict, identity: str
-) -> None:
-    stage = decisions[identity]["stage"]
-    assert stage in (O2P_STAGE, O2P_STAGE_RECORD), identity
-    if identity in ("VerificationMethod", "usesVerificationMethod"):
-        assert stage == O2P_STAGE_RECORD
-    else:
-        assert stage == O2P_STAGE
-
-
-@pytest.mark.parametrize("identity", O2P_ROWS)
-def test_o2p_rows_keep_vocabulary_only_residual(decisions: dict, identity: str) -> None:
-    required = decisions[identity]["required_evidence"]
-    assert required, identity
-    assert any("exact-revision traversal evidence" in item for item in required), identity
-    assert decisions[identity]["closure_evidence_ref"] is None, identity
-
-
-def test_increment_size_residual_is_bounded_vocabulary(decisions: dict) -> None:
-    required = decisions["IncrementSize"]["required_evidence"]
-    assert required == [
-        "none beyond bounded vocabulary: model-resident guidance labels; never promoted to semantic authority"
-    ]
-
-
-def test_w5_boundary_rows_stage_unchanged_by_this_safe_set(decisions: dict) -> None:
-    # later-batch convention (W5 batch 3, external-reference acceptance): the
-    # ADR row keeps its parity stage with a bounded retention note; Baseline
-    # moved to the acceptance stage recorded by the acceptance review.
-    assert decisions["ArchitectureDecisionRecord"]["stage"] == (
-        "o4-w5 batch 1 (definitions parity)"
-    )
-    assert decisions["Baseline"]["stage"] == (
-        "o4-w5 batch 3 (external-reference acceptance)"
-    )
 
 
 # --- excluded rows ----------------------------------------------------------
@@ -187,14 +107,6 @@ def test_excluded_matrix_matches_the_admission_manifest(admission: dict) -> None
     assert set(manifest_excluded) == set(EXCLUDED_REASON_KEYWORDS)
     for identity, keyword in EXCLUDED_REASON_KEYWORDS.items():
         assert keyword in manifest_excluded[identity], identity
-
-
-def test_excluded_rows_were_not_treated(decisions: dict, admission: dict) -> None:
-    excluded = {row["identity"] for row in admission["excluded"]}
-    for identity in excluded:
-        stage = decisions[identity]["stage"]
-        assert "safe-set" not in stage, f"{identity} was silently treated: {stage!r}"
-        assert stage != "o4-w3 batch 1 (definitions parity)", identity
 
 
 def test_admitted_rows_are_disjoint_from_excluded(admission: dict) -> None:

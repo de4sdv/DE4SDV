@@ -1,7 +1,7 @@
 # Acceptance decision registry
 
 The maintainer activated
-[`de4sdv.acceptance.maintainer-decision.v1`](../method-conformance/acceptance-policy.md)
+[`de4sdv.acceptance.maintainer-decision.v1`](../method-evaluation/acceptance-policy.md)
 as written on 2026-10-05. This registry currently contains **zero acceptance
 decisions**; activation is not acceptance of the INC-AEBS-009D campaign.
 

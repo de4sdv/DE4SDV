@@ -71,9 +71,24 @@ from .increment_scope import (
     ModelView,
 )
 from .method_checks import CHECK_MAXIMUM, default_claim, method_checks
-from .method_trace_adapter import CANONICAL_PHASE_LITERALS
 from .revision_index import MultiplicityError
 
+#: The governed ``MethodPhase`` literals of the method kernel, by phase number.
+CANONICAL_PHASE_LITERALS = {
+    0: "phase0_incrementFraming",
+    1: "phase1_concernFraming",
+    2: "phase2_operationalContext",
+    3: "phase3_capabilityClassification",
+    4: "phase4_needs",
+    5: "phase5_requirements",
+    6: "phase6_functionalArchitecture",
+    7: "phase7_logicalArchitecture",
+    8: "phase8_physicalRealization",
+    9: "phase9_variabilityConfiguration",
+    10: "phase10_vvEvidence",
+    11: "phase11_publication",
+    12: "phase12_baselineNextSlice",
+}
 #: Upper cardinality bound standing for "unbounded" (``*``).
 UNBOUNDED = 1_000_000
 PHASE_ORDER = {literal: number for number, literal in CANONICAL_PHASE_LITERALS.items()}

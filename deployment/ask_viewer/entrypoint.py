@@ -15,23 +15,19 @@ _FULL_SHA = re.compile(r"^[0-9a-f]{40}$")
 _GOVERNED_MODEL_PATHS = (
     "textual-notation-of-model",
     "model-based-product-line-engineering/product-models",
-    # Model-authority inputs: the generated projection/profile pairs (and the
-    # frozen O2-chain records), the admission manifests, the O4 register whose
+    # Model-authority inputs: the generated projection/profile pairs, the
+    # frozen records, the admission manifests, the identity register whose
     # dispositions decide refusals, and the kernel-internal manifest; the
     # model-built kernel contract and its sai- identity derive from them. A
     # code-only consumer deploy must not run against drifted authority inputs
-    # (the runtime's startup check also recomputes the sai- identity); design
-    # notes and other documentation stay outside the gate.
-    ":(glob)docs/method-conformance/o2/*.json",
-    ":(glob)docs/method-conformance/o2/*admission*.yaml",
-    ":(glob)docs/method-conformance/o2plus/*.json",
-    ":(glob)docs/method-conformance/o2plus/*admission*.yaml",
-    ":(glob)docs/method-conformance/o4/*projection*.json",
-    ":(glob)docs/method-conformance/o4/*profile*.json",
-    ":(glob)docs/method-conformance/o4/*admission*.yaml",
-    "docs/method-conformance/o4/vocabulary-carriers.yaml",
-    "docs/method-conformance/o4/o4-execution-register.json",
-    "docs/method-conformance/o4/kernel-internal-declarations.yaml",
+    # (the runtime's startup check also recomputes the sai- identity);
+    # documentation stays outside the gate.
+    ":(glob)de4sdv/semantic/contract-data/*-projection.json",
+    ":(glob)de4sdv/semantic/contract-data/*-profile.json",
+    ":(glob)de4sdv/semantic/contract-data/*-admission.yaml",
+    ":(glob)de4sdv/semantic/contract-data/frozen-records/*.json",
+    "de4sdv/semantic/contract-data/ontology-identity-register.json",
+    "de4sdv/semantic/contract-data/kernel-internal-declarations.yaml",
 )
 
 

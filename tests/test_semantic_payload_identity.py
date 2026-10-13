@@ -218,7 +218,7 @@ def synthetic_layers_root(synthetic_successor_root):
                                     "binding": {"source_revision": "c" * 40}})
     _write(root, "synthetic/o2.sysml", "package SyntheticO2 {\n" + "".join(
         "  part def " + name + " {}\n" for name in EXPECTED_O2_CLASSES if name != "VerificationCase") + "}\n")
-    _write_json(root, "docs/method-conformance/o4/o4-execution-register.json", {"rows": [
+    _write_json(root, "de4sdv/semantic/contract-data/ontology-identity-register.json", {"rows": [
         {"identity": "Origin", "accounting_status": "retained"},
         {"identity": "RemovedName", "accounting_status": "removed", "final_disposition": "REMOVE",
          "migration_class": "synthetic", "retirement_condition": "no replacement"},
@@ -441,7 +441,7 @@ def test_successor_semantic_changes_alter_both_ids(synthetic_layers_root, old, n
     (mc.LAYERS[1].projection_path, '"SysML::PartUsage"', '"SysML::ItemUsage"'),
     (mc.LAYERS[2].projection_path, '"vocabulary-only"', '"unsupported"'),
     (mc.LAYERS[2].projection_path, '"connection def Documents"', '"connection def OtherDocuments"'),
-    ("docs/method-conformance/o4/o4-execution-register.json", '"no replacement"', '"explicitly removed"'),
+    ("de4sdv/semantic/contract-data/ontology-identity-register.json", '"no replacement"', '"explicitly removed"'),
 ])
 def test_served_contract_semantic_changes_alter_authority_id(synthetic_layers_root, path, old, new):
     root = synthetic_layers_root

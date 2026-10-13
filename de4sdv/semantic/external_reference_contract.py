@@ -49,9 +49,9 @@ _DECLARATION_PATTERN = re.compile(
     re.MULTILINE,
 )
 
-PROFILE_PATH = "docs/method-conformance/o4/external-reference-profile.yaml"
-REGISTER_PATH = "docs/method-conformance/o4/o4-execution-register.json"
-REVIEW_PATH = "docs/method-conformance/o4/ontology-review/integrated-review.json"
+PROFILE_PATH = "de4sdv/semantic/contract-data/external-reference-profile.yaml"
+REGISTER_PATH = "de4sdv/semantic/contract-data/ontology-identity-register.json"
+REVIEW_PATH = "de4sdv/semantic/contract-data/ontology-review.json"
 
 PROFILE_SCHEMA = "de4sdv.o4-external-reference-profile/v1"
 TYPED_REFERENCE_SCHEMA = "de4sdv.evidence-reference/v1"
