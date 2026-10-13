@@ -70,7 +70,7 @@ def _passing_gate_mocks():
     """Shared passing controls for independent aggregate-gate attribution tests."""
     from unittest import mock
     from de4sdv.semantic import (
-        definition_projection, definition_projection_batch2,
+        definition_projection, kernel_vocabulary_projection,
         external_reference_contract, vocabulary_carrier,
     )
     from scripts import check_repo
@@ -79,12 +79,12 @@ def _passing_gate_mocks():
         mock.patch.object(vocabulary_carrier, "run_check_errors", return_value=[]),
         mock.patch.object(external_reference_contract, "run_check_errors", return_value=[]),
         mock.patch.object(definition_projection, "run_check_errors", return_value=[]),
-        mock.patch.object(definition_projection_batch2, "run_check_errors", return_value=[]),
+        mock.patch.object(kernel_vocabulary_projection, "run_check_errors", return_value=[]),
         mock.patch.object(check_repo, "find_duplicate_global_packages", return_value={}),
         mock.patch.object(check_repo.validate_aebs_executable_bench, "validate_bench", return_value=[]),
         mock.patch.object(check_repo.check_model_sync, "run_all_checks", return_value=[]),
         mock.patch.object(check_repo.generate_scenario_manifest, "run_check_errors", return_value=[]),
         mock.patch.object(check_repo.check_naming, "run_all_checks", return_value=[]),
         mock.patch.object(check_repo.verify_generated_chain, "frozen_record_errors", return_value=[]),
-        mock.patch.object(check_repo.generate_semantic_projection_o2p, "run_check_errors_o2p", return_value=[]),
+        mock.patch.object(check_repo.generate_native_grounding_projection, "run_check_errors", return_value=[]),
     )

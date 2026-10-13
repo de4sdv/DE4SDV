@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate (or check) the O4 definition-admission projection + profile artifacts.
+"""Generate (or check) the class-definition and kernel-vocabulary artifact pairs.
 
 Canonical artifacts:
 
@@ -9,7 +9,7 @@ Canonical artifacts:
 - ``de4sdv/semantic/contract-data/kernel-vocabulary-profile.json`` (batch 2)
 
 Batch 2 (``kernel-vocabulary-admission.yaml``, module
-``de4sdv/semantic/definition_projection_batch2.py``) is a separate pair for
+``de4sdv/semantic/kernel_vocabulary_projection.py``) is a separate pair for
 the remaining retained identities, the unregistered ontology classes and the
 W6 successor predicates; ``--batch`` selects one pair (default: both).
 
@@ -43,7 +43,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from de4sdv.semantic.projection_o2p import canonical_json  # noqa: E402
+from de4sdv.semantic.native_grounding_projection import canonical_json  # noqa: E402
 from de4sdv.semantic.definition_projection import (  # noqa: E402
     PROFILE_PATH,
     PROJECTION_PATH,
@@ -51,7 +51,7 @@ from de4sdv.semantic.definition_projection import (  # noqa: E402
     build_artifact_pair,
     run_check_errors,
 )
-from de4sdv.semantic import definition_projection_batch2 as batch2  # noqa: E402
+from de4sdv.semantic import kernel_vocabulary_projection as kernel_vocabulary  # noqa: E402
 
 
 def generate(root: Path) -> dict:
@@ -59,9 +59,9 @@ def generate(root: Path) -> dict:
     return build_artifact_pair(root)
 
 
-def generate_batch2(root: Path) -> dict:
+def generate_kernel_vocabulary(root: Path) -> dict:
     """Build the remaining definition pair from current model sources."""
-    return batch2.build_artifact_pair(root)
+    return kernel_vocabulary.build_artifact_pair(root)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -83,7 +83,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.check:
         failed = False
         for batch in batches:
-            errors = run_check_errors(ROOT) if batch == "1" else batch2.run_check_errors(ROOT)
+            errors = run_check_errors(ROOT) if batch == "1" else kernel_vocabulary.run_check_errors(ROOT)
             if errors:
                 failed = True
                 print(f"Definition-admission batch {batch} artifact check failed:")
@@ -99,9 +99,9 @@ def main(argv: list[str] | None = None) -> int:
                 artifacts = generate(ROOT)
                 projection_rel, profile_rel = PROJECTION_PATH, PROFILE_PATH
             else:
-                artifacts = generate_batch2(ROOT)
-                projection_rel, profile_rel = batch2.PROJECTION_PATH, batch2.PROFILE_PATH
-        except (DefinitionAdmissionError, batch2.DefinitionBatch2Error) as exc:
+                artifacts = generate_kernel_vocabulary(ROOT)
+                projection_rel, profile_rel = kernel_vocabulary.PROJECTION_PATH, kernel_vocabulary.PROFILE_PATH
+        except (DefinitionAdmissionError, kernel_vocabulary.KernelVocabularyError) as exc:
             print(f"Definition-admission batch {batch} generation refused: {exc}")
             return 1
         (ROOT / projection_rel).write_text(canonical_json(artifacts["projection"]), encoding="utf-8")

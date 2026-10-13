@@ -12,7 +12,8 @@
 # manifest encodes the reviewed safe subset as a deterministic boundary; it
 # does not reinterpret any review decision.
 #
-# Machine locks (enforced by de4sdv/semantic/projection_o2p.py and its tests):
+# Machine locks (enforced by de4sdv/semantic/native_grounding_projection.py
+# and its tests):
 #   * `admitted` is EXACTLY the reviewed safe subset — an extra admission is a
 #     generation failure, a missing admitted identity is a generation failure;
 #   * `excluded` records every considered-but-not-admitted row with its

@@ -32,7 +32,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from de4sdv.semantic.projection_o2p import canonical_json  # noqa: E402
+from de4sdv.semantic.native_grounding_projection import canonical_json  # noqa: E402
 from de4sdv.semantic.vocabulary_carrier import (  # noqa: E402
     PROFILE_CARRIER_PATH,
     PROJECTION_CARRIER_PATH,

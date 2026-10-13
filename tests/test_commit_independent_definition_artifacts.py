@@ -6,7 +6,7 @@ import pytest
 import yaml
 
 from de4sdv.semantic import definition_projection as batch1
-from de4sdv.semantic import definition_projection_batch2 as batch2
+from de4sdv.semantic import kernel_vocabulary_projection as batch2
 
 
 MODEL_FILE = "textual-notation-of-model/fixture_definition.sysml"
@@ -205,7 +205,7 @@ def test_empty_model_documentation_is_refused(tmp_path, module, source):
     source(tmp_path)
     path = tmp_path / MODEL_FILE
     path.write_text(path.read_text(encoding="utf-8").replace("Alpha documentation.", "   "), encoding="utf-8")
-    error = batch1.DefinitionAdmissionError if module is batch1 else batch2.DefinitionBatch2Error
+    error = batch1.DefinitionAdmissionError if module is batch1 else batch2.KernelVocabularyError
     with pytest.raises(error, match="empty documentation"):
         module.build_artifact_pair(tmp_path)
     assert module.run_check_errors(tmp_path)

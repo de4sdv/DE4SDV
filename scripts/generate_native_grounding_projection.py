@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate (or check) the O2+ native/library grounding projection layer.
+"""Generate (or check) the native-grounding projection and profile.
 
 Canonical artifacts:
 
@@ -7,15 +7,15 @@ Canonical artifacts:
 - ``de4sdv/semantic/contract-data/native-grounding-profile.json``
 
 The layer records exact-fit standard-construct grounding for the reviewed
-safe subset of already-native/library constructs (W3) and emits
+safe subset of already-native/library constructs and emits
 vocabulary-only projection rows / API-representation profile entries over
 them. Generation is not authority activation; support stays vocabulary-only;
 no traversal is implemented or claimed.
 
 Usage:
 
-    python scripts/generate_semantic_projection_o2p.py              # write
-    python scripts/generate_semantic_projection_o2p.py --check      # verify
+    python scripts/generate_native_grounding_projection.py              # write
+    python scripts/generate_native_grounding_projection.py --check      # verify
 """
 
 from __future__ import annotations
@@ -28,19 +28,19 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from de4sdv.semantic.projection_o2p import (  # noqa: E402
-    PROFILE_O2P_PATH,
-    PROJECTION_O2P_PATH,
-    ProjectionO2PError,
-    build_pair_o2p,
+from de4sdv.semantic.native_grounding_projection import (  # noqa: E402
+    PROFILE_PATH,
+    PROJECTION_PATH,
+    NativeGroundingError,
+    build_artifact_pair,
     canonical_json,
-    run_check_errors_o2p,
+    run_check_errors,
 )
 
 
 def generate(root: Path) -> dict:
     """Build both artifacts from current inputs."""
-    return build_pair_o2p(root)
+    return build_artifact_pair(root)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -53,29 +53,29 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.check:
-        errors = run_check_errors_o2p(ROOT)
+        errors = run_check_errors(ROOT)
         if errors:
-            print("O2+ projection check FAILED.")
+            print("Native-grounding projection check FAILED.")
             for error in errors:
                 print(f"  - {error}")
             return 1
-        print("O2+ projection check passed.")
+        print("Native-grounding projection check passed.")
         return 0
 
     try:
         artifacts = generate(ROOT)
-    except ProjectionO2PError as exc:
-        print("O2+ projection generation FAILED.")
+    except NativeGroundingError as exc:
+        print("Native-grounding projection generation FAILED.")
         print(f"  - {exc}")
         return 1
-    (ROOT / PROJECTION_O2P_PATH).write_text(
+    (ROOT / PROJECTION_PATH).write_text(
         canonical_json(artifacts["projection"]), encoding="utf-8"
     )
-    (ROOT / PROFILE_O2P_PATH).write_text(
+    (ROOT / PROFILE_PATH).write_text(
         canonical_json(artifacts["profile"]), encoding="utf-8"
     )
-    print(f"wrote {PROJECTION_O2P_PATH}")
-    print(f"wrote {PROFILE_O2P_PATH}")
+    print(f"wrote {PROJECTION_PATH}")
+    print(f"wrote {PROFILE_PATH}")
     return 0
 
 

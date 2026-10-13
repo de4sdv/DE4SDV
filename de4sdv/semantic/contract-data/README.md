@@ -14,7 +14,7 @@ as described in
 |---|---|---|
 | `class-definition-projection.json`, `class-definition-profile.json` | Kernel class definitions and their API representation | `scripts/generate_definition_projection.py` |
 | `kernel-vocabulary-projection.json`, `kernel-vocabulary-profile.json` | The other kernel classes and relationships, the successor predicates and the retired names | `scripts/generate_definition_projection.py` |
-| `native-grounding-projection.json`, `native-grounding-profile.json` | Identities grounded in native or standard-library SysML v2 constructs | `scripts/generate_semantic_projection_o2p.py` |
+| `native-grounding-projection.json`, `native-grounding-profile.json` | Identities grounded in native or standard-library SysML v2 constructs | `scripts/generate_native_grounding_projection.py` |
 | `increment-relationship-projection.json`, `increment-relationship-profile.json` | The increment relationship carriers | `scripts/generate_vocabulary_carriers.py` |
 | `*-admission.yaml` | The reviewed admission manifest of each generated pair | a reviewed edit, then the generator |
 | `frozen-records/`, `frozen-records.json` | Six historical records that still serve 13 identities, and the manifest that freezes them ([frozen-records.md](frozen-records.md)) | never |

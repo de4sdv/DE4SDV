@@ -90,7 +90,7 @@ def _rows():
 
 
 def _outputs():
-    from de4sdv.semantic import definition_projection_batch2 as b2
+    from de4sdv.semantic import kernel_vocabulary_projection as b2
 
     return b2.build_outputs(REPO_ROOT, b2.load_document(REPO_ROOT))
 
@@ -107,7 +107,7 @@ def test_admitted_set_is_exactly_the_derived_family():
     other = set().union(*_layer_identities().values())
     retained = {i for i, r in register.items() if r["accounting_status"] == "retained" and not r["o3_complete"]}
     family = (retained - other) | W6_NEW_SUCCESSORS | MERGED_ALIASES
-    from de4sdv.semantic.definition_projection_batch2 import ADMISSION_CLASSES
+    from de4sdv.semantic.kernel_vocabulary_projection import ADMISSION_CLASSES
 
     rows = _rows()
     # Content, not counts: admitting another definition must not trip this test.
@@ -155,7 +155,7 @@ def test_every_retained_row_and_ontology_identity_has_exactly_one_provider():
 
 
 def test_projection_scope_echoes_the_owner_visible_exceptions():
-    from de4sdv.semantic.definition_projection_batch2 import PROJECTION_PATH
+    from de4sdv.semantic.kernel_vocabulary_projection import PROJECTION_PATH
 
     committed = _json(PROJECTION_PATH)
     assert committed["scope"]["exceptions"] == sorted(
@@ -269,7 +269,7 @@ def test_runtime_queryable_targets_keep_their_forward_obligation():
 
 def test_evidence_contract_closure_is_exactly_the_eight_aebs_contracts_repo_wide():
     """Population test: no other model definition specializes EvidenceContract."""
-    from de4sdv.semantic.definition_projection_batch2 import _Source
+    from de4sdv.semantic.kernel_vocabulary_projection import _Source
 
     found = set()
     for model_root in MODEL_ROOTS:
@@ -297,7 +297,7 @@ def test_evidence_contract_closure_is_exactly_the_eight_aebs_contracts_repo_wide
 
 
 def test_generated_rows_carry_no_governance_fields_or_executable_claims():
-    from de4sdv.semantic.definition_projection_batch2 import PROFILE_SCHEMA, SUPPORT
+    from de4sdv.semantic.kernel_vocabulary_projection import PROFILE_SCHEMA, SUPPORT
 
     outputs = _outputs()
     rows = _rows()
@@ -440,7 +440,7 @@ _FIXTURE_MANIFEST = {
 
 
 def _fixture(tmp_path, manifest=None, sysml=None, carriers=None):
-    from de4sdv.semantic import definition_projection_batch2 as b2
+    from de4sdv.semantic import kernel_vocabulary_projection as b2
 
     root = tmp_path / "repo"
     files = {
@@ -455,7 +455,7 @@ def _fixture(tmp_path, manifest=None, sysml=None, carriers=None):
     return root
 
 def _build(root):
-    from de4sdv.semantic import definition_projection_batch2 as b2
+    from de4sdv.semantic import kernel_vocabulary_projection as b2
 
     return b2.build_outputs(root, b2.load_document(root))
 
@@ -526,10 +526,10 @@ _NEGATIVE_REASONS = {
 
 @pytest.mark.parametrize("case", sorted(_NEGATIVE_MANIFESTS))
 def test_negative_manifest_mutations_are_refused(tmp_path, case):
-    from de4sdv.semantic.definition_projection_batch2 import DefinitionBatch2Error
+    from de4sdv.semantic.kernel_vocabulary_projection import KernelVocabularyError
 
     root = _fixture(tmp_path, manifest=_mutated(_NEGATIVE_MANIFESTS[case]))
-    with pytest.raises(DefinitionBatch2Error, match=_NEGATIVE_REASONS[case]):
+    with pytest.raises(KernelVocabularyError, match=_NEGATIVE_REASONS[case]):
         _build(root)
 
 
@@ -556,7 +556,7 @@ _NEGATIVE_MODELS = {
 
 @pytest.mark.parametrize("case", sorted(_NEGATIVE_MODELS))
 def test_negative_model_mutations_are_refused(tmp_path, case):
-    from de4sdv.semantic.definition_projection_batch2 import DefinitionBatch2Error
+    from de4sdv.semantic.kernel_vocabulary_projection import KernelVocabularyError
 
     target, mutate = _NEGATIVE_MODELS[case]
     original = _FIXTURE_SYSML if target == "sysml" else _FIXTURE_CARRIERS
@@ -564,12 +564,12 @@ def test_negative_model_mutations_are_refused(tmp_path, case):
     assert mutated != original, case
     kwargs = {target: mutated}
     root = _fixture(tmp_path, **kwargs)
-    with pytest.raises(DefinitionBatch2Error):
+    with pytest.raises(KernelVocabularyError):
         _build(root)
 
 
 def test_discriminator_pin_must_specialize_and_import_the_kernel_lineage(tmp_path):
-    from de4sdv.semantic.definition_projection_batch2 import DefinitionBatch2Error
+    from de4sdv.semantic.kernel_vocabulary_projection import KernelVocabularyError
 
     contracts = "textual-notation-of-model/packages/features/fixture/contracts.sysml"
     sysml = _FIXTURE_SYSML.replace("  doc BetaOntologyDefinition",
@@ -599,7 +599,7 @@ def test_discriminator_pin_must_specialize_and_import_the_kernel_lineage(tmp_pat
             row = {r["identity"]: r for r in _build(root)["projection_rows"]}["betaLink"]
             assert row["relation"]["range"]["discriminator"]["closure"][0]["declaration"] == "requirement def Member"
         else:
-            with pytest.raises(DefinitionBatch2Error):
+            with pytest.raises(KernelVocabularyError):
                 _build(root)
 
 
@@ -609,7 +609,7 @@ def test_discriminator_pin_must_specialize_and_import_the_kernel_lineage(tmp_pat
 
 
 def test_generation_projects_current_synthetic_sources_without_git_binding(tmp_path):
-    from de4sdv.semantic import definition_projection_batch2 as b2
+    from de4sdv.semantic import kernel_vocabulary_projection as b2
 
     root = _fixture(tmp_path)
     path = root / _FIXTURE_FILE
@@ -621,7 +621,7 @@ def test_generation_projects_current_synthetic_sources_without_git_binding(tmp_p
     assert rows["oldAlphaLink"]["retired"]["refusal"] == "retired; use alphaLink"
 
 def test_committed_artifacts_match_regeneration():
-    from de4sdv.semantic import definition_projection_batch2 as b2
+    from de4sdv.semantic import kernel_vocabulary_projection as b2
 
     assert (REPO_ROOT / b2.PROJECTION_PATH).is_file()
     assert (REPO_ROOT / b2.PROFILE_PATH).is_file()
@@ -644,14 +644,14 @@ def test_batch2_machinery_is_never_imported_by_the_runtime_path():
         "de4sdv/semantic/deployment_runtime.py",
     ):
         text = (REPO_ROOT / relative).read_text(encoding="utf-8")
-        for token in ("definition_projection_batch2", "definition-batch2", "kernel-vocabulary"):
+        for token in ("kernel_vocabulary_projection", "definition-batch2", "kernel-vocabulary"):
             assert token not in text, (relative, token)
     # The model-authority runtime reads the generated batch-2 pair as a data
     # layer; it never imports the generator or reads the admission manifest.
     for relative in ("de4sdv/semantic/model_authority_runtime.py",
                      "de4sdv/semantic/model_contract.py"):
         text = (REPO_ROOT / relative).read_text(encoding="utf-8")
-        for token in ("definition_projection_batch2", "kernel-vocabulary-admission"):
+        for token in ("kernel_vocabulary_projection", "kernel-vocabulary-admission"):
             assert token not in text, (relative, token)
 
 
@@ -667,7 +667,7 @@ def _passing_gate_mocks():
 def test_check_repo_actually_invokes_the_batch2_gate():
     from unittest import mock
 
-    from de4sdv.semantic import definition_projection_batch2
+    from de4sdv.semantic import kernel_vocabulary_projection
     from scripts import check_repo
 
     calls = []
@@ -675,7 +675,7 @@ def test_check_repo_actually_invokes_the_batch2_gate():
     for m in mocks:
         m.start()
     try:
-        with mock.patch.object(definition_projection_batch2, "run_check_errors",
+        with mock.patch.object(kernel_vocabulary_projection, "run_check_errors",
                                side_effect=lambda root: calls.append(root) or []):
             result = check_repo.main()
     finally:
@@ -688,14 +688,14 @@ def test_check_repo_actually_invokes_the_batch2_gate():
 def test_check_repo_fails_when_the_batch2_gate_fails():
     from unittest import mock
 
-    from de4sdv.semantic import definition_projection_batch2
+    from de4sdv.semantic import kernel_vocabulary_projection
     from scripts import check_repo
 
     mocks = _passing_gate_mocks()
     for m in mocks:
         m.start()
     try:
-        with mock.patch.object(definition_projection_batch2, "run_check_errors",
+        with mock.patch.object(kernel_vocabulary_projection, "run_check_errors",
                                return_value=["sentinel batch-2 error"]):
             assert check_repo.main() == 1
     finally:

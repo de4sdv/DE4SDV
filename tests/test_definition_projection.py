@@ -22,12 +22,12 @@ GENERATOR_PATH = "scripts/generate_definition_projection.py"
 #: The two shared modules the generation path EXECUTES (proved by the
 #: executed-path audit) and therefore must bind as generation software.
 AUTHORITY_INVENTORY_PATH = "de4sdv/semantic/authority_inventory.py"
-PROJECTION_O2P_PATH = "de4sdv/semantic/projection_o2p.py"
+NATIVE_GROUNDING_MODULE_PATH = "de4sdv/semantic/native_grounding_projection.py"
 BOUND_PROGRAM_INPUTS = (
     MODULE_PATH,
     GENERATOR_PATH,
     AUTHORITY_INVENTORY_PATH,
-    PROJECTION_O2P_PATH,
+    NATIVE_GROUNDING_MODULE_PATH,
 )
 _MODEL_FILE = (
     "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
@@ -347,7 +347,7 @@ def test_module_declares_the_executed_shared_modules_as_bound_inputs():
     from de4sdv.semantic import definition_projection
 
     assert definition_projection.AUTHORITY_INVENTORY_PATH == AUTHORITY_INVENTORY_PATH
-    assert definition_projection.PROJECTION_O2P_PATH == PROJECTION_O2P_PATH
+    assert definition_projection.NATIVE_GROUNDING_MODULE_PATH == NATIVE_GROUNDING_MODULE_PATH
     outputs = definition_projection.build_outputs(
         REPO_ROOT, definition_projection.load_document(REPO_ROOT)
     )
@@ -357,10 +357,10 @@ def test_module_declares_the_executed_shared_modules_as_bound_inputs():
         MODULE_PATH,
         GENERATOR_PATH,
         AUTHORITY_INVENTORY_PATH,
-        PROJECTION_O2P_PATH,
+        NATIVE_GROUNDING_MODULE_PATH,
         *_MODEL_FILES,
     }
-    for relative in (AUTHORITY_INVENTORY_PATH, PROJECTION_O2P_PATH):
+    for relative in (AUTHORITY_INVENTORY_PATH, NATIVE_GROUNDING_MODULE_PATH):
         assert (REPO_ROOT / relative).is_file(), relative
         assert bound[relative].startswith("sha256:")
 
@@ -416,7 +416,7 @@ def test_declaration_without_documentation_is_refused(tmp_path):
 
 def test_decoy_o1_artifacts_cannot_change_the_output(tmp_path):
     from de4sdv.semantic.definition_projection import build_outputs, load_document
-    from de4sdv.semantic.projection_o2p import canonical_json
+    from de4sdv.semantic.native_grounding_projection import canonical_json
 
     root = _fixture_repo(tmp_path)
     baseline = canonical_json(build_outputs(root, load_document(root)))

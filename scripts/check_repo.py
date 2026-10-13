@@ -34,9 +34,9 @@ except ImportError:  # Direct execution sets scripts/ as sys.path[0].
     import verify_generated_chain
 
 try:
-    from scripts import generate_semantic_projection_o2p
+    from scripts import generate_native_grounding_projection
 except ImportError:  # Direct execution sets scripts/ as sys.path[0].
-    import generate_semantic_projection_o2p
+    import generate_native_grounding_projection
 
 REQUIRED_FILES = [
     "README.md",
@@ -167,14 +167,14 @@ def main() -> int:
     manifest_errors = generate_scenario_manifest.run_check_errors()
     naming_errors = check_naming.run_all_checks()
     # The frozen records the runtime still serves are never regenerated; the
-    # frozen lane pins their bytes and checks their bindings at their own
-    # historical revisions.
+    # frozen-record check pins their bytes and checks their bindings at their
+    # own historical revisions.
     frozen_record_errors = verify_generated_chain.frozen_record_errors(root)
-    projection_o2p_errors = generate_semantic_projection_o2p.run_check_errors_o2p(root)
+    native_grounding_errors = generate_native_grounding_projection.run_check_errors(root)
     from de4sdv.semantic import (
         definition_projection,
-        definition_projection_batch2,
         external_reference_contract,
+        kernel_vocabulary_projection,
         model_projection_coverage,
         vocabulary_carrier,
     )
@@ -184,7 +184,7 @@ def main() -> int:
         + external_reference_contract.run_check_errors(root)
     )
     definition_admission_errors = definition_projection.run_check_errors(root)
-    definition_batch2_errors = definition_projection_batch2.run_check_errors(root)
+    kernel_vocabulary_errors = kernel_vocabulary_projection.run_check_errors(root)
     # Residuals block independently of the routing/refusal baseline.
     model_coverage_errors = model_projection_coverage.run_check_errors(root)
 
@@ -221,28 +221,28 @@ def main() -> int:
             print(f"- {error}")
 
     if frozen_record_errors:
-        print("Repository check failed. Frozen record errors (frozen lane):")
+        print("Repository check failed. Frozen record errors:")
         for error in frozen_record_errors:
             print(f"- {error}")
 
-    if projection_o2p_errors:
-        print("Repository check failed. O2+ native/library projection errors:")
-        for error in projection_o2p_errors:
+    if native_grounding_errors:
+        print("Repository check failed. Native-grounding projection errors:")
+        for error in native_grounding_errors:
             print(f"- {error}")
 
     if preparation_errors:
-        print("Repository check failed. O4 carrier/external-reference errors:")
+        print("Repository check failed. Increment-relationship and external-reference errors:")
         for error in preparation_errors:
             print(f"- {error}")
 
     if definition_admission_errors:
-        print("Repository check failed. O4 definition-admission errors:")
+        print("Repository check failed. Class-definition projection errors:")
         for error in definition_admission_errors:
             print(f"- {error}")
 
-    if definition_batch2_errors:
-        print("Repository check failed. O4 definition-admission batch 2 errors:")
-        for error in definition_batch2_errors:
+    if kernel_vocabulary_errors:
+        print("Repository check failed. Kernel-vocabulary projection errors:")
+        for error in kernel_vocabulary_errors:
             print(f"- {error}")
 
     if model_coverage_errors:
@@ -258,10 +258,10 @@ def main() -> int:
         or manifest_errors
         or naming_errors
         or frozen_record_errors
-        or projection_o2p_errors
+        or native_grounding_errors
         or preparation_errors
         or definition_admission_errors
-        or definition_batch2_errors
+        or kernel_vocabulary_errors
         or model_coverage_errors
     ):
         return 1

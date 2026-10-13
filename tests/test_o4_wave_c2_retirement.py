@@ -88,8 +88,8 @@ BUILD_TIME_GOVERNANCE_MODULES = (
     "relationship_successor_contract.py",
     "scoped_assurance.py",
     "definition_projection.py",
-    "definition_projection_batch2.py",
-    "projection_o2p.py",
+    "kernel_vocabulary_projection.py",
+    "native_grounding_projection.py",
     "vocabulary_carrier.py",
 )
 

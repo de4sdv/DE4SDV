@@ -1,5 +1,5 @@
-"""O4 definition-admission batch 2: governed projection + API profile for the
-remaining retained identities.
+"""Kernel-vocabulary projection: the governed projection and API profile of the
+kernel identities that no other generated layer provides.
 
 Batch 2 makes every retained O4 register row that no other generated layer
 projects (O2 chain / O3 13, definition batch 1, O2+, W4 vocabulary carriers)
@@ -67,10 +67,10 @@ from typing import Any
 ADMISSION_PATH = "de4sdv/semantic/contract-data/kernel-vocabulary-admission.yaml"
 PROJECTION_PATH = "de4sdv/semantic/contract-data/kernel-vocabulary-projection.json"
 PROFILE_PATH = "de4sdv/semantic/contract-data/kernel-vocabulary-profile.json"
-MODULE_PATH = "de4sdv/semantic/definition_projection_batch2.py"
+MODULE_PATH = "de4sdv/semantic/kernel_vocabulary_projection.py"
 GENERATOR_PATH = "scripts/generate_definition_projection.py"
 AUTHORITY_INVENTORY_PATH = "de4sdv/semantic/authority_inventory.py"
-PROJECTION_O2P_PATH = "de4sdv/semantic/projection_o2p.py"
+NATIVE_GROUNDING_MODULE_PATH = "de4sdv/semantic/native_grounding_projection.py"
 EXTERNAL_REFERENCE_PROFILE_PATH = "de4sdv/semantic/contract-data/external-reference-profile.yaml"
 
 ADMISSION_SCHEMA = "de4sdv.o4-definition-admission-batch2/v1"
@@ -185,8 +185,8 @@ _DEF_OWNER = re.compile(r"^(?P<kind>[a-z]+) def (?P<name>[A-Za-z_][A-Za-z0-9_]*)
 _PACKAGE_OWNER = re.compile(r"^package (?P<name>[A-Za-z_][A-Za-z0-9_]*)$")
 
 
-class DefinitionBatch2Error(ValueError):
-    """The batch-2 admission document or model home violates the governed contract."""
+class KernelVocabularyError(ValueError):
+    """The admission document or a model home violates the governed contract."""
 
 
 # ---------------------------------------------------------------------------
@@ -214,7 +214,7 @@ class _Source:
             if text.startswith("/*", index):
                 end = text.find("*/", index + 2)
                 if end == -1:
-                    raise DefinitionBatch2Error(f"{relative}: unterminated comment")
+                    raise KernelVocabularyError(f"{relative}: unterminated comment")
                 self.comments.append((index, end + 2, text[index + 2:end]))
                 out.append("".join("\n" if c == "\n" else " " for c in text[index:end + 2]))
                 index = end + 2
@@ -238,7 +238,7 @@ class _Source:
                     else:
                         index += 1
                 else:
-                    raise DefinitionBatch2Error(f"{relative}: unterminated quoted token")
+                    raise KernelVocabularyError(f"{relative}: unterminated quoted token")
                 out.append(char + " " * (index - start - 2) + char)
                 continue
             out.append(char)
@@ -250,7 +250,7 @@ class _Source:
             self.depth.append(depth)
             depth += (char == "{") - (char == "}")
         if depth != 0:
-            raise DefinitionBatch2Error(f"{relative}: unbalanced braces")
+            raise KernelVocabularyError(f"{relative}: unbalanced braces")
 
     # -- blocks ------------------------------------------------------------
     def _braced(self, header_end: int, label: str) -> tuple[int, int]:
@@ -258,13 +258,13 @@ class _Source:
         while index < len(self.mask) and self.mask[index] not in "{;":
             index += 1
         if index >= len(self.mask) or self.mask[index] == ";":
-            raise DefinitionBatch2Error(f"{self.relative}: {label} has no owned body")
+            raise KernelVocabularyError(f"{self.relative}: {label} has no owned body")
         open_index = index
         target = self.depth[open_index]
         for close in range(open_index + 1, len(self.mask)):
             if self.mask[close] == "}" and self.depth[close] == target + 1:
                 return open_index, close
-        raise DefinitionBatch2Error(f"{self.relative}: {label} body is unterminated")
+        raise KernelVocabularyError(f"{self.relative}: {label} body is unterminated")
 
     def _unique(self, pattern: str, label: str, span: tuple[int, int] | None = None,
                 direct: bool = False) -> re.Match[str]:
@@ -275,9 +275,9 @@ class _Source:
             if not direct or self.depth[start + match.start()] == base
         ]
         if not matches:
-            raise DefinitionBatch2Error(f"{self.relative}: {label} not found")
+            raise KernelVocabularyError(f"{self.relative}: {label} not found")
         if len(matches) > 1:
-            raise DefinitionBatch2Error(f"{self.relative}: {label} is ambiguous ({len(matches)} live matches)")
+            raise KernelVocabularyError(f"{self.relative}: {label} is ambiguous ({len(matches)} live matches)")
         return matches[0]
 
     def owner_block(self, owner: str) -> tuple[int, int]:
@@ -288,7 +288,7 @@ class _Source:
         else:
             definition = _DEF_OWNER.match(owner)
             if not definition:
-                raise DefinitionBatch2Error(f"{self.relative}: unsupported owner form {owner!r}")
+                raise KernelVocabularyError(f"{self.relative}: unsupported owner form {owner!r}")
             pattern = (r"(?m)^[ \t]*(?:(?:public|private|protected)\s+)?(?:abstract\s+)?"
                        + re.escape(definition["kind"]) + r"\s+def\s+"
                        + re.escape(definition["name"]) + r"\b")
@@ -344,7 +344,7 @@ class _Source:
                 continue
             name = match[1]
             if name in usages:
-                raise DefinitionBatch2Error(f"{self.relative}: duplicate record usage {name!r}")
+                raise KernelVocabularyError(f"{self.relative}: duplicate record usage {name!r}")
             usages[name] = self._braced(open_index + match.end(), f"record {name}")
         return usages
 
@@ -359,18 +359,18 @@ class _Source:
             key = match[1]
             value_start = open_index + match.end()
             if self.text[value_start:value_start + 1] != '"':
-                raise DefinitionBatch2Error(f"{self.relative}: {label}.{key} is not a String literal")
+                raise KernelVocabularyError(f"{self.relative}: {label}.{key} is not a String literal")
             value_end = value_start + 1
             while self.text[value_end] != '"':
                 value_end += 2 if self.text[value_end] == "\\" else 1
             rest = self.mask[value_end + 1:close].lstrip()
             if not rest.startswith(";"):
-                raise DefinitionBatch2Error(f"{self.relative}: {label}.{key} is not a single literal")
+                raise KernelVocabularyError(f"{self.relative}: {label}.{key} is not a single literal")
             if key in values:
-                raise DefinitionBatch2Error(f"{self.relative}: {label}.{key} is assigned twice")
+                raise KernelVocabularyError(f"{self.relative}: {label}.{key} is assigned twice")
             values[key] = self.text[value_start + 1:value_end]
         if set(values) != set(fields):
-            raise DefinitionBatch2Error(
+            raise KernelVocabularyError(
                 f"{self.relative}: {label} fields {sorted(values)} != {sorted(fields)}"
             )
         return values
@@ -384,7 +384,7 @@ class _Source:
             if self.depth[open_index + match.start()] == base:
                 ends.append({"name": match[1], "type": match[2]})
         if len(ends) != 2:
-            raise DefinitionBatch2Error(f"{self.relative}: {declaration} must own exactly two typed ends")
+            raise KernelVocabularyError(f"{self.relative}: {declaration} must own exactly two typed ends")
         return ends
 
     def specializes(self, declaration: str, target: str) -> bool:
@@ -419,7 +419,7 @@ def clean_body(body: str) -> str:
 
 def _require(condition: bool, message: str) -> None:
     if not condition:
-        raise DefinitionBatch2Error(message)
+        raise KernelVocabularyError(message)
 
 
 def _nonempty(value: Any) -> bool:
@@ -591,7 +591,7 @@ def load_admission(path: Path) -> dict[str, Any]:
     import yaml
 
     if not path.is_file():
-        raise DefinitionBatch2Error(f"batch-2 admission document missing: {path}")
+        raise KernelVocabularyError(f"batch-2 admission document missing: {path}")
     document = yaml.safe_load(path.read_text(encoding="utf-8"))
     _require(isinstance(document, dict), f"batch-2 admission document malformed: {path}")
     _require(document.get("schema") == ADMISSION_SCHEMA,
@@ -634,7 +634,7 @@ class _Model:
         if relative not in self.files:
             path = self.root / relative
             if ".." in Path(relative).parts or not path.is_file():
-                raise DefinitionBatch2Error(f"governed model file missing: {relative}")
+                raise KernelVocabularyError(f"governed model file missing: {relative}")
             self.files[relative] = _Source(relative, path.read_text(encoding="utf-8"))
         return self.files[relative]
 
@@ -708,7 +708,7 @@ def _definition_text(model: _Model, row: dict[str, Any]) -> tuple[dict[str, Any]
                    "about_imports": dict(sorted(home["about_imports"].items()))}
         return {"documentation": body, "documentation_witness": witness,
                 "documentation_observation": "model-owned-vocabulary-role"}, form
-    raise DefinitionBatch2Error(f"{identity}: unsupported text home {form}")
+    raise KernelVocabularyError(f"{identity}: unsupported text home {form}")
 
 
 def _representation(row: dict[str, Any]) -> tuple[str, str]:
@@ -956,7 +956,7 @@ def collect_bound_inputs(root: Path, outputs: dict[str, Any]) -> dict[str, str]:
     from de4sdv.semantic.authority_inventory import file_digest
 
     paths = {ADMISSION_PATH, MODULE_PATH, GENERATOR_PATH,
-             AUTHORITY_INVENTORY_PATH, PROJECTION_O2P_PATH, *outputs["model_inputs"]}
+             AUTHORITY_INVENTORY_PATH, NATIVE_GROUNDING_MODULE_PATH, *outputs["model_inputs"]}
     bound: dict[str, str] = {}
     for relative in sorted(paths):
         _require((root / relative).is_file(), f"bound input missing: {relative}")
@@ -998,11 +998,11 @@ def run_check_errors(root: Path) -> list[str]:
     Current admitted sources are validated even when artifacts are missing.
     Uncommitted model edits are allowed; missing or stale outputs are not.
     """
-    from de4sdv.semantic.projection_o2p import canonical_json
+    from de4sdv.semantic.native_grounding_projection import canonical_json
 
     try:
         artifacts = build_artifact_pair(root)
-    except DefinitionBatch2Error as exc:
+    except KernelVocabularyError as exc:
         return [f"{ADMISSION_PATH}: {exc}"]
     errors: list[str] = []
     for key, relative in (("projection", PROJECTION_PATH), ("profile", PROFILE_PATH)):
