@@ -1,14 +1,17 @@
-"""The K pair is checked against the export's DerivesFromNeed connections, by id.
+"""The derivation pair is checked against the export's DerivesFromNeed connections, by id.
 
-The reference population is every ``ConnectionUsage`` of the export that carries
-an authored typing to the K pair's connection definition (or an authored
-specialization of it), resolved through the ingestion-validated kernel binding,
-never by name. Both navigations must return exactly that id set: counts are
-never compared, so model growth cannot trip the gate and a count-preserving swap
-cannot pass it. An absent or empty reference is never equivalence.
+The derivation pair is ``derivesRequirementFromNeed`` and its inverse
+``derivedRequirementsOfNeed`` (``K_PAIR`` in ``runtime_answers``). The reference
+population is every ``ConnectionUsage`` of the export that carries an authored
+typing to the pair's connection definition (or an authored specialization of
+it), resolved through the ingestion-validated kernel binding, never by name.
+Both navigations must return exactly that id set: counts are never compared,
+so model growth cannot trip the gate and a count-preserving swap cannot pass
+it. An absent or empty reference is never equivalence.
 
 Synthetic collected records and synthetic element shapes; the end-to-end cases
-run the real traversal over the minimized real-serializer K corpus. No API.
+run the real traversal over the minimized real-serializer derivation corpus.
+No API.
 """
 from __future__ import annotations
 
