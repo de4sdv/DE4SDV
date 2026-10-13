@@ -102,7 +102,7 @@ def create_mcp_server(service: SemanticQueryService) -> FastMCP:
         readiness of the executable checks. A declared phase without executable checks is listed with
         its step's declared outputs, never evaluated. Such a phase's exit is BLOCKED by the method
         (CONTRACT_UNAVAILABLE), never by a gap. `coverage` names the phases the verdicts cover. If the
-        revision does not declare the increment, `increment.reason_code` is INCREMENT_NOT_DECLARED."""
+        revision does not declare the increment, `increment.resolution` is `not-declared`."""
         return service.increment_status(phase, increment=increment)
 
     @mcp.tool(annotations=_READ_ONLY, structured_output=True)
@@ -115,9 +115,9 @@ def create_mcp_server(service: SemanticQueryService) -> FastMCP:
     @mcp.tool(annotations=_READ_ONLY, structured_output=True)
     def next_obligation(increment: str, phase: str | None = None) -> dict[str, Any]:
         """The first actionable gate of one increment at the bound revision, in workflow order (step order,
-        then check order), with what to author and where. `reason` always says why; `reason_code`
-        INCREMENT_NOT_DECLARED means the bound revision does not declare the increment: work on a branch
-        is evaluated by the PR Method Check, not by this revision."""
+        then check order), with what to author and where. `reason` always says why. When
+        `increment.resolution` is `not-declared`, the bound revision does not declare the increment: work
+        on a branch is evaluated by the PR Method Check, not by this revision."""
         return service.next_obligation(phase, increment=increment)
 
     return mcp

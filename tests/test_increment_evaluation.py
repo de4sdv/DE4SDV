@@ -94,19 +94,20 @@ def test_an_increment_not_declared_at_the_revision_is_named_with_a_distinct_reas
     answers = (evaluation.status(), evaluation.gaps(), evaluation.next_obligation(), evaluation.phase_contract())
     for answer in answers:
         block = answer["increment"]
-        assert (block["id"], block["resolved"], block["reason_code"]) == (
-            "INC-EXAMPLE-001", False, "INCREMENT_NOT_DECLARED"), answer["query"]
+        assert (block["id"], block["resolved"], block["resolution"]) == (
+            "INC-EXAMPLE-001", False, "not-declared"), answer["query"]
         assert block["message"].startswith(f"INC-EXAMPLE-001 isn't declared at revision {REVISION.git_commit}")
         assert "PR Method Check" in block["message"]
     answer = evaluation.next_obligation()
-    assert (answer["reason_code"], answer["reason"]) == ("INCREMENT_NOT_DECLARED", answer["increment"]["message"])
+    assert answer["reason"] == answer["increment"]["message"]
+    assert "reason_code" not in answer and "reason_code" not in answer["increment"]  # review R8: one name only
     assert answer["next"]["gate"] == "incrementHasIdentifier"  # a new increment still learns how to declare itself
 
 
 def test_a_declared_increment_has_no_such_reason_and_next_always_says_why() -> None:
     complete = _evaluate(_scenario())
-    assert "reason_code" not in complete.status()["increment"]
-    assert "reason_code" not in complete.next_obligation()
+    assert (complete.status()["increment"]["resolution"], "message" in complete.status()["increment"]) == (
+        "resolved", False)
     assert complete.next_obligation()["reason"] == "every required gate passes or is not applicable"
     scenario = _scenario()
     scenario.builder.remove(scenario.builder.feature_of(scenario.charter, "owner"))
@@ -117,8 +118,16 @@ def test_a_declared_increment_has_no_such_reason_and_next_always_says_why() -> N
     ambiguous.builder.usage("PartUsage", "incFixtureCopy", ambiguous.framing, [ambiguous.definition],
                             short=ambiguous.increment_id)
     block = _evaluate(ambiguous).status()["increment"]
-    assert block["resolved"] is False and "reason_code" not in block
+    assert (block["resolved"], block["resolution"], "message" in block) == (False, "ambiguous", False)
 
+
+
+def test_an_unbound_increment_lineage_resolves_as_lineage_unavailable_not_as_undeclared() -> None:
+    scenario = _scenario()
+    scenario.builder.bindings[:] = [b for b in scenario.builder.bindings
+                                    if b["ontology_class"] != "EngineeringIncrement"]
+    block = _evaluate(scenario).status()["increment"]
+    assert (block["resolved"], block["resolution"], "message" in block) == (False, "lineage-unavailable", False)
 
 def test_next_none_says_which_declared_phases_no_check_judges() -> None:
     """0 blocking says nothing about a declared phase without executable checks; the reason says so."""

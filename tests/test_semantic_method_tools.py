@@ -103,14 +103,14 @@ def test_a_model_without_a_workflow_answers_contract_unavailable() -> None:
 
 def test_an_increment_the_bound_revision_does_not_declare_is_answered_as_such() -> None:
     """The served answers evaluate the bound revision only: work on a branch answers
-    INCREMENT_NOT_DECLARED, naming that revision, never an empty reason."""
+    `increment.resolution` not-declared, naming that revision, never an empty reason."""
     service, _scenario, _repository = _service()
     server = create_mcp_server(service)
     answer = _call(server, "next_obligation", {"increment": "INC-EXAMPLE-001"})
-    assert answer["reason_code"] == "INCREMENT_NOT_DECLARED"
+    assert answer["increment"]["resolution"] == "not-declared"
     assert answer["reason"].startswith(f"INC-EXAMPLE-001 isn't declared at revision {'a' * 40} (full-model)")
     status = _call(server, "increment_status", {"increment": "INC-EXAMPLE-001"})
-    assert status["increment"]["reason_code"] == "INCREMENT_NOT_DECLARED"
+    assert status["increment"]["resolution"] == "not-declared"
     assert status["increment"]["message"] == answer["reason"]
 
 
@@ -133,7 +133,7 @@ def test_the_tool_descriptions_say_what_each_answer_covers() -> None:
     for name in ("increment_status", "method_gaps"):
         assert "`coverage`" in tools[name], name
     for name in ("increment_status", "next_obligation"):
-        assert "INCREMENT_NOT_DECLARED" in tools[name], name
+        assert "`increment.resolution` is `not-declared`" in " ".join(tools[name].split()), name
 
 
 def test_the_status_description_says_an_unchecked_exit_is_never_a_gap() -> None:

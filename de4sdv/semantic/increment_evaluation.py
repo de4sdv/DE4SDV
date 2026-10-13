@@ -22,9 +22,10 @@ step with what it declares, with or without checks; ``status`` lists each
 phase the charter declares whose step has no checks as "no executable checks
 at this revision" (UNASSESSED, its exit BLOCKED: a phase without an
 executable contract never disappears); the evaluation answers carry
-``coverage``. An increment the evaluated revision does not declare carries
-the answer-level reason ``INCREMENT_NOT_DECLARED`` with a message naming the
-revision. None of this changes the contract, the evaluation or its key.
+``coverage``. The increment block says how the identifier resolved
+(``resolution``); one the evaluated revision does not declare is
+``not-declared``, with a message naming the revision. None of this changes
+the contract, the evaluation or its key.
 Results describe model content only; no acceptance, compliance or
 certification claim follows from them.
 """
@@ -46,7 +47,7 @@ from .increment_workflow import (
     IncrementMethod,
     read_increment_method,
 )
-from .increment_scope import IDENTITY_PROBLEM, PROBLEM_UNAVAILABLE, IncrementScope, ModelView, resolve_increment
+from .increment_scope import IDENTITY_PROBLEM, PROBLEM_INVALID, IncrementScope, ModelView, resolve_increment
 from .method_checks import IncrementEvaluationContext, remedy
 from .relation_checks import METHOD_SIDE_PREFIXES
 
@@ -65,9 +66,12 @@ COVERAGE_NOTE = ("the verdicts, gaps and next cover only the phases with executa
 #: Why the exit of a phase no check judges stays BLOCKED: the method, never a gap in the model.
 UNCHECKED_EXIT_NOTE = ("BLOCKED by the method, not by the model: no executable check judges this phase at this "
                        "revision, so no gap is open here and nothing you author opens this exit.")
-#: Answer-level reason, not a reason of the result algebra: no increment usage carries the requested
-#: identifier at the evaluated revision. Content on another branch or commit is invisible to it.
-INCREMENT_NOT_DECLARED = "INCREMENT_NOT_DECLARED"
+#: How the requested identifier resolved at the evaluated revision (``increment.resolution``). Not a
+#: reason of the result algebra, whose ``reason_codes`` vocabulary is closed: a property of the lookup.
+RESOLVED = "resolved"  # exactly one increment usage carries the identifier
+NOT_DECLARED = "not-declared"  # none does: content on another branch or commit is invisible here
+AMBIGUOUS = "ambiguous"  # several do
+LINEAGE_UNAVAILABLE = "lineage-unavailable"  # the EngineeringIncrement lineage cannot be established
 NEXT_REASON = "the first open blocking check in workflow order (step order, then check order)"
 NONE_OPEN_REASON = "every required gate passes or is not applicable"
 #: What the bounds of a phase_contract gate count (a claim of "at least one ..." reads on one of them).
@@ -693,30 +697,34 @@ def evaluate_increment(
     )
 
 
-def _not_declared(scope: IncrementScope) -> bool:
-    """No increment usage carries the identifier at this revision: neither an ambiguous identity
-    (an invalid problem) nor an unbound kernel lineage (a method-side marker)."""
+def _resolution(scope: IncrementScope) -> str:
+    """How the identifier resolved: one increment usage, none at this revision, several, or an
+    EngineeringIncrement lineage that cannot be established (a method-side marker)."""
     if scope.usage_id is not None:
-        return False
+        return RESOLVED
     kind, detail = scope.problems.get(IDENTITY_PROBLEM, ("", ""))
-    return kind == PROBLEM_UNAVAILABLE and not str(detail).startswith(METHOD_SIDE_PREFIXES)
+    if kind == PROBLEM_INVALID:
+        return AMBIGUOUS
+    return LINEAGE_UNAVAILABLE if str(detail).startswith(METHOD_SIDE_PREFIXES) else NOT_DECLARED
 
 
 def _declaration_reason(scope: IncrementScope, revision: me.RevisionIdentity) -> dict[str, str]:
-    """``reason_code`` and ``message`` of an increment the evaluated revision does not declare (else nothing)."""
-    if not _not_declared(scope):
-        return {}
+    """``resolution``, and for an increment the evaluated revision does not declare, a ``message``
+    naming the revision."""
+    resolution = _resolution(scope)
+    if resolution != NOT_DECLARED:
+        return {"resolution": resolution}
     message = (f"{scope.increment_id} isn't declared at revision {revision.git_commit or '(none)'} "
                f"({revision.scope}): no increment usage there carries it as its declared short name. Work on a "
                "branch or another commit is not part of this evaluation; the PR Method Check evaluates the "
                "head of a pull request.")
-    return {"reason_code": INCREMENT_NOT_DECLARED, "message": message}
+    return {"resolution": resolution, "message": message}
 
 
 def _next_reason(scope: IncrementScope, revision: me.RevisionIdentity) -> dict[str, str]:
-    """For an increment the revision does not declare, ``next``'s reason is that fact (with its code)."""
-    reason = _declaration_reason(scope, revision)
-    return {"reason_code": reason["reason_code"], "reason": reason["message"]} if reason else {}
+    """For an increment the revision does not declare, ``next``'s reason is that message."""
+    message = _declaration_reason(scope, revision).get("message")
+    return {"reason": message} if message else {}
 
 
 def _revision(revision: me.RevisionIdentity) -> dict[str, str]:

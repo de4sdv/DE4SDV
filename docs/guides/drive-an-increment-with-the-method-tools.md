@@ -106,13 +106,16 @@ covers: see coverage and revision below.
   without them. Zero blocking gaps, or `next` none, says nothing about the
   latter, and `next_obligation`'s `reason` names them.
 - **Revision.** An answer evaluates the bound revision, named in `revision`,
-  and nothing else. When no increment usage there carries the requested
-  identifier, the `increment` block has the `reason_code`
-  `INCREMENT_NOT_DECLARED` and a `message` that names the revision, and
-  `next_obligation` uses both as its `reason_code` and `reason`. Work on a
-  branch is invisible to the deployed revision: the PR Method Check evaluates
-  the head of a pull request. `next` still names the framing check that
-  declares a new increment (for example `INC-EXAMPLE-001`).
+  and nothing else. The `increment` block's `resolution` says how the
+  identifier resolved there: `resolved`, `ambiguous` (several increment
+  usages carry it), `lineage-unavailable` (the `EngineeringIncrement`
+  lineage cannot be established) or `not-declared` (no increment usage
+  carries it). For `not-declared` the block adds a `message` that names the
+  revision, and `next_obligation` gives it as its `reason`. Work on a branch
+  is invisible to the deployed revision: the PR Method Check evaluates the
+  head of a pull request. `next` still names the framing check that declares
+  a new increment (for example `INC-EXAMPLE-001`). `resolution` is not a
+  reason code of the result algebra, so it never appears in `reason_codes`.
 - **Relations.** A check that names a relation is decided by the relation check
   of that name in `de4sdv/semantic/relation_checks.py`: a relation of the
   model-built contract through the production traversal (a connection-carried
