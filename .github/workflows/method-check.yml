@@ -17,11 +17,14 @@ name: Method Check
 #
 # Trigger paths and the fork/author guard are those of
 # privileged-syside-validation.yml (pinned by
-# tests/test_method_check_workflow.py). That workflow is a bound input of the
-# O2+ projection record, so the check runs as its own workflow, alongside the
-# licensed validation. Its export is itself a licensed load of the exact head
-# and refuses a model the loader rejects, so nothing is evaluated on a model
-# that fails validation.
+# tests/test_method_check_workflow.py). Since #357 no generated record binds
+# that workflow: the O2+ generator only reads its SYSIDE_VERSION pin. The
+# check still runs as its own workflow, alongside the licensed validation,
+# because it is advisory where that validation is a gate, it runs on pull
+# requests only and cancels its superseded runs, and it keeps the licence in
+# one step of a job of its own. Its export is itself a licensed load of the
+# exact head and refuses a model the loader rejects, so nothing is evaluated
+# on a model that fails validation.
 #
 # Secret scoping: the Syside licence reaches one step only, the export. The
 # presence check sees a boolean, never the value. The evaluation and the
