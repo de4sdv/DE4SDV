@@ -218,9 +218,9 @@ def test_admitted_rows_are_disjoint_from_excluded(manifest: dict) -> None:
     assert admitted & excluded == set()
 
 
-def test_frozen_projection_identities_are_never_admitted(manifest: dict) -> None:
+def test_frozen_projection_row_identities_are_never_admitted(manifest: dict) -> None:
     admitted = {row["identity"] for row in manifest["admitted"]}
-    assert admitted & set(native.FROZEN_RECORD_IDENTITIES) == set()
+    assert admitted & set(native.FROZEN_PROJECTION_ROW_IDENTITIES) == set()
     # The frozen list itself must equal the actual committed v1/v1.1/v1.2 rows.
     actual: list[str] = []
     for name in ("semantic-projection-v1.json", "semantic-projection-v1.1.json", "semantic-projection-v1.2.json"):
@@ -229,15 +229,15 @@ def test_frozen_projection_identities_are_never_admitted(manifest: dict) -> None
         )
         actual.extend(r["identity"] for r in document.get("concepts", []))
         actual.extend(r["identity"] for r in document.get("predicates", []))
-    assert sorted(actual) == sorted(native.FROZEN_RECORD_IDENTITIES)
+    assert sorted(actual) == sorted(native.FROZEN_PROJECTION_ROW_IDENTITIES)
 
 
-def test_identities_served_from_frozen_records_are_never_admitted(manifest: dict) -> None:
-    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as SERVED_FROM_FROZEN_RECORDS
+def test_served_frozen_identities_are_never_admitted(manifest: dict) -> None:
+    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as SERVED_FROZEN_IDENTITIES
 
     admitted = {row["identity"] for row in manifest["admitted"]}
-    assert admitted & set(SERVED_FROM_FROZEN_RECORDS) == set()
-    assert len(SERVED_FROM_FROZEN_RECORDS) == 13
+    assert admitted & set(SERVED_FROZEN_IDENTITIES) == set()
+    assert len(SERVED_FROZEN_IDENTITIES) == 13
 
 
 def test_witnesses_exist_in_the_model() -> None:
@@ -274,11 +274,11 @@ def test_projection_row_outputs_match_reviewed_flags(
 
 
 def test_no_frozen_identity_is_emitted(artifacts: dict) -> None:
-    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as SERVED_FROM_FROZEN_RECORDS
+    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as SERVED_FROZEN_IDENTITIES
 
     emitted = {row["identity"] for row in artifacts["projection"]["rows"]}
-    assert emitted & set(native.FROZEN_RECORD_IDENTITIES) == set()
-    assert emitted & set(SERVED_FROM_FROZEN_RECORDS) == set()
+    assert emitted & set(native.FROZEN_PROJECTION_ROW_IDENTITIES) == set()
+    assert emitted & set(SERVED_FROZEN_IDENTITIES) == set()
 
 
 def test_profile_entries_are_exactly_the_api_profile_rows(artifacts: dict) -> None:

@@ -60,7 +60,7 @@ PROFILE_SCHEMA = "de4sdv.api-representation-profile.o2plus/v1"
 
 #: The identities of the frozen projection records (v1 seven + v1.1 three +
 #: v1.2 three).
-FROZEN_RECORD_IDENTITIES: tuple[str, ...] = (
+FROZEN_PROJECTION_ROW_IDENTITIES: tuple[str, ...] = (
     # projection v1
     "MethodContractObligation",
     "MethodPhase",
@@ -263,14 +263,15 @@ def validate_admission(manifest: dict[str, Any]) -> None:
                 f"hard-gated identity {gated} must remain in the excluded set"
             )
     # Frozen surfaces are never admitted here.
-    for frozen in FROZEN_RECORD_IDENTITIES:
+    for frozen in FROZEN_PROJECTION_ROW_IDENTITIES:
         if frozen in set(identities):
             raise NativeGroundingError(
-                f"frozen record identity {frozen} must never be admitted"
+                f"frozen projection row identity {frozen} must never be admitted"
             )
 
 
-def _frozen_record_identities() -> frozenset[str]:
+def _served_frozen_identities() -> frozenset[str]:
+    """The identities the runtime serves from the frozen records."""
     from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES
 
     return frozenset(O2_CHAIN_IDENTITIES)
@@ -291,7 +292,7 @@ def verify_witnesses(root: Path, manifest: dict[str, Any]) -> None:
                 f"{identity}: witness construct not found in {witness['file']}: "
                 f"{witness['contains']!r}"
             )
-        frozen = _frozen_record_identities()
+        frozen = _served_frozen_identities()
         if identity in frozen:
             raise NativeGroundingError(
                 f"{identity}: an identity served from the frozen records must never be admitted"

@@ -20,7 +20,7 @@ from pathlib import Path
 import pytest
 
 from de4sdv.semantic import authority_inventory as ai
-from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as FROZEN_RECORD_IDENTITIES
+from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as SERVED_FROZEN_IDENTITIES
 from model_contract_fixtures import admission_row, owned_definition_documentation
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -377,7 +377,7 @@ def test_rows_are_not_added_to_the_frozen_projection_records(family):
 @pytest.mark.parametrize("family", UNPROMOTED_ROWS)
 def test_rows_are_not_served_from_frozen_records_or_gated(register_rows, family):
     for identity in UNPROMOTED_ROWS[family]:
-        assert identity not in FROZEN_RECORD_IDENTITIES
+        assert identity not in SERVED_FROZEN_IDENTITIES
         assert register_rows[identity].get("gate_wave") is None
 
 
