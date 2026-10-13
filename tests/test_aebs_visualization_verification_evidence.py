@@ -38,7 +38,7 @@ NEEDS = MODEL_DIR / "aebs_visualization_needs_requirements.sysml"
 
 #: An optional SysML short name before a usage name (`requirement <'ID'> name`),
 #: so a short-named usage never drops out of a population (#355 review R4).
-SHORT_NAME = r"(?:<'[^']*'>\s*)?"
+SHORT_NAME = r"(?:<(?:'[^']*'|\w+)>\s*)?"
 REQUIREMENT_BLOCK = re.compile(
     rf"    requirement {SHORT_NAME}(req\w+) : VisualizationInstrumentRequirementCandidate \{{.*?\n    \}}",
     re.S,
@@ -71,7 +71,7 @@ def _requirement_blocks() -> dict[str, tuple[str, str]]:
 def test_population_patterns_see_short_named_usages() -> None:
     """`requirement <'ID'> name : T {` is a form the AEBS model uses, so a short
     name must not hide a usage from a population (#355 review R4)."""
-    for short_name in ("", "<'planted short name'> ", "<'planted short name'>"):
+    for short_name in ("", "<'planted short name'> ", "<'planted short name'>", "<R9> "):
         declaration = (
             f"    requirement {short_name}reqPlanted : VisualizationInstrumentRequirementCandidate {{\n"
             "      attribute planted;\n    }"

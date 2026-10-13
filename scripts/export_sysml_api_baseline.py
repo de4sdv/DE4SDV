@@ -38,6 +38,8 @@ class ExportRefused(RuntimeError):
 
 #: Names the diagnostics file when --diagnostics is absent.
 DIAGNOSTICS_VARIABLE = "DE4SDV_EXPORT_DIAGNOSTICS"
+#: Holds the Syside licence in the export step; its value never reaches the diagnostics file.
+LICENCE_VARIABLE = "SYSIDE_LICENSE_KEY"
 
 
 def _git_head() -> str:
@@ -226,6 +228,10 @@ def write_failure_diagnostics(path: Path, error: BaseException) -> None:
         text = str(error).replace(f"{ROOT.as_posix()}/", "")
     else:
         text = f"The export failed with {type(error).__name__}; its message is in the export job log."
+    # GitHub masks secrets in job logs, not in artifacts.
+    licence = os.environ.get(LICENCE_VARIABLE, "")
+    if licence:
+        text = text.replace(licence, "***")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text.rstrip("\n") + "\n", encoding="utf-8")
 

@@ -25,7 +25,7 @@ MW_EVIDENCE = (
 
 #: An optional SysML short name before a usage name (`requirement <'ID'> name`),
 #: so a short-named usage never drops out of a population (#355 review R4).
-SHORT_NAME = r"(?:<'[^']*'>\s*)?"
+SHORT_NAME = r"(?:<(?:'[^']*'|\w+)>\s*)?"
 REQUIREMENT_USAGE = re.compile(rf"\brequirement\s+{SHORT_NAME}(\w+)\s*:\s*[\w:]+\s*\{{")
 CANDIDATE_REQUIREMENT_USAGE = re.compile(
     rf"\brequirement\s+{SHORT_NAME}(req\w+)\s*:\s*VisualizationInstrumentRequirementCandidate\s*\{{"
@@ -237,6 +237,7 @@ def test_population_patterns_see_short_named_usages() -> None:
             f"requirement {name} : {kind} {{",
             f"requirement <'planted short name'> {name} : {kind} {{",
             f"requirement <'planted short name'>{name} : {kind} {{",
+            f"requirement <R9> {name} : {kind} {{",
         ):
             assert [m[1] for m in pattern.finditer(declaration)] == [name], (pattern.pattern, declaration)
 

@@ -21,7 +21,8 @@ name: Method Check
 # that workflow: the O2+ generator only reads its SYSIDE_VERSION pin. The
 # check still runs as its own workflow, alongside the licensed validation,
 # because it is advisory where that validation is a gate, it runs on pull
-# requests only and cancels its superseded runs, and it keeps the licence in
+# requests and on demand (never on a push to main) and cancels its superseded
+# runs, and it keeps the licence in
 # one step of a job of its own. Its export is itself a licensed load of the
 # exact head and refuses a model the loader rejects, so nothing is evaluated
 # on a model that fails validation.
@@ -50,6 +51,10 @@ on:
       - "textual-notation-of-model/**/diagrams/**"
       - "model-based-product-line-engineering/product-models/VIEWS.md"
       - "model-based-product-line-engineering/product-models/diagrams/**"
+      - "model-based-product-line-engineering/product-models/**/VIEWS.md"
+      - "model-based-product-line-engineering/product-models/**/diagrams/**"
+      - "model-based-product-line-engineering/scoping/**/VIEWS.md"
+      - "model-based-product-line-engineering/scoping/**/diagrams/**"
       - ".project.json"
       - "sysand-lock.toml"
       - "textual-notation-of-model/**/.project.json"

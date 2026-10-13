@@ -51,6 +51,9 @@ the committed SVG when the render passed publication QA:
 - [DE4SDV method](../../textual-notation-of-model/packages/methods/de4sdv/VIEWS.md)
 - [product models](../../model-based-product-line-engineering/product-models/VIEWS.md)
 
+These are today's folders; `python scripts/list_view_folders.py` prints the
+current list, which CI derives from the model.
+
 The landing page keeps a visible status entry when a diagram is withheld. Empty
 view frames, exposure-only renders, and empty table/matrix frames are not
 published as if they were usable diagrams. Dense or degraded-but-informative

@@ -61,6 +61,18 @@ def test_a_syside_rejection_records_the_model_diagnostics(monkeypatch, tmp_path:
     assert not (tmp_path / "export.json").exists()
 
 
+def test_the_licence_value_never_reaches_the_diagnostics(monkeypatch, tmp_path: Path) -> None:
+    licence = "FAKE-LICENCE-0000-REVIEW"
+    monkeypatch.setenv(exporter.LICENCE_VARIABLE, licence)
+    _stand_in(monkeypatch, tmp_path, lambda paths: (None, _Diagnostics(f"licence {licence} rejected")))
+    diagnostics = tmp_path / "export-diagnostics.txt"
+    with pytest.raises(exporter.ExportRefused):
+        _export(tmp_path, "--diagnostics", str(diagnostics))
+    recorded = diagnostics.read_text(encoding="utf-8")
+    assert licence not in recorded
+    assert "licence *** rejected" in recorded
+
+
 def test_a_refusal_before_the_model_loads_is_recorded(monkeypatch, tmp_path: Path) -> None:
     _stand_in(monkeypatch, tmp_path, lambda paths: pytest.fail("the model must not load"))
     diagnostics = tmp_path / "export-diagnostics.txt"
