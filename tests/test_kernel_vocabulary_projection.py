@@ -538,21 +538,85 @@ def test_gate_records_archived_at_a_release_tag_are_tag_qualified(tmp_path):
     assert rows["oldAlphaLink"]["retired"]["refusal"] == "retired; use alphaLink"
 
 
-def test_every_gate_record_resolves_in_the_tree_or_at_its_release_tag():
-    """An untagged gate record names a tracked file; a record archived at the
-    release tag carries the tag, so no citation points at a deleted path."""
+#: The release tag that archives the decision records the manifest cites.
+ARCHIVE_TAG = "release-2026-10-11"
+
+
+def _git(*args):
     import subprocess
 
-    tracked = set(subprocess.check_output(["git", "ls-files"], cwd=REPO_ROOT, text=True).splitlines())
+    return subprocess.run(["git", *args], cwd=REPO_ROOT, capture_output=True, text=True)
+
+
+def _tracked_files():
+    return set(_git("ls-files").stdout.splitlines())
+
+
+def _record_keys(path, text):
+    """The fragment keys a cited record really has, or None for a row convention.
+
+    The YAML decision records have real keys: approved-semantic-decisions.yaml
+    keys its topics (``topics: {topic1: ...}``) and w6-transition-plan.yaml its
+    entries by ``identity``. The Markdown records have no anchor of that name;
+    their fragments are row conventions, so only the file is resolved:
+    owner-decisions-2026-10.md ``#2026-10-05-7`` is row 7 of the 2026-10-05
+    table and ``#wave-a-decision-9`` the Decision 9 row of the Wave A table;
+    ADR 0020 ``#d1`` to ``#d4``, ``#d4-follow-up``, ``#decision-7`` and
+    ``#decision-8`` name its numbered decision items.
+    """
+    if not path.endswith(".yaml"):
+        return None
+    document = yaml.safe_load(text)
+    keys = set(document.get("topics") or {})
+    keys |= {entry["identity"] for entry in document.get("entries") or ()
+             if isinstance(entry, dict) and "identity" in entry}
+    assert keys, f"{path}: a cited YAML record has neither topic keys nor identity rows"
+    return keys
+
+
+def _assert_record_resolves(ref, tracked):
+    revision, _, located = ref.rpartition(":")
+    path, _, fragment = located.partition("#")
+    if revision:
+        assert revision == ARCHIVE_TAG, f"{ref}: cite archived records at {ARCHIVE_TAG}"
+        assert _git("rev-parse", "--verify", "--quiet", f"refs/tags/{ARCHIVE_TAG}").returncode == 0, (
+            f"tag {ARCHIVE_TAG} is missing locally; run `git fetch origin tag {ARCHIVE_TAG}`")
+        assert _git("cat-file", "-e", f"{revision}:{path}").returncode == 0, f"{ref}: no such file at {revision}"
+        text = _git("show", f"{revision}:{path}").stdout
+    else:
+        assert path in tracked, f"{ref}: not a tracked file"
+        text = (REPO_ROOT / path).read_text(encoding="utf-8")
+    keys = _record_keys(path, text)
+    if keys is not None:
+        assert fragment in keys, f"{ref}: {path} has no {fragment!r}"
+
+
+def test_every_gate_record_resolves_in_the_tree_or_at_its_release_tag():
+    """An untagged gate record names a tracked file; a record archived at the
+    release tag exists there (``git cat-file -e <tag>:<path>``), so no citation
+    points at a deleted path. Where the fragment is a real key of the cited
+    record, the key exists too."""
+    tracked = _tracked_files()
     references = [ref for row in _rows().values() for gate in row["gates"] for ref in gate["resolved_by"]]
     assert references
     for ref in references:
-        revision, _, located = ref.rpartition(":")
-        path = located.split("#", 1)[0]
-        if revision:
-            assert revision == "release-2026-10-11", ref
-        else:
-            assert path in tracked, ref
+        _assert_record_resolves(ref, tracked)
+
+
+@pytest.mark.parametrize("ref,reason", [
+    ("release-2026-10-11:docs/method-conformance/o4/no-such-record.yaml#topic99",
+     "no such file at release-2026-10-11"),
+    ("release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic99",
+     "has no 'topic99'"),
+    ("release-2026-10-11:docs/method-conformance/o4/w6-transition-plan.yaml#noSuchIdentity",
+     "has no 'noSuchIdentity'"),
+    ("release-2099-01-01:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1",
+     "cite archived records at release-2026-10-11"),
+    ("docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1", "not a tracked file"),
+], ids=["missing-file-at-tag", "missing-topic-key", "missing-identity-row", "other-tag", "deleted-path-untagged"])
+def test_unresolvable_gate_record_citations_are_caught(ref, reason):
+    with pytest.raises(AssertionError, match=re.escape(reason)):
+        _assert_record_resolves(ref, _tracked_files())
 
 
 @pytest.mark.parametrize("case", sorted(_NEGATIVE_MANIFESTS))

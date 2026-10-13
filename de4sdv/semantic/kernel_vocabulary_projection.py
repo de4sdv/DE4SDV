@@ -474,7 +474,10 @@ def _validate_gates(identity: str, row: dict[str, Any]) -> None:
         _require(gate["gate"] not in seen, f"{identity}: duplicate gate {gate['gate']}")
         seen.add(gate["gate"])
         refs = gate["resolved_by"]
-        # A record archived at a release tag is cited as <tag>:<path>#fragment.
+        # A record archived at a release tag is cited as <tag>:<path>#fragment:
+        # the format check accepts an optional release-YYYY-MM-DD: prefix. The
+        # repository test (tests/test_kernel_vocabulary_projection.py) pins the
+        # tag to release-2026-10-11 and resolves every citation there.
         _require(isinstance(refs, list) and refs and all(
             isinstance(ref, str) and re.fullmatch(
                 r"(?:release-\d{4}-\d{2}-\d{2}:)?docs/[A-Za-z0-9_./-]+\.(?:md|yaml)#[A-Za-z0-9_.-]+", ref)
