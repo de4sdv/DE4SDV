@@ -65,12 +65,10 @@ on:
       - "scripts/method_check.py"
       - "scripts/evaluate_increment.py"
       - "scripts/export_sysml_api_baseline.py"
-      - "de4sdv/semantic/increment_discovery.py"
-      # The evaluation builds the model-authority facade over the export.
-      - "de4sdv/semantic/export_evaluation.py"
-      - "de4sdv/semantic/model_authority_runtime.py"
-      # The contract data that facade is built from.
-      - "de4sdv/semantic/contract-data/**"
+      # Everything the export evaluation imports, and the contract data it
+      # reads, lives in these two packages.
+      - "de4sdv/semantic/**"
+      - "de4sdv/sysml_api/**"
   workflow_dispatch:
     inputs:
       ref:

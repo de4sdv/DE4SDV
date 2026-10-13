@@ -14,6 +14,7 @@ the real script parser (the parser is spied; nothing executes).
 from __future__ import annotations
 
 import argparse
+import ast
 import importlib
 import re
 import shlex
@@ -35,10 +36,8 @@ OWN_PATHS = {
     "scripts/method_check.py",
     "scripts/evaluate_increment.py",
     "scripts/export_sysml_api_baseline.py",
-    "de4sdv/semantic/increment_discovery.py",
-    "de4sdv/semantic/export_evaluation.py",
-    "de4sdv/semantic/model_authority_runtime.py",
-    "de4sdv/semantic/contract-data/**",
+    "de4sdv/semantic/**",
+    "de4sdv/sysml_api/**",
 }
 LICENCE_VALUE = "${{ secrets.SYSIDE_LICENSE_KEY }}"
 LICENCE_PRESENCE = "${{ secrets.SYSIDE_LICENSE_KEY != '' }}"
@@ -116,6 +115,42 @@ def test_pull_requests_reuse_the_privileged_validation_path_filters() -> None:
             assert any(f.is_file() for f in ROOT.glob(path + "/*")), path
         else:
             assert (ROOT / path).is_file(), path
+
+
+def _repository_imports(script: Path, seen: set[Path]) -> None:
+    """Every repository module a script reaches through imports."""
+    if script in seen or not script.is_file():
+        return
+    seen.add(script)
+    for node in ast.walk(ast.parse(script.read_text(encoding="utf-8"))):
+        names: list[str] = []
+        if isinstance(node, ast.ImportFrom) and node.module and not node.level:
+            names = [node.module] + [f"{node.module}.{alias.name}" for alias in node.names]
+        elif isinstance(node, ast.ImportFrom) and node.level:
+            package = script.parent.relative_to(ROOT).parts
+            package = package[: len(package) - (node.level - 1)] if node.level > 1 else package
+            base = ".".join((*package, node.module) if node.module else package)
+            names = [base] + [f"{base}.{alias.name}" for alias in node.names]
+        elif isinstance(node, ast.Import):
+            names = [alias.name for alias in node.names]
+        for name in names:
+            for candidate in (ROOT / (name.replace(".", "/") + ".py"),
+                              ROOT / name.replace(".", "/") / "__init__.py"):
+                _repository_imports(candidate, seen)
+
+
+def test_every_module_the_check_runs_triggers_it() -> None:
+    """A change to any repository module the Method Check imports must run it."""
+    filters = _triggers(_workflow())["pull_request"]["paths"]
+    seen: set[Path] = set()
+    for script in (CHECK_SCRIPT, "scripts/evaluate_increment.py"):
+        _repository_imports(ROOT / script, seen)
+    modules = sorted(path.relative_to(ROOT).as_posix() for path in seen)
+    assert any(module.startswith("de4sdv/semantic/") for module in modules)
+    uncovered = [module for module in modules
+                 if module not in filters
+                 and not any(f.endswith("/**") and module.startswith(f[:-2]) for f in filters)]
+    assert uncovered == []
 
 
 def test_the_export_job_keeps_the_privileged_validation_guard() -> None:
