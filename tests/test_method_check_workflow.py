@@ -38,6 +38,7 @@ OWN_PATHS = {
     "de4sdv/semantic/increment_discovery.py",
     "de4sdv/semantic/export_evaluation.py",
     "de4sdv/semantic/model_authority_runtime.py",
+    "de4sdv/semantic/contract-data/**",
 }
 LICENCE_VALUE = "${{ secrets.SYSIDE_LICENSE_KEY }}"
 LICENCE_PRESENCE = "${{ secrets.SYSIDE_LICENSE_KEY != '' }}"
@@ -110,7 +111,11 @@ def test_pull_requests_reuse_the_privileged_validation_path_filters() -> None:
     assert validation <= set(method)
     assert set(method) - validation == OWN_PATHS
     for path in OWN_PATHS:
-        assert (ROOT / path).is_file(), path
+        if path.endswith("/**"):
+            # A directory filter must cover at least one file, or it filters nothing.
+            assert any(f.is_file() for f in ROOT.glob(path + "/*")), path
+        else:
+            assert (ROOT / path).is_file(), path
 
 
 def test_the_export_job_keeps_the_privileged_validation_guard() -> None:
