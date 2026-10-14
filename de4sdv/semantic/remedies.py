@@ -53,6 +53,9 @@ NEED_CLASS = "Need"
 REQUIREMENT_CLASS = "Requirement"
 _PACKAGES = ("Package", "LibraryPackage")
 
+#: The name the author gives the increment's own definition (declared by the remedy that uses it).
+INCREMENT_DEFINITION = "<IncrementDefinitionName>"
+_OWN_DEFINITION = "the increment's own definition specializes it"
 SUBJECT_FIRST = ("Subject first: a requirement, concern or viewpoint with stakeholder or actor members declares "
                  "its subject before them (Syside: requirement-usage-subject-parameter-position).")
 _SPECIALIZING = "this definition or a definition specializing it"
@@ -295,12 +298,24 @@ def _has_subject(view: ModelView, element: str | None) -> bool:
     return bool(element) and any(view.index.owned_relationships(element, "SubjectMembership"))
 
 
-def _increment_definitions(request: _Request) -> list[str]:
+def _increment_definition(lines: _Lines, general: str | None = None) -> str:
+    """The increment's own definition, as the method declares it: the definition typing the resolved
+    increment usage (qualified); else a part def the author names, declared first in the remedy and
+    specializing ``general`` (the kernel's EngineeringIncrement, by its validated binding). The checks
+    also accept a usage typed by the kernel definition itself; the remedy teaches the method's form."""
+    request = lines.request
     scope = request.scope
     if scope is not None and scope.definition_ids:
-        return list(scope.definition_ids)
-    kernel = _kernel(request.view, INCREMENT_CLASS)
-    return [kernel] if kernel else []
+        return lines.type(scope.definition_ids[0], "the definition typing the increment usage")
+    general = general or _kernel(request.view, INCREMENT_CLASS)
+    if general is None:
+        lines.notes.append("The kernel binds no EngineeringIncrement definition at this revision.")
+        return INCREMENT_DEFINITION
+    declaration = (f"{_keyword(request.view, general)} {INCREMENT_DEFINITION} :> "
+                   f"{lines.type(general, _OWN_DEFINITION)};")
+    if declaration not in lines.declarations:
+        lines.declarations.insert(0, declaration)
+    return INCREMENT_DEFINITION
 
 
 def _system_of_interest_subject(lines: _Lines) -> str:
@@ -319,9 +334,7 @@ def _subject_first(lines: _Lines) -> str:
     request = lines.request
     types = _subject_types(request)
     if _in_lineage(request.view, types, PROBLEM_STATEMENT_CLASS):
-        definitions = _increment_definitions(request)
-        if definitions:
-            return f"subject increment : {lines.type(definitions[0], 'the definition typing the increment usage')};"
+        return f"subject increment : {_increment_definition(lines)};"
     if _in_lineage(request.view, types, NEED_CLASS) or _in_lineage(request.view, types, REQUIREMENT_CLASS):
         return _system_of_interest_subject(lines)
     return "subject;"
@@ -352,12 +365,10 @@ def _increment_short_name(request: _Request) -> Remedy:
                                   + (f" : {types};" if types else ";"))
         return lines.remedy(f"declare {view.label(request.subject)} with the increment identifier as its "
                             "declared short name")
-    lines.declarations.append(_declaration(lines, name="<usageName>", short=f"'{identifier}'"))
-    parameter_type = _one_type(request.view, request.parameter)
-    if parameter_type is not None:
-        lines.notes.append(f"The type may also be a definition specializing it: part def <IncrementName> :> "
-                           f"{lines.type(parameter_type)};")
-    return lines.remedy(f"declare the increment usage with its identifier as declared short name, {_where(request)}")
+    definition = _increment_definition(lines, _one_type(request.view, request.parameter))
+    lines.declarations.append(f"{_parameter_keyword(request)} <'{identifier}'> <usageName> : {definition};")
+    return lines.remedy(f"declare the increment usage with its identifier as declared short name, typed by the "
+                        f"increment's own definition, {_where(request)}")
 
 
 def _member_line(lines: _Lines, member: str, value: str, *,
@@ -557,17 +568,15 @@ def _expected_artifacts_cover_content(request: _Request) -> Remedy:
 
 def _problem_statement_subject(request: _Request) -> Remedy:
     lines = _lines(request)
-    definitions = _increment_definitions(request)
-    admits = "the definition typing the increment usage"
-    subject = f"subject increment : {lines.type(definitions[0], admits)};" if definitions else "subject increment;"
+    subject = f"subject increment : {_increment_definition(lines)};"
     lines.notes.append(SUBJECT_FIRST)
     if request.subject is not None:
         lines.declarations.append(subject)
         return lines.remedy(f"keep {request.view.label(request.subject)} in the increment's package, its subject "
                             "first and typed by the increment definition")
     lines.declarations.append(_declaration(lines, [subject], name="<problemStatementName>"))
-    return lines.remedy(f"declare the problem statement {_where(request)}, its subject typed by the definition "
-                        "of the increment usage")
+    return lines.remedy(f"declare the problem statement {_where(request)}, its subject typed by the increment's "
+                        "own definition")
 
 
 def _owned_by_increment_package(request: _Request) -> Remedy:

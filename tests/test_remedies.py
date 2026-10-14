@@ -183,21 +183,42 @@ def test_the_kernel_scenario_declares_the_live_workflow_and_passes_its_blocking_
 # -- what to author, from the typed parameter ------------------------------------------
 
 
-def test_a_new_increment_is_told_to_declare_its_usage_typed_by_the_qualified_kernel_definition() -> None:
-    """``out part increment : EngineeringIncrement``: the keyword, the qualified type and its import."""
+def test_a_new_increment_is_told_to_declare_its_definition_then_its_usage() -> None:
+    """``out part increment : EngineeringIncrement``: the method's form. The increment's own definition
+    specializes the qualified kernel definition (its keyword and import), and the usage is typed by it."""
     scenario, _steps, _types = _kernel_scenario()
     step = _evaluate(scenario, NEW).next_obligation()["next"]
     assert step["gate"] == "incrementHasIdentifier"
     qualified, package = _kernel_qualified(scenario, "EngineeringIncrement")
-    line = f"part <'{NEW}'> <usageName> : {qualified};"
-    assert step["authoring"]["declarations"] == [line]
+    lines = [f"part def <IncrementDefinitionName> :> {qualified};",
+             f"part <'{NEW}'> <usageName> : <IncrementDefinitionName>;"]
+    assert step["authoring"]["declarations"] == lines
     assert step["authoring"]["imports"] == [f"private import {package}::*;"]
     assert step["what_to_author"].startswith("declare the increment usage with its identifier")
-    assert line in step["what_to_author"] and f"private import {package}::*;" in step["what_to_author"]
+    assert " ".join(lines) in step["what_to_author"] and f"private import {package}::*;" in step["what_to_author"]
     (named,) = step["authoring"]["types"]
     assert (named["qualified_name"], named["element_id"]) == (
         qualified, scenario.vocabulary["EngineeringIncrement"]["@id"])
-    assert "or a definition specializing it" in named["admits"]
+    assert named["admits"] == "the increment's own definition specializes it"
+    # The method's form only: the remedy never offers to type the usage by the kernel definition itself.
+    assert f": {qualified};" not in step["what_to_author"]
+
+
+def test_a_new_increment_s_problem_statement_takes_the_increment_definition_as_subject() -> None:
+    """The problem statement's subject is typed by the increment's own definition, declared first in the
+    same remedy; once the increment resolves, by the definition that types its usage."""
+    scenario, _steps, _types = _kernel_scenario()
+    qualified, _package = _kernel_qualified(scenario, "EngineeringIncrement")
+    problem, _types = _kernel_qualified(scenario, "ProblemStatement")
+    for gate in ("incrementHasProblemStatement", "incrementHasStakeholder"):
+        declarations = _gap(_evaluate(scenario, NEW).gaps(), gate)["authoring"]["declarations"]
+        assert declarations[0] == f"part def <IncrementDefinitionName> :> {qualified};", gate
+        assert declarations[1].startswith(
+            f"requirement <problemStatementName> : {problem} {{ subject increment : <IncrementDefinitionName>; "), gate
+    resolved = [g for g in _evaluate(scenario).phase_contract()["gates"]
+                if g["obligation_id"] == "incrementHasProblemStatement"][0]
+    assert resolved["authoring"]["declarations"] == [
+        f"requirement <problemStatementName> : {problem} {{ subject increment : DE4SDV_FixtureFraming::FixtureIncrement; }}"]
 
 
 # -- the accepted forms (oracle) ---------------------------------------------------------
@@ -409,7 +430,7 @@ def test_the_charter_is_declared_holding_its_reference_to_the_increment_usage() 
     assert "after the increment usage" in charter["what_to_author"]
     # The same name the increment's own remedy declares.
     identifier = _gap(_evaluate(scenario, NEW).gaps(), "incrementHasIdentifier")
-    assert "<usageName>" in identifier["authoring"]["declarations"][0]
+    assert identifier["authoring"]["declarations"][1] == f"part <'{NEW}'> <usageName> : <IncrementDefinitionName>;"
 
 
 def test_applicable_phases_lists_the_literals_of_the_enumeration_and_marks_the_checked_phases() -> None:
@@ -453,7 +474,7 @@ def test_a_remedy_that_adds_stakeholders_declares_the_subject_first() -> None:
     gaps = _evaluate(scenario, NEW).gaps()
     for gate in ("incrementHasStakeholder", "needHasStakeholder", "incrementHasFramedConcern"):
         entry = _gap(gaps, gate)
-        line = entry["authoring"]["declarations"][0]
+        (line,) = [d for d in entry["authoring"]["declarations"] if "stakeholder " in d]
         assert re.search(r"\{ (?:doc /\* [^*]* \*/ )?subject\b[^;]*; stakeholder ", line), (gate, line)
         assert SUBJECT_FIRST in entry["authoring"]["notes"], gate
     builder = scenario.builder
@@ -483,7 +504,8 @@ def test_a_type_outside_any_package_is_named_without_an_import() -> None:
     scenario = increment_scenario()
     _needs_workflow(scenario)
     step = _evaluate(scenario, NEW).next_obligation()["next"]
-    assert step["authoring"]["declarations"] == [f"part <'{NEW}'> <usageName> : EngineeringIncrement;"]
+    assert step["authoring"]["declarations"] == [f"part def <IncrementDefinitionName> :> EngineeringIncrement;",
+                                                 f"part <'{NEW}'> <usageName> : <IncrementDefinitionName>;"]
     assert step["authoring"]["imports"] == []
     assert any("has no qualified name" in note for note in step["authoring"]["notes"])
 
@@ -598,10 +620,12 @@ def test_a_population_remedy_names_an_untyped_parameter_by_its_keyword() -> None
     assert evidence["authoring"]["declarations"] == ["verification <name>;"]
 
 
-def test_the_increment_lines_a_remedy_suggests_satisfy_the_identifier_and_problem_statement_checks() -> None:
-    """The remedy types the increment usage by the kernel definition itself, and says a specializing
-    definition is admitted too. Both forms meet incrementShortName and problemStatementSubject, which test
-    the type lineage and the usage's own typing, not a dedicated definition."""
+def test_known_looseness_the_checks_accept_an_increment_typed_by_the_kernel_definition_itself() -> None:
+    """A known looseness, not the method's form: incrementShortName and problemStatementSubject test the
+    type lineage and the usage's own typing, so a usage typed directly by EngineeringIncrement (and a problem
+    statement subject typed the same way) passes them. The remedies teach the method's form instead, a
+    definition specializing EngineeringIncrement (what every scenario here declares). Tightening the checks
+    is a later method decision; this test records the looseness until then."""
     scenario, _steps, _types = _kernel_scenario()
     builder = scenario.builder
     kernel = scenario.vocabulary["EngineeringIncrement"]
