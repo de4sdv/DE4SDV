@@ -432,12 +432,12 @@ def test_relationship_and_trace_redesign_elements_stay_in_place():
                  "oldValidationInverse", "requirementAllocation", "functionAllocation", "physicalAllocation",
                  "validationPlanning", "regulatoryProvenance"):
         assert re.search(rf"\bpart\s+{name}\s*:", carriers), name
-    traces = (KERNEL / "de4sdv_method_traces.sysml").read_text(encoding="utf-8")
-    for name in ("IncrementTraceObligations", "approvedScopedTraceMethod", "ApprovedTraceMethod"):
-        assert name in traces, name
-    # A declaration is typed by IncrementTraceObligations or by the increment
-    # charter, which the increment-workflow package declares as its specialization.
+    # The trace obligations live in the increment-workflow package, which also
+    # declares the increment charter as their specialization; a declaration is
+    # typed by either.
     workflow = (KERNEL / "de4sdv_increment_workflow.sysml").read_text(encoding="utf-8")
+    for name in ("IncrementTraceObligations", "approvedScopedTraceMethod", "ApprovedTraceMethod"):
+        assert name in workflow, name
     assert re.search(r"\bpart\s+def\s+IncrementCharter\s*:>\s*IncrementTraceObligations\b", workflow)
     for usage, framing in (("visualizationTraceObligations", "aebs/aebs_visualization_framing.sysml"),
                            ("traceObligationsMW002", "middleware/middleware_increment_framing.sysml")):

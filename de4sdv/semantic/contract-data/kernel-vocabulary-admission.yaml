@@ -53,7 +53,7 @@ exceptions:
   accounting: merged
   reason: >-
     Merged register row (successor IncrementTraceObligations, admitted in this
-    batch). Its historical documentation stays in DE4SDV_MethodTraces; no
+    batch). Its historical documentation stays in DE4SDV_IncrementWorkflow; no
     projection row is generated for a merged trace shell. Since O4 Wave C2 the
     runtime refuses the name with its register disposition (owner decision D5).
 - identity: derivesNeedFromConcern
@@ -121,12 +121,12 @@ admitted:
   boundary: none
   home:
     form: owned-doc
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml
     owner: part def ApprovedTraceMethod
     index: 0
   grounding:
     kernel_mapping:
-      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml
       declaration: part def ApprovedTraceMethod
     sub_class_of: null
     disjoint_with: []
@@ -417,12 +417,12 @@ admitted:
   boundary: none
   home:
     form: owned-doc
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml
     owner: part def IncrementTraceObligations
     index: 0
   grounding:
     kernel_mapping:
-      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml
       declaration: part def IncrementTraceObligations
     sub_class_of: null
     disjoint_with: []
@@ -618,8 +618,8 @@ admitted:
   boundary: historical-redesign
   home:
     form: named-doc
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml
-    owner: package DE4SDV_MethodTraces
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml
+    owner: package DE4SDV_IncrementWorkflow
     name: RequiredTraceChainOntologyDefinition
     index: 0
   grounding:
@@ -711,8 +711,8 @@ admitted:
   boundary: historical-redesign
   home:
     form: named-doc
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml
-    owner: package DE4SDV_MethodTraces
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml
+    owner: package DE4SDV_IncrementWorkflow
     name: TraceLinkOntologyDefinition
     index: 0
   grounding:

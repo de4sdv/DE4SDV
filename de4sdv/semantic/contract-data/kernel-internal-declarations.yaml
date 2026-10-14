@@ -27,6 +27,8 @@ declarations:
   textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml:
     metadata def MethodCheck: method-rule annotation of a workflow step parameter (check identifier, minimum,
       advisory); evaluation-policy data, not an ontology class or a result status
+    enum def TraceCompletionClaim: scoped method completion discriminator; not a V&V result or acceptance
+      status
     part def IncrementCharter: increment charter declaration specializing IncrementTraceObligations with owner,
       expected artifacts and expected review evidence as plain attributes and the system of interest by
       reference; declaration helper, not an additional ontology class or completion evidence
@@ -100,11 +102,15 @@ declarations:
     part def IncrementScope: framing helper
     part def SourceContributionRecord: realization-evidence helper
     part def SystemContext: SYSMOD problem-statement pattern element consumed by feature slices
+    requirement def AssuranceClaim: assurance-argumentation kind for bounded claims framed by the
+      argumentation-assurance viewpoint; outside the Requirement lineage; not a kernel class pin of the
+      AssuranceClaim class at this revision
+    requirement def AssuranceArgument: assurance-argumentation kind for cited support of a claim; outside the
+      Requirement lineage; not an ontology class
+    requirement def AssuranceCounterClaim: assurance-argumentation kind for a disclosed limit on a claim's
+      scope; outside the Requirement lineage; not an ontology class
   textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml:
     part def SAFDomainMapping: method-process assurance helper
-  textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml:
-    enum def TraceCompletionClaim: scoped method completion discriminator; not a V&V result or acceptance
-      status
   textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml:
     connection def RequirementFunctionAssignment: allocatedTo end-pair descriptor (requirement to function);
       a native AllocationUsage supplies the witness, not this definition or an additional ontology class
@@ -161,11 +167,3 @@ declarations:
     use case def SYSMODSystemUseCaseBase: upstream seam adapter
     occurrence def SYSMODConstrainedOccurrenceBase: upstream seam adapter
     requirement def RequirementsManagementAttributeBase: upstream seam adapter
-  textual-notation-of-model/packages/methods/de4sdv/de4sdv_assurance_argumentation.sysml:
-    requirement def AssuranceClaim: assurance-argumentation kind for bounded claims framed by the
-      argumentation-assurance viewpoint; outside the Requirement lineage; not a kernel class pin of the
-      AssuranceClaim class at this revision
-    requirement def AssuranceArgument: assurance-argumentation kind for cited support of a claim; outside the
-      Requirement lineage; not an ontology class
-    requirement def AssuranceCounterClaim: assurance-argumentation kind for a disclosed limit on a claim's
-      scope; outside the Requirement lineage; not an ontology class

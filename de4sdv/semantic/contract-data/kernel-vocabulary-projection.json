@@ -67,7 +67,7 @@
       {
         "identity": "IncrementTraceabilityShell",
         "accounting": "merged",
-        "reason": "Merged register row (successor IncrementTraceObligations, admitted in this batch). Its historical documentation stays in DE4SDV_MethodTraces; no projection row is generated for a merged trace shell. Since O4 Wave C2 the runtime refuses the name with its register disposition (owner decision D5)."
+        "reason": "Merged register row (successor IncrementTraceObligations, admitted in this batch). Its historical documentation stays in DE4SDV_IncrementWorkflow; no projection row is generated for a merged trace shell. Since O4 Wave C2 the runtime refuses the name with its register disposition (owner decision D5)."
       },
       {
         "identity": "derivesNeedFromConcern",
@@ -154,7 +154,7 @@
       "definition": {
         "documentation": "Selected approved method identity. Selecting this reference does not establish conformance, approval of a candidate, or an engineering trace.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml",
           "owner": "part def ApprovedTraceMethod",
           "form": "owned-doc",
           "documentation_name": null,
@@ -164,7 +164,7 @@
       },
       "grounding": {
         "kernel_binding_contract": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml",
           "declaration": "part def ApprovedTraceMethod"
         },
         "ontology_relations": {
@@ -602,7 +602,7 @@
       "definition": {
         "documentation": "Scope declaration of an increment's trace obligations: the selected approved method, the increment, its declared scope kind, applicable phases and completion claim. Required traces derive from the selected approved method, not from candidate-selected easy checks. The traces themselves are the increment's native model relationships (owning membership, typing, requirement subject and stakeholder membership, HasStakeholder connections, framed concerns), never parallel reference slots in this declaration. Populating this declaration is not completion evidence. Reuse prior artifacts, preserve R/F/L/P, and do not invent realization or execution for early framing. Missing required traces block the corresponding claim unless an authorized visible disposition permits it. Unsupported or unavailable evaluation stays UNASSESSED, never synthetic PASS.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml",
           "owner": "part def IncrementTraceObligations",
           "form": "owned-doc",
           "documentation_name": null,
@@ -612,7 +612,7 @@
       },
       "grounding": {
         "kernel_binding_contract": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml",
           "declaration": "part def IncrementTraceObligations"
         },
         "ontology_relations": {
@@ -890,8 +890,8 @@
       "definition": {
         "documentation": "The ordered trace chain every substantial increment should establish, even if some links are draft: stakeholder concern, need, requirement, feature or common capability, architecture element, logical-to-software signal mapping when a boundary is crossed, physical/software realization, verification case, acceptance criterion, evidence artifact, baseline decision. Intentionally missing links are recorded as gaps.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
-          "owner": "package DE4SDV_MethodTraces",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml",
+          "owner": "package DE4SDV_IncrementWorkflow",
           "form": "named-doc",
           "documentation_name": "RequiredTraceChainOntologyDefinition",
           "documentation_index": 0
@@ -1019,8 +1019,8 @@
       "definition": {
         "documentation": "A relationship connecting source, rationale, requirement, model, evidence, or baseline artifacts.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
-          "owner": "package DE4SDV_MethodTraces",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml",
+          "owner": "package DE4SDV_IncrementWorkflow",
           "form": "named-doc",
           "documentation_name": "TraceLinkOntologyDefinition",
           "documentation_index": 0
