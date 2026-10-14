@@ -46,10 +46,9 @@ ROOT = Path(__file__).resolve().parents[2]
 
 ROUTING_SCHEMA = "de4sdv.model-authority-routing/v2"
 
-#: Owner decision 5 (2026-10-07): the EvidenceContract type closure is exactly
-#: the eight AEBS evidence-contract definitions.
-EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS = 8
 EVIDENCE_CONTRACT_CLASS = "EvidenceContract"
+#: Predicates whose range is a type-lineage discriminator: the specialization
+#: closure of a kernel declaration, as the model declares it (never a count).
 DISCRIMINATED_PREDICATES = ("hasRelevantEvidenceContract",)
 
 
@@ -349,19 +348,28 @@ def _batch2_discriminator(identity: str, range_: Mapping[str, Any]) -> dict[str,
     if (not isinstance(discriminator, Mapping) or discriminator.get("kind") != "type-lineage"
             or not isinstance(closure, list)):
         raise ModelAuthorityRefused(f"{identity}: malformed range discriminator")
-    if (identity in DISCRIMINATED_PREDICATES
-            and len(closure) != EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS):
-        raise ModelAuthorityRefused(
-            f"{identity}: discriminator closure has {len(closure)} definitions, expected "
-            f"{EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS}")
     _file_mapping(discriminator.get("lineage"), identity)
-    for member in closure:
-        _file_mapping(member, identity)
+    members = [_file_mapping(member, identity) for member in closure]
+    if identity in DISCRIMINATED_PREDICATES:
+        # Content, not a count: the closure is the set of definitions the
+        # model declares for the lineage, each a requirement definition,
+        # none listed twice.
+        keys = [(member.file, member.declaration) for member in members]
+        if (not keys or len(set(keys)) != len(keys)
+                or any(declaration_identity(member.declaration)[1] != "RequirementDefinition"
+                       for member in members)):
+            raise ModelAuthorityRefused(
+                f"{identity}: discriminator closure must list distinct requirement definitions, "
+                f"at least one")
     return json.loads(json.dumps(dict(discriminator)))
 
 
 def bound_evidence_contract_closure(root: Path = ROOT) -> list[dict[str, str]]:
-    """The bound ``hasRelevantEvidenceContract`` closure members (file, declaration)."""
+    """The bound ``hasRelevantEvidenceContract`` closure members (file, declaration).
+
+    They are the evidence-contract definitions the model declares; the loader
+    has checked that they are distinct requirement definitions.
+    """
     _, provisions = load_model_layers(root)
     for provision in provisions:
         if provision.identity in DISCRIMINATED_PREDICATES and provision.kind == "relationship":
@@ -370,11 +378,11 @@ def bound_evidence_contract_closure(root: Path = ROOT) -> list[dict[str, str]]:
             for member in discriminator.get("closure") or ():
                 pinned = _file_mapping(member, provision.identity)
                 members.append({"source_file": pinned.file, "declaration": pinned.declaration})
-            if len(members) == EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS:
+            if members:
                 return sorted(members, key=lambda m: (m["source_file"], m["declaration"]))
     raise ModelAuthorityRefused(
         "no bound EvidenceContract closure: the batch-2 hasRelevantEvidenceContract "
-        f"discriminator with {EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS} members is not projected")
+        "discriminator is not projected")
 
 
 class _ClosureMemberContract:

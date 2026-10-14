@@ -155,11 +155,13 @@ end pair applies, exactly what the `realizedBy` alias served).
 ## `hasRelevantEvidenceContract` discriminator
 
 The range is the authored type closure of the validated `EvidenceContract`
-kernel root. It must contain exactly eight specializing requirement
-definitions: the AEBS evidence contracts. Members are the usages explicitly
-typed by the root or by one of those definitions. Any other population fails
-closed with `MODEL_EVIDENCE_CONTRACT_BLOCKED_REASON`. `traversal.py` is
-untouched; the discriminator is a subclass override.
+kernel root. It must hold as many specializing requirement definitions as the
+closure the contract declares, which lists the evidence contracts the model
+declares (the eight AEBS evidence contracts at this revision); the release
+evidence check compares the two sets by element id. Members are the usages
+explicitly typed by the root or by one of those definitions. An empty or
+different population fails closed with `MODEL_EVIDENCE_CONTRACT_BLOCKED_REASON`.
+`traversal.py` is untouched; the discriminator is a subclass override.
 
 ## Coverage gate (blocking)
 

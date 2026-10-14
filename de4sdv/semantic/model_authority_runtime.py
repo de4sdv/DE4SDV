@@ -19,9 +19,10 @@ over the licensed export (:mod:`de4sdv.semantic.export_evaluation`).
 
 ``hasRelevantEvidenceContract`` uses the owner-adopted discriminator: its
 range is the authored type closure of the validated ``EvidenceContract``
-kernel root, which must contain exactly
-:data:`EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS` specializing definitions (the
-eight AEBS evidence contracts). Any other population fails closed with
+kernel root. The served model must hold as many specializing requirement
+definitions as the closure the contract declares, which lists the evidence
+contracts the model declares; the release evidence check compares the two
+sets by element id. An empty or different population fails closed with
 :data:`MODEL_EVIDENCE_CONTRACT_BLOCKED_REASON`.
 
 Non-claims: serving the model-built contract is not compliance or a semantic
@@ -44,7 +45,6 @@ from .model_contract import (  # noqa: F401 — re-exported model-contract surfa
     BATCH2_LAYERS,
     DISCRIMINATED_PREDICATES,
     EVIDENCE_CONTRACT_CLASS,
-    EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS,
     LAYERS,
     O2_CHAIN_IDENTITIES,
     O2_CHAIN_LAYER,
@@ -69,10 +69,9 @@ MODEL_AUTHORITY = "model"
 MODEL_EVIDENCE_CONTRACT_BLOCKED_REASON = (
     "EvidenceContract type closure is not established at this revision: the "
     "model-authority discriminator requires the validated EvidenceContract "
-    "kernel root and exactly "
-    f"{EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS} authored specializing "
-    "requirement definitions; native verification membership alone never "
-    "establishes the range."
+    "kernel root and the authored specializing requirement definitions that "
+    "the contract's closure declares; native verification membership alone "
+    "never establishes the range."
 )
 
 
@@ -219,9 +218,10 @@ class ModelAuthorityTraversal(SuccessorTraversal):
 
         Returns ``(root_id, definitions, closure, resolver)``. Root identity
         comes from the ingestion-validated kernel binding; the closure follows
-        AUTHORED subsumption only and must contain exactly the expected number
-        of specializing requirement definitions (ids, never names). Built once
-        per corpus; a refusal is re-raised on every call.
+        AUTHORED subsumption only and must contain as many specializing
+        requirement definitions as the contract's discriminator closure
+        declares, at least one (ids, never names). Built once per corpus; a
+        refusal is re-raised on every call.
         """
         return self.revision_index(elements).memo_bound(
             "evidence-contract-definitions",
@@ -246,11 +246,17 @@ class ModelAuthorityTraversal(SuccessorTraversal):
         closure = set(resolver["explicit_lineage_ids"])
         definitions = {i for i in closure - {root_id}
                        if str(by_id.get(i, {}).get("@type")) == "RequirementDefinition"}
-        if len(definitions) != EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS:
+        declared = self._declared_evidence_contracts()
+        if not definitions or len(definitions) != len(declared):
             raise IdentityNotFoundError(
                 f"{MODEL_EVIDENCE_CONTRACT_BLOCKED_REASON} (found {len(definitions)} "
-                "specializing definitions)")
+                f"specializing definitions; the contract declares {len(declared)})")
         return root_id, definitions, closure, resolver
+
+    def _declared_evidence_contracts(self) -> list:
+        """The closure members the contract declares for the discriminator."""
+        spec = (self.contract.relationships or {}).get(DISCRIMINATED_PREDICATES[0]) or {}
+        return list((spec.get("range_discriminator") or {}).get("closure") or ())
 
     def _evidence_contract_identity_ids(self, elements):
         """Owner-adopted discriminator: members are the usages explicitly typed

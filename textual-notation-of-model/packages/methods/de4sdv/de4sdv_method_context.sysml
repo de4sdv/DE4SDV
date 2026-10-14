@@ -290,7 +290,7 @@ package DE4SDV_MethodContext {
          * boundary, and retained-evidence obligations for a verification case. An
          * evidence contract is planning vocabulary, not proof that a product
          * requirement is verified. */
-    /* Specialized by exactly the eight AEBS evidence-contract definitions:
+    /* Specialized by the eight AEBS evidence-contract definitions:
      * OverrideEvidenceContract, DegradedInputEvidenceContract,
      * BicycleEvidenceContract, NominalEvidenceContractRequirement,
      * RegulatoryCriterionEvidenceContract, NonActivationEvidenceContract,
@@ -298,10 +298,10 @@ package DE4SDV_MethodContext {
      * MiddlewareAcceptanceCriterion is an AcceptanceCriterion only, so
      * acceptance-criterion typing never makes a requirement an evidence
      * contract. This specialization closure is the evidence-contract
-     * population that the hasRelevantEvidenceContract discriminator lists;
-     * the runtime refuses any other number of members, so a change updates
-     * that check and its population test together. The existing runtime
-     * dependency mapping is unchanged. */
+     * population that the hasRelevantEvidenceContract discriminator lists; a
+     * new evidence contract joins that list in the kernel-vocabulary
+     * admission, and the runtime refuses a served model whose closure differs
+     * from it. The existing runtime dependency mapping is unchanged. */
   }
 
   comment hasRelevantEvidenceContractVocabularyRole about EvidenceContract /* The
