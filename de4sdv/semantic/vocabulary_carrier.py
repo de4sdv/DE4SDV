@@ -565,7 +565,7 @@ def run_check_errors(root: Path) -> list[str]:
     artifacts are required: missing artifacts or committed bytes differing
     from deterministic regeneration from current inputs are errors.
     """
-    from de4sdv.semantic.projection_o2p import canonical_json
+    from de4sdv.semantic.native_grounding_projection import canonical_json
 
     try:
         document = load_carriers(root / CARRIERS_PATH)

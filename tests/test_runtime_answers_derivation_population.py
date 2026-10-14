@@ -1,14 +1,17 @@
-"""The K pair is checked against the export's DerivesFromNeed connections, by id.
+"""The derivation pair is checked against the export's DerivesFromNeed connections, by id.
 
-The reference population is every ``ConnectionUsage`` of the export that carries
-an authored typing to the K pair's connection definition (or an authored
-specialization of it), resolved through the ingestion-validated kernel binding,
-never by name. Both navigations must return exactly that id set: counts are
-never compared, so model growth cannot trip the gate and a count-preserving swap
-cannot pass it. An absent or empty reference is never equivalence.
+The derivation pair is ``derivesRequirementFromNeed`` and its inverse
+``derivedRequirementsOfNeed`` (``K_PAIR`` in ``runtime_answers``). The reference
+population is every ``ConnectionUsage`` of the export that carries an authored
+typing to the pair's connection definition (or an authored specialization of
+it), resolved through the ingestion-validated kernel binding, never by name.
+Both navigations must return exactly that id set: counts are never compared,
+so model growth cannot trip the gate and a count-preserving swap cannot pass
+it. An absent or empty reference is never equivalence.
 
 Synthetic collected records and synthetic element shapes; the end-to-end cases
-run the real traversal over the minimized real-serializer K corpus. No API.
+run the real traversal over the minimized real-serializer derivation corpus.
+No API.
 """
 from __future__ import annotations
 
@@ -239,7 +242,7 @@ BICYCLE = "r6-conn-reqBicycleTargetResponse"
 
 def _service():
     from model_contract_fixtures import model_contract
-    from test_k_real_serializer_shapes import _binding_index
+    from test_connection_end_serializer_shapes import _binding_index
 
     from de4sdv.semantic.traversal import SemanticTraversal
 
@@ -257,7 +260,7 @@ def _k_pair(service, live, export):
 
 
 def test_runtime_navigations_cover_exactly_the_export_connections():
-    from test_k_real_serializer_shapes import real_shape_elements
+    from test_connection_end_serializer_shapes import real_shape_elements
 
     elements = real_shape_elements()
     result = _k_pair(_service(), elements, elements)
@@ -269,7 +272,7 @@ def test_runtime_navigations_cover_exactly_the_export_connections():
 
 def test_a_connection_the_runtime_does_not_answer_is_named():
     """The queried corpus lost one connection's definition typing; the export still models it."""
-    from test_k_real_serializer_shapes import real_shape_elements
+    from test_connection_end_serializer_shapes import real_shape_elements
 
     export = real_shape_elements()
     typing = "r6-conn-typing-reqBicycleTargetResponse"
@@ -286,7 +289,7 @@ def test_a_connection_the_runtime_does_not_answer_is_named():
 
 
 def test_an_unresolvable_export_reference_is_recorded_not_raised():
-    from test_k_real_serializer_shapes import real_shape_elements
+    from test_connection_end_serializer_shapes import real_shape_elements
 
     elements = real_shape_elements()
     export = [e for e in elements if e["@id"] != "r6-def"]

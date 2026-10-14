@@ -146,7 +146,7 @@ def current_definition(identity: str) -> str:
         source = (REPO_ROOT / locator["file"]).read_text(encoding="utf-8")
         text = owned_definition_documentation(source, locator["declaration"])
     else:
-        from de4sdv.semantic.definition_projection_batch2 import _Model, _definition_text
+        from de4sdv.semantic.kernel_vocabulary_projection import _Model, _definition_text
 
         definition, _ = _definition_text(_Model(REPO_ROOT), row)
         text = definition["documentation"]
@@ -157,7 +157,8 @@ def current_definition(identity: str) -> str:
 
 def manifest_held_values(row: dict[str, Any]) -> dict[str, Any]:
     """The contract fields one kernel-vocabulary manifest row holds itself
-    (owner decision D9): class pins, or a relation with its mechanics.
+    (the model does not carry them structurally): class pins, or a relation
+    with its mechanics.
     Definition text is excluded; the model owns it."""
     values: dict[str, Any] = {}
     if row["semantic_kind"] == "class":

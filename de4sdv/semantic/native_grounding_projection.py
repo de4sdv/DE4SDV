@@ -1,15 +1,16 @@
-"""O2+ native/library grounding & projection layer (accelerated safe-set 1).
+"""Native-grounding projection: identities grounded in native or standard-library
+SysML v2 constructs, with their API representation profile.
 
 Governed by: ontology review Deliverable 8 wave 3 (native/library projection
-rows over already-native constructs) + the O4 execution register rows for the
-admitted identities. The layer records exact-fit standard-construct grounding
+rows over already-native constructs) + the ontology identity register rows for
+the admitted identities. The layer records exact-fit standard-construct grounding
 for already-native/library constructs and generates vocabulary-only projection
 rows and API-representation profile entries over them.
 
 Canonical artifacts:
 
 - ``de4sdv/semantic/contract-data/native-grounding-projection.json``
-  (the O2+ projection: one row per admitted identity, grounded in the
+  (the projection: one row per admitted identity, grounded in the
   reviewed construct witness, support stays vocabulary-only);
 - ``de4sdv/semantic/contract-data/native-grounding-profile.json``
   (representation mechanics entries for the ``api_profile_required`` rows).
@@ -22,13 +23,13 @@ both documents, and compares exact bytes; construction needs no input commit.
 Boundaries: offline and read-only; no network; no runtime semantic change;
 generation is not authority activation; the runtime reads these artifacts to
 build the kernel contract; support is never promoted beyond vocabulary-only;
-no traversal is implemented or claimed; the frozen O2 (v1/v1.1/v1.2) and O3
-surfaces are never re-emitted (machine-locked).
+no traversal is implemented or claimed; the identities served from the frozen
+records (projection v1, v1.1 and v1.2) are never re-emitted (machine-locked).
 
 Usage:
 
-    python scripts/generate_semantic_projection_o2p.py              # write
-    python scripts/generate_semantic_projection_o2p.py --check      # verify
+    python scripts/generate_native_grounding_projection.py              # write
+    python scripts/generate_native_grounding_projection.py --check      # verify
 """
 
 from __future__ import annotations
@@ -47,19 +48,20 @@ from de4sdv.semantic.authority_inventory import file_digest
 # Paths
 # ---------------------------------------------------------------------------
 
-ADMISSION_O2P_PATH = "de4sdv/semantic/contract-data/native-grounding-admission.yaml"
-PROJECTION_O2P_PATH = "de4sdv/semantic/contract-data/native-grounding-projection.json"
-PROFILE_O2P_PATH = "de4sdv/semantic/contract-data/native-grounding-profile.json"
-MODULE_O2P_PATH = "de4sdv/semantic/projection_o2p.py"
-GENERATOR_O2P_PATH = "scripts/generate_semantic_projection_o2p.py"
+ADMISSION_PATH = "de4sdv/semantic/contract-data/native-grounding-admission.yaml"
+PROJECTION_PATH = "de4sdv/semantic/contract-data/native-grounding-projection.json"
+PROFILE_PATH = "de4sdv/semantic/contract-data/native-grounding-profile.json"
+MODULE_PATH = "de4sdv/semantic/native_grounding_projection.py"
+GENERATOR_PATH = "scripts/generate_native_grounding_projection.py"
 SYSIDE_WORKFLOW_PATH = ".github/workflows/privileged-syside-validation.yml"
 
-PROJECTION_O2P_SCHEMA = "de4sdv.semantic-projection.o2plus/v1"
-PROFILE_O2P_SCHEMA = "de4sdv.api-representation-profile.o2plus/v1"
+PROJECTION_SCHEMA = "de4sdv.semantic-projection.o2plus/v1"
+PROFILE_SCHEMA = "de4sdv.api-representation-profile.o2plus/v1"
 
-#: The frozen O2 projection surface (v1 seven + v1.1 three + v1.2 three).
-FROZEN_O2_IDENTITIES: tuple[str, ...] = (
-    # O2.1 (v1)
+#: The identities of the frozen projection records (v1 seven + v1.1 three +
+#: v1.2 three).
+FROZEN_PROJECTION_ROW_IDENTITIES: tuple[str, ...] = (
+    # projection v1
     "MethodContractObligation",
     "MethodPhase",
     "EvaluationScopeMembership",
@@ -67,11 +69,11 @@ FROZEN_O2_IDENTITIES: tuple[str, ...] = (
     "TestedScopeDeclaration",
     "RetainedExecutionRecordReference",
     "AcceptanceAttestationReference",
-    # O2.2 (v1.1)
+    # projection v1.1
     "VerificationCase",
     "hasSubject",
     "verifiedBy",
-    # O2.3 (v1.2)
+    # projection v1.2
     "derivesRequirementFromNeed",
     "derivedRequirementsOfNeed",
     "hasRelevantArchitecture",
@@ -130,11 +132,11 @@ ADMITTED_SPEC: dict[str, dict[str, Any]] = {
 }
 
 
-class ProjectionO2PError(RuntimeError):
-    """Raised when O2+ generation cannot proceed safely."""
+class NativeGroundingError(RuntimeError):
+    """Raised when native-grounding generation cannot proceed safely."""
 
 
-def validate_row_outputs_o2p(identity: str, outputs: dict[str, Any]) -> None:
+def validate_row_outputs(identity: str, outputs: dict[str, Any]) -> None:
     """Fail closed when emitted outputs disagree with the reviewed flags.
 
     A grounding/admission record is NOT a projection output: rows whose
@@ -145,14 +147,14 @@ def validate_row_outputs_o2p(identity: str, outputs: dict[str, Any]) -> None:
     """
     spec = ADMITTED_SPEC.get(identity)
     if spec is None:
-        raise ProjectionO2PError(f"{identity}: not an admitted identity")
+        raise NativeGroundingError(f"{identity}: not an admitted identity")
     expected = {
         "projection_row": bool(spec["projection_required"]),
         "api_profile_entry": bool(spec["api_profile_required"]),
         "traversal": bool(spec["traversal_required"]),
     }
     if {key: bool(value) for key, value in outputs.items()} != expected:
-        raise ProjectionO2PError(
+        raise NativeGroundingError(
             f"{identity}: emitted outputs {outputs!r} contradict the reviewed "
             f"flags {expected!r}"
         )
@@ -172,7 +174,7 @@ def resolve_source_revision(root: Path) -> str:
     """Legacy Git helper for existing consumers; unused by live construction."""
     result = _git(root, "rev-parse", "HEAD")
     if result.returncode != 0:
-        raise ProjectionO2PError(f"cannot resolve HEAD: {result.stderr.strip()}")
+        raise NativeGroundingError(f"cannot resolve HEAD: {result.stderr.strip()}")
     return result.stdout.strip()
 
 
@@ -185,27 +187,27 @@ def canonical_json(document: dict[str, Any]) -> str:
 # ---------------------------------------------------------------------------
 
 
-def load_admission_o2p(path: Path) -> dict[str, Any]:
+def load_admission(path: Path) -> dict[str, Any]:
     if not path.is_file():
-        raise ProjectionO2PError(f"admission manifest missing: {path}")
+        raise NativeGroundingError(f"admission manifest missing: {path}")
     document = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(document, dict):
-        raise ProjectionO2PError("admission manifest must be a mapping")
+        raise NativeGroundingError("admission manifest must be a mapping")
     return document
 
 
-def validate_admission_o2p(manifest: dict[str, Any]) -> None:
+def validate_admission(manifest: dict[str, Any]) -> None:
     """Machine-lock the admission boundary (fail closed)."""
     if manifest.get("schema") != "de4sdv.o2plus-admission/v1":
-        raise ProjectionO2PError("admission manifest schema mismatch")
+        raise NativeGroundingError("admission manifest schema mismatch")
     admitted = manifest.get("admitted")
     if not isinstance(admitted, list) or not admitted:
-        raise ProjectionO2PError("admission manifest has no admitted rows")
+        raise NativeGroundingError("admission manifest has no admitted rows")
     identities = [row.get("identity") for row in admitted]
     if len(set(identities)) != len(identities):
-        raise ProjectionO2PError("duplicate admitted identity")
+        raise NativeGroundingError("duplicate admitted identity")
     if set(identities) != set(ADMITTED_SPEC):
-        raise ProjectionO2PError(
+        raise NativeGroundingError(
             "admitted set must be EXACTLY the reviewed safe subset: "
             f"got {sorted(identities)!r}"
         )
@@ -214,38 +216,38 @@ def validate_admission_o2p(manifest: dict[str, Any]) -> None:
         spec = ADMITTED_SPEC[identity]
         for key in ("projection_required", "api_profile_required", "traversal_required"):
             if bool(row.get(key)) is not bool(spec[key]):
-                raise ProjectionO2PError(
+                raise NativeGroundingError(
                     f"{identity}: {key} must equal the reviewed value {spec[key]!r}"
                 )
         if row.get("category") != spec["category"]:
-            raise ProjectionO2PError(
+            raise NativeGroundingError(
                 f"{identity}: category must equal the reviewed value {spec['category']!r}"
             )
         if row.get("support") != "vocabulary-only":
-            raise ProjectionO2PError(
+            raise NativeGroundingError(
                 f"{identity}: support must stay vocabulary-only"
             )
         if row.get("traversal_required") is not False:
-            raise ProjectionO2PError(f"{identity}: traversal must not be required")
+            raise NativeGroundingError(f"{identity}: traversal must not be required")
         witness = row.get("witness")
         if not isinstance(witness, dict) or not witness.get("file") or not witness.get("contains"):
-            raise ProjectionO2PError(f"{identity}: witness file/contains required")
+            raise NativeGroundingError(f"{identity}: witness file/contains required")
         for field in ("construct", "exact_fit", "standard_construct", "claim_boundary"):
             if not row.get(field):
-                raise ProjectionO2PError(f"{identity}: {field} required")
+                raise NativeGroundingError(f"{identity}: {field} required")
 
     excluded = manifest.get("excluded")
     if not isinstance(excluded, list) or not excluded:
-        raise ProjectionO2PError("admission manifest has no excluded rows")
+        raise NativeGroundingError("admission manifest has no excluded rows")
     excluded_ids = [row.get("identity") for row in excluded]
     if len(set(excluded_ids)) != len(excluded_ids):
-        raise ProjectionO2PError("duplicate excluded identity")
+        raise NativeGroundingError("duplicate excluded identity")
     overlap = set(excluded_ids) & set(identities)
     if overlap:
-        raise ProjectionO2PError(f"admitted/excluded overlap: {sorted(overlap)!r}")
+        raise NativeGroundingError(f"admitted/excluded overlap: {sorted(overlap)!r}")
     for row in excluded:
         if not row.get("reason"):
-            raise ProjectionO2PError(
+            raise NativeGroundingError(
                 f"{row.get('identity')}: excluded rows require a reason"
             )
     # Hard gates that must never be admitted by this layer.
@@ -257,18 +259,19 @@ def validate_admission_o2p(manifest: dict[str, Any]) -> None:
         "instantiatesCanonicalArchitecture",
     ):
         if gated not in set(excluded_ids):
-            raise ProjectionO2PError(
+            raise NativeGroundingError(
                 f"hard-gated identity {gated} must remain in the excluded set"
             )
     # Frozen surfaces are never admitted here.
-    for frozen in FROZEN_O2_IDENTITIES:
+    for frozen in FROZEN_PROJECTION_ROW_IDENTITIES:
         if frozen in set(identities):
-            raise ProjectionO2PError(
-                f"frozen O2 identity {frozen} must never be admitted"
+            raise NativeGroundingError(
+                f"frozen projection row identity {frozen} must never be admitted"
             )
 
 
-def _frozen_o3_identities() -> frozenset[str]:
+def _served_frozen_identities() -> frozenset[str]:
+    """The identities the runtime serves from the frozen records."""
     from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES
 
     return frozenset(O2_CHAIN_IDENTITIES)
@@ -281,30 +284,30 @@ def verify_witnesses(root: Path, manifest: dict[str, Any]) -> None:
         witness = row["witness"]
         path = root / witness["file"]
         if not path.is_file():
-            raise ProjectionO2PError(
+            raise NativeGroundingError(
                 f"{identity}: witness file missing: {witness['file']}"
             )
         if witness["contains"] not in path.read_text(encoding="utf-8"):
-            raise ProjectionO2PError(
+            raise NativeGroundingError(
                 f"{identity}: witness construct not found in {witness['file']}: "
                 f"{witness['contains']!r}"
             )
-        frozen = _frozen_o3_identities()
+        frozen = _served_frozen_identities()
         if identity in frozen:
-            raise ProjectionO2PError(
-                f"{identity}: frozen O3 identity must never be admitted"
+            raise NativeGroundingError(
+                f"{identity}: an identity served from the frozen records must never be admitted"
             )
 
 
 def read_syside_pin(root: Path) -> str:
     workflow = root / SYSIDE_WORKFLOW_PATH
     if not workflow.is_file():
-        raise ProjectionO2PError(f"syside workflow missing: {SYSIDE_WORKFLOW_PATH}")
+        raise NativeGroundingError(f"syside workflow missing: {SYSIDE_WORKFLOW_PATH}")
     match = re.search(
         r'SYSIDE_VERSION="([^"]+)"', workflow.read_text(encoding="utf-8")
     )
     if not match:
-        raise ProjectionO2PError("syside version pin not found in the workflow")
+        raise NativeGroundingError("syside version pin not found in the workflow")
     return match.group(1)
 
 
@@ -313,12 +316,12 @@ def read_syside_pin(root: Path) -> str:
 # ---------------------------------------------------------------------------
 
 
-def collect_bound_inputs_o2p(root: Path, manifest: dict[str, Any]) -> dict[str, str]:
+def collect_bound_inputs(root: Path, manifest: dict[str, Any]) -> dict[str, str]:
     """Legacy path/digest inventory; live construction/check emits no binding."""
     paths: set[str] = {
-        ADMISSION_O2P_PATH,
-        MODULE_O2P_PATH,
-        GENERATOR_O2P_PATH,
+        ADMISSION_PATH,
+        MODULE_PATH,
+        GENERATOR_PATH,
         SYSIDE_WORKFLOW_PATH,
     }
     for row in manifest["admitted"]:
@@ -327,7 +330,7 @@ def collect_bound_inputs_o2p(root: Path, manifest: dict[str, Any]) -> dict[str, 
     for path in sorted(paths):
         file = root / path
         if not file.is_file():
-            raise ProjectionO2PError(f"bound input missing: {path}")
+            raise NativeGroundingError(f"bound input missing: {path}")
         inputs[path] = file_digest(root, path)
     return inputs
 
@@ -337,7 +340,7 @@ def collect_bound_inputs_o2p(root: Path, manifest: dict[str, Any]) -> dict[str, 
 # ---------------------------------------------------------------------------
 
 
-def derive_rows_o2p(
+def derive_rows(
     root: Path, manifest: dict[str, Any], source_revision: str | None = None
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Derive from current model witnesses; legacy source_revision is ignored."""
@@ -352,7 +355,7 @@ def derive_rows_o2p(
             "api_profile_entry": bool(row["api_profile_required"]),
             "traversal": bool(row["traversal_required"]),
         }
-        validate_row_outputs_o2p(identity, outputs)
+        validate_row_outputs(identity, outputs)
         rows.append(
             {
                 "identity": identity,
@@ -414,20 +417,20 @@ def derive_rows_o2p(
     return rows, profile_entries
 
 
-def build_pair_o2p(
+def build_artifact_pair(
     root: Path, *, source_revision: str | None = None
 ) -> dict[str, Any]:
     """Build from current inputs; accept but ignore legacy source_revision."""
-    manifest = load_admission_o2p(root / ADMISSION_O2P_PATH)
-    validate_admission_o2p(manifest)
+    manifest = load_admission(root / ADMISSION_PATH)
+    validate_admission(manifest)
     verify_witnesses(root, manifest)
 
-    rows, profile_entries = derive_rows_o2p(root, manifest, source_revision)
+    rows, profile_entries = derive_rows(root, manifest, source_revision)
     # Defense in depth: a derivation bug must not be able to silently emit a
     # projection row (or profile entry, or traversal claim) beyond the
     # reviewed flags.
     for row in rows:
-        validate_row_outputs_o2p(row["identity"], row["outputs"])
+        validate_row_outputs(row["identity"], row["outputs"])
     profile_identities = {entry["identity"] for entry in profile_entries}
     expected_profile_identities = {
         identity
@@ -435,7 +438,7 @@ def build_pair_o2p(
         if spec["api_profile_required"]
     }
     if profile_identities != expected_profile_identities:
-        raise ProjectionO2PError(
+        raise NativeGroundingError(
             "profile entries must exist for exactly the api_profile_required "
             f"rows: got {sorted(profile_identities)!r}"
         )
@@ -458,7 +461,7 @@ def build_pair_o2p(
     )
 
     projection = {
-        "schema": PROJECTION_O2P_SCHEMA,
+        "schema": PROJECTION_SCHEMA,
         "status": (
             "generated O2+ native/library grounding projection (accelerated "
             "safe-set 1, W3 safe subset)"
@@ -472,9 +475,9 @@ def build_pair_o2p(
             "does not retire authored YAML authority, promotes no support "
             "state, and implements/claims no traversal. The runtime reads this "
             "artifact to build the kernel contract. "
-            "The frozen O2 (v1/v1.1/v1.2) and O3 surfaces "
-            "are never re-emitted. Generated by "
-            "scripts/generate_semantic_projection_o2p.py."
+            "The identities served from the frozen records (projection v1, "
+            "v1.1 and v1.2) are never re-emitted. Generated by "
+            "scripts/generate_native_grounding_projection.py."
         ),
         "scope": {
             "layer": "o2plus",
@@ -496,7 +499,7 @@ def build_pair_o2p(
         "rows": rows,
     }
     profile = {
-        "schema": PROFILE_O2P_SCHEMA,
+        "schema": PROFILE_SCHEMA,
         "status": (
             "generated O2+ API Representation Profile (representation "
             "mechanics for the api_profile_required rows)"
@@ -517,44 +520,44 @@ def build_pair_o2p(
 # ---------------------------------------------------------------------------
 
 
-def run_check_errors_o2p(root: Path) -> list[str]:
-    """Check that the O2+ artifacts equal regeneration from inputs."""
+def run_check_errors(root: Path) -> list[str]:
+    """Check that the native-grounding artifacts equal regeneration from inputs."""
     errors: list[str] = []
-    projection_path = root / PROJECTION_O2P_PATH
-    profile_path = root / PROFILE_O2P_PATH
+    projection_path = root / PROJECTION_PATH
+    profile_path = root / PROFILE_PATH
     if not projection_path.is_file():
         errors.append(
-            f"{PROJECTION_O2P_PATH}: o2plus semantic projection missing; run "
-            "scripts/generate_semantic_projection_o2p.py and commit the output "
+            f"{PROJECTION_PATH}: native-grounding projection missing; run "
+            "scripts/generate_native_grounding_projection.py and commit the output "
             "with the source change (docs/guides/generated-semantic-assets.md)"
         )
     if not profile_path.is_file():
         errors.append(
-            f"{PROFILE_O2P_PATH}: o2plus api representation profile missing; run "
-            "scripts/generate_semantic_projection_o2p.py and commit the output "
+            f"{PROFILE_PATH}: native-grounding profile missing; run "
+            "scripts/generate_native_grounding_projection.py and commit the output "
             "with the source change (docs/guides/generated-semantic-assets.md)"
         )
     if errors:
         return errors
     try:
-        artifacts = build_pair_o2p(root)
-    except ProjectionO2PError as exc:
-        return [f"o2plus projection generation failed: {exc}"]
+        artifacts = build_artifact_pair(root)
+    except NativeGroundingError as exc:
+        return [f"native-grounding projection generation failed: {exc}"]
     if canonical_json(artifacts["projection"]).encode("utf-8") != (
         projection_path.read_bytes()
     ):
         errors.append(
-            f"{PROJECTION_O2P_PATH}: committed projection differs from "
+            f"{PROJECTION_PATH}: committed projection differs from "
             "regeneration from current inputs; run "
-            "scripts/generate_semantic_projection_o2p.py and commit the output "
+            "scripts/generate_native_grounding_projection.py and commit the output "
             "with the source change (docs/guides/generated-semantic-assets.md)"
         )
     if canonical_json(artifacts["profile"]).encode("utf-8") != (
         profile_path.read_bytes()
     ):
         errors.append(
-            f"{PROFILE_O2P_PATH}: committed profile differs from regeneration "
-            "from current inputs; run scripts/generate_semantic_projection_o2p.py "
+            f"{PROFILE_PATH}: committed profile differs from regeneration "
+            "from current inputs; run scripts/generate_native_grounding_projection.py "
             "and commit the output with the source change "
             "(docs/guides/generated-semantic-assets.md)"
         )

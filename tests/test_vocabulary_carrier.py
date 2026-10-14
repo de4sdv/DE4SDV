@@ -278,7 +278,7 @@ def test_generation_accepts_uncommitted_governance_inputs(tmp_path):
 
 
 def test_stale_artifacts_are_refused(tmp_path):
-    from de4sdv.semantic.projection_o2p import canonical_json
+    from de4sdv.semantic.native_grounding_projection import canonical_json
     from de4sdv.semantic.vocabulary_carrier import (
         PROFILE_CARRIER_PATH, PROJECTION_CARRIER_PATH,
         build_artifact_pair, run_check_errors,
@@ -706,7 +706,7 @@ def test_acceptance_document_must_record_the_identity_as_a_table_row(tmp_path):
 @pytest.mark.parametrize("kind", ["projection", "profile"])
 @pytest.mark.parametrize("mutation", ["payload", "malformed", "retired-binding", "crlf"])
 def test_carrier_check_refuses_noncanonical_bytes(tmp_path, monkeypatch, kind, mutation):
-    from de4sdv.semantic.projection_o2p import canonical_json
+    from de4sdv.semantic.native_grounding_projection import canonical_json
     from de4sdv.semantic.vocabulary_carrier import (
         PROFILE_CARRIER_PATH, PROJECTION_CARRIER_PATH, run_check_errors,
     )
@@ -748,7 +748,7 @@ def test_carrier_check_refuses_noncanonical_bytes(tmp_path, monkeypatch, kind, m
 
 @pytest.mark.parametrize("kind", ["projection", "profile"])
 def test_carrier_missing_artifact_fails_closed_without_commit_advice(tmp_path, kind):
-    from de4sdv.semantic.projection_o2p import canonical_json
+    from de4sdv.semantic.native_grounding_projection import canonical_json
     from de4sdv.semantic.vocabulary_carrier import (
         PROFILE_CARRIER_PATH, PROJECTION_CARRIER_PATH, run_check_errors,
     )

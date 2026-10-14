@@ -1,4 +1,4 @@
-"""O4 definition homes: source/typing checks, not licensed Syside evidence."""
+"""Kernel definition homes: source/typing checks, not licensed Syside evidence."""
 from pathlib import Path
 import re
 

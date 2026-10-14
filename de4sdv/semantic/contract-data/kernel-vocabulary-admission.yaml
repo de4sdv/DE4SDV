@@ -201,10 +201,10 @@ admitted:
   gates:
   - gate: decision-3
     resolved_by:
-    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic3
+    - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic3
   - gate: row-blocker
     resolved_by:
-    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic3
+    - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic3
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
 - identity: CommonCapability
@@ -230,7 +230,7 @@ admitted:
   gates:
   - gate: decision-14
     resolved_by:
-    - docs/method-conformance/o4/owner-decisions-2026-10.md#2026-10-05-7
+    - release-2026-10-11:docs/method-conformance/o4/owner-decisions-2026-10.md#2026-10-05-7
     - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#decision-7
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
@@ -303,7 +303,7 @@ admitted:
   gates:
   - gate: decision-4
     resolved_by:
-    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic4
+    - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic4
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
 - identity: EvidenceSupportCitation
@@ -349,7 +349,7 @@ admitted:
   gates:
   - gate: decision-14
     resolved_by:
-    - docs/method-conformance/o4/owner-decisions-2026-10.md#2026-10-05-7
+    - release-2026-10-11:docs/method-conformance/o4/owner-decisions-2026-10.md#2026-10-05-7
     - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#decision-7
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
@@ -375,10 +375,10 @@ admitted:
   gates:
   - gate: decision-9
     resolved_by:
-    - docs/method-conformance/o4/owner-decisions-2026-10.md#wave-a-decision-9
+    - release-2026-10-11:docs/method-conformance/o4/owner-decisions-2026-10.md#wave-a-decision-9
   - gate: row-blocker
     resolved_by:
-    - docs/method-conformance/o4/owner-decisions-2026-10.md#wave-a-decision-9
+    - release-2026-10-11:docs/method-conformance/o4/owner-decisions-2026-10.md#wave-a-decision-9
   forward_obligations:
   - any accepted-library-grounded target stays behind the PLE-R, PLE-Q, PLE-S and PLE-A adoption gates
 - identity: Function
@@ -631,10 +631,10 @@ admitted:
   gates:
   - gate: decision-8
     resolved_by:
-    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic5
+    - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic5
   - gate: decision-15
     resolved_by:
-    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic5
+    - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic5
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
 - identity: ScopedEvidenceAdequacyAssessment
@@ -699,7 +699,7 @@ admitted:
   gates:
   - gate: decision-11
     resolved_by:
-    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic6
+    - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic6
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
 - identity: TraceLink
@@ -724,10 +724,10 @@ admitted:
   gates:
   - gate: decision-8
     resolved_by:
-    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic5
+    - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic5
   - gate: decision-15
     resolved_by:
-    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic5
+    - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic5
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
 - identity: ValidationPlanningAssociation
@@ -907,7 +907,7 @@ admitted:
   gates:
   - gate: decision-9
     resolved_by:
-    - docs/method-conformance/o4/owner-decisions-2026-10.md#wave-a-decision-9
+    - release-2026-10-11:docs/method-conformance/o4/owner-decisions-2026-10.md#wave-a-decision-9
   forward_obligations: []
 - identity: hasAcceptanceCriterion
   semantic_kind: relationship
@@ -960,10 +960,10 @@ admitted:
   gates:
   - gate: decision-4
     resolved_by:
-    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic4
+    - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic4
   - gate: row-blocker
     resolved_by:
-    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic4
+    - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic4
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
 - identity: hasStakeholder
@@ -1014,7 +1014,7 @@ admitted:
   gates:
   - gate: decision-9
     resolved_by:
-    - docs/method-conformance/o4/owner-decisions-2026-10.md#wave-a-decision-9
+    - release-2026-10-11:docs/method-conformance/o4/owner-decisions-2026-10.md#wave-a-decision-9
   forward_obligations: []
 - identity: instantiatesCanonicalArchitecture
   semantic_kind: relationship
@@ -1036,11 +1036,11 @@ admitted:
   gates:
   - gate: decision-10
     resolved_by:
-    - docs/method-conformance/o4/owner-decisions-2026-10.md#2026-10-05-8
+    - release-2026-10-11:docs/method-conformance/o4/owner-decisions-2026-10.md#2026-10-05-8
     - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#decision-8
   - gate: row-blocker
     resolved_by:
-    - docs/method-conformance/o4/owner-decisions-2026-10.md#2026-10-05-8
+    - release-2026-10-11:docs/method-conformance/o4/owner-decisions-2026-10.md#2026-10-05-8
     - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#decision-8
   forward_obligations:
   - a reviewed canonical-usage selector before any reachability claim
@@ -1066,7 +1066,7 @@ admitted:
   gates:
   - gate: decision-9
     resolved_by:
-    - docs/method-conformance/o4/owner-decisions-2026-10.md#wave-a-decision-9
+    - release-2026-10-11:docs/method-conformance/o4/owner-decisions-2026-10.md#wave-a-decision-9
   forward_obligations: []
 - identity: selectsVariant
   semantic_kind: relationship
@@ -1090,7 +1090,7 @@ admitted:
   gates:
   - gate: decision-9
     resolved_by:
-    - docs/method-conformance/o4/owner-decisions-2026-10.md#wave-a-decision-9
+    - release-2026-10-11:docs/method-conformance/o4/owner-decisions-2026-10.md#wave-a-decision-9
   forward_obligations: []
 - identity: specifiesCommonCapability
   semantic_kind: relationship
@@ -1157,10 +1157,10 @@ admitted:
   gates:
   - gate: decision-3
     resolved_by:
-    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic3
+    - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic3
   - gate: row-blocker
     resolved_by:
-    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic3
+    - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic3
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
 - identity: variesAt
@@ -1275,7 +1275,7 @@ admitted:
   gates:
   - gate: decision-1
     resolved_by:
-    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
+    - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
 - identity: allocatedTo
@@ -1303,7 +1303,7 @@ admitted:
   gates:
   - gate: row-blocker
     resolved_by:
-    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
+    - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
   - exact-revision API closure of the typed allocation ends in the exact-SHA privileged run; a failure
@@ -1371,14 +1371,14 @@ admitted:
   gates:
   - gate: decision-1
     resolved_by:
-    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
+    - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
   - gate: decision-2
     resolved_by:
-    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic2
+    - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic2
   - gate: row-blocker
     resolved_by:
-    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic2
-    - docs/method-conformance/o4/w6-transition-plan.yaml#constrainedBy
+    - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic2
+    - release-2026-10-11:docs/method-conformance/o4/w6-transition-plan.yaml#constrainedBy
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
 - identity: deployedTo
@@ -1404,11 +1404,11 @@ admitted:
   gates:
   - gate: decision-1
     resolved_by:
-    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
+    - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
   - gate: row-blocker
     resolved_by:
-    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
-    - docs/method-conformance/o4/w6-transition-plan.yaml#deployedTo
+    - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
+    - release-2026-10-11:docs/method-conformance/o4/w6-transition-plan.yaml#deployedTo
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
 - identity: realizedBy
@@ -1434,11 +1434,11 @@ admitted:
   gates:
   - gate: decision-1
     resolved_by:
-    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
+    - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
   - gate: row-blocker
     resolved_by:
-    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
-    - docs/method-conformance/o4/w6-transition-plan.yaml#realizedBy
+    - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
+    - release-2026-10-11:docs/method-conformance/o4/w6-transition-plan.yaml#realizedBy
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
 - identity: validatedBy
@@ -1464,11 +1464,11 @@ admitted:
   gates:
   - gate: decision-1
     resolved_by:
-    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
+    - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
   - gate: row-blocker
     resolved_by:
-    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
-    - docs/method-conformance/o4/w6-transition-plan.yaml#validatedBy
+    - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
+    - release-2026-10-11:docs/method-conformance/o4/w6-transition-plan.yaml#validatedBy
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
 - identity: validatesFitnessForUse
@@ -1494,6 +1494,6 @@ admitted:
   gates:
   - gate: row-blocker
     resolved_by:
-    - docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
+    - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim

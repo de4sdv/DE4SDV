@@ -26,8 +26,8 @@ from scripts.validate_semantic_mcp import (
     validate_tool_surface,
 )
 
-#: Lane C additive, strictly read-only method-conformance tools.
-LANE_C_TOOLS = (
+#: Additive, strictly read-only method-conformance tools.
+METHOD_TOOLS = (
     "phase_contract",
     "increment_status",
     "method_gaps",
@@ -70,12 +70,12 @@ def test_required_seven_tools_pass() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 2. seven required + the four Lane C read-only tools passes
+# 2. seven required + the four method read-only tools passes
 # ---------------------------------------------------------------------------
 
 
-def test_seven_required_plus_lane_c_read_only_tools_pass() -> None:
-    tools = required_tools() + [tool(name) for name in LANE_C_TOOLS]
+def test_seven_required_plus_method_read_only_tools_pass() -> None:
+    tools = required_tools() + [tool(name) for name in METHOD_TOOLS]
     counts = validate_tool_surface(tools)
     assert counts == {"exposed_tool_count": 11, "required_tool_count": 7}
 
@@ -95,7 +95,7 @@ def test_missing_required_proof_tool_fails(missing: str) -> None:
 def test_missing_required_tool_fails_even_with_additive_tools_present() -> None:
     tools = [
         t for t in required_tools() if t.name != "verification_coverage"
-    ] + [tool(name) for name in LANE_C_TOOLS]
+    ] + [tool(name) for name in METHOD_TOOLS]
     with pytest.raises(RuntimeError, match="verification_coverage"):
         validate_tool_surface(tools)
 
@@ -170,4 +170,4 @@ def test_declared_server_surface_satisfies_required_subset() -> None:
     assert counts == {"exposed_tool_count": 11, "required_tool_count": 7}
     names = {listed_tool.name for listed_tool in listed}
     assert REQUIRED_SEMANTIC_PROOF_TOOLS <= names
-    assert set(LANE_C_TOOLS) <= names
+    assert set(METHOD_TOOLS) <= names

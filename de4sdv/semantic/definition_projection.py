@@ -29,7 +29,7 @@ PROFILE_PATH = "de4sdv/semantic/contract-data/class-definition-profile.json"
 MODULE_PATH = "de4sdv/semantic/definition_projection.py"
 GENERATOR_PATH = "scripts/generate_definition_projection.py"
 AUTHORITY_INVENTORY_PATH = "de4sdv/semantic/authority_inventory.py"
-PROJECTION_O2P_PATH = "de4sdv/semantic/projection_o2p.py"
+NATIVE_GROUNDING_MODULE_PATH = "de4sdv/semantic/native_grounding_projection.py"
 PROJECTION_SCHEMA = "de4sdv.o4-definition-projection/v1"
 PROFILE_SCHEMA = "de4sdv.o4-definition-profile/v1"
 
@@ -270,7 +270,7 @@ def collect_bound_inputs(root: Path, outputs: dict[str, Any]) -> dict[str, str]:
         MODULE_PATH,
         GENERATOR_PATH,
         AUTHORITY_INVENTORY_PATH,
-        PROJECTION_O2P_PATH,
+        NATIVE_GROUNDING_MODULE_PATH,
     }
     for row in outputs["projection_rows"]:
         paths.add(row["grounding"]["kernel_binding_contract"]["source_file"])
@@ -317,7 +317,7 @@ def run_check_errors(root: Path) -> list[str]:
     Current admitted sources are validated even when artifacts are missing.
     Uncommitted model edits are allowed; missing or stale outputs are not.
     """
-    from de4sdv.semantic.projection_o2p import canonical_json
+    from de4sdv.semantic.native_grounding_projection import canonical_json
 
     try:
         artifacts = build_artifact_pair(root)

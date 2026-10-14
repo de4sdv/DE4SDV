@@ -334,7 +334,7 @@ def test_a_failed_export_is_reported_by_a_job_that_holds_no_secret() -> None:
 
 
 def test_the_serializer_is_the_pinned_privileged_toolchain() -> None:
-    from de4sdv.semantic.projection_o2p import read_syside_pin
+    from de4sdv.semantic.native_grounding_projection import read_syside_pin
 
     pin = read_syside_pin(ROOT)  # SYSIDE_VERSION of the licensed validation
     install = next(s for s in _steps("export") if "pip install" in (s.get("run") or ""))

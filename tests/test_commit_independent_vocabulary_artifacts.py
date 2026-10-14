@@ -12,8 +12,8 @@ from pathlib import Path
 import pytest
 import yaml
 
-from de4sdv.semantic import projection_o2p as native
-from scripts import generate_semantic_projection_o2p as native_cli
+from de4sdv.semantic import native_grounding_projection as native
+from scripts import generate_native_grounding_projection as native_cli
 
 
 def _native_inputs(root: Path) -> None:
@@ -46,7 +46,7 @@ def _native_inputs(root: Path) -> None:
         ],
     }
     inputs = {
-        native.ADMISSION_O2P_PATH: yaml.safe_dump(manifest),
+        native.ADMISSION_PATH: yaml.safe_dump(manifest),
         witness_file: "package Synthetic {\n" + "\n".join(declarations) + "\n}\n",
         native.SYSIDE_WORKFLOW_PATH: 'SYSIDE_VERSION="synthetic-pin"\n',
     }
@@ -67,7 +67,7 @@ def test_native_cli_constructs_and_checks_without_git(tmp_path, monkeypatch):
     monkeypatch.setattr(native.subprocess, "run", _refuse_git)
 
     assert native_cli.main([]) == 0
-    paths = (native.PROJECTION_O2P_PATH, native.PROFILE_O2P_PATH)
+    paths = (native.PROJECTION_PATH, native.PROFILE_PATH)
     emitted = [(tmp_path / path).read_bytes() for path in paths]
     documents = [json.loads(payload) for payload in emitted]
     assert all("binding" not in document for document in documents)
@@ -81,7 +81,7 @@ def test_native_cli_constructs_and_checks_without_git(tmp_path, monkeypatch):
     assert emitted == [(tmp_path / path).read_bytes() for path in paths]
 
 
-@pytest.mark.parametrize("relative", [native.PROJECTION_O2P_PATH, native.PROFILE_O2P_PATH])
+@pytest.mark.parametrize("relative", [native.PROJECTION_PATH, native.PROFILE_PATH])
 @pytest.mark.parametrize("mutation", ["payload", "malformed", "retired-binding", "crlf"])
 def test_native_check_refuses_noncanonical_bytes(tmp_path, monkeypatch, relative, mutation):
     _native_inputs(tmp_path)
@@ -106,24 +106,24 @@ def test_native_check_refuses_noncanonical_bytes(tmp_path, monkeypatch, relative
         changed = payload.replace(b"\n", b"\r\n")
     path.write_bytes(changed)
     before = [(tmp_path / name).read_bytes() for name in (
-        native.PROJECTION_O2P_PATH, native.PROFILE_O2P_PATH,
+        native.PROJECTION_PATH, native.PROFILE_PATH,
     )]
-    errors = native.run_check_errors_o2p(tmp_path)
+    errors = native.run_check_errors(tmp_path)
     assert len(errors) == 1 and relative in errors[0]
     assert "differs from" in errors[0]
     assert native_cli.main(["--check"]) == 1
     assert before == [(tmp_path / name).read_bytes() for name in (
-        native.PROJECTION_O2P_PATH, native.PROFILE_O2P_PATH,
+        native.PROJECTION_PATH, native.PROFILE_PATH,
     )]
 
 
-@pytest.mark.parametrize("relative", [native.PROJECTION_O2P_PATH, native.PROFILE_O2P_PATH])
+@pytest.mark.parametrize("relative", [native.PROJECTION_PATH, native.PROFILE_PATH])
 def test_native_missing_artifact_fails_closed(tmp_path, monkeypatch, relative):
     _native_inputs(tmp_path)
     monkeypatch.setattr(native_cli, "ROOT", tmp_path)
     assert native_cli.main([]) == 0
     (tmp_path / relative).unlink()
-    errors = native.run_check_errors_o2p(tmp_path)
+    errors = native.run_check_errors(tmp_path)
     assert len(errors) == 1 and relative in errors[0] and "missing" in errors[0]
     assert native_cli.main(["--check"]) == 1
     assert not (tmp_path / relative).exists()
@@ -134,7 +134,7 @@ def test_native_current_input_edit_requires_regeneration_not_a_commit(tmp_path, 
     monkeypatch.setattr(native_cli, "ROOT", tmp_path)
     monkeypatch.setattr(native.subprocess, "run", _refuse_git)
     assert native_cli.main([]) == 0
-    path = tmp_path / native.ADMISSION_O2P_PATH
+    path = tmp_path / native.ADMISSION_PATH
     manifest = yaml.safe_load(path.read_text(encoding="utf-8"))
     manifest["admitted"][0]["claim_boundary"] = "Edited synthetic boundary; still vocabulary-only."
     path.write_text(yaml.safe_dump(manifest), encoding="utf-8")
@@ -144,6 +144,6 @@ def test_native_current_input_edit_requires_regeneration_not_a_commit(tmp_path, 
     assert rejected.value.code == 2
     assert native_cli.main([]) == 0
     assert native_cli.main(["--check"]) == 0
-    first = native.build_pair_o2p(tmp_path)
-    assert first == native.build_pair_o2p(tmp_path, source_revision="1" * 40)
+    first = native.build_artifact_pair(tmp_path)
+    assert first == native.build_artifact_pair(tmp_path, source_revision="1" * 40)
     assert first["projection"]["rows"][0]["claim_boundary"] == manifest["admitted"][0]["claim_boundary"]

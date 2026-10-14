@@ -1,4 +1,4 @@
-"""O4 Wave A evidence/assurance vocabulary roles: lexical source checks only.
+"""Evidence and assurance vocabulary roles: lexical source checks only.
 
 These pin model-resident documentation of approved semantic direction
 (topics 3 and 4, W5 external-reference rows). They are not licensed Syside

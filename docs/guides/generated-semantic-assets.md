@@ -29,7 +29,7 @@ From the repository root, with the pinned dependencies installed:
 ```bash
 sysand sync
 python scripts/generate_definition_projection.py --batch all
-python scripts/generate_semantic_projection_o2p.py
+python scripts/generate_native_grounding_projection.py
 python scripts/generate_vocabulary_carriers.py
 python scripts/check_repo.py
 python scripts/smoke_test.py

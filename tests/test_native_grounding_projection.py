@@ -1,15 +1,15 @@
-"""Machine locks for the O2+ native/library grounding & projection layer.
+"""Machine locks for the native-grounding projection layer.
 
 The layer is governed by review Deliverable 8 wave 3 (native/library
-projection rows over already-native constructs) and the O4 execution
+projection rows over already-native constructs) and the ontology identity
 register rows for the admitted identities. These tests lock:
 
 * the admitted set is EXACTLY the reviewed safe subset (eight identities)
   with per-row flags equal to the reviewed values;
 * the excluded set carries a reason for every considered-but-not-admitted
   row and contains the hard gates that must never be admitted;
-* no frozen O2 (v1/v1.1/v1.2 thirteen) and no frozen O3 identity is
-  admitted or emitted;
+* no identity of the frozen records (the thirteen of projection
+  v1/v1.1/v1.2) is admitted or emitted;
 * generation is deterministic and read-only; the committed pair equals
   regeneration from current governed inputs without a live Git binding;
 * support stays vocabulary-only, traversal is false everywhere, and no
@@ -24,7 +24,7 @@ from pathlib import Path
 
 import pytest
 
-from de4sdv.semantic import projection_o2p as po2p
+from de4sdv.semantic import native_grounding_projection as native
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -90,15 +90,15 @@ HARD_GATES = (
 
 @pytest.fixture(scope="module")
 def manifest() -> dict:
-    return po2p.load_admission_o2p(ROOT / po2p.ADMISSION_O2P_PATH)
+    return native.load_admission(ROOT / native.ADMISSION_PATH)
 
 
 @pytest.fixture(scope="module")
 def artifacts() -> dict:
     projection = json.loads(
-        (ROOT / po2p.PROJECTION_O2P_PATH).read_text(encoding="utf-8")
+        (ROOT / native.PROJECTION_PATH).read_text(encoding="utf-8")
     )
-    profile = json.loads((ROOT / po2p.PROFILE_O2P_PATH).read_text(encoding="utf-8"))
+    profile = json.loads((ROOT / native.PROFILE_PATH).read_text(encoding="utf-8"))
     return {"projection": projection, "profile": profile}
 
 
@@ -134,9 +134,93 @@ def test_admitted_and_excluded_are_disjoint(manifest: dict) -> None:
     assert admitted & excluded == set()
 
 
-def test_frozen_o2_surface_is_never_admitted(manifest: dict) -> None:
+# Per-row precision for the excluded rows: every considered-but-excluded row is
+# recorded in the admission manifest with its concrete reason, and no aggregate
+# assertion lets a row slip in or out silently.
+
+#: The admitted native and library-mapped rows (``IncrementSize`` is the
+#: model-resident vocabulary row admitted with them).
+NATIVE_AND_LIBRARY_ROWS: tuple[str, ...] = (
+    "VariationPoint",
+    "Variant",
+    "Concern",
+    "Viewpoint",
+    "View",
+    "VerificationMethod",
+    "usesVerificationMethod",
+)
+
+#: Excluded rows pinned with a reason keyword (from the admission manifest).
+EXCLUDED_REASON_KEYWORDS: dict[str, str] = {
+    "EvidenceStatus": "decision-4",
+    "hasEvidenceStatus": "decision-4",
+    "allocatedTo": "W7-held",
+    "variesAt": "PLE-Q/S",
+    "FeatureConfiguration": "decision-9",
+    "selectsFeature": "decision-9",
+    "appliesToMemberProduct": "decision-9",
+    "includesCommonCapability": "decision-9",
+    "selectsVariant": "decision-9",
+    "instantiatesCanonicalArchitecture": "decision-10",
+    "Interface": "decision-5",
+    "ValidationScenario": "validatedBy",
+    "hasStakeholder": "decision-11",
+    "specifiesFeature": "PLE-Q/S",
+    "specifiesCommonCapability": "PLE-Q/S",
+    "recordsGap": "W4 batch 1 treated",
+    "recordsAssumption": "W4 batch 1 treated",
+    "addressesConcern": "W4 batch 1 treated",
+    "selectedViewpoint": "W4 batch 1 treated",
+    "producesView": "W4 batch 1 treated",
+    "EvidenceArtifact": "W5 batch 3 treated",
+    "hasEvidence": "W5 batch 3 treated",
+    "capturedInBaseline": "W5 batch 3 treated",
+    # The class-definition admission treated these two rows after this manifest
+    # was written; the reasons were refreshed to record the treatment while
+    # the rows remain outside this admission (their representation belongs
+    # to the class-definition layer).
+    "Scenario": "Definition admission batch 1 treated",
+    "CommonCapability": "decision-14",
+    "Feature": "decision-14",
+    "MethodEvaluationScope": "decision-7",
+    "ProductLineCharacteristic": "Definition admission batch 1 treated",
+    "Stakeholder": "decision-11",
+    "AssuranceClaim": "decision-3",
+    "ArchitectureElement": "decision-5",
+    "Function": "decision-5",
+    "LogicalElement": "decision-5",
+    "PhysicalElement": "decision-5",
+    "AcceptanceCriterion": "decision-6",
+    "hasAcceptanceCriterion": "decision-6",
+    "EvidenceContract": "evidence-lineage",
+    "hasRelevantEvidenceContract": "evidence-lineage",
+    "constrainedBy": "decision-2",
+    "realizedBy": "decision-1",
+    "deployedTo": "decision-1",
+    "validatedBy": "decision-1",
+    "supportedByEvidence": "decision-3",
+    "TraceLink": "decision-8",
+    "RequiredTraceChain": "decision-8",
+}
+
+
+def test_excluded_matrix_matches_the_admission_manifest(manifest: dict) -> None:
+    manifest_excluded = {row["identity"]: row["reason"] for row in manifest["excluded"]}
+    assert set(manifest_excluded) == set(EXCLUDED_REASON_KEYWORDS)
+    for identity, keyword in EXCLUDED_REASON_KEYWORDS.items():
+        assert keyword in manifest_excluded[identity], identity
+
+
+def test_admitted_rows_are_disjoint_from_excluded(manifest: dict) -> None:
     admitted = {row["identity"] for row in manifest["admitted"]}
-    assert admitted & set(po2p.FROZEN_O2_IDENTITIES) == set()
+    excluded = {row["identity"] for row in manifest["excluded"]}
+    assert admitted == set(NATIVE_AND_LIBRARY_ROWS) | {"IncrementSize"}
+    assert admitted & excluded == set()
+
+
+def test_frozen_projection_row_identities_are_never_admitted(manifest: dict) -> None:
+    admitted = {row["identity"] for row in manifest["admitted"]}
+    assert admitted & set(native.FROZEN_PROJECTION_ROW_IDENTITIES) == set()
     # The frozen list itself must equal the actual committed v1/v1.1/v1.2 rows.
     actual: list[str] = []
     for name in ("semantic-projection-v1.json", "semantic-projection-v1.1.json", "semantic-projection-v1.2.json"):
@@ -145,27 +229,27 @@ def test_frozen_o2_surface_is_never_admitted(manifest: dict) -> None:
         )
         actual.extend(r["identity"] for r in document.get("concepts", []))
         actual.extend(r["identity"] for r in document.get("predicates", []))
-    assert sorted(actual) == sorted(po2p.FROZEN_O2_IDENTITIES)
+    assert sorted(actual) == sorted(native.FROZEN_PROJECTION_ROW_IDENTITIES)
 
 
-def test_frozen_o3_surface_is_never_admitted(manifest: dict) -> None:
-    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
+def test_served_frozen_identities_are_never_admitted(manifest: dict) -> None:
+    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as SERVED_FROZEN_IDENTITIES
 
     admitted = {row["identity"] for row in manifest["admitted"]}
-    assert admitted & set(MIGRATED_IDENTITIES) == set()
-    assert len(MIGRATED_IDENTITIES) == 13
+    assert admitted & set(SERVED_FROZEN_IDENTITIES) == set()
+    assert len(SERVED_FROZEN_IDENTITIES) == 13
 
 
 def test_witnesses_exist_in_the_model() -> None:
-    manifest = po2p.load_admission_o2p(ROOT / po2p.ADMISSION_O2P_PATH)
-    po2p.verify_witnesses(ROOT, manifest)  # raises on any missing construct
+    manifest = native.load_admission(ROOT / native.ADMISSION_PATH)
+    native.verify_witnesses(ROOT, manifest)  # raises on any missing construct
 
 
 def test_projection_rows_are_exactly_the_admitted_set(artifacts: dict) -> None:
     rows = artifacts["projection"]["rows"]
     assert [r["identity"] for r in rows] == [
-        row["identity"] for row in po2p.load_admission_o2p(
-            ROOT / po2p.ADMISSION_O2P_PATH
+        row["identity"] for row in native.load_admission(
+            ROOT / native.ADMISSION_PATH
         )["admitted"]
     ]
 
@@ -190,11 +274,11 @@ def test_projection_row_outputs_match_reviewed_flags(
 
 
 def test_no_frozen_identity_is_emitted(artifacts: dict) -> None:
-    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
+    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as SERVED_FROZEN_IDENTITIES
 
     emitted = {row["identity"] for row in artifacts["projection"]["rows"]}
-    assert emitted & set(po2p.FROZEN_O2_IDENTITIES) == set()
-    assert emitted & set(MIGRATED_IDENTITIES) == set()
+    assert emitted & set(native.FROZEN_PROJECTION_ROW_IDENTITIES) == set()
+    assert emitted & set(SERVED_FROZEN_IDENTITIES) == set()
 
 
 def test_profile_entries_are_exactly_the_api_profile_rows(artifacts: dict) -> None:
@@ -213,7 +297,7 @@ def test_profile_entries_are_exactly_the_api_profile_rows(artifacts: dict) -> No
 
 def test_pair_has_no_live_source_binding() -> None:
     # This cleanup retires only live binding assertions, not the frozen O2 locks above.
-    generated = po2p.build_pair_o2p(ROOT)
+    generated = native.build_artifact_pair(ROOT)
     for document in generated.values():
         assert "binding" not in document
     assert all(
@@ -223,18 +307,18 @@ def test_pair_has_no_live_source_binding() -> None:
 
 
 def test_regeneration_is_deterministic() -> None:
-    first = po2p.build_pair_o2p(ROOT)
-    second = po2p.build_pair_o2p(ROOT, source_revision="0" * 40)
-    assert po2p.canonical_json(first["projection"]) == po2p.canonical_json(
+    first = native.build_artifact_pair(ROOT)
+    second = native.build_artifact_pair(ROOT, source_revision="0" * 40)
+    assert native.canonical_json(first["projection"]) == native.canonical_json(
         second["projection"]
     )
-    assert po2p.canonical_json(first["profile"]) == po2p.canonical_json(
+    assert native.canonical_json(first["profile"]) == native.canonical_json(
         second["profile"]
     )
 
 
 def test_check_passes_on_the_committed_tree() -> None:
-    assert po2p.run_check_errors_o2p(ROOT) == []
+    assert native.run_check_errors(ROOT) == []
 
 
 EXPECTED_PROJECTION_OUTPUTS = ["Concern", "IncrementSize", "View", "Viewpoint"]
@@ -294,8 +378,8 @@ def test_provenance_classification_separates_model_and_tooling(artifacts: dict) 
     witness_files = sorted(
         {
             row["witness"]["file"]
-            for row in po2p.load_admission_o2p(
-                ROOT / po2p.ADMISSION_O2P_PATH
+            for row in native.load_admission(
+                ROOT / native.ADMISSION_PATH
             )["admitted"]
         }
     )
@@ -304,12 +388,12 @@ def test_provenance_classification_separates_model_and_tooling(artifacts: dict) 
         for row in artifacts["projection"]["rows"]
     })
     assert actual_witnesses == witness_files
-    assert po2p.SYSIDE_WORKFLOW_PATH not in actual_witnesses
+    assert native.SYSIDE_WORKFLOW_PATH not in actual_witnesses
     for path in actual_witnesses:
         assert path.endswith(".sysml")
     for entry in artifacts["profile"]["entries"]:
         assert entry["representation"]["toolchain"]["syside_modeler_cli"] == (
-            po2p.read_syside_pin(ROOT)
+            native.read_syside_pin(ROOT)
         )
 
 
@@ -339,24 +423,24 @@ def test_extra_admission_fails_closed(manifest: dict) -> None:
         extra["identity"] = "SomeUnreviewedIdentity"
         clone["admitted"].append(extra)
 
-    with pytest.raises(po2p.ProjectionO2PError):
-        po2p.validate_admission_o2p(_mutated_manifest(manifest, mutate))
+    with pytest.raises(native.NativeGroundingError):
+        native.validate_admission(_mutated_manifest(manifest, mutate))
 
 
 def test_traversal_promotion_fails_closed(manifest: dict) -> None:
     def mutate(clone: dict) -> None:
         clone["admitted"][0]["traversal_required"] = True
 
-    with pytest.raises(po2p.ProjectionO2PError):
-        po2p.validate_admission_o2p(_mutated_manifest(manifest, mutate))
+    with pytest.raises(native.NativeGroundingError):
+        native.validate_admission(_mutated_manifest(manifest, mutate))
 
 
 def test_support_promotion_fails_closed(manifest: dict) -> None:
     def mutate(clone: dict) -> None:
         clone["admitted"][0]["support"] = "runtime-queryable"
 
-    with pytest.raises(po2p.ProjectionO2PError):
-        po2p.validate_admission_o2p(_mutated_manifest(manifest, mutate))
+    with pytest.raises(native.NativeGroundingError):
+        native.validate_admission(_mutated_manifest(manifest, mutate))
 
 
 def test_missing_hard_gate_fails_closed(manifest: dict) -> None:
@@ -365,37 +449,37 @@ def test_missing_hard_gate_fails_closed(manifest: dict) -> None:
             row for row in clone["excluded"] if row["identity"] != "allocatedTo"
         ]
 
-    with pytest.raises(po2p.ProjectionO2PError):
-        po2p.validate_admission_o2p(_mutated_manifest(manifest, mutate))
+    with pytest.raises(native.NativeGroundingError):
+        native.validate_admission(_mutated_manifest(manifest, mutate))
 
 
 def test_missing_reason_fails_closed(manifest: dict) -> None:
     def mutate(clone: dict) -> None:
         clone["excluded"][0]["reason"] = ""
 
-    with pytest.raises(po2p.ProjectionO2PError):
-        po2p.validate_admission_o2p(_mutated_manifest(manifest, mutate))
+    with pytest.raises(native.NativeGroundingError):
+        native.validate_admission(_mutated_manifest(manifest, mutate))
 
 
 def test_admitted_excluded_overlap_fails_closed(manifest: dict) -> None:
     def mutate(clone: dict) -> None:
         clone["excluded"].append({"identity": "VariationPoint", "reason": "overlap"})
 
-    with pytest.raises(po2p.ProjectionO2PError):
-        po2p.validate_admission_o2p(_mutated_manifest(manifest, mutate))
+    with pytest.raises(native.NativeGroundingError):
+        native.validate_admission(_mutated_manifest(manifest, mutate))
 
 
 def test_witness_mismatch_fails_closed(manifest: dict) -> None:
     def mutate(clone: dict) -> None:
         clone["admitted"][0]["witness"]["contains"] = "def NotARealConstruct {"
 
-    with pytest.raises(po2p.ProjectionO2PError):
-        po2p.verify_witnesses(ROOT, _mutated_manifest(manifest, mutate))
+    with pytest.raises(native.NativeGroundingError):
+        native.verify_witnesses(ROOT, _mutated_manifest(manifest, mutate))
 
 
 def test_output_mismatch_fails_closed_directly() -> None:
-    with pytest.raises(po2p.ProjectionO2PError):
-        po2p.validate_row_outputs_o2p(
+    with pytest.raises(native.NativeGroundingError):
+        native.validate_row_outputs(
             "VariationPoint",
             {
                 "projection_row": True,  # must equal projection_required (false)
@@ -403,8 +487,8 @@ def test_output_mismatch_fails_closed_directly() -> None:
                 "traversal": False,
             },
         )
-    with pytest.raises(po2p.ProjectionO2PError):
-        po2p.validate_row_outputs_o2p(
+    with pytest.raises(native.NativeGroundingError):
+        native.validate_row_outputs(
             "IncrementSize",
             {
                 "projection_row": True,
@@ -412,8 +496,8 @@ def test_output_mismatch_fails_closed_directly() -> None:
                 "traversal": True,  # traversal must stay false
             },
         )
-    with pytest.raises(po2p.ProjectionO2PError):
-        po2p.validate_row_outputs_o2p("NotAdmitted", {})
+    with pytest.raises(native.NativeGroundingError):
+        native.validate_row_outputs("NotAdmitted", {})
 
 
 def test_generator_bug_cannot_silently_emit_projection_for_false_flag(
@@ -421,7 +505,7 @@ def test_generator_bug_cannot_silently_emit_projection_for_false_flag(
 ) -> None:
     """A derive bug emitting projection rows for reviewed-false rows must be
     caught by the post-derivation validation before any artifact is built."""
-    real_derive = po2p.derive_rows_o2p
+    real_derive = native.derive_rows
 
     def corrupted_derive(root, manifest, source_revision):
         rows, entries = real_derive(root, manifest, source_revision)
@@ -429,20 +513,20 @@ def test_generator_bug_cannot_silently_emit_projection_for_false_flag(
             row["outputs"]["projection_row"] = True  # the hypothetical bug
         return rows, entries
 
-    monkeypatch.setattr(po2p, "derive_rows_o2p", corrupted_derive)
-    with pytest.raises(po2p.ProjectionO2PError):
-        po2p.build_pair_o2p(ROOT)
+    monkeypatch.setattr(native, "derive_rows", corrupted_derive)
+    with pytest.raises(native.NativeGroundingError):
+        native.build_artifact_pair(ROOT)
 
 
 def test_generator_bug_cannot_silently_drop_profile_entries(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    real_derive = po2p.derive_rows_o2p
+    real_derive = native.derive_rows
 
     def corrupted_derive(root, manifest, source_revision):
         rows, _entries = real_derive(root, manifest, source_revision)
         return rows, []  # the hypothetical bug
 
-    monkeypatch.setattr(po2p, "derive_rows_o2p", corrupted_derive)
-    with pytest.raises(po2p.ProjectionO2PError):
-        po2p.build_pair_o2p(ROOT)
+    monkeypatch.setattr(native, "derive_rows", corrupted_derive)
+    with pytest.raises(native.NativeGroundingError):
+        native.build_artifact_pair(ROOT)

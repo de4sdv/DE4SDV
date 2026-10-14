@@ -1,5 +1,5 @@
-"""O4 Wave A (A3): vocabulary roles, native grounding records, validation-rule
-homes and the pilot-query fixture.
+"""Vocabulary roles, native grounding records, validation-rule homes and the
+pilot-query fixture.
 
 These are lexical source checks, not licensed Syside evidence.
 """

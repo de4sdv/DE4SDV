@@ -1,4 +1,4 @@
-"""O1 c5 — relevance and RFLP realization semantic review (PR #249).
+"""Relevance and RFLP realization traces: their semantics and traversal laws.
 
 Covers the c5 batch for exactly four identities:
 
@@ -61,7 +61,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 TRAVERSAL_SOURCE = REPO_ROOT / "de4sdv/semantic/traversal.py"
 
-C5_IDENTITIES: tuple[str, ...] = (
+RELEVANCE_REALIZATION_IDENTITIES: tuple[str, ...] = (
     "realizedBy",
     "specifiesFunction",
     "hasRelevantArchitecture",
@@ -101,8 +101,8 @@ REPLAY_HEC_NEED_HOPS = 7
 REPLAY_HEC_ORDINARY_VERIFIED_HOPS = 0
 #: Classification of the rejected over-broad c5-execution result (34 hops /
 #: 29 distinct returned sources):
-REPLAY_HEC_EXECUTED_C5 = 34
-REPLAY_HEC_EXECUTED_C5_SOURCES = 29
+REPLAY_HEC_REJECTED_ENFORCEMENT_HOPS = 34
+REPLAY_HEC_REJECTED_ENFORCEMENT_SOURCES = 29
 REPLAY_HEC_ACCEPTANCE_CRITERION_HOPS = 16
 REPLAY_HEC_ACCEPTANCE_CRITERION_SOURCES = 14
 REPLAY_HEC_UNRESOLVED_AMBIGUOUS_HOPS = 18
@@ -125,9 +125,9 @@ def _contract() -> KernelContract:
 # ---------------------------------------------------------------------------
 
 
-class TestC5ScopeAndCounts:
-    def test_c5_is_exactly_four_identities(self):
-        assert C5_IDENTITIES == (
+class TestRelevanceRealizationScope:
+    def test_scope_is_exactly_the_four_relevance_and_realization_identities(self):
+        assert RELEVANCE_REALIZATION_IDENTITIES == (
             "realizedBy",
             "specifiesFunction",
             "hasRelevantArchitecture",
@@ -798,10 +798,10 @@ class TestReplayEvidence:
         assert REPLAY_HEC_UNRESOLVED_AMBIGUOUS_HOPS == 18
         assert REPLAY_HEC_ACCEPTANCE_CRITERION_SOURCES == 14
         assert REPLAY_HEC_UNRESOLVED_AMBIGUOUS_SOURCES == 15
-        assert REPLAY_HEC_EXECUTED_C5 == (
+        assert REPLAY_HEC_REJECTED_ENFORCEMENT_HOPS == (
             REPLAY_HEC_ACCEPTANCE_CRITERION_HOPS + REPLAY_HEC_UNRESOLVED_AMBIGUOUS_HOPS
         )
-        assert REPLAY_HEC_EXECUTED_C5_SOURCES == (
+        assert REPLAY_HEC_REJECTED_ENFORCEMENT_SOURCES == (
             REPLAY_HEC_ACCEPTANCE_CRITERION_SOURCES
             + REPLAY_HEC_UNRESOLVED_AMBIGUOUS_SOURCES
         )
@@ -871,7 +871,7 @@ class TestDocumentAndBoundaryLaws:
                 contract.relationship_mapping(retired)
         assert contract.relationship_mapping("allocatedTo").strategy == "successor"
 
-    def test_c4_retirement_mechanics_unchanged(self):
+    def test_concern_need_retirement_mechanics_unchanged(self):
         """derivesNeedFromConcern: O4 Wave C2 refuses it with its register
         disposition (owner decision D5, intentional migration from the former
         vocabulary-only gap); addressesConcern stays vocabulary-only."""

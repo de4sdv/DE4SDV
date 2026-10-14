@@ -202,7 +202,7 @@ def _retired(name, domain, range_, successor, navigation):
     return row, {"retired_resolution": {"successor": successor, "navigation": navigation}}
 
 
-def _b2_rows():
+def _kernel_vocabulary_rows():
     contract = mar.generate_successor_contract(ROOT)
     pairs = [{"source_class": r["sourceClass"], "target_class": r["targetClass"]}
              for r in contract["relations"]["allocatedTo"]]
@@ -246,7 +246,7 @@ def _b2_rows():
     return rows
 
 
-def _b2_root(tmp_path, rows):
+def _kernel_vocabulary_root(tmp_path, rows):
     root = tmp_path / "root"
     paths = [relative for spec in mar.LAYERS for relative in (spec.projection_path, spec.profile_path)]
     paths += [relative for relative, _ in mc.O2_PROJECTION_CHAIN + mc.O2_PROFILE_CHAIN]
@@ -263,7 +263,7 @@ def _b2_root(tmp_path, rows):
     return root
 
 
-def _b2_routing(root):
+def _kernel_vocabulary_routing(root):
     _, provisions = mar.load_layers(root)
     layered, chain = _split(provisions)
     return mar.compute_routing(provisions=layered,
@@ -271,17 +271,17 @@ def _b2_routing(root):
                                register_rows=mar.load_register_rows(ROOT), seed=chain)
 
 
-def test_batch2_layer_is_loaded_exactly_when_its_pair_is_present():
+def test_kernel_vocabulary_layer_is_loaded_exactly_when_its_pair_is_present():
     records, _ = mar.load_layers(ROOT)
     present = (ROOT / mar.BATCH2_LAYER.projection_path).exists()
     assert ("definition-batch2" in [r["layer"] for r in records]) is present
 
 
-def test_batch2_rows_route_through_the_batch2_layer(tmp_path):
-    root = _b2_root(tmp_path, _b2_rows())
+def test_kernel_vocabulary_rows_route_through_their_layer(tmp_path):
+    root = _kernel_vocabulary_root(tmp_path, _kernel_vocabulary_rows())
     records, provisions = mar.load_layers(root)
     assert [r["layer"] for r in records][-1] == "definition-batch2"
-    routing = _b2_routing(root)
+    routing = _kernel_vocabulary_routing(root)
     assert routing.duplicates == ()
     for name in ("EvidenceContract", "Interface", "EvidenceStatus", "variesAt", "hasStakeholder",
                  "hasRelevantEvidenceContract", "hasEvidence"):
@@ -332,12 +332,12 @@ def _retired_without_model_record(rows):
      "retired name"),
     (_retired_without_model_record, "retirement record"),
 ])
-def test_batch2_disagreement_is_refused_not_guessed(tmp_path, mutate, match):
-    rows = _b2_rows()
+def test_kernel_vocabulary_disagreement_is_refused_not_guessed(tmp_path, mutate, match):
+    rows = _kernel_vocabulary_rows()
     mutate(rows)
-    root = _b2_root(tmp_path, rows)
+    root = _kernel_vocabulary_root(tmp_path, rows)
     try:
-        routing = _b2_routing(root)
+        routing = _kernel_vocabulary_routing(root)
     except mar.ModelAuthorityRefused as exc:
         assert match in str(exc)
         return
@@ -349,7 +349,7 @@ def _answer(service, identifier, predicate):
     return {key: report[key] for key in ("edges", "gaps", "nodes", "root")}
 
 
-def test_the_13_are_served_from_the_frozen_o2_chain(fx):
+def test_the_13_are_served_from_the_frozen_records(fx):
     service = _service(fx)
     chain = {p.identity: p for p in mc.o2_chain_provisions(ROOT)}
     assert set(chain) == set(mc.O2_CHAIN_IDENTITIES) and len(chain) == 13

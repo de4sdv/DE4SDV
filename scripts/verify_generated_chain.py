@@ -59,7 +59,9 @@ FROZEN_RECORD_NAMES = (
     "semantic-projection-v1.json",
 )
 ARCHIVE_TAG = "release-2026-10-11"
-#: The owner decision that froze the records, quoted as recorded.
+#: The owner decision that froze the records, quoted as recorded. The frozen
+#: manifest embeds this block byte for byte (``decision``), so its wording,
+#: decision codes included, never changes.
 FROZEN_DECISION = {
     "owner_decisions": "Q7 and D10 (Orkun, 2026-10-07)",
     "statement": (
