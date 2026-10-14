@@ -77,6 +77,34 @@ def test_a_charter_whose_increment_carries_no_identifier_is_a_note(tmp_path: Pat
     assert "no increment identifier" in note
 
 
+def _with_anonymous_increment() -> ModelBuilder:
+    """Two identified increments and a charter whose increment usage carries no identifier (like a
+    legacy increment declared before the identifier rule)."""
+    builder = _two_increments()
+    framing = next(e for e in builder.elements if e.get("declaredName") == "DE4SDV_FirstFraming")
+    definition = next(e for e in builder.elements if e.get("declaredName") == "FirstIncrement")
+    anonymous = builder.usage("PartUsage", "incAnonymous", framing, [definition])
+    charter = builder.usage("PartUsage", "anonymousCharter", framing,
+                            [builder.kernel_definition("IncrementTraceObligations")])
+    builder.attribute(charter, "increment", anonymous, kind="PartUsage")
+    return builder
+
+
+def test_an_increment_without_identifier_is_recorded_as_not_evaluated(tmp_path: Path) -> None:
+    """Owner decision D14: such an increment is reported as not evaluated, with the reason, not only as a note."""
+    discovery = declared_increments(_view(tmp_path, _with_anonymous_increment()))
+    assert discovery.increment_ids == ("INC-FIXTURE-001", "INC-FIXTURE-002")
+    (legacy,) = discovery.not_evaluated
+    assert legacy.usage["qualified_name"] == "DE4SDV_FirstFraming::incAnonymous"
+    assert [c["qualified_name"] for c in legacy.charters] == ["DE4SDV_FirstFraming::anonymousCharter"]
+    assert legacy.reason.startswith("its increment usage carries no increment identifier (INC-<SUBJECT>-<SEQ>)")
+    assert legacy.notes == discovery.notes  # the one note it stands for, unchanged
+
+
+def test_identified_increments_are_never_recorded_as_not_evaluated(tmp_path: Path) -> None:
+    assert declared_increments(_view(tmp_path, _two_increments())).not_evaluated == ()
+
+
 def test_an_identifier_on_an_element_outside_the_increment_lineage_is_a_note(tmp_path: Path) -> None:
     builder = _two_increments()
     framing = next(e for e in builder.elements if e.get("declaredName") == "DE4SDV_FirstFraming")

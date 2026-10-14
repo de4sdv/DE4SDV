@@ -50,6 +50,12 @@ undecodable multiplicity or cyclic successions make the method invalid.
 Without exactly one charter (a new or ambiguous increment) the method is the
 one workflow the revision's charters declare, so the framing step still says
 what to author.
+
+Beside the contract, the method lists every step in method order, with or
+without checks: its phase, its parameters (direction, kind, type,
+multiplicity), its documentation and the obligations of its checks. A step
+without checks has no obligation, so only this list says what it requires;
+it never enters the contract or its digest.
 """
 
 from __future__ import annotations
@@ -123,6 +129,10 @@ class IncrementMethod:
     predicates: Mapping[str, me.Predicate] = field(default_factory=dict)
     #: Display labels per obligation (step, parameter, subject type, check id).
     labels: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
+    #: Every step of the workflow in method order, with or without checks: step, definition,
+    #: phase, optional, applicability, documentation, inputs, outputs and the obligation ids
+    #: of its checks (``checks``). Description only: no step enters the contract through it.
+    steps: tuple[Mapping[str, Any], ...] = ()
 
     @property
     def available(self) -> bool:
@@ -260,21 +270,25 @@ def read_workflow(view: ModelView, workflow: str, *, revision_label: str) -> Inc
     order = _step_order(view, workflow, steps, problems)
     decoded: list[tuple[str, me.ObligationSpec, dict[str, Any]]] = []
     phases: list[str] = []
+    described: list[tuple[str, dict[str, Any]]] = []
     for step in order:
         step_name = index.name_of(step) or step
         try:
+            optional = _bounds(view, step)[0] == 0
             phase, step_checks = _step_checks(view, step, step_name, phase_root, checks, problems,
-                                              optional=_bounds(view, step)[0] == 0)
+                                              optional=optional)
         except _Invalid as error:
             problems.append(f"step {step_name}: {error}")
             continue
         if step_checks and phase not in phases:
             phases.append(phase)
         decoded.extend((step, spec, label) for spec, label in step_checks)
+        described.append((step, _describe_step(view, step, phase, optional=optional)))
     if not decoded and not problems:
-        return IncrementMethod(method_identity=identity, contract=None,
+        return IncrementMethod(method_identity=identity, contract=None, steps=_listed_steps(described, ()),
                                reason="the increment workflow declares no checks", **common)
     decoded = _unique_identifiers(view, decoded)
+    common["steps"] = _listed_steps(described, decoded)
     specs = [spec for _step, spec, _label in decoded]
     labels = {spec.obligation_id: label for _step, spec, label in decoded}
     contract = me.MethodContract(method_id=METHOD_ID, contract_id=f"{METHOD_ID}@{revision_label}",
@@ -438,6 +452,52 @@ def _check(view: ModelView, metadata: str, step_name: str, phase: str, parameter
              "subject_type": (index.qualified_name(types[0]) or types[0]) if types else kind, "check": check_id,
              "check_definition": index.qualified_name(sorted(index.typed_by(metadata))[0])}
     return spec, label
+
+
+def _describe_step(view: ModelView, step: str, phase: str, *, optional: bool) -> dict[str, Any]:
+    """What one step declares: its definition, phase, documentation and parameters (no checks yet)."""
+    index = view.index
+    (definition,) = sorted(index.typed_by(step))  # exactly one: _step_checks requires it
+    members, _replaced = _step_members(view, definition)
+    parameters = [_describe_parameter(view, member) for member in members
+                  if str(index.element(member).get("direction") or "") in _DIRECTIONS]
+    return {
+        "step": index.name_of(step) or step,
+        "definition": index.qualified_name(definition) or definition,
+        "phase": phase,
+        "optional": optional,
+        "applicability": APPLICABILITY_DECLARED if optional else APPLICABILITY_ALWAYS,
+        "documentation": " ".join(_documentation(view, definition).split()),
+        "inputs": [parameter for parameter in parameters if parameter["direction"] == "in"],
+        "outputs": [parameter for parameter in parameters if parameter["direction"] != "in"],
+    }
+
+
+def _describe_parameter(view: ModelView, parameter: str) -> dict[str, Any]:
+    """One step parameter: direction, usage kind, type and multiplicity (none declared: exactly one)."""
+    index = view.index
+    element = index.element(parameter)
+    types = sorted(index.typed_by(parameter))
+    try:
+        lower, upper = index.multiplicity(parameter) or (1, 1)
+        multiplicity: list[Any] | None = [lower, "*" if upper is None else upper]
+    except MultiplicityError:
+        multiplicity = None  # a check about this parameter makes the method invalid; a description does not
+    return {
+        "parameter": index.name_of(parameter) or parameter,
+        "direction": str(element.get("direction") or ""),
+        "sysml_type": str(element.get("@type") or ""),
+        "type": ", ".join(index.qualified_name(item) or item for item in types) or None,
+        "multiplicity": multiplicity,
+    }
+
+
+def _listed_steps(described: list[tuple[str, dict[str, Any]]], decoded) -> tuple[dict[str, Any], ...]:
+    """The described steps, each with the obligation ids of its checks (after unique naming)."""
+    checks: dict[str, list[str]] = {}
+    for step, spec, _label in decoded:
+        checks.setdefault(step, []).append(spec.obligation_id)
+    return tuple({**record, "checks": checks.get(step, [])} for step, record in described)
 
 
 def _bounds(view: ModelView, feature: str) -> tuple[int, int | None]:

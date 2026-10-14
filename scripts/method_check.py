@@ -7,7 +7,8 @@ the evaluation entry point ``scripts/evaluate_increment.py`` once per
 increment, and writes:
 
 - ``<output-dir>/method-check.json``: per increment, ``next`` (the first
-  check the agent can act on), the gap counts, the phase exits and the full
+  check the agent can act on), the gap counts, the phase exits, the declared
+  phases without executable checks (reported, never evaluated) and the full
   entry-point report under ``evaluation``;
 - ``<output-dir>/<increment id>.json``: each entry-point report;
 - ``<output-dir>/method-check.md``: a readable summary, also appended to
@@ -70,6 +71,8 @@ OUTCOME_UNAVAILABLE = "method-unavailable"
 OUTCOME_INVALID = "method-invalid"
 OUTCOME_REFUSED = "refused"
 OUTCOME_ERROR = "error"
+#: A charter's increment the method cannot identify (owner decision D14): reported, never evaluated.
+OUTCOME_NOT_EVALUATED = "not-evaluated"
 
 #: Subjects shown per gap in the summary; the JSON carries all of them.
 FIRST_SUBJECTS = 3
@@ -110,7 +113,7 @@ def check(export: Path, revision: str, output_dir: Path, *, runner: Runner = sub
     output_dir.mkdir(parents=True, exist_ok=True)
     result: dict[str, Any] = {
         "schema": SCHEMA, "revision": revision, "policy": POLICY, "claim_boundary": CLAIM_BOUNDARY,
-        "export": {}, "increments": [], "notes": [], "errors": [], "timings": {},
+        "export": {}, "increments": [], "not_evaluated": [], "notes": [], "errors": [], "timings": {},
     }
     try:
         snapshot = load_export_snapshot(export)
@@ -137,6 +140,10 @@ def check(export: Path, revision: str, output_dir: Path, *, runner: Runner = sub
         return result
     del snapshot  # each entry-point process loads the export itself
     result["notes"] = list(discovery.notes)
+    result["not_evaluated"] = [
+        {"outcome": OUTCOME_NOT_EVALUATED, "usage": dict(item.usage),
+         "charters": [dict(charter) for charter in item.charters], "reason": item.reason, "notes": list(item.notes)}
+        for item in discovery.not_evaluated]
     result["timings"]["discovery_seconds"] = round(time.perf_counter() - started, 3)
     for increment in discovery.increments:
         entry, errors = _evaluate(increment, export, output_dir, runner)
@@ -154,7 +161,7 @@ def export_failure(diagnostics: Path, revision: str) -> dict[str, Any]:
         text = ""  # the export job failed before the export recorded anything
     return {
         "schema": SCHEMA, "revision": revision, "policy": POLICY, "claim_boundary": CLAIM_BOUNDARY,
-        "export": {}, "increments": [], "notes": [], "errors": [EXPORT_FAILED],
+        "export": {}, "increments": [], "not_evaluated": [], "notes": [], "errors": [EXPORT_FAILED],
         "export_diagnostics": [line.rstrip() for line in text.splitlines() if line.strip()],
         "timings": {},
     }
@@ -189,7 +196,7 @@ def _evaluate(increment: DeclaredIncrement, export: Path, output_dir: Path,
         "id": identifier, "outcome": OUTCOME_ERROR, "usage": dict(increment.usage),
         "charters": [dict(charter) for charter in increment.charters], "report": report_path.name,
         "next": None, "next_reason": "", "counts": {}, "phase_exits": {}, "phase_checks": {},
-        "diagnostics": [], "exit_code": None, "evaluation": None,
+        "phases_without_checks": [], "diagnostics": [], "exit_code": None, "evaluation": None,
     }
     report_path.unlink(missing_ok=True)  # never read a report an earlier run left behind
     run = runner(argv)
@@ -236,8 +243,15 @@ def _evaluate(increment: DeclaredIncrement, export: Path, output_dir: Path,
         "advisory": len(gaps.get("advisory") or []),
         "method_side_blockers": len(next_block.get("method_side_blockers") or []),
     }
-    entry["phase_exits"] = {phase["phase"]: phase.get("phase_exit") for phase in status.get("phases") or []}
-    entry["phase_checks"] = {phase["phase"]: _phase_checks(phase) for phase in status.get("phases") or []}
+    # A declared phase without executable checks is reported apart: it has no evaluated exit.
+    phases = list(status.get("phases") or [])
+    evaluated = [phase for phase in phases if phase.get("executable_checks") != 0]
+    entry["phase_exits"] = {phase["phase"]: phase.get("phase_exit") for phase in evaluated}
+    entry["phase_checks"] = {phase["phase"]: _phase_checks(phase) for phase in evaluated}
+    entry["phases_without_checks"] = [
+        {"phase": phase["phase"], "step": str(phase.get("step") or ""),
+         "outputs": [str(output.get("parameter") or "") for output in phase.get("outputs") or []]}
+        for phase in phases if phase.get("executable_checks") == 0]
     entry["diagnostics"] = [*(status.get("diagnostics") or []), *resolution]
     return entry, []
 
@@ -389,6 +403,13 @@ def _increment_section(entry: Mapping[str, Any]) -> list[str]:
 
         lines.append("**Phase exits:** " + ", ".join(f"{_plain(p)} {_plain(r)}{tally(p)}" for p, r in exits.items()))
         lines.append("")
+    unchecked = list(entry.get("phases_without_checks") or [])
+    if unchecked:
+        shown = ", ".join(f"{_plain(item.get('phase'))} ({_plain(item.get('step'))}: "
+                          f"{_plain(', '.join(item.get('outputs') or []) or 'no outputs')})" for item in unchecked)
+        lines.append("**Declared phases without executable checks at this revision** (reported, never evaluated; "
+                     f"the counts above say nothing about them): {shown}")
+        lines.append("")
     if diagnostics:
         lines.append("Resolution notes: " + _plain("; ".join(diagnostics)))
         lines.append("")
@@ -397,6 +418,21 @@ def _increment_section(entry: Mapping[str, Any]) -> list[str]:
         lines += [f"<details><summary>Advisory notes: {len(advisory)}</summary>", ""] + _gap_table(advisory)
         lines += ["", "</details>", ""]
     return lines
+
+
+def _usage_label(entry: Mapping[str, Any]) -> str:
+    usage = entry.get("usage") or {}
+    return str(usage.get("name") or usage.get("qualified_name") or usage.get("element_id") or "")
+
+
+def _not_evaluated_section(entry: Mapping[str, Any]) -> list[str]:
+    """A charter's increment the method cannot identify: its usage, charters and why it is not evaluated."""
+    usage = (entry.get("usage") or {}).get("qualified_name") or _usage_label(entry)
+    charters = [c.get("qualified_name") for c in entry.get("charters") or [] if c.get("qualified_name")]
+    header = f"Increment usage {_code(usage)}"
+    header += f"; charter {', '.join(_code(c) for c in charters)}" if charters else "; no charter"
+    return [f"### {_code(_usage_label(entry))} (not evaluated)", "", header, "",
+            f"**Not evaluated:** {_plain(entry.get('reason') or 'no reason recorded')}", ""]
 
 
 def _export_diagnostics_section(diagnostics: Sequence[str]) -> list[str]:
@@ -416,6 +452,7 @@ def render_summary(result: Mapping[str, Any], *, artifact: str | None = None, ru
     revision = str(result.get("revision") or "")
     export = result.get("export") or {}
     increments = list(result.get("increments") or [])
+    not_evaluated = list(result.get("not_evaluated") or [])
     lines = ["## Method check", "",
              "Advisory: gaps never fail this check; only a technical error does. Model-content checks of the "
              "method declared in the evaluated revision; no acceptance, compliance or certification claim.", ""]
@@ -429,6 +466,8 @@ def render_summary(result: Mapping[str, Any], *, artifact: str | None = None, ru
         facts.append("the licensed export failed")
     else:
         facts.append(f"{len(increments)} increment{'s' if len(increments) != 1 else ''}")
+        if not_evaluated:
+            facts.append(f"{len(not_evaluated)} not evaluated")
     lines += [", ".join(facts), ""]
 
     errors = list(result.get("errors") or [])
@@ -438,16 +477,23 @@ def render_summary(result: Mapping[str, Any], *, artifact: str | None = None, ru
     if failed_export:
         lines += _export_diagnostics_section([str(line) for line in result.get("export_diagnostics") or []])
 
-    if increments:
+    if increments or not_evaluated:
         lines += ["| Increment | Outcome | Next | Blocking | Advisory |", "| --- | --- | --- | ---: | ---: |"]
-        lines += [_overview_row(entry) for entry in increments] + [""]
+        lines += [_overview_row(entry) for entry in increments]
+        # Nothing was evaluated, so Next is "-": "none" would claim no check is open.
+        lines += [f"| {_code(_usage_label(entry), cell=True)} | not evaluated | - | - | - |"
+                  for entry in not_evaluated] + [""]
         for entry in increments:
             lines += _increment_section(entry)
+        for entry in not_evaluated:
+            lines += _not_evaluated_section(entry)
     elif not errors:
         lines += ["The model declares no increment: no charter references an increment usage and no "
                   "increment usage carries an increment identifier.", ""]
 
-    notes = list(result.get("notes") or [])
+    # A note a not-evaluated increment stands for is already shown in its section.
+    shown = {str(note) for entry in not_evaluated for note in entry.get("notes") or []}
+    notes = [note for note in result.get("notes") or [] if str(note) not in shown]
     if notes:
         lines.append("**Notes**")
         lines += [f"- {_plain(note)}" for note in notes[:MAX_ROWS]]

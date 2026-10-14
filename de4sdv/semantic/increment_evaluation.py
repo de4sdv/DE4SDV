@@ -16,12 +16,23 @@ the existing evaluator once and projects that single canonical evaluation as
 All projections carry the same evaluation key. A model revision without
 gates is UNASSESSED with ``CONTRACT_UNAVAILABLE``; invalid gates are an
 evaluation ERROR with ``INVALID_CONTRACT`` (frozen baseline Section 8).
+
+Every answer states what it covers. ``phase_contract`` lists every workflow
+step with what it declares, with or without checks; ``status`` lists each
+phase the charter declares whose step has no checks as "no executable checks
+at this revision" (UNASSESSED, its exit BLOCKED: a phase without an
+executable contract never disappears); the evaluation answers carry
+``coverage``. The increment block says how the identifier resolved
+(``resolution``); one the evaluated revision does not declare is
+``not-declared``, with a message naming the revision. None of this changes
+the contract, the evaluation or its key.
 Results describe model content only; no acceptance, compliance or
 certification claim follows from them.
 """
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 from dataclasses import dataclass
@@ -36,7 +47,7 @@ from .increment_workflow import (
     IncrementMethod,
     read_increment_method,
 )
-from .increment_scope import IncrementScope, ModelView, resolve_increment
+from .increment_scope import IDENTITY_PROBLEM, PROBLEM_INVALID, IncrementScope, ModelView, resolve_increment
 from .method_checks import IncrementEvaluationContext, remedy
 from .relation_checks import METHOD_SIDE_PREFIXES
 
@@ -47,6 +58,31 @@ CLAIM_BOUNDARY = (
 KIND_VIOLATION = "violation"
 KIND_INPUT = "input-problem"
 KIND_METHOD_SIDE = "method-side"
+#: Coverage of a workflow step or phase: whether executable checks judge what it declares.
+EXECUTABLE_CHECKS = "executable checks at this revision"
+NO_EXECUTABLE_CHECKS = "no executable checks at this revision"
+COVERAGE_NOTE = ("the verdicts, gaps and next cover only the phases with executable checks at this revision; "
+                 "a declared phase without executable checks is reported, never evaluated")
+#: Why the exit of a phase no check judges stays BLOCKED: the method, never a gap in the model.
+UNCHECKED_EXIT_NOTE = ("BLOCKED by the method, not by the model: no executable check judges this phase at this "
+                       "revision, so no gap is open here and nothing you author opens this exit.")
+#: How the requested identifier resolved at the evaluated revision (``increment.resolution``). Not a
+#: reason of the result algebra, whose ``reason_codes`` vocabulary is closed: a property of the lookup.
+RESOLVED = "resolved"  # exactly one increment usage carries the identifier
+NOT_DECLARED = "not-declared"  # none does: content on another branch or commit is invisible here
+AMBIGUOUS = "ambiguous"  # several do
+LINEAGE_UNAVAILABLE = "lineage-unavailable"  # the EngineeringIncrement lineage cannot be established
+NEXT_REASON = "the first open blocking check in workflow order (step order, then check order)"
+NONE_OPEN_REASON = "every required gate passes or is not applicable"
+#: What the bounds of a phase_contract gate count (a claim of "at least one ..." reads on one of them).
+CONTRACT_LEGEND = {
+    "population": "[lower, upper] number of subjects: the elements conforming to the step parameter the "
+                  "check is about, bounded by that parameter's multiplicity; * is unbounded",
+    "cardinality": "[lower, upper] number of distinct targets each subject must reach through the check; "
+                   "* is unbounded",
+    "steps": "every workflow step in method order, with what it declares; a step whose coverage is "
+             "'no executable checks at this revision' is never evaluated",
+}
 
 
 @dataclass
@@ -83,8 +119,20 @@ class IncrementEvaluation:
             "increment": self._increment_block(),
             "method": self._method_block(),
             "revision": _revision(self.revision),
+            "coverage": self._coverage(),
             "claim_boundary": CLAIM_BOUNDARY,
         }
+
+    def _coverage(self) -> dict[str, Any]:
+        """Which phases the answer's verdicts cover, and which declared phases no check judges:
+        every declared phase without executable checks, whether or not the workflow has a step for it."""
+        checked = list(self.increment_method.phases)
+        declared = self.scope.declared_phases
+        unchecked = None if declared is None else [p for p in self._status_phases(None) if p not in checked]
+        note = COVERAGE_NOTE if declared is not None else (
+            COVERAGE_NOTE + "; the increment's declared phases are unresolved")
+        return {"phases_with_executable_checks": checked,
+                "declared_phases_without_executable_checks": unchecked, "note": note}
 
     def _increment_block(self) -> dict[str, Any]:
         scope = self.scope
@@ -104,6 +152,7 @@ class IncrementEvaluation:
             "packages": [self.view.index.qualified_name(package) for package in scope.scope_packages],
             "elements": len(scope.scope_elements),
         }
+        block.update(_declaration_reason(scope, self.revision))
         return block
 
     def _method_block(self) -> dict[str, Any]:
@@ -133,7 +182,25 @@ class IncrementEvaluation:
         return self.increment_method.contract
 
     def _phases(self, phase: str | None) -> list[str]:
-        phases = list(self.increment_method.phases)
+        """The phases with executable checks (or the requested one among them)."""
+        return self._selected(list(self.increment_method.phases), phase)
+
+    def _status_phases(self, phase: str | None) -> list[str]:
+        """The phases a status reports, in workflow order: those with executable checks, and every
+        phase the charter declares (reported, never evaluated, when no check judges it). A declared
+        phase the workflow has no step for takes its place in method order."""
+        checked = set(self.increment_method.phases)
+        declared = list(self.scope.declared_phases or ())
+        listed = [p for p in dict.fromkeys([*(step["phase"] for step in self.increment_method.steps),
+                                            *self.increment_method.phases]) if p in checked or p in declared]
+        for missing in (p for p in declared if p not in listed):
+            rank = PHASE_ORDER.get(missing, len(PHASE_ORDER))
+            at = next((i for i, p in enumerate(listed) if PHASE_ORDER.get(p, len(PHASE_ORDER)) > rank), len(listed))
+            listed.insert(at, missing)
+        return self._selected(listed, phase)
+
+    @staticmethod
+    def _selected(phases: list[str], phase: str | None) -> list[str]:
         if phase is None:
             return phases
         if phase not in PHASE_ORDER:
@@ -166,14 +233,25 @@ class IncrementEvaluation:
     def _phase_exit(self, phase: str, ids: Sequence[str]) -> me.ReadinessBlock:
         """Phase-exit readiness; an empty required inventory never opens an exit."""
         assert self.canonical is not None
+        if not ids:
+            return self._unchecked_exit(phase)
         target = me.ReadinessTarget("PHASE_EXIT", f"{self.increment_id}/{phase}")
         if not self._required(ids):
             return me.ReadinessBlock(
                 target=target, readiness="BLOCKED", reason_codes=(me.CONTRACT_UNAVAILABLE,),
-                diagnostics=(f"no blocking gate is declared for {phase}; an empty required "
-                             "inventory cannot authorize a phase exit",),
+                diagnostics=(f"no blocking gate is declared for {phase}; an empty required inventory cannot "
+                             "authorize a phase exit",),
             )
         return me.subset_readiness(self.canonical, ids, target)
+
+    def _unchecked_exit(self, phase: str) -> me.ReadinessBlock:
+        """The exit of a phase no executable check judges: no evaluation can open it, and no gap blocks it."""
+        return me.ReadinessBlock(
+            target=me.ReadinessTarget("PHASE_EXIT", f"{self.increment_id}/{phase}"), readiness="BLOCKED",
+            reason_codes=(me.CONTRACT_UNAVAILABLE,),
+            diagnostics=(f"{phase} has {NO_EXECUTABLE_CHECKS}: its exit stays BLOCKED until the method adds "
+                         "checks; this is not a gap",),
+        )
 
     def _kind(self, unit: me.EvaluationResult) -> str | None:
         """Gap kind of one gate unit (None when the gate passes or is not applicable)."""
@@ -294,9 +372,14 @@ class IncrementEvaluation:
     def status(self, phase: str | None = None) -> dict[str, Any]:
         """Per-phase aggregate and phase-exit readiness."""
         if self.canonical is None:
-            return self._unavailable("increment_status")
+            # Nothing is executable: every declared phase is reported, none is evaluated.
+            response = self._unavailable("increment_status")
+            declared = set(self.scope.declared_phases or ())
+            response["phases"] = [self._unchecked_phase_status(p) for p in self._status_phases(phase)
+                                  if p in declared]
+            return response
         response = self._header("increment_status")
-        phases = self._phases(phase)
+        phases = self._status_phases(phase)
         selected = [g.obligation_id for p in phases for g in self._gates(p)]
         coverage, state, verdict = self._aggregate(selected)
         response.update(
@@ -309,15 +392,18 @@ class IncrementEvaluation:
         )
         if not self._required(selected):
             response["reason_codes"] = [me.CONTRACT_UNAVAILABLE]
-            response["diagnostics"] = [
-                f"no blocking gate is declared for {phase}" if phase
-                else "the method declares no blocking gate"
-            ]
+            if phase and not selected:
+                response["diagnostics"] = [f"{phase} has {NO_EXECUTABLE_CHECKS}"]
+            else:
+                response["diagnostics"] = [f"no blocking gate is declared for {phase}" if phase
+                                           else "the method declares no blocking gate"]
         return self._presented(response)
 
     def _phase_status(self, phase: str) -> dict[str, Any]:
         assert self.canonical is not None
         gates = self._gates(phase)
+        if not gates:
+            return self._unchecked_phase_status(phase)
         ids = [g.obligation_id for g in gates]
         coverage, state, verdict = self._aggregate(ids)
         readiness = self._phase_exit(phase, ids)
@@ -330,6 +416,8 @@ class IncrementEvaluation:
         return {
             "phase": phase,
             "applicability": self._applicability(gates, phase),
+            "executable_checks": len(gates),
+            "coverage": EXECUTABLE_CHECKS,
             "assessment_coverage": coverage,
             "evaluation_state": state,
             "conformance_verdict": verdict,
@@ -338,6 +426,30 @@ class IncrementEvaluation:
             "gates": {g.obligation_id: _state_label(self._unit(g.obligation_id)) for g in gates},
             "blocking": blocking,
             "advisory_open": advisory,
+        }
+
+    def _unchecked_phase_status(self, phase: str) -> dict[str, Any]:
+        """A declared phase no executable check judges: reported with its step's declared outputs
+        (none when the workflow has no step for it), never evaluated (UNASSESSED, exit BLOCKED)."""
+        steps = [step for step in self.increment_method.steps if step["phase"] == phase]
+        readiness = self._unchecked_exit(phase)
+        return {
+            "phase": phase,
+            "applicability": "declared",
+            "executable_checks": 0,
+            "coverage": NO_EXECUTABLE_CHECKS,
+            "step": ", ".join(step["step"] for step in steps) or None,
+            "outputs": copy.deepcopy([output for step in steps for output in step["outputs"]]),
+            "assessment_coverage": me.COVERAGE_UNASSESSED,
+            "evaluation_state": None,
+            "conformance_verdict": None,
+            "reason_codes": [me.CONTRACT_UNAVAILABLE],
+            "phase_exit": readiness.readiness,
+            "exit_note": UNCHECKED_EXIT_NOTE,
+            "readiness": readiness.as_dict(),
+            "gates": {},
+            "blocking": [],
+            "advisory_open": [],
         }
 
     def _applicability(self, gates: Sequence[me.ObligationSpec], phase: str) -> str:
@@ -373,6 +485,7 @@ class IncrementEvaluation:
         if self.canonical is None:
             response = self._unavailable("next_obligation")
             response.update(next=None, reason=self.increment_method.reason, stage_queue=[], method_side_blockers=[])
+            response.update(_next_reason(self.scope, self.revision))
             return response
         response = self._header("next_obligation")
         order = {g.obligation_id: i for i, g in enumerate(self._contract().obligations)}
@@ -404,7 +517,7 @@ class IncrementEvaluation:
                 entry["phase"], [g.obligation_id for g in self._gates(entry["phase"])]
             ).readiness
         step = None
-        reason = ""
+        reason = NEXT_REASON
         if actionable:
             _rank, gate, kind = actionable[0]
             entry = self._entry(gate, kind)
@@ -426,10 +539,16 @@ class IncrementEvaluation:
             reason = ("no gate the agent can author is open; the remaining blockers need a method or "
                       "kernel change")
         elif phase is not None and not self._phases(phase):
-            reason = f"no gate is declared for {phase}"
+            reason = f"{phase} has {NO_EXECUTABLE_CHECKS}"
         else:
-            reason = "every required gate passes or is not applicable"
+            # 0 open gates says nothing about a declared phase that no check judges: name those phases.
+            unchecked = [p for p in self._coverage()["declared_phases_without_executable_checks"] or ()
+                         if phase is None or p == phase]
+            reason = NONE_OPEN_REASON + (
+                f"; {NO_EXECUTABLE_CHECKS} judge the declared phase{'s' if len(unchecked) > 1 else ''} "
+                f"{', '.join(unchecked)}" if unchecked else "")
         response.update(next=step, reason=reason, stage_queue=queue, method_side_blockers=method_side)
+        response.update(_next_reason(self.scope, self.revision))
         return self._presented(response)
 
     def phase_contract(self, phase: str | None = None) -> dict[str, Any]:
@@ -461,13 +580,21 @@ def phase_contract_response(
         "method": method,
         "method_provenance": [{"authority": "authoritative", "source": f"git://{revision.git_commit}"}],
         "phase": phase,
+        "legend": dict(CONTRACT_LEGEND),
     }
     if scope is not None:
         response["increment"] = {
             "id": scope.increment_id,
             "resolved": scope.usage_id is not None,
             "declared_phases": list(scope.declared_phases) if scope.declared_phases is not None else None,
+            **_declaration_reason(scope, revision),
         }
+    # Every step of the workflow, with or without checks: a step without checks has no gate,
+    # so only its record says what the method requires there.
+    steps = [_step_record(step, scope) for step in increment_method.steps if phase is None or step["phase"] == phase]
+    response["steps"] = steps
+    response["phases_without_executable_checks"] = list(dict.fromkeys(
+        step["phase"] for step in steps if not step["checks"]))
     if increment_method.contract is None:
         response.update(executable_contract_available=False, phases=[], gates=[],
                         reason_codes=[me.INVALID_CONTRACT if increment_method.problems else me.CONTRACT_UNAVAILABLE],
@@ -480,8 +607,26 @@ def phase_contract_response(
                     contract_digest=increment_method.contract.digest())
     if not gates:
         response["reason_codes"] = [me.CONTRACT_UNAVAILABLE]
-        response["diagnostics"] = [f"no gate is declared for {phase}"]
+        response["diagnostics"] = [f"{phase} has {NO_EXECUTABLE_CHECKS}" + (
+            "; steps lists what its step declares" if steps else "")]
     return response
+
+
+def _step_record(step: Mapping[str, Any], scope: IncrementScope | None) -> dict[str, Any]:
+    """One workflow step as answered: what it declares, how many checks judge it, whether it applies."""
+    record = copy.deepcopy(dict(step))
+    record["executable_checks"] = len(step["checks"])
+    record["coverage"] = EXECUTABLE_CHECKS if step["checks"] else NO_EXECUTABLE_CHECKS
+    if scope is None:
+        return record
+    if not step["optional"]:
+        record["applicability_resolution"] = "applicable"
+    elif scope.declared_phases is None:
+        record["applicability_resolution"] = "unresolved"
+    else:
+        declared = step["phase"] in scope.declared_phases
+        record["applicability_resolution"] = "applicable" if declared else "not_applicable"
+    return record
 
 
 def _gate_record(gate: me.ObligationSpec, view: ModelView, scope: IncrementScope | None,
@@ -491,6 +636,7 @@ def _gate_record(gate: me.ObligationSpec, view: ModelView, scope: IncrementScope
         "phase": gate.phase,
         "subject_selector": gate.subject_selector,
         "predicate": gate.predicate,
+        "population": [gate.minimum_population, "*" if gate.maximum_population is None else gate.maximum_population],
         "cardinality": [gate.cardinality[0], "*" if gate.cardinality[1] >= UNBOUNDED else gate.cardinality[1]],
         "minimum_population": gate.minimum_population,
         "permitted_empty": gate.permitted_empty,
@@ -549,6 +695,37 @@ def evaluate_increment(
         increment_id=scope.increment_id, revision=revision, increment_method=increment_method, scope=scope,
         view=view, canonical=canonical,
     )
+
+
+def _resolution(scope: IncrementScope) -> str:
+    """How the identifier resolved: one increment usage, none at this revision, several, or an
+    EngineeringIncrement lineage that cannot be established (a method-side marker)."""
+    if scope.usage_id is not None:
+        return RESOLVED
+    kind, detail = scope.problems.get(IDENTITY_PROBLEM, ("", ""))
+    if kind == PROBLEM_INVALID:
+        return AMBIGUOUS
+    return LINEAGE_UNAVAILABLE if str(detail).startswith(METHOD_SIDE_PREFIXES) else NOT_DECLARED
+
+
+def _declaration_reason(scope: IncrementScope, revision: me.RevisionIdentity) -> dict[str, str]:
+    """``resolution``, and for an increment the evaluated revision does not declare, a ``message``
+    naming the revision."""
+    resolution = _resolution(scope)
+    if resolution != NOT_DECLARED:
+        return {"resolution": resolution}
+    message = (f"{scope.increment_id} isn't declared at revision {revision.git_commit or '(none)'} "
+               f"({revision.scope}): no increment usage there carries it as its declared short name. An "
+               "increment usage that exists without that short name, such as a legacy increment, is not found "
+               "either; the Method Check report lists such usages. Work on a branch or another commit is not "
+               "part of this evaluation; the PR Method Check evaluates the head of a pull request.")
+    return {"resolution": resolution, "message": message}
+
+
+def _next_reason(scope: IncrementScope, revision: me.RevisionIdentity) -> dict[str, str]:
+    """For an increment the revision does not declare, ``next``'s reason is that message."""
+    message = _declaration_reason(scope, revision).get("message")
+    return {"reason": message} if message else {}
 
 
 def _revision(revision: me.RevisionIdentity) -> dict[str, str]:

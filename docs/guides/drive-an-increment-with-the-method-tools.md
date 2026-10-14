@@ -42,7 +42,12 @@ No element is identified by its name. Member names (`workflow`, `phase`,
   passes); `subjectIsSystemOfInterest` reports a deviation (advisory).
 - **Population.** The parameter's multiplicity bounds the number of subjects:
   `[1]` means exactly one, `[0..*]` lets an empty population mean "does not
-  apply".
+  apply". `phase_contract` gives it per check as `population`, for example
+  `[1, "*"]` for "the increment package owns at least one assumption". Its
+  `cardinality` is a different count: the distinct targets each subject must
+  reach through the check, such as the one package that owns each assumption
+  (`[1, 1]`). A claim of "at least one" reads on whichever of the two it
+  counts.
 - **Applicability.** Framing always applies; a later, optional step applies
   when the charter declares its phase.
 - **Every check is evaluated.** The step order only ranks `next`; an open check
@@ -63,13 +68,14 @@ optional `MethodPhase` literal, such as `phase4_needs`, that filters the answer.
 
 | Tool | Answers |
 | --- | --- |
-| `next_obligation(increment, phase?)` | The first check the agent can act on, in workflow order, with the failing elements, what to author and in which package |
+| `next_obligation(increment, phase?)` | The first check the agent can act on, in workflow order, with the failing elements, what to author and in which package; `reason` always says why it was chosen, or why none is open |
 | `method_gaps(increment, phase?)` | Every unmet blocking check (with its subjects) and the advisory notes |
-| `increment_status(increment, phase?)` | Per phase: the aggregate verdict and whether the phase exit is `READY` or `BLOCKED` |
-| `phase_contract(phase?, increment?)` | The checks themselves, and for an increment whether each applies; never a verdict |
+| `increment_status(increment, phase?)` | Per phase: the aggregate verdict and whether the phase exit is `READY` or `BLOCKED`; a declared phase without executable checks is listed as such, its exit blocked by the method, never by a gap |
+| `phase_contract(phase?, increment?)` | Every workflow step with what it declares (`steps`), the checks themselves (`gates`), and for an increment whether each applies; never a verdict |
 
 The three evaluation tools project one evaluation of the increment, so their
-answers carry the same `evaluation_key`.
+answers carry the same `evaluation_key`. Each answer also says what it
+covers: see coverage and revision below.
 
 ## How the answers are built
 
@@ -85,6 +91,33 @@ answers carry the same `evaluation_key`.
   as notes.
 - **Ranking.** `next_obligation` returns the earliest open blocking check in
   workflow order (step order, then check order).
+- **Coverage.** Only some steps of the workflow carry checks. `phase_contract`
+  lists every step in `steps`, with its phase, documentation, inputs and
+  outputs (name, kind, type, multiplicity) and its checks; a step without
+  checks has the coverage "no executable checks at this revision". In
+  `increment_status`, every phase the charter declares that no executable
+  check judges is listed with that coverage and its step's declared outputs
+  (no step: `step` null, no outputs), also when the workflow cannot be read.
+  It is never evaluated (`UNASSESSED`, reason `CONTRACT_UNAVAILABLE`), so its
+  exit stays `BLOCKED` by the method, not by your model: it is never a gap,
+  `method_gaps` and `next` never list it, and nothing you author opens it at
+  this revision (its `exit_note` says so). Every evaluation answer carries
+  `coverage`: the phases with executable checks, and the declared phases
+  without them. Zero blocking gaps, or `next` none, says nothing about the
+  latter, and `next_obligation`'s `reason` names them.
+- **Revision.** An answer evaluates the bound revision, named in `revision`,
+  and nothing else. The `increment` block's `resolution` says how the
+  identifier resolved there: `resolved`, `ambiguous` (several increment
+  usages carry it), `lineage-unavailable` (the `EngineeringIncrement`
+  lineage cannot be established) or `not-declared` (no increment usage
+  carries it). For `not-declared` the block adds a `message` that names the
+  revision and says that a usage without the identifier as its short name,
+  such as a legacy increment, is not found either; `next_obligation` gives
+  it as its `reason`. Work on a branch is invisible to the deployed
+  revision: the PR Method Check evaluates the head of a pull request. `next`
+  still names the framing check that declares a new increment (for example
+  `INC-EXAMPLE-001`). `resolution` is not a reason code of the result
+  algebra, so it never appears in `reason_codes`.
 - **Relations.** A check that names a relation is decided by the relation check
   of that name in `de4sdv/semantic/relation_checks.py`: a relation of the
   model-built contract through the production traversal (a connection-carried
@@ -126,7 +159,10 @@ a separate `presentation` block, because only an export records them.
 
 ## On a pull request
 
-Every pull request that touches the model runs the **Method Check** workflow
+Every pull request that touches the model, the check's own scripts and
+workflow, or a module or data file the evaluation reads (the `de4sdv`
+semantic and SysML API packages, and the files the successor contract is
+built from) runs the **Method Check** workflow
 ([`method-check.yml`](../../.github/workflows/method-check.yml)). It exports
 the pull-request head with the licensed serializer, finds every increment the
 model declares (through the charters and the increments' short names), and
@@ -159,12 +195,17 @@ jq '.increments[] | {id, outcome, next: .next.gate, counts}' method-check.json
 | `id`, `outcome` | The increment identifier, for example `INC-AEBS-010`; `evaluated`, `method-unavailable`, `method-invalid`, `refused` or `error` |
 | `next` | The first check to act on: `gate`, `stage`, `kind`, `what_to_author`, `where`, `subjects`; `null` when none is open |
 | `counts` | `blocking`, `blocking_by_kind`, `advisory`, `method_side_blockers` |
-| `phase_exits`, `phase_checks` | Per phase: `READY` or `BLOCKED`, and how many of its checks pass (`pass`, `total`, `not_applicable`) |
+| `phase_exits`, `phase_checks` | Per phase with executable checks: `READY` or `BLOCKED`, and how many of its checks pass (`pass`, `total`, `not_applicable`) |
+| `phases_without_checks` | The declared phases whose step has no executable checks: `phase`, `step` and its `outputs`; never evaluated, so the counts say nothing about them |
 | `evaluation.gaps.blocking` | Every unmet blocking check with all its subjects; `evaluation.gaps.advisory` holds the advisory notes |
 | `evaluation` | The full `scripts/evaluate_increment.py` report: `status`, `gaps`, `next`, `contract` |
 
 The top-level `errors` lists technical errors, and `notes` lists what could
 not be evaluated, such as a charter whose increment carries no identifier.
+Such an increment is also listed in `not_evaluated` with its `usage`,
+`charters` and `reason` (outcome `not-evaluated`), and the summary shows it
+as a "not evaluated" row: the method finds an increment only by its
+identifier, so it never evaluates one without it.
 The artifact also holds one `<increment id>.json` per increment and the
 summary as `method-check.md`. The export stays available for three days as
 `method-check-export-<sha>`, so you can repeat the evaluation locally with
