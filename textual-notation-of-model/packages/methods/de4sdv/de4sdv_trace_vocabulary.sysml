@@ -1,17 +1,55 @@
-/* Explicit relationship successor, non-production. Frozen O3 is unchanged.
- * Profile records below are construction inputs, never query-time source text.
- * Relation and retirement records carry engineering semantics only (predicate,
- * carrier, mechanism, strength, endpoint classes, inverse). Endpoint class
- * pins come from the class mappings of the model-generated projection layers,
- * not from file paths in this model. Each class/carrier pin routes from an ingestion-validated
- * exact source-file and declaration tuple. Runtime never derives UUIDs by name.
- * Allocations retain responsibility assignment only; no satisfaction,
- * transitivity, execution, fulfillment, deployment or compliance is asserted.
+/*
+ * DE4SDV trace vocabulary: the connection definitions and records that trace
+ * engineering elements along the method chain.
+ *
+ * - DerivesFromNeed: a requirement derives from a stakeholder need.
+ * - allocatedTo: a requirement, function or logical element is allocated to a
+ *   function, logical element or physical element (native allocations).
+ * - hasValidationScenario: a stakeholder need has a planned validation
+ *   scenario.
+ * - hasRegulatorySource: a requirement has a controlled regulatory source.
+ *
+ * The relation records declare each relationship's predicate, connection
+ * definition, mechanism, strength, endpoint classes and inverse; the
+ * retirement records name the retired relationship names and why they are
+ * refused. The served trace contract is built from these records. Endpoint
+ * class pins come from the generated projection layers, not from file paths in
+ * this model, and every pin resolves through an ingestion-validated source file
+ * and declaration, never by name. An allocation records a responsibility
+ * assignment only: it asserts no satisfaction, transitivity, execution,
+ * fulfillment, deployment or compliance.
  */
-package DE4SDV_RelationshipSuccessor {
+package DE4SDV_TraceVocabulary {
   private import ScalarValues::*;
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_OperationalContext::*;
+
+  /* Requirement derivation discriminator: DE4SDV application connection
+   * definition. A requirement usage connected as derivedRequirement
+   * originates from the stakeholder need connected as need. The typed ends
+   * carry the predicate's domain and range; the definition documentation
+   * carries its native direction, claim strength, and claim boundary.
+   * Design-input provenance only — no satisfaction, implication,
+   * verification, evidence, or acceptance claim. */
+
+  connection def DerivesFromNeed {
+    private doc ontologyDefinition /* DE4SDV application connection definition for design-input derivation: the
+     * derivedRequirement originates from the stakeholder need. Provenance/traceability
+     * semantics only - neither satisfaction nor logical implication between the connected
+     * usages is claimed. The typed connection ends (need : StakeholderNeedCandidate,
+     * derivedRequirement : RequirementCandidate) carry the predicate's domain and range in
+     * the model itself. The standard Requirement Derivation Domain Library remains pinned
+     * but unadopted: its originalImpliesDerived semantics change the claim (upstream
+     * adoption gate still applies; no floating upgrade, no upstream contact without
+     * authorization). */
+    end need : StakeholderNeedCandidate;
+    end derivedRequirement : RequirementCandidate;
+    doc /* Design-input provenance: the derivedRequirement originates from
+         * the stakeholder need. Native direction: need -> derivedRequirement.
+         * Claim strength: derivation (provenance only: neither satisfaction
+         * nor logical implication between the connected usages; no
+         * allocation, verification, evidence, or acceptance claim). */
+  }
 
   action def AllocatableFunction {
     doc /* Functional responsibility identity for this versioned allocation profile. */
@@ -86,7 +124,7 @@ package DE4SDV_RelationshipSuccessor {
    * makes an applicable obligation optional nor proves compliance.
    * Supersedes constrainedBy. */
 
-  part def SuccessorRelationRecord {
+  part def TraceRelationRecord {
     attribute predicate : String;
     attribute carrier : String;
     attribute mechanism : String;
@@ -97,20 +135,20 @@ package DE4SDV_RelationshipSuccessor {
     attribute targetUsage : String;
     attribute inverse : String;
   }
-  part def SuccessorRetirementRecord {
+  part def RetiredRelationRecord {
     attribute predicate : String;
     attribute reason : String;
   }
-  part def SuccessorVersionRecord {
+  part def TraceVocabularyVersionRecord {
     attribute version : String;
     attribute supersedes : String;
   }
-  part version : SuccessorVersionRecord {
+  part version : TraceVocabularyVersionRecord {
     attribute :>> version = "de4sdv.relationship-successor/v1";
     attribute :>> supersedes = "Function-to-LogicalElement allocatedTo signature; historical provenance constrainedBy; stronger realizedBy/deployedTo active claims";
   }
 
-  part requirementAllocation : SuccessorRelationRecord {
+  part requirementAllocation : TraceRelationRecord {
     attribute :>> predicate = "allocatedTo";
     attribute :>> carrier = "RequirementFunctionAssignment";
     attribute :>> mechanism = "native-allocation";
@@ -121,7 +159,7 @@ package DE4SDV_RelationshipSuccessor {
     attribute :>> targetUsage = "ActionUsage";
     attribute :>> inverse = "";
   }
-  part functionAllocation : SuccessorRelationRecord {
+  part functionAllocation : TraceRelationRecord {
     attribute :>> predicate = "allocatedTo";
     attribute :>> carrier = "FunctionLogicalAssignment";
     attribute :>> mechanism = "native-allocation";
@@ -132,7 +170,7 @@ package DE4SDV_RelationshipSuccessor {
     attribute :>> targetUsage = "PartUsage";
     attribute :>> inverse = "";
   }
-  part physicalAllocation : SuccessorRelationRecord {
+  part physicalAllocation : TraceRelationRecord {
     attribute :>> predicate = "allocatedTo";
     attribute :>> carrier = "LogicalPhysicalAssignment";
     attribute :>> mechanism = "native-allocation";
@@ -143,7 +181,7 @@ package DE4SDV_RelationshipSuccessor {
     attribute :>> targetUsage = "PartUsage";
     attribute :>> inverse = "";
   }
-  part validationPlanning : SuccessorRelationRecord {
+  part validationPlanning : TraceRelationRecord {
     attribute :>> predicate = "hasValidationScenario";
     attribute :>> carrier = "ValidationPlanningAssociation";
     attribute :>> mechanism = "typed-connection";
@@ -154,7 +192,7 @@ package DE4SDV_RelationshipSuccessor {
     attribute :>> targetUsage = "PartUsage";
     attribute :>> inverse = "validationScenarioFor";
   }
-  part regulatoryProvenance : SuccessorRelationRecord {
+  part regulatoryProvenance : TraceRelationRecord {
     attribute :>> predicate = "hasRegulatorySource";
     attribute :>> carrier = "RegulatorySourceAssociation";
     attribute :>> mechanism = "typed-connection";
@@ -166,23 +204,23 @@ package DE4SDV_RelationshipSuccessor {
     attribute :>> inverse = "";
   }
 
-  part oldRealization : SuccessorRetirementRecord {
+  part oldRealization : RetiredRelationRecord {
     attribute :>> predicate = "realizedBy";
     attribute :>> reason = "Retired stronger active claim; native responsibility assignments use allocatedTo without fulfillment.";
   }
-  part oldDeployment : SuccessorRetirementRecord {
+  part oldDeployment : RetiredRelationRecord {
     attribute :>> predicate = "deployedTo";
     attribute :>> reason = "Retired stronger active claim; no deployment assertion is invented.";
   }
-  part oldRegulatoryName : SuccessorRetirementRecord {
+  part oldRegulatoryName : RetiredRelationRecord {
     attribute :>> predicate = "constrainedBy";
     attribute :>> reason = "Historical source provenance, not native required conditions; controlled-source successor is hasRegulatorySource, not an alias.";
   }
-  part oldValidationForward : SuccessorRetirementRecord {
+  part oldValidationForward : RetiredRelationRecord {
     attribute :>> predicate = "validatedBy";
     attribute :>> reason = "Planning successor is hasValidationScenario; no validation result implied.";
   }
-  part oldValidationInverse : SuccessorRetirementRecord {
+  part oldValidationInverse : RetiredRelationRecord {
     attribute :>> predicate = "validatesFitnessForUse";
     attribute :>> reason = "Inverse planning navigation is validationScenarioFor over the same association; not a fitness-for-use verdict.";
   }

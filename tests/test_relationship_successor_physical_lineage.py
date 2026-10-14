@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MODEL_DIR = ROOT / "textual-notation-of-model/packages/features/aebs"
 PHYSICAL = MODEL_DIR / "aebs_physical_software_realization.sysml"
 SIMULATION = MODEL_DIR / "aebs_simulation_deployment.sysml"
-IMPORT = "private import DE4SDV_RelationshipSuccessor::PhysicalAllocationElement;"
+IMPORT = "private import DE4SDV_TraceVocabulary::PhysicalAllocationElement;"
 ENDPOINTS = (
     (PHYSICAL, "VehicleTargetAEBSPhysicalSoftwareBoundary", "aebNode", "AutowareAutonomousEmergencyBrakingNode"),
     (SIMULATION, "AEBSystem1CandidateDeployment", "aeb", "DeployedAEBNode"),
@@ -137,7 +137,7 @@ def test_existing_root_usages_reach_the_actual_system1_endpoint_owners():
 ))
 def test_existing_component_allocation_sources_retain_logical_lineage(usage, definition):
     code = strip_comments((MODEL_DIR / "aebs_logical_architecture.sysml").read_text(encoding="utf-8"))
-    assert "private import DE4SDV_RelationshipSuccessor::*;" in code
+    assert "private import DE4SDV_TraceVocabulary::*;" in code
     assert re.search(r"\bpart\s+system\s*:\s*VehicleTargetAEBSSystem\s*;", code)
     _, system = declaration(code, "part def", "VehicleTargetAEBSSystem")
     assert re.search(rf"\bpart\s+{usage}\s*:\s*{definition}\s*;", direct_body(system))

@@ -21,7 +21,7 @@
       "for_concept": "AllocatableFunction",
       "representation_class": "action-definition",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
         "owner": "action def AllocatableFunction",
         "api_metaclass": "ActionDefinition"
       },
@@ -117,7 +117,7 @@
       "for_concept": "DerivesFromNeed",
       "representation_class": "connection-definition",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
         "owner": "connection def DerivesFromNeed",
         "api_metaclass": "ConnectionDefinition"
       },
@@ -253,7 +253,7 @@
       "for_concept": "LogicalAllocationElement",
       "representation_class": "part-definition",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
         "owner": "part def LogicalAllocationElement",
         "api_metaclass": "PartDefinition"
       },
@@ -292,7 +292,7 @@
       "for_concept": "PhysicalAllocationElement",
       "representation_class": "part-definition",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
         "owner": "part def PhysicalAllocationElement",
         "api_metaclass": "PartDefinition"
       },
@@ -318,7 +318,7 @@
       "for_concept": "RegulatorySource",
       "representation_class": "part-definition",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
         "owner": "part def ControlledRegulatorySource",
         "api_metaclass": "PartDefinition"
       },
@@ -331,7 +331,7 @@
       "for_concept": "RegulatorySourceAssociation",
       "representation_class": "connection-definition",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
         "owner": "connection def RegulatorySourceAssociation",
         "api_metaclass": "ConnectionDefinition"
       },
@@ -409,7 +409,7 @@
       "for_concept": "ValidationPlanningAssociation",
       "representation_class": "connection-definition",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
         "owner": "connection def ValidationPlanningAssociation",
         "api_metaclass": "ConnectionDefinition"
       },
@@ -422,7 +422,7 @@
       "for_concept": "ValidationPlanningScenario",
       "representation_class": "part-definition",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
         "owner": "part def ValidationPlanningScenario",
         "api_metaclass": "PartDefinition"
       },
@@ -448,8 +448,8 @@
       "for_concept": "allocatedTo",
       "representation_class": "vocabulary-role-comment",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-        "owner": "package DE4SDV_RelationshipSuccessor",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
+        "owner": "package DE4SDV_TraceVocabulary",
         "api_metaclass": "Comment"
       },
       "witness_forms": [
@@ -516,12 +516,12 @@
       "for_concept": "constrainedBy",
       "representation_class": "successor-retirement-record",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-        "owner": "package DE4SDV_RelationshipSuccessor",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
+        "owner": "package DE4SDV_TraceVocabulary",
         "api_metaclass": "PartUsage"
       },
       "witness_forms": [
-        "ownedRelationship -> FeatureMembership -> PartUsage : SuccessorRetirementRecord"
+        "ownedRelationship -> FeatureMembership -> PartUsage : RetiredRelationRecord"
       ],
       "retired_resolution": {
         "successor": "hasRegulatorySource",
@@ -534,12 +534,12 @@
       "for_concept": "deployedTo",
       "representation_class": "successor-retirement-record",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-        "owner": "package DE4SDV_RelationshipSuccessor",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
+        "owner": "package DE4SDV_TraceVocabulary",
         "api_metaclass": "PartUsage"
       },
       "witness_forms": [
-        "ownedRelationship -> FeatureMembership -> PartUsage : SuccessorRetirementRecord"
+        "ownedRelationship -> FeatureMembership -> PartUsage : RetiredRelationRecord"
       ],
       "retired_resolution": {
         "successor": "allocatedTo",
@@ -600,8 +600,8 @@
       "for_concept": "hasRegulatorySource",
       "representation_class": "vocabulary-role-comment",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-        "owner": "package DE4SDV_RelationshipSuccessor",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
+        "owner": "package DE4SDV_TraceVocabulary",
         "api_metaclass": "Comment"
       },
       "witness_forms": [
@@ -661,8 +661,8 @@
       "for_concept": "hasValidationScenario",
       "representation_class": "vocabulary-role-comment",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-        "owner": "package DE4SDV_RelationshipSuccessor",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
+        "owner": "package DE4SDV_TraceVocabulary",
         "api_metaclass": "Comment"
       },
       "witness_forms": [
@@ -710,12 +710,12 @@
       "for_concept": "realizedBy",
       "representation_class": "successor-retirement-record",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-        "owner": "package DE4SDV_RelationshipSuccessor",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
+        "owner": "package DE4SDV_TraceVocabulary",
         "api_metaclass": "PartUsage"
       },
       "witness_forms": [
-        "ownedRelationship -> FeatureMembership -> PartUsage : SuccessorRetirementRecord"
+        "ownedRelationship -> FeatureMembership -> PartUsage : RetiredRelationRecord"
       ],
       "retired_resolution": {
         "successor": "allocatedTo",
@@ -825,12 +825,12 @@
       "for_concept": "validatedBy",
       "representation_class": "successor-retirement-record",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-        "owner": "package DE4SDV_RelationshipSuccessor",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
+        "owner": "package DE4SDV_TraceVocabulary",
         "api_metaclass": "PartUsage"
       },
       "witness_forms": [
-        "ownedRelationship -> FeatureMembership -> PartUsage : SuccessorRetirementRecord"
+        "ownedRelationship -> FeatureMembership -> PartUsage : RetiredRelationRecord"
       ],
       "retired_resolution": {
         "successor": "hasValidationScenario",
@@ -843,12 +843,12 @@
       "for_concept": "validatesFitnessForUse",
       "representation_class": "successor-retirement-record",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-        "owner": "package DE4SDV_RelationshipSuccessor",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
+        "owner": "package DE4SDV_TraceVocabulary",
         "api_metaclass": "PartUsage"
       },
       "witness_forms": [
-        "ownedRelationship -> FeatureMembership -> PartUsage : SuccessorRetirementRecord"
+        "ownedRelationship -> FeatureMembership -> PartUsage : RetiredRelationRecord"
       ],
       "retired_resolution": {
         "successor": "hasValidationScenario",

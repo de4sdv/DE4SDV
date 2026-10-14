@@ -9,8 +9,8 @@ import json
 import re
 from pathlib import Path
 
-MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
-PACKAGE = "DE4SDV_RelationshipSuccessor"
+MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml"
+PACKAGE = "DE4SDV_TraceVocabulary"
 # Class identities are pinned by the model-generated projection layers' class
 # mappings (``model_contract.model_class_pins``), not by file-path records
 # inside the successor package: the layers carry the class-to-declaration
@@ -247,7 +247,7 @@ def generate_contract(root: Path, *, class_pins: dict, pin_inputs: tuple[str, ..
         package, r"\bimport\s+([A-Za-z_]\w*(?:::(?:[A-Za-z_]\w*|\*))+)\s*;")
     imports = {match.group(1) for match in import_matches}
     records = {}
-    record_pattern = r"\bpart\s+(\w+)\s*:\s*(Successor\w+Record)\s*\{"
+    record_pattern = r"\bpart\s+(\w+)\s*:\s*(\w+Record)\s*\{"
     owned_records, _ = _owned_matches(package, record_pattern)
     for record in owned_records:
         name, kind = record.groups()
@@ -271,15 +271,15 @@ def generate_contract(root: Path, *, class_pins: dict, pin_inputs: tuple[str, ..
                 raise ValueError(f"duplicate record field {name}.{key}")
             values[key] = json.loads(parsed.group(2))
         required_fields = {
-            "SuccessorVersionRecord": {"version", "supersedes"},
-            "SuccessorRelationRecord": {"predicate", "carrier", "mechanism", "strength", "sourceClass",
-                                        "targetClass", "sourceUsage", "targetUsage", "inverse"},
-            "SuccessorRetirementRecord": {"predicate", "reason"},
+            "TraceVocabularyVersionRecord": {"version", "supersedes"},
+            "TraceRelationRecord": {"predicate", "carrier", "mechanism", "strength", "sourceClass",
+                                    "targetClass", "sourceUsage", "targetUsage", "inverse"},
+            "RetiredRelationRecord": {"predicate", "reason"},
         }
         if kind not in required_fields or set(values) != required_fields[kind]:
             raise ValueError(f"incomplete or unsupported successor record {name}: {kind}")
         records.setdefault(kind, []).append(values)
-    versions = records.get("SuccessorVersionRecord", [])
+    versions = records.get("TraceVocabularyVersionRecord", [])
     if len(versions) != 1 or not versions[0].get("version"):
         raise ValueError("one explicit successor version required")
     classes, class_types = {}, {}
@@ -292,7 +292,7 @@ def generate_contract(root: Path, *, class_pins: dict, pin_inputs: tuple[str, ..
                 or not re.fullmatch(r"[a-z]+(?: [a-z]+)* def [A-Za-z_]\w*", pin["declaration"])):
             raise ValueError(f"malformed class pin for {name}: {pin!r}")
     class_pin_map = {name: dict(pin) for name, pin in class_pins.items()}
-    profile_classes = sorted({row[key] for row in records.get("SuccessorRelationRecord", [])
+    profile_classes = sorted({row[key] for row in records.get("TraceRelationRecord", [])
                               for key in ("sourceClass", "targetClass")})
     missing = [name for name in profile_classes if name not in class_pin_map]
     if missing:
@@ -321,7 +321,7 @@ def generate_contract(root: Path, *, class_pins: dict, pin_inputs: tuple[str, ..
     classes = {name: known_pins[name] for name in profile_classes}
     class_types = {name: known_types[name] for name in profile_classes}
     relations, carriers = {}, {}
-    for row in records.get("SuccessorRelationRecord", []):
+    for row in records.get("TraceRelationRecord", []):
         if set(row) != {"predicate", "carrier", "mechanism", "strength", "sourceClass", "targetClass", "sourceUsage", "targetUsage", "inverse"}:
             raise ValueError("incomplete relation profile record")
         if row["mechanism"] not in {"native-allocation", "typed-connection"}:
@@ -363,7 +363,7 @@ def generate_contract(root: Path, *, class_pins: dict, pin_inputs: tuple[str, ..
         if row["mechanism"] == "typed-connection":
             carriers[name] = dict(file=MODEL, declaration="connection def " + row["carrier"])
     retirements = {}
-    for row in records.get("SuccessorRetirementRecord", []):
+    for row in records.get("RetiredRelationRecord", []):
         if not row.get("reason") or row["predicate"] in retirements:
             raise ValueError("invalid retirement record")
         retirements[row["predicate"]] = row["reason"]

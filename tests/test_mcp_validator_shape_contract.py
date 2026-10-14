@@ -99,7 +99,7 @@ def _service_elements() -> list[dict[str, Any]]:
             "@id": "kernel-derivation",
             "@type": "ConnectionDefinition",
             "declaredName": "DerivesFromNeed",
-            "qualifiedName": "DE4SDV_MethodContext::DerivesFromNeed",
+            "qualifiedName": "DE4SDV_TraceVocabulary::DerivesFromNeed",
         },
         {
             "@id": "kernel-member-product",

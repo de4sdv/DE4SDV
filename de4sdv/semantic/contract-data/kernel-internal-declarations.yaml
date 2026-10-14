@@ -105,19 +105,20 @@ declarations:
   textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml:
     enum def TraceCompletionClaim: scoped method completion discriminator; not a V&V result or acceptance
       status
-  textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml:
-    connection def RequirementFunctionAssignment: successor native-allocation profile end-pair descriptor;
-      native AllocationUsage supplies the witness, not this definition or an additional ontology class
-    connection def FunctionLogicalAssignment: successor native-allocation profile end-pair descriptor;
+  textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml:
+    connection def RequirementFunctionAssignment: allocatedTo end-pair descriptor (requirement to function);
+      a native AllocationUsage supplies the witness, not this definition or an additional ontology class
+    connection def FunctionLogicalAssignment: allocatedTo end-pair descriptor (function to logical element);
       not a redundant relevance dependency or additional ontology class
-    connection def LogicalPhysicalAssignment: successor native-allocation profile end-pair descriptor;
+    connection def LogicalPhysicalAssignment: allocatedTo end-pair descriptor (logical to physical element);
       not a deployment or observed-execution relationship
-    part def SuccessorRelationRecord: construction-only versioned predicate signature record; not an additional
+    part def TraceRelationRecord: record of one trace relation's predicate, connection definition, mechanism,
+      strength, endpoint classes and inverse, read to build the trace contract; not an additional
       engineering relationship
-    part def SuccessorRetirementRecord: construction-only retirement boundary record preserving unsupported
-      stronger claims
-    part def SuccessorVersionRecord: construction-only successor version and supersession record; not
-      production selection or acceptance
+    part def RetiredRelationRecord: record of a retired relation name and why it is refused, read to build
+      the trace contract; preserves the boundary against the stronger retired claims
+    part def TraceVocabularyVersionRecord: version and supersession of the trace contract; not a production
+      selection or acceptance
   textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml:
     concern def IncrementConcern: generic range-kind base for the vocabulary-only carriers (reviewed range
       Concern); not an ontology identity of its own

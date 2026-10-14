@@ -6,7 +6,7 @@
  * selectedViewpoint, producesView.
  *
  * ONE reusable representation, mirroring the accepted requirement-derivation
- * carrier pattern (DE4SDV_MethodContext::DerivesFromNeed): each carrier is a
+ * carrier pattern (DE4SDV_TraceVocabulary::DerivesFromNeed): each carrier is a
  * `connection def` whose typed ends carry the predicate's reviewed domain and
  * range, and whose owned documentation carries the reviewed definition
  * (normalized-exact) plus its claim boundary.

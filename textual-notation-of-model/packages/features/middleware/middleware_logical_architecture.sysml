@@ -17,7 +17,7 @@ package DE4SDV_MiddlewareLogicalArchitecture {
   private import DE4SDV_MiddlewareRequirements::Features::Middleware::Requirements::*;
   private import DE4SDV_AEBSLogicalArchitecture::*;
   private import DE4SDV_Stakeholders::*;
-  private import DE4SDV_RelationshipSuccessor::LogicalAllocationElement;
+  private import DE4SDV_TraceVocabulary::LogicalAllocationElement;
   private import SAF_Viewpoints::*;
   private import SysideViews::**;
   private import Views::*;

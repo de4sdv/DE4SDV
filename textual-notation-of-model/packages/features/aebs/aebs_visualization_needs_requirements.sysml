@@ -21,7 +21,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_ProductLine::*;
-  private import DE4SDV_RelationshipSuccessor::*;
+  private import DE4SDV_TraceVocabulary::*;
   private import DE4SDV_AEBSVisualizationFraming::*;
   private import DE4SDV_AEBSVisualizationOperationalContext::*;
   private import SAF_Viewpoints::*;

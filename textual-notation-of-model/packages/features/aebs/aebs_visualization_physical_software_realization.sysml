@@ -35,7 +35,7 @@ package DE4SDV_AEBSVisualizationPhysicalSoftwareRealization {
   private import DE4SDV_AEBSVisualizationLogicalArchitecture::*;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
   private import DE4SDV_ROS2Types::*;
-  private import DE4SDV_RelationshipSuccessor::PhysicalAllocationElement;
+  private import DE4SDV_TraceVocabulary::PhysicalAllocationElement;
   private import SAF_Viewpoints::*;
   private import SysideViews::**;
   private import Views::*;

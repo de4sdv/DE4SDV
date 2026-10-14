@@ -472,9 +472,9 @@ def test_commented_duplicate_record_cannot_override_the_active_record():
     import json
     from de4sdv.semantic.relationship_successor_contract import MODEL
     text = (ROOT / MODEL).read_text()
-    anchor = "  part version : SuccessorVersionRecord {"
+    anchor = "  part version : TraceVocabularyVersionRecord {"
     assert anchor in text
-    decoy = ("/*\n  part version : SuccessorVersionRecord {\n"
+    decoy = ("/*\n  part version : TraceVocabularyVersionRecord {\n"
              '    attribute :>> version = "synthetic-decoy";\n'
              '    attribute :>> supersedes = "synthetic-decoy";\n'
              "  }\n*/\n")
@@ -493,7 +493,7 @@ def test_quoted_nonfield_tokens_do_not_move_the_record_boundary(noise):
     """Quoted tokens in a nested owner cannot supply direct record fields."""
     from de4sdv.semantic.relationship_successor_contract import MODEL
     text = (ROOT / MODEL).read_text()
-    anchor = "  part version : SuccessorVersionRecord {\n"
+    anchor = "  part version : TraceVocabularyVersionRecord {\n"
     assert anchor in text
     baseline = _semantics(_contract_from_model_text(text))
     nested = "    part def SyntheticNoise { " + noise + " }\n"
@@ -505,7 +505,7 @@ def test_quoted_nonfield_tokens_do_not_move_the_record_boundary(noise):
 def test_duplicate_live_record_declaration_refuses_instead_of_first_match():
     from de4sdv.semantic.relationship_successor_contract import MODEL
     text = (ROOT / MODEL).read_text()
-    anchor = "  part version : SuccessorVersionRecord {\n"
+    anchor = "  part version : TraceVocabularyVersionRecord {\n"
     duplicate = anchor + '    attribute :>> version = "synthetic-decoy";\n' \
                          '    attribute :>> supersedes = "synthetic-decoy";\n  }\n'
     with pytest.raises(ValueError):

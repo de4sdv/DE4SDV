@@ -21,7 +21,7 @@
 package DE4SDV_AEBSLogicalArchitecture {
   private import DE4SDV_AEBSFunctionalArchitecture::Features::AEBS::FunctionalBehavior::*;
   private import SAF_Viewpoints::*;
-  private import DE4SDV_RelationshipSuccessor::*;
+  private import DE4SDV_TraceVocabulary::*;
   private import DE4SDV_Stakeholders::*;
   private import SysideViews::**;
   private import Views::*;

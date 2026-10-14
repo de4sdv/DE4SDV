@@ -24,7 +24,7 @@ DATA = "de4sdv/semantic/contract-data/"
 MANIFEST_HELD_FIXTURE = "tests/fixtures/manifest-held-contract-fields.json"
 MANIFEST_PATH = DATA + "kernel-vocabulary-admission.yaml"
 REGISTER_PATH = DATA + "ontology-identity-register.json"
-SUCCESSOR_FILE = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+SUCCESSOR_FILE = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml"
 
 OTHER_LAYERS = {
     "o2-chain": [
@@ -362,17 +362,17 @@ _FIXTURE_SYSML = '''package FixtureBatch2 {
    * role of betaLink: domain Alpha, range Beta. */
 }
 '''
-_FIXTURE_CARRIERS = '''package DE4SDV_RelationshipSuccessor {
+_FIXTURE_CARRIERS = '''package DE4SDV_TraceVocabulary {
   connection def AlphaLink {
     end source : Alpha;
     end target : Alpha;
   }
   comment alphaLinkVocabularyRole about AlphaLink /* Successor definition for alphaLink. */
-  part version : SuccessorVersionRecord {
+  part version : TraceVocabularyVersionRecord {
     attribute :>> version = "de4sdv.relationship-successor/v1";
     attribute :>> supersedes = "oldAlphaLink";
   }
-  part alphaRecord : SuccessorRelationRecord {
+  part alphaRecord : TraceRelationRecord {
     attribute :>> predicate = "alphaLink";
     attribute :>> carrier = "AlphaLink";
     attribute :>> mechanism = "typed-connection";
@@ -383,13 +383,13 @@ _FIXTURE_CARRIERS = '''package DE4SDV_RelationshipSuccessor {
     attribute :>> targetUsage = "PartUsage";
     attribute :>> inverse = "";
   }
-  part oldAlpha : SuccessorRetirementRecord {
+  part oldAlpha : RetiredRelationRecord {
     attribute :>> predicate = "oldAlphaLink";
     attribute :>> reason = "Retired; alphaLink is the successor.";
   }
 }
 '''
-_PKG = "package DE4SDV_RelationshipSuccessor"
+_PKG = "package DE4SDV_TraceVocabulary"
 _FIXTURE_MANIFEST = {
     "schema": "de4sdv.o4-definition-admission-batch2/v1",
     "status": "admitted",
@@ -638,7 +638,7 @@ _NEGATIVE_MODELS = {
     "record field twice": ("carriers", lambda s: s.replace('attribute :>> inverse = "";', 'attribute :>> inverse = "";\n    attribute :>> inverse = "";')),
     "record field missing": ("carriers", lambda s: s.replace('    attribute :>> inverse = "";\n', "")),
     "record field not literal": ("carriers", lambda s: s.replace('attribute :>> strength = "fixture";', "attribute :>> strength = fixture;")),
-    "second record for predicate": ("carriers", lambda s: s.replace("  part oldAlpha", '''  part alphaRecordTwo : SuccessorRelationRecord {
+    "second record for predicate": ("carriers", lambda s: s.replace("  part oldAlpha", '''  part alphaRecordTwo : TraceRelationRecord {
     attribute :>> predicate = "alphaLink"; attribute :>> carrier = "AlphaLink"; attribute :>> mechanism = "m";
     attribute :>> strength = "s"; attribute :>> sourceClass = "Alpha"; attribute :>> targetClass = "Alpha";
     attribute :>> sourceUsage = "PartUsage"; attribute :>> targetUsage = "PartUsage"; attribute :>> inverse = "";
