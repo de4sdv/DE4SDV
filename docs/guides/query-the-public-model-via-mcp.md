@@ -138,8 +138,8 @@ treat anything less as a gap, not a fact.
 | Tool | Answers |
 | --- | --- |
 | `model_status` | Can this runtime claim the current baseline? |
-| `resolve_element` | Exact API identity for a UUID or name, fail-closed on ambiguity |
-| `inspect_element` | One element's semantics without dumping the model |
+| `resolve_element` | Exact API identity for a UUID, short name, qualified name or unique bare name, fail-closed on ambiguity |
+| `inspect_element` | One element without dumping the model: qualified name, keyword, owning package, documentation; for a definition its supertypes, features and enumerated values |
 | `semantic_neighbors` | Ontology-mapped neighbors of an element |
 | `impact` | Revision-bound requirement impact with strengths and gaps |
 | `trace` | Bounded path between two elements, ontology-mapped edges only |
@@ -149,6 +149,68 @@ treat anything less as a gap, not a fact.
 All tools are read-only and deterministic; results carry exact element and
 relationship UUIDs and provenance URIs of the form
 `sysml://<project>/<commit>/<element>`.
+
+## Name an element, describe a definition
+
+A tool that takes an identifier accepts an element UUID, a declared short name
+(`INC-AEBS-010`), a unique bare name, or a qualified name such as
+`DE4SDV_MethodContext::EngineeringIncrement`, the form `phase_contract` and the
+Method Check print. A qualified name is computed from the model's ownership
+(the package, then each owning element) and matched exactly, every segment; it
+never falls back to a bare name. A name that matches no element, or several, is
+refused with the candidates and the revision searched. A bare name can match
+several elements (`Stakeholder` does); use the qualified name then.
+
+`inspect_element` gives an element's qualified name, its `keyword` (the SysML
+v2 keyword that declares it, such as `part def`, `attribute`, `ref` or
+`subject`), its owning package and its documentation. For a definition,
+`element.definition` adds its supertypes, its owned features, the features it
+inherits (each with `inherited_from`) and an enumeration's enumerated values
+(its literals). A feature gives `name`, `keyword`, `type` (a qualified name)
+and `multiplicity` (`[lower, upper]`, `null` when none is declared), and when
+present `direction`, `end`, `redefines` and `value`. A declared type that is
+not part of the export, such as the library type `String`, is reported in
+`type_outside_export`, not dropped: the export keeps the typing relationship,
+not the type.
+
+For example, over an export of the model,
+`inspect_element("DE4SDV_MethodProcess::MethodPhase")` answers (abridged):
+
+```json
+{
+  "resolution_level": "qualified-name-match",
+  "element": {
+    "sysml_type": "EnumerationDefinition",
+    "qualified_name": "DE4SDV_MethodProcess::MethodPhase",
+    "keyword": "enum def",
+    "owning_package": {"qualified_name": "DE4SDV_MethodProcess"},
+    "documentation": ["One of the 13 phases of the DE4SDV increment workflow."],
+    "definition": {
+      "supertypes": [],
+      "owned_features": [],
+      "inherited_features": [],
+      "enumerated_values": [
+        {"name": "phase0_incrementFraming",
+         "qualified_name": "DE4SDV_MethodProcess::MethodPhase::phase0_incrementFraming"},
+        "… 12 more"
+      ]
+    }
+  },
+  "gaps": []
+}
+```
+
+and two owned features of `DE4SDV_IncrementWorkflow::IncrementCharter` read:
+
+```json
+[
+  {"name": "expectedArtifacts", "keyword": "attribute", "sysml_type": "AttributeUsage",
+   "type": null, "multiplicity": [1, "*"],
+   "type_outside_export": "typed by an element outside this export; the export keeps only the typing relationship 6a85847b-…"},
+  {"name": "workflow", "keyword": "action", "sysml_type": "ActionUsage",
+   "type": "DE4SDV_IncrementWorkflow::IncrementWorkflow", "multiplicity": null}
+]
+```
 
 ## After a new deployment
 

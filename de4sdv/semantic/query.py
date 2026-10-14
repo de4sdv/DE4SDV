@@ -20,18 +20,21 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from de4sdv.sysml_api.errors import ApiError, ServedModelMismatchError
+from de4sdv.sysml_api.errors import ApiError, IdentityResolutionError, ServedModelMismatchError
 from de4sdv.sysml_api.identity import IdentityResolution, resolve_identity
+from de4sdv.sysml_api.qualified_names import QualifiedNameIndex
 from de4sdv.sysml_api.repository import SysMLRepository, element_id, reference_ids
 from de4sdv.sysml_api.revisions import RevisionBinding
 
 from .api_binding import OntologyApiBinder
+from .element_description import ElementDescriber, is_definition
 from .increment_workflow import IncrementMethod, read_revision_method
 from .impact import ImpactService
 from .increment_evaluation import IncrementEvaluation, evaluate_increment, phase_contract_response
 from .increment_scope import ModelView, parse_increment_id
 from .kernel_contract import KernelContract
 from .method_evaluator import RevisionIdentity
+from .revision_index import RevisionIndex
 from .traversal import (
     EVIDENCE_CONTRACT_BLOCKED_REASON,
     SemanticTraversal,
@@ -63,6 +66,7 @@ class SemanticQueryService:
     _increment_evaluations: dict[tuple[str, str, str, str], IncrementEvaluation] = field(
         default_factory=dict, init=False, repr=False
     )
+    _own_index: RevisionIndex | None = field(default=None, init=False, repr=False)
     method_evaluation_count: int = field(default=0, init=False)
 
     def _revision(self) -> dict[str, Any]:
@@ -108,14 +112,37 @@ class SemanticQueryService:
             )
         return self._element_cache
 
+    def _index(self, elements: list[dict[str, Any]]) -> RevisionIndex:
+        """The corpus's revision index (the traversal's, shared with the method answers)."""
+        shared = getattr(self.traversal, "revision_index", None)
+        if callable(shared):
+            return shared(elements)
+        if self._own_index is None or self._own_index.elements is not elements:
+            self._own_index = RevisionIndex(elements)
+        return self._own_index
+
+    def _qualified_names(self, elements: list[dict[str, Any]]) -> QualifiedNameIndex:
+        """Qualified names computed from the corpus's ownership graph (built once per corpus)."""
+        index = self._index(elements)
+        return index.memo("qualified-names", lambda: QualifiedNameIndex(elements, by_id=index.by_id))
+
+    def _resolve_in(
+        self, identifier: str, elements: list[dict[str, Any]], *, expected_type: str | None = None
+    ) -> IdentityResolution:
+        try:
+            return resolve_identity(identifier, elements, expected_type=expected_type,
+                                    qualified_names=self._qualified_names(elements))
+        except IdentityResolutionError as error:
+            raise type(error)(
+                f"{error} [searched revision: git {self.binding.git_commit}, SysML project "
+                f"{self.binding.sysml_project_id} commit {self.binding.sysml_commit_id}]"
+            ) from error
+
     def _resolve(
         self, identifier: str, *, expected_type: str | None = None
     ) -> tuple[IdentityResolution, list[dict[str, Any]]]:
         elements = self._elements()
-        return (
-            resolve_identity(identifier, elements, expected_type=expected_type),
-            elements,
-        )
+        return self._resolve_in(identifier, elements, expected_type=expected_type), elements
 
     def _compact_element(self, element: dict[str, Any]) -> dict[str, Any]:
         candidate_id = element_id(element)
@@ -125,7 +152,10 @@ class SemanticQueryService:
             "element_id": candidate_id,
             "sysml_type": str(element.get("@type") or ""),
             "declared_name": element.get("declaredName") or element.get("name"),
-            "qualified_name": element.get("qualifiedName"),
+            "qualified_name": (
+                element.get("qualifiedName")
+                or self._qualified_names(self._elements()).qualified_name(candidate_id)
+            ),
             "source_uri": (
                 f"sysml://{self.binding.sysml_project_id}/"
                 f"{self.binding.sysml_commit_id}/{candidate_id}"
@@ -246,19 +276,28 @@ class SemanticQueryService:
         }
 
     def inspect_element(self, identifier: str) -> dict[str, Any]:
+        """One element: identity, keyword, owning package and documentation; for a
+        definition also its supertypes, owned and inherited features and enumerated values
+        (:mod:`de4sdv.semantic.element_description`)."""
         resolution, elements = self._resolve(identifier)
         item = resolution.element
-        by_id = {
-            candidate_id: candidate
-            for candidate in elements
-            if (candidate_id := element_id(candidate)) is not None
-        }
+        index = self._index(elements)
+        by_id = index.by_id
+        describer = ElementDescriber(index, self._qualified_names(elements))
+        item_id = element_id(item) or ""
+        # Documentation an element references (API shape) and the documentation
+        # it owns through a membership (the export's shape), each once.
         documentation: list[str] = []
+        seen: set[str] = set()
         for document_id in reference_ids(item.get("documentation")):
             document = by_id.get(document_id, {})
             body = document.get("body") or document.get("bodyText")
             if body:
                 documentation.append(str(body))
+                seen.add(document_id)
+        for document_id, body in describer.documentation(item_id):
+            if document_id not in seen:
+                documentation.append(body)
         references = sorted(
             {
                 reference
@@ -272,24 +311,30 @@ class SemanticQueryService:
             {
                 "documentation": documentation,
                 "referenced_element_ids": references,
+                "keyword": describer.keyword(item_id),
+                "owning_package": describer.owning_package(item_id),
             }
         )
+        gaps: list[dict[str, str]] = (
+            []
+            if documentation
+            else [
+                {
+                    "category": "documentation",
+                    "reason": "No API-resident documentation is attached to the resolved element.",
+                }
+            ]
+        )
+        if is_definition(item):
+            compact["definition"], definition_gaps = describer.definition(item_id)
+            gaps.extend(definition_gaps)
         return {
             "query": "inspect_element",
             "identifier": identifier,
             "resolution_level": resolution.level,
             "element": compact,
             "revision": self._revision(),
-            "gaps": (
-                []
-                if documentation
-                else [
-                    {
-                        "category": "documentation",
-                        "reason": "No API-resident documentation is attached to the resolved element.",
-                    }
-                ]
-            ),
+            "gaps": gaps,
             "provenance": self._provenance(),
         }
 
@@ -394,7 +439,7 @@ class SemanticQueryService:
         if max_depth < 1 or max_depth > 8:
             raise ValueError("max_depth must be between 1 and 8")
         source_resolution, elements = self._resolve(source_identifier)
-        target_resolution = resolve_identity(target_identifier, elements)
+        target_resolution = self._resolve_in(target_identifier, elements)
         source_id = element_id(source_resolution.element)
         target_id = element_id(target_resolution.element)
         if source_id is None or target_id is None:
