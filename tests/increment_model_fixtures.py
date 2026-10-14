@@ -121,9 +121,12 @@ class ModelBuilder:
 
     def package(self, name: str, owner: dict[str, Any] | None = None,
                 source: str = FEATURE_SOURCE) -> dict[str, Any]:
+        """A package; without ``owner``, a top-level package owned by an anonymous root
+        ``Namespace``, as the export owns the top-level package of each document."""
         package = self.new("Package", name=name, source=source)
-        if owner is not None:
-            self.own(owner, package, member_name=name)
+        if owner is None:
+            owner = self.new("Namespace", source=source)
+        self.own(owner, package, member_name=name)
         return package
 
     def definition(self, kind: str, name: str, owner: dict[str, Any],

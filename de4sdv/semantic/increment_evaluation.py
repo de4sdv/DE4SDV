@@ -149,7 +149,7 @@ class IncrementEvaluation:
         if len(scope.charters) == 1:
             block["charter"] = self.view.describe(scope.charters[0])
         block["scope"] = {
-            "packages": [self.view.index.qualified_name(package) for package in scope.scope_packages],
+            "packages": [self.view.label(package) for package in scope.scope_packages],
             "elements": len(scope.scope_elements),
         }
         block.update(_declaration_reason(scope, self.revision))
@@ -344,7 +344,7 @@ class IncrementEvaluation:
     def _where(self, subjects: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         package = self.view.describe(self.scope.package_id) if self.scope.package_id else None
         modules = sorted({
-            self.view.index.qualified_name(top)
+            self.view.label(top)
             for s in subjects
             if s.get("element_id") and (top := self.view.top_package(s["element_id"]))
         })
