@@ -14,29 +14,33 @@ from de4sdv.semantic.authority_inventory import normalize_text
 
 ROOT = Path(__file__).resolve().parents[1]
 KERNEL = "textual-notation-of-model/packages/methods/de4sdv/"
-ASSURANCE = KERNEL + "de4sdv_scoped_assurance.sysml"
 CONTEXT = KERNEL + "de4sdv_method_context.sysml"
 OPERATIONAL = KERNEL + "de4sdv_operational_context.sysml"
 
 # role name -> (file, annotated elements, required phrases)
 ROLES = {
     "EvidenceArtifactVocabularyRole": (
-        ASSURANCE, "EvidenceArtifactOntologyDefinition",
+        CONTEXT, "EvidenceArtifactOntologyDefinition",
         ("content is external", "no authority", "de4sdv.evidence-reference/v1", "No artifact bytes")),
     # Annotates the EvidenceArtifact home, not the whole package (PR #328 escape class).
     "hasEvidenceVocabularyRole": (
-        ASSURANCE, "EvidenceArtifactOntologyDefinition",
+        CONTEXT, "EvidenceArtifactOntologyDefinition",
         ("artifact association only", "content external, no authority", "no traversal",
          "not supportedByEvidence")),
     "supportedByEvidenceVocabularyRole": (
-        ASSURANCE, "EvidenceSupportCitation, ScopedEvidenceAdequacyAssessment",
+        CONTEXT, "AssuranceClaimOntologyDefinition",
         ("cited support", "distinct from hasEvidence", "rationale", "known limits",
-         "ScopedEvidenceAdequacyAssessment of the evidence set", "AcceptanceAttestationReference",
+         "adequacy assessment of the evidence set", "coverage, confidence and rigor bases",
+         "an adequate set can establish a negative conclusion",
+         "the assessor's scoped conclusion, not checker truth", "AcceptanceAttestationReference",
          "never imply each other", "Vocabulary only")),
     "hasEvidenceStatusVocabularyRole": (
-        ASSURANCE, "ScopedVVActivityRecord",
-        ("unchanged adopted VVStatus", "No new universal status enum", "Completed never means passed",
-         "Retirement", "no new model usage")),
+        CONTEXT, "EvidenceStatusOntologyDefinition",
+        ("unchanged adopted VVStatus", "exactly one verification or one validation",
+         "needs, requirements, designs, production outputs",
+         "CompletedUnsuccessful could not complete", "CompletedFailed completed with technical failure",
+         "CompletedPassed completed successfully against the activity basis only, not a broader scoped claim",
+         "No new universal status enum", "Completed never means passed", "Retirement", "no new model usage")),
     "BaselineVocabularyRole": (
         OPERATIONAL, "DE4SDVEvidenceBaseline",
         ("content is external", "no authority", "no second mutable baseline list")),
@@ -71,30 +75,6 @@ def test_evidence_vocabulary_role_is_unique_and_states_its_boundary(name):
         assert normalize_text(phrase) in body, (name, phrase)
 
 
-def _direct_body(text, header):
-    """Direct members of the one ``header {`` block: nested bodies are blanked."""
-    starts = [m.end() - 1 for m in re.finditer(header + r"\s*\{", text)]
-    assert len(starts) == 1, header
-    out, depth = [], 0
-    for char in text[starts[0]:]:
-        if char == "}":
-            depth -= 1
-            if depth == 0:
-                return "".join(out)
-        out.append(char if depth <= 1 else " ")
-        if char == "{":
-            depth += 1
-    raise AssertionError("unclosed block")
-
-
-def test_supported_by_evidence_adequacy_reuses_typed_citations():
-    text = re.sub(r"/\*.*?\*/|//[^\n]*", " ", (ROOT / ASSURANCE).read_text(), flags=re.S)
-    direct = _direct_body(text, r"\bitem\s+def\s+ScopedEvidenceAdequacyAssessment\b")
-    # Directly owned by the assessment, exactly once; never nested or relocated.
-    assert len(re.findall(r"\bref\s+item\s+citations\s*:\s*EvidenceSupportCitation\[\*\]\s*;", direct)) == 1
-    assert len(re.findall(r"\bcitations\b", text)) == 1, "citations must have exactly one owner"
-
-
 def test_status_successor_adds_no_universal_status_enum_and_keeps_legacy_name():
     # The kernel enum population is pinned: a status successor must reuse VVStatus.
     enums = set()
@@ -102,14 +82,12 @@ def test_status_successor_adds_no_universal_status_enum_and_keeps_legacy_name():
         active = re.sub(r"/\*.*?\*/|//[^\n]*", " ", path.read_text(), flags=re.S)
         enums |= set(re.findall(r"\benum\s+def\s+(\w+)", active))
     assert enums == {"MethodPhase", "SignalMappingDisposition", "IncrementSize", "EvaluationSourceKind",
-                     "TraceCompletionClaim", "PriorityKind", "StakeholderCategoryKind"}, enums
+                     "PriorityKind", "StakeholderCategoryKind"}, enums
     # No status vocabulary under another definition kind or name either.
     for path in sorted((ROOT / KERNEL).glob("*.sysml")):
         active = re.sub(r"/\*.*?\*/|//[^\n]*", " ", path.read_text(), flags=re.S)
         assert not re.search(r"\bdef\s+\w*(?:Status|Verdict)\w*", active), path.name
         assert not re.search(r"\battribute\s+def\b", active), (path.name, "attribute def outside the pinned kernel")
-    active = re.sub(r"/\*.*?\*/", " ", (ROOT / ASSURANCE).read_text(), flags=re.S)
-    assert re.search(r"attribute\s+status\s*:\s*VVStatus\s*;", active)
     # The old names stay vocabulary of the model-built contract (O4 Wave C2:
     # the authored YAML is deleted; the batch-2 projection rows carry them).
     import sys
@@ -139,14 +117,56 @@ def test_external_boundary_rows_gain_no_model_content_mirror():
         assert not re.search(r"\bdef\s+(?:EvidenceArtifact|Baseline|BaselineManifest)\w*\b", active), path.name
 
 
-def test_scoped_assurance_native_population_still_matches_supplied_record_adapter(monkeypatch):
-    from de4sdv.semantic import scoped_assurance
+#: The VVStatus literals of the exact-pinned ODE4HERA library that the served
+#: hasEvidenceStatus text and the glossary rely on.
+ADOPTED_VV_STATUSES = {"NotStarted", "InProgress", "Completed", "CompletedUnsuccessful",
+                       "CompletedFailed", "CompletedPassed"}
+ODE4HERA = "pkg:sysand/ode4hera/requirements-management"
 
-    monkeypatch.setattr(scoped_assurance, "_installed_adopted_statuses", lambda root: {
-        "NotStarted", "InProgress", "Completed", "CompletedUnsuccessful", "CompletedFailed", "CompletedPassed"})
-    monkeypatch.setattr(scoped_assurance, "_adopted_library_pin",
-                        lambda root: ({}, {"kpar_digest": "x", "kpar_size": 0}))
-    report = scoped_assurance.verify_native_sources()
-    assert report["model_declarations"] == [
-        "EvidenceSupportCitation", "ScopedVVActivityRecord", "ScopedEvidenceAdequacyAssessment"]
-    assert report["native_semantic_validation"] is False
+
+def _installed_requirements_management() -> Path:
+    """The synced ODE4HERA library (``sysand sync``), matched to the lock's exact pin.
+
+    Read here, in a test, only: the runtime never reads a library source."""
+    import tomllib
+
+    lock = tomllib.loads((ROOT / "sysand-lock.toml").read_text(encoding="utf-8"))
+    (pin,) = [p for p in lock["project"] if ODE4HERA in p.get("identifiers", [])]
+    env = tomllib.loads((ROOT / ".sysand/env.toml").read_text(encoding="utf-8"))
+    (installed,) = [p for p in env["project"] if ODE4HERA in p.get("identifiers", [])]
+    assert installed["version"] == pin["version"]
+    assert installed["kpar_cksum"] == pin["sources"][0]["kpar_digest"]
+    return ROOT / ".sysand" / installed["path"] / "RequirementsManagement.sysml"
+
+
+def _enum_literals(source: str, name: str) -> list[str]:
+    """Direct literals of one enum definition, read lexically with comments removed."""
+    code = re.sub(r"/\*.*?\*/|//[^\n]*", " ", source, flags=re.S)
+    (start,) = [m.end() for m in re.finditer(r"\benum\s+def\s+" + name + r"\s*\{", code)]
+    tokens = re.findall(r"[{};]|[A-Za-z_]\w*", code[start:])
+    literals, depth = [], 1
+    for token, following in zip(tokens, tokens[1:] + [""]):
+        if token == "{":
+            depth += 1
+        elif token == "}":
+            depth -= 1
+            if depth == 0:
+                return literals
+        elif depth == 1 and token not in (";", "doc") and following in ("{", ";"):
+            literals.append(token)
+    raise AssertionError(f"enum def {name} is not closed")
+
+
+def test_the_served_status_text_names_only_the_pinned_vvstatus_literals():
+    literals = _enum_literals(_installed_requirements_management().read_text(encoding="utf-8"), "VVStatus")
+    assert len(literals) == len(set(literals)) and set(literals) == ADOPTED_VV_STATUSES, literals
+    (found,) = _role(CONTEXT, "hasEvidenceStatusVocabularyRole")
+    named = set(re.findall(r"\b(?:NotStarted|InProgress|Completed\w*)\b", found[1]))
+    assert {"Completed", "CompletedUnsuccessful", "CompletedFailed", "CompletedPassed"} <= named
+    assert named <= ADOPTED_VV_STATUSES, named - ADOPTED_VV_STATUSES
+
+
+def test_a_changed_vvstatus_population_would_be_noticed():
+    library = _installed_requirements_management().read_text(encoding="utf-8")
+    grown = library.replace("enum def VVStatus {", "enum def VVStatus {\n        SignedOff { doc /* synthetic */ }", 1)
+    assert set(_enum_literals(grown, "VVStatus")) == ADOPTED_VV_STATUSES | {"SignedOff"}

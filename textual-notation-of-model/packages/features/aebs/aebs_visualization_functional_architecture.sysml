@@ -17,7 +17,7 @@ package DE4SDV_AEBSVisualizationFunctionalArchitecture {
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_AEBSVisualizationFraming::*;
   private import DE4SDV_AEBSVisualizationNeedsRequirements::*;
-  private import DE4SDV_RelationshipSuccessor::AllocatableFunction;
+  private import DE4SDV_TraceVocabulary::AllocatableFunction;
   private import SAF_Viewpoints::*;
   private import SysideViews::**;
   private import Views::*;

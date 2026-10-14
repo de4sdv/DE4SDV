@@ -5,9 +5,9 @@ It reads ``de4sdv/semantic/contract-data/kernel-vocabulary-admission.yaml`` and
 writes ``kernel-vocabulary-projection.json`` and ``kernel-vocabulary-profile.json``
 next to it. The admitted rows are every retained identity of the ontology
 identity register that no other source provides (the frozen records and the
-class-definition, native-grounding and increment-relationship pairs), the
-ontology-mapped classes that are not register rows (the successor and
-scoped-assurance classes), the new successor predicates
+class-definition and native-grounding pairs), the ontology-mapped classes that
+are not register rows (the successor classes and the trace-obligation
+declaration), the new successor predicates
 (``hasValidationScenario``, ``hasRegulatorySource``) and the merged retired name
 ``validatesFitnessForUse``. It is a separate pair from
 ``class-definition-projection.json`` / ``class-definition-profile.json``,
@@ -25,12 +25,12 @@ locates and reads itself, fail-closed:
   ``about`` target must be a live definition or named documentation of the
   same file. These rows have no authored definition text; the comment body is
   the model-owned vocabulary role and claim boundary.
-* ``retirement-record`` — a directly owned ``SuccessorRetirementRecord`` usage
-  of the relationship-successor package whose ``predicate`` equals the
-  identity (retired names).
+* ``retirement-record`` — a directly owned ``RetiredRelationRecord`` usage
+  of the trace-vocabulary package whose ``predicate`` equals the identity
+  (retired names).
 
 Successor rows additionally carry every directly owned
-``SuccessorRelationRecord`` usage whose ``predicate`` equals the identity (set
+``TraceRelationRecord`` usage whose ``predicate`` equals the identity (set
 equality with the manifest, fail-closed) plus the typed ends of each carrier
 ``connection def``. The ``hasRelevantEvidenceContract`` row carries the
 owner-adopted type-lineage range discriminator: the kernel
@@ -151,7 +151,7 @@ WITNESS_FORMS = {
     "owned-doc": "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)",
     "named-doc": "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)",
     "vocabulary-role": "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)",
-    "retirement-record": "ownedRelationship -> FeatureMembership -> PartUsage : SuccessorRetirementRecord",
+    "retirement-record": "ownedRelationship -> FeatureMembership -> PartUsage : RetiredRelationRecord",
 }
 SUCCESSOR_RECORD_FIELDS = (
     "predicate",
@@ -166,8 +166,8 @@ SUCCESSOR_RECORD_FIELDS = (
 )
 RETIREMENT_RECORD_FIELDS = ("predicate", "reason")
 VERSION_RECORD_FIELDS = ("version", "supersedes")
-SUCCESSOR_FILE = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
-SUCCESSOR_PACKAGE = "DE4SDV_RelationshipSuccessor"
+SUCCESSOR_FILE = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml"
+SUCCESSOR_PACKAGE = "DE4SDV_TraceVocabulary"
 
 _COMMON_KEYS = frozenset(
     {"identity", "semantic_kind", "admission_class", "register", "boundary", "home",
@@ -463,7 +463,7 @@ def _validate_home(identity: str, home: Any) -> None:
             f"{identity}: home.about_imports maps about targets to their defining governed model file")
     if form == "retirement-record":
         _require(home["file"] == SUCCESSOR_FILE and owner == f"package {SUCCESSOR_PACKAGE}",
-                 f"{identity}: retirement records live in the relationship-successor package")
+                 f"{identity}: retirement records live in the trace-vocabulary package")
 
 
 def _validate_gates(identity: str, row: dict[str, Any]) -> None:
@@ -653,17 +653,17 @@ def _successor_records(model: _Model) -> dict[str, Any]:
     package = source.owner_block(f"package {SUCCESSOR_PACKAGE}")
     relations = {
         name: source.record_fields(span, SUCCESSOR_RECORD_FIELDS, name)
-        for name, span in source.direct_record_usages(package, "SuccessorRelationRecord").items()
+        for name, span in source.direct_record_usages(package, "TraceRelationRecord").items()
     }
     retirements = {
         name: source.record_fields(span, RETIREMENT_RECORD_FIELDS, name)
-        for name, span in source.direct_record_usages(package, "SuccessorRetirementRecord").items()
+        for name, span in source.direct_record_usages(package, "RetiredRelationRecord").items()
     }
     versions = [
         source.record_fields(span, VERSION_RECORD_FIELDS, name)
-        for name, span in source.direct_record_usages(package, "SuccessorVersionRecord").items()
+        for name, span in source.direct_record_usages(package, "TraceVocabularyVersionRecord").items()
     ]
-    _require(len(versions) == 1, f"{SUCCESSOR_FILE}: exactly one SuccessorVersionRecord usage is required")
+    _require(len(versions) == 1, f"{SUCCESSOR_FILE}: exactly one TraceVocabularyVersionRecord usage is required")
     _require(versions[0]["version"] == SUCCESSOR_CONTRACT,
              f"{SUCCESSOR_FILE}: successor version must be {SUCCESSOR_CONTRACT}")
     return {"relations": relations, "retirements": retirements, "version": versions[0]}

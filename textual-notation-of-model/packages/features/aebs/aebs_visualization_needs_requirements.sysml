@@ -21,7 +21,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_ProductLine::*;
-  private import DE4SDV_RelationshipSuccessor::*;
+  private import DE4SDV_TraceVocabulary::*;
   private import DE4SDV_AEBSVisualizationFraming::*;
   private import DE4SDV_AEBSVisualizationOperationalContext::*;
   private import SAF_Viewpoints::*;
@@ -114,7 +114,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
    * follows how its collectData step checks the requirement.
    *
    * Each requirement states its success criteria in its successCriteria
-   * attribute (INCOSE A6; owner decision 2026-10-10), worded as "Met when ...".
+   * attribute (INCOSE A6), worded as "Met when ...".
    * Its source records the retired acceptance-criterion ID it replaces. A
    * requirement without success criteria is listed in GAP-AEBS-010-010. */
   package VisualizationRequirements {

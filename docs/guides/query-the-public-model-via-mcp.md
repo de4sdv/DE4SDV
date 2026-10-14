@@ -167,7 +167,7 @@ a short name, an alias, an inherited feature or an import, but a qualified name
 that takes such a path is refused, and the refusal gives the canonical qualified
 name to use instead. For example, `DE4SDV_IncrementWorkflow::IncrementCharter::increment`
 is refused because `IncrementCharter` inherits `increment`; the refusal names
-`DE4SDV_MethodTraces::IncrementTraceObligations::increment`, where it is
+`DE4SDV_IncrementWorkflow::IncrementTraceObligations::increment`, where it is
 declared. When the name reaches several elements, it is ambiguous there, and the
 refusal lists every canonical name: `DE4SDV_MethodContext::RequirementCandidate::priority`
 names both `RequirementsManagement::NeedsRequirementsAttributes::priority` and

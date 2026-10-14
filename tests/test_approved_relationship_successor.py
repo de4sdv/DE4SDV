@@ -11,10 +11,10 @@ REVISION = "a" * 40
 
 
 def model_pins():
-    """Class pins and pin inputs of the successor contract (from the layers)."""
+    """Class pins of the trace-vocabulary contract (from the projection layers)."""
     from de4sdv.semantic import model_contract as mc
-    records, provisions = mc.load_model_layers(ROOT)
-    return mc.model_class_pins(provisions), mc._pin_inputs(records)
+    _records, provisions = mc.load_model_layers(ROOT)
+    return mc.model_class_pins(provisions)
 
 
 def fixture_service():
@@ -59,14 +59,13 @@ def test_first_public_requirement_allocation_slice():
 def rebuild(elements, binding, contract=None):
     """Reassemble the production services over the (possibly mutated) binding.
 
-    The successor contract is always the one the facade regenerates from the
-    model; a supplied contract must equal it (tampering refuses)."""
-    from de4sdv.semantic.relationship_successor_contract import verify_contract
+    The trace-vocabulary contract is always the generated one the facade
+    loads; a supplied contract must equal it."""
+    from de4sdv.semantic import model_contract as mc
     class Repository:
         def list_elements(self, *args): return elements
-    if contract is not None:
-        pins, inputs = model_pins()
-        verify_contract(contract, ROOT, class_pins=pins, pin_inputs=inputs)
+    if contract is not None and contract != mc.load_trace_contract(ROOT):
+        raise ValueError("supplied trace contract differs from the generated contract")
     return model_service(binding, Repository(), expected_git_revision=REVISION)
 
 
@@ -188,14 +187,26 @@ def test_absent_or_dangling_allocation_context_cannot_be_a_fact():
     assert "context" in report["unsupported_predicates"][0]["reason"]
 
 
-def test_contract_tampering_refuses():
+def test_contract_tampering_refuses(tmp_path):
+    import json
     from copy import deepcopy
     from de4sdv.semantic import model_authority_runtime as mar
+    from de4sdv.semantic import model_contract as mc
     _, elements, binding, contract = fixture_service()
     changed = deepcopy(contract)
     changed["relations"]["allocatedTo"][0]["targetClass"] = "PhysicalElement"
-    with pytest.raises(ValueError, match="contract/source mismatch"):
+    with pytest.raises(ValueError, match="differs from the generated contract"):
         rebuild(elements, binding, changed)
+    # The runtime refuses a generated file edited by hand: its id no longer
+    # digests its meaning.
+    document = json.loads((ROOT / mc.TRACE_CONTRACT_PATH).read_text())
+    document["contract"] = changed
+    path = tmp_path / mc.TRACE_CONTRACT_PATH
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps(document))
+    _records, provisions = mc.load_model_layers(ROOT)
+    with pytest.raises(mc.ModelAuthorityRefused, match="id is not the digest of its meaning"):
+        mc.load_trace_contract(tmp_path, provisions=provisions)
     # A bundle binding a tampered successor record is refused at load time.
     assert mar._successor_record(changed) != model_facade()._components["successor_contract"]
 
@@ -351,7 +362,7 @@ def test_one_carrier_cannot_acquire_two_governed_meanings():
 @pytest.mark.parametrize("mode", ["comment_only_carrier_end", "nested_carrier_end",
                                   "comment_version_value", "nested_version_value"])
 def test_construction_requires_direct_owned_code(mode):
-    from de4sdv.semantic.relationship_successor_contract import MODEL
+    from de4sdv.semantic.trace_vocabulary_contract import MODEL
     text = (ROOT / MODEL).read_text()
     if mode == "comment_only_carrier_end":
         text = text.replace("    end source : RequirementCandidate;",
@@ -375,21 +386,21 @@ def test_construction_requires_direct_owned_code(mode):
 def _contract_from_model_text(text):
     """Overlay one source read in memory; never create a real-model mirror."""
     from unittest.mock import patch
-    from de4sdv.semantic.relationship_successor_contract import generate_contract, MODEL
+    from de4sdv.semantic.trace_vocabulary_contract import extract_contract, MODEL
     read_text, read_bytes = Path.read_text, Path.read_bytes
     def text_read(path, *args, **kwargs):
         return text if path == ROOT / MODEL else read_text(path, *args, **kwargs)
     def bytes_read(path, *args, **kwargs):
         return text.encode() if path == ROOT / MODEL else read_bytes(path, *args, **kwargs)
-    pins, inputs = model_pins()
+    pins = model_pins()
     with patch.object(Path, "read_text", text_read), patch.object(Path, "read_bytes", bytes_read):
-        return generate_contract(ROOT, class_pins=pins, pin_inputs=inputs)
+        return extract_contract(ROOT, class_pins=pins)
 
 
 @pytest.mark.parametrize("literal", ["synthetic://review", "synthetic:/*review*/", "synthetic://{\"quoted\"}"])
 def test_comment_tokens_inside_owned_literal_are_not_comments(literal):
     import json
-    from de4sdv.semantic.relationship_successor_contract import MODEL
+    from de4sdv.semantic.trace_vocabulary_contract import MODEL
     text = (ROOT / MODEL).read_text()
     old = '"Function-to-LogicalElement allocatedTo signature; historical provenance constrainedBy; stronger realizedBy/deployedTo active claims"'
     text = text.replace(old, json.dumps(literal), 1)
@@ -398,7 +409,7 @@ def test_comment_tokens_inside_owned_literal_are_not_comments(literal):
 
 @pytest.mark.parametrize("field", ["supersedes", "retirement-predicate"])
 def test_missing_required_record_field_is_a_controlled_refusal(field):
-    from de4sdv.semantic.relationship_successor_contract import MODEL
+    from de4sdv.semantic.trace_vocabulary_contract import MODEL
     text = (ROOT / MODEL).read_text()
     if field == "supersedes":
         start = text.index("    attribute :>> supersedes =")
@@ -410,16 +421,15 @@ def test_missing_required_record_field_is_a_controlled_refusal(field):
 
 
 def test_class_pins_come_from_projection_layers_not_model_records():
-    """Review R2: the model carries no file-path class records; since O4 Wave C2
-    the pins come from the model-generated projection layers."""
-    from de4sdv.semantic.relationship_successor_contract import MODEL, generate_contract
+    """The model carries no file-path class records: the pins come from the
+    generated projection layers, and the contract records no input digests."""
+    from de4sdv.semantic.model_contract import TRACE_CONTRACT_FIELDS
+    from de4sdv.semantic.trace_vocabulary_contract import MODEL, extract_contract
     text = (ROOT / MODEL).read_text()
-    assert "SuccessorClassRecord" not in text
+    assert "ClassRecord" not in text
     assert "sourceFile" not in text
-    pins, inputs = model_pins()
-    contract = generate_contract(ROOT, class_pins=pins, pin_inputs=inputs)
-    assert set(inputs) <= set(contract["bound_inputs"])
-    assert not any("ontology" in path and path.endswith(".yaml") for path in contract["bound_inputs"])
+    contract = extract_contract(ROOT, class_pins=model_pins())
+    assert set(contract) == set(TRACE_CONTRACT_FIELDS) | {"id"}
     assert contract["classes"]["Function"] == {"file": MODEL, "declaration": "action def AllocatableFunction"}
     assert contract["classes"]["Requirement"]["declaration"] == "requirement def RequirementCandidate"
 
@@ -429,8 +439,8 @@ def test_missing_or_ambiguous_class_pin_refuses(mutation):
     from dataclasses import replace
     from de4sdv.semantic import model_contract as mc
     from de4sdv.semantic.kernel_contract import KernelFileMapping
-    from de4sdv.semantic.relationship_successor_contract import generate_contract
-    records, provisions = mc.load_model_layers(ROOT)
+    from de4sdv.semantic.trace_vocabulary_contract import extract_contract
+    _records, provisions = mc.load_model_layers(ROOT)
     if mutation == "remove-mapping":
         provisions = [p for p in provisions if p.identity != "AllocatableFunction"]
     else:
@@ -438,24 +448,22 @@ def test_missing_or_ambiguous_class_pin_refuses(mutation):
         provisions = provisions + [replace(template, identity="SecondAllocatableFunction",
             mapping=KernelFileMapping("x.sysml", "action def Other"))]
     with pytest.raises(ValueError, match="missing endpoint class pin: Function"):
-        generate_contract(ROOT, class_pins=mc.model_class_pins(provisions),
-                          pin_inputs=mc._pin_inputs(records))
+        extract_contract(ROOT, class_pins=mc.model_class_pins(provisions))
 
 
 @pytest.mark.parametrize("declaration", ["", None, "part def", "  part def X", 123])
 def test_malformed_class_pin_is_a_controlled_refusal(declaration):
     """QUALITY P2: blank/null/malformed pins raise ValueError, never a raw error."""
-    from de4sdv.semantic.relationship_successor_contract import generate_contract
-    pins, inputs = model_pins()
-    pins = dict(pins)
+    from de4sdv.semantic.trace_vocabulary_contract import extract_contract
+    pins = dict(model_pins())
     pins["Requirement"] = dict(pins["Requirement"], declaration=declaration)
     with pytest.raises(ValueError, match="malformed class pin"):
-        generate_contract(ROOT, class_pins=pins, pin_inputs=inputs)
+        extract_contract(ROOT, class_pins=pins)
 
 
 def test_unbalanced_or_unreadable_pin_is_a_controlled_refusal():
     """QUALITY S2: malformed source raises ValueError, never IndexError."""
-    from de4sdv.semantic.relationship_successor_contract import _definition_owner
+    from de4sdv.semantic.trace_vocabulary_contract import _definition_owner
     with pytest.raises(ValueError, match="unbalanced braces"):
         _definition_owner("}\n{ {\npart def X {}\n", "part def X")
     with pytest.raises(ValueError, match="not directly owned"):
@@ -463,18 +471,18 @@ def test_unbalanced_or_unreadable_pin_is_a_controlled_refusal():
 
 
 def _semantics(contract):
-    """Contract meaning without the digests that legitimately move with source."""
-    return {key: value for key, value in contract.items() if key not in {"id", "bound_inputs"}}
+    """Contract meaning without its id, which legitimately moves with the source."""
+    return {key: value for key, value in contract.items() if key != "id"}
 
 
 def test_commented_duplicate_record_cannot_override_the_active_record():
     """R2-SPEC-1: a commented decoy must not supply schema or supersedes."""
     import json
-    from de4sdv.semantic.relationship_successor_contract import MODEL
+    from de4sdv.semantic.trace_vocabulary_contract import MODEL
     text = (ROOT / MODEL).read_text()
-    anchor = "  part version : SuccessorVersionRecord {"
+    anchor = "  part version : TraceVocabularyVersionRecord {"
     assert anchor in text
-    decoy = ("/*\n  part version : SuccessorVersionRecord {\n"
+    decoy = ("/*\n  part version : TraceVocabularyVersionRecord {\n"
              '    attribute :>> version = "synthetic-decoy";\n'
              '    attribute :>> supersedes = "synthetic-decoy";\n'
              "  }\n*/\n")
@@ -491,9 +499,9 @@ def test_commented_duplicate_record_cannot_override_the_active_record():
                                    'attribute noise : String = "} // /*";'])
 def test_quoted_nonfield_tokens_do_not_move_the_record_boundary(noise):
     """Quoted tokens in a nested owner cannot supply direct record fields."""
-    from de4sdv.semantic.relationship_successor_contract import MODEL
+    from de4sdv.semantic.trace_vocabulary_contract import MODEL
     text = (ROOT / MODEL).read_text()
-    anchor = "  part version : SuccessorVersionRecord {\n"
+    anchor = "  part version : TraceVocabularyVersionRecord {\n"
     assert anchor in text
     baseline = _semantics(_contract_from_model_text(text))
     nested = "    part def SyntheticNoise { " + noise + " }\n"
@@ -503,9 +511,9 @@ def test_quoted_nonfield_tokens_do_not_move_the_record_boundary(noise):
 
 
 def test_duplicate_live_record_declaration_refuses_instead_of_first_match():
-    from de4sdv.semantic.relationship_successor_contract import MODEL
+    from de4sdv.semantic.trace_vocabulary_contract import MODEL
     text = (ROOT / MODEL).read_text()
-    anchor = "  part version : SuccessorVersionRecord {\n"
+    anchor = "  part version : TraceVocabularyVersionRecord {\n"
     duplicate = anchor + '    attribute :>> version = "synthetic-decoy";\n' \
                          '    attribute :>> supersedes = "synthetic-decoy";\n  }\n'
     with pytest.raises(ValueError):

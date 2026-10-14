@@ -101,7 +101,8 @@ def test_ple_configuration_rows_keep_adr_0006_external_selection_authority():
         body = _flat(body)
         assert ADR_0006_BOUNDARY in body and "Vocabulary only" in body, identity
         assert "PLEML" in body, identity
-    assert "decision-9" in _flat(comments["FeatureConfigurationVocabularyRole"][1])
+    assert "the ADR 0006 external configurator authority is kept" in _flat(
+        comments["FeatureConfigurationVocabularyRole"][1])
     # No model-side configuration authority: no FeatureConfiguration, variation-point
     # or variant definition anywhere in the governed kernel directory.
     for path in sorted((ROOT / KERNEL).glob("*.sysml")):
@@ -124,7 +125,8 @@ def test_native_rows_record_library_grounding_without_copying_library_types():
     method_bodies = _anonymous_comments_about(context, "VerificationMethodOntologyDefinition")
     record = [body for body in method_bodies if body.startswith("Grounding record")]
     assert len(record) == 1
-    for phrase in ("metadata def VerificationMethod", "VerificationMethodKind", "verificationMethod", "Two distinct carriers"):
+    for phrase in ("metadata def VerificationMethod", "VerificationMethodKind", "verificationMethod",
+                   "Two distinct representations"):
         assert phrase in record[0], phrase
     # Library types are referenced, never redeclared in the kernel.
     for path in sorted((ROOT / KERNEL).glob("*.sysml")):

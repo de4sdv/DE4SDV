@@ -2,9 +2,9 @@
 
 The semantic authority is the model-built kernel contract
 (:mod:`de4sdv.semantic.model_contract`): the live definition mappings,
-native and library vocabulary projection/profile pairs, vocabulary carriers,
-the frozen historical chain records, the model-generated relationship-successor
-contract and the kernel-internal declarations manifest. Its identity is the
+native and library vocabulary projection/profile pairs, the frozen historical
+chain records, the generated trace-vocabulary contract and the kernel-internal
+declarations manifest. Its identity is the
 ``sai-`` semantic-authority id. There is no authored ontology, no O3 component
 and no other authority: retired and refused identities answer only with
 their disposition.
@@ -19,10 +19,11 @@ over the licensed export (:mod:`de4sdv.semantic.export_evaluation`).
 
 ``hasRelevantEvidenceContract`` uses the owner-adopted discriminator: its
 range is the authored type closure of the validated ``EvidenceContract``
-kernel root, which must contain exactly
-:data:`EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS` specializing definitions (the
-eight AEBS evidence contracts). Any other population fails closed with
-:data:`MODEL_EVIDENCE_CONTRACT_BLOCKED_REASON`.
+kernel root. The served model must hold as many specializing requirement
+definitions as the closure the contract declares, which lists the evidence
+contracts the model declares; the release evidence check compares the two
+sets by element id. An empty population or a different number fails closed
+with :data:`MODEL_EVIDENCE_CONTRACT_BLOCKED_REASON`.
 
 Non-claims: serving the model-built contract is not compliance or a semantic
 proof beyond the bound artifacts.
@@ -44,7 +45,6 @@ from .model_contract import (  # noqa: F401 — re-exported model-contract surfa
     BATCH2_LAYERS,
     DISCRIMINATED_PREDICATES,
     EVIDENCE_CONTRACT_CLASS,
-    EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS,
     LAYERS,
     O2_CHAIN_IDENTITIES,
     O2_CHAIN_LAYER,
@@ -56,11 +56,11 @@ from .model_contract import (  # noqa: F401 — re-exported model-contract surfa
     build_model_contract,
     canonical_json,
     compute_routing,
-    generate_model_successor_contract,
     load_model_layers,
     load_register_rows,
+    load_trace_contract,
 )
-from .relationship_successor import SuccessorQueryService, SuccessorTraversal
+from .trace_vocabulary_traversal import SuccessorQueryService, SuccessorTraversal
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -69,10 +69,9 @@ MODEL_AUTHORITY = "model"
 MODEL_EVIDENCE_CONTRACT_BLOCKED_REASON = (
     "EvidenceContract type closure is not established at this revision: the "
     "model-authority discriminator requires the validated EvidenceContract "
-    "kernel root and exactly "
-    f"{EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS} authored specializing "
-    "requirement definitions; native verification membership alone never "
-    "establishes the range."
+    "kernel root and the authored specializing requirement definitions that "
+    "the contract's closure declares; native verification membership alone "
+    "never establishes the range."
 )
 
 
@@ -89,9 +88,9 @@ def load_layers(root: Path = ROOT) -> tuple[list[dict[str, Any]], list[Provision
     return load_model_layers(root)
 
 
-def generate_successor_contract(root: Path = ROOT) -> dict[str, Any]:
-    """The successor contract generated from the model (pins from the layers)."""
-    return generate_model_successor_contract(root)
+def trace_contract(root: Path = ROOT) -> dict[str, Any]:
+    """The generated trace-vocabulary contract, checked against the layers' class pins."""
+    return load_trace_contract(root)
 
 
 def _successor_names(contract: Mapping[str, Any]) -> dict[str, str]:
@@ -219,9 +218,10 @@ class ModelAuthorityTraversal(SuccessorTraversal):
 
         Returns ``(root_id, definitions, closure, resolver)``. Root identity
         comes from the ingestion-validated kernel binding; the closure follows
-        AUTHORED subsumption only and must contain exactly the expected number
-        of specializing requirement definitions (ids, never names). Built once
-        per corpus; a refusal is re-raised on every call.
+        AUTHORED subsumption only and must contain as many specializing
+        requirement definitions as the contract's discriminator closure
+        declares, at least one (ids, never names). Built once per corpus; a
+        refusal is re-raised on every call.
         """
         return self.revision_index(elements).memo_bound(
             "evidence-contract-definitions",
@@ -246,11 +246,17 @@ class ModelAuthorityTraversal(SuccessorTraversal):
         closure = set(resolver["explicit_lineage_ids"])
         definitions = {i for i in closure - {root_id}
                        if str(by_id.get(i, {}).get("@type")) == "RequirementDefinition"}
-        if len(definitions) != EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS:
+        declared = self._declared_evidence_contracts()
+        if not definitions or len(definitions) != len(declared):
             raise IdentityNotFoundError(
                 f"{MODEL_EVIDENCE_CONTRACT_BLOCKED_REASON} (found {len(definitions)} "
-                "specializing definitions)")
+                f"specializing definitions; the contract declares {len(declared)})")
         return root_id, definitions, closure, resolver
+
+    def _declared_evidence_contracts(self) -> list:
+        """The closure members the contract declares for the discriminator."""
+        spec = (self.contract.relationships or {}).get(DISCRIMINATED_PREDICATES[0]) or {}
+        return list((spec.get("range_discriminator") or {}).get("closure") or ())
 
     def _evidence_contract_identity_ids(self, elements):
         """Owner-adopted discriminator: members are the usages explicitly typed
@@ -342,7 +348,7 @@ def model_facade(root: Path = ROOT, *, contract: KernelContract | None = None) -
     """
     root = Path(root)
     records, provisions = load_model_layers(root)
-    successor = generate_model_successor_contract(root, records=records, provisions=provisions)
+    successor = load_trace_contract(root, provisions=provisions)
     routing = _model_routing(root, records, provisions, successor)
     if contract is None:
         contract = build_model_contract(root)
@@ -357,7 +363,7 @@ def assemble_model_services(facade: ModelAuthorityFacade, binding: Any, model_re
                             service_class: type = ModelAuthorityQueryService) -> ModelAuthorityQueryService:
     """Assemble the live query/impact services over one facade and binding."""
     from .api_binding import OntologyApiBinder
-    from .relationship_successor import route_successor_bindings
+    from .trace_vocabulary_traversal import route_successor_bindings
 
     index, routes = route_successor_bindings(facade.profile, binding)
     # Profile routing consumes ingestion-validated file/declaration/UUID tuples:

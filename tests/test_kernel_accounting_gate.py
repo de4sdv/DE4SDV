@@ -188,16 +188,14 @@ def test_listed_carrier_pin_is_a_second_home():
     assert any("HasStakeholder" in e and "is both projected" in e for e in errors), errors
 
 
-def test_the_six_carrier_pins_are_projected_not_listed():
+def test_the_stakeholder_carrier_pin_is_projected_not_listed():
     report = coverage.build_report(ROOT)
     listed = {declaration for declarations in _manifest()["declarations"].values()
               for declaration in declarations}
-    for name in ("HasStakeholder", "AddressesConcern", "ProducesView", "RecordsAssumption",
-                 "RecordsGap", "SelectedViewpoint"):
-        keys = [k for k in report["kernel_declarations"] if k.endswith(f" def {name}")]
-        assert len(keys) == 1, (name, keys)
-        assert report["kernel_declarations"][keys[0]]["status"] == "projected", name
-        assert not any(d.endswith(f" def {name}") for d in listed), name
+    keys = [k for k in report["kernel_declarations"] if k.endswith(" def HasStakeholder")]
+    assert len(keys) == 1, keys
+    assert report["kernel_declarations"][keys[0]]["status"] == "projected"
+    assert not any(d.endswith(" def HasStakeholder") for d in listed)
 
 
 # -- feature-slice guard (relocated from sync point 5) ----------------------
@@ -238,7 +236,9 @@ def test_any_residual_blocks_even_when_the_baseline_lists_it():
 
 def test_refused_and_retired_identities_are_ratcheted():
     report = coverage.build_report(ROOT)
-    assert report["refused"] == ["IncrementTraceabilityShell", "derivesNeedFromConcern"]
+    assert report["refused"] == sorted(["IncrementTraceabilityShell", "derivesNeedFromConcern",
+                                        "addressesConcern", "producesView", "recordsAssumption",
+                                        "recordsGap", "selectedViewpoint"])
     assert report["retired"] == sorted(["realizedBy", "deployedTo", "validatedBy",
                                         "constrainedBy", "validatesFitnessForUse"])
     baseline = coverage.load_baseline(ROOT)

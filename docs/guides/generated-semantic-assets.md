@@ -15,13 +15,6 @@ to the few feature files that witness a projected concept, to an admission
 manifest, or to the Syside version pin in
 `.github/workflows/privileged-syside-validation.yml`.
 
-One exception: the five `connection def`s in
-`de4sdv_method_vocabulary_carriers.sysml` must keep a `doc` comment equal to
-their reviewed definition in
-`de4sdv/semantic/contract-data/ontology-review.json`. Changing
-that text is a review change, not a regeneration; the vocabulary generator
-refuses until both agree.
-
 ## Regenerate, check, commit once
 
 From the repository root, with the pinned dependencies installed:
@@ -30,7 +23,7 @@ From the repository root, with the pinned dependencies installed:
 sysand sync
 python scripts/generate_definition_projection.py --batch all
 python scripts/generate_native_grounding_projection.py
-python scripts/generate_vocabulary_carriers.py
+python scripts/generate_trace_vocabulary_contract.py
 python scripts/check_repo.py
 python scripts/smoke_test.py
 python tools/check_markdown_links.py
@@ -38,9 +31,12 @@ python -m pytest tests -q -p no:cacheprovider
 python tools/run_bench_unit_tests.py
 ```
 
-Run the generators in this order. The vocabulary generator checks its
-relationship ends against the class files the first two write; it never
-reads its own output.
+Run the generators in this order. The trace-vocabulary generator runs
+last: it reads the relation and retirement records of
+`de4sdv_trace_vocabulary.sysml` and checks their endpoint classes against the
+class pins of all the layers before it.
+The runtime reads its output, `trace-vocabulary-contract.json`, and never
+parses the model.
 
 Stage the source change and the regenerated files together and make one
 commit. Do not create a source-only commit first, and do not pass a source
@@ -79,7 +75,7 @@ ontology review record, which name the deleted file as history.
 The semantic-authority identity (`sai-…`) digests what the generated files
 mean: definitions and their documentation, groundings, relationship ends,
 strength and support, serializer mappings, refusals, retirements and the
-successor contract. It does not digest Git commits, file bytes, Python code,
+trace-vocabulary contract. It does not digest Git commits, file bytes, Python code,
 review pointers or toolchain receipts. It does label each layer with its
 file path, so moving or renaming a projection, profile or frozen record
 changes the identity. `de4sdv/semantic/model_contract.py` declares which

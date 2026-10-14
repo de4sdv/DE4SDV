@@ -15,17 +15,18 @@ _FULL_SHA = re.compile(r"^[0-9a-f]{40}$")
 _GOVERNED_MODEL_PATHS = (
     "textual-notation-of-model",
     "model-based-product-line-engineering/product-models",
-    # Model-authority inputs: the generated projection/profile pairs, the
-    # frozen records, the admission manifests, the identity register whose
-    # dispositions decide refusals, and the kernel-internal manifest; the
-    # model-built kernel contract and its sai- identity derive from them. A
-    # code-only consumer deploy must not run against drifted authority inputs
-    # (the runtime's startup check also recomputes the sai- identity);
-    # documentation stays outside the gate.
+    # Model-authority inputs: the generated projection/profile pairs and
+    # trace-vocabulary contract, the frozen records, the admission manifests,
+    # the identity register whose dispositions decide refusals, and the
+    # kernel-internal manifest; the model-built kernel contract and its sai-
+    # identity derive from them. A code-only consumer deploy must not run
+    # against drifted authority inputs (the runtime's startup check also
+    # recomputes the sai- identity); documentation stays outside the gate.
     ":(glob)de4sdv/semantic/contract-data/*-projection.json",
     ":(glob)de4sdv/semantic/contract-data/*-profile.json",
     ":(glob)de4sdv/semantic/contract-data/*-admission.yaml",
     ":(glob)de4sdv/semantic/contract-data/frozen-records/*.json",
+    "de4sdv/semantic/contract-data/trace-vocabulary-contract.json",
     "de4sdv/semantic/contract-data/ontology-identity-register.json",
     "de4sdv/semantic/contract-data/kernel-internal-declarations.yaml",
 )

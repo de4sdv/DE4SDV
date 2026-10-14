@@ -115,7 +115,7 @@ def semantic_service():
             "@id": "kernel-requirement-derivation",
             "@type": "ConnectionDefinition",
             "declaredName": "DerivesFromNeed",
-            "qualifiedName": "DE4SDV_MethodContext::DerivesFromNeed",
+            "qualifiedName": "DE4SDV_TraceVocabulary::DerivesFromNeed",
         },
         {
             "@id": "kernel-need",

@@ -48,8 +48,9 @@ REVISION = me.RevisionIdentity("a" * 40, "project", "commit", "full-model")
 P0, P4, P5, P10 = ("phase0_incrementFraming", "phase4_needs", "phase5_requirements", "phase10_vvEvidence")
 P = WorkflowParameter
 C = WorkflowCheck
-ADVISORY = {"requirementSpecifiesFeatureOrCapability", "verificationCaseVerifiesAcceptanceCriterion",
-            "verificationCaseHasEvidenceRecordOrStatus"}
+ADVISORY = {"expectedArtifactsCoverIncrementContent", "needSubjectIsSystemOfInterest",
+            "requirementSubjectIsSystemOfInterest", "requirementSpecifiesFeatureOrCapability",
+            "requirementStatesSuccessCriteria", "verificationCaseHasEvidenceRecordOrStatus"}
 
 
 def _named(scenario, name: str) -> dict:
@@ -98,22 +99,22 @@ def test_the_charter_declares_the_workflow_read_into_one_contract() -> None:
     assert method.available, method.problems or method.reason
     assert not any(b["ontology_class"] in {"IncrementWorkflow", "MethodCheck"} for b in scenario.builder.bindings)
     obligations = method.contract.obligations
-    assert len(obligations) == 28
+    assert len(obligations) == 31
     assert [o.obligation_id for o in obligations][:2] == ["incrementHasIdentifier", "incrementHasCharter"]
     by_id = {o.obligation_id: o for o in obligations}
-    assert by_id["needFramesConcern"].predicate == "framesStakeholderConcern"
+    assert by_id["needHasValidationScenario"].predicate == "hasValidationScenario"
     assert {o.obligation_id for o in obligations if not o.required} == ADVISORY
     assert all(o.depends_on == () for o in obligations)  # successions rank, they never gate
     assert by_id["incrementHasCharter"].applicability_kind == me.APPLICABILITY_UNCONDITIONAL
-    assert by_id["needFramesConcern"].applicability_kind == me.APPLICABILITY_DECLARED_PHASE
+    assert by_id["needHasValidationScenario"].applicability_kind == me.APPLICABILITY_DECLARED_PHASE
     assert (by_id["incrementHasCharter"].minimum_population, by_id["incrementHasCharter"].maximum_population) == (1, 1)
-    assert by_id["needFramesConcern"].maximum_population is None
+    assert by_id["needHasValidationScenario"].maximum_population is None
     assert by_id["requirementHasOneSubject"].cardinality == (1, 1)
     assert by_id["requirementHasVerificationMethod"].cardinality == (1, 1)
-    assert by_id["needFramesConcern"].cardinality == (1, UNBOUNDED)
+    assert by_id["needHasValidationScenario"].cardinality == (1, UNBOUNDED)
     assert by_id["requirementVerifiedByVerificationCase"].permitted_empty
     assert method.phases == (P0, P4, P5, P10)
-    assert method.labels["needFramesConcern"]["check_definition"].endswith("MethodCheck")
+    assert method.labels["needHasValidationScenario"]["check_definition"].endswith("MethodCheck")
 
 
 def test_the_method_lists_every_step_with_its_parameters_whether_or_not_it_has_checks() -> None:
@@ -170,7 +171,10 @@ def test_a_complete_increment_passes_every_blocking_check() -> None:
             continue
         assert (unit.coverage, unit.state, unit.verdict) == (
             me.COVERAGE_ASSESSED, me.STATE_COMPLETE, me.VERDICT_PASS), (unit.unit_id, unit.diagnostics)
-    assert _unit(evaluation, "verificationCaseVerifiesAcceptanceCriterion").verdict == me.VERDICT_FAIL
+    # Advisory failures never block: the fixture declares no system of interest
+    # and states no success criteria.
+    assert {u.unit_id for u in evaluation.canonical.units if u.verdict == me.VERDICT_FAIL} == {
+        "needSubjectIsSystemOfInterest", "requirementSubjectIsSystemOfInterest", "requirementStatesSuccessCriteria"}
     assert _unit(evaluation, "verificationCaseHasEvidenceRecordOrStatus").state == me.STATE_INDETERMINATE
     status = evaluation.status()
     assert [(block["phase"], block["phase_exit"]) for block in status["phases"]] == [
@@ -204,7 +208,8 @@ def test_subjects_are_the_declared_scope_elements_of_the_parameter_type_or_kind(
     stray = builder.usage("VerificationCaseUsage", "strayVerification", undeclared,
                           [_named(scenario, "FixtureVerification")])
     evaluation = _evaluate(scenario)
-    assert {r.subject_id for r in _children(evaluation, "needFramesConcern")} == {n["@id"] for n in scenario.needs}
+    assert {r.subject_id for r in _children(evaluation, "needHasValidationScenario")} == {
+        n["@id"] for n in scenario.needs}
     assert [r.subject_id for r in _children(evaluation, "incrementHasFramedConcern")] == [scenario.concern["@id"]]
     cases = [r.subject_id for r in _children(evaluation, "verificationCaseVerifiesRequirement")]
     assert cases == [scenario.cases[0]["@id"]] and stray["@id"] not in cases
@@ -213,7 +218,7 @@ def test_subjects_are_the_declared_scope_elements_of_the_parameter_type_or_kind(
 def test_framing_always_applies_and_later_steps_need_their_phase_declared() -> None:
     evaluation = _evaluate(_scenario(applicable_phases=(P4,)))
     assert _unit(evaluation, "incrementHasCharter").verdict == me.VERDICT_PASS
-    assert _unit(evaluation, "needFramesConcern").verdict == me.VERDICT_PASS
+    assert _unit(evaluation, "needHasValidationScenario").verdict == me.VERDICT_PASS
     assert _unit(evaluation, "requirementHasOneSubject").verdict == me.VERDICT_NOT_APPLICABLE
 
 
@@ -340,9 +345,9 @@ def test_the_contract_projection_names_step_parameter_and_subject_type() -> None
     contract = _evaluate(_scenario()).phase_contract(P4)
     record = contract["gates"][-1]
     assert (record["obligation_id"], record["step"], record["parameter"], record["check"]) == (
-        "needFramesConcern", "elaborateNeeds", "needs", "framesStakeholderConcern")
+        "needSubjectIsSystemOfInterest", "elaborateNeeds", "needs", "subjectIsSystemOfInterest")
     assert record["subject_type"].endswith("StakeholderNeedCandidate")
-    assert record["what_satisfies"].startswith("frame a stakeholder concern")
+    assert record["what_satisfies"].startswith("declare the system of interest on the charter")
 
 
 def test_every_check_the_model_declares_is_supported() -> None:
@@ -450,7 +455,7 @@ def test_a_tailored_step_definition_inherits_and_redefines_its_checks_and_parame
     evaluation = _evaluate(scenario)
     assert {o.obligation_id for o in evaluation.increment_method.contract.obligations if o.phase == P4} == {
         "needHasStatement", "needHasStakeholder", "needHasSource", "needHasRationale",
-        "needHasValidationScenario", "needFramesConcern"}
+        "needHasValidationScenario", "needSubjectIsSystemOfInterest"}
     assert _unit(evaluation, "needHasStatement").verdict == me.VERDICT_FAIL
     # Redefining the parameter narrows every inherited check about it.
     needs = builder.new("RequirementUsage", name="needs", source=builder.sources[tailored["@id"]], direction="out")

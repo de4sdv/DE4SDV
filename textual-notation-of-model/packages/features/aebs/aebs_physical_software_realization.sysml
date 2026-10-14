@@ -26,7 +26,7 @@
 
 package DE4SDV_AEBSPhysicalSoftwareRealization {
   private import DE4SDV_AEBSLogicalArchitecture::*;
-  private import DE4SDV_RelationshipSuccessor::PhysicalAllocationElement;
+  private import DE4SDV_TraceVocabulary::PhysicalAllocationElement;
   private import SAF_Viewpoints::*;
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_MethodContext::*;

@@ -24,7 +24,7 @@ DATA = "de4sdv/semantic/contract-data/"
 MANIFEST_HELD_FIXTURE = "tests/fixtures/manifest-held-contract-fields.json"
 MANIFEST_PATH = DATA + "kernel-vocabulary-admission.yaml"
 REGISTER_PATH = DATA + "ontology-identity-register.json"
-SUCCESSOR_FILE = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+SUCCESSOR_FILE = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml"
 
 OTHER_LAYERS = {
     "o2-chain": [
@@ -34,7 +34,6 @@ OTHER_LAYERS = {
     ],
     "definition-batch-1": [(DATA + "class-definition-projection.json", ("rows",))],
     "o2plus": [(DATA + "native-grounding-projection.json", ("rows",))],
-    "vocabulary-carriers": [(DATA + "increment-relationship-projection.json", ("rows",))],
 }
 NEW_SUCCESSOR_PREDICATES = {"hasValidationScenario", "hasRegulatorySource"}
 MERGED_ALIASES = {"validatesFitnessForUse"}
@@ -150,7 +149,8 @@ def test_every_retained_row_and_ontology_identity_has_exactly_one_provider():
     assert all(entry["accounting"] != "retained" for entry in exceptions.values())
     for identity, entry in exceptions.items():
         assert register[identity]["accounting_status"] == entry["accounting"]
-    assert set(exceptions) == {"IncrementTraceabilityShell", "derivesNeedFromConcern"}
+    assert set(exceptions) == {"IncrementTraceabilityShell", "derivesNeedFromConcern", "addressesConcern",
+                               "producesView", "recordsAssumption", "recordsGap", "selectedViewpoint"}
     retained = {i for i, r in register.items() if r["accounting_status"] == "retained"}
     assert retained <= set().union(*layers.values())
 
@@ -171,7 +171,7 @@ def test_projection_scope_echoes_the_owner_visible_exceptions():
 
 
 def test_manifest_held_contract_fields_equal_the_recorded_values():
-    """The manifest holds 54 rows' contract fields itself instead of the model
+    """The manifest holds 50 rows' contract fields itself instead of the model
     (the model does not carry them structurally): kernel mapping, subclass and
     disjointness pins, and
     relation domain/range/direction/strength with mechanics. They feed the served
@@ -184,7 +184,7 @@ def test_manifest_held_contract_fields_equal_the_recorded_values():
     rows = _rows()
     assert set(recorded["entries"]) == set(rows)
     held = {identity: entry for identity, entry in recorded["entries"].items() if entry["manifest"]}
-    assert len(held) == recorded["rows_with_manifest_held_contract_fields"] == 54
+    assert len(held) == recorded["rows_with_manifest_held_contract_fields"] == 50
     for identity, row in rows.items():
         entry = recorded["entries"][identity]
         assert row["admission_class"] == entry["admission_class"], identity
@@ -220,7 +220,7 @@ def test_every_contract_row_is_labeled_manifest_held():
                 assert "reviewed admission-manifest" in source, identity
                 assert "closure/contract-equivalence.json" in source, identity
                 assert "test-locked to the authored ontology" not in source, identity
-    assert labeled == 54
+    assert labeled == 50
 
 
 def test_successors_and_retired_names_follow_the_relationship_redesign():
@@ -269,8 +269,10 @@ def test_runtime_queryable_targets_keep_their_forward_obligation():
 # ---------------------------------------------------------------------------
 
 
-def test_evidence_contract_closure_is_exactly_the_eight_aebs_contracts_repo_wide():
-    """Population test: no other model definition specializes EvidenceContract."""
+def test_evidence_contract_closure_is_every_model_specialization_repo_wide():
+    """Content test, no count: the closure the admission declares is exactly
+    the set of model definitions that specialize EvidenceContract, which ADR
+    0020 names (EC_CLOSURE)."""
     from de4sdv.semantic.kernel_vocabulary_projection import _Source
 
     found = set()
@@ -284,12 +286,12 @@ def test_evidence_contract_closure_is_exactly_the_eight_aebs_contracts_repo_wide
                     found.add((relative, f"{match[1]} def {match[2]}"))
     assert found == EC_CLOSURE
     row = _rows()["hasRelevantEvidenceContract"]
-    assert {(p["file"], p["declaration"]) for p in row["range_discriminator"]["closure"]} == EC_CLOSURE
+    assert {(p["file"], p["declaration"]) for p in row["range_discriminator"]["closure"]} == found
     projected = {r["identity"]: r for r in _outputs()["projection_rows"]}["hasRelevantEvidenceContract"]
     disc = projected["relation"]["range"]["discriminator"]
     assert disc["kind"] == "type-lineage"
     assert disc["lineage"]["declaration"] == "requirement def EvidenceContract"
-    assert len(disc["closure"]) == 8
+    assert {(p["source_file"], p["declaration"]) for p in disc["closure"]} == found
     assert "prefix" in disc["rule"] and "never by name" in disc["rule"]
 
 
@@ -362,17 +364,17 @@ _FIXTURE_SYSML = '''package FixtureBatch2 {
    * role of betaLink: domain Alpha, range Beta. */
 }
 '''
-_FIXTURE_CARRIERS = '''package DE4SDV_RelationshipSuccessor {
+_FIXTURE_CARRIERS = '''package DE4SDV_TraceVocabulary {
   connection def AlphaLink {
     end source : Alpha;
     end target : Alpha;
   }
   comment alphaLinkVocabularyRole about AlphaLink /* Successor definition for alphaLink. */
-  part version : SuccessorVersionRecord {
+  part version : TraceVocabularyVersionRecord {
     attribute :>> version = "de4sdv.relationship-successor/v1";
     attribute :>> supersedes = "oldAlphaLink";
   }
-  part alphaRecord : SuccessorRelationRecord {
+  part alphaRecord : TraceRelationRecord {
     attribute :>> predicate = "alphaLink";
     attribute :>> carrier = "AlphaLink";
     attribute :>> mechanism = "typed-connection";
@@ -383,13 +385,13 @@ _FIXTURE_CARRIERS = '''package DE4SDV_RelationshipSuccessor {
     attribute :>> targetUsage = "PartUsage";
     attribute :>> inverse = "";
   }
-  part oldAlpha : SuccessorRetirementRecord {
+  part oldAlpha : RetiredRelationRecord {
     attribute :>> predicate = "oldAlphaLink";
     attribute :>> reason = "Retired; alphaLink is the successor.";
   }
 }
 '''
-_PKG = "package DE4SDV_RelationshipSuccessor"
+_PKG = "package DE4SDV_TraceVocabulary"
 _FIXTURE_MANIFEST = {
     "schema": "de4sdv.o4-definition-admission-batch2/v1",
     "status": "admitted",
@@ -638,7 +640,7 @@ _NEGATIVE_MODELS = {
     "record field twice": ("carriers", lambda s: s.replace('attribute :>> inverse = "";', 'attribute :>> inverse = "";\n    attribute :>> inverse = "";')),
     "record field missing": ("carriers", lambda s: s.replace('    attribute :>> inverse = "";\n', "")),
     "record field not literal": ("carriers", lambda s: s.replace('attribute :>> strength = "fixture";', "attribute :>> strength = fixture;")),
-    "second record for predicate": ("carriers", lambda s: s.replace("  part oldAlpha", '''  part alphaRecordTwo : SuccessorRelationRecord {
+    "second record for predicate": ("carriers", lambda s: s.replace("  part oldAlpha", '''  part alphaRecordTwo : TraceRelationRecord {
     attribute :>> predicate = "alphaLink"; attribute :>> carrier = "AlphaLink"; attribute :>> mechanism = "m";
     attribute :>> strength = "s"; attribute :>> sourceClass = "Alpha"; attribute :>> targetClass = "Alpha";
     attribute :>> sourceUsage = "PartUsage"; attribute :>> targetUsage = "PartUsage"; attribute :>> inverse = "";

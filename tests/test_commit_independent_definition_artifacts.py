@@ -83,7 +83,7 @@ def test_class_definition_construction_needs_only_current_sources_not_git(tmp_pa
 def _kernel_vocabulary_source(root: Path) -> None:
     files = {
         MODEL_FILE: "package Fixture {\n  part def Alpha {\n    doc /*Alpha documentation.*/\n  }\n}\n",
-        kernel_vocabulary.SUCCESSOR_FILE: 'package DE4SDV_RelationshipSuccessor {\n  part version : SuccessorVersionRecord {\n    attribute :>> version = "de4sdv.relationship-successor/v1";\n    attribute :>> supersedes = "synthetic";\n  }\n}\n',
+        kernel_vocabulary.SUCCESSOR_FILE: 'package DE4SDV_TraceVocabulary {\n  part version : TraceVocabularyVersionRecord {\n    attribute :>> version = "de4sdv.relationship-successor/v1";\n    attribute :>> supersedes = "synthetic";\n  }\n}\n',
         kernel_vocabulary.ADMISSION_PATH: yaml.safe_dump({
             "schema": "de4sdv.o4-definition-admission-batch2/v1", "status": "admitted", "exceptions": [],
             "admitted": [{

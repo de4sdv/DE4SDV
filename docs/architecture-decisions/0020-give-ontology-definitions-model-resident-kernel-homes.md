@@ -8,6 +8,15 @@ The owner accepted implementation decisions I1–I4 on 2026-10-06. I4 is
 superseded by the D4 follow-up in O4 Wave A; see
 [owner decisions](https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/docs/method-conformance/o4/owner-decisions-2026-10.md).
 
+> Note (2026-10-14): the runtime no longer enforces the D4 follow-up's
+> "exactly the eight AEBS contracts" as a count. Owner decision D2 of
+> 2026-10-14 ([#365](https://github.com/de4sdv/DE4SDV/pull/365)) replaced the
+> count with a content check: the `hasRelevantEvidenceContract` closure lists
+> distinct requirement definitions, at least one; the served model holds as
+> many specializing definitions as that closure declares; and the release
+> evidence check compares the two sets by element id. The decision text below
+> is unchanged.
+
 ## Context
 
 O4 retires the authored ontology YAML

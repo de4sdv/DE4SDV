@@ -82,7 +82,7 @@ artifacts:
 The former names `realizedBy`, `deployedTo`, `validatedBy`,
 `validatesFitnessForUse` and `constrainedBy` are retired: the runtime refuses
 them with `retired; use <successor>` (owner decision D4); their model
-retirement records in `de4sdv_relationship_carriers.sysml` are kept.
+retirement records in `de4sdv_trace_vocabulary.sysml` are kept.
 `IncrementTraceabilityShell` and `derivesNeedFromConcern` are refused with
 their register disposition (owner decision D5).
 

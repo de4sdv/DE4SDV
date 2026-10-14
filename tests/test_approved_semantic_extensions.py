@@ -15,16 +15,10 @@ from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENT
 from model_contract_fixtures import model_contract
 
 ROOT = Path(__file__).resolve().parents[1]
-MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml"
 KERNEL_VOCABULARY_PROJECTION = "de4sdv/semantic/contract-data/kernel-vocabulary-projection.json"
-ASSURANCE_RECORDS = (
-    "EvidenceSupportCitation",
-    "ScopedVVActivityRecord",
-    "ScopedEvidenceAdequacyAssessment",
-)
-TRACE_RECORDS = ("ApprovedTraceMethod", "IncrementTraceObligations")
-TRACE_MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml"
-RELATIONSHIP_MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+TRACE_RECORDS = ("IncrementTraceObligations",)
+TRACE_MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml"
+RELATIONSHIP_MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml"
 RELATIONSHIP_EXTENSIONS = {
     "AllocatableFunction": "action def AllocatableFunction",
     "LogicalAllocationElement": "part def LogicalAllocationElement",
@@ -34,7 +28,7 @@ RELATIONSHIP_EXTENSIONS = {
     "ValidationPlanningAssociation": "connection def ValidationPlanningAssociation",
     "RegulatorySourceAssociation": "connection def RegulatorySourceAssociation",
 }
-EXTENSIONS = ASSURANCE_RECORDS + TRACE_RECORDS + tuple(RELATIONSHIP_EXTENSIONS)
+EXTENSIONS = TRACE_RECORDS + tuple(RELATIONSHIP_EXTENSIONS)
 
 
 def _observation(identity):
@@ -42,15 +36,6 @@ def _observation(identity):
     definition = rows[identity]["definition"]
     assert isinstance(definition["documentation"], str) and definition["documentation"].strip(), identity
     return definition["documentation_observation"]
-
-
-@pytest.mark.parametrize("identity", ASSURANCE_RECORDS)
-def test_assurance_extension_has_exact_model_mapping_and_no_closure_promotion(identity):
-    contract = model_contract()
-    assert contract.classes[identity]["kernel"] == {
-        "file": MODEL, "declaration": f"item def {identity}"}
-    assert _observation(identity) == "model-owned-documentation"
-    assert identity not in MIGRATED_IDENTITIES
 
 
 def test_historical_ontology_review_population_is_not_silently_expanded():
@@ -104,7 +89,7 @@ def test_all_successor_pins_can_route_from_real_ingestion_class_names():
     """Synthetic binding metadata proves wiring, not licensed ingestion/readback."""
     from types import SimpleNamespace
     from de4sdv.sysml_api.revisions import KernelElementBinding
-    from de4sdv.semantic.relationship_successor import route_successor_bindings
+    from de4sdv.semantic.trace_vocabulary_traversal import route_successor_bindings
     from model_contract_fixtures import model_facade
 
     contract = model_contract()
@@ -225,11 +210,11 @@ def successor_constructor_parts():
         "target": "  part def RightRoot {}\n",
         "carrier": ("  connection def SyntheticCarrier {\n"
                     "    end source : LeftRoot;\n    end target : RightRoot;\n  }\n"),
-        "version": _constructor_record("version", "SuccessorVersionRecord",
+        "version": _constructor_record("version", "TraceVocabularyVersionRecord",
             version="synthetic/v1", supersedes="synthetic/previous"),
         "source_record": _class_pin("Left", RELATIONSHIP_MODEL, "part def LeftRoot"),
         "target_record": _class_pin("Right", RELATIONSHIP_MODEL, "part def RightRoot"),
-        "relation": _constructor_record("relationship", "SuccessorRelationRecord",
+        "relation": _constructor_record("relationship", "TraceRelationRecord",
             predicate="syntheticRelation", carrier="SyntheticCarrier", mechanism="typed-connection",
             strength="planning", sourceClass="Left", targetClass="Right",
             sourceUsage="PartUsage", targetUsage="PartUsage", inverse=""),
@@ -259,7 +244,7 @@ _PINS_KEY = "__class_pins__"
 def _constructor_model(parts, *extra_pins):
     """Synthetic model text plus the ontology pins carried by its parts."""
     pins = [part for part in (*parts.values(), *extra_pins) if isinstance(part, _ClassPin)]
-    return _SourcedModel("package DE4SDV_RelationshipSuccessor {\n" + "".join(parts.values()) + "}\n",
+    return _SourcedModel("package DE4SDV_TraceVocabulary {\n" + "".join(parts.values()) + "}\n",
                          pins)
 
 
@@ -281,9 +266,13 @@ class _SourcedModel(str):
         return _SourcedModel(str(self), self.pins + list(pins))
 
 
-def _synthetic_constructor(monkeypatch, sources):
-    """Overlay synthetic sources; unrelated program digests are not under test."""
-    from de4sdv.semantic import relationship_successor_contract as construction
+def _synthetic_constructor(monkeypatch, sources, reads=None):
+    """Overlay synthetic sources and extract the trace contract from them.
+
+    ``reads`` (a list), when given, collects the overlaid sources the
+    constructor read, so a test can see which pin files it consulted.
+    """
+    from de4sdv.semantic import trace_vocabulary_contract as construction
     original_text, original_bytes = Path.read_text, Path.read_bytes
     pins = {pin.identity: {"file": pin.file, "declaration": pin.declaration}
             for pin in getattr(sources[RELATIONSHIP_MODEL], "pins", [])}
@@ -291,16 +280,17 @@ def _synthetic_constructor(monkeypatch, sources):
     overlays = {ROOT / path: text for path, text in sources.items()}
 
     def read_text(path, *args, **kwargs):
+        if path in overlays and reads is not None:
+            reads.append(Path(path).relative_to(ROOT).as_posix())
         return overlays[path] if path in overlays else original_text(path, *args, **kwargs)
 
     def read_bytes(path, *args, **kwargs):
         return overlays[path].encode() if path in overlays else original_bytes(path, *args, **kwargs)
 
     with monkeypatch.context() as scoped:
-        scoped.setattr(construction, "PROGRAM_INPUTS", ())
         scoped.setattr(Path, "read_text", read_text)
         scoped.setattr(Path, "read_bytes", read_bytes)
-        return construction.generate_contract(ROOT, class_pins=pins, pin_inputs=())
+        return construction.extract_contract(ROOT, class_pins=pins)
 
 
 @pytest.mark.parametrize("fragment", ["version", "carrier", "source", "target"])
@@ -318,8 +308,8 @@ def test_successor_constructor_package_prefix_is_not_governed_identity(monkeypat
     parts = {"version": successor_constructor_parts["version"]}
     model = _constructor_model(parts)
     assert _synthetic_constructor(monkeypatch, {RELATIONSHIP_MODEL: model})["schema"] == "synthetic/v1"
-    model = model.replace("package DE4SDV_RelationshipSuccessor {",
-                          "package DE4SDV_RelationshipSuccessor::Foreign {")
+    model = model.replace("package DE4SDV_TraceVocabulary {",
+                          "package DE4SDV_TraceVocabulary::Foreign {")
     with pytest.raises(ValueError, match="missing governed successor package"):
         _synthetic_constructor(monkeypatch, {RELATIONSHIP_MODEL: model})
 
@@ -344,10 +334,11 @@ def successor_qualified_sources(successor_constructor_parts):
 @pytest.mark.parametrize("target_type", ["Foreign::TargetRoot", "Missing::TargetRoot"])
 def test_successor_constructor_rejects_foreign_qualified_pin(monkeypatch, successor_qualified_sources, target_type):
     sources = successor_qualified_sources
-    baseline = _synthetic_constructor(monkeypatch, sources)
+    reads = []
+    baseline = _synthetic_constructor(monkeypatch, sources, reads)
     assert baseline["classes"]["Right"] == {
         "file": "pins/target.sysml", "declaration": "part def TargetRoot"}
-    assert "pins/foreign.sysml" not in baseline["bound_inputs"]
+    assert "pins/foreign.sysml" not in reads
     sources[RELATIONSHIP_MODEL] = sources[RELATIONSHIP_MODEL].replace(
         "CanonicalTarget::TargetRoot", target_type)
     with pytest.raises(ValueError, match="carrier endpoint pin mismatch"):
@@ -387,12 +378,13 @@ def test_successor_constructor_refuses_competing_known_imported_homonym(monkeypa
         "{\n", "{\n  private import CanonicalTarget::*;\n  private import Foreign::*;\n", 1
     ).with_pins(foreign_pin)
     # Both pinned definitions are known and imported; the qualified spelling still admits.
-    qualified = _synthetic_constructor(monkeypatch, {**sources, RELATIONSHIP_MODEL: competing})
+    reads = []
+    qualified = _synthetic_constructor(monkeypatch, {**sources, RELATIONSHIP_MODEL: competing}, reads)
     assert qualified["classes"]["Right"] == {
         "file": "pins/target.sysml", "declaration": "part def TargetRoot"}
-    # The competing pin is known (it is bound) but is not a profile endpoint class.
+    # The competing pin is known (its file is read) but is not a profile endpoint class.
     assert "ForeignRight" not in qualified["classes"]
-    assert "pins/foreign.sysml" in qualified["bound_inputs"]
+    assert "pins/foreign.sysml" in reads
     # The supported bare spelling cannot uniquely identify the canonical pin: refuse it.
     bare = competing.replace("CanonicalTarget::TargetRoot", "TargetRoot")
     with pytest.raises(ValueError, match="carrier endpoint pin mismatch"):
@@ -437,6 +429,6 @@ def test_successor_constructor_local_bare_identity_cannot_choose_between_files(
     competing_pin = _class_pin("ForeignLeft", "pins/foreign.sysml", "part def LeftRoot")
     model = _constructor_model(successor_constructor_parts, competing_pin)
     sources = {RELATIONSHIP_MODEL: model,
-               "pins/foreign.sysml": "package DE4SDV_RelationshipSuccessor {\n  part def LeftRoot {}\n}"}
+               "pins/foreign.sysml": "package DE4SDV_TraceVocabulary {\n  part def LeftRoot {}\n}"}
     with pytest.raises(ValueError, match="carrier endpoint pin mismatch"):
         _synthetic_constructor(monkeypatch, sources)

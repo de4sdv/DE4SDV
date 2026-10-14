@@ -17,7 +17,10 @@ from sysml_shapes import strip_comments
 ROOT = Path(__file__).resolve().parents[1]
 FEATURES = ROOT / "textual-notation-of-model/packages/features"
 KERNEL = ROOT / "textual-notation-of-model/packages/methods/de4sdv"
-CARRIERS = KERNEL / "de4sdv_relationship_carriers.sysml"
+TRACE_VOCABULARY = KERNEL / "de4sdv_trace_vocabulary.sysml"
+#: The derivation connection lives with the trace relations; it is served through the frozen
+#: derivation predicates and its own kernel class pin, not through a relation record.
+DERIVATION_CONNECTION = "DerivesFromNeed"
 
 VIS_F = FEATURES / "aebs/aebs_visualization_functional_architecture.sysml"
 VIS_L = FEATURES / "aebs/aebs_visualization_logical_architecture.sysml"
@@ -234,7 +237,7 @@ def test_exact_endpoint_definitions_carry_one_direct_governed_lineage(path):
     for name in names:
         header, _ = definition([code], name)
         assert header == f":> {base}", (name, header)
-    assert code.count(f"private import DE4SDV_RelationshipSuccessor::{base};") == 1
+    assert code.count(f"private import DE4SDV_TraceVocabulary::{base};") == 1
     assert not re.search(rf"\bdef\s+{base}\b", code), "local homonym would shadow the kernel identity"
     others = {FUNCTION, LOGICAL, PHYSICAL} - {base}
     assert not any(re.search(rf":>\s*[^{{;]*\b{other}\b", code) for other in others), "second layer meaning"
@@ -348,8 +351,8 @@ def test_validation_planning_docs_claim_no_execution_result_or_acceptance():
         assert not re.search(r"\b(passed|validated|accepted|verdict)\b", body, re.I), body
 
 
-def _carriers_code():
-    return CARRIERS.read_text(encoding="utf-8")
+def _trace_vocabulary_code():
+    return TRACE_VOCABULARY.read_text(encoding="utf-8")
 
 
 # Exact non-claim wording of each successor definition (topic 1/2/5 boundaries).
@@ -367,7 +370,7 @@ ROLE_NON_CLAIMS = {
 
 
 def _role_bodies():
-    text = re.sub(r"//[^\n]*", "", _carriers_code())
+    text = re.sub(r"//[^\n]*", "", _trace_vocabulary_code())
     return {m[1]: " ".join(m[2].replace("*", " ").split())
             for m in re.finditer(r"\bcomment\s+(\w+)VocabularyRole\s+about\s+[\w\s,]+?\s*/\*(.*?)\*/", text, re.S)}
 
@@ -380,26 +383,30 @@ def test_successor_vocabulary_roles_keep_their_exact_non_claims():
             assert phrase in bodies[predicate], (predicate, phrase)
 
 
-def test_carrier_file_declares_exactly_the_contract_carriers_classes_and_records():
-    """No orphan carrier: every connection def is a contract carrier, and the
-    file's definitions are exactly the contract's carriers, endpoint classes
-    and record definitions."""
-    from de4sdv.semantic.model_contract import generate_model_successor_contract
-    contract = generate_model_successor_contract(ROOT)
-    code = no_strings(code_of(CARRIERS))
+def test_trace_vocabulary_file_declares_exactly_the_contract_carriers_classes_and_records():
+    """No orphan carrier: every connection def is a contract carrier or the
+    derivation connection, and the file's definitions are exactly those, the
+    contract's endpoint classes and the record definitions."""
+    from de4sdv.semantic.model_contract import load_trace_contract
+    from model_contract_fixtures import model_contract
+    contract = load_trace_contract(ROOT)
+    code = no_strings(code_of(TRACE_VOCABULARY))
     carriers = {row["carrier"] for rows in contract["relations"].values() for row in rows}
-    assert set(re.findall(r"\bconnection\s+def\s+(\w+)", code)) == carriers
+    assert set(re.findall(r"\bconnection\s+def\s+(\w+)", code)) == carriers | {DERIVATION_CONNECTION}
+    assert model_contract().classes[DERIVATION_CONNECTION]["kernel"] == {
+        "file": TRACE_VOCABULARY.relative_to(ROOT).as_posix(),
+        "declaration": f"connection def {DERIVATION_CONNECTION}"}
     classes = {entry["declaration"].split()[-1] for entry in contract["classes"].values()
-               if entry["file"].endswith(CARRIERS.name)}
-    records = {"SuccessorRelationRecord", "SuccessorRetirementRecord", "SuccessorVersionRecord"}
-    assert set(re.findall(r"\bdef\s+(\w+)", code)) == carriers | classes | records
+               if entry["file"].endswith(TRACE_VOCABULARY.name)}
+    records = {"TraceRelationRecord", "RetiredRelationRecord", "TraceVocabularyVersionRecord"}
+    assert set(re.findall(r"\bdef\s+(\w+)", code)) == carriers | {DERIVATION_CONNECTION} | classes | records
     assert not re.search(r"\b(?:connection|allocation|interface|flow)\s+(?!def\b)\w+", code), "carrier usage in kernel"
 
 
 def test_each_successor_predicate_owns_one_vocabulary_role_definition():
-    from de4sdv.semantic.model_contract import generate_model_successor_contract
-    contract = generate_model_successor_contract(ROOT)
-    text = re.sub(r"//[^\n]*", "", _carriers_code())
+    from de4sdv.semantic.model_contract import load_trace_contract
+    contract = load_trace_contract(ROOT)
+    text = re.sub(r"//[^\n]*", "", _trace_vocabulary_code())
     roles = {m[1]: (set(re.split(r"\s*,\s*", m[2].strip())), m[3])
              for m in re.finditer(r"\bcomment\s+(\w+)VocabularyRole\s+about\s+([\w\s,]+?)\s*/\*(.*?)\*/", text, re.S)}
     assert set(roles) == set(contract["relations"])
@@ -417,20 +424,19 @@ def test_relationship_and_trace_redesign_elements_stay_in_place():
     """The model elements of the relationship and trace redesign stay in place:
     retirement and successor records, trace obligations and their usages. The
     transition record and plan that accounted for them are archived."""
-    assured = (KERNEL / "de4sdv_scoped_assurance.sysml").read_text(encoding="utf-8")
+    assured = (KERNEL / "de4sdv_method_context.sysml").read_text(encoding="utf-8")
     for role in ("hasEvidenceStatusVocabularyRole", "supportedByEvidenceVocabularyRole"):
         assert re.search(rf"\bcomment\s+{role}\s+about\b", assured), role
-    carriers = _carriers_code()
+    carriers = _trace_vocabulary_code()
     for name in ("oldRealization", "oldDeployment", "oldRegulatoryName", "oldValidationForward",
                  "oldValidationInverse", "requirementAllocation", "functionAllocation", "physicalAllocation",
                  "validationPlanning", "regulatoryProvenance"):
         assert re.search(rf"\bpart\s+{name}\s*:", carriers), name
-    traces = (KERNEL / "de4sdv_method_traces.sysml").read_text(encoding="utf-8")
-    for name in ("IncrementTraceObligations", "approvedScopedTraceMethod", "ApprovedTraceMethod"):
-        assert name in traces, name
-    # A declaration is typed by IncrementTraceObligations or by the increment
-    # charter, which the increment-workflow package declares as its specialization.
+    # The trace obligations live in the increment-workflow package, which also
+    # declares the increment charter as their specialization; a declaration is
+    # typed by either.
     workflow = (KERNEL / "de4sdv_increment_workflow.sysml").read_text(encoding="utf-8")
+    assert re.search(r"\bpart\s+def\s+IncrementTraceObligations\b", workflow)
     assert re.search(r"\bpart\s+def\s+IncrementCharter\s*:>\s*IncrementTraceObligations\b", workflow)
     for usage, framing in (("visualizationTraceObligations", "aebs/aebs_visualization_framing.sysml"),
                            ("traceObligationsMW002", "middleware/middleware_increment_framing.sysml")):

@@ -40,8 +40,6 @@ OWN_PATHS = {
     "de4sdv/__init__.py",
     "de4sdv/semantic/**",
     "de4sdv/sysml_api/**",
-    "methodologies/sysmod-sysmlv2/pilots/aebs-needs-requirements.yaml",
-    "methodologies/sysmod-sysmlv2/pilots/aebs-regulatory-source.yaml",
 }
 LICENCE_VALUE = "${{ secrets.SYSIDE_LICENSE_KEY }}"
 LICENCE_PRESENCE = "${{ secrets.SYSIDE_LICENSE_KEY != '' }}"
@@ -184,12 +182,14 @@ def test_every_module_the_check_runs_triggers_it() -> None:
 
 
 def test_every_data_file_the_evaluation_reads_triggers_it() -> None:
-    """The evaluation builds the successor contract, whose construction receipt reads (and digests) each
-    file of PROGRAM_INPUTS: a change to any of them must run the check. Python inputs are covered by the
-    import walk above; this pins the others (models and pilot YAML)."""
-    from de4sdv.semantic.relationship_successor_contract import PROGRAM_INPUTS
+    """The evaluation builds the trace-vocabulary contract from the files of TRACE_CONTRACT_INPUTS (the
+    generated contract and the projection, profile and frozen-record files its class pins are checked
+    against): a change to any of them must run the check. Python inputs are covered by the import walk
+    above; this pins the others."""
+    from de4sdv.semantic.model_contract import TRACE_CONTRACT_INPUTS, TRACE_CONTRACT_PATH
 
-    data = [path for path in PROGRAM_INPUTS if not path.endswith(".py")]
+    data = [path for path in TRACE_CONTRACT_INPUTS if not path.endswith(".py")]
+    assert TRACE_CONTRACT_PATH in data
     assert data and all((ROOT / path).is_file() for path in data)
     assert _uncovered(data, _triggers(_workflow())["pull_request"]["paths"]) == []
 

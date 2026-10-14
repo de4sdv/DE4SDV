@@ -1,0 +1,119 @@
+{
+  "contract": {
+    "carriers": {
+      "hasRegulatorySource": {
+        "declaration": "connection def RegulatorySourceAssociation",
+        "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml"
+      },
+      "hasValidationScenario": {
+        "declaration": "connection def ValidationPlanningAssociation",
+        "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml"
+      }
+    },
+    "classes": {
+      "Function": {
+        "declaration": "action def AllocatableFunction",
+        "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml"
+      },
+      "LogicalElement": {
+        "declaration": "part def LogicalAllocationElement",
+        "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml"
+      },
+      "Need": {
+        "declaration": "requirement def StakeholderNeedCandidate",
+        "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
+      },
+      "PhysicalElement": {
+        "declaration": "part def PhysicalAllocationElement",
+        "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml"
+      },
+      "RegulatorySource": {
+        "declaration": "part def ControlledRegulatorySource",
+        "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml"
+      },
+      "Requirement": {
+        "declaration": "requirement def RequirementCandidate",
+        "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
+      },
+      "ValidationScenario": {
+        "declaration": "part def ValidationPlanningScenario",
+        "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml"
+      }
+    },
+    "id": "sha256:7456e4cfaed013a06c6ba2fb2a70b818f488e1ffa7042819ce39918cb60b1d6a",
+    "relations": {
+      "allocatedTo": [
+        {
+          "carrier": "RequirementFunctionAssignment",
+          "inverse": "",
+          "mechanism": "native-allocation",
+          "predicate": "allocatedTo",
+          "sourceClass": "Requirement",
+          "sourceUsage": "RequirementUsage",
+          "strength": "allocation",
+          "targetClass": "Function",
+          "targetUsage": "ActionUsage"
+        },
+        {
+          "carrier": "FunctionLogicalAssignment",
+          "inverse": "",
+          "mechanism": "native-allocation",
+          "predicate": "allocatedTo",
+          "sourceClass": "Function",
+          "sourceUsage": "ActionUsage",
+          "strength": "allocation",
+          "targetClass": "LogicalElement",
+          "targetUsage": "PartUsage"
+        },
+        {
+          "carrier": "LogicalPhysicalAssignment",
+          "inverse": "",
+          "mechanism": "native-allocation",
+          "predicate": "allocatedTo",
+          "sourceClass": "LogicalElement",
+          "sourceUsage": "PartUsage",
+          "strength": "allocation",
+          "targetClass": "PhysicalElement",
+          "targetUsage": "PartUsage"
+        }
+      ],
+      "hasRegulatorySource": [
+        {
+          "carrier": "RegulatorySourceAssociation",
+          "inverse": "",
+          "mechanism": "typed-connection",
+          "predicate": "hasRegulatorySource",
+          "sourceClass": "Requirement",
+          "sourceUsage": "RequirementUsage",
+          "strength": "source-provenance",
+          "targetClass": "RegulatorySource",
+          "targetUsage": "PartUsage"
+        }
+      ],
+      "hasValidationScenario": [
+        {
+          "carrier": "ValidationPlanningAssociation",
+          "inverse": "validationScenarioFor",
+          "mechanism": "typed-connection",
+          "predicate": "hasValidationScenario",
+          "sourceClass": "Need",
+          "sourceUsage": "RequirementUsage",
+          "strength": "validation-planning",
+          "targetClass": "ValidationScenario",
+          "targetUsage": "PartUsage"
+        }
+      ]
+    },
+    "retired": {
+      "constrainedBy": "Historical source provenance, not native required conditions; controlled-source successor is hasRegulatorySource, not an alias.",
+      "deployedTo": "Retired stronger active claim; no deployment assertion is invented.",
+      "realizedBy": "Retired stronger active claim; native responsibility assignments use allocatedTo without fulfillment.",
+      "validatedBy": "Planning successor is hasValidationScenario; no validation result implied.",
+      "validatesFitnessForUse": "Inverse planning navigation is validationScenarioFor over the same association; not a fitness-for-use verdict."
+    },
+    "schema": "de4sdv.relationship-successor/v1",
+    "supersedes": "Function-to-LogicalElement allocatedTo signature; historical provenance constrainedBy; stronger realizedBy/deployedTo active claims"
+  },
+  "schema": "de4sdv.trace-vocabulary-contract/v1",
+  "warning": "Generated from the trace-vocabulary package of the method kernel by scripts/generate_trace_vocabulary_contract.py; do not edit. The runtime reads this file to serve the trace relations and never parses the model."
+}

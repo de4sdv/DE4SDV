@@ -11,11 +11,9 @@
 # relationship-carrier pin): projected and listed are a disjoint union.
 #
 # Since O4 Wave C2 (authored ontology deleted) this file is the only home of
-# these declarations. Wave C2 removed the six relationship-carrier pins that
-# C1 carried over from the authored list (HasStakeholder, AddressesConcern,
-# ProducesView, RecordsAssumption, RecordsGap, SelectedViewpoint): each is
-# projected through a model-generated layer (definition batch 2 or the
-# vocabulary-carrier layer), so listing it here would give it a second home.
+# these declarations. A relationship-carrier pin projected through a
+# model-generated layer (HasStakeholder, through the kernel-vocabulary layer)
+# is never listed here: listing it would give it a second home.
 # Authored governance data; not generated, no binding block.
 schema: de4sdv.kernel-internal-declarations/v1
 governed_directory: textual-notation-of-model/packages/methods/de4sdv
@@ -100,29 +98,27 @@ declarations:
     part def IncrementScope: framing helper
     part def SourceContributionRecord: realization-evidence helper
     part def SystemContext: SYSMOD problem-statement pattern element consumed by feature slices
-  textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml:
-    part def SAFDomainMapping: method-process assurance helper
-  textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml:
-    enum def TraceCompletionClaim: scoped method completion discriminator; not a V&V result or acceptance
-      status
-  textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml:
-    connection def RequirementFunctionAssignment: successor native-allocation profile end-pair descriptor;
-      native AllocationUsage supplies the witness, not this definition or an additional ontology class
-    connection def FunctionLogicalAssignment: successor native-allocation profile end-pair descriptor;
+    requirement def AssuranceClaim: assurance-argumentation kind for bounded claims framed by the
+      argumentation-assurance viewpoint; outside the Requirement lineage; not a kernel class pin of the
+      AssuranceClaim class at this revision
+    requirement def AssuranceArgument: assurance-argumentation kind for cited support of a claim; outside the
+      Requirement lineage; not an ontology class
+    requirement def AssuranceCounterClaim: assurance-argumentation kind for a disclosed limit on a claim's
+      scope; outside the Requirement lineage; not an ontology class
+  textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml:
+    connection def RequirementFunctionAssignment: allocatedTo end-pair descriptor (requirement to function);
+      a native AllocationUsage supplies the witness, not this definition or an additional ontology class
+    connection def FunctionLogicalAssignment: allocatedTo end-pair descriptor (function to logical element);
       not a redundant relevance dependency or additional ontology class
-    connection def LogicalPhysicalAssignment: successor native-allocation profile end-pair descriptor;
+    connection def LogicalPhysicalAssignment: allocatedTo end-pair descriptor (logical to physical element);
       not a deployment or observed-execution relationship
-    part def SuccessorRelationRecord: construction-only versioned predicate signature record; not an additional
+    part def TraceRelationRecord: record of one trace relation's predicate, connection definition, mechanism,
+      strength, endpoint classes and inverse, read to build the trace contract; not an additional
       engineering relationship
-    part def SuccessorRetirementRecord: construction-only retirement boundary record preserving unsupported
-      stronger claims
-    part def SuccessorVersionRecord: construction-only successor version and supersession record; not
-      production selection or acceptance
-  textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml:
-    concern def IncrementConcern: generic range-kind base for the vocabulary-only carriers (reviewed range
-      Concern); not an ontology identity of its own
-    viewpoint def IncrementViewpoint: generic range-kind base for the vocabulary-only carriers (reviewed
-      range Viewpoint); not an ontology identity of its own
+    part def RetiredRelationRecord: record of a retired relation name and why it is refused, read to build
+      the trace contract; preserves the boundary against the stronger retired claims
+    part def TraceVocabularyVersionRecord: version and supersession of the trace contract; not a production
+      selection or acceptance
   textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml:
     part def OperationalEntity: operational-context entity base
     part def SubjectVehicle: operational-context entity
@@ -160,11 +156,3 @@ declarations:
     use case def SYSMODSystemUseCaseBase: upstream seam adapter
     occurrence def SYSMODConstrainedOccurrenceBase: upstream seam adapter
     requirement def RequirementsManagementAttributeBase: upstream seam adapter
-  textual-notation-of-model/packages/methods/de4sdv/de4sdv_assurance_argumentation.sysml:
-    requirement def AssuranceClaim: assurance-argumentation kind for bounded claims framed by the
-      argumentation-assurance viewpoint; outside the Requirement lineage; not a kernel class pin of the
-      AssuranceClaim class at this revision
-    requirement def AssuranceArgument: assurance-argumentation kind for cited support of a claim; outside the
-      Requirement lineage; not an ontology class
-    requirement def AssuranceCounterClaim: assurance-argumentation kind for a disclosed limit on a claim's
-      scope; outside the Requirement lineage; not an ontology class

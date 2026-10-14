@@ -231,8 +231,10 @@ def test_undeclared_phase_is_not_applicable_not_passed() -> None:
 def test_advisory_checks_never_block_and_are_reported_as_notes() -> None:
     gaps = _evaluate(_scenario()).gaps()
     advisory = {entry["gate"]: entry["kind"] for entry in gaps["advisory"]}
-    assert advisory == {"requirementSpecifiesFeatureOrCapability": "method-side",
-                        "verificationCaseVerifiesAcceptanceCriterion": "violation",
+    assert advisory == {"needSubjectIsSystemOfInterest": "violation",
+                        "requirementSubjectIsSystemOfInterest": "violation",
+                        "requirementSpecifiesFeatureOrCapability": "method-side",
+                        "requirementStatesSuccessCriteria": "violation",
                         "verificationCaseHasEvidenceRecordOrStatus": "method-side"}
     assert all(entry["gate"] not in advisory for entry in gaps["blocking"])
 
@@ -265,7 +267,7 @@ def test_phase_contract_lists_checks_with_increment_applicability_and_no_verdict
     assert contract["executable_contract_available"] is True
     checks = {check["obligation_id"]: check for check in contract["gates"]}
     assert set(checks) == {"verificationCaseVerifiesRequirement", "requirementVerifiedByVerificationCase",
-                           "verificationCaseVerifiesAcceptanceCriterion", "verificationCaseHasEvidenceRecordOrStatus"}
+                           "verificationCaseHasEvidenceRecordOrStatus"}
     assert checks["verificationCaseVerifiesRequirement"]["applicability_resolution"] == "not_applicable"
     assert "conformance_verdict" not in contract
     assert evaluation.phase_contract()["phases"] == [P0, P4, P5, P10]
@@ -398,7 +400,7 @@ def test_an_empty_required_inventory_cannot_open_a_phase_exit() -> None:
 def test_unreadable_governed_witnesses_stay_indeterminate_for_every_subject(monkeypatch) -> None:
     """The traversal de-duplicates its unsupported records; each subject's own
     unreadable witness must still be reported as an input problem, not a FAIL."""
-    from de4sdv.semantic.relationship_successor import SuccessorTraversal
+    from de4sdv.semantic.trace_vocabulary_traversal import SuccessorTraversal
 
     def unreadable(self, predicate, source, elements):
         if predicate == "derivesRequirementFromNeed":

@@ -279,8 +279,9 @@ excluded:
       nor a profile entry (register flags False/False).
   - identity: recordsGap, recordsAssumption, addressesConcern, selectedViewpoint, producesView
     reason: >-
-      Already admitted through the W4 vocabulary-carrier pair
-      (vocabulary-carriers-projection.json / -profile.json).
+      Removed register rows: vocabulary-only relations that no model element
+      used. Their carriers were deleted from the method kernel and the runtime
+      refuses the names.
   - identity: <frozen O3 13 and every gated/W7-held/merged/removed row>
     reason: >-
       Excluded by the machine-checked family rule (frozen 13; owner-decision

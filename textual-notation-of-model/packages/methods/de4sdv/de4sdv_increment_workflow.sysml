@@ -1,8 +1,6 @@
 /* DE4SDV increment workflow: method steps, their artifacts and their checks.
- * Source: methodologies/sysmod-sysmlv2/increment-workflow.md and the eight method
- * rules accepted by the owner on 2026-10-08 (rule 3 revised on 2026-10-09, rule 7 on
- * 2026-10-10; the statement, subject and scope-coverage clauses of rules 5 and 7 added
- * on 2026-10-11). */
+ * Source: methodologies/sysmod-sysmlv2/increment-workflow.md, which states the
+ * method rules the checks below implement. */
 package DE4SDV_IncrementWorkflow {
   doc /* The increment workflow: one step per method phase, typed by a step
        * definition whose parameters are the artifacts it reads and produces. A
@@ -10,9 +8,28 @@ package DE4SDV_IncrementWorkflow {
        * states a rule that a deterministic evaluation checks. A check result is
        * not a conformance, acceptance, compliance or certification claim. */
 
+  doc RequiredTraceChainOntologyDefinition /* The ordered trace chain every substantial increment should establish, even if some
+   * links are draft: stakeholder concern, need, requirement, feature or common capability,
+   * architecture element, logical-to-software signal mapping when a boundary is crossed,
+   * physical/software realization, verification case, acceptance criterion, evidence
+   * artifact, baseline decision. Intentionally missing links are recorded as gaps. */
+  comment about RequiredTraceChainOntologyDefinition /* Historical vocabulary, kept for compatibility. It defines no
+   * universal completion policy: each increment's charter and its native traces govern
+   * instead. */
+
+  doc TraceLinkOntologyDefinition /* A relationship connecting source, rationale, requirement, model, evidence, or baseline
+   * artifacts. */
+  comment about TraceLinkOntologyDefinition /* Historical vocabulary, kept as documentation only: not a
+   * string-endpoint record and not a completion witness. */
+
+  doc IncrementTraceabilityShellOntologyDefinition /* The traceability structure connecting an increment to its sources and downstream
+   * artifacts. */
+  comment about IncrementTraceabilityShellOntologyDefinition /* Historical vocabulary, kept as documentation only: no
+   * string-shell record is reintroduced; IncrementTraceObligations and the native
+   * relationships represent an increment's traces. */
+
   private import ScalarValues::*;
   private import DE4SDV_MethodProcess::*;
-  private import DE4SDV_MethodTraces::*;
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_Stakeholders::*;
 
@@ -33,13 +50,32 @@ package DE4SDV_IncrementWorkflow {
     }
   }
 
+  part def IncrementTraceObligations {
+    doc /* Scope declaration of an increment's trace obligations: the increment
+         * and its applicable phases. Required traces derive from the checks
+         * that the workflow steps of those phases declare, not from
+         * candidate-selected easy checks. The traces themselves are the
+         * increment's native model relationships (owning membership, typing,
+         * requirement subject and stakeholder membership, HasStakeholder
+         * connections, framed concerns), never parallel reference slots in this
+         * declaration. Populating this declaration is not completion evidence.
+         * Reuse prior artifacts, preserve R/F/L/P, and do not invent realization
+         * or execution for early framing. Missing required traces block the
+         * exit of the phase they belong to unless an authorized visible
+         * disposition permits it, such as a step parameter whose multiplicity
+         * allows none. Unsupported or unavailable evaluation stays UNASSESSED,
+         * never synthetic PASS. */
+    ref part increment : EngineeringIncrement;
+    attribute applicablePhases[*] : MethodPhase;
+  }
+
   part def IncrementCharter :> IncrementTraceObligations {
-    doc /* Charter declaration of one increment: the inherited increment reference,
-         * trace method, scope kind, applicable phases and completion claim, plus the
-         * plain attributes owner, expected artifacts and expected review evidence, and
-         * the system of interest by reference. The expected artifacts name the
-         * top-level packages the checks evaluate; content elsewhere is never evaluated.
-         * The rest of the charter is native content of the increment package. */
+    doc /* Charter declaration of one increment: the inherited increment reference and
+         * applicable phases, plus the plain attributes owner, expected artifacts and
+         * expected review evidence, and the system of interest by reference. The
+         * expected artifacts name the top-level packages the checks evaluate; content
+         * elsewhere is never evaluated. The rest of the charter is native content of
+         * the increment package. */
     attribute owner : String;
     attribute expectedArtifacts : String[1..*];
     attribute expectedReviewEvidence : String[1..*];

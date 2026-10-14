@@ -5,21 +5,22 @@ runtime, ingestion, validators and gates consume from model-generated sources
 only:
 
 - the live projection layers (definition batch 1 and batch 2, O2+ native and
-  library rows, vocabulary carriers);
+  library rows);
 - the frozen O2-chain layer: the O2 v1-v1.2 Semantic Projection / API
   Representation Profile records (frozen O2 records, owner decision Q7) for
   the 13 identities the O3 cutover migrated. They are read-only data; their
   bytes are pinned by ``de4sdv/semantic/contract-data/frozen-records.json``;
-- the relationship-successor contract generated from the model
-  (``de4sdv_relationship_carriers.sysml``), with class pins taken from the
-  layers above (:func:`model_class_pins`);
+- the trace-vocabulary contract (:func:`load_trace_contract`), a file
+  generated from the trace-vocabulary package of the method kernel, whose
+  class pins must equal those of the layers above (:func:`model_class_pins`);
 - the kernel-internal declarations manifest (owner decision D3) for the
   gate's ``exclusions``.
 
 Routing gives every identity exactly one provider (duplicates refused).
 Registered non-retained rows and successor retirements have no provider:
 they are *refused* with their disposition, never served. No authored
-ontology file exists or is read.
+ontology file exists or is read, and no SysML text is parsed: every input
+is a generated or reviewed data file (ADR 0011).
 """
 from __future__ import annotations
 
@@ -45,10 +46,9 @@ ROOT = Path(__file__).resolve().parents[2]
 
 ROUTING_SCHEMA = "de4sdv.model-authority-routing/v2"
 
-#: Owner decision 5 (2026-10-07): the EvidenceContract type closure is exactly
-#: the eight AEBS evidence-contract definitions.
-EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS = 8
 EVIDENCE_CONTRACT_CLASS = "EvidenceContract"
+#: Predicates whose range is a type-lineage discriminator: the specialization
+#: closure of a kernel declaration, as the model declares it (never a count).
 DISCRIMINATED_PREDICATES = ("hasRelevantEvidenceContract",)
 
 
@@ -127,11 +127,6 @@ LAYERS: tuple[LayerSpec, ...] = (
               "de4sdv.semantic-projection.o2plus/v1",
               "de4sdv/semantic/contract-data/native-grounding-profile.json",
               "de4sdv.api-representation-profile.o2plus/v1"),
-    LayerSpec("vocabulary-carrier",
-              "de4sdv/semantic/contract-data/increment-relationship-projection.json",
-              "de4sdv.vocabulary-carrier-projection/v1",
-              "de4sdv/semantic/contract-data/increment-relationship-profile.json",
-              "de4sdv.vocabulary-carrier-profile/v1"),
 )
 
 #: Definition-admission batch 2 (generator and schema owned by the admission
@@ -231,7 +226,6 @@ _PROJECTION_DOCUMENT_FIELDS = {
     "definition": _DOCUMENT_COMMON_FIELDS | {"scope", "rows"},
     "definition-batch2": _DOCUMENT_COMMON_FIELDS | {"scope", "rows"},
     "o2plus": _DOCUMENT_COMMON_FIELDS | {"scope", "rows"},
-    "vocabulary-carrier": _DOCUMENT_COMMON_FIELDS | {"candidates", "admitted", "rows"},
 }
 _PROFILE_DOCUMENT_FIELDS = _DOCUMENT_COMMON_FIELDS | {"entries"}
 _DOCUMENT_PROVENANCE_FIELDS = frozenset({"binding"})
@@ -354,19 +348,28 @@ def _batch2_discriminator(identity: str, range_: Mapping[str, Any]) -> dict[str,
     if (not isinstance(discriminator, Mapping) or discriminator.get("kind") != "type-lineage"
             or not isinstance(closure, list)):
         raise ModelAuthorityRefused(f"{identity}: malformed range discriminator")
-    if (identity in DISCRIMINATED_PREDICATES
-            and len(closure) != EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS):
-        raise ModelAuthorityRefused(
-            f"{identity}: discriminator closure has {len(closure)} definitions, expected "
-            f"{EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS}")
     _file_mapping(discriminator.get("lineage"), identity)
-    for member in closure:
-        _file_mapping(member, identity)
+    members = [_file_mapping(member, identity) for member in closure]
+    if identity in DISCRIMINATED_PREDICATES:
+        # Content, not a count: the closure is the set of definitions the
+        # model declares for the lineage, each a requirement definition,
+        # none listed twice.
+        keys = [(member.file, member.declaration) for member in members]
+        if (not keys or len(set(keys)) != len(keys)
+                or any(declaration_identity(member.declaration)[1] != "RequirementDefinition"
+                       for member in members)):
+            raise ModelAuthorityRefused(
+                f"{identity}: discriminator closure must list distinct requirement definitions, "
+                f"at least one")
     return json.loads(json.dumps(dict(discriminator)))
 
 
 def bound_evidence_contract_closure(root: Path = ROOT) -> list[dict[str, str]]:
-    """The bound ``hasRelevantEvidenceContract`` closure members (file, declaration)."""
+    """The bound ``hasRelevantEvidenceContract`` closure members (file, declaration).
+
+    They are the evidence-contract definitions the model declares; the loader
+    has checked that they are distinct requirement definitions.
+    """
     _, provisions = load_model_layers(root)
     for provision in provisions:
         if provision.identity in DISCRIMINATED_PREDICATES and provision.kind == "relationship":
@@ -375,11 +378,11 @@ def bound_evidence_contract_closure(root: Path = ROOT) -> list[dict[str, str]]:
             for member in discriminator.get("closure") or ():
                 pinned = _file_mapping(member, provision.identity)
                 members.append({"source_file": pinned.file, "declaration": pinned.declaration})
-            if len(members) == EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS:
+            if members:
                 return sorted(members, key=lambda m: (m["source_file"], m["declaration"]))
     raise ModelAuthorityRefused(
         "no bound EvidenceContract closure: the batch-2 hasRelevantEvidenceContract "
-        f"discriminator with {EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS} members is not projected")
+        "discriminator is not projected")
 
 
 class _ClosureMemberContract:
@@ -523,19 +526,6 @@ def _o2plus_provider(row: Mapping[str, Any], layer: str) -> Provision:
     raise ModelAuthorityRefused(f"{identity}: unsupported O2+ category {category!r}")
 
 
-def _carrier_provider(row: Mapping[str, Any], layer: str) -> Provision:
-    identity = _row_identity(row)
-    domain_record = _object(row.get("domain"), f"{identity}: carrier domain")
-    range_record = _object(row.get("range"), f"{identity}: carrier range")
-    domain = _token(domain_record.get("identity"), f"{identity}: domain identity")
-    range_ = _token(range_record.get("identity"), f"{identity}: range identity")
-    carrier = _file_mapping(row.get("carrier"), identity)
-    spec = {"domain": domain, "range": range_,
-            "carrier": {"file": carrier.file, "declaration": carrier.declaration},
-            "support": _token(row.get("support", "vocabulary-only"), f"{identity}: support")}
-    return Provision(identity, "relationship", layer, spec=spec)
-
-
 def _live_record_index(document: Mapping[str, Any], spec: LayerSpec, *,
                        profile: bool) -> dict[str, Mapping[str, Any]]:
     section, role = ("entries", "profile") if profile else ("rows", "projection")
@@ -580,8 +570,6 @@ def _layer_provisions(spec: LayerSpec, projection: dict[str, Any],
     for identity, row in rows.items():
         if spec.name == "o2plus":
             result.append(_o2plus_provider(row, spec.name))
-        elif spec.name == "vocabulary-carrier":
-            result.append(_carrier_provider(row, spec.name))
         elif spec.name == BATCH2_LAYER.name:
             result.append(_batch2_provider(row, entries.get(identity), spec.name))
         else:
@@ -780,7 +768,7 @@ def compute_routing(*, provisions: list[Provision], successor_contract: Mapping[
         if (existing.layer == BATCH2_LAYER.name and provision.layer == "successor-contract"
                 and provision.kind == "class"
                 and _lineage_pin(name, provision, provisions)):
-            # Endpoint lineage pin (relationship_successor_contract): the class is
+            # Endpoint lineage pin (trace-vocabulary contract): the class is
             # natively represented and the successor contract pins its unique
             # file-mapped specialization. The successor pin owns the runtime
             # mapping (as in the approved successor runtime); the batch-2 row
@@ -944,27 +932,158 @@ def model_class_pins(provisions: list[Any]) -> dict[str, dict[str, str]]:
     return pins
 
 
-def _pin_inputs(records: list[dict[str, Any]]) -> tuple[str, ...]:
-    inputs = []
-    for record in records:
-        if record.get("layer") == O2_CHAIN_LAYER:
-            inputs.extend(item["path"] for item in record["chain"])
-        else:
-            inputs.extend((record["projection"]["path"], record["profile"]["path"]))
-    return tuple(sorted(set(inputs)))
+# ---------------------------------------------------------------------------
+# The trace-vocabulary contract (generated from the model)
+# ---------------------------------------------------------------------------
+
+#: The trace relations and retired relation names the runtime serves.
+#: ``scripts/generate_trace_vocabulary_contract.py`` writes this file from the
+#: trace-vocabulary package of the method kernel; the runtime reads it and never
+#: parses SysML text (ADR 0011).
+TRACE_CONTRACT_PATH = "de4sdv/semantic/contract-data/trace-vocabulary-contract.json"
+TRACE_CONTRACT_SCHEMA = "de4sdv.trace-vocabulary-contract/v1"
+#: The meaning of the contract; its ``id`` digests exactly these fields.
+TRACE_CONTRACT_FIELDS = ("schema", "supersedes", "classes", "carriers", "relations", "retired")
+#: Every file the runtime reads to build the trace-vocabulary contract: the
+#: generated contract, and the projection, profile and frozen-record files
+#: whose class pins it is checked against.
+TRACE_CONTRACT_INPUTS: tuple[str, ...] = (
+    TRACE_CONTRACT_PATH,
+    *(path for spec in LAYERS + BATCH2_LAYERS for path in (spec.projection_path, spec.profile_path)),
+    *(path for path, _schema in O2_PROJECTION_CHAIN + O2_PROFILE_CHAIN),
+)
+_TRACE_DOCUMENT_FIELDS = frozenset({"schema", "warning", "contract"})
+_TRACE_RELATION_FIELDS = frozenset({"predicate", "carrier", "mechanism", "strength", "sourceClass",
+                                    "targetClass", "sourceUsage", "targetUsage", "inverse"})
+_TRACE_MECHANISMS = frozenset({"native-allocation", "typed-connection"})
 
 
-def generate_model_successor_contract(root: Path = ROOT, *, records=None,
-                                      provisions=None) -> dict[str, Any]:
-    """The successor contract with class pins from the projection layers."""
-    from .relationship_successor_contract import generate_contract, verify_contract
+def trace_contract_payload(contract: Mapping[str, Any]) -> dict[str, Any]:
+    """The meaning of a trace-vocabulary contract: everything but its ``id``.
 
-    if records is None or provisions is None:
-        records, provisions = load_model_layers(root)
+    The version and supersession, the exact class and carrier file/declaration
+    pins, every relation row (predicate, carrier, mechanism, strength, endpoint
+    classes and usages, inverse) and the retirement reasons.
+    """
+    return {key: contract[key] for key in TRACE_CONTRACT_FIELDS}
+
+
+def trace_contract_id(contract: Mapping[str, Any]) -> str:
+    """The ``id`` of a trace-vocabulary contract: the digest of its meaning."""
+    return _sha256_bytes(json.dumps(trace_contract_payload(contract), sort_keys=True,
+                                    separators=(",", ":")).encode())
+
+
+def _trace_pin(value: Any, label: str, *, kind: str | None = None) -> dict[str, str]:
+    pin = _object(value, label)
+    if set(pin) != {"file", "declaration"}:
+        raise ModelAuthorityRefused(f"{label}: a pin carries exactly file and declaration")
+    file = _token(pin["file"], f"{label} file")
+    declaration = _token(pin["declaration"], f"{label} declaration")
+    try:
+        declaration_identity(declaration)
+    except ValueError as exc:
+        raise ModelAuthorityRefused(f"{label}: malformed declaration {declaration!r}") from exc
+    if kind is not None and not declaration.startswith(kind + " def "):
+        raise ModelAuthorityRefused(f"{label}: not a {kind} definition: {declaration!r}")
+    return {"file": file, "declaration": declaration}
+
+
+def _trace_contract(value: Any) -> dict[str, Any]:
+    """Shape-check a generated trace-vocabulary contract (fail closed).
+
+    The same structural rules the generator applies, so a hand-edited or
+    truncated file refuses instead of being served; the ``id`` must be the
+    digest of the contract's meaning.
+    """
+    label = "trace-vocabulary contract"
+    contract = _object(value, label)
+    if set(contract) != set(TRACE_CONTRACT_FIELDS) | {"id"}:
+        raise ModelAuthorityRefused(f"{label}: fields must be exactly "
+                                    f"{sorted(set(TRACE_CONTRACT_FIELDS) | {'id'})}")
+    _token(contract["schema"], f"{label} schema")
+    if not isinstance(contract["supersedes"], str):
+        raise ModelAuthorityRefused(f"{label}: supersedes must be a string")
+    classes = {_token(name, f"{label} class"): _trace_pin(pin, f"{label} class {name}")
+               for name, pin in _object(contract["classes"], f"{label} classes").items()}
+    carriers = {_token(name, f"{label} carrier"): _trace_pin(pin, f"{label} carrier {name}",
+                                                            kind="connection")
+                for name, pin in _object(contract["carriers"], f"{label} carriers").items()}
+    relations: dict[str, list[dict[str, str]]] = {}
+    for name, rows in _object(contract["relations"], f"{label} relations").items():
+        _token(name, f"{label} relation")
+        if not isinstance(rows, list) or not rows:
+            raise ModelAuthorityRefused(f"{label}: relation {name} has no rows")
+        checked: list[dict[str, str]] = []
+        for row in rows:
+            row = _object(row, f"{label} relation {name}")
+            if set(row) != _TRACE_RELATION_FIELDS or not all(isinstance(v, str) for v in row.values()):
+                raise ModelAuthorityRefused(f"{label}: relation {name} row is incomplete or malformed")
+            if row["predicate"] != name or row["mechanism"] not in _TRACE_MECHANISMS:
+                raise ModelAuthorityRefused(f"{label}: relation {name} row names another predicate "
+                                            "or an unsupported mechanism")
+            if row["sourceClass"] not in classes or row["targetClass"] not in classes:
+                raise ModelAuthorityRefused(f"{label}: relation {name} has an endpoint class without a pin")
+            if any(row[key] != rows[0][key] for key in ("mechanism", "strength", "inverse")):
+                raise ModelAuthorityRefused(f"{label}: conflicting rows for relation {name}")
+            if row in checked:
+                raise ModelAuthorityRefused(f"{label}: duplicate row for relation {name}")
+            checked.append(dict(row))
+        typed = checked[0]["mechanism"] == "typed-connection"
+        if typed != (name in carriers):
+            raise ModelAuthorityRefused(f"{label}: relation {name} must have a carrier pin exactly when "
+                                        "it is a typed connection")
+        if typed and carriers[name]["declaration"] not in {"connection def " + row["carrier"]
+                                                           for row in checked}:
+            raise ModelAuthorityRefused(f"{label}: carrier pin of {name} is not one of its carriers")
+        relations[name] = checked
+    if set(carriers) - set(relations):
+        raise ModelAuthorityRefused(f"{label}: carrier pins without a relation: {sorted(set(carriers) - set(relations))}")
+    endpoint_classes = {row[key] for rows in relations.values() for row in rows
+                        for key in ("sourceClass", "targetClass")}
+    if set(classes) != endpoint_classes:
+        raise ModelAuthorityRefused(f"{label}: class pins must be exactly the endpoint classes")
+    retired = {}
+    for name, reason in _object(contract["retired"], f"{label} retired").items():
+        if not isinstance(reason, str) or not reason.strip():
+            raise ModelAuthorityRefused(f"{label}: retired name {name} has no reason")
+        retired[_token(name, f"{label} retired name")] = reason
+    inverses = [rows[0]["inverse"] for rows in relations.values() if rows[0]["inverse"]]
+    if (len(inverses) != len(set(inverses)) or set(inverses) & (set(relations) | set(retired))
+            or set(relations) & set(retired)):
+        raise ModelAuthorityRefused(f"{label}: overlapping relationship identities")
+    if contract["id"] != trace_contract_id(contract):
+        raise ModelAuthorityRefused(f"{label}: id is not the digest of its meaning; regenerate it with "
+                                    "scripts/generate_trace_vocabulary_contract.py")
+    return json.loads(json.dumps(dict(contract)))
+
+
+def load_trace_contract(root: Path = ROOT, *, provisions: list[Any] | None = None) -> dict[str, Any]:
+    """The trace-vocabulary contract the runtime serves, read from its generated file.
+
+    Reads only the generated file, never SysML text (ADR 0011), and refuses
+    (fail closed) a malformed contract, an ``id`` that is not the digest of its
+    meaning, and class pins that differ from the class pins of the projection
+    layers (``provisions``; loaded from ``root`` when omitted): such a file is
+    stale and must be regenerated with its sources.
+    """
+    path = Path(root) / TRACE_CONTRACT_PATH
+    try:
+        document = json.loads(path.read_bytes(), object_pairs_hook=_unique_json_object)
+    except (OSError, ValueError) as exc:
+        raise ModelAuthorityRefused(f"trace-vocabulary contract unreadable: {TRACE_CONTRACT_PATH}: {exc}") from exc
+    if (not isinstance(document, dict) or document.get("schema") != TRACE_CONTRACT_SCHEMA
+            or set(document) != _TRACE_DOCUMENT_FIELDS):
+        raise ModelAuthorityRefused(f"trace-vocabulary contract malformed: {TRACE_CONTRACT_PATH}")
+    contract = _trace_contract(document["contract"])
+    if provisions is None:
+        _records, provisions = load_model_layers(root)
     pins = model_class_pins(provisions)
-    inputs = _pin_inputs(records)
-    contract = generate_contract(Path(root), class_pins=pins, pin_inputs=inputs)
-    verify_contract(contract, Path(root), class_pins=pins, pin_inputs=inputs)
+    stale = sorted(name for name, pin in contract["classes"].items() if pins.get(name) != pin)
+    if stale:
+        raise ModelAuthorityRefused(
+            "trace-vocabulary contract class pins differ from the projection layers: "
+            + ", ".join(stale) + "; regenerate it with scripts/generate_trace_vocabulary_contract.py")
     return contract
 
 
@@ -992,38 +1111,6 @@ def _with_frozen_layer(root: Path, records: list[dict[str, Any]],
                  entries=[frozen_entries[name] for name in O2_CHAIN_IDENTITIES if name in frozen_entries]),
              "identities": sorted(O2_CHAIN_IDENTITIES)}
     return [chain] + records, frozen_provisions + list(provisions)
-
-
-def _carrier_class_mappings(root: Path) -> dict[str, Any]:
-    """Construction-only class pins without consuming the carrier outputs.
-
-    The omitted layer provides relationships, never classes. Preserve the
-    normal source, successor, duplicate and refusal rules for class mappings;
-    this partial routing is not a runtime authority or coverage result.
-    """
-    specs = tuple(spec for spec in LAYERS + BATCH2_LAYERS
-                  if spec.name != "vocabulary-carrier")
-    records, provisions = _with_frozen_layer(root, *_read_projection_layers(root, specs))
-    successor = generate_model_successor_contract(root, records=records, provisions=provisions)
-    register = load_register_rows(root)
-    routing = compute_routing(
-        provisions=[p for p in provisions if p.layer != O2_CHAIN_LAYER],
-        successor_contract=successor, register_rows=register,
-        seed=[p for p in provisions if p.layer == O2_CHAIN_LAYER],
-    )
-    if routing.duplicates:
-        raise ModelAuthorityRefused("duplicate providers: " + "; ".join(routing.duplicates))
-    refused = set(register_refusals(register)) | set(successor.get("retired") or ()) | set(routing.retired_names)
-    mappings = {}
-    for name, provision in routing.providers.items():
-        if provision.kind != "class":
-            continue
-        if name in refused:
-            raise ModelAuthorityRefused(f"{name}: refused identity has a construction class provider")
-        mappings[name] = provision.mapping
-    if not mappings:
-        raise ModelAuthorityRefused("carrier construction has no class providers")
-    return mappings
 
 
 def load_kernel_exclusions(root: Path = ROOT) -> tuple[str, dict[str, dict[str, str]]]:
@@ -1121,13 +1208,11 @@ def build_model_contract(root: Path = ROOT) -> KernelContract:
     provenance records. Python/pilot/unrelated model bytes and binding metadata
     never enter identity. Kernel exclusions stay a separate blocking gate.
     """
-    from .relationship_successor_contract import semantic_payload
-
     root = Path(root)
     records, provisions = load_model_layers(root)
     chain = [p for p in provisions if p.layer == O2_CHAIN_LAYER]
     layered = [p for p in provisions if p.layer != O2_CHAIN_LAYER]
-    successor = generate_model_successor_contract(root, records=records, provisions=provisions)
+    successor = load_trace_contract(root, provisions=provisions)
     register = load_register_rows(root)
     routing = compute_routing(provisions=layered, successor_contract=successor,
                                   register_rows=register, seed=chain)
@@ -1157,7 +1242,7 @@ def build_model_contract(root: Path = ROOT) -> KernelContract:
     directory, exclusions = load_kernel_exclusions(root)
     content = contract_content(class_mappings, relationship_mappings, relationships, refused)
     content["lineage_pinned"] = dict(sorted(lineage_pinned.items()))
-    content["successor"] = semantic_payload(successor)
+    content["successor"] = trace_contract_payload(successor)
     layers = []
     for record in records:
         semantic_digest = record["semantic_sha256"]
@@ -1184,6 +1269,7 @@ def build_model_contract(root: Path = ROOT) -> KernelContract:
     )
 
 
-__all__ = ["build_model_contract", "contract_content", "generate_model_successor_contract",
+__all__ = ["build_model_contract", "contract_content", "load_trace_contract", "trace_contract_id",
+           "trace_contract_payload", "TRACE_CONTRACT_INPUTS", "TRACE_CONTRACT_PATH", "TRACE_CONTRACT_SCHEMA",
            "load_kernel_exclusions", "load_model_layers", "model_class_pins", "o2_chain_provisions",
            "o2_chain_records", "register_refusals", "O2_CHAIN_IDENTITIES", "O2_CHAIN_LAYER"]

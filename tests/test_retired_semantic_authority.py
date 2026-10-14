@@ -86,12 +86,12 @@ def _passing_gate_mocks():
     from unittest import mock
     from de4sdv.semantic import (
         definition_projection, kernel_vocabulary_projection,
-        external_reference_contract, vocabulary_carrier,
+        external_reference_contract, trace_vocabulary_contract,
     )
     from scripts import check_repo
 
     return (
-        mock.patch.object(vocabulary_carrier, "run_check_errors", return_value=[]),
+        mock.patch.object(trace_vocabulary_contract, "run_check_errors", return_value=[]),
         mock.patch.object(external_reference_contract, "run_check_errors", return_value=[]),
         mock.patch.object(definition_projection, "run_check_errors", return_value=[]),
         mock.patch.object(kernel_vocabulary_projection, "run_check_errors", return_value=[]),
@@ -117,11 +117,21 @@ DELETED_MODULES = (
     "de4sdv.semantic.projection_o22",
     "de4sdv.semantic.projection_o23",
     "de4sdv.semantic.o3_equivalence",
+    # Renamed by function: the runtime reads the generated trace-vocabulary
+    # contract (trace_vocabulary_contract writes it at build time) and
+    # traverses it with trace_vocabulary_traversal.
+    "de4sdv.semantic.relationship_successor_contract",
+    "de4sdv.semantic.relationship_successor",
+    # Deleted with the vocabulary-only relations and the scoped-assurance
+    # record definitions that no model element used.
+    "de4sdv.semantic.vocabulary_carrier",
+    "de4sdv.semantic.scoped_assurance",
 )
 DELETED_FILES = (
     "approach/framework/ontology/de4sdv-basic-ontology.yaml",
     "scripts/run_o3_equivalence.py",
     "scripts/relationship_successor.py",
+    "scripts/generate_vocabulary_carriers.py",
 )
 
 
@@ -168,19 +178,16 @@ def test_deleted_file_is_absent(path):
 #: construction verifiers listed below.
 BUILD_TIME_GOVERNANCE_MODULES = (
     "authority_inventory.py",
-    "relationship_successor_contract.py",
-    "scoped_assurance.py",
+    "trace_vocabulary_contract.py",
     "definition_projection.py",
     "kernel_vocabulary_projection.py",
     "native_grounding_projection.py",
-    "vocabulary_carrier.py",
 )
 
 #: Construction-time verifiers: runtime modules that verify build-time
-#: artifacts once at construction. Only the named imports are allowed.
-CONSTRUCTION_VERIFIER_IMPORTS = {
-    "model_contract.py": frozenset({"relationship_successor_contract"}),
-}
+#: artifacts once at construction. Only the named imports are allowed. None
+#: is left: the runtime reads generated files and never runs a generator.
+CONSTRUCTION_VERIFIER_IMPORTS: dict[str, frozenset[str]] = {}
 
 
 def test_runtime_never_imports_build_time_governance_modules():

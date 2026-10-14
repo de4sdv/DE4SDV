@@ -25,8 +25,10 @@ The batch tests:
 4.  the intentional-retirement representation is machine-enforced and cannot
     be conflated with ``unknown`` or ``blocked`` (schema unit laws plus
     inventory shape laws);
-5.  ``addressesConcern`` remains ``EngineeringIncrement -> Concern`` and is
-    not repurposed, generalized, or redefined (identifier-collision law);
+5.  ``addressesConcern`` is not repurposed, generalized, or redefined: the
+    increment-level relation was removed because no model element used it,
+    and its name stays refused with its register disposition
+    (identifier-collision law);
 6.  no ``motivatesNeed`` inverse, no Need-specific addresses-style relation,
     and no generic source predicate are introduced;
 7.  Need ``source``/``rationale`` provenance is not declared satisfied by any
@@ -159,17 +161,22 @@ class TestConcernNeedDispositionScope:
 
 
 # ---------------------------------------------------------------------------
-# Identifier collision: addressesConcern stays increment-level
+# Identifier collision: addressesConcern is never repurposed
 # ---------------------------------------------------------------------------
 
 
-class TestAddressesConcernUntouched:
-    def test_addresses_concern_contract_is_unchanged(self):
-        relationships = _contract().relationships
-        assert relationships["addressesConcern"]["domain"] == "EngineeringIncrement"
-        assert relationships["addressesConcern"]["range"] == "Concern"
-        # No mapping was silently attached or changed.
-        assert "sysml_mapping" not in relationships["addressesConcern"]
+class TestAddressesConcernNotRepurposed:
+    def test_addresses_concern_is_refused_not_repurposed(self):
+        """The increment-level addressesConcern was removed (no model element
+        used it); its name stays refused, so it cannot come back as a
+        Need -> Concern predicate without a reviewed register change."""
+        from de4sdv.semantic.kernel_contract import RetiredIdentityError
+
+        contract = _contract()
+        assert "addressesConcern" not in contract.relationships
+        assert "register disposition REMOVE" in contract.refused["addressesConcern"]
+        with pytest.raises(RetiredIdentityError, match="register disposition REMOVE"):
+            contract.relationship_mapping("addressesConcern")
 
     def test_derives_need_from_concern_is_refused_with_its_disposition(self):
         """O4 Wave C2 (owner decision D5, intentional migration): the retired
@@ -201,15 +208,13 @@ class TestAddressesConcernUntouched:
         assert "traceToSource" not in runtime
 
     def test_ontology_relationship_set_is_unchanged(self):
-        """In the model-built contract (O4 Wave C2) addressesConcern stays a
-        vocabulary-only relationship and the retired row is refused, never
-        served."""
+        """In the model-built contract both concern relations are refused,
+        never served: the retired derivesNeedFromConcern and the removed
+        addressesConcern."""
         contract = _contract()
-        assert "addressesConcern" in contract.relationships
-        with pytest.raises(KeyError, match="no SysML mapping"):
-            contract.relationship_mapping("addressesConcern")
-        assert "derivesNeedFromConcern" not in contract.relationships
-        assert "derivesNeedFromConcern" in contract.refused
+        for name in ("addressesConcern", "derivesNeedFromConcern"):
+            assert name not in contract.relationships, name
+            assert name in contract.refused, name
 
 
 # ---------------------------------------------------------------------------

@@ -39,7 +39,7 @@ def _elements_and_bindings(ec_defs=EC_DEFS):
     successor routing and the EvidenceContract discriminator resolve by
     validated identity, never by name.
     """
-    contract = mar.generate_successor_contract(ROOT)
+    contract = mar.trace_contract(ROOT)
     model = model_contract()
     pins = {}
     for name, pin in {**contract["classes"], **contract["carriers"]}.items():
@@ -146,7 +146,7 @@ def test_routing_is_disjoint_and_a_planted_duplicate_is_refused():
     _, provisions = mar.load_layers(ROOT)
     layered, chain = _split(provisions)
     planted = layered + [mar.Provision("Need", "class", "o2plus", mapping=KernelNativeMapping("impostor"))]
-    successor = mar.generate_successor_contract(ROOT)
+    successor = mar.trace_contract(ROOT)
     result = mar.compute_routing(provisions=planted, successor_contract=successor, seed=chain)
     assert result.duplicates
     with pytest.raises(mar.ModelAuthorityRefused, match="duplicate"):
@@ -159,12 +159,12 @@ def test_retained_row_without_provider_is_a_refused_residual():
     layered, chain = _split(provisions)
     dropped = [p for p in layered if p.identity != "specifiesFunction"]
     result = mar.compute_routing(provisions=dropped,
-                                 successor_contract=mar.generate_successor_contract(ROOT),
+                                 successor_contract=mar.trace_contract(ROOT),
                                  register_rows=mar.load_register_rows(ROOT), seed=chain)
     assert "specifiesFunction" in result.residual
     with pytest.raises(mar.ModelAuthorityRefused, match="residual"):
         mar.ModelAuthorityFacade(contract=model_contract(), routing=result,
-                                 successor_contract=mar.generate_successor_contract(ROOT),
+                                 successor_contract=mar.trace_contract(ROOT),
                                  components={})
 
 
@@ -203,14 +203,14 @@ def _retired(name, domain, range_, successor, navigation):
 
 
 def _kernel_vocabulary_rows():
-    contract = mar.generate_successor_contract(ROOT)
+    contract = mar.trace_contract(ROOT)
     pairs = [{"source_class": r["sourceClass"], "target_class": r["targetClass"]}
              for r in contract["relations"]["allocatedTo"]]
     dependency = {"strategy": "dependency", "relationship_types": ["Dependency"],
                   "direction": "incoming", "source_property": "source",
                   "target_property": "target", "source_types": ["RequirementUsage"]}
     closure = [{"source_file": f"f{i}.sysml", "declaration": f"requirement def C{i}"}
-               for i in range(mar.EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS)]
+               for i in range(EC_DEFS)]
     hrec = _b2_relation("hasRelevantEvidenceContract", "relationship-runtime", "Requirement",
                         "EvidenceContract", "relevance")
     hrec["relation"]["range"]["discriminator"] = {"kind": "type-lineage",
@@ -267,7 +267,7 @@ def _kernel_vocabulary_routing(root):
     _, provisions = mar.load_layers(root)
     layered, chain = _split(provisions)
     return mar.compute_routing(provisions=layered,
-                               successor_contract=mar.generate_successor_contract(ROOT),
+                               successor_contract=mar.trace_contract(ROOT),
                                register_rows=mar.load_register_rows(ROOT), seed=chain)
 
 
@@ -310,6 +310,55 @@ def test_kernel_vocabulary_rows_route_through_their_layer(tmp_path):
         assert routing.retired_names[name] == navigation
 
 
+def test_a_declared_closure_of_any_size_routes(tmp_path):
+    """The discriminator closure is the set of evidence contracts the model
+    declares: one more well-formed member is served, not refused by a count."""
+    rows = _kernel_vocabulary_rows()
+    closure = rows[5][0]["relation"]["range"]["discriminator"]["closure"]
+    closure.append({"source_file": "f-new.sysml", "declaration": "requirement def CNew"})
+    routing = _kernel_vocabulary_routing(_kernel_vocabulary_root(tmp_path, rows))
+    discriminator = routing.providers["hasRelevantEvidenceContract"].spec["range_discriminator"]
+    assert [m["declaration"] for m in discriminator["closure"]] == [m["declaration"] for m in closure]
+
+
+def _facade_declaring(tmp_path, size):
+    """The checkout's contract with its evidence-contract closure grown to ``size`` members."""
+    import shutil
+
+    root = tmp_path / "declared"
+    shutil.copytree(ROOT / "de4sdv/semantic/contract-data", root / "de4sdv/semantic/contract-data")
+    path = root / mar.BATCH2_LAYER.projection_path
+    document = json.loads(path.read_text(encoding="utf-8"))
+    (row,) = [r for r in document["rows"] if r["identity"] == "hasRelevantEvidenceContract"]
+    closure = row["relation"]["range"]["discriminator"]["closure"]
+    while len(closure) < size:
+        closure.append({"source_file": f"synthetic/evidence_{len(closure)}.sysml",
+                        "declaration": f"requirement def SyntheticEvidenceContract{len(closure)}"})
+    path.write_text(json.dumps(document), encoding="utf-8")
+    return mar.model_facade(root)
+
+
+def test_the_runtime_serves_every_evidence_contract_the_contract_declares(tmp_path, monkeypatch):
+    """A ninth evidence contract, declared by the model and present in the
+    served model, is served; no population count refuses it."""
+    from de4sdv.sysml_api.client import ApiClient
+
+    data = _fixture(tmp_path, ec_defs=EC_DEFS + 1)
+    monkeypatch.setattr(SysMLRepository, "list_elements", lambda self, *a, **k: data["elements"])
+    facade = _facade_declaring(tmp_path, EC_DEFS + 1)
+    # The binding validates the grown contract, which has its own identity.
+    document = json.loads(data["binding_path"].read_text())
+    document["semantic_authority"] = facade.identity.to_dict()
+    data["binding_path"].write_text(json.dumps(document))
+    service = mar.assemble_model_services(
+        facade, RevisionBinding.load(data["binding_path"]),
+        SysMLRepository(ApiClient("http://127.0.0.1:1")), expected_git_revision=REVISION)
+    report = service.semantic_neighbors("use-Requirement", predicates=["hasRelevantEvidenceContract"])
+    assert sorted(edge["target"] for edge in report["edges"]) == sorted(
+        f"ec-use-{i}" for i in range(EC_DEFS + 1))
+    assert report["semantic_status"] == "complete"
+
+
 def _retired_without_model_record(rows):
     # Keep the profile complete so this reaches the model-retirement check.
     row, entry = rows[3]
@@ -323,7 +372,11 @@ def _retired_without_model_record(rows):
 @pytest.mark.parametrize("mutate,match", [
     (lambda rows: rows[8][0]["retired"].update(successor="hasValidationScenario"), "retired name"),
     (lambda rows: rows[9][0]["retired"].update(refusal="retired"), "retired name"),
-    (lambda rows: rows[5][0]["relation"]["range"]["discriminator"]["closure"].pop(), "closure"),
+    (lambda rows: rows[5][0]["relation"]["range"]["discriminator"]["closure"].clear(), "closure"),
+    (lambda rows: rows[5][0]["relation"]["range"]["discriminator"]["closure"].append(
+        dict(rows[5][0]["relation"]["range"]["discriminator"]["closure"][0])), "closure"),
+    (lambda rows: rows[5][0]["relation"]["range"]["discriminator"]["closure"][0].update(
+        declaration="part def C0"), "closure"),
     (lambda rows: rows[7][0]["successor"]["end_pairs"].pop(), "allocatedTo"),
     (lambda rows: rows[1][0]["grounding"].update(kernel_external="impostor"), "Interface"),
     (lambda rows: rows[0][0].update(admission_class="invented"), "admission_class"),
@@ -376,7 +429,9 @@ def test_evidence_contract_discriminator_population(fx):
 
 
 @pytest.mark.parametrize("defs", [EC_DEFS - 1, EC_DEFS + 1])
-def test_evidence_contract_closure_with_wrong_population_fails_closed(tmp_path, monkeypatch, defs):
+def test_a_live_population_other_than_the_declared_closure_fails_closed(tmp_path, monkeypatch, defs):
+    """The served model's authored closure must match the closure the
+    contract declares (eight members at this revision)."""
     data = _fixture(tmp_path, ec_defs=defs)
     monkeypatch.setattr(SysMLRepository, "list_elements", lambda self, *a, **k: data["elements"])
     service = _service(data)
@@ -389,7 +444,8 @@ def test_evidence_contract_closure_with_wrong_population_fails_closed(tmp_path, 
 
 def test_closure_members_are_validated_by_the_ingestion_binding_rule():
     members = mc.bound_evidence_contract_closure(ROOT)
-    assert len(members) == mar.EXPECTED_EVIDENCE_CONTRACT_DEFINITIONS
+    declared = model_contract().relationships["hasRelevantEvidenceContract"]["range_discriminator"]["closure"]
+    assert members == sorted(declared, key=lambda m: (m["source_file"], m["declaration"]))
     elements, sources = [], {}
     for index, member in enumerate(members):
         name, kind = declaration_identity(member["declaration"])
@@ -489,14 +545,16 @@ def test_coverage_report_classifies_every_population_member():
 def test_coverage_refused_and_retired_carry_their_dispositions():
     report = coverage.build_report(ROOT)
     register = mar.load_register_rows(ROOT)
-    assert report["refused"] == ["IncrementTraceabilityShell", "derivesNeedFromConcern"]
+    removed = ["addressesConcern", "derivesNeedFromConcern", "producesView", "recordsAssumption", "recordsGap",
+               "selectedViewpoint"]
+    assert report["refused"] == sorted(["IncrementTraceabilityShell", *removed])
     assert {n: report["identities"][n]["register"]["final_disposition"] for n in report["refused"]} == {
-        "IncrementTraceabilityShell": "MERGE", "derivesNeedFromConcern": "REMOVE"}
+        "IncrementTraceabilityShell": "MERGE", **{name: "REMOVE" for name in removed}}
     assert report["retired"] == ["constrainedBy", "deployedTo", "realizedBy", "validatedBy",
                                  "validatesFitnessForUse"]
     for name in report["retired"]:
         assert report["identities"][name]["reason"].startswith("retired; use ")
-    assert report["summary"]["refused"] == 2 and report["summary"]["retired"] == 5
+    assert report["summary"]["refused"] == 7 and report["summary"]["retired"] == 5
     baseline = coverage.load_baseline(ROOT)
     assert baseline["refused"] == report["refused"] and baseline["retired"] == report["retired"]
     shrunk = dict(baseline, refused=["IncrementTraceabilityShell"])

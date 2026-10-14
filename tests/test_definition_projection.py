@@ -166,12 +166,6 @@ def test_family_invariant_from_canonical_governance():
         ).read_text()
     )
     other |= {row["identity"] for row in o2p["rows"]}
-    carriers = json.loads(
-        (
-            REPO_ROOT / "de4sdv/semantic/contract-data/increment-relationship-projection.json"
-        ).read_text()
-    )
-    other |= {row["identity"] for row in carriers["rows"]}
 
     admitted = {row["identity"] for row in load_document(REPO_ROOT)["admitted"]}
     assert admitted == set(ADMITTED_ROWS)

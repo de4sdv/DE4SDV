@@ -24,15 +24,16 @@ built by `de4sdv/semantic/model_contract.py`) assembles the contract from:
 - the model-generated pairs in
   [`de4sdv/semantic/contract-data/`](../../de4sdv/semantic/contract-data/README.md):
   class definitions (`class-definition-projection.json` / `-profile.json`),
-  kernel vocabulary (`kernel-vocabulary-…`), native groundings
-  (`native-grounding-…`) and increment relationships
-  (`increment-relationship-…`);
+  kernel vocabulary (`kernel-vocabulary-…`) and native groundings
+  (`native-grounding-…`);
 - the frozen-record layer: 13 identities read from the six frozen
   projection/profile records (`frozen-records/semantic-projection-v1…v1.2`
   and their profiles), which never change;
-- the successor contract generated from the model
-  (`relationship_successor_contract.generate_contract`, class pins from the
-  layers);
+- the trace-vocabulary contract (`trace-vocabulary-contract.json`, written
+  by `scripts/generate_trace_vocabulary_contract.py` from
+  `de4sdv_trace_vocabulary.sysml`); the runtime reads it with
+  `model_contract.load_trace_contract`, checks its class pins against the
+  layers and never parses the model;
 - the kernel-internal declarations manifest
   ([kernel-internal-declarations.yaml](../../de4sdv/semantic/contract-data/kernel-internal-declarations.yaml),
   owner decision D3), the governed-directory accounting.
@@ -154,11 +155,14 @@ end pair applies, exactly what the `realizedBy` alias served).
 ## `hasRelevantEvidenceContract` discriminator
 
 The range is the authored type closure of the validated `EvidenceContract`
-kernel root. It must contain exactly eight specializing requirement
-definitions: the AEBS evidence contracts. Members are the usages explicitly
-typed by the root or by one of those definitions. Any other population fails
-closed with `MODEL_EVIDENCE_CONTRACT_BLOCKED_REASON`. `traversal.py` is
-untouched; the discriminator is a subclass override.
+kernel root. It must hold as many specializing requirement definitions as the
+closure the contract declares, which lists the evidence contracts the model
+declares (the eight AEBS evidence contracts at this revision); the release
+evidence check compares the two sets by element id. Members are the usages
+explicitly typed by the root or by one of those definitions. An empty
+population or a different number fails closed with
+`MODEL_EVIDENCE_CONTRACT_BLOCKED_REASON`.
+`traversal.py` is untouched; the discriminator is a subclass override.
 
 ## Coverage gate (blocking)
 

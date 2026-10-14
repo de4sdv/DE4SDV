@@ -10,7 +10,7 @@ import threading
 import pytest
 from test_approved_relationship_successor import fixture_service, rebuild, ROOT, REVISION
 from model_contract_fixtures import model_service
-from de4sdv.semantic.relationship_successor import route_successor_bindings
+from de4sdv.semantic.trace_vocabulary_traversal import route_successor_bindings
 from de4sdv.sysml_api.errors import IdentityNotFoundError
 
 

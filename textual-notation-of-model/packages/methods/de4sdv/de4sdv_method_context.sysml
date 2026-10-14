@@ -18,9 +18,10 @@ package DE4SDV_MethodContext {
    * grounded in the MemberProduct kernel lineage (resolved through the governed kernel
    * mapping, never by bare name) are excluded — configured-product traces are product-line
    * relationships, not architecture relevance. */
-  comment about hasRelevantArchitectureOntologyDefinition /* Existing frozen O3 incoming-dependency mapping stays
-   * PartUsage/PartDefinition/ActionUsage/ActionDefinition with MemberProduct-lineage
-   * exclusions. No Interface widening, stronger relation or consumer rewiring. */
+  comment about hasRelevantArchitectureOntologyDefinition /* The incoming-dependency mapping served from the frozen
+   * records stays PartUsage/PartDefinition/ActionUsage/ActionDefinition with
+   * MemberProduct-lineage exclusions. No Interface widening, stronger relation or consumer
+   * rewiring. */
 
 
   doc specifiesFunctionOntologyDefinition /* Requirement-to-function relevance: a dependency from a draft requirement candidate to
@@ -35,8 +36,9 @@ package DE4SDV_MethodContext {
    * declares no new model fact; it reuses the identical DerivesFromNeed connection
    * traversed in the reverse direction, with the same lineage grounding and fail-closed
    * closure semantics. */
-  comment about derivedRequirementsOfNeedOntologyDefinition /* Existing frozen O3 inverse navigation over the identical DerivesFromNeed witness
-   * remains unchanged; no additional model fact or executable mapping. */
+  comment about derivedRequirementsOfNeedOntologyDefinition /* The navigation served from the frozen records over the
+   * identical DerivesFromNeed witness is unchanged; no additional model fact or executable
+   * mapping. */
 
 
   doc derivesRequirementFromNeedOntologyDefinition /* Requirement R is derived from stakeholder need N. Design-input derivation; direction R
@@ -44,8 +46,9 @@ package DE4SDV_MethodContext {
    * Grounded in the DE4SDV application connection definition DerivesFromNeed: the Need
    * grounds the `need` end, the derived design requirement grounds the `derivedRequirement`
    * end. DE4SDV's Requirement -> Need query is inverse navigation over that native witness. */
-  comment about derivesRequirementFromNeedOntologyDefinition /* Existing frozen O3 predicate signature, native DerivesFromNeed witness and inverse
-   * query direction remain unchanged; documentation only. */
+  comment about derivesRequirementFromNeedOntologyDefinition /* The predicate signature served from the frozen records,
+   * the native DerivesFromNeed witness and the inverse query direction are unchanged;
+   * documentation only. */
 
 
   doc VerificationMethodOntologyDefinition /* A method used to check requirement satisfaction. Carried natively by VerificationMethod
@@ -54,8 +57,8 @@ package DE4SDV_MethodContext {
   comment about VerificationMethodOntologyDefinition /* ODE4HERA requirements-management verificationMethod and standard VerificationMethodKind
    * remain the accepted external/library authority; no library copy or new method-kind
    * vocabulary. */
-  comment about VerificationMethodOntologyDefinition /* Grounding record (O4 W3, native library adoption).
-   * Two distinct carriers, never merged: (1) metadata — the Systems Library
+  comment about VerificationMethodOntologyDefinition /* Grounding record (native library adoption).
+   * Two distinct representations, never merged: (1) metadata — the Systems Library
    * VerificationCases package declares metadata def VerificationMethod with
    * attribute kind : VerificationMethodKind[1..*] (inspect, analyze, demo, test);
    * models annotate verification-case steps with it, for example
@@ -76,8 +79,9 @@ package DE4SDV_MethodContext {
   doc VerificationCaseOntologyDefinition /* A planned or executed check that evaluates whether a requirement or model claim is
    * satisfied. */
   comment about VerificationCaseOntologyDefinition /* Native SysML VerificationCaseDefinition/VerificationCaseUsage (verification
-   * def/verification) remain the representation. This documentation changes no frozen O3
-   * traversal signature, objective, execution, result or acceptance. */
+   * def/verification) remain the representation. This documentation changes no traversal
+   * signature served from the frozen records, and no objective, execution, result or
+   * acceptance. */
 
 
   doc InterfaceOntologyDefinition /* A boundary or interaction point through which items, signals, services, or information
@@ -120,32 +124,6 @@ package DE4SDV_MethodContext {
 
   private import DE4SDV_SYSMODAdapter::*;
   private import DE4SDV_Stakeholders::*;
-  /* Requirement derivation discriminator: DE4SDV application connection
-   * definition. A requirement usage connected as derivedRequirement
-   * originates from the stakeholder need connected as need. The typed ends
-   * carry the predicate's domain and range; the definition documentation
-   * carries its native direction, claim strength, and claim boundary.
-   * Design-input provenance only — no satisfaction, implication,
-   * verification, evidence, or acceptance claim. */
-
-  connection def DerivesFromNeed {
-    private doc ontologyDefinition /* DE4SDV application connection definition for design-input derivation: the
-     * derivedRequirement originates from the stakeholder need. Provenance/traceability
-     * semantics only - neither satisfaction nor logical implication between the connected
-     * usages is claimed. The typed connection ends (need : StakeholderNeedCandidate,
-     * derivedRequirement : RequirementCandidate) carry the predicate's domain and range in
-     * the model itself. The standard Requirement Derivation Domain Library remains pinned
-     * but unadopted: its originalImpliesDerived semantics change the claim (upstream
-     * adoption gate still applies; no floating upgrade, no upstream contact without
-     * authorization). */
-    end need : StakeholderNeedCandidate;
-    end derivedRequirement : RequirementCandidate;
-    doc /* Design-input provenance: the derivedRequirement originates from
-         * the stakeholder need. Native direction: need -> derivedRequirement.
-         * Claim strength: derivation (provenance only: neither satisfaction
-         * nor logical implication between the connected usages; no
-         * allocation, verification, evidence, or acceptance claim). */
-  }
 
   /* Re-exported so feature packages can assign `attribute :>> status =
    * ReqStatus::...` (ADR 0009) without importing the adapter directly. */
@@ -168,9 +146,9 @@ package DE4SDV_MethodContext {
   connection def HasStakeholder {
     doc /* An engineering increment identifies a stakeholder role participating
          * in or affected by it. Domain EngineeringIncrement; range Stakeholder.
-         * Vocabulary-only typed carrier during migration, not executable
-         * traversal proof, native StakeholderMembership equivalence, real-person
-         * assignment, approval authority, competence or safety acceptance. */
+         * Vocabulary-only typed carrier: not executable traversal proof,
+         * native StakeholderMembership equivalence, real-person assignment,
+         * approval authority, competence or safety acceptance. */
     end increment : EngineeringIncrement;
     end stakeholderRole : Stakeholder;
   }
@@ -312,17 +290,21 @@ package DE4SDV_MethodContext {
          * boundary, and retained-evidence obligations for a verification case. An
          * evidence contract is planning vocabulary, not proof that a product
          * requirement is verified. */
-    /* Specialized by exactly the eight AEBS evidence-contract definitions:
+    /* Specialized by the eight AEBS evidence-contract definitions:
      * OverrideEvidenceContract, DegradedInputEvidenceContract,
      * BicycleEvidenceContract, NominalEvidenceContractRequirement,
      * RegulatoryCriterionEvidenceContract, NonActivationEvidenceContract,
      * PedestrianEvidenceContract and PartialInterventionEvidenceContract.
-     * MiddlewareAcceptanceCriterion is an AcceptanceCriterion only (owner
-     * decision 2026-10-06), so acceptance-criterion typing never makes a
-     * requirement an evidence contract. This specialization closure is the
-     * evidence-contract population; any change must update D4 and its
-     * population test together. The existing runtime dependency mapping is
-     * unchanged. */
+     * MiddlewareAcceptanceCriterion is an AcceptanceCriterion only, so
+     * acceptance-criterion typing never makes a requirement an evidence
+     * contract. This specialization closure is the evidence-contract
+     * population that the hasRelevantEvidenceContract discriminator lists. A
+     * new evidence contract joins that list in the kernel-vocabulary admission
+     * and also updates the ADR 0020 population tests. The runtime requires the
+     * served model to hold as many specializing definitions as the declared
+     * closure; set equality is checked by the generator and the repository
+     * test in CI, and by element id at release. The existing runtime
+     * dependency mapping is unchanged. */
   }
 
   comment hasRelevantEvidenceContractVocabularyRole about EvidenceContract /* The
@@ -396,5 +378,116 @@ package DE4SDV_MethodContext {
     doc /* Context containing the system actors, the system of interest, and their relationships. */
     part actors[*];
     part systemOfInterest;
+  }
+
+  doc AssuranceClaimOntologyDefinition /* A claim about safety, security, compliance alignment, release readiness, or fitness-
+   * for-use that requires argument and evidence before acceptance. Claims are bounded and
+   * never imply certification or homologation. */
+  comment about AssuranceClaimOntologyDefinition /* Bounded claim vocabulary only; no generic adequacy/acceptance
+   * result is introduced. The assurance argumentation kinds below add no richer
+   * claim/argument/counterclaim taxonomy. */
+
+
+  doc EvidenceStatusOntologyDefinition /* Lifecycle status for evidence and verification results. DE4SDV does not define its own
+   * status vocabulary: requirement verification status uses the upstream VVStatus enum, and
+   * bounded evidence outcomes/dispositions use slice-local enums such as
+   * MiddlewareEvidenceOutcome and MiddlewareEvidenceDisposition. */
+  comment about EvidenceStatusOntologyDefinition /* The upstream VVStatus enum and slice-local bounded outcomes/dispositions remain
+   * distinct authorities. No status copy, new enum, lifecycle-result collapse or policy
+   * acceptance is introduced. */
+
+
+  doc EvidenceArtifactOntologyDefinition /* A reviewable artifact that supports a verification, validation, assurance, or release
+   * decision. */
+  comment about EvidenceArtifactOntologyDefinition /* Artifact contents remain in evidence registers, retained files and typed references,
+   * not in this documentation. Definition residence does not establish artifact
+   * availability, maturity, adequacy or acceptance. */
+
+  comment EvidenceArtifactVocabularyRole about EvidenceArtifactOntologyDefinition /* External
+   * boundary: evidence-artifact content is external; the model has no authority
+   * over it. The model owns only the typed reference role: the accepted
+   * de4sdv.evidence-reference/v1 schema (case identity, artifact identity, exact
+   * revision, digest, run, tested scope) and the model-resident reference
+   * record RetainedExecutionRecordReference. No artifact bytes, status,
+   * maturity, verdict or acceptance are mirrored, and no API element identity
+   * is claimed for an artifact. */
+
+  comment hasEvidenceVocabularyRole about EvidenceArtifactOntologyDefinition /* External boundary for hasEvidence
+   * (VerificationCase to EvidenceArtifact): artifact association only, carried
+   * by the case's typed de4sdv.evidence-reference/v1 record; content external, no
+   * authority. The association exposes no verdict, pass, approval or acceptance
+   * and implements no traversal: external data is required and an absent record
+   * is never reported as an empty hop. It is not supportedByEvidence. */
+
+  comment supportedByEvidenceVocabularyRole about AssuranceClaimOntologyDefinition /* The
+   * supportedByEvidence relation (AssuranceClaim to EvidenceArtifact) records
+   * one citation per cited artifact: the exact scoped claim (claim, subject,
+   * configuration, conditions), the versioned evidence reference, the
+   * rationale and the known limits. This is cited support, distinct from
+   * hasEvidence artifact association. A claim is treated as established, or
+   * acceptance is sought, only after a proportionate adequacy assessment of
+   * the evidence set for the same exact scope and agreed criteria, which
+   * reuses the cases, criteria, results, references and gaps it assesses.
+   * That assessment is not a sufficiency verdict on each artifact: it keeps
+   * its coverage, confidence and rigor bases, contrary results,
+   * discrepancies, unresolved gaps, assessor and reasoning explicit; an
+   * adequate set can establish a negative conclusion; and whether the set
+   * supports the claim is the assessor's scoped conclusion, not checker
+   * truth. The designated authority's scoped acceptance stays a separate
+   * AcceptanceAttestationReference, with exceptions kept visible; neither
+   * assessment nor acceptance turns exceptions or a generic Completed status
+   * into unqualified satisfaction. Citation, adequacy and acceptance never
+   * imply each other. Vocabulary only at this revision: no runtime traversal
+   * is implemented here. */
+
+  comment hasEvidenceStatusVocabularyRole about EvidenceStatusOntologyDefinition /* Successor
+   * for the legacy hasEvidenceStatus (EvidenceArtifact to EvidenceStatus)
+   * predicate. Scoped verification and validation activity status is the
+   * unchanged adopted VVStatus, identified with the activity's subject,
+   * configuration, comparison basis and result or evidence references;
+   * EvidenceStatus resolves to that pinned VVStatus and to slice-local
+   * bounded outcome/disposition enums. Each activity is exactly one
+   * verification or one validation, applicable across needs, requirements,
+   * designs, production outputs, system elements, integrated systems and
+   * artifacts without inheriting requirement attributes; native need and
+   * requirement verificationStatus attachments stay unchanged, and native
+   * VerdictKind execution values stay distinct from the activity's status.
+   * Completed includes the necessary result approval; CompletedUnsuccessful
+   * could not complete; CompletedFailed completed with technical failure;
+   * CompletedPassed completed successfully against the activity basis only,
+   * not a broader scoped claim. No new universal status enum is introduced.
+   * Artifact maturity, evidence-set adequacy and authority acceptance stay
+   * separate, and Completed never means passed or accepted. Retirement:
+   * hasEvidenceStatus takes no new model usage; consumers move to this
+   * successor in a reviewed runtime change, which then retires the legacy
+   * predicate (the authored ontology that declared it is removed). */
+
+  /* Assurance argumentation kinds. A claim, its supporting arguments and its
+   * counter-claims are assurance artifacts that consume verification results.
+   * They are not design-input requirements: they do not derive from
+   * stakeholder needs, record no verification method and are not verified by
+   * verification cases. The three definitions keep the requirement keyword
+   * only as the textual form of a bounded statement about a subject. They
+   * deliberately do not specialize RequirementCandidate, so the Requirement
+   * lineage and the requirement method checks do not apply to their usages.
+   *
+   * Meaning follows the approved assurance semantics of the
+   * supportedByEvidence role above: an argument is cited support with
+   * rationale and limits; a claim counts as established only after a scoped
+   * evidence-set adequacy assessment of the same exact scope; a counter-claim
+   * is a disclosed limit on the claim's scope, tied to its gap record;
+   * acceptance stays a separate authority record. No richer argumentation
+   * metamodel is introduced.
+   */
+  requirement def AssuranceClaim {
+    doc /* A bounded statement about a subject, its configuration and conditions that requires argument and evidence before acceptance. It counts as established only after an adequacy assessment of the evidence set for the same exact scope; acceptance stays a separate authority record. A claim never implies certification or homologation. */
+  }
+
+  requirement def AssuranceArgument {
+    doc /* Cited support for a claim: the verification cases and retained evidence it relies on, with rationale and known limits. An argument establishes neither evidence adequacy nor acceptance. */
+  }
+
+  requirement def AssuranceCounterClaim {
+    doc /* A disclosed limit on the scope of a claim, tied to the gap record that keeps it open. It states what the claim must not be read to cover; it is not an obligation. */
   }
 }

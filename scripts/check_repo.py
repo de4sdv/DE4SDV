@@ -176,15 +176,14 @@ def main() -> int:
         external_reference_contract,
         kernel_vocabulary_projection,
         model_projection_coverage,
-        vocabulary_carrier,
+        trace_vocabulary_contract,
     )
 
-    preparation_errors = (
-        vocabulary_carrier.run_check_errors(root)
-        + external_reference_contract.run_check_errors(root)
-    )
+    external_reference_errors = external_reference_contract.run_check_errors(root)
     definition_admission_errors = definition_projection.run_check_errors(root)
     kernel_vocabulary_errors = kernel_vocabulary_projection.run_check_errors(root)
+    # The runtime reads the generated trace-vocabulary contract; it never parses the model.
+    trace_contract_errors = trace_vocabulary_contract.run_check_errors(root)
     # Residuals block independently of the routing/refusal baseline.
     model_coverage_errors = model_projection_coverage.run_check_errors(root)
 
@@ -230,9 +229,9 @@ def main() -> int:
         for error in native_grounding_errors:
             print(f"- {error}")
 
-    if preparation_errors:
-        print("Repository check failed. Increment-relationship and external-reference errors:")
-        for error in preparation_errors:
+    if external_reference_errors:
+        print("Repository check failed. External-reference profile errors:")
+        for error in external_reference_errors:
             print(f"- {error}")
 
     if definition_admission_errors:
@@ -243,6 +242,11 @@ def main() -> int:
     if kernel_vocabulary_errors:
         print("Repository check failed. Kernel-vocabulary projection errors:")
         for error in kernel_vocabulary_errors:
+            print(f"- {error}")
+
+    if trace_contract_errors:
+        print("Repository check failed. Trace-vocabulary contract errors:")
+        for error in trace_contract_errors:
             print(f"- {error}")
 
     if model_coverage_errors:
@@ -259,9 +263,10 @@ def main() -> int:
         or naming_errors
         or frozen_record_errors
         or native_grounding_errors
-        or preparation_errors
+        or external_reference_errors
         or definition_admission_errors
         or kernel_vocabulary_errors
+        or trace_contract_errors
         or model_coverage_errors
     ):
         return 1

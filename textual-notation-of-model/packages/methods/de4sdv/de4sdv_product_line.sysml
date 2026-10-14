@@ -49,7 +49,7 @@ package DE4SDV_ProductLine {
    * variation-point part taxonomy or configurator adoption. */
 
 
-  /* Vocabulary roles of the reviewed product-line relationships (O4 W3/W4/W5).
+  /* Vocabulary roles of the reviewed product-line relationships.
    * The ontology declares these relationships by domain and range only; no
    * authored definition text exists, so these comments record the
    * model-resident vocabulary home and claim boundary, not a new meaning. The
@@ -84,9 +84,9 @@ package DE4SDV_ProductLine {
    * taxonomy, no YAML edge mapping and no PLEML dependency. */
 
   comment FeatureConfigurationVocabularyRole about FeatureConfigurationOntologyDefinition /* Vocabulary
-   * only (owner decision 2026-10-06 on decision-9: keep the ADR 0006 external
-   * configurator authority). No configurator authority; selection authority stays
-   * with the external catalogue (ADR 0006): the YAML Feature Catalogue and
+   * only: the ADR 0006 external configurator authority is kept. No configurator
+   * authority; selection authority stays with the external catalogue (ADR 0006):
+   * the YAML Feature Catalogue and
    * Bill-of-Features configuration decision layer, evaluated by the configurator,
    * selects features, common capabilities and variants. This package declares no
    * FeatureConfiguration definition, no selection algebra, no model relationship
@@ -148,8 +148,8 @@ package DE4SDV_ProductLine {
     private doc ontologyDefinition /* A capability or characteristic present in all relevant member products; not a feature
      * unless it distinguishes variants. */
     doc /* Capability required across member products; not a feature unless it distinguishes member products. */
-    /* Feature/common-capability disjointness (owner decision 7, checked-constraint
-     * fallback): the licensed toolchain rejects the standalone KerML disjoining in a
+    /* Feature/common-capability disjointness (ADR 0020, decision 7) as a checked
+     * constraint: the licensed toolchain rejects the standalone KerML disjoining in a
      * SysML package, so the axiom is a checked constraint on both definitions. */
     assert constraint notAFeatureCandidate { not (that istype ProductLineFeatureCandidate) }
   }

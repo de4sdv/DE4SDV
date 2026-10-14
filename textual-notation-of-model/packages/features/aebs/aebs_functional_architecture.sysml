@@ -19,7 +19,7 @@ package DE4SDV_AEBSFunctionalArchitecture {
     package AEBS {
       package FunctionalBehavior {
         private import DE4SDV_MethodContext::*;
-        private import DE4SDV_RelationshipSuccessor::*;
+        private import DE4SDV_TraceVocabulary::*;
         private import DE4SDV_ProductLine::*;
         private import COVESA_VSS::**;
         private import DE4SDV_VSS_Extensions::**;

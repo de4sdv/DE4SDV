@@ -39,17 +39,17 @@ METHODS = "textual-notation-of-model/packages/methods/de4sdv/"
 #: the cut records for them.
 SOURCES = {
     METHODS + "de4sdv_increment_workflow.sysml":
-        "6098659cad8f9fe63238a74f197df94f9d1a3924871b202e256d96a7fcabe3d9",
-    METHODS + "de4sdv_method_traces.sysml":
-        "a4b2cba28cc6f29534db455ef47f1e0aed3ded7ccdc690bebf475cf3e732efd7",
+        "ab992b7f7a8200c6186845a6c402564b66533f5b0a7ad4f6625fa908738911a4",
+    METHODS + "de4sdv_trace_vocabulary.sysml":
+        "58ba8ea33ef950e1abcdda19efaa6757e33cad06902e70605ffdc3eaf1a6fbea",
     METHODS + "de4sdv_method_process.sysml":
-        "0db2f91dcda080d6bfedf0a5795b84261388326ff73faa411b49fdd91cec2108",
+        "7e94fd449a901e3e9ae6862182e34b653f72aa38457e6142c7cf9b65be9ac257",
     METHODS + "de4sdv_method_context.sysml":
-        "63c1a3efc36f77027fff2e22aa071ebc3ecdaddf4d23976e8662bcb45fc02654",
+        "481e9a21378f60489e65dc2f8d8274ea61a9f4d4b9f0c085947af6693012e162",
     "textual-notation-of-model/packages/features/aebs/aebs_visualization_needs_requirements.sysml":
-        "765324cbefbbd5ccee25b621cda1e6a7a42344aec69a2dce48cf697dd7e72f91",
+        "edce3bf5b30a042083138712bd8084902d4488be1b308730246b26a50af576bb",
     "textual-notation-of-model/packages/features/aebs/aebs_visualization_framing.sysml":
-        "5586ec7682fe6bdc77a394435c35bf05294cfba6071480b49538455c29fa8b46",
+        "04c7c778ff18023a0ea5dde3d8dd10ce9b8fecebdc76c17496535cdbd039f91d",
     ".sysand/lib/ode4hera-requirements-management_2.0.1/RequirementsManagement.sysml":
         "f7a480d6baed5b06eefb3be222608a616241eca5cf6dbde738f22ec00a9d3073",
     ".sysand/lib/mbse4u-sysmod_5.1.1/SYSMOD.sysml":
@@ -176,9 +176,9 @@ def test_a_charter_definition_is_described_as_its_source_declares(service) -> No
     assert element["owning_package"]["qualified_name"] == "DE4SDV_IncrementWorkflow"
     assert element["documentation"][0].startswith("Charter declaration of one increment")
     assert [s["qualified_name"] for s in definition["supertypes"] if s["direct"]] == [
-        "DE4SDV_MethodTraces::IncrementTraceObligations"]
+        "DE4SDV_IncrementWorkflow::IncrementTraceObligations"]
     owned = _features(definition["owned_features"])
-    assert list(owned) == ["owner", "expectedArtifacts", "expectedReviewEvidence", "workflow"]
+    assert list(owned) == ["owner", "expectedArtifacts", "expectedReviewEvidence", "systemOfInterest", "workflow"]
     # attribute owner : String; (ScalarValues is not part of the export)
     assert (owned["owner"]["keyword"], owned["owner"]["type"], owned["owner"]["multiplicity"]) == (
         "attribute", None, None)
@@ -190,6 +190,10 @@ def test_a_charter_definition_is_described_as_its_source_declares(service) -> No
     # attribute expectedArtifacts : String[1..*];
     assert owned["expectedArtifacts"]["multiplicity"] == [1, "*"]
     assert owned["expectedArtifacts"]["type_outside_export"].startswith(OUTSIDE)
+    # ref part systemOfInterest[0..1]; (untyped: an increment sets it by redefinition)
+    assert (owned["systemOfInterest"]["keyword"], owned["systemOfInterest"]["type"],
+            owned["systemOfInterest"]["multiplicity"]) == ("ref part", None, [0, 1])
+    assert "type_outside_export" not in owned["systemOfInterest"]
     # action workflow : IncrementWorkflow;
     assert (owned["workflow"]["keyword"], owned["workflow"]["type"]) == (
         "action", "DE4SDV_IncrementWorkflow::IncrementWorkflow")
@@ -199,13 +203,13 @@ def test_a_charter_definition_is_described_as_its_source_declares(service) -> No
     assert (inherited["increment"]["keyword"], inherited["increment"]["type"]) == (
         "ref part", "DE4SDV_MethodContext::EngineeringIncrement")
     assert inherited["applicablePhases"]["type"] == "DE4SDV_MethodProcess::MethodPhase"
-    # The cut keeps this inherited feature but not its multiplicity range (it keeps
-    # no owned member of a referenced element): the answer says so, never "none declared".
-    incomplete = [gap["reason"] for gap in answer["gaps"] if gap["category"] == "definition-incomplete"]
-    assert inherited["applicablePhases"]["multiplicity"] == [0, "*"] or any(
-        "IncrementTraceObligations::applicablePhases (" in reason for reason in incomplete)
+    # The cut keeps the increment workflow, which declares IncrementTraceObligations, with
+    # its owned members: the inherited feature has its declared multiplicity and no owned
+    # relationship is missing.
+    assert inherited["applicablePhases"]["multiplicity"] == [0, "*"]
+    assert not [gap for gap in answer["gaps"] if gap["category"] == "definition-incomplete"]
     for entry in (inherited["increment"], inherited["applicablePhases"]):
-        assert entry["inherited_from"] == "DE4SDV_MethodTraces::IncrementTraceObligations"
+        assert entry["inherited_from"] == "DE4SDV_IncrementWorkflow::IncrementTraceObligations"
     assert not set(owned) & set(inherited)
 
 
@@ -225,31 +229,32 @@ def test_an_enumeration_definition_lists_its_enumerated_values_in_order(service)
 
 
 def test_a_connection_definition_lists_its_ends(service) -> None:
-    answer, definition = _definition(service, "DE4SDV_MethodContext::DerivesFromNeed")
+    answer, definition = _definition(service, "DE4SDV_TraceVocabulary::DerivesFromNeed")
     assert answer["element"]["keyword"] == "connection def"
     # end need : StakeholderNeedCandidate; end derivedRequirement : RequirementCandidate;
     declared = {"need": "DE4SDV_MethodContext::StakeholderNeedCandidate",
                 "derivedRequirement": "DE4SDV_MethodContext::RequirementCandidate"}
     ends = _features(definition["owned_features"])
-    assert "derivedRequirement" in ends and set(ends) <= set(declared)
+    assert set(ends) == set(declared)
     for name, entry in ends.items():
         assert (entry["end"], entry["keyword"], entry["type"]) == (True, "ref", declared[name])
-    # The cut drops the membership of `need`. A declared end that isn't listed is
-    # accounted for by a missing owned relationship the definition-incomplete gap names.
-    named = [re.search(r"DE4SDV_MethodContext::DerivesFromNeed \(([^)]*)\)", gap["reason"])
+    # The cut keeps both ends but neither doc comment (``private doc ontologyDefinition``
+    # and ``doc``): the answer has no documentation, and the definition-incomplete gap
+    # names the two owned relationships the cut lacks.
+    assert answer["element"]["documentation"] == []
+    named = [re.search(r"DE4SDV_TraceVocabulary::DerivesFromNeed \(([^)]*)\)", gap["reason"])
              for gap in answer["gaps"] if gap["category"] == "definition-incomplete"]
     missing = [identifier for found in named if found for identifier in found.group(1).split(", ")]
-    unlisted = [name for name in declared if name not in ends]
-    assert len(missing) >= len(unlisted), (unlisted, missing)
+    assert len(missing) == 2, missing
 
 
 def test_a_referential_usage_is_described_with_ref(service) -> None:
-    """``ref part increment : EngineeringIncrement;`` (DE4SDV_MethodTraces): an undirected,
-    non-end part usage that isn't composite is declared with ``ref part``. Composite,
-    directed and end features keep their own keyword."""
-    element = service.inspect_element("DE4SDV_MethodTraces::IncrementTraceObligations::increment")["element"]
+    """``ref part increment : EngineeringIncrement;`` (IncrementTraceObligations in
+    DE4SDV_IncrementWorkflow): an undirected, non-end part usage that isn't composite is
+    declared with ``ref part``. Composite, directed and end features keep their own keyword."""
+    element = service.inspect_element("DE4SDV_IncrementWorkflow::IncrementTraceObligations::increment")["element"]
     assert (element["keyword"], element["sysml_type"]) == ("ref part", "PartUsage")
-    _answer, obligations = _definition(service, "DE4SDV_MethodTraces::IncrementTraceObligations")
+    _answer, obligations = _definition(service, "DE4SDV_IncrementWorkflow::IncrementTraceObligations")
     assert _features(obligations["owned_features"])["increment"]["keyword"] == "ref part"
     _answer, frame = _definition(service, "DE4SDV_IncrementWorkflow::FrameIncrement")
     # out part increment : EngineeringIncrement; (directed: referential without ref)
@@ -274,7 +279,7 @@ def test_a_library_supertype_has_the_same_entry_keys_as_any_supertype(service) -
     [direct] = charter["supertypes"]
     assert set(direct) == keys
     assert (direct["qualified_name"], direct["sysml_type"], direct["direct"], direct["outside_export"]) == (
-        "DE4SDV_MethodTraces::IncrementTraceObligations", "PartDefinition", True, False)
+        "DE4SDV_IncrementWorkflow::IncrementTraceObligations", "PartDefinition", True, False)
     assert direct["relationship_id"] and direct["element_id"]
 
 
@@ -305,9 +310,10 @@ def test_a_redefinition_hides_what_it_redefines_and_values_are_described(service
 
 def test_a_usage_gets_the_keyword_that_declares_it_and_its_nearest_package(service) -> None:
     # package VisualizationNeeds { requirement needNonInterference : VisualizationEngineeringNeed {
-    #   subject increment : ...; stakeholder verificationEngineer : ...; require constraint statement {...}
+    #   subject visualizationTestSystem :> ...; stakeholder verificationEngineer : ...;
+    #   require constraint statement {...}
     need = "DE4SDV_AEBSVisualizationNeedsRequirements::VisualizationNeeds::needNonInterference"
-    for name, keyword in (("", "requirement"), ("::increment", "subject"),
+    for name, keyword in (("", "requirement"), ("::visualizationTestSystem", "subject"),
                           ("::verificationEngineer", "stakeholder"), ("::statement", "require")):
         element = service.inspect_element(need + name)["element"]
         assert (element["qualified_name"], element["keyword"]) == (need + name, keyword)
@@ -319,7 +325,7 @@ def test_a_usage_gets_the_keyword_that_declares_it_and_its_nearest_package(servi
 def test_the_api_listing_gives_the_answers_the_export_gives(cut, service) -> None:
     padded = _service(cut[0], _api_form(cut[0].elements))
     for identifier in ("DE4SDV_IncrementWorkflow::IncrementCharter", "DE4SDV_MethodProcess::MethodPhase",
-                       "DE4SDV_MethodContext::DerivesFromNeed", "DE4SDV_IncrementWorkflow::FrameIncrement",
+                       "DE4SDV_TraceVocabulary::DerivesFromNeed", "DE4SDV_IncrementWorkflow::FrameIncrement",
                        "IncrementCharter"):
         assert padded.inspect_element(identifier) == service.inspect_element(identifier), identifier
 
@@ -345,8 +351,8 @@ def test_bare_names_keep_their_resolution_and_every_answer_names_its_elements(se
     bare = service.inspect_element("IncrementCharter")
     assert bare["resolution_level"] == "structural-match"
     assert bare["element"] == service.inspect_element("DE4SDV_IncrementWorkflow::IncrementCharter")["element"]
-    neighbors = service.semantic_neighbors("DE4SDV_MethodContext::DerivesFromNeed")
-    assert neighbors["root"]["qualified_name"] == "DE4SDV_MethodContext::DerivesFromNeed"
+    neighbors = service.semantic_neighbors("DE4SDV_TraceVocabulary::DerivesFromNeed")
+    assert neighbors["root"]["qualified_name"] == "DE4SDV_TraceVocabulary::DerivesFromNeed"
     usage = service.resolve_element("INC-AEBS-010")["element"]
     assert usage["qualified_name"] == "DE4SDV_AEBSVisualizationFraming::incAEBS010"
 
@@ -366,7 +372,7 @@ def test_a_refusal_points_from_a_short_name_an_inherited_feature_or_an_import_to
 
     - ``part <'INC-AEBS-010'> incAEBS010 : VisualizationIncrement`` in DE4SDV_AEBSVisualizationFraming;
     - ``part def IncrementCharter :> IncrementTraceObligations``, whose ``ref part increment``
-      DE4SDV_MethodTraces declares;
+      IncrementTraceObligations declares, both in DE4SDV_IncrementWorkflow;
     - ``public import ReqStatus;`` in DE4SDV_MethodContext, for ``enum def ReqStatus`` of
       ``library package RequirementsManagement``.
     """
@@ -376,8 +382,8 @@ def test_a_refusal_points_from_a_short_name_an_inherited_feature_or_an_import_to
             "its qualified name is", "DE4SDV_AEBSVisualizationFraming::incAEBS010"),
         "DE4SDV_IncrementWorkflow::IncrementCharter::increment": (
             "'increment' is inherited by DE4SDV_IncrementWorkflow::IncrementCharter from "
-            "DE4SDV_MethodTraces::IncrementTraceObligations; its qualified name is",
-            "DE4SDV_MethodTraces::IncrementTraceObligations::increment"),
+            "DE4SDV_IncrementWorkflow::IncrementTraceObligations; its qualified name is",
+            "DE4SDV_IncrementWorkflow::IncrementTraceObligations::increment"),
         "DE4SDV_MethodContext::ReqStatus": (
             "'ReqStatus' is imported into DE4SDV_MethodContext (public import); its qualified name is",
             "RequirementsManagement::ReqStatus"),

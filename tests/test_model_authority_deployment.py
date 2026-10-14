@@ -38,9 +38,10 @@ MODEL_INPUTS = (
     "de4sdv/semantic/contract-data/class-definition-projection.json",
     "de4sdv/semantic/contract-data/class-definition-profile.json",
     "de4sdv/semantic/contract-data/class-definition-admission.yaml",
-    "de4sdv/semantic/contract-data/increment-relationship-projection.json",
-    "de4sdv/semantic/contract-data/increment-relationship-profile.json",
-    "de4sdv/semantic/contract-data/increment-relationship-admission.yaml",
+    "de4sdv/semantic/contract-data/kernel-vocabulary-projection.json",
+    "de4sdv/semantic/contract-data/kernel-vocabulary-profile.json",
+    "de4sdv/semantic/contract-data/kernel-vocabulary-admission.yaml",
+    "de4sdv/semantic/contract-data/trace-vocabulary-contract.json",
     "de4sdv/semantic/contract-data/ontology-identity-register.json",
     "de4sdv/semantic/contract-data/kernel-internal-declarations.yaml",
 )

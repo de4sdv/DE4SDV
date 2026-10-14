@@ -7,7 +7,6 @@
     "admitted": [
       "AcceptanceCriterion",
       "AllocatableFunction",
-      "ApprovedTraceMethod",
       "ArchitectureDecisionRecord",
       "ArchitectureElement",
       "AssuranceClaim",
@@ -17,7 +16,6 @@
       "EvidenceArtifact",
       "EvidenceContract",
       "EvidenceStatus",
-      "EvidenceSupportCitation",
       "Feature",
       "FeatureConfiguration",
       "Function",
@@ -31,8 +29,6 @@
       "RegulatorySource",
       "RegulatorySourceAssociation",
       "RequiredTraceChain",
-      "ScopedEvidenceAdequacyAssessment",
-      "ScopedVVActivityRecord",
       "Stakeholder",
       "TraceLink",
       "ValidationPlanningAssociation",
@@ -67,12 +63,37 @@
       {
         "identity": "IncrementTraceabilityShell",
         "accounting": "merged",
-        "reason": "Merged register row (successor IncrementTraceObligations, admitted in this batch). Its historical documentation stays in DE4SDV_MethodTraces; no projection row is generated for a merged trace shell. Since O4 Wave C2 the runtime refuses the name with its register disposition (owner decision D5)."
+        "reason": "Merged register row (successor IncrementTraceObligations, admitted in this batch). Its historical documentation stays in DE4SDV_IncrementWorkflow; no projection row is generated for a merged trace shell. Since O4 Wave C2 the runtime refuses the name with its register disposition (owner decision D5)."
+      },
+      {
+        "identity": "addressesConcern",
+        "accounting": "removed",
+        "reason": "Removed register row: a vocabulary-only relation that no model element used. Its connection definition and its generated projection were deleted from the method kernel, so it has no model home. The runtime refuses the name with its register disposition."
       },
       {
         "identity": "derivesNeedFromConcern",
         "accounting": "removed",
         "reason": "Removed register row (O1 c4: retired without replacement). It has no model home by design. Since O4 Wave C2 the runtime refuses the name with its register disposition (owner decision D5; an intentional migration from the former preserved gap)."
+      },
+      {
+        "identity": "producesView",
+        "accounting": "removed",
+        "reason": "Removed register row: a vocabulary-only relation that no model element used. Its connection definition and its generated projection were deleted from the method kernel, so it has no model home. The runtime refuses the name with its register disposition."
+      },
+      {
+        "identity": "recordsAssumption",
+        "accounting": "removed",
+        "reason": "Removed register row: a vocabulary-only relation that no model element used. Its connection definition and its generated projection were deleted from the method kernel, so it has no model home. The runtime refuses the name with its register disposition."
+      },
+      {
+        "identity": "recordsGap",
+        "accounting": "removed",
+        "reason": "Removed register row: a vocabulary-only relation that no model element used. Its connection definition and its generated projection were deleted from the method kernel, so it has no model home. The runtime refuses the name with its register disposition."
+      },
+      {
+        "identity": "selectedViewpoint",
+        "accounting": "removed",
+        "reason": "Removed register row: a vocabulary-only relation that no model element used. Its connection definition and its generated projection were deleted from the method kernel, so it has no model home. The runtime refuses the name with its register disposition."
       }
     ],
     "note": "no frozen O3 identity and no identity of another generated layer is admitted; exceptions are owner-visible and never silently fall back"
@@ -121,7 +142,7 @@
       "definition": {
         "documentation": "Functional responsibility identity for this versioned allocation profile.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "owner": "action def AllocatableFunction",
           "form": "owned-doc",
           "documentation_name": null,
@@ -131,44 +152,11 @@
       },
       "grounding": {
         "kernel_binding_contract": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "declaration": "action def AllocatableFunction"
         },
         "ontology_relations": {
           "sub_class_of": "Function",
-          "disjoint_with": []
-        },
-        "contract_source": "kernel mapping kind and ontology relations: reviewed admission-manifest fields (manifest-held: the model does not carry them structurally, so the reviewed manifest is their authority); file mappings are resolved in the model by this generator; authored-ontology parity proven before its deletion: https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/docs/method-conformance/o4/closure/contract-equivalence.json"
-      },
-      "support": "vocabulary-only",
-      "traversal": false,
-      "api_identity": "unclaimed"
-    },
-    {
-      "identity": "ApprovedTraceMethod",
-      "semantic_kind": "class",
-      "admission_class": "definition",
-      "register_wave": null,
-      "accounting": "unregistered",
-      "boundary": "none",
-      "definition": {
-        "documentation": "Selected approved method identity. Selecting this reference does not establish conformance, approval of a candidate, or an engineering trace.",
-        "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
-          "owner": "part def ApprovedTraceMethod",
-          "form": "owned-doc",
-          "documentation_name": null,
-          "documentation_index": 0
-        },
-        "documentation_observation": "model-owned-documentation"
-      },
-      "grounding": {
-        "kernel_binding_contract": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
-          "declaration": "part def ApprovedTraceMethod"
-        },
-        "ontology_relations": {
-          "sub_class_of": null,
           "disjoint_with": []
         },
         "contract_source": "kernel mapping kind and ontology relations: reviewed admission-manifest fields (manifest-held: the model does not carry them structurally, so the reviewed manifest is their authority); file mappings are resolved in the model by this generator; authored-ontology parity proven before its deletion: https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/docs/method-conformance/o4/closure/contract-equivalence.json"
@@ -250,8 +238,8 @@
       "definition": {
         "documentation": "A claim about safety, security, compliance alignment, release readiness, or fitness- for-use that requires argument and evidence before acceptance. Claims are bounded and never imply certification or homologation.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
-          "owner": "package DE4SDV_ScopedAssurance",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "owner": "package DE4SDV_MethodContext",
           "form": "named-doc",
           "documentation_name": "AssuranceClaimOntologyDefinition",
           "documentation_index": 0
@@ -348,7 +336,7 @@
       "definition": {
         "documentation": "DE4SDV application connection definition for design-input derivation: the derivedRequirement originates from the stakeholder need. Provenance/traceability semantics only - neither satisfaction nor logical implication between the connected usages is claimed. The typed connection ends (need : StakeholderNeedCandidate, derivedRequirement : RequirementCandidate) carry the predicate's domain and range in the model itself. The standard Requirement Derivation Domain Library remains pinned but unadopted: its originalImpliesDerived semantics change the claim (upstream adoption gate still applies; no floating upgrade, no upstream contact without authorization).",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "owner": "connection def DerivesFromNeed",
           "form": "named-doc",
           "documentation_name": "ontologyDefinition",
@@ -358,7 +346,7 @@
       },
       "grounding": {
         "kernel_binding_contract": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "declaration": "connection def DerivesFromNeed"
         },
         "ontology_relations": {
@@ -381,8 +369,8 @@
       "definition": {
         "documentation": "A reviewable artifact that supports a verification, validation, assurance, or release decision.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
-          "owner": "package DE4SDV_ScopedAssurance",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "owner": "package DE4SDV_MethodContext",
           "form": "named-doc",
           "documentation_name": "EvidenceArtifactOntologyDefinition",
           "documentation_index": 0
@@ -444,8 +432,8 @@
       "definition": {
         "documentation": "Lifecycle status for evidence and verification results. DE4SDV does not define its own status vocabulary: requirement verification status uses the upstream VVStatus enum, and bounded evidence outcomes/dispositions use slice-local enums such as MiddlewareEvidenceOutcome and MiddlewareEvidenceDisposition.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
-          "owner": "package DE4SDV_ScopedAssurance",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "owner": "package DE4SDV_MethodContext",
           "form": "named-doc",
           "documentation_name": "EvidenceStatusOntologyDefinition",
           "documentation_index": 0
@@ -454,39 +442,6 @@
       },
       "grounding": {
         "kernel_external": "ODE4HERA requirements-management library VVStatus (NRM A13+A14) via the DE4SDV method-context adapter",
-        "ontology_relations": {
-          "sub_class_of": null,
-          "disjoint_with": []
-        },
-        "contract_source": "kernel mapping kind and ontology relations: reviewed admission-manifest fields (manifest-held: the model does not carry them structurally, so the reviewed manifest is their authority); file mappings are resolved in the model by this generator; authored-ontology parity proven before its deletion: https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/docs/method-conformance/o4/closure/contract-equivalence.json"
-      },
-      "support": "vocabulary-only",
-      "traversal": false,
-      "api_identity": "unclaimed"
-    },
-    {
-      "identity": "EvidenceSupportCitation",
-      "semantic_kind": "class",
-      "admission_class": "definition",
-      "register_wave": null,
-      "accounting": "unregistered",
-      "boundary": "none",
-      "definition": {
-        "documentation": "supportedByEvidence cites one identified artifact as support for an exact scoped claim, with rationale and known limitations. Neither this citation nor hasEvidence (case-to-artifact association) asserts adequacy, satisfaction, a passing result, or acceptance. Evidence bytes and artifact maturity remain external. Scope identifiers must match without inference.",
-        "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
-          "owner": "item def EvidenceSupportCitation",
-          "form": "owned-doc",
-          "documentation_name": null,
-          "documentation_index": 0
-        },
-        "documentation_observation": "model-owned-documentation"
-      },
-      "grounding": {
-        "kernel_binding_contract": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
-          "declaration": "item def EvidenceSupportCitation"
-        },
         "ontology_relations": {
           "sub_class_of": null,
           "disjoint_with": []
@@ -600,9 +555,9 @@
       "accounting": "unregistered",
       "boundary": "none",
       "definition": {
-        "documentation": "Scope declaration of an increment's trace obligations: the selected approved method, the increment, its declared scope kind, applicable phases and completion claim. Required traces derive from the selected approved method, not from candidate-selected easy checks. The traces themselves are the increment's native model relationships (owning membership, typing, requirement subject and stakeholder membership, HasStakeholder connections, framed concerns), never parallel reference slots in this declaration. Populating this declaration is not completion evidence. Reuse prior artifacts, preserve R/F/L/P, and do not invent realization or execution for early framing. Missing required traces block the corresponding claim unless an authorized visible disposition permits it. Unsupported or unavailable evaluation stays UNASSESSED, never synthetic PASS.",
+        "documentation": "Scope declaration of an increment's trace obligations: the increment and its applicable phases. Required traces derive from the checks that the workflow steps of those phases declare, not from candidate-selected easy checks. The traces themselves are the increment's native model relationships (owning membership, typing, requirement subject and stakeholder membership, HasStakeholder connections, framed concerns), never parallel reference slots in this declaration. Populating this declaration is not completion evidence. Reuse prior artifacts, preserve R/F/L/P, and do not invent realization or execution for early framing. Missing required traces block the exit of the phase they belong to unless an authorized visible disposition permits it, such as a step parameter whose multiplicity allows none. Unsupported or unavailable evaluation stays UNASSESSED, never synthetic PASS.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml",
           "owner": "part def IncrementTraceObligations",
           "form": "owned-doc",
           "documentation_name": null,
@@ -612,7 +567,7 @@
       },
       "grounding": {
         "kernel_binding_contract": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml",
           "declaration": "part def IncrementTraceObligations"
         },
         "ontology_relations": {
@@ -665,7 +620,7 @@
       "definition": {
         "documentation": "Technology-neutral logical responsibility grouping.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "owner": "part def LogicalAllocationElement",
           "form": "owned-doc",
           "documentation_name": null,
@@ -675,7 +630,7 @@
       },
       "grounding": {
         "kernel_binding_contract": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "declaration": "part def LogicalAllocationElement"
         },
         "ontology_relations": {
@@ -761,7 +716,7 @@
       "definition": {
         "documentation": "Concrete software, hardware or platform realization element; allocation is not deployment.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "owner": "part def PhysicalAllocationElement",
           "form": "owned-doc",
           "documentation_name": null,
@@ -771,7 +726,7 @@
       },
       "grounding": {
         "kernel_binding_contract": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "declaration": "part def PhysicalAllocationElement"
         },
         "ontology_relations": {
@@ -824,7 +779,7 @@
       "definition": {
         "documentation": "Controlled external origin reference that informed requirement engineering. Interpretation, applicability, obligations, required conditions, evidence and authorized compliance assessment are separate.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "owner": "part def ControlledRegulatorySource",
           "form": "owned-doc",
           "documentation_name": null,
@@ -834,7 +789,7 @@
       },
       "grounding": {
         "kernel_binding_contract": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "declaration": "part def ControlledRegulatorySource"
         },
         "ontology_relations": {
@@ -857,7 +812,7 @@
       "definition": {
         "documentation": "Source provenance only. Does not add a required satisfaction condition or establish applicability, correct interpretation, fulfillment, certification or homologation. Historical constrainedBy was provenance, never a native required constraint.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "owner": "connection def RegulatorySourceAssociation",
           "form": "owned-doc",
           "documentation_name": null,
@@ -867,7 +822,7 @@
       },
       "grounding": {
         "kernel_binding_contract": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "declaration": "connection def RegulatorySourceAssociation"
         },
         "ontology_relations": {
@@ -890,8 +845,8 @@
       "definition": {
         "documentation": "The ordered trace chain every substantial increment should establish, even if some links are draft: stakeholder concern, need, requirement, feature or common capability, architecture element, logical-to-software signal mapping when a boundary is crossed, physical/software realization, verification case, acceptance criterion, evidence artifact, baseline decision. Intentionally missing links are recorded as gaps.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
-          "owner": "package DE4SDV_MethodTraces",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml",
+          "owner": "package DE4SDV_IncrementWorkflow",
           "form": "named-doc",
           "documentation_name": "RequiredTraceChainOntologyDefinition",
           "documentation_index": 0
@@ -900,72 +855,6 @@
       },
       "grounding": {
         "kernel_external": "Historical pre-Topic-5 universal-chain vocabulary retained for compatibility; not a successor completion policy",
-        "ontology_relations": {
-          "sub_class_of": null,
-          "disjoint_with": []
-        },
-        "contract_source": "kernel mapping kind and ontology relations: reviewed admission-manifest fields (manifest-held: the model does not carry them structurally, so the reviewed manifest is their authority); file mappings are resolved in the model by this generator; authored-ontology parity proven before its deletion: https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/docs/method-conformance/o4/closure/contract-equivalence.json"
-      },
-      "support": "vocabulary-only",
-      "traversal": false,
-      "api_identity": "unclaimed"
-    },
-    {
-      "identity": "ScopedEvidenceAdequacyAssessment",
-      "semantic_kind": "class",
-      "admission_class": "definition",
-      "register_wave": null,
-      "accounting": "unregistered",
-      "boundary": "none",
-      "definition": {
-        "documentation": "Proportionate evidence-SET assessment for this exact claim, subject, configuration, conditions and agreed criteria. Required before presenting a claim as established or seeking acceptance; not a universal sufficiency verdict on each artifact. Reuse cases, criteria, executions, evidence and gap identities. Coverage, confidence and rigor bases, contrary results, discrepancies, unresolved gaps, assessor, conclusion and reasoning must remain explicit. An adequate set can establish a negative conclusion. supportsClaim records the assessor's scoped conclusion, not checker truth. Accepted exceptions stay visible; neither assessment nor acceptance turns exceptions or generic Completed status into unqualified satisfaction. AcceptanceAttestationReference remains a separate designated-authority decision reference, not the assessor's conclusion or result approval.",
-        "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
-          "owner": "item def ScopedEvidenceAdequacyAssessment",
-          "form": "owned-doc",
-          "documentation_name": null,
-          "documentation_index": 0
-        },
-        "documentation_observation": "model-owned-documentation"
-      },
-      "grounding": {
-        "kernel_binding_contract": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
-          "declaration": "item def ScopedEvidenceAdequacyAssessment"
-        },
-        "ontology_relations": {
-          "sub_class_of": null,
-          "disjoint_with": []
-        },
-        "contract_source": "kernel mapping kind and ontology relations: reviewed admission-manifest fields (manifest-held: the model does not carry them structurally, so the reviewed manifest is their authority); file mappings are resolved in the model by this generator; authored-ontology parity proven before its deletion: https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/docs/method-conformance/o4/closure/contract-equivalence.json"
-      },
-      "support": "vocabulary-only",
-      "traversal": false,
-      "api_identity": "unclaimed"
-    },
-    {
-      "identity": "ScopedVVActivityRecord",
-      "semantic_kind": "class",
-      "admission_class": "definition",
-      "register_wave": null,
-      "accounting": "unregistered",
-      "boundary": "none",
-      "definition": {
-        "documentation": "One explicitly scoped verification OR validation activity. Applicable across needs, requirements, designs, production outputs, system elements, integrated systems and artifacts without inheriting requirement attributes. Native need/requirement verificationStatus attachments remain unchanged. Results and evidence are references to retained external records, not a second result/evidence store; native VerdictKind execution values remain distinct from this activity's status. Artifact maturity is not this status. Completed includes necessary result approval, but never infers PASS or designated-authority acceptance. CompletedUnsuccessful could not complete; CompletedFailed completed with technical failure; CompletedPassed completed successfully against the activity basis only, not a broader scoped claim.",
-        "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
-          "owner": "item def ScopedVVActivityRecord",
-          "form": "owned-doc",
-          "documentation_name": null,
-          "documentation_index": 0
-        },
-        "documentation_observation": "model-owned-documentation"
-      },
-      "grounding": {
-        "kernel_binding_contract": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
-          "declaration": "item def ScopedVVActivityRecord"
-        },
         "ontology_relations": {
           "sub_class_of": null,
           "disjoint_with": []
@@ -1019,8 +908,8 @@
       "definition": {
         "documentation": "A relationship connecting source, rationale, requirement, model, evidence, or baseline artifacts.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
-          "owner": "package DE4SDV_MethodTraces",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml",
+          "owner": "package DE4SDV_IncrementWorkflow",
           "form": "named-doc",
           "documentation_name": "TraceLinkOntologyDefinition",
           "documentation_index": 0
@@ -1049,7 +938,7 @@
       "definition": {
         "documentation": "One validation planning association. Inverse navigation is the same fact, not execution or a fitness-for-use verdict.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "owner": "connection def ValidationPlanningAssociation",
           "form": "owned-doc",
           "documentation_name": null,
@@ -1059,7 +948,7 @@
       },
       "grounding": {
         "kernel_binding_contract": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "declaration": "connection def ValidationPlanningAssociation"
         },
         "ontology_relations": {
@@ -1082,7 +971,7 @@
       "definition": {
         "documentation": "Stakeholder fitness-for-use validation planning only; not a native verification case, execution, result or acceptance.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "owner": "part def ValidationPlanningScenario",
           "form": "owned-doc",
           "documentation_name": null,
@@ -1092,7 +981,7 @@
       },
       "grounding": {
         "kernel_binding_contract": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "declaration": "part def ValidationPlanningScenario"
         },
         "ontology_relations": {
@@ -1145,8 +1034,8 @@
       "definition": {
         "documentation": "Successor definition: one canonical allocatedTo predicate. A native AllocationUsage assigns responsibility from its source usage to its target usage for exactly one governed end pair: requirement to function, function to logical element, or logical element to physical element. Endpoint classes come from the validated kernel bindings of the endpoint lineage, never from usage or allocation names. Allocation proves no satisfaction, execution, deployment, fulfillment or transitivity; it is not a composed requirement-to-architecture realization. The superseded names are realizedBy and deployedTo, and the former Function-to-LogicalElement signature is the second end pair of this version.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-          "owner": "package DE4SDV_RelationshipSuccessor",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
+          "owner": "package DE4SDV_TraceVocabulary",
           "form": "vocabulary-role",
           "comment_name": "allocatedToVocabularyRole",
           "about": [
@@ -1165,7 +1054,7 @@
           {
             "record": "requirementAllocation",
             "carrier": {
-              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
               "declaration": "connection def RequirementFunctionAssignment",
               "ends": [
                 {
@@ -1189,7 +1078,7 @@
           {
             "record": "functionAllocation",
             "carrier": {
-              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
               "declaration": "connection def FunctionLogicalAssignment",
               "ends": [
                 {
@@ -1213,7 +1102,7 @@
           {
             "record": "physicalAllocation",
             "carrier": {
-              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
               "declaration": "connection def LogicalPhysicalAssignment",
               "ends": [
                 {
@@ -1324,8 +1213,8 @@
       "definition": {
         "documentation": "Historical source provenance, not native required conditions; controlled-source successor is hasRegulatorySource, not an alias.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-          "owner": "package DE4SDV_RelationshipSuccessor",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
+          "owner": "package DE4SDV_TraceVocabulary",
           "form": "retirement-record",
           "record": "oldRegulatoryName"
         },
@@ -1365,8 +1254,8 @@
       "definition": {
         "documentation": "Retired stronger active claim; no deployment assertion is invented.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-          "owner": "package DE4SDV_RelationshipSuccessor",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
+          "owner": "package DE4SDV_TraceVocabulary",
           "form": "retirement-record",
           "record": "oldDeployment"
         },
@@ -1442,8 +1331,8 @@
       "definition": {
         "documentation": "External boundary for hasEvidence (VerificationCase to EvidenceArtifact): artifact association only, carried by the case's typed de4sdv.evidence-reference/v1 record; content external, no authority. The association exposes no verdict, pass, approval or acceptance and implements no traversal: external data is required and an absent record is never reported as an empty hop. It is not supportedByEvidence.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
-          "owner": "package DE4SDV_ScopedAssurance",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "owner": "package DE4SDV_MethodContext",
           "form": "vocabulary-role",
           "comment_name": "hasEvidenceVocabularyRole",
           "about": [
@@ -1476,14 +1365,14 @@
       "accounting": "retained",
       "boundary": "historical-redesign",
       "definition": {
-        "documentation": "Successor for the legacy hasEvidenceStatus (EvidenceArtifact to EvidenceStatus) predicate. Scoped verification and validation activity status is the unchanged adopted VVStatus on ScopedVVActivityRecord status, identified with its subject, configuration, activity, comparison basis and result or evidence references; EvidenceStatus resolves to that pinned VVStatus and to slice-local bounded outcome/disposition enums. No new universal status enum is introduced. Artifact maturity, evidence-set adequacy and authority acceptance stay separate, and Completed never means passed or accepted. Retirement: hasEvidenceStatus takes no new model usage; consumers move to this successor in a reviewed runtime change, which then retires the legacy predicate (the authored ontology that declared it is removed).",
+        "documentation": "Successor for the legacy hasEvidenceStatus (EvidenceArtifact to EvidenceStatus) predicate. Scoped verification and validation activity status is the unchanged adopted VVStatus, identified with the activity's subject, configuration, comparison basis and result or evidence references; EvidenceStatus resolves to that pinned VVStatus and to slice-local bounded outcome/disposition enums. Each activity is exactly one verification or one validation, applicable across needs, requirements, designs, production outputs, system elements, integrated systems and artifacts without inheriting requirement attributes; native need and requirement verificationStatus attachments stay unchanged, and native VerdictKind execution values stay distinct from the activity's status. Completed includes the necessary result approval; CompletedUnsuccessful could not complete; CompletedFailed completed with technical failure; CompletedPassed completed successfully against the activity basis only, not a broader scoped claim. No new universal status enum is introduced. Artifact maturity, evidence-set adequacy and authority acceptance stay separate, and Completed never means passed or accepted. Retirement: hasEvidenceStatus takes no new model usage; consumers move to this successor in a reviewed runtime change, which then retires the legacy predicate (the authored ontology that declared it is removed).",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
-          "owner": "package DE4SDV_ScopedAssurance",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "owner": "package DE4SDV_MethodContext",
           "form": "vocabulary-role",
           "comment_name": "hasEvidenceStatusVocabularyRole",
           "about": [
-            "ScopedVVActivityRecord"
+            "EvidenceStatusOntologyDefinition"
           ],
           "about_imports": {}
         },
@@ -1514,8 +1403,8 @@
       "definition": {
         "documentation": "Successor definition: a requirement has a controlled regulatory source, recorded as requirement-source provenance only. Applicability, interpretation, binding requirements or required conditions, fulfillment evidence and authorized compliance assessment remain distinct; provenance neither makes an applicable obligation optional nor proves compliance. Supersedes constrainedBy.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-          "owner": "package DE4SDV_RelationshipSuccessor",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
+          "owner": "package DE4SDV_TraceVocabulary",
           "form": "vocabulary-role",
           "comment_name": "hasRegulatorySourceVocabularyRole",
           "about": [
@@ -1532,7 +1421,7 @@
           {
             "record": "regulatoryProvenance",
             "carrier": {
-              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
               "declaration": "connection def RegulatorySourceAssociation",
               "ends": [
                 {
@@ -1702,8 +1591,8 @@
       "definition": {
         "documentation": "Successor definition: a stakeholder need has a planned validation scenario. One typed ValidationPlanningAssociation records the planning fact; validationScenarioFor is inverse navigation over the same fact. It records planning only: no execution, result, fitness-for-use verdict, completed validation or stakeholder acceptance. Supersedes validatedBy and merges validatesFitnessForUse.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-          "owner": "package DE4SDV_RelationshipSuccessor",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
+          "owner": "package DE4SDV_TraceVocabulary",
           "form": "vocabulary-role",
           "comment_name": "hasValidationScenarioVocabularyRole",
           "about": [
@@ -1720,7 +1609,7 @@
           {
             "record": "validationPlanning",
             "carrier": {
-              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
               "declaration": "connection def ValidationPlanningAssociation",
               "ends": [
                 {
@@ -1830,8 +1719,8 @@
       "definition": {
         "documentation": "Retired stronger active claim; native responsibility assignments use allocatedTo without fulfillment.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-          "owner": "package DE4SDV_RelationshipSuccessor",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
+          "owner": "package DE4SDV_TraceVocabulary",
           "form": "retirement-record",
           "record": "oldRealization"
         },
@@ -2046,15 +1935,14 @@
       "accounting": "retained",
       "boundary": "none",
       "definition": {
-        "documentation": "The supportedByEvidence relation (AssuranceClaim to EvidenceArtifact) is represented by one EvidenceSupportCitation per cited artifact: the exact scoped claim (claim, subject, configuration, conditions), the versioned evidence reference, the rationale and the known limits. This is cited support, distinct from hasEvidence artifact association. A claim is treated as established, or acceptance is sought, only after a ScopedEvidenceAdequacyAssessment of the evidence set for the same exact scope, which reuses the cases, criteria, results, references and gaps it assesses. The designated authority's scoped acceptance stays a separate AcceptanceAttestationReference, with exceptions kept visible. Citation, adequacy and acceptance never imply each other. Vocabulary only at this revision: no runtime traversal is implemented here.",
+        "documentation": "The supportedByEvidence relation (AssuranceClaim to EvidenceArtifact) records one citation per cited artifact: the exact scoped claim (claim, subject, configuration, conditions), the versioned evidence reference, the rationale and the known limits. This is cited support, distinct from hasEvidence artifact association. A claim is treated as established, or acceptance is sought, only after a proportionate adequacy assessment of the evidence set for the same exact scope and agreed criteria, which reuses the cases, criteria, results, references and gaps it assesses. That assessment is not a sufficiency verdict on each artifact: it keeps its coverage, confidence and rigor bases, contrary results, discrepancies, unresolved gaps, assessor and reasoning explicit; an adequate set can establish a negative conclusion; and whether the set supports the claim is the assessor's scoped conclusion, not checker truth. The designated authority's scoped acceptance stays a separate AcceptanceAttestationReference, with exceptions kept visible; neither assessment nor acceptance turns exceptions or a generic Completed status into unqualified satisfaction. Citation, adequacy and acceptance never imply each other. Vocabulary only at this revision: no runtime traversal is implemented here.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
-          "owner": "package DE4SDV_ScopedAssurance",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "owner": "package DE4SDV_MethodContext",
           "form": "vocabulary-role",
           "comment_name": "supportedByEvidenceVocabularyRole",
           "about": [
-            "EvidenceSupportCitation",
-            "ScopedEvidenceAdequacyAssessment"
+            "AssuranceClaimOntologyDefinition"
           ],
           "about_imports": {}
         },
@@ -2085,8 +1973,8 @@
       "definition": {
         "documentation": "Planning successor is hasValidationScenario; no validation result implied.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-          "owner": "package DE4SDV_RelationshipSuccessor",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
+          "owner": "package DE4SDV_TraceVocabulary",
           "form": "retirement-record",
           "record": "oldValidationForward"
         },
@@ -2126,8 +2014,8 @@
       "definition": {
         "documentation": "Inverse planning navigation is validationScenarioFor over the same association; not a fitness-for-use verdict.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-          "owner": "package DE4SDV_RelationshipSuccessor",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
+          "owner": "package DE4SDV_TraceVocabulary",
           "form": "retirement-record",
           "record": "oldValidationInverse"
         },

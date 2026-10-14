@@ -63,12 +63,17 @@ Every supplied reference member must first have an interpretable identity. A
 missing or blank endpoint, typing or specialization identity is incomplete
 evidence, not a member that may be discarded before cardinality or lineage checks.
 
-`relationship_successor_contract.py` extracts and verifies source-derived records
-when the runtime is built (`model_contract.generate_model_successor_contract`,
-called by the deployed runtime's startup check and facade). The live relationship service
-cannot import that source-reading extractor; queries consume the constructed
-profile and API binding only. The repository layering guard enforces this split.
-Construction masks comments and both quoted-token forms together; comment markers
+`trace_vocabulary_contract.py` extracts and verifies the records at build time
+and `scripts/generate_trace_vocabulary_contract.py` writes them to
+`de4sdv/semantic/contract-data/trace-vocabulary-contract.json`; `check_repo.py`
+refuses a stale file. The runtime reads that file
+(`model_contract.load_trace_contract`, called by the deployed runtime's startup
+check and facade) and never parses SysML text (ADR 0011): it checks the file's
+shape, that its `id` is the digest of its meaning, and that its class pins
+equal those of the projection layers. The live relationship service cannot
+import the source-reading extractor; queries consume the generated profile and
+API binding only. The repository layering guard enforces this split.
+Extraction masks comments and both quoted-token forms together; comment markers
 inside a literal remain literal content. Required record fields are checked before
 use. These bounded lexical checks do not replace licensed SysML validation.
 Declaration location and owned-body matching run through that same scan, so a

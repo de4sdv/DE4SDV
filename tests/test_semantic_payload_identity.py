@@ -10,12 +10,20 @@ import pytest
 
 from de4sdv.semantic import model_contract as mc
 from de4sdv.semantic import model_projection_coverage as coverage
-from de4sdv.semantic import relationship_successor_contract as successor
+from de4sdv.semantic import trace_vocabulary_contract as successor
 from de4sdv.sysml_api.revisions import SemanticAuthorityIdentity
 
 
 PIN_FILE = "synthetic/endpoints.sysml"
 PIN_INPUT = "synthetic/projection.json"
+#: Files a change of which must leave both identities alone: runtime code, a
+#: pilot record and an unrelated model file.
+INCIDENTAL_FILES = (
+    "de4sdv/semantic/model_contract.py",
+    "de4sdv/semantic/query.py",
+    "methodologies/sysmod-sysmlv2/pilots/aebs-needs-requirements.yaml",
+    "textual-notation-of-model/packages/features/aebs/aebs_logical_architecture.sysml",
+)
 CLASS_PINS = {
     "Origin": {"file": PIN_FILE, "declaration": "part def Origin"},
     "Destination": {"file": PIN_FILE, "declaration": "part def Destination"},
@@ -30,16 +38,16 @@ EXPECTED_FROZEN_RECORD_RELATIONSHIPS = (
     "hasRelevantArchitecture",
 )
 # Small invented construction inputs, not snapshots of governed model files.
-SUCCESSOR_SOURCE = '''package DE4SDV_RelationshipSuccessor {
+SUCCESSOR_SOURCE = '''package DE4SDV_TraceVocabulary {
   connection def SyntheticLink {
     end source : SyntheticEndpoints::Origin;
     end target : SyntheticEndpoints::Destination;
   }
-  part version : SuccessorVersionRecord {
+  part version : TraceVocabularyVersionRecord {
     attribute :>> version = "synthetic.successor/v1";
     attribute :>> supersedes = "synthetic prior contract";
   }
-  part link : SuccessorRelationRecord {
+  part link : TraceRelationRecord {
     attribute :>> predicate = "linksTo";
     attribute :>> carrier = "SyntheticLink";
     attribute :>> mechanism = "typed-connection";
@@ -50,7 +58,7 @@ SUCCESSOR_SOURCE = '''package DE4SDV_RelationshipSuccessor {
     attribute :>> targetUsage = "destination";
     attribute :>> inverse = "linkedFrom";
   }
-  part retired : SuccessorRetirementRecord {
+  part retired : RetiredRelationRecord {
     attribute :>> predicate = "oldLink";
     attribute :>> reason = "retired; use linksTo";
   }
@@ -86,13 +94,18 @@ def synthetic_successor_root(tmp_path):
            "package SyntheticEndpoints {\n  part def Origin {}\n"
            "  part def Destination {}\n}\n")
     _write(tmp_path, PIN_INPUT, '{"binding":{"source_revision":"' + "a" * 40 + '"}}\n')
-    for relative in successor.PROGRAM_INPUTS:
-        _write(tmp_path, relative, "# synthetic incidental construction input\n")
+    for relative in INCIDENTAL_FILES:
+        _write(tmp_path, relative, "# synthetic incidental file\n")
     return tmp_path
 
 
 def _generate(root):
-    return successor.generate_contract(root, class_pins=CLASS_PINS, pin_inputs=(PIN_INPUT,))
+    return successor.extract_contract(root, class_pins=CLASS_PINS)
+
+
+def _write_trace_contract(root):
+    """Regenerate the trace-vocabulary contract file the runtime reads, as the generator does."""
+    _write(root, mc.TRACE_CONTRACT_PATH, mc.canonical_json(successor.build_document(root)))
 
 
 @pytest.mark.parametrize("field", [
@@ -104,8 +117,8 @@ def _generate(root):
 ])
 def test_successor_refuses_unsupported_direct_owned_attributes(synthetic_successor_root, field):
     root = synthetic_successor_root
-    assert successor.semantic_payload(_generate(root)) == EXPECTED_SUCCESSOR
-    marker = "part link : SuccessorRelationRecord {"
+    assert mc.trace_contract_payload(_generate(root)) == EXPECTED_SUCCESSOR
+    marker = "part link : TraceRelationRecord {"
     assert SUCCESSOR_SOURCE.count(marker) == 1
     changed = SUCCESSOR_SOURCE.replace(marker, marker + "\n    " + field)
     _write(root, successor.MODEL, changed)
@@ -120,9 +133,9 @@ def test_successor_refuses_unsupported_direct_owned_attributes(synthetic_success
 ])
 def test_successor_field_inventory_ignores_nonowned_or_commented_attributes(synthetic_successor_root, noise):
     root = synthetic_successor_root
-    marker = "part link : SuccessorRelationRecord {"
+    marker = "part link : TraceRelationRecord {"
     _write(root, successor.MODEL, SUCCESSOR_SOURCE.replace(marker, marker + "\n    " + noise))
-    assert successor.semantic_payload(_generate(root)) == EXPECTED_SUCCESSOR
+    assert mc.trace_contract_payload(_generate(root)) == EXPECTED_SUCCESSOR
 
 
 def test_successor_field_inventory_keeps_attribute_words_inside_literal_values(synthetic_successor_root):
@@ -130,7 +143,7 @@ def test_successor_field_inventory_keeps_attribute_words_inside_literal_values(s
     reason = 'retired; use linksTo; attribute unknownSemanticRule : String = "policy";'
     changed = SUCCESSOR_SOURCE.replace('"retired; use linksTo"', json.dumps(reason))
     _write(root, successor.MODEL, changed)
-    observed = successor.semantic_payload(_generate(root))
+    observed = mc.trace_contract_payload(_generate(root))
     expected = {**EXPECTED_SUCCESSOR, "retired": {"oldLink": reason}}
     assert observed == expected
 
@@ -145,8 +158,9 @@ def test_successor_id_ignores_runtime_python_bytes(synthetic_successor_root):
     runtime_file = "de4sdv/semantic/query.py"
     _write(root, runtime_file, "# an unrelated Python refactor\n")
     after = _generate(root)
-    assert after["bound_inputs"][runtime_file] != before["bound_inputs"][runtime_file]
-    assert before["id"] == after["id"] == expected_id
+    # The contract records no input digests: its meaning and id are all it carries.
+    assert set(after) == set(mc.TRACE_CONTRACT_FIELDS) | {"id"}
+    assert before == after and before["id"] == after["id"] == expected_id
 
 
 def _write_json(root, relative, value):
@@ -156,16 +170,13 @@ def _write_json(root, relative, value):
 @pytest.fixture
 def synthetic_layers_root(synthetic_successor_root):
     root = synthetic_successor_root
-    definition, o2plus, vocabulary = mc.LAYERS
+    definition, o2plus = mc.LAYERS
     batch2 = mc.BATCH2_LAYER
     rows = {
         definition.name: [{"identity": "Origin", "semantic_kind": "class",
                            "grounding": {"kernel_binding_contract": CLASS_PINS["Origin"]}}],
         o2plus.name: [{"identity": "SyntheticNative", "category": "native",
                       "construct": "SysML::PartUsage"}],
-        vocabulary.name: [{"identity": "documents", "domain": {"identity": "Origin"},
-                           "range": {"identity": "Destination"}, "support": "vocabulary-only",
-                           "carrier": {"file": PIN_FILE, "declaration": "connection def Documents"}}],
         batch2.name: [
             {"identity": "Destination", "semantic_kind": "class", "admission_class": "definition",
              "grounding": {"kernel_binding_contract": CLASS_PINS["Destination"]}},
@@ -192,8 +203,6 @@ def synthetic_layers_root(synthetic_successor_root):
                                                "binding": binding, "rows": rows[spec.name]})
         _write_json(root, spec.profile_path, {"schema": spec.profile_schema,
                                             "binding": binding, "entries": entries})
-    _write(root, PIN_FILE, (root / PIN_FILE).read_text().replace(
-        "\n}", "\n  connection def Documents {}\n}"))
     o2_classes = []
     for name in EXPECTED_FROZEN_RECORD_CLASSES:
         if name == "VerificationCase":
@@ -225,6 +234,7 @@ def synthetic_layers_root(synthetic_successor_root):
     ]})
     _write(root, mc.KERNEL_INTERNAL_PATH,
            "schema: de4sdv.kernel-internal-declarations/v1\ngoverned_directory: synthetic\ndeclarations: {}\n")
+    _write_trace_contract(root)
     return root
 
 
@@ -233,7 +243,7 @@ def test_authority_identity_ignores_live_git_binding_metadata(synthetic_layers_r
     before = mc.build_model_contract(root)
     assert set(before.classes) == set(EXPECTED_FROZEN_RECORD_CLASSES) | {"Origin", "Destination", "SyntheticNative"}
     assert set(before.relationships) == set(EXPECTED_FROZEN_RECORD_RELATIONSHIPS) | {
-        "documents", "describes", "linksTo", "linkedFrom"}
+        "describes", "linksTo", "linkedFrom"}
     assert dict(before.refused) == {
         "RemovedName": "refused: removed (register disposition REMOVE, synthetic); no replacement",
         "oldLink": "retired; use linkedFrom",
@@ -308,8 +318,6 @@ def test_live_document_wrapper_meaning_is_identity_sensitive(synthetic_layers_ro
     (mc.LAYERS[0], "scope", {"admitted": ["Origin"], "note": "bounded synthetic admission"}),
     (mc.BATCH2_LAYER, "scope", {"admitted": ["Destination"], "exceptions": []}),
     (mc.LAYERS[1], "scope", {"projection_rows": ["SyntheticNative"], "api_profile_entries": []}),
-    (mc.LAYERS[2], "candidates", ["documents", "unadmitted"]),
-    (mc.LAYERS[2], "admitted", ["documents"]),
 ])
 def test_live_document_scope_and_population_meaning_is_identity_sensitive(synthetic_layers_root, spec, field, value):
     root = synthetic_layers_root
@@ -341,13 +349,14 @@ def test_live_document_profile_does_not_admit_projection_fields(synthetic_layers
 def test_authority_id_covers_successor_endpoint_usage(synthetic_layers_root):
     root = synthetic_layers_root
     before = mc.build_model_contract(root)
-    first_successor = mc.generate_model_successor_contract(root)
+    first_successor = mc.load_trace_contract(root)
     source = (root / successor.MODEL).read_text()
     changed = source.replace('sourceUsage = "origin"', 'sourceUsage = "otherOrigin"')
     assert changed != source
     _write(root, successor.MODEL, changed)
+    _write_trace_contract(root)
     after = mc.build_model_contract(root)
-    second_successor = mc.generate_model_successor_contract(root)
+    second_successor = mc.load_trace_contract(root)
     assert first_successor["id"] != second_successor["id"]
     # Class pins and traversal mappings alone do not encode endpoint usage.
     assert after.classes == before.classes and after.relationships == before.relationships
@@ -379,7 +388,8 @@ def test_incidental_changes_preserve_both_identities_and_cache_key(synthetic_lay
 
     root = synthetic_layers_root
     before = mc.build_model_contract(root)
-    first_successor = mc.generate_model_successor_contract(root)
+    first_successor = mc.load_trace_contract(root)
+    first_document = (root / mc.TRACE_CONTRACT_PATH).read_bytes()
     if change in {"remove-bindings", "json-format"}:
         for spec in mc.LAYERS + mc.BATCH2_LAYERS:
             for path in (spec.projection_path, spec.profile_path):
@@ -395,11 +405,13 @@ def test_incidental_changes_preserve_both_identities_and_cache_key(synthetic_lay
             "pin-comment": PIN_FILE,
         }[change]
         _write(root, relative, (root / relative).read_text() + "\n// synthetic nonsemantic comment\n")
+    # Regeneration after an incidental change writes the same bytes.
+    _write_trace_contract(root)
+    assert (root / mc.TRACE_CONTRACT_PATH).read_bytes() == first_document
     after = mc.build_model_contract(root)
-    second_successor = mc.generate_model_successor_contract(root)
-    assert successor.semantic_payload(first_successor) == EXPECTED_SUCCESSOR
-    assert successor.semantic_payload(second_successor) == EXPECTED_SUCCESSOR
-    assert first_successor["bound_inputs"] != second_successor["bound_inputs"]
+    second_successor = mc.load_trace_contract(root)
+    assert mc.trace_contract_payload(first_successor) == EXPECTED_SUCCESSOR
+    assert mc.trace_contract_payload(second_successor) == EXPECTED_SUCCESSOR
     assert first_successor["id"] == second_successor["id"]
     assert before.identity == after.identity
     services = [SimpleNamespace(binding=SimpleNamespace(sysml_commit_id="same-api-revision"),
@@ -421,13 +433,14 @@ def test_successor_semantic_changes_alter_both_ids(synthetic_layers_root, old, n
 
     root = synthetic_layers_root
     before = mc.build_model_contract(root)
-    first_successor = mc.generate_model_successor_contract(root)
+    first_successor = mc.load_trace_contract(root)
     source = (root / successor.MODEL).read_text()
     changed = source.replace(old, new)
     assert changed != source
     _write(root, successor.MODEL, changed)
+    _write_trace_contract(root)
     after = mc.build_model_contract(root)
-    second_successor = mc.generate_model_successor_contract(root)
+    second_successor = mc.load_trace_contract(root)
     assert first_successor["id"] != second_successor["id"]
     assert before.identity.id != after.identity.id
     services = [SimpleNamespace(binding=SimpleNamespace(sysml_commit_id="same-api-revision"),
@@ -439,8 +452,6 @@ def test_successor_semantic_changes_alter_both_ids(synthetic_layers_root, old, n
     (mc.BATCH2_LAYER.projection_path, '"semantic_strength": "declared"', '"semantic_strength": "native"'),
     (mc.BATCH2_LAYER.profile_path, '"property": "ownedMember"', '"property": "memberElement"'),
     (mc.LAYERS[1].projection_path, '"SysML::PartUsage"', '"SysML::ItemUsage"'),
-    (mc.LAYERS[2].projection_path, '"vocabulary-only"', '"unsupported"'),
-    (mc.LAYERS[2].projection_path, '"connection def Documents"', '"connection def OtherDocuments"'),
     ("de4sdv/semantic/contract-data/ontology-identity-register.json", '"no replacement"', '"explicitly removed"'),
 ])
 def test_served_contract_semantic_changes_alter_authority_id(synthetic_layers_root, path, old, new):
@@ -456,14 +467,18 @@ def test_served_contract_semantic_changes_alter_authority_id(synthetic_layers_ro
 def test_proven_endpoint_pin_change_alters_both_ids(synthetic_layers_root):
     root = synthetic_layers_root
     before = mc.build_model_contract(root)
-    first_successor = mc.generate_model_successor_contract(root)
+    first_successor = mc.load_trace_contract(root)
     projection_path = mc.LAYERS[0].projection_path
     document = json.loads((root / projection_path).read_text())
     document["rows"][0]["grounding"]["kernel_binding_contract"]["file"] = "synthetic/moved-endpoints.sysml"
     _write_json(root, projection_path, document)
     _write(root, "synthetic/moved-endpoints.sysml", "package SyntheticEndpoints {\n  part def Origin {}\n}\n")
+    # The runtime refuses the generated contract until it is regenerated with the layers.
+    with pytest.raises(mc.ModelAuthorityRefused, match="class pins differ from the projection layers: Origin"):
+        mc.build_model_contract(root)
+    _write_trace_contract(root)
     after = mc.build_model_contract(root)
-    second_successor = mc.generate_model_successor_contract(root)
+    second_successor = mc.load_trace_contract(root)
     assert second_successor["classes"]["Origin"] == {
         "file": "synthetic/moved-endpoints.sysml", "declaration": "part def Origin"}
     assert first_successor["id"] != second_successor["id"]
@@ -546,7 +561,7 @@ def test_live_profile_missing_collection_refuses_public_loader(synthetic_layers_
         mc.KernelContract.from_layers(root)
 
 
-@pytest.mark.parametrize("spec", [mc.LAYERS[0], mc.LAYERS[2], mc.BATCH2_LAYER])
+@pytest.mark.parametrize("spec", [mc.LAYERS[0], mc.BATCH2_LAYER])
 def test_live_profile_complete_pairs_refuse_missing_row_entry(synthetic_layers_root, spec):
     root = synthetic_layers_root
     document = json.loads((root / spec.profile_path).read_text())
@@ -694,10 +709,6 @@ def test_optional_kernel_vocabulary_absent_pair_stays_optional(synthetic_layers_
     (mc.LAYERS[1], False, 0, ("grounding", "witness", "contains"), ["part def Origin"]),
     (mc.LAYERS[1], False, 0, ("outputs",), ["bad"]),
     (mc.LAYERS[1], False, 0, ("outputs", "api_profile_entry"), "true"),
-    (mc.LAYERS[2], False, 0, ("domain",), ["Origin"]),
-    (mc.LAYERS[2], False, 0, ("range",), ["Destination"]),
-    (mc.LAYERS[2], False, 0, ("domain", "identity"), ["Origin"]),
-    (mc.LAYERS[2], False, 0, ("range", "identity"), 17),
 ])
 def test_live_provider_malformed_consumed_shapes_refuse_public_loader(
         synthetic_layers_root, spec, profile, index, keys, value):
