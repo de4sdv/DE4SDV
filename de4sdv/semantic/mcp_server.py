@@ -110,9 +110,9 @@ def create_mcp_server(service: SemanticQueryService) -> FastMCP:
         subjects (the multiplicity of the step parameter) and `cardinality` the distinct targets each subject
         must reach. With an increment, also whether each step and gate applies to it, and per gate
         `what_satisfies` and `authoring`: SysML built from the step parameter the check is about, with
-        qualified type names and the `private import` lines they need. No verdict. A `subject_type`
-        containing `::` names a definition: pass it, or a parameter `type`, to inspect_element. A
-        `subject_type` without `::` is the SysML metaclass of an untyped parameter, not a model element
+        qualified type names and the `private import` lines they need. No verdict.
+        A `subject_type` containing `::` names a definition: pass it, or a parameter `type`, to inspect_element.
+        A `subject_type` without `::` is the SysML metaclass of an untyped parameter, not a model element
         (`subject_type_kind` is `metaclass`); its subject is declared by its `subject_keyword`."""
         return service.phase_contract(phase, increment=increment)
 
