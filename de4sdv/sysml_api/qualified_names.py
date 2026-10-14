@@ -13,18 +13,24 @@ Rules (KerML ``Element::qualifiedName`` and ``escapedName``):
 - a member of a root namespace is named by its own name; a deeper member by its
   owning namespace's qualified name, ``::`` and its own name;
 - an element's name is its declared or effective name, else its short name; a
-  name that is not a basic name is written as an unrestricted name, in single
-  quotes with ``\\`` escapes;
+  name that is not a basic name, or is a SysML reserved word, is written as an
+  unrestricted name, in single quotes with ``\\`` escapes;
 - an element without a complete chain of named namespaces up to a root has no
   qualified name: an unnamed element or owner, an element owned through a
   relationship that is not an owning membership, or an owner outside the
-  corpus. A root namespace is an unnamed element without an owner that is not a
-  relationship. A named element without an owner lost its owner to the export
-  boundary (the export removes references to elements it does not carry), so
-  neither it nor its members are named from it.
+  corpus. A root namespace is a ``Namespace`` without an owner. Any other
+  element without an owner lost its owner to the export boundary (the export
+  removes references to elements it does not carry), so neither it nor its
+  members are named from it.
 
 Where several elements share a qualified name (KerML names only the first),
 each keeps it and resolving the name reports the ambiguity.
+
+Only these ownership-qualified names resolve. SysML also reaches a member
+through a short name, an alias, an import or inheritance; a name that takes
+such a path is refused, never resolved, and the refusal says which path it
+takes and gives the canonical qualified name. That explanation is an exact
+lookup over the serialized memberships, imports and specializations.
 """
 
 from __future__ import annotations
@@ -36,15 +42,38 @@ from typing import Any
 from .repository import element_id, reference_ids
 
 _BASIC_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
+#: The SysML v2 reserved keywords. A reserved word is never a basic name, though it has the form of one.
+RESERVED_KEYWORDS = frozenset({
+    "about", "abstract", "accept", "action", "actor", "after", "alias", "all", "allocate",
+    "allocation", "analysis", "and", "as", "assert", "assign", "assume", "at", "attribute", "bind",
+    "binding", "by", "calc", "case", "comment", "concern", "connect", "connection", "constant",
+    "constraint", "crosses", "decide", "def", "default", "defined", "dependency", "derived", "do",
+    "doc", "else", "end", "entry", "enum", "event", "exhibit", "exit", "expose", "false", "filter",
+    "first", "flow", "for", "fork", "frame", "from", "hastype", "if", "implies", "import", "in",
+    "include", "individual", "inout", "interface", "istype", "item", "join", "language", "library",
+    "locale", "loop", "merge", "message", "meta", "metadata", "nonunique", "not", "null",
+    "objective", "occurrence", "of", "or", "ordered", "out", "package", "parallel", "part",
+    "perform", "port", "private", "protected", "public", "redefines", "ref", "references", "render",
+    "rendering", "rep", "require", "requirement", "return", "satisfy", "send", "snapshot",
+    "specializes", "stakeholder", "standard", "state", "subject", "subsets", "succession",
+    "terminate", "then", "timeslice", "to", "transition", "true", "until", "use", "variant",
+    "variation", "verification", "verify", "via", "view", "viewpoint", "when", "while", "xor",
+})
 #: KerML escape sequences of an unrestricted name, by the character after ``\``.
 _UNESCAPE = {"'": "'", '"': '"', "\\": "\\", "b": "\b", "f": "\f", "n": "\n", "r": "\r", "t": "\t"}
 _ESCAPE = {"'": "\\'", "\\": "\\\\", "\b": "\\b", "\f": "\\f", "\n": "\\n", "\r": "\\r", "\t": "\\t"}
 _BLANKS = " \t"
+#: Specializations a type inherits members through (authored ones are followed), and the
+#: key that names the general element in each.
+_SPECIALIZATIONS = ("Subclassification", "Specialization", "FeatureTyping", "ConjugatedPortTyping",
+                    "Subsetting", "ReferenceSubsetting", "CrossSubsetting", "Redefinition")
+_GENERAL_KEYS = ("general", "superclassifier", "type", "subsettedFeature", "redefinedFeature",
+                 "referencedFeature")
 
 
 def escape_name(name: str) -> str:
     """``name`` as written in a qualified name: as is when basic, else quoted."""
-    if _BASIC_NAME.match(name):
+    if _BASIC_NAME.match(name) and name not in RESERVED_KEYWORDS:
         return name
     return "'" + "".join(_ESCAPE.get(character, character) for character in name) + "'"
 
@@ -120,7 +149,8 @@ def _is_owning_membership(relationship: Mapping[str, Any]) -> bool:
 
 
 def _is_root_namespace(element: Mapping[str, Any]) -> bool:
-    return element_name(element) is None and not reference_ids(element.get("owningRelatedElement"))
+    """A ``Namespace`` without an owner (called for elements without an owning relationship)."""
+    return element.get("@type") == "Namespace" and not reference_ids(element.get("owningRelatedElement"))
 
 
 class QualifiedNameIndex:
@@ -192,20 +222,158 @@ class QualifiedNameIndex:
         return tuple(self._by_id[found] for found in self._named.get(path, ()))
 
     def not_found_reason(self, identifier: str) -> str:
-        """Why no element has the qualified name: the longest prefix that names one element."""
+        """Why no element has the qualified name, and the canonical name where SysML reaches it.
+
+        Gives the longest prefix that names one element. When that element reaches the
+        next segment through a short name, an alias, an import or inheritance, says so
+        and names the canonical qualified name; when an element's declared name is the
+        identifier itself, says to quote it. Nothing here resolves the identifier.
+        """
         path = parse_qualified_name(identifier)
-        if path is None:
-            return "not a qualified name"
+        reasons = ["not a qualified name" if path is None else self._unmatched(path)]
+        for found in self._declared_as(identifier)[:3]:
+            kind = self._by_id[found].get("@type") or "element"
+            canonical = self.qualified_name(found)
+            reasons.append(f"{identifier!r} is the declared name of {kind} {found}; "
+                           + (f"quote it as one segment: {canonical}" if canonical
+                              else "it has no qualified name; resolve it by its UUID"))
+        return "; ".join(reasons)
+
+    def _unmatched(self, path: tuple[str, ...]) -> str:
         for length in range(len(path) - 1, 0, -1):
             found = self._named.get(path[:length], [])
             if len(found) == 1:
                 namespace = self._by_id[found[0]]
-                return (f"{format_qualified_name(path[:length])!r} is {namespace.get('@type') or 'an element'} "
-                        f"{found[0]}, which has no owned member named {path[length]!r}")
+                reason = (f"{format_qualified_name(path[:length])!r} is {namespace.get('@type') or 'an element'} "
+                          f"{found[0]}, which has no owned member named {path[length]!r}")
+                hint = self._reached_otherwise(found[0], path[length])
+                return f"{reason}; {hint}" if hint else reason
             if found:
                 return f"{format_qualified_name(path[:length])!r} names {len(found)} elements"
         return f"no root-level member is named {path[0]!r}"
 
+    # -- how SysML reaches a segment other than by ownership (explanations only) --
 
-__all__ = ["QualifiedNameIndex", "element_name", "escape_name", "format_qualified_name",
-           "parse_qualified_name"]
+    def _named_text(self, identifier: str) -> str:
+        return self.qualified_name(identifier) or f"{identifier} (no qualified name)"
+
+    def _relationships(self, identifier: str) -> list[Mapping[str, Any]]:
+        owned = reference_ids(self._by_id.get(identifier, {}).get("ownedRelationship"))
+        return [relationship for reference in owned if (relationship := self._by_id.get(reference)) is not None]
+
+    def _owned_members(self, identifier: str) -> list[tuple[Mapping[str, Any], str]]:
+        """(owning membership, member id) of what ``identifier`` owns; an alias owns nothing."""
+        found = []
+        for relationship in self._relationships(identifier):
+            if relationship.get("@type") == "Membership" or not _is_owning_membership(relationship):
+                continue
+            found.extend((relationship, member) for member in reference_ids(relationship.get("memberElement"))
+                         if member in self._by_id)
+        return found
+
+    def _member_named(self, identifier: str, segment: str) -> str | None:
+        for relationship, member in self._owned_members(identifier):
+            if segment in (relationship.get("memberName"), element_name(self._by_id[member])):
+                return member
+        return None
+
+    def _reached_otherwise(self, namespace: str, segment: str) -> str | None:
+        """How SysML reaches ``segment`` in ``namespace`` when no owned member has that name."""
+        here = self._named_text(namespace)
+        for relationship, member in self._owned_members(namespace):
+            element = self._by_id[member]
+            if segment in (relationship.get("memberShortName"), element.get("declaredShortName"),
+                           element.get("shortName")):
+                return (f"{segment!r} is the short name of an owned member of {here}; "
+                        f"its qualified name is {self._named_text(member)}")
+        for relationship in self._relationships(namespace):
+            if relationship.get("@type") == "Membership" and segment in (
+                    relationship.get("memberName"), relationship.get("declaredName")):
+                targets = [target for target in reference_ids(relationship.get("memberElement"))
+                           if target in self._by_id]
+                aliased = self._named_text(targets[0]) if targets else "outside this corpus"
+                return f"{segment!r} is an alias in {here}; the aliased element's qualified name is {aliased}"
+        for relationship in self._relationships(namespace):
+            visibility = "public" if relationship.get("visibility") == "public" else "private"
+            if relationship.get("@type") == "MembershipImport":
+                for imported in reference_ids(relationship.get("importedMembership")):
+                    membership = self._by_id.get(imported, {})
+                    for member in reference_ids(membership.get("memberElement")):
+                        if member in self._by_id and segment in (membership.get("memberName"),
+                                                                 element_name(self._by_id[member])):
+                            return (f"{segment!r} is imported into {here} ({visibility} import); "
+                                    f"its qualified name is {self._named_text(member)}")
+            elif relationship.get("@type") == "NamespaceImport":
+                for imported in reference_ids(relationship.get("importedNamespace")):
+                    member = self._member_named(imported, segment) if imported in self._by_id else None
+                    if member is not None:
+                        return (f"{segment!r} is imported into {here} ({visibility} import of "
+                                f"{self._named_text(imported)}::*); its qualified name is {self._named_text(member)}")
+        return self._inherited(namespace, segment)
+
+    def _generals(self, identifier: str) -> list[str]:
+        """The elements ``identifier`` specializes by authored specializations, in order."""
+        found: list[str] = []
+        for relationship in self._relationships(identifier):
+            if relationship.get("@type") not in _SPECIALIZATIONS or relationship.get("isImplied"):
+                continue
+            for key in _GENERAL_KEYS:
+                targets = reference_ids(relationship.get(key))
+                if targets:
+                    found.extend(target for target in targets if target in self._by_id and target != identifier)
+                    break
+        return found
+
+    def _inherited(self, namespace: str, segment: str) -> str | None:
+        order: list[str] = []
+        seen, frontier = {namespace}, [namespace]
+        while frontier:  # nearest generals first
+            for general in self._generals(frontier.pop(0)):
+                if general not in seen:
+                    seen.add(general)
+                    order.append(general)
+                    frontier.append(general)
+        for general in order:
+            member = self._member_named(general, segment)
+            if member is None:
+                continue
+            canonical = self._named_text(member)
+            for owner in (namespace, *order):  # a feature of the type or of a general that redefines it
+                for _relationship, redefining in self._owned_members(owner):
+                    if redefining != member and member in self._redefined(redefining):
+                        return (f"{segment!r} is a feature of {self._named_text(general)} that "
+                                f"{self._named_text(owner)} redefines ({self._named_text(redefining)}); "
+                                f"its qualified name is {canonical}")
+            return (f"{segment!r} is inherited by {self._named_text(namespace)} from "
+                    f"{self._named_text(general)}; its qualified name is {canonical}")
+        return None
+
+    def _redefined(self, feature: str) -> set[str]:
+        """Every feature ``feature`` redefines, directly or through what it redefines."""
+        found: set[str] = set()
+        frontier = [feature]
+        while frontier:
+            for relationship in self._relationships(frontier.pop()):
+                if relationship.get("@type") != "Redefinition":
+                    continue
+                for target in reference_ids(relationship.get("redefinedFeature")):
+                    if target not in found:
+                        found.add(target)
+                        frontier.append(target)
+        return found
+
+    def _declared_as(self, identifier: str) -> list[str]:
+        """Elements whose declared name contains ``::`` and is ``identifier`` itself."""
+        verbatim = getattr(self, "_verbatim", None)
+        if verbatim is None:
+            verbatim = {}
+            for found, element in self._by_id.items():
+                name = element.get("declaredName") or element.get("name")
+                if isinstance(name, str) and "::" in name:
+                    verbatim.setdefault(name, []).append(found)
+            self._verbatim = verbatim
+        return sorted(verbatim.get(identifier, ()))
+
+
+__all__ = ["QualifiedNameIndex", "RESERVED_KEYWORDS", "element_name", "escape_name",
+           "format_qualified_name", "parse_qualified_name"]

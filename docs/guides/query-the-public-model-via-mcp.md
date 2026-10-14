@@ -157,9 +157,19 @@ A tool that takes an identifier accepts an element UUID, a declared short name
 `DE4SDV_MethodContext::EngineeringIncrement`, the form `phase_contract` and the
 Method Check print. A qualified name is computed from the model's ownership
 (the package, then each owning element) and matched exactly, every segment; it
-never falls back to a bare name. A name that matches no element, or several, is
-refused with the candidates and the revision searched. A bare name can match
-several elements (`Stakeholder` does); use the qualified name then.
+never falls back to a bare name. A name that matches no element is refused with
+the revision searched; a name that matches several is refused with the
+candidates. A bare name can match several elements (`Stakeholder` does); use the
+qualified name then.
+
+Only element names along ownership resolve. SysML also reaches a member through
+a short name, an alias, an inherited feature or an import, but a qualified name
+that takes such a path is refused, and the refusal gives the canonical qualified
+name to use instead. For example, `DE4SDV_IncrementWorkflow::IncrementCharter::increment`
+is refused because `IncrementCharter` inherits `increment`; the refusal names
+`DE4SDV_MethodTraces::IncrementTraceObligations::increment`, where it is
+declared. A name that isn't a basic name, or is a SysML reserved word, is quoted
+(`'end'`). A declared name that contains `::` must be quoted as one segment.
 
 `inspect_element` gives an element's qualified name, its `keyword` (the SysML
 v2 keyword that declares it, such as `part def`, `attribute`, `ref` or
