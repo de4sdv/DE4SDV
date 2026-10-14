@@ -139,6 +139,12 @@ class IncrementMethod:
     def available(self) -> bool:
         return self.contract is not None
 
+    @property
+    def parameter_ids(self) -> tuple[str, ...]:
+        """Every step parameter the checks are about, once each, in check order."""
+        return tuple(dict.fromkeys(str(label["parameter_element_id"]) for label in self.labels.values()
+                                   if label.get("parameter_element_id")))
+
 
 class _Invalid(ValueError):
     pass

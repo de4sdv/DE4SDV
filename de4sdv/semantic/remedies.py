@@ -22,7 +22,12 @@ of a check is built from that parameter in the bound view, never from
 - what something references is declared first: the charter holds its
   ``increment`` reference, a scenario precedes its connection, a concern its
   frame; a requirement, concern or viewpoint with stakeholder members declares
-  its subject first.
+  its subject first;
+- a member sits in its container's block (the charter's ``systemOfInterest``
+  in the charter, a subject in the need); a member line stands alone only in
+  a remedy for an existing element, which the instruction names;
+- a population remedy declares the element the check counts first and
+  complete, then the lines its check needs besides it (``then:``).
 
 Placeholders in angle brackets are names or text the author chooses, or a
 value from a list the remedy gives; never a type. A remedy says what to
@@ -31,7 +36,7 @@ author, never that authoring it proves anything.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from typing import Any, Callable, Iterable, Mapping, Sequence
 
 from de4sdv.sysml_api.errors import IdentityNotFoundError
@@ -39,12 +44,14 @@ from de4sdv.sysml_api.repository import reference_ids
 
 from .element_description import ElementDescriber, USAGE_KEYWORDS
 from .increment_scope import (
+    CHARTER_CLASS,
     INCREMENT_CLASS,
     PHASE_CLASS,
     IncrementScope,
     ModelView,
     declared_artifacts,
 )
+from .model_edges import DEFINITION_END_FAMILIES, END_FAMILIES
 
 #: Ontology classes whose validated kernel bindings name a type a remedy needs (binding keys).
 STAKEHOLDER_CLASS = "Stakeholder"
@@ -73,11 +80,21 @@ class Remedy:
     notes: tuple[str, ...] = ()
     #: The MethodPhase literals, for a remedy that sets applicable phases.
     phases: tuple[Mapping[str, Any], ...] = ()
+    #: For a population remedy: the index of the first line after the counted element, which the
+    #: text introduces with "then:".
+    then_from: int | None = None
+    #: Bookkeeping, not part of ``authoring``: the subject's own declaration among the lines, or the
+    #: name the lines give the subject when they refer to it without declaring it.
+    subject_line: str | None = field(default=None, compare=False, repr=False)
+    subject_name: str | None = field(default=None, compare=False, repr=False)
 
     @property
     def text(self) -> str:
         """The one-line ``what_to_author``: instruction, lines, imports and notes."""
-        parts = [self.instruction + (": " + " ".join(self.declarations) if self.declarations else "")]
+        lines = list(self.declarations)
+        if self.then_from:
+            lines.insert(self.then_from, "then:")
+        parts = [self.instruction + (": " + " ".join(lines) if lines else "")]
         if self.imports:
             parts.append("Import: " + " ".join(self.imports))
         parts.extend(self.notes)
@@ -108,6 +125,8 @@ class _Request:
     framing: bool | None
     scope: IncrementScope | None
     checked_phases: tuple[str, ...]
+    #: Every step parameter the workflow's checks are about (a new charter is typed like the charter's).
+    parameters: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -133,6 +152,8 @@ class _Lines:
     declarations: list[str]
     types: list[tuple[_Type, str]]  # (type, what the check admits)
     notes: list[str]
+    subject_line: str | None = None  # the subject's own declaration, when the lines declare it
+    subject_name: str | None = None  # the name the lines give the subject without declaring it
 
     def type(self, element: str | None, admits: str = "") -> str:
         """The reference to a type in a line (recorded for the imports and the types list)."""
@@ -156,7 +177,8 @@ class _Lines:
         types = tuple({"qualified_name": named.qualified_name, "name": named.name, "element_id": named.element,
                        **({"admits": admits} if admits else {})} for named, admits in self.types)
         return Remedy(instruction, tuple(self.declarations), tuple(imports), types,
-                      tuple(dict.fromkeys(self.notes)), tuple(phases))
+                      tuple(dict.fromkeys(self.notes)), tuple(phases), subject_line=self.subject_line,
+                      subject_name=self.subject_name)
 
 
 # ---------------------------------------------------------------------------
@@ -204,10 +226,12 @@ def _keyword(view: ModelView, element: str | None) -> str | None:
     return _describer(view).keyword(element) if element else None
 
 
-def _parameter_keyword(request: _Request) -> str:
-    """The keyword that declares a subject: the parameter's usage keyword (``part``, ``concern`` ...)."""
-    element = request.view.element(request.parameter) if request.parameter else {}
-    return USAGE_KEYWORDS.get(str(element.get("@type") or ""), "part")
+def _parameter_keyword(request: _Request, container: str = "part") -> str:
+    """The keyword that declares a subject: the parameter's usage keyword (``part``, ``concern`` ...);
+    without a parameter, ``container``, the kind of element that can hold the members a remedy gives."""
+    if not request.parameter:
+        return container
+    return USAGE_KEYWORDS.get(str(request.view.element(request.parameter).get("@type") or ""), container)
 
 
 def _holders(request: _Request) -> list[str]:
@@ -278,15 +302,27 @@ def _lines(request: _Request) -> _Lines:
 
 
 def _declaration(lines: _Lines, members: Sequence[str] = (), *, name: str = "<name>",
-                 short: str | None = None, doc: bool = False) -> str:
-    """``<keyword> [<'short'>] <name> [: <type>] { <members> }`` for the parameter's subject."""
+                 short: str | None = None, doc: bool = False, container: str = "part") -> str:
+    """``<keyword> [<'short'>] <name> [: <type>] { <members> }`` for the parameter's subject (without
+    a parameter, a ``container`` that can hold the members)."""
     request = lines.request
-    keyword = _parameter_keyword(request)
+    keyword = _parameter_keyword(request, container)
     parameter_type = _one_type(request.view, request.parameter)
     typed = f" : {lines.type(parameter_type, _SPECIALIZING)}" if parameter_type else ""
     body = [*(["doc /* <text> */"] if doc else []), *members]
     head = f"{keyword} {f'<{short}> ' if short else ''}{name}{typed}"
-    return f"{head} {{ {' '.join(body)} }}" if body else f"{head};"
+    lines.subject_line = f"{head} {{ {' '.join(body)} }}" if body else f"{head};"
+    return lines.subject_line
+
+
+def _subject_ref(lines: _Lines, placeholder: str) -> str:
+    """How a line names the subject it does not declare: its qualified name, else ``placeholder``
+    (recorded, so that a remedy declaring the subject first gives it that name)."""
+    request = lines.request
+    if request.subject is not None:
+        return request.view.label(request.subject)
+    lines.subject_name = placeholder
+    return placeholder
 
 
 # ---------------------------------------------------------------------------
@@ -298,24 +334,63 @@ def _has_subject(view: ModelView, element: str | None) -> bool:
     return bool(element) and any(view.index.owned_relationships(element, "SubjectMembership"))
 
 
+def _typed_by_the_kernel_itself(view: ModelView, types: Iterable[str]) -> bool:
+    """Whether a usage is typed by the kernel EngineeringIncrement itself (validated binding) and by
+    no definition of its own: a form the checks allow but the method does not teach."""
+    kernel = _kernel(view, INCREMENT_CLASS)
+    if kernel is None:
+        return False
+    found, lineage = set(types), view.index.specializations(kernel)
+    return kernel in found and not any(t != kernel and t in lineage for t in found)
+
+
+def _direct_note(view: ModelView, usage: str, kernel: str) -> str:
+    return (f"{view.label(usage)} is typed by {view.label(kernel)} itself, which the checks allow but which is not "
+            "the method's form: a definition of the increment's own specializes it and types the usage.")
+
+
 def _increment_definition(lines: _Lines, general: str | None = None) -> str:
     """The increment's own definition, as the method declares it: the definition typing the resolved
     increment usage (qualified); else a part def the author names, declared first in the remedy and
     specializing ``general`` (the kernel's EngineeringIncrement, by its validated binding). The checks
-    also accept a usage typed by the kernel definition itself; the remedy teaches the method's form."""
+    also allow a usage typed by the kernel definition itself: for one, the remedy teaches the method's
+    form, with a note."""
     request = lines.request
-    scope = request.scope
-    if scope is not None and scope.definition_ids:
-        return lines.type(scope.definition_ids[0], "the definition typing the increment usage")
-    general = general or _kernel(request.view, INCREMENT_CLASS)
+    view, scope = request.view, request.scope
+    direct = scope is not None and bool(scope.definition_ids) and _typed_by_the_kernel_itself(
+        view, scope.definition_ids)
+    if scope is not None and scope.definition_ids and not direct:
+        kernel = _kernel(view, INCREMENT_CLASS)
+        own = [definition for definition in scope.definition_ids if definition != kernel]
+        return lines.type((own or list(scope.definition_ids))[0], "the definition typing the increment usage")
+    general = general or _kernel(view, INCREMENT_CLASS)
     if general is None:
         lines.notes.append("The kernel binds no EngineeringIncrement definition at this revision.")
         return INCREMENT_DEFINITION
-    declaration = (f"{_keyword(request.view, general)} {INCREMENT_DEFINITION} :> "
-                   f"{lines.type(general, _OWN_DEFINITION)};")
+    declaration = f"{_keyword(view, general)} {INCREMENT_DEFINITION} :> {lines.type(general, _OWN_DEFINITION)};"
     if declaration not in lines.declarations:
         lines.declarations.insert(0, declaration)
+    if direct and scope is not None and scope.usage_id:
+        lines.notes.append(_direct_note(view, scope.usage_id, _kernel(view, INCREMENT_CLASS) or general))
     return INCREMENT_DEFINITION
+
+
+def _increment_subject(lines: _Lines) -> str:
+    """``subject increment : <the increment's own definition>;``. A usage typed by the kernel
+    definition itself is retyped by that definition, right after its declaration."""
+    definition = _increment_definition(lines)
+    request = lines.request
+    view, scope = request.view, request.scope
+    if (definition == INCREMENT_DEFINITION and scope is not None and scope.usage_id and scope.definition_ids
+            and _typed_by_the_kernel_itself(view, scope.definition_ids)):
+        usage = scope.usage_id
+        retyped = (f"{_keyword(view, usage) or 'part'} <'{scope.increment_id}'> "
+                   f"{view.index.name_of(usage) or '<usageName>'} : {INCREMENT_DEFINITION};")
+        if retyped not in lines.declarations:
+            at = next((index + 1 for index, line in enumerate(lines.declarations)
+                       if f" {INCREMENT_DEFINITION} :> " in line), 0)
+            lines.declarations.insert(at, retyped)
+    return f"subject increment : {definition};"
 
 
 def _system_of_interest_subject(lines: _Lines) -> str:
@@ -334,7 +409,7 @@ def _subject_first(lines: _Lines) -> str:
     request = lines.request
     types = _subject_types(request)
     if _in_lineage(request.view, types, PROBLEM_STATEMENT_CLASS):
-        return f"subject increment : {_increment_definition(lines)};"
+        return _increment_subject(lines)
     if _in_lineage(request.view, types, NEED_CLASS) or _in_lineage(request.view, types, REQUIREMENT_CLASS):
         return _system_of_interest_subject(lines)
     return "subject;"
@@ -360,32 +435,44 @@ def _increment_short_name(request: _Request) -> Remedy:
     if request.subject is not None:
         view = request.view
         typed = sorted(view.index.typed_by(request.subject))
-        types = ", ".join(lines.type(t) for t in typed)
+        kernel = _kernel(view, INCREMENT_CLASS)
+        direct = kernel is not None and _typed_by_the_kernel_itself(view, typed)
+        if direct:  # the method's form instead: the increment's own definition, declared first
+            lines.declarations.append(f"{_keyword(view, kernel)} {INCREMENT_DEFINITION} :> "
+                                      f"{lines.type(kernel, _OWN_DEFINITION)};")
+            lines.notes.append(_direct_note(view, request.subject, kernel))
+        types = ", ".join(INCREMENT_DEFINITION if direct and t == kernel else lines.type(t) for t in typed)
         lines.declarations.append(f"part <'{identifier}'> {view.index.name_of(request.subject) or '<usageName>'}"
                                   + (f" : {types};" if types else ";"))
         return lines.remedy(f"declare {view.label(request.subject)} with the increment identifier as its "
                             "declared short name")
     definition = _increment_definition(lines, _one_type(request.view, request.parameter))
-    lines.declarations.append(f"{_parameter_keyword(request)} <'{identifier}'> <usageName> : {definition};")
+    lines.subject_line = f"{_parameter_keyword(request)} <'{identifier}'> <usageName> : {definition};"
+    lines.declarations.append(lines.subject_line)
     return lines.remedy(f"declare the increment usage with its identifier as declared short name, typed by the "
                         f"increment's own definition, {_where(request)}")
 
 
 def _member_line(lines: _Lines, member: str, value: str, *,
                  definitions: Sequence[str] | None = None) -> str | None:
-    """``<keyword> :>> <member> = <value>;`` with the keyword of the feature ``member`` redefines."""
+    """``<keyword> :>> <member> = <value>;`` with the keyword of the feature ``member`` redefines. When
+    the subject inherits several features of that name, none is picked (no rule here orders them): no
+    line, and a note lists each one's qualified name."""
     request = lines.request
     feature, distinct = _member(request, member, definitions)
     if feature is None:
         lines.notes.append(f"No definition of the subject declares {member} in this revision's model "
                            "(method side), so its declaring keyword is unknown.")
         return None
-    target = member
     if len(distinct) > 1:
-        target = request.view.label(feature)
-        lines.notes.append(f"{member} names {len(distinct)} inherited features; the line redefines the nearest "
-                           "by its qualified name.")
-    return f"{_keyword(request.view, feature)} :>> {target} = {value};"
+        view = request.view
+        named = [view.qualified_name(candidate) or f"{view.index.name_of(candidate)} (no qualified name)"
+                 for candidate in distinct]
+        lines.notes.append(f"{member!r} is ambiguous here, where it names {len(distinct)} inherited features: "
+                           f"{', '.join(named)}. No line redefines it, as no rule picks one: redefine the one "
+                           "meant by its qualified name.")
+        return None
+    return f"{_keyword(request.view, feature)} :>> {member} = {value};"
 
 
 def _sequence(request: _Request, member: str, values: Sequence[str]) -> str:
@@ -511,8 +598,7 @@ def _library_value(request: _Request) -> Remedy:
 
 
 def _with_note(remedy: Remedy, note: str) -> Remedy:
-    return Remedy(remedy.instruction, remedy.declarations, remedy.imports, remedy.types,
-                  (*remedy.notes, note), remedy.phases)
+    return replace(remedy, notes=(*remedy.notes, note))
 
 
 def _applicable_phases(request: _Request) -> Remedy:
@@ -560,21 +646,21 @@ def _expected_artifacts_cover_content(request: _Request) -> Remedy:
                                 "holding increment content, or move that content into a named package")
     remedy = _set_member(request, member, _value_of(request, member))
     target = request.view.label(request.subject) if request.subject else f"{_parameter_phrase(request)}"
-    return Remedy(f"name in the {member} of {target} every top-level package holding increment content "
-                  "(elements connected by DerivesFromNeed to, verifying, or verified by the increment's elements, "
-                  "or referencing the increment usage), or move that content into a named package",
-                  remedy.declarations, remedy.imports, remedy.types, remedy.notes)
+    return replace(remedy, instruction=(
+        f"name in the {member} of {target} every top-level package holding increment content (elements "
+        "connected by DerivesFromNeed to, verifying, or verified by the increment's elements, or referencing "
+        "the increment usage), or move that content into a named package"))
 
 
 def _problem_statement_subject(request: _Request) -> Remedy:
     lines = _lines(request)
-    subject = f"subject increment : {_increment_definition(lines)};"
+    subject = _increment_subject(lines)
     lines.notes.append(SUBJECT_FIRST)
     if request.subject is not None:
         lines.declarations.append(subject)
         return lines.remedy(f"keep {request.view.label(request.subject)} in the increment's package, its subject "
                             "first and typed by the increment definition")
-    lines.declarations.append(_declaration(lines, [subject], name="<problemStatementName>"))
+    lines.declarations.append(_declaration(lines, [subject], name="<problemStatementName>", container="requirement"))
     return lines.remedy(f"declare the problem statement {_where(request)}, its subject typed by the increment's "
                         "own definition")
 
@@ -597,7 +683,7 @@ def _stakeholder_member(request: _Request) -> Remedy:
         lines.declarations.extend(members)
         after = ", after its subject" if _has_subject(view, request.subject) else ""
         return lines.remedy(f"add to {view.label(request.subject)}{after}")
-    lines.declarations.append(_declaration(lines, members, name=_subject_name(request)))
+    lines.declarations.append(_declaration(lines, members, name=_subject_name(request), container="requirement"))
     return lines.remedy(f"declare {_parameter_phrase(request)} with a stakeholder member, its subject first, "
                         f"{_where(request)}".rstrip(", "))
 
@@ -610,7 +696,8 @@ def _framed_by_increment_view(request: _Request) -> Remedy:
     lines = _lines(request)
     concern = request.view.label(request.subject) if request.subject else "<concernName>"
     if request.subject is None:
-        lines.declarations.append(_concern_declaration(lines))
+        lines.subject_line = _concern_declaration(lines)  # the concern is the subject
+        lines.declarations.append(lines.subject_line)
         lines.notes.append(SUBJECT_FIRST)
     lines.declarations.append("viewpoint def <ViewpointName> { doc /* <what the view shows> */ }")
     lines.declarations.append(f"view <viewName> {{ viewpoint <viewpointName> : <ViewpointName> "
@@ -628,7 +715,7 @@ def _require_constraint(request: _Request) -> Remedy:
     if request.subject is not None:
         lines.declarations.append(statement)
         return lines.remedy(f"add the statement to {request.view.label(request.subject)}")
-    lines.declarations.append(_declaration(lines, [statement], name=_subject_name(request)))
+    lines.declarations.append(_declaration(lines, [statement], name=_subject_name(request), container="requirement"))
     return lines.remedy(f"declare {_parameter_phrase(request)} with its statement {_where(request)}".rstrip())
 
 
@@ -638,19 +725,28 @@ def _one_native_subject(request: _Request) -> Remedy:
     if request.subject is not None:
         lines.declarations.append(subject)
         return lines.remedy(f"declare exactly one subject on {request.view.label(request.subject)}")
-    lines.declarations.append(_declaration(lines, [subject], name=_subject_name(request)))
+    lines.declarations.append(_declaration(lines, [subject], name=_subject_name(request), container="requirement"))
     return lines.remedy(f"declare {_parameter_phrase(request)} with exactly one subject {_where(request)}".rstrip())
 
 
 def _subject_is_system_of_interest(request: _Request) -> Remedy:
+    """The system of interest as the subject. Each line sits in its container: the charter's
+    systemOfInterest in the charter's block, the subject in the need's or requirement's block (on its
+    own only for an existing one, which the instruction names)."""
     lines = _lines(request)
     scope = request.scope
     declared = scope is not None and bool(scope.system_of_interest or scope.system_of_interest_types)
     if not declared:
-        line = _member_line(lines, _named_member(request), "<systemUsage>", definitions=_charter_definitions(request))
         lines.declarations.extend(["part def <SystemName> { doc /* <the system of interest> */ }",
-                                   "part <systemUsage> : <SystemName>;", *([line] if line else [])])
-    lines.declarations.append(_system_of_interest_subject(lines))
+                                   "part <systemUsage> : <SystemName>;"])
+        line = _member_line(lines, _named_member(request), "<systemUsage>", definitions=_charter_definitions(request))
+        if line:
+            lines.declarations.append(_in_charter(lines, line))
+    subject = _system_of_interest_subject(lines)
+    if request.subject is not None:
+        lines.declarations.append(subject)
+    else:
+        lines.declarations.append(_declaration(lines, [subject], name=_subject_name(request), container="requirement"))
     target = request.view.label(request.subject) if request.subject else _parameter_phrase(request)
     if declared:
         return lines.remedy(f"take the system of interest the charter declares as the subject of {target}, never "
@@ -659,19 +755,54 @@ def _subject_is_system_of_interest(request: _Request) -> Remedy:
                         f"and take it as the subject of {target}, never the increment")
 
 
-def _charter_definitions(request: _Request) -> list[str]:
-    """The definitions whose features a charter has: the increment's charter's own definitions, else
-    every definition of the charter class lineage (validated kernel identity)."""
-    from .increment_scope import CHARTER_CLASS
-
+def _in_charter(lines: _Lines, member: str) -> str:
+    """``member`` in the charter's block: the increment's own charter restated as it is declared, else
+    a new charter declared as the workflow's charter parameter types it."""
+    request = lines.request
     view, scope = request.view, request.scope
     if scope is not None and len(scope.charters) == 1:
-        found: list[str] = []
-        for definition in sorted(view.index.typed_by(scope.charters[0])):
-            found.extend(general for general in view.index.generals(definition) if general not in found)
-        return found
+        charter = scope.charters[0]
+        types = ", ".join(lines.type(definition) for definition in sorted(view.index.typed_by(charter)))
+        head = (f"{_keyword(view, charter) or 'part'} {view.index.name_of(charter) or '<charterName>'}"
+                + (f" : {types}" if types else ""))
+    else:
+        parameter, definition = _new_charter(request)
+        keyword = _parameter_keyword(replace(request, parameter=parameter))
+        head = f"{keyword} <charterName>" + (f" : {lines.type(definition, _SPECIALIZING)}" if definition else "")
+    return f"{head} {{ {member} }}"
+
+
+def _new_charter(request: _Request) -> tuple[str | None, str | None]:
+    """The workflow's charter parameter and the definition typing it, which a new charter is declared
+    with: the one step parameter typed by the charter class (validated binding) or a definition
+    specializing it. Without exactly one such definition, no parameter and the charter class itself."""
+    view = request.view
     kernel = _kernel(view, CHARTER_CLASS)
-    return sorted(view.index.specializations(kernel)) if kernel else []
+    if kernel is None:
+        return None, None
+    lineage = view.index.specializations(kernel)
+    typed = {parameter: types for parameter in request.parameters
+             if (types := sorted(view.index.typed_by(parameter) & lineage))}
+    definitions = {definition for types in typed.values() for definition in types}
+    if len(definitions) != 1:
+        return None, kernel
+    (definition,) = definitions
+    return next(parameter for parameter, types in typed.items() if definition in types), definition
+
+
+def _charter_definitions(request: _Request) -> list[str]:
+    """The definitions whose features the increment's charter has, nearest first: its own charter's
+    definitions, else the one a new charter is declared with (:func:`_new_charter`), each with its
+    generals. Never other charter definitions of the model, which a charter does not inherit from."""
+    view, scope = request.view, request.scope
+    if scope is not None and len(scope.charters) == 1:
+        holders = sorted(view.index.typed_by(scope.charters[0]))
+    else:
+        holders = [definition for definition in [_new_charter(request)[1]] if definition]
+    found: list[str] = []
+    for definition in holders:
+        found.extend(general for general in view.index.generals(definition) if general not in found)
+    return found
 
 
 def _verifies(ontology_class: str, what: str) -> Callable[[_Request], Remedy]:
@@ -687,7 +818,8 @@ def _verifies(ontology_class: str, what: str) -> Callable[[_Request], Remedy]:
             lines.declarations.append(f"verify {verified};")
             return lines.remedy(f"add to the objective of {request.view.label(request.subject)} (or of its "
                                 "definition)")
-        lines.declarations.append(_declaration(lines, [objective], name=_subject_name(request)))
+        lines.declarations.append(_declaration(lines, [objective], name=_subject_name(request),
+                                               container="verification"))
         return lines.remedy(f"declare {_parameter_phrase(request)} {_where(request)}, its objective verifying "
                             f"a {what}".replace("  ", " "))
 
@@ -703,8 +835,7 @@ def _method_side(reason: str) -> Callable[[_Request], Remedy]:
 
 
 def _feature_or_common_capability(request: _Request) -> Remedy:
-    remedies = [_relation_remedy(_Request(request.view, relation, request.subject, request.parameter,
-                                          request.framing, request.scope, request.checked_phases))
+    remedies = [_relation_remedy(replace(request, check=relation))
                 for relation in ("specifiesFeature", "specifiesCommonCapability")]
     authorable = [remedy for remedy in remedies if remedy.declarations]
     if not authorable:
@@ -715,8 +846,7 @@ def _feature_or_common_capability(request: _Request) -> Remedy:
 
 
 def _evidence_record_or_status(request: _Request) -> Remedy:
-    return _relation_remedy(_Request(request.view, "hasEvidence", request.subject, request.parameter,
-                                     request.framing, request.scope, request.checked_phases))
+    return _relation_remedy(replace(request, check="hasEvidence"))
 
 
 _NAMED: Mapping[str, Callable[[_Request], Remedy]] = {
@@ -757,8 +887,12 @@ def _placeholder(ontology_class: str | None) -> str:
 
 def _native_frame(request: _Request) -> Remedy:
     lines = _lines(request)
-    lines.declarations.append("frame <concern>;")
-    return lines.remedy(f"add to {_subject_phrase(request)}")
+    if request.subject is not None:
+        lines.declarations.append("frame <concern>;")
+        return lines.remedy(f"add to {request.view.label(request.subject)}")
+    lines.declarations.append(_declaration(lines, ["frame <concern>;"], name=_subject_name(request),
+                                           container="requirement"))
+    return lines.remedy(f"declare {_parameter_phrase(request)} with the concern it frames {_where(request)}".rstrip())
 
 
 def _native_stakeholder(request: _Request) -> Remedy:
@@ -771,8 +905,13 @@ def _native_subject(request: _Request) -> Remedy:
 
 def _native_verify(request: _Request) -> Remedy:
     lines = _lines(request)
-    lines.declarations.append("verify <requirement>;")
-    return lines.remedy(f"add to the objective of {_subject_phrase(request)} (or of its definition)")
+    if request.subject is not None:
+        lines.declarations.append("verify <requirement>;")
+        return lines.remedy(f"add to the objective of {request.view.label(request.subject)} (or of its definition)")
+    lines.declarations.append(_declaration(lines, ["objective { verify <requirement>; }"], name=_subject_name(request),
+                                           container="verification"))
+    return lines.remedy(f"declare {_parameter_phrase(request)}, its objective verifying the requirement "
+                        f"{_where(request)}".rstrip())
 
 
 _NATIVE: Mapping[str, Callable[[_Request], Remedy]] = {
@@ -782,12 +921,16 @@ _NATIVE: Mapping[str, Callable[[_Request], Remedy]] = {
 
 
 def _end_order(view: ModelView, carrier: str | None, first: str, second: str) -> tuple[str, str]:
-    """The ends ``first`` and ``second`` in the order the carrier declares them (as given otherwise)."""
+    """The ends ``first`` and ``second`` in the order the carrier declares them (as given when it
+    declares neither). A definition's ends are its EndFeatureMemberships and, as the export serializes
+    a connection definition's ends, its FeatureMemberships of an ``isEnd`` feature."""
     if carrier is None:
         return first, second
     names = [str(relationship.get("memberName") or view.index.name_of(member))
-             for relationship in view.index.owned_relationships(carrier, "EndFeatureMembership")
-             for member in reference_ids(relationship.get("memberElement"))]
+             for relationship in view.index.owned_relationships(carrier, *DEFINITION_END_FAMILIES)
+             for member in reference_ids(relationship.get("memberElement"))
+             if str(relationship.get("@type") or "") in END_FAMILIES
+             or view.index.by_id.get(member, {}).get("isEnd") is True]
     if first in names and second in names and names.index(second) < names.index(first):
         return second, first
     return first, second
@@ -804,7 +947,7 @@ def _derivation_connection(request: _Request, mapping: Any) -> Remedy:
     carrier_ref = lines.type(carrier, _SPECIALIZING)
     source_class = str(config.get("source_lineage_of") or mapping.domain or "")
     target_class = str(config.get("target_lineage_of") or mapping.range or "")
-    subject = _label(request, request.subject, _placeholder(source_class))
+    subject = _subject_ref(lines, _placeholder(source_class))
     other = _placeholder(target_class)
     need_role, requirement_role = str(config.get("need_role") or ""), str(config.get("requirement_role") or "")
     by_role = {need_role: subject if source_class == _need_class(config) else other,
@@ -843,7 +986,7 @@ def _successor(request: _Request, mapping: Any) -> Remedy:
     subject_class, other_class = (target_class, source_class) if inverse else (source_class, target_class)
     other_usage = str(row.get("targetUsage") if not inverse else row.get("sourceUsage") or "")
     other = _placeholder(other_class)
-    subject = _label(request, request.subject, _placeholder(subject_class))
+    subject = _subject_ref(lines, _placeholder(subject_class))
     other_kernel = _kernel(view, other_class)
     if other_kernel is not None:
         keyword = USAGE_KEYWORDS.get(other_usage, "part")
@@ -872,7 +1015,7 @@ def _successor(request: _Request, mapping: Any) -> Remedy:
 
 def _verification_membership(request: _Request, mapping: Any) -> Remedy:
     lines = _lines(request)
-    verified = _label(request, request.subject, "<requirement>")
+    verified = _subject_ref(lines, "<requirement>")
     lines.declarations.append(f"verification <name> {{ objective {{ verify {verified}; }} }}")
     return lines.remedy(f"verify {verified} in the objective of a verification case in a package named in the "
                         "charter's expectedArtifacts")
@@ -884,15 +1027,19 @@ def _subject_membership(request: _Request, mapping: Any) -> Remedy:
     if kernel is None:  # as the relation check reads it: method side
         return _method_side(f"{mapping.range}, the class of {request.check}'s subject, has no validated kernel "
                             "binding at this revision")(request)
-    lines.declarations.append(f"subject <subjectName> : {lines.type(kernel, _SPECIALIZING)};")
+    member = f"subject <subjectName> : {lines.type(kernel, _SPECIALIZING)};"
     lines.notes.append(SUBJECT_FIRST)
-    return lines.remedy(f"declare the subject of {_subject_phrase(request)}")
+    if request.subject is not None:
+        lines.declarations.append(member)
+        return lines.remedy(f"declare the subject of {request.view.label(request.subject)}")
+    lines.declarations.append(_declaration(lines, [member], name=_subject_name(request), container="requirement"))
+    return lines.remedy(f"declare {_parameter_phrase(request)} with its subject {_where(request)}".rstrip())
 
 
 def _dependency(request: _Request, mapping: Any) -> Remedy:
     lines = _lines(request)
     config = mapping.configuration or {}
-    subject = _label(request, request.subject, _placeholder(mapping.domain))
+    subject = _subject_ref(lines, _placeholder(mapping.domain))
     other = _placeholder(mapping.range)
     kernel = _kernel(request.view, str(mapping.range or ""))
     if kernel is not None:
@@ -937,26 +1084,54 @@ def _relation_remedy(request: _Request) -> Remedy:
 
 
 def subject_declaration(view: ModelView, check: str, *, parameter: str | None, framing: bool | None,
-                        scope: IncrementScope | None) -> Remedy:
-    """How one subject of ``parameter`` is declared, without what ``check`` asks of it."""
+                        scope: IncrementScope | None, name: str | None = None) -> Remedy:
+    """How one subject of ``parameter`` is declared (as ``name``), without what ``check`` asks of it."""
     request = _Request(view, check, None, parameter, framing, scope, ())
     lines = _lines(request)
-    lines.declarations.append(_declaration(lines, name=_subject_name(request)))
+    lines.declarations.append(_declaration(lines, name=name or _subject_name(request)))
     return lines.remedy(f"declare {_parameter_phrase(request)} {_where(request)}".rstrip())
+
+
+def population_remedy(view: ModelView, check: str, *, keep: str, parameter: str | None, framing: bool | None,
+                      scope: IncrementScope | None, checked_phases: Sequence[str] = (),
+                      parameters: Sequence[str] = ()) -> Remedy:
+    """What to author when the number of subjects of ``parameter`` is outside its bounds: ``keep`` (how
+    many to keep, and where), then how one is declared. The element the check counts comes first and
+    complete, with what ``check`` asks of it inside it; the lines the check needs besides it (a
+    scenario and its connection, a connection, the system of interest) follow it ("then:") and name it
+    as it is declared. When the check's own remedy is method side, the element alone."""
+    own = check_remedy(view, check, parameter=parameter, framing=framing, scope=scope,
+                       checked_phases=checked_phases, parameters=parameters)
+    if own.subject_line is not None and own.subject_line in own.declarations:
+        lead, first = own, own.subject_line
+        follow = [line for line in own.declarations if line != first]
+    else:
+        lead = subject_declaration(view, check, parameter=parameter, framing=framing, scope=scope,
+                                   name=own.subject_name)
+        first, follow = (lead.declarations or (None,))[0], list(own.declarations)
+    if first is None:
+        return Remedy(keep)
+    types: dict[str, Mapping[str, Any]] = {}
+    for named in (*lead.types, *own.types):  # the subject's type first
+        types.setdefault(str(named["element_id"]), named)
+    return Remedy(f"{keep}; one is declared as", (first, *follow),
+                  tuple(dict.fromkeys((*lead.imports, *own.imports))), tuple(types.values()),
+                  tuple(dict.fromkeys((*own.notes, *lead.notes))), own.phases, then_from=1 if follow else None)
 
 
 def check_remedy(view: ModelView, check: str, *, subject: str | None = None, parameter: str | None = None,
                  framing: bool | None = None, scope: IncrementScope | None = None,
-                 checked_phases: Sequence[str] = ()) -> Remedy:
+                 checked_phases: Sequence[str] = (), parameters: Sequence[str] = ()) -> Remedy:
     """What to author for one check: about ``parameter`` of its step (its keyword and type), for
     ``subject`` (the first failing element) or, without one, the subject to declare, ``framing`` in
     the increment's own package or in a package the charter names, for the increment ``scope``.
-    ``checked_phases`` are the phases with executable checks. An unknown check has no remedy."""
+    ``checked_phases`` are the phases with executable checks; ``parameters`` every step parameter the
+    workflow's checks are about. An unknown check has no remedy."""
     from .method_checks import NAMED_CHECKS
     from .relation_checks import relation_checks
 
     request = _Request(view, check, subject if subject and subject in view.index.by_id else None, parameter,
-                       framing, scope, tuple(checked_phases))
+                       framing, scope, tuple(checked_phases), tuple(parameters))
     if check in _NAMED and check in NAMED_CHECKS:
         return _NAMED[check](request)
     if check in relation_checks(view):
@@ -964,4 +1139,4 @@ def check_remedy(view: ModelView, check: str, *, subject: str | None = None, par
     return EMPTY
 
 
-__all__ = ["Remedy", "SUBJECT_FIRST", "check_remedy", "subject_declaration"]
+__all__ = ["Remedy", "SUBJECT_FIRST", "check_remedy", "population_remedy", "subject_declaration"]

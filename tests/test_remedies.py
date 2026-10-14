@@ -239,30 +239,49 @@ _TEXT = r'"[^"]*"'
 _ITEM = rf"(?:{_REF}|{_TEXT})"
 _VALUE = rf"(?:{_ITEM}|\({_ITEM}(?:, {_ITEM})*\))"
 _DOC = r"doc /\* [^*]* \*/"
-_MEMBERS = [
-    _DOC,
-    r"subject;",  # INC-AEBS-010's concerns
-    rf"subject {_NAME} (?::|:>) {_REF};",
-    rf"stakeholder {_NAME} : {_REF};",
-    rf"(?:ref part|attribute) :>> (?:[A-Za-z_]\w*|{_QN}) = {_VALUE};",  # the charters
-    r'require constraint statement \{ language "English" /\* [^*]* \*/ \}',
-    rf"objective \{{ verify {_REF}; \}}",
-    rf"verify {_REF};",
-    rf"frame {_REF};",
-    rf"viewpoint {_NAME} : {_REF} \{{ frame {_REF}; \}}",  # INC-TEST-001's view
-]
-_MEMBER = "(?:" + "|".join(_MEMBERS) + ")"
-_BODY = rf"(?:;| \{{(?: {_MEMBER})+ \}})"
-ACCEPTED_FORMS = [
+#: The members a remedy may suggest, by kind.
+_MEMBER_FORMS = {
+    "doc": _DOC,
+    "subject": rf"subject(?: {_NAME} (?::|:>) {_REF})?;",  # 'subject;': INC-AEBS-010's concerns
+    "stakeholder": rf"stakeholder {_NAME} : {_REF};",
+    "redefinition": rf"(?:ref part|attribute) :>> (?:[A-Za-z_]\w*|{_QN}) = {_VALUE};",  # charters, library attributes
+    "statement": r'require constraint statement \{ language "English" /\* [^*]* \*/ \}',
+    "objective": rf"objective \{{ verify {_REF}; \}}",
+    "verify": rf"verify {_REF};",
+    "frame": rf"frame {_REF};",
+    "viewpoint": rf"viewpoint {_NAME} : {_REF} \{{ frame {_REF}; \}}",  # INC-TEST-001's view
+}
+#: The members each container's body may hold. A subject, stakeholder, statement or framed concern is a
+#: member of a requirement (a concern is one; a case has a subject); a verify sits in a case's objective;
+#: a viewpoint in a view; a redefinition in the part or requirement that inherits the feature.
+_CONTAINS = {
+    "part": ("doc", "redefinition"),
+    "action": ("doc",),  # the AEBS flows
+    "requirement": ("doc", "subject", "stakeholder", "redefinition", "statement", "frame"),
+    "concern": ("doc", "subject", "stakeholder"),
+    "verification": ("doc", "subject", "objective"),
+    "view": ("doc", "viewpoint"),
+}
+
+
+def _container(keyword: str) -> str:
+    members = "|".join(_MEMBER_FORMS[kind] for kind in _CONTAINS[keyword])
+    return rf"{keyword} (?:<'[^']*'> )?{_NAME}(?: : {_REF})?(?:;| \{{(?: (?:{members}))+ \}})"
+
+
+#: Lines that stand on their own in a package.
+TOP_LEVEL_FORMS = [
     rf"private import {_PACKAGE}::\*;",  # the rule: a direct import of the owning package
     # part/requirement/concern/verification/view: the framings and slices above; action: the AEBS flows
-    rf"(?:part|action|requirement|concern|verification|view) (?:<'[^']*'> )?{_NAME}(?: : {_REF})?{_BODY}",
+    *(_container(keyword) for keyword in _CONTAINS),
     rf"(?:part|viewpoint) def {_NAME}(?: :> {_REF})?(?:;| \{{ {_DOC} \}})",
     rf"connection {_NAME} : {_REF} connect {_REF} to {_REF};",  # DerivesFromNeed, ValidationPlanningAssociation
     rf"allocation {_NAME} allocate {_REF} to {_REF};",  # the AEBS requirement allocations
     rf"dependency {_NAME} from {_REF} to {_REF};",  # the AEBS evidence dependencies
-    *_MEMBERS,  # a member added to an existing subject
 ]
+#: A member on its own line: only in a remedy for an existing element, the container its instruction names.
+MEMBER_FORMS = list(_MEMBER_FORMS.values())
+ACCEPTED_FORMS = [*TOP_LEVEL_FORMS, *MEMBER_FORMS]
 #: Constructs that are not SysML: the old fallback for a relation check without a remedy.
 NOT_SYSML = (re.compile(r"\badd an? \w+ relation\b"), re.compile(r"\brelation from\b"), re.compile(r"verifiedBy"))
 #: A type position: after ':' (typing), or after ':>' following a definition's name (specialization).
@@ -270,8 +289,18 @@ NOT_SYSML = (re.compile(r"\badd an? \w+ relation\b"), re.compile(r"\brelation fr
 _TYPE_POSITION = re.compile(r"(?<![:>]):\s+(<[^<>]+>)|\bdef\s+\S+\s+:>\s+(<[^<>]+>)")
 
 
-def _accepted(line: str) -> bool:
-    return any(re.fullmatch(form, line) for form in ACCEPTED_FORMS)
+def _accepted(line: str, forms: list[str]) -> bool:
+    return any(re.fullmatch(form, line) for form in forms)
+
+
+def _for_an_existing_element(record: dict) -> bool:
+    """Whether a record's remedy is built for an existing element (its first subject), the container
+    its instruction names: a subject with an element, and no population or identity violation (whose
+    remedy declares a subject instead)."""
+    subjects = record.get("subjects") or []
+    violations = {"POPULATION_POLICY_VIOLATION", "SCOPE_RESOLUTION_ERROR"}
+    return any(subject.get("element_id") for subject in subjects) and not violations & set(
+        record.get("reason_codes") or [])
 
 
 def _declared_placeholders(lines: list[str]) -> set[str]:
@@ -290,9 +319,13 @@ def _problems(record: dict, names: QualifiedNameIndex, own_package: str | None =
     lines = list(authoring.get("declarations") or [])
     imports = list(authoring.get("imports") or [])
     found = []
+    members_allowed = _for_an_existing_element(record)
     for line in [*lines, *imports]:
-        if not _accepted(line):
-            found.append(f"not an accepted form: {line}")
+        if not _accepted(line, TOP_LEVEL_FORMS):
+            if not _accepted(line, MEMBER_FORMS):
+                found.append(f"not an accepted form: {line}")
+            elif not members_allowed:
+                found.append(f"a member outside its container: {line}")
         if line not in text:
             found.append(f"not in the text: {line}")
     for pattern in NOT_SYSML:
@@ -486,6 +519,60 @@ def test_a_remedy_that_adds_stakeholders_declares_the_subject_first() -> None:
     assert entry["authoring"]["declarations"][1].startswith("stakeholder ")
 
 
+def test_the_system_of_interest_lines_are_declared_inside_the_charter_and_the_need() -> None:
+    """The charter's systemOfInterest line is a member of the charter, the subject line a member of the
+    need: each sits in its container's block. A new increment's charter is typed like the workflow's
+    charter parameter; an increment's own charter is restated as declared. A bare subject line comes
+    only in the remedy for an existing need, which its instruction names. With a system of interest
+    declared, the subject alone."""
+    scenario, _steps, types = _kernel_scenario()
+    builder = scenario.builder
+    need = _owner_qualified(builder, types["StakeholderNeedCandidate"])
+    charter = _owner_qualified(builder, types["IncrementCharter"])
+    system = ["part def <SystemName> { doc /* <the system of interest> */ }", "part <systemUsage> : <SystemName>;"]
+    new = _gap(_evaluate(scenario, NEW).gaps(), "needSubjectIsSystemOfInterest")
+    assert new["authoring"]["declarations"] == [
+        *system, f"part <charterName> : {charter} {{ ref part :>> systemOfInterest = <systemUsage>; }}",
+        f"requirement <name> : {need} {{ subject <subjectName> :> <systemUsage>; }}"]
+    existing = _gap(_evaluate(scenario).gaps(), "needSubjectIsSystemOfInterest")  # the needs take the increment
+    assert existing["authoring"]["declarations"] == [
+        *system, "part fixtureCharter : DE4SDV_FixtureFraming::FixtureCharter "
+                 "{ ref part :>> systemOfInterest = <systemUsage>; }", "subject <subjectName> :> <systemUsage>;"]
+    assert existing["what_to_author"].startswith(
+        "declare the system of interest in the increment's package, reference it from the charter and take it as "
+        f"the subject of {existing['subjects'][0]['qualified_name']}, never the increment: ")
+    system_definition = builder.definition("PartDefinition", "FixtureSystem", scenario.framing)
+    builder.attribute(scenario.charter, "systemOfInterest",
+                      builder.usage("PartUsage", "fixtureSystem", scenario.framing, [system_definition]), kind="PartUsage")
+    evaluation = _evaluate(scenario)
+    (gate,) = [g for g in evaluation.phase_contract()["gates"] if g["obligation_id"] == "needSubjectIsSystemOfInterest"]
+    assert gate["authoring"]["declarations"] == [
+        f"requirement <name> : {need} {{ subject <subjectName> :> DE4SDV_FixtureFraming::fixtureSystem; }}"]
+    assert _gap(evaluation.gaps(), "needSubjectIsSystemOfInterest")["authoring"]["declarations"] == [
+        "subject <subjectName> :> DE4SDV_FixtureFraming::fixtureSystem;"]
+
+
+def test_a_new_charter_s_features_are_the_ones_its_type_inherits() -> None:
+    """A new increment's charter is typed like the workflow's charter parameter, so its systemOfInterest
+    line redefines the feature that type inherits, by its bare name: never a feature that other charter
+    definitions of the model declare (two of them redefine systemOfInterest here)."""
+    scenario, _steps, types = _kernel_scenario()
+    builder = scenario.builder
+    inherited = builder.feature_of(scenario.vocabulary["IncrementTraceObligations"], "systemOfInterest")
+    for name in ("ProjectACharter", "ProjectBCharter"):
+        definition = builder.definition("PartDefinition", name, builder.package(f"{name}Package"),
+                                        [types["IncrementCharter"]])
+        feature = _feature(builder, definition, "PartUsage", "systemOfInterest")
+        builder.relationship("Redefinition", feature, general={"@id": inherited["@id"]}, specific={"@id": feature["@id"]},
+                             redefinedFeature={"@id": inherited["@id"]}, redefiningFeature={"@id": feature["@id"]})
+    entry = _gap(_evaluate(scenario, NEW).gaps(), "needSubjectIsSystemOfInterest")
+    declarations = entry["authoring"]["declarations"]
+    assert [line for line in declarations if "ProjectACharter" in line or "ProjectBCharter" in line] == []
+    assert (f"part <charterName> : {_owner_qualified(builder, types['IncrementCharter'])} "
+            "{ ref part :>> systemOfInterest = <systemUsage>; }") in declarations
+    assert [note for note in entry["authoring"]["notes"] if "inherited features" in note or "ambiguous" in note] == []
+
+
 def test_a_population_remedy_says_how_many_to_keep_and_how_one_is_declared() -> None:
     scenario, _steps, types = _kernel_scenario()
     builder = scenario.builder
@@ -496,6 +583,48 @@ def test_a_population_remedy_says_how_many_to_keep_and_how_one_is_declared() -> 
     assert entry["what_to_author"].startswith("keep at least 1 IncrementAssumption in the increment's package (")
     assert f"one is declared as: {line}" in entry["what_to_author"]
     assert entry["authoring"]["declarations"] == [line]
+
+
+def _owner_qualified(builder: ModelBuilder, definition: dict) -> str:
+    """``<package>::<name>`` of a definition a package owns: the builder's construction (the oracle)."""
+    by_id = {e["@id"]: e for e in builder.elements}
+    package = by_id[by_id[definition["owningRelationship"]["@id"]]["owningRelatedElement"]["@id"]]
+    assert package["@type"] in ("Package", "LibraryPackage"), package["@type"]
+    return f"{package['declaredName']}::{definition['declaredName']}"
+
+
+def test_a_population_remedy_declares_the_element_it_counts_first_and_complete() -> None:
+    """No need and no requirement at all, while phases 4, 5 and 10 apply. Each population remedy about
+    the needs or the requirements declares one of them first, by the parameter's keyword and type (the
+    live workflow file, read lexically), with what its check asks of it inside it. The lines the check
+    needs besides it (a scenario and its connection, a DerivesFromNeed connection, the system of interest)
+    follow it after "then:", and a connection or case among them refers to it by the name it is declared
+    with: never "one is declared as" followed by another element."""
+    scenario, steps, types = _kernel_scenario()
+    builder = scenario.builder
+    builder.remove(*scenario.needs, *scenario.requirements)
+    about = {check.name: parameter for step in steps for check in step.checks
+             for parameter in step.parameters if parameter.name == check.about}
+    gaps = _evaluate(scenario).gaps()
+    population = [entry for entry in [*gaps["blocking"], *gaps["advisory"]]
+                  if "POPULATION_POLICY_VIOLATION" in entry["reason_codes"]
+                  and about[entry["gate"]].name in ("needs", "requirements")]
+    assert {"needHasStatement", "needHasValidationScenario", "needSubjectIsSystemOfInterest",
+            "requirementDerivesFromNeed", "requirementSubjectIsSystemOfInterest"} <= {entry["gate"] for entry in population}
+    for entry in population:
+        parameter = about[entry["gate"]]
+        declarations, text = entry["authoring"]["declarations"], entry["what_to_author"]
+        first, rest = declarations[0], declarations[1:]
+        declared = re.fullmatch(rf"{parameter.keyword} (<[^<>]+>) : {re.escape(_owner_qualified(builder, types[parameter.type]))}"
+                                r"(?:;| \{ .+ \})", first)
+        assert declared, (entry["gate"], first)
+        assert f"one is declared as: {first}" in text, entry["gate"]
+        if rest:
+            assert f"{first} then: {' '.join(rest)}" in text, entry["gate"]
+        for line in rest:
+            if line.startswith(("connection ", "verification ")):
+                assert re.search(rf"(?:connect|to|verify) {re.escape(declared.group(1))}(?=[; ])", line), (
+                    entry["gate"], line)
 
 
 def test_a_type_outside_any_package_is_named_without_an_import() -> None:
@@ -520,20 +649,25 @@ def test_the_increment_s_own_package_is_never_imported() -> None:
     assert entry["authoring"]["imports"] == []
 
 
-def test_a_member_named_twice_in_the_lineage_is_redefined_by_its_qualified_name() -> None:
-    """Two inherited features named alike (as SYSMOD's and the NRM's priority are): the line redefines
-    the nearest by its qualified name, never the ambiguous bare name."""
+def test_a_member_named_twice_in_the_lineage_is_never_picked_and_each_candidate_is_listed() -> None:
+    """Two inherited features named alike (as SYSMOD's and the NRM's stability are): SysML's bare name is
+    ambiguous there and no rule here picks one (an element-id order is none), so no line redefines it;
+    a note says so and lists each candidate's qualified name, as an ambiguous name's refusal does."""
     scenario, _steps, _types = _kernel_scenario()
     builder = scenario.builder
+    holder = builder.library["__holder__"]  # the library attribute base the fixture's needs specialize
+    builder.own(builder.package("FixtureLibrary"), holder, member_name=holder["declaredName"])
     other = builder.definition("RequirementDefinition", "OtherAttributes", builder.package("FixtureOtherLibrary"))
     _feature(builder, other, "AttributeUsage", "source")
     need_definition = next(e for e in builder.elements if e.get("declaredName") == "FixtureNeed")
     builder.specializes(need_definition, other)
     builder.remove(builder.feature_of(scenario.needs[1], "source"))
     entry = _gap(_evaluate(scenario).gaps(), "needHasSource")
-    (line,) = entry["authoring"]["declarations"]
-    assert re.fullmatch(rf'attribute :>> {_QN} = "<source>";', line), line
-    assert any("names 2 inherited features" in note for note in entry["authoring"]["notes"])
+    assert entry["authoring"]["declarations"] == []
+    (note,) = [note for note in entry["authoring"]["notes"] if "ambiguous" in note]
+    for candidate in (f"FixtureLibrary::{holder['declaredName']}::source", "FixtureOtherLibrary::OtherAttributes::source"):
+        assert candidate in note, note
+    assert note in entry["what_to_author"]
 
 
 def test_a_remedy_says_what_to_author_never_that_authoring_it_proves_anything() -> None:
@@ -562,12 +696,33 @@ def test_every_relation_check_names_sysml_or_says_nothing_is_authored_in_the_mod
     for relation in relations:
         for subject in (None, requirement):
             remedy = check_remedy(view, relation, subject=subject)
-            record = {"what_to_author": remedy.text, "authoring": remedy.authoring()}
+            record = {"what_to_author": remedy.text, "authoring": remedy.authoring(),
+                      "subjects": [{"element_id": subject}] if subject else []}
             assert _problems(record, names) == [], (relation, subject)
             assert remedy.declarations or "nothing to author in the model" in remedy.text, (relation, remedy.text)
     verified = check_remedy(view, "verifiedBy", subject=requirement)
     assert verified.declarations == (
         "verification <name> { objective { verify DE4SDV_FixtureNeedsRequirements::requirement0; } }",)
+
+
+def test_the_derivation_line_connects_the_ends_in_the_order_the_carrier_declares() -> None:
+    """``connect a to b`` binds the carrier's first end to ``a``. The line follows the order in which the
+    carrier declares its ends, in both serialized shapes (the export's FeatureMembership of an isEnd usage,
+    and EndFeatureMembership), never the order the roles happen to be passed in."""
+    config = model_contract().relationship_mapping("derivesRequirementFromNeed").configuration
+    placeholder = {config["need_role"]: "<need>", config["requirement_role"]: "<requirement>"}
+    for membership in ("FeatureMembership", "EndFeatureMembership"):
+        for order in (list(placeholder), list(placeholder)[::-1]):
+            scenario, _steps, _types = _kernel_scenario()
+            builder = scenario.builder
+            carrier = scenario.vocabulary["DerivesFromNeed"]
+            for role in order:
+                end = builder.new("ReferenceUsage", name=role, source=builder.sources[carrier["@id"]], isEnd=True)
+                builder.own(carrier, end, kind=membership, member_name=role)
+            entry = _gap(_evaluate(scenario, NEW).gaps(), "requirementDerivesFromNeed")
+            (line,) = [d for d in entry["authoring"]["declarations"] if d.startswith("connection ")]
+            assert line.endswith(f" connect {placeholder[order[0]]} to {placeholder[order[1]]};"), (
+                membership, order, line)
 
 
 # -- the service and its tool descriptions ---------------------------------------------------
@@ -627,15 +782,52 @@ def test_known_looseness_the_checks_accept_an_increment_typed_by_the_kernel_defi
     definition specializing EngineeringIncrement (what every scenario here declares). Tightening the checks
     is a later method decision; this test records the looseness until then."""
     scenario, _steps, _types = _kernel_scenario()
-    builder = scenario.builder
     kernel = scenario.vocabulary["EngineeringIncrement"]
-    problem = next(e for e in builder.elements if e.get("declaredName") == "fixtureProblemStatement")
-    for typed in (scenario.usage, builder.feature_of(problem, "increment")):  # retype both by the kernel definition
-        for typing in [e for e in builder.elements if e.get("@type") == "FeatureTyping"
-                       and e.get("typedFeature", {}).get("@id") == typed["@id"]]:
-            typing["type"] = typing["general"] = {"@id": kernel["@id"]}
+    _typed_by_the_kernel_definition_itself(scenario)
     evaluation = _evaluate(scenario)
     verdicts = {u.unit_id: u.verdict for u in evaluation.canonical.units}
     assert verdicts["incrementHasIdentifier"] == me.VERDICT_PASS
     assert verdicts["incrementHasProblemStatement"] == me.VERDICT_PASS
     assert evaluation.scope.definition_ids == (kernel["@id"],)
+
+
+def _typed_by_the_kernel_definition_itself(scenario) -> dict:
+    """Retype the increment usage and the problem statement's subject by the kernel EngineeringIncrement
+    itself (the known looseness); returns the problem statement."""
+    builder = scenario.builder
+    kernel = scenario.vocabulary["EngineeringIncrement"]
+    problem = next(e for e in builder.elements if e.get("declaredName") == "fixtureProblemStatement")
+    for typed in (scenario.usage, builder.feature_of(problem, "increment")):
+        for typing in [e for e in builder.elements if e.get("@type") == "FeatureTyping"
+                       and e.get("typedFeature", {}).get("@id") == typed["@id"]]:
+            typing["type"] = typing["general"] = {"@id": kernel["@id"]}
+    return problem
+
+
+def test_an_increment_typed_by_the_kernel_definition_itself_is_taught_the_method_form() -> None:
+    """The looseness above is never echoed. For an increment usage typed by the kernel EngineeringIncrement
+    itself, the remedies declare the increment's own definition specializing it, retype the usage by it
+    and type the problem statement's subject by it, with one note naming the looseness. (A usage typed
+    by a definition of its own keeps naming it: the problem-statement test above.)"""
+    scenario, _steps, _types = _kernel_scenario()
+    problem = _typed_by_the_kernel_definition_itself(scenario)
+    qualified, _package = _kernel_qualified(scenario, "EngineeringIncrement")
+    statement, _package = _kernel_qualified(scenario, "ProblemStatement")
+    define = f"part def <IncrementDefinitionName> :> {qualified};"
+    retyped = f"part <'{scenario.increment_id}'> incFixture : <IncrementDefinitionName>;"
+    subject = "subject increment : <IncrementDefinitionName>;"
+    gates = {gate["obligation_id"]: gate for gate in _evaluate(scenario).phase_contract()["gates"]}
+    assert gates["incrementHasIdentifier"]["authoring"]["declarations"] == [
+        define, f"part <'{scenario.increment_id}'> <usageName> : <IncrementDefinitionName>;"]
+    assert gates["incrementHasProblemStatement"]["authoring"]["declarations"] == [
+        define, retyped, f"requirement <problemStatementName> : {statement} {{ {subject} }}"]
+    assert gates["incrementHasStakeholder"]["authoring"]["declarations"][:2] == [define, retyped]
+    scenario.builder.remove(scenario.builder.feature_of(problem, "increment"))
+    gap = _gap(_evaluate(scenario).gaps(), "incrementHasProblemStatement")
+    assert gap["authoring"]["declarations"] == [define, retyped, subject]
+    for record in (gates["incrementHasIdentifier"], gates["incrementHasProblemStatement"], gap):
+        named = [note for note in record["authoring"]["notes"]
+                 if "DE4SDV_FixtureFraming::incFixture" in note and qualified in note]
+        assert len(named) == 1, record["authoring"]["notes"]
+    texts = [record.get("what_to_author") or record.get("what_satisfies") for record in (*gates.values(), gap)]
+    assert [text for text in texts if f": {qualified};" in text or f"subject increment : {qualified};" in text] == []

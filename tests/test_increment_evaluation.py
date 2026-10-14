@@ -435,7 +435,9 @@ def test_relation_remedies_are_member_text_the_model_uses() -> None:
     assert entry["authoring"]["declarations"] == lines
     assert entry["what_to_author"].endswith(
         f": {' '.join(lines)} Import: private import {package}::*;"), entry["what_to_author"]
-    assert mc.remedy("frame", _evaluate(scenario).view) == "add to each subject: frame <concern>;"
+    # Without a subject, the member sits in its container (a requirement holds a framed concern).
+    assert mc.remedy("frame", _evaluate(scenario).view) == (
+        "declare each subject with the concern it frames: requirement <name> { frame <concern>; }")
 
 
 def test_an_unresolved_declared_artifact_leaves_the_later_steps_input_unavailable() -> None:
