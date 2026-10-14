@@ -33,6 +33,7 @@ from increment_model_fixtures import (
     increment_workflow,
 )
 from model_contract_fixtures import model_contract
+from sysml_shapes import REPO_ROOT
 from test_method_answer_coverage import _metaclass, _workflow_steps
 from test_revision_index import _traversal
 
@@ -755,7 +756,11 @@ def test_the_method_tools_answer_with_authoring_and_their_descriptions_say_so() 
              for tool in create_mcp_server(service)._tool_manager.list_tools()}
     for name in ("method_gaps", "next_obligation", "phase_contract"):
         assert "`authoring`" in tools[name] and "`private import`" in tools[name], name
+        assert "`phases`" in tools[name], name  # authoring.phases: the MethodPhase literals
     assert "`subject_type_kind`" in tools["phase_contract"]
+    assert "`parameter_element_id`" in tools["phase_contract"]
+    guide = (REPO_ROOT / "docs/guides/drive-an-increment-with-the-method-tools.md").read_text(encoding="utf-8")
+    assert "`parameter_element_id`" in guide and "`phases`" in guide
 
 
 def test_a_population_remedy_names_an_untyped_parameter_by_its_keyword() -> None:

@@ -108,8 +108,16 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   its keyword, its type's qualified name with the `private import` of that
   type's package, the types the check admits, and the order of declarations,
   such as a subject before stakeholder members. `authoring` gives the same as
-  `declarations`, `imports`, `types` and `notes`; a placeholder in angle
-  brackets is a name or text you choose, never a type.
+  `declarations`, `imports`, `types` and `notes`, and for the applicable-phases
+  check `phases`: each MethodPhase literal, and whether its phase has
+  executable checks. A placeholder in angle brackets is a name or text you
+  choose, never a type. A member line stands alone only in a remedy for an
+  existing element, which the instruction names; otherwise it sits in its
+  container's block (the charter's, the need's). A population remedy
+  (`keep …`) declares the element the check counts first and complete; the
+  lines after `then:` are what its check needs besides it. In
+  `phase_contract`, `parameter_element_id` is the element id of that step
+  parameter.
 - **Coverage.** Only some steps of the workflow carry checks. `phase_contract`
   lists every step in `steps`, with its phase, documentation, inputs and
   outputs (name, kind, type, multiplicity) and its checks; a step without
