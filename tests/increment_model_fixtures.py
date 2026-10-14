@@ -69,7 +69,11 @@ class ModelBuilder:
     kernel: dict[str, dict[str, Any]] = field(default_factory=dict)
     enumerations: dict[str, dict[str, dict[str, Any]]] = field(default_factory=dict)
     library: dict[str, dict[str, Any]] = field(default_factory=dict)
+    #: When set, :meth:`kernel_definition` puts each new kernel definition in a synthetic top-level
+    #: package per kernel source file, as the export owns kernel definitions; else it has no owner.
+    kernel_packages: bool = False
     _counter: Any = field(default_factory=itertools.count, repr=False)
+    _kernel_package_of: dict[str, dict[str, Any]] = field(default_factory=dict, repr=False)
 
     # -- primitives ----------------------------------------------------------
 
@@ -175,10 +179,21 @@ class ModelBuilder:
                 return existing
         name, metaclass = declaration_identity(mapping.declaration)
         definition = self.new(metaclass, name=name, source=mapping.file)
+        if self.kernel_packages:
+            self.own(self.kernel_package(mapping.file), definition, member_name=name)
         self.kernel[ontology_class] = definition
         self.bindings.append({"ontology_class": ontology_class, "element_id": definition["@id"],
                               "source_file": mapping.file, "declaration": mapping.declaration})
         return definition
+
+    def kernel_package(self, file: str) -> dict[str, Any]:
+        """The synthetic top-level package that owns the kernel definitions of one kernel file
+        (``de4sdv_method_context.sysml`` -> ``FixtureKernelMethodContext``)."""
+        if file not in self._kernel_package_of:
+            stem = Path(file).stem.removeprefix("de4sdv_")
+            name = "FixtureKernel" + "".join(part.capitalize() for part in stem.split("_"))
+            self._kernel_package_of[file] = self.package(name, source=file)
+        return self._kernel_package_of[file]
 
     def members(self, owner: dict[str, Any]) -> dict[str, dict[str, Any]]:
         """The owned members of ``owner`` by name."""
@@ -438,6 +453,23 @@ def increment_scenario(
         "IncrementEngineeringQuestion", "IncrementLifecycleDecision", "Assumption", "Stakeholder",
         "Need", "Requirement", "EvidenceContract", "DerivesFromNeed",
         "ValidationPlanningAssociation", "ValidationPlanningScenario")}
+    obligations = roots["IncrementTraceObligations"]
+    if "increment" not in b.members(obligations):
+        # A synthetic charter class declares the features the charter checks read, as the kernel's
+        # IncrementTraceObligations and IncrementCharter do (an adopted kernel already declares them).
+        for feature_name, kind, typed_by, bounds in (
+                ("increment", "PartUsage", roots["EngineeringIncrement"], ()),
+                ("applicablePhases", "AttributeUsage", b.kernel_definition("MethodPhase"), (0, INFINITY)),
+                ("owner", "AttributeUsage", None, ()),
+                ("expectedArtifacts", "AttributeUsage", None, (1, INFINITY)),
+                ("expectedReviewEvidence", "AttributeUsage", None, (1, INFINITY)),
+                ("systemOfInterest", "PartUsage", None, (0, 1))):
+            feature = b.new(kind, name=feature_name, source=b.sources[obligations["@id"]])
+            b.own(obligations, feature, kind="FeatureMembership", member_name=feature_name)
+            if typed_by is not None:
+                b.typed(feature, typed_by)
+            if bounds:
+                b.multiplicity(feature, *bounds)
     source_feature = b.library_feature("source")
     rationale_feature = b.library_feature("rationale")
     method_feature = b.library_feature("verificationMethod")
@@ -723,3 +755,16 @@ def set_check(scenario: IncrementScenario, workflow: dict[str, Any], check_name:
         except KeyError:
             pass
         builder.attribute(metadata, name, value, redefines=features[name])
+
+
+def kernel_qualified_name(builder: ModelBuilder, ontology_class: str) -> tuple[str, str]:
+    """(qualified name, owning package name) of a kernel definition, read from its validated binding's
+    declaration and the package that owns it through one owning membership: a test oracle that does not
+    use de4sdv.sysml_api.qualified_names."""
+    definition = builder.kernel_definition(ontology_class)
+    (binding,) = [b for b in builder.bindings if b["element_id"] == definition["@id"]][:1]
+    by_id = {e["@id"]: e for e in builder.elements}
+    membership = by_id[definition["owningRelationship"]["@id"]]
+    package = by_id[membership["owningRelatedElement"]["@id"]]
+    assert package["@type"] in ("Package", "LibraryPackage"), package["@type"]
+    return f"{package['declaredName']}::{declaration_identity(binding['declaration'])[0]}", package["declaredName"]

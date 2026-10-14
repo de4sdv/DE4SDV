@@ -67,6 +67,7 @@ from de4sdv.sysml_api.errors import IdentityNotFoundError
 from de4sdv.sysml_api.repository import reference_ids
 
 from . import method_evaluator as me
+from .element_description import USAGE_KEYWORDS
 from .increment_scope import (
     CHARTER_CLASS,
     IDENTITY_PROBLEM,
@@ -446,11 +447,17 @@ def _check(view: ModelView, metadata: str, step_name: str, phase: str, parameter
         claim_boundary=claim,
         maximum_population=upper,
     )
+    keyword = USAGE_KEYWORDS.get(kind, "")
     label = {"step": step_name, "parameter": parameters[parameter],
              "scope": "packages named in the charter's expectedArtifacts" if optional else "increment package",
              "direction": str(index.element(parameter).get("direction") or ""),
              "subject_type": view.label(types[0]) if types else kind, "check": check_id,
-             "check_definition": view.label(sorted(index.typed_by(metadata))[0])}
+             "check_definition": view.label(sorted(index.typed_by(metadata))[0]),
+             "parameter_element_id": parameter, "subject_keyword": keyword,
+             "subject_type_kind": "definition" if types else "metaclass"}
+    if not types:
+        label["subject_type_note"] = (f"{kind} is the SysML metaclass of the untyped parameter (any {keyword} "
+                                      "usage), not a model element; inspect_element does not resolve it")
     return spec, label
 
 

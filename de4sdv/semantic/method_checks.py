@@ -36,6 +36,8 @@ from . import method_evaluator as me
 from de4sdv.sysml_api.errors import IdentityNotFoundError
 
 from .increment_scope import (
+    INCREMENT_ATTRIBUTE,
+    PHASES_ATTRIBUTE,
     SCOPE_ATTRIBUTE,
     SCOPE_PROBLEM,
     SYSTEM_OF_INTEREST_ATTRIBUTE,
@@ -156,7 +158,8 @@ def _increment_short_name(view: ModelView, increment: IncrementScope, subject_id
 
 
 def _charter_references_increment(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
-    references = [leaf.value for leaf in view.index.feature_values(subject_id, "increment") if leaf.kind == "reference"]
+    references = [leaf.value for leaf in view.index.feature_values(subject_id, INCREMENT_ATTRIBUTE)
+                  if leaf.kind == "reference"]
     if increment.usage_id is None or increment.usage_id not in references:
         return violated(f"{_name(view, subject_id)} does not reference the increment {increment.increment_id} "
                         "through its increment value")
@@ -219,6 +222,7 @@ def _charter_text(attribute: str) -> CheckFunction:
             return violated(f"{_name(view, subject_id)} carries no non-empty {attribute} value")
         return satisfied(texts, witnesses=[subject_id])
 
+    check.member = attribute  # type: ignore[attr-defined]  # what a remedy sets (de4sdv.semantic.remedies)
     return check
 
 
@@ -281,6 +285,8 @@ def _library_attribute(attribute: str, *, allowed: Sequence[str] = ()) -> CheckF
             return violated(f"{name} {attribute} value {outside} is not one of {', '.join(allowed)}")
         return satisfied(texts, witnesses=[feature, *inherited])
 
+    check.member = attribute  # type: ignore[attr-defined]  # what a remedy sets (de4sdv.semantic.remedies)
+    check.allowed = tuple(allowed)  # type: ignore[attr-defined]
     return check
 
 
@@ -498,7 +504,13 @@ def _evidence_record_or_status(view: ModelView, increment: IncrementScope, subje
     return satisfied([t for t, _w in result.hops], [w for _t, w in result.hops])
 
 
-_KINDS = ", ".join(STANDARD_VERIFICATION_METHOD_KINDS)
+#: The member each of these checks reads, which a remedy sets (de4sdv.semantic.remedies).
+_charter_references_increment.member = INCREMENT_ATTRIBUTE  # type: ignore[attr-defined]
+_charter_applicable_phases.member = PHASES_ATTRIBUTE  # type: ignore[attr-defined]
+_charter_expected_artifacts.member = SCOPE_ATTRIBUTE  # type: ignore[attr-defined]
+_expected_artifacts_cover_content.member = SCOPE_ATTRIBUTE  # type: ignore[attr-defined]
+_subject_is_system_of_interest.member = SYSTEM_OF_INTEREST_ATTRIBUTE  # type: ignore[attr-defined]
+
 
 #: Check id -> implementation (named checks; relation names join per contract).
 NAMED_CHECKS: Mapping[str, CheckFunction] = MappingProxyType({
@@ -532,50 +544,6 @@ CHECK_MAXIMUM: Mapping[str, int] = MappingProxyType({
                            "oneVerificationMethodKind", "successCriteriaAttribute")
 })
 
-#: Check id -> what to author when the check fails, in model terms ({subject}, {subject_name}).
-REMEDIES: Mapping[str, str] = MappingProxyType({
-    "incrementShortName": "declare the increment usage with its identifier as declared short name: "
-                          "part <'INC-...'> <usageName> : <IncrementDefinition>;",
-    "charterReferencesIncrement": "reference the increment from {subject}: ref part :>> increment = <incrementUsage>;",
-    "problemStatementSubject": "in the increment's package: requirement <name> : ProblemStatement "
-                               "{{ subject increment : <IncrementDefinition>; }}",
-    "ownedByIncrementPackage": "declare {subject} in the increment's package",
-    "stakeholderMember": "add to {subject}: stakeholder <name> : <role>;",
-    "framedByIncrementView": "in the increment's package, frame {subject_name} by a viewpoint of a view: view <name> "
-                             "{{ viewpoint <name> : <Viewpoint> {{ frame {subject_name}; }} }}",
-    "charterOwner": "set on {subject}: attribute :>> owner = \"...\";",
-    "charterApplicablePhases": "set on {subject}: attribute :>> applicablePhases = (MethodPhase::...);",
-    "charterExpectedArtifacts": "set on {subject}: attribute :>> expectedArtifacts = (\"<top-level package name>\", ...);",
-    "charterExpectedReviewEvidence": "set on {subject}: attribute :>> expectedReviewEvidence = (\"...\");",
-    "requireConstraint": "add the statement to {subject}: require constraint statement "
-                         "{{ language \"English\" /* ... */ }}",
-    "sourceAttribute": "set on {subject}: attribute :>> source = \"...\";",
-    "rationaleAttribute": "set on {subject}: attribute :>> rationale = \"...\";",
-    "oneNativeSubject": "declare exactly one subject on {subject}: subject <name> : <Definition>;",
-    "subjectIsSystemOfInterest": "declare the system of interest on the charter (ref part :>> systemOfInterest = "
-                                 "<usage>;) and take it as the subject of {subject}: subject <name> :> <usage>; "
-                                 "(never the increment)",
-    "charterExpectedArtifactsCoverContent": "add to the expectedArtifacts of {subject} every top-level package "
-                                            "holding increment content (elements connected by DerivesFromNeed to, "
-                                            "verifying, or verified by the increment's elements, or referencing "
-                                            "the increment usage), or move that content into a named package",
-    "oneVerificationMethodKind": "set on {subject}: attribute :>> verificationMethod = \"<kind>\"; (one of " + _KINDS + ")",
-    "successCriteriaAttribute": "set on {subject}: attribute :>> successCriteria = \"<the observable conditions under "
-                                "which verification shows the requirement is met>\";",
-    "specifiesFeatureOrCommonCapability": "trace {subject} to a feature or common capability",
-    "verifiesIncrementRequirement": "add to the objective of {subject} (or its definition): verify <increment requirement>;",
-    "evidenceRecordOrStatus": "record evidence for {subject} (evidence content is external at this revision)",
-    # Relations whose remedy needs more than the relation's name.
-    "derivesRequirementFromNeed": "replace any plain dependency with: connection <name> : DerivesFromNeed "
-                                  "connect <need> to {subject_name};",
-    "hasValidationScenario": "add a scenario and connect it to {subject}: connection <name> : "
-                             "ValidationPlanningAssociation connect {subject_name} to <scenario>;",
-    "frame": "add to {subject}: frame <concern>;",
-    "stakeholder": "add to {subject}: stakeholder <name> : <role>;",
-    "subject": "declare a subject on {subject}: subject <name> : <Definition>;",
-    "verify": "add to the objective of {subject} (or its definition): verify <requirement>;",
-})
-
 
 def method_checks(view: ModelView) -> Mapping[str, me.Predicate]:
     """Check id -> evaluator predicate: the named checks and one check per relation of the
@@ -590,15 +558,11 @@ def method_checks(view: ModelView) -> Mapping[str, me.Predicate]:
 
 
 def remedy(check_id: str, view: ModelView, subject_id: str | None = None) -> str:
-    """What to author for one check, in model terms."""
-    template = REMEDIES.get(check_id) or (
-        f"add a {check_id} relation from {{subject}}" if check_id in relation_checks(view) else "")
-    values = {"subject": element_name(view, subject_id) if subject_id else "each subject",
-              "subject_name": view.index.name_of(subject_id) if subject_id else "<subject>"}
-    try:
-        return template.format(**values)
-    except (KeyError, IndexError, ValueError):
-        return template
+    """What to author for one check, in model terms (without the step parameter it is about; the
+    answers build it with the parameter: :func:`de4sdv.semantic.remedies.check_remedy`)."""
+    from .remedies import check_remedy  # the remedies read this module's checks
+
+    return check_remedy(view, check_id, subject=subject_id).text
 
 
 def default_claim(check_id: str, view: ModelView) -> str:

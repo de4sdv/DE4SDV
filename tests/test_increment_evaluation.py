@@ -25,6 +25,7 @@ from increment_model_fixtures import (
     increment_workflow,
     cut_method_builder,
     cut_workflow,
+    kernel_qualified_name,
     set_check,
 )
 from test_revision_index import _traversal
@@ -419,13 +420,21 @@ def test_unreadable_governed_witnesses_stay_indeterminate_for_every_subject(monk
 
 
 def test_relation_remedies_are_member_text_the_model_uses() -> None:
-    """What to author for a relation is SysML the model already uses; placeholders are only in angle brackets."""
+    """What to author for a relation is SysML the model already uses; placeholders are only in angle brackets.
+    Types and the subject are named by their qualified names (read here from the cut's kernel bindings and
+    owning packages), the scenario is declared before the connection that names it."""
     scenario = _scenario()
     builder = scenario.builder
     builder.remove(*[e for e in builder.elements if e.get("declaredName") == "need1ValidationPlanning"])
     (entry,) = [g for g in _evaluate(scenario).gaps()["blocking"] if g["gate"] == "needHasValidationScenario"]
+    association, package = kernel_qualified_name(builder, "ValidationPlanningAssociation")
+    scenario_type, _package = kernel_qualified_name(builder, "ValidationPlanningScenario")
+    lines = [f"part <validationScenario> : {scenario_type};",
+             f"connection <name> : {association} connect DE4SDV_FixtureNeedsRequirements::need1 to "
+             "<validationScenario>;"]
+    assert entry["authoring"]["declarations"] == lines
     assert entry["what_to_author"].endswith(
-        ": connection <name> : ValidationPlanningAssociation connect need1 to <scenario>;"), entry["what_to_author"]
+        f": {' '.join(lines)} Import: private import {package}::*;"), entry["what_to_author"]
     assert mc.remedy("frame", _evaluate(scenario).view) == "add to each subject: frame <concern>;"
 
 

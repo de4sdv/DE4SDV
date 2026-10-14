@@ -32,14 +32,12 @@ from typing import Any, Iterable, Mapping
 
 from .increment_scope import (
     CHARTER_CLASS,
+    INCREMENT_ATTRIBUTE,
     INCREMENT_CLASS,
     IncrementIdentifierError,
     ModelView,
     parse_increment_id,
 )
-
-#: The charter attribute that references the increment usage.
-INCREMENT_ATTRIBUTE = "increment"
 
 
 @dataclass(frozen=True)
