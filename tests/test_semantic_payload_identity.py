@@ -170,14 +170,14 @@ def _write_json(root, relative, value):
 @pytest.fixture
 def synthetic_layers_root(synthetic_successor_root):
     root = synthetic_successor_root
-    definition, o2plus = mc.LAYERS
-    batch2 = mc.KERNEL_VOCABULARY_LAYER
+    definition, native_grounding = mc.LAYERS
+    kernel_vocabulary = mc.KERNEL_VOCABULARY_LAYER
     rows = {
         definition.name: [{"identity": "Origin", "semantic_kind": "class",
                            "grounding": {"kernel_binding_contract": CLASS_PINS["Origin"]}}],
-        o2plus.name: [{"identity": "SyntheticNative", "category": "native",
-                      "construct": "SysML::PartUsage"}],
-        batch2.name: [
+        native_grounding.name: [{"identity": "SyntheticNative", "category": "native",
+                                "construct": "SysML::PartUsage"}],
+        kernel_vocabulary.name: [
             {"identity": "Destination", "semantic_kind": "class", "admission_class": "definition",
              "grounding": {"kernel_binding_contract": CLASS_PINS["Destination"]}},
             {"identity": "describes", "semantic_kind": "relationship",
@@ -194,7 +194,7 @@ def synthetic_layers_root(synthetic_successor_root):
     }
     for spec in mc.LAYERS + mc.KERNEL_VOCABULARY_LAYERS:
         entries = [{"identity": row["identity"]} for row in rows[spec.name]]
-        if spec == batch2:
+        if spec == kernel_vocabulary:
             entries[1]["serializer_mechanics"] = {"strategy": "synthetic-membership",
                                                    "property": "ownedMember"}
             entries[2]["retired_resolution"] = {"successor": "linksTo", "navigation": "linkedFrom"}
@@ -203,27 +203,27 @@ def synthetic_layers_root(synthetic_successor_root):
                                                "binding": binding, "rows": rows[spec.name]})
         _write_json(root, spec.profile_path, {"schema": spec.profile_schema,
                                             "binding": binding, "entries": entries})
-    o2_classes = []
+    frozen_classes = []
     for name in EXPECTED_FROZEN_RECORD_CLASSES:
         if name == "VerificationCase":
-            o2_classes.append({"identity": name, "construct": {
+            frozen_classes.append({"identity": name, "construct": {
                 "kind": "native", "native_grounding": {"identity": "SysML::VerificationCaseUsage"}}})
         else:
-            o2_classes.append({"identity": name, "grounding": {"kernel_binding_contract": {
+            frozen_classes.append({"identity": name, "grounding": {"kernel_binding_contract": {
                 "source_file": "synthetic/o2.sysml", "declaration": "part def " + name}}})
-    o2_relations = [{"identity": name, "relation": {
+    frozen_relations = [{"identity": name, "relation": {
         "domain": {"ontology_class": "MethodPhase"},
         "range": {"ontology_class": "VerificationCase"}, "semantic_strength": "trace-only"}}
         for name in EXPECTED_FROZEN_RECORD_RELATIONSHIPS]
-    o2_profiles = [{"for_identity": name, "serializer_mechanics": {
+    frozen_profiles = [{"for_identity": name, "serializer_mechanics": {
         "strategy": "synthetic-o2-membership", "property": "memberElement"}}
         for name in EXPECTED_FROZEN_RECORD_RELATIONSHIPS]
     for index, (relative, schema) in enumerate(mc.FROZEN_PROJECTION_RECORDS):
-        _write_json(root, relative, {"schema": schema, "concepts": o2_classes if index == 0 else [],
-                                    "predicates": o2_relations if index == 0 else [],
+        _write_json(root, relative, {"schema": schema, "concepts": frozen_classes if index == 0 else [],
+                                    "predicates": frozen_relations if index == 0 else [],
                                     "binding": {"source_revision": "c" * 40}})
     for index, (relative, schema) in enumerate(mc.FROZEN_PROFILE_RECORDS):
-        _write_json(root, relative, {"schema": schema, "profiles": o2_profiles if index == 0 else [],
+        _write_json(root, relative, {"schema": schema, "profiles": frozen_profiles if index == 0 else [],
                                     "binding": {"source_revision": "c" * 40}})
     _write(root, "synthetic/o2.sysml", "package SyntheticO2 {\n" + "".join(
         "  part def " + name + " {}\n" for name in EXPECTED_FROZEN_RECORD_CLASSES if name != "VerificationCase") + "}\n")

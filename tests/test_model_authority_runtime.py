@@ -176,27 +176,27 @@ def _kbc(name):
     return {"source_file": mapping.file, "declaration": mapping.declaration}
 
 
-def _b2_class(name, **grounding):
+def _kernel_vocabulary_class_row(name, **grounding):
     return {"identity": name, "semantic_kind": "class", "admission_class": "definition",
             "accounting": "retained", "support": "vocabulary-only", "traversal": False,
             "grounding": {"ontology_relations": {"sub_class_of": None, "disjoint_with": []},
                           **grounding}}
 
 
-def _b2_relation(name, admission, domain, range_, strength=None, **extra):
+def _kernel_vocabulary_relation_row(name, admission, domain, range_, strength=None, **extra):
     return {"identity": name, "semantic_kind": "relationship", "admission_class": admission,
             "accounting": "retained", "support": "vocabulary-only", "traversal": False,
             "relation": {"domain": {"ontology_class": domain}, "range": {"ontology_class": range_},
                          "semantic_strength": strength}, **extra}
 
 
-def _b2_entry(name, **extra):
+def _kernel_vocabulary_profile_entry(name, **extra):
     return {"profile_identity": f"de4sdv.o4-definition-batch2-profile/v1#{name}",
             "for_concept": name, "representation_class": "synthetic", **extra}
 
 
 def _retired(name, domain, range_, successor, navigation):
-    row = dict(_b2_relation(name, "retired-name", domain, range_),
+    row = dict(_kernel_vocabulary_relation_row(name, "retired-name", domain, range_),
                retired={"successor": successor, "successor_navigation": navigation,
                         "refusal": f"retired; use {navigation}"})
     return row, {"retired_resolution": {"successor": successor, "navigation": navigation}}
@@ -211,24 +211,24 @@ def _kernel_vocabulary_rows():
                   "target_property": "target", "source_types": ["RequirementUsage"]}
     closure = [{"source_file": f"f{i}.sysml", "declaration": f"requirement def C{i}"}
                for i in range(EC_DEFS)]
-    hrec = _b2_relation("hasRelevantEvidenceContract", "relationship-runtime", "Requirement",
-                        "EvidenceContract", "relevance")
+    hrec = _kernel_vocabulary_relation_row("hasRelevantEvidenceContract", "relationship-runtime", "Requirement",
+                                           "EvidenceContract", "relevance")
     hrec["relation"]["range"]["discriminator"] = {"kind": "type-lineage",
                                                   "lineage": _kbc("EvidenceContract"),
                                                   "closure": closure}
     rows = [
-        (_b2_class("EvidenceContract", kernel_binding_contract=_kbc("EvidenceContract")), {}),
-        (_b2_class("Interface", kernel_native="SysML v2 port def and connection elements"), {}),
-        (_b2_class("EvidenceStatus", kernel_external=(
+        (_kernel_vocabulary_class_row("EvidenceContract", kernel_binding_contract=_kbc("EvidenceContract")), {}),
+        (_kernel_vocabulary_class_row("Interface", kernel_native="SysML v2 port def and connection elements"), {}),
+        (_kernel_vocabulary_class_row("EvidenceStatus", kernel_external=(
             "ODE4HERA requirements-management library VVStatus (NRM A13+A14) via the "
             "DE4SDV method-context adapter")), {}),
-        (_b2_relation("variesAt", "relationship-vocabulary", "Feature", "VariationPoint"), {}),
-        (dict(_b2_relation("hasStakeholder", "relationship-vocabulary", "EngineeringIncrement",
-                           "Stakeholder"),
+        (_kernel_vocabulary_relation_row("variesAt", "relationship-vocabulary", "Feature", "VariationPoint"), {}),
+        (dict(_kernel_vocabulary_relation_row("hasStakeholder", "relationship-vocabulary", "EngineeringIncrement",
+                                              "Stakeholder"),
               carrier={"source_file": "x.sysml", "declaration": "connection def HasStakeholder"}), {}),
         (hrec, {"serializer_mechanics": dependency}),
-        (_b2_relation("hasEvidence", "external-reference", "VerificationCase", "EvidenceArtifact",
-                      "external-data-required"),
+        (_kernel_vocabulary_relation_row("hasEvidence", "external-reference", "VerificationCase", "EvidenceArtifact",
+                                         "external-data-required"),
          {"serializer_mechanics": {"strategy": "external"}}),
         ({"identity": "allocatedTo", "semantic_kind": "relationship", "admission_class": "successor",
           "accounting": "retained", "support": "runtime-mapped-candidate", "traversal": False,
@@ -236,10 +236,10 @@ def _kernel_vocabulary_rows():
         _retired("realizedBy", "Requirement", "ArchitectureElement", "allocatedTo", "allocatedTo"),
         _retired("constrainedBy", "Requirement", "RegulatoryConstraint", "hasRegulatorySource",
                  "hasRegulatorySource"),
-        (_b2_class("Function", kernel_native=(
+        (_kernel_vocabulary_class_row("Function", kernel_native=(
             "SysML v2 action/state/behavior definitions in functional-architecture slices")), {}),
-        (_b2_class("AllocatableFunction", kernel_binding_contract=_kbc("AllocatableFunction"),
-                   ontology_relations={"sub_class_of": "Function", "disjoint_with": []}), {}),
+        (_kernel_vocabulary_class_row("AllocatableFunction", kernel_binding_contract=_kbc("AllocatableFunction"),
+                                      ontology_relations={"sub_class_of": "Function", "disjoint_with": []}), {}),
         _retired("validatesFitnessForUse", "ValidationScenario", "Need", "hasValidationScenario",
                  "validationScenarioFor"),
     ]
@@ -259,7 +259,7 @@ def _kernel_vocabulary_root(tmp_path, rows):
         {"schema": spec.projection_schema, "binding": binding, "rows": [r for r, _ in rows]}))
     (root / spec.profile_path).write_text(json.dumps(
         {"schema": spec.profile_schema, "binding": binding,
-         "entries": [_b2_entry(r["identity"], **e) for r, e in rows]}))
+         "entries": [_kernel_vocabulary_profile_entry(r["identity"], **e) for r, e in rows]}))
     return root
 
 
