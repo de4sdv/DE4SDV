@@ -22,8 +22,8 @@ range is the authored type closure of the validated ``EvidenceContract``
 kernel root. The served model must hold as many specializing requirement
 definitions as the closure the contract declares, which lists the evidence
 contracts the model declares; the release evidence check compares the two
-sets by element id. An empty or different population fails closed with
-:data:`MODEL_EVIDENCE_CONTRACT_BLOCKED_REASON`.
+sets by element id. An empty population or a different number fails closed
+with :data:`MODEL_EVIDENCE_CONTRACT_BLOCKED_REASON`.
 
 Non-claims: serving the model-built contract is not compliance or a semantic
 proof beyond the bound artifacts.

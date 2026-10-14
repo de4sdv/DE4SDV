@@ -298,10 +298,13 @@ package DE4SDV_MethodContext {
      * MiddlewareAcceptanceCriterion is an AcceptanceCriterion only, so
      * acceptance-criterion typing never makes a requirement an evidence
      * contract. This specialization closure is the evidence-contract
-     * population that the hasRelevantEvidenceContract discriminator lists; a
-     * new evidence contract joins that list in the kernel-vocabulary
-     * admission, and the runtime refuses a served model whose closure differs
-     * from it. The existing runtime dependency mapping is unchanged. */
+     * population that the hasRelevantEvidenceContract discriminator lists. A
+     * new evidence contract joins that list in the kernel-vocabulary admission
+     * and also updates the ADR 0020 population tests. The runtime requires the
+     * served model to hold as many specializing definitions as the declared
+     * closure; set equality is checked by the generator and the repository
+     * test in CI, and by element id at release. The existing runtime
+     * dependency mapping is unchanged. */
   }
 
   comment hasRelevantEvidenceContractVocabularyRole about EvidenceContract /* The
@@ -422,13 +425,20 @@ package DE4SDV_MethodContext {
    * configuration, conditions), the versioned evidence reference, the
    * rationale and the known limits. This is cited support, distinct from
    * hasEvidence artifact association. A claim is treated as established, or
-   * acceptance is sought, only after an adequacy assessment of the evidence
-   * set for the same exact scope, which reuses the cases, criteria, results,
-   * references and gaps it assesses. The designated authority's scoped
-   * acceptance stays a separate AcceptanceAttestationReference, with
-   * exceptions kept visible. Citation, adequacy and acceptance never imply
-   * each other. Vocabulary only at this revision: no runtime traversal is
-   * implemented here. */
+   * acceptance is sought, only after a proportionate adequacy assessment of
+   * the evidence set for the same exact scope and agreed criteria, which
+   * reuses the cases, criteria, results, references and gaps it assesses.
+   * That assessment is not a sufficiency verdict on each artifact: it keeps
+   * its coverage, confidence and rigor bases, contrary results,
+   * discrepancies, unresolved gaps, assessor and reasoning explicit; an
+   * adequate set can establish a negative conclusion; and whether the set
+   * supports the claim is the assessor's scoped conclusion, not checker
+   * truth. The designated authority's scoped acceptance stays a separate
+   * AcceptanceAttestationReference, with exceptions kept visible; neither
+   * assessment nor acceptance turns exceptions or a generic Completed status
+   * into unqualified satisfaction. Citation, adequacy and acceptance never
+   * imply each other. Vocabulary only at this revision: no runtime traversal
+   * is implemented here. */
 
   comment hasEvidenceStatusVocabularyRole about EvidenceStatusOntologyDefinition /* Successor
    * for the legacy hasEvidenceStatus (EvidenceArtifact to EvidenceStatus)
@@ -436,12 +446,21 @@ package DE4SDV_MethodContext {
    * unchanged adopted VVStatus, identified with the activity's subject,
    * configuration, comparison basis and result or evidence references;
    * EvidenceStatus resolves to that pinned VVStatus and to slice-local
-   * bounded outcome/disposition enums. No new universal status enum is
-   * introduced. Artifact maturity, evidence-set adequacy and authority
-   * acceptance stay separate, and Completed never means passed or accepted.
-   * Retirement: hasEvidenceStatus takes no new model usage; consumers move to
-   * this successor in a reviewed runtime change, which then retires the
-   * legacy predicate (the authored ontology that declared it is removed). */
+   * bounded outcome/disposition enums. Each activity is exactly one
+   * verification or one validation, applicable across needs, requirements,
+   * designs, production outputs, system elements, integrated systems and
+   * artifacts without inheriting requirement attributes; native need and
+   * requirement verificationStatus attachments stay unchanged, and native
+   * VerdictKind execution values stay distinct from the activity's status.
+   * Completed includes the necessary result approval; CompletedUnsuccessful
+   * could not complete; CompletedFailed completed with technical failure;
+   * CompletedPassed completed successfully against the activity basis only,
+   * not a broader scoped claim. No new universal status enum is introduced.
+   * Artifact maturity, evidence-set adequacy and authority acceptance stay
+   * separate, and Completed never means passed or accepted. Retirement:
+   * hasEvidenceStatus takes no new model usage; consumers move to this
+   * successor in a reviewed runtime change, which then retires the legacy
+   * predicate (the authored ontology that declared it is removed). */
 
   /* Assurance argumentation kinds. A claim, its supporting arguments and its
    * counter-claims are assurance artifacts that consume verification results.

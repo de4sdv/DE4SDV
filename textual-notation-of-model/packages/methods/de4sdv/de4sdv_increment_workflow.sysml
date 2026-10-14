@@ -61,9 +61,10 @@ package DE4SDV_IncrementWorkflow {
          * declaration. Populating this declaration is not completion evidence.
          * Reuse prior artifacts, preserve R/F/L/P, and do not invent realization
          * or execution for early framing. Missing required traces block the
-         * corresponding claim unless an authorized visible disposition permits
-         * it. Unsupported or unavailable evaluation stays UNASSESSED, never
-         * synthetic PASS. */
+         * exit of the phase they belong to unless an authorized visible
+         * disposition permits it, such as a step parameter whose multiplicity
+         * allows none. Unsupported or unavailable evaluation stays UNASSESSED,
+         * never synthetic PASS. */
     ref part increment : EngineeringIncrement;
     attribute applicablePhases[*] : MethodPhase;
   }

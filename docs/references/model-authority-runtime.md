@@ -159,8 +159,9 @@ kernel root. It must hold as many specializing requirement definitions as the
 closure the contract declares, which lists the evidence contracts the model
 declares (the eight AEBS evidence contracts at this revision); the release
 evidence check compares the two sets by element id. Members are the usages
-explicitly typed by the root or by one of those definitions. An empty or
-different population fails closed with `MODEL_EVIDENCE_CONTRACT_BLOCKED_REASON`.
+explicitly typed by the root or by one of those definitions. An empty
+population or a different number fails closed with
+`MODEL_EVIDENCE_CONTRACT_BLOCKED_REASON`.
 `traversal.py` is untouched; the discriminator is a subclass override.
 
 ## Coverage gate (blocking)

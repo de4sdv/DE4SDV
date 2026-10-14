@@ -30,12 +30,17 @@ ROLES = {
     "supportedByEvidenceVocabularyRole": (
         CONTEXT, "AssuranceClaimOntologyDefinition",
         ("cited support", "distinct from hasEvidence", "rationale", "known limits",
-         "adequacy assessment of the evidence set", "AcceptanceAttestationReference",
+         "adequacy assessment of the evidence set", "coverage, confidence and rigor bases",
+         "an adequate set can establish a negative conclusion",
+         "the assessor's scoped conclusion, not checker truth", "AcceptanceAttestationReference",
          "never imply each other", "Vocabulary only")),
     "hasEvidenceStatusVocabularyRole": (
         CONTEXT, "EvidenceStatusOntologyDefinition",
-        ("unchanged adopted VVStatus", "No new universal status enum", "Completed never means passed",
-         "Retirement", "no new model usage")),
+        ("unchanged adopted VVStatus", "exactly one verification or one validation",
+         "needs, requirements, designs, production outputs",
+         "CompletedUnsuccessful could not complete", "CompletedFailed completed with technical failure",
+         "CompletedPassed completed successfully against the activity basis only, not a broader scoped claim",
+         "No new universal status enum", "Completed never means passed", "Retirement", "no new model usage")),
     "BaselineVocabularyRole": (
         OPERATIONAL, "DE4SDVEvidenceBaseline",
         ("content is external", "no authority", "no second mutable baseline list")),
@@ -110,3 +115,58 @@ def test_external_boundary_rows_gain_no_model_content_mirror():
     for path in sorted((ROOT / KERNEL).glob("*.sysml")):
         active = re.sub(r"/\*.*?\*/|//[^\n]*", " ", path.read_text(), flags=re.S)
         assert not re.search(r"\bdef\s+(?:EvidenceArtifact|Baseline|BaselineManifest)\w*\b", active), path.name
+
+
+#: The VVStatus literals of the exact-pinned ODE4HERA library that the served
+#: hasEvidenceStatus text and the glossary rely on.
+ADOPTED_VV_STATUSES = {"NotStarted", "InProgress", "Completed", "CompletedUnsuccessful",
+                       "CompletedFailed", "CompletedPassed"}
+ODE4HERA = "pkg:sysand/ode4hera/requirements-management"
+
+
+def _installed_requirements_management() -> Path:
+    """The synced ODE4HERA library (``sysand sync``), matched to the lock's exact pin.
+
+    Read here, in a test, only: the runtime never reads a library source."""
+    import tomllib
+
+    lock = tomllib.loads((ROOT / "sysand-lock.toml").read_text(encoding="utf-8"))
+    (pin,) = [p for p in lock["project"] if ODE4HERA in p.get("identifiers", [])]
+    env = tomllib.loads((ROOT / ".sysand/env.toml").read_text(encoding="utf-8"))
+    (installed,) = [p for p in env["project"] if ODE4HERA in p.get("identifiers", [])]
+    assert installed["version"] == pin["version"]
+    assert installed["kpar_cksum"] == pin["sources"][0]["kpar_digest"]
+    return ROOT / ".sysand" / installed["path"] / "RequirementsManagement.sysml"
+
+
+def _enum_literals(source: str, name: str) -> list[str]:
+    """Direct literals of one enum definition, read lexically with comments removed."""
+    code = re.sub(r"/\*.*?\*/|//[^\n]*", " ", source, flags=re.S)
+    (start,) = [m.end() for m in re.finditer(r"\benum\s+def\s+" + name + r"\s*\{", code)]
+    tokens = re.findall(r"[{};]|[A-Za-z_]\w*", code[start:])
+    literals, depth = [], 1
+    for token, following in zip(tokens, tokens[1:] + [""]):
+        if token == "{":
+            depth += 1
+        elif token == "}":
+            depth -= 1
+            if depth == 0:
+                return literals
+        elif depth == 1 and token not in (";", "doc") and following in ("{", ";"):
+            literals.append(token)
+    raise AssertionError(f"enum def {name} is not closed")
+
+
+def test_the_served_status_text_names_only_the_pinned_vvstatus_literals():
+    literals = _enum_literals(_installed_requirements_management().read_text(encoding="utf-8"), "VVStatus")
+    assert len(literals) == len(set(literals)) and set(literals) == ADOPTED_VV_STATUSES, literals
+    (found,) = _role(CONTEXT, "hasEvidenceStatusVocabularyRole")
+    named = set(re.findall(r"\b(?:NotStarted|InProgress|Completed\w*)\b", found[1]))
+    assert {"Completed", "CompletedUnsuccessful", "CompletedFailed", "CompletedPassed"} <= named
+    assert named <= ADOPTED_VV_STATUSES, named - ADOPTED_VV_STATUSES
+
+
+def test_a_changed_vvstatus_population_would_be_noticed():
+    library = _installed_requirements_management().read_text(encoding="utf-8")
+    grown = library.replace("enum def VVStatus {", "enum def VVStatus {\n        SignedOff { doc /* synthetic */ }", 1)
+    assert set(_enum_literals(grown, "VVStatus")) == ADOPTED_VV_STATUSES | {"SignedOff"}

@@ -148,9 +148,9 @@ package DE4SDV_ProductLine {
     private doc ontologyDefinition /* A capability or characteristic present in all relevant member products; not a feature
      * unless it distinguishes variants. */
     doc /* Capability required across member products; not a feature unless it distinguishes member products. */
-    /* Feature/common-capability disjointness as a checked constraint: the licensed
-     * toolchain rejects the standalone KerML disjoining in a SysML package, so the axiom
-     * is a checked constraint on both definitions. */
+    /* Feature/common-capability disjointness (ADR 0020, decision 7) as a checked
+     * constraint: the licensed toolchain rejects the standalone KerML disjoining in a
+     * SysML package, so the axiom is a checked constraint on both definitions. */
     assert constraint notAFeatureCandidate { not (that istype ProductLineFeatureCandidate) }
   }
 

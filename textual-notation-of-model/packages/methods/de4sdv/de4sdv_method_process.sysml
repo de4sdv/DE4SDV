@@ -67,9 +67,10 @@ package DE4SDV_MethodProcess {
 
   /* ─── Scoped trace obligations ─── */
   /* Per-increment obligations live in DE4SDV_IncrementWorkflow. No universal
-   * category-string chain is active. The selected approved method determines
-   * applicability from declared scope/phases/completion; source relationships
-   * and artifact identities, not populated shells, witness required traces. */
+   * category-string chain is active. Increment framing always applies; each
+   * later step applies when the increment charter lists its phase, and the
+   * steps of those phases declare the checks. Source relationships and
+   * artifact identities, not populated shells, witness the required traces. */
 
   /* ─── Recurring system-to-software signal mapping control ─── */
 
