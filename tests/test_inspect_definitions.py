@@ -21,6 +21,7 @@ import asyncio
 import copy
 import gzip
 import json
+import re
 from typing import Any
 
 import pytest
@@ -51,6 +52,8 @@ SOURCES = {
         "5586ec7682fe6bdc77a394435c35bf05294cfba6071480b49538455c29fa8b46",
     ".sysand/lib/ode4hera-requirements-management_2.0.1/RequirementsManagement.sysml":
         "f7a480d6baed5b06eefb3be222608a616241eca5cf6dbde738f22ec00a9d3073",
+    ".sysand/lib/mbse4u-sysmod_5.1.1/SYSMOD.sysml":
+        "c3340408dc95f07bc8f4b91727b60a72f194cf1353528aae8c895ebdedd7bf9e",
 }
 OUTSIDE = "typed by an element outside this export"
 
@@ -180,6 +183,10 @@ def test_a_charter_definition_is_described_as_its_source_declares(service) -> No
     assert (owned["owner"]["keyword"], owned["owner"]["type"], owned["owner"]["multiplicity"]) == (
         "attribute", None, None)
     assert owned["owner"]["type_outside_export"].startswith(OUTSIDE)
+    # The export removed the reference to String and recorded it among its external
+    # references; the API revision keeps only the typing relationship.
+    assert ("the export's external references record its target, and this API revision keeps only the "
+            "typing relationship ") in owned["owner"]["type_outside_export"]
     # attribute expectedArtifacts : String[1..*];
     assert owned["expectedArtifacts"]["multiplicity"] == [1, "*"]
     assert owned["expectedArtifacts"]["type_outside_export"].startswith(OUTSIDE)
@@ -190,7 +197,7 @@ def test_a_charter_definition_is_described_as_its_source_declares(service) -> No
     inherited = _features(definition["inherited_features"])
     # ref part increment : EngineeringIncrement; attribute applicablePhases[*] : MethodPhase;
     assert (inherited["increment"]["keyword"], inherited["increment"]["type"]) == (
-        "part", "DE4SDV_MethodContext::EngineeringIncrement")
+        "ref part", "DE4SDV_MethodContext::EngineeringIncrement")
     assert inherited["applicablePhases"]["type"] == "DE4SDV_MethodProcess::MethodPhase"
     # The cut keeps this inherited feature but not its multiplicity range (it keeps
     # no owned member of a referenced element): the answer says so, never "none declared".
@@ -227,6 +234,48 @@ def test_a_connection_definition_lists_its_ends(service) -> None:
     assert "derivedRequirement" in ends and set(ends) <= set(declared)
     for name, entry in ends.items():
         assert (entry["end"], entry["keyword"], entry["type"]) == (True, "ref", declared[name])
+    # The cut drops the membership of `need`. A declared end that isn't listed is
+    # accounted for by a missing owned relationship the definition-incomplete gap names.
+    named = [re.search(r"DE4SDV_MethodContext::DerivesFromNeed \(([^)]*)\)", gap["reason"])
+             for gap in answer["gaps"] if gap["category"] == "definition-incomplete"]
+    missing = [identifier for found in named if found for identifier in found.group(1).split(", ")]
+    unlisted = [name for name in declared if name not in ends]
+    assert len(missing) >= len(unlisted), (unlisted, missing)
+
+
+def test_a_referential_usage_is_described_with_ref(service) -> None:
+    """``ref part increment : EngineeringIncrement;`` (DE4SDV_MethodTraces): an undirected,
+    non-end part usage that isn't composite is declared with ``ref part``. Composite,
+    directed and end features keep their own keyword."""
+    element = service.inspect_element("DE4SDV_MethodTraces::IncrementTraceObligations::increment")["element"]
+    assert (element["keyword"], element["sysml_type"]) == ("ref part", "PartUsage")
+    _answer, obligations = _definition(service, "DE4SDV_MethodTraces::IncrementTraceObligations")
+    assert _features(obligations["owned_features"])["increment"]["keyword"] == "ref part"
+    _answer, frame = _definition(service, "DE4SDV_IncrementWorkflow::FrameIncrement")
+    # out part increment : EngineeringIncrement; (directed: referential without ref)
+    assert _features(frame["owned_features"])["increment"]["keyword"] == "part"
+
+
+def test_a_library_supertype_has_the_same_entry_keys_as_any_supertype(service) -> None:
+    """``enum def LevelKind :> ScalarValues::Real`` (SYSMOD, a pinned dependency):
+    ScalarValues is not part of the export, so the entry has no element, but it has
+    the keys of every supertype entry."""
+    keys = {"element_id", "qualified_name", "sysml_type", "relationship_id", "direct", "outside_export"}
+    answer, definition = _definition(service, "SYSMOD::LevelKind")
+    [library] = definition["supertypes"]
+    assert set(library) == keys
+    assert (library["element_id"], library["qualified_name"], library["sysml_type"]) == (None, None, None)
+    assert (library["direct"], library["outside_export"]) == (True, True)
+    [outside] = [gap["reason"] for gap in answer["gaps"] if gap["category"] == "definition-outside-export"]
+    assert outside.startswith("SYSMOD::LevelKind specializes an element outside this export")
+    assert (f"the export's external references record its target, and this API revision keeps only the "
+            f"specialization {library['relationship_id']}") in outside
+    _answer, charter = _definition(service, "DE4SDV_IncrementWorkflow::IncrementCharter")
+    [direct] = charter["supertypes"]
+    assert set(direct) == keys
+    assert (direct["qualified_name"], direct["sysml_type"], direct["direct"], direct["outside_export"]) == (
+        "DE4SDV_MethodTraces::IncrementTraceObligations", "PartDefinition", True, False)
+    assert direct["relationship_id"] and direct["element_id"]
 
 
 def test_a_redefinition_hides_what_it_redefines_and_values_are_described(service) -> None:

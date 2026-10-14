@@ -7,23 +7,27 @@ relationships, multiplicity ranges and feature values. No ``.sysml`` text is
 read and no element is found by its name (ADR 0011).
 
 For every element: its SysML v2 ``keyword`` (the textual-notation keyword that
-declares it, such as ``part def``, ``attribute``, ``ref`` or ``subject``), its
-owning package and its documentation. For a definition also:
+declares it, such as ``part def``, ``attribute``, ``ref part``, ``ref`` or
+``subject``), its owning package and its documentation. For a definition also:
 
 - ``supertypes``: the definitions it specializes by authored specialization,
-  nearest first (``direct`` marks its own);
+  nearest first (``direct`` marks its own). Every entry has the same keys; one
+  outside the export has ``outside_export`` true and no element, qualified name
+  or metaclass, only the ``relationship_id`` of the specialization;
 - ``owned_features``: the features it owns through feature memberships, in the
   order the export lists them;
-- ``inherited_features``: the features of its supertypes it does not redefine,
-  each with the supertype it comes from (``inherited_from``);
+- ``inherited_features``: the features of its supertypes that no owned or
+  inherited feature redefines, directly or through a chain, each with the
+  supertype it comes from (``inherited_from``);
 - ``enumerated_values`` for an enumeration definition (SysML v2 ``enumeratedValue``).
 
 A feature gives its name, keyword, metaclass (``sysml_type``), declared type
 and multiplicity, and when present its direction, ``end``, the features it
 redefines and its value. A declared type outside the export (a standard library
 type such as ``ScalarValues::String``) is named as such per feature: the export
-keeps the typing relationship but not its type. Implied relationships the
-serializer adds (default library supertypes and typings) are not described.
+removed the reference and recorded its target among its external references,
+and the API revision keeps only the typing relationship. Implied relationships
+the serializer adds (default library supertypes and typings) are not described.
 """
 
 from __future__ import annotations
@@ -86,6 +90,14 @@ FEATURE_MEMBERSHIPS = frozenset({
     "RequirementVerificationMembership", "StateSubactionMembership", "TransitionFeatureMembership",
     "ViewRenderingMembership",
 })
+#: Usages declared with ``ref <keyword>`` when they are not composite (SysML v2 ``ref``). A
+#: directed usage and an end feature are referential by definition, so ``ref`` is optional there
+#: and not reported.
+REF_PREFIXED_USAGES = frozenset({"PartUsage", "ItemUsage", "OccurrenceUsage", "ActionUsage"})
+#: Memberships of an expression's parameters; a feature reference's referent is the member
+#: of its first other membership.
+_PARAMETER_MEMBERSHIPS = frozenset({"ParameterMembership", "ReturnParameterMembership",
+                                    "SubjectMembership", "ActorMembership", "StakeholderMembership"})
 _TYPINGS = ("FeatureTyping", "ConjugatedPortTyping")
 _SPECIALIZATIONS = ("Subclassification", "Specialization")
 _LITERALS = ("LiteralString", "LiteralInteger", "LiteralRational", "LiteralBoolean")
@@ -94,6 +106,16 @@ _MAX_VALUE_DEPTH = 8
 
 def is_definition(element: Mapping[str, Any]) -> bool:
     return str(element.get("@type") or "").endswith("Definition")
+
+
+def _kept_relationships(kind: str, identifiers: list[str]) -> str:
+    """What remains of references the export removed: the export's external references
+    record their targets; the API revision keeps only the relationships."""
+    if len(identifiers) == 1:
+        return (f"the export's external references record its target, and this API revision keeps only "
+                f"the {kind} {identifiers[0]}")
+    return (f"the export's external references record their targets, and this API revision keeps only "
+            f"the {kind}s {', '.join(identifiers)}")
 
 
 class ElementDescriber:
@@ -132,7 +154,12 @@ class ElementDescriber:
             return "assume" if membership.get("kind") == "assumption" else "require"
         if relation == "VariantMembership" and kind != "EnumerationUsage":
             return "variant"
-        return USAGE_KEYWORDS.get(kind)
+        keyword = USAGE_KEYWORDS.get(kind)
+        if (kind in REF_PREFIXED_USAGES and relation == "FeatureMembership"
+                and element.get("isComposite") is not True and not element.get("direction")
+                and element.get("isEnd") is not True):
+            return f"ref {keyword}"
+        return keyword
 
     def owning_package(self, identifier: str) -> dict[str, Any] | None:
         """The nearest package that owns the element, directly or through its owners."""
@@ -160,27 +187,35 @@ class ElementDescriber:
         """The description of one definition and the gaps of that description."""
         gaps: list[dict[str, str]] = []
         described = [identifier]  # every element whose owned relationships the description reads
-        owned, hidden = [], set()
+        owned = []
         for membership, feature in self._features(identifier):
-            entry, redefined = self._feature(membership, feature, gaps)
-            owned.append(entry)
+            owned.append(self._feature(membership, feature, gaps))
             described.append(feature)
-            hidden |= redefined
-        supertypes, outside = self._supertypes(identifier)
+        supertypes = self._supertypes(identifier)
+        inside = [entry for entry in supertypes if not entry["outside_export"]]
+        outside = [entry["relationship_id"] for entry in supertypes if entry["outside_export"]]
+        # Every feature of every supertype first, then everything an owned or inherited
+        # feature redefines, directly or through a chain (KerML removes redefined features
+        # from what a type inherits, whatever the order of its supertypes).
+        features_of = {entry["element_id"]: list(self._features(entry["element_id"])) for entry in inside}
+        hidden: set[str] = set()
+        for feature in [entry["element_id"] for entry in owned] + [
+                feature for features in features_of.values() for _membership, feature in features]:
+            hidden |= self._redefined(feature)
         inherited: list[dict[str, Any]] = []
         listed = {entry["element_id"] for entry in owned}
-        for supertype in supertypes:
+        for supertype in inside:
             described.append(supertype["element_id"])
-            for membership, feature in self._features(supertype["element_id"]):
-                entry, redefined = self._feature(membership, feature, gaps)
-                if feature not in hidden and feature not in listed:
-                    inherited.append({**entry, "inherited_from": supertype["qualified_name"]})
-                    listed.add(feature)
-                    described.append(feature)
-                hidden |= redefined
+            for membership, feature in features_of[supertype["element_id"]]:
+                if feature in hidden or feature in listed:
+                    continue
+                inherited.append({**self._feature(membership, feature, gaps),
+                                  "inherited_from": supertype["qualified_name"]})
+                listed.add(feature)
+                described.append(feature)
         missing = {owner: found for owner in described if (found := self._missing_owned(owner))}
         description: dict[str, Any] = {
-            "supertypes": supertypes + outside,
+            "supertypes": supertypes,
             "owned_features": owned,
             "inherited_features": inherited,
         }
@@ -189,8 +224,7 @@ class ElementDescriber:
         if outside:
             gaps.append({"category": "definition-outside-export", "reason": (
                 f"{self._name(identifier)} specializes {OUTSIDE_EXPORT}; features inherited from it are "
-                "not listed (the export keeps only the specialization "
-                + ", ".join(entry["relationship_id"] for entry in outside) + ").")})
+                f"not listed ({_kept_relationships('specialization', outside)}).")})
         if missing:
             gaps.append({"category": "definition-incomplete", "reason": (
                 "owned relationships of these elements are not in this corpus, so their features, types, "
@@ -212,7 +246,7 @@ class ElementDescriber:
                     yield membership, feature
 
     def _feature(self, membership: Mapping[str, Any], feature: str,
-                 gaps: list[dict[str, str]]) -> tuple[dict[str, Any], set[str]]:
+                 gaps: list[dict[str, str]]) -> dict[str, Any]:
         element = self.index.element(feature)
         types, outside = self._types(feature)
         entry: dict[str, Any] = {
@@ -225,20 +259,21 @@ class ElementDescriber:
         }
         if outside:
             entry["type_outside_export"] = (
-                "typed by an element outside this export; the export keeps only the typing relationship "
-                + ", ".join(outside))
+                ("typed by an element outside this export; " if len(outside) == 1
+                 else "typed by elements outside this export; ")
+                + _kept_relationships("typing relationship", outside))
         direction = element.get("direction")
         if isinstance(direction, str) and direction:
             entry["direction"] = direction
         if element.get("isEnd") is True:
             entry["end"] = True
-        redefines, redefined = self._redefinitions(feature)
+        redefines = self._redefinitions(feature)
         if redefines:
             entry["redefines"] = redefines
         value = self._value(feature)
         if value is not None:
             entry["value"] = value
-        return entry, redefined
+        return entry
 
     def _types(self, feature: str) -> tuple[list[str], list[str]]:
         """Declared types (qualified names) and the typing relationships whose type is outside the export."""
@@ -264,19 +299,29 @@ class ElementDescriber:
         lower, upper = bounds
         return [lower, "*" if upper is None else upper]
 
-    def _redefinitions(self, feature: str) -> tuple[list[str], set[str]]:
-        """Authored redefinitions (named) and every redefined feature (authored or implied)."""
+    def _redefinitions(self, feature: str) -> list[str]:
+        """The features ``feature`` redefines by authored redefinitions (named)."""
         named: list[str] = []
-        redefined: set[str] = set()
         for relationship in self.index.owned_relationships(feature, "Redefinition"):
-            targets = reference_ids(relationship.get("redefinedFeature"))
-            redefined.update(targets)
             if relationship.get("isImplied"):
                 continue
+            targets = reference_ids(relationship.get("redefinedFeature"))
             named.extend(self._name(t) if t in self.index.by_id else OUTSIDE_EXPORT for t in targets)
             if not targets:
                 named.append(OUTSIDE_EXPORT)
-        return named, redefined
+        return named
+
+    def _redefined(self, feature: str) -> set[str]:
+        """Every feature ``feature`` redefines (authored or implied), directly or through a chain."""
+        found: set[str] = set()
+        frontier = [feature]
+        while frontier:
+            for relationship in self.index.owned_relationships(frontier.pop(), "Redefinition"):
+                for target in reference_ids(relationship.get("redefinedFeature")):
+                    if target not in found:
+                        found.add(target)
+                        frontier.append(target)
+        return found
 
     def _value(self, feature: str) -> dict[str, Any] | None:
         values = self.index.owned_relationships(feature, "FeatureValue")
@@ -298,11 +343,14 @@ class ElementDescriber:
         if kind == "LiteralInfinity":
             return [{"literal": "*"}]
         if kind == "FeatureReferenceExpression":
-            for membership in self.index.owned_relationships(expression, "Membership"):
-                for target in reference_ids(membership.get("memberElement")):
-                    if target in self.index.by_id:
-                        return [{"reference": self._name(target), "element_id": target}]
-            return [{"reference": OUTSIDE_EXPORT}]
+            membership = self._referent(expression)
+            targets = reference_ids(membership.get("memberElement")) if membership is not None else []
+            target = targets[0] if targets else None
+            if target is None or target not in self.index.by_id:
+                return [{"reference": OUTSIDE_EXPORT}]
+            if membership.get("@type") != "Membership":  # owned by the expression, e.g. a body expression
+                return [{"expression": str(self.index.by_id[target].get("@type") or ""), "element_id": target}]
+            return [{"reference": self._name(target), "element_id": target}]
         if kind == "OperatorExpression" and element.get("operator") == "," and depth < _MAX_VALUE_DEPTH:
             leaves = []  # a sequence (a, b, ...): each operand is a parameter bound to a value
             for parameter in self.index.owned_members(expression):
@@ -312,10 +360,19 @@ class ElementDescriber:
             return leaves
         return [{"expression": kind, "element_id": expression}]
 
-    def _supertypes(self, identifier: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-        """Authored supertypes, nearest first, and the specializations of elements outside the export."""
+    def _referent(self, expression: str) -> Mapping[str, Any] | None:
+        """The membership of a feature reference expression's referent: its first membership
+        of any kind that is not a parameter membership."""
+        for relationship in self.index.owned_relationships(expression):
+            kind = str(relationship.get("@type") or "")
+            if kind.endswith("Membership") and kind not in _PARAMETER_MEMBERSHIPS:
+                return relationship
+        return None
+
+    def _supertypes(self, identifier: str) -> list[dict[str, Any]]:
+        """Authored supertypes, nearest first. Every entry has the same keys; a supertype outside
+        the export has no element, qualified name or metaclass, only its specialization."""
         found: list[dict[str, Any]] = []
-        outside: list[dict[str, Any]] = []
         seen = {identifier}
         frontier = [identifier]
         while frontier:
@@ -326,18 +383,20 @@ class ElementDescriber:
                 targets = (reference_ids(relationship.get("general"))
                            or reference_ids(relationship.get("superclassifier")))
                 general = targets[0] if targets else None
+                entry: dict[str, Any] = {"element_id": None, "qualified_name": None, "sysml_type": None,
+                                         "relationship_id": element_id(relationship),
+                                         "direct": current == identifier, "outside_export": True}
                 if general is None or general not in self.index.by_id:
-                    outside.append({"outside_export": OUTSIDE_EXPORT, "direct": current == identifier,
-                                    "relationship_id": element_id(relationship)})
+                    found.append(entry)
                     continue
                 if general in seen:
                     continue
                 seen.add(general)
                 frontier.append(general)
-                found.append({"element_id": general, "qualified_name": self._name(general),
+                found.append({**entry, "element_id": general, "qualified_name": self._name(general),
                               "sysml_type": str(self.index.element(general).get("@type") or ""),
-                              "direct": current == identifier})
-        return found, outside
+                              "outside_export": False})
+        return found
 
     def _enumerated_values(self, identifier: str) -> list[dict[str, Any]]:
         values = []
@@ -352,4 +411,4 @@ class ElementDescriber:
 
 
 __all__ = ["DEFINITION_KEYWORDS", "ElementDescriber", "FEATURE_MEMBERSHIPS", "MEMBERSHIP_KEYWORDS",
-           "OUTSIDE_EXPORT", "USAGE_KEYWORDS", "is_definition"]
+           "OUTSIDE_EXPORT", "REF_PREFIXED_USAGES", "USAGE_KEYWORDS", "is_definition"]
