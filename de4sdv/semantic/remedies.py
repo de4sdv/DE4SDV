@@ -808,7 +808,10 @@ def _derivation_connection(request: _Request, mapping: Any) -> Remedy:
     config = mapping.configuration or {}
     lines = _lines(request)
     carrier = _kernel(view, str(config.get("connection_definition") or ""))
-    carrier_ref = lines.type(carrier, _SPECIALIZING) if carrier else str(config.get("connection_definition"))
+    if carrier is None:  # as the relation check reads it: method side
+        return _method_side(f"the connection definition carrying {request.check} has no validated kernel binding "
+                            "at this revision")(request)
+    carrier_ref = lines.type(carrier, _SPECIALIZING)
     source_class = str(config.get("source_lineage_of") or mapping.domain or "")
     target_class = str(config.get("target_lineage_of") or mapping.range or "")
     subject = _label(request, request.subject, _placeholder(source_class))
@@ -822,8 +825,8 @@ def _derivation_connection(request: _Request, mapping: Any) -> Remedy:
     if kernel is not None:
         lines.notes.append(f"{other} is a usage of {lines.type(kernel, _SPECIALIZING)} or a definition "
                            "specializing it.")
-    return lines.remedy(f"replace any plain dependency with a {view.index.name_of(carrier) if carrier else ''} "
-                        f"connection, {_where(request) or 'in the subject package'}".replace("a  ", "a "))
+    return lines.remedy(f"replace any plain dependency with a {view.index.name_of(carrier)} connection, "
+                        f"{_where(request) or 'in a package of the increment'}")
 
 
 def _need_class(config: Mapping[str, Any]) -> str:
@@ -863,8 +866,11 @@ def _successor(request: _Request, mapping: Any) -> Remedy:
                                                   view.elements)["root_id"]
         except (IdentityNotFoundError, KeyError):
             carrier = None
-        carrier_ref = lines.type(carrier, _SPECIALIZING) if carrier else str(row.get("carrier") or "")
-        lines.declarations.append(f"connection <name> : {carrier_ref} connect {source} to {target};")
+        if carrier is None:  # as the relation check reads it: method side
+            return _method_side(f"the connection definition carrying {request.check} has no validated kernel "
+                                "binding at this revision")(request)
+        lines.declarations.append(f"connection <name> : {lines.type(carrier, _SPECIALIZING)} connect {source} "
+                                  f"to {target};")
         instruction = f"declare {other} and connect {subject} to it"
     elif mechanism == "native-allocation":
         lines.declarations.append(f"allocation <name> allocate {source} to {target};")
@@ -885,8 +891,10 @@ def _verification_membership(request: _Request, mapping: Any) -> Remedy:
 def _subject_membership(request: _Request, mapping: Any) -> Remedy:
     lines = _lines(request)
     kernel = _kernel(request.view, str(mapping.range or ""))
-    typed = f" : {lines.type(kernel, _SPECIALIZING)}" if kernel else ""
-    lines.declarations.append(f"subject <name>{typed};")
+    if kernel is None:  # as the relation check reads it: method side
+        return _method_side(f"{mapping.range}, the class of {request.check}'s subject, has no validated kernel "
+                            "binding at this revision")(request)
+    lines.declarations.append(f"subject <subjectName> : {lines.type(kernel, _SPECIALIZING)};")
     lines.notes.append(SUBJECT_FIRST)
     return lines.remedy(f"declare the subject of {_subject_phrase(request)}")
 
