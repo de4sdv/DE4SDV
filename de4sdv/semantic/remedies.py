@@ -51,9 +51,6 @@ STAKEHOLDER_CLASS = "Stakeholder"
 PROBLEM_STATEMENT_CLASS = "ProblemStatement"
 NEED_CLASS = "Need"
 REQUIREMENT_CLASS = "Requirement"
-ACCEPTANCE_CRITERION_CLASS = "AcceptanceCriterion"
-#: SysML v2 usages that ``ref`` can declare referentially (as B4's ``keyword`` reports them).
-_REFERENTIAL = ("part", "item", "occurrence", "action")
 _PACKAGES = ("Package", "LibraryPackage")
 
 SUBJECT_FIRST = ("Subject first: a requirement, concern or viewpoint with stakeholder or actor members declares "
@@ -199,15 +196,9 @@ def _one_type(view: ModelView, usage: str | None) -> str | None:
 
 
 def _keyword(view: ModelView, element: str | None) -> str | None:
-    """The SysML v2 keyword that declares ``element`` (``ref part`` for a referential part usage)."""
-    if element is None:
-        return None
-    keyword = _describer(view).keyword(element)
-    item = view.element(element)
-    if (keyword in _REFERENTIAL and item.get("isComposite") is not True and not item.get("direction")
-            and item.get("isEnd") is not True):
-        return f"ref {keyword}"  # B4's keyword reports the prefix itself once its review fix R2 lands
-    return keyword
+    """The SysML v2 keyword that declares ``element``, as ``inspect_element`` reports it (``ref part``
+    for a referential part usage)."""
+    return _describer(view).keyword(element) if element else None
 
 
 def _parameter_keyword(request: _Request) -> str:
@@ -622,14 +613,6 @@ def _framed_by_increment_view(request: _Request) -> Remedy:
     return lines.remedy(f"declare a concern and frame it by a viewpoint of a view, {_where(request)}".rstrip(", "))
 
 
-def _frames_stakeholder_concern(request: _Request) -> Remedy:
-    lines = _lines(request)
-    lines.declarations.append(_concern_declaration(lines))
-    lines.declarations.append("frame <concernName>;")
-    lines.notes.append(SUBJECT_FIRST)
-    return lines.remedy(f"frame a stakeholder concern in {_subject_phrase(request)} (declare the concern first)")
-
-
 def _require_constraint(request: _Request) -> Remedy:
     lines = _lines(request)
     statement = 'require constraint statement { language "English" /* <the statement> */ }'
@@ -682,7 +665,7 @@ def _charter_definitions(request: _Request) -> list[str]:
     return sorted(view.index.specializations(kernel)) if kernel else []
 
 
-def _verifies(ontology_class: str, what: str, article: str = "a") -> Callable[[_Request], Remedy]:
+def _verifies(ontology_class: str, what: str) -> Callable[[_Request], Remedy]:
     def build(request: _Request) -> Remedy:
         lines = _lines(request)
         kernel = _kernel(request.view, ontology_class)
@@ -697,7 +680,7 @@ def _verifies(ontology_class: str, what: str, article: str = "a") -> Callable[[_
                                 "definition)")
         lines.declarations.append(_declaration(lines, [objective], name=_subject_name(request)))
         return lines.remedy(f"declare {_parameter_phrase(request)} {_where(request)}, its objective verifying "
-                            f"{article} {what}".replace("  ", " "))
+                            f"a {what}".replace("  ", " "))
 
     return build
 
@@ -741,7 +724,6 @@ _NAMED: Mapping[str, Callable[[_Request], Remedy]] = {
     "requireConstraint": _require_constraint,
     "sourceAttribute": _library_value,
     "rationaleAttribute": _library_value,
-    "framesStakeholderConcern": _frames_stakeholder_concern,
     "oneNativeSubject": _one_native_subject,
     "subjectIsSystemOfInterest": _subject_is_system_of_interest,
     "charterExpectedArtifactsCoverContent": _expected_artifacts_cover_content,
@@ -749,7 +731,6 @@ _NAMED: Mapping[str, Callable[[_Request], Remedy]] = {
     "successCriteriaAttribute": _library_value,
     "specifiesFeatureOrCommonCapability": _feature_or_common_capability,
     "verifiesIncrementRequirement": _verifies(REQUIREMENT_CLASS, "requirement of the increment"),
-    "verifiesAcceptanceCriterion": _verifies(ACCEPTANCE_CRITERION_CLASS, "acceptance criterion", "an"),
     "evidenceRecordOrStatus": _evidence_record_or_status,
 }
 
