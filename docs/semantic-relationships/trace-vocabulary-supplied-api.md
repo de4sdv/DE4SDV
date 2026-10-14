@@ -1,4 +1,4 @@
-# Relationship successor: supplied-API consumer (draft)
+# Trace vocabulary: supplied-API consumer (draft)
 
 The successor exposes actual responsibility, validation-planning and source-provenance
 relationships without turning them into satisfaction, execution, deployment or compliance.
