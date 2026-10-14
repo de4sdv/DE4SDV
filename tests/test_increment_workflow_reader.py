@@ -347,7 +347,8 @@ def test_the_contract_projection_names_step_parameter_and_subject_type() -> None
     assert (record["obligation_id"], record["step"], record["parameter"], record["check"]) == (
         "needSubjectIsSystemOfInterest", "elaborateNeeds", "needs", "subjectIsSystemOfInterest")
     assert record["subject_type"].endswith("StakeholderNeedCandidate")
-    assert record["what_satisfies"].startswith("declare the system of interest on the charter")
+    assert record["what_satisfies"].startswith(
+        "declare the system of interest in the increment's package, reference it from the charter")
 
 
 def test_every_check_the_model_declares_is_supported() -> None:
