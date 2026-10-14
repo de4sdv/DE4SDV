@@ -301,7 +301,7 @@ def _frozen_extends_problems(
     return errors
 
 
-def _frozen_lane_entries(root: Path) -> list[dict[str, Any]]:
+def _frozen_record_entries(root: Path) -> list[dict[str, Any]]:
     """Report entries for the frozen-records manifest and every frozen record."""
     manifest_path = root / FROZEN_MANIFEST_PATH
 
@@ -401,7 +401,7 @@ def frozen_record_errors(root: Path) -> list[str]:
     """Flat error list of the frozen lane (used by ``scripts/check_repo.py``)."""
     return [
         f"{entry['artifact']}: {error}"
-        for entry in _frozen_lane_entries(Path(root))
+        for entry in _frozen_record_entries(Path(root))
         for error in entry["errors"]
     ]
 
@@ -410,7 +410,7 @@ def verify_generated_chain(
     root: Path, *, include_passing: bool = False
 ) -> list[dict[str, Any]]:
     """Report historical failures, or the complete nonempty historical inventory."""
-    entries = sorted(_frozen_lane_entries(Path(root)), key=lambda entry: entry["artifact"])
+    entries = sorted(_frozen_record_entries(Path(root)), key=lambda entry: entry["artifact"])
     if include_passing:
         return entries
     return [entry for entry in entries if not entry["ok"]]

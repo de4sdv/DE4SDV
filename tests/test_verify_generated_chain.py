@@ -261,7 +261,7 @@ def test_frozen_manifest_revision_must_be_an_ancestor(synthetic_frozen_records, 
 def test_frozen_manifest_missing_fails(synthetic_frozen_records, tmp_path):
     root, _, _ = _frozen_fixture(tmp_path)
     (root / MANIFEST).unlink()
-    entries = verifier._frozen_lane_entries(root)
+    entries = verifier._frozen_record_entries(root)
     assert entries == [{"artifact": MANIFEST, "ok": False,
                         "errors": ["frozen-records manifest is missing"]}]
 
