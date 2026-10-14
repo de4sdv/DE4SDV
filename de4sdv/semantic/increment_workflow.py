@@ -257,7 +257,7 @@ def read_workflow(view: ModelView, workflow: str, *, revision_label: str) -> Inc
     """One workflow definition as a method contract."""
     checks = method_checks(view)
     identity = {"method_id": METHOD_ID, "method_revision": revision_label,
-                "workflow": view.index.qualified_name(workflow) or workflow}
+                "workflow": view.label(workflow)}
     common: dict[str, Any] = {"predicates": checks}
     try:
         phase_root = view.kernel_element(PHASE_CLASS)
@@ -411,7 +411,7 @@ def _check(view: ModelView, metadata: str, step_name: str, phase: str, parameter
     while len(about) == 1 and about[0] in replaced:  # a check about a redefined parameter
         about = [replaced[about[0]]]
     if len(about) != 1 or about[0] not in parameters:
-        named = ", ".join(index.qualified_name(target) or target for target in about) or "nothing"
+        named = ", ".join(view.label(target) for target in about) or "nothing"
         raise _Invalid(f"the check is about {named}, which is not a parameter of the step")
     parameter = about[0]
     types = sorted(index.typed_by(parameter))
@@ -449,8 +449,8 @@ def _check(view: ModelView, metadata: str, step_name: str, phase: str, parameter
     label = {"step": step_name, "parameter": parameters[parameter],
              "scope": "packages named in the charter's expectedArtifacts" if optional else "increment package",
              "direction": str(index.element(parameter).get("direction") or ""),
-             "subject_type": (index.qualified_name(types[0]) or types[0]) if types else kind, "check": check_id,
-             "check_definition": index.qualified_name(sorted(index.typed_by(metadata))[0])}
+             "subject_type": view.label(types[0]) if types else kind, "check": check_id,
+             "check_definition": view.label(sorted(index.typed_by(metadata))[0])}
     return spec, label
 
 
@@ -463,7 +463,7 @@ def _describe_step(view: ModelView, step: str, phase: str, *, optional: bool) ->
                   if str(index.element(member).get("direction") or "") in _DIRECTIONS]
     return {
         "step": index.name_of(step) or step,
-        "definition": index.qualified_name(definition) or definition,
+        "definition": view.label(definition),
         "phase": phase,
         "optional": optional,
         "applicability": APPLICABILITY_DECLARED if optional else APPLICABILITY_ALWAYS,
@@ -487,7 +487,7 @@ def _describe_parameter(view: ModelView, parameter: str) -> dict[str, Any]:
         "parameter": index.name_of(parameter) or parameter,
         "direction": str(element.get("direction") or ""),
         "sysml_type": str(element.get("@type") or ""),
-        "type": ", ".join(index.qualified_name(item) or item for item in types) or None,
+        "type": ", ".join(view.label(item) for item in types) or None,
         "multiplicity": multiplicity,
     }
 
