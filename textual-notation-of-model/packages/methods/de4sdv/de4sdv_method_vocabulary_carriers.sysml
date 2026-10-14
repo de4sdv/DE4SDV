@@ -1,5 +1,5 @@
 /*
- * DE4SDV vocabulary-relationship definition carriers (O4 W4).
+ * DE4SDV vocabulary-relationship definition carriers.
  *
  * Model-resident carriers for the reviewed vocabulary-only relationship
  * family: recordsGap, recordsAssumption, addressesConcern,

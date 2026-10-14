@@ -18,9 +18,10 @@ package DE4SDV_MethodContext {
    * grounded in the MemberProduct kernel lineage (resolved through the governed kernel
    * mapping, never by bare name) are excluded — configured-product traces are product-line
    * relationships, not architecture relevance. */
-  comment about hasRelevantArchitectureOntologyDefinition /* Existing frozen O3 incoming-dependency mapping stays
-   * PartUsage/PartDefinition/ActionUsage/ActionDefinition with MemberProduct-lineage
-   * exclusions. No Interface widening, stronger relation or consumer rewiring. */
+  comment about hasRelevantArchitectureOntologyDefinition /* The incoming-dependency mapping served from the frozen
+   * records stays PartUsage/PartDefinition/ActionUsage/ActionDefinition with
+   * MemberProduct-lineage exclusions. No Interface widening, stronger relation or consumer
+   * rewiring. */
 
 
   doc specifiesFunctionOntologyDefinition /* Requirement-to-function relevance: a dependency from a draft requirement candidate to
@@ -35,8 +36,9 @@ package DE4SDV_MethodContext {
    * declares no new model fact; it reuses the identical DerivesFromNeed connection
    * traversed in the reverse direction, with the same lineage grounding and fail-closed
    * closure semantics. */
-  comment about derivedRequirementsOfNeedOntologyDefinition /* Existing frozen O3 inverse navigation over the identical DerivesFromNeed witness
-   * remains unchanged; no additional model fact or executable mapping. */
+  comment about derivedRequirementsOfNeedOntologyDefinition /* The navigation served from the frozen records over the
+   * identical DerivesFromNeed witness is unchanged; no additional model fact or executable
+   * mapping. */
 
 
   doc derivesRequirementFromNeedOntologyDefinition /* Requirement R is derived from stakeholder need N. Design-input derivation; direction R
@@ -44,8 +46,9 @@ package DE4SDV_MethodContext {
    * Grounded in the DE4SDV application connection definition DerivesFromNeed: the Need
    * grounds the `need` end, the derived design requirement grounds the `derivedRequirement`
    * end. DE4SDV's Requirement -> Need query is inverse navigation over that native witness. */
-  comment about derivesRequirementFromNeedOntologyDefinition /* Existing frozen O3 predicate signature, native DerivesFromNeed witness and inverse
-   * query direction remain unchanged; documentation only. */
+  comment about derivesRequirementFromNeedOntologyDefinition /* The predicate signature served from the frozen records,
+   * the native DerivesFromNeed witness and the inverse query direction are unchanged;
+   * documentation only. */
 
 
   doc VerificationMethodOntologyDefinition /* A method used to check requirement satisfaction. Carried natively by VerificationMethod
@@ -54,8 +57,8 @@ package DE4SDV_MethodContext {
   comment about VerificationMethodOntologyDefinition /* ODE4HERA requirements-management verificationMethod and standard VerificationMethodKind
    * remain the accepted external/library authority; no library copy or new method-kind
    * vocabulary. */
-  comment about VerificationMethodOntologyDefinition /* Grounding record (O4 W3, native library adoption).
-   * Two distinct carriers, never merged: (1) metadata — the Systems Library
+  comment about VerificationMethodOntologyDefinition /* Grounding record (native library adoption).
+   * Two distinct representations, never merged: (1) metadata — the Systems Library
    * VerificationCases package declares metadata def VerificationMethod with
    * attribute kind : VerificationMethodKind[1..*] (inspect, analyze, demo, test);
    * models annotate verification-case steps with it, for example
@@ -76,8 +79,9 @@ package DE4SDV_MethodContext {
   doc VerificationCaseOntologyDefinition /* A planned or executed check that evaluates whether a requirement or model claim is
    * satisfied. */
   comment about VerificationCaseOntologyDefinition /* Native SysML VerificationCaseDefinition/VerificationCaseUsage (verification
-   * def/verification) remain the representation. This documentation changes no frozen O3
-   * traversal signature, objective, execution, result or acceptance. */
+   * def/verification) remain the representation. This documentation changes no traversal
+   * signature served from the frozen records, and no objective, execution, result or
+   * acceptance. */
 
 
   doc InterfaceOntologyDefinition /* A boundary or interaction point through which items, signals, services, or information
@@ -142,9 +146,9 @@ package DE4SDV_MethodContext {
   connection def HasStakeholder {
     doc /* An engineering increment identifies a stakeholder role participating
          * in or affected by it. Domain EngineeringIncrement; range Stakeholder.
-         * Vocabulary-only typed carrier during migration, not executable
-         * traversal proof, native StakeholderMembership equivalence, real-person
-         * assignment, approval authority, competence or safety acceptance. */
+         * Vocabulary-only typed carrier: not executable traversal proof,
+         * native StakeholderMembership equivalence, real-person assignment,
+         * approval authority, competence or safety acceptance. */
     end increment : EngineeringIncrement;
     end stakeholderRole : Stakeholder;
   }
@@ -291,12 +295,13 @@ package DE4SDV_MethodContext {
      * BicycleEvidenceContract, NominalEvidenceContractRequirement,
      * RegulatoryCriterionEvidenceContract, NonActivationEvidenceContract,
      * PedestrianEvidenceContract and PartialInterventionEvidenceContract.
-     * MiddlewareAcceptanceCriterion is an AcceptanceCriterion only (owner
-     * decision 2026-10-06), so acceptance-criterion typing never makes a
-     * requirement an evidence contract. This specialization closure is the
-     * evidence-contract population; any change must update D4 and its
-     * population test together. The existing runtime dependency mapping is
-     * unchanged. */
+     * MiddlewareAcceptanceCriterion is an AcceptanceCriterion only, so
+     * acceptance-criterion typing never makes a requirement an evidence
+     * contract. This specialization closure is the evidence-contract
+     * population that the hasRelevantEvidenceContract discriminator lists;
+     * the runtime refuses any other number of members, so a change updates
+     * that check and its population test together. The existing runtime
+     * dependency mapping is unchanged. */
   }
 
   comment hasRelevantEvidenceContractVocabularyRole about EvidenceContract /* The

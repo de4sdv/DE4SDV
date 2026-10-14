@@ -34,8 +34,8 @@ package DE4SDV_MethodViewpoints {
    * Concern type or additional satisfaction claim. */
 
 
-  /* Native grounding records (O4 W3, KEEP_NATIVE): the normative SysML Systems
-   * Library carries these concepts; DE4SDV copies no library type. */
+  /* Native grounding records: the normative SysML Systems Library carries
+   * these concepts; DE4SDV copies no library type. */
   comment about ViewOntologyDefinition /* Grounding: Systems Library Views package, abstract view def
    * View (every view definition specializes it; view usages expose model content and
    * are checked through viewpointSatisfactions). Concrete DE4SDV/SAF view usages are the

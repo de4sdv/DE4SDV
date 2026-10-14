@@ -1,8 +1,6 @@
 /* DE4SDV increment workflow: method steps, their artifacts and their checks.
- * Source: methodologies/sysmod-sysmlv2/increment-workflow.md and the eight method
- * rules accepted by the owner on 2026-10-08 (rule 3 revised on 2026-10-09, rule 7 on
- * 2026-10-10; the statement, subject and scope-coverage clauses of rules 5 and 7 added
- * on 2026-10-11). */
+ * Source: methodologies/sysmod-sysmlv2/increment-workflow.md, which states the
+ * method rules the checks below implement. */
 package DE4SDV_IncrementWorkflow {
   doc /* The increment workflow: one step per method phase, typed by a step
        * definition whose parameters are the artifacts it reads and produces. A
@@ -15,20 +13,20 @@ package DE4SDV_IncrementWorkflow {
    * architecture element, logical-to-software signal mapping when a boundary is crossed,
    * physical/software realization, verification case, acceptance criterion, evidence
    * artifact, baseline decision. Intentionally missing links are recorded as gaps. */
-  comment about RequiredTraceChainOntologyDefinition /* Historical compatibility vocabulary only. This definition does not reactivate a
-   * universal completion policy; the selected approved method and per-increment native
-   * traces govern the successor. */
+  comment about RequiredTraceChainOntologyDefinition /* Historical vocabulary, kept for compatibility. It defines no
+   * universal completion policy: each increment's charter and its native traces govern
+   * instead. */
 
   doc TraceLinkOntologyDefinition /* A relationship connecting source, rationale, requirement, model, evidence, or baseline
    * artifacts. */
-  comment about TraceLinkOntologyDefinition /* Historical compatibility vocabulary only. This definition is retained as documentation,
-   * not a reintroduced string-endpoint record or a successor completion witness. */
+  comment about TraceLinkOntologyDefinition /* Historical vocabulary, kept as documentation only: not a
+   * string-endpoint record and not a completion witness. */
 
   doc IncrementTraceabilityShellOntologyDefinition /* The traceability structure connecting an increment to its sources and downstream
    * artifacts. */
-  comment about IncrementTraceabilityShellOntologyDefinition /* Historical compatibility vocabulary only. No active string-shell witness is
-   * reintroduced; IncrementTraceObligations and native relationships remain the successor
-   * representation. */
+  comment about IncrementTraceabilityShellOntologyDefinition /* Historical vocabulary, kept as documentation only: no
+   * string-shell record is reintroduced; IncrementTraceObligations and the native
+   * relationships represent an increment's traces. */
 
   private import ScalarValues::*;
   private import DE4SDV_MethodProcess::*;
@@ -66,59 +64,32 @@ package DE4SDV_IncrementWorkflow {
   }
 
   part approvedScopedTraceMethod : ApprovedTraceMethod {
-    doc /* de4sdv.scope-traces.v1: owner-approved Topic 5 semantic direction.
-         * Applicability derives from governed scope, phases and completion claim;
-         * executable adapter support is bounded and opt-in, not runtime admission.
-         * No universal concern-to-baseline chain or implicit transitive claim.
+    doc /* de4sdv.scope-traces.v1: the approved trace method an increment
+         * charter selects. Its applicability follows the charter's scope kind,
+         * applicable phases and completion claim; there is no universal
+         * concern-to-baseline chain and no implicit transitive claim.
          *
-         * Concrete migrated consumers:
-         * INC-AEBS-010: requirements scope, phases 0 through 5, requirementsReady,
-         * declared by visualizationTraceObligations.
-         * INC-MW-002: framing scope, phases 0 through 2, framingReady, declared
-         * by traceObligationsMW002. Each declaration names only its increment;
-         * the traced artifacts are found through that increment package's
-         * native relationships, not copied into the declaration. Neither
-         * existing increment may select a narrower scope to claim completion.
+         * Phase obligations: phase 0 requires the increment, its declared
+         * scope, problem statement, engineering question and lifecycle
+         * decision; phase 1 stakeholders and concerns; phase 2 the operational
+         * context; phase 3 the capability classification; phase 4 the need
+         * origin; phase 5 the requirement derivation; phase 6 requirement to
+         * function; phase 7 function to logical element; phase 8 logical to
+         * physical element and the software-boundary mapping; phase 9
+         * configuration to assets; phase 10 verification to target and
+         * criterion to evidence; phase 11 publication provenance; phase 12 the
+         * baseline disposition. The framing scope covers phases 0 to 2 and the
+         * requirements scope 0 to 5; the functional, logical and physical
+         * scopes cover phase 6, 7 or 8, a combined architecture scope 6 to 8,
+         * configuration 9, evidence 10 and baseline 12. Additional declared
+         * phases add obligations and never remove the governed minimum. An
+         * architecture increment may reuse prior artifacts instead of
+         * creating requirements.
          *
-         * Governed phase obligations: phase 0 requires increment, declaredScope,
-         * problemStatement, engineeringQuestion and lifecycleDecision; phase 1
-         * requires stakeholders and concerns; phase 2 operational-context;
-         * phase 3 capability-classification; phase 4 need-origin; phase 5
-         * requirement-derivation; phase 6 requirement-to-function; phase 7
-         * function-to-logical; phase 8 logical-to-physical and
-         * software-boundary-mapping; phase 9 configuration-to-assets; phase 10
-         * verification-to-target and criterion-to-evidence; phase 11
-         * publication-provenance; phase 12 baseline-disposition.
-         * Framing covers phases 0 through 2; requirements covers 0 through 5.
-         * Functional, logical and physical scopes cover their respective phase
-         * 6, 7 or 8; combined architecture covers 6 through 8; configuration
-         * covers 9, evidence 10, baseline 12. Additional declared phases add
-         * obligations, never remove the governed minimum. Reuse prior artifacts
-         * without requiring every architecture increment to create requirements.
-         *
-         * The opt-in source adapter evaluates only phase 0/1 obligations of
-         * these two increments, from native relationships in the increment's
-         * own package: the increment usage and its EngineeringIncrement typing;
-         * single parts typed IncrementScope, IncrementEngineeringQuestion and
-         * IncrementLifecycleDecision; the ProblemStatement whose subject is
-         * typed by the increment definition; HasStakeholder connections from
-         * the increment to a stakeholder member; and concerns framed by a
-         * viewpoint of a view. Assessed absence yields FAIL; ambiguous or
-         * unsupported inputs remain UNASSESSED. Later phase predicates
-         * and native-validation stay required and UNASSESSED; both current
-         * completion claims remain BLOCKED. HasStakeholder connections are typed
-         * vocabulary witnesses only, not assignment rights.
-         * This is not production semantic runtime parsing, API identity binding,
-         * native SysML validation, acceptance, certification or SAF adoption.
-         *
-         * Runnable source consumer (from repository root):
-         * python -m de4sdv.semantic.method_trace_adapter --repo . --increment INC-AEBS-010
-         * python -m de4sdv.semantic.method_trace_adapter --repo . --increment INC-MW-002
-         * Exit 0 means inspection completed, not readiness PASS; inspect the JSON
-         * evaluation and its required blockers. Invalid declarations exit 2.
-         * Source provenance is working-tree@Git-HEAD with unbound API identifiers;
-         * no committed/native-validation provenance is inferred. Native exact-head
-         * validation and generated-authority registration belong to integration.
+         * No check reads this record: the method check evaluates the checks
+         * the workflow steps declare, over the increment's native
+         * relationships. Selecting this method establishes no conformance,
+         * acceptance, certification or SAF adoption.
          */
   }
 

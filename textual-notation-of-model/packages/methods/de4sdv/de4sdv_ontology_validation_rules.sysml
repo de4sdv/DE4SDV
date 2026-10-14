@@ -1,19 +1,18 @@
 /*
- * DE4SDV ontology validation-rule homes (O4 Wave A).
+ * DE4SDV ontology validation-rule homes.
  *
- * Owner decision 2026-10-06: each validation rule of the former basic
- * ontology (validation rules DE4SDV-ONT-R001 to DE4SDV-ONT-R010) gets one
- * model-resident home. Each home
+ * Each validation rule of the former basic ontology (validation rules
+ * DE4SDV-ONT-R001 to DE4SDV-ONT-R010) has one model-resident home. Each home
  * is a package-owned constraint usage whose first owned documentation is the
  * rule statement (normalized-exact) and whose second is its enforcement note.
  *
  * The constraint usages are rule declarations only: they carry no Boolean
  * expression, are not asserted on any element, and evaluate nothing. Rule
  * enforcement stays where each enforcement note says it is (scripts, tests and
- * reviews). Since O4 Wave C2 deleted the authored ontology these homes are
- * the only record of the rules. Since O4 Wave C1 the R003 origin and exclusion groundings are
- * read from the ontologyRuleR003 home below (see its reader comment). No
- * compliance, certification or acceptance claim is made.
+ * reviews). The authored ontology is deleted, so these homes are the only
+ * record of the rules. The R003 origin and exclusion groundings are read from
+ * the ontologyRuleR003 home below (see its reader comment). No compliance,
+ * certification or acceptance claim is made.
  *
  * This package also records the vocabulary-only role of IncrementSize. It
  * lives here, not in DE4SDV_MethodProcess, so the method-process view, which
@@ -56,10 +55,9 @@ package DE4SDV_OntologyValidationRules {
      * textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml.
      * Exclusion groundings: ProblemStatement: requirement def ProblemStatement in
      * textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml. */
-    comment /* Reader: since O4 Wave C1, scripts/check_model_sync.py sync point 6 reads the
-     * origin and exclusion groundings above from this rule home, not from the ontology
-     * YAML. Their text format is fixed and drift fails closed. A test keeps them equal to
-     * the YAML validation_rules entry until that entry is retired. */
+    comment /* Reader: scripts/check_model_sync.py sync point 6 reads the origin and
+     * exclusion groundings above from this rule home. Their text format is fixed and drift
+     * fails closed. */
   }
 
   constraint ontologyRuleR004 {
@@ -109,9 +107,9 @@ package DE4SDV_OntologyValidationRules {
      * tests. */
   }
 
-  comment IncrementSizeVocabularyRole about IncrementSize /* Vocabulary only (O4 W3,
-   * KEEP_VOCABULARY_ONLY). IncrementSize and its literals XS, S, M and L stay
-   * model-resident as size-guidance labels for increment planning. They are never
+  comment IncrementSizeVocabularyRole about IncrementSize /* Vocabulary only.
+   * IncrementSize and its literals XS, S, M and L stay model-resident as
+   * size-guidance labels for increment planning. They are never
    * promoted to semantic authority: no sizing rule, gate, completion claim or runtime
    * traversal is derived from them. */
 }

@@ -130,8 +130,8 @@ package DE4SDV_AEBSOverrideVerification {
     from evidenceContractOverrideFreshnessReplay to reqAllowDriverOverride;
 
   /* ─────────────────────────────────────────────────────────────────
-   * Lane B: model-resident evaluation scope for the INC-AEBS-009D
-   * method-conformance pilot (ADR 0019; docs/method-conformance/).
+   * Model-resident evaluation scope for the INC-AEBS-009D
+   * method-conformance pilot (ADR 0019; docs/method-evaluation/).
    *
    * The scope binds the six declared verification usages by their stable
    * explicit identifiers. Contribution set and evaluation scope are
@@ -151,7 +151,7 @@ package DE4SDV_AEBSOverrideVerification {
 
   /* Evaluation-scope memberships: the six declared verification usages are
      reused scope members (contributes = false); the scope binding itself is
-     the increment's contribution. Model-resident per Lane B-R5. */
+     the increment's contribution, held in the model. */
   item scopeMember01 : EvaluationScopeMembership {
     attribute :>> scopeId = "PSC-009D";
     attribute :>> subjectId = "VC-AEBS-009D-01";
@@ -184,10 +184,10 @@ package DE4SDV_AEBSOverrideVerification {
   }
 
   /* Accepted method-contract obligations (PC-009D-*), instantiated from the
-     accepted A specification (docs/method-conformance/pilot-obligations.yaml
-     + pilot-scope.md). Dependency edges are normative in the YAML twin and
-     the pilot-scope dependency graph; they are contract data here, not
-     applicability conditions. */
+     accepted specification (de4sdv/semantic/contract-data/pilot-obligations.yaml
+     and docs/method-evaluation/pilot-scope.md). Dependency edges are normative
+     in the YAML twin and the pilot-scope dependency graph; they are contract
+     data here, not applicability conditions. */
   item obligationScopePopulation : MethodContractObligation {
     attribute :>> obligationId = "PC-009D-SCOPE-POPULATION";
     attribute :>> phase = MethodPhase::phase10_vvEvidence;
