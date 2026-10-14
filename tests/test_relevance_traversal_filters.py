@@ -1,4 +1,4 @@
-"""Round-F3 regression tests: requirement-to-function and reverse architecture
+"""Regression tests: requirement-to-function and reverse architecture
 relevance traversal with typed dependency filters.
 
 Fixture shapes mirror the serialized SysML v2 2025-02-01 API model observed in
@@ -83,7 +83,7 @@ def _binding_dict(
     return result
 
 
-def _f3_kernel_bindings() -> list[dict[str, str]]:
+def _fixture_kernel_bindings() -> list[dict[str, str]]:
     """Ingestion-validated kernel identities for the fixture's kernel elements."""
     return [
         {
@@ -107,8 +107,8 @@ def _f3_kernel_bindings() -> list[dict[str, str]]:
     ]
 
 
-def _f3_req_grounding():
-    """The c5 Requirement-domain grounding pair: the kernel declaration plus
+def _fixture_requirement_grounding():
+    """The Requirement-domain grounding pair: the kernel declaration plus
     the queried requirement's typed lineage edge (the domain is enforced from
     the validated binding, never from names)."""
     ref = lambda value: {"@id": value}
@@ -127,7 +127,7 @@ def _f3_req_grounding():
     ]
 
 
-def _f3_elements():
+def _fixture_elements():
     """Minimal API-shaped fixture covering both new predicates.
 
     Shapes: Dependency with source/target reference lists; Subclassification
@@ -238,7 +238,7 @@ def _f3_elements():
             "source": [ref("acceptance-criterion")],
             "target": [ref("req-1")],
         },
-    ] + _f3_req_grounding()
+    ] + _fixture_requirement_grounding()
 
 
 def test_ontology_declares_function_and_reverse_architecture_mappings() -> None:
@@ -284,9 +284,9 @@ def _traversal(kernel_bindings: list[dict[str, str]] | None):
 
 
 def test_specifies_function_traverses_only_action_typed_targets() -> None:
-    by_id = {item["@id"]: item for item in _f3_elements()}
-    hops = _traversal(_f3_kernel_bindings()).traverse(
-        "specifiesFunction", by_id["req-1"], _f3_elements()
+    by_id = {item["@id"]: item for item in _fixture_elements()}
+    hops = _traversal(_fixture_kernel_bindings()).traverse(
+        "specifiesFunction", by_id["req-1"], _fixture_elements()
     )
     assert [hop.target["@id"] for hop in hops] == ["action-translate"]
     hop = hops[0]
@@ -296,9 +296,9 @@ def test_specifies_function_traverses_only_action_typed_targets() -> None:
 
 
 def test_has_relevant_architecture_excludes_member_product_sources() -> None:
-    by_id = {item["@id"]: item for item in _f3_elements()}
-    hops = _traversal(_f3_kernel_bindings()).traverse(
-        "hasRelevantArchitecture", by_id["req-1"], _f3_elements()
+    by_id = {item["@id"]: item for item in _fixture_elements()}
+    hops = _traversal(_fixture_kernel_bindings()).traverse(
+        "hasRelevantArchitecture", by_id["req-1"], _fixture_elements()
     )
     targets = sorted(hop.target["@id"] for hop in hops)
     # PartUsage + ActionDefinition sources pass; the configured-member-typed
@@ -376,8 +376,8 @@ def test_member_product_exclusion_follows_transitive_lineage() -> None:
             "source": [ref("plain-usage")],
             "target": [ref("req-1")],
         },
-    ] + _f3_req_grounding()
-    hops = _traversal(_f3_kernel_bindings()).traverse(
+    ] + _fixture_requirement_grounding()
+    hops = _traversal(_fixture_kernel_bindings()).traverse(
         "hasRelevantArchitecture", {"@id": "req-1"}, elements
     )
     assert [hop.target["@id"] for hop in hops] == ["plain-usage"]
@@ -387,7 +387,7 @@ def test_exclusion_fails_closed_without_validated_kernel_bindings() -> None:
     """No ingestion-validated binding for the exclusion root fails closed."""
     with pytest.raises(Exception, match="no validated kernel binding index"):
         _traversal(None).traverse(
-            "hasRelevantArchitecture", {"@id": "req-1"}, _f3_elements()
+            "hasRelevantArchitecture", {"@id": "req-1"}, _fixture_elements()
         )
 
 
@@ -395,12 +395,12 @@ def test_exclusion_fails_closed_on_unvalidated_exclusion_class() -> None:
     """A binding lacking the MemberProduct entry must not disable exclusion."""
     bindings = [
         item
-        for item in _f3_kernel_bindings()
+        for item in _fixture_kernel_bindings()
         if item["ontology_class"] != "MemberProduct"
     ]
     with pytest.raises(Exception, match="no validated kernel binding for"):
         _traversal(bindings).traverse(
-            "hasRelevantArchitecture", {"@id": "req-1"}, _f3_elements()
+            "hasRelevantArchitecture", {"@id": "req-1"}, _fixture_elements()
         )
 
 
@@ -420,9 +420,9 @@ def test_exclusion_fails_closed_on_unknown_root_class(monkeypatch) -> None:
         classes=dict(base.classes), relationships=relationships, identity=base.identity)
     with pytest.raises(KeyError, match="no kernel mapping"):
         SemanticTraversal(
-            contract, kernel_bindings=_index(_f3_kernel_bindings())
+            contract, kernel_bindings=_index(_fixture_kernel_bindings())
         ).traverse(
-            "hasRelevantArchitecture", {"@id": "req-1"}, _f3_elements()
+            "hasRelevantArchitecture", {"@id": "req-1"}, _fixture_elements()
         )
 
 
@@ -435,7 +435,7 @@ def test_canonical_grounds_and_homonym_cannot_borrow_mapping() -> None:
     usage keeps flowing as architecture. This is NOT an ambiguity case.
     """
     ref = lambda value: {"@id": value}
-    elements = _f3_elements() + [
+    elements = _fixture_elements() + [
         {
             "@id": "homonym-def",
             "@type": "PartDefinition",
@@ -461,7 +461,7 @@ def test_canonical_grounds_and_homonym_cannot_borrow_mapping() -> None:
             "target": [ref("req-1")],
         },
     ]
-    hops = _traversal(_f3_kernel_bindings()).traverse(
+    hops = _traversal(_fixture_kernel_bindings()).traverse(
         "hasRelevantArchitecture", {"@id": "req-1"}, elements
     )
     targets = sorted(hop.target["@id"] for hop in hops)
@@ -478,7 +478,7 @@ def test_exclusion_fails_closed_when_kernel_definition_is_absent() -> None:
     """
     ref = lambda value: {"@id": value}
     elements = [
-        item for item in _f3_elements() if item["@id"] != "kernel-member-product"
+        item for item in _fixture_elements() if item["@id"] != "kernel-member-product"
     ]
     # Keep a Subclassification pointing at the now-missing kernel so the
     # failure is not simply an empty lineage, and let an unrelated
@@ -500,7 +500,7 @@ def test_exclusion_fails_closed_when_kernel_definition_is_absent() -> None:
         }
     )
     with pytest.raises(Exception, match="does not exist in the bound revision"):
-        _traversal(_f3_kernel_bindings()).traverse(
+        _traversal(_fixture_kernel_bindings()).traverse(
             "hasRelevantArchitecture", {"@id": "req-1"}, elements
         )
 
@@ -544,7 +544,7 @@ def test_bind_class_binds_validated_uuid_and_ignores_homonyms(
         SysMLRepository(ApiClient(base_url)),
         project_id="project-1",
         commit_id="commit-1",
-        kernel_bindings=_index(_f3_kernel_bindings()),
+        kernel_bindings=_index(_fixture_kernel_bindings()),
     )
     binding = binder.bind_class("MemberProduct")
     assert binding.sysml.element_id == "kernel-member-product"
@@ -583,7 +583,7 @@ def test_bind_class_fails_closed_without_validated_binding(
         SysMLRepository(ApiClient(base_url)),
         project_id="project-1",
         commit_id="commit-1",
-        kernel_bindings=_index(_f3_kernel_bindings()),
+        kernel_bindings=_index(_fixture_kernel_bindings()),
     )
     with pytest.raises(Exception, match="does not exist in the bound revision"):
         binder.bind_class("MemberProduct")
@@ -620,7 +620,7 @@ def test_kernel_binding_index_rejects_contradicting_element_type() -> None:
 def test_member_product_definition_sources_are_excluded() -> None:
     """A dependency sourced by a lineage definition is product structure."""
     ref = lambda value: {"@id": value}
-    elements = _f3_elements() + [
+    elements = _fixture_elements() + [
         {
             "@id": "dep-from-configured-member-def",
             "@type": "Dependency",
@@ -647,7 +647,7 @@ def test_member_product_definition_sources_are_excluded() -> None:
             "target": [ref("req-1")],
         },
     ]
-    hops = _traversal(_f3_kernel_bindings()).traverse(
+    hops = _traversal(_fixture_kernel_bindings()).traverse(
         "hasRelevantArchitecture", {"@id": "req-1"}, elements
     )
     targets = sorted(hop.target["@id"] for hop in hops)
@@ -747,7 +747,7 @@ def test_impact_reports_function_category_and_split_architecture_gaps(
             "target": [ref("req-braking")],
         },
     ]
-    service = _impact_service(api_server_fixture, elements, _f3_kernel_bindings())
+    service = _impact_service(api_server_fixture, elements, _fixture_kernel_bindings())
     result = service.impact("reqCommandEmergencyBraking", git_revision="a" * 40)
 
     predicates = {edge["predicate"] for edge in result["edges"]}
@@ -786,7 +786,7 @@ def test_impact_reports_function_gap_when_no_function_relevance(
             "declaredName": "reqNoFunctionTrace",
         },
     ]
-    service = _impact_service(api_server_fixture, elements, _f3_kernel_bindings())
+    service = _impact_service(api_server_fixture, elements, _fixture_kernel_bindings())
     result = service.impact("reqNoFunctionTrace", git_revision="a" * 40)
 
     gap_categories = {gap["category"] for gap in result["gaps"]}
@@ -841,7 +841,7 @@ def test_impact_preserves_function_role_on_shared_architecture_node(
             "target": [ref("req-braking")],
         },
     ]
-    service = _impact_service(api_server_fixture, elements, _f3_kernel_bindings())
+    service = _impact_service(api_server_fixture, elements, _fixture_kernel_bindings())
     result = service.impact("reqCommandEmergencyBraking", git_revision="a" * 40)
 
     predicates = {edge["predicate"] for edge in result["edges"]}
@@ -903,7 +903,7 @@ def test_impact_traverses_the_successor_and_never_a_refused_identity(
          "declaredName": "RequirementCandidate"},
         {"@id": "req-lonely", "@type": "RequirementUsage", "declaredName": "reqNoFunctionTrace"},
     ]
-    service = _impact_service(api_server_fixture, elements, _f3_kernel_bindings())
+    service = _impact_service(api_server_fixture, elements, _fixture_kernel_bindings())
     asked: list[str] = []
     real = service.traversal.traverse
 
