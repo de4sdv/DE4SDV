@@ -14,8 +14,8 @@
  * to AC-AEBS-S2-008 are retired. AC-AEBS-S2-008, the evidence-integrity rule
  * of every case, is now the obligation of the shared evidence record
  * RetainedVisualizationEvidence. The claim, arguments and counter-claims are
- * assurance artifacts (DE4SDV_AssuranceArgumentation), outside the
- * requirement lineage.
+ * assurance artifacts (the assurance argumentation kinds of
+ * DE4SDV_MethodContext), outside the requirement lineage.
  *
  * It consumes the retained evidence committed by the implementation campaign
  * (implementation/aebs-aaos-sdv-visualization-bench/evidence/010/). Every
@@ -35,7 +35,6 @@
 
 package DE4SDV_AEBSVisualizationVerificationEvidence {
   private import DE4SDV_MethodContext::*;
-  private import DE4SDV_AssuranceArgumentation::*;
   private import DE4SDV_ProductLine::*;
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_ExecutionEnvironments::*;

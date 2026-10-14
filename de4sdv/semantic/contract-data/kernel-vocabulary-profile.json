@@ -34,7 +34,7 @@
       "for_concept": "ApprovedTraceMethod",
       "representation_class": "part-definition",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml",
         "owner": "part def ApprovedTraceMethod",
         "api_metaclass": "PartDefinition"
       },
@@ -227,7 +227,7 @@
       "for_concept": "IncrementTraceObligations",
       "representation_class": "part-definition",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml",
         "owner": "part def IncrementTraceObligations",
         "api_metaclass": "PartDefinition"
       },
@@ -344,8 +344,8 @@
       "for_concept": "RequiredTraceChain",
       "representation_class": "package-owned-definition-documentation",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
-        "owner": "package DE4SDV_MethodTraces",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml",
+        "owner": "package DE4SDV_IncrementWorkflow",
         "api_metaclass": "Documentation"
       },
       "witness_forms": [
@@ -396,8 +396,8 @@
       "for_concept": "TraceLink",
       "representation_class": "package-owned-definition-documentation",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml",
-        "owner": "package DE4SDV_MethodTraces",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml",
+        "owner": "package DE4SDV_IncrementWorkflow",
         "api_metaclass": "Documentation"
       },
       "witness_forms": [

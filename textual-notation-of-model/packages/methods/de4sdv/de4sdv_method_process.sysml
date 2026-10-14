@@ -84,7 +84,7 @@ package DE4SDV_MethodProcess {
   }
 
   /* ─── Scoped trace obligations ─── */
-  /* Per-increment obligations live in DE4SDV_MethodTraces. No universal
+  /* Per-increment obligations live in DE4SDV_IncrementWorkflow. No universal
    * category-string chain is active. The selected approved method determines
    * applicability from declared scope/phases/completion; source relationships
    * and artifact identities, not populated shells, witness required traces. */

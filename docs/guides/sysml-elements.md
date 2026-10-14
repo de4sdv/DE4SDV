@@ -282,8 +282,7 @@ requirements:
   INC-AEBS-010 walk and is open to owner review.
 - Claims, arguments and counter-claims specialize the kernel
   `AssuranceClaim`, `AssuranceArgument` and `AssuranceCounterClaim`
-  (`DE4SDV_AssuranceArgumentation`) and stay outside the requirement
-  lineage.
+  (`DE4SDV_MethodContext`) and stay outside the requirement lineage.
 
 The middleware slice described above is the immutable closure record of
 INC-MW-010 and keeps its original typing.

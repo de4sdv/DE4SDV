@@ -15,8 +15,8 @@
 
 package DE4SDV_AEBSVisualizationFraming {
   private import DE4SDV_MethodContext::*;
-  private import DE4SDV_MethodTraces::*;
   private import DE4SDV_IncrementWorkflow::IncrementCharter;
+  private import DE4SDV_IncrementWorkflow::TraceCompletionClaim;
   private import DE4SDV_MethodProcess::*;
   private import DE4SDV_MethodViewpoints::*;
   private import DE4SDV_Stakeholders::*;
@@ -98,7 +98,7 @@ package DE4SDV_AEBSVisualizationFraming {
      * visualization test system: the needs and requirements take it as their
      * subject, the problem statement keeps the increment.
      */
-    ref part :>> selectedMethod = DE4SDV_MethodTraces::approvedScopedTraceMethod;
+    ref part :>> selectedMethod = DE4SDV_IncrementWorkflow::approvedScopedTraceMethod;
     attribute :>> scopeKind = "requirements";
     attribute :>> applicablePhases = (MethodPhase::phase0_incrementFraming, MethodPhase::phase1_concernFraming, MethodPhase::phase2_operationalContext, MethodPhase::phase3_capabilityClassification, MethodPhase::phase4_needs, MethodPhase::phase5_requirements, MethodPhase::phase6_functionalArchitecture, MethodPhase::phase7_logicalArchitecture, MethodPhase::phase8_physicalRealization, MethodPhase::phase9_variabilityConfiguration, MethodPhase::phase10_vvEvidence);
     attribute :>> completionClaim = TraceCompletionClaim::requirementsReady;

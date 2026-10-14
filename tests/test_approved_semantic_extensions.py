@@ -23,7 +23,7 @@ ASSURANCE_RECORDS = (
     "ScopedEvidenceAdequacyAssessment",
 )
 TRACE_RECORDS = ("ApprovedTraceMethod", "IncrementTraceObligations")
-TRACE_MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml"
+TRACE_MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml"
 RELATIONSHIP_MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml"
 RELATIONSHIP_EXTENSIONS = {
     "AllocatableFunction": "action def AllocatableFunction",
