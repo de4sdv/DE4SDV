@@ -579,3 +579,20 @@ def test_the_method_tools_answer_with_authoring_and_their_descriptions_say_so() 
     for name in ("method_gaps", "next_obligation", "phase_contract"):
         assert "`authoring`" in tools[name] and "`private import`" in tools[name], name
     assert "`subject_type_kind`" in tools["phase_contract"]
+
+
+def test_a_population_remedy_names_an_untyped_parameter_by_its_keyword() -> None:
+    """No verification case at all: each check about the untyped ``verification`` parameter says how many
+    verification usages to keep and how one is declared, also when the check's own remedy is method side."""
+    scenario, _steps, _types = _kernel_scenario()
+    builder = scenario.builder
+    builder.remove(*scenario.cases)
+    gaps = _evaluate(scenario).gaps()
+    verifies = _gap(gaps, "verificationCaseVerifiesRequirement")
+    evidence = _gap(gaps, "verificationCaseHasEvidenceRecordOrStatus")
+    for entry in (verifies, evidence):
+        assert entry["what_to_author"].startswith(
+            "keep at least 1 verification usage in the increment's packages named in the charter's expectedArtifacts")
+    assert verifies["authoring"]["declarations"] == [
+        "verification <name> { objective { verify <requirement of the increment>; } }"]
+    assert evidence["authoring"]["declarations"] == ["verification <name>;"]

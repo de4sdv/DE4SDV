@@ -682,7 +682,7 @@ def _charter_definitions(request: _Request) -> list[str]:
     return sorted(view.index.specializations(kernel)) if kernel else []
 
 
-def _verifies(ontology_class: str, what: str) -> Callable[[_Request], Remedy]:
+def _verifies(ontology_class: str, what: str, article: str = "a") -> Callable[[_Request], Remedy]:
     def build(request: _Request) -> Remedy:
         lines = _lines(request)
         kernel = _kernel(request.view, ontology_class)
@@ -696,8 +696,8 @@ def _verifies(ontology_class: str, what: str) -> Callable[[_Request], Remedy]:
             return lines.remedy(f"add to the objective of {request.view.label(request.subject)} (or of its "
                                 "definition)")
         lines.declarations.append(_declaration(lines, [objective], name=_subject_name(request)))
-        return lines.remedy(f"declare {_parameter_phrase(request)} {_where(request)}, its objective verifying a "
-                            f"{what}".replace("  ", " "))
+        return lines.remedy(f"declare {_parameter_phrase(request)} {_where(request)}, its objective verifying "
+                            f"{article} {what}".replace("  ", " "))
 
     return build
 
@@ -749,7 +749,7 @@ _NAMED: Mapping[str, Callable[[_Request], Remedy]] = {
     "successCriteriaAttribute": _library_value,
     "specifiesFeatureOrCommonCapability": _feature_or_common_capability,
     "verifiesIncrementRequirement": _verifies(REQUIREMENT_CLASS, "requirement of the increment"),
-    "verifiesAcceptanceCriterion": _verifies(ACCEPTANCE_CRITERION_CLASS, "acceptance criterion"),
+    "verifiesAcceptanceCriterion": _verifies(ACCEPTANCE_CRITERION_CLASS, "acceptance criterion", "an"),
     "evidenceRecordOrStatus": _evidence_record_or_status,
 }
 
@@ -946,6 +946,15 @@ def _relation_remedy(request: _Request) -> Remedy:
 # ---------------------------------------------------------------------------
 
 
+def subject_declaration(view: ModelView, check: str, *, parameter: str | None, framing: bool | None,
+                        scope: IncrementScope | None) -> Remedy:
+    """How one subject of ``parameter`` is declared, without what ``check`` asks of it."""
+    request = _Request(view, check, None, parameter, framing, scope, ())
+    lines = _lines(request)
+    lines.declarations.append(_declaration(lines, name=_subject_name(request)))
+    return lines.remedy(f"declare {_parameter_phrase(request)} {_where(request)}".rstrip())
+
+
 def check_remedy(view: ModelView, check: str, *, subject: str | None = None, parameter: str | None = None,
                  framing: bool | None = None, scope: IncrementScope | None = None,
                  checked_phases: Sequence[str] = ()) -> Remedy:
@@ -965,4 +974,4 @@ def check_remedy(view: ModelView, check: str, *, subject: str | None = None, par
     return EMPTY
 
 
-__all__ = ["Remedy", "SUBJECT_FIRST", "check_remedy"]
+__all__ = ["Remedy", "SUBJECT_FIRST", "check_remedy", "subject_declaration"]
