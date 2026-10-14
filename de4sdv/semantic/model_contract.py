@@ -11,7 +11,7 @@ only:
   the 13 identities the O3 cutover migrated. They are read-only data; their
   bytes are pinned by ``de4sdv/semantic/contract-data/frozen-records.json``;
 - the relationship-successor contract generated from the model
-  (``de4sdv_relationship_carriers.sysml``), with class pins taken from the
+  (``de4sdv_trace_vocabulary.sysml``), with class pins taken from the
   layers above (:func:`model_class_pins`);
 - the kernel-internal declarations manifest (owner decision D3) for the
   gate's ``exclusions``.

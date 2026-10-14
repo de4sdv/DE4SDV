@@ -1,5 +1,5 @@
 {
-  "description": "Contract fields the kernel-vocabulary admission manifest holds itself instead of the model (owner decision D9): kernel mapping, subclass and disjointness pins, relation domain/range/direction/strength and mechanics. Extracted once from the comparison that proved them equal to the authored ontology before its deletion; definition text is excluded (the model owns it). Changing a value needs a reviewed update of this file.",
+  "description": "Contract fields the kernel-vocabulary admission manifest holds itself instead of the model (owner decision D9): kernel mapping, subclass and disjointness pins, relation domain/range/direction/strength and mechanics. Extracted once from the comparison that proved them equal to the authored ontology before its deletion; definition text is excluded (the model owns it). Changing a value needs a reviewed update of this file. The kernel_mapping file of DerivesFromNeed and the trace-relation classes follows their move to de4sdv_trace_vocabulary.sysml; no other value changed.",
   "source": {
     "tag": "release-2026-10-11",
     "commit": "063c4fb1f2763a366874118f3b78d9841e0d11b4",
@@ -30,7 +30,7 @@
         "disjoint_with": [],
         "kernel_mapping": {
           "declaration": "action def AllocatableFunction",
-          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml"
         },
         "sub_class_of": "Function"
       }
@@ -107,7 +107,7 @@
         "disjoint_with": [],
         "kernel_mapping": {
           "declaration": "connection def DerivesFromNeed",
-          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml"
         },
         "sub_class_of": null
       }
@@ -214,7 +214,7 @@
         "disjoint_with": [],
         "kernel_mapping": {
           "declaration": "part def LogicalAllocationElement",
-          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml"
         },
         "sub_class_of": "LogicalElement"
       }
@@ -246,7 +246,7 @@
         "disjoint_with": [],
         "kernel_mapping": {
           "declaration": "part def PhysicalAllocationElement",
-          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml"
         },
         "sub_class_of": "PhysicalElement"
       }
@@ -267,7 +267,7 @@
         "disjoint_with": [],
         "kernel_mapping": {
           "declaration": "part def ControlledRegulatorySource",
-          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml"
         },
         "sub_class_of": null
       }
@@ -278,7 +278,7 @@
         "disjoint_with": [],
         "kernel_mapping": {
           "declaration": "connection def RegulatorySourceAssociation",
-          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml"
         },
         "sub_class_of": null
       }
@@ -342,7 +342,7 @@
         "disjoint_with": [],
         "kernel_mapping": {
           "declaration": "connection def ValidationPlanningAssociation",
-          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml"
         },
         "sub_class_of": null
       }
@@ -353,7 +353,7 @@
         "disjoint_with": [],
         "kernel_mapping": {
           "declaration": "part def ValidationPlanningScenario",
-          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml"
         },
         "sub_class_of": "ValidationScenario"
       }

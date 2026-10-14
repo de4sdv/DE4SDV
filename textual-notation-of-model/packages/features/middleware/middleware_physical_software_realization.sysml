@@ -27,7 +27,7 @@ package DE4SDV_MiddlewarePhysicalSoftwareRealization {
   private import DE4SDV_AAOSSDVMiddlewareBoundary::*;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
   private import DE4SDV_ROS2Types::*;
-  private import DE4SDV_RelationshipSuccessor::PhysicalAllocationElement;
+  private import DE4SDV_TraceVocabulary::PhysicalAllocationElement;
   private import COVESA_VSS::**;
   private import SAF_Viewpoints::*;
   private import SysideViews::**;

@@ -19,7 +19,7 @@ package DE4SDV_AEBSSimulationDeployment {
   // functional-package import is needed in this deployment model.
   private import DE4SDV_AEBSLogicalArchitecture::*;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
-  private import DE4SDV_RelationshipSuccessor::PhysicalAllocationElement;
+  private import DE4SDV_TraceVocabulary::PhysicalAllocationElement;
   private import DE4SDV_ROS2Types::*;
   private import DE4SDV_ExecutionEnvironments::EngineeringExecutionEnvironment;
   private import SAF_Viewpoints::*;

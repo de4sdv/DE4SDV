@@ -20,7 +20,7 @@ package DE4SDV_MiddlewareFunctionalArchitecture {
         private import DE4SDV_MiddlewareRequirements::Features::Middleware::Requirements::*;
         private import DE4SDV_MiddlewareStakeholderNeeds::Features::Middleware::StakeholderNeeds::System1Product::*;
         private import SAF_Viewpoints::*;
-        private import DE4SDV_RelationshipSuccessor::AllocatableFunction;
+        private import DE4SDV_TraceVocabulary::AllocatableFunction;
 
         part incMW006 : FeatureIncrement {
           doc /* INC-MW-006: middleware integration functional architecture. */

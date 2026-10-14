@@ -22,7 +22,7 @@ package DE4SDV_AEBSVisualizationLogicalArchitecture {
   private import DE4SDV_AEBSVisualizationFraming::*;
   private import DE4SDV_AEBSVisualizationFunctionalArchitecture::*;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::*;
-  private import DE4SDV_RelationshipSuccessor::LogicalAllocationElement;
+  private import DE4SDV_TraceVocabulary::LogicalAllocationElement;
   private import SAF_Viewpoints::*;
   private import SysideViews::**;
   private import Views::*;

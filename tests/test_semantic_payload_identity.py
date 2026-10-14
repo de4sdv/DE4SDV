@@ -30,16 +30,16 @@ EXPECTED_FROZEN_RECORD_RELATIONSHIPS = (
     "hasRelevantArchitecture",
 )
 # Small invented construction inputs, not snapshots of governed model files.
-SUCCESSOR_SOURCE = '''package DE4SDV_RelationshipSuccessor {
+SUCCESSOR_SOURCE = '''package DE4SDV_TraceVocabulary {
   connection def SyntheticLink {
     end source : SyntheticEndpoints::Origin;
     end target : SyntheticEndpoints::Destination;
   }
-  part version : SuccessorVersionRecord {
+  part version : TraceVocabularyVersionRecord {
     attribute :>> version = "synthetic.successor/v1";
     attribute :>> supersedes = "synthetic prior contract";
   }
-  part link : SuccessorRelationRecord {
+  part link : TraceRelationRecord {
     attribute :>> predicate = "linksTo";
     attribute :>> carrier = "SyntheticLink";
     attribute :>> mechanism = "typed-connection";
@@ -50,7 +50,7 @@ SUCCESSOR_SOURCE = '''package DE4SDV_RelationshipSuccessor {
     attribute :>> targetUsage = "destination";
     attribute :>> inverse = "linkedFrom";
   }
-  part retired : SuccessorRetirementRecord {
+  part retired : RetiredRelationRecord {
     attribute :>> predicate = "oldLink";
     attribute :>> reason = "retired; use linksTo";
   }
@@ -105,7 +105,7 @@ def _generate(root):
 def test_successor_refuses_unsupported_direct_owned_attributes(synthetic_successor_root, field):
     root = synthetic_successor_root
     assert successor.semantic_payload(_generate(root)) == EXPECTED_SUCCESSOR
-    marker = "part link : SuccessorRelationRecord {"
+    marker = "part link : TraceRelationRecord {"
     assert SUCCESSOR_SOURCE.count(marker) == 1
     changed = SUCCESSOR_SOURCE.replace(marker, marker + "\n    " + field)
     _write(root, successor.MODEL, changed)
@@ -120,7 +120,7 @@ def test_successor_refuses_unsupported_direct_owned_attributes(synthetic_success
 ])
 def test_successor_field_inventory_ignores_nonowned_or_commented_attributes(synthetic_successor_root, noise):
     root = synthetic_successor_root
-    marker = "part link : SuccessorRelationRecord {"
+    marker = "part link : TraceRelationRecord {"
     _write(root, successor.MODEL, SUCCESSOR_SOURCE.replace(marker, marker + "\n    " + noise))
     assert successor.semantic_payload(_generate(root)) == EXPECTED_SUCCESSOR
 

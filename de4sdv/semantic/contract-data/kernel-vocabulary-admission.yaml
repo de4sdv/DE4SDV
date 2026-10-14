@@ -101,12 +101,12 @@ admitted:
   boundary: none
   home:
     form: owned-doc
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
     owner: action def AllocatableFunction
     index: 0
   grounding:
     kernel_mapping:
-      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
       declaration: action def AllocatableFunction
     sub_class_of: Function
     disjoint_with: []
@@ -243,13 +243,13 @@ admitted:
   boundary: none
   home:
     form: named-doc
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
     owner: connection def DerivesFromNeed
     name: ontologyDefinition
     index: 0
   grounding:
     kernel_mapping:
-      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
       declaration: connection def DerivesFromNeed
     sub_class_of: null
     disjoint_with: []
@@ -457,12 +457,12 @@ admitted:
   boundary: none
   home:
     form: owned-doc
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
     owner: part def LogicalAllocationElement
     index: 0
   grounding:
     kernel_mapping:
-      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
       declaration: part def LogicalAllocationElement
     sub_class_of: LogicalElement
     disjoint_with: []
@@ -531,12 +531,12 @@ admitted:
   boundary: none
   home:
     form: owned-doc
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
     owner: part def PhysicalAllocationElement
     index: 0
   grounding:
     kernel_mapping:
-      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
       declaration: part def PhysicalAllocationElement
     sub_class_of: PhysicalElement
     disjoint_with: []
@@ -578,12 +578,12 @@ admitted:
   boundary: none
   home:
     form: owned-doc
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
     owner: part def ControlledRegulatorySource
     index: 0
   grounding:
     kernel_mapping:
-      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
       declaration: part def ControlledRegulatorySource
     sub_class_of: null
     disjoint_with: []
@@ -598,12 +598,12 @@ admitted:
   boundary: none
   home:
     form: owned-doc
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
     owner: connection def RegulatorySourceAssociation
     index: 0
   grounding:
     kernel_mapping:
-      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
       declaration: connection def RegulatorySourceAssociation
     sub_class_of: null
     disjoint_with: []
@@ -739,12 +739,12 @@ admitted:
   boundary: none
   home:
     form: owned-doc
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
     owner: connection def ValidationPlanningAssociation
     index: 0
   grounding:
     kernel_mapping:
-      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
       declaration: connection def ValidationPlanningAssociation
     sub_class_of: null
     disjoint_with: []
@@ -759,12 +759,12 @@ admitted:
   boundary: none
   home:
     form: owned-doc
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
     owner: part def ValidationPlanningScenario
     index: 0
   grounding:
     kernel_mapping:
-      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
       declaration: part def ValidationPlanningScenario
     sub_class_of: ValidationScenario
     disjoint_with: []
@@ -1287,8 +1287,8 @@ admitted:
   boundary: none
   home:
     form: vocabulary-role
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
-    owner: package DE4SDV_RelationshipSuccessor
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
+    owner: package DE4SDV_TraceVocabulary
     name: allocatedToVocabularyRole
     about:
     - RequirementFunctionAssignment
@@ -1317,8 +1317,8 @@ admitted:
   boundary: none
   home:
     form: vocabulary-role
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
-    owner: package DE4SDV_RelationshipSuccessor
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
+    owner: package DE4SDV_TraceVocabulary
     name: hasRegulatorySourceVocabularyRole
     about:
     - RegulatorySourceAssociation
@@ -1337,8 +1337,8 @@ admitted:
   boundary: none
   home:
     form: vocabulary-role
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
-    owner: package DE4SDV_RelationshipSuccessor
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
+    owner: package DE4SDV_TraceVocabulary
     name: hasValidationScenarioVocabularyRole
     about:
     - ValidationPlanningAssociation
@@ -1357,8 +1357,8 @@ admitted:
   boundary: none
   home:
     form: retirement-record
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
-    owner: package DE4SDV_RelationshipSuccessor
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
+    owner: package DE4SDV_TraceVocabulary
     name: oldRegulatoryName
   relation:
     domain: Requirement
@@ -1390,8 +1390,8 @@ admitted:
   boundary: none
   home:
     form: retirement-record
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
-    owner: package DE4SDV_RelationshipSuccessor
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
+    owner: package DE4SDV_TraceVocabulary
     name: oldDeployment
   relation:
     domain: LogicalElement
@@ -1420,8 +1420,8 @@ admitted:
   boundary: none
   home:
     form: retirement-record
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
-    owner: package DE4SDV_RelationshipSuccessor
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
+    owner: package DE4SDV_TraceVocabulary
     name: oldRealization
   relation:
     domain: Requirement
@@ -1450,8 +1450,8 @@ admitted:
   boundary: none
   home:
     form: retirement-record
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
-    owner: package DE4SDV_RelationshipSuccessor
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
+    owner: package DE4SDV_TraceVocabulary
     name: oldValidationForward
   relation:
     domain: Need
@@ -1480,8 +1480,8 @@ admitted:
   boundary: none
   home:
     form: retirement-record
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml
-    owner: package DE4SDV_RelationshipSuccessor
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
+    owner: package DE4SDV_TraceVocabulary
     name: oldValidationInverse
   relation:
     domain: ValidationScenario

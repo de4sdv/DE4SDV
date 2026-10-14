@@ -24,7 +24,7 @@ ASSURANCE_RECORDS = (
 )
 TRACE_RECORDS = ("ApprovedTraceMethod", "IncrementTraceObligations")
 TRACE_MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_traces.sysml"
-RELATIONSHIP_MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml"
+RELATIONSHIP_MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml"
 RELATIONSHIP_EXTENSIONS = {
     "AllocatableFunction": "action def AllocatableFunction",
     "LogicalAllocationElement": "part def LogicalAllocationElement",
@@ -225,11 +225,11 @@ def successor_constructor_parts():
         "target": "  part def RightRoot {}\n",
         "carrier": ("  connection def SyntheticCarrier {\n"
                     "    end source : LeftRoot;\n    end target : RightRoot;\n  }\n"),
-        "version": _constructor_record("version", "SuccessorVersionRecord",
+        "version": _constructor_record("version", "TraceVocabularyVersionRecord",
             version="synthetic/v1", supersedes="synthetic/previous"),
         "source_record": _class_pin("Left", RELATIONSHIP_MODEL, "part def LeftRoot"),
         "target_record": _class_pin("Right", RELATIONSHIP_MODEL, "part def RightRoot"),
-        "relation": _constructor_record("relationship", "SuccessorRelationRecord",
+        "relation": _constructor_record("relationship", "TraceRelationRecord",
             predicate="syntheticRelation", carrier="SyntheticCarrier", mechanism="typed-connection",
             strength="planning", sourceClass="Left", targetClass="Right",
             sourceUsage="PartUsage", targetUsage="PartUsage", inverse=""),
@@ -259,7 +259,7 @@ _PINS_KEY = "__class_pins__"
 def _constructor_model(parts, *extra_pins):
     """Synthetic model text plus the ontology pins carried by its parts."""
     pins = [part for part in (*parts.values(), *extra_pins) if isinstance(part, _ClassPin)]
-    return _SourcedModel("package DE4SDV_RelationshipSuccessor {\n" + "".join(parts.values()) + "}\n",
+    return _SourcedModel("package DE4SDV_TraceVocabulary {\n" + "".join(parts.values()) + "}\n",
                          pins)
 
 
@@ -318,8 +318,8 @@ def test_successor_constructor_package_prefix_is_not_governed_identity(monkeypat
     parts = {"version": successor_constructor_parts["version"]}
     model = _constructor_model(parts)
     assert _synthetic_constructor(monkeypatch, {RELATIONSHIP_MODEL: model})["schema"] == "synthetic/v1"
-    model = model.replace("package DE4SDV_RelationshipSuccessor {",
-                          "package DE4SDV_RelationshipSuccessor::Foreign {")
+    model = model.replace("package DE4SDV_TraceVocabulary {",
+                          "package DE4SDV_TraceVocabulary::Foreign {")
     with pytest.raises(ValueError, match="missing governed successor package"):
         _synthetic_constructor(monkeypatch, {RELATIONSHIP_MODEL: model})
 
@@ -437,6 +437,6 @@ def test_successor_constructor_local_bare_identity_cannot_choose_between_files(
     competing_pin = _class_pin("ForeignLeft", "pins/foreign.sysml", "part def LeftRoot")
     model = _constructor_model(successor_constructor_parts, competing_pin)
     sources = {RELATIONSHIP_MODEL: model,
-               "pins/foreign.sysml": "package DE4SDV_RelationshipSuccessor {\n  part def LeftRoot {}\n}"}
+               "pins/foreign.sysml": "package DE4SDV_TraceVocabulary {\n  part def LeftRoot {}\n}"}
     with pytest.raises(ValueError, match="carrier endpoint pin mismatch"):
         _synthetic_constructor(monkeypatch, sources)

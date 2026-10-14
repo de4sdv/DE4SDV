@@ -12,7 +12,7 @@ package DE4SDV_AEBSNeedsRequirements {
       package NeedsRequirements {
         private import DE4SDV_Stakeholders::*;
         private import DE4SDV_MethodContext::*;
-        private import DE4SDV_RelationshipSuccessor::*;
+        private import DE4SDV_TraceVocabulary::*;
         private import DE4SDV_ProductLine::*;
         private import DE4SDV_AEBSFunctionalArchitecture::Features::AEBS::FunctionalBehavior::*;
         private import DE4SDV_AEBSLogicalArchitecture::functionalFlow;

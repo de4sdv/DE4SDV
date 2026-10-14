@@ -121,7 +121,7 @@
       "definition": {
         "documentation": "Functional responsibility identity for this versioned allocation profile.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "owner": "action def AllocatableFunction",
           "form": "owned-doc",
           "documentation_name": null,
@@ -131,7 +131,7 @@
       },
       "grounding": {
         "kernel_binding_contract": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "declaration": "action def AllocatableFunction"
         },
         "ontology_relations": {
@@ -348,7 +348,7 @@
       "definition": {
         "documentation": "DE4SDV application connection definition for design-input derivation: the derivedRequirement originates from the stakeholder need. Provenance/traceability semantics only - neither satisfaction nor logical implication between the connected usages is claimed. The typed connection ends (need : StakeholderNeedCandidate, derivedRequirement : RequirementCandidate) carry the predicate's domain and range in the model itself. The standard Requirement Derivation Domain Library remains pinned but unadopted: its originalImpliesDerived semantics change the claim (upstream adoption gate still applies; no floating upgrade, no upstream contact without authorization).",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "owner": "connection def DerivesFromNeed",
           "form": "named-doc",
           "documentation_name": "ontologyDefinition",
@@ -358,7 +358,7 @@
       },
       "grounding": {
         "kernel_binding_contract": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "declaration": "connection def DerivesFromNeed"
         },
         "ontology_relations": {
@@ -665,7 +665,7 @@
       "definition": {
         "documentation": "Technology-neutral logical responsibility grouping.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "owner": "part def LogicalAllocationElement",
           "form": "owned-doc",
           "documentation_name": null,
@@ -675,7 +675,7 @@
       },
       "grounding": {
         "kernel_binding_contract": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "declaration": "part def LogicalAllocationElement"
         },
         "ontology_relations": {
@@ -761,7 +761,7 @@
       "definition": {
         "documentation": "Concrete software, hardware or platform realization element; allocation is not deployment.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "owner": "part def PhysicalAllocationElement",
           "form": "owned-doc",
           "documentation_name": null,
@@ -771,7 +771,7 @@
       },
       "grounding": {
         "kernel_binding_contract": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "declaration": "part def PhysicalAllocationElement"
         },
         "ontology_relations": {
@@ -824,7 +824,7 @@
       "definition": {
         "documentation": "Controlled external origin reference that informed requirement engineering. Interpretation, applicability, obligations, required conditions, evidence and authorized compliance assessment are separate.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "owner": "part def ControlledRegulatorySource",
           "form": "owned-doc",
           "documentation_name": null,
@@ -834,7 +834,7 @@
       },
       "grounding": {
         "kernel_binding_contract": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "declaration": "part def ControlledRegulatorySource"
         },
         "ontology_relations": {
@@ -857,7 +857,7 @@
       "definition": {
         "documentation": "Source provenance only. Does not add a required satisfaction condition or establish applicability, correct interpretation, fulfillment, certification or homologation. Historical constrainedBy was provenance, never a native required constraint.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "owner": "connection def RegulatorySourceAssociation",
           "form": "owned-doc",
           "documentation_name": null,
@@ -867,7 +867,7 @@
       },
       "grounding": {
         "kernel_binding_contract": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "declaration": "connection def RegulatorySourceAssociation"
         },
         "ontology_relations": {
@@ -1049,7 +1049,7 @@
       "definition": {
         "documentation": "One validation planning association. Inverse navigation is the same fact, not execution or a fitness-for-use verdict.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "owner": "connection def ValidationPlanningAssociation",
           "form": "owned-doc",
           "documentation_name": null,
@@ -1059,7 +1059,7 @@
       },
       "grounding": {
         "kernel_binding_contract": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "declaration": "connection def ValidationPlanningAssociation"
         },
         "ontology_relations": {
@@ -1082,7 +1082,7 @@
       "definition": {
         "documentation": "Stakeholder fitness-for-use validation planning only; not a native verification case, execution, result or acceptance.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "owner": "part def ValidationPlanningScenario",
           "form": "owned-doc",
           "documentation_name": null,
@@ -1092,7 +1092,7 @@
       },
       "grounding": {
         "kernel_binding_contract": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
           "declaration": "part def ValidationPlanningScenario"
         },
         "ontology_relations": {
@@ -1145,8 +1145,8 @@
       "definition": {
         "documentation": "Successor definition: one canonical allocatedTo predicate. A native AllocationUsage assigns responsibility from its source usage to its target usage for exactly one governed end pair: requirement to function, function to logical element, or logical element to physical element. Endpoint classes come from the validated kernel bindings of the endpoint lineage, never from usage or allocation names. Allocation proves no satisfaction, execution, deployment, fulfillment or transitivity; it is not a composed requirement-to-architecture realization. The superseded names are realizedBy and deployedTo, and the former Function-to-LogicalElement signature is the second end pair of this version.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-          "owner": "package DE4SDV_RelationshipSuccessor",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
+          "owner": "package DE4SDV_TraceVocabulary",
           "form": "vocabulary-role",
           "comment_name": "allocatedToVocabularyRole",
           "about": [
@@ -1165,7 +1165,7 @@
           {
             "record": "requirementAllocation",
             "carrier": {
-              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
               "declaration": "connection def RequirementFunctionAssignment",
               "ends": [
                 {
@@ -1189,7 +1189,7 @@
           {
             "record": "functionAllocation",
             "carrier": {
-              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
               "declaration": "connection def FunctionLogicalAssignment",
               "ends": [
                 {
@@ -1213,7 +1213,7 @@
           {
             "record": "physicalAllocation",
             "carrier": {
-              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
               "declaration": "connection def LogicalPhysicalAssignment",
               "ends": [
                 {
@@ -1324,8 +1324,8 @@
       "definition": {
         "documentation": "Historical source provenance, not native required conditions; controlled-source successor is hasRegulatorySource, not an alias.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-          "owner": "package DE4SDV_RelationshipSuccessor",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
+          "owner": "package DE4SDV_TraceVocabulary",
           "form": "retirement-record",
           "record": "oldRegulatoryName"
         },
@@ -1365,8 +1365,8 @@
       "definition": {
         "documentation": "Retired stronger active claim; no deployment assertion is invented.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-          "owner": "package DE4SDV_RelationshipSuccessor",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
+          "owner": "package DE4SDV_TraceVocabulary",
           "form": "retirement-record",
           "record": "oldDeployment"
         },
@@ -1514,8 +1514,8 @@
       "definition": {
         "documentation": "Successor definition: a requirement has a controlled regulatory source, recorded as requirement-source provenance only. Applicability, interpretation, binding requirements or required conditions, fulfillment evidence and authorized compliance assessment remain distinct; provenance neither makes an applicable obligation optional nor proves compliance. Supersedes constrainedBy.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-          "owner": "package DE4SDV_RelationshipSuccessor",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
+          "owner": "package DE4SDV_TraceVocabulary",
           "form": "vocabulary-role",
           "comment_name": "hasRegulatorySourceVocabularyRole",
           "about": [
@@ -1532,7 +1532,7 @@
           {
             "record": "regulatoryProvenance",
             "carrier": {
-              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
               "declaration": "connection def RegulatorySourceAssociation",
               "ends": [
                 {
@@ -1702,8 +1702,8 @@
       "definition": {
         "documentation": "Successor definition: a stakeholder need has a planned validation scenario. One typed ValidationPlanningAssociation records the planning fact; validationScenarioFor is inverse navigation over the same fact. It records planning only: no execution, result, fitness-for-use verdict, completed validation or stakeholder acceptance. Supersedes validatedBy and merges validatesFitnessForUse.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-          "owner": "package DE4SDV_RelationshipSuccessor",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
+          "owner": "package DE4SDV_TraceVocabulary",
           "form": "vocabulary-role",
           "comment_name": "hasValidationScenarioVocabularyRole",
           "about": [
@@ -1720,7 +1720,7 @@
           {
             "record": "validationPlanning",
             "carrier": {
-              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
+              "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
               "declaration": "connection def ValidationPlanningAssociation",
               "ends": [
                 {
@@ -1830,8 +1830,8 @@
       "definition": {
         "documentation": "Retired stronger active claim; native responsibility assignments use allocatedTo without fulfillment.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-          "owner": "package DE4SDV_RelationshipSuccessor",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
+          "owner": "package DE4SDV_TraceVocabulary",
           "form": "retirement-record",
           "record": "oldRealization"
         },
@@ -2085,8 +2085,8 @@
       "definition": {
         "documentation": "Planning successor is hasValidationScenario; no validation result implied.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-          "owner": "package DE4SDV_RelationshipSuccessor",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
+          "owner": "package DE4SDV_TraceVocabulary",
           "form": "retirement-record",
           "record": "oldValidationForward"
         },
@@ -2126,8 +2126,8 @@
       "definition": {
         "documentation": "Inverse planning navigation is validationScenarioFor over the same association; not a fitness-for-use verdict.",
         "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_relationship_carriers.sysml",
-          "owner": "package DE4SDV_RelationshipSuccessor",
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml",
+          "owner": "package DE4SDV_TraceVocabulary",
           "form": "retirement-record",
           "record": "oldValidationInverse"
         },
