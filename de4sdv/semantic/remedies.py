@@ -23,9 +23,12 @@ of a check is built from that parameter in the bound view, never from
   ``increment`` reference, a scenario precedes its connection, a concern its
   frame; a requirement, concern or viewpoint with stakeholder members declares
   its subject first;
-- a member sits in its container's block (the charter's ``systemOfInterest``
-  in the charter, a subject in the need); a member line stands alone only in
-  a remedy for an existing element, which the instruction names;
+- only an element that doesn't exist yet is declared, with its members in its
+  block (a new charter's ``systemOfInterest``, a new need's subject); a line
+  for an existing element stands alone and never declares it again: the
+  instruction names the element, or the text puts "in the existing <qualified
+  name>:" before it, or "replace the subject of <qualified name> with:" for a
+  subject (SysML allows one per requirement);
 - a population remedy declares the element the check counts first and
   complete, then the lines its check needs besides it (``then:``).
 
@@ -83,6 +86,9 @@ class Remedy:
     #: For a population remedy: the index of the first line after the counted element, which the
     #: text introduces with "then:".
     then_from: int | None = None
+    #: Lines that go into an element that already exists, each with the phrase the text puts before
+    #: it ("in the existing <qualified name>:", "replace the subject of <qualified name> with:").
+    placed: tuple[tuple[str, str], ...] = ()
     #: Bookkeeping, not part of ``authoring``: the subject's own declaration among the lines, or the
     #: name the lines give the subject when they refer to it without declaring it.
     subject_line: str | None = field(default=None, compare=False, repr=False)
@@ -91,9 +97,11 @@ class Remedy:
     @property
     def text(self) -> str:
         """The one-line ``what_to_author``: instruction, lines, imports and notes."""
-        lines = list(self.declarations)
-        if self.then_from:
-            lines.insert(self.then_from, "then:")
+        placed, lines = dict(self.placed), []
+        for index, line in enumerate(self.declarations):
+            if self.then_from and index == self.then_from:
+                lines.append("then:")
+            lines.extend([placed[line], line] if line in placed else [line])
         parts = [self.instruction + (": " + " ".join(lines) if lines else "")]
         if self.imports:
             parts.append("Import: " + " ".join(self.imports))
@@ -154,6 +162,7 @@ class _Lines:
     notes: list[str]
     subject_line: str | None = None  # the subject's own declaration, when the lines declare it
     subject_name: str | None = None  # the name the lines give the subject without declaring it
+    placed: dict[str, str] = field(default_factory=dict)  # line -> the existing element it goes into
 
     def type(self, element: str | None, admits: str = "") -> str:
         """The reference to a type in a line (recorded for the imports and the types list)."""
@@ -177,8 +186,8 @@ class _Lines:
         types = tuple({"qualified_name": named.qualified_name, "name": named.name, "element_id": named.element,
                        **({"admits": admits} if admits else {})} for named, admits in self.types)
         return Remedy(instruction, tuple(self.declarations), tuple(imports), types,
-                      tuple(dict.fromkeys(self.notes)), tuple(phases), subject_line=self.subject_line,
-                      subject_name=self.subject_name)
+                      tuple(dict.fromkeys(self.notes)), tuple(phases), placed=tuple(self.placed.items()),
+                      subject_line=self.subject_line, subject_name=self.subject_name)
 
 
 # ---------------------------------------------------------------------------
@@ -330,8 +339,30 @@ def _subject_ref(lines: _Lines, placeholder: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+def _subjects(view: ModelView, element: str | None) -> int:
+    """How many subjects an element declares (SubjectMemberships)."""
+    return len(view.index.owned_relationships(element, "SubjectMembership")) if element else 0
+
+
 def _has_subject(view: ModelView, element: str | None) -> bool:
-    return bool(element) and any(view.index.owned_relationships(element, "SubjectMembership"))
+    return _subjects(view, element) > 0
+
+
+def _existing_member(lines: _Lines, element: str, member: str) -> str:
+    """``member`` for an element that exists: the line alone, which the text puts "in the existing"
+    element (never a second declaration of it)."""
+    lines.placed[member] = f"in the existing {lines.request.view.label(element)}:"
+    return member
+
+
+def _subject_line(lines: _Lines, line: str) -> str:
+    """A subject line for the existing element the remedy is about. When it has a subject, the line
+    replaces it (SysML allows one; a second fails oneNativeSubject); without one, it is added."""
+    request = lines.request
+    count = _subjects(request.view, request.subject)
+    if count:
+        lines.placed[line] = f"replace the subject{'s' if count > 1 else ''} of {request.view.label(request.subject)} with:"
+    return line
 
 
 def _typed_by_the_kernel_itself(view: ModelView, types: Iterable[str]) -> bool:
@@ -346,7 +377,8 @@ def _typed_by_the_kernel_itself(view: ModelView, types: Iterable[str]) -> bool:
 
 def _direct_note(view: ModelView, usage: str, kernel: str) -> str:
     return (f"{view.label(usage)} is typed by {view.label(kernel)} itself, which the checks allow but which is not "
-            "the method's form: a definition of the increment's own specializes it and types the usage.")
+            f"the method's form: retype the existing {view.label(usage)} to `: {INCREMENT_DEFINITION}`, the "
+            "increment's own definition that specializes it.")
 
 
 def _increment_definition(lines: _Lines, general: str | None = None) -> str:
@@ -376,21 +408,9 @@ def _increment_definition(lines: _Lines, general: str | None = None) -> str:
 
 
 def _increment_subject(lines: _Lines) -> str:
-    """``subject increment : <the increment's own definition>;``. A usage typed by the kernel
-    definition itself is retyped by that definition, right after its declaration."""
-    definition = _increment_definition(lines)
-    request = lines.request
-    view, scope = request.view, request.scope
-    if (definition == INCREMENT_DEFINITION and scope is not None and scope.usage_id and scope.definition_ids
-            and _typed_by_the_kernel_itself(view, scope.definition_ids)):
-        usage = scope.usage_id
-        retyped = (f"{_keyword(view, usage) or 'part'} <'{scope.increment_id}'> "
-                   f"{view.index.name_of(usage) or '<usageName>'} : {INCREMENT_DEFINITION};")
-        if retyped not in lines.declarations:
-            at = next((index + 1 for index, line in enumerate(lines.declarations)
-                       if f" {INCREMENT_DEFINITION} :> " in line), 0)
-            lines.declarations.insert(at, retyped)
-    return f"subject increment : {definition};"
+    """``subject increment : <the increment's own definition>;`` (for a usage typed by the kernel
+    definition itself, a note says to retype the existing usage)."""
+    return f"subject increment : {_increment_definition(lines)};"
 
 
 def _system_of_interest_subject(lines: _Lines) -> str:
@@ -441,11 +461,8 @@ def _increment_short_name(request: _Request) -> Remedy:
             lines.declarations.append(f"{_keyword(view, kernel)} {INCREMENT_DEFINITION} :> "
                                       f"{lines.type(kernel, _OWN_DEFINITION)};")
             lines.notes.append(_direct_note(view, request.subject, kernel))
-        types = ", ".join(INCREMENT_DEFINITION if direct and t == kernel else lines.type(t) for t in typed)
-        lines.declarations.append(f"part <'{identifier}'> {view.index.name_of(request.subject) or '<usageName>'}"
-                                  + (f" : {types};" if types else ";"))
-        return lines.remedy(f"declare {view.label(request.subject)} with the increment identifier as its "
-                            "declared short name")
+        return lines.remedy(f"declare the existing {view.label(request.subject)} with the increment identifier as "
+                            f"its declared short name, <'{identifier}'>")
     definition = _increment_definition(lines, _one_type(request.view, request.parameter))
     lines.subject_line = f"{_parameter_keyword(request)} <'{identifier}'> <usageName> : {definition};"
     lines.declarations.append(lines.subject_line)
@@ -657,7 +674,7 @@ def _problem_statement_subject(request: _Request) -> Remedy:
     subject = _increment_subject(lines)
     lines.notes.append(SUBJECT_FIRST)
     if request.subject is not None:
-        lines.declarations.append(subject)
+        lines.declarations.append(_subject_line(lines, subject))
         return lines.remedy(f"keep {request.view.label(request.subject)} in the increment's package, its subject "
                             "first and typed by the increment definition")
     lines.declarations.append(_declaration(lines, [subject], name="<problemStatementName>", container="requirement"))
@@ -723,8 +740,10 @@ def _one_native_subject(request: _Request) -> Remedy:
     lines = _lines(request)
     subject = _subject_first(lines)
     if request.subject is not None:
-        lines.declarations.append(subject)
-        return lines.remedy(f"declare exactly one subject on {request.view.label(request.subject)}")
+        lines.declarations.append(_subject_line(lines, subject))
+        several = _subjects(request.view, request.subject) > 1
+        return lines.remedy(f"{'keep' if several else 'declare'} exactly one subject on "
+                            f"{request.view.label(request.subject)}")
     lines.declarations.append(_declaration(lines, [subject], name=_subject_name(request), container="requirement"))
     return lines.remedy(f"declare {_parameter_phrase(request)} with exactly one subject {_where(request)}".rstrip())
 
@@ -744,7 +763,7 @@ def _subject_is_system_of_interest(request: _Request) -> Remedy:
             lines.declarations.append(_in_charter(lines, line))
     subject = _system_of_interest_subject(lines)
     if request.subject is not None:
-        lines.declarations.append(subject)
+        lines.declarations.append(_subject_line(lines, subject))
     else:
         lines.declarations.append(_declaration(lines, [subject], name=_subject_name(request), container="requirement"))
     target = request.view.label(request.subject) if request.subject else _parameter_phrase(request)
@@ -756,19 +775,16 @@ def _subject_is_system_of_interest(request: _Request) -> Remedy:
 
 
 def _in_charter(lines: _Lines, member: str) -> str:
-    """``member`` in the charter's block: the increment's own charter restated as it is declared, else
-    a new charter declared as the workflow's charter parameter types it."""
+    """``member`` in the charter: in the increment's own charter, which exists (the line alone, "in the
+    existing" charter), else in the block of a new charter declared as the workflow's charter
+    parameter types it."""
     request = lines.request
     view, scope = request.view, request.scope
     if scope is not None and len(scope.charters) == 1:
-        charter = scope.charters[0]
-        types = ", ".join(lines.type(definition) for definition in sorted(view.index.typed_by(charter)))
-        head = (f"{_keyword(view, charter) or 'part'} {view.index.name_of(charter) or '<charterName>'}"
-                + (f" : {types}" if types else ""))
-    else:
-        parameter, definition = _new_charter(request)
-        keyword = _parameter_keyword(replace(request, parameter=parameter))
-        head = f"{keyword} <charterName>" + (f" : {lines.type(definition, _SPECIALIZING)}" if definition else "")
+        return _existing_member(lines, scope.charters[0], member)
+    parameter, definition = _new_charter(request)
+    keyword = _parameter_keyword(replace(request, parameter=parameter))
+    head = f"{keyword} <charterName>" + (f" : {lines.type(definition, _SPECIALIZING)}" if definition else "")
     return f"{head} {{ {member} }}"
 
 
@@ -1030,7 +1046,7 @@ def _subject_membership(request: _Request, mapping: Any) -> Remedy:
     member = f"subject <subjectName> : {lines.type(kernel, _SPECIALIZING)};"
     lines.notes.append(SUBJECT_FIRST)
     if request.subject is not None:
-        lines.declarations.append(member)
+        lines.declarations.append(_subject_line(lines, member))
         return lines.remedy(f"declare the subject of {request.view.label(request.subject)}")
     lines.declarations.append(_declaration(lines, [member], name=_subject_name(request), container="requirement"))
     return lines.remedy(f"declare {_parameter_phrase(request)} with its subject {_where(request)}".rstrip())
@@ -1116,7 +1132,8 @@ def population_remedy(view: ModelView, check: str, *, keep: str, parameter: str 
         types.setdefault(str(named["element_id"]), named)
     return Remedy(f"{keep}; one is declared as", (first, *follow),
                   tuple(dict.fromkeys((*lead.imports, *own.imports))), tuple(types.values()),
-                  tuple(dict.fromkeys((*own.notes, *lead.notes))), own.phases, then_from=1 if follow else None)
+                  tuple(dict.fromkeys((*own.notes, *lead.notes))), own.phases, then_from=1 if follow else None,
+                  placed=tuple({**dict(lead.placed), **dict(own.placed)}.items()))
 
 
 def check_remedy(view: ModelView, check: str, *, subject: str | None = None, parameter: str | None = None,

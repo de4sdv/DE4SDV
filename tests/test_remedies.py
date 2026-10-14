@@ -304,6 +304,19 @@ def _for_an_existing_element(record: dict) -> bool:
         record.get("reason_codes") or [])
 
 
+#: The phrase that puts a member line into an element that already exists (in the text, before the line).
+_PLACEMENT = rf"(?:in the existing|replace the subjects? of) ({_QN})(?: with)?: "
+#: The name a declaration line declares (after an optional short name).
+_DECLARED = re.compile(r"(?:(?:part|action|requirement|concern|verification|view|viewpoint)(?: def)?"
+                       r"|connection|allocation|dependency) (?:<'[^']*'> )?([^\s;{]+)")
+
+
+def _placed(text: str, line: str) -> str | None:
+    """The existing element the text puts a member line into (``in the existing <qn>: <line>``)."""
+    found = re.search(_PLACEMENT + re.escape(line), text)
+    return found.group(1) if found else None
+
+
 def _declared_placeholders(lines: list[str]) -> set[str]:
     """Placeholders a remedy itself declares, as a definition or a usage name."""
     found = set()
@@ -325,8 +338,11 @@ def _problems(record: dict, names: QualifiedNameIndex, own_package: str | None =
         if not _accepted(line, TOP_LEVEL_FORMS):
             if not _accepted(line, MEMBER_FORMS):
                 found.append(f"not an accepted form: {line}")
-            elif not members_allowed:
+            elif not (members_allowed or _placed(text, line)):
                 found.append(f"a member outside its container: {line}")
+        elif (declared := _DECLARED.match(line)) and not re.fullmatch(r"<[^<>]+>", declared.group(1)):
+            # A remedy only knows the names of elements that exist: a concrete name declares one again.
+            found.append(f"restates the existing {declared.group(1)}: {line}")
         if line not in text:
             found.append(f"not in the text: {line}")
     for pattern in NOT_SYSML:
@@ -340,6 +356,9 @@ def _problems(record: dict, names: QualifiedNameIndex, own_package: str | None =
         for name in re.findall(_QN, line):
             if len(names.resolve(name)) != 1:
                 found.append(f"{name} does not resolve to one element")
+    for existing in re.findall(_PLACEMENT, text):
+        if len(names.resolve(existing)) != 1:
+            found.append(f"the existing {existing} does not resolve to one element")
     for named in authoring.get("types") or []:
         package = (named.get("qualified_name") or "").rpartition("::")[0]
         if named.get("qualified_name") and package != own_package:
@@ -522,35 +541,142 @@ def test_a_remedy_that_adds_stakeholders_declares_the_subject_first() -> None:
 
 def test_the_system_of_interest_lines_are_declared_inside_the_charter_and_the_need() -> None:
     """The charter's systemOfInterest line is a member of the charter, the subject line a member of the
-    need: each sits in its container's block. A new increment's charter is typed like the workflow's
-    charter parameter; an increment's own charter is restated as declared. A bare subject line comes
-    only in the remedy for an existing need, which its instruction names. With a system of interest
-    declared, the subject alone."""
+    need: each goes in its container. A new increment's charter is declared, typed like the workflow's
+    charter parameter, with the line in its block; the increment's own charter gets the line "in the
+    existing" charter. An existing need's subject (the increment, here) is replaced. With a system of
+    interest declared, the subject alone."""
     scenario, _steps, types = _kernel_scenario()
     builder = scenario.builder
     need = _owner_qualified(builder, types["StakeholderNeedCandidate"])
     charter = _owner_qualified(builder, types["IncrementCharter"])
     system = ["part def <SystemName> { doc /* <the system of interest> */ }", "part <systemUsage> : <SystemName>;"]
+    member, subject = "ref part :>> systemOfInterest = <systemUsage>;", "subject <subjectName> :> <systemUsage>;"
     new = _gap(_evaluate(scenario, NEW).gaps(), "needSubjectIsSystemOfInterest")
     assert new["authoring"]["declarations"] == [
-        *system, f"part <charterName> : {charter} {{ ref part :>> systemOfInterest = <systemUsage>; }}",
-        f"requirement <name> : {need} {{ subject <subjectName> :> <systemUsage>; }}"]
+        *system, f"part <charterName> : {charter} {{ {member} }}", f"requirement <name> : {need} {{ {subject} }}"]
     existing = _gap(_evaluate(scenario).gaps(), "needSubjectIsSystemOfInterest")  # the needs take the increment
-    assert existing["authoring"]["declarations"] == [
-        *system, "part fixtureCharter : DE4SDV_FixtureFraming::FixtureCharter "
-                 "{ ref part :>> systemOfInterest = <systemUsage>; }", "subject <subjectName> :> <systemUsage>;"]
+    first = existing["subjects"][0]["qualified_name"]
+    assert existing["authoring"]["declarations"] == [*system, member, subject]
     assert existing["what_to_author"].startswith(
         "declare the system of interest in the increment's package, reference it from the charter and take it as "
-        f"the subject of {existing['subjects'][0]['qualified_name']}, never the increment: ")
-    system_definition = builder.definition("PartDefinition", "FixtureSystem", scenario.framing)
-    builder.attribute(scenario.charter, "systemOfInterest",
-                      builder.usage("PartUsage", "fixtureSystem", scenario.framing, [system_definition]), kind="PartUsage")
+        f"the subject of {first}, never the increment: {' '.join(system)} in the existing "
+        f"DE4SDV_FixtureFraming::fixtureCharter: {member} replace the subject of {first} with: {subject}")
+    line = _declare_system_of_interest(scenario)
     evaluation = _evaluate(scenario)
     (gate,) = [g for g in evaluation.phase_contract()["gates"] if g["obligation_id"] == "needSubjectIsSystemOfInterest"]
-    assert gate["authoring"]["declarations"] == [
-        f"requirement <name> : {need} {{ subject <subjectName> :> DE4SDV_FixtureFraming::fixtureSystem; }}"]
-    assert _gap(evaluation.gaps(), "needSubjectIsSystemOfInterest")["authoring"]["declarations"] == [
-        "subject <subjectName> :> DE4SDV_FixtureFraming::fixtureSystem;"]
+    assert gate["authoring"]["declarations"] == [f"requirement <name> : {need} {{ {line} }}"]
+    assert _gap(evaluation.gaps(), "needSubjectIsSystemOfInterest")["authoring"]["declarations"] == [line]
+
+
+def _declare_system_of_interest(scenario) -> str:
+    """The charter declares a system of interest (``fixtureSystem``); the subject line a remedy then gives."""
+    builder = scenario.builder
+    definition = builder.definition("PartDefinition", "FixtureSystem", scenario.framing)
+    builder.attribute(scenario.charter, "systemOfInterest",
+                      builder.usage("PartUsage", "fixtureSystem", scenario.framing, [definition]), kind="PartUsage")
+    return "subject <subjectName> :> DE4SDV_FixtureFraming::fixtureSystem;"
+
+
+def test_a_system_of_interest_remedy_replaces_the_subject_a_requirement_already_has() -> None:
+    """A requirement whose subject is the increment, the case the check exists for: the remedy replaces
+    that subject, in the requirement. Added next to it, the requirement would have two subjects (SysML
+    allows one; requirementHasOneSubject fails) and the increment would still be one. Without a
+    subject, the line is added."""
+    scenario, _steps, _types = _kernel_scenario()
+    line = _declare_system_of_interest(scenario)
+    entry = _gap(_evaluate(scenario).gaps(), "requirementSubjectIsSystemOfInterest")
+    requirement = entry["subjects"][0]["qualified_name"]
+    assert entry["authoring"]["declarations"] == [line]
+    assert f"replace the subject of {requirement} with: {line}" in entry["what_to_author"]
+    scenario.builder.remove(*[e for e in scenario.builder.elements if e.get("@type") == "SubjectMembership"
+                              and e.get("owningRelatedElement", {}).get("@id") == scenario.requirements[0]["@id"]])
+    entry = _gap(_evaluate(scenario).gaps(), "requirementSubjectIsSystemOfInterest")
+    assert entry["subjects"][0]["qualified_name"] == "DE4SDV_FixtureNeedsRequirements::requirement0"
+    assert entry["authoring"]["declarations"] == [line] and "replace the subject" not in entry["what_to_author"]
+
+
+def test_a_one_subject_remedy_keeps_exactly_one_of_two_subjects() -> None:
+    """A requirement with two subjects: keep exactly one, replacing both in the requirement."""
+    scenario, _steps, _types = _kernel_scenario()
+    line = _declare_system_of_interest(scenario)
+    scenario.builder.subject(scenario.requirements[0], scenario.definition, name="secondSubject")
+    entry = _gap(_evaluate(scenario).gaps(), "requirementHasOneSubject")
+    requirement = "DE4SDV_FixtureNeedsRequirements::requirement0"
+    assert entry["subjects"][0]["qualified_name"] == requirement
+    assert entry["authoring"]["declarations"] == [line]
+    assert entry["what_to_author"].startswith(
+        f"keep exactly one subject on {requirement}: replace the subjects of {requirement} with: {line}")
+
+
+def test_a_problem_statement_remedy_replaces_a_subject_of_another_type() -> None:
+    """The problem statement's subject is typed by a definition outside the increment's lineage: the
+    remedy replaces it, in the problem statement, never adds a second subject."""
+    scenario, _steps, _types = _kernel_scenario()
+    builder = scenario.builder
+    problem = next(e for e in builder.elements if e.get("declaredName") == "fixtureProblemStatement")
+    unrelated = builder.definition("PartDefinition", "FixtureUnrelated", scenario.framing)
+    for typing in [e for e in builder.elements if e.get("@type") == "FeatureTyping"
+                   and e.get("typedFeature", {}).get("@id") == builder.feature_of(problem, "increment")["@id"]]:
+        typing["type"] = typing["general"] = {"@id": unrelated["@id"]}
+    entry = _gap(_evaluate(scenario).gaps(), "incrementHasProblemStatement")
+    line = "subject increment : DE4SDV_FixtureFraming::FixtureIncrement;"
+    assert entry["authoring"]["declarations"] == [line]
+    assert f"replace the subject of DE4SDV_FixtureFraming::fixtureProblemStatement with: {line}" in entry["what_to_author"]
+
+
+def test_a_subject_relation_remedy_replaces_the_subject_a_requirement_already_has() -> None:
+    """``hasSubject`` (a subject-membership relation) for a requirement that has a subject: replaced."""
+    from de4sdv.semantic.remedies import check_remedy
+
+    scenario, _steps, _types = _kernel_scenario()
+    scenario.builder.kernel_definition("MemberProduct")  # the class of hasSubject's subject, bound
+    remedy = check_remedy(_view(scenario), "hasSubject", subject=scenario.requirements[1]["@id"])
+    (line,) = remedy.declarations
+    assert line.startswith("subject <subjectName> : ")
+    assert f"replace the subject of DE4SDV_FixtureNeedsRequirements::requirement1 with: {line}" in remedy.text
+
+
+def test_an_existing_element_is_named_as_existing_never_declared_again() -> None:
+    """The increment's own charter and usage exist. A remedy names each as existing and gives only what
+    to add or change in it: the charter's systemOfInterest line "in the existing" charter, the retyping
+    of the usage as a note. A full declaration is only for an element that doesn't exist yet; copied as
+    written, a restated one would declare a second element of the same name."""
+    scenario, _steps, _types = _kernel_scenario()
+    member = "ref part :>> systemOfInterest = <systemUsage>;"
+    for record in (*[g for g in _evaluate(scenario).phase_contract()["gates"]
+                     if g["obligation_id"] == "needSubjectIsSystemOfInterest"],
+                   _gap(_evaluate(scenario).gaps(), "needSubjectIsSystemOfInterest")):
+        declarations = record["authoring"]["declarations"]
+        assert member in declarations, declarations
+        assert [line for line in declarations if "fixtureCharter" in line] == []
+        text = record.get("what_to_author") or record["what_satisfies"]
+        assert f"in the existing DE4SDV_FixtureFraming::fixtureCharter: {member}" in text
+    _typed_by_the_kernel_definition_itself(scenario)
+    gates = {gate["obligation_id"]: gate for gate in _evaluate(scenario).phase_contract()["gates"]}
+    for gate in ("incrementHasProblemStatement", "incrementHasStakeholder"):
+        authoring = gates[gate]["authoring"]
+        assert [line for line in authoring["declarations"] if "incFixture" in line] == [], gate
+        assert any("retype the existing DE4SDV_FixtureFraming::incFixture to `: <IncrementDefinitionName>`" in note
+                   for note in authoring["notes"]), authoring["notes"]
+
+
+def test_an_existing_increment_usage_is_not_declared_again() -> None:
+    """The identifier remedy for an existing usage (a direct call: the workflow's population bound gives a
+    second usage a population remedy) names it as existing and declares nothing of the same name."""
+    from de4sdv.semantic.remedies import check_remedy
+
+    scenario, _steps, _types = _kernel_scenario()
+    remedy = check_remedy(_view(scenario), "incrementShortName", subject=scenario.usage["@id"],
+                          scope=_evaluate(scenario).scope)
+    assert [line for line in remedy.declarations if "incFixture" in line] == []
+    assert remedy.text.startswith("declare the existing DE4SDV_FixtureFraming::incFixture with the increment "
+                                  f"identifier as its declared short name, <'{scenario.increment_id}'>")
+
+
+def test_the_guide_says_when_a_line_is_added_to_or_replaces_a_member_of_an_existing_element() -> None:
+    guide = " ".join((REPO_ROOT / "docs/guides/drive-an-increment-with-the-method-tools.md").read_text(
+        encoding="utf-8").split())
+    assert "`in the existing <qualified name>:`" in guide and "`replace the subject of <qualified name> with:`" in guide
 
 
 def test_a_new_charter_s_features_are_the_ones_its_type_inherits() -> None:
@@ -604,6 +730,7 @@ def test_a_population_remedy_declares_the_element_it_counts_first_and_complete()
     scenario, steps, types = _kernel_scenario()
     builder = scenario.builder
     builder.remove(*scenario.needs, *scenario.requirements)
+    names = QualifiedNameIndex(builder.elements)
     about = {check.name: parameter for step in steps for check in step.checks
              for parameter in step.parameters if parameter.name == check.about}
     gaps = _evaluate(scenario).gaps()
@@ -620,8 +747,11 @@ def test_a_population_remedy_declares_the_element_it_counts_first_and_complete()
                                 r"(?:;| \{ .+ \})", first)
         assert declared, (entry["gate"], first)
         assert f"one is declared as: {first}" in text, entry["gate"]
-        if rest:
-            assert f"{first} then: {' '.join(rest)}" in text, entry["gate"]
+        if rest:  # after "then:", in order (a line for an existing element after the phrase that places it)
+            after = text.split(f"{first} then: ", 1)[1]
+            at = [after.find(line) for line in rest]
+            assert -1 not in at and at == sorted(at), (entry["gate"], text)
+        assert _problems(entry, names, "DE4SDV_FixtureFraming") == [], entry["gate"]
         for line in rest:
             if line.startswith(("connection ", "verification ")):
                 assert re.search(rf"(?:connect|to|verify) {re.escape(declared.group(1))}(?=[; ])", line), (
@@ -811,28 +941,29 @@ def _typed_by_the_kernel_definition_itself(scenario) -> dict:
 
 def test_an_increment_typed_by_the_kernel_definition_itself_is_taught_the_method_form() -> None:
     """The looseness above is never echoed. For an increment usage typed by the kernel EngineeringIncrement
-    itself, the remedies declare the increment's own definition specializing it, retype the usage by it
-    and type the problem statement's subject by it, with one note naming the looseness. (A usage typed
-    by a definition of its own keeps naming it: the problem-statement test above.)"""
+    itself, the remedies declare the increment's own definition specializing it and type the problem
+    statement's subject by it; one note names the looseness and says to retype the existing usage by
+    that definition (never a second declaration of the usage). (A usage typed by a definition of its own
+    keeps naming it: the problem-statement test above.)"""
     scenario, _steps, _types = _kernel_scenario()
     problem = _typed_by_the_kernel_definition_itself(scenario)
     qualified, _package = _kernel_qualified(scenario, "EngineeringIncrement")
     statement, _package = _kernel_qualified(scenario, "ProblemStatement")
     define = f"part def <IncrementDefinitionName> :> {qualified};"
-    retyped = f"part <'{scenario.increment_id}'> incFixture : <IncrementDefinitionName>;"
+    retype = "retype the existing DE4SDV_FixtureFraming::incFixture to `: <IncrementDefinitionName>`"
     subject = "subject increment : <IncrementDefinitionName>;"
     gates = {gate["obligation_id"]: gate for gate in _evaluate(scenario).phase_contract()["gates"]}
     assert gates["incrementHasIdentifier"]["authoring"]["declarations"] == [
         define, f"part <'{scenario.increment_id}'> <usageName> : <IncrementDefinitionName>;"]
     assert gates["incrementHasProblemStatement"]["authoring"]["declarations"] == [
-        define, retyped, f"requirement <problemStatementName> : {statement} {{ {subject} }}"]
-    assert gates["incrementHasStakeholder"]["authoring"]["declarations"][:2] == [define, retyped]
+        define, f"requirement <problemStatementName> : {statement} {{ {subject} }}"]
+    assert gates["incrementHasStakeholder"]["authoring"]["declarations"][0] == define
     scenario.builder.remove(scenario.builder.feature_of(problem, "increment"))
     gap = _gap(_evaluate(scenario).gaps(), "incrementHasProblemStatement")
-    assert gap["authoring"]["declarations"] == [define, retyped, subject]
+    assert gap["authoring"]["declarations"] == [define, subject]
     for record in (gates["incrementHasIdentifier"], gates["incrementHasProblemStatement"], gap):
         named = [note for note in record["authoring"]["notes"]
                  if "DE4SDV_FixtureFraming::incFixture" in note and qualified in note]
-        assert len(named) == 1, record["authoring"]["notes"]
+        assert len(named) == 1 and retype in named[0], record["authoring"]["notes"]
     texts = [record.get("what_to_author") or record.get("what_satisfies") for record in (*gates.values(), gap)]
     assert [text for text in texts if f": {qualified};" in text or f"subject increment : {qualified};" in text] == []

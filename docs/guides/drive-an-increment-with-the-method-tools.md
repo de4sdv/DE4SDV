@@ -111,9 +111,14 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   `declarations`, `imports`, `types` and `notes`, and for the applicable-phases
   check `phases`: each MethodPhase literal, and whether its phase has
   executable checks. A placeholder in angle brackets is a name or text you
-  choose, never a type. A member line stands alone only in a remedy for an
-  existing element, which the instruction names; otherwise it sits in its
-  container's block (the charter's, the need's). A population remedy
+  choose, never a type. Only an element that doesn't exist yet is declared,
+  with its members in its block (the new charter's, the new need's). A line
+  for an element that exists stands alone and is never a second declaration
+  of it: the instruction names that element, or the text puts
+  `in the existing <qualified name>:` before the line (add it there) or
+  `replace the subject of <qualified name> with:` (it replaces that
+  element's subject, since SysML allows one). A note says when an existing
+  element is to be retyped. A population remedy
   (`keep …`) declares the element the check counts first and complete; the
   lines after `then:` are what its check needs besides it. In
   `phase_contract`, `parameter_element_id` is the element id of that step
