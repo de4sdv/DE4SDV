@@ -284,14 +284,6 @@ def _library_attribute(attribute: str, *, allowed: Sequence[str] = ()) -> CheckF
     return check
 
 
-def _frames_stakeholder_concern(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
-    hops = [(concern, witness) for concern, witness in check_relation(view, "frame", subject_id).hops
-            if membership_members(view, concern, "StakeholderMembership")]
-    if not hops:
-        return violated(f"{_name(view, subject_id)} frames no concern that has a native stakeholder member")
-    return satisfied([c for c, _w in hops], [w for _c, w in hops])
-
-
 def _one_native_subject(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
     found = check_relation(view, "subject", subject_id).targets
     if not found:
@@ -497,14 +489,6 @@ def _verifies_increment_requirement(view: ModelView, increment: IncrementScope, 
     return satisfied([t for t, _w in hops], [w for _t, w in hops])
 
 
-def _verifies_acceptance_criterion(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
-    result = check_relation(view, "verify", subject_id)
-    hops = [(target, witness) for target, witness in result.hops if in_class(view, target, "AcceptanceCriterion")]
-    if not hops:
-        return violated(f"{_name(view, subject_id)} verifies no acceptance criterion")
-    return satisfied([t for t, _w in hops], [w for _t, w in hops])
-
-
 def _evidence_record_or_status(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
     result = check_relation(view, "hasEvidence", subject_id)
     if result.problem:
@@ -531,9 +515,6 @@ NAMED_CHECKS: Mapping[str, CheckFunction] = MappingProxyType({
     "requireConstraint": _require_constraint,
     "sourceAttribute": _library_attribute("source"),
     "rationaleAttribute": _library_attribute("rationale"),
-    # Kept only for the frozen genuine-export cut, whose workflow predates the rule that needs
-    # never frame concerns and still declares this check; removed at the next re-cut.
-    "framesStakeholderConcern": _frames_stakeholder_concern,
     "oneNativeSubject": _one_native_subject,
     "subjectIsSystemOfInterest": _subject_is_system_of_interest,
     "charterExpectedArtifactsCoverContent": _expected_artifacts_cover_content,
@@ -541,9 +522,6 @@ NAMED_CHECKS: Mapping[str, CheckFunction] = MappingProxyType({
     "successCriteriaAttribute": _library_attribute("successCriteria"),
     "specifiesFeatureOrCommonCapability": _feature_or_common_capability,
     "verifiesIncrementRequirement": _verifies_increment_requirement,
-    # Kept only for the frozen genuine-export cut, whose workflow predates the rule that a requirement
-    # states its success criteria and still declares this check; removed at the next re-cut.
-    "verifiesAcceptanceCriterion": _verifies_acceptance_criterion,
     "evidenceRecordOrStatus": _evidence_record_or_status,
 })
 
@@ -573,8 +551,6 @@ REMEDIES: Mapping[str, str] = MappingProxyType({
                          "{{ language \"English\" /* ... */ }}",
     "sourceAttribute": "set on {subject}: attribute :>> source = \"...\";",
     "rationaleAttribute": "set on {subject}: attribute :>> rationale = \"...\";",
-    "framesStakeholderConcern": "frame a stakeholder concern in {subject}: frame <concern>; (the concern declares a "
-                                "stakeholder)",
     "oneNativeSubject": "declare exactly one subject on {subject}: subject <name> : <Definition>;",
     "subjectIsSystemOfInterest": "declare the system of interest on the charter (ref part :>> systemOfInterest = "
                                  "<usage>;) and take it as the subject of {subject}: subject <name> :> <usage>; "
@@ -588,7 +564,6 @@ REMEDIES: Mapping[str, str] = MappingProxyType({
                                 "which verification shows the requirement is met>\";",
     "specifiesFeatureOrCommonCapability": "trace {subject} to a feature or common capability",
     "verifiesIncrementRequirement": "add to the objective of {subject} (or its definition): verify <increment requirement>;",
-    "verifiesAcceptanceCriterion": "add to the objective of {subject}: verify <acceptance criterion>;",
     "evidenceRecordOrStatus": "record evidence for {subject} (evidence content is external at this revision)",
     # Relations whose remedy needs more than the relation's name.
     "derivesRequirementFromNeed": "replace any plain dependency with: connection <name> : DerivesFromNeed "

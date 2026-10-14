@@ -231,8 +231,10 @@ def test_undeclared_phase_is_not_applicable_not_passed() -> None:
 def test_advisory_checks_never_block_and_are_reported_as_notes() -> None:
     gaps = _evaluate(_scenario()).gaps()
     advisory = {entry["gate"]: entry["kind"] for entry in gaps["advisory"]}
-    assert advisory == {"requirementSpecifiesFeatureOrCapability": "method-side",
-                        "verificationCaseVerifiesAcceptanceCriterion": "violation",
+    assert advisory == {"needSubjectIsSystemOfInterest": "violation",
+                        "requirementSubjectIsSystemOfInterest": "violation",
+                        "requirementSpecifiesFeatureOrCapability": "method-side",
+                        "requirementStatesSuccessCriteria": "violation",
                         "verificationCaseHasEvidenceRecordOrStatus": "method-side"}
     assert all(entry["gate"] not in advisory for entry in gaps["blocking"])
 
@@ -265,7 +267,7 @@ def test_phase_contract_lists_checks_with_increment_applicability_and_no_verdict
     assert contract["executable_contract_available"] is True
     checks = {check["obligation_id"]: check for check in contract["gates"]}
     assert set(checks) == {"verificationCaseVerifiesRequirement", "requirementVerifiedByVerificationCase",
-                           "verificationCaseVerifiesAcceptanceCriterion", "verificationCaseHasEvidenceRecordOrStatus"}
+                           "verificationCaseHasEvidenceRecordOrStatus"}
     assert checks["verificationCaseVerifiesRequirement"]["applicability_resolution"] == "not_applicable"
     assert "conformance_verdict" not in contract
     assert evaluation.phase_contract()["phases"] == [P0, P4, P5, P10]

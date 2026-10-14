@@ -20,28 +20,47 @@ from de4sdv.semantic import method_evaluator as me
 from de4sdv.semantic.export_evaluation import evaluate_export
 from increment_model_fixtures import GENUINE_EXPORT
 
-NEEDS = ["needCorrelatableEvidence", "needFailClosedDegradation", "needLiveVisualizationOnAAOS",
-         "needNonInterference", "needPreservedSourceProvenance"]
+#: The 20 requirements of INC-AEBS-010, all in the needs-and-requirements package the cut keeps in full.
+REQUIREMENTS = [
+    "reqAaosEnvironmentObservation", "reqAvailabilityDisposition", "reqDe4sdvParticipation",
+    "reqDecisionDistanceExclusionStatement", "reqEvidenceCorrelation", "reqFailClosedFreshness",
+    "reqInvalidRejection", "reqNativeParticipation", "reqNoDisplayDerivedDecisionMetric",
+    "reqNoFreshDataSubstitution", "reqNoHostBrowserSurface", "reqNoNativeImpersonation", "reqNonColorStateCue",
+    "reqNonInterference", "reqObstacleGeometryExpiry", "reqObstacleGeometryFromFilteredCloud",
+    "reqReadOnlyBoundaryStatement", "reqRealAAOSRendering", "reqRestorationBehavior", "reqSourceFidelity",
+]
 
 
-def test_the_frozen_cut_is_framed_and_next_asks_for_validation_scenarios(tmp_path: Path) -> None:
+def test_the_frozen_cut_passes_framing_needs_and_requirements_and_next_asks_for_verification_cases(
+        tmp_path: Path) -> None:
+    """The cut keeps the framing and needs-and-requirements packages in full and
+    the other declared packages as package elements only. Its verification cases
+    are therefore outside the cut: phase 10 finds none, so next asks for them and
+    no requirement is verified. The full export of the same revision answers next
+    none (Method Check run 38608060534); this is the cut boundary, not the model."""
     export = tmp_path / "export.json"
     export.write_bytes(gzip.decompress(GENUINE_EXPORT.read_bytes()))
     snapshot, evaluation = evaluate_export(export, "INC-AEBS-010")
     assert snapshot.identity_mode == "export-validated-kernel-bindings"
     phases = {phase["phase"]: phase for phase in evaluation.status()["phases"]}
-    framing = phases["phase0_incrementFraming"]
-    assert (framing["conformance_verdict"], len(framing["gates"])) == (me.VERDICT_PASS, 14)
+    assert {name: (phase["conformance_verdict"], len(phase["gates"])) for name, phase in phases.items()
+            if phase["gates"]} == {
+        "phase0_incrementFraming": (me.VERDICT_PASS, 15),
+        "phase4_needs": (me.VERDICT_PASS, 6),
+        "phase5_requirements": (me.VERDICT_PASS, 7),
+        "phase10_vvEvidence": (me.VERDICT_FAIL, 3),
+    }
     assert phases["phase4_needs"]["applicability"] == "declared"  # an optional [0..1] step
     step = evaluation.next_obligation()["next"]
-    assert (step["gate"], step["kind"]) == ("needHasValidationScenario", "violation")
-    assert [subject["name"] for subject in step["subjects"]] == NEEDS
-    assert step["what_to_author"].endswith(
-        ": connection <name> : ValidationPlanningAssociation connect needCorrelatableEvidence to <scenario>;")
-    needs = {gap["gate"]: len(gap["subjects"]) for gap in evaluation.gaps()["blocking"]
-             if gap["phase"] == "phase4_needs"}
-    # The cut predates the removal of needFramesConcern from the workflow (needs never frame concerns).
-    assert needs == {"needHasValidationScenario": 5, "needFramesConcern": 5}
+    assert (step["stage"], step["gate"], step["kind"]) == (
+        "phase10_vvEvidence", "verificationCaseVerifiesRequirement", "violation")
+    assert [subject["reason_codes"] for subject in step["subjects"]] == [[me.POPULATION_POLICY_VIOLATION]]
+    assert step["what_to_author"].startswith(
+        "keep at least 1 VerificationCaseUsage in the increment's packages named in the charter's expectedArtifacts")
+    blocking = {gap["gate"]: gap for gap in evaluation.gaps()["blocking"]}
+    assert set(blocking) == {"verificationCaseVerifiesRequirement", "requirementVerifiedByVerificationCase"}
+    assert all(gap["phase"] == "phase10_vvEvidence" for gap in blocking.values())
+    assert sorted(s["name"] for s in blocking["requirementVerifiedByVerificationCase"]["subjects"]) == REQUIREMENTS
 
 
 def _canonical(value) -> bytes:
