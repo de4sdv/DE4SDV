@@ -397,8 +397,10 @@ def test_the_mcp_tools_take_qualified_names_and_say_so(service) -> None:
     for name in ("resolve_element", "inspect_element"):
         description = tools[name].description
         assert "qualified name" in description, name
-        # Only ownership-qualified element names resolve; the description says so.
-        for boundary in ("short name", "alias", "inherited", "imported"):
+        # Only ownership-qualified element names resolve; the description says so, and
+        # how far the refusal's explanation reaches.
+        for boundary in ("short name", "alias", "inherited", "imported", "ambiguous",
+                         "one import level", "authored specializations"):
             assert boundary in description, (name, boundary)
     contract = tools["phase_contract"].description
     assert "`subject_type` containing `::`" in contract and "metaclass" in contract

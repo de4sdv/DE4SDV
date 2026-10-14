@@ -305,3 +305,54 @@ def test_a_segment_reachable_no_other_way_keeps_the_plain_refusal() -> None:
         resolve_identity("P::Sub::nothing", builder.elements, qualified_names=_index(builder))
     assert "'P::Sub' is PartDefinition" in str(raised.value)
     assert "has no owned member named 'nothing'" in str(raised.value)
+
+
+def _same_names_corpus():
+    """B1 and B2 each declare a feature x, and S1 and S2 each own a member y.
+
+    D :> B1, B2 inherits two features named x. E :> B1, B2 owns z, which redefines
+    B1::x. F :> C, B1 with C :> B1 reaches the one B1::x twice. R imports S1::* and S2::*.
+    (RequirementCandidate inherits priority from both NeedsRequirementsAttributes and
+    SYSMOD's ExtendedConcern in the release export.)
+    """
+    builder = ModelBuilder("same names")
+    root = builder.new("Namespace")
+    package = builder.package("P", owner=root)
+    b1 = builder.definition("PartDefinition", "B1", package)
+    x1 = builder.usage("AttributeUsage", "x", b1, membership="FeatureMembership")
+    b2 = builder.definition("PartDefinition", "B2", package)
+    builder.usage("AttributeUsage", "x", b2, membership="FeatureMembership")
+    builder.definition("PartDefinition", "D", package, specializes=[b1, b2])
+    e = builder.definition("PartDefinition", "E", package, specializes=[b1, b2])
+    z = builder.usage("AttributeUsage", "z", e, membership="FeatureMembership")
+    builder.relationship("Redefinition", z, redefinedFeature=ref(x1), redefiningFeature=ref(z),
+                         general=ref(x1), specific=ref(z))
+    c = builder.definition("PartDefinition", "C", package, specializes=[b1])
+    builder.definition("PartDefinition", "F", package, specializes=[c, b1])
+    importer = builder.package("R", owner=root)
+    for name in ("S1", "S2"):
+        source = builder.package(name, owner=root)
+        builder.usage("PartUsage", "y", source)
+        builder.relationship("NamespaceImport", importer, importedNamespace=ref(source))
+    return builder
+
+
+@pytest.mark.parametrize(("identifier", "reason"), [
+    ("P::D::x", "'x' is ambiguous in P::D, where it names 2 elements: "
+                "inherited from P::B1 (its qualified name is P::B1::x), "
+                "inherited from P::B2 (its qualified name is P::B2::x)"),
+    ("R::y", "'y' is ambiguous in R, where it names 2 elements: "
+             "imported by a private import of S1::* (its qualified name is S1::y), "
+             "imported by a private import of S2::* (its qualified name is S2::y)"),
+    ("P::E::x", "'x' is inherited by P::E from P::B2; its qualified name is P::B2::x"),
+    ("P::F::x", "'x' is inherited by P::F from P::B1; its qualified name is P::B1::x"),
+])
+def test_a_name_that_reaches_several_elements_is_refused_as_ambiguous_with_every_canonical_name(
+        identifier: str, reason: str) -> None:
+    """SysML reaches two elements through the segment: the refusal says the name is
+    ambiguous there and names each. A match a feature of the type redefines is not one
+    of them, and one element reached twice is one name, not an ambiguity."""
+    builder = _same_names_corpus()
+    with pytest.raises(IdentityNotFoundError) as raised:
+        resolve_identity(identifier, builder.elements, qualified_names=_index(builder))
+    assert reason in str(raised.value)

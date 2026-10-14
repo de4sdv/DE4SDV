@@ -29,8 +29,10 @@ each keeps it and resolving the name reports the ambiguity.
 Only these ownership-qualified names resolve. SysML also reaches a member
 through a short name, an alias, an import or inheritance; a name that takes
 such a path is refused, never resolved, and the refusal says which path it
-takes and gives the canonical qualified name. That explanation is an exact
-lookup over the serialized memberships, imports and specializations.
+takes and gives the canonical qualified name, or every one when the name
+reaches several elements (it is ambiguous there). That explanation is an exact
+lookup over the serialized memberships, imports and specializations: one import
+level, and inheritance through authored specializations only.
 """
 
 from __future__ import annotations
@@ -271,28 +273,36 @@ class QualifiedNameIndex:
                          if member in self._by_id)
         return found
 
-    def _member_named(self, identifier: str, segment: str) -> str | None:
-        for relationship, member in self._owned_members(identifier):
-            if segment in (relationship.get("memberName"), element_name(self._by_id[member])):
-                return member
-        return None
+    def _members_named(self, identifier: str, segment: str) -> list[str]:
+        """Every owned member of ``identifier`` named ``segment``, in order."""
+        return [member for relationship, member in self._owned_members(identifier)
+                if segment in (relationship.get("memberName"), element_name(self._by_id[member]))]
 
     def _reached_otherwise(self, namespace: str, segment: str) -> str | None:
-        """How SysML reaches ``segment`` in ``namespace`` when no owned member has that name."""
+        """How SysML reaches ``segment`` in ``namespace`` when no owned member has that name.
+
+        Every way is collected: the short name of an owned member, an alias, a membership
+        or namespace import (one level), a feature inherited through authored
+        specializations. When they reach more than one element, the name is ambiguous
+        there and the refusal lists each element's qualified name.
+        """
         here = self._named_text(namespace)
+        #: (element key, its qualified-name text, the clause for one path, the fragment in a list)
+        paths: list[tuple[str, str, str, str]] = []
         for relationship, member in self._owned_members(namespace):
             element = self._by_id[member]
             if segment in (relationship.get("memberShortName"), element.get("declaredShortName"),
                            element.get("shortName")):
-                return (f"{segment!r} is the short name of an owned member of {here}; "
-                        f"its qualified name is {self._named_text(member)}")
+                paths.append((member, self._named_text(member),
+                              f"is the short name of an owned member of {here}", "the short name of an owned member"))
         for relationship in self._relationships(namespace):
             if relationship.get("@type") == "Membership" and segment in (
                     relationship.get("memberName"), relationship.get("declaredName")):
                 targets = [target for target in reference_ids(relationship.get("memberElement"))
                            if target in self._by_id]
-                aliased = self._named_text(targets[0]) if targets else "outside this corpus"
-                return f"{segment!r} is an alias in {here}; the aliased element's qualified name is {aliased}"
+                key = targets[0] if targets else f"alias {element_id(relationship)}"
+                paths.append((key, self._named_text(targets[0]) if targets else "outside this corpus",
+                              f"is an alias in {here}", "an alias"))
         for relationship in self._relationships(namespace):
             visibility = "public" if relationship.get("visibility") == "public" else "private"
             if relationship.get("@type") == "MembershipImport":
@@ -301,15 +311,31 @@ class QualifiedNameIndex:
                     for member in reference_ids(membership.get("memberElement")):
                         if member in self._by_id and segment in (membership.get("memberName"),
                                                                  element_name(self._by_id[member])):
-                            return (f"{segment!r} is imported into {here} ({visibility} import); "
-                                    f"its qualified name is {self._named_text(member)}")
+                            paths.append((member, self._named_text(member),
+                                          f"is imported into {here} ({visibility} import)",
+                                          f"imported by a {visibility} import"))
             elif relationship.get("@type") == "NamespaceImport":
                 for imported in reference_ids(relationship.get("importedNamespace")):
-                    member = self._member_named(imported, segment) if imported in self._by_id else None
-                    if member is not None:
-                        return (f"{segment!r} is imported into {here} ({visibility} import of "
-                                f"{self._named_text(imported)}::*); its qualified name is {self._named_text(member)}")
-        return self._inherited(namespace, segment)
+                    if imported not in self._by_id:
+                        continue
+                    source = f"{self._named_text(imported)}::*"
+                    paths.extend((member, self._named_text(member),
+                                  f"is imported into {here} ({visibility} import of {source})",
+                                  f"imported by a {visibility} import of {source}")
+                                 for member in self._members_named(imported, segment))
+        inherited, redefined = self._inherited(namespace, segment)
+        paths.extend(inherited)
+        reached: dict[str, tuple[str, str]] = {}
+        for key, text, _clause, fragment in paths:
+            reached.setdefault(key, (text, fragment))  # the first path to an element names it
+        if len(reached) > 1:
+            return (f"{segment!r} is ambiguous in {here}, where it names {len(reached)} elements: "
+                    + ", ".join(f"{fragment} (its qualified name is {text})" for text, fragment in reached.values()))
+        if paths:
+            _key, text, clause, _fragment = paths[0]
+            named = "the aliased element's qualified name" if clause.startswith("is an alias") else "its qualified name"
+            return f"{segment!r} {clause}; {named} is {text}"
+        return "; ".join(redefined) or None
 
     def _generals(self, identifier: str) -> list[str]:
         """The elements ``identifier`` specializes by authored specializations, in order."""
@@ -324,7 +350,10 @@ class QualifiedNameIndex:
                     break
         return found
 
-    def _inherited(self, namespace: str, segment: str) -> str | None:
+    def _inherited(self, namespace: str, segment: str) -> tuple[list[tuple[str, str, str, str]], list[str]]:
+        """The features named ``segment`` that ``namespace`` inherits through authored
+        specializations, nearest general first, as paths; and those a feature of the type
+        or of a general redefines, as explanations (they are not inherited)."""
         order: list[str] = []
         seen, frontier = {namespace}, [namespace]
         while frontier:  # nearest generals first
@@ -333,20 +362,24 @@ class QualifiedNameIndex:
                     seen.add(general)
                     order.append(general)
                     frontier.append(general)
+        here = self._named_text(namespace)
+        paths: list[tuple[str, str, str, str]] = []
+        redefined: list[str] = []
         for general in order:
-            member = self._member_named(general, segment)
-            if member is None:
-                continue
-            canonical = self._named_text(member)
-            for owner in (namespace, *order):  # a feature of the type or of a general that redefines it
-                for _relationship, redefining in self._owned_members(owner):
-                    if redefining != member and member in self._redefined(redefining):
-                        return (f"{segment!r} is a feature of {self._named_text(general)} that "
-                                f"{self._named_text(owner)} redefines ({self._named_text(redefining)}); "
-                                f"its qualified name is {canonical}")
-            return (f"{segment!r} is inherited by {self._named_text(namespace)} from "
-                    f"{self._named_text(general)}; its qualified name is {canonical}")
-        return None
+            for member in self._members_named(general, segment):
+                canonical = self._named_text(member)
+                redefiner = next(((owner, redefining) for owner in (namespace, *order)
+                                  for _relationship, redefining in self._owned_members(owner)
+                                  if redefining != member and member in self._redefined(redefining)), None)
+                if redefiner is None:
+                    paths.append((member, canonical, f"is inherited by {here} from {self._named_text(general)}",
+                                  f"inherited from {self._named_text(general)}"))
+                else:
+                    owner, redefining = redefiner
+                    redefined.append(f"{segment!r} is a feature of {self._named_text(general)} that "
+                                     f"{self._named_text(owner)} redefines ({self._named_text(redefining)}); "
+                                     f"its qualified name is {canonical}")
+        return paths, redefined
 
     def _redefined(self, feature: str) -> set[str]:
         """Every feature ``feature`` redefines, directly or through what it redefines."""

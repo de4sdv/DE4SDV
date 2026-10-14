@@ -168,8 +168,14 @@ that takes such a path is refused, and the refusal gives the canonical qualified
 name to use instead. For example, `DE4SDV_IncrementWorkflow::IncrementCharter::increment`
 is refused because `IncrementCharter` inherits `increment`; the refusal names
 `DE4SDV_MethodTraces::IncrementTraceObligations::increment`, where it is
-declared. A name that isn't a basic name, or is a SysML reserved word, is quoted
-(`'end'`). A declared name that contains `::` must be quoted as one segment.
+declared. When the name reaches several elements, it is ambiguous there, and the
+refusal lists every canonical name: `DE4SDV_MethodContext::RequirementCandidate::priority`
+names both `RequirementsManagement::NeedsRequirementsAttributes::priority` and
+`SYSMOD::ExtendedConcern::priority`. The explanation follows one import level
+(the imported namespace's own members, not what it imports) and inheritance
+through authored specializations only; past that, the refusal says only which
+prefix resolved. A name that isn't a basic name, or is a SysML reserved word, is
+quoted (`'end'`). A declared name that contains `::` must be quoted as one segment.
 
 `inspect_element` gives an element's qualified name, its `keyword` (the SysML
 v2 keyword that declares it, such as `part def`, `attribute`, `ref part`, `ref`

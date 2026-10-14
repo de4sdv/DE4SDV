@@ -53,14 +53,17 @@ def create_mcp_server(service: SemanticQueryService) -> FastMCP:
         as phase_contract and the Method Check print it; matched by every segment, never by a bare name)
         or a unique bare name. A qualified name resolves only through element names along ownership: a path
         through a short name, an alias, an inherited or an imported member is refused, and the refusal gives
-        the canonical qualified name. An identity that is not found names the revision it searched."""
+        the canonical qualified name, or every one when the name reaches several elements (ambiguous there).
+        The explanation follows one import level and inheritance through authored specializations only.
+        An identity that is not found names the revision it searched."""
         return service.resolve_element(identifier, expected_type=expected_type)
 
     @mcp.tool(annotations=_READ_ONLY, structured_output=True)
     def inspect_element(identifier: str) -> dict[str, Any]:
         """Inspect one element without dumping the model; `identifier` as for resolve_element, for example
         a qualified name (element names along ownership only; a short name, an alias, an inherited or an
-        imported member is refused with the canonical qualified name). Returns its qualified name,
+        imported member is refused with the canonical qualified name, or every one when the name is
+        ambiguous; one import level and authored specializations are followed). Returns its qualified name,
         `keyword`, owning package and documentation. For a definition, `element.definition` adds its
         supertypes, its owned and inherited features (name, keyword, type as a qualified name,
         multiplicity, value; `type_outside_export` when the type is not in the export) and an enumeration
