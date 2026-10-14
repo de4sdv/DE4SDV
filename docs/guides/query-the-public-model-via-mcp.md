@@ -172,16 +172,30 @@ declared. A name that isn't a basic name, or is a SysML reserved word, is quoted
 (`'end'`). A declared name that contains `::` must be quoted as one segment.
 
 `inspect_element` gives an element's qualified name, its `keyword` (the SysML
-v2 keyword that declares it, such as `part def`, `attribute`, `ref` or
-`subject`), its owning package and its documentation. For a definition,
-`element.definition` adds its supertypes, its owned features, the features it
-inherits (each with `inherited_from`) and an enumeration's enumerated values
-(its literals). A feature gives `name`, `keyword`, `type` (a qualified name)
-and `multiplicity` (`[lower, upper]`, `null` when none is declared), and when
-present `direction`, `end`, `redefines` and `value`. A declared type that is
-not part of the export, such as the library type `String`, is reported in
-`type_outside_export`, not dropped: the export keeps the typing relationship,
-not the type.
+v2 keyword that declares it, such as `part def`, `attribute`, `ref part`, `ref`
+or `subject`), its owning package and its documentation. `ref part`, `ref item`,
+`ref occurrence` and `ref action` mark a usage that isn't composite; a directed
+usage or an end is referential anyway and keeps its plain keyword. For a
+definition, `element.definition` adds:
+
+- `supertypes`, nearest first. Every entry has `element_id`, `qualified_name`,
+  `sysml_type`, `relationship_id` (the specialization), `direct` and
+  `outside_export`. A supertype outside the export, such as a library type, has
+  `outside_export: true` and `null` for `element_id`, `qualified_name` and
+  `sysml_type`.
+- Its owned features and the features it inherits, each with
+  `inherited_from`. A feature that an owned or inherited feature redefines is
+  not inherited.
+- An enumeration's enumerated values (its literals).
+
+A feature gives `name`, `keyword`, `type` and `multiplicity` (`[lower, upper]`,
+`null` when none is declared), and when present `direction`, `end`, `redefines`
+and `value`. `type` is the declared type as a qualified name, `null` when none
+is declared; a redefinition keeps the type of the feature in `redefines`. A
+declared type that is not part of the export, such as the library type `String`,
+is reported in `type_outside_export`, not dropped: the export's external
+references record its target, and this API revision keeps only the typing
+relationship.
 
 For example, over an export of the model,
 `inspect_element("DE4SDV_MethodProcess::MethodPhase")` answers (abridged):
@@ -216,7 +230,7 @@ and two owned features of `DE4SDV_IncrementWorkflow::IncrementCharter` read:
 [
   {"name": "expectedArtifacts", "keyword": "attribute", "sysml_type": "AttributeUsage",
    "type": null, "multiplicity": [1, "*"],
-   "type_outside_export": "typed by an element outside this export; the export keeps only the typing relationship 6a85847b-…"},
+   "type_outside_export": "typed by an element outside this export; the export's external references record its target, and this API revision keeps only the typing relationship 6a85847b-…"},
   {"name": "workflow", "keyword": "action", "sysml_type": "ActionUsage",
    "type": "DE4SDV_IncrementWorkflow::IncrementWorkflow", "multiplicity": null}
 ]

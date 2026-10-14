@@ -36,6 +36,7 @@ each model pull request by the method check, not by these tests.
 Re-cut the fixture when the exporter, the Syside version or the export format
 changes. Re-cut it also when the contract binds a kernel declaration the cut
 does not carry: the export evaluation refuses such an export, by design.
+A re-cut must re-read the expected values in `tests/test_inspect_definitions.py` from the new cut's source files and update its `SOURCES` digests.
 Re-cutting needs a licensed export:
 
 ```bash
