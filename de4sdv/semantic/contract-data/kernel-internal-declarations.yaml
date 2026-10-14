@@ -109,8 +109,6 @@ declarations:
       Requirement lineage; not an ontology class
     requirement def AssuranceCounterClaim: assurance-argumentation kind for a disclosed limit on a claim's
       scope; outside the Requirement lineage; not an ontology class
-  textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml:
-    part def SAFDomainMapping: method-process assurance helper
   textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml:
     connection def RequirementFunctionAssignment: allocatedTo end-pair descriptor (requirement to function);
       a native AllocationUsage supplies the witness, not this definition or an additional ontology class

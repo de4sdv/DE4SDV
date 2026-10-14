@@ -196,8 +196,10 @@ def test_method_uses_saf_domains_independently_from_architecture_artifact_kinds(
     method = METHOD_PROCESS.read_text(encoding="utf-8")
     assert "phase7_logicalArchitecture" in method
     assert "phase7_systemArchitecture" not in method
-    for phase in ("phase5Domain", "phase6Domain", "phase7Domain"):
-        assert f'attribute {phase} : ScalarValues::String = "Conceptual";' in method
+    # Each phase literal's documentation names its SAF domain.
+    for literal in ("phase5_requirements", "phase6_functionalArchitecture", "phase7_logicalArchitecture"):
+        assert re.search(rf"\b{literal}\s*\{{\s*doc /\*[^*]*Conceptual domain\. \*/", method), literal
+    assert re.search(r"\bphase8_physicalRealization\s*\{\s*doc /\*[^*]*Physical domain\. \*/", method)
 
     for path in (METHOD_README, PROCESS_MAPPING, PROCESS_SET_README):
         text = path.read_text(encoding="utf-8")

@@ -5,9 +5,10 @@
  * methodologies/sysmod-sysmlv2/increment-workflow.md as a SysML v2 model.
  * The phase sequence and feedback loops are documented in
  * methodologies/sysmod-sysmlv2/process-mapping.md (PR #74) as a mermaid
- * diagram. This SysML model provides the structured data: phase enumeration,
- * SAF domain mapping, required trace chain, recurring logical-to-software
- * signal-mapping control, and increment size guidance.
+ * diagram. This SysML model provides the structured data: the phase
+ * enumeration (each phase's documentation names its SAF domain), the
+ * recurring logical-to-software signal-mapping control, and the increment
+ * size guidance.
  *
  * Source: methodologies/sysmod-sysmlv2/increment-workflow.md
  *         methodologies/sysmod-sysmlv2/process-mapping.md
@@ -62,25 +63,6 @@ package DE4SDV_MethodProcess {
     phase12_baselineNextSlice {
       doc /* What is accepted, deferred, or invalidated? Common domain. */
     }
-  }
-
-  /* ─── SAF domain mapping ─── */
-
-  part def SAFDomainMapping {
-    doc /* Maps each method phase to its SAF domain. */
-    attribute phase0Domain : ScalarValues::String = "Common";
-    attribute phase1Domain : ScalarValues::String = "Common/Operational";
-    attribute phase2Domain : ScalarValues::String = "Operational";
-    attribute phase3Domain : ScalarValues::String = "DE4SDV ontology";
-    attribute phase4Domain : ScalarValues::String = "Operational";
-    attribute phase5Domain : ScalarValues::String = "Conceptual";
-    attribute phase6Domain : ScalarValues::String = "Conceptual";
-    attribute phase7Domain : ScalarValues::String = "Conceptual";
-    attribute phase8Domain : ScalarValues::String = "Physical";
-    attribute phase9Domain : ScalarValues::String = "DE4SDV product-line";
-    attribute phase10Domain : ScalarValues::String = "Common/Conceptual";
-    attribute phase11Domain : ScalarValues::String = "DE4SDV workflow";
-    attribute phase12Domain : ScalarValues::String = "Common";
   }
 
   /* ─── Scoped trace obligations ─── */
@@ -170,9 +152,9 @@ package DE4SDV_MethodProcess {
 
   concern methodProcessAssuranceConcern : ArgumentationAssuranceConcern {
     doc /*
-     * Reviewers need the DE4SDV method process to be visible: phases,
-     * SAF domain mapping, required trace chain, recurring logical-to-software
-     * signal-mapping control, and increment size guidance.
+     * Reviewers need the DE4SDV method process to be visible: the phases
+     * with their SAF domains, the recurring logical-to-software
+     * signal-mapping control, and the increment size guidance.
      */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
