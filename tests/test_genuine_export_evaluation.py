@@ -55,8 +55,12 @@ def test_the_frozen_cut_passes_framing_needs_and_requirements_and_next_asks_for_
     assert (step["stage"], step["gate"], step["kind"]) == (
         "phase10_vvEvidence", "verificationCaseVerifiesRequirement", "violation")
     assert [subject["reason_codes"] for subject in step["subjects"]] == [[me.POPULATION_POLICY_VIOLATION]]
+    # An untyped parameter is named by its keyword (its metaclass is no model element), and the remedy
+    # says how one verification case is declared.
     assert step["what_to_author"].startswith(
-        "keep at least 1 VerificationCaseUsage in the increment's packages named in the charter's expectedArtifacts")
+        "keep at least 1 verification usage in the increment's packages named in the charter's expectedArtifacts")
+    assert step["authoring"]["declarations"] == [
+        "verification <name> { objective { verify <requirement of the increment>; } }"]
     blocking = {gap["gate"]: gap for gap in evaluation.gaps()["blocking"]}
     assert set(blocking) == {"verificationCaseVerifiesRequirement", "requirementVerifiedByVerificationCase"}
     assert all(gap["phase"] == "phase10_vvEvidence" for gap in blocking.values())
