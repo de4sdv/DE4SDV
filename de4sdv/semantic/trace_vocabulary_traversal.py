@@ -1,8 +1,11 @@
-"""Relationship-successor traversal and query surfaces over exact API bindings.
+"""Traversal and query surfaces of the trace relations over exact API bindings.
 
-The successor contract is model-derived (``relationship_successor_contract``);
+The trace relations (``allocatedTo``, ``hasValidationScenario`` and its
+inverse, ``hasRegulatorySource``) and the retired relation names come from the
+generated trace-vocabulary contract (:func:`model_contract.load_trace_contract`);
 the model-authority runtime composes these classes with the model-built kernel
-contract. Constructed values never come from decisions JSON.
+contract. Endpoint and carrier identity comes from ingestion-validated kernel
+bindings, never from names or SysML text.
 """
 from __future__ import annotations
 from typing import Any

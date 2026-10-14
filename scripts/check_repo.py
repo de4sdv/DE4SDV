@@ -176,6 +176,7 @@ def main() -> int:
         external_reference_contract,
         kernel_vocabulary_projection,
         model_projection_coverage,
+        trace_vocabulary_contract,
         vocabulary_carrier,
     )
 
@@ -185,6 +186,8 @@ def main() -> int:
     )
     definition_admission_errors = definition_projection.run_check_errors(root)
     kernel_vocabulary_errors = kernel_vocabulary_projection.run_check_errors(root)
+    # The runtime reads the generated trace-vocabulary contract; it never parses the model.
+    trace_contract_errors = trace_vocabulary_contract.run_check_errors(root)
     # Residuals block independently of the routing/refusal baseline.
     model_coverage_errors = model_projection_coverage.run_check_errors(root)
 
@@ -245,6 +248,11 @@ def main() -> int:
         for error in kernel_vocabulary_errors:
             print(f"- {error}")
 
+    if trace_contract_errors:
+        print("Repository check failed. Trace-vocabulary contract errors:")
+        for error in trace_contract_errors:
+            print(f"- {error}")
+
     if model_coverage_errors:
         print("Repository check failed. Model-authority projection coverage errors (retained residual blocking; ratchet):")
         for error in model_coverage_errors:
@@ -262,6 +270,7 @@ def main() -> int:
         or preparation_errors
         or definition_admission_errors
         or kernel_vocabulary_errors
+        or trace_contract_errors
         or model_coverage_errors
     ):
         return 1

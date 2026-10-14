@@ -15,11 +15,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from de4sdv.semantic import relationship_successor as successor_module
+from de4sdv.semantic import trace_vocabulary_traversal as successor_module
 from de4sdv.semantic import traversal as traversal_module
 from de4sdv.semantic.model_authority_runtime import ModelAuthorityTraversal
 from de4sdv.semantic.model_edges import lineage_index, typing_index
-from de4sdv.semantic.relationship_successor import route_successor_bindings
+from de4sdv.semantic.trace_vocabulary_traversal import route_successor_bindings
 from de4sdv.semantic.revision_index import MultiplicityError, RevisionIndex, ValueLeaf
 from de4sdv.sysml_api.revisions import KernelElementBinding
 from increment_model_fixtures import INFINITY, ModelBuilder

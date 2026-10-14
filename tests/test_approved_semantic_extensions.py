@@ -104,7 +104,7 @@ def test_all_successor_pins_can_route_from_real_ingestion_class_names():
     """Synthetic binding metadata proves wiring, not licensed ingestion/readback."""
     from types import SimpleNamespace
     from de4sdv.sysml_api.revisions import KernelElementBinding
-    from de4sdv.semantic.relationship_successor import route_successor_bindings
+    from de4sdv.semantic.trace_vocabulary_traversal import route_successor_bindings
     from model_contract_fixtures import model_facade
 
     contract = model_contract()
@@ -281,9 +281,13 @@ class _SourcedModel(str):
         return _SourcedModel(str(self), self.pins + list(pins))
 
 
-def _synthetic_constructor(monkeypatch, sources):
-    """Overlay synthetic sources; unrelated program digests are not under test."""
-    from de4sdv.semantic import relationship_successor_contract as construction
+def _synthetic_constructor(monkeypatch, sources, reads=None):
+    """Overlay synthetic sources and extract the trace contract from them.
+
+    ``reads`` (a list), when given, collects the overlaid sources the
+    constructor read, so a test can see which pin files it consulted.
+    """
+    from de4sdv.semantic import trace_vocabulary_contract as construction
     original_text, original_bytes = Path.read_text, Path.read_bytes
     pins = {pin.identity: {"file": pin.file, "declaration": pin.declaration}
             for pin in getattr(sources[RELATIONSHIP_MODEL], "pins", [])}
@@ -291,16 +295,17 @@ def _synthetic_constructor(monkeypatch, sources):
     overlays = {ROOT / path: text for path, text in sources.items()}
 
     def read_text(path, *args, **kwargs):
+        if path in overlays and reads is not None:
+            reads.append(Path(path).relative_to(ROOT).as_posix())
         return overlays[path] if path in overlays else original_text(path, *args, **kwargs)
 
     def read_bytes(path, *args, **kwargs):
         return overlays[path].encode() if path in overlays else original_bytes(path, *args, **kwargs)
 
     with monkeypatch.context() as scoped:
-        scoped.setattr(construction, "PROGRAM_INPUTS", ())
         scoped.setattr(Path, "read_text", read_text)
         scoped.setattr(Path, "read_bytes", read_bytes)
-        return construction.generate_contract(ROOT, class_pins=pins, pin_inputs=())
+        return construction.extract_contract(ROOT, class_pins=pins)
 
 
 @pytest.mark.parametrize("fragment", ["version", "carrier", "source", "target"])
@@ -344,10 +349,11 @@ def successor_qualified_sources(successor_constructor_parts):
 @pytest.mark.parametrize("target_type", ["Foreign::TargetRoot", "Missing::TargetRoot"])
 def test_successor_constructor_rejects_foreign_qualified_pin(monkeypatch, successor_qualified_sources, target_type):
     sources = successor_qualified_sources
-    baseline = _synthetic_constructor(monkeypatch, sources)
+    reads = []
+    baseline = _synthetic_constructor(monkeypatch, sources, reads)
     assert baseline["classes"]["Right"] == {
         "file": "pins/target.sysml", "declaration": "part def TargetRoot"}
-    assert "pins/foreign.sysml" not in baseline["bound_inputs"]
+    assert "pins/foreign.sysml" not in reads
     sources[RELATIONSHIP_MODEL] = sources[RELATIONSHIP_MODEL].replace(
         "CanonicalTarget::TargetRoot", target_type)
     with pytest.raises(ValueError, match="carrier endpoint pin mismatch"):
@@ -387,12 +393,13 @@ def test_successor_constructor_refuses_competing_known_imported_homonym(monkeypa
         "{\n", "{\n  private import CanonicalTarget::*;\n  private import Foreign::*;\n", 1
     ).with_pins(foreign_pin)
     # Both pinned definitions are known and imported; the qualified spelling still admits.
-    qualified = _synthetic_constructor(monkeypatch, {**sources, RELATIONSHIP_MODEL: competing})
+    reads = []
+    qualified = _synthetic_constructor(monkeypatch, {**sources, RELATIONSHIP_MODEL: competing}, reads)
     assert qualified["classes"]["Right"] == {
         "file": "pins/target.sysml", "declaration": "part def TargetRoot"}
-    # The competing pin is known (it is bound) but is not a profile endpoint class.
+    # The competing pin is known (its file is read) but is not a profile endpoint class.
     assert "ForeignRight" not in qualified["classes"]
-    assert "pins/foreign.sysml" in qualified["bound_inputs"]
+    assert "pins/foreign.sysml" in reads
     # The supported bare spelling cannot uniquely identify the canonical pin: refuse it.
     bare = competing.replace("CanonicalTarget::TargetRoot", "TargetRoot")
     with pytest.raises(ValueError, match="carrier endpoint pin mismatch"):

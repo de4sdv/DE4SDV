@@ -1,10 +1,11 @@
 # Contract data
 
 The runtime builds the kernel contract from the files in this directory
-(`build_model_contract` in `de4sdv/semantic/model_contract.py`). The paths of
-the projections, profiles and frozen records are part of the
-semantic-authority identity (`sai-…`), so moving or renaming one of them
-changes the identity.
+(`build_model_contract` in `de4sdv/semantic/model_contract.py`) and reads no
+SysML text. The paths of the projections, profiles and frozen records are part
+of the semantic-authority identity (`sai-…`), so moving or renaming one of them
+changes the identity; the trace-vocabulary contract enters the identity through
+its content.
 
 Never edit a generated file by hand. Change its source and run its generator,
 as described in
@@ -16,6 +17,7 @@ as described in
 | `kernel-vocabulary-projection.json`, `kernel-vocabulary-profile.json` | The other kernel classes and relationships, the successor predicates and the retired names | `scripts/generate_definition_projection.py` |
 | `native-grounding-projection.json`, `native-grounding-profile.json` | Identities grounded in native or standard-library SysML v2 constructs | `scripts/generate_native_grounding_projection.py` |
 | `increment-relationship-projection.json`, `increment-relationship-profile.json` | The increment relationship carriers | `scripts/generate_vocabulary_carriers.py` |
+| `trace-vocabulary-contract.json` | The trace relations (`allocatedTo`, `hasValidationScenario`, `hasRegulatorySource`) and the retired relation names, read from the trace-vocabulary package of the method kernel. The runtime reads this file and never parses the model | `scripts/generate_trace_vocabulary_contract.py` |
 | `*-admission.yaml` | The reviewed admission manifest of each generated pair | a reviewed edit, then the generator |
 | `frozen-records/`, `frozen-records.json` | Six historical records that still serve 13 identities, and the manifest that freezes them ([frozen-records.md](frozen-records.md)) | never |
 | `ontology-identity-register.json` | One row per ontology identity with its disposition; the runtime refuses merged and removed identities with it | a reviewed edit |

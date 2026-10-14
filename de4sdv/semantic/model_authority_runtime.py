@@ -3,8 +3,8 @@
 The semantic authority is the model-built kernel contract
 (:mod:`de4sdv.semantic.model_contract`): the live definition mappings,
 native and library vocabulary projection/profile pairs, vocabulary carriers,
-the frozen historical chain records, the model-generated relationship-successor
-contract and the kernel-internal declarations manifest. Its identity is the
+the frozen historical chain records, the generated trace-vocabulary contract
+and the kernel-internal declarations manifest. Its identity is the
 ``sai-`` semantic-authority id. There is no authored ontology, no O3 component
 and no other authority: retired and refused identities answer only with
 their disposition.
@@ -56,11 +56,11 @@ from .model_contract import (  # noqa: F401 — re-exported model-contract surfa
     build_model_contract,
     canonical_json,
     compute_routing,
-    generate_model_successor_contract,
     load_model_layers,
     load_register_rows,
+    load_trace_contract,
 )
-from .relationship_successor import SuccessorQueryService, SuccessorTraversal
+from .trace_vocabulary_traversal import SuccessorQueryService, SuccessorTraversal
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -89,9 +89,9 @@ def load_layers(root: Path = ROOT) -> tuple[list[dict[str, Any]], list[Provision
     return load_model_layers(root)
 
 
-def generate_successor_contract(root: Path = ROOT) -> dict[str, Any]:
-    """The successor contract generated from the model (pins from the layers)."""
-    return generate_model_successor_contract(root)
+def trace_contract(root: Path = ROOT) -> dict[str, Any]:
+    """The generated trace-vocabulary contract, checked against the layers' class pins."""
+    return load_trace_contract(root)
 
 
 def _successor_names(contract: Mapping[str, Any]) -> dict[str, str]:
@@ -342,7 +342,7 @@ def model_facade(root: Path = ROOT, *, contract: KernelContract | None = None) -
     """
     root = Path(root)
     records, provisions = load_model_layers(root)
-    successor = generate_model_successor_contract(root, records=records, provisions=provisions)
+    successor = load_trace_contract(root, provisions=provisions)
     routing = _model_routing(root, records, provisions, successor)
     if contract is None:
         contract = build_model_contract(root)
@@ -357,7 +357,7 @@ def assemble_model_services(facade: ModelAuthorityFacade, binding: Any, model_re
                             service_class: type = ModelAuthorityQueryService) -> ModelAuthorityQueryService:
     """Assemble the live query/impact services over one facade and binding."""
     from .api_binding import OntologyApiBinder
-    from .relationship_successor import route_successor_bindings
+    from .trace_vocabulary_traversal import route_successor_bindings
 
     index, routes = route_successor_bindings(facade.profile, binding)
     # Profile routing consumes ingestion-validated file/declaration/UUID tuples:

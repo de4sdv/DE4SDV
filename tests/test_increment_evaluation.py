@@ -398,7 +398,7 @@ def test_an_empty_required_inventory_cannot_open_a_phase_exit() -> None:
 def test_unreadable_governed_witnesses_stay_indeterminate_for_every_subject(monkeypatch) -> None:
     """The traversal de-duplicates its unsupported records; each subject's own
     unreadable witness must still be reported as an input problem, not a FAIL."""
-    from de4sdv.semantic.relationship_successor import SuccessorTraversal
+    from de4sdv.semantic.trace_vocabulary_traversal import SuccessorTraversal
 
     def unreadable(self, predicate, source, elements):
         if predicate == "derivesRequirementFromNeed":

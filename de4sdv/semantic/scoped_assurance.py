@@ -97,7 +97,7 @@ def _external_scope(record: dict) -> set[str]:
 
 def _owned_native_block(owner: str, header: str) -> str:
     """One direct-owned body in the supported offline source-check subset."""
-    from .relationship_successor_contract import _mask_strings, _owned_matches
+    from .trace_vocabulary_contract import _mask_strings, _owned_matches
 
     # Inventory the identity before admitting the supported header/body shape:
     # a bodiless or unsupported duplicate must not borrow a live sibling body.
@@ -143,13 +143,13 @@ _STATUS_SHADOW = r"\b(?:def|alias)\s+(?:<[^<>{};]*>\s+)?VVStatus\b"
 
 def _status_shadows(owner: str) -> list:
     """Direct-owned VVStatus definition/alias headers, short-name form included."""
-    from .relationship_successor_contract import _owned_matches
+    from .trace_vocabulary_contract import _owned_matches
 
     return _owned_matches(owner, _STATUS_SHADOW)[0]
 
 
 def _require_status_import(owner: str, path: str, visibility: str) -> None:
-    from .relationship_successor_contract import _owned_matches
+    from .trace_vocabulary_contract import _owned_matches
 
     # Inventory the direct-owned same identity before admitting the supported
     # import header: a short-name or otherwise unsupported shadow declaration
@@ -174,7 +174,7 @@ def _adopted_library_pin(root: Path) -> tuple[dict, dict]:
 
 
 def _adopted_enum_population(upstream: str) -> set[str]:
-    from .relationship_successor_contract import _owned_matches
+    from .trace_vocabulary_contract import _owned_matches
 
     package = _owned_native_block("{" + upstream + "}", r"\b(?:library\s+)?package\s+RequirementsManagement\b")
     enum = _owned_native_block(package, r"\benum\s+def\s+VVStatus\b")
@@ -216,7 +216,7 @@ def _installed_adopted_statuses(root: Path) -> set[str]:
 def _native_vocabulary() -> tuple[set[str], set[str]]:
     # Offline supplied-record admission, not production runtime semantic authority.
     root = Path(__file__).resolve().parents[2]
-    from .relationship_successor_contract import _owned_matches
+    from .trace_vocabulary_contract import _owned_matches
 
     package = _native_package(root)
     activity = _owned_native_block(package, r"\bitem\s+def\s+ScopedVVActivityRecord\b")
@@ -247,7 +247,7 @@ def verify_native_sources(archive_path: Path | None = None) -> dict[str, Any]:
     adopted enum source. Only an explicit archive verifies upstream archive bytes;
     no library is fetched and no native semantic validation is claimed.
     """
-    from .relationship_successor_contract import _owned_matches
+    from .trace_vocabulary_contract import _owned_matches
 
     root = Path(__file__).resolve().parents[2]
     source = _native_package(root)
