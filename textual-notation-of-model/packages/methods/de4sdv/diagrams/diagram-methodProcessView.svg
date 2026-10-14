@@ -19,7 +19,7 @@
   <path d="M 905,307 H 1176 V 555 H 905 V 307 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 335,88 H 479 L 491,100 V 128 H 335 V 88 Z" fill="#FFFDE7" fill-opacity="1.000"/>
   <path d="M 479,88 L 479,100 L 491,100 Z" fill="#FFFDE7" fill-opacity="1.000" stroke="none"/>
-  <path d="M 28,148 H 390 L 402,160 V 236 H 28 V 148 Z" fill="#FFFDE7" fill-opacity="1.000"/>
+  <path d="M 28,148 H 390 L 402,160 V 252 H 28 V 148 Z" fill="#FFFDE7" fill-opacity="1.000"/>
   <path d="M 390,148 L 390,160 L 402,160 Z" fill="#FFFDE7" fill-opacity="1.000" stroke="none"/>
   <path d="M 776,88 H 1045 L 1057,100 V 128 H 776 V 88 Z" fill="#FFFDE7" fill-opacity="1.000"/>
   <path d="M 1045,88 L 1045,100 L 1057,100 Z" fill="#FFFDE7" fill-opacity="1.000" stroke="none"/>
@@ -47,7 +47,7 @@
   <path d="M 335,88 H 479 L 491,100 V 128 H 335 V 88 Z" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 479,88 L 479,100 L 491,100 Z" fill="none" stroke="none"/>
   <path d="M 479,88 L 479,100 L 491,100" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 28,148 H 390 L 402,160 V 236 H 28 V 148 Z" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 28,148 H 390 L 402,160 V 252 H 28 V 148 Z" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 390,148 L 390,160 L 402,160 Z" fill="none" stroke="none"/>
   <path d="M 390,148 L 390,160 L 402,160" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 776,88 H 1045 L 1057,100 V 128 H 776 V 88 Z" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -101,9 +101,10 @@
   <text x="343" y="120" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">─── Scoped trace obligations ───</tspan></text>
   <text x="215" y="160" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#F9A825" fill-opacity="1.000" font-style="italic">«comment»</tspan></text>
   <text x="36" y="180" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Per-increment obligations live in DE4SDV_IncrementWorkflow. No universal</tspan></text>
-  <text x="36" y="196" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">category-string chain is active. The selected approved method determines</tspan></text>
-  <text x="36" y="212" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">applicability from declared scope/phases/completion; source relationships</tspan></text>
-  <text x="36" y="228" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">and artifact identities, not populated shells, witness required traces.</tspan></text>
+  <text x="36" y="196" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">category-string chain is active. Increment framing always applies; each</tspan></text>
+  <text x="36" y="212" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">later step applies when the increment charter lists its phase, and the</tspan></text>
+  <text x="36" y="228" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">steps of those phases declare the checks. Source relationships and</tspan></text>
+  <text x="36" y="244" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">artifact identities, not populated shells, witness the required traces.</tspan></text>
   <text x="916.5" y="100" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#F9A825" fill-opacity="1.000" font-style="italic">«comment»</tspan></text>
   <text x="784" y="120" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">─── Recurring system-to-software signal mapping control ───</tspan></text>
   <text x="647" y="319" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«enum def»</tspan></text>
