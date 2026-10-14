@@ -44,8 +44,7 @@ this shape, which the method checks read:
   [naming conventions](../../docs/naming/naming-conventions.md).
 - **Charter declaration:** exactly one `IncrementCharter` usage references the
   increment. It declares the applicable phases and, as plain attributes, the
-  owner, the expected artifacts and the expected review evidence. It also
-  carries the trace scope kind and completion claim of the trace method.
+  owner, the expected artifacts and the expected review evidence.
 - **Scope:** the checks evaluate the packages named in the charter's
   `expectedArtifacts`. Each value is the declared name of exactly one
   top-level package, and everything those packages own, through nested

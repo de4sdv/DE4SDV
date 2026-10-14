@@ -11,11 +11,9 @@
 # relationship-carrier pin): projected and listed are a disjoint union.
 #
 # Since O4 Wave C2 (authored ontology deleted) this file is the only home of
-# these declarations. Wave C2 removed the six relationship-carrier pins that
-# C1 carried over from the authored list (HasStakeholder, AddressesConcern,
-# ProducesView, RecordsAssumption, RecordsGap, SelectedViewpoint): each is
-# projected through a model-generated layer (definition batch 2 or the
-# vocabulary-carrier layer), so listing it here would give it a second home.
+# these declarations. A relationship-carrier pin projected through a
+# model-generated layer (HasStakeholder, through the kernel-vocabulary layer)
+# is never listed here: listing it would give it a second home.
 # Authored governance data; not generated, no binding block.
 schema: de4sdv.kernel-internal-declarations/v1
 governed_directory: textual-notation-of-model/packages/methods/de4sdv
@@ -27,8 +25,6 @@ declarations:
   textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml:
     metadata def MethodCheck: method-rule annotation of a workflow step parameter (check identifier, minimum,
       advisory); evaluation-policy data, not an ontology class or a result status
-    enum def TraceCompletionClaim: scoped method completion discriminator; not a V&V result or acceptance
-      status
     part def IncrementCharter: increment charter declaration specializing IncrementTraceObligations with owner,
       expected artifacts and expected review evidence as plain attributes and the system of interest by
       reference; declaration helper, not an additional ontology class or completion evidence
@@ -123,11 +119,6 @@ declarations:
       the trace contract; preserves the boundary against the stronger retired claims
     part def TraceVocabularyVersionRecord: version and supersession of the trace contract; not a production
       selection or acceptance
-  textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_vocabulary_carriers.sysml:
-    concern def IncrementConcern: generic range-kind base for the vocabulary-only carriers (reviewed range
-      Concern); not an ontology identity of its own
-    viewpoint def IncrementViewpoint: generic range-kind base for the vocabulary-only carriers (reviewed
-      range Viewpoint); not an ontology identity of its own
   textual-notation-of-model/packages/methods/de4sdv/de4sdv_operational_context.sysml:
     part def OperationalEntity: operational-context entity base
     part def SubjectVehicle: operational-context entity

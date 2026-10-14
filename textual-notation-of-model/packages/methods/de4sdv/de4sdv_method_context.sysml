@@ -377,6 +377,72 @@ package DE4SDV_MethodContext {
     part systemOfInterest;
   }
 
+  doc AssuranceClaimOntologyDefinition /* A claim about safety, security, compliance alignment, release readiness, or fitness-
+   * for-use that requires argument and evidence before acceptance. Claims are bounded and
+   * never imply certification or homologation. */
+  comment about AssuranceClaimOntologyDefinition /* Bounded claim vocabulary only; no generic adequacy/acceptance
+   * result is introduced. The assurance argumentation kinds below add no richer
+   * claim/argument/counterclaim taxonomy. */
+
+
+  doc EvidenceStatusOntologyDefinition /* Lifecycle status for evidence and verification results. DE4SDV does not define its own
+   * status vocabulary: requirement verification status uses the upstream VVStatus enum, and
+   * bounded evidence outcomes/dispositions use slice-local enums such as
+   * MiddlewareEvidenceOutcome and MiddlewareEvidenceDisposition. */
+  comment about EvidenceStatusOntologyDefinition /* The upstream VVStatus enum and slice-local bounded outcomes/dispositions remain
+   * distinct authorities. No status copy, new enum, lifecycle-result collapse or policy
+   * acceptance is introduced. */
+
+
+  doc EvidenceArtifactOntologyDefinition /* A reviewable artifact that supports a verification, validation, assurance, or release
+   * decision. */
+  comment about EvidenceArtifactOntologyDefinition /* Artifact contents remain in evidence registers, retained files and typed references,
+   * not in this documentation. Definition residence does not establish artifact
+   * availability, maturity, adequacy or acceptance. */
+
+  comment EvidenceArtifactVocabularyRole about EvidenceArtifactOntologyDefinition /* External
+   * boundary: evidence-artifact content is external; the model has no authority
+   * over it. The model owns only the typed reference role: the accepted
+   * de4sdv.evidence-reference/v1 schema (case identity, artifact identity, exact
+   * revision, digest, run, tested scope) and the model-resident reference
+   * record RetainedExecutionRecordReference. No artifact bytes, status,
+   * maturity, verdict or acceptance are mirrored, and no API element identity
+   * is claimed for an artifact. */
+
+  comment hasEvidenceVocabularyRole about EvidenceArtifactOntologyDefinition /* External boundary for hasEvidence
+   * (VerificationCase to EvidenceArtifact): artifact association only, carried
+   * by the case's typed de4sdv.evidence-reference/v1 record; content external, no
+   * authority. The association exposes no verdict, pass, approval or acceptance
+   * and implements no traversal: external data is required and an absent record
+   * is never reported as an empty hop. It is not supportedByEvidence. */
+
+  comment supportedByEvidenceVocabularyRole about AssuranceClaimOntologyDefinition /* The
+   * supportedByEvidence relation (AssuranceClaim to EvidenceArtifact) records
+   * one citation per cited artifact: the exact scoped claim (claim, subject,
+   * configuration, conditions), the versioned evidence reference, the
+   * rationale and the known limits. This is cited support, distinct from
+   * hasEvidence artifact association. A claim is treated as established, or
+   * acceptance is sought, only after an adequacy assessment of the evidence
+   * set for the same exact scope, which reuses the cases, criteria, results,
+   * references and gaps it assesses. The designated authority's scoped
+   * acceptance stays a separate AcceptanceAttestationReference, with
+   * exceptions kept visible. Citation, adequacy and acceptance never imply
+   * each other. Vocabulary only at this revision: no runtime traversal is
+   * implemented here. */
+
+  comment hasEvidenceStatusVocabularyRole about EvidenceStatusOntologyDefinition /* Successor
+   * for the legacy hasEvidenceStatus (EvidenceArtifact to EvidenceStatus)
+   * predicate. Scoped verification and validation activity status is the
+   * unchanged adopted VVStatus, identified with the activity's subject,
+   * configuration, comparison basis and result or evidence references;
+   * EvidenceStatus resolves to that pinned VVStatus and to slice-local
+   * bounded outcome/disposition enums. No new universal status enum is
+   * introduced. Artifact maturity, evidence-set adequacy and authority
+   * acceptance stay separate, and Completed never means passed or accepted.
+   * Retirement: hasEvidenceStatus takes no new model usage; consumers move to
+   * this successor in a reviewed runtime change, which then retires the
+   * legacy predicate (the authored ontology that declared it is removed). */
+
   /* Assurance argumentation kinds. A claim, its supporting arguments and its
    * counter-claims are assurance artifacts that consume verification results.
    * They are not design-input requirements: they do not derive from
@@ -386,15 +452,16 @@ package DE4SDV_MethodContext {
    * deliberately do not specialize RequirementCandidate, so the Requirement
    * lineage and the requirement method checks do not apply to their usages.
    *
-   * Meaning follows the approved scoped-assurance semantics
-   * (DE4SDV_ScopedAssurance): an argument is cited support with rationale and
-   * limits; a claim counts as established only after a scoped evidence-set
-   * adequacy assessment of the same exact scope; a counter-claim is a disclosed
-   * limit on the claim's scope, tied to its gap record; acceptance stays a
-   * separate authority record. No richer argumentation metamodel is introduced.
+   * Meaning follows the approved assurance semantics of the
+   * supportedByEvidence role above: an argument is cited support with
+   * rationale and limits; a claim counts as established only after a scoped
+   * evidence-set adequacy assessment of the same exact scope; a counter-claim
+   * is a disclosed limit on the claim's scope, tied to its gap record;
+   * acceptance stays a separate authority record. No richer argumentation
+   * metamodel is introduced.
    */
   requirement def AssuranceClaim {
-    doc /* A bounded statement about a subject, its configuration and conditions that requires argument and evidence before acceptance. It counts as established only after a ScopedEvidenceAdequacyAssessment of the same exact scope; acceptance stays a separate authority record. A claim never implies certification or homologation. */
+    doc /* A bounded statement about a subject, its configuration and conditions that requires argument and evidence before acceptance. It counts as established only after an adequacy assessment of the evidence set for the same exact scope; acceptance stays a separate authority record. A claim never implies certification or homologation. */
   }
 
   requirement def AssuranceArgument {

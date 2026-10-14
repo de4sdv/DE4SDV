@@ -3,7 +3,7 @@
     "by_base_wave": {
       "W2": 35,
       "W3": 11,
-      "W4": 10,
+      "W4": 5,
       "W5": 11,
       "W6": 9,
       "closure": 1
@@ -15,10 +15,10 @@
       "KEEP_DE4SDV_APPLICATION_SEMANTIC": 50,
       "KEEP_EXTERNAL_REFERENCE": 10,
       "KEEP_NATIVE": 8,
-      "KEEP_VOCABULARY_ONLY": 10,
+      "KEEP_VOCABULARY_ONLY": 5,
       "MERGE": 2,
       "REDESIGN": 9,
-      "REMOVE": 1
+      "REMOVE": 6
     },
     "by_migration_class": {
       "ALREADY_COMPLETE": 3,
@@ -27,17 +27,17 @@
       "EXTERNAL_BOUNDARY": 10,
       "MODEL_AUTHORITY_PARITY": 26,
       "NATIVE_OR_LIBRARY_ADOPTION": 3,
-      "NEW_APPLICATION_SEMANTICS": 16,
+      "NEW_APPLICATION_SEMANTICS": 11,
       "PROJECTION_ONLY": 8,
-      "REMOVE_FROM_ONTOLOGY": 1,
+      "REMOVE_FROM_ONTOLOGY": 6,
       "REQUIRES_SEMANTIC_MIGRATION": 10
     },
     "gated_total": 11,
     "merged": 2,
     "o3_complete": 13,
-    "o4_targets": 77,
-    "removed": 1,
-    "retained_total": 90,
+    "o4_targets": 72,
+    "removed": 6,
+    "retained_total": 85,
     "total_reviewed": 93
   },
   "blockers_by_wave": {
@@ -211,10 +211,21 @@
       "id": "interp-6",
       "rows": [],
       "statement": "Dependency flags are derived from the governed row text and anchors (PLE family + decision-9 + the Deliverable 9 PLE bullet + tokens; evidence >=2-token rule with the hasEvidence exception; SAF and canonical-architecture patterns); a review edit that changes an anchor fails the register gate."
+    },
+    {
+      "id": "interp-7",
+      "rows": [
+        "addressesConcern",
+        "producesView",
+        "recordsAssumption",
+        "recordsGap",
+        "selectedViewpoint"
+      ],
+      "statement": "Removed after migration: these five vocabulary-only relations were model-resident carriers that no model element used. Their carrier definitions and generated projection were deleted from the method kernel, and the runtime refuses the names with this register disposition. The source review is not modified; this is a reviewed register edit."
     }
   ],
   "o4_completion_boundary": [
-    "the complete reviewed target inventory is accounted for (93 = 90 retained + 1 removal + 2 merges; machine-enforced)",
+    "the complete reviewed target inventory is accounted for (93 = 85 retained + 6 removals + 2 merges; machine-enforced)",
     "semantic authority has migrated to the intended model/native/library sources",
     "Semantic Projection coverage is generated from those governed sources",
     "the API Representation Profile carries representation mechanics separately",
@@ -3829,8 +3840,8 @@
       "wave_basis": "already model-authoritative (closure accounting only)"
     },
     {
-      "accounting_status": "retained",
-      "base_wave": "W4",
+      "accounting_status": "removed",
+      "base_wave": null,
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -3849,41 +3860,39 @@
         "ple": false,
         "saf": false
       },
-      "desired_target_authority": "DE4SDV model-resident method vocabulary",
-      "final_disposition": "KEEP_VOCABULARY_ONLY",
+      "desired_target_authority": "removed; no model element used the relation",
+      "final_disposition": "REMOVE",
       "gate_decisions": [],
       "gate_wave": null,
       "gated_by": null,
       "identity": "addressesConcern",
       "kind": "relationship",
-      "membership": "o4-target",
+      "membership": "removed",
       "merge_into": null,
       "merge_note": null,
-      "migration_class": "NEW_APPLICATION_SEMANTICS",
+      "migration_class": "REMOVE_FROM_ONTOLOGY",
       "o3_complete": false,
-      "open_decisions": [
-        "Method owner must accept the proposed precise definition; no executable support requested."
-      ],
-      "required_api_representation_profile_change": true,
+      "open_decisions": [],
+      "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
-        "grounding": "DE4SDV model-resident method vocabulary",
+        "grounding": "removed; no model element used the relation",
         "native_representation_exists": false,
-        "new_modeling_required": true,
+        "new_modeling_required": false,
         "proposed_name": null
       },
       "required_runtime_or_consumer_change": {
         "current_runtime_support": "vocabulary-only",
-        "runtime_support_target": "vocabulary-only",
+        "runtime_support_target": "none",
         "traversal_required": false
       },
-      "required_semantic_projection_change": true,
-      "retirement_condition": "YAML row retires as semantic authority when the model-resident definition (parity) is bound and its projection rows are generated; no redesign is required.",
+      "required_semantic_projection_change": false,
+      "retirement_condition": "retired without a successor: no model element used this vocabulary-only relation",
       "review_classification": "NO_NATIVE_SEMANTIC_FIT",
       "review_index": 59,
       "validation_evidence_requirement": [
-        "model-side definition parity (normalized-exact text or explicit reviewed equivalence record)"
+        "no projection layer emits the removed identity, and the runtime refuses it with its register disposition"
       ],
-      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in Deliverable 8)"
+      "wave_basis": "accounting: removed (vocabulary-only relation without a model usage)"
     },
     {
       "accounting_status": "retained",
@@ -3943,8 +3952,8 @@
       "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in Deliverable 8)"
     },
     {
-      "accounting_status": "retained",
-      "base_wave": "W4",
+      "accounting_status": "removed",
+      "base_wave": null,
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -3964,45 +3973,43 @@
         "ple": false,
         "saf": false
       },
-      "desired_target_authority": "DE4SDV model-resident method vocabulary",
-      "final_disposition": "KEEP_VOCABULARY_ONLY",
+      "desired_target_authority": "removed; no model element used the relation",
+      "final_disposition": "REMOVE",
       "gate_decisions": [],
       "gate_wave": null,
       "gated_by": null,
       "identity": "selectedViewpoint",
       "kind": "relationship",
-      "membership": "o4-target",
+      "membership": "removed",
       "merge_into": null,
       "merge_note": null,
-      "migration_class": "NEW_APPLICATION_SEMANTICS",
+      "migration_class": "REMOVE_FROM_ONTOLOGY",
       "o3_complete": false,
-      "open_decisions": [
-        "Method owner must accept the proposed precise definition; no executable support requested."
-      ],
-      "required_api_representation_profile_change": true,
+      "open_decisions": [],
+      "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
-        "grounding": "DE4SDV model-resident method vocabulary",
+        "grounding": "removed; no model element used the relation",
         "native_representation_exists": false,
-        "new_modeling_required": true,
+        "new_modeling_required": false,
         "proposed_name": null
       },
       "required_runtime_or_consumer_change": {
         "current_runtime_support": "vocabulary-only",
-        "runtime_support_target": "vocabulary-only",
+        "runtime_support_target": "none",
         "traversal_required": false
       },
-      "required_semantic_projection_change": true,
-      "retirement_condition": "YAML row retires as semantic authority when the model-resident definition (parity) is bound and its projection rows are generated; no redesign is required.",
+      "required_semantic_projection_change": false,
+      "retirement_condition": "retired without a successor: no model element used this vocabulary-only relation",
       "review_classification": "NO_NATIVE_SEMANTIC_FIT",
       "review_index": 61,
       "validation_evidence_requirement": [
-        "model-side definition parity (normalized-exact text or explicit reviewed equivalence record)"
+        "no projection layer emits the removed identity, and the runtime refuses it with its register disposition"
       ],
-      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in Deliverable 8)"
+      "wave_basis": "accounting: removed (vocabulary-only relation without a model usage)"
     },
     {
-      "accounting_status": "retained",
-      "base_wave": "W4",
+      "accounting_status": "removed",
+      "base_wave": null,
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -4021,41 +4028,39 @@
         "ple": false,
         "saf": false
       },
-      "desired_target_authority": "DE4SDV model-resident method vocabulary",
-      "final_disposition": "KEEP_VOCABULARY_ONLY",
+      "desired_target_authority": "removed; no model element used the relation",
+      "final_disposition": "REMOVE",
       "gate_decisions": [],
       "gate_wave": null,
       "gated_by": null,
       "identity": "producesView",
       "kind": "relationship",
-      "membership": "o4-target",
+      "membership": "removed",
       "merge_into": null,
       "merge_note": null,
-      "migration_class": "NEW_APPLICATION_SEMANTICS",
+      "migration_class": "REMOVE_FROM_ONTOLOGY",
       "o3_complete": false,
-      "open_decisions": [
-        "Method owner must accept the proposed precise definition; no executable support requested."
-      ],
-      "required_api_representation_profile_change": true,
+      "open_decisions": [],
+      "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
-        "grounding": "DE4SDV model-resident method vocabulary",
+        "grounding": "removed; no model element used the relation",
         "native_representation_exists": false,
-        "new_modeling_required": true,
+        "new_modeling_required": false,
         "proposed_name": null
       },
       "required_runtime_or_consumer_change": {
         "current_runtime_support": "vocabulary-only",
-        "runtime_support_target": "vocabulary-only",
+        "runtime_support_target": "none",
         "traversal_required": false
       },
-      "required_semantic_projection_change": true,
-      "retirement_condition": "YAML row retires as semantic authority when the model-resident definition (parity) is bound and its projection rows are generated; no redesign is required.",
+      "required_semantic_projection_change": false,
+      "retirement_condition": "retired without a successor: no model element used this vocabulary-only relation",
       "review_classification": "NO_NATIVE_SEMANTIC_FIT",
       "review_index": 62,
       "validation_evidence_requirement": [
-        "model-side definition parity (normalized-exact text or explicit reviewed equivalence record)"
+        "no projection layer emits the removed identity, and the runtime refuses it with its register disposition"
       ],
-      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in Deliverable 8)"
+      "wave_basis": "accounting: removed (vocabulary-only relation without a model usage)"
     },
     {
       "accounting_status": "removed",
@@ -5137,8 +5142,8 @@
       "wave_basis": "review Deliverable 8 Wave 5 named design set (redesigns + traceability + claim design)"
     },
     {
-      "accounting_status": "retained",
-      "base_wave": "W4",
+      "accounting_status": "removed",
+      "base_wave": null,
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -5157,45 +5162,43 @@
         "ple": false,
         "saf": false
       },
-      "desired_target_authority": "DE4SDV model-resident method vocabulary",
-      "final_disposition": "KEEP_VOCABULARY_ONLY",
+      "desired_target_authority": "removed; no model element used the relation",
+      "final_disposition": "REMOVE",
       "gate_decisions": [],
       "gate_wave": null,
       "gated_by": null,
       "identity": "recordsAssumption",
       "kind": "relationship",
-      "membership": "o4-target",
+      "membership": "removed",
       "merge_into": null,
       "merge_note": null,
-      "migration_class": "NEW_APPLICATION_SEMANTICS",
+      "migration_class": "REMOVE_FROM_ONTOLOGY",
       "o3_complete": false,
-      "open_decisions": [
-        "Method owner must accept the proposed precise definition; no executable support requested."
-      ],
-      "required_api_representation_profile_change": true,
+      "open_decisions": [],
+      "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
-        "grounding": "DE4SDV model-resident method vocabulary",
+        "grounding": "removed; no model element used the relation",
         "native_representation_exists": false,
-        "new_modeling_required": true,
+        "new_modeling_required": false,
         "proposed_name": null
       },
       "required_runtime_or_consumer_change": {
         "current_runtime_support": "vocabulary-only",
-        "runtime_support_target": "vocabulary-only",
+        "runtime_support_target": "none",
         "traversal_required": false
       },
-      "required_semantic_projection_change": true,
-      "retirement_condition": "YAML row retires as semantic authority when the model-resident definition (parity) is bound and its projection rows are generated; no redesign is required.",
+      "required_semantic_projection_change": false,
+      "retirement_condition": "retired without a successor: no model element used this vocabulary-only relation",
       "review_classification": "NO_NATIVE_SEMANTIC_FIT",
       "review_index": 81,
       "validation_evidence_requirement": [
-        "model-side definition parity (normalized-exact text or explicit reviewed equivalence record)"
+        "no projection layer emits the removed identity, and the runtime refuses it with its register disposition"
       ],
-      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in Deliverable 8)"
+      "wave_basis": "accounting: removed (vocabulary-only relation without a model usage)"
     },
     {
-      "accounting_status": "retained",
-      "base_wave": "W4",
+      "accounting_status": "removed",
+      "base_wave": null,
       "blockers": [],
       "corrections_batch": null,
       "current_authority": "legacy-yaml",
@@ -5214,41 +5217,39 @@
         "ple": false,
         "saf": false
       },
-      "desired_target_authority": "DE4SDV model-resident method vocabulary",
-      "final_disposition": "KEEP_VOCABULARY_ONLY",
+      "desired_target_authority": "removed; no model element used the relation",
+      "final_disposition": "REMOVE",
       "gate_decisions": [],
       "gate_wave": null,
       "gated_by": null,
       "identity": "recordsGap",
       "kind": "relationship",
-      "membership": "o4-target",
+      "membership": "removed",
       "merge_into": null,
       "merge_note": null,
-      "migration_class": "NEW_APPLICATION_SEMANTICS",
+      "migration_class": "REMOVE_FROM_ONTOLOGY",
       "o3_complete": false,
-      "open_decisions": [
-        "Method owner must accept the proposed precise definition; no executable support requested."
-      ],
-      "required_api_representation_profile_change": true,
+      "open_decisions": [],
+      "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
-        "grounding": "DE4SDV model-resident method vocabulary",
+        "grounding": "removed; no model element used the relation",
         "native_representation_exists": false,
-        "new_modeling_required": true,
+        "new_modeling_required": false,
         "proposed_name": null
       },
       "required_runtime_or_consumer_change": {
         "current_runtime_support": "vocabulary-only",
-        "runtime_support_target": "vocabulary-only",
+        "runtime_support_target": "none",
         "traversal_required": false
       },
-      "required_semantic_projection_change": true,
-      "retirement_condition": "YAML row retires as semantic authority when the model-resident definition (parity) is bound and its projection rows are generated; no redesign is required.",
+      "required_semantic_projection_change": false,
+      "retirement_condition": "retired without a successor: no model element used this vocabulary-only relation",
       "review_classification": "NO_NATIVE_SEMANTIC_FIT",
       "review_index": 82,
       "validation_evidence_requirement": [
-        "model-side definition parity (normalized-exact text or explicit reviewed equivalence record)"
+        "no projection layer emits the removed identity, and the runtime refuses it with its register disposition"
       ],
-      "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in Deliverable 8)"
+      "wave_basis": "accounting: removed (vocabulary-only relation without a model usage)"
     },
     {
       "accounting_status": "retained",

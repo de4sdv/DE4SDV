@@ -424,7 +424,7 @@ def test_relationship_and_trace_redesign_elements_stay_in_place():
     """The model elements of the relationship and trace redesign stay in place:
     retirement and successor records, trace obligations and their usages. The
     transition record and plan that accounted for them are archived."""
-    assured = (KERNEL / "de4sdv_scoped_assurance.sysml").read_text(encoding="utf-8")
+    assured = (KERNEL / "de4sdv_method_context.sysml").read_text(encoding="utf-8")
     for role in ("hasEvidenceStatusVocabularyRole", "supportedByEvidenceVocabularyRole"):
         assert re.search(rf"\bcomment\s+{role}\s+about\b", assured), role
     carriers = _trace_vocabulary_code()
@@ -436,8 +436,7 @@ def test_relationship_and_trace_redesign_elements_stay_in_place():
     # declares the increment charter as their specialization; a declaration is
     # typed by either.
     workflow = (KERNEL / "de4sdv_increment_workflow.sysml").read_text(encoding="utf-8")
-    for name in ("IncrementTraceObligations", "approvedScopedTraceMethod", "ApprovedTraceMethod"):
-        assert name in workflow, name
+    assert re.search(r"\bpart\s+def\s+IncrementTraceObligations\b", workflow)
     assert re.search(r"\bpart\s+def\s+IncrementCharter\s*:>\s*IncrementTraceObligations\b", workflow)
     for usage, framing in (("visualizationTraceObligations", "aebs/aebs_visualization_framing.sysml"),
                            ("traceObligationsMW002", "middleware/middleware_increment_framing.sysml")):

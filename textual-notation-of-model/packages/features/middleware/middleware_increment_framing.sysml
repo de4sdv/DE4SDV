@@ -16,7 +16,6 @@ package DE4SDV_MiddlewareIncrementFraming {
         private import DE4SDV_Stakeholders::*;
         private import DE4SDV_MethodContext::*;
         private import DE4SDV_IncrementWorkflow::IncrementTraceObligations;
-        private import DE4SDV_IncrementWorkflow::TraceCompletionClaim;
         private import DE4SDV_MethodProcess::*;
         private import SAF_Viewpoints::*;
 
@@ -54,10 +53,7 @@ package DE4SDV_MiddlewareIncrementFraming {
 
         part traceObligationsMW002 : IncrementTraceObligations {
           doc /* Scope declaration only; traces are the native relationships of this package. */
-          ref part :>> selectedMethod = DE4SDV_IncrementWorkflow::approvedScopedTraceMethod;
-          attribute :>> scopeKind = "framing";
           attribute :>> applicablePhases = (MethodPhase::phase0_incrementFraming, MethodPhase::phase1_concernFraming, MethodPhase::phase2_operationalContext);
-          attribute :>> completionClaim = TraceCompletionClaim::framingReady;
           ref part :>> increment = DE4SDV_MiddlewareIncrementFraming::Features::Middleware::IncrementFraming::incMW002;
         }
 

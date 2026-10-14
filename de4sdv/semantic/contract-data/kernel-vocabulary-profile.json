@@ -30,19 +30,6 @@
       ]
     },
     {
-      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#ApprovedTraceMethod",
-      "for_concept": "ApprovedTraceMethod",
-      "representation_class": "part-definition",
-      "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml",
-        "owner": "part def ApprovedTraceMethod",
-        "api_metaclass": "PartDefinition"
-      },
-      "witness_forms": [
-        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
-      ]
-    },
-    {
       "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#ArchitectureDecisionRecord",
       "for_concept": "ArchitectureDecisionRecord",
       "representation_class": "part-definition",
@@ -73,8 +60,8 @@
       "for_concept": "AssuranceClaim",
       "representation_class": "package-owned-definition-documentation",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
-        "owner": "package DE4SDV_ScopedAssurance",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "owner": "package DE4SDV_MethodContext",
         "api_metaclass": "Documentation"
       },
       "witness_forms": [
@@ -130,8 +117,8 @@
       "for_concept": "EvidenceArtifact",
       "representation_class": "package-owned-definition-documentation",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
-        "owner": "package DE4SDV_ScopedAssurance",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "owner": "package DE4SDV_MethodContext",
         "api_metaclass": "Documentation"
       },
       "witness_forms": [
@@ -161,25 +148,12 @@
       "for_concept": "EvidenceStatus",
       "representation_class": "package-owned-definition-documentation",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
-        "owner": "package DE4SDV_ScopedAssurance",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "owner": "package DE4SDV_MethodContext",
         "api_metaclass": "Documentation"
       },
       "witness_forms": [
         "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
-      ]
-    },
-    {
-      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#EvidenceSupportCitation",
-      "for_concept": "EvidenceSupportCitation",
-      "representation_class": "item-definition",
-      "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
-        "owner": "item def EvidenceSupportCitation",
-        "api_metaclass": "ItemDefinition"
-      },
-      "witness_forms": [
-        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
       ]
     },
     {
@@ -350,32 +324,6 @@
       },
       "witness_forms": [
         "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
-      ]
-    },
-    {
-      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#ScopedEvidenceAdequacyAssessment",
-      "for_concept": "ScopedEvidenceAdequacyAssessment",
-      "representation_class": "item-definition",
-      "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
-        "owner": "item def ScopedEvidenceAdequacyAssessment",
-        "api_metaclass": "ItemDefinition"
-      },
-      "witness_forms": [
-        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
-      ]
-    },
-    {
-      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#ScopedVVActivityRecord",
-      "for_concept": "ScopedVVActivityRecord",
-      "representation_class": "item-definition",
-      "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
-        "owner": "item def ScopedVVActivityRecord",
-        "api_metaclass": "ItemDefinition"
-      },
-      "witness_forms": [
-        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
       ]
     },
     {
@@ -565,8 +513,8 @@
       "for_concept": "hasEvidence",
       "representation_class": "vocabulary-role-comment",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
-        "owner": "package DE4SDV_ScopedAssurance",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "owner": "package DE4SDV_MethodContext",
         "api_metaclass": "Comment"
       },
       "witness_forms": [
@@ -587,8 +535,8 @@
       "for_concept": "hasEvidenceStatus",
       "representation_class": "vocabulary-role-comment",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
-        "owner": "package DE4SDV_ScopedAssurance",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "owner": "package DE4SDV_MethodContext",
         "api_metaclass": "Comment"
       },
       "witness_forms": [
@@ -812,8 +760,8 @@
       "for_concept": "supportedByEvidence",
       "representation_class": "vocabulary-role-comment",
       "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml",
-        "owner": "package DE4SDV_ScopedAssurance",
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "owner": "package DE4SDV_MethodContext",
         "api_metaclass": "Comment"
       },
       "witness_forms": [

@@ -24,9 +24,8 @@ built by `de4sdv/semantic/model_contract.py`) assembles the contract from:
 - the model-generated pairs in
   [`de4sdv/semantic/contract-data/`](../../de4sdv/semantic/contract-data/README.md):
   class definitions (`class-definition-projection.json` / `-profile.json`),
-  kernel vocabulary (`kernel-vocabulary-…`), native groundings
-  (`native-grounding-…`) and increment relationships
-  (`increment-relationship-…`);
+  kernel vocabulary (`kernel-vocabulary-…`) and native groundings
+  (`native-grounding-…`);
 - the frozen-record layer: 13 identities read from the six frozen
   projection/profile records (`frozen-records/semantic-projection-v1…v1.2`
   and their profiles), which never change;
