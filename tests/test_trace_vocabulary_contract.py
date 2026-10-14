@@ -3,7 +3,7 @@
 The runtime serves the trace relations and the retired relation names from
 the generated ``trace-vocabulary-contract.json`` and never parses SysML text
 (ADR 0011). The generator's adversarial reading cases (comments, quoted
-tokens, decoys, duplicates) are in ``test_approved_relationship_successor.py``
+tokens, decoys, duplicates) are in ``test_trace_vocabulary_traversal.py``
 and ``test_semantic_payload_identity.py``.
 """
 from __future__ import annotations

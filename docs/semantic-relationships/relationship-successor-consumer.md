@@ -103,7 +103,7 @@ through the semantic MCP server (`scripts/semantic_mcp_server.py --api-url URL
 
 ## Evidence boundary
 
-`tests/test_relationship_successor_consumer.py` runs the real CLI subprocess and
+`tests/test_trace_vocabulary_supplied_api.py` runs the real CLI subprocess and
 real MCP stdio handshake/tool call over a local **synthetic** supplied HTTP API.
 It proves transport, exact-pin routing and read-only behavior, not licensed model
 closure or a production current-baseline observation. Model wiring tests are lexical.
