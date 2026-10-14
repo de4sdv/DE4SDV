@@ -101,7 +101,7 @@ def _outputs():
 
 
 def test_admitted_set_is_exactly_the_derived_family():
-    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
+    from de4sdv.semantic.model_contract import FROZEN_RECORD_IDENTITIES as MIGRATED_IDENTITIES
 
     register = _register()
     other = set().union(*_layer_identities().values())

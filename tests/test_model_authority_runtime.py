@@ -135,8 +135,8 @@ def test_served_authority_is_the_contract_identity(fx):
 
 
 def _split(provisions):
-    return ([p for p in provisions if p.layer != mc.O2_CHAIN_LAYER],
-            [p for p in provisions if p.layer == mc.O2_CHAIN_LAYER])
+    return ([p for p in provisions if p.layer != mc.FROZEN_RECORD_LAYER],
+            [p for p in provisions if p.layer == mc.FROZEN_RECORD_LAYER])
 
 
 def test_routing_is_disjoint_and_a_planted_duplicate_is_refused():
@@ -176,27 +176,27 @@ def _kbc(name):
     return {"source_file": mapping.file, "declaration": mapping.declaration}
 
 
-def _b2_class(name, **grounding):
+def _kernel_vocabulary_class_row(name, **grounding):
     return {"identity": name, "semantic_kind": "class", "admission_class": "definition",
             "accounting": "retained", "support": "vocabulary-only", "traversal": False,
             "grounding": {"ontology_relations": {"sub_class_of": None, "disjoint_with": []},
                           **grounding}}
 
 
-def _b2_relation(name, admission, domain, range_, strength=None, **extra):
+def _kernel_vocabulary_relation_row(name, admission, domain, range_, strength=None, **extra):
     return {"identity": name, "semantic_kind": "relationship", "admission_class": admission,
             "accounting": "retained", "support": "vocabulary-only", "traversal": False,
             "relation": {"domain": {"ontology_class": domain}, "range": {"ontology_class": range_},
                          "semantic_strength": strength}, **extra}
 
 
-def _b2_entry(name, **extra):
+def _kernel_vocabulary_profile_entry(name, **extra):
     return {"profile_identity": f"de4sdv.o4-definition-batch2-profile/v1#{name}",
             "for_concept": name, "representation_class": "synthetic", **extra}
 
 
 def _retired(name, domain, range_, successor, navigation):
-    row = dict(_b2_relation(name, "retired-name", domain, range_),
+    row = dict(_kernel_vocabulary_relation_row(name, "retired-name", domain, range_),
                retired={"successor": successor, "successor_navigation": navigation,
                         "refusal": f"retired; use {navigation}"})
     return row, {"retired_resolution": {"successor": successor, "navigation": navigation}}
@@ -211,24 +211,24 @@ def _kernel_vocabulary_rows():
                   "target_property": "target", "source_types": ["RequirementUsage"]}
     closure = [{"source_file": f"f{i}.sysml", "declaration": f"requirement def C{i}"}
                for i in range(EC_DEFS)]
-    hrec = _b2_relation("hasRelevantEvidenceContract", "relationship-runtime", "Requirement",
-                        "EvidenceContract", "relevance")
+    hrec = _kernel_vocabulary_relation_row("hasRelevantEvidenceContract", "relationship-runtime", "Requirement",
+                                           "EvidenceContract", "relevance")
     hrec["relation"]["range"]["discriminator"] = {"kind": "type-lineage",
                                                   "lineage": _kbc("EvidenceContract"),
                                                   "closure": closure}
     rows = [
-        (_b2_class("EvidenceContract", kernel_binding_contract=_kbc("EvidenceContract")), {}),
-        (_b2_class("Interface", kernel_native="SysML v2 port def and connection elements"), {}),
-        (_b2_class("EvidenceStatus", kernel_external=(
+        (_kernel_vocabulary_class_row("EvidenceContract", kernel_binding_contract=_kbc("EvidenceContract")), {}),
+        (_kernel_vocabulary_class_row("Interface", kernel_native="SysML v2 port def and connection elements"), {}),
+        (_kernel_vocabulary_class_row("EvidenceStatus", kernel_external=(
             "ODE4HERA requirements-management library VVStatus (NRM A13+A14) via the "
             "DE4SDV method-context adapter")), {}),
-        (_b2_relation("variesAt", "relationship-vocabulary", "Feature", "VariationPoint"), {}),
-        (dict(_b2_relation("hasStakeholder", "relationship-vocabulary", "EngineeringIncrement",
-                           "Stakeholder"),
+        (_kernel_vocabulary_relation_row("variesAt", "relationship-vocabulary", "Feature", "VariationPoint"), {}),
+        (dict(_kernel_vocabulary_relation_row("hasStakeholder", "relationship-vocabulary", "EngineeringIncrement",
+                                              "Stakeholder"),
               carrier={"source_file": "x.sysml", "declaration": "connection def HasStakeholder"}), {}),
         (hrec, {"serializer_mechanics": dependency}),
-        (_b2_relation("hasEvidence", "external-reference", "VerificationCase", "EvidenceArtifact",
-                      "external-data-required"),
+        (_kernel_vocabulary_relation_row("hasEvidence", "external-reference", "VerificationCase", "EvidenceArtifact",
+                                         "external-data-required"),
          {"serializer_mechanics": {"strategy": "external"}}),
         ({"identity": "allocatedTo", "semantic_kind": "relationship", "admission_class": "successor",
           "accounting": "retained", "support": "runtime-mapped-candidate", "traversal": False,
@@ -236,10 +236,10 @@ def _kernel_vocabulary_rows():
         _retired("realizedBy", "Requirement", "ArchitectureElement", "allocatedTo", "allocatedTo"),
         _retired("constrainedBy", "Requirement", "RegulatoryConstraint", "hasRegulatorySource",
                  "hasRegulatorySource"),
-        (_b2_class("Function", kernel_native=(
+        (_kernel_vocabulary_class_row("Function", kernel_native=(
             "SysML v2 action/state/behavior definitions in functional-architecture slices")), {}),
-        (_b2_class("AllocatableFunction", kernel_binding_contract=_kbc("AllocatableFunction"),
-                   ontology_relations={"sub_class_of": "Function", "disjoint_with": []}), {}),
+        (_kernel_vocabulary_class_row("AllocatableFunction", kernel_binding_contract=_kbc("AllocatableFunction"),
+                                      ontology_relations={"sub_class_of": "Function", "disjoint_with": []}), {}),
         _retired("validatesFitnessForUse", "ValidationScenario", "Need", "hasValidationScenario",
                  "validationScenarioFor"),
     ]
@@ -249,17 +249,17 @@ def _kernel_vocabulary_rows():
 def _kernel_vocabulary_root(tmp_path, rows):
     root = tmp_path / "root"
     paths = [relative for spec in mar.LAYERS for relative in (spec.projection_path, spec.profile_path)]
-    paths += [relative for relative, _ in mc.O2_PROJECTION_CHAIN + mc.O2_PROFILE_CHAIN]
+    paths += [relative for relative, _ in mc.FROZEN_PROJECTION_RECORDS + mc.FROZEN_PROFILE_RECORDS]
     for relative in paths:
         (root / relative).parent.mkdir(parents=True, exist_ok=True)
         (root / relative).write_bytes((ROOT / relative).read_bytes())
-    spec = mar.BATCH2_LAYER
+    spec = mar.KERNEL_VOCABULARY_LAYER
     binding = {"source_revision": REVISION}
     (root / spec.projection_path).write_text(json.dumps(
         {"schema": spec.projection_schema, "binding": binding, "rows": [r for r, _ in rows]}))
     (root / spec.profile_path).write_text(json.dumps(
         {"schema": spec.profile_schema, "binding": binding,
-         "entries": [_b2_entry(r["identity"], **e) for r, e in rows]}))
+         "entries": [_kernel_vocabulary_profile_entry(r["identity"], **e) for r, e in rows]}))
     return root
 
 
@@ -273,7 +273,7 @@ def _kernel_vocabulary_routing(root):
 
 def test_kernel_vocabulary_layer_is_loaded_exactly_when_its_pair_is_present():
     records, _ = mar.load_layers(ROOT)
-    present = (ROOT / mar.BATCH2_LAYER.projection_path).exists()
+    present = (ROOT / mar.KERNEL_VOCABULARY_LAYER.projection_path).exists()
     assert ("definition-batch2" in [r["layer"] for r in records]) is present
 
 
@@ -327,7 +327,7 @@ def _facade_declaring(tmp_path, size):
 
     root = tmp_path / "declared"
     shutil.copytree(ROOT / "de4sdv/semantic/contract-data", root / "de4sdv/semantic/contract-data")
-    path = root / mar.BATCH2_LAYER.projection_path
+    path = root / mar.KERNEL_VOCABULARY_LAYER.projection_path
     document = json.loads(path.read_text(encoding="utf-8"))
     (row,) = [r for r in document["rows"] if r["identity"] == "hasRelevantEvidenceContract"]
     closure = row["relation"]["range"]["discriminator"]["closure"]
@@ -404,12 +404,12 @@ def _answer(service, identifier, predicate):
 
 def test_the_13_are_served_from_the_frozen_records(fx):
     service = _service(fx)
-    chain = {p.identity: p for p in mc.o2_chain_provisions(ROOT)}
-    assert set(chain) == set(mc.O2_CHAIN_IDENTITIES) and len(chain) == 13
-    for name in mc.O2_CHAIN_CLASSES:
+    chain = {p.identity: p for p in mc.frozen_record_provisions(ROOT)}
+    assert set(chain) == set(mc.FROZEN_RECORD_IDENTITIES) and len(chain) == 13
+    for name in mc.FROZEN_RECORD_CLASSES:
         assert service.contract.provider_of(name) == "o2-chain"
         assert service.contract.mapping(name) == chain[name].mapping
-    for name in mc.O2_CHAIN_RELATIONSHIPS:
+    for name in mc.FROZEN_RECORD_RELATIONSHIPS:
         assert service.contract.relationship_mapping(name) == chain[name].relationship
         for identifier in ("use-Requirement", "use-Need"):
             assert _answer(service, identifier, name)["root"]["element_id"] == identifier

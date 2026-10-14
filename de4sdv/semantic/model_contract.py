@@ -57,19 +57,19 @@ def canonical_json(value: Any) -> str:
 
 
 #: The frozen O2 chain (dependency order). Frozen O2 records; read-only data.
-O2_CHAIN_LAYER = "o2-chain"
-O2_PROJECTION_CHAIN = (
+FROZEN_RECORD_LAYER = "o2-chain"
+FROZEN_PROJECTION_RECORDS = (
     ("de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.json", "de4sdv.semantic-projection.v1"),
     ("de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.1.json", "de4sdv.semantic-projection.v1.1"),
     ("de4sdv/semantic/contract-data/frozen-records/semantic-projection-v1.2.json", "de4sdv.semantic-projection.v1.2"),
 )
-O2_PROFILE_CHAIN = (
+FROZEN_PROFILE_RECORDS = (
     ("de4sdv/semantic/contract-data/frozen-records/api-representation-profile-v1.json", "de4sdv.api-representation-profile.v1"),
     ("de4sdv/semantic/contract-data/frozen-records/api-representation-profile-v1.1.json", "de4sdv.api-representation-profile.v1.1"),
     ("de4sdv/semantic/contract-data/frozen-records/api-representation-profile-v1.2.json", "de4sdv.api-representation-profile.v1.2"),
 )
 #: The identities the O3 cutover migrated, served from the frozen O2 chain.
-O2_CHAIN_CLASSES = (
+FROZEN_RECORD_CLASSES = (
     "MethodPhase",
     "MethodContractObligation",
     "EvaluationScopeMembership",
@@ -79,14 +79,14 @@ O2_CHAIN_CLASSES = (
     "AcceptanceAttestationReference",
     "VerificationCase",
 )
-O2_CHAIN_RELATIONSHIPS = (
+FROZEN_RECORD_RELATIONSHIPS = (
     "hasSubject",
     "verifiedBy",
     "derivesRequirementFromNeed",
     "derivedRequirementsOfNeed",
     "hasRelevantArchitecture",
 )
-O2_CHAIN_IDENTITIES = O2_CHAIN_CLASSES + O2_CHAIN_RELATIONSHIPS
+FROZEN_RECORD_IDENTITIES = FROZEN_RECORD_CLASSES + FROZEN_RECORD_RELATIONSHIPS
 
 KERNEL_INTERNAL_PATH = "de4sdv/semantic/contract-data/kernel-internal-declarations.yaml"
 CONTRACT_SOURCE = "model-authority://projection-layers"
@@ -132,14 +132,14 @@ LAYERS: tuple[LayerSpec, ...] = (
 #: Definition-admission batch 2 (generator and schema owned by the admission
 #: lane: ``de4sdv.o4-definition-batch2-projection/v1`` + ``-profile/v1``). It is
 #: optional only while the pair is absent from the checkout; once present it
-#: is bound like every other layer. Rows flow through :func:`_batch2_provider`.
-BATCH2_LAYER = LayerSpec("definition-batch2",
-                         "de4sdv/semantic/contract-data/kernel-vocabulary-projection.json",
-                         "de4sdv.o4-definition-batch2-projection/v1",
-                         "de4sdv/semantic/contract-data/kernel-vocabulary-profile.json",
-                         "de4sdv.o4-definition-batch2-profile/v1",
-                         required=False)
-BATCH2_LAYERS: tuple[LayerSpec, ...] = (BATCH2_LAYER,)
+#: is bound like every other layer. Rows flow through :func:`_kernel_vocabulary_provider`.
+KERNEL_VOCABULARY_LAYER = LayerSpec("definition-batch2",
+                                    "de4sdv/semantic/contract-data/kernel-vocabulary-projection.json",
+                                    "de4sdv.o4-definition-batch2-projection/v1",
+                                    "de4sdv/semantic/contract-data/kernel-vocabulary-profile.json",
+                                    "de4sdv.o4-definition-batch2-profile/v1",
+                                    required=False)
+KERNEL_VOCABULARY_LAYERS: tuple[LayerSpec, ...] = (KERNEL_VOCABULARY_LAYER,)
 
 
 def _sha256_bytes(data: bytes) -> str:
@@ -316,13 +316,13 @@ def _definition_row_provider(row: Mapping[str, Any], entry: Mapping[str, Any] | 
                      mapping=_file_mapping(grounding.get("kernel_binding_contract"), identity))
 
 
-_BATCH2_CLASS_ADMISSIONS = frozenset({"definition", "external-reference"})
-_BATCH2_RELATION_ADMISSIONS = frozenset({
+_KERNEL_VOCABULARY_CLASS_ADMISSIONS = frozenset({"definition", "external-reference"})
+_KERNEL_VOCABULARY_RELATION_ADMISSIONS = frozenset({
     "relationship-vocabulary", "relationship-runtime", "external-reference",
     "successor", "retired-name"})
 
 
-def _batch2_class(identity: str, row: Mapping[str, Any], layer: str) -> Provision:
+def _kernel_vocabulary_class(identity: str, row: Mapping[str, Any], layer: str) -> Provision:
     grounding = _object(row.get("grounding"), f"{identity}: grounding")
     kinds = [key for key in ("kernel_binding_contract", "kernel_native", "kernel_external")
              if grounding.get(key)]
@@ -340,7 +340,7 @@ def _batch2_class(identity: str, row: Mapping[str, Any], layer: str) -> Provisio
     return Provision(identity, "class", layer, mapping=mapping, spec=spec)
 
 
-def _batch2_discriminator(identity: str, range_: Mapping[str, Any]) -> dict[str, Any] | None:
+def _kernel_vocabulary_discriminator(identity: str, range_: Mapping[str, Any]) -> dict[str, Any] | None:
     discriminator = range_.get("discriminator")
     if discriminator is None:
         return None
@@ -423,8 +423,8 @@ def validate_closure_members(members: list[Mapping[str, str]], elements: list[Ma
             for m in sorted(validated, key=lambda m: (m["file"], m["declaration"]))]
 
 
-def _batch2_relation(identity: str, row: Mapping[str, Any], entry: Mapping[str, Any] | None,
-                     layer: str) -> Provision:
+def _kernel_vocabulary_relation(identity: str, row: Mapping[str, Any], entry: Mapping[str, Any] | None,
+                                layer: str) -> Provision:
     admission = row.get("admission_class")
     support = _token(row.get("support", "vocabulary-only"), f"{identity}: support")
     if admission == "successor":
@@ -460,7 +460,7 @@ def _batch2_relation(identity: str, row: Mapping[str, Any], entry: Mapping[str, 
                             "support": support}
     if strength is not None:
         spec["semantic_strength"] = strength
-    discriminator = _batch2_discriminator(identity, range_record)
+    discriminator = _kernel_vocabulary_discriminator(identity, range_record)
     if discriminator is not None:
         spec["range_discriminator"] = discriminator
     carrier = row.get("carrier")
@@ -479,8 +479,8 @@ def _batch2_relation(identity: str, row: Mapping[str, Any], entry: Mapping[str, 
     return Provision(identity, "relationship", layer, spec=spec, relationship=mapping)
 
 
-def _batch2_provider(row: Mapping[str, Any], entry: Mapping[str, Any] | None,
-                     layer: str) -> Provision:
+def _kernel_vocabulary_provider(row: Mapping[str, Any], entry: Mapping[str, Any] | None,
+                                layer: str) -> Provision:
     """Definition-admission batch-2 rows (every admission class B1 emits).
 
     Unknown shapes are refused rather than guessed.
@@ -490,23 +490,23 @@ def _batch2_provider(row: Mapping[str, Any], entry: Mapping[str, Any] | None,
         raise ModelAuthorityRefused(f"{identity}: batch-2 row has no profile entry")
     kind = _token(row.get("semantic_kind"), f"{identity}: semantic_kind")
     admission = _token(row.get("admission_class"), f"{identity}: admission_class")
-    if kind == "class" and admission in _BATCH2_CLASS_ADMISSIONS:
-        return _batch2_class(identity, row, layer)
-    if kind == "relationship" and admission in _BATCH2_RELATION_ADMISSIONS:
-        return _batch2_relation(identity, row, entry, layer)
+    if kind == "class" and admission in _KERNEL_VOCABULARY_CLASS_ADMISSIONS:
+        return _kernel_vocabulary_class(identity, row, layer)
+    if kind == "relationship" and admission in _KERNEL_VOCABULARY_RELATION_ADMISSIONS:
+        return _kernel_vocabulary_relation(identity, row, entry, layer)
     raise ModelAuthorityRefused(
         f"{identity}: unsupported batch-2 semantic_kind/admission_class "
         f"{kind!r}/{admission!r}")
 
 
-_RELATIONSHIP_O2P = frozenset({"usesVerificationMethod"})
+_NATIVE_GROUNDING_RELATIONSHIPS = frozenset({"usesVerificationMethod"})
 
 
-def _o2plus_provider(row: Mapping[str, Any], layer: str) -> Provision:
+def _native_grounding_provider(row: Mapping[str, Any], layer: str) -> Provision:
     identity = _row_identity(row)
     category = _token(row.get("category"), f"{identity}: O2+ category")
     construct = _token(row.get("construct"), f"{identity}: O2+ construct")
-    if identity in _RELATIONSHIP_O2P or row.get("semantic_kind") == "relationship":
+    if identity in _NATIVE_GROUNDING_RELATIONSHIPS or row.get("semantic_kind") == "relationship":
         spec = {"support": _token(row.get("support", "vocabulary-only"), f"{identity}: support"),
                 "construct": construct}
         return Provision(identity, "relationship", layer, spec=spec)
@@ -569,9 +569,9 @@ def _layer_provisions(spec: LayerSpec, projection: dict[str, Any],
     result = []
     for identity, row in rows.items():
         if spec.name == "o2plus":
-            result.append(_o2plus_provider(row, spec.name))
-        elif spec.name == BATCH2_LAYER.name:
-            result.append(_batch2_provider(row, entries.get(identity), spec.name))
+            result.append(_native_grounding_provider(row, spec.name))
+        elif spec.name == KERNEL_VOCABULARY_LAYER.name:
+            result.append(_kernel_vocabulary_provider(row, entries.get(identity), spec.name))
         else:
             result.append(_definition_row_provider(row, entries.get(identity), spec.name))
     return result
@@ -611,7 +611,7 @@ def _read_projection_layers(root: Path, specs: tuple[LayerSpec, ...]) -> tuple[l
 
 def load_projection_layers(root: Path = ROOT) -> tuple[list[dict[str, Any]], list[Provision]]:
     """Read the complete live layer set for runtime construction."""
-    return _read_projection_layers(root, LAYERS + BATCH2_LAYERS)
+    return _read_projection_layers(root, LAYERS + KERNEL_VOCABULARY_LAYERS)
 
 
 def _successor_names(contract: Mapping[str, Any]) -> dict[str, str]:
@@ -691,7 +691,7 @@ def _corroborates(existing: Provision, candidate: Provision, contract: Mapping[s
 
 def _lineage_pin(name: str, pin: Provision, provisions: list[Provision]) -> bool:
     """The pin is the mapping of exactly one projected direct specialization."""
-    children = [p for p in provisions if p.kind == "class" and p.layer == BATCH2_LAYER.name
+    children = [p for p in provisions if p.kind == "class" and p.layer == KERNEL_VOCABULARY_LAYER.name
                 and (p.spec or {}).get("sub_class_of") == name
                 and isinstance(p.mapping, KernelFileMapping)]
     return len(children) == 1 and children[0].mapping == pin.mapping
@@ -765,7 +765,7 @@ def compute_routing(*, provisions: list[Provision], successor_contract: Mapping[
         if existing is None:
             providers[name] = provision
             continue
-        if (existing.layer == BATCH2_LAYER.name and provision.layer == "successor-contract"
+        if (existing.layer == KERNEL_VOCABULARY_LAYER.name and provision.layer == "successor-contract"
                 and provision.kind == "class"
                 and _lineage_pin(name, provision, provisions)):
             # Endpoint lineage pin (trace-vocabulary contract): the class is
@@ -810,10 +810,10 @@ def load_register_rows(root: Path = ROOT) -> dict[str, dict[str, Any]]:
 # ---------------------------------------------------------------------------
 
 
-def o2_chain_records(root: Path = ROOT) -> list[dict[str, Any]]:
+def frozen_record_receipts(root: Path = ROOT) -> list[dict[str, Any]]:
     """Path, schema, source revision and sha256 of every frozen chain file."""
     records = []
-    for relative, schema in O2_PROJECTION_CHAIN + O2_PROFILE_CHAIN:
+    for relative, schema in FROZEN_PROJECTION_RECORDS + FROZEN_PROFILE_RECORDS:
         path = Path(root) / relative
         try:
             raw = path.read_bytes()
@@ -828,18 +828,18 @@ def o2_chain_records(root: Path = ROOT) -> list[dict[str, Any]]:
     return records
 
 
-def load_o2_chain_rows(root: Path = ROOT) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+def load_frozen_record_rows(root: Path = ROOT) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
     """Projection rows and profile entries of the frozen chain (later wins)."""
     rows: dict[str, dict[str, Any]] = {}
     entries: dict[str, dict[str, Any]] = {}
-    for relative, _schema in O2_PROJECTION_CHAIN:
+    for relative, _schema in FROZEN_PROJECTION_RECORDS:
         document = json.loads((Path(root) / relative).read_text(encoding="utf-8"))
         for section in ("concepts", "predicates"):
             for row in document.get(section, []):
                 identity = row.get("identity") or row.get("for_concept")
                 if identity:
                     rows[identity] = row
-    for relative, _schema in O2_PROFILE_CHAIN:
+    for relative, _schema in FROZEN_PROFILE_RECORDS:
         document = json.loads((Path(root) / relative).read_text(encoding="utf-8"))
         for entry in document.get("profiles", []):
             identity = entry.get("for_identity") or entry.get("for_concept")
@@ -848,16 +848,16 @@ def load_o2_chain_rows(root: Path = ROOT) -> tuple[dict[str, dict[str, Any]], di
     return rows, entries
 
 
-def o2_chain_provisions(root: Path = ROOT) -> list[Any]:
+def frozen_record_provisions(root: Path = ROOT) -> list[Any]:
     """The 13 migrated identities as providers from the frozen O2 chain.
 
     Same construction as the O3 authority facade: semantics from the
     Semantic Projection row, mechanics from the Representation Profile entry;
     a partial provider is refused.
     """
-    rows, entries = load_o2_chain_rows(root)
+    rows, entries = load_frozen_record_rows(root)
     provisions = []
-    for name in O2_CHAIN_RELATIONSHIPS:
+    for name in FROZEN_RECORD_RELATIONSHIPS:
         row, entry = rows.get(name), entries.get(name)
         if row is None or entry is None:
             raise ModelAuthorityRefused(f"frozen O2-chain identity {name!r} lacks a Projection row or Profile entry")
@@ -874,9 +874,9 @@ def o2_chain_provisions(root: Path = ROOT) -> list[Any]:
                                       configuration=mechanics, domain=domain, range=range_)
         spec = {"sysml_mapping": {"strategy": strategy, **mechanics}, "domain": domain,
                 "range": range_, "semantic_strength": strength}
-        provisions.append(Provision(name, "relationship", O2_CHAIN_LAYER, spec=spec,
+        provisions.append(Provision(name, "relationship", FROZEN_RECORD_LAYER, spec=spec,
                                     relationship=mapping))
-    for name in O2_CHAIN_CLASSES:
+    for name in FROZEN_RECORD_CLASSES:
         row = rows.get(name)
         if row is None:
             raise ModelAuthorityRefused(f"frozen O2-chain class {name!r} lacks a Projection row")
@@ -893,7 +893,7 @@ def o2_chain_provisions(root: Path = ROOT) -> list[Any]:
             if not source_file or not declaration:
                 raise ModelAuthorityRefused(f"frozen O2-chain class {name!r} lacks a file/declaration grounding")
             mapping = KernelFileMapping(source_file, declaration)
-        provisions.append(Provision(name, "class", O2_CHAIN_LAYER, mapping=mapping))
+        provisions.append(Provision(name, "class", FROZEN_RECORD_LAYER, mapping=mapping))
     return provisions
 
 
@@ -949,8 +949,8 @@ TRACE_CONTRACT_FIELDS = ("schema", "supersedes", "classes", "carriers", "relatio
 #: whose class pins it is checked against.
 TRACE_CONTRACT_INPUTS: tuple[str, ...] = (
     TRACE_CONTRACT_PATH,
-    *(path for spec in LAYERS + BATCH2_LAYERS for path in (spec.projection_path, spec.profile_path)),
-    *(path for path, _schema in O2_PROJECTION_CHAIN + O2_PROFILE_CHAIN),
+    *(path for spec in LAYERS + KERNEL_VOCABULARY_LAYERS for path in (spec.projection_path, spec.profile_path)),
+    *(path for path, _schema in FROZEN_PROJECTION_RECORDS + FROZEN_PROFILE_RECORDS),
 )
 _TRACE_DOCUMENT_FIELDS = frozenset({"schema", "warning", "contract"})
 _TRACE_RELATION_FIELDS = frozenset({"predicate", "carrier", "mechanism", "strength", "sourceClass",
@@ -1103,13 +1103,13 @@ def load_model_layers(root: Path = ROOT) -> tuple[list[dict[str, Any]], list[Any
 
 def _with_frozen_layer(root: Path, records: list[dict[str, Any]],
                        provisions: list[Provision]) -> tuple[list[dict[str, Any]], list[Provision]]:
-    frozen_provisions = o2_chain_provisions(root)
-    frozen_rows, frozen_entries = load_o2_chain_rows(root)
-    chain = {"layer": O2_CHAIN_LAYER, "frozen": True, "chain": o2_chain_records(root),
+    frozen_provisions = frozen_record_provisions(root)
+    frozen_rows, frozen_entries = load_frozen_record_rows(root)
+    chain = {"layer": FROZEN_RECORD_LAYER, "frozen": True, "chain": frozen_record_receipts(root),
              "semantic_sha256": _provisions_digest(
-                 frozen_provisions, rows=[frozen_rows[name] for name in O2_CHAIN_IDENTITIES],
-                 entries=[frozen_entries[name] for name in O2_CHAIN_IDENTITIES if name in frozen_entries]),
-             "identities": sorted(O2_CHAIN_IDENTITIES)}
+                 frozen_provisions, rows=[frozen_rows[name] for name in FROZEN_RECORD_IDENTITIES],
+                 entries=[frozen_entries[name] for name in FROZEN_RECORD_IDENTITIES if name in frozen_entries]),
+             "identities": sorted(FROZEN_RECORD_IDENTITIES)}
     return [chain] + records, frozen_provisions + list(provisions)
 
 
@@ -1210,8 +1210,8 @@ def build_model_contract(root: Path = ROOT) -> KernelContract:
     """
     root = Path(root)
     records, provisions = load_model_layers(root)
-    chain = [p for p in provisions if p.layer == O2_CHAIN_LAYER]
-    layered = [p for p in provisions if p.layer != O2_CHAIN_LAYER]
+    chain = [p for p in provisions if p.layer == FROZEN_RECORD_LAYER]
+    layered = [p for p in provisions if p.layer != FROZEN_RECORD_LAYER]
     successor = load_trace_contract(root, provisions=provisions)
     register = load_register_rows(root)
     routing = compute_routing(provisions=layered, successor_contract=successor,
@@ -1246,7 +1246,7 @@ def build_model_contract(root: Path = ROOT) -> KernelContract:
     layers = []
     for record in records:
         semantic_digest = record["semantic_sha256"]
-        if record.get("layer") == O2_CHAIN_LAYER:
+        if record.get("layer") == FROZEN_RECORD_LAYER:
             layers.extend((item["path"], semantic_digest) for item in record["chain"])
         else:
             layers.extend(((record["projection"]["path"], semantic_digest),
@@ -1271,5 +1271,5 @@ def build_model_contract(root: Path = ROOT) -> KernelContract:
 
 __all__ = ["build_model_contract", "contract_content", "load_trace_contract", "trace_contract_id",
            "trace_contract_payload", "TRACE_CONTRACT_INPUTS", "TRACE_CONTRACT_PATH", "TRACE_CONTRACT_SCHEMA",
-           "load_kernel_exclusions", "load_model_layers", "model_class_pins", "o2_chain_provisions",
-           "o2_chain_records", "register_refusals", "O2_CHAIN_IDENTITIES", "O2_CHAIN_LAYER"]
+           "load_kernel_exclusions", "load_model_layers", "model_class_pins", "frozen_record_provisions",
+           "frozen_record_receipts", "register_refusals", "FROZEN_RECORD_IDENTITIES", "FROZEN_RECORD_LAYER"]

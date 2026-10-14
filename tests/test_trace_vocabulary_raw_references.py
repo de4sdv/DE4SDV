@@ -1,10 +1,10 @@
-"""R1 synthetic raw-reference regressions, not licensed model closure."""
+"""Synthetic raw-reference regressions, not licensed model closure."""
 from typing import Any
 
 import pytest
 
-from test_approved_relationship_successor import edge, fixture_service
-from test_relationship_successor_consumer import (
+from test_trace_vocabulary_traversal import edge, fixture_service
+from test_trace_vocabulary_supplied_api import (
     extension_binding, http_service, supplied_synthetic_api,
 )
 

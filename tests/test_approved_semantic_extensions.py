@@ -11,7 +11,7 @@ import re
 
 import pytest
 
-from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
+from de4sdv.semantic.model_contract import FROZEN_RECORD_IDENTITIES as MIGRATED_IDENTITIES
 from model_contract_fixtures import model_contract
 
 ROOT = Path(__file__).resolve().parents[1]
