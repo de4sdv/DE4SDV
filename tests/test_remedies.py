@@ -596,3 +596,22 @@ def test_a_population_remedy_names_an_untyped_parameter_by_its_keyword() -> None
     assert verifies["authoring"]["declarations"] == [
         "verification <name> { objective { verify <requirement of the increment>; } }"]
     assert evidence["authoring"]["declarations"] == ["verification <name>;"]
+
+
+def test_the_increment_lines_a_remedy_suggests_satisfy_the_identifier_and_problem_statement_checks() -> None:
+    """The remedy types the increment usage by the kernel definition itself, and says a specializing
+    definition is admitted too. Both forms meet incrementShortName and problemStatementSubject, which test
+    the type lineage and the usage's own typing, not a dedicated definition."""
+    scenario, _steps, _types = _kernel_scenario()
+    builder = scenario.builder
+    kernel = scenario.vocabulary["EngineeringIncrement"]
+    problem = next(e for e in builder.elements if e.get("declaredName") == "fixtureProblemStatement")
+    for typed in (scenario.usage, builder.feature_of(problem, "increment")):  # retype both by the kernel definition
+        for typing in [e for e in builder.elements if e.get("@type") == "FeatureTyping"
+                       and e.get("typedFeature", {}).get("@id") == typed["@id"]]:
+            typing["type"] = typing["general"] = {"@id": kernel["@id"]}
+    evaluation = _evaluate(scenario)
+    verdicts = {u.unit_id: u.verdict for u in evaluation.canonical.units}
+    assert verdicts["incrementHasIdentifier"] == me.VERDICT_PASS
+    assert verdicts["incrementHasProblemStatement"] == me.VERDICT_PASS
+    assert evaluation.scope.definition_ids == (kernel["@id"],)
