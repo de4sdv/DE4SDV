@@ -77,6 +77,16 @@ The three evaluation tools project one evaluation of the increment, so their
 answers carry the same `evaluation_key`. Each answer also says what it
 covers: see coverage and revision below.
 
+To learn a definition an answer names, pass its qualified name to
+`inspect_element`: a check's `subject_type`, a step parameter's `type` or a
+step's `definition`, for example `DE4SDV_IncrementWorkflow::IncrementCharter`.
+It lists the definition's owned and inherited features with their keywords,
+types and multiplicities, and an enumeration's values, such as the 13
+`MethodPhase` literals (see
+[name an element, describe a definition](query-the-public-model-via-mcp.md#name-an-element-describe-a-definition)).
+A `subject_type` without `::`, such as `ConcernUsage`, is the SysML metaclass
+of an untyped parameter, not a model element.
+
 ## How the answers are built
 
 - **Identity.** The increment is the part usage in the `EngineeringIncrement`
