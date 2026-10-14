@@ -1,8 +1,8 @@
-/* DE4SDV method-conformance kernel vocabulary (Lane B).
+/* DE4SDV method-conformance kernel vocabulary.
  *
  * Typed model-resident vocabulary for method-contract objects and
  * evaluation scopes, per the frozen conformance baseline (Sections 6-7)
- * and the accepted Package A specification (docs/method-conformance/).
+ * and the accepted method-evaluation specification (docs/method-evaluation/).
  *
  * Representation decision (frozen baseline Section 7: "the first
  * implementation increment must choose and prove its native

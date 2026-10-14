@@ -359,7 +359,7 @@ package DE4SDV_AEBSNeedsRequirements {
           from reqKeepProductLineClassificationExplicit
           to vehicleTargetAEBSFunctionalFlow;
 
-        /* Successor responsibility assignments are native AllocationUsage facts.
+        /* Responsibility assignments (allocatedTo) are native AllocationUsage facts.
          * Existing specification dependencies above retain their weaker meaning.
          * Use the SAME logical architecture functionalFlow occurrence, not a
          * second copy of its function: this allows witnessed R/F then F/L paths.

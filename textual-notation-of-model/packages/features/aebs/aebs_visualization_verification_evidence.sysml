@@ -201,8 +201,8 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
    * Success criteria: requirement attributes, not separate elements
    * ────────────────────────────────────────── */
 
-  /* Owner decision 2026-10-10: success criteria are part of the requirement
-   * (INCOSE A6, attribute successCriteria in DE4SDV_AEBSVisualizationNeedsRequirements).
+  /* Success criteria are part of the requirement (INCOSE A6, attribute
+   * successCriteria in DE4SDV_AEBSVisualizationNeedsRequirements).
    * The seven requirement-specific criteria AC-AEBS-S2-001..007 moved there,
    * one to one, and their IDs are retired; REQ-AEBS-S2-015..018, -020 and -021
    * state their success criteria there directly.
