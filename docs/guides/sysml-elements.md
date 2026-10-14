@@ -51,8 +51,8 @@ part incMW007 : FeatureIncrement {
 - Framing files additionally use `ProblemStatement`, `IncrementScope`,
   `IncrementEngineeringQuestion`, and `IncrementLifecycleDecision` parts.
   Trace obligations are declared with an `IncrementTraceObligations` part
-  (selected approved method, increment, scope kind, phases, completion
-  claim); the traces themselves are the slice's native relationships. The
+  (the increment and its applicable phases); the traces themselves are the
+  slice's native relationships. The
   former `IncrementTraceabilityShell` string shell is retired (see
   [W6 transition record](https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/docs/method-conformance/o4/w6-transition-record.md)).
 

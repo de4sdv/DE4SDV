@@ -34,7 +34,6 @@ OTHER_LAYERS = {
     ],
     "definition-batch-1": [(DATA + "class-definition-projection.json", ("rows",))],
     "o2plus": [(DATA + "native-grounding-projection.json", ("rows",))],
-    "vocabulary-carriers": [(DATA + "increment-relationship-projection.json", ("rows",))],
 }
 NEW_SUCCESSOR_PREDICATES = {"hasValidationScenario", "hasRegulatorySource"}
 MERGED_ALIASES = {"validatesFitnessForUse"}
@@ -150,7 +149,8 @@ def test_every_retained_row_and_ontology_identity_has_exactly_one_provider():
     assert all(entry["accounting"] != "retained" for entry in exceptions.values())
     for identity, entry in exceptions.items():
         assert register[identity]["accounting_status"] == entry["accounting"]
-    assert set(exceptions) == {"IncrementTraceabilityShell", "derivesNeedFromConcern"}
+    assert set(exceptions) == {"IncrementTraceabilityShell", "derivesNeedFromConcern", "addressesConcern",
+                               "producesView", "recordsAssumption", "recordsGap", "selectedViewpoint"}
     retained = {i for i, r in register.items() if r["accounting_status"] == "retained"}
     assert retained <= set().union(*layers.values())
 
@@ -171,7 +171,7 @@ def test_projection_scope_echoes_the_owner_visible_exceptions():
 
 
 def test_manifest_held_contract_fields_equal_the_recorded_values():
-    """The manifest holds 54 rows' contract fields itself instead of the model
+    """The manifest holds 50 rows' contract fields itself instead of the model
     (the model does not carry them structurally): kernel mapping, subclass and
     disjointness pins, and
     relation domain/range/direction/strength with mechanics. They feed the served
@@ -184,7 +184,7 @@ def test_manifest_held_contract_fields_equal_the_recorded_values():
     rows = _rows()
     assert set(recorded["entries"]) == set(rows)
     held = {identity: entry for identity, entry in recorded["entries"].items() if entry["manifest"]}
-    assert len(held) == recorded["rows_with_manifest_held_contract_fields"] == 54
+    assert len(held) == recorded["rows_with_manifest_held_contract_fields"] == 50
     for identity, row in rows.items():
         entry = recorded["entries"][identity]
         assert row["admission_class"] == entry["admission_class"], identity
@@ -220,7 +220,7 @@ def test_every_contract_row_is_labeled_manifest_held():
                 assert "reviewed admission-manifest" in source, identity
                 assert "closure/contract-equivalence.json" in source, identity
                 assert "test-locked to the authored ontology" not in source, identity
-    assert labeled == 54
+    assert labeled == 50
 
 
 def test_successors_and_retired_names_follow_the_relationship_redesign():

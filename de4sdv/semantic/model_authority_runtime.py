@@ -2,9 +2,9 @@
 
 The semantic authority is the model-built kernel contract
 (:mod:`de4sdv.semantic.model_contract`): the live definition mappings,
-native and library vocabulary projection/profile pairs, vocabulary carriers,
-the frozen historical chain records, the generated trace-vocabulary contract
-and the kernel-internal declarations manifest. Its identity is the
+native and library vocabulary projection/profile pairs, the frozen historical
+chain records, the generated trace-vocabulary contract and the kernel-internal
+declarations manifest. Its identity is the
 ``sai-`` semantic-authority id. There is no authored ontology, no O3 component
 and no other authority: retired and refused identities answer only with
 their disposition.

@@ -15,13 +15,6 @@ to the few feature files that witness a projected concept, to an admission
 manifest, or to the Syside version pin in
 `.github/workflows/privileged-syside-validation.yml`.
 
-One exception: the five `connection def`s in
-`de4sdv_method_vocabulary_carriers.sysml` must keep a `doc` comment equal to
-their reviewed definition in
-`de4sdv/semantic/contract-data/ontology-review.json`. Changing
-that text is a review change, not a regeneration; the vocabulary generator
-refuses until both agree.
-
 ## Regenerate, check, commit once
 
 From the repository root, with the pinned dependencies installed:
@@ -30,7 +23,6 @@ From the repository root, with the pinned dependencies installed:
 sysand sync
 python scripts/generate_definition_projection.py --batch all
 python scripts/generate_native_grounding_projection.py
-python scripts/generate_vocabulary_carriers.py
 python scripts/generate_trace_vocabulary_contract.py
 python scripts/check_repo.py
 python scripts/smoke_test.py
@@ -39,11 +31,10 @@ python -m pytest tests -q -p no:cacheprovider
 python tools/run_bench_unit_tests.py
 ```
 
-Run the generators in this order. The vocabulary generator checks its
-relationship ends against the class files the first two write; it never
-reads its own output. The trace-vocabulary generator runs last: it reads the
-relation and retirement records of `de4sdv_trace_vocabulary.sysml` and checks
-their endpoint classes against the class pins of all the layers before it.
+Run the generators in this order. The trace-vocabulary generator runs
+last: it reads the relation and retirement records of
+`de4sdv_trace_vocabulary.sysml` and checks their endpoint classes against the
+class pins of all the layers before it.
 The runtime reads its output, `trace-vocabulary-contract.json`, and never
 parses the model.
 

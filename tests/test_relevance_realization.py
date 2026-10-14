@@ -874,15 +874,15 @@ class TestDocumentAndBoundaryLaws:
     def test_concern_need_retirement_mechanics_unchanged(self):
         """derivesNeedFromConcern: O4 Wave C2 refuses it with its register
         disposition (owner decision D5, intentional migration from the former
-        vocabulary-only gap); addressesConcern stays vocabulary-only."""
+        vocabulary-only gap). addressesConcern, removed because no model
+        element used it, is refused the same way."""
         from de4sdv.semantic.kernel_contract import RetiredIdentityError
 
         source = TRAVERSAL_SOURCE.read_text(encoding="utf-8")
         assert "derivesNeedFromConcern" not in source
-        with pytest.raises(RetiredIdentityError, match="register disposition REMOVE"):
-            _contract().relationship_mapping("derivesNeedFromConcern")
-        with pytest.raises(KeyError, match="no SysML mapping"):
-            _contract().relationship_mapping("addressesConcern")
+        for name in ("derivesNeedFromConcern", "addressesConcern"):
+            with pytest.raises(RetiredIdentityError, match="register disposition REMOVE"):
+                _contract().relationship_mapping(name)
 
     def test_runtime_does_not_read_the_inventory(self):
         assert "never imported by the semantic runtime" in (ai.__doc__ or "").lower()

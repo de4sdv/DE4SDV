@@ -15,14 +15,8 @@ from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENT
 from model_contract_fixtures import model_contract
 
 ROOT = Path(__file__).resolve().parents[1]
-MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml"
 KERNEL_VOCABULARY_PROJECTION = "de4sdv/semantic/contract-data/kernel-vocabulary-projection.json"
-ASSURANCE_RECORDS = (
-    "EvidenceSupportCitation",
-    "ScopedVVActivityRecord",
-    "ScopedEvidenceAdequacyAssessment",
-)
-TRACE_RECORDS = ("ApprovedTraceMethod", "IncrementTraceObligations")
+TRACE_RECORDS = ("IncrementTraceObligations",)
 TRACE_MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml"
 RELATIONSHIP_MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml"
 RELATIONSHIP_EXTENSIONS = {
@@ -34,7 +28,7 @@ RELATIONSHIP_EXTENSIONS = {
     "ValidationPlanningAssociation": "connection def ValidationPlanningAssociation",
     "RegulatorySourceAssociation": "connection def RegulatorySourceAssociation",
 }
-EXTENSIONS = ASSURANCE_RECORDS + TRACE_RECORDS + tuple(RELATIONSHIP_EXTENSIONS)
+EXTENSIONS = TRACE_RECORDS + tuple(RELATIONSHIP_EXTENSIONS)
 
 
 def _observation(identity):
@@ -42,15 +36,6 @@ def _observation(identity):
     definition = rows[identity]["definition"]
     assert isinstance(definition["documentation"], str) and definition["documentation"].strip(), identity
     return definition["documentation_observation"]
-
-
-@pytest.mark.parametrize("identity", ASSURANCE_RECORDS)
-def test_assurance_extension_has_exact_model_mapping_and_no_closure_promotion(identity):
-    contract = model_contract()
-    assert contract.classes[identity]["kernel"] == {
-        "file": MODEL, "declaration": f"item def {identity}"}
-    assert _observation(identity) == "model-owned-documentation"
-    assert identity not in MIGRATED_IDENTITIES
 
 
 def test_historical_ontology_review_population_is_not_silently_expanded():

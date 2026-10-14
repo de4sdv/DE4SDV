@@ -5,7 +5,7 @@ runtime, ingestion, validators and gates consume from model-generated sources
 only:
 
 - the live projection layers (definition batch 1 and batch 2, O2+ native and
-  library rows, vocabulary carriers);
+  library rows);
 - the frozen O2-chain layer: the O2 v1-v1.2 Semantic Projection / API
   Representation Profile records (frozen O2 records, owner decision Q7) for
   the 13 identities the O3 cutover migrated. They are read-only data; their
@@ -128,11 +128,6 @@ LAYERS: tuple[LayerSpec, ...] = (
               "de4sdv.semantic-projection.o2plus/v1",
               "de4sdv/semantic/contract-data/native-grounding-profile.json",
               "de4sdv.api-representation-profile.o2plus/v1"),
-    LayerSpec("vocabulary-carrier",
-              "de4sdv/semantic/contract-data/increment-relationship-projection.json",
-              "de4sdv.vocabulary-carrier-projection/v1",
-              "de4sdv/semantic/contract-data/increment-relationship-profile.json",
-              "de4sdv.vocabulary-carrier-profile/v1"),
 )
 
 #: Definition-admission batch 2 (generator and schema owned by the admission
@@ -232,7 +227,6 @@ _PROJECTION_DOCUMENT_FIELDS = {
     "definition": _DOCUMENT_COMMON_FIELDS | {"scope", "rows"},
     "definition-batch2": _DOCUMENT_COMMON_FIELDS | {"scope", "rows"},
     "o2plus": _DOCUMENT_COMMON_FIELDS | {"scope", "rows"},
-    "vocabulary-carrier": _DOCUMENT_COMMON_FIELDS | {"candidates", "admitted", "rows"},
 }
 _PROFILE_DOCUMENT_FIELDS = _DOCUMENT_COMMON_FIELDS | {"entries"}
 _DOCUMENT_PROVENANCE_FIELDS = frozenset({"binding"})
@@ -524,19 +518,6 @@ def _o2plus_provider(row: Mapping[str, Any], layer: str) -> Provision:
     raise ModelAuthorityRefused(f"{identity}: unsupported O2+ category {category!r}")
 
 
-def _carrier_provider(row: Mapping[str, Any], layer: str) -> Provision:
-    identity = _row_identity(row)
-    domain_record = _object(row.get("domain"), f"{identity}: carrier domain")
-    range_record = _object(row.get("range"), f"{identity}: carrier range")
-    domain = _token(domain_record.get("identity"), f"{identity}: domain identity")
-    range_ = _token(range_record.get("identity"), f"{identity}: range identity")
-    carrier = _file_mapping(row.get("carrier"), identity)
-    spec = {"domain": domain, "range": range_,
-            "carrier": {"file": carrier.file, "declaration": carrier.declaration},
-            "support": _token(row.get("support", "vocabulary-only"), f"{identity}: support")}
-    return Provision(identity, "relationship", layer, spec=spec)
-
-
 def _live_record_index(document: Mapping[str, Any], spec: LayerSpec, *,
                        profile: bool) -> dict[str, Mapping[str, Any]]:
     section, role = ("entries", "profile") if profile else ("rows", "projection")
@@ -581,8 +562,6 @@ def _layer_provisions(spec: LayerSpec, projection: dict[str, Any],
     for identity, row in rows.items():
         if spec.name == "o2plus":
             result.append(_o2plus_provider(row, spec.name))
-        elif spec.name == "vocabulary-carrier":
-            result.append(_carrier_provider(row, spec.name))
         elif spec.name == BATCH2_LAYER.name:
             result.append(_batch2_provider(row, entries.get(identity), spec.name))
         else:
@@ -1124,38 +1103,6 @@ def _with_frozen_layer(root: Path, records: list[dict[str, Any]],
                  entries=[frozen_entries[name] for name in O2_CHAIN_IDENTITIES if name in frozen_entries]),
              "identities": sorted(O2_CHAIN_IDENTITIES)}
     return [chain] + records, frozen_provisions + list(provisions)
-
-
-def _carrier_class_mappings(root: Path) -> dict[str, Any]:
-    """Construction-only class pins without consuming the carrier outputs.
-
-    The omitted layer provides relationships, never classes. Preserve the
-    normal source, successor, duplicate and refusal rules for class mappings;
-    this partial routing is not a runtime authority or coverage result.
-    """
-    specs = tuple(spec for spec in LAYERS + BATCH2_LAYERS
-                  if spec.name != "vocabulary-carrier")
-    records, provisions = _with_frozen_layer(root, *_read_projection_layers(root, specs))
-    successor = load_trace_contract(root, provisions=provisions)
-    register = load_register_rows(root)
-    routing = compute_routing(
-        provisions=[p for p in provisions if p.layer != O2_CHAIN_LAYER],
-        successor_contract=successor, register_rows=register,
-        seed=[p for p in provisions if p.layer == O2_CHAIN_LAYER],
-    )
-    if routing.duplicates:
-        raise ModelAuthorityRefused("duplicate providers: " + "; ".join(routing.duplicates))
-    refused = set(register_refusals(register)) | set(successor.get("retired") or ()) | set(routing.retired_names)
-    mappings = {}
-    for name, provision in routing.providers.items():
-        if provision.kind != "class":
-            continue
-        if name in refused:
-            raise ModelAuthorityRefused(f"{name}: refused identity has a construction class provider")
-        mappings[name] = provision.mapping
-    if not mappings:
-        raise ModelAuthorityRefused("carrier construction has no class providers")
-    return mappings
 
 
 def load_kernel_exclusions(root: Path = ROOT) -> tuple[str, dict[str, dict[str, str]]]:

@@ -50,77 +50,31 @@ package DE4SDV_IncrementWorkflow {
     }
   }
 
-  enum def TraceCompletionClaim {
-    framingReady;
-    requirementsReady;
-    architectureReady;
-    evidenceReady;
-    baselineReady;
-  }
-
-  part def ApprovedTraceMethod {
-    doc /* Selected approved method identity. Selecting this reference does not
-         * establish conformance, approval of a candidate, or an engineering trace. */
-  }
-
-  part approvedScopedTraceMethod : ApprovedTraceMethod {
-    doc /* de4sdv.scope-traces.v1: the approved trace method an increment
-         * charter selects. Its applicability follows the charter's scope kind,
-         * applicable phases and completion claim; there is no universal
-         * concern-to-baseline chain and no implicit transitive claim.
-         *
-         * Phase obligations: phase 0 requires the increment, its declared
-         * scope, problem statement, engineering question and lifecycle
-         * decision; phase 1 stakeholders and concerns; phase 2 the operational
-         * context; phase 3 the capability classification; phase 4 the need
-         * origin; phase 5 the requirement derivation; phase 6 requirement to
-         * function; phase 7 function to logical element; phase 8 logical to
-         * physical element and the software-boundary mapping; phase 9
-         * configuration to assets; phase 10 verification to target and
-         * criterion to evidence; phase 11 publication provenance; phase 12 the
-         * baseline disposition. The framing scope covers phases 0 to 2 and the
-         * requirements scope 0 to 5; the functional, logical and physical
-         * scopes cover phase 6, 7 or 8, a combined architecture scope 6 to 8,
-         * configuration 9, evidence 10 and baseline 12. Additional declared
-         * phases add obligations and never remove the governed minimum. An
-         * architecture increment may reuse prior artifacts instead of
-         * creating requirements.
-         *
-         * No check reads this record: the method check evaluates the checks
-         * the workflow steps declare, over the increment's native
-         * relationships. Selecting this method establishes no conformance,
-         * acceptance, certification or SAF adoption.
-         */
-  }
-
   part def IncrementTraceObligations {
-    doc /* Scope declaration of an increment's trace obligations: the selected
-         * approved method, the increment, its declared scope kind, applicable
-         * phases and completion claim. Required traces derive from the selected
-         * approved method, not from candidate-selected easy checks. The traces
-         * themselves are the increment's native model relationships (owning
-         * membership, typing, requirement subject and stakeholder membership,
-         * HasStakeholder connections, framed concerns), never parallel reference
-         * slots in this declaration. Populating this declaration is not
-         * completion evidence. Reuse prior artifacts, preserve R/F/L/P, and do
-         * not invent realization or execution for early framing. Missing
-         * required traces block the corresponding claim unless an authorized
-         * visible disposition permits it. Unsupported or unavailable evaluation
-         * stays UNASSESSED, never synthetic PASS. */
+    doc /* Scope declaration of an increment's trace obligations: the increment
+         * and its applicable phases. Required traces derive from the checks
+         * that the workflow steps of those phases declare, not from
+         * candidate-selected easy checks. The traces themselves are the
+         * increment's native model relationships (owning membership, typing,
+         * requirement subject and stakeholder membership, HasStakeholder
+         * connections, framed concerns), never parallel reference slots in this
+         * declaration. Populating this declaration is not completion evidence.
+         * Reuse prior artifacts, preserve R/F/L/P, and do not invent realization
+         * or execution for early framing. Missing required traces block the
+         * corresponding claim unless an authorized visible disposition permits
+         * it. Unsupported or unavailable evaluation stays UNASSESSED, never
+         * synthetic PASS. */
     ref part increment : EngineeringIncrement;
-    ref part selectedMethod : ApprovedTraceMethod;
-    attribute scopeKind : ScalarValues::String;
     attribute applicablePhases[*] : MethodPhase;
-    attribute completionClaim : TraceCompletionClaim;
   }
 
   part def IncrementCharter :> IncrementTraceObligations {
-    doc /* Charter declaration of one increment: the inherited increment reference,
-         * trace method, scope kind, applicable phases and completion claim, plus the
-         * plain attributes owner, expected artifacts and expected review evidence, and
-         * the system of interest by reference. The expected artifacts name the
-         * top-level packages the checks evaluate; content elsewhere is never evaluated.
-         * The rest of the charter is native content of the increment package. */
+    doc /* Charter declaration of one increment: the inherited increment reference and
+         * applicable phases, plus the plain attributes owner, expected artifacts and
+         * expected review evidence, and the system of interest by reference. The
+         * expected artifacts name the top-level packages the checks evaluate; content
+         * elsewhere is never evaluated. The rest of the charter is native content of
+         * the increment package. */
     attribute owner : String;
     attribute expectedArtifacts : String[1..*];
     attribute expectedReviewEvidence : String[1..*];

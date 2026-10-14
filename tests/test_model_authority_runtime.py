@@ -489,14 +489,16 @@ def test_coverage_report_classifies_every_population_member():
 def test_coverage_refused_and_retired_carry_their_dispositions():
     report = coverage.build_report(ROOT)
     register = mar.load_register_rows(ROOT)
-    assert report["refused"] == ["IncrementTraceabilityShell", "derivesNeedFromConcern"]
+    removed = ["addressesConcern", "derivesNeedFromConcern", "producesView", "recordsAssumption", "recordsGap",
+               "selectedViewpoint"]
+    assert report["refused"] == sorted(["IncrementTraceabilityShell", *removed])
     assert {n: report["identities"][n]["register"]["final_disposition"] for n in report["refused"]} == {
-        "IncrementTraceabilityShell": "MERGE", "derivesNeedFromConcern": "REMOVE"}
+        "IncrementTraceabilityShell": "MERGE", **{name: "REMOVE" for name in removed}}
     assert report["retired"] == ["constrainedBy", "deployedTo", "realizedBy", "validatedBy",
                                  "validatesFitnessForUse"]
     for name in report["retired"]:
         assert report["identities"][name]["reason"].startswith("retired; use ")
-    assert report["summary"]["refused"] == 2 and report["summary"]["retired"] == 5
+    assert report["summary"]["refused"] == 7 and report["summary"]["retired"] == 5
     baseline = coverage.load_baseline(ROOT)
     assert baseline["refused"] == report["refused"] and baseline["retired"] == report["retired"]
     shrunk = dict(baseline, refused=["IncrementTraceabilityShell"])

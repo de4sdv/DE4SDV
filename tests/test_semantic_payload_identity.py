@@ -170,16 +170,13 @@ def _write_json(root, relative, value):
 @pytest.fixture
 def synthetic_layers_root(synthetic_successor_root):
     root = synthetic_successor_root
-    definition, o2plus, vocabulary = mc.LAYERS
+    definition, o2plus = mc.LAYERS
     batch2 = mc.BATCH2_LAYER
     rows = {
         definition.name: [{"identity": "Origin", "semantic_kind": "class",
                            "grounding": {"kernel_binding_contract": CLASS_PINS["Origin"]}}],
         o2plus.name: [{"identity": "SyntheticNative", "category": "native",
                       "construct": "SysML::PartUsage"}],
-        vocabulary.name: [{"identity": "documents", "domain": {"identity": "Origin"},
-                           "range": {"identity": "Destination"}, "support": "vocabulary-only",
-                           "carrier": {"file": PIN_FILE, "declaration": "connection def Documents"}}],
         batch2.name: [
             {"identity": "Destination", "semantic_kind": "class", "admission_class": "definition",
              "grounding": {"kernel_binding_contract": CLASS_PINS["Destination"]}},
@@ -206,8 +203,6 @@ def synthetic_layers_root(synthetic_successor_root):
                                                "binding": binding, "rows": rows[spec.name]})
         _write_json(root, spec.profile_path, {"schema": spec.profile_schema,
                                             "binding": binding, "entries": entries})
-    _write(root, PIN_FILE, (root / PIN_FILE).read_text().replace(
-        "\n}", "\n  connection def Documents {}\n}"))
     o2_classes = []
     for name in EXPECTED_FROZEN_RECORD_CLASSES:
         if name == "VerificationCase":
@@ -248,7 +243,7 @@ def test_authority_identity_ignores_live_git_binding_metadata(synthetic_layers_r
     before = mc.build_model_contract(root)
     assert set(before.classes) == set(EXPECTED_FROZEN_RECORD_CLASSES) | {"Origin", "Destination", "SyntheticNative"}
     assert set(before.relationships) == set(EXPECTED_FROZEN_RECORD_RELATIONSHIPS) | {
-        "documents", "describes", "linksTo", "linkedFrom"}
+        "describes", "linksTo", "linkedFrom"}
     assert dict(before.refused) == {
         "RemovedName": "refused: removed (register disposition REMOVE, synthetic); no replacement",
         "oldLink": "retired; use linkedFrom",
@@ -323,8 +318,6 @@ def test_live_document_wrapper_meaning_is_identity_sensitive(synthetic_layers_ro
     (mc.LAYERS[0], "scope", {"admitted": ["Origin"], "note": "bounded synthetic admission"}),
     (mc.BATCH2_LAYER, "scope", {"admitted": ["Destination"], "exceptions": []}),
     (mc.LAYERS[1], "scope", {"projection_rows": ["SyntheticNative"], "api_profile_entries": []}),
-    (mc.LAYERS[2], "candidates", ["documents", "unadmitted"]),
-    (mc.LAYERS[2], "admitted", ["documents"]),
 ])
 def test_live_document_scope_and_population_meaning_is_identity_sensitive(synthetic_layers_root, spec, field, value):
     root = synthetic_layers_root
@@ -459,8 +452,6 @@ def test_successor_semantic_changes_alter_both_ids(synthetic_layers_root, old, n
     (mc.BATCH2_LAYER.projection_path, '"semantic_strength": "declared"', '"semantic_strength": "native"'),
     (mc.BATCH2_LAYER.profile_path, '"property": "ownedMember"', '"property": "memberElement"'),
     (mc.LAYERS[1].projection_path, '"SysML::PartUsage"', '"SysML::ItemUsage"'),
-    (mc.LAYERS[2].projection_path, '"vocabulary-only"', '"unsupported"'),
-    (mc.LAYERS[2].projection_path, '"connection def Documents"', '"connection def OtherDocuments"'),
     ("de4sdv/semantic/contract-data/ontology-identity-register.json", '"no replacement"', '"explicitly removed"'),
 ])
 def test_served_contract_semantic_changes_alter_authority_id(synthetic_layers_root, path, old, new):
@@ -570,7 +561,7 @@ def test_live_profile_missing_collection_refuses_public_loader(synthetic_layers_
         mc.KernelContract.from_layers(root)
 
 
-@pytest.mark.parametrize("spec", [mc.LAYERS[0], mc.LAYERS[2], mc.BATCH2_LAYER])
+@pytest.mark.parametrize("spec", [mc.LAYERS[0], mc.BATCH2_LAYER])
 def test_live_profile_complete_pairs_refuse_missing_row_entry(synthetic_layers_root, spec):
     root = synthetic_layers_root
     document = json.loads((root / spec.profile_path).read_text())
@@ -718,10 +709,6 @@ def test_optional_kernel_vocabulary_absent_pair_stays_optional(synthetic_layers_
     (mc.LAYERS[1], False, 0, ("grounding", "witness", "contains"), ["part def Origin"]),
     (mc.LAYERS[1], False, 0, ("outputs",), ["bad"]),
     (mc.LAYERS[1], False, 0, ("outputs", "api_profile_entry"), "true"),
-    (mc.LAYERS[2], False, 0, ("domain",), ["Origin"]),
-    (mc.LAYERS[2], False, 0, ("range",), ["Destination"]),
-    (mc.LAYERS[2], False, 0, ("domain", "identity"), ["Origin"]),
-    (mc.LAYERS[2], False, 0, ("range", "identity"), 17),
 ])
 def test_live_provider_malformed_consumed_shapes_refuse_public_loader(
         synthetic_layers_root, spec, profile, index, keys, value):

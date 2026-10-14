@@ -3,9 +3,9 @@
 # ADMITTED (engineering evidence). The admitted family is DERIVED, not
 # hand-picked (tests, fail-closed, both directions):
 #   * every retained O4 register row (not O3-complete) that no other generated
-#     layer projects (O2 chain, definition batch 1, O2+, W4 carriers);
+#     layer projects (O2 chain, definition batch 1, O2+);
 #   * every former authored-ontology class that is not an O4 register row
-#     (successor and scoped-assurance classes);
+#     (successor classes and the trace-obligation declaration);
 #   * the owner-approved W6 successor predicates hasValidationScenario and
 #     hasRegulatorySource (allocatedTo is a register row), and the retired
 #     name validatesFitnessForUse (merged register row with a model retirement
@@ -63,6 +63,41 @@ exceptions:
     home by design. Since O4 Wave C2 the runtime refuses the name with its
     register disposition (owner decision D5; an intentional migration from the
     former preserved gap).
+- identity: addressesConcern
+  accounting: removed
+  reason: >-
+    Removed register row: a vocabulary-only relation that no model element
+    used. Its connection definition and its generated projection were
+    deleted from the method kernel, so it has no model home. The runtime
+    refuses the name with its register disposition.
+- identity: producesView
+  accounting: removed
+  reason: >-
+    Removed register row: a vocabulary-only relation that no model element
+    used. Its connection definition and its generated projection were
+    deleted from the method kernel, so it has no model home. The runtime
+    refuses the name with its register disposition.
+- identity: recordsAssumption
+  accounting: removed
+  reason: >-
+    Removed register row: a vocabulary-only relation that no model element
+    used. Its connection definition and its generated projection were
+    deleted from the method kernel, so it has no model home. The runtime
+    refuses the name with its register disposition.
+- identity: recordsGap
+  accounting: removed
+  reason: >-
+    Removed register row: a vocabulary-only relation that no model element
+    used. Its connection definition and its generated projection were
+    deleted from the method kernel, so it has no model home. The runtime
+    refuses the name with its register disposition.
+- identity: selectedViewpoint
+  accounting: removed
+  reason: >-
+    Removed register row: a vocabulary-only relation that no model element
+    used. Its connection definition and its generated projection were
+    deleted from the method kernel, so it has no model home. The runtime
+    refuses the name with its register disposition.
 
 admitted:
 - identity: AcceptanceCriterion
@@ -109,26 +144,6 @@ admitted:
       file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml
       declaration: action def AllocatableFunction
     sub_class_of: Function
-    disjoint_with: []
-  gates: []
-  forward_obligations: []
-- identity: ApprovedTraceMethod
-  semantic_kind: class
-  admission_class: definition
-  register:
-    wave: null
-    accounting: unregistered
-  boundary: none
-  home:
-    form: owned-doc
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml
-    owner: part def ApprovedTraceMethod
-    index: 0
-  grounding:
-    kernel_mapping:
-      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml
-      declaration: part def ApprovedTraceMethod
-    sub_class_of: null
     disjoint_with: []
   gates: []
   forward_obligations: []
@@ -189,8 +204,8 @@ admitted:
   boundary: native-grounding
   home:
     form: named-doc
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
-    owner: package DE4SDV_ScopedAssurance
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    owner: package DE4SDV_MethodContext
     name: AssuranceClaimOntologyDefinition
     index: 0
   grounding:
@@ -290,8 +305,8 @@ admitted:
   boundary: native-grounding
   home:
     form: named-doc
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
-    owner: package DE4SDV_ScopedAssurance
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    owner: package DE4SDV_MethodContext
     name: EvidenceStatusOntologyDefinition
     index: 0
   grounding:
@@ -306,26 +321,6 @@ admitted:
     - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic4
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
-- identity: EvidenceSupportCitation
-  semantic_kind: class
-  admission_class: definition
-  register:
-    wave: null
-    accounting: unregistered
-  boundary: none
-  home:
-    form: owned-doc
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
-    owner: item def EvidenceSupportCitation
-    index: 0
-  grounding:
-    kernel_mapping:
-      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
-      declaration: item def EvidenceSupportCitation
-    sub_class_of: null
-    disjoint_with: []
-  gates: []
-  forward_obligations: []
 - identity: Feature
   semantic_kind: class
   admission_class: definition
@@ -637,46 +632,6 @@ admitted:
     - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic5
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
-- identity: ScopedEvidenceAdequacyAssessment
-  semantic_kind: class
-  admission_class: definition
-  register:
-    wave: null
-    accounting: unregistered
-  boundary: none
-  home:
-    form: owned-doc
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
-    owner: item def ScopedEvidenceAdequacyAssessment
-    index: 0
-  grounding:
-    kernel_mapping:
-      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
-      declaration: item def ScopedEvidenceAdequacyAssessment
-    sub_class_of: null
-    disjoint_with: []
-  gates: []
-  forward_obligations: []
-- identity: ScopedVVActivityRecord
-  semantic_kind: class
-  admission_class: definition
-  register:
-    wave: null
-    accounting: unregistered
-  boundary: none
-  home:
-    form: owned-doc
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
-    owner: item def ScopedVVActivityRecord
-    index: 0
-  grounding:
-    kernel_mapping:
-      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
-      declaration: item def ScopedVVActivityRecord
-    sub_class_of: null
-    disjoint_with: []
-  gates: []
-  forward_obligations: []
 - identity: Stakeholder
   semantic_kind: class
   admission_class: definition
@@ -823,8 +778,8 @@ admitted:
   boundary: external-content
   home:
     form: named-doc
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
-    owner: package DE4SDV_ScopedAssurance
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    owner: package DE4SDV_MethodContext
     name: EvidenceArtifactOntologyDefinition
     index: 0
   grounding:
@@ -869,8 +824,8 @@ admitted:
   boundary: external-content
   home:
     form: vocabulary-role
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
-    owner: package DE4SDV_ScopedAssurance
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    owner: package DE4SDV_MethodContext
     name: hasEvidenceVocabularyRole
     about:
     - EvidenceArtifactOntologyDefinition
@@ -947,11 +902,11 @@ admitted:
   boundary: historical-redesign
   home:
     form: vocabulary-role
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
-    owner: package DE4SDV_ScopedAssurance
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    owner: package DE4SDV_MethodContext
     name: hasEvidenceStatusVocabularyRole
     about:
-    - ScopedVVActivityRecord
+    - EvidenceStatusOntologyDefinition
     about_imports: {}
   relation:
     domain: EvidenceArtifact
@@ -1143,12 +1098,11 @@ admitted:
   boundary: none
   home:
     form: vocabulary-role
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_scoped_assurance.sysml
-    owner: package DE4SDV_ScopedAssurance
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    owner: package DE4SDV_MethodContext
     name: supportedByEvidenceVocabularyRole
     about:
-    - EvidenceSupportCitation
-    - ScopedEvidenceAdequacyAssessment
+    - AssuranceClaimOntologyDefinition
     about_imports: {}
   relation:
     domain: AssuranceClaim

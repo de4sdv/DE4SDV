@@ -206,15 +206,15 @@ excluded:
   - identity: specifiesCommonCapability
     reason: PLE-Q/S qualification + authorized PLE-A adoption not satisfied
   - identity: recordsGap
-    reason: W4 batch 1 treated (carrier definitions parity; carrier machinery + engineering-review acceptance delivered); not an O2+ row — representation belongs to the carrier Projection/Profile artifacts
+    reason: removed register row (a vocabulary-only relation no model element used; its carrier was deleted and the runtime refuses the name); not an O2+ row
   - identity: recordsAssumption
-    reason: W4 batch 1 treated (carrier definitions parity; carrier machinery + engineering-review acceptance delivered); not an O2+ row — representation belongs to the carrier Projection/Profile artifacts
+    reason: removed register row (a vocabulary-only relation no model element used; its carrier was deleted and the runtime refuses the name); not an O2+ row
   - identity: addressesConcern
-    reason: W4 batch 1 treated (carrier definitions parity; carrier machinery + engineering-review acceptance delivered); not an O2+ row — representation belongs to the carrier Projection/Profile artifacts
+    reason: removed register row (a vocabulary-only relation no model element used; its carrier was deleted and the runtime refuses the name); not an O2+ row
   - identity: selectedViewpoint
-    reason: W4 batch 1 treated (carrier definitions parity; carrier machinery + engineering-review acceptance delivered); not an O2+ row — representation belongs to the carrier Projection/Profile artifacts
+    reason: removed register row (a vocabulary-only relation no model element used; its carrier was deleted and the runtime refuses the name); not an O2+ row
   - identity: producesView
-    reason: W4 batch 1 treated (carrier definitions parity; carrier machinery + engineering-review acceptance delivered); not an O2+ row — representation belongs to the carrier Projection/Profile artifacts
+    reason: removed register row (a vocabulary-only relation no model element used; its carrier was deleted and the runtime refuses the name); not an O2+ row
   - identity: EvidenceArtifact
     reason: W5 batch 3 treated (external-reference acceptance recorded); not an O2+ row — external boundary retained
   - identity: hasEvidence

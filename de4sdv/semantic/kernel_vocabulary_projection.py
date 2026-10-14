@@ -5,9 +5,9 @@ It reads ``de4sdv/semantic/contract-data/kernel-vocabulary-admission.yaml`` and
 writes ``kernel-vocabulary-projection.json`` and ``kernel-vocabulary-profile.json``
 next to it. The admitted rows are every retained identity of the ontology
 identity register that no other source provides (the frozen records and the
-class-definition, native-grounding and increment-relationship pairs), the
-ontology-mapped classes that are not register rows (the successor and
-scoped-assurance classes), the new successor predicates
+class-definition and native-grounding pairs), the ontology-mapped classes that
+are not register rows (the successor classes and the trace-obligation
+declaration), the new successor predicates
 (``hasValidationScenario``, ``hasRegulatorySource``) and the merged retired name
 ``validatesFitnessForUse``. It is a separate pair from
 ``class-definition-projection.json`` / ``class-definition-profile.json``,
