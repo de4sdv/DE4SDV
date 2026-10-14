@@ -17,10 +17,11 @@ from de4sdv.sysml_api.errors import AmbiguousIdentityError, IdentityNotFoundErro
 from de4sdv.sysml_api.identity import resolve_identity
 from de4sdv.sysml_api.qualified_names import (
     QualifiedNameIndex,
+    escape_name,
     format_qualified_name,
     parse_qualified_name,
 )
-from increment_model_fixtures import ModelBuilder
+from increment_model_fixtures import ModelBuilder, ref
 
 
 def _corpus():
@@ -87,6 +88,23 @@ def test_an_owner_outside_the_corpus_leaves_no_qualified_name() -> None:
     assert index.resolve("Kind::inspect") == ()
 
 
+def test_only_an_owner_less_namespace_is_a_root() -> None:
+    """KerML: a root namespace is a Namespace without an owner. An unnamed element of
+    another metaclass without an owner lost its owner to the export boundary, so its
+    members have no complete chain of named namespaces and no qualified name."""
+    builder = ModelBuilder("orphan")
+    orphan = builder.new("PartUsage")  # unnamed, no owning relationship
+    speed = builder.usage("AttributeUsage", "speed", orphan, membership="FeatureMembership")
+    unit = builder.usage("AttributeUsage", "unit", speed, membership="FeatureMembership")
+    root = builder.new("Namespace")
+    package = builder.package("P", owner=root)
+    index = _index(builder)
+    assert index.qualified_name(speed["@id"]) is None
+    assert index.qualified_name(unit["@id"]) is None
+    assert index.resolve("speed::unit") == ()
+    assert index.qualified_name(package["@id"]) == "P"
+
+
 def test_a_member_owned_through_a_non_membership_relationship_has_no_qualified_name() -> None:
     builder, named = _corpus()
     feature = builder.new("ReferenceUsage", name="end1")
@@ -104,6 +122,24 @@ def test_names_that_are_not_basic_names_are_quoted_and_both_spellings_resolve() 
     for spelling in ("P::'exchange vehicle signals'", "P::exchange vehicle signals"):
         assert [found["@id"] for found in index.resolve(spelling)] == [spaced["@id"]]
     assert [found["@id"] for found in index.resolve("P::'it\\'s'")] == [quoted["@id"]]
+
+
+@pytest.mark.parametrize("keyword", ["end", "part", "ref", "def", "import", "about", "xor"])
+def test_reserved_words_are_quoted_and_both_spellings_resolve(keyword: str) -> None:
+    """SysML v2: a reserved word may not be used as a name although it has the form of
+    a basic name. The keywords here are taken from the SysML v2 reserved-keyword list."""
+    builder, named = _corpus()
+    element = builder.definition("PartDefinition", keyword, named["P"])
+    index = _index(builder)
+    assert escape_name(keyword) == f"'{keyword}'"
+    assert index.qualified_name(element["@id"]) == f"P::'{keyword}'"
+    for spelling in (f"P::'{keyword}'", f"P::{keyword}"):
+        assert [found["@id"] for found in index.resolve(spelling)] == [element["@id"]]
+
+
+def test_names_that_only_resemble_reserved_words_stay_basic() -> None:
+    for name in ("End", "endpoint", "part_", "Ref", "_def"):
+        assert escape_name(name) == name
 
 
 def test_a_short_name_stands_in_for_a_missing_name() -> None:
@@ -196,3 +232,76 @@ def test_a_served_qualified_name_still_resolves_first() -> None:
                  "qualifiedName": "PackageA::reqX"}]
     resolved = resolve_identity("PackageA::reqX", elements, qualified_names=QualifiedNameIndex(elements))
     assert (resolved.level, resolved.element["@id"]) == ("qualified-name-match", "req-a")
+
+
+def test_a_declared_name_that_contains_double_colons_must_be_quoted() -> None:
+    builder, named = _corpus()
+    element = builder.definition("PartDefinition", "A::B", named["P"])
+    index = _index(builder)
+    assert index.qualified_name(element["@id"]) == "P::'A::B'"
+    resolved = resolve_identity("P::'A::B'", builder.elements, qualified_names=index)
+    assert resolved.element["@id"] == element["@id"]
+    with pytest.raises(IdentityNotFoundError) as raised:
+        resolve_identity("A::B", builder.elements, qualified_names=index)
+    message = str(raised.value)
+    assert f"'A::B' is the declared name of PartDefinition {element['@id']}" in message
+    assert "quote it as one segment: P::'A::B'" in message
+
+
+def _reachable_corpus():
+    """Names SysML reaches through more than ownership, in the genuine export's shapes.
+
+    P owns incX (short name INC-X-001), Base (owning feature f), Sub :> Base,
+    Sub2 :> Base (owning g, which redefines f) and an alias BaseAlias for Base (a
+    non-owning Membership). Q imports P's membership of Base (a MembershipImport),
+    R imports P::* (a NamespaceImport).
+    """
+    builder = ModelBuilder("reachable")
+    root = builder.new("Namespace")
+    package = builder.package("P", owner=root)
+    increment = builder.usage("PartUsage", "incX", package, short="INC-X-001")
+    increment_membership = next(item for item in builder.elements
+                                if item["@id"] == increment["owningRelationship"]["@id"])
+    increment_membership["memberShortName"] = "INC-X-001"
+    base = builder.definition("PartDefinition", "Base", package)
+    feature = builder.usage("AttributeUsage", "f", base, membership="FeatureMembership")
+    sub = builder.definition("PartDefinition", "Sub", package, specializes=[base])
+    sub2 = builder.definition("PartDefinition", "Sub2", package, specializes=[base])
+    redefining = builder.usage("AttributeUsage", "g", sub2, membership="FeatureMembership")
+    builder.relationship("Redefinition", redefining, redefinedFeature=ref(feature),
+                         redefiningFeature=ref(redefining), general=ref(feature), specific=ref(redefining))
+    builder.relationship("Membership", package, memberElement=ref(base), memberName="BaseAlias",
+                         declaredName="BaseAlias")
+    importer = builder.package("Q", owner=root)
+    builder.relationship("MembershipImport", importer, importedMembership=ref(base["owningRelationship"]["@id"]),
+                         visibility="public")
+    namespace_importer = builder.package("R", owner=root)
+    builder.relationship("NamespaceImport", namespace_importer, importedNamespace=ref(package))
+    return builder, {"incX": increment, "Base": base, "f": feature, "Sub": sub, "Sub2": sub2, "g": redefining}
+
+
+@pytest.mark.parametrize(("identifier", "reason"), [
+    ("P::'INC-X-001'", "'INC-X-001' is the short name of an owned member of P; its qualified name is P::incX"),
+    ("P::INC-X-001", "'INC-X-001' is the short name of an owned member of P; its qualified name is P::incX"),
+    ("P::BaseAlias", "'BaseAlias' is an alias in P; the aliased element's qualified name is P::Base"),
+    ("P::Sub::f", "'f' is inherited by P::Sub from P::Base; its qualified name is P::Base::f"),
+    ("P::Sub2::f", "'f' is a feature of P::Base that P::Sub2 redefines (P::Sub2::g); its qualified name is P::Base::f"),
+    ("Q::Base", "'Base' is imported into Q (public import); its qualified name is P::Base"),
+    ("R::incX", "'incX' is imported into R (private import of P::*); its qualified name is P::incX"),
+])
+def test_a_refusal_names_the_canonical_name_of_a_member_reached_another_way(identifier: str, reason: str) -> None:
+    """Only ownership-qualified element names resolve. A short name, an alias, an
+    inherited feature or an imported membership is refused, never resolved; the
+    refusal says which it is and gives the canonical qualified name."""
+    builder, _named = _reachable_corpus()
+    with pytest.raises(IdentityNotFoundError) as raised:
+        resolve_identity(identifier, builder.elements, qualified_names=_index(builder))
+    assert reason in str(raised.value)
+
+
+def test_a_segment_reachable_no_other_way_keeps_the_plain_refusal() -> None:
+    builder, _named = _reachable_corpus()
+    with pytest.raises(IdentityNotFoundError) as raised:
+        resolve_identity("P::Sub::nothing", builder.elements, qualified_names=_index(builder))
+    assert "'P::Sub' is PartDefinition" in str(raised.value)
+    assert "has no owned member named 'nothing'" in str(raised.value)

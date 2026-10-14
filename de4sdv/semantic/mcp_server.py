@@ -29,8 +29,9 @@ def create_mcp_server(service: SemanticQueryService) -> FastMCP:
             "Read-only, revision-bound SysML v2 semantic queries. Results use "
             "ontology-declared mappings and preserve UUID/revision provenance. "
             "An identifier is an element UUID, a declared short name, an exact "
-            "qualified name such as DE4SDV_MethodContext::EngineeringIncrement, or a "
-            "unique bare name; inspect_element describes a definition's features. "
+            "qualified name such as DE4SDV_MethodContext::EngineeringIncrement (element "
+            "names along ownership), or a unique bare name; inspect_element describes a "
+            "definition's features. "
             "The method tools evaluate the bound revision only and state what "
             "they cover: a workflow phase without executable checks is reported, "
             "never evaluated, and an increment the revision does not declare is "
@@ -50,16 +51,20 @@ def create_mcp_server(service: SemanticQueryService) -> FastMCP:
         """Resolve one exact API identity, failing closed on ambiguity. `identifier` is a UUID, a
         declared short name (`INC-AEBS-010`), a qualified name (`DE4SDV_MethodContext::EngineeringIncrement`,
         as phase_contract and the Method Check print it; matched by every segment, never by a bare name)
-        or a unique bare name. An identity that is not found names the revision it searched."""
+        or a unique bare name. A qualified name resolves only through element names along ownership: a path
+        through a short name, an alias, an inherited or an imported member is refused, and the refusal gives
+        the canonical qualified name. An identity that is not found names the revision it searched."""
         return service.resolve_element(identifier, expected_type=expected_type)
 
     @mcp.tool(annotations=_READ_ONLY, structured_output=True)
     def inspect_element(identifier: str) -> dict[str, Any]:
         """Inspect one element without dumping the model; `identifier` as for resolve_element, for example
-        a qualified name. Returns its qualified name, `keyword`, owning package and documentation. For a
-        definition, `element.definition` adds its supertypes, its owned and inherited features (name,
-        keyword, type as a qualified name, multiplicity, value; `type_outside_export` when the type is not
-        in the export) and an enumeration definition's enumerated values."""
+        a qualified name (element names along ownership only; a short name, an alias, an inherited or an
+        imported member is refused with the canonical qualified name). Returns its qualified name,
+        `keyword`, owning package and documentation. For a definition, `element.definition` adds its
+        supertypes, its owned and inherited features (name, keyword, type as a qualified name,
+        multiplicity, value; `type_outside_export` when the type is not in the export) and an enumeration
+        definition's enumerated values."""
         return service.inspect_element(identifier)
 
     @mcp.tool(annotations=_READ_ONLY, structured_output=True)
@@ -103,8 +108,9 @@ def create_mcp_server(service: SemanticQueryService) -> FastMCP:
         declared inputs and outputs (`steps`; one with coverage "no executable checks at this revision" is
         never evaluated) and the executable checks (`gates`). Per gate, `population` bounds the number of
         subjects (the multiplicity of the step parameter) and `cardinality` the distinct targets each subject
-        must reach. With an increment, also whether each step and gate applies to it. No verdict. Pass a
-        `subject_type` or parameter `type` to inspect_element to see that definition."""
+        must reach. With an increment, also whether each step and gate applies to it. No verdict. A
+        `subject_type` containing `::` names a definition: pass it, or a parameter `type`, to inspect_element.
+        A `subject_type` without `::` is the SysML metaclass of an untyped parameter, not a model element."""
         return service.phase_contract(phase, increment=increment)
 
     @mcp.tool(annotations=_READ_ONLY, structured_output=True)

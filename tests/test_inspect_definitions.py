@@ -47,6 +47,10 @@ SOURCES = {
         "63c1a3efc36f77027fff2e22aa071ebc3ecdaddf4d23976e8662bcb45fc02654",
     "textual-notation-of-model/packages/features/aebs/aebs_visualization_needs_requirements.sysml":
         "765324cbefbbd5ccee25b621cda1e6a7a42344aec69a2dce48cf697dd7e72f91",
+    "textual-notation-of-model/packages/features/aebs/aebs_visualization_framing.sysml":
+        "5586ec7682fe6bdc77a394435c35bf05294cfba6071480b49538455c29fa8b46",
+    ".sysand/lib/ode4hera-requirements-management_2.0.1/RequirementsManagement.sysml":
+        "f7a480d6baed5b06eefb3be222608a616241eca5cf6dbde738f22ec00a9d3073",
 }
 OUTSIDE = "typed by an element outside this export"
 
@@ -306,11 +310,49 @@ def test_a_name_that_resolves_nowhere_says_which_revision_was_searched(cut, serv
     assert cut[0].revision.git_commit in message
 
 
+def test_a_refusal_points_from_a_short_name_an_inherited_feature_or_an_import_to_the_canonical_name(
+        service) -> None:
+    """Only ownership-qualified element names resolve; the refusal says how SysML reaches the
+    segment and gives the canonical qualified name, which resolves. Read from the sources:
+
+    - ``part <'INC-AEBS-010'> incAEBS010 : VisualizationIncrement`` in DE4SDV_AEBSVisualizationFraming;
+    - ``part def IncrementCharter :> IncrementTraceObligations``, whose ``ref part increment``
+      DE4SDV_MethodTraces declares;
+    - ``public import ReqStatus;`` in DE4SDV_MethodContext, for ``enum def ReqStatus`` of
+      ``library package RequirementsManagement``.
+    """
+    cases = {
+        "DE4SDV_AEBSVisualizationFraming::'INC-AEBS-010'": (
+            "'INC-AEBS-010' is the short name of an owned member of DE4SDV_AEBSVisualizationFraming; "
+            "its qualified name is", "DE4SDV_AEBSVisualizationFraming::incAEBS010"),
+        "DE4SDV_IncrementWorkflow::IncrementCharter::increment": (
+            "'increment' is inherited by DE4SDV_IncrementWorkflow::IncrementCharter from "
+            "DE4SDV_MethodTraces::IncrementTraceObligations; its qualified name is",
+            "DE4SDV_MethodTraces::IncrementTraceObligations::increment"),
+        "DE4SDV_MethodContext::ReqStatus": (
+            "'ReqStatus' is imported into DE4SDV_MethodContext (public import); its qualified name is",
+            "RequirementsManagement::ReqStatus"),
+    }
+    for identifier, (reason, canonical) in cases.items():
+        with pytest.raises(IdentityNotFoundError) as raised:
+            service.inspect_element(identifier)
+        assert f"{reason} {canonical}" in str(raised.value), identifier
+        resolved = service.resolve_element(canonical)
+        assert (resolved["resolution_level"], resolved["element"]["qualified_name"]) == (
+            "qualified-name-match", canonical)
+
+
 def test_the_mcp_tools_take_qualified_names_and_say_so(service) -> None:
     server = create_mcp_server(service)
     tools = {tool.name: tool for tool in server._tool_manager.list_tools()}
     for name in ("resolve_element", "inspect_element"):
-        assert "qualified name" in tools[name].description, name
+        description = tools[name].description
+        assert "qualified name" in description, name
+        # Only ownership-qualified element names resolve; the description says so.
+        for boundary in ("short name", "alias", "inherited", "imported"):
+            assert boundary in description, (name, boundary)
+    contract = tools["phase_contract"].description
+    assert "`subject_type` containing `::`" in contract and "metaclass" in contract
     result = asyncio.run(server._tool_manager.call_tool(
         "inspect_element", {"identifier": "DE4SDV_MethodProcess::MethodPhase"}))
     assert result["element"]["definition"]["enumerated_values"][0]["name"] == "phase0_incrementFraming"
