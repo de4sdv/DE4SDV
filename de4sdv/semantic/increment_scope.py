@@ -56,6 +56,10 @@ SCOPE_PROBLEM = "scope"
 INCREMENT_CLASS = "EngineeringIncrement"
 CHARTER_CLASS = "IncrementTraceObligations"
 PHASE_CLASS = "MethodPhase"
+#: Charter feature referencing the increment usage.
+INCREMENT_ATTRIBUTE = "increment"
+#: Charter attribute listing the MethodPhase literals the increment applies.
+PHASES_ATTRIBUTE = "applicablePhases"
 #: Charter attribute naming the increment's packages.
 SCOPE_ATTRIBUTE = "expectedArtifacts"
 #: Charter feature referencing the increment's system of interest (optional).
@@ -313,7 +317,7 @@ def _charters(view: ModelView, usage_id: str) -> tuple[tuple[str, ...], str]:
     found: list[str] = []
     try:
         for candidate in index.elements_of_type("PartUsage"):
-            values = index.feature_values(candidate, "increment")
+            values = index.feature_values(candidate, INCREMENT_ATTRIBUTE)
             if not any(leaf.kind == "reference" and leaf.value == usage_id for leaf in values):
                 continue
             if view.in_lineage(candidate, CHARTER_CLASS):
@@ -331,7 +335,7 @@ def applicable_phase_literals(view: ModelView, charter: str) -> tuple[list[str],
     phase_root = view.kernel_element(PHASE_CLASS)
     literals: list[str] = []
     foreign: list[str] = []
-    for leaf in view.index.feature_values(charter, "applicablePhases"):
+    for leaf in view.index.feature_values(charter, PHASES_ATTRIBUTE):
         if leaf.kind == "reference" and view.index.owner_of(leaf.value) == phase_root:
             if leaf.value not in literals:
                 literals.append(leaf.value)

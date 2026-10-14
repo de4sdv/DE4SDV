@@ -18,11 +18,13 @@ from pathlib import Path
 
 import pytest
 
+from de4sdv.semantic.remedies import SUBJECT_FIRST
 from increment_model_fixtures import (
     ModelBuilder,
     increment_scenario,
     cut_method_builder,
     cut_workflow,
+    kernel_qualified_name,
     set_check,
 )
 from scripts import method_check
@@ -360,7 +362,12 @@ def test_the_summary_names_next_and_the_blocking_gaps_per_increment(tmp_path: Pa
     assert f"| `{SECOND}` | method unavailable | none | - | - |" in lines
     assert f"### `{FIRST}`" in lines
     assert "**Next:** `needHasStakeholder` in phase4_needs (violation)" in lines
-    assert "- What to author: `add to DE4SDV_FirstNeedsRequirements::need1: stakeholder <name> : <role>;`" in lines
+    stakeholder, package = kernel_qualified_name(cut_method_builder("oracle"), "Stakeholder")
+    what = (f"add to DE4SDV_FirstNeedsRequirements::need1, after its subject: stakeholder <stakeholderName> : "
+            f"{stakeholder}; Import: private import {package}::*; {SUBJECT_FIRST}")
+    at = lines.index(f"- What to author: `{what}`")
+    assert lines[at + 1:at + 6] == ["", "  ```sysml", f"  private import {package}::*;",
+                                    f"  stakeholder <stakeholderName> : {stakeholder};", "  ```"]
     assert "- Where: increment package `DE4SDV_FirstFraming`; packages `DE4SDV_FirstNeedsRequirements`" in lines
     assert "- Subjects (1): `DE4SDV_FirstNeedsRequirements::need1`" in lines
     assert "**Blocking gaps: 1** (violation: 1)" in lines
