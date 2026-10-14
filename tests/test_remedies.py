@@ -21,6 +21,7 @@ from de4sdv.semantic import method_evaluator as me
 from de4sdv.semantic.increment_evaluation import evaluate_increment
 from de4sdv.semantic.increment_scope import ModelView
 from de4sdv.semantic.kernel_contract import KernelFileMapping, declaration_identity
+from de4sdv.semantic.remedies import SUBJECT_FIRST
 from de4sdv.sysml_api.qualified_names import QualifiedNameIndex
 from increment_model_fixtures import (
     INFINITY,
@@ -115,9 +116,10 @@ def _kernel_scenario(applicable_phases=(P0, P4, P5, P10)):
 
 
 def _needs_workflow(scenario) -> None:
-    """A workflow whose needs step checks the statement of each need."""
+    """A workflow that checks the increment's identifier and the statement of each need."""
     increment_workflow(scenario.builder, [
-        WorkflowStep("frameIncrement", P0, (P("increment", "EngineeringIncrement"),)),
+        WorkflowStep("frameIncrement", P0, (P("increment", "EngineeringIncrement"),), (
+            C("incrementHasIdentifier", "incrementShortName", "increment"),)),
         WorkflowStep("elaborateNeeds", P4, (P("needs", "Need", "RequirementUsage", bounds=(1, INFINITY)),), (
             C("needHasStatement", "requireConstraint", "needs"),)),
     ], charter=scenario.charter)
@@ -232,7 +234,8 @@ _MEMBER = "(?:" + "|".join(_MEMBERS) + ")"
 _BODY = rf"(?:;| \{{(?: {_MEMBER})+ \}})"
 ACCEPTED_FORMS = [
     rf"private import {_PACKAGE}::\*;",  # the rule: a direct import of the owning package
-    rf"(?:part|requirement|concern|verification|view) (?:<'[^']*'> )?{_NAME}(?: : {_REF})?{_BODY}",
+    # part/requirement/concern/verification/view: the framings and slices above; action: the AEBS flows
+    rf"(?:part|action|requirement|concern|verification|view) (?:<'[^']*'> )?{_NAME}(?: : {_REF})?{_BODY}",
     rf"(?:part|viewpoint) def {_NAME}(?: :> {_REF})?(?:;| \{{ {_DOC} \}})",
     rf"connection {_NAME} : {_REF} connect {_REF} to {_REF};",  # DerivesFromNeed, ValidationPlanningAssociation
     rf"allocation {_NAME} allocate {_REF} to {_REF};",  # the AEBS requirement allocations
@@ -351,3 +354,195 @@ def test_the_method_check_summary_shows_the_lines_to_author_as_a_sysml_block() -
     at = lines.index(f"- What to author: `{step['what_to_author']}`")
     block = [*step["authoring"]["imports"], *step["authoring"]["declarations"]]
     assert lines[at + 1:at + 4 + len(block)] == ["", "  ```sysml", *(f"  {line}" for line in block), "  ```"]
+
+
+# -- the rules, one by one -------------------------------------------------------------------
+
+
+def _gap(answer: dict, gate: str) -> dict:
+    (entry,) = [e for e in [*answer["blocking"], *answer["advisory"]] if e["gate"] == gate]
+    return entry
+
+
+def _types_by_id(record: dict) -> dict[str, dict]:
+    return {named["element_id"]: named for named in record["authoring"]["types"]}
+
+
+def test_the_types_a_remedy_names_are_the_ones_its_check_admits() -> None:
+    """From the check's own type test: the parameter's type lineage; a relation's carrier and end class
+    (validated kernel bindings); a check that tests no type says so."""
+    scenario, _steps, _types = _kernel_scenario()
+    vocabulary, kernel = scenario.vocabulary, scenario.builder.kernel_definition
+    gaps = _evaluate(scenario, NEW).gaps()
+    planned = _types_by_id(_gap(gaps, "needHasValidationScenario"))
+    assert set(planned) == {vocabulary["ValidationPlanningAssociation"]["@id"], kernel("ValidationScenario")["@id"]}
+    derived = _types_by_id(_gap(gaps, "requirementDerivesFromNeed"))
+    assert set(derived) == {vocabulary["DerivesFromNeed"]["@id"], vocabulary["Need"]["@id"]}
+    stakeholder = _types_by_id(_gap(gaps, "incrementHasStakeholder"))[vocabulary["Stakeholder"]["@id"]]
+    assert "the check tests no stakeholder type" in stakeholder["admits"]
+    framed = _gap(gaps, "incrementHasFramedConcern")
+    assert any("tests no viewpoint or concern type" in note for note in framed["authoring"]["notes"])
+
+
+def test_a_member_is_declared_with_the_keyword_of_the_feature_it_redefines() -> None:
+    """``ref part :>> increment`` because the charter class's increment feature is a referential part
+    usage; the same remedy over a composite feature says ``part``."""
+    scenario, _steps, _types = _kernel_scenario()
+    builder = scenario.builder
+    builder.remove(builder.feature_of(scenario.charter, "increment"))
+    step = _evaluate(scenario).next_obligation()["next"]
+    assert step["gate"] == "incrementHasCharter"
+    assert step["authoring"]["declarations"] == ["ref part :>> increment = DE4SDV_FixtureFraming::incFixture;"]
+    assert step["what_to_author"].startswith("reference the increment from DE4SDV_FixtureFraming::fixtureCharter: ")
+    builder.feature_of(scenario.vocabulary["IncrementTraceObligations"], "increment")["isComposite"] = True
+    step = _evaluate(scenario).next_obligation()["next"]
+    assert step["authoring"]["declarations"] == ["part :>> increment = DE4SDV_FixtureFraming::incFixture;"]
+    owner = _gap(_evaluate(scenario, NEW).gaps(), "incrementHasOwner")
+    assert 'attribute :>> owner = "<owner>";' in owner["authoring"]["declarations"][0]
+
+
+def test_the_charter_is_declared_holding_its_reference_to_the_increment_usage() -> None:
+    scenario, _steps, _types = _kernel_scenario()
+    charter = _gap(_evaluate(scenario, NEW).gaps(), "incrementHasCharter")
+    (line,) = charter["authoring"]["declarations"]
+    assert line == "part <charterName> : FixtureMethodTypes::IncrementCharter { ref part :>> increment = <usageName>; }"
+    assert "after the increment usage" in charter["what_to_author"]
+    # The same name the increment's own remedy declares.
+    identifier = _gap(_evaluate(scenario, NEW).gaps(), "incrementHasIdentifier")
+    assert "<usageName>" in identifier["authoring"]["declarations"][0]
+
+
+def test_applicable_phases_lists_the_literals_of_the_enumeration_and_marks_the_checked_phases() -> None:
+    """All MethodPhase literals, qualified, in the enumeration's order, read from the view (a literal
+    added to the enumeration is listed too), with the phases whose steps have executable checks marked."""
+    scenario, steps, _types = _kernel_scenario()
+    builder = scenario.builder
+    enumeration = scenario.vocabulary.get("MethodPhase") or builder.kernel_definition("MethodPhase")
+    package = builder.kernel_package(builder.sources[enumeration["@id"]])["declaredName"]
+    extra = builder.new("EnumerationUsage", name="phase13_retrospective", source=builder.sources[enumeration["@id"]])
+    builder.own(enumeration, extra, kind="VariantMembership", member_name="phase13_retrospective")
+    checked = {step.phase for step in steps if step.checks}
+    entry = _gap(_evaluate(scenario, NEW).gaps(), "incrementDeclaresApplicablePhases")
+    names = [*scenario.phases, "phase13_retrospective"]
+    assert entry["authoring"]["phases"] == [
+        {"literal": f"{package}::MethodPhase::{name}", "name": name, "executable_checks": name in checked}
+        for name in names]
+    assert f"private import {package}::*;" in entry["authoring"]["imports"]
+    assert "MethodPhase::..." not in entry["what_to_author"]
+    for name in names:
+        assert f"{package}::MethodPhase::{name}" in entry["what_to_author"]
+
+
+def test_an_untyped_parameter_is_declared_by_its_keyword_and_marked_as_a_metaclass() -> None:
+    scenario, _steps, _types = _kernel_scenario()
+    gates = {gate["obligation_id"]: gate for gate in _evaluate(scenario).phase_contract()["gates"]}
+    concern, case = gates["incrementHasFramedConcern"], gates["verificationCaseVerifiesRequirement"]
+    for gate, metaclass, keyword in ((concern, "ConcernUsage", "concern"), (case, "VerificationCaseUsage",
+                                                                             "verification")):
+        assert (gate["subject_type"], gate["subject_type_kind"], gate["subject_keyword"]) == (
+            metaclass, "metaclass", keyword)
+        assert "not a model element" in gate["subject_type_note"]
+        assert gate["authoring"]["declarations"][0].startswith(f"{keyword} <")
+    typed = gates["incrementHasIdentifier"]
+    assert (typed["subject_type_kind"], typed["subject_keyword"]) == ("definition", "part")
+    assert "subject_type_note" not in typed
+
+
+def test_a_remedy_that_adds_stakeholders_declares_the_subject_first() -> None:
+    scenario, _steps, _types = _kernel_scenario()
+    gaps = _evaluate(scenario, NEW).gaps()
+    for gate in ("incrementHasStakeholder", "needHasStakeholder", "incrementHasFramedConcern"):
+        entry = _gap(gaps, gate)
+        line = entry["authoring"]["declarations"][0]
+        assert re.search(r"\{ (?:doc /\* [^*]* \*/ )?subject\b[^;]*; stakeholder ", line), (gate, line)
+        assert SUBJECT_FIRST in entry["authoring"]["notes"], gate
+    builder = scenario.builder
+    need = scenario.needs[1]
+    builder.remove(*[e for e in builder.elements if e.get("@type") in ("StakeholderMembership", "SubjectMembership")
+                     and e.get("owningRelatedElement", {}).get("@id") == need["@id"]])
+    entry = _gap(_evaluate(scenario).gaps(), "needHasStakeholder")
+    assert entry["authoring"]["declarations"][0].startswith("subject ")
+    assert entry["authoring"]["declarations"][1].startswith("stakeholder ")
+
+
+def test_a_population_remedy_says_how_many_to_keep_and_how_one_is_declared() -> None:
+    scenario, _steps, types = _kernel_scenario()
+    builder = scenario.builder
+    builder.remove(*[e for e in builder.elements if e.get("declaredName") == "fixtureAssumption"])
+    entry = _gap(_evaluate(scenario).gaps(), "incrementHasAssumption")
+    qualified, _package = _kernel_qualified(scenario, "Assumption")
+    line = f"part <name> : {qualified} {{ doc /* <text> */ }}"
+    assert entry["what_to_author"].startswith("keep at least 1 IncrementAssumption in the increment's package (")
+    assert f"one is declared as: {line}" in entry["what_to_author"]
+    assert entry["authoring"]["declarations"] == [line]
+
+
+def test_a_type_outside_any_package_is_named_without_an_import() -> None:
+    """A definition without an owning package has no qualified name: it is named, never qualified or
+    imported by guess, and the remedy says so."""
+    scenario = increment_scenario()
+    _needs_workflow(scenario)
+    step = _evaluate(scenario, NEW).next_obligation()["next"]
+    assert step["authoring"]["declarations"] == [f"part <'{NEW}'> <usageName> : EngineeringIncrement;"]
+    assert step["authoring"]["imports"] == []
+    assert any("has no qualified name" in note for note in step["authoring"]["notes"])
+
+
+def test_the_increment_s_own_package_is_never_imported() -> None:
+    scenario, _steps, _types = _kernel_scenario()
+    builder = scenario.builder
+    problem = next(e for e in builder.elements if e.get("declaredName") == "fixtureProblemStatement")
+    builder.remove(builder.feature_of(problem, "increment"))
+    entry = _gap(_evaluate(scenario).gaps(), "incrementHasProblemStatement")
+    assert entry["authoring"]["declarations"] == ["subject increment : DE4SDV_FixtureFraming::FixtureIncrement;"]
+    assert entry["authoring"]["imports"] == []
+
+
+def test_a_member_named_twice_in_the_lineage_is_redefined_by_its_qualified_name() -> None:
+    """Two inherited features named alike (as SYSMOD's and the NRM's priority are): the line redefines
+    the nearest by its qualified name, never the ambiguous bare name."""
+    scenario, _steps, _types = _kernel_scenario()
+    builder = scenario.builder
+    other = builder.definition("RequirementDefinition", "OtherAttributes", builder.package("FixtureOtherLibrary"))
+    _feature(builder, other, "AttributeUsage", "source")
+    need_definition = next(e for e in builder.elements if e.get("declaredName") == "FixtureNeed")
+    builder.specializes(need_definition, other)
+    builder.remove(builder.feature_of(scenario.needs[1], "source"))
+    entry = _gap(_evaluate(scenario).gaps(), "needHasSource")
+    (line,) = entry["authoring"]["declarations"]
+    assert re.fullmatch(rf'attribute :>> {_QN} = "<source>";', line), line
+    assert any("names 2 inherited features" in note for note in entry["authoring"]["notes"])
+
+
+def test_a_remedy_says_what_to_author_never_that_authoring_it_proves_anything() -> None:
+    scenario, _steps, _types = _kernel_scenario()
+    texts = [r.get("what_to_author") or r.get("what_satisfies") for answer in (
+        _evaluate(scenario, NEW).gaps(), _evaluate(scenario).phase_contract()) for r in _remedied(answer)]
+    claims = re.compile(r"\b(?:prove|proves|proof|complian\w*|certif\w*|homolog\w*|satisf\w*|accept\w*|pass\w*)\b",
+                        re.IGNORECASE)
+    assert [text for text in texts if claims.search(text)] == []
+
+
+def test_every_relation_check_names_sysml_or_says_nothing_is_authored_in_the_model() -> None:
+    """Every relation a workflow may check (the contract's relations and the native ones), with and
+    without a subject: SysML in accepted forms, or, for a relation without a SysML mapping or with
+    external content, that nothing is authored in the model (method side). ``verifiedBy`` is a
+    ``verify`` in a verification case's objective."""
+    from de4sdv.semantic.relation_checks import relation_checks
+    from de4sdv.semantic.remedies import check_remedy
+
+    scenario, _steps, _types = _kernel_scenario()
+    view = _view(scenario)
+    names = QualifiedNameIndex(scenario.builder.elements)
+    requirement = scenario.requirements[0]["@id"]
+    relations = sorted(relation_checks(view))
+    assert {"verifiedBy", "derivesRequirementFromNeed", "hasValidationScenario", "frame", "verify"} <= set(relations)
+    for relation in relations:
+        for subject in (None, requirement):
+            remedy = check_remedy(view, relation, subject=subject)
+            record = {"what_to_author": remedy.text, "authoring": remedy.authoring()}
+            assert _problems(record, names) == [], (relation, subject)
+            assert remedy.declarations or "nothing to author in the model" in remedy.text, (relation, remedy.text)
+    verified = check_remedy(view, "verifiedBy", subject=requirement)
+    assert verified.declarations == (
+        "verification <name> { objective { verify DE4SDV_FixtureNeedsRequirements::requirement0; } }",)
