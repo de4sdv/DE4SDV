@@ -546,3 +546,36 @@ def test_every_relation_check_names_sysml_or_says_nothing_is_authored_in_the_mod
     verified = check_remedy(view, "verifiedBy", subject=requirement)
     assert verified.declarations == (
         "verification <name> { objective { verify DE4SDV_FixtureNeedsRequirements::requirement0; } }",)
+
+
+# -- the service and its tool descriptions ---------------------------------------------------
+
+
+def test_the_method_tools_answer_with_authoring_and_their_descriptions_say_so() -> None:
+    from de4sdv.semantic.mcp_server import create_mcp_server
+    from de4sdv.sysml_api.repository import SysMLRepository
+    from model_contract_fixtures import binding, model_service
+
+    class _Repository(SysMLRepository):
+        def __init__(self, elements):
+            super().__init__(client=None)  # type: ignore[arg-type]
+            self.elements = elements
+
+        def list_elements(self, project_id, commit_id):
+            return self.elements
+
+    scenario, _steps, _types = _kernel_scenario()
+    builder = scenario.builder
+    service = model_service(binding(git_commit="a" * 40, kernel_bindings=builder.bindings),
+                            _Repository(builder.elements))
+    step = service.next_obligation(increment=NEW)["next"]
+    qualified, package = _kernel_qualified(scenario, "EngineeringIncrement")
+    assert step["authoring"]["imports"] == [f"private import {package}::*;"]
+    assert qualified in step["authoring"]["declarations"][0]
+    gates = service.phase_contract(increment=NEW)["gates"]
+    assert all(gate["authoring"]["declarations"] or "nothing to author" in gate["what_satisfies"] for gate in gates)
+    tools = {tool.name: " ".join(tool.description.split())
+             for tool in create_mcp_server(service)._tool_manager.list_tools()}
+    for name in ("method_gaps", "next_obligation", "phase_contract"):
+        assert "`authoring`" in tools[name] and "`private import`" in tools[name], name
+    assert "`subject_type_kind`" in tools["phase_contract"]
