@@ -233,7 +233,7 @@ def test_frozen_projection_row_identities_are_never_admitted(manifest: dict) -> 
 
 
 def test_served_frozen_identities_are_never_admitted(manifest: dict) -> None:
-    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as SERVED_FROZEN_IDENTITIES
+    from de4sdv.semantic.model_contract import FROZEN_RECORD_IDENTITIES as SERVED_FROZEN_IDENTITIES
 
     admitted = {row["identity"] for row in manifest["admitted"]}
     assert admitted & set(SERVED_FROZEN_IDENTITIES) == set()
@@ -274,7 +274,7 @@ def test_projection_row_outputs_match_reviewed_flags(
 
 
 def test_no_frozen_identity_is_emitted(artifacts: dict) -> None:
-    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as SERVED_FROZEN_IDENTITIES
+    from de4sdv.semantic.model_contract import FROZEN_RECORD_IDENTITIES as SERVED_FROZEN_IDENTITIES
 
     emitted = {row["identity"] for row in artifacts["projection"]["rows"]}
     assert emitted & set(native.FROZEN_PROJECTION_ROW_IDENTITIES) == set()

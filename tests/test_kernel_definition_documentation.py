@@ -20,7 +20,7 @@ from pathlib import Path
 import pytest
 
 from de4sdv.semantic import authority_inventory as ai
-from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as SERVED_FROZEN_IDENTITIES
+from de4sdv.semantic.model_contract import FROZEN_RECORD_IDENTITIES as SERVED_FROZEN_IDENTITIES
 from model_contract_fixtures import admission_row, owned_definition_documentation
 
 REPO_ROOT = Path(__file__).resolve().parents[1]

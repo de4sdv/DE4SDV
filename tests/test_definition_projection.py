@@ -145,7 +145,7 @@ def test_family_invariant_from_canonical_governance():
     """The admitted rows are disjoint from every other projected layer and
     from the frozen identities."""
     from de4sdv.semantic.definition_projection import load_document
-    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES as MIGRATED_IDENTITIES
+    from de4sdv.semantic.model_contract import FROZEN_RECORD_IDENTITIES as MIGRATED_IDENTITIES
 
     other = set()
     v1 = json.loads(

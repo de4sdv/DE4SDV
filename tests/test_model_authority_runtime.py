@@ -135,8 +135,8 @@ def test_served_authority_is_the_contract_identity(fx):
 
 
 def _split(provisions):
-    return ([p for p in provisions if p.layer != mc.O2_CHAIN_LAYER],
-            [p for p in provisions if p.layer == mc.O2_CHAIN_LAYER])
+    return ([p for p in provisions if p.layer != mc.FROZEN_RECORD_LAYER],
+            [p for p in provisions if p.layer == mc.FROZEN_RECORD_LAYER])
 
 
 def test_routing_is_disjoint_and_a_planted_duplicate_is_refused():
@@ -249,11 +249,11 @@ def _kernel_vocabulary_rows():
 def _kernel_vocabulary_root(tmp_path, rows):
     root = tmp_path / "root"
     paths = [relative for spec in mar.LAYERS for relative in (spec.projection_path, spec.profile_path)]
-    paths += [relative for relative, _ in mc.O2_PROJECTION_CHAIN + mc.O2_PROFILE_CHAIN]
+    paths += [relative for relative, _ in mc.FROZEN_PROJECTION_RECORDS + mc.FROZEN_PROFILE_RECORDS]
     for relative in paths:
         (root / relative).parent.mkdir(parents=True, exist_ok=True)
         (root / relative).write_bytes((ROOT / relative).read_bytes())
-    spec = mar.BATCH2_LAYER
+    spec = mar.KERNEL_VOCABULARY_LAYER
     binding = {"source_revision": REVISION}
     (root / spec.projection_path).write_text(json.dumps(
         {"schema": spec.projection_schema, "binding": binding, "rows": [r for r, _ in rows]}))
@@ -273,7 +273,7 @@ def _kernel_vocabulary_routing(root):
 
 def test_kernel_vocabulary_layer_is_loaded_exactly_when_its_pair_is_present():
     records, _ = mar.load_layers(ROOT)
-    present = (ROOT / mar.BATCH2_LAYER.projection_path).exists()
+    present = (ROOT / mar.KERNEL_VOCABULARY_LAYER.projection_path).exists()
     assert ("definition-batch2" in [r["layer"] for r in records]) is present
 
 
@@ -327,7 +327,7 @@ def _facade_declaring(tmp_path, size):
 
     root = tmp_path / "declared"
     shutil.copytree(ROOT / "de4sdv/semantic/contract-data", root / "de4sdv/semantic/contract-data")
-    path = root / mar.BATCH2_LAYER.projection_path
+    path = root / mar.KERNEL_VOCABULARY_LAYER.projection_path
     document = json.loads(path.read_text(encoding="utf-8"))
     (row,) = [r for r in document["rows"] if r["identity"] == "hasRelevantEvidenceContract"]
     closure = row["relation"]["range"]["discriminator"]["closure"]
@@ -404,12 +404,12 @@ def _answer(service, identifier, predicate):
 
 def test_the_13_are_served_from_the_frozen_records(fx):
     service = _service(fx)
-    chain = {p.identity: p for p in mc.o2_chain_provisions(ROOT)}
-    assert set(chain) == set(mc.O2_CHAIN_IDENTITIES) and len(chain) == 13
-    for name in mc.O2_CHAIN_CLASSES:
+    chain = {p.identity: p for p in mc.frozen_record_provisions(ROOT)}
+    assert set(chain) == set(mc.FROZEN_RECORD_IDENTITIES) and len(chain) == 13
+    for name in mc.FROZEN_RECORD_CLASSES:
         assert service.contract.provider_of(name) == "o2-chain"
         assert service.contract.mapping(name) == chain[name].mapping
-    for name in mc.O2_CHAIN_RELATIONSHIPS:
+    for name in mc.FROZEN_RECORD_RELATIONSHIPS:
         assert service.contract.relationship_mapping(name) == chain[name].relationship
         for identifier in ("use-Requirement", "use-Need"):
             assert _answer(service, identifier, name)["root"]["element_id"] == identifier

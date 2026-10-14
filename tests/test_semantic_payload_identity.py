@@ -171,7 +171,7 @@ def _write_json(root, relative, value):
 def synthetic_layers_root(synthetic_successor_root):
     root = synthetic_successor_root
     definition, o2plus = mc.LAYERS
-    batch2 = mc.BATCH2_LAYER
+    batch2 = mc.KERNEL_VOCABULARY_LAYER
     rows = {
         definition.name: [{"identity": "Origin", "semantic_kind": "class",
                            "grounding": {"kernel_binding_contract": CLASS_PINS["Origin"]}}],
@@ -192,7 +192,7 @@ def synthetic_layers_root(synthetic_successor_root):
                          "refusal": "retired; use linkedFrom"}},
         ],
     }
-    for spec in mc.LAYERS + mc.BATCH2_LAYERS:
+    for spec in mc.LAYERS + mc.KERNEL_VOCABULARY_LAYERS:
         entries = [{"identity": row["identity"]} for row in rows[spec.name]]
         if spec == batch2:
             entries[1]["serializer_mechanics"] = {"strategy": "synthetic-membership",
@@ -218,11 +218,11 @@ def synthetic_layers_root(synthetic_successor_root):
     o2_profiles = [{"for_identity": name, "serializer_mechanics": {
         "strategy": "synthetic-o2-membership", "property": "memberElement"}}
         for name in EXPECTED_FROZEN_RECORD_RELATIONSHIPS]
-    for index, (relative, schema) in enumerate(mc.O2_PROJECTION_CHAIN):
+    for index, (relative, schema) in enumerate(mc.FROZEN_PROJECTION_RECORDS):
         _write_json(root, relative, {"schema": schema, "concepts": o2_classes if index == 0 else [],
                                     "predicates": o2_relations if index == 0 else [],
                                     "binding": {"source_revision": "c" * 40}})
-    for index, (relative, schema) in enumerate(mc.O2_PROFILE_CHAIN):
+    for index, (relative, schema) in enumerate(mc.FROZEN_PROFILE_RECORDS):
         _write_json(root, relative, {"schema": schema, "profiles": o2_profiles if index == 0 else [],
                                     "binding": {"source_revision": "c" * 40}})
     _write(root, "synthetic/o2.sysml", "package SyntheticO2 {\n" + "".join(
@@ -248,8 +248,8 @@ def test_authority_identity_ignores_live_git_binding_metadata(synthetic_layers_r
         "RemovedName": "refused: removed (register disposition REMOVE, synthetic); no replacement",
         "oldLink": "retired; use linkedFrom",
     }
-    frozen = {path: (root / path).read_bytes() for path, _ in mc.O2_PROJECTION_CHAIN + mc.O2_PROFILE_CHAIN}
-    for spec in mc.LAYERS + mc.BATCH2_LAYERS:
+    frozen = {path: (root / path).read_bytes() for path, _ in mc.FROZEN_PROJECTION_RECORDS + mc.FROZEN_PROFILE_RECORDS}
+    for spec in mc.LAYERS + mc.KERNEL_VOCABULARY_LAYERS:
         for path in (spec.projection_path, spec.profile_path):
             document = json.loads((root / path).read_text())
             document["binding"]["source_revision"] = "b" * 40
@@ -263,7 +263,7 @@ def test_authority_identity_ignores_live_git_binding_metadata(synthetic_layers_r
     assert SemanticAuthorityIdentity.from_dict(after.identity.to_dict()) == before.identity
 
 
-LIVE_DOCUMENTS = tuple((spec, profile) for spec in mc.LAYERS + mc.BATCH2_LAYERS
+LIVE_DOCUMENTS = tuple((spec, profile) for spec in mc.LAYERS + mc.KERNEL_VOCABULARY_LAYERS
                        for profile in (False, True))
 
 
@@ -316,7 +316,7 @@ def test_live_document_wrapper_meaning_is_identity_sensitive(synthetic_layers_ro
 
 @pytest.mark.parametrize("spec,field,value", [
     (mc.LAYERS[0], "scope", {"admitted": ["Origin"], "note": "bounded synthetic admission"}),
-    (mc.BATCH2_LAYER, "scope", {"admitted": ["Destination"], "exceptions": []}),
+    (mc.KERNEL_VOCABULARY_LAYER, "scope", {"admitted": ["Destination"], "exceptions": []}),
     (mc.LAYERS[1], "scope", {"projection_rows": ["SyntheticNative"], "api_profile_entries": []}),
 ])
 def test_live_document_scope_and_population_meaning_is_identity_sensitive(synthetic_layers_root, spec, field, value):
@@ -336,7 +336,7 @@ def test_live_document_scope_and_population_meaning_is_identity_sensitive(synthe
     assert before.identity.id != after.identity.id
 
 
-@pytest.mark.parametrize("spec", mc.LAYERS + mc.BATCH2_LAYERS)
+@pytest.mark.parametrize("spec", mc.LAYERS + mc.KERNEL_VOCABULARY_LAYERS)
 def test_live_document_profile_does_not_admit_projection_fields(synthetic_layers_root, spec):
     root = synthetic_layers_root
     document = json.loads((root / spec.profile_path).read_text())
@@ -391,7 +391,7 @@ def test_incidental_changes_preserve_both_identities_and_cache_key(synthetic_lay
     first_successor = mc.load_trace_contract(root)
     first_document = (root / mc.TRACE_CONTRACT_PATH).read_bytes()
     if change in {"remove-bindings", "json-format"}:
-        for spec in mc.LAYERS + mc.BATCH2_LAYERS:
+        for spec in mc.LAYERS + mc.KERNEL_VOCABULARY_LAYERS:
             for path in (spec.projection_path, spec.profile_path):
                 document = json.loads((root / path).read_text())
                 if change == "remove-bindings":
@@ -449,8 +449,8 @@ def test_successor_semantic_changes_alter_both_ids(synthetic_layers_root, old, n
 
 
 @pytest.mark.parametrize("path,old,new", [
-    (mc.BATCH2_LAYER.projection_path, '"semantic_strength": "declared"', '"semantic_strength": "native"'),
-    (mc.BATCH2_LAYER.profile_path, '"property": "ownedMember"', '"property": "memberElement"'),
+    (mc.KERNEL_VOCABULARY_LAYER.projection_path, '"semantic_strength": "declared"', '"semantic_strength": "native"'),
+    (mc.KERNEL_VOCABULARY_LAYER.profile_path, '"property": "ownedMember"', '"property": "memberElement"'),
     (mc.LAYERS[1].projection_path, '"SysML::PartUsage"', '"SysML::ItemUsage"'),
     ("de4sdv/semantic/contract-data/ontology-identity-register.json", '"no replacement"', '"explicitly removed"'),
 ])
@@ -540,7 +540,7 @@ def test_named_record_provenance_is_excluded_from_identity(synthetic_layers_root
     assert mc.build_model_contract(root).identity == before.identity
 
 
-@pytest.mark.parametrize("spec", mc.LAYERS + mc.BATCH2_LAYERS)
+@pytest.mark.parametrize("spec", mc.LAYERS + mc.KERNEL_VOCABULARY_LAYERS)
 @pytest.mark.parametrize("value", [17, "bad", [None], [[]], [{}], {"x": "bad"}, None])
 def test_live_profile_malformed_entries_refuse_public_loader(synthetic_layers_root, spec, value):
     root = synthetic_layers_root
@@ -551,7 +551,7 @@ def test_live_profile_malformed_entries_refuse_public_loader(synthetic_layers_ro
         mc.KernelContract.from_layers(root)
 
 
-@pytest.mark.parametrize("spec", mc.LAYERS + mc.BATCH2_LAYERS)
+@pytest.mark.parametrize("spec", mc.LAYERS + mc.KERNEL_VOCABULARY_LAYERS)
 def test_live_profile_missing_collection_refuses_public_loader(synthetic_layers_root, spec):
     root = synthetic_layers_root
     document = json.loads((root / spec.profile_path).read_text())
@@ -561,7 +561,7 @@ def test_live_profile_missing_collection_refuses_public_loader(synthetic_layers_
         mc.KernelContract.from_layers(root)
 
 
-@pytest.mark.parametrize("spec", [mc.LAYERS[0], mc.BATCH2_LAYER])
+@pytest.mark.parametrize("spec", [mc.LAYERS[0], mc.KERNEL_VOCABULARY_LAYER])
 def test_live_profile_complete_pairs_refuse_missing_row_entry(synthetic_layers_root, spec):
     root = synthetic_layers_root
     document = json.loads((root / spec.profile_path).read_text())
@@ -571,7 +571,7 @@ def test_live_profile_complete_pairs_refuse_missing_row_entry(synthetic_layers_r
         mc.KernelContract.from_layers(root)
 
 
-@pytest.mark.parametrize("spec", mc.LAYERS + mc.BATCH2_LAYERS)
+@pytest.mark.parametrize("spec", mc.LAYERS + mc.KERNEL_VOCABULARY_LAYERS)
 @pytest.mark.parametrize("mode", ["agreeing", "conflicting-forward", "conflicting-reverse"])
 def test_live_profile_duplicate_identity_refuses_in_either_order(synthetic_layers_root, spec, mode):
     root = synthetic_layers_root
@@ -587,7 +587,7 @@ def test_live_profile_duplicate_identity_refuses_in_either_order(synthetic_layer
         mc.KernelContract.from_layers(root)
 
 
-@pytest.mark.parametrize("spec", mc.LAYERS + mc.BATCH2_LAYERS)
+@pytest.mark.parametrize("spec", mc.LAYERS + mc.KERNEL_VOCABULARY_LAYERS)
 def test_live_profile_orphan_identity_refuses_public_loader(synthetic_layers_root, spec):
     root = synthetic_layers_root
     document = json.loads((root / spec.profile_path).read_text())
@@ -612,7 +612,7 @@ def test_live_profile_malformed_or_conflicting_identity_refuses(synthetic_layers
         mc.KernelContract.from_layers(root)
 
 
-@pytest.mark.parametrize("spec", mc.LAYERS + mc.BATCH2_LAYERS)
+@pytest.mark.parametrize("spec", mc.LAYERS + mc.KERNEL_VOCABULARY_LAYERS)
 def test_live_profile_duplicate_projection_identity_refuses_before_join(synthetic_layers_root, spec):
     root = synthetic_layers_root
     document = json.loads((root / spec.projection_path).read_text())
@@ -671,8 +671,8 @@ def test_optional_kernel_vocabulary_absent_pair_stays_optional(synthetic_layers_
     profile = json.loads((root / definition.profile_path).read_text())
     profile["entries"].append({"identity": "Destination"})
     _write_json(root, definition.profile_path, profile)
-    (root / mc.BATCH2_LAYER.projection_path).unlink()
-    (root / mc.BATCH2_LAYER.profile_path).unlink()
+    (root / mc.KERNEL_VOCABULARY_LAYER.projection_path).unlink()
+    (root / mc.KERNEL_VOCABULARY_LAYER.profile_path).unlink()
     assert "Destination" in mc.KernelContract.from_layers(root).classes
 
 
@@ -680,28 +680,28 @@ def test_optional_kernel_vocabulary_absent_pair_stays_optional(synthetic_layers_
 @pytest.mark.parametrize("spec,profile,index,keys,value", [
     (mc.LAYERS[0], False, 0, ("semantic_kind",), ["class"]),
     (mc.LAYERS[0], False, 0, ("grounding",), ["binding"]),
-    (mc.BATCH2_LAYER, False, 0, ("admission_class",), ["definition"]),
-    (mc.BATCH2_LAYER, False, 0, ("semantic_kind",), 17),
-    (mc.BATCH2_LAYER, False, 0, ("grounding",), ["binding"]),
-    (mc.BATCH2_LAYER, False, 0, ("grounding", "ontology_relations"), ["Origin"]),
-    (mc.BATCH2_LAYER, False, 0, ("grounding", "ontology_relations", "sub_class_of"), ["Origin"]),
-    (mc.BATCH2_LAYER, False, 1, ("relation",), ["relation"]),
-    (mc.BATCH2_LAYER, False, 1, ("relation", "domain"), ["Origin"]),
-    (mc.BATCH2_LAYER, False, 1, ("relation", "range"), ["Destination"]),
-    (mc.BATCH2_LAYER, False, 1, ("relation", "domain", "ontology_class"), ["Origin"]),
-    (mc.BATCH2_LAYER, False, 1, ("relation", "range", "ontology_class"), 17),
-    (mc.BATCH2_LAYER, False, 1, ("relation", "semantic_strength"), ["declared"]),
-    (mc.BATCH2_LAYER, False, 1, ("support",), ["runtime"]),
-    (mc.BATCH2_LAYER, True, 1, ("serializer_mechanics",), "bad"),
-    (mc.BATCH2_LAYER, True, 1, ("serializer_mechanics",), [["strategy", "bad"]]),
-    (mc.BATCH2_LAYER, True, 1, ("serializer_mechanics", "strategy"), ["bad"]),
-    (mc.BATCH2_LAYER, True, 2, ("retired_resolution",), ["bad"]),
-    (mc.BATCH2_LAYER, True, 2, ("retired_resolution", "successor"), ["linksTo"]),
-    (mc.BATCH2_LAYER, False, 2, ("retired", "successor_navigation"), ["linkedFrom"]),
-    (mc.BATCH2_LAYER, False, 1, ("successor",), ["bad"]),
-    (mc.BATCH2_LAYER, False, 1, ("successor", "end_pairs"), "bad"),
-    (mc.BATCH2_LAYER, False, 1, ("successor", "end_pairs"), [None]),
-    (mc.BATCH2_LAYER, False, 1, ("successor", "end_pairs"), [{"source_class": ["Origin"], "target_class": "Destination"}]),
+    (mc.KERNEL_VOCABULARY_LAYER, False, 0, ("admission_class",), ["definition"]),
+    (mc.KERNEL_VOCABULARY_LAYER, False, 0, ("semantic_kind",), 17),
+    (mc.KERNEL_VOCABULARY_LAYER, False, 0, ("grounding",), ["binding"]),
+    (mc.KERNEL_VOCABULARY_LAYER, False, 0, ("grounding", "ontology_relations"), ["Origin"]),
+    (mc.KERNEL_VOCABULARY_LAYER, False, 0, ("grounding", "ontology_relations", "sub_class_of"), ["Origin"]),
+    (mc.KERNEL_VOCABULARY_LAYER, False, 1, ("relation",), ["relation"]),
+    (mc.KERNEL_VOCABULARY_LAYER, False, 1, ("relation", "domain"), ["Origin"]),
+    (mc.KERNEL_VOCABULARY_LAYER, False, 1, ("relation", "range"), ["Destination"]),
+    (mc.KERNEL_VOCABULARY_LAYER, False, 1, ("relation", "domain", "ontology_class"), ["Origin"]),
+    (mc.KERNEL_VOCABULARY_LAYER, False, 1, ("relation", "range", "ontology_class"), 17),
+    (mc.KERNEL_VOCABULARY_LAYER, False, 1, ("relation", "semantic_strength"), ["declared"]),
+    (mc.KERNEL_VOCABULARY_LAYER, False, 1, ("support",), ["runtime"]),
+    (mc.KERNEL_VOCABULARY_LAYER, True, 1, ("serializer_mechanics",), "bad"),
+    (mc.KERNEL_VOCABULARY_LAYER, True, 1, ("serializer_mechanics",), [["strategy", "bad"]]),
+    (mc.KERNEL_VOCABULARY_LAYER, True, 1, ("serializer_mechanics", "strategy"), ["bad"]),
+    (mc.KERNEL_VOCABULARY_LAYER, True, 2, ("retired_resolution",), ["bad"]),
+    (mc.KERNEL_VOCABULARY_LAYER, True, 2, ("retired_resolution", "successor"), ["linksTo"]),
+    (mc.KERNEL_VOCABULARY_LAYER, False, 2, ("retired", "successor_navigation"), ["linkedFrom"]),
+    (mc.KERNEL_VOCABULARY_LAYER, False, 1, ("successor",), ["bad"]),
+    (mc.KERNEL_VOCABULARY_LAYER, False, 1, ("successor", "end_pairs"), "bad"),
+    (mc.KERNEL_VOCABULARY_LAYER, False, 1, ("successor", "end_pairs"), [None]),
+    (mc.KERNEL_VOCABULARY_LAYER, False, 1, ("successor", "end_pairs"), [{"source_class": ["Origin"], "target_class": "Destination"}]),
     (mc.LAYERS[1], False, 0, ("category",), ["native"]),
     (mc.LAYERS[1], False, 0, ("construct",), 17),
     (mc.LAYERS[1], False, 0, ("grounding",), ["bad"]),

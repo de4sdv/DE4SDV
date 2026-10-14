@@ -295,14 +295,14 @@ def _real_manifest() -> dict:
 
 
 def test_real_frozen_manifest_covers_exactly_the_records_the_runtime_serves():
-    from de4sdv.semantic.model_contract import O2_PROFILE_CHAIN, O2_PROJECTION_CHAIN
+    from de4sdv.semantic.model_contract import FROZEN_PROFILE_RECORDS, FROZEN_PROJECTION_RECORDS
 
     manifest = _real_manifest()
     assert manifest["directories"] == list(verifier.FROZEN_DIRECTORIES)
     tracked = _git(REPO_ROOT, "ls-files", "--", *verifier.FROZEN_DIRECTORIES).splitlines()
     paths = sorted(r["path"] for r in manifest["records"])
     assert paths == sorted(tracked)
-    served = sorted(path for path, _schema in O2_PROJECTION_CHAIN + O2_PROFILE_CHAIN)
+    served = sorted(path for path, _schema in FROZEN_PROJECTION_RECORDS + FROZEN_PROFILE_RECORDS)
     assert paths == served
     assert not {"binding", "source_revision", "extends"} & set(manifest)
     assert {r["kind"] for r in manifest["records"]} == {"generated"}

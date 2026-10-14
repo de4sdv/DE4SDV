@@ -211,9 +211,9 @@ def build_report(root: Path = ROOT) -> dict[str, Any]:
     successor = mc.load_trace_contract(root, provisions=provisions)
     register = mc.load_register_rows(root)
     routing = mc.compute_routing(
-        provisions=[p for p in provisions if p.layer != mc.O2_CHAIN_LAYER],
+        provisions=[p for p in provisions if p.layer != mc.FROZEN_RECORD_LAYER],
         successor_contract=successor, register_rows=register,
-        seed=[p for p in provisions if p.layer == mc.O2_CHAIN_LAYER])
+        seed=[p for p in provisions if p.layer == mc.FROZEN_RECORD_LAYER])
     contract = KernelContract.from_layers(root)
     digests = _layer_digests(records)
     digests["successor-contract"] = successor["id"]

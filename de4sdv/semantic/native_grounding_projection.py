@@ -272,9 +272,9 @@ def validate_admission(manifest: dict[str, Any]) -> None:
 
 def _served_frozen_identities() -> frozenset[str]:
     """The identities the runtime serves from the frozen records."""
-    from de4sdv.semantic.model_contract import O2_CHAIN_IDENTITIES
+    from de4sdv.semantic.model_contract import FROZEN_RECORD_IDENTITIES
 
-    return frozenset(O2_CHAIN_IDENTITIES)
+    return frozenset(FROZEN_RECORD_IDENTITIES)
 
 
 def verify_witnesses(root: Path, manifest: dict[str, Any]) -> None:

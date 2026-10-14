@@ -41,13 +41,13 @@ from de4sdv.sysml_api.errors import IdentityNotFoundError
 from .impact import ImpactService
 from .kernel_contract import KernelContract, KernelFileMapping, RelationshipMapping
 from .model_contract import (  # noqa: F401 — re-exported model-contract surface
-    BATCH2_LAYER,
-    BATCH2_LAYERS,
     DISCRIMINATED_PREDICATES,
     EVIDENCE_CONTRACT_CLASS,
+    FROZEN_RECORD_IDENTITIES,
+    FROZEN_RECORD_LAYER,
+    KERNEL_VOCABULARY_LAYER,
+    KERNEL_VOCABULARY_LAYERS,
     LAYERS,
-    O2_CHAIN_IDENTITIES,
-    O2_CHAIN_LAYER,
     ROUTING_SCHEMA,
     LayerSpec,
     ModelAuthorityRefused,
@@ -106,8 +106,8 @@ def _successor_names(contract: Mapping[str, Any]) -> dict[str, str]:
 
 def _model_routing(root: Path, records: list[dict[str, Any]], provisions: list[Provision],
                    successor: Mapping[str, Any]) -> Routing:
-    chain = [p for p in provisions if p.layer == O2_CHAIN_LAYER]
-    layered = [p for p in provisions if p.layer != O2_CHAIN_LAYER]
+    chain = [p for p in provisions if p.layer == FROZEN_RECORD_LAYER]
+    layered = [p for p in provisions if p.layer != FROZEN_RECORD_LAYER]
     return compute_routing(provisions=layered, successor_contract=successor,
                            register_rows=load_register_rows(root), seed=chain)
 
