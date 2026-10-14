@@ -111,9 +111,12 @@ def create_mcp_server(service: SemanticQueryService) -> FastMCP:
         declared inputs and outputs (`steps`; one with coverage "no executable checks at this revision" is
         never evaluated) and the executable checks (`gates`). Per gate, `population` bounds the number of
         subjects (the multiplicity of the step parameter) and `cardinality` the distinct targets each subject
-        must reach. With an increment, also whether each step and gate applies to it. No verdict. A
-        `subject_type` containing `::` names a definition: pass it, or a parameter `type`, to inspect_element.
-        A `subject_type` without `::` is the SysML metaclass of an untyped parameter, not a model element."""
+        must reach. With an increment, also whether each step and gate applies to it, and per gate
+        `what_satisfies` and `authoring`: SysML built from the step parameter the check is about, with
+        qualified type names and the `private import` lines they need. No verdict. A `subject_type`
+        containing `::` names a definition: pass it, or a parameter `type`, to inspect_element. A
+        `subject_type` without `::` is the SysML metaclass of an untyped parameter, not a model element
+        (`subject_type_kind` is `metaclass`); its subject is declared by its `subject_keyword`."""
         return service.phase_contract(phase, increment=increment)
 
     @mcp.tool(annotations=_READ_ONLY, structured_output=True)
@@ -128,14 +131,17 @@ def create_mcp_server(service: SemanticQueryService) -> FastMCP:
     @mcp.tool(annotations=_READ_ONLY, structured_output=True)
     def method_gaps(increment: str, phase: str | None = None) -> dict[str, Any]:
         """Unmet blocking gates of one increment at the bound revision, with subjects and what to author,
-        plus advisory notes. Only phases with executable checks have gates: an empty list says nothing
-        about the declared phases `coverage` lists without executable checks."""
+        plus advisory notes. `what_to_author` and `authoring` give the SysML to write, built from the step
+        parameter the check is about: qualified type names, the `private import` lines and the order of
+        declarations. Only phases with executable checks have gates: an empty list says nothing about the
+        declared phases `coverage` lists without executable checks."""
         return service.method_gaps(phase, increment=increment)
 
     @mcp.tool(annotations=_READ_ONLY, structured_output=True)
     def next_obligation(increment: str, phase: str | None = None) -> dict[str, Any]:
         """The first actionable gate of one increment at the bound revision, in workflow order (step order,
-        then check order), with what to author and where. `reason` always says why. When
+        then check order), with what to author (`authoring`: declarations with qualified type names, their
+        `private import` lines, types and notes) and where. `reason` always says why. When
         `increment.resolution` is `not-declared`, the bound revision does not declare the increment: work
         on a branch is evaluated by the PR Method Check, not by this revision."""
         return service.next_obligation(phase, increment=increment)

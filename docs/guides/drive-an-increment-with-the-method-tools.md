@@ -85,7 +85,9 @@ types and multiplicities, and an enumeration's values, such as the 13
 `MethodPhase` literals (see
 [name an element, describe a definition](query-the-public-model-via-mcp.md#name-an-element-describe-a-definition)).
 A `subject_type` without `::`, such as `ConcernUsage`, is the SysML metaclass
-of an untyped parameter, not a model element.
+of an untyped parameter, not a model element (`subject_type_kind` is
+`metaclass`); you declare such a subject by its `subject_keyword`, for example
+`concern`.
 
 ## How the answers are built
 
@@ -101,6 +103,13 @@ of an untyped parameter, not a model element.
   as notes.
 - **Ranking.** `next_obligation` returns the earliest open blocking check in
   workflow order (step order, then check order).
+- **What to author.** `what_to_author` (and `what_satisfies` in
+  `phase_contract`) is SysML built from the step parameter the check is about:
+  its keyword, its type's qualified name with the `private import` of that
+  type's package, the types the check admits, and the order of declarations,
+  such as a subject before stakeholder members. `authoring` gives the same as
+  `declarations`, `imports`, `types` and `notes`; a placeholder in angle
+  brackets is a name or text you choose, never a type.
 - **Coverage.** Only some steps of the workflow carry checks. `phase_contract`
   lists every step in `steps`, with its phase, documentation, inputs and
   outputs (name, kind, type, multiplicity) and its checks; a step without
@@ -204,14 +213,15 @@ jq '.increments[] | {id, outcome, next: .next.gate, counts}' method-check.json
 | Field | Holds |
 | --- | --- |
 | `id`, `outcome` | The increment identifier, for example `INC-AEBS-010`; `evaluated`, `method-unavailable`, `method-invalid`, `refused` or `error` |
-| `next` | The first check to act on: `gate`, `stage`, `kind`, `what_to_author`, `where`, `subjects`; `null` when none is open |
+| `next` | The first check to act on: `gate`, `stage`, `kind`, `what_to_author`, `authoring`, `where`, `subjects`; `null` when none is open |
 | `counts` | `blocking`, `blocking_by_kind`, `advisory`, `method_side_blockers` |
 | `phase_exits`, `phase_checks` | Per phase with executable checks: `READY` or `BLOCKED`, and how many of its checks pass (`pass`, `total`, `not_applicable`) |
 | `phases_without_checks` | The declared phases whose step has no executable checks: `phase`, `step` and its `outputs`; never evaluated, so the counts say nothing about them |
 | `evaluation.gaps.blocking` | Every unmet blocking check with all its subjects; `evaluation.gaps.advisory` holds the advisory notes |
 | `evaluation` | The full `scripts/evaluate_increment.py` report: `status`, `gaps`, `next`, `contract` |
 
-The top-level `errors` lists technical errors, and `notes` lists what could
+The summary shows the next check's imports and declarations as a SysML block
+to copy. The top-level `errors` lists technical errors, and `notes` lists what could
 not be evaluated, such as a charter whose increment carries no identifier.
 Such an increment is also listed in `not_evaluated` with its `usage`,
 `charters` and `reason` (outcome `not-evaluated`), and the summary shows it
