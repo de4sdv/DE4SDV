@@ -103,10 +103,12 @@ through the semantic MCP server (`scripts/semantic_mcp_server.py --api-url URL
 
 ## Evidence boundary
 
-`tests/test_trace_vocabulary_supplied_api.py` runs the real CLI subprocess and
-real MCP stdio handshake/tool call over a local **synthetic** supplied HTTP API.
-It proves transport, exact-pin routing and read-only behavior, not licensed model
-closure or a production current-baseline observation. Model wiring tests are lexical.
+`tests/test_trace_vocabulary_supplied_api.py` reads a local **synthetic** supplied
+HTTP API through the read-only service, and calls the MCP `semantic_neighbors`
+tool in-process on that same service; it starts no subprocess and does no stdio
+handshake. It proves exact-pin routing over HTTP and that the MCP tool answers
+from the same read-only service, not licensed model closure or a production
+current-baseline observation. Model wiring tests are lexical.
 Request maintainer-run privileged Syside validation and API ingestion/readback at
 the reviewed exact head before promoting the model slice beyond draft. Parent owns
 aggregate generation, frozen O3/projection/profile preservation proofs and W6.
