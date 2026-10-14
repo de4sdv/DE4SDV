@@ -50,7 +50,7 @@ from .increment_workflow import (
 from .increment_scope import IDENTITY_PROBLEM, PROBLEM_INVALID, IncrementScope, ModelView, resolve_increment
 from .method_checks import IncrementEvaluationContext
 from .relation_checks import METHOD_SIDE_PREFIXES
-from .remedies import Remedy, check_remedy
+from .remedies import Remedy, check_remedy, subject_declaration
 
 CLAIM_BOUNDARY = (
     "model-content gates of the method declared in the evaluated revision; no acceptance, "
@@ -319,6 +319,8 @@ class IncrementEvaluation:
         keep, and how one is declared."""
         label = self.increment_method.labels.get(gate.obligation_id, {})
         subject_type = str(label.get("subject_type") or "subject").rsplit("::", 1)[-1]
+        if label.get("subject_type_kind") == "metaclass":  # an untyped parameter: named by its keyword
+            subject_type = f"{label.get('subject_keyword') or 'subject'} usage"
         lower, upper = gate.minimum_population, gate.maximum_population
         if upper is None:
             bounds = f"at least {lower}"
@@ -330,6 +332,9 @@ class IncrementEvaluation:
         where = ("package" if gate.selector_kind == OWN_PACKAGE_SELECTOR
                  else "packages named in the charter's expectedArtifacts")
         declared = self._remedy(gate, None)
+        if not declared.declarations:  # the check's own remedy is method side: how a subject is declared
+            declared = subject_declaration(self.view, gate.predicate, parameter=label.get("parameter_element_id"),
+                                           framing=gate.selector_kind == OWN_PACKAGE_SELECTOR, scope=self.scope)
         instruction = f"keep {bounds} {subject_type} in the increment's {where} ({observed})"
         if declared.declarations:
             instruction += "; one is declared as"
