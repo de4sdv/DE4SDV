@@ -387,9 +387,9 @@ def test_trace_vocabulary_file_declares_exactly_the_contract_carriers_classes_an
     """No orphan carrier: every connection def is a contract carrier or the
     derivation connection, and the file's definitions are exactly those, the
     contract's endpoint classes and the record definitions."""
-    from de4sdv.semantic.model_contract import generate_model_successor_contract
+    from de4sdv.semantic.model_contract import load_trace_contract
     from model_contract_fixtures import model_contract
-    contract = generate_model_successor_contract(ROOT)
+    contract = load_trace_contract(ROOT)
     code = no_strings(code_of(TRACE_VOCABULARY))
     carriers = {row["carrier"] for rows in contract["relations"].values() for row in rows}
     assert set(re.findall(r"\bconnection\s+def\s+(\w+)", code)) == carriers | {DERIVATION_CONNECTION}
@@ -404,8 +404,8 @@ def test_trace_vocabulary_file_declares_exactly_the_contract_carriers_classes_an
 
 
 def test_each_successor_predicate_owns_one_vocabulary_role_definition():
-    from de4sdv.semantic.model_contract import generate_model_successor_contract
-    contract = generate_model_successor_contract(ROOT)
+    from de4sdv.semantic.model_contract import load_trace_contract
+    contract = load_trace_contract(ROOT)
     text = re.sub(r"//[^\n]*", "", _trace_vocabulary_code())
     roles = {m[1]: (set(re.split(r"\s*,\s*", m[2].strip())), m[3])
              for m in re.finditer(r"\bcomment\s+(\w+)VocabularyRole\s+about\s+([\w\s,]+?)\s*/\*(.*?)\*/", text, re.S)}

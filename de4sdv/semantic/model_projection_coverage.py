@@ -208,7 +208,7 @@ def _layer_digests(records: list[dict[str, Any]]) -> dict[str, str]:
 def build_report(root: Path = ROOT) -> dict[str, Any]:
     root = Path(root)
     records, provisions = mc.load_model_layers(root)
-    successor = mc.generate_model_successor_contract(root, records=records, provisions=provisions)
+    successor = mc.load_trace_contract(root, provisions=provisions)
     register = mc.load_register_rows(root)
     routing = mc.compute_routing(
         provisions=[p for p in provisions if p.layer != mc.O2_CHAIN_LAYER],

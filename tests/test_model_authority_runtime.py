@@ -39,7 +39,7 @@ def _elements_and_bindings(ec_defs=EC_DEFS):
     successor routing and the EvidenceContract discriminator resolve by
     validated identity, never by name.
     """
-    contract = mar.generate_successor_contract(ROOT)
+    contract = mar.trace_contract(ROOT)
     model = model_contract()
     pins = {}
     for name, pin in {**contract["classes"], **contract["carriers"]}.items():
@@ -146,7 +146,7 @@ def test_routing_is_disjoint_and_a_planted_duplicate_is_refused():
     _, provisions = mar.load_layers(ROOT)
     layered, chain = _split(provisions)
     planted = layered + [mar.Provision("Need", "class", "o2plus", mapping=KernelNativeMapping("impostor"))]
-    successor = mar.generate_successor_contract(ROOT)
+    successor = mar.trace_contract(ROOT)
     result = mar.compute_routing(provisions=planted, successor_contract=successor, seed=chain)
     assert result.duplicates
     with pytest.raises(mar.ModelAuthorityRefused, match="duplicate"):
@@ -159,12 +159,12 @@ def test_retained_row_without_provider_is_a_refused_residual():
     layered, chain = _split(provisions)
     dropped = [p for p in layered if p.identity != "specifiesFunction"]
     result = mar.compute_routing(provisions=dropped,
-                                 successor_contract=mar.generate_successor_contract(ROOT),
+                                 successor_contract=mar.trace_contract(ROOT),
                                  register_rows=mar.load_register_rows(ROOT), seed=chain)
     assert "specifiesFunction" in result.residual
     with pytest.raises(mar.ModelAuthorityRefused, match="residual"):
         mar.ModelAuthorityFacade(contract=model_contract(), routing=result,
-                                 successor_contract=mar.generate_successor_contract(ROOT),
+                                 successor_contract=mar.trace_contract(ROOT),
                                  components={})
 
 
@@ -203,7 +203,7 @@ def _retired(name, domain, range_, successor, navigation):
 
 
 def _kernel_vocabulary_rows():
-    contract = mar.generate_successor_contract(ROOT)
+    contract = mar.trace_contract(ROOT)
     pairs = [{"source_class": r["sourceClass"], "target_class": r["targetClass"]}
              for r in contract["relations"]["allocatedTo"]]
     dependency = {"strategy": "dependency", "relationship_types": ["Dependency"],
@@ -267,7 +267,7 @@ def _kernel_vocabulary_routing(root):
     _, provisions = mar.load_layers(root)
     layered, chain = _split(provisions)
     return mar.compute_routing(provisions=layered,
-                               successor_contract=mar.generate_successor_contract(ROOT),
+                               successor_contract=mar.trace_contract(ROOT),
                                register_rows=mar.load_register_rows(ROOT), seed=chain)
 
 

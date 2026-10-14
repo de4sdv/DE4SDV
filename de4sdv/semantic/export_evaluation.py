@@ -139,7 +139,7 @@ def load_export_snapshot(
 def export_view(snapshot: ExportSnapshot, *, root: Path = ROOT) -> ModelView:
     """The production traversal over the export (unverified facade of this checkout)."""
     from .model_authority_runtime import ModelAuthorityTraversal, model_facade
-    from .relationship_successor import route_successor_bindings
+    from .trace_vocabulary_traversal import route_successor_bindings
 
     facade = model_facade(Path(root))
     index, _routes = route_successor_bindings(

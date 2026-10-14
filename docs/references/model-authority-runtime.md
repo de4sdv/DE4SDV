@@ -30,9 +30,11 @@ built by `de4sdv/semantic/model_contract.py`) assembles the contract from:
 - the frozen-record layer: 13 identities read from the six frozen
   projection/profile records (`frozen-records/semantic-projection-v1…v1.2`
   and their profiles), which never change;
-- the successor contract generated from the model
-  (`relationship_successor_contract.generate_contract`, class pins from the
-  layers);
+- the trace-vocabulary contract (`trace-vocabulary-contract.json`, written
+  by `scripts/generate_trace_vocabulary_contract.py` from
+  `de4sdv_trace_vocabulary.sysml`); the runtime reads it with
+  `model_contract.load_trace_contract`, checks its class pins against the
+  layers and never parses the model;
 - the kernel-internal declarations manifest
   ([kernel-internal-declarations.yaml](../../de4sdv/semantic/contract-data/kernel-internal-declarations.yaml),
   owner decision D3), the governed-directory accounting.

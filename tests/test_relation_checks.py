@@ -98,7 +98,7 @@ def test_an_external_relation_is_method_side() -> None:
 
 
 def test_unreadable_witnesses_are_a_model_problem_not_a_gap(monkeypatch) -> None:
-    from de4sdv.semantic.relationship_successor import SuccessorTraversal
+    from de4sdv.semantic.trace_vocabulary_traversal import SuccessorTraversal
 
     def unreadable(self, predicate, source, elements):
         self.unavailable(predicate, "native connection endpoint is absent")

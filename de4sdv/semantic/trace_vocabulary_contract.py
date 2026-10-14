@@ -1,62 +1,57 @@
-"""Build-time model record extraction, not runtime semantic authority tables.
+"""Generate the trace-vocabulary contract from the model (build time only).
 
-This bounded extractor is not a SysML validator. Licensed ingestion must validate
-model notation and persist exact kernel/carrier bindings before live closure.
+The runtime serves the trace relations of the method kernel (``allocatedTo``,
+``hasValidationScenario`` with its inverse ``validationScenarioFor``,
+``hasRegulatorySource``) and refuses the retired relation names from one
+generated file, ``de4sdv/semantic/contract-data/trace-vocabulary-contract.json``.
+This module writes that file from the trace-vocabulary package of the kernel:
+its relation, retirement and version records, and the typed ends of the
+connection definitions those records name, checked against the class pins of
+the generated projection layers (:func:`model_contract.model_class_pins`). The
+runtime reads the generated file (:func:`model_contract.load_trace_contract`)
+and never parses SysML text (ADR 0011).
+
+The reader is a bounded token scan of the supported textual subset, not a
+SysML parser or validator. Comments and both quoted-token forms (strings and
+single-quoted names) are inert, so a commented or quoted decoy can never move
+a declaration boundary or supply a record, a field or a carrier end. Every
+record and carrier must be one live, directly owned declaration (a duplicate
+refuses), and a record field must be a directly owned
+``attribute :>> name = "literal";``. Licensed validation of the model stays
+separate.
+
+Generation is deterministic: the same sources give the same bytes, and the
+file names no Git revision and no input digest.
+``scripts/generate_trace_vocabulary_contract.py`` writes it; its ``--check``,
+run by ``scripts/check_repo.py``, refuses a missing or stale file. Run it after
+the projection generators, whose class pins it reads.
+
+Read-only and offline; never imported by the runtime.
 """
 from __future__ import annotations
-import hashlib
+
 import json
 import re
 from pathlib import Path
 
+from . import model_contract as mc
+
 MODEL = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_trace_vocabulary.sysml"
 PACKAGE = "DE4SDV_TraceVocabulary"
-# Class identities are pinned by the model-generated projection layers' class
-# mappings (``model_contract.model_class_pins``), not by file-path records
-# inside the successor package: the layers carry the class-to-declaration
-# mapping, and the pin files are bound inputs of the contract.
-SEMANTIC_FIELDS = ("schema", "supersedes", "classes", "carriers", "relations", "retired")
-# Construction provenance only; these bytes never contribute to semantic id.
-PROGRAM_INPUTS = (
-    "de4sdv/semantic/relationship_successor_contract.py",
-    "de4sdv/semantic/relationship_successor.py",
-    "de4sdv/semantic/deployment_runtime.py",
-    "de4sdv/semantic/model_contract.py",
-    "de4sdv/semantic/traversal.py",
-    "de4sdv/semantic/query.py",
-    "de4sdv/semantic/api_binding.py",
-    "de4sdv/semantic/kernel_binding_index.py",
-    "de4sdv/semantic/kernel_contract.py",
-    "de4sdv/semantic/model_edges.py",
-    "de4sdv/semantic/relationships.py",
-    "de4sdv/semantic/impact.py",
-    "de4sdv/sysml_api/revisions.py",
-    "de4sdv/sysml_api/repository.py",
-    "de4sdv/sysml_api/client.py",
-    "textual-notation-of-model/packages/features/aebs/aebs_functional_architecture.sysml",
-    "textual-notation-of-model/packages/features/aebs/aebs_logical_architecture.sysml",
-    "textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml",
-    "methodologies/sysmod-sysmlv2/pilots/aebs-needs-requirements.yaml",
-    "methodologies/sysmod-sysmlv2/pilots/aebs-regulatory-source.yaml",
+GENERATOR = "scripts/generate_trace_vocabulary_contract.py"
+#: The record definitions the package declares, with the fields each record sets.
+RECORD_FIELDS = {
+    "TraceVocabularyVersionRecord": frozenset({"version", "supersedes"}),
+    "TraceRelationRecord": frozenset({"predicate", "carrier", "mechanism", "strength", "sourceClass",
+                                      "targetClass", "sourceUsage", "targetUsage", "inverse"}),
+    "RetiredRelationRecord": frozenset({"predicate", "reason"}),
+}
+VERSION_RECORD, RELATION_RECORD, RETIREMENT_RECORD = RECORD_FIELDS
+WARNING = (
+    "Generated from the trace-vocabulary package of the method kernel by "
+    "scripts/generate_trace_vocabulary_contract.py; do not edit. The runtime reads this "
+    "file to serve the trace relations and never parses the model."
 )
-
-
-def digest(data):
-    return "sha256:" + hashlib.sha256(data).hexdigest()
-
-
-def semantic_payload(contract: dict) -> dict:
-    """The complete successor meaning allowed into semantic identity.
-
-    Covers the version/supersedes declaration, exact class and carrier
-    file/declaration pins, every relation record (predicate, carrier, mechanism,
-    strength, endpoint classes/usages and inverse), and retirement reasons.
-    ``id`` is derived; ``bound_inputs`` is an exact-byte construction receipt,
-    not meaning: Python bytes, source formatting/comments, projection bindings,
-    pilot YAML and unrelated AEBS content are explicitly excluded from id.
-    Source/pin validation and receipt verification remain separate checks.
-    """
-    return {key: contract[key] for key in SEMANTIC_FIELDS}
 
 
 def _lexical_mask(text: str, *, mask_strings: bool) -> str:
@@ -231,13 +226,14 @@ def _competing_known_homonyms(class_types: dict[str, tuple[str, str]], classes: 
     }
 
 
-def generate_contract(root: Path, *, class_pins: dict, pin_inputs: tuple[str, ...]) -> dict:
-    """Generate the successor contract from the model.
+def extract_contract(root: Path, *, class_pins: dict) -> dict:
+    """The trace-vocabulary contract, read from the model.
 
     ``class_pins`` supplies the exact file/declaration pin per class from the
-    model-generated projection layers (``model_contract.model_class_pins``);
-    ``pin_inputs`` names the layer files those pins were read from, so they
-    are bound inputs of the contract.
+    generated projection layers (:func:`model_contract.model_class_pins`). The
+    contract carries the version and supersession, the endpoint class pins, the
+    carrier pins, the relation rows and the retirements, plus ``id``: the digest
+    of exactly that meaning (:func:`model_contract.trace_contract_id`).
     """
     text = (root / MODEL).read_text()
     package = _live_declaration(text, r"\bpackage\s+" + PACKAGE + r"(?=\s*\{)", direct_depth=0)
@@ -251,6 +247,8 @@ def generate_contract(root: Path, *, class_pins: dict, pin_inputs: tuple[str, ..
     owned_records, _ = _owned_matches(package, record_pattern)
     for record in owned_records:
         name, kind = record.groups()
+        if kind not in RECORD_FIELDS:
+            raise ValueError(f"incomplete or unsupported successor record {name}: {kind}")
         block = _live_declaration(
             text, r"(?m)^[ \t]*part\s+" + re.escape(name) + r"\s*:\s*" + re.escape(kind) + r"\b",
             direct_depth=1)
@@ -270,20 +268,12 @@ def generate_contract(root: Path, *, class_pins: dict, pin_inputs: tuple[str, ..
             if key in values:
                 raise ValueError(f"duplicate record field {name}.{key}")
             values[key] = json.loads(parsed.group(2))
-        required_fields = {
-            "TraceVocabularyVersionRecord": {"version", "supersedes"},
-            "TraceRelationRecord": {"predicate", "carrier", "mechanism", "strength", "sourceClass",
-                                    "targetClass", "sourceUsage", "targetUsage", "inverse"},
-            "RetiredRelationRecord": {"predicate", "reason"},
-        }
-        if kind not in required_fields or set(values) != required_fields[kind]:
+        if set(values) != RECORD_FIELDS[kind]:
             raise ValueError(f"incomplete or unsupported successor record {name}: {kind}")
         records.setdefault(kind, []).append(values)
-    versions = records.get("TraceVocabularyVersionRecord", [])
+    versions = records.get(VERSION_RECORD, [])
     if len(versions) != 1 or not versions[0].get("version"):
         raise ValueError("one explicit successor version required")
-    classes, class_types = {}, {}
-    inputs = {MODEL, *pin_inputs, *PROGRAM_INPUTS}
     for name, pin in class_pins.items():
         if (not isinstance(pin, dict) or set(pin) != {"file", "declaration"}
                 or not isinstance(pin["file"], str) or not pin["file"].strip()
@@ -292,7 +282,7 @@ def generate_contract(root: Path, *, class_pins: dict, pin_inputs: tuple[str, ..
                 or not re.fullmatch(r"[a-z]+(?: [a-z]+)* def [A-Za-z_]\w*", pin["declaration"])):
             raise ValueError(f"malformed class pin for {name}: {pin!r}")
     class_pin_map = {name: dict(pin) for name, pin in class_pins.items()}
-    profile_classes = sorted({row[key] for row in records.get("TraceRelationRecord", [])
+    profile_classes = sorted({row[key] for row in records.get(RELATION_RECORD, [])
                               for key in ("sourceClass", "targetClass")})
     missing = [name for name in profile_classes if name not in class_pin_map]
     if missing:
@@ -315,14 +305,13 @@ def generate_contract(root: Path, *, class_pins: dict, pin_inputs: tuple[str, ..
         owner = _definition_owner(source, pin["declaration"])
         if file == MODEL and owner != PACKAGE:
             raise ValueError(f"class pin outside governed successor package: {name}")
-        inputs.add(file)
         known_pins[name] = dict(file=file, declaration=pin["declaration"])
         known_types[name] = (owner, pin["declaration"].split()[-1])
     classes = {name: known_pins[name] for name in profile_classes}
     class_types = {name: known_types[name] for name in profile_classes}
     relations, carriers = {}, {}
-    for row in records.get("TraceRelationRecord", []):
-        if set(row) != {"predicate", "carrier", "mechanism", "strength", "sourceClass", "targetClass", "sourceUsage", "targetUsage", "inverse"}:
+    for row in records.get(RELATION_RECORD, []):
+        if set(row) != RECORD_FIELDS[RELATION_RECORD]:
             raise ValueError("incomplete relation profile record")
         if row["mechanism"] not in {"native-allocation", "typed-connection"}:
             raise ValueError("unsupported profile mechanism")
@@ -363,26 +352,38 @@ def generate_contract(root: Path, *, class_pins: dict, pin_inputs: tuple[str, ..
         if row["mechanism"] == "typed-connection":
             carriers[name] = dict(file=MODEL, declaration="connection def " + row["carrier"])
     retirements = {}
-    for row in records.get("RetiredRelationRecord", []):
+    for row in records.get(RETIREMENT_RECORD, []):
         if not row.get("reason") or row["predicate"] in retirements:
             raise ValueError("invalid retirement record")
         retirements[row["predicate"]] = row["reason"]
     inverse_names = [rows[0]["inverse"] for rows in relations.values() if rows[0]["inverse"]]
     if len(inverse_names) != len(set(inverse_names)) or set(inverse_names) & (set(relations) | set(retirements)) or set(relations) & set(retirements):
         raise ValueError("overlapping relationship identities")
-    payload: dict = dict(schema=versions[0]["version"], supersedes=versions[0]["supersedes"],
-                   classes=classes, carriers=carriers, relations=relations, retired=retirements,
-                   bound_inputs={p: digest((root / p).read_bytes()) for p in sorted(inputs)})
-    payload["id"] = digest(json.dumps(semantic_payload(payload), sort_keys=True,
-                                      separators=(",", ":")).encode())
-    return payload
+    contract: dict = dict(schema=versions[0]["version"], supersedes=versions[0]["supersedes"],
+                          classes=classes, carriers=carriers, relations=relations, retired=retirements)
+    contract["id"] = mc.trace_contract_id(contract)
+    return contract
 
 
-def verify_contract(contract, root, *, class_pins, pin_inputs):
-    """Verify an exact construction receipt, separately from semantic equality."""
-    regenerated = generate_contract(root, class_pins=class_pins, pin_inputs=pin_inputs)
-    if regenerated != contract:
-        changed = sorted(p for p, d in contract.get("bound_inputs", {}).items()
-                         if not (root / p).is_file() or digest((root / p).read_bytes()) != d)
-        raise ValueError("successor contract/source mismatch: " + ", ".join(changed))
-    return regenerated
+def build_document(root: Path) -> dict:
+    """The generated file: the contract read from the model, with the current class pins."""
+    _records, provisions = mc.load_model_layers(root)
+    contract = extract_contract(root, class_pins=mc.model_class_pins(provisions))
+    return {"schema": mc.TRACE_CONTRACT_SCHEMA, "warning": WARNING, "contract": contract}
+
+
+def run_check_errors(root: Path) -> list[str]:
+    """Require the committed file to equal regeneration from the current sources."""
+    try:
+        document = build_document(root)
+    except (ValueError, OSError) as exc:
+        return [f"{MODEL}: trace-vocabulary contract cannot be generated: {exc}"]
+    path = root / mc.TRACE_CONTRACT_PATH
+    if not path.is_file():
+        return [f"{mc.TRACE_CONTRACT_PATH}: missing; run {GENERATOR} and commit the output "
+                "with the source change"]
+    if mc.canonical_json(document).encode("utf-8") != path.read_bytes():
+        return [f"{mc.TRACE_CONTRACT_PATH}: differs from regeneration from the current sources; "
+                f"run {GENERATOR} and commit the output with the source change "
+                "(docs/guides/generated-semantic-assets.md)"]
+    return []
