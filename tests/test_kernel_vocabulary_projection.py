@@ -269,8 +269,10 @@ def test_runtime_queryable_targets_keep_their_forward_obligation():
 # ---------------------------------------------------------------------------
 
 
-def test_evidence_contract_closure_is_exactly_the_eight_aebs_contracts_repo_wide():
-    """Population test: no other model definition specializes EvidenceContract."""
+def test_evidence_contract_closure_is_every_model_specialization_repo_wide():
+    """Content test, no count: the closure the admission declares is exactly
+    the set of model definitions that specialize EvidenceContract, which ADR
+    0020 names (EC_CLOSURE)."""
     from de4sdv.semantic.kernel_vocabulary_projection import _Source
 
     found = set()
@@ -284,12 +286,12 @@ def test_evidence_contract_closure_is_exactly_the_eight_aebs_contracts_repo_wide
                     found.add((relative, f"{match[1]} def {match[2]}"))
     assert found == EC_CLOSURE
     row = _rows()["hasRelevantEvidenceContract"]
-    assert {(p["file"], p["declaration"]) for p in row["range_discriminator"]["closure"]} == EC_CLOSURE
+    assert {(p["file"], p["declaration"]) for p in row["range_discriminator"]["closure"]} == found
     projected = {r["identity"]: r for r in _outputs()["projection_rows"]}["hasRelevantEvidenceContract"]
     disc = projected["relation"]["range"]["discriminator"]
     assert disc["kind"] == "type-lineage"
     assert disc["lineage"]["declaration"] == "requirement def EvidenceContract"
-    assert len(disc["closure"]) == 8
+    assert {(p["source_file"], p["declaration"]) for p in disc["closure"]} == found
     assert "prefix" in disc["rule"] and "never by name" in disc["rule"]
 
 
