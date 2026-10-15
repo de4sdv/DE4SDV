@@ -551,3 +551,29 @@ def test_frozen_interpreter_bytes_are_verified(interpreter, tmp_path):
     tampered.write_bytes(source + b"\n# tampered\n")
     with pytest.raises(alignment.ScopeAlignmentError, match="differ from the reviewed digest"):
         alignment.load_frozen_interpreter(tampered)
+
+
+def test_an_unreadable_interpreter_path_is_a_scope_alignment_error(tmp_path):
+    with pytest.raises(alignment.ScopeAlignmentError, match="not readable"):
+        alignment.load_frozen_interpreter(tmp_path / "missing" / "pleml_gate_a.py")
+
+
+def test_an_unreachable_frozen_revision_names_the_tag_that_keeps_it(tmp_path):
+    import subprocess
+
+    subprocess.run(["git", "init", "-q", str(tmp_path / "empty")], check=True)
+    with pytest.raises(alignment.ScopeAlignmentError, match="pleml-gate-a-frozen"):
+        alignment.load_frozen_interpreter(repository=tmp_path / "empty")
+
+
+def test_a_loaded_interpreter_leaves_no_temporary_directory_behind(interpreter):
+    import gc
+    import sys
+
+    module = alignment.load_frozen_interpreter(Path(interpreter.__file__))
+    directory = Path(module.__file__).parent
+    assert directory.is_dir() and directory.name.startswith("de4sdv-frozen-interpreter-")
+    assert module.__name__ not in sys.modules
+    del module
+    gc.collect()
+    assert not directory.exists()

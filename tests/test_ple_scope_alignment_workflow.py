@@ -313,7 +313,8 @@ def _good_receipt() -> dict[str, Any]:
             {"configuration": "standaloneAutowareAEBSReferenceMemberConfiguration", "role": "member",
              "status": "configuration-valid", "violated_bound": None, "selected_alternatives": ["standalone"],
              "derived_asset_variants": [{"variation": "osPlatform", "variant": "linux"}]}],
-            "checks": {"frozen_resolver_agrees": True}},
+            "checks": {"frozen_resolver_agrees": True, "feature_binding_metadata_observed": True,
+                       "configuration_binding_metadata_observed": True}},
     }
 
 
@@ -332,6 +333,10 @@ def test_the_receipt_predicate_accepts_the_expected_receipt_and_writes_the_summa
     ({"adoption_authorized": True}, "promoted"),
     ({"fresh_serialization": False}, "fresh"),
     ({"alignment": {"configurations": [], "checks": {"frozen_resolver_agrees": False}}}, "frozen resolver"),
+    ({"alignment": {"configurations": [], "checks": {"frozen_resolver_agrees": True, "feature_binding_metadata_observed": False,
+                                                      "configuration_binding_metadata_observed": True}}}, "metadata"),
+    ({"alignment": {"configurations": [], "checks": {"frozen_resolver_agrees": True, "feature_binding_metadata_observed": True,
+                                                      "configuration_binding_metadata_observed": False}}}, "metadata"),
 ])
 def test_the_receipt_predicate_rejects_promotion_and_drift(tmp_path, mutation, message) -> None:
     receipt = _good_receipt()

@@ -23,6 +23,7 @@ import importlib.util
 import subprocess
 import sys
 import tempfile
+import uuid
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -32,7 +33,9 @@ from de4sdv.sysml_api.repository import element_id, reference_ids
 ROOT = Path(__file__).resolve().parents[2]
 
 #: The frozen Gate A experiment: the reviewed interpreter and the PLEML pin.
+#: The code reads the exact revision; the tag only keeps it reachable.
 FROZEN_REVISION = "6a99626b4af7cd01108f27dac88bf5b55bba207a"
+FROZEN_TAG = "pleml-gate-a-frozen"
 FROZEN_INTERPRETER = "tools/pleml_gate_a.py"
 FROZEN_INTERPRETER_SHA256 = "4d9180e9fc6b417f2ffef60b550398335d90225940bc8b8a5960fa733733a4c3"
 PLEML_PIN = "5f8ab8560219dc24d8ec7ec90d6f0a145896ef8e"
@@ -113,8 +116,8 @@ KNOWN_REPRESENTATION_DIFFERENCES: tuple[dict[str, Any], ...] = (
             "alternative."
         ),
         "disposition": (
-            "recorded; a candidate model increment for the superset (split "
-            "execution-domain topology) outside the scope alignment"
+            "recorded; the split execution-domain representation of the superset is "
+            "owned by INC-MW-011 (owner decision D6, 2026-10-15), not by the scope alignment"
         ),
     },
 )
@@ -132,12 +135,15 @@ def load_frozen_interpreter(path: Path | None = None, *, repository: Path | None
     """Import the frozen Gate A interpreter after verifying its exact bytes.
 
     ``path`` points at the file inside a frozen experiment checkout; without
-    it the bytes come from this repository's Git history (the frozen revision
-    is the tip of the retained experiment branch). Either way the digest must
-    be the reviewed one.
+    it the bytes come from this repository's Git history: the code reads the
+    exact frozen revision, which the tag ``pleml-gate-a-frozen`` keeps
+    reachable. Either way the digest must be the reviewed one.
     """
     if path is not None:
-        data = Path(path).read_bytes()
+        try:
+            data = Path(path).read_bytes()
+        except OSError as exc:
+            raise ScopeAlignmentError(f"frozen Gate A interpreter not readable at {path}: {exc}") from exc
     else:
         result = subprocess.run(
             ["git", "-C", str(repository or ROOT), "show", f"{FROZEN_REVISION}:{FROZEN_INTERPRETER}"],
@@ -147,22 +153,29 @@ def load_frozen_interpreter(path: Path | None = None, *, repository: Path | None
         if result.returncode:
             raise ScopeAlignmentError(
                 "the frozen Gate A interpreter is not reachable in this repository "
-                f"({FROZEN_REVISION[:8]}:{FROZEN_INTERPRETER}); fetch the retained "
-                "experiment branch or pass a verified checkout path"
+                f"({FROZEN_REVISION[:8]}:{FROZEN_INTERPRETER}); fetch tags (the frozen "
+                f"revision is kept by tag {FROZEN_TAG}) or pass a verified checkout path"
             )
         data = result.stdout
     if _digest(data) != FROZEN_INTERPRETER_SHA256:
         raise ScopeAlignmentError("frozen Gate A interpreter bytes differ from the reviewed digest")
-    directory = Path(tempfile.mkdtemp(prefix="de4sdv-frozen-interpreter-"))
-    target = directory / "pleml_gate_a.py"
+    directory = tempfile.TemporaryDirectory(prefix="de4sdv-frozen-interpreter-")
+    target = Path(directory.name) / "pleml_gate_a.py"
     target.write_bytes(data)
-    name = f"_de4sdv_frozen_gate_a_interpreter_{_digest(data)[:12]}"
+    name = f"_de4sdv_frozen_gate_a_interpreter_{uuid.uuid4().hex}"
     spec = importlib.util.spec_from_file_location(name, target)
     if spec is None or spec.loader is None:
         raise ScopeAlignmentError("cannot import the frozen Gate A interpreter")
     module = importlib.util.module_from_spec(spec)
+    # Registered only while it executes: its dataclasses resolve annotations
+    # through sys.modules. Afterwards the module lives as long as its callers
+    # hold it, and the temporary directory goes with it.
     sys.modules[name] = module
-    spec.loader.exec_module(module)
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.modules.pop(name, None)
+    module.__de4sdv_frozen_interpreter_directory__ = directory
     return module
 
 

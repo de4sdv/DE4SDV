@@ -89,19 +89,24 @@ cannot classify.
 
 ## PLE-R and PLE-Q status (observed, not qualified)
 
-The privileged PLE qualification workflow ran on main at `e37c7f1` (run
-`37410659181`, 2026-10-06) and at `60847add` (run `38755211223`, 2026-10-15).
-Both concluded successfully as workflow runs. Their receipts record the six
+The observed PLE-R/PLE-Q status is the privileged PLE qualification run
+`38780181818` on main at `03f7fd22`, this record's base (artifact
+`ple-qualification-03f7fd22137ad8caaba8dc3d1006c308164f62a1-38780181818`).
+Its three receipts (historical replay, current serialization with API
+readback, scoped probes) record the executor `03f7fd22` with
+`executor_source_dirty: false`, `qualified: false` throughout, and the six
 qualification cases as observed, not qualified: `feature-binding` and
 `group-shapes` observed; `xor-counterexample`, `binding-time`,
-`serializer-identity` and `adapter-realization` as gaps; `qualified: false`
-throughout. Three of the six depend on open upstream questions to the PLEML
-maintainers (the XOR constraint body, the meaning of two bindings on one
-element, and the binding-time rule); PLE-S is built not to depend on them.
-Both receipts also record `executor_source_dirty: true`, because the frozen
-experiment checkout and the API log were inside the executor checkout; the
-clean-checkout pattern this workflow copies moves them to the runner's
-temporary directory. No formal PLE-R or PLE-Q disposition is recorded on main;
+`serializer-identity` and `adapter-realization` as gaps. Its frozen
+interpreter, PLEML pin and library digests are the ones this record's receipt
+carries. Three of the six cases depend on open upstream questions to the
+PLEML maintainers (the XOR constraint body, the meaning of two bindings on
+one element, and the binding-time rule); PLE-S is built not to depend on
+them. The earlier runs `37410659181` (`e37c7f1`, 2026-10-06) and
+`38755211223` (`60847add`, 2026-10-15) are superseded history: the same case
+statuses, but receipts with `executor_source_dirty: true` because the frozen
+experiment checkout and the API log sat inside the executor checkout, the
+defect #375 fixed. No formal PLE-R or PLE-Q disposition is recorded on main;
 PLE-S proceeds on this observed status (owner decision D0).
 
 ### Dependence on the open upstream questions
@@ -121,8 +126,10 @@ keeps its Linux runtime. The superset cannot express the split topology, so
 the common runtime has no superset realization dependency and `osPlatform` is
 bound per alternative. The receipt records this as
 `intentional-representation` and confirms the structural facts in the graph.
-It is a candidate model increment for the superset (split execution-domain
-topology), outside PLE-S and not fixed here.
+The split execution-domain representation of the superset is owned by
+INC-MW-011 (owner decision D6, 2026-10-15), whose member product has two
+execution domains (a Linux host and an AAOS SDV HMI guest under KVM); it is
+not fixed in PLE-S.
 
 ## Evidence and how to rerun
 
@@ -154,8 +161,10 @@ topology), outside PLE-S and not fixed here.
 - **Offline replay:** `python scripts/run_ple_scope_alignment.py --replay
   <scope-alignment-elements.json> --out <directory outside the repository>`
   re-evaluates a retained element file with the frozen interpreter read from
-  this repository's Git history (its bytes are verified against the reviewed
-  digest). Replay evidence is not fresh serialization and says so.
+  this repository's Git history: the frozen revision `6a99626b` is kept by the
+  tag `pleml-gate-a-frozen`, the code reads the exact revision, and the bytes
+  are verified against the reviewed digest. Replay evidence is not fresh
+  serialization and says so.
 - **Unlicensed checks (public CI):** `tests/test_ple_scope_alignment_model.py`
   (boundary fence, textual shape, every qualified reference resolvable in
   its source), `tests/test_ple_scope_alignment_evaluator.py` (the evaluator on

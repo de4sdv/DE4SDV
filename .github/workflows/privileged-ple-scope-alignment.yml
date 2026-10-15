@@ -240,8 +240,11 @@ jobs:
               raise SystemExit('the experiment was silently promoted')
           if not receipt['fresh_serialization'] or receipt['mode'] != 'licensed-serialization':
               raise SystemExit('the evidence is not a fresh licensed serialization')
-          if not receipt['alignment']['checks']['frozen_resolver_agrees']:
+          checks = receipt['alignment']['checks']
+          if not checks['frozen_resolver_agrees']:
               raise SystemExit('the frozen resolver disagrees with the bound outcomes')
+          if not (checks['feature_binding_metadata_observed'] and checks['configuration_binding_metadata_observed']):
+              raise SystemExit('the FeatureBinding or FeatureConfigurationBinding metadata was not observed on the serialized dependencies')
           lines = ['## PLE scope alignment (experiment; qualified: false)', '',
                    '| configuration | role | outcome | selected | derived |', '|---|---|---|---|---|']
           for item in receipt['alignment']['configurations']:
