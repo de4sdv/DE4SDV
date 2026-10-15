@@ -20,7 +20,8 @@
 #     reason; admitted and excluded are disjoint and together cover the
 #     reviewed candidate set;
 #   * no frozen O2 identity (the v1/v1.1/v1.2 thirteen) and no frozen O3
-#     identity (MIGRATED_IDENTITIES) may be admitted or emitted;
+#     identity (FROZEN_RECORD_IDENTITIES in de4sdv/semantic/model_contract.py)
+#     may be admitted or emitted;
 #   * per-row `projection_required` / `api_profile_required` /
 #     `traversal_required` must equal the reviewed register values, and the
 #     emitted outputs must equal them exactly (`outputs.projection_row ==
