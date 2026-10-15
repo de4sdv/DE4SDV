@@ -38,7 +38,9 @@ this shape, which the method checks read:
 - **Identity:** the increment usage carries its registered `INC` identifier
   as its declared short name, for example
   `part <'INC-AEBS-010'> incAEBS010 : VisualizationIncrement`. Its definition
-  specializes `EngineeringIncrement`, and the usage name keeps its identity.
+  specializes `EngineeringIncrement`. A new increment's usage name is
+  descriptive; existing usages such as `incAEBS010` keep theirs (naming
+  conventions, §8).
   The repository check validates every short name against the identifier and
   subject registries of the
   [naming conventions](../../docs/naming/naming-conventions.md).
