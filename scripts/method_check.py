@@ -307,6 +307,14 @@ def _first_subjects(subjects: Sequence[Mapping[str, Any]], *, qualified: bool, c
     return f"{shown} (+{more} more)" if more > 0 else shown
 
 
+def _authoring_block(authoring: Mapping[str, Any]) -> list[str]:
+    """The imports and declarations of a remedy as a SysML block to copy, inside the list item."""
+    body = [str(line) for line in (*(authoring.get("imports") or ()), *(authoring.get("declarations") or ()))]
+    if not body:
+        return []
+    return ["", "  ```sysml", *(f"  {line.replace('```', chr(39) * 3)}" for line in body), "  ```", ""]
+
+
 def _gap_table(gaps: Sequence[Mapping[str, Any]]) -> list[str]:
     lines = ["| Check | Phase | Kind | Subjects | First subjects |", "| --- | --- | --- | ---: | --- |"]
     for gap in gaps[:MAX_ROWS]:
@@ -358,6 +366,7 @@ def _increment_section(entry: Mapping[str, Any]) -> list[str]:
         lines.append(f"**Next:** {_code(step.get('gate'))} in {_plain(step.get('stage'))} ({_plain(step.get('kind'))})")
         if step.get("what_to_author"):
             lines.append(f"- What to author: {_code(step['what_to_author'])}")
+            lines += _authoring_block(step.get("authoring") or {})
         where = step.get("where") or {}
         places = []
         if (where.get("increment_package") or {}).get("qualified_name"):

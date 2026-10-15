@@ -41,6 +41,7 @@ from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 
 from de4sdv.sysml_api.errors import IdentityNotFoundError
+from de4sdv.sysml_api.qualified_names import QualifiedNameIndex
 
 from .revision_index import RevisionIndex
 
@@ -55,6 +56,10 @@ SCOPE_PROBLEM = "scope"
 INCREMENT_CLASS = "EngineeringIncrement"
 CHARTER_CLASS = "IncrementTraceObligations"
 PHASE_CLASS = "MethodPhase"
+#: Charter feature referencing the increment usage.
+INCREMENT_ATTRIBUTE = "increment"
+#: Charter attribute listing the MethodPhase literals the increment applies.
+PHASES_ATTRIBUTE = "applicablePhases"
 #: Charter attribute naming the increment's packages.
 SCOPE_ATTRIBUTE = "expectedArtifacts"
 #: Charter feature referencing the increment's system of interest (optional).
@@ -130,7 +135,24 @@ class ModelView:
     def source_of(self, identifier: str | None) -> str:
         return str(self.sources.get(identifier or "", ""))
 
-    def describe(self, identifier: str | None) -> dict[str, str]:
+    @property
+    def names(self) -> QualifiedNameIndex:
+        """The corpus's KerML qualified names, computed from ownership (built once per corpus,
+        shared with the identity answers, which memoize the same index under the same key)."""
+        index = self.index
+        return index.memo("qualified-names", lambda: QualifiedNameIndex(index.elements, by_id=index.by_id))
+
+    def qualified_name(self, identifier: str | None) -> str | None:
+        """The qualified name an answer prints: computed from ownership, quoted where needed, and
+        resolvable by ``resolve_element``/``inspect_element``; ``None`` when the element has no
+        complete chain of named owners (it is never guessed)."""
+        return self.names.qualified_name(identifier)
+
+    def label(self, identifier: str | None) -> str:
+        """The qualified name of an element, else its identifier (which also resolves)."""
+        return self.qualified_name(identifier) or str(identifier or "")
+
+    def describe(self, identifier: str | None) -> dict[str, Any]:
         """Display record of one element: name, qualified name, short name.
 
         Source files are input-dependent (an export records them, an API
@@ -140,7 +162,7 @@ class ModelView:
         record = {
             "element_id": str(identifier or ""),
             "name": self.index.name_of(identifier),
-            "qualified_name": self.index.qualified_name(identifier),
+            "qualified_name": self.qualified_name(identifier),
         }
         short = element.get("declaredShortName")
         if short:
@@ -206,7 +228,7 @@ def resolve_increment(view: ModelView, increment_id: str) -> IncrementScope:
         diagnostics.append(f"the EngineeringIncrement lineage cannot be established: {error}")
     for holder in rejected:
         diagnostics.append(
-            f"{index.qualified_name(holder) or holder} carries the declared short name "
+            f"{view.label(holder)} carries the declared short name "
             f"{identifier!r} but is not a part usage in the EngineeringIncrement lineage"
         )
     if not holders:
@@ -283,7 +305,8 @@ def _ordered(view: ModelView, identifiers: Sequence[str]) -> tuple[str, ...]:
     """Distinct identifiers in a corpus-order-independent order.
 
     An API listing and an export of the same revision may enumerate elements
-    differently; qualified name then element identifier is stable for both.
+    differently; the ownership path of named owners, then the element identifier,
+    is stable for both. The path is an ordering key only, never a printed name.
     """
     unique = list(dict.fromkeys(identifiers))
     return tuple(sorted(unique, key=lambda item: (view.index.qualified_name(item), item)))
@@ -294,7 +317,7 @@ def _charters(view: ModelView, usage_id: str) -> tuple[tuple[str, ...], str]:
     found: list[str] = []
     try:
         for candidate in index.elements_of_type("PartUsage"):
-            values = index.feature_values(candidate, "increment")
+            values = index.feature_values(candidate, INCREMENT_ATTRIBUTE)
             if not any(leaf.kind == "reference" and leaf.value == usage_id for leaf in values):
                 continue
             if view.in_lineage(candidate, CHARTER_CLASS):
@@ -312,7 +335,7 @@ def applicable_phase_literals(view: ModelView, charter: str) -> tuple[list[str],
     phase_root = view.kernel_element(PHASE_CLASS)
     literals: list[str] = []
     foreign: list[str] = []
-    for leaf in view.index.feature_values(charter, "applicablePhases"):
+    for leaf in view.index.feature_values(charter, PHASES_ATTRIBUTE):
         if leaf.kind == "reference" and view.index.owner_of(leaf.value) == phase_root:
             if leaf.value not in literals:
                 literals.append(leaf.value)

@@ -102,8 +102,8 @@ RelationCheck = Callable[[ModelView, str], RelationResult]
 
 
 def element_name(view: ModelView, element: str | None) -> str:
-    """Qualified name of an element (its id when unnamed)."""
-    return view.index.qualified_name(element) or str(element or "")
+    """Qualified name of an element (its id when it has none); both resolve."""
+    return view.label(element)
 
 
 def membership_members(view: ModelView, owner: str, membership_type: str) -> list[str]:

@@ -32,14 +32,12 @@ from typing import Any, Iterable, Mapping
 
 from .increment_scope import (
     CHARTER_CLASS,
+    INCREMENT_ATTRIBUTE,
     INCREMENT_CLASS,
     IncrementIdentifierError,
     ModelView,
     parse_increment_id,
 )
-
-#: The charter attribute that references the increment usage.
-INCREMENT_ATTRIBUTE = "increment"
 
 
 @dataclass(frozen=True)
@@ -77,7 +75,8 @@ class IncrementDiscovery:
 
 
 def _ordered(view: ModelView, identifiers: Iterable[str]) -> tuple[str, ...]:
-    """Distinct identifiers by qualified name, then identifier (corpus-order independent)."""
+    """Distinct identifiers by the ownership path of their named owners, then identifier
+    (corpus-order independent); the path is an ordering key only, never a printed name."""
     unique = list(dict.fromkeys(identifiers))
     return tuple(sorted(unique, key=lambda item: (view.index.qualified_name(item), item)))
 
@@ -97,7 +96,7 @@ def declared_increments(view: ModelView) -> IncrementDiscovery:
     notes: list[str] = []
 
     def label(identifier: str) -> str:
-        return index.qualified_name(identifier) or identifier
+        return view.label(identifier)
 
     for usage in index.elements_of_type("PartUsage"):
         identifier = _identifier(index.element(usage).get("declaredShortName"))

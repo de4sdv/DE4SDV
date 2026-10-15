@@ -48,8 +48,9 @@ from .increment_workflow import (
     read_increment_method,
 )
 from .increment_scope import IDENTITY_PROBLEM, PROBLEM_INVALID, IncrementScope, ModelView, resolve_increment
-from .method_checks import IncrementEvaluationContext, remedy
+from .method_checks import IncrementEvaluationContext
 from .relation_checks import METHOD_SIDE_PREFIXES
+from .remedies import Remedy, check_remedy, population_remedy
 
 CLAIM_BOUNDARY = (
     "model-content gates of the method declared in the evaluated revision; no acceptance, "
@@ -149,7 +150,7 @@ class IncrementEvaluation:
         if len(scope.charters) == 1:
             block["charter"] = self.view.describe(scope.charters[0])
         block["scope"] = {
-            "packages": [self.view.index.qualified_name(package) for package in scope.scope_packages],
+            "packages": [self.view.label(package) for package in scope.scope_packages],
             "elements": len(scope.scope_elements),
         }
         block.update(_declaration_reason(scope, self.revision))
@@ -298,19 +299,28 @@ class IncrementEvaluation:
         if kind in {KIND_VIOLATION, KIND_INPUT}:
             first = next((c.subject_id for c in children if c not in method_side), None)
             if me.POPULATION_POLICY_VIOLATION in unit.reason_codes:
-                entry["what_to_author"] = self._population_remedy(gate, unit)
+                remedy = self._population_remedy(gate, unit)
             elif me.SCOPE_RESOLUTION_ERROR in unit.reason_codes:  # an ambiguous increment identity
-                entry["what_to_author"] = (f"keep one part usage with the declared short name {self.increment_id}"
-                                           f" ({'; '.join(unit.diagnostics)})")
+                remedy = Remedy(f"keep one part usage with the declared short name {self.increment_id}"
+                                f" ({'; '.join(unit.diagnostics)})")
             else:
-                entry["what_to_author"] = remedy(gate.predicate, self.view, _element_subject(first, self.view))
+                remedy = self._remedy(gate, _element_subject(first, self.view))
+            entry["what_to_author"] = remedy.text
+            entry["authoring"] = remedy.authoring()
             entry["where"] = self._where(subjects)
         return entry
 
-    def _population_remedy(self, gate: me.ObligationSpec, unit: me.EvaluationResult) -> str:
-        """What to author when the number of subjects is outside the population bounds."""
+    def _remedy(self, gate: me.ObligationSpec, subject: str | None) -> Remedy:
+        """What to author for one gate, built from the step parameter its check is about."""
+        return gate_remedy(gate, self.view, self.increment_method, self.scope, subject=subject)
+
+    def _population_remedy(self, gate: me.ObligationSpec, unit: me.EvaluationResult) -> Remedy:
+        """What to author when the number of subjects is outside the population bounds: how many to
+        keep, and how one is declared (the counted element first, then what its check needs besides it)."""
         label = self.increment_method.labels.get(gate.obligation_id, {})
         subject_type = str(label.get("subject_type") or "subject").rsplit("::", 1)[-1]
+        if label.get("subject_type_kind") == "metaclass":  # an untyped parameter: named by its keyword
+            subject_type = f"{label.get('subject_keyword') or 'subject'} usage"
         lower, upper = gate.minimum_population, gate.maximum_population
         if upper is None:
             bounds = f"at least {lower}"
@@ -321,7 +331,11 @@ class IncrementEvaluation:
         observed = unit.diagnostics[0] if unit.diagnostics else ""
         where = ("package" if gate.selector_kind == OWN_PACKAGE_SELECTOR
                  else "packages named in the charter's expectedArtifacts")
-        return f"keep {bounds} {subject_type} in the increment's {where} ({observed})"
+        return population_remedy(
+            self.view, gate.predicate, keep=f"keep {bounds} {subject_type} in the increment's {where} ({observed})",
+            parameter=label.get("parameter_element_id"), framing=gate.selector_kind == OWN_PACKAGE_SELECTOR,
+            scope=self.scope, checked_phases=self.increment_method.phases,
+            parameters=self.increment_method.parameter_ids)
 
     def _subject(self, child: me.EvaluationResult) -> dict[str, Any]:
         subject_id = child.subject_id
@@ -344,7 +358,7 @@ class IncrementEvaluation:
     def _where(self, subjects: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         package = self.view.describe(self.scope.package_id) if self.scope.package_id else None
         modules = sorted({
-            self.view.index.qualified_name(top)
+            self.view.label(top)
             for s in subjects
             if s.get("element_id") and (top := self.view.top_package(s["element_id"]))
         })
@@ -528,6 +542,7 @@ class IncrementEvaluation:
                 "predicate": gate.predicate,
                 "claim_boundary": gate.claim_boundary,
                 "what_to_author": entry.get("what_to_author", ""),
+                "authoring": entry.get("authoring", Remedy("").authoring()),
                 "where": entry.get("where", {}),
                 "subjects": entry.get("subjects", []),
             }
@@ -647,7 +662,9 @@ def _gate_record(gate: me.ObligationSpec, view: ModelView, scope: IncrementScope
     record.update(increment_method.labels.get(gate.obligation_id, {}))
     if scope is None:
         return record
-    record["what_satisfies"] = remedy(gate.predicate, view)
+    remedy = gate_remedy(gate, view, increment_method, scope)
+    record["what_satisfies"] = remedy.text
+    record["authoring"] = remedy.authoring()
     if gate.applicability_kind == me.APPLICABILITY_UNCONDITIONAL:
         record["applicability_resolution"] = "applicable"
     elif scope.declared_phases is None:
@@ -656,6 +673,16 @@ def _gate_record(gate: me.ObligationSpec, view: ModelView, scope: IncrementScope
     else:
         record["applicability_resolution"] = "applicable" if gate.phase in scope.declared_phases else "not_applicable"
     return record
+
+
+def gate_remedy(gate: me.ObligationSpec, view: ModelView, increment_method: IncrementMethod,
+                scope: IncrementScope | None, *, subject: str | None = None) -> Remedy:
+    """What to author for one gate: its check, about the step parameter the workflow names, for
+    ``subject`` or, without one, the subject to declare (de4sdv.semantic.remedies)."""
+    label = increment_method.labels.get(gate.obligation_id, {})
+    return check_remedy(view, gate.predicate, subject=subject, parameter=label.get("parameter_element_id"),
+                        framing=gate.selector_kind == OWN_PACKAGE_SELECTOR, scope=scope,
+                        checked_phases=increment_method.phases, parameters=increment_method.parameter_ids)
 
 
 def evaluate_increment(
