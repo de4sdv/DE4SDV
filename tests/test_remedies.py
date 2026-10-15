@@ -960,16 +960,25 @@ def test_the_kernel_increment_definition_is_known_by_its_validated_binding_never
                                               for gate in OWN_DEFINITION_GATES}
 
 
+def _retyped(builder: ModelBuilder, feature: dict, definition: dict) -> None:
+    """Retype ``feature`` (each of its FeatureTypings) by ``definition``."""
+    for typing in [e for e in builder.elements if e.get("@type") == "FeatureTyping"
+                   and e.get("typedFeature", {}).get("@id") == feature["@id"]]:
+        typing["type"] = typing["general"] = {"@id": definition["@id"]}
+
+
+def _problem_statement(scenario) -> dict:
+    return next(e for e in scenario.builder.elements if e.get("declaredName") == "fixtureProblemStatement")
+
+
 def _typed_by_the_kernel_definition_itself(scenario) -> dict:
     """Retype the increment usage and the problem statement's subject by the kernel EngineeringIncrement
     itself (the form the checks refuse); returns the problem statement."""
     builder = scenario.builder
     kernel = scenario.vocabulary["EngineeringIncrement"]
-    problem = next(e for e in builder.elements if e.get("declaredName") == "fixtureProblemStatement")
+    problem = _problem_statement(scenario)
     for typed in (scenario.usage, builder.feature_of(problem, "increment")):
-        for typing in [e for e in builder.elements if e.get("@type") == "FeatureTyping"
-                       and e.get("typedFeature", {}).get("@id") == typed["@id"]]:
-            typing["type"] = typing["general"] = {"@id": kernel["@id"]}
+        _retyped(builder, typed, kernel)
     return problem
 
 
@@ -1034,3 +1043,71 @@ def test_a_usage_typed_by_the_kernel_definition_itself_without_its_identifier_is
         "declare the increment's own definition and retype the existing DE4SDV_FixtureFraming::incFixture by it, "
         f"with the increment identifier as its declared short name, <'{scenario.increment_id}'>: ")
     assert [line for line in remedy.declarations if "incFixture" in line] == []
+
+
+OWN_DEFINITION = "DE4SDV_FixtureFraming::FixtureIncrement"  # the kernel scenario's own increment definition
+
+
+def test_a_usage_typed_by_its_own_definition_and_the_kernel_definition_passes_and_is_not_told_to_retype() -> None:
+    """Mixed typing is the method's form plus a redundant typing: the usage has an increment definition of
+    its own, so both checks pass, the identifier remedy never says to retype it, and every remedy types the
+    problem statement's subject and the usage by that own definition, never the kernel definition."""
+    from de4sdv.semantic.remedies import check_remedy
+
+    scenario, _steps, _types = _kernel_scenario()
+    kernel = scenario.vocabulary["EngineeringIncrement"]
+    scenario.builder.typed(scenario.usage, kernel)
+    evaluation = _evaluate(scenario)
+    assert set(evaluation.scope.definition_ids) == {scenario.definition["@id"], kernel["@id"]}
+    assert _verdicts(evaluation) == {gate: (me.VERDICT_PASS, ()) for gate in OWN_DEFINITION_GATES}
+    remedy = check_remedy(_view(scenario), "incrementShortName", subject=scenario.usage["@id"], scope=evaluation.scope)
+    assert remedy.text.startswith("declare the existing DE4SDV_FixtureFraming::incFixture with the increment identifier")
+    assert remedy.declarations == () and [note for note in remedy.notes if "retype" in note] == []
+    qualified, _package = _kernel_qualified(scenario, "EngineeringIncrement")
+    gates = {gate["obligation_id"]: gate for gate in evaluation.phase_contract()["gates"]}
+    assert gates["incrementHasIdentifier"]["authoring"]["declarations"] == [
+        f"part <'{scenario.increment_id}'> <usageName> : {OWN_DEFINITION};"]
+    assert f"subject increment : {OWN_DEFINITION};" in gates["incrementHasProblemStatement"]["authoring"]["declarations"][0]
+    for gate in (*OWN_DEFINITION_GATES, "incrementHasStakeholder"):
+        assert [note for note in gates[gate]["authoring"]["notes"] if "retype" in note] == [], gate
+        assert f": {qualified};" not in gates[gate]["what_satisfies"], gate
+
+
+def test_a_problem_statement_subject_typed_by_the_kernel_definition_alone_fails_whatever_types_the_usage() -> None:
+    """The subject must be typed by the increment's own definition: with the usage typed by its own definition
+    and the kernel definition, a subject typed by the kernel definition only fails problemStatementSubject
+    (the generic diagnostic), while incrementShortName passes."""
+    scenario, _steps, _types = _kernel_scenario()
+    kernel = scenario.vocabulary["EngineeringIncrement"]
+    builder = scenario.builder
+    builder.typed(scenario.usage, kernel)
+    _retyped(builder, builder.feature_of(_problem_statement(scenario), "increment"), kernel)
+    evaluation = _evaluate(scenario)
+    assert _verdicts(evaluation) == {"incrementHasIdentifier": (me.VERDICT_PASS, ()),
+                                     "incrementHasProblemStatement": (me.VERDICT_FAIL, (me.REQUIRED_RELATION_MISSING,))}
+    (subject,) = _gap(evaluation.gaps(), "incrementHasProblemStatement")["subjects"]
+    assert subject["diagnostics"] == [
+        "DE4SDV_FixtureFraming::fixtureProblemStatement is not a problem statement of the increment package with a "
+        "native subject typed by the increment's own definition"]
+
+
+def test_the_remedies_name_the_increment_s_own_definition_never_an_unrelated_extra_typing() -> None:
+    """A usage also typed by a definition outside the EngineeringIncrement lineage: the checks pass (the own
+    definition is there) and the remedies type the subject and the usage by the own definition, never the
+    unrelated one, also when the unrelated one sorts first among the usage's definitions."""
+    for index in range(60):  # element ids are deterministic; find an unrelated definition whose id sorts first
+        scenario, _steps, _types = _kernel_scenario()
+        unrelated = scenario.builder.definition("PartDefinition", f"Unrelated{index}", scenario.framing)
+        scenario.builder.typed(scenario.usage, unrelated)
+        evaluation = _evaluate(scenario)
+        if evaluation.scope.definition_ids[0] == unrelated["@id"]:
+            break
+    else:
+        raise AssertionError("no unrelated definition sorted before the own definition in 60 tries")
+    assert _verdicts(evaluation) == {gate: (me.VERDICT_PASS, ()) for gate in OWN_DEFINITION_GATES}
+    gates = {gate["obligation_id"]: gate for gate in evaluation.phase_contract()["gates"]}
+    assert gates["incrementHasIdentifier"]["authoring"]["declarations"] == [
+        f"part <'{scenario.increment_id}'> <usageName> : {OWN_DEFINITION};"]
+    for gate in ("incrementHasProblemStatement", "incrementHasStakeholder"):
+        assert f"subject increment : {OWN_DEFINITION};" in gates[gate]["authoring"]["declarations"][0], gate
+        assert [t["qualified_name"] for t in gates[gate]["authoring"]["types"] if "Unrelated" in t["qualified_name"]] == []

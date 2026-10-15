@@ -53,6 +53,7 @@ from .increment_scope import (
     IncrementScope,
     ModelView,
     declared_artifacts,
+    own_increment_definitions,
     typed_by_the_kernel_itself,
 )
 from .model_edges import DEFINITION_END_FAMILIES, END_FAMILIES
@@ -383,8 +384,12 @@ def _increment_definition(lines: _Lines, general: str | None = None) -> str:
     direct = scope is not None and bool(scope.definition_ids) and typed_by_the_kernel_itself(
         view, scope.definition_ids)
     if scope is not None and scope.definition_ids and not direct:
-        kernel = _kernel(view, INCREMENT_CLASS)
-        own = [definition for definition in scope.definition_ids if definition != kernel]
+        # The increment's own definitions, as the checks read them (the lineage without the kernel
+        # definition); the usage's definitions when that reading is empty or the kernel is unbound.
+        try:
+            own = list(own_increment_definitions(view, scope.definition_ids))
+        except IdentityNotFoundError:
+            own = []
         return lines.type((own or list(scope.definition_ids))[0], "the definition typing the increment usage")
     general = general or _kernel(view, INCREMENT_CLASS)
     if general is None:
