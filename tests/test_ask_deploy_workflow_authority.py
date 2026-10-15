@@ -8,12 +8,20 @@ The workflow steps are executed for real (bash) with stub ``ssh``/``sudo``/
 - a revision from before that decision (its verifier still takes a bundle
   id) is refused BEFORE any host change, pointing at the rollback tag;
 - the verify step passes no bundle id;
-- the failure rollback brings the ask-viewer back from the restored checkout.
+- the failure rollback brings the ask-viewer back from the restored checkout;
+- the warm-up wait stops at the server's ``error`` state with its reason,
+  treats an unreadable probe answer as ``starting``, names the state the
+  producer (``ask_model_semantic``) reports after a failed warm-up, and a
+  warm-up error rolls the previous checkout back.
 """
 from __future__ import annotations
 
+import json
 import os
 import subprocess
+import sys
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import pytest
@@ -214,7 +222,7 @@ def test_preflight_refusal_cannot_consume_a_stale_host_backup(tmp_path, backup_k
     assert not docker_log.exists()
 
 
-@pytest.mark.parametrize("failure_stage", ["none", "build", "promotion"])
+@pytest.mark.parametrize("failure_stage", ["none", "build", "promotion", "warmup"])
 def test_activation_creates_owned_recovery_state_and_cleanup_preserves_foreign_backups(tmp_path, failure_stage):
     ws = _workspace(tmp_path, pre_retirement_verifier=False)
     deploy_dir = tmp_path / "srv"
@@ -265,8 +273,13 @@ def test_activation_creates_owned_recovery_state_and_cleanup_preserves_foreign_b
     _stub(bin_dir, "docker", (
         f'echo "$*" >> "{docker_log}"\n'
         'if [[ "$*" == *"build ask-viewer"* && "$FAIL_STAGE" == build ]]; then exit 42; fi\n'
-        'if [[ "$*" == *"exec -T ask-viewer python"* ]]; then echo ready; fi\n'
+        'if [[ "$*" == *"exec -T ask-viewer python"* ]]; then\n'
+        '  if [[ "$FAIL_STAGE" == warmup ]]; then echo error; else echo ready; fi\n'
+        'fi\n'
     ))
+    # No real pause between warm-up polls: a wait that misses the error state
+    # must fail this test through its probe count, not through the timeout.
+    _stub(bin_dir, "sleep", ":\n")
     env = {**ws["env"], "FAIL_STAGE": failure_stage}
 
     def remote(name):
@@ -278,7 +291,14 @@ def test_activation_creates_owned_recovery_state_and_cleanup_preserves_foreign_b
                               text=True, capture_output=True, env=env, timeout=30)
 
     activated = remote("Transfer and activate the fail-closed Ask service")
-    assert activated.returncode == {"none": 0, "build": 42, "promotion": 43}[failure_stage], activated.stderr
+    assert activated.returncode == {"none": 0, "build": 42, "promotion": 43, "warmup": 1}[failure_stage], activated.stderr
+    if failure_stage == "warmup":
+        assert "semantic warmup failed" in activated.stderr
+        calls = docker_log.read_text().splitlines()
+        # Stopped at the first error answer (not after the ~17-minute timeout),
+        # before the proxy was validated or recreated.
+        assert len([c for c in calls if "exec -T ask-viewer python" in c]) == 1, calls
+        assert not any("caddy" in c for c in calls), calls
     backup = deploy_dir / f"DE4SDV-ask-backup-{RUN_KEY}"
     marker = deploy_dir / f"DE4SDV-ask-activated-{RUN_KEY}"
     assert _git(backup, "rev-parse", "HEAD") == previous_sha
@@ -362,3 +382,120 @@ def test_rollback_refuses_damaged_owned_backup_before_any_mutation(tmp_path, bac
             for path in deploy_dir.rglob("*") if path.is_file()} == before
     assert marker.exists() and backup.exists()
     assert not docker_log.exists()
+
+
+# --- the warm-up wait stops at the server's error state ----------------------
+
+def _warmup_wait() -> str:
+    """The activation step's wait for the Ask viewer's semantic warm-up."""
+    step = next(step for step in _steps() if "/_ask_warmup" in (step.get("run") or ""))
+    remote = _remote_script(step["name"])
+    start = remote.index("ready=false")
+    end = remote.index("fi\n", remote.index('if [[ "$ready" != true ]]')) + len("fi\n")
+    return remote[start:end]
+
+
+def _serve_warmup(answers: list) -> tuple[ThreadingHTTPServer, list]:
+    """A /_ask_warmup stub that answers in order, then repeats the last answer.
+
+    A dict is served as JSON; bytes are served verbatim (a body that is not a
+    warm-up state); None closes the connection without any response.
+    """
+    served: list = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802 (http.server API)
+            answer = answers[min(len(served), len(answers) - 1)]
+            served.append(answer)
+            if answer is None:
+                return  # HTTP/1.0 handler: the connection closes unanswered
+            body = answer if isinstance(answer, bytes) else json.dumps(answer).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server, served
+
+
+def _run_warmup_wait(answers: list) -> tuple[subprocess.CompletedProcess, list]:
+    """Run the wait with compose replaced: the workflow's own probe code runs here."""
+    server, served = _serve_warmup(answers)
+    port = server.server_address[1]
+    harness = (
+        "set -euo pipefail\n"
+        "sleep() { :; }\n"
+        "compose() {\n"
+        '  local code="${@: -1}"\n'
+        f'  "$PY" -c "${{code//127.0.0.1:8787/127.0.0.1:{port}}}"\n'
+        "}\n"
+        "COMPOSE=(compose)\n" + _warmup_wait() + "echo WAIT-DONE\n")
+    try:
+        result = subprocess.run(["bash", "-c", harness], text=True, capture_output=True, timeout=120,
+                                env={**os.environ, "PY": sys.executable})
+    finally:
+        server.shutdown()
+        server.server_close()
+    return result, served
+
+
+@pytest.mark.parametrize("reason, reported", [
+    ("served-model check failed: drift", "semantic warmup error: served-model check failed: drift"),
+    (None, "semantic warmup error: no reason reported"),
+], ids=["with-reason", "without-reason"])
+def test_the_warmup_wait_stops_at_the_servers_error_state_with_its_reason(reason, reported):
+    result, served = _run_warmup_wait([{"status": "warming", "error": None},
+                                       {"status": "error", "error": reason}])
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "semantic warmup failed" in result.stderr
+    assert reported in result.stderr
+    assert len(served) == 2  # stopped at once, not after the ~17-minute timeout
+
+
+def test_the_warmup_wait_continues_once_ready():
+    result, served = _run_warmup_wait([{"status": "idle", "error": None},
+                                       {"status": "warming", "error": None},
+                                       {"status": "ready", "error": None}])
+    assert result.returncode == 0, result.stderr
+    assert "WAIT-DONE" in result.stdout
+    assert len(served) == 3
+
+
+@pytest.mark.parametrize("first_answer", [b"<html>502 Bad Gateway</html>", None],
+                         ids=["not-json", "no-response"])
+def test_the_warmup_wait_treats_an_unreadable_probe_answer_as_starting(first_answer):
+    """The normal first poll after ``up -d``: the viewer does not answer yet."""
+    result, served = _run_warmup_wait([first_answer, {"status": "ready", "error": None}])
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "Traceback" not in result.stderr
+    assert "WAIT-DONE" in result.stdout
+    assert len(served) == 2
+
+
+def test_the_warmup_wait_stops_at_the_state_the_producer_reports_after_a_failed_warmup(monkeypatch):
+    """The ``error)`` arm names the producer's terminal state, not a token of
+    the workflow's own (its former ``failed)`` arm never matched anything)."""
+    monkeypatch.syspath_prepend(str(REPO))
+    from tools.sysml_html_viewer import ask_model_semantic as ams
+
+    def refused_runtime():
+        raise RuntimeError("served-model check failed: drift")
+
+    monkeypatch.setenv("NOUS_ASK_SEMANTIC", "1")
+    monkeypatch.setattr(ams, "_WARM_STATE", {"status": "idle", "error": None})
+    monkeypatch.setattr(ams, "_runtime", refused_runtime)
+    ams.start_warmup()
+    for thread in threading.enumerate():
+        if thread.name == "ask-semantic-warmup":
+            thread.join(timeout=10)
+    terminal = ams.warm_status()["status"]
+    assert terminal not in ("idle", "warming"), "the warm-up thread did not finish"
+    wait = _warmup_wait()
+    assert f'{terminal}) echo "semantic warmup failed" >&2; exit 1 ;;' in wait
+    assert "ready) ready=true; break ;;" in wait

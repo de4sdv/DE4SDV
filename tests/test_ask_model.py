@@ -670,7 +670,7 @@ def test_ask_status_reports_application_and_model_revisions(fixture_repo,
                                                             monkeypatch):
     monkeypatch.setattr(
         serve_mod, "warm_status",
-        lambda: {"status": "failed", "error": "secret internal detail"},
+        lambda: {"status": "error", "error": "secret internal detail"},
     )
     out = tmp_path / "site"
     out.mkdir()
@@ -690,7 +690,7 @@ def test_ask_status_reports_application_and_model_revisions(fixture_repo,
         assert payload["service"] == "DE4SDV public Ask-model viewer"
         assert payload["application_git_commit"] == "a" * 40
         assert payload["model_git_commit"] == "b" * 40
-        assert payload["semantic_warmup"] == {"status": "failed"}
+        assert payload["semantic_warmup"] == {"status": "error"}
     finally:
         server.shutdown()
         server.server_close()

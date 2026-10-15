@@ -198,16 +198,23 @@ jobs:
           ready=false
           for _ in $(seq 1 100); do
             state=$("${COMPOSE[@]}" exec -T ask-viewer python -c '
-          import json, urllib.request
+          import json, sys, urllib.request
           try:
               status = json.load(urllib.request.urlopen("http://127.0.0.1:8787/_ask_warmup", timeout=10))
-              print(status.get("status") or "unknown")
           except Exception:
               print("starting")
+          else:
+              if status.get("status") == "error":
+                  reason = status.get("error") or "no reason reported"
+                  print("semantic warmup error:", reason, file=sys.stderr)
+              print(status.get("status") or "unknown")
           ' </dev/null)
+            # The server reports idle, warming, ready or error
+            # (tools/sysml_html_viewer/ask_model_semantic.py). An error is
+            # final until the process restarts, so stop at once.
             case "$state" in
               ready) ready=true; break ;;
-              failed) echo "semantic warmup failed" >&2; exit 1 ;;
+              error) echo "semantic warmup failed" >&2; exit 1 ;;
             esac
             sleep 10
           done
