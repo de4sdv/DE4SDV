@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import sys
+import threading
 from pathlib import Path
 
 import pytest
@@ -634,6 +635,53 @@ def test_warmup_failure_labels_ask_path(fixture_repo, monkeypatch):
     subs = ctx.get("requirement_subject_of", [])
     assert any(s.get("id") == "N-SEM-001" for s in subs)
     ams._WARM_STATE.update(status="idle", error=None)
+
+
+def _join_warmup_threads() -> None:
+    for thread in threading.enumerate():
+        if thread.name == "ask-semantic-warmup":
+            thread.join(timeout=10)
+            assert not thread.is_alive(), "the warm-up thread did not finish"
+
+
+def test_start_warmup_reports_error_with_the_reason_when_the_runtime_refuses(monkeypatch):
+    """The state the deploy workflow's warm-up wait stops at, written by the
+    warm-up thread itself: ``error`` with the runtime's reason."""
+    monkeypatch.setenv("NOUS_ASK_SEMANTIC", "1")
+    monkeypatch.setattr(ams, "_WARM_STATE", {"status": "idle", "error": None})
+
+    def refused_runtime():
+        raise RuntimeError("served-model check failed: drift")
+
+    monkeypatch.setattr(ams, "_runtime", refused_runtime)
+    ams.start_warmup()
+    _join_warmup_threads()
+    status = ams.warm_status()
+    assert status["status"] == "error"
+    assert status["error"] == "served-model check failed: drift"
+
+
+def test_start_warmup_does_not_retry_after_an_error(monkeypatch):
+    """Recovery from ``error`` is a process restart: a second call neither
+    rebuilds the runtime nor leaves the error state, which is why the deploy
+    workflow stops waiting at once."""
+    monkeypatch.setenv("NOUS_ASK_SEMANTIC", "1")
+    monkeypatch.setattr(ams, "_WARM_STATE", {"status": "idle", "error": None})
+    attempts: list[int] = []
+
+    def refused_runtime():
+        attempts.append(1)
+        raise RuntimeError("binding records another served model")
+
+    monkeypatch.setattr(ams, "_runtime", refused_runtime)
+    ams.start_warmup()
+    _join_warmup_threads()
+    ams.start_warmup()
+    _join_warmup_threads()
+    assert attempts == [1]
+    status = ams.warm_status()
+    assert status["status"] == "error"
+    assert status["error"] == "binding records another served model"
 
 
 class _ChainService(_FakeService):
