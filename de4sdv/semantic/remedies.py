@@ -53,6 +53,7 @@ from .increment_scope import (
     IncrementScope,
     ModelView,
     declared_artifacts,
+    typed_by_the_kernel_itself,
 )
 from .model_edges import DEFINITION_END_FAMILIES, END_FAMILIES
 
@@ -365,16 +366,6 @@ def _subject_line(lines: _Lines, line: str) -> str:
     return line
 
 
-def _typed_by_the_kernel_itself(view: ModelView, types: Iterable[str]) -> bool:
-    """Whether a usage is typed by the kernel EngineeringIncrement itself (validated binding) and by
-    no definition of its own: a form the checks allow but the method does not teach."""
-    kernel = _kernel(view, INCREMENT_CLASS)
-    if kernel is None:
-        return False
-    found, lineage = set(types), view.index.specializations(kernel)
-    return kernel in found and not any(t != kernel and t in lineage for t in found)
-
-
 def _direct_note(view: ModelView, usage: str, kernel: str) -> str:
     return (f"{view.label(usage)} is typed by {view.label(kernel)} itself, which the checks allow but which is not "
             f"the method's form: retype the existing {view.label(usage)} to `: {INCREMENT_DEFINITION}`, the "
@@ -389,7 +380,7 @@ def _increment_definition(lines: _Lines, general: str | None = None) -> str:
     form, with a note."""
     request = lines.request
     view, scope = request.view, request.scope
-    direct = scope is not None and bool(scope.definition_ids) and _typed_by_the_kernel_itself(
+    direct = scope is not None and bool(scope.definition_ids) and typed_by_the_kernel_itself(
         view, scope.definition_ids)
     if scope is not None and scope.definition_ids and not direct:
         kernel = _kernel(view, INCREMENT_CLASS)
@@ -456,7 +447,7 @@ def _increment_short_name(request: _Request) -> Remedy:
         view = request.view
         typed = sorted(view.index.typed_by(request.subject))
         kernel = _kernel(view, INCREMENT_CLASS)
-        direct = kernel is not None and _typed_by_the_kernel_itself(view, typed)
+        direct = kernel is not None and typed_by_the_kernel_itself(view, typed)
         if direct:  # the method's form instead: the increment's own definition, declared first
             lines.declarations.append(f"{_keyword(view, kernel)} {INCREMENT_DEFINITION} :> "
                                       f"{lines.type(kernel, _OWN_DEFINITION)};")
