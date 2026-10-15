@@ -5,7 +5,9 @@ step. These tests pin the one-job topology, the release evidence over the
 export, the CI import rehearsal marked for removal after two releases, the
 artifact naming boundary with the deploy/core-evidence consumers, and that
 every workflow command line parses against the REAL script parser (the
-parser is spied; nothing executes). No network, no dispatch.
+parser is spied; nothing executes), and that the checkout the runtime's
+startup check reads is the dispatch revision and stays clean. No network,
+no dispatch.
 """
 from __future__ import annotations
 
@@ -116,6 +118,36 @@ def test_the_upload_keeps_the_deploy_and_core_evidence_contract():
                if "upload-artifact" in str(s.get("uses"))]
     assert [n for n in uploads if n.startswith("full-model-api-ingestion-")] == [
         "full-model-api-ingestion-${{ github.sha }}"]
+
+
+def _starts_a_background_process(run):
+    """A lone ``&`` outside a comment (not ``&&``, ``2>&1``, ``&>`` or ``|&``)."""
+    for line in run.splitlines():
+        code = re.split(r"(?:^|\s)#", line, maxsplit=1)[0]
+        if re.search(r"(?<![&|<>])&(?![&>])", code):
+            return True
+    return False
+
+
+@pytest.mark.parametrize("line, started", [
+    ("serve > /tmp/x.log 2>&1 &", True), ("serve & # comment", True), ("serve & disown", True),
+    ("serve & echo $! > /tmp/pid", True), ("( serve & )", True), ("serve &\r", True),
+    ("a && b", False), ("serve 2>&1 | tee x", False), ("serve &> /tmp/x", False),
+    ("a |& b", False), ("# serve &", False), ('[ "${#SHA}" != "40" ]', False),
+])
+def test_the_background_process_pattern(line, started):
+    assert _starts_a_background_process(line) is started
+
+
+def test_background_services_run_outside_the_checkout():
+    # A service keeps writing after its step ends (the API service writes
+    # logs/application.log relative to its working directory), and the
+    # runtime's startup check in the batteries and the release evidence
+    # refuses a checkout with untracked files (run 38669722943: "?? logs/").
+    started = [s for s in _steps() if _starts_a_background_process(s.get("run") or "")]
+    assert [s["name"] for s in started] == ["Start pinned Systems Modeling API service"]
+    for step in started:
+        assert step.get("working-directory", "").startswith("/tmp/"), step["name"]
 
 
 def _validate(tmp_path, requested, dispatch):

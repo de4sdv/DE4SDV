@@ -135,6 +135,11 @@ jobs:
           (cd /tmp/sysmlv2-api-services && java -Xmx4g -jar /tmp/sbt-launch.jar stage)
 
       - name: Start pinned Systems Modeling API service
+        # Outside the checkout: the service writes logs/application.log
+        # relative to its working directory, and the runtime's startup check
+        # in the batteries and the release evidence refuses a checkout with
+        # untracked files.
+        working-directory: /tmp/sysmlv2-api-services
         run: |
           /tmp/sysmlv2-api-services/target/universal/stage/bin/sysml-v2-api-services \
             -J-Xmx4g \
