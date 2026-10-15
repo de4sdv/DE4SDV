@@ -28,6 +28,13 @@ The current YAML catalogues remain the operational configuration authority.
 Changing that authority or migrating to another feature-model implementation
 requires a separate reviewed decision.
 
+The [`pleml-scope-alignment/`](pleml-scope-alignment/) directory is an
+experiment, not an authority: it restates the governed scope with the
+exact-pinned PLEML library and is validated only by the privileged
+scope-alignment workflow. It sits outside every production selector and
+changes nothing above. See
+[`docs/product-line-engineering/ple-s-scope-alignment.md`](../docs/product-line-engineering/ple-s-scope-alignment.md).
+
 ## Configurable families
 
 | Family | System role | Feature catalogue | Shared SysML owner |
