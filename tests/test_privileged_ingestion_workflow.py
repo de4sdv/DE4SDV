@@ -165,10 +165,9 @@ def _scratch_checkout(tmp_path):
 
 
 def _bash(script, cwd):
-    """Run a step script the way GitHub runs `run:` (bash -eo pipefail)."""
+    """Run a step script the way GitHub runs a `run:` step without `shell:` (bash -e)."""
     assert "${{" not in script
-    return subprocess.run(["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", script],
-                          cwd=cwd, capture_output=True, text=True)
+    return subprocess.run(["bash", "-e", "-c", script], cwd=cwd, capture_output=True, text=True)
 
 
 def _validate(tmp_path, requested, dispatch):
