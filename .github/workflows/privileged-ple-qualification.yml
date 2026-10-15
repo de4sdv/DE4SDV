@@ -82,10 +82,15 @@ jobs:
                   or len(export) != manifest['export_size']
                   or json.loads(export).get('git_commit') != frozen):
               raise SystemExit('refused: retained historical export identity mismatch')
-          Path('_ple-baseline').mkdir()
-          Path('_ple-baseline/de4sdv-pleml-gate-a-export.json').write_bytes(export)
-          Path('ple-evidence').mkdir()
-          Path('ple-evidence/provider-origin.json').write_text(json.dumps({
+          # Inputs and evidence live outside the checkout: the qualification
+          # receipts record its `git status --porcelain`.
+          temp = Path(os.environ['RUNNER_TEMP'])
+          baseline = temp / '_ple-baseline'
+          baseline.mkdir()
+          (baseline / 'de4sdv-pleml-gate-a-export.json').write_bytes(export)
+          evidence = temp / 'ple-evidence'
+          evidence.mkdir()
+          (evidence / 'provider-origin.json').write_text(json.dumps({
               'executor_revision': revision, 'historical_run': run['id'],
               'historical_revision': frozen,
               'historical_artifact': {'id': manifest['historical_artifact_id'],
@@ -108,6 +113,13 @@ jobs:
           submodules: recursive
           persist-credentials: false
 
+      # actions/checkout places a checkout only under the workspace, where it
+      # is an untracked path of the executor checkout ("?? _ple-experiment/").
+      - name: Relocate the frozen experiment outside the executor checkout
+        run: |
+          test ! -e "$RUNNER_TEMP/_ple-experiment"
+          mv _ple-experiment "$RUNNER_TEMP/_ple-experiment"
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -129,44 +141,65 @@ jobs:
         run: |
           curl -fsSL https://sysand.com/install.sh | bash
           "$HOME/.local/bin/sysand" sync
-          "$HOME/.local/bin/sysand" --version > ple-evidence/sysand-version.txt
+          "$HOME/.local/bin/sysand" --version > "$RUNNER_TEMP/ple-evidence/sysand-version.txt"
+
+      # The qualification scripts record executor_source_dirty from this
+      # checkout's `git status --porcelain`. These guards run the same check
+      # before each script that records it, so a dirty checkout fails the run
+      # here instead of producing receipts that say so.
+      - name: Refuse a dirty checkout before the historical replay
+        run: |
+          dirty="$(git status --porcelain)"
+          if [ -n "$dirty" ]; then
+            printf 'the checkout is not clean:\n%s\n' "$dirty" >&2
+            exit 1
+          fi
 
       - name: Exercise qualification guards and historical replay
         run: |
           python -m pytest tests/test_ple_qualification.py -q
           python scripts/run_ple_qualification.py \
-            --experiment _ple-experiment \
-            --historical-export _ple-baseline/de4sdv-pleml-gate-a-export.json \
-            --out ple-evidence/historical-replay.json
+            --experiment "$RUNNER_TEMP/_ple-experiment" \
+            --historical-export "$RUNNER_TEMP/_ple-baseline/de4sdv-pleml-gate-a-export.json" \
+            --out "$RUNNER_TEMP/ple-evidence/historical-replay.json"
+
+      - name: Refuse a dirty checkout before the scoped probes
+        run: |
+          dirty="$(git status --porcelain)"
+          if [ -n "$dirty" ]; then
+            printf 'the checkout is not clean:\n%s\n' "$dirty" >&2
+            exit 1
+          fi
 
       - name: Execute missing scoped PLE probes
         env:
           SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
-          DE4SDV_PLE_ORACLE: ${{ github.workspace }}/_ple-experiment
+          DE4SDV_PLE_ORACLE: ${{ runner.temp }}/_ple-experiment
         run: |
           python -m pytest tests/test_ple_scoped_execution.py -q
           set +e
           python scripts/run_ple_scoped_execution.py \
-            --experiment _ple-experiment \
+            --experiment "$RUNNER_TEMP/_ple-experiment" \
             --expected-executor "$SELECTED_REVISION" \
             --licensed --native-xor \
             --out "$RUNNER_TEMP/ple-scoped-execution"
           code=$?
           set -e
-          mkdir -p ple-evidence/scoped
-          cp -R "$RUNNER_TEMP/ple-scoped-execution/." ple-evidence/scoped/
-          printf '%s\n' "$code" > ple-evidence/scoped/cli-exit.txt
+          mkdir -p "$RUNNER_TEMP/ple-evidence/scoped"
+          cp -R "$RUNNER_TEMP/ple-scoped-execution/." "$RUNNER_TEMP/ple-evidence/scoped/"
+          printf '%s\n' "$code" > "$RUNNER_TEMP/ple-evidence/scoped/cli-exit.txt"
           python - <<'PY'
-          import json
+          import json, os
           from pathlib import Path
-          receipt = json.loads(Path('ple-evidence/scoped/receipt.json').read_text())
+          scoped = Path(os.environ['RUNNER_TEMP']) / 'ple-evidence/scoped'
+          receipt = json.loads((scoped / 'receipt.json').read_text())
           if receipt['execution_error'] or not receipt['fresh_serialization']:
               raise SystemExit('scoped licensed serialization failed; diagnostics retained')
           if receipt['native_xor'].get('attempted') is not True:
               raise SystemExit('scoped native evaluation was not attempted; diagnostics retained')
           if receipt['qualified'] or receipt['native_xor']['requirement_status'] != 'failed':
               raise SystemExit('scoped requirement was silently promoted')
-          if Path('ple-evidence/scoped/cli-exit.txt').read_text().strip() != '2':
+          if (scoped / 'cli-exit.txt').read_text().strip() != '2':
               raise SystemExit('native requirement must retain failed/unsupported exit 2')
           PY
 
@@ -180,12 +213,16 @@ jobs:
           (cd /tmp/sysmlv2-api-services && java -Xmx4g -jar /tmp/sbt-launch.jar stage)
 
       - name: Start isolated API and verify readiness
+        # Outside the checkout: the service writes logs/application.log
+        # relative to its working directory (#369), and the fresh serialization
+        # records executor_source_dirty after it.
+        working-directory: /tmp/sysmlv2-api-services
         run: |
           /tmp/sysmlv2-api-services/target/universal/stage/bin/sysml-v2-api-services \
             -J-Xmx4g -Dplay.server.http.port=9000 \
             -Dplay.evolutions.db.default.autoApply=true \
             -Dplay.http.secret.key=de4sdv-ci-ple-qualification \
-            > ple-evidence/sysml-api.log 2>&1 &
+            > "$RUNNER_TEMP/ple-evidence/sysml-api.log" 2>&1 &
           python - <<'PY'
           import time, urllib.request
           deadline = time.monotonic() + 300
@@ -200,22 +237,30 @@ jobs:
               raise SystemExit('ephemeral API failed readiness')
           PY
 
+      - name: Refuse a dirty checkout before the fresh serialization
+        run: |
+          dirty="$(git status --porcelain)"
+          if [ -n "$dirty" ]; then
+            printf 'the checkout is not clean:\n%s\n' "$dirty" >&2
+            exit 1
+          fi
+
       - name: Fresh current-toolchain serialization and real API readback
         env:
           SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
         run: |
           python scripts/run_ple_qualification.py \
-            --experiment _ple-experiment \
-            --historical-export _ple-baseline/de4sdv-pleml-gate-a-export.json \
+            --experiment "$RUNNER_TEMP/_ple-experiment" \
+            --historical-export "$RUNNER_TEMP/_ple-baseline/de4sdv-pleml-gate-a-export.json" \
             --expected-executor "$SELECTED_REVISION" \
             --api-url http://127.0.0.1:9000 \
-            --out ple-evidence/current/receipt.json
+            --out "$RUNNER_TEMP/ple-evidence/current/receipt.json"
 
       - name: Retain actual observations including failed execution
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ple-qualification-${{ inputs.ref }}-${{ github.run_id }}
-          path: ple-evidence/
+          path: ${{ runner.temp }}/ple-evidence/
           if-no-files-found: error
           retention-days: 30
