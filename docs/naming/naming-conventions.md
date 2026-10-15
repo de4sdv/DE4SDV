@@ -136,9 +136,13 @@ registered trace-ID namespaces.
 <TYPE>-<SUBJECT>-<SEQUENCE>[-<SUBSEQUENCE>]
 
 TYPE      registered prefix from the identifier-prefix registry (§5)
-SUBJECT   registered subject-namespace code from §6
-SEQUENCE  zero-padded integer, monotonic per (TYPE, SUBJECT) family
-SUBSEQUENCE  optional letter or nested segment (e.g. 009A..009I, 010-02)
+SUBJECT   registered subject-namespace code from §6; a System 2 sub-series
+          adds its role segment here (REQ-AEBS-S2-001)
+SEQUENCE  zero-padded integer, monotonic per (TYPE, SUBJECT) family; a new
+          need, requirement, verification-case or function ID takes the
+          family's next free number, never an increment's number
+SUBSEQUENCE  optional letter or nested segment (009A..009I, BL-MW-010-P12);
+          a new need, requirement, verification-case or function ID has none
 ```
 
 Rules:
@@ -150,6 +154,13 @@ Rules:
   and `NEED` is the readable form for new need IDs.
 - Sequence numbers are never renumbered or reused. Superseded IDs keep their
   identity; new work allocates the next free number.
+- New needs, requirements, verification cases and functions carry no
+  increment number (owner decision D15, 2026-10-15): `REQ-AEBS-015` and
+  `VC-AEBS-S2-007` show the form; existing IDs such as `VC-MW-010-01` are
+  grandfathered and stay. The increment an element was authored in is
+  provenance — it lives in the element's doc and in the pilot record, not in
+  the ID. Increment-bound records (evidence, baselines, closure records)
+  keep the number, as §2 allows.
 - Before allocating any ID, sweep all existing IDs across every `.sysml`,
   YAML, and implementation `increments.yaml` source (this is enforced by
   guard tests, not by memory). Sub-sequences (009A..009I) and per-phase series
@@ -196,6 +207,12 @@ are not syntax-validated.
 | `GAP` | Gap | Deferred scope / open gap | `GAP-MW-022` | CANONICAL |
 | `BL` | Baseline | Baseline decision record | `BL-MW-010-P12` | CANONICAL |
 | `SC` | Validation scenario | Bounded validation scenario | `SC-AEBS-010-01` | CANONICAL |
+
+`VC-MW-010-01` is a grandfathered form: a new `VC` ID takes its family's
+next free number and no increment segment (§4). `FUNC` is a free-form prefix
+(below) whose segments the checker does not validate, but a new function ID
+follows §4 all the same: `FUNC-AEBS-008`, the family's next free number, no
+increment number.
 
 ### 5.1 Grandfathered legacy identities (closed sets)
 
@@ -370,9 +387,12 @@ new work must never follow it.
 - **Definitions (`part def`, `requirement def`, enums, …):** semantic
   PascalCase, no lifecycle numbers unless the definition intentionally is
   that lifecycle record.
-- **Usages/instances:** lowerCamelCase (`incMW002`, `memberProduct`).
-  Usage names of increment records (`incMW002`, `incAEBS010`) keep their
-  identity.
+- **Usages/instances:** lowerCamelCase (`memberProduct`). A new increment
+  usage is named for what the increment is about and carries its `INC-…`
+  identity as its declared short name —
+  `part <'INC-EXAMPLE-001'> sensorDiagnosticsIncrement : SensorDiagnosticsIncrement`,
+  not `incEXAMPLE001`. Existing increment usages (`incMW002`, `incAEBS010`)
+  keep their names (owner decision D15, 2026-10-15).
 - **Views:** lowerCamelCase semantic identity
   (`aebsLogicalStructureView`). A view that is an enduring canonical view
   introduced by an increment takes the semantic name and keeps the increment

@@ -43,6 +43,14 @@ part incMW007 : FeatureIncrement {
 }
 ```
 
+- `incMW007` is the name of an existing increment usage and stays. A new
+  increment declares its own definition specializing `EngineeringIncrement`
+  and a usage typed by it, with a descriptive lowerCamelCase name and its
+  `INC-…` identity as the declared short name:
+  `part def SensorDiagnosticsIncrement :> EngineeringIncrement;` and
+  `part <'INC-EXAMPLE-001'> sensorDiagnosticsIncrement : SensorDiagnosticsIncrement;`
+  (see the [naming conventions](../naming/naming-conventions.md), §8, and the
+  [increment workflow](../../methodologies/sysmod-sysmlv2/increment-workflow.md)).
 - `FeatureIncrement` (defined in `de4sdv_method_context.sysml`) is the
   bounded work package that the slice serves. Specializations exist for
   needs/requirements increments and similar.

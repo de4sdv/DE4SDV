@@ -4122,7 +4122,7 @@
       "accounting_status": "retained",
       "base_wave": "O3-complete",
       "blockers": [],
-      "corrections_batch": null,
+      "corrections_batch": "definition-home correction (no semantic change): DerivesFromNeed is declared in DE4SDV_TraceVocabulary since #365",
       "current_authority": "model-authoritative",
       "current_evidence_state": "privileged-closure-proven",
       "dependencies": [
@@ -4141,7 +4141,7 @@
         "ple": false,
         "saf": false
       },
-      "desired_target_authority": "DE4SDV_MethodContext::DerivesFromNeed model authority",
+      "desired_target_authority": "DE4SDV_TraceVocabulary::DerivesFromNeed model authority",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
       "gate_decisions": [],
       "gate_wave": null,
@@ -4156,7 +4156,7 @@
       "open_decisions": [],
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
-        "grounding": "DE4SDV_MethodContext::DerivesFromNeed model authority",
+        "grounding": "DE4SDV_TraceVocabulary::DerivesFromNeed model authority",
         "native_representation_exists": false,
         "new_modeling_required": false,
         "proposed_name": null
@@ -4177,7 +4177,7 @@
       "accounting_status": "retained",
       "base_wave": "O3-complete",
       "blockers": [],
-      "corrections_batch": null,
+      "corrections_batch": "definition-home correction (no semantic change): DerivesFromNeed is declared in DE4SDV_TraceVocabulary since #365",
       "current_authority": "model-authoritative",
       "current_evidence_state": "privileged-closure-proven",
       "dependencies": [
@@ -4196,7 +4196,7 @@
         "ple": false,
         "saf": false
       },
-      "desired_target_authority": "DE4SDV_MethodContext::DerivesFromNeed model authority",
+      "desired_target_authority": "DE4SDV_TraceVocabulary::DerivesFromNeed model authority",
       "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
       "gate_decisions": [],
       "gate_wave": null,
@@ -4211,7 +4211,7 @@
       "open_decisions": [],
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
-        "grounding": "DE4SDV_MethodContext::DerivesFromNeed model authority",
+        "grounding": "DE4SDV_TraceVocabulary::DerivesFromNeed model authority",
         "native_representation_exists": false,
         "new_modeling_required": false,
         "proposed_name": null

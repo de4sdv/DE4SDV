@@ -39,21 +39,30 @@ def test_functional_slice_models_health_state_machine_with_guards() -> None:
         assert f"then {disposition};" in func
 
 
-def test_every_s2_requirement_allocated_to_a_function() -> None:
-    """The functional slice allocates exactly the requirements the pilot's
-    ``requirement_allocations`` declare, compared as sets of REQ ids (each
-    requirement usage's doc names its id), never as a count."""
+def test_functional_slice_allocations_match_the_pilot_record() -> None:
+    """The functional slice allocates exactly the (REQ id, function) pairs the
+    pilot's ``requirement_allocations`` declare: each requirement usage's doc
+    names its id, each ``allocate`` line names a function usage the flow
+    declares, and the pilot must record the same pairs — never a count, never
+    a set of ids blind to which function a requirement lands on."""
     func = _read(FUNC)
     needs = _read(MODEL_DIR / "aebs_visualization_needs_requirements.sysml")
     req_ids = dict(re.findall(
         r"requirement (req\w+) : VisualizationInstrumentRequirementCandidate \{\s*"
         r"doc /\* (REQ-AEBS-S2-\d+)\b", needs))
-    allocated = set(re.findall(r"^\s*allocate (req\w+) to \w+::\w+;", func, re.M))
-    declared = {req for entry in yaml.safe_load(_read(PILOT))["traceability"]["requirement_allocations"]
-                for req in entry}
+    allocated = re.findall(r"^\s*allocate (req\w+) to \w+::(\w+);", func, re.M)
+    assert allocated, "the functional slice allocates no requirement"
+    flow = _definition_body(func, "action def AebsVisualizationFunctionalFlow ")
+    functions = set(re.findall(r"^\s*action (\w+) :", flow, re.M))
+    undeclared = sorted({function for _, function in allocated} - functions)
+    assert not undeclared, undeclared
+    unknown = sorted({name for name, _ in allocated} - set(req_ids))
+    assert not unknown, unknown
+    modeled = sorted((req_ids[name], function) for name, function in allocated)
+    entries = yaml.safe_load(_read(PILOT))["traceability"]["requirement_allocations"]
+    declared = sorted((req, function) for entry in entries for req, function in entry.items())
     assert declared, "the pilot declares no requirement allocation"
-    assert allocated <= set(req_ids), sorted(allocated - set(req_ids))
-    assert {req_ids[name] for name in allocated} == declared
+    assert modeled == declared
 
 
 def test_logical_adapter_has_no_command_path() -> None:
