@@ -6,8 +6,9 @@ on:
       ref:
         description: >-
           Exact full 40-character commit SHA to ingest (optional; when set it
-          must equal the checked-out revision — exact-revision evidence
-          refuses moving refs)
+          must equal the tip of the ref the run is dispatched from, the
+          revision the run and its artifact are named after — exact-revision
+          evidence refuses moving refs)
         required: false
         type: string
   schedule:
@@ -77,6 +78,13 @@ jobs:
           fi
           if [ -n "$REQUESTED" ] && [ "$REQUESTED" != "$SHA" ]; then
             echo "requested revision $REQUESTED does not match checked-out $SHA" >&2
+            exit 1
+          fi
+          # The run's head_sha and the artifact name are the dispatch
+          # revision, and the deploy pairs them with its git_sha. Ingesting
+          # any other commit would publish evidence under the wrong name.
+          if [ "$SHA" != "${{ github.sha }}" ]; then
+            echo "checked-out $SHA is not the dispatch revision ${{ github.sha }}; dispatch from a ref whose tip is the revision to ingest" >&2
             exit 1
           fi
 

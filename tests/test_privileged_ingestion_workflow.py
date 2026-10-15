@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import re
 import shlex
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -27,6 +28,7 @@ BATTERIES = ("Exercise three production semantic concerns",
 EVIDENCE = "Release evidence over the export"
 TESTS = "Run production-ingestion tests"
 UPLOAD = "Upload exact-head ingestion evidence"
+VALIDATE = "Validate exact-revision checkout"
 
 
 def _workflow():
@@ -114,6 +116,39 @@ def test_the_upload_keeps_the_deploy_and_core_evidence_contract():
                if "upload-artifact" in str(s.get("uses"))]
     assert [n for n in uploads if n.startswith("full-model-api-ingestion-")] == [
         "full-model-api-ingestion-${{ github.sha }}"]
+
+
+def _validate(tmp_path, requested, dispatch):
+    """Run the validate step in a one-commit checkout, GitHub expressions filled in."""
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=checkout, check=True)
+    subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit",
+                    "-q", "--allow-empty", "-m", "c"], cwd=checkout, check=True)
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=checkout, check=True,
+                          capture_output=True, text=True).stdout.strip()
+    script = (_step(VALIDATE)["run"]
+              .replace("${{ github.event.inputs.ref }}", requested.replace("HEAD", head))
+              .replace("${{ github.sha }}", dispatch.replace("HEAD", head)))
+    assert "${{" not in script
+    return subprocess.run(["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", script],
+                          cwd=checkout, capture_output=True, text=True)
+
+
+@pytest.mark.parametrize("requested, dispatch, refusal", [
+    ("HEAD", "HEAD", None),
+    ("", "HEAD", None),
+    # A ref input that is not the dispatch tip: the run and its artifact would
+    # carry the tip's name over another commit's evidence.
+    ("HEAD", "b" * 40, "is not the dispatch revision"),
+    ("b" * 40, "HEAD", "does not match checked-out"),
+])
+def test_the_run_ingests_only_its_dispatch_revision(tmp_path, requested, dispatch, refusal):
+    result = _validate(tmp_path, requested, dispatch)
+    if refusal is None:
+        assert result.returncode == 0, result.stderr
+    else:
+        assert result.returncode == 1 and refusal in result.stderr, result.stderr
 
 
 def _commands():
