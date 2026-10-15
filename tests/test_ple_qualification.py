@@ -202,8 +202,13 @@ def _run_origin_step(tmp_path, monkeypatch, *, run_id=33543909037, tamper=None):
     run = {"id": run_id, "head_sha": frozen, "status": "completed", "conclusion": "success",
            "event": "pull_request", "path": ".github/workflows/privileged-pleml-gate-a.yml",
            "repository": {"full_name": repository}}
-    base = tmp_path / "docs/product-line-engineering/gate-a-baseline"
+    # The step runs in the executor checkout and may only read it: the
+    # qualification receipts record its `git status`. Inputs and evidence go
+    # to the runner's temporary directory.
+    checkout, temp = tmp_path / "checkout", tmp_path / "runner-temp"
+    base = checkout / "docs/product-line-engineering/gate-a-baseline"
     shutil.copytree(root / "docs/product-line-engineering/gate-a-baseline", base)
+    temp.mkdir()
     if tamper:
         tamper(base)
     calls = []
@@ -216,12 +221,21 @@ def _run_origin_step(tmp_path, monkeypatch, *, run_id=33543909037, tamper=None):
 
     monkeypatch.setattr(subprocess, "check_output", output)
     monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: None)
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.chdir(checkout)
     monkeypatch.setenv("SELECTED_REVISION", revision)
     monkeypatch.setenv("GITHUB_REPOSITORY", repository)
-    monkeypatch.setenv("GITHUB_OUTPUT", str(tmp_path / "outputs"))
-    exec(compile(code, "workflow-origin", "exec"), {})
+    monkeypatch.setenv("GITHUB_OUTPUT", str(temp / "outputs"))
+    monkeypatch.setenv("RUNNER_TEMP", str(temp))
+    before = _tree(checkout)
+    try:
+        exec(compile(code, "workflow-origin", "exec"), {})
+    finally:
+        assert _tree(checkout) == before, "the origin step wrote into the executor checkout"
     return calls
+
+
+def _tree(path):
+    return sorted(item.relative_to(path).as_posix() for item in path.rglob("*"))
 
 
 def test_workflow_origin_materializes_exact_retained_baseline(tmp_path, monkeypatch):
@@ -229,13 +243,16 @@ def test_workflow_origin_materializes_exact_retained_baseline(tmp_path, monkeypa
     import json
 
     calls = _run_origin_step(tmp_path, monkeypatch)
-    export = (tmp_path / "_ple-baseline/de4sdv-pleml-gate-a-export.json").read_bytes()
+    temp = tmp_path / "runner-temp"
+    export = (temp / "_ple-baseline/de4sdv-pleml-gate-a-export.json").read_bytes()
     assert hashlib.sha256(export).hexdigest() == (
         "cf129d6884dc38555a0a725ad516d06fa6cf1ff2d11d6cda0bb1d5bc1ae51b7d")
-    assert (tmp_path / "outputs").read_text() == "artifact_id=9814891861\n"
-    origin = json.loads((tmp_path / "ple-evidence/provider-origin.json").read_text())
+    assert (temp / "outputs").read_text() == "artifact_id=9814891861\n"
+    origin = json.loads((temp / "ple-evidence/provider-origin.json").read_text())
     assert origin["historical_artifact"]["id"] == 9814891861
     assert origin["historical_artifact"]["export_sha256"].startswith("cf129d68")
+    assert origin["historical_artifact"]["retained_copy"] == (
+        "docs/product-line-engineering/gate-a-baseline/de4sdv-pleml-gate-a-export.json.xz")
     # The expired provider artifact inventory is no longer consulted.
     assert not any("/artifacts" in str(command[-1]) for command in calls if command[0] == "gh")
 
@@ -244,8 +261,8 @@ def test_workflow_origin_materializes_exact_retained_baseline(tmp_path, monkeypa
 def test_workflow_origin_refuses_foreign_historical_run(tmp_path, monkeypatch, run_id):
     with pytest.raises(SystemExit, match="historical origin mismatch"):
         _run_origin_step(tmp_path, monkeypatch, run_id=run_id)
-    assert not (tmp_path / "ple-evidence/provider-origin.json").exists()
-    assert not (tmp_path / "_ple-baseline").exists()
+    assert not (tmp_path / "runner-temp/ple-evidence/provider-origin.json").exists()
+    assert not (tmp_path / "runner-temp/_ple-baseline").exists()
 
 
 def _flip_byte(base):
@@ -287,8 +304,8 @@ def _replace_export(base):
 def test_workflow_origin_refuses_tampered_retained_baseline(tmp_path, monkeypatch, tamper, message):
     with pytest.raises(SystemExit, match=message):
         _run_origin_step(tmp_path, monkeypatch, tamper=tamper)
-    assert not (tmp_path / "ple-evidence/provider-origin.json").exists()
-    assert not (tmp_path / "_ple-baseline").exists()
+    assert not (tmp_path / "runner-temp/ple-evidence/provider-origin.json").exists()
+    assert not (tmp_path / "runner-temp/_ple-baseline").exists()
 
 
 def test_workflow_no_longer_downloads_expired_provider_artifact():

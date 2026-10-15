@@ -241,12 +241,16 @@ def workflow_scoped_predicate(tmp_path, report):
     step = next(s for s in workflow["jobs"]["qualify"]["steps"]
                 if s.get("name") == "Execute missing scoped PLE probes")
     code = step["run"].split("python - <<'PY'\n", 1)[1].rsplit("\nPY", 1)[0]
+    # The evidence lives under RUNNER_TEMP, never relative to the checkout
+    # (the receipts record its git status), so the predicate runs elsewhere.
     output = tmp_path / "ple-evidence/scoped"
     output.mkdir(parents=True, exist_ok=True)
     (output / "receipt.json").write_text(json.dumps(report))
     (output / "cli-exit.txt").write_text("2\n")
-    return subprocess.run([sys.executable, "-B", "-c", code], cwd=tmp_path,
-                          env=os.environ.copy(), capture_output=True, text=True)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir(exist_ok=True)
+    return subprocess.run([sys.executable, "-B", "-c", code], cwd=elsewhere,
+                          env=dict(os.environ, RUNNER_TEMP=str(tmp_path)), capture_output=True, text=True)
 
 
 def test_missing_or_ambiguous_native_target_is_execution_error(monkeypatch, tmp_path):
@@ -358,4 +362,4 @@ def test_workflow_wires_existing_frozen_checkout_to_oracle_tests():
     workflow = yaml.safe_load((ROOT / ".github/workflows/privileged-ple-qualification.yml").read_text())
     step = next(s for s in workflow["jobs"]["qualify"]["steps"]
                 if s.get("name") == "Execute missing scoped PLE probes")
-    assert step["env"]["DE4SDV_PLE_ORACLE"] == "${{ github.workspace }}/_ple-experiment"
+    assert step["env"]["DE4SDV_PLE_ORACLE"] == "${{ runner.temp }}/_ple-experiment"
