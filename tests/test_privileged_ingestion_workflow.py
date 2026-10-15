@@ -5,13 +5,16 @@ step. These tests pin the one-job topology, the release evidence over the
 export, the CI import rehearsal marked for removal after two releases, the
 artifact naming boundary with the deploy/core-evidence consumers, and that
 every workflow command line parses against the REAL script parser (the
-parser is spied; nothing executes). No network, no dispatch.
+parser is spied; nothing executes), and that the checkout the runtime's
+startup check reads is the dispatch revision and stays clean. No network,
+no dispatch.
 """
 from __future__ import annotations
 
 import argparse
 import re
 import shlex
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -27,6 +30,9 @@ BATTERIES = ("Exercise three production semantic concerns",
 EVIDENCE = "Release evidence over the export"
 TESTS = "Run production-ingestion tests"
 UPLOAD = "Upload exact-head ingestion evidence"
+VALIDATE = "Validate exact-revision checkout"
+GUARDS = ("Refuse a dirty checkout before the import",
+          "Refuse a dirty checkout before the candidate imports")
 
 
 def _workflow():
@@ -116,6 +122,79 @@ def test_the_upload_keeps_the_deploy_and_core_evidence_contract():
         "full-model-api-ingestion-${{ github.sha }}"]
 
 
+def _starts_a_background_process(run):
+    """A lone ``&`` outside a comment (not ``&&``, ``2>&1``, ``&>`` or ``|&``)."""
+    for line in run.splitlines():
+        code = re.split(r"(?:^|\s)#", line, maxsplit=1)[0]
+        if re.search(r"(?<![&|<>])&(?![&>])", code):
+            return True
+    return False
+
+
+@pytest.mark.parametrize("line, started", [
+    ("serve > /tmp/x.log 2>&1 &", True), ("serve & # comment", True), ("serve & disown", True),
+    ("serve & echo $! > /tmp/pid", True), ("( serve & )", True), ("serve &\r", True),
+    ("a && b", False), ("serve 2>&1 | tee x", False), ("serve &> /tmp/x", False),
+    ("a |& b", False), ("# serve &", False), ('[ "${#SHA}" != "40" ]', False),
+])
+def test_the_background_process_pattern(line, started):
+    assert _starts_a_background_process(line) is started
+
+
+def test_background_services_run_outside_the_checkout():
+    # A service keeps writing after its step ends (the API service writes
+    # logs/application.log relative to its working directory), and the
+    # runtime's startup check in the batteries and the release evidence
+    # refuses a checkout with untracked files (run 38669722943: "?? logs/").
+    started = [s for s in _steps() if _starts_a_background_process(s.get("run") or "")]
+    assert [s["name"] for s in started] == ["Start pinned Systems Modeling API service"]
+    for step in started:
+        assert step.get("working-directory", "").startswith("/tmp/"), step["name"]
+
+
+def _scratch_checkout(tmp_path):
+    """A one-commit Git checkout; returns it and its HEAD."""
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=checkout, check=True)
+    subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit",
+                    "-q", "--allow-empty", "-m", "c"], cwd=checkout, check=True)
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=checkout, check=True,
+                          capture_output=True, text=True).stdout.strip()
+    return checkout, head
+
+
+def _bash(script, cwd):
+    """Run a step script the way GitHub runs a `run:` step without `shell:` (bash -e)."""
+    assert "${{" not in script
+    return subprocess.run(["bash", "-e", "-c", script], cwd=cwd, capture_output=True, text=True)
+
+
+def _validate(tmp_path, requested, dispatch):
+    """Run the validate step in a one-commit checkout, GitHub expressions filled in."""
+    checkout, head = _scratch_checkout(tmp_path)
+    script = (_step(VALIDATE)["run"]
+              .replace("${{ github.event.inputs.ref }}", requested.replace("HEAD", head))
+              .replace("${{ github.sha }}", dispatch.replace("HEAD", head)))
+    return _bash(script, checkout)
+
+
+@pytest.mark.parametrize("requested, dispatch, refusal", [
+    ("HEAD", "HEAD", None),
+    ("", "HEAD", None),
+    # A ref input that is not the dispatch tip: the run and its artifact would
+    # carry the tip's name over another commit's evidence.
+    ("HEAD", "b" * 40, "is not the dispatch revision"),
+    ("b" * 40, "HEAD", "does not match checked-out"),
+])
+def test_the_run_ingests_only_its_dispatch_revision(tmp_path, requested, dispatch, refusal):
+    result = _validate(tmp_path, requested, dispatch)
+    if refusal is None:
+        assert result.returncode == 0, result.stderr
+    else:
+        assert result.returncode == 1 and refusal in result.stderr, result.stderr
+
+
 def _commands():
     out = []
     for step in _steps():
@@ -169,3 +248,26 @@ def test_command_lines_parse_with_the_real_parsers(monkeypatch, name, argv):
     for key in ("git_revision", "source_revision", "expected_git_revision"):
         if key in namespace:
             assert namespace[key] == REV
+
+
+def test_dirty_checkout_guards_run_before_each_long_phase():
+    names = _names()
+    assert (names.index("Start pinned Systems Modeling API service") < names.index(GUARDS[0])
+            < names.index("Import and validate exact API revision"))
+    assert (names.index("Produce second independent serialization transaction (MC-14)")
+            < names.index(GUARDS[1])
+            < names.index("Import candidate transaction 1 into a distinct API project"))
+
+
+@pytest.mark.parametrize("guard", GUARDS)
+@pytest.mark.parametrize("untracked", [None, "logs/application.log"])
+def test_a_dirty_checkout_guard_refuses_what_the_startup_check_refuses(tmp_path, guard, untracked):
+    checkout, _ = _scratch_checkout(tmp_path)
+    if untracked:
+        (checkout / untracked).parent.mkdir(parents=True)
+        (checkout / untracked).write_text("x", encoding="utf-8")
+    result = _bash(_step(guard)["run"], checkout)
+    if untracked:
+        assert result.returncode == 1 and "?? logs/" in result.stderr, result.stderr
+    else:
+        assert result.returncode == 0, result.stderr

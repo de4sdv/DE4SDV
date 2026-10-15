@@ -6,8 +6,9 @@ on:
       ref:
         description: >-
           Exact full 40-character commit SHA to ingest (optional; when set it
-          must equal the checked-out revision — exact-revision evidence
-          refuses moving refs)
+          must equal the tip of the ref the run is dispatched from, the
+          revision the run and its artifact are named after — exact-revision
+          evidence refuses moving refs)
         required: false
         type: string
   schedule:
@@ -79,6 +80,13 @@ jobs:
             echo "requested revision $REQUESTED does not match checked-out $SHA" >&2
             exit 1
           fi
+          # The run's head_sha and the artifact name are the dispatch
+          # revision, and the deploy pairs them with its git_sha. Ingesting
+          # any other commit would publish evidence under the wrong name.
+          if [ "$SHA" != "${{ github.sha }}" ]; then
+            echo "checked-out $SHA is not the dispatch revision ${{ github.sha }}; dispatch from a ref whose tip is the revision to ingest" >&2
+            exit 1
+          fi
 
       - uses: actions/setup-python@v5
         with:
@@ -127,6 +135,11 @@ jobs:
           (cd /tmp/sysmlv2-api-services && java -Xmx4g -jar /tmp/sbt-launch.jar stage)
 
       - name: Start pinned Systems Modeling API service
+        # Outside the checkout: the service writes logs/application.log
+        # relative to its working directory, and the runtime's startup check
+        # in the batteries and the release evidence refuses a checkout with
+        # untracked files.
+        working-directory: /tmp/sysmlv2-api-services
         run: |
           /tmp/sysmlv2-api-services/target/universal/stage/bin/sysml-v2-api-services \
             -J-Xmx4g \
@@ -143,6 +156,18 @@ jobs:
           done
           cat /tmp/sysml-api.log
           exit 1
+
+      # The runtime's startup check (the batteries, the release evidence)
+      # refuses a checkout with changed or untracked paths. These guards run
+      # the same check before each long phase, so a dirty checkout fails the
+      # run in minutes instead of hours.
+      - name: Refuse a dirty checkout before the import
+        run: |
+          dirty="$(git status --porcelain)"
+          if [ -n "$dirty" ]; then
+            printf 'the checkout is not clean:\n%s\n' "$dirty" >&2
+            exit 1
+          fi
 
       - name: Import and validate exact API revision
         run: |
@@ -206,6 +231,14 @@ jobs:
             --transaction-label candidate-2 \
             --reuse-checkout \
             --sync-deps=false
+
+      - name: Refuse a dirty checkout before the candidate imports
+        run: |
+          dirty="$(git status --porcelain)"
+          if [ -n "$dirty" ]; then
+            printf 'the checkout is not clean:\n%s\n' "$dirty" >&2
+            exit 1
+          fi
 
       - name: Import candidate transaction 1 into a distinct API project
         run: |
