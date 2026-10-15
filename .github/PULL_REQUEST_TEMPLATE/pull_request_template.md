@@ -30,10 +30,12 @@ For `.sysml` changes, choose one validation path:
 1. Local validation, if Syside is available:
    - Syside Editor VS Code extension evidence, or
    - `python scripts/validate_sysml.py` output
-2. Maintainer-run privileged validation:
-   - Request the `Privileged Syside Validation` workflow after initial review.
-     Include the branch, tag, or commit SHA to validate and the model path if it
-     is not `textual-notation-of-model`.
+2. Licensed validation in CI (`Privileged Syside Validation`):
+   - It runs automatically when a maintainer opens the pull request from a
+     branch of this repository.
+   - Otherwise, request it after initial review. Include the branch, tag, or
+     commit SHA to validate and the model paths if they differ from the three
+     model roots.
 
 ## SysML validation
 
@@ -43,7 +45,9 @@ If this PR creates or modifies `.sysml` files:
       VS Code extension.
 - [ ] Optional: I validated changed SysML files locally with
       `python scripts/validate_sysml.py`.
-- [ ] I request maintainer-run licensed Syside CI validation.
+- [ ] I rely on the licensed Syside CI validation (automatic for
+      maintainer-opened pull requests from this repository; otherwise I
+      request it).
 - [ ] Not applicable; this PR does not change `.sysml` files.
 
 ## Checklist

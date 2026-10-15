@@ -27,7 +27,7 @@ npx markdownlint "**/*.md"
 - `textual-notation-of-model/` — system model assets
 - `sysmlv2-api/` — SysML v2 API integration assets
 - `simulation/` — FMU/FMI/SSP integration assets
-- `model-based-product-line-engineering/` — feature models, configurations, shared assets, product models
+- `model-based-product-line-engineering/` — feature models, configurations, shared assets, product models, the governed product-line scope
 - `compliance/` — safety, security, UNECE and homologation evidence structure
 - `devsecops/` — CI/CD, SBOM, security checks, policy-as-code notes
 
@@ -39,8 +39,10 @@ Before proposing a completed change:
 2. Run `python scripts/smoke_test.py`
 3. For any change that creates or modifies SysML v2 textual notation, document
    one SysML validation path: local validation evidence from the Syside Editor
-   VS Code extension or `python scripts/validate_sysml.py`, or a request for
-   maintainer-run privileged Syside validation after review
+   VS Code extension or `python scripts/validate_sysml.py`, or the licensed CI
+   validation described under "SysML v2 textual notation validation" (automatic
+   for maintainer-opened pull requests from this repository, otherwise requested
+   from a maintainer after review)
 4. Update relevant files in `docs/` if the change affects
    architecture, workflow, terminology, safety, security, or compliance
    assumptions
