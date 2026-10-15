@@ -31,6 +31,8 @@ EVIDENCE = "Release evidence over the export"
 TESTS = "Run production-ingestion tests"
 UPLOAD = "Upload exact-head ingestion evidence"
 VALIDATE = "Validate exact-revision checkout"
+GUARDS = ("Refuse a dirty checkout before the import",
+          "Refuse a dirty checkout before the candidate imports")
 
 
 def _workflow():
@@ -150,8 +152,8 @@ def test_background_services_run_outside_the_checkout():
         assert step.get("working-directory", "").startswith("/tmp/"), step["name"]
 
 
-def _validate(tmp_path, requested, dispatch):
-    """Run the validate step in a one-commit checkout, GitHub expressions filled in."""
+def _scratch_checkout(tmp_path):
+    """A one-commit Git checkout; returns it and its HEAD."""
     checkout = tmp_path / "checkout"
     checkout.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=checkout, check=True)
@@ -159,12 +161,23 @@ def _validate(tmp_path, requested, dispatch):
                     "-q", "--allow-empty", "-m", "c"], cwd=checkout, check=True)
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=checkout, check=True,
                           capture_output=True, text=True).stdout.strip()
+    return checkout, head
+
+
+def _bash(script, cwd):
+    """Run a step script the way GitHub runs `run:` (bash -eo pipefail)."""
+    assert "${{" not in script
+    return subprocess.run(["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", script],
+                          cwd=cwd, capture_output=True, text=True)
+
+
+def _validate(tmp_path, requested, dispatch):
+    """Run the validate step in a one-commit checkout, GitHub expressions filled in."""
+    checkout, head = _scratch_checkout(tmp_path)
     script = (_step(VALIDATE)["run"]
               .replace("${{ github.event.inputs.ref }}", requested.replace("HEAD", head))
               .replace("${{ github.sha }}", dispatch.replace("HEAD", head)))
-    assert "${{" not in script
-    return subprocess.run(["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", script],
-                          cwd=checkout, capture_output=True, text=True)
+    return _bash(script, checkout)
 
 
 @pytest.mark.parametrize("requested, dispatch, refusal", [
@@ -236,3 +249,26 @@ def test_command_lines_parse_with_the_real_parsers(monkeypatch, name, argv):
     for key in ("git_revision", "source_revision", "expected_git_revision"):
         if key in namespace:
             assert namespace[key] == REV
+
+
+def test_dirty_checkout_guards_run_before_each_long_phase():
+    names = _names()
+    assert (names.index("Start pinned Systems Modeling API service") < names.index(GUARDS[0])
+            < names.index("Import and validate exact API revision"))
+    assert (names.index("Produce second independent serialization transaction (MC-14)")
+            < names.index(GUARDS[1])
+            < names.index("Import candidate transaction 1 into a distinct API project"))
+
+
+@pytest.mark.parametrize("guard", GUARDS)
+@pytest.mark.parametrize("untracked", [None, "logs/application.log"])
+def test_a_dirty_checkout_guard_refuses_what_the_startup_check_refuses(tmp_path, guard, untracked):
+    checkout, _ = _scratch_checkout(tmp_path)
+    if untracked:
+        (checkout / untracked).parent.mkdir(parents=True)
+        (checkout / untracked).write_text("x", encoding="utf-8")
+    result = _bash(_step(guard)["run"], checkout)
+    if untracked:
+        assert result.returncode == 1 and "?? logs/" in result.stderr, result.stderr
+    else:
+        assert result.returncode == 0, result.stderr

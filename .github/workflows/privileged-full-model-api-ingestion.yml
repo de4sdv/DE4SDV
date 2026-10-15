@@ -157,6 +157,18 @@ jobs:
           cat /tmp/sysml-api.log
           exit 1
 
+      # The runtime's startup check (the batteries, the release evidence)
+      # refuses a checkout with changed or untracked paths. These guards run
+      # the same check before each long phase, so a dirty checkout fails the
+      # run in minutes instead of hours.
+      - name: Refuse a dirty checkout before the import
+        run: |
+          dirty="$(git status --porcelain)"
+          if [ -n "$dirty" ]; then
+            printf 'the checkout is not clean:\n%s\n' "$dirty" >&2
+            exit 1
+          fi
+
       - name: Import and validate exact API revision
         run: |
           python scripts/import_sysml_api_baseline.py \
@@ -219,6 +231,14 @@ jobs:
             --transaction-label candidate-2 \
             --reuse-checkout \
             --sync-deps=false
+
+      - name: Refuse a dirty checkout before the candidate imports
+        run: |
+          dirty="$(git status --porcelain)"
+          if [ -n "$dirty" ]; then
+            printf 'the checkout is not clean:\n%s\n' "$dirty" >&2
+            exit 1
+          fi
 
       - name: Import candidate transaction 1 into a distinct API project
         run: |
