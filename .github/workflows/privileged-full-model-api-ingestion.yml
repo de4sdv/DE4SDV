@@ -11,21 +11,17 @@ on:
           evidence refuses moving refs)
         required: false
         type: string
-  schedule:
-    # One nightly full-model ingestion of main. The artifact feeds the
-    # gated public API deployment and keeps a daily semantic health signal.
-    - cron: "30 2 * * *"
 
 permissions:
   contents: read
 
 # The ingestion job builds a JVM service from source and runs the full
-# Syside export + API import chain (~35-60 min serialized). It runs on main
-# nightly and on demand via workflow_dispatch — never per-PR. A PR only
-# needs fast validation (CI + Privileged Syside Validation); its changes
-# get full ingestion coverage through the next nightly run or an explicit
-# dispatch before a production deployment, which re-verifies the exact
-# merged main SHA anyway (the deploy workflow refuses any other pairing).
+# Syside export + API import chain, the batteries and the release evidence
+# (2.5 to 5 hours per run). It runs on demand only, via workflow_dispatch,
+# once per release SHA: never per-PR and never on a schedule. A PR only
+# needs fast validation (CI + Privileged Syside Validation); its changes get
+# full ingestion coverage when a release dispatches the exact merged main
+# SHA, and the deploy workflow refuses any other pairing.
 concurrency:
   group: privileged-full-model-api-ingestion
   cancel-in-progress: false
@@ -38,9 +34,7 @@ concurrency:
 # sysml-api-production approval (deployment/README.md, "Release").
 jobs:
   ingest-and-validate:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 360
     services:
