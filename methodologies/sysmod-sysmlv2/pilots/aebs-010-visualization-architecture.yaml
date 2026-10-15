@@ -115,7 +115,7 @@ traceability:
     - REQ-AEBS-S2-007: supervise
     - REQ-AEBS-S2-008: validate
     - REQ-AEBS-S2-009: supervise
-    - REQ-AEBS-S2-010: render
+    - REQ-AEBS-S2-010: present
     - REQ-AEBS-S2-011: record
 
 next_increment:
