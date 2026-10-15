@@ -910,25 +910,59 @@ def test_a_population_remedy_names_an_untyped_parameter_by_its_keyword() -> None
     assert evidence["authoring"]["declarations"] == ["verification <name>;"]
 
 
-def test_known_looseness_the_checks_accept_an_increment_typed_by_the_kernel_definition_itself() -> None:
-    """A known looseness, not the method's form: incrementShortName and problemStatementSubject test the
-    type lineage and the usage's own typing, so a usage typed directly by EngineeringIncrement (and a problem
-    statement subject typed the same way) passes them. The remedies teach the method's form instead, a
-    definition specializing EngineeringIncrement (what every scenario here declares). Tightening the checks
-    is a later method decision; this test records the looseness until then."""
+#: The two checks about the increment's own definition (owner decision, 2026-10-15).
+OWN_DEFINITION_GATES = ("incrementHasIdentifier", "incrementHasProblemStatement")
+
+
+def _verdicts(evaluation) -> dict[str, tuple[str, tuple[str, ...]]]:
+    return {u.unit_id: (u.verdict, u.reason_codes) for u in evaluation.canonical.units
+            if u.unit_id in OWN_DEFINITION_GATES}
+
+
+def test_the_checks_refuse_an_increment_typed_by_the_kernel_definition_itself() -> None:
+    """The method's form is the increment's own definition specializing the kernel EngineeringIncrement,
+    typing the increment usage and the problem statement's subject. A usage typed by the kernel definition
+    itself (and a subject typed the same way) fails incrementShortName and problemStatementSubject, each
+    naming the fix. The increment still resolves (its identity is its short name in the lineage), so the
+    refusal is a violation with a remedy, never an input problem."""
     scenario, _steps, _types = _kernel_scenario()
     kernel = scenario.vocabulary["EngineeringIncrement"]
+    assert _verdicts(_evaluate(scenario)) == {gate: (me.VERDICT_PASS, ()) for gate in OWN_DEFINITION_GATES}
     _typed_by_the_kernel_definition_itself(scenario)
     evaluation = _evaluate(scenario)
-    verdicts = {u.unit_id: u.verdict for u in evaluation.canonical.units}
-    assert verdicts["incrementHasIdentifier"] == me.VERDICT_PASS
-    assert verdicts["incrementHasProblemStatement"] == me.VERDICT_PASS
+    assert evaluation.scope.usage_id == scenario.usage["@id"]
     assert evaluation.scope.definition_ids == (kernel["@id"],)
+    assert _verdicts(evaluation) == {gate: (me.VERDICT_FAIL, (me.REQUIRED_RELATION_MISSING,))
+                                     for gate in OWN_DEFINITION_GATES}
+    gaps = _evaluate(scenario).gaps()
+    for gate in OWN_DEFINITION_GATES:
+        entry = _gap(gaps, gate)
+        assert entry["kind"] == "violation", gate
+        (subject,) = entry["subjects"]
+        (diagnostic,) = subject["diagnostics"]
+        assert "is typed by FixtureKernelMethodContext::EngineeringIncrement itself" in diagnostic, diagnostic
+        assert "declare the increment's own definition specializing" in diagnostic, diagnostic
+    assert "type the usage by it" in _gap(gaps, "incrementHasIdentifier")["subjects"][0]["diagnostics"][0]
+    assert "type the usage and the problem statement's subject by it" in _gap(
+        gaps, "incrementHasProblemStatement")["subjects"][0]["diagnostics"][0]
+
+
+def test_the_kernel_increment_definition_is_known_by_its_validated_binding_never_by_its_name() -> None:
+    """Which element is the kernel EngineeringIncrement comes from the validated kernel binding (ADR 0011).
+    With the kernel element renamed and the increment's own definition carrying the kernel's name, the
+    method's form still passes and the usage typed by the (renamed) kernel element is still refused."""
+    scenario, _steps, _types = _kernel_scenario()
+    kernel = scenario.vocabulary["EngineeringIncrement"]
+    kernel["declaredName"], scenario.definition["declaredName"] = "Increment", kernel["declaredName"]
+    assert _verdicts(_evaluate(scenario)) == {gate: (me.VERDICT_PASS, ()) for gate in OWN_DEFINITION_GATES}
+    _typed_by_the_kernel_definition_itself(scenario)
+    assert _verdicts(_evaluate(scenario)) == {gate: (me.VERDICT_FAIL, (me.REQUIRED_RELATION_MISSING,))
+                                              for gate in OWN_DEFINITION_GATES}
 
 
 def _typed_by_the_kernel_definition_itself(scenario) -> dict:
     """Retype the increment usage and the problem statement's subject by the kernel EngineeringIncrement
-    itself (the known looseness); returns the problem statement."""
+    itself (the form the checks refuse); returns the problem statement."""
     builder = scenario.builder
     kernel = scenario.vocabulary["EngineeringIncrement"]
     problem = next(e for e in builder.elements if e.get("declaredName") == "fixtureProblemStatement")
@@ -940,11 +974,11 @@ def _typed_by_the_kernel_definition_itself(scenario) -> dict:
 
 
 def test_an_increment_typed_by_the_kernel_definition_itself_is_taught_the_method_form() -> None:
-    """The looseness above is never echoed. For an increment usage typed by the kernel EngineeringIncrement
+    """The refused form is never echoed. For an increment usage typed by the kernel EngineeringIncrement
     itself, the remedies declare the increment's own definition specializing it and type the problem
-    statement's subject by it; one note names the looseness and says to retype the existing usage by
-    that definition (never a second declaration of the usage). (A usage typed by a definition of its own
-    keeps naming it: the problem-statement test above.)"""
+    statement's subject by it; one note says the checks refuse that form and says to retype the existing
+    usage by that definition (never a second declaration of the usage). (A usage typed by a definition of
+    its own keeps naming it: the problem-statement test above.)"""
     scenario, _steps, _types = _kernel_scenario()
     problem = _typed_by_the_kernel_definition_itself(scenario)
     qualified, _package = _kernel_qualified(scenario, "EngineeringIncrement")
@@ -967,3 +1001,36 @@ def test_an_increment_typed_by_the_kernel_definition_itself_is_taught_the_method
         assert len(named) == 1 and retype in named[0], record["authoring"]["notes"]
     texts = [record.get("what_to_author") or record.get("what_satisfies") for record in (*gates.values(), gap)]
     assert [text for text in texts if f": {qualified};" in text or f"subject increment : {qualified};" in text] == []
+
+
+def test_the_identifier_gap_of_an_increment_typed_by_the_kernel_definition_itself_says_to_retype_it() -> None:
+    """The usage carries its identifier and fails incrementShortName only for its typing: the remedy
+    declares the increment's own definition and says to retype the existing usage by it (its note says
+    the checks refuse the form), never to declare the identifier again or a second usage."""
+    scenario, _steps, _types = _kernel_scenario()
+    _typed_by_the_kernel_definition_itself(scenario)
+    qualified, _package = _kernel_qualified(scenario, "EngineeringIncrement")
+    gap = _gap(_evaluate(scenario).gaps(), "incrementHasIdentifier")
+    assert gap["what_to_author"].startswith(
+        "declare the increment's own definition and retype the existing DE4SDV_FixtureFraming::incFixture by it: ")
+    assert gap["authoring"]["declarations"] == [f"part def <IncrementDefinitionName> :> {qualified};"]
+    assert "declared short name" not in gap["what_to_author"]
+    (note,) = [n for n in gap["authoring"]["notes"] if "DE4SDV_FixtureFraming::incFixture" in n]
+    assert "which the checks refuse" in note and "allow" not in note
+    assert "retype the existing DE4SDV_FixtureFraming::incFixture to `: <IncrementDefinitionName>`" in note
+
+
+def test_a_usage_typed_by_the_kernel_definition_itself_without_its_identifier_is_told_both() -> None:
+    """The refused typing and a wrong short name (a direct call, as for the existing-usage test above): one
+    remedy says to retype the existing usage and to give it the identifier as its declared short name."""
+    from de4sdv.semantic.remedies import check_remedy
+
+    scenario, _steps, _types = _kernel_scenario()
+    _typed_by_the_kernel_definition_itself(scenario)
+    scope = _evaluate(scenario).scope
+    scenario.usage["declaredShortName"] = "INC-EXAMPLE-002"
+    remedy = check_remedy(_view(scenario), "incrementShortName", subject=scenario.usage["@id"], scope=scope)
+    assert remedy.text.startswith(
+        "declare the increment's own definition and retype the existing DE4SDV_FixtureFraming::incFixture by it, "
+        f"with the increment identifier as its declared short name, <'{scenario.increment_id}'>: ")
+    assert [line for line in remedy.declarations if "incFixture" in line] == []

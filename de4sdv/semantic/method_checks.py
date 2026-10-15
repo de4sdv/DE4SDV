@@ -4,9 +4,13 @@ A method declares checks about the elements its steps produce. Each check
 names, by its id, what must hold for every subject element; :func:`method_checks`
 maps the id to the implementation that decides it for one subject:
 
-- **named checks** state one rule, for example ``framedByIncrementView``
-  (a viewpoint of a view in the increment package frames a concern of that
-  package), ``oneNativeSubject`` (exactly one subject),
+- **named checks** state one rule, for example ``incrementShortName`` (the
+  increment usage carries the identifier as its declared short name and is
+  typed by an increment definition of its own, never by the kernel
+  ``EngineeringIncrement`` alone), ``problemStatementSubject`` (the problem
+  statement's native subject is typed by that definition),
+  ``framedByIncrementView`` (a viewpoint of a view in the increment package
+  frames a concern of that package), ``oneNativeSubject`` (exactly one subject),
   ``oneVerificationMethodKind`` (one standard verification method kind is
   recorded), ``ownedByIncrementPackage``, ``subjectIsSystemOfInterest``
   (the subject is the system of interest the charter declares, never the
@@ -37,6 +41,7 @@ from de4sdv.sysml_api.errors import IdentityNotFoundError
 
 from .increment_scope import (
     INCREMENT_ATTRIBUTE,
+    INCREMENT_CLASS,
     PHASES_ATTRIBUTE,
     SCOPE_ATTRIBUTE,
     SCOPE_PROBLEM,
@@ -45,6 +50,7 @@ from .increment_scope import (
     ModelView,
     applicable_phase_literals,
     declared_artifacts,
+    own_increment_definitions,
 )
 from .relation_checks import (
     MethodSideInput,
@@ -151,9 +157,21 @@ def _texts(view: ModelView, owner: str, attribute: str) -> list[str]:
 
 
 def _increment_short_name(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """The usage carries the increment identifier as its declared short name and is typed by an increment
+    definition of its own, never by the kernel EngineeringIncrement alone: the method's form declares the
+    increment's own definition specializing the kernel definition and types the usage by it."""
+    name = _name(view, subject_id)
     if str(view.element(subject_id).get("declaredShortName") or "") != increment.increment_id:
-        return violated(f"{_name(view, subject_id)} does not carry the increment identifier "
-                        f"{increment.increment_id!r} as its declared short name")
+        return violated(f"{name} does not carry the increment identifier {increment.increment_id!r} as its "
+                        "declared short name")
+    try:
+        own = own_increment_definitions(view, view.index.typed_by(subject_id))
+    except IdentityNotFoundError as error:  # an unbound kernel definition is method side
+        return indeterminate(f"kernel-binding:{INCREMENT_CLASS}", f"method side: {error}")
+    if not own:
+        return violated(f"{name} is typed by {_name(view, view.kernel_element(INCREMENT_CLASS))} itself and by no "
+                        "increment definition of its own; declare the increment's own definition specializing it "
+                        "and type the usage by it")
     return satisfied([subject_id])
 
 
@@ -167,12 +185,27 @@ def _charter_references_increment(view: ModelView, increment: IncrementScope, su
 
 
 def _problem_statement_subject(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
-    wanted = set(increment.definition_ids)
+    """The problem statement is owned by the increment package and declares a native subject typed by the
+    increment's own definition: one of the definitions typing the increment usage other than the kernel
+    EngineeringIncrement itself (a usage typed by the kernel definition alone offers none)."""
+    name = _name(view, subject_id)
+    wanted: set[str] = set()
+    if increment.definition_ids:
+        try:
+            wanted = set(own_increment_definitions(view, increment.definition_ids))
+        except IdentityNotFoundError as error:  # an unbound kernel definition is method side
+            return indeterminate(f"kernel-binding:{INCREMENT_CLASS}", f"method side: {error}")
+        if not wanted:
+            return violated(f"{name} has no increment definition to type its subject by: the increment usage "
+                            f"{_name(view, increment.usage_id)} is typed by "
+                            f"{_name(view, view.kernel_element(INCREMENT_CLASS))} itself and by no increment "
+                            "definition of its own; declare the increment's own definition specializing it, and "
+                            "type the usage and the problem statement's subject by it")
     subjects = [member for member in membership_members(view, subject_id, "SubjectMembership")
                 if view.index.typed_by(member) & wanted]
     if increment.package_id is None or view.index.owner_of(subject_id) != increment.package_id or not subjects:
-        return violated(f"{_name(view, subject_id)} is not a problem statement of the increment package with a "
-                        "native subject typed by the increment definition")
+        return violated(f"{name} is not a problem statement of the increment package with a native subject typed "
+                        "by the increment's own definition")
     return satisfied(subjects)
 
 

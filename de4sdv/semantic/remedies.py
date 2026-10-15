@@ -367,17 +367,17 @@ def _subject_line(lines: _Lines, line: str) -> str:
 
 
 def _direct_note(view: ModelView, usage: str, kernel: str) -> str:
-    return (f"{view.label(usage)} is typed by {view.label(kernel)} itself, which the checks allow but which is not "
-            f"the method's form: retype the existing {view.label(usage)} to `: {INCREMENT_DEFINITION}`, the "
-            "increment's own definition that specializes it.")
+    return (f"{view.label(usage)} is typed by {view.label(kernel)} itself, which the checks refuse (the method's "
+            f"form is the increment's own definition): retype the existing {view.label(usage)} to "
+            f"`: {INCREMENT_DEFINITION}`, the increment's own definition that specializes it.")
 
 
 def _increment_definition(lines: _Lines, general: str | None = None) -> str:
     """The increment's own definition, as the method declares it: the definition typing the resolved
     increment usage (qualified); else a part def the author names, declared first in the remedy and
-    specializing ``general`` (the kernel's EngineeringIncrement, by its validated binding). The checks
-    also allow a usage typed by the kernel definition itself: for one, the remedy teaches the method's
-    form, with a note."""
+    specializing ``general`` (the kernel's EngineeringIncrement, by its validated binding). A usage typed
+    by the kernel definition itself fails the checks: for one, the remedy teaches the method's form, with
+    a note that says to retype the existing usage."""
     request = lines.request
     view, scope = request.view, request.scope
     direct = scope is not None and bool(scope.definition_ids) and typed_by_the_kernel_itself(
@@ -448,12 +448,16 @@ def _increment_short_name(request: _Request) -> Remedy:
         typed = sorted(view.index.typed_by(request.subject))
         kernel = _kernel(view, INCREMENT_CLASS)
         direct = kernel is not None and typed_by_the_kernel_itself(view, typed)
-        if direct:  # the method's form instead: the increment's own definition, declared first
+        label = view.label(request.subject)
+        identified = f"with the increment identifier as its declared short name, <'{identifier}'>"
+        if direct:  # the refused form: the increment's own definition, declared first, and the retyping
             lines.declarations.append(f"{_keyword(view, kernel)} {INCREMENT_DEFINITION} :> "
                                       f"{lines.type(kernel, _OWN_DEFINITION)};")
             lines.notes.append(_direct_note(view, request.subject, kernel))
-        return lines.remedy(f"declare the existing {view.label(request.subject)} with the increment identifier as "
-                            f"its declared short name, <'{identifier}'>")
+            short = str(view.element(request.subject).get("declaredShortName") or "")
+            return lines.remedy(f"declare the increment's own definition and retype the existing {label} by it"
+                                + (f", {identified}" if short != identifier else ""))
+        return lines.remedy(f"declare the existing {label} {identified}")
     definition = _increment_definition(lines, _one_type(request.view, request.parameter))
     lines.subject_line = f"{_parameter_keyword(request)} <'{identifier}'> <usageName> : {definition};"
     lines.declarations.append(lines.subject_line)
