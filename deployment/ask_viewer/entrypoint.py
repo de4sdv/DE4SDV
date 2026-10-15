@@ -13,8 +13,12 @@ from typing import Mapping
 
 _FULL_SHA = re.compile(r"^[0-9a-f]{40}$")
 _GOVERNED_MODEL_PATHS = (
+    # The reviewed model roots the export and the served model read
+    # (de4sdv/sysml_api/baseline.py REVIEWED_ROOTS); a test refuses a
+    # reviewed root this gate does not govern.
     "textual-notation-of-model",
     "model-based-product-line-engineering/product-models",
+    "model-based-product-line-engineering/scoping",
     # Model-authority inputs: the generated projection/profile pairs and
     # trace-vocabulary contract, the frozen records, the admission manifests,
     # the identity register whose dispositions decide refusals, and the

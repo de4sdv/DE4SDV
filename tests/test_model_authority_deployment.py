@@ -3,11 +3,12 @@ from __future__ import annotations
 
 import json
 import subprocess
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 import yaml
 
+from de4sdv.sysml_api.baseline import REVIEWED_ROOTS
 from deployment.ask_viewer import entrypoint
 from deployment.ask_viewer.entrypoint import RuntimeContractError, validate_runtime_contract
 
@@ -79,6 +80,31 @@ def test_deleted_authored_yaml_is_no_longer_a_governed_path():
     assert not any("de4sdv-basic-ontology" in path for path in entrypoint._GOVERNED_MODEL_PATHS)
     assert "textual-notation-of-model" in entrypoint._GOVERNED_MODEL_PATHS
     assert "de4sdv/semantic/contract-data/ontology-identity-register.json" in entrypoint._GOVERNED_MODEL_PATHS
+
+
+def test_every_reviewed_root_is_governed_by_the_drift_gate():
+    """A reviewed root outside the gate changes the served model without a refusal.
+
+    The export and the served model read every root in REVIEWED_ROOTS, so each
+    must be a governed directory (itself or an ancestor); the glob pathspecs name
+    contract-data files, not model roots.
+    """
+    governed = {PurePosixPath(path) for path in entrypoint._GOVERNED_MODEL_PATHS
+                if not path.startswith(":(")}
+    reviewed = {PurePosixPath(root.as_posix()) for root in REVIEWED_ROOTS}
+    uncovered = {root for root in reviewed
+                 if not any(root == directory or directory in root.parents
+                            for directory in governed)}
+    assert uncovered == set()
+
+
+@pytest.mark.parametrize("root", [root.as_posix() for root in REVIEWED_ROOTS])
+def test_reviewed_root_change_refuses_code_only_start(runtime_repo, root):
+    repo, binding = runtime_repo
+    _write(repo, f"{root}/added.sysml", "package Added;\n")
+    revision = _commit(repo, f"change {root}")
+    with pytest.raises(RuntimeContractError, match="drift"):
+        validate_runtime_contract(repo, binding, _env(revision))
 
 
 @pytest.mark.parametrize("relative", MODEL_INPUTS)
