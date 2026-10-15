@@ -7,13 +7,13 @@
  * stack, in a member product with two execution domains under a hypervisor.
  * The Linux host runs Autoware, Eclipse S-CORE and the Autoware-to-S-CORE
  * adapter; an AAOS SDV guest runs the HMI. The reference vehicle speed
- * travels over S-CORE communication into Autoware, and the AEBS signals from
- * Autoware travel over S-CORE communication across the domain boundary to
- * the HMI in the guest. One increment identity spans phases 0 to 10: this
- * framing slice and the needs, requirements, physical/software realization,
- * variability and configuration, and verification-evidence slices that
- * follow all belong to it. The framing records the owner decisions of
- * 2026-10-15 on topology, signals, the Linux host and the waiting items.
+ * travels over S-CORE communication into Autoware, and the AEBS signals of
+ * the Autoware-based AEBS stack on the Linux host travel over S-CORE
+ * communication across the domain boundary to the HMI in the guest. One
+ * increment identity spans phases 0 to 10: this framing slice and the
+ * needs, requirements, physical/software realization, variability and
+ * configuration, and verification-evidence slices that follow all belong
+ * to it.
  *
  * Predecessor relationship: the increment builds on the closed INC-MW-010
  * baseline and on the needs, requirements and logical architecture of
@@ -52,10 +52,11 @@ package DE4SDV_MiddlewareSCOREFraming {
      * product with two execution domains under a hypervisor (Autoware and
      * S-CORE on a Linux host, and an AAOS SDV guest with the HMI), carry the
      * reference vehicle speed through S-CORE communication into Autoware and
-     * the AEBS signals from Autoware through S-CORE communication to the HMI
-     * in the guest, and show it running, without changing the Autoware
-     * application, without copying S-CORE code into DE4SDV, and without
-     * safety, cybersecurity or compliance claims?
+     * the AEBS signals of the Autoware-based AEBS stack on the Linux host
+     * through S-CORE communication to the HMI in the guest, and show it
+     * running, without changing the Autoware application, without copying
+     * S-CORE code into DE4SDV, and without safety, cybersecurity or
+     * compliance claims?
      */
     subject increment : SCOREMiddlewareIntegrationIncrement;
     stakeholder systemArchitect : SystemArchitect;
@@ -72,10 +73,11 @@ package DE4SDV_MiddlewareSCOREFraming {
      * Can Eclipse S-CORE, pinned at v0.9.0, realize DE4SDV's middleware
      * integration layer (the six logical components of MiddlewareSystem) on
      * the Linux host of a two-domain member product, so that the reference
-     * vehicle speed reaches Autoware and the AEBS signals from Autoware reach
-     * the HMI in the AAOS SDV guest through S-CORE communication, with the
-     * application decoupled through the adapter, and which middleware
-     * capabilities and cross-domain paths stay open?
+     * vehicle speed reaches Autoware and the AEBS signals of the
+     * Autoware-based AEBS stack on the Linux host reach the HMI in the AAOS
+     * SDV guest through S-CORE communication, with the application
+     * decoupled through the adapter, and which middleware capabilities and
+     * cross-domain paths stay open?
      */
   }
 
@@ -218,7 +220,17 @@ package DE4SDV_MiddlewareSCOREFraming {
     doc /* A runnable proof with retained evidence (phase 10). */
   }
   part hmiPathInScope : InScopeItem {
-    doc /* The one-way cross-domain HMI path from S-CORE on the Linux host into the AAOS SDV guest, as a product interface of the member product. */
+    doc /*
+     * The one-way cross-domain HMI path from S-CORE on the Linux host into
+     * the AAOS SDV guest, as a product interface of the member product. It
+     * carries the AEBS signals of the Autoware-based AEBS stack with the
+     * per-field provenance INC-AEBS-010 assigns: the native Autoware AEB
+     * outputs (RSS, the filtered obstacle cloud and the intervention
+     * diagnostic) and the DE4SDV coordinator's warning request, braking
+     * request and intervention lifecycle state (MONITORING, WARNING,
+     * INTERVENTION, RELEASED); coordinator output is never relabeled as
+     * native Autoware output.
+     */
   }
 
   part complianceClaimOutOfScope : OutOfScopeItem {
@@ -247,10 +259,11 @@ package DE4SDV_MiddlewareSCOREFraming {
 
   part asmSCOREBaselinePinned : IncrementAssumption {
     doc /*
-     * ASM-MW-021: Eclipse S-CORE v0.9.0 is the pinned baseline. It is a
-     * pre-1.0 release, and the project states that it is not a
-     * ready-to-integrate series product; every S-CORE statement of this
-     * increment is bound to that version.
+     * ASM-MW-021: Eclipse S-CORE v0.9.0 is the pinned baseline:
+     * eclipse-score/reference_integration tag v0.9.0, commit
+     * 71b00dda29e73433064f0b2536e916099ffe75a9. It is a pre-1.0 release, and
+     * the project states that it is not a ready-to-integrate series product;
+     * every S-CORE statement of this increment is bound to that commit.
      */
   }
   part asmAutowareApplicationUnchanged : IncrementAssumption {
@@ -267,7 +280,7 @@ package DE4SDV_MiddlewareSCOREFraming {
      * to 7 of this increment show otherwise.
      */
   }
-  part asmVisualizationInstrumentReused : IncrementAssumption {
+  part asmVisualizationApplicationReusedAsHMI : IncrementAssumption {
     doc /*
      * ASM-MW-024: The HMI application of the member product is the AAOS SDV
      * visualization application of INC-AEBS-010, reused unchanged in the
@@ -297,7 +310,24 @@ package DE4SDV_MiddlewareSCOREFraming {
      * ASM-MW-027: The hypervisor is KVM on the Linux host, with the AAOS SDV
      * guest, as in the AAOS-integrated reference member (middleware
      * androidSDV, hypervisor kvm, osPlatform android); the INC-AEBS-010
-     * bench ran its HMI in an AAOS SDV Cuttlefish guest.
+     * bench ran its HMI in an AAOS SDV Cuttlefish guest. The Linux host is
+     * both the KVM host and the domain that owns the AEBS emergency
+     * intervention command path (ASM-MW-028), so the hypervisor boundary
+     * isolates the informational HMI guest from the host.
+     */
+  }
+  part asmEmergencyCommandPathStaysOnLinuxHost : IncrementAssumption {
+    doc /*
+     * ASM-MW-028: The AEBS emergency intervention command path stays inside
+     * the Linux host, within the Autoware-based AEBS stack: it is not carried
+     * over S-CORE communication and does not cross the hypervisor boundary
+     * to the AAOS SDV guest. This keeps the middleware baseline (ASM-MW-003:
+     * the brake command path remains direct from the AEB node to the vehicle
+     * command gate, not through the adapter). With KVM (ASM-MW-027) the
+     * Linux host is both the hypervisor host and the owner of that path, so
+     * the hypervisor boundary isolates the HMI guest from the host. No
+     * freedom-from-interference claim is made; REQ-MW-006
+     * (reqIsolateSafetyPath, in development) and GAP-MW-029 stay open.
      */
   }
 
@@ -327,11 +357,10 @@ package DE4SDV_MiddlewareSCOREFraming {
      * platform stack mirrors this with one osPlatform, one middleware and
      * one hypervisor variation per stack. The two-domain member needs Linux
      * with S-CORE on the host and Android with the AAOS SDV middleware in
-     * the guest. The same limit affects the AAOS-integrated reference member
-     * (PLE-S finding D6): its Autoware runs on a Linux ROS 2 runtime while
-     * its single operating-system selection says Android. Phases 8 and 9 of
-     * this increment close the gap with per-execution-domain platform
-     * modeling.
+     * the guest. The same limit affects the AAOS-integrated reference
+     * member: its Autoware runs on a Linux ROS 2 runtime while its single
+     * operating-system selection says Android. Phases 8 and 9 of this
+     * increment close the gap with per-execution-domain platform modeling.
      */
   }
 
@@ -344,7 +373,7 @@ package DE4SDV_MiddlewareSCOREFraming {
   dependency guestTopologyAsInAAOSIntegratedConfiguredMember
     from asmKVMHypervisorWithAAOSSDVGuest to DE4SDV_MiddlewareVariabilityConfiguration::MiddlewareAutowareAAOSSDVConfiguredMember;
   dependency hmiApplicationReusesVisualizationApplication
-    from asmVisualizationInstrumentReused to DE4SDV_AEBSVisualizationPhysicalSoftwareRealization::JavaCenterDisplayApplication;
+    from asmVisualizationApplicationReusedAsHMI to DE4SDV_AEBSVisualizationPhysicalSoftwareRealization::JavaCenterDisplayApplication;
   dependency speedPathUsesReferenceVehicleSpeedSource
     from referenceVehicleSpeedPathInScope to DE4SDV_MiddlewarePhysicalSoftwareRealization::COVESAVehicleSpeedSemanticSource;
   dependency speedPathLikeForLikeWithAAOSSDVRealization
@@ -353,6 +382,10 @@ package DE4SDV_MiddlewareSCOREFraming {
     from gapTwoDomainMemberNotExpressible to DE4SDV_SDVPlatformStack::SDVPlatformStack;
   dependency twoDomainGapAffectsAAOSIntegratedMember
     from gapTwoDomainMemberNotExpressible to DE4SDV_AEBSProductLineScope::InitialPlannedReferenceMemberPortfolio::aaosIntegratedAutowareAEBSReferenceMember;
+  dependency emergencyPathAssumptionOnProtectedPathIndependence
+    from asmEmergencyCommandPathStaysOnLinuxHost to DE4SDV_AEBSProductLineScope::InitialCommonCoreEngineeringContent::protectedEmergencyCommandPathIndependence;
+  dependency emergencyPathAssumptionOnSafetyPathIsolationRequirement
+    from asmEmergencyCommandPathStaysOnLinuxHost to DE4SDV_MiddlewareRequirements::Features::Middleware::Requirements::reqIsolateSafetyPath;
 
   concern scoreRealizationCoverageConcern : ProductLineCapabilityClassificationConcern {
     doc /*
