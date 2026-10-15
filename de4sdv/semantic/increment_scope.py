@@ -10,7 +10,10 @@ From the identified usage the resolution reads, through native
 relationships only:
 
 - the increment definitions (the usage's typing) and the increment package
-  (the usage's owning namespace);
+  (the usage's owning namespace). The increment's own definitions are the
+  ones among them other than the kernel EngineeringIncrement itself
+  (:func:`own_increment_definitions`); the method's form declares one,
+  specializing the kernel definition, and types the usage by it;
 - the charter declaration: the IncrementTraceObligations-lineage usage whose
   ``increment`` value references the usage, and its declared applicable
   phases (MethodPhase literals);
@@ -38,7 +41,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Any, Mapping, Sequence
+from typing import Any, Iterable, Mapping, Sequence
 
 from de4sdv.sysml_api.errors import IdentityNotFoundError
 from de4sdv.sysml_api.qualified_names import QualifiedNameIndex
@@ -416,3 +419,26 @@ def declared_system_of_interest(view: ModelView, charter: str) -> tuple[list[str
     for usage in usages:
         types |= view.index.typed_by(usage)
     return usages, sorted(types)
+
+
+def own_increment_definitions(view: ModelView, types: Iterable[str]) -> tuple[str, ...]:
+    """The increment's own definitions among ``types`` (the typing of a usage): the definitions in the
+    EngineeringIncrement lineage other than the kernel EngineeringIncrement itself, known by its
+    validated kernel binding, never by name (ADR 0011). A usage typed by the kernel definition alone
+    has none. Raises :class:`IdentityNotFoundError` when EngineeringIncrement has no validated binding."""
+    kernel = view.kernel_element(INCREMENT_CLASS)
+    lineage = view.index.specializations(kernel)
+    return tuple(sorted(definition for definition in set(types) if definition != kernel and definition in lineage))
+
+
+def typed_by_the_kernel_itself(view: ModelView, types: Iterable[str]) -> bool:
+    """Whether a usage with ``types`` is typed by the kernel EngineeringIncrement itself (validated
+    binding) and by no increment definition of its own: the form the increment checks refuse, which
+    the remedies answer by teaching the method's form. False when the kernel binds no
+    EngineeringIncrement (nothing is known to refuse)."""
+    try:
+        kernel = view.kernel_element(INCREMENT_CLASS)
+    except IdentityNotFoundError:
+        return False
+    found = set(types)
+    return kernel in found and not own_increment_definitions(view, found)
