@@ -277,7 +277,7 @@ Shows the requirement set and its trace links to needs, behavior, or architectur
 
 ### `scoreMiddlewareFramingView`
 
-Reviewers need to see which of the six middleware components Eclipse S-CORE realizes for the EclipseSCORE variant and which stay open, so that the S-CORE variant of the middleware feature is classified from its realization coverage, not from the variant name.
+Reviewers need to see which of the six middleware components Eclipse S-CORE realizes for the EclipseSCORE variant and which stay open, so that the S-CORE variant of the middleware feature is classified from its realization coverage, not from the variant name, and compared like for like with the AAOS SDV realization of INC-MW-008 over the same reference vehicle-speed signal.
 
 - **Source:** `middleware_score_framing.sysml`
 - **Viewpoint:** `selectedFramingViewpoint` (`IncrementFramingViewpoint`)
