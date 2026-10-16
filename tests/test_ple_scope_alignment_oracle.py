@@ -679,7 +679,10 @@ def test_the_retained_record_manifest_binds_the_files_the_run_and_the_merge_tree
     for name, digest in manifest["files"].items():
         assert oracle.sha256_of(record.evidence / name) == digest, name
     assert set(manifest["files"]) == {"receipt.json", "governed-scope-validation.json", "comparison.json"}
-    assert "revision" in manifest["binding"] and "licensed run" in manifest["binding"]["fresh_evidence"]
+    binding = manifest["binding"]
+    assert binding["rule"].startswith("verified against the files of the commit that last changed this directory")
+    assert "never against the working tree" in binding["rule"] and "licensed run" in binding["fresh_evidence"]
+    assert "catalogue" in binding["historical_once"] and "configurator" in binding["historical_once"]
     assert manifest["tree_identical_to"]["revision"] == MERGE
     # The merge commit is on main and reachable in every full-history checkout; the pull-request head
     # that produced the receipt is only reachable where its ref was fetched.

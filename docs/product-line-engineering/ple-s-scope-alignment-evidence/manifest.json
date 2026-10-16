@@ -4,9 +4,14 @@
   "artifact_name": "ple-scope-alignment-7e895252ce2b3b3d5d404d2176cc7872b7f671e3-38788579272",
   "artifact_size_bytes": 165800,
   "authority_activation_authorized": false,
+  "binding": {
+    "fresh_evidence": "needs a licensed run of the privileged scope-alignment workflow on the head under review",
+    "historical_once": "the PLE-S model, the evaluator, the governed scope, the scope validator, the shared-asset superset, the catalogue or the configurator move after that revision",
+    "rule": "verified against the files of the commit that last changed this directory (git log -1 -- docs/product-line-engineering/ple-s-scope-alignment-evidence), extracted from Git history by tests/test_ple_scope_alignment_oracle.py; never against the working tree"
+  },
   "comparison": {
     "content_addressed": true,
-    "note": "comparison.json carries the digests of the catalogue, the configurator, the shared-asset superset, the correspondence and the oracle script it was produced with",
+    "note": "comparison.json carries the digests of the catalogue, the configurator, the shared-asset superset, the correspondence and the oracle script it was produced with; its oracle.executor_revision is the pull-request commit it was produced at (informational)",
     "produced_by": "scripts/compare_ple_scope_alignment.py --evidence retained"
   },
   "elements_export": {
@@ -18,7 +23,7 @@
   "evidence": "retained",
   "executor_revision": "7e895252ce2b3b3d5d404d2176cc7872b7f671e3",
   "files": {
-    "comparison.json": "db70d82db3217580195d2d3c95e9c5f3568934dca2835c9539f510f781a9e5f3",
+    "comparison.json": "57ae75209877d6fe07b70155d7680a86af1b57d3fbcabb18e5edca8c0fbaa7f4",
     "governed-scope-validation.json": "05bd30dce155d4ea3071858956454d1aeae17d35b3fd670e9983b8a1d50daf75",
     "receipt.json": "290a5351e4f9992f6ea89c63c0559afd9ab72252fdc97fc2e5378ed4054b1f8c"
   },

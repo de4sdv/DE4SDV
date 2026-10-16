@@ -6,6 +6,7 @@
     "intentional-scope",
     "intentional-representation",
     "not-expressible-under-tool",
+    "both-reject",
     "defect"
   ],
   "oracle": {
@@ -15,13 +16,14 @@
     "configurator_sha256": "b13699675411ffe182bd04b1a48eb5af6501c2b375aafaeeacf9eb1e8ac344a5",
     "correspondence": "model-based-product-line-engineering/pleml-scope-alignment/catalogue-correspondence.yaml",
     "correspondence_sha256": "b82547f93c983dbff25df29a5bb984d4477b90f1d807d1a9b0eb36003f05ab20",
-    "executor_revision": "c567d0db4c542a4eca5833cbe4986170737c1fec",
+    "executor_revision": "ec64a39e9fb4df1c11f5c75daf3b83c70ff4784f",
     "executor_source_dirty": false,
     "script": "scripts/compare_ple_scope_alignment.py",
-    "script_sha256": "e05da7bf1d467b3c351619ed1eb19cb936f13ba74c529df43ccba1c4afd29e97",
+    "script_sha256": "1d16c5d1f9cf2c30bc59fd30f4e4e2f0d0b5182b0e29adce4742243ae48ec775",
     "selection_authority": "the YAML catalogue, the committed configurations and tools/configure_variant.py, unchanged; the oracle is a comparison only",
     "shared_assets": "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml",
-    "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342"
+    "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
+    "tree_source": "git checkout"
   },
   "ple_s": {
     "artifact": "ple-scope-alignment-7e895252ce2b3b3d5d404d2176cc7872b7f671e3-38788579272",
@@ -55,6 +57,16 @@
     "workflow": ".github/workflows/privileged-ple-scope-alignment.yml"
   },
   "qualified": false,
+  "representation_differences": [
+    {
+      "classification": "intentional-representation",
+      "common_asset": "linuxROS2AutowareRuntime",
+      "confirmed_in_graph": true,
+      "disposition": "recorded; the split execution-domain representation of the superset is owned by INC-MW-011 (owner decision D6, 2026-10-15), not by the scope alignment",
+      "statement": "The governed scope classifies the Linux/ROS 2 Autoware runtime as common to both planned members. The shared-asset superset has a single osPlatform slot, which the AAOS-integrated alternative binds to android (the vehicle-platform domain) while the Autoware application domain keeps its Linux runtime. The superset cannot express the split topology, so the common runtime has no superset realization dependency and osPlatform is bound per alternative.",
+      "variation": "osPlatform"
+    }
+  ],
   "rows": [
     {
       "admitted_by_governed_scope": {
@@ -69,7 +81,11 @@
         "common_assets": [
           {
             "asset": "autowareApplication",
+            "complete": true,
+            "dropped": [],
             "element_id": "184fb3f2-807d-5aa0-836a-f65fd9e1adde",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [
               "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE"
             ],
@@ -80,7 +96,13 @@
           },
           {
             "asset": "currentSensingBaseline",
+            "complete": true,
+            "dropped": [],
             "element_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+            "implied_by": [
+              "C-SENSING-MOTION"
+            ],
+            "missing": [],
             "representable_by": [
               "C-SENSING-MOTION",
               "F-SENSING-PERCEPTION-CAMERA",
@@ -90,11 +112,15 @@
               "F-SENSING-PERCEPTION-CAMERA",
               "F-SENSING-PERCEPTION-LIDAR"
             ],
-            "status": "represented"
+            "status": "represented (implied: C-SENSING-MOTION)"
           },
           {
             "asset": "linuxROS2AutowareRuntime",
+            "complete": true,
+            "dropped": [],
             "element_id": "7c6ebbf5-9790-597f-9ee3-96d0ec4c7b58",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [
               "F-PLATFORM-OS-LINUX"
             ],
@@ -105,14 +131,22 @@
           },
           {
             "asset": "protectedEmergencyCommandPathIndependence",
+            "complete": null,
+            "dropped": [],
             "element_id": "0f6ba270-c96c-5789-a427-6383d89e901c",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [],
             "represented_by": [],
             "status": "outside the catalogue's selection surface"
           },
           {
             "asset": "vehicleTargetAEBS",
+            "complete": true,
+            "dropped": [],
             "element_id": "48d42202-194a-591d-9a5d-8b41fbdd15ff",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [
               "C-CAPABILITY-AEBS-VEHICLE-TARGET"
             ],
@@ -122,7 +156,9 @@
             "status": "represented"
           }
         ],
+        "exempted_common_assets": [],
         "implied_alternative": "standalone",
+        "incomplete_common_assets": [],
         "reasons": [
           "PlatformStack.VehicleApplication = Autoware: common autowareApplication",
           "PlatformStack.Middleware = None: admitted-alternative standalone",
@@ -415,7 +451,6 @@
         ],
         "summary": "yes: standalone (every selection is common content or its derived realization)",
         "unclassified": [],
-        "unrepresented_common_assets": [],
         "verdict_reasons": []
       },
       "case": "standalone-member",
@@ -439,18 +474,16 @@
         },
         "representation_differences": [
           {
-            "classification": "intentional-representation",
             "common_asset": "linuxROS2AutowareRuntime",
-            "confirmed_in_graph": true,
-            "disposition": "recorded; the split execution-domain representation of the superset is owned by INC-MW-011 (owner decision D6, 2026-10-15), not by the scope alignment",
+            "implied_alternative_binds_variation": true,
             "manifests": false,
+            "missing": [],
             "representable_by": [
               "F-PLATFORM-OS-LINUX"
             ],
             "represented_by": [
               "F-PLATFORM-OS-LINUX"
             ],
-            "statement": "The governed scope classifies the Linux/ROS 2 Autoware runtime as common to both planned members. The shared-asset superset has a single osPlatform slot, which the AAOS-integrated alternative binds to android (the vehicle-platform domain) while the Autoware application domain keeps its Linux runtime. The superset cannot express the split topology, so the common runtime has no superset realization dependency and osPlatform is bound per alternative.",
             "variation": "osPlatform"
           }
         ],
@@ -521,19 +554,10 @@
         "digest_origin": "projection header",
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
-          "artifact": "ple-scope-alignment-7e895252ce2b3b3d5d404d2176cc7872b7f671e3-38788579272",
           "configuration_element_id": "d913eae6-e783-5a1f-a7de-43f28a0006f3",
-          "evaluator_sha256": "1bcf0ad586bfec714e8b2e063a5d577f0d29243fb14014d06406a4566953d508",
-          "evidence": "retained",
           "executor_revision": "7e895252ce2b3b3d5d404d2176cc7872b7f671e3",
-          "governed_scope_validation_sha256": "05bd30dce155d4ea3071858956454d1aeae17d35b3fd670e9983b8a1d50daf75",
-          "interpreter_revision": "6a99626b4af7cd01108f27dac88bf5b55bba207a",
-          "library_sha256": "1fbd5efd95b63877e88eb6b114ce67122b9dba5236d3712e73175254aaf7d216",
-          "model_sha256": "23f53587e727f24aa2f24f148e2de77720bbcfa6701df57f3b0d1b4152f77dde",
-          "pleml_pin": "5f8ab8560219dc24d8ec7ec90d6f0a145896ef8e",
           "receipt_sha256": "290a5351e4f9992f6ea89c63c0559afd9ab72252fdc97fc2e5378ed4054b1f8c",
-          "run_id": "38788579272",
-          "serializer_version": "0.10.3"
+          "run_id": "38788579272"
         },
         "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
         "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
@@ -554,7 +578,11 @@
         "common_assets": [
           {
             "asset": "autowareApplication",
+            "complete": true,
+            "dropped": [],
             "element_id": "184fb3f2-807d-5aa0-836a-f65fd9e1adde",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [
               "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE"
             ],
@@ -565,7 +593,13 @@
           },
           {
             "asset": "currentSensingBaseline",
+            "complete": true,
+            "dropped": [],
             "element_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+            "implied_by": [
+              "C-SENSING-MOTION"
+            ],
+            "missing": [],
             "representable_by": [
               "C-SENSING-MOTION",
               "F-SENSING-PERCEPTION-CAMERA",
@@ -575,27 +609,41 @@
               "F-SENSING-PERCEPTION-CAMERA",
               "F-SENSING-PERCEPTION-LIDAR"
             ],
-            "status": "represented"
+            "status": "represented (implied: C-SENSING-MOTION)"
           },
           {
             "asset": "linuxROS2AutowareRuntime",
+            "complete": false,
+            "dropped": [],
             "element_id": "7c6ebbf5-9790-597f-9ee3-96d0ec4c7b58",
+            "implied_by": [],
+            "missing": [
+              "F-PLATFORM-OS-LINUX"
+            ],
             "representable_by": [
               "F-PLATFORM-OS-LINUX"
             ],
             "represented_by": [],
-            "status": "not represented"
+            "status": "not represented (missing: F-PLATFORM-OS-LINUX)"
           },
           {
             "asset": "protectedEmergencyCommandPathIndependence",
+            "complete": null,
+            "dropped": [],
             "element_id": "0f6ba270-c96c-5789-a427-6383d89e901c",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [],
             "represented_by": [],
             "status": "outside the catalogue's selection surface"
           },
           {
             "asset": "vehicleTargetAEBS",
+            "complete": true,
+            "dropped": [],
             "element_id": "48d42202-194a-591d-9a5d-8b41fbdd15ff",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [
               "C-CAPABILITY-AEBS-VEHICLE-TARGET"
             ],
@@ -605,7 +653,13 @@
             "status": "represented"
           }
         ],
+        "exempted_common_assets": [
+          "linuxROS2AutowareRuntime"
+        ],
         "implied_alternative": "aaosIntegrated",
+        "incomplete_common_assets": [
+          "linuxROS2AutowareRuntime"
+        ],
         "reasons": [
           "PlatformStack.VehicleApplication = Autoware: common autowareApplication",
           "PlatformStack.Middleware = AndroidSDV: admitted-alternative aaosIntegrated",
@@ -891,9 +945,6 @@
         ],
         "summary": "yes: aaosIntegrated (every selection is common content or its derived realization)",
         "unclassified": [],
-        "unrepresented_common_assets": [
-          "linuxROS2AutowareRuntime"
-        ],
         "verdict_reasons": []
       },
       "case": "aaos-integrated-member",
@@ -917,16 +968,16 @@
         },
         "representation_differences": [
           {
-            "classification": "intentional-representation",
             "common_asset": "linuxROS2AutowareRuntime",
-            "confirmed_in_graph": true,
-            "disposition": "recorded; the split execution-domain representation of the superset is owned by INC-MW-011 (owner decision D6, 2026-10-15), not by the scope alignment",
+            "implied_alternative_binds_variation": true,
             "manifests": true,
+            "missing": [
+              "F-PLATFORM-OS-LINUX"
+            ],
             "representable_by": [
               "F-PLATFORM-OS-LINUX"
             ],
             "represented_by": [],
-            "statement": "The governed scope classifies the Linux/ROS 2 Autoware runtime as common to both planned members. The shared-asset superset has a single osPlatform slot, which the AAOS-integrated alternative binds to android (the vehicle-platform domain) while the Autoware application domain keeps its Linux runtime. The superset cannot express the split topology, so the common runtime has no superset realization dependency and osPlatform is bound per alternative.",
             "variation": "osPlatform"
           }
         ],
@@ -997,19 +1048,10 @@
         "digest_origin": "projection header",
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
-          "artifact": "ple-scope-alignment-7e895252ce2b3b3d5d404d2176cc7872b7f671e3-38788579272",
           "configuration_element_id": "8fde5017-7f45-57b9-b2c6-b22f04481c82",
-          "evaluator_sha256": "1bcf0ad586bfec714e8b2e063a5d577f0d29243fb14014d06406a4566953d508",
-          "evidence": "retained",
           "executor_revision": "7e895252ce2b3b3d5d404d2176cc7872b7f671e3",
-          "governed_scope_validation_sha256": "05bd30dce155d4ea3071858956454d1aeae17d35b3fd670e9983b8a1d50daf75",
-          "interpreter_revision": "6a99626b4af7cd01108f27dac88bf5b55bba207a",
-          "library_sha256": "1fbd5efd95b63877e88eb6b114ce67122b9dba5236d3712e73175254aaf7d216",
-          "model_sha256": "23f53587e727f24aa2f24f148e2de77720bbcfa6701df57f3b0d1b4152f77dde",
-          "pleml_pin": "5f8ab8560219dc24d8ec7ec90d6f0a145896ef8e",
           "receipt_sha256": "290a5351e4f9992f6ea89c63c0559afd9ab72252fdc97fc2e5378ed4054b1f8c",
-          "run_id": "38788579272",
-          "serializer_version": "0.10.3"
+          "run_id": "38788579272"
         },
         "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
         "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
@@ -1035,7 +1077,11 @@
         "common_assets": [
           {
             "asset": "autowareApplication",
+            "complete": true,
+            "dropped": [],
             "element_id": "184fb3f2-807d-5aa0-836a-f65fd9e1adde",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [
               "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE"
             ],
@@ -1046,7 +1092,13 @@
           },
           {
             "asset": "currentSensingBaseline",
+            "complete": true,
+            "dropped": [],
             "element_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+            "implied_by": [
+              "C-SENSING-MOTION"
+            ],
+            "missing": [],
             "representable_by": [
               "C-SENSING-MOTION",
               "F-SENSING-PERCEPTION-CAMERA",
@@ -1056,11 +1108,15 @@
               "F-SENSING-PERCEPTION-CAMERA",
               "F-SENSING-PERCEPTION-LIDAR"
             ],
-            "status": "represented"
+            "status": "represented (implied: C-SENSING-MOTION)"
           },
           {
             "asset": "linuxROS2AutowareRuntime",
+            "complete": true,
+            "dropped": [],
             "element_id": "7c6ebbf5-9790-597f-9ee3-96d0ec4c7b58",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [
               "F-PLATFORM-OS-LINUX"
             ],
@@ -1071,14 +1127,22 @@
           },
           {
             "asset": "protectedEmergencyCommandPathIndependence",
+            "complete": null,
+            "dropped": [],
             "element_id": "0f6ba270-c96c-5789-a427-6383d89e901c",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [],
             "represented_by": [],
             "status": "outside the catalogue's selection surface"
           },
           {
             "asset": "vehicleTargetAEBS",
+            "complete": true,
+            "dropped": [],
             "element_id": "48d42202-194a-591d-9a5d-8b41fbdd15ff",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [
               "C-CAPABILITY-AEBS-VEHICLE-TARGET"
             ],
@@ -1088,7 +1152,9 @@
             "status": "represented"
           }
         ],
+        "exempted_common_assets": [],
         "implied_alternative": null,
+        "incomplete_common_assets": [],
         "reasons": [
           "PlatformStack.VehicleApplication = Autoware: common autowareApplication",
           "PlatformStack.Middleware = AndroidSDV: admitted-alternative aaosIntegrated",
@@ -1474,7 +1540,6 @@
         ],
         "summary": "no: the selections realize more than one admitted alternative: aaosIntegrated, standalone",
         "unclassified": [],
-        "unrepresented_common_assets": [],
         "verdict_reasons": [
           "the selections realize more than one admitted alternative: aaosIntegrated, standalone"
         ]
@@ -1488,18 +1553,16 @@
         "ple_s_expected": null,
         "representation_differences": [
           {
-            "classification": "intentional-representation",
             "common_asset": "linuxROS2AutowareRuntime",
-            "confirmed_in_graph": true,
-            "disposition": "recorded; the split execution-domain representation of the superset is owned by INC-MW-011 (owner decision D6, 2026-10-15), not by the scope alignment",
+            "implied_alternative_binds_variation": false,
             "manifests": false,
+            "missing": [],
             "representable_by": [
               "F-PLATFORM-OS-LINUX"
             ],
             "represented_by": [
               "F-PLATFORM-OS-LINUX"
             ],
-            "statement": "The governed scope classifies the Linux/ROS 2 Autoware runtime as common to both planned members. The shared-asset superset has a single osPlatform slot, which the AAOS-integrated alternative binds to android (the vehicle-platform domain) while the Autoware application domain keeps its Linux runtime. The superset cannot express the split topology, so the common runtime has no superset realization dependency and osPlatform is bound per alternative.",
             "variation": "osPlatform"
           }
         ],
@@ -1597,19 +1660,10 @@
         "digest_origin": "computed by the oracle (the tool generated no projection)",
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
-          "artifact": "ple-scope-alignment-7e895252ce2b3b3d5d404d2176cc7872b7f671e3-38788579272",
           "configuration_element_id": "e4fbc3ef-74df-5fd8-8be2-fe281d23fe6e",
-          "evaluator_sha256": "1bcf0ad586bfec714e8b2e063a5d577f0d29243fb14014d06406a4566953d508",
-          "evidence": "retained",
           "executor_revision": "7e895252ce2b3b3d5d404d2176cc7872b7f671e3",
-          "governed_scope_validation_sha256": "05bd30dce155d4ea3071858956454d1aeae17d35b3fd670e9983b8a1d50daf75",
-          "interpreter_revision": "6a99626b4af7cd01108f27dac88bf5b55bba207a",
-          "library_sha256": "1fbd5efd95b63877e88eb6b114ce67122b9dba5236d3712e73175254aaf7d216",
-          "model_sha256": "23f53587e727f24aa2f24f148e2de77720bbcfa6701df57f3b0d1b4152f77dde",
-          "pleml_pin": "5f8ab8560219dc24d8ec7ec90d6f0a145896ef8e",
           "receipt_sha256": "290a5351e4f9992f6ea89c63c0559afd9ab72252fdc97fc2e5378ed4054b1f8c",
-          "run_id": "38788579272",
-          "serializer_version": "0.10.3"
+          "run_id": "38788579272"
         },
         "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
         "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
@@ -1624,7 +1678,11 @@
         "common_assets": [
           {
             "asset": "autowareApplication",
+            "complete": true,
+            "dropped": [],
             "element_id": "184fb3f2-807d-5aa0-836a-f65fd9e1adde",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [
               "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE"
             ],
@@ -1635,7 +1693,13 @@
           },
           {
             "asset": "currentSensingBaseline",
+            "complete": true,
+            "dropped": [],
             "element_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+            "implied_by": [
+              "C-SENSING-MOTION"
+            ],
+            "missing": [],
             "representable_by": [
               "C-SENSING-MOTION",
               "F-SENSING-PERCEPTION-CAMERA",
@@ -1645,27 +1709,41 @@
               "F-SENSING-PERCEPTION-CAMERA",
               "F-SENSING-PERCEPTION-LIDAR"
             ],
-            "status": "represented"
+            "status": "represented (implied: C-SENSING-MOTION)"
           },
           {
             "asset": "linuxROS2AutowareRuntime",
+            "complete": false,
+            "dropped": [],
             "element_id": "7c6ebbf5-9790-597f-9ee3-96d0ec4c7b58",
+            "implied_by": [],
+            "missing": [
+              "F-PLATFORM-OS-LINUX"
+            ],
             "representable_by": [
               "F-PLATFORM-OS-LINUX"
             ],
             "represented_by": [],
-            "status": "not represented"
+            "status": "not represented (missing: F-PLATFORM-OS-LINUX)"
           },
           {
             "asset": "protectedEmergencyCommandPathIndependence",
+            "complete": null,
+            "dropped": [],
             "element_id": "0f6ba270-c96c-5789-a427-6383d89e901c",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [],
             "represented_by": [],
             "status": "outside the catalogue's selection surface"
           },
           {
             "asset": "vehicleTargetAEBS",
+            "complete": true,
+            "dropped": [],
             "element_id": "48d42202-194a-591d-9a5d-8b41fbdd15ff",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [
               "C-CAPABILITY-AEBS-VEHICLE-TARGET"
             ],
@@ -1675,7 +1753,11 @@
             "status": "represented"
           }
         ],
+        "exempted_common_assets": [],
         "implied_alternative": null,
+        "incomplete_common_assets": [
+          "linuxROS2AutowareRuntime"
+        ],
         "reasons": [
           "PlatformStack.VehicleApplication = Autoware: common autowareApplication",
           "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS = True: common vehicleTargetAEBS",
@@ -1884,34 +1966,32 @@
             ]
           }
         ],
-        "summary": "no: no admitted alternative is realized by the selections",
+        "summary": "no: no admitted alternative is realized by the selections | common content not fully represented by the selections: linuxROS2AutowareRuntime not represented (missing: F-PLATFORM-OS-LINUX)",
         "unclassified": [],
-        "unrepresented_common_assets": [
-          "linuxROS2AutowareRuntime"
-        ],
         "verdict_reasons": [
-          "no admitted alternative is realized by the selections"
+          "no admitted alternative is realized by the selections",
+          "common content not fully represented by the selections: linuxROS2AutowareRuntime not represented (missing: F-PLATFORM-OS-LINUX)"
         ]
       },
       "case": "no-alternative",
-      "class": "equal",
-      "class_reason": "neither path derives a product; the reasons are independent: tool invalid (4 violations): Mandatory alternative group 'PlatformStack.Middleware' has no selection; governed scope no: no admitted alternative is realized by the selections; PLE-S configuration-invalid (lower bound)",
+      "class": "both-reject",
+      "class_reason": "the tool rejects and the governed scope does not admit, for independent reasons: tool invalid (4 violations): Mandatory alternative group 'PlatformStack.Middleware' has no selection; governed scope no: no admitted alternative is realized by the selections | common content not fully represented by the selections: linuxROS2AutowareRuntime not represented (missing: F-PLATFORM-OS-LINUX); PLE-S configuration-invalid (lower bound)",
       "comparison": {
         "differing": [],
         "equal_on": [],
         "ple_s_expected": null,
         "representation_differences": [
           {
-            "classification": "intentional-representation",
             "common_asset": "linuxROS2AutowareRuntime",
-            "confirmed_in_graph": true,
-            "disposition": "recorded; the split execution-domain representation of the superset is owned by INC-MW-011 (owner decision D6, 2026-10-15), not by the scope alignment",
+            "implied_alternative_binds_variation": false,
             "manifests": false,
+            "missing": [
+              "F-PLATFORM-OS-LINUX"
+            ],
             "representable_by": [
               "F-PLATFORM-OS-LINUX"
             ],
             "represented_by": [],
-            "statement": "The governed scope classifies the Linux/ROS 2 Autoware runtime as common to both planned members. The shared-asset superset has a single osPlatform slot, which the AAOS-integrated alternative binds to android (the vehicle-platform domain) while the Autoware application domain keeps its Linux runtime. The superset cannot express the split topology, so the common runtime has no superset realization dependency and osPlatform is bound per alternative.",
             "variation": "osPlatform"
           }
         ],
@@ -1982,19 +2062,10 @@
         "digest_origin": "computed by the oracle (the tool generated no projection)",
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
-          "artifact": "ple-scope-alignment-7e895252ce2b3b3d5d404d2176cc7872b7f671e3-38788579272",
           "configuration_element_id": "94afdbda-2ed2-5e7a-badd-5d681ed7ad1b",
-          "evaluator_sha256": "1bcf0ad586bfec714e8b2e063a5d577f0d29243fb14014d06406a4566953d508",
-          "evidence": "retained",
           "executor_revision": "7e895252ce2b3b3d5d404d2176cc7872b7f671e3",
-          "governed_scope_validation_sha256": "05bd30dce155d4ea3071858956454d1aeae17d35b3fd670e9983b8a1d50daf75",
-          "interpreter_revision": "6a99626b4af7cd01108f27dac88bf5b55bba207a",
-          "library_sha256": "1fbd5efd95b63877e88eb6b114ce67122b9dba5236d3712e73175254aaf7d216",
-          "model_sha256": "23f53587e727f24aa2f24f148e2de77720bbcfa6701df57f3b0d1b4152f77dde",
-          "pleml_pin": "5f8ab8560219dc24d8ec7ec90d6f0a145896ef8e",
           "receipt_sha256": "290a5351e4f9992f6ea89c63c0559afd9ab72252fdc97fc2e5378ed4054b1f8c",
-          "run_id": "38788579272",
-          "serializer_version": "0.10.3"
+          "run_id": "38788579272"
         },
         "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
         "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
@@ -2014,7 +2085,11 @@
         "common_assets": [
           {
             "asset": "autowareApplication",
+            "complete": true,
+            "dropped": [],
             "element_id": "184fb3f2-807d-5aa0-836a-f65fd9e1adde",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [
               "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE"
             ],
@@ -2025,7 +2100,13 @@
           },
           {
             "asset": "currentSensingBaseline",
+            "complete": true,
+            "dropped": [],
             "element_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+            "implied_by": [
+              "C-SENSING-MOTION"
+            ],
+            "missing": [],
             "representable_by": [
               "C-SENSING-MOTION",
               "F-SENSING-PERCEPTION-CAMERA",
@@ -2035,11 +2116,15 @@
               "F-SENSING-PERCEPTION-CAMERA",
               "F-SENSING-PERCEPTION-LIDAR"
             ],
-            "status": "represented"
+            "status": "represented (implied: C-SENSING-MOTION)"
           },
           {
             "asset": "linuxROS2AutowareRuntime",
+            "complete": true,
+            "dropped": [],
             "element_id": "7c6ebbf5-9790-597f-9ee3-96d0ec4c7b58",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [
               "F-PLATFORM-OS-LINUX"
             ],
@@ -2050,14 +2135,22 @@
           },
           {
             "asset": "protectedEmergencyCommandPathIndependence",
+            "complete": null,
+            "dropped": [],
             "element_id": "0f6ba270-c96c-5789-a427-6383d89e901c",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [],
             "represented_by": [],
             "status": "outside the catalogue's selection surface"
           },
           {
             "asset": "vehicleTargetAEBS",
+            "complete": true,
+            "dropped": [],
             "element_id": "48d42202-194a-591d-9a5d-8b41fbdd15ff",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [
               "C-CAPABILITY-AEBS-VEHICLE-TARGET"
             ],
@@ -2067,7 +2160,9 @@
             "status": "represented"
           }
         ],
+        "exempted_common_assets": [],
         "implied_alternative": "standalone",
+        "incomplete_common_assets": [],
         "reasons": [
           "PlatformStack.VehicleApplication = Autoware: common autowareApplication",
           "PlatformStack.Middleware = EclipseSCORE: reference-only eclipseSCORE",
@@ -2360,7 +2455,6 @@
         ],
         "summary": "no: not admitted content selected: PlatformStack.Middleware = EclipseSCORE: reference-only eclipseSCORE | derived realizations of standalone missing from the selections: middleware::none",
         "unclassified": [],
-        "unrepresented_common_assets": [],
         "verdict_reasons": [
           "not admitted content selected: PlatformStack.Middleware = EclipseSCORE: reference-only eclipseSCORE",
           "derived realizations of standalone missing from the selections: middleware::none"
@@ -2375,18 +2469,16 @@
         "ple_s_expected": null,
         "representation_differences": [
           {
-            "classification": "intentional-representation",
             "common_asset": "linuxROS2AutowareRuntime",
-            "confirmed_in_graph": true,
-            "disposition": "recorded; the split execution-domain representation of the superset is owned by INC-MW-011 (owner decision D6, 2026-10-15), not by the scope alignment",
+            "implied_alternative_binds_variation": true,
             "manifests": false,
+            "missing": [],
             "representable_by": [
               "F-PLATFORM-OS-LINUX"
             ],
             "represented_by": [
               "F-PLATFORM-OS-LINUX"
             ],
-            "statement": "The governed scope classifies the Linux/ROS 2 Autoware runtime as common to both planned members. The shared-asset superset has a single osPlatform slot, which the AAOS-integrated alternative binds to android (the vehicle-platform domain) while the Autoware application domain keeps its Linux runtime. The superset cannot express the split topology, so the common runtime has no superset realization dependency and osPlatform is bound per alternative.",
             "variation": "osPlatform"
           }
         ],
@@ -2434,6 +2526,7 @@
         "common_assets": [],
         "configuration": null,
         "derived_asset_variants": {},
+        "element_id": null,
         "reason": "no PLE-S configuration: the admitted tree has no feature for eclipseSCORE (reference-only)",
         "selected_alternatives": [],
         "status": null,
@@ -2445,19 +2538,10 @@
         "digest_origin": "projection header",
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
-          "artifact": "ple-scope-alignment-7e895252ce2b3b3d5d404d2176cc7872b7f671e3-38788579272",
           "configuration_element_id": null,
-          "evaluator_sha256": "1bcf0ad586bfec714e8b2e063a5d577f0d29243fb14014d06406a4566953d508",
-          "evidence": "retained",
           "executor_revision": "7e895252ce2b3b3d5d404d2176cc7872b7f671e3",
-          "governed_scope_validation_sha256": "05bd30dce155d4ea3071858956454d1aeae17d35b3fd670e9983b8a1d50daf75",
-          "interpreter_revision": "6a99626b4af7cd01108f27dac88bf5b55bba207a",
-          "library_sha256": "1fbd5efd95b63877e88eb6b114ce67122b9dba5236d3712e73175254aaf7d216",
-          "model_sha256": "23f53587e727f24aa2f24f148e2de77720bbcfa6701df57f3b0d1b4152f77dde",
-          "pleml_pin": "5f8ab8560219dc24d8ec7ec90d6f0a145896ef8e",
           "receipt_sha256": "290a5351e4f9992f6ea89c63c0559afd9ab72252fdc97fc2e5378ed4054b1f8c",
-          "run_id": "38788579272",
-          "serializer_version": "0.10.3"
+          "run_id": "38788579272"
         },
         "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
         "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
@@ -2472,16 +2556,30 @@
         "common_assets": [
           {
             "asset": "autowareApplication",
+            "complete": false,
+            "dropped": [],
             "element_id": "184fb3f2-807d-5aa0-836a-f65fd9e1adde",
+            "implied_by": [],
+            "missing": [
+              "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE"
+            ],
             "representable_by": [
               "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE"
             ],
             "represented_by": [],
-            "status": "not represented"
+            "status": "not represented (missing: F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE)"
           },
           {
             "asset": "currentSensingBaseline",
+            "complete": false,
+            "dropped": [],
             "element_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+            "implied_by": [
+              "C-SENSING-MOTION"
+            ],
+            "missing": [
+              "F-SENSING-PERCEPTION-CAMERA"
+            ],
             "representable_by": [
               "C-SENSING-MOTION",
               "F-SENSING-PERCEPTION-CAMERA",
@@ -2490,27 +2588,41 @@
             "represented_by": [
               "F-SENSING-PERCEPTION-LIDAR"
             ],
-            "status": "represented"
+            "status": "partially represented (missing: F-SENSING-PERCEPTION-CAMERA)"
           },
           {
             "asset": "linuxROS2AutowareRuntime",
+            "complete": false,
+            "dropped": [],
             "element_id": "7c6ebbf5-9790-597f-9ee3-96d0ec4c7b58",
+            "implied_by": [],
+            "missing": [
+              "F-PLATFORM-OS-LINUX"
+            ],
             "representable_by": [
               "F-PLATFORM-OS-LINUX"
             ],
             "represented_by": [],
-            "status": "not represented"
+            "status": "not represented (missing: F-PLATFORM-OS-LINUX)"
           },
           {
             "asset": "protectedEmergencyCommandPathIndependence",
+            "complete": null,
+            "dropped": [],
             "element_id": "0f6ba270-c96c-5789-a427-6383d89e901c",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [],
             "represented_by": [],
             "status": "outside the catalogue's selection surface"
           },
           {
             "asset": "vehicleTargetAEBS",
+            "complete": true,
+            "dropped": [],
             "element_id": "48d42202-194a-591d-9a5d-8b41fbdd15ff",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [
               "C-CAPABILITY-AEBS-VEHICLE-TARGET"
             ],
@@ -2520,7 +2632,13 @@
             "status": "represented"
           }
         ],
+        "exempted_common_assets": [],
         "implied_alternative": null,
+        "incomplete_common_assets": [
+          "autowareApplication",
+          "currentSensingBaseline",
+          "linuxROS2AutowareRuntime"
+        ],
         "reasons": [
           "PlatformStack.VehicleApplication = Apollo: reference-only apollo",
           "PlatformStack.Middleware = EclipseSCORE: reference-only eclipseSCORE",
@@ -2804,37 +2922,33 @@
             ]
           }
         ],
-        "summary": "no: not admitted content selected: PlatformStack.VehicleApplication = Apollo: reference-only apollo; PlatformStack.Middleware = EclipseSCORE: reference-only eclipseSCORE; PlatformStack.OS = QNX: reference-only qnxQVM; PlatformStack.Hypervisor = QVM: reference-only qnxQVM; SensingBoundary.PerceptionSensors = Radar: deferred sensingVariability | no admitted alternative is realized by the selections | common content not represented by any selection: autowareApplication",
+        "summary": "no: not admitted content selected: PlatformStack.VehicleApplication = Apollo: reference-only apollo; PlatformStack.Middleware = EclipseSCORE: reference-only eclipseSCORE; PlatformStack.OS = QNX: reference-only qnxQVM; PlatformStack.Hypervisor = QVM: reference-only qnxQVM; SensingBoundary.PerceptionSensors = Radar: deferred sensingVariability | no admitted alternative is realized by the selections | common content not fully represented by the selections: autowareApplication not represented (missing: F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE); currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-CAMERA); linuxROS2AutowareRuntime not represented (missing: F-PLATFORM-OS-LINUX)",
         "unclassified": [],
-        "unrepresented_common_assets": [
-          "autowareApplication",
-          "linuxROS2AutowareRuntime"
-        ],
         "verdict_reasons": [
           "not admitted content selected: PlatformStack.VehicleApplication = Apollo: reference-only apollo; PlatformStack.Middleware = EclipseSCORE: reference-only eclipseSCORE; PlatformStack.OS = QNX: reference-only qnxQVM; PlatformStack.Hypervisor = QVM: reference-only qnxQVM; SensingBoundary.PerceptionSensors = Radar: deferred sensingVariability",
           "no admitted alternative is realized by the selections",
-          "common content not represented by any selection: autowareApplication"
+          "common content not fully represented by the selections: autowareApplication not represented (missing: F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE); currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-CAMERA); linuxROS2AutowareRuntime not represented (missing: F-PLATFORM-OS-LINUX)"
         ]
       },
       "case": "ug-09-apollo-qnx-qvm",
       "class": "intentional-scope",
-      "class_reason": "tool-valid; no: not admitted content selected: PlatformStack.VehicleApplication = Apollo: reference-only apollo; PlatformStack.Middleware = EclipseSCORE: reference-only eclipseSCORE; PlatformStack.OS = QNX: reference-only qnxQVM; PlatformStack.Hypervisor = QVM: reference-only qnxQVM; SensingBoundary.PerceptionSensors = Radar: deferred sensingVariability | no admitted alternative is realized by the selections | common content not represented by any selection: autowareApplication",
+      "class_reason": "tool-valid; no: not admitted content selected: PlatformStack.VehicleApplication = Apollo: reference-only apollo; PlatformStack.Middleware = EclipseSCORE: reference-only eclipseSCORE; PlatformStack.OS = QNX: reference-only qnxQVM; PlatformStack.Hypervisor = QVM: reference-only qnxQVM; SensingBoundary.PerceptionSensors = Radar: deferred sensingVariability | no admitted alternative is realized by the selections | common content not fully represented by the selections: autowareApplication not represented (missing: F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE); currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-CAMERA); linuxROS2AutowareRuntime not represented (missing: F-PLATFORM-OS-LINUX)",
       "comparison": {
         "differing": [],
         "equal_on": [],
         "ple_s_expected": null,
         "representation_differences": [
           {
-            "classification": "intentional-representation",
             "common_asset": "linuxROS2AutowareRuntime",
-            "confirmed_in_graph": true,
-            "disposition": "recorded; the split execution-domain representation of the superset is owned by INC-MW-011 (owner decision D6, 2026-10-15), not by the scope alignment",
+            "implied_alternative_binds_variation": false,
             "manifests": false,
+            "missing": [
+              "F-PLATFORM-OS-LINUX"
+            ],
             "representable_by": [
               "F-PLATFORM-OS-LINUX"
             ],
             "represented_by": [],
-            "statement": "The governed scope classifies the Linux/ROS 2 Autoware runtime as common to both planned members. The shared-asset superset has a single osPlatform slot, which the AAOS-integrated alternative binds to android (the vehicle-platform domain) while the Autoware application domain keeps its Linux runtime. The superset cannot express the split topology, so the common runtime has no superset realization dependency and osPlatform is bound per alternative.",
             "variation": "osPlatform"
           }
         ],
@@ -2880,6 +2994,7 @@
         "common_assets": [],
         "configuration": null,
         "derived_asset_variants": {},
+        "element_id": null,
         "reason": "no PLE-S configuration: the admitted tree has no feature for apollo (reference-only), eclipseSCORE (reference-only), qnxQVM (reference-only), sensingVariability (deferred)",
         "selected_alternatives": [],
         "status": null,
@@ -2891,24 +3006,498 @@
         "digest_origin": "projection header",
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
-          "artifact": "ple-scope-alignment-7e895252ce2b3b3d5d404d2176cc7872b7f671e3-38788579272",
           "configuration_element_id": null,
-          "evaluator_sha256": "1bcf0ad586bfec714e8b2e063a5d577f0d29243fb14014d06406a4566953d508",
-          "evidence": "retained",
           "executor_revision": "7e895252ce2b3b3d5d404d2176cc7872b7f671e3",
-          "governed_scope_validation_sha256": "05bd30dce155d4ea3071858956454d1aeae17d35b3fd670e9983b8a1d50daf75",
-          "interpreter_revision": "6a99626b4af7cd01108f27dac88bf5b55bba207a",
-          "library_sha256": "1fbd5efd95b63877e88eb6b114ce67122b9dba5236d3712e73175254aaf7d216",
-          "model_sha256": "23f53587e727f24aa2f24f148e2de77720bbcfa6701df57f3b0d1b4152f77dde",
-          "pleml_pin": "5f8ab8560219dc24d8ec7ec90d6f0a145896ef8e",
           "receipt_sha256": "290a5351e4f9992f6ea89c63c0559afd9ab72252fdc97fc2e5378ed4054b1f8c",
-          "run_id": "38788579272",
-          "serializer_version": "0.10.3"
+          "run_id": "38788579272"
         },
         "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
         "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
       },
       "purpose": "a committed example that selects a reference-only application, OS and hypervisor",
+      "tag": "UG-09"
+    },
+    {
+      "admitted_by_governed_scope": {
+        "admitted": false,
+        "alternatives_realized": {
+          "standalone": [
+            "PlatformStack.OS = Linux"
+          ]
+        },
+        "common_assets": [
+          {
+            "asset": "autowareApplication",
+            "complete": true,
+            "dropped": [],
+            "element_id": "184fb3f2-807d-5aa0-836a-f65fd9e1adde",
+            "implied_by": [],
+            "missing": [],
+            "representable_by": [
+              "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE"
+            ],
+            "represented_by": [
+              "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE"
+            ],
+            "status": "represented"
+          },
+          {
+            "asset": "currentSensingBaseline",
+            "complete": true,
+            "dropped": [],
+            "element_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+            "implied_by": [
+              "C-SENSING-MOTION"
+            ],
+            "missing": [],
+            "representable_by": [
+              "C-SENSING-MOTION",
+              "F-SENSING-PERCEPTION-CAMERA",
+              "F-SENSING-PERCEPTION-LIDAR"
+            ],
+            "represented_by": [
+              "F-SENSING-PERCEPTION-CAMERA",
+              "F-SENSING-PERCEPTION-LIDAR"
+            ],
+            "status": "represented (implied: C-SENSING-MOTION)"
+          },
+          {
+            "asset": "linuxROS2AutowareRuntime",
+            "complete": true,
+            "dropped": [],
+            "element_id": "7c6ebbf5-9790-597f-9ee3-96d0ec4c7b58",
+            "implied_by": [],
+            "missing": [],
+            "representable_by": [
+              "F-PLATFORM-OS-LINUX"
+            ],
+            "represented_by": [
+              "F-PLATFORM-OS-LINUX"
+            ],
+            "status": "represented"
+          },
+          {
+            "asset": "protectedEmergencyCommandPathIndependence",
+            "complete": null,
+            "dropped": [],
+            "element_id": "0f6ba270-c96c-5789-a427-6383d89e901c",
+            "implied_by": [],
+            "missing": [],
+            "representable_by": [],
+            "represented_by": [],
+            "status": "outside the catalogue's selection surface"
+          },
+          {
+            "asset": "vehicleTargetAEBS",
+            "complete": true,
+            "dropped": [],
+            "element_id": "48d42202-194a-591d-9a5d-8b41fbdd15ff",
+            "implied_by": [],
+            "missing": [],
+            "representable_by": [
+              "C-CAPABILITY-AEBS-VEHICLE-TARGET"
+            ],
+            "represented_by": [
+              "C-CAPABILITY-AEBS-VEHICLE-TARGET"
+            ],
+            "status": "represented"
+          }
+        ],
+        "exempted_common_assets": [],
+        "implied_alternative": "standalone",
+        "incomplete_common_assets": [],
+        "reasons": [
+          "PlatformStack.VehicleApplication = Autoware: common autowareApplication",
+          "PlatformStack.Middleware = AUTOSARAdaptive: reference-only autosarAdaptive",
+          "PlatformStack.OS = Linux: admitted-alternative standalone; common linuxROS2AutowareRuntime",
+          "PlatformStack.Hypervisor = ACRN: reference-only acrn",
+          "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS = True: common vehicleTargetAEBS",
+          "Capabilities.ForwardCollisionMitigation.PedestrianDetection = False: not selected (deferred)",
+          "Capabilities.ForwardCollisionMitigation.BicycleDetection = False: not selected (deferred)",
+          "Capabilities.AdaptiveCruiseControl = False: not selected (not-in-governed-scope)",
+          "Capabilities.LaneKeepAssist = False: not selected (not-in-governed-scope)",
+          "SensingBoundary.PerceptionSensors = LiDAR: common currentSensingBaseline",
+          "SensingBoundary.PerceptionSensors = Camera: common currentSensingBaseline",
+          "PlatformStack.VehicleApplication is catalogue variability (feature); governed: deferred drivingStackVariability",
+          "SensingBoundary.PerceptionSensors is catalogue variability (feature); governed: deferred sensingVariability"
+        ],
+        "selections": [
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "autowareApplication",
+                "governed_id": "184fb3f2-807d-5aa0-836a-f65fd9e1adde",
+                "kind": "common",
+                "source": "receipt:alignment.common_assets[autowareApplication].superset_realization[commonAutowareApplicationRealizedByAutowareStack]",
+                "variant": "vehicleApplication::autoware"
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [
+                {
+                  "governed": "drivingStackVariability",
+                  "governed_id": "d5cdb8e3-7771-52bb-89b6-3a7428147fe3",
+                  "kind": "deferred",
+                  "source": "governed-scope-validation:deferred[drivingStackVariability] via catalogue correspondence",
+                  "variant": null
+                }
+              ],
+              "node": "F-PLATFORM-VEHICLE-APPLICATION",
+              "type": "alternative"
+            },
+            "item": "PlatformStack.VehicleApplication = Autoware",
+            "node": "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE",
+            "path": "PlatformStack.VehicleApplication",
+            "selected": true,
+            "unclassified": null,
+            "value": "Autoware"
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "autosarAdaptive",
+                "governed_id": "77c45ab0-6ca7-58ce-ab70-c84912152b86",
+                "kind": "reference-only",
+                "source": "governed-scope-validation:reference_only[autosarAdaptive] via catalogue correspondence",
+                "variant": "middleware::autosarAdaptive"
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [],
+              "node": "F-PLATFORM-MIDDLEWARE",
+              "type": "alternative"
+            },
+            "item": "PlatformStack.Middleware = AUTOSARAdaptive",
+            "node": "F-PLATFORM-MIDDLEWARE-AUTOSAR-ADAPTIVE",
+            "path": "PlatformStack.Middleware",
+            "selected": true,
+            "unclassified": null,
+            "value": "AUTOSARAdaptive"
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "standalone",
+                "governed_id": "f62e3f47-7d3f-520a-a136-c19c1b03243d",
+                "kind": "admitted-alternative",
+                "source": "receipt:alignment.bindings[linuxOSPlatformBoundToStandalone] (FeatureBinding; derived realization)",
+                "variant": "osPlatform::linux"
+              },
+              {
+                "governed": "linuxROS2AutowareRuntime",
+                "governed_id": "7c6ebbf5-9790-597f-9ee3-96d0ec4c7b58",
+                "kind": "common",
+                "source": "governed-scope-validation:common_core[linuxROS2AutowareRuntime] via catalogue correspondence",
+                "variant": "osPlatform::linux"
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [],
+              "node": "F-PLATFORM-OS",
+              "type": "alternative"
+            },
+            "item": "PlatformStack.OS = Linux",
+            "node": "F-PLATFORM-OS-LINUX",
+            "path": "PlatformStack.OS",
+            "selected": true,
+            "unclassified": null,
+            "value": "Linux"
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "acrn",
+                "governed_id": "8ad65dd6-49dc-539f-9551-09a2e3c16564",
+                "kind": "reference-only",
+                "source": "governed-scope-validation:reference_only[acrn] via catalogue correspondence",
+                "variant": "hypervisor::acrn"
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [],
+              "node": "F-PLATFORM-HYPERVISOR",
+              "type": "alternative"
+            },
+            "item": "PlatformStack.Hypervisor = ACRN",
+            "node": "F-PLATFORM-HYPERVISOR-ACRN",
+            "path": "PlatformStack.Hypervisor",
+            "selected": true,
+            "unclassified": null,
+            "value": "ACRN"
+          },
+          {
+            "catalogue_role": "common capability",
+            "classifications": [
+              {
+                "governed": "vehicleTargetAEBS",
+                "governed_id": "48d42202-194a-591d-9a5d-8b41fbdd15ff",
+                "kind": "common",
+                "source": "governed-scope-validation:common_core[vehicleTargetAEBS] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS = True",
+            "node": "C-CAPABILITY-AEBS-VEHICLE-TARGET",
+            "path": "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS",
+            "selected": true,
+            "unclassified": null,
+            "value": true
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "expandedAEBSCapabilityVariability",
+                "governed_id": "bbc3a850-629e-546f-aeaa-0ac014f3935b",
+                "kind": "deferred",
+                "source": "governed-scope-validation:deferred[expandedAEBSCapabilityVariability] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.ForwardCollisionMitigation.PedestrianDetection = False",
+            "node": "F-CAPABILITY-AEBS-PEDESTRIAN-DETECTION",
+            "path": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+            "selected": false,
+            "unclassified": null,
+            "value": false
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "expandedAEBSCapabilityVariability",
+                "governed_id": "bbc3a850-629e-546f-aeaa-0ac014f3935b",
+                "kind": "deferred",
+                "source": "governed-scope-validation:deferred[expandedAEBSCapabilityVariability] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.ForwardCollisionMitigation.BicycleDetection = False",
+            "node": "F-CAPABILITY-AEBS-BICYCLE-DETECTION",
+            "path": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+            "selected": false,
+            "unclassified": null,
+            "value": false
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": null,
+                "governed_id": null,
+                "kind": "not-in-governed-scope",
+                "note": "no governed-scope element; the catalogue lists it as an unmodeled feature candidate",
+                "source": "catalogue correspondence: no governed element",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.AdaptiveCruiseControl = False",
+            "node": "F-CAPABILITY-ADAPTIVE-CRUISE-CONTROL",
+            "path": "Capabilities.AdaptiveCruiseControl",
+            "selected": false,
+            "unclassified": null,
+            "value": false
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": null,
+                "governed_id": null,
+                "kind": "not-in-governed-scope",
+                "note": "no governed-scope element; the catalogue lists it as an unmodeled feature candidate",
+                "source": "catalogue correspondence: no governed element",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.LaneKeepAssist = False",
+            "node": "F-CAPABILITY-LANE-KEEP-ASSIST",
+            "path": "Capabilities.LaneKeepAssist",
+            "selected": false,
+            "unclassified": null,
+            "value": false
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "currentSensingBaseline",
+                "governed_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+                "kind": "common",
+                "source": "governed-scope-validation:common_core[currentSensingBaseline] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [
+                {
+                  "governed": "sensingVariability",
+                  "governed_id": "b14d209f-de65-5a75-b260-93f5ac8c48da",
+                  "kind": "deferred",
+                  "source": "governed-scope-validation:deferred[sensingVariability] via catalogue correspondence",
+                  "variant": null
+                }
+              ],
+              "node": "F-SENSING-PERCEPTION",
+              "type": "or_group"
+            },
+            "item": "SensingBoundary.PerceptionSensors = LiDAR",
+            "node": "F-SENSING-PERCEPTION-LIDAR",
+            "path": "SensingBoundary.PerceptionSensors",
+            "selected": true,
+            "unclassified": null,
+            "value": [
+              "LiDAR",
+              "Camera"
+            ]
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "currentSensingBaseline",
+                "governed_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+                "kind": "common",
+                "source": "governed-scope-validation:common_core[currentSensingBaseline] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [
+                {
+                  "governed": "sensingVariability",
+                  "governed_id": "b14d209f-de65-5a75-b260-93f5ac8c48da",
+                  "kind": "deferred",
+                  "source": "governed-scope-validation:deferred[sensingVariability] via catalogue correspondence",
+                  "variant": null
+                }
+              ],
+              "node": "F-SENSING-PERCEPTION",
+              "type": "or_group"
+            },
+            "item": "SensingBoundary.PerceptionSensors = Camera",
+            "node": "F-SENSING-PERCEPTION-CAMERA",
+            "path": "SensingBoundary.PerceptionSensors",
+            "selected": true,
+            "unclassified": null,
+            "value": [
+              "LiDAR",
+              "Camera"
+            ]
+          }
+        ],
+        "summary": "no: not admitted content selected: PlatformStack.Middleware = AUTOSARAdaptive: reference-only autosarAdaptive; PlatformStack.Hypervisor = ACRN: reference-only acrn | derived realizations of standalone missing from the selections: hypervisor::none, middleware::none",
+        "unclassified": [],
+        "verdict_reasons": [
+          "not admitted content selected: PlatformStack.Middleware = AUTOSARAdaptive: reference-only autosarAdaptive; PlatformStack.Hypervisor = ACRN: reference-only acrn",
+          "derived realizations of standalone missing from the selections: hypervisor::none, middleware::none"
+        ]
+      },
+      "case": "ug-09-autosar-acrn",
+      "class": "intentional-scope",
+      "class_reason": "tool-valid; no: not admitted content selected: PlatformStack.Middleware = AUTOSARAdaptive: reference-only autosarAdaptive; PlatformStack.Hypervisor = ACRN: reference-only acrn | derived realizations of standalone missing from the selections: hypervisor::none, middleware::none",
+      "comparison": {
+        "differing": [],
+        "equal_on": [],
+        "ple_s_expected": null,
+        "representation_differences": [
+          {
+            "common_asset": "linuxROS2AutowareRuntime",
+            "implied_alternative_binds_variation": true,
+            "manifests": false,
+            "missing": [],
+            "representable_by": [
+              "F-PLATFORM-OS-LINUX"
+            ],
+            "represented_by": [
+              "F-PLATFORM-OS-LINUX"
+            ],
+            "variation": "osPlatform"
+          }
+        ],
+        "tool_selected": {
+          "applicationMiddlewareAdapter": "autowareToAUTOSAR",
+          "hypervisor": "acrn",
+          "middleware": "autosarAdaptive",
+          "osPlatform": "linux",
+          "vehicleApplication": "autoware"
+        }
+      },
+      "configuration_valid_under_current_tool": {
+        "exit_code": 0,
+        "meaning": "valid",
+        "messages": [],
+        "summary": "valid",
+        "valid": true,
+        "violated_constraints": []
+      },
+      "operational_input": {
+        "encoding": {
+          "expressible": true,
+          "overrides": {
+            "PlatformStack.Hypervisor": "ACRN",
+            "PlatformStack.Middleware": "AUTOSARAdaptive"
+          }
+        },
+        "kind": "generated",
+        "name": "AUTOSARAdaptiveACRNProbe",
+        "path": null,
+        "selections": {
+          "Capabilities.AdaptiveCruiseControl": false,
+          "Capabilities.ForwardCollisionMitigation.BicycleDetection": false,
+          "Capabilities.ForwardCollisionMitigation.PedestrianDetection": false,
+          "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS": true,
+          "Capabilities.LaneKeepAssist": false,
+          "PlatformStack.Hypervisor": "ACRN",
+          "PlatformStack.Middleware": "AUTOSARAdaptive",
+          "PlatformStack.OS": "Linux",
+          "PlatformStack.VehicleApplication": "Autoware",
+          "SensingBoundary.PerceptionSensors": [
+            "LiDAR",
+            "Camera"
+          ]
+        },
+        "sha256": "fe47bc4124b099326221ec9bf3bdb12093d9952b71e6af50e246a8be3e5982a5",
+        "template": "model-based-product-line-engineering/feature-configurations/aebs-autoware-linux-lidar-camera.yaml"
+      },
+      "ple_s": {
+        "alternatives_realized_by_admitted_selections": [
+          "standalone"
+        ],
+        "common_assets": [],
+        "configuration": null,
+        "derived_asset_variants": {},
+        "element_id": null,
+        "reason": "no PLE-S configuration: the admitted tree has no feature for acrn (reference-only), autosarAdaptive (reference-only)",
+        "selected_alternatives": [],
+        "status": null,
+        "summary": "no PLE-S configuration: the admitted tree has no feature for acrn (reference-only), autosarAdaptive (reference-only)",
+        "violated_bound": null
+      },
+      "provenance": {
+        "bill_of_features_sha256": "fe47bc4124b099326221ec9bf3bdb12093d9952b71e6af50e246a8be3e5982a5",
+        "digest_origin": "projection header",
+        "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
+        "ple_s_receipt": {
+          "configuration_element_id": null,
+          "executor_revision": "7e895252ce2b3b3d5d404d2176cc7872b7f671e3",
+          "receipt_sha256": "290a5351e4f9992f6ea89c63c0559afd9ab72252fdc97fc2e5378ed4054b1f8c",
+          "run_id": "38788579272"
+        },
+        "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
+        "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
+      },
+      "purpose": "the remaining reference-only middleware and hypervisor on the standalone derived set",
       "tag": "UG-09"
     },
     {
@@ -2924,16 +3513,28 @@
         "common_assets": [
           {
             "asset": "autowareApplication",
+            "complete": false,
+            "dropped": [],
             "element_id": "184fb3f2-807d-5aa0-836a-f65fd9e1adde",
+            "implied_by": [],
+            "missing": [
+              "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE"
+            ],
             "representable_by": [
               "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE"
             ],
             "represented_by": [],
-            "status": "not represented"
+            "status": "not represented (missing: F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE)"
           },
           {
             "asset": "currentSensingBaseline",
+            "complete": true,
+            "dropped": [],
             "element_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+            "implied_by": [
+              "C-SENSING-MOTION"
+            ],
+            "missing": [],
             "representable_by": [
               "C-SENSING-MOTION",
               "F-SENSING-PERCEPTION-CAMERA",
@@ -2943,11 +3544,15 @@
               "F-SENSING-PERCEPTION-CAMERA",
               "F-SENSING-PERCEPTION-LIDAR"
             ],
-            "status": "represented"
+            "status": "represented (implied: C-SENSING-MOTION)"
           },
           {
             "asset": "linuxROS2AutowareRuntime",
+            "complete": true,
+            "dropped": [],
             "element_id": "7c6ebbf5-9790-597f-9ee3-96d0ec4c7b58",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [
               "F-PLATFORM-OS-LINUX"
             ],
@@ -2958,14 +3563,22 @@
           },
           {
             "asset": "protectedEmergencyCommandPathIndependence",
+            "complete": null,
+            "dropped": [],
             "element_id": "0f6ba270-c96c-5789-a427-6383d89e901c",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [],
             "represented_by": [],
             "status": "outside the catalogue's selection surface"
           },
           {
             "asset": "vehicleTargetAEBS",
+            "complete": true,
+            "dropped": [],
             "element_id": "48d42202-194a-591d-9a5d-8b41fbdd15ff",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [
               "C-CAPABILITY-AEBS-VEHICLE-TARGET"
             ],
@@ -2975,7 +3588,11 @@
             "status": "represented"
           }
         ],
+        "exempted_common_assets": [],
         "implied_alternative": "standalone",
+        "incomplete_common_assets": [
+          "autowareApplication"
+        ],
         "reasons": [
           "PlatformStack.VehicleApplication = Openpilot: reference-only openpilot",
           "PlatformStack.Middleware = None: admitted-alternative standalone",
@@ -3266,37 +3883,32 @@
             ]
           }
         ],
-        "summary": "no: not admitted content selected: PlatformStack.VehicleApplication = Openpilot: reference-only openpilot | common content not represented by any selection: autowareApplication",
+        "summary": "no: not admitted content selected: PlatformStack.VehicleApplication = Openpilot: reference-only openpilot | common content not fully represented by the selections: autowareApplication not represented (missing: F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE)",
         "unclassified": [],
-        "unrepresented_common_assets": [
-          "autowareApplication"
-        ],
         "verdict_reasons": [
           "not admitted content selected: PlatformStack.VehicleApplication = Openpilot: reference-only openpilot",
-          "common content not represented by any selection: autowareApplication"
+          "common content not fully represented by the selections: autowareApplication not represented (missing: F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE)"
         ]
       },
       "case": "ug-10-openpilot-no-middleware",
       "class": "intentional-scope",
-      "class_reason": "tool-valid; no: not admitted content selected: PlatformStack.VehicleApplication = Openpilot: reference-only openpilot | common content not represented by any selection: autowareApplication",
+      "class_reason": "tool-valid; no: not admitted content selected: PlatformStack.VehicleApplication = Openpilot: reference-only openpilot | common content not fully represented by the selections: autowareApplication not represented (missing: F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE)",
       "comparison": {
         "differing": [],
         "equal_on": [],
         "ple_s_expected": null,
         "representation_differences": [
           {
-            "classification": "intentional-representation",
             "common_asset": "linuxROS2AutowareRuntime",
-            "confirmed_in_graph": true,
-            "disposition": "recorded; the split execution-domain representation of the superset is owned by INC-MW-011 (owner decision D6, 2026-10-15), not by the scope alignment",
+            "implied_alternative_binds_variation": true,
             "manifests": false,
+            "missing": [],
             "representable_by": [
               "F-PLATFORM-OS-LINUX"
             ],
             "represented_by": [
               "F-PLATFORM-OS-LINUX"
             ],
-            "statement": "The governed scope classifies the Linux/ROS 2 Autoware runtime as common to both planned members. The shared-asset superset has a single osPlatform slot, which the AAOS-integrated alternative binds to android (the vehicle-platform domain) while the Autoware application domain keeps its Linux runtime. The superset cannot express the split topology, so the common runtime has no superset realization dependency and osPlatform is bound per alternative.",
             "variation": "osPlatform"
           }
         ],
@@ -3352,6 +3964,7 @@
         "common_assets": [],
         "configuration": null,
         "derived_asset_variants": {},
+        "element_id": null,
         "reason": "no PLE-S configuration: the admitted tree has no feature for openpilot (reference-only)",
         "selected_alternatives": [],
         "status": null,
@@ -3363,19 +3976,10 @@
         "digest_origin": "projection header",
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
-          "artifact": "ple-scope-alignment-7e895252ce2b3b3d5d404d2176cc7872b7f671e3-38788579272",
           "configuration_element_id": null,
-          "evaluator_sha256": "1bcf0ad586bfec714e8b2e063a5d577f0d29243fb14014d06406a4566953d508",
-          "evidence": "retained",
           "executor_revision": "7e895252ce2b3b3d5d404d2176cc7872b7f671e3",
-          "governed_scope_validation_sha256": "05bd30dce155d4ea3071858956454d1aeae17d35b3fd670e9983b8a1d50daf75",
-          "interpreter_revision": "6a99626b4af7cd01108f27dac88bf5b55bba207a",
-          "library_sha256": "1fbd5efd95b63877e88eb6b114ce67122b9dba5236d3712e73175254aaf7d216",
-          "model_sha256": "23f53587e727f24aa2f24f148e2de77720bbcfa6701df57f3b0d1b4152f77dde",
-          "pleml_pin": "5f8ab8560219dc24d8ec7ec90d6f0a145896ef8e",
           "receipt_sha256": "290a5351e4f9992f6ea89c63c0559afd9ab72252fdc97fc2e5378ed4054b1f8c",
-          "run_id": "38788579272",
-          "serializer_version": "0.10.3"
+          "run_id": "38788579272"
         },
         "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
         "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
@@ -3396,7 +4000,11 @@
         "common_assets": [
           {
             "asset": "autowareApplication",
+            "complete": true,
+            "dropped": [],
             "element_id": "184fb3f2-807d-5aa0-836a-f65fd9e1adde",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [
               "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE"
             ],
@@ -3407,18 +4015,31 @@
           },
           {
             "asset": "currentSensingBaseline",
+            "complete": false,
+            "dropped": [],
             "element_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+            "implied_by": [
+              "C-SENSING-MOTION"
+            ],
+            "missing": [
+              "F-SENSING-PERCEPTION-CAMERA",
+              "F-SENSING-PERCEPTION-LIDAR"
+            ],
             "representable_by": [
               "C-SENSING-MOTION",
               "F-SENSING-PERCEPTION-CAMERA",
               "F-SENSING-PERCEPTION-LIDAR"
             ],
             "represented_by": [],
-            "status": "not represented"
+            "status": "partially represented (missing: F-SENSING-PERCEPTION-CAMERA, F-SENSING-PERCEPTION-LIDAR)"
           },
           {
             "asset": "linuxROS2AutowareRuntime",
+            "complete": true,
+            "dropped": [],
             "element_id": "7c6ebbf5-9790-597f-9ee3-96d0ec4c7b58",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [
               "F-PLATFORM-OS-LINUX"
             ],
@@ -3429,14 +4050,22 @@
           },
           {
             "asset": "protectedEmergencyCommandPathIndependence",
+            "complete": null,
+            "dropped": [],
             "element_id": "0f6ba270-c96c-5789-a427-6383d89e901c",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [],
             "represented_by": [],
             "status": "outside the catalogue's selection surface"
           },
           {
             "asset": "vehicleTargetAEBS",
+            "complete": true,
+            "dropped": [],
             "element_id": "48d42202-194a-591d-9a5d-8b41fbdd15ff",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [
               "C-CAPABILITY-AEBS-VEHICLE-TARGET"
             ],
@@ -3446,7 +4075,11 @@
             "status": "represented"
           }
         ],
+        "exempted_common_assets": [],
         "implied_alternative": "standalone",
+        "incomplete_common_assets": [
+          "currentSensingBaseline"
+        ],
         "reasons": [
           "PlatformStack.VehicleApplication = Autoware: common autowareApplication",
           "PlatformStack.Middleware = None: admitted-alternative standalone",
@@ -3700,37 +4333,32 @@
             ]
           }
         ],
-        "summary": "no: not admitted content selected: SensingBoundary.PerceptionSensors = Radar: deferred sensingVariability | common content not represented by any selection: currentSensingBaseline",
+        "summary": "no: not admitted content selected: SensingBoundary.PerceptionSensors = Radar: deferred sensingVariability | common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-CAMERA, F-SENSING-PERCEPTION-LIDAR)",
         "unclassified": [],
-        "unrepresented_common_assets": [
-          "currentSensingBaseline"
-        ],
         "verdict_reasons": [
           "not admitted content selected: SensingBoundary.PerceptionSensors = Radar: deferred sensingVariability",
-          "common content not represented by any selection: currentSensingBaseline"
+          "common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-CAMERA, F-SENSING-PERCEPTION-LIDAR)"
         ]
       },
       "case": "ug-10-radar-only",
       "class": "intentional-scope",
-      "class_reason": "tool-valid; no: not admitted content selected: SensingBoundary.PerceptionSensors = Radar: deferred sensingVariability | common content not represented by any selection: currentSensingBaseline",
+      "class_reason": "tool-valid; no: not admitted content selected: SensingBoundary.PerceptionSensors = Radar: deferred sensingVariability | common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-CAMERA, F-SENSING-PERCEPTION-LIDAR)",
       "comparison": {
         "differing": [],
         "equal_on": [],
         "ple_s_expected": null,
         "representation_differences": [
           {
-            "classification": "intentional-representation",
             "common_asset": "linuxROS2AutowareRuntime",
-            "confirmed_in_graph": true,
-            "disposition": "recorded; the split execution-domain representation of the superset is owned by INC-MW-011 (owner decision D6, 2026-10-15), not by the scope alignment",
+            "implied_alternative_binds_variation": true,
             "manifests": false,
+            "missing": [],
             "representable_by": [
               "F-PLATFORM-OS-LINUX"
             ],
             "represented_by": [
               "F-PLATFORM-OS-LINUX"
             ],
-            "statement": "The governed scope classifies the Linux/ROS 2 Autoware runtime as common to both planned members. The shared-asset superset has a single osPlatform slot, which the AAOS-integrated alternative binds to android (the vehicle-platform domain) while the Autoware application domain keeps its Linux runtime. The superset cannot express the split topology, so the common runtime has no superset realization dependency and osPlatform is bound per alternative.",
             "variation": "osPlatform"
           }
         ],
@@ -3786,6 +4414,7 @@
         "common_assets": [],
         "configuration": null,
         "derived_asset_variants": {},
+        "element_id": null,
         "reason": "no PLE-S configuration: the admitted tree has no feature for sensingVariability (deferred)",
         "selected_alternatives": [],
         "status": null,
@@ -3797,25 +4426,2370 @@
         "digest_origin": "projection header",
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
-          "artifact": "ple-scope-alignment-7e895252ce2b3b3d5d404d2176cc7872b7f671e3-38788579272",
           "configuration_element_id": null,
-          "evaluator_sha256": "1bcf0ad586bfec714e8b2e063a5d577f0d29243fb14014d06406a4566953d508",
-          "evidence": "retained",
           "executor_revision": "7e895252ce2b3b3d5d404d2176cc7872b7f671e3",
-          "governed_scope_validation_sha256": "05bd30dce155d4ea3071858956454d1aeae17d35b3fd670e9983b8a1d50daf75",
-          "interpreter_revision": "6a99626b4af7cd01108f27dac88bf5b55bba207a",
-          "library_sha256": "1fbd5efd95b63877e88eb6b114ce67122b9dba5236d3712e73175254aaf7d216",
-          "model_sha256": "23f53587e727f24aa2f24f148e2de77720bbcfa6701df57f3b0d1b4152f77dde",
-          "pleml_pin": "5f8ab8560219dc24d8ec7ec90d6f0a145896ef8e",
           "receipt_sha256": "290a5351e4f9992f6ea89c63c0559afd9ab72252fdc97fc2e5378ed4054b1f8c",
-          "run_id": "38788579272",
-          "serializer_version": "0.10.3"
+          "run_id": "38788579272"
         },
         "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
         "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
       },
       "purpose": "the catalogue treats perception sensors as features; a radar-only selection is tool-valid",
       "tag": "UG-10"
+    },
+    {
+      "admitted_by_governed_scope": {
+        "admitted": false,
+        "alternatives_realized": {
+          "standalone": [
+            "PlatformStack.Middleware = None",
+            "PlatformStack.OS = Linux",
+            "PlatformStack.Hypervisor = None"
+          ]
+        },
+        "common_assets": [
+          {
+            "asset": "autowareApplication",
+            "complete": true,
+            "dropped": [],
+            "element_id": "184fb3f2-807d-5aa0-836a-f65fd9e1adde",
+            "implied_by": [],
+            "missing": [],
+            "representable_by": [
+              "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE"
+            ],
+            "represented_by": [
+              "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE"
+            ],
+            "status": "represented"
+          },
+          {
+            "asset": "currentSensingBaseline",
+            "complete": false,
+            "dropped": [],
+            "element_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+            "implied_by": [
+              "C-SENSING-MOTION"
+            ],
+            "missing": [
+              "F-SENSING-PERCEPTION-CAMERA"
+            ],
+            "representable_by": [
+              "C-SENSING-MOTION",
+              "F-SENSING-PERCEPTION-CAMERA",
+              "F-SENSING-PERCEPTION-LIDAR"
+            ],
+            "represented_by": [
+              "F-SENSING-PERCEPTION-LIDAR"
+            ],
+            "status": "partially represented (missing: F-SENSING-PERCEPTION-CAMERA)"
+          },
+          {
+            "asset": "linuxROS2AutowareRuntime",
+            "complete": true,
+            "dropped": [],
+            "element_id": "7c6ebbf5-9790-597f-9ee3-96d0ec4c7b58",
+            "implied_by": [],
+            "missing": [],
+            "representable_by": [
+              "F-PLATFORM-OS-LINUX"
+            ],
+            "represented_by": [
+              "F-PLATFORM-OS-LINUX"
+            ],
+            "status": "represented"
+          },
+          {
+            "asset": "protectedEmergencyCommandPathIndependence",
+            "complete": null,
+            "dropped": [],
+            "element_id": "0f6ba270-c96c-5789-a427-6383d89e901c",
+            "implied_by": [],
+            "missing": [],
+            "representable_by": [],
+            "represented_by": [],
+            "status": "outside the catalogue's selection surface"
+          },
+          {
+            "asset": "vehicleTargetAEBS",
+            "complete": true,
+            "dropped": [],
+            "element_id": "48d42202-194a-591d-9a5d-8b41fbdd15ff",
+            "implied_by": [],
+            "missing": [],
+            "representable_by": [
+              "C-CAPABILITY-AEBS-VEHICLE-TARGET"
+            ],
+            "represented_by": [
+              "C-CAPABILITY-AEBS-VEHICLE-TARGET"
+            ],
+            "status": "represented"
+          }
+        ],
+        "exempted_common_assets": [],
+        "implied_alternative": "standalone",
+        "incomplete_common_assets": [
+          "currentSensingBaseline"
+        ],
+        "reasons": [
+          "PlatformStack.VehicleApplication = Autoware: common autowareApplication",
+          "PlatformStack.Middleware = None: admitted-alternative standalone",
+          "PlatformStack.OS = Linux: admitted-alternative standalone; common linuxROS2AutowareRuntime",
+          "PlatformStack.Hypervisor = None: admitted-alternative standalone",
+          "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS = True: common vehicleTargetAEBS",
+          "Capabilities.ForwardCollisionMitigation.PedestrianDetection = False: not selected (deferred)",
+          "Capabilities.ForwardCollisionMitigation.BicycleDetection = False: not selected (deferred)",
+          "Capabilities.AdaptiveCruiseControl = False: not selected (not-in-governed-scope)",
+          "Capabilities.LaneKeepAssist = False: not selected (not-in-governed-scope)",
+          "SensingBoundary.PerceptionSensors = LiDAR: common currentSensingBaseline",
+          "PlatformStack.VehicleApplication is catalogue variability (feature); governed: deferred drivingStackVariability",
+          "SensingBoundary.PerceptionSensors is catalogue variability (feature); governed: deferred sensingVariability"
+        ],
+        "selections": [
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "autowareApplication",
+                "governed_id": "184fb3f2-807d-5aa0-836a-f65fd9e1adde",
+                "kind": "common",
+                "source": "receipt:alignment.common_assets[autowareApplication].superset_realization[commonAutowareApplicationRealizedByAutowareStack]",
+                "variant": "vehicleApplication::autoware"
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [
+                {
+                  "governed": "drivingStackVariability",
+                  "governed_id": "d5cdb8e3-7771-52bb-89b6-3a7428147fe3",
+                  "kind": "deferred",
+                  "source": "governed-scope-validation:deferred[drivingStackVariability] via catalogue correspondence",
+                  "variant": null
+                }
+              ],
+              "node": "F-PLATFORM-VEHICLE-APPLICATION",
+              "type": "alternative"
+            },
+            "item": "PlatformStack.VehicleApplication = Autoware",
+            "node": "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE",
+            "path": "PlatformStack.VehicleApplication",
+            "selected": true,
+            "unclassified": null,
+            "value": "Autoware"
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "standalone",
+                "governed_id": "f62e3f47-7d3f-520a-a136-c19c1b03243d",
+                "kind": "admitted-alternative",
+                "source": "receipt:alignment.bindings[noMiddlewareBoundToStandalone] (FeatureBinding; derived realization)",
+                "variant": "middleware::none"
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [],
+              "node": "F-PLATFORM-MIDDLEWARE",
+              "type": "alternative"
+            },
+            "item": "PlatformStack.Middleware = None",
+            "node": "F-PLATFORM-MIDDLEWARE-NONE",
+            "path": "PlatformStack.Middleware",
+            "selected": true,
+            "unclassified": null,
+            "value": "None"
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "standalone",
+                "governed_id": "f62e3f47-7d3f-520a-a136-c19c1b03243d",
+                "kind": "admitted-alternative",
+                "source": "receipt:alignment.bindings[linuxOSPlatformBoundToStandalone] (FeatureBinding; derived realization)",
+                "variant": "osPlatform::linux"
+              },
+              {
+                "governed": "linuxROS2AutowareRuntime",
+                "governed_id": "7c6ebbf5-9790-597f-9ee3-96d0ec4c7b58",
+                "kind": "common",
+                "source": "governed-scope-validation:common_core[linuxROS2AutowareRuntime] via catalogue correspondence",
+                "variant": "osPlatform::linux"
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [],
+              "node": "F-PLATFORM-OS",
+              "type": "alternative"
+            },
+            "item": "PlatformStack.OS = Linux",
+            "node": "F-PLATFORM-OS-LINUX",
+            "path": "PlatformStack.OS",
+            "selected": true,
+            "unclassified": null,
+            "value": "Linux"
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "standalone",
+                "governed_id": "f62e3f47-7d3f-520a-a136-c19c1b03243d",
+                "kind": "admitted-alternative",
+                "source": "receipt:alignment.bindings[noHypervisorBoundToStandalone] (FeatureBinding; derived realization)",
+                "variant": "hypervisor::none"
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [],
+              "node": "F-PLATFORM-HYPERVISOR",
+              "type": "alternative"
+            },
+            "item": "PlatformStack.Hypervisor = None",
+            "node": "F-PLATFORM-HYPERVISOR-NONE",
+            "path": "PlatformStack.Hypervisor",
+            "selected": true,
+            "unclassified": null,
+            "value": "None"
+          },
+          {
+            "catalogue_role": "common capability",
+            "classifications": [
+              {
+                "governed": "vehicleTargetAEBS",
+                "governed_id": "48d42202-194a-591d-9a5d-8b41fbdd15ff",
+                "kind": "common",
+                "source": "governed-scope-validation:common_core[vehicleTargetAEBS] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS = True",
+            "node": "C-CAPABILITY-AEBS-VEHICLE-TARGET",
+            "path": "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS",
+            "selected": true,
+            "unclassified": null,
+            "value": true
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "expandedAEBSCapabilityVariability",
+                "governed_id": "bbc3a850-629e-546f-aeaa-0ac014f3935b",
+                "kind": "deferred",
+                "source": "governed-scope-validation:deferred[expandedAEBSCapabilityVariability] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.ForwardCollisionMitigation.PedestrianDetection = False",
+            "node": "F-CAPABILITY-AEBS-PEDESTRIAN-DETECTION",
+            "path": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+            "selected": false,
+            "unclassified": null,
+            "value": false
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "expandedAEBSCapabilityVariability",
+                "governed_id": "bbc3a850-629e-546f-aeaa-0ac014f3935b",
+                "kind": "deferred",
+                "source": "governed-scope-validation:deferred[expandedAEBSCapabilityVariability] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.ForwardCollisionMitigation.BicycleDetection = False",
+            "node": "F-CAPABILITY-AEBS-BICYCLE-DETECTION",
+            "path": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+            "selected": false,
+            "unclassified": null,
+            "value": false
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": null,
+                "governed_id": null,
+                "kind": "not-in-governed-scope",
+                "note": "no governed-scope element; the catalogue lists it as an unmodeled feature candidate",
+                "source": "catalogue correspondence: no governed element",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.AdaptiveCruiseControl = False",
+            "node": "F-CAPABILITY-ADAPTIVE-CRUISE-CONTROL",
+            "path": "Capabilities.AdaptiveCruiseControl",
+            "selected": false,
+            "unclassified": null,
+            "value": false
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": null,
+                "governed_id": null,
+                "kind": "not-in-governed-scope",
+                "note": "no governed-scope element; the catalogue lists it as an unmodeled feature candidate",
+                "source": "catalogue correspondence: no governed element",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.LaneKeepAssist = False",
+            "node": "F-CAPABILITY-LANE-KEEP-ASSIST",
+            "path": "Capabilities.LaneKeepAssist",
+            "selected": false,
+            "unclassified": null,
+            "value": false
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "currentSensingBaseline",
+                "governed_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+                "kind": "common",
+                "source": "governed-scope-validation:common_core[currentSensingBaseline] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [
+                {
+                  "governed": "sensingVariability",
+                  "governed_id": "b14d209f-de65-5a75-b260-93f5ac8c48da",
+                  "kind": "deferred",
+                  "source": "governed-scope-validation:deferred[sensingVariability] via catalogue correspondence",
+                  "variant": null
+                }
+              ],
+              "node": "F-SENSING-PERCEPTION",
+              "type": "or_group"
+            },
+            "item": "SensingBoundary.PerceptionSensors = LiDAR",
+            "node": "F-SENSING-PERCEPTION-LIDAR",
+            "path": "SensingBoundary.PerceptionSensors",
+            "selected": true,
+            "unclassified": null,
+            "value": [
+              "LiDAR"
+            ]
+          }
+        ],
+        "summary": "no: common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-CAMERA)",
+        "unclassified": [],
+        "verdict_reasons": [
+          "common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-CAMERA)"
+        ]
+      },
+      "case": "ug-10-lidar-only",
+      "class": "intentional-scope",
+      "class_reason": "tool-valid; no: common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-CAMERA)",
+      "comparison": {
+        "differing": [],
+        "equal_on": [],
+        "ple_s_expected": null,
+        "representation_differences": [
+          {
+            "common_asset": "linuxROS2AutowareRuntime",
+            "implied_alternative_binds_variation": true,
+            "manifests": false,
+            "missing": [],
+            "representable_by": [
+              "F-PLATFORM-OS-LINUX"
+            ],
+            "represented_by": [
+              "F-PLATFORM-OS-LINUX"
+            ],
+            "variation": "osPlatform"
+          }
+        ],
+        "tool_selected": {
+          "applicationMiddlewareAdapter": "none",
+          "hypervisor": "none",
+          "middleware": "none",
+          "osPlatform": "linux",
+          "vehicleApplication": "autoware"
+        }
+      },
+      "configuration_valid_under_current_tool": {
+        "exit_code": 0,
+        "meaning": "valid",
+        "messages": [],
+        "summary": "valid",
+        "valid": true,
+        "violated_constraints": []
+      },
+      "operational_input": {
+        "encoding": {
+          "expressible": true,
+          "overrides": {
+            "SensingBoundary.PerceptionSensors": [
+              "LiDAR"
+            ]
+          }
+        },
+        "kind": "generated",
+        "name": "LidarOnlySensingProbe",
+        "path": null,
+        "selections": {
+          "Capabilities.AdaptiveCruiseControl": false,
+          "Capabilities.ForwardCollisionMitigation.BicycleDetection": false,
+          "Capabilities.ForwardCollisionMitigation.PedestrianDetection": false,
+          "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS": true,
+          "Capabilities.LaneKeepAssist": false,
+          "PlatformStack.Hypervisor": "None",
+          "PlatformStack.Middleware": "None",
+          "PlatformStack.OS": "Linux",
+          "PlatformStack.VehicleApplication": "Autoware",
+          "SensingBoundary.PerceptionSensors": [
+            "LiDAR"
+          ]
+        },
+        "sha256": "9290aa06a63a89dbdd444df1f980d16485749a0c5c70f58f071f18971a07c942",
+        "template": "model-based-product-line-engineering/feature-configurations/aebs-autoware-linux-lidar-camera.yaml"
+      },
+      "ple_s": {
+        "alternatives_realized_by_admitted_selections": [
+          "standalone"
+        ],
+        "common_assets": [],
+        "configuration": null,
+        "derived_asset_variants": {},
+        "element_id": null,
+        "reason": "no PLE-S configuration: common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-CAMERA)",
+        "selected_alternatives": [],
+        "status": null,
+        "summary": "no PLE-S configuration: common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-CAMERA)",
+        "violated_bound": null
+      },
+      "provenance": {
+        "bill_of_features_sha256": "9290aa06a63a89dbdd444df1f980d16485749a0c5c70f58f071f18971a07c942",
+        "digest_origin": "projection header",
+        "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
+        "ple_s_receipt": {
+          "configuration_element_id": null,
+          "executor_revision": "7e895252ce2b3b3d5d404d2176cc7872b7f671e3",
+          "receipt_sha256": "290a5351e4f9992f6ea89c63c0559afd9ab72252fdc97fc2e5378ed4054b1f8c",
+          "run_id": "38788579272"
+        },
+        "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
+        "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
+      },
+      "purpose": "the common sensing baseline without its camera",
+      "tag": "UG-10"
+    },
+    {
+      "admitted_by_governed_scope": {
+        "admitted": false,
+        "alternatives_realized": {
+          "standalone": [
+            "PlatformStack.Middleware = None",
+            "PlatformStack.OS = Linux",
+            "PlatformStack.Hypervisor = None"
+          ]
+        },
+        "common_assets": [
+          {
+            "asset": "autowareApplication",
+            "complete": true,
+            "dropped": [],
+            "element_id": "184fb3f2-807d-5aa0-836a-f65fd9e1adde",
+            "implied_by": [],
+            "missing": [],
+            "representable_by": [
+              "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE"
+            ],
+            "represented_by": [
+              "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE"
+            ],
+            "status": "represented"
+          },
+          {
+            "asset": "currentSensingBaseline",
+            "complete": false,
+            "dropped": [],
+            "element_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+            "implied_by": [
+              "C-SENSING-MOTION"
+            ],
+            "missing": [
+              "F-SENSING-PERCEPTION-LIDAR"
+            ],
+            "representable_by": [
+              "C-SENSING-MOTION",
+              "F-SENSING-PERCEPTION-CAMERA",
+              "F-SENSING-PERCEPTION-LIDAR"
+            ],
+            "represented_by": [
+              "F-SENSING-PERCEPTION-CAMERA"
+            ],
+            "status": "partially represented (missing: F-SENSING-PERCEPTION-LIDAR)"
+          },
+          {
+            "asset": "linuxROS2AutowareRuntime",
+            "complete": true,
+            "dropped": [],
+            "element_id": "7c6ebbf5-9790-597f-9ee3-96d0ec4c7b58",
+            "implied_by": [],
+            "missing": [],
+            "representable_by": [
+              "F-PLATFORM-OS-LINUX"
+            ],
+            "represented_by": [
+              "F-PLATFORM-OS-LINUX"
+            ],
+            "status": "represented"
+          },
+          {
+            "asset": "protectedEmergencyCommandPathIndependence",
+            "complete": null,
+            "dropped": [],
+            "element_id": "0f6ba270-c96c-5789-a427-6383d89e901c",
+            "implied_by": [],
+            "missing": [],
+            "representable_by": [],
+            "represented_by": [],
+            "status": "outside the catalogue's selection surface"
+          },
+          {
+            "asset": "vehicleTargetAEBS",
+            "complete": true,
+            "dropped": [],
+            "element_id": "48d42202-194a-591d-9a5d-8b41fbdd15ff",
+            "implied_by": [],
+            "missing": [],
+            "representable_by": [
+              "C-CAPABILITY-AEBS-VEHICLE-TARGET"
+            ],
+            "represented_by": [
+              "C-CAPABILITY-AEBS-VEHICLE-TARGET"
+            ],
+            "status": "represented"
+          }
+        ],
+        "exempted_common_assets": [],
+        "implied_alternative": "standalone",
+        "incomplete_common_assets": [
+          "currentSensingBaseline"
+        ],
+        "reasons": [
+          "PlatformStack.VehicleApplication = Autoware: common autowareApplication",
+          "PlatformStack.Middleware = None: admitted-alternative standalone",
+          "PlatformStack.OS = Linux: admitted-alternative standalone; common linuxROS2AutowareRuntime",
+          "PlatformStack.Hypervisor = None: admitted-alternative standalone",
+          "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS = True: common vehicleTargetAEBS",
+          "Capabilities.ForwardCollisionMitigation.PedestrianDetection = False: not selected (deferred)",
+          "Capabilities.ForwardCollisionMitigation.BicycleDetection = False: not selected (deferred)",
+          "Capabilities.AdaptiveCruiseControl = False: not selected (not-in-governed-scope)",
+          "Capabilities.LaneKeepAssist = False: not selected (not-in-governed-scope)",
+          "SensingBoundary.PerceptionSensors = Camera: common currentSensingBaseline",
+          "PlatformStack.VehicleApplication is catalogue variability (feature); governed: deferred drivingStackVariability",
+          "SensingBoundary.PerceptionSensors is catalogue variability (feature); governed: deferred sensingVariability"
+        ],
+        "selections": [
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "autowareApplication",
+                "governed_id": "184fb3f2-807d-5aa0-836a-f65fd9e1adde",
+                "kind": "common",
+                "source": "receipt:alignment.common_assets[autowareApplication].superset_realization[commonAutowareApplicationRealizedByAutowareStack]",
+                "variant": "vehicleApplication::autoware"
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [
+                {
+                  "governed": "drivingStackVariability",
+                  "governed_id": "d5cdb8e3-7771-52bb-89b6-3a7428147fe3",
+                  "kind": "deferred",
+                  "source": "governed-scope-validation:deferred[drivingStackVariability] via catalogue correspondence",
+                  "variant": null
+                }
+              ],
+              "node": "F-PLATFORM-VEHICLE-APPLICATION",
+              "type": "alternative"
+            },
+            "item": "PlatformStack.VehicleApplication = Autoware",
+            "node": "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE",
+            "path": "PlatformStack.VehicleApplication",
+            "selected": true,
+            "unclassified": null,
+            "value": "Autoware"
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "standalone",
+                "governed_id": "f62e3f47-7d3f-520a-a136-c19c1b03243d",
+                "kind": "admitted-alternative",
+                "source": "receipt:alignment.bindings[noMiddlewareBoundToStandalone] (FeatureBinding; derived realization)",
+                "variant": "middleware::none"
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [],
+              "node": "F-PLATFORM-MIDDLEWARE",
+              "type": "alternative"
+            },
+            "item": "PlatformStack.Middleware = None",
+            "node": "F-PLATFORM-MIDDLEWARE-NONE",
+            "path": "PlatformStack.Middleware",
+            "selected": true,
+            "unclassified": null,
+            "value": "None"
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "standalone",
+                "governed_id": "f62e3f47-7d3f-520a-a136-c19c1b03243d",
+                "kind": "admitted-alternative",
+                "source": "receipt:alignment.bindings[linuxOSPlatformBoundToStandalone] (FeatureBinding; derived realization)",
+                "variant": "osPlatform::linux"
+              },
+              {
+                "governed": "linuxROS2AutowareRuntime",
+                "governed_id": "7c6ebbf5-9790-597f-9ee3-96d0ec4c7b58",
+                "kind": "common",
+                "source": "governed-scope-validation:common_core[linuxROS2AutowareRuntime] via catalogue correspondence",
+                "variant": "osPlatform::linux"
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [],
+              "node": "F-PLATFORM-OS",
+              "type": "alternative"
+            },
+            "item": "PlatformStack.OS = Linux",
+            "node": "F-PLATFORM-OS-LINUX",
+            "path": "PlatformStack.OS",
+            "selected": true,
+            "unclassified": null,
+            "value": "Linux"
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "standalone",
+                "governed_id": "f62e3f47-7d3f-520a-a136-c19c1b03243d",
+                "kind": "admitted-alternative",
+                "source": "receipt:alignment.bindings[noHypervisorBoundToStandalone] (FeatureBinding; derived realization)",
+                "variant": "hypervisor::none"
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [],
+              "node": "F-PLATFORM-HYPERVISOR",
+              "type": "alternative"
+            },
+            "item": "PlatformStack.Hypervisor = None",
+            "node": "F-PLATFORM-HYPERVISOR-NONE",
+            "path": "PlatformStack.Hypervisor",
+            "selected": true,
+            "unclassified": null,
+            "value": "None"
+          },
+          {
+            "catalogue_role": "common capability",
+            "classifications": [
+              {
+                "governed": "vehicleTargetAEBS",
+                "governed_id": "48d42202-194a-591d-9a5d-8b41fbdd15ff",
+                "kind": "common",
+                "source": "governed-scope-validation:common_core[vehicleTargetAEBS] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS = True",
+            "node": "C-CAPABILITY-AEBS-VEHICLE-TARGET",
+            "path": "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS",
+            "selected": true,
+            "unclassified": null,
+            "value": true
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "expandedAEBSCapabilityVariability",
+                "governed_id": "bbc3a850-629e-546f-aeaa-0ac014f3935b",
+                "kind": "deferred",
+                "source": "governed-scope-validation:deferred[expandedAEBSCapabilityVariability] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.ForwardCollisionMitigation.PedestrianDetection = False",
+            "node": "F-CAPABILITY-AEBS-PEDESTRIAN-DETECTION",
+            "path": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+            "selected": false,
+            "unclassified": null,
+            "value": false
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "expandedAEBSCapabilityVariability",
+                "governed_id": "bbc3a850-629e-546f-aeaa-0ac014f3935b",
+                "kind": "deferred",
+                "source": "governed-scope-validation:deferred[expandedAEBSCapabilityVariability] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.ForwardCollisionMitigation.BicycleDetection = False",
+            "node": "F-CAPABILITY-AEBS-BICYCLE-DETECTION",
+            "path": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+            "selected": false,
+            "unclassified": null,
+            "value": false
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": null,
+                "governed_id": null,
+                "kind": "not-in-governed-scope",
+                "note": "no governed-scope element; the catalogue lists it as an unmodeled feature candidate",
+                "source": "catalogue correspondence: no governed element",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.AdaptiveCruiseControl = False",
+            "node": "F-CAPABILITY-ADAPTIVE-CRUISE-CONTROL",
+            "path": "Capabilities.AdaptiveCruiseControl",
+            "selected": false,
+            "unclassified": null,
+            "value": false
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": null,
+                "governed_id": null,
+                "kind": "not-in-governed-scope",
+                "note": "no governed-scope element; the catalogue lists it as an unmodeled feature candidate",
+                "source": "catalogue correspondence: no governed element",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.LaneKeepAssist = False",
+            "node": "F-CAPABILITY-LANE-KEEP-ASSIST",
+            "path": "Capabilities.LaneKeepAssist",
+            "selected": false,
+            "unclassified": null,
+            "value": false
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "currentSensingBaseline",
+                "governed_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+                "kind": "common",
+                "source": "governed-scope-validation:common_core[currentSensingBaseline] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [
+                {
+                  "governed": "sensingVariability",
+                  "governed_id": "b14d209f-de65-5a75-b260-93f5ac8c48da",
+                  "kind": "deferred",
+                  "source": "governed-scope-validation:deferred[sensingVariability] via catalogue correspondence",
+                  "variant": null
+                }
+              ],
+              "node": "F-SENSING-PERCEPTION",
+              "type": "or_group"
+            },
+            "item": "SensingBoundary.PerceptionSensors = Camera",
+            "node": "F-SENSING-PERCEPTION-CAMERA",
+            "path": "SensingBoundary.PerceptionSensors",
+            "selected": true,
+            "unclassified": null,
+            "value": [
+              "Camera"
+            ]
+          }
+        ],
+        "summary": "no: common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-LIDAR)",
+        "unclassified": [],
+        "verdict_reasons": [
+          "common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-LIDAR)"
+        ]
+      },
+      "case": "ug-10-camera-only",
+      "class": "intentional-scope",
+      "class_reason": "tool-valid; no: common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-LIDAR)",
+      "comparison": {
+        "differing": [],
+        "equal_on": [],
+        "ple_s_expected": null,
+        "representation_differences": [
+          {
+            "common_asset": "linuxROS2AutowareRuntime",
+            "implied_alternative_binds_variation": true,
+            "manifests": false,
+            "missing": [],
+            "representable_by": [
+              "F-PLATFORM-OS-LINUX"
+            ],
+            "represented_by": [
+              "F-PLATFORM-OS-LINUX"
+            ],
+            "variation": "osPlatform"
+          }
+        ],
+        "tool_selected": {
+          "applicationMiddlewareAdapter": "none",
+          "hypervisor": "none",
+          "middleware": "none",
+          "osPlatform": "linux",
+          "vehicleApplication": "autoware"
+        }
+      },
+      "configuration_valid_under_current_tool": {
+        "exit_code": 0,
+        "meaning": "valid",
+        "messages": [],
+        "summary": "valid",
+        "valid": true,
+        "violated_constraints": []
+      },
+      "operational_input": {
+        "encoding": {
+          "expressible": true,
+          "overrides": {
+            "SensingBoundary.PerceptionSensors": [
+              "Camera"
+            ]
+          }
+        },
+        "kind": "generated",
+        "name": "CameraOnlySensingProbe",
+        "path": null,
+        "selections": {
+          "Capabilities.AdaptiveCruiseControl": false,
+          "Capabilities.ForwardCollisionMitigation.BicycleDetection": false,
+          "Capabilities.ForwardCollisionMitigation.PedestrianDetection": false,
+          "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS": true,
+          "Capabilities.LaneKeepAssist": false,
+          "PlatformStack.Hypervisor": "None",
+          "PlatformStack.Middleware": "None",
+          "PlatformStack.OS": "Linux",
+          "PlatformStack.VehicleApplication": "Autoware",
+          "SensingBoundary.PerceptionSensors": [
+            "Camera"
+          ]
+        },
+        "sha256": "4bcd6cd1fdfbb764803781eb89a48520b32fec633cca4c4243117d26e77bd7df",
+        "template": "model-based-product-line-engineering/feature-configurations/aebs-autoware-linux-lidar-camera.yaml"
+      },
+      "ple_s": {
+        "alternatives_realized_by_admitted_selections": [
+          "standalone"
+        ],
+        "common_assets": [],
+        "configuration": null,
+        "derived_asset_variants": {},
+        "element_id": null,
+        "reason": "no PLE-S configuration: common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-LIDAR)",
+        "selected_alternatives": [],
+        "status": null,
+        "summary": "no PLE-S configuration: common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-LIDAR)",
+        "violated_bound": null
+      },
+      "provenance": {
+        "bill_of_features_sha256": "4bcd6cd1fdfbb764803781eb89a48520b32fec633cca4c4243117d26e77bd7df",
+        "digest_origin": "projection header",
+        "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
+        "ple_s_receipt": {
+          "configuration_element_id": null,
+          "executor_revision": "7e895252ce2b3b3d5d404d2176cc7872b7f671e3",
+          "receipt_sha256": "290a5351e4f9992f6ea89c63c0559afd9ab72252fdc97fc2e5378ed4054b1f8c",
+          "run_id": "38788579272"
+        },
+        "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
+        "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
+      },
+      "purpose": "the common sensing baseline without its LiDAR",
+      "tag": "UG-10"
+    },
+    {
+      "admitted_by_governed_scope": {
+        "admitted": false,
+        "alternatives_realized": {
+          "standalone": [
+            "PlatformStack.Middleware = None",
+            "PlatformStack.OS = Linux",
+            "PlatformStack.Hypervisor = None"
+          ]
+        },
+        "common_assets": [
+          {
+            "asset": "autowareApplication",
+            "complete": true,
+            "dropped": [],
+            "element_id": "184fb3f2-807d-5aa0-836a-f65fd9e1adde",
+            "implied_by": [],
+            "missing": [],
+            "representable_by": [
+              "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE"
+            ],
+            "represented_by": [
+              "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE"
+            ],
+            "status": "represented"
+          },
+          {
+            "asset": "currentSensingBaseline",
+            "complete": true,
+            "dropped": [],
+            "element_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+            "implied_by": [
+              "C-SENSING-MOTION"
+            ],
+            "missing": [],
+            "representable_by": [
+              "C-SENSING-MOTION",
+              "F-SENSING-PERCEPTION-CAMERA",
+              "F-SENSING-PERCEPTION-LIDAR"
+            ],
+            "represented_by": [
+              "F-SENSING-PERCEPTION-CAMERA",
+              "F-SENSING-PERCEPTION-LIDAR"
+            ],
+            "status": "represented (implied: C-SENSING-MOTION)"
+          },
+          {
+            "asset": "linuxROS2AutowareRuntime",
+            "complete": true,
+            "dropped": [],
+            "element_id": "7c6ebbf5-9790-597f-9ee3-96d0ec4c7b58",
+            "implied_by": [],
+            "missing": [],
+            "representable_by": [
+              "F-PLATFORM-OS-LINUX"
+            ],
+            "represented_by": [
+              "F-PLATFORM-OS-LINUX"
+            ],
+            "status": "represented"
+          },
+          {
+            "asset": "protectedEmergencyCommandPathIndependence",
+            "complete": null,
+            "dropped": [],
+            "element_id": "0f6ba270-c96c-5789-a427-6383d89e901c",
+            "implied_by": [],
+            "missing": [],
+            "representable_by": [],
+            "represented_by": [],
+            "status": "outside the catalogue's selection surface"
+          },
+          {
+            "asset": "vehicleTargetAEBS",
+            "complete": false,
+            "dropped": [
+              "C-CAPABILITY-AEBS-VEHICLE-TARGET"
+            ],
+            "element_id": "48d42202-194a-591d-9a5d-8b41fbdd15ff",
+            "implied_by": [],
+            "missing": [],
+            "representable_by": [
+              "C-CAPABILITY-AEBS-VEHICLE-TARGET"
+            ],
+            "represented_by": [],
+            "status": "not represented (dropped: C-CAPABILITY-AEBS-VEHICLE-TARGET)"
+          }
+        ],
+        "exempted_common_assets": [],
+        "implied_alternative": "standalone",
+        "incomplete_common_assets": [
+          "vehicleTargetAEBS"
+        ],
+        "reasons": [
+          "PlatformStack.VehicleApplication = Autoware: common autowareApplication",
+          "PlatformStack.Middleware = None: admitted-alternative standalone",
+          "PlatformStack.OS = Linux: admitted-alternative standalone; common linuxROS2AutowareRuntime",
+          "PlatformStack.Hypervisor = None: admitted-alternative standalone",
+          "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS = False: not selected (common)",
+          "Capabilities.ForwardCollisionMitigation.PedestrianDetection = False: not selected (deferred)",
+          "Capabilities.ForwardCollisionMitigation.BicycleDetection = False: not selected (deferred)",
+          "Capabilities.AdaptiveCruiseControl = False: not selected (not-in-governed-scope)",
+          "Capabilities.LaneKeepAssist = False: not selected (not-in-governed-scope)",
+          "SensingBoundary.PerceptionSensors = LiDAR: common currentSensingBaseline",
+          "SensingBoundary.PerceptionSensors = Camera: common currentSensingBaseline",
+          "PlatformStack.VehicleApplication is catalogue variability (feature); governed: deferred drivingStackVariability",
+          "SensingBoundary.PerceptionSensors is catalogue variability (feature); governed: deferred sensingVariability"
+        ],
+        "selections": [
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "autowareApplication",
+                "governed_id": "184fb3f2-807d-5aa0-836a-f65fd9e1adde",
+                "kind": "common",
+                "source": "receipt:alignment.common_assets[autowareApplication].superset_realization[commonAutowareApplicationRealizedByAutowareStack]",
+                "variant": "vehicleApplication::autoware"
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [
+                {
+                  "governed": "drivingStackVariability",
+                  "governed_id": "d5cdb8e3-7771-52bb-89b6-3a7428147fe3",
+                  "kind": "deferred",
+                  "source": "governed-scope-validation:deferred[drivingStackVariability] via catalogue correspondence",
+                  "variant": null
+                }
+              ],
+              "node": "F-PLATFORM-VEHICLE-APPLICATION",
+              "type": "alternative"
+            },
+            "item": "PlatformStack.VehicleApplication = Autoware",
+            "node": "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE",
+            "path": "PlatformStack.VehicleApplication",
+            "selected": true,
+            "unclassified": null,
+            "value": "Autoware"
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "standalone",
+                "governed_id": "f62e3f47-7d3f-520a-a136-c19c1b03243d",
+                "kind": "admitted-alternative",
+                "source": "receipt:alignment.bindings[noMiddlewareBoundToStandalone] (FeatureBinding; derived realization)",
+                "variant": "middleware::none"
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [],
+              "node": "F-PLATFORM-MIDDLEWARE",
+              "type": "alternative"
+            },
+            "item": "PlatformStack.Middleware = None",
+            "node": "F-PLATFORM-MIDDLEWARE-NONE",
+            "path": "PlatformStack.Middleware",
+            "selected": true,
+            "unclassified": null,
+            "value": "None"
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "standalone",
+                "governed_id": "f62e3f47-7d3f-520a-a136-c19c1b03243d",
+                "kind": "admitted-alternative",
+                "source": "receipt:alignment.bindings[linuxOSPlatformBoundToStandalone] (FeatureBinding; derived realization)",
+                "variant": "osPlatform::linux"
+              },
+              {
+                "governed": "linuxROS2AutowareRuntime",
+                "governed_id": "7c6ebbf5-9790-597f-9ee3-96d0ec4c7b58",
+                "kind": "common",
+                "source": "governed-scope-validation:common_core[linuxROS2AutowareRuntime] via catalogue correspondence",
+                "variant": "osPlatform::linux"
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [],
+              "node": "F-PLATFORM-OS",
+              "type": "alternative"
+            },
+            "item": "PlatformStack.OS = Linux",
+            "node": "F-PLATFORM-OS-LINUX",
+            "path": "PlatformStack.OS",
+            "selected": true,
+            "unclassified": null,
+            "value": "Linux"
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "standalone",
+                "governed_id": "f62e3f47-7d3f-520a-a136-c19c1b03243d",
+                "kind": "admitted-alternative",
+                "source": "receipt:alignment.bindings[noHypervisorBoundToStandalone] (FeatureBinding; derived realization)",
+                "variant": "hypervisor::none"
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [],
+              "node": "F-PLATFORM-HYPERVISOR",
+              "type": "alternative"
+            },
+            "item": "PlatformStack.Hypervisor = None",
+            "node": "F-PLATFORM-HYPERVISOR-NONE",
+            "path": "PlatformStack.Hypervisor",
+            "selected": true,
+            "unclassified": null,
+            "value": "None"
+          },
+          {
+            "catalogue_role": "common capability",
+            "classifications": [
+              {
+                "governed": "vehicleTargetAEBS",
+                "governed_id": "48d42202-194a-591d-9a5d-8b41fbdd15ff",
+                "kind": "common",
+                "source": "governed-scope-validation:common_core[vehicleTargetAEBS] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS = False",
+            "node": "C-CAPABILITY-AEBS-VEHICLE-TARGET",
+            "path": "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS",
+            "selected": false,
+            "unclassified": null,
+            "value": false
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "expandedAEBSCapabilityVariability",
+                "governed_id": "bbc3a850-629e-546f-aeaa-0ac014f3935b",
+                "kind": "deferred",
+                "source": "governed-scope-validation:deferred[expandedAEBSCapabilityVariability] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.ForwardCollisionMitigation.PedestrianDetection = False",
+            "node": "F-CAPABILITY-AEBS-PEDESTRIAN-DETECTION",
+            "path": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+            "selected": false,
+            "unclassified": null,
+            "value": false
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "expandedAEBSCapabilityVariability",
+                "governed_id": "bbc3a850-629e-546f-aeaa-0ac014f3935b",
+                "kind": "deferred",
+                "source": "governed-scope-validation:deferred[expandedAEBSCapabilityVariability] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.ForwardCollisionMitigation.BicycleDetection = False",
+            "node": "F-CAPABILITY-AEBS-BICYCLE-DETECTION",
+            "path": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+            "selected": false,
+            "unclassified": null,
+            "value": false
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": null,
+                "governed_id": null,
+                "kind": "not-in-governed-scope",
+                "note": "no governed-scope element; the catalogue lists it as an unmodeled feature candidate",
+                "source": "catalogue correspondence: no governed element",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.AdaptiveCruiseControl = False",
+            "node": "F-CAPABILITY-ADAPTIVE-CRUISE-CONTROL",
+            "path": "Capabilities.AdaptiveCruiseControl",
+            "selected": false,
+            "unclassified": null,
+            "value": false
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": null,
+                "governed_id": null,
+                "kind": "not-in-governed-scope",
+                "note": "no governed-scope element; the catalogue lists it as an unmodeled feature candidate",
+                "source": "catalogue correspondence: no governed element",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.LaneKeepAssist = False",
+            "node": "F-CAPABILITY-LANE-KEEP-ASSIST",
+            "path": "Capabilities.LaneKeepAssist",
+            "selected": false,
+            "unclassified": null,
+            "value": false
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "currentSensingBaseline",
+                "governed_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+                "kind": "common",
+                "source": "governed-scope-validation:common_core[currentSensingBaseline] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [
+                {
+                  "governed": "sensingVariability",
+                  "governed_id": "b14d209f-de65-5a75-b260-93f5ac8c48da",
+                  "kind": "deferred",
+                  "source": "governed-scope-validation:deferred[sensingVariability] via catalogue correspondence",
+                  "variant": null
+                }
+              ],
+              "node": "F-SENSING-PERCEPTION",
+              "type": "or_group"
+            },
+            "item": "SensingBoundary.PerceptionSensors = LiDAR",
+            "node": "F-SENSING-PERCEPTION-LIDAR",
+            "path": "SensingBoundary.PerceptionSensors",
+            "selected": true,
+            "unclassified": null,
+            "value": [
+              "LiDAR",
+              "Camera"
+            ]
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "currentSensingBaseline",
+                "governed_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+                "kind": "common",
+                "source": "governed-scope-validation:common_core[currentSensingBaseline] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [
+                {
+                  "governed": "sensingVariability",
+                  "governed_id": "b14d209f-de65-5a75-b260-93f5ac8c48da",
+                  "kind": "deferred",
+                  "source": "governed-scope-validation:deferred[sensingVariability] via catalogue correspondence",
+                  "variant": null
+                }
+              ],
+              "node": "F-SENSING-PERCEPTION",
+              "type": "or_group"
+            },
+            "item": "SensingBoundary.PerceptionSensors = Camera",
+            "node": "F-SENSING-PERCEPTION-CAMERA",
+            "path": "SensingBoundary.PerceptionSensors",
+            "selected": true,
+            "unclassified": null,
+            "value": [
+              "LiDAR",
+              "Camera"
+            ]
+          }
+        ],
+        "summary": "no: common content not fully represented by the selections: vehicleTargetAEBS not represented (dropped: C-CAPABILITY-AEBS-VEHICLE-TARGET)",
+        "unclassified": [],
+        "verdict_reasons": [
+          "common content not fully represented by the selections: vehicleTargetAEBS not represented (dropped: C-CAPABILITY-AEBS-VEHICLE-TARGET)"
+        ]
+      },
+      "case": "ug-10-vehicle-target-aebs-false",
+      "class": "intentional-scope",
+      "class_reason": "tool-valid; no: common content not fully represented by the selections: vehicleTargetAEBS not represented (dropped: C-CAPABILITY-AEBS-VEHICLE-TARGET)",
+      "comparison": {
+        "differing": [],
+        "equal_on": [],
+        "ple_s_expected": null,
+        "representation_differences": [
+          {
+            "common_asset": "linuxROS2AutowareRuntime",
+            "implied_alternative_binds_variation": true,
+            "manifests": false,
+            "missing": [],
+            "representable_by": [
+              "F-PLATFORM-OS-LINUX"
+            ],
+            "represented_by": [
+              "F-PLATFORM-OS-LINUX"
+            ],
+            "variation": "osPlatform"
+          }
+        ],
+        "tool_selected": {
+          "applicationMiddlewareAdapter": "none",
+          "hypervisor": "none",
+          "middleware": "none",
+          "osPlatform": "linux",
+          "vehicleApplication": "autoware"
+        }
+      },
+      "configuration_valid_under_current_tool": {
+        "exit_code": 0,
+        "meaning": "valid",
+        "messages": [],
+        "summary": "valid",
+        "valid": true,
+        "violated_constraints": []
+      },
+      "operational_input": {
+        "encoding": {
+          "expressible": true,
+          "overrides": {
+            "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS": false
+          }
+        },
+        "kind": "generated",
+        "name": "VehicleTargetAEBSOffProbe",
+        "path": null,
+        "selections": {
+          "Capabilities.AdaptiveCruiseControl": false,
+          "Capabilities.ForwardCollisionMitigation.BicycleDetection": false,
+          "Capabilities.ForwardCollisionMitigation.PedestrianDetection": false,
+          "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS": false,
+          "Capabilities.LaneKeepAssist": false,
+          "PlatformStack.Hypervisor": "None",
+          "PlatformStack.Middleware": "None",
+          "PlatformStack.OS": "Linux",
+          "PlatformStack.VehicleApplication": "Autoware",
+          "SensingBoundary.PerceptionSensors": [
+            "LiDAR",
+            "Camera"
+          ]
+        },
+        "sha256": "0d8a4d476e56ece983e49afb8510b467f32511b278f5656411381cfb0a129146",
+        "template": "model-based-product-line-engineering/feature-configurations/aebs-autoware-linux-lidar-camera.yaml"
+      },
+      "ple_s": {
+        "alternatives_realized_by_admitted_selections": [
+          "standalone"
+        ],
+        "common_assets": [],
+        "configuration": null,
+        "derived_asset_variants": {},
+        "element_id": null,
+        "reason": "no PLE-S configuration: common content not fully represented by the selections: vehicleTargetAEBS not represented (dropped: C-CAPABILITY-AEBS-VEHICLE-TARGET)",
+        "selected_alternatives": [],
+        "status": null,
+        "summary": "no PLE-S configuration: common content not fully represented by the selections: vehicleTargetAEBS not represented (dropped: C-CAPABILITY-AEBS-VEHICLE-TARGET)",
+        "violated_bound": null
+      },
+      "provenance": {
+        "bill_of_features_sha256": "0d8a4d476e56ece983e49afb8510b467f32511b278f5656411381cfb0a129146",
+        "digest_origin": "projection header",
+        "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
+        "ple_s_receipt": {
+          "configuration_element_id": null,
+          "executor_revision": "7e895252ce2b3b3d5d404d2176cc7872b7f671e3",
+          "receipt_sha256": "290a5351e4f9992f6ea89c63c0559afd9ab72252fdc97fc2e5378ed4054b1f8c",
+          "run_id": "38788579272"
+        },
+        "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
+        "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
+      },
+      "purpose": "the common vehicle-target AEBS capability switched off on the capability axis",
+      "tag": "UG-10"
+    },
+    {
+      "admitted_by_governed_scope": {
+        "admitted": false,
+        "alternatives_realized": {
+          "standalone": [
+            "PlatformStack.Middleware = None",
+            "PlatformStack.OS = Linux",
+            "PlatformStack.Hypervisor = None"
+          ]
+        },
+        "common_assets": [
+          {
+            "asset": "autowareApplication",
+            "complete": true,
+            "dropped": [],
+            "element_id": "184fb3f2-807d-5aa0-836a-f65fd9e1adde",
+            "implied_by": [],
+            "missing": [],
+            "representable_by": [
+              "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE"
+            ],
+            "represented_by": [
+              "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE"
+            ],
+            "status": "represented"
+          },
+          {
+            "asset": "currentSensingBaseline",
+            "complete": true,
+            "dropped": [],
+            "element_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+            "implied_by": [
+              "C-SENSING-MOTION"
+            ],
+            "missing": [],
+            "representable_by": [
+              "C-SENSING-MOTION",
+              "F-SENSING-PERCEPTION-CAMERA",
+              "F-SENSING-PERCEPTION-LIDAR"
+            ],
+            "represented_by": [
+              "F-SENSING-PERCEPTION-CAMERA",
+              "F-SENSING-PERCEPTION-LIDAR"
+            ],
+            "status": "represented (implied: C-SENSING-MOTION)"
+          },
+          {
+            "asset": "linuxROS2AutowareRuntime",
+            "complete": true,
+            "dropped": [],
+            "element_id": "7c6ebbf5-9790-597f-9ee3-96d0ec4c7b58",
+            "implied_by": [],
+            "missing": [],
+            "representable_by": [
+              "F-PLATFORM-OS-LINUX"
+            ],
+            "represented_by": [
+              "F-PLATFORM-OS-LINUX"
+            ],
+            "status": "represented"
+          },
+          {
+            "asset": "protectedEmergencyCommandPathIndependence",
+            "complete": null,
+            "dropped": [],
+            "element_id": "0f6ba270-c96c-5789-a427-6383d89e901c",
+            "implied_by": [],
+            "missing": [],
+            "representable_by": [],
+            "represented_by": [],
+            "status": "outside the catalogue's selection surface"
+          },
+          {
+            "asset": "vehicleTargetAEBS",
+            "complete": true,
+            "dropped": [],
+            "element_id": "48d42202-194a-591d-9a5d-8b41fbdd15ff",
+            "implied_by": [],
+            "missing": [],
+            "representable_by": [
+              "C-CAPABILITY-AEBS-VEHICLE-TARGET"
+            ],
+            "represented_by": [
+              "C-CAPABILITY-AEBS-VEHICLE-TARGET"
+            ],
+            "status": "represented"
+          }
+        ],
+        "exempted_common_assets": [],
+        "implied_alternative": "standalone",
+        "incomplete_common_assets": [],
+        "reasons": [
+          "PlatformStack.VehicleApplication = Autoware: common autowareApplication",
+          "PlatformStack.Middleware = None: admitted-alternative standalone",
+          "PlatformStack.OS = Linux: admitted-alternative standalone; common linuxROS2AutowareRuntime",
+          "PlatformStack.Hypervisor = None: admitted-alternative standalone",
+          "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS = True: common vehicleTargetAEBS",
+          "Capabilities.ForwardCollisionMitigation.PedestrianDetection = False: not selected (deferred)",
+          "Capabilities.ForwardCollisionMitigation.BicycleDetection = False: not selected (deferred)",
+          "Capabilities.AdaptiveCruiseControl = True: not-in-governed-scope",
+          "Capabilities.LaneKeepAssist = False: not selected (not-in-governed-scope)",
+          "SensingBoundary.PerceptionSensors = LiDAR: common currentSensingBaseline",
+          "SensingBoundary.PerceptionSensors = Camera: common currentSensingBaseline",
+          "PlatformStack.VehicleApplication is catalogue variability (feature); governed: deferred drivingStackVariability",
+          "SensingBoundary.PerceptionSensors is catalogue variability (feature); governed: deferred sensingVariability"
+        ],
+        "selections": [
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "autowareApplication",
+                "governed_id": "184fb3f2-807d-5aa0-836a-f65fd9e1adde",
+                "kind": "common",
+                "source": "receipt:alignment.common_assets[autowareApplication].superset_realization[commonAutowareApplicationRealizedByAutowareStack]",
+                "variant": "vehicleApplication::autoware"
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [
+                {
+                  "governed": "drivingStackVariability",
+                  "governed_id": "d5cdb8e3-7771-52bb-89b6-3a7428147fe3",
+                  "kind": "deferred",
+                  "source": "governed-scope-validation:deferred[drivingStackVariability] via catalogue correspondence",
+                  "variant": null
+                }
+              ],
+              "node": "F-PLATFORM-VEHICLE-APPLICATION",
+              "type": "alternative"
+            },
+            "item": "PlatformStack.VehicleApplication = Autoware",
+            "node": "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE",
+            "path": "PlatformStack.VehicleApplication",
+            "selected": true,
+            "unclassified": null,
+            "value": "Autoware"
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "standalone",
+                "governed_id": "f62e3f47-7d3f-520a-a136-c19c1b03243d",
+                "kind": "admitted-alternative",
+                "source": "receipt:alignment.bindings[noMiddlewareBoundToStandalone] (FeatureBinding; derived realization)",
+                "variant": "middleware::none"
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [],
+              "node": "F-PLATFORM-MIDDLEWARE",
+              "type": "alternative"
+            },
+            "item": "PlatformStack.Middleware = None",
+            "node": "F-PLATFORM-MIDDLEWARE-NONE",
+            "path": "PlatformStack.Middleware",
+            "selected": true,
+            "unclassified": null,
+            "value": "None"
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "standalone",
+                "governed_id": "f62e3f47-7d3f-520a-a136-c19c1b03243d",
+                "kind": "admitted-alternative",
+                "source": "receipt:alignment.bindings[linuxOSPlatformBoundToStandalone] (FeatureBinding; derived realization)",
+                "variant": "osPlatform::linux"
+              },
+              {
+                "governed": "linuxROS2AutowareRuntime",
+                "governed_id": "7c6ebbf5-9790-597f-9ee3-96d0ec4c7b58",
+                "kind": "common",
+                "source": "governed-scope-validation:common_core[linuxROS2AutowareRuntime] via catalogue correspondence",
+                "variant": "osPlatform::linux"
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [],
+              "node": "F-PLATFORM-OS",
+              "type": "alternative"
+            },
+            "item": "PlatformStack.OS = Linux",
+            "node": "F-PLATFORM-OS-LINUX",
+            "path": "PlatformStack.OS",
+            "selected": true,
+            "unclassified": null,
+            "value": "Linux"
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "standalone",
+                "governed_id": "f62e3f47-7d3f-520a-a136-c19c1b03243d",
+                "kind": "admitted-alternative",
+                "source": "receipt:alignment.bindings[noHypervisorBoundToStandalone] (FeatureBinding; derived realization)",
+                "variant": "hypervisor::none"
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [],
+              "node": "F-PLATFORM-HYPERVISOR",
+              "type": "alternative"
+            },
+            "item": "PlatformStack.Hypervisor = None",
+            "node": "F-PLATFORM-HYPERVISOR-NONE",
+            "path": "PlatformStack.Hypervisor",
+            "selected": true,
+            "unclassified": null,
+            "value": "None"
+          },
+          {
+            "catalogue_role": "common capability",
+            "classifications": [
+              {
+                "governed": "vehicleTargetAEBS",
+                "governed_id": "48d42202-194a-591d-9a5d-8b41fbdd15ff",
+                "kind": "common",
+                "source": "governed-scope-validation:common_core[vehicleTargetAEBS] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS = True",
+            "node": "C-CAPABILITY-AEBS-VEHICLE-TARGET",
+            "path": "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS",
+            "selected": true,
+            "unclassified": null,
+            "value": true
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "expandedAEBSCapabilityVariability",
+                "governed_id": "bbc3a850-629e-546f-aeaa-0ac014f3935b",
+                "kind": "deferred",
+                "source": "governed-scope-validation:deferred[expandedAEBSCapabilityVariability] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.ForwardCollisionMitigation.PedestrianDetection = False",
+            "node": "F-CAPABILITY-AEBS-PEDESTRIAN-DETECTION",
+            "path": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+            "selected": false,
+            "unclassified": null,
+            "value": false
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "expandedAEBSCapabilityVariability",
+                "governed_id": "bbc3a850-629e-546f-aeaa-0ac014f3935b",
+                "kind": "deferred",
+                "source": "governed-scope-validation:deferred[expandedAEBSCapabilityVariability] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.ForwardCollisionMitigation.BicycleDetection = False",
+            "node": "F-CAPABILITY-AEBS-BICYCLE-DETECTION",
+            "path": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+            "selected": false,
+            "unclassified": null,
+            "value": false
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": null,
+                "governed_id": null,
+                "kind": "not-in-governed-scope",
+                "note": "no governed-scope element; the catalogue lists it as an unmodeled feature candidate",
+                "source": "catalogue correspondence: no governed element",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.AdaptiveCruiseControl = True",
+            "node": "F-CAPABILITY-ADAPTIVE-CRUISE-CONTROL",
+            "path": "Capabilities.AdaptiveCruiseControl",
+            "selected": true,
+            "unclassified": null,
+            "value": true
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": null,
+                "governed_id": null,
+                "kind": "not-in-governed-scope",
+                "note": "no governed-scope element; the catalogue lists it as an unmodeled feature candidate",
+                "source": "catalogue correspondence: no governed element",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.LaneKeepAssist = False",
+            "node": "F-CAPABILITY-LANE-KEEP-ASSIST",
+            "path": "Capabilities.LaneKeepAssist",
+            "selected": false,
+            "unclassified": null,
+            "value": false
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "currentSensingBaseline",
+                "governed_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+                "kind": "common",
+                "source": "governed-scope-validation:common_core[currentSensingBaseline] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [
+                {
+                  "governed": "sensingVariability",
+                  "governed_id": "b14d209f-de65-5a75-b260-93f5ac8c48da",
+                  "kind": "deferred",
+                  "source": "governed-scope-validation:deferred[sensingVariability] via catalogue correspondence",
+                  "variant": null
+                }
+              ],
+              "node": "F-SENSING-PERCEPTION",
+              "type": "or_group"
+            },
+            "item": "SensingBoundary.PerceptionSensors = LiDAR",
+            "node": "F-SENSING-PERCEPTION-LIDAR",
+            "path": "SensingBoundary.PerceptionSensors",
+            "selected": true,
+            "unclassified": null,
+            "value": [
+              "LiDAR",
+              "Camera"
+            ]
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "currentSensingBaseline",
+                "governed_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+                "kind": "common",
+                "source": "governed-scope-validation:common_core[currentSensingBaseline] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [
+                {
+                  "governed": "sensingVariability",
+                  "governed_id": "b14d209f-de65-5a75-b260-93f5ac8c48da",
+                  "kind": "deferred",
+                  "source": "governed-scope-validation:deferred[sensingVariability] via catalogue correspondence",
+                  "variant": null
+                }
+              ],
+              "node": "F-SENSING-PERCEPTION",
+              "type": "or_group"
+            },
+            "item": "SensingBoundary.PerceptionSensors = Camera",
+            "node": "F-SENSING-PERCEPTION-CAMERA",
+            "path": "SensingBoundary.PerceptionSensors",
+            "selected": true,
+            "unclassified": null,
+            "value": [
+              "LiDAR",
+              "Camera"
+            ]
+          }
+        ],
+        "summary": "no: not admitted content selected: Capabilities.AdaptiveCruiseControl = True: not-in-governed-scope",
+        "unclassified": [],
+        "verdict_reasons": [
+          "not admitted content selected: Capabilities.AdaptiveCruiseControl = True: not-in-governed-scope"
+        ]
+      },
+      "case": "catalogue-only-adaptive-cruise-control",
+      "class": "intentional-scope",
+      "class_reason": "tool-valid; no: not admitted content selected: Capabilities.AdaptiveCruiseControl = True: not-in-governed-scope",
+      "comparison": {
+        "differing": [],
+        "equal_on": [],
+        "ple_s_expected": null,
+        "representation_differences": [
+          {
+            "common_asset": "linuxROS2AutowareRuntime",
+            "implied_alternative_binds_variation": true,
+            "manifests": false,
+            "missing": [],
+            "representable_by": [
+              "F-PLATFORM-OS-LINUX"
+            ],
+            "represented_by": [
+              "F-PLATFORM-OS-LINUX"
+            ],
+            "variation": "osPlatform"
+          }
+        ],
+        "tool_selected": {
+          "applicationMiddlewareAdapter": "none",
+          "hypervisor": "none",
+          "middleware": "none",
+          "osPlatform": "linux",
+          "vehicleApplication": "autoware"
+        }
+      },
+      "configuration_valid_under_current_tool": {
+        "exit_code": 0,
+        "meaning": "valid",
+        "messages": [],
+        "summary": "valid",
+        "valid": true,
+        "violated_constraints": []
+      },
+      "operational_input": {
+        "encoding": {
+          "expressible": true,
+          "overrides": {
+            "Capabilities.AdaptiveCruiseControl": true
+          }
+        },
+        "kind": "generated",
+        "name": "AdaptiveCruiseControlProbe",
+        "path": null,
+        "selections": {
+          "Capabilities.AdaptiveCruiseControl": true,
+          "Capabilities.ForwardCollisionMitigation.BicycleDetection": false,
+          "Capabilities.ForwardCollisionMitigation.PedestrianDetection": false,
+          "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS": true,
+          "Capabilities.LaneKeepAssist": false,
+          "PlatformStack.Hypervisor": "None",
+          "PlatformStack.Middleware": "None",
+          "PlatformStack.OS": "Linux",
+          "PlatformStack.VehicleApplication": "Autoware",
+          "SensingBoundary.PerceptionSensors": [
+            "LiDAR",
+            "Camera"
+          ]
+        },
+        "sha256": "7d8ffb1bbef5de53e90aedcb20839cdd98779bc1ddb79070cec9177cb4b1f428",
+        "template": "model-based-product-line-engineering/feature-configurations/aebs-autoware-linux-lidar-camera.yaml"
+      },
+      "ple_s": {
+        "alternatives_realized_by_admitted_selections": [
+          "standalone"
+        ],
+        "common_assets": [],
+        "configuration": null,
+        "derived_asset_variants": {},
+        "element_id": null,
+        "reason": "no PLE-S configuration: the admitted tree has no feature for not-in-governed-scope",
+        "selected_alternatives": [],
+        "status": null,
+        "summary": "no PLE-S configuration: the admitted tree has no feature for not-in-governed-scope",
+        "violated_bound": null
+      },
+      "provenance": {
+        "bill_of_features_sha256": "7d8ffb1bbef5de53e90aedcb20839cdd98779bc1ddb79070cec9177cb4b1f428",
+        "digest_origin": "projection header",
+        "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
+        "ple_s_receipt": {
+          "configuration_element_id": null,
+          "executor_revision": "7e895252ce2b3b3d5d404d2176cc7872b7f671e3",
+          "receipt_sha256": "290a5351e4f9992f6ea89c63c0559afd9ab72252fdc97fc2e5378ed4054b1f8c",
+          "run_id": "38788579272"
+        },
+        "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
+        "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
+      },
+      "purpose": "a catalogue feature candidate the governed scope has no element for",
+      "tag": "catalogue-only"
+    },
+    {
+      "admitted_by_governed_scope": {
+        "admitted": false,
+        "alternatives_realized": {
+          "aaosIntegrated": [
+            "PlatformStack.Middleware = AndroidSDV"
+          ],
+          "standalone": [
+            "PlatformStack.OS = Linux",
+            "PlatformStack.Hypervisor = None"
+          ]
+        },
+        "common_assets": [
+          {
+            "asset": "autowareApplication",
+            "complete": true,
+            "dropped": [],
+            "element_id": "184fb3f2-807d-5aa0-836a-f65fd9e1adde",
+            "implied_by": [],
+            "missing": [],
+            "representable_by": [
+              "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE"
+            ],
+            "represented_by": [
+              "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE"
+            ],
+            "status": "represented"
+          },
+          {
+            "asset": "currentSensingBaseline",
+            "complete": true,
+            "dropped": [],
+            "element_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+            "implied_by": [
+              "C-SENSING-MOTION"
+            ],
+            "missing": [],
+            "representable_by": [
+              "C-SENSING-MOTION",
+              "F-SENSING-PERCEPTION-CAMERA",
+              "F-SENSING-PERCEPTION-LIDAR"
+            ],
+            "represented_by": [
+              "F-SENSING-PERCEPTION-CAMERA",
+              "F-SENSING-PERCEPTION-LIDAR"
+            ],
+            "status": "represented (implied: C-SENSING-MOTION)"
+          },
+          {
+            "asset": "linuxROS2AutowareRuntime",
+            "complete": true,
+            "dropped": [],
+            "element_id": "7c6ebbf5-9790-597f-9ee3-96d0ec4c7b58",
+            "implied_by": [],
+            "missing": [],
+            "representable_by": [
+              "F-PLATFORM-OS-LINUX"
+            ],
+            "represented_by": [
+              "F-PLATFORM-OS-LINUX"
+            ],
+            "status": "represented"
+          },
+          {
+            "asset": "protectedEmergencyCommandPathIndependence",
+            "complete": null,
+            "dropped": [],
+            "element_id": "0f6ba270-c96c-5789-a427-6383d89e901c",
+            "implied_by": [],
+            "missing": [],
+            "representable_by": [],
+            "represented_by": [],
+            "status": "outside the catalogue's selection surface"
+          },
+          {
+            "asset": "vehicleTargetAEBS",
+            "complete": true,
+            "dropped": [],
+            "element_id": "48d42202-194a-591d-9a5d-8b41fbdd15ff",
+            "implied_by": [],
+            "missing": [],
+            "representable_by": [
+              "C-CAPABILITY-AEBS-VEHICLE-TARGET"
+            ],
+            "represented_by": [
+              "C-CAPABILITY-AEBS-VEHICLE-TARGET"
+            ],
+            "status": "represented"
+          }
+        ],
+        "exempted_common_assets": [],
+        "implied_alternative": null,
+        "incomplete_common_assets": [],
+        "reasons": [
+          "PlatformStack.VehicleApplication = Autoware: common autowareApplication",
+          "PlatformStack.Middleware = AndroidSDV: admitted-alternative aaosIntegrated",
+          "PlatformStack.OS = Linux: admitted-alternative standalone; common linuxROS2AutowareRuntime",
+          "PlatformStack.Hypervisor = None: admitted-alternative standalone",
+          "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS = True: common vehicleTargetAEBS",
+          "Capabilities.ForwardCollisionMitigation.PedestrianDetection = False: not selected (deferred)",
+          "Capabilities.ForwardCollisionMitigation.BicycleDetection = False: not selected (deferred)",
+          "Capabilities.AdaptiveCruiseControl = False: not selected (not-in-governed-scope)",
+          "Capabilities.LaneKeepAssist = False: not selected (not-in-governed-scope)",
+          "SensingBoundary.PerceptionSensors = LiDAR: common currentSensingBaseline",
+          "SensingBoundary.PerceptionSensors = Camera: common currentSensingBaseline",
+          "PlatformStack.VehicleApplication is catalogue variability (feature); governed: deferred drivingStackVariability",
+          "SensingBoundary.PerceptionSensors is catalogue variability (feature); governed: deferred sensingVariability"
+        ],
+        "selections": [
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "autowareApplication",
+                "governed_id": "184fb3f2-807d-5aa0-836a-f65fd9e1adde",
+                "kind": "common",
+                "source": "receipt:alignment.common_assets[autowareApplication].superset_realization[commonAutowareApplicationRealizedByAutowareStack]",
+                "variant": "vehicleApplication::autoware"
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [
+                {
+                  "governed": "drivingStackVariability",
+                  "governed_id": "d5cdb8e3-7771-52bb-89b6-3a7428147fe3",
+                  "kind": "deferred",
+                  "source": "governed-scope-validation:deferred[drivingStackVariability] via catalogue correspondence",
+                  "variant": null
+                }
+              ],
+              "node": "F-PLATFORM-VEHICLE-APPLICATION",
+              "type": "alternative"
+            },
+            "item": "PlatformStack.VehicleApplication = Autoware",
+            "node": "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE",
+            "path": "PlatformStack.VehicleApplication",
+            "selected": true,
+            "unclassified": null,
+            "value": "Autoware"
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "aaosIntegrated",
+                "governed_id": "0f7be688-1c0a-5d0a-a487-721f05ff0a4e",
+                "kind": "admitted-alternative",
+                "source": "receipt:alignment.bindings[androidSDVMiddlewareBoundToAAOSIntegrated] (FeatureBinding; derived realization)",
+                "variant": "middleware::androidSDV"
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [],
+              "node": "F-PLATFORM-MIDDLEWARE",
+              "type": "alternative"
+            },
+            "item": "PlatformStack.Middleware = AndroidSDV",
+            "node": "F-PLATFORM-MIDDLEWARE-ANDROID-SDV",
+            "path": "PlatformStack.Middleware",
+            "selected": true,
+            "unclassified": null,
+            "value": "AndroidSDV"
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "standalone",
+                "governed_id": "f62e3f47-7d3f-520a-a136-c19c1b03243d",
+                "kind": "admitted-alternative",
+                "source": "receipt:alignment.bindings[linuxOSPlatformBoundToStandalone] (FeatureBinding; derived realization)",
+                "variant": "osPlatform::linux"
+              },
+              {
+                "governed": "linuxROS2AutowareRuntime",
+                "governed_id": "7c6ebbf5-9790-597f-9ee3-96d0ec4c7b58",
+                "kind": "common",
+                "source": "governed-scope-validation:common_core[linuxROS2AutowareRuntime] via catalogue correspondence",
+                "variant": "osPlatform::linux"
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [],
+              "node": "F-PLATFORM-OS",
+              "type": "alternative"
+            },
+            "item": "PlatformStack.OS = Linux",
+            "node": "F-PLATFORM-OS-LINUX",
+            "path": "PlatformStack.OS",
+            "selected": true,
+            "unclassified": null,
+            "value": "Linux"
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "standalone",
+                "governed_id": "f62e3f47-7d3f-520a-a136-c19c1b03243d",
+                "kind": "admitted-alternative",
+                "source": "receipt:alignment.bindings[noHypervisorBoundToStandalone] (FeatureBinding; derived realization)",
+                "variant": "hypervisor::none"
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [],
+              "node": "F-PLATFORM-HYPERVISOR",
+              "type": "alternative"
+            },
+            "item": "PlatformStack.Hypervisor = None",
+            "node": "F-PLATFORM-HYPERVISOR-NONE",
+            "path": "PlatformStack.Hypervisor",
+            "selected": true,
+            "unclassified": null,
+            "value": "None"
+          },
+          {
+            "catalogue_role": "common capability",
+            "classifications": [
+              {
+                "governed": "vehicleTargetAEBS",
+                "governed_id": "48d42202-194a-591d-9a5d-8b41fbdd15ff",
+                "kind": "common",
+                "source": "governed-scope-validation:common_core[vehicleTargetAEBS] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS = True",
+            "node": "C-CAPABILITY-AEBS-VEHICLE-TARGET",
+            "path": "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS",
+            "selected": true,
+            "unclassified": null,
+            "value": true
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "expandedAEBSCapabilityVariability",
+                "governed_id": "bbc3a850-629e-546f-aeaa-0ac014f3935b",
+                "kind": "deferred",
+                "source": "governed-scope-validation:deferred[expandedAEBSCapabilityVariability] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.ForwardCollisionMitigation.PedestrianDetection = False",
+            "node": "F-CAPABILITY-AEBS-PEDESTRIAN-DETECTION",
+            "path": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+            "selected": false,
+            "unclassified": null,
+            "value": false
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "expandedAEBSCapabilityVariability",
+                "governed_id": "bbc3a850-629e-546f-aeaa-0ac014f3935b",
+                "kind": "deferred",
+                "source": "governed-scope-validation:deferred[expandedAEBSCapabilityVariability] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.ForwardCollisionMitigation.BicycleDetection = False",
+            "node": "F-CAPABILITY-AEBS-BICYCLE-DETECTION",
+            "path": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+            "selected": false,
+            "unclassified": null,
+            "value": false
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": null,
+                "governed_id": null,
+                "kind": "not-in-governed-scope",
+                "note": "no governed-scope element; the catalogue lists it as an unmodeled feature candidate",
+                "source": "catalogue correspondence: no governed element",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.AdaptiveCruiseControl = False",
+            "node": "F-CAPABILITY-ADAPTIVE-CRUISE-CONTROL",
+            "path": "Capabilities.AdaptiveCruiseControl",
+            "selected": false,
+            "unclassified": null,
+            "value": false
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": null,
+                "governed_id": null,
+                "kind": "not-in-governed-scope",
+                "note": "no governed-scope element; the catalogue lists it as an unmodeled feature candidate",
+                "source": "catalogue correspondence: no governed element",
+                "variant": null
+              }
+            ],
+            "item": "Capabilities.LaneKeepAssist = False",
+            "node": "F-CAPABILITY-LANE-KEEP-ASSIST",
+            "path": "Capabilities.LaneKeepAssist",
+            "selected": false,
+            "unclassified": null,
+            "value": false
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "currentSensingBaseline",
+                "governed_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+                "kind": "common",
+                "source": "governed-scope-validation:common_core[currentSensingBaseline] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [
+                {
+                  "governed": "sensingVariability",
+                  "governed_id": "b14d209f-de65-5a75-b260-93f5ac8c48da",
+                  "kind": "deferred",
+                  "source": "governed-scope-validation:deferred[sensingVariability] via catalogue correspondence",
+                  "variant": null
+                }
+              ],
+              "node": "F-SENSING-PERCEPTION",
+              "type": "or_group"
+            },
+            "item": "SensingBoundary.PerceptionSensors = LiDAR",
+            "node": "F-SENSING-PERCEPTION-LIDAR",
+            "path": "SensingBoundary.PerceptionSensors",
+            "selected": true,
+            "unclassified": null,
+            "value": [
+              "LiDAR",
+              "Camera"
+            ]
+          },
+          {
+            "catalogue_role": "feature",
+            "classifications": [
+              {
+                "governed": "currentSensingBaseline",
+                "governed_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+                "kind": "common",
+                "source": "governed-scope-validation:common_core[currentSensingBaseline] via catalogue correspondence",
+                "variant": null
+              }
+            ],
+            "group": {
+              "catalogue_role": "feature",
+              "classifications": [
+                {
+                  "governed": "sensingVariability",
+                  "governed_id": "b14d209f-de65-5a75-b260-93f5ac8c48da",
+                  "kind": "deferred",
+                  "source": "governed-scope-validation:deferred[sensingVariability] via catalogue correspondence",
+                  "variant": null
+                }
+              ],
+              "node": "F-SENSING-PERCEPTION",
+              "type": "or_group"
+            },
+            "item": "SensingBoundary.PerceptionSensors = Camera",
+            "node": "F-SENSING-PERCEPTION-CAMERA",
+            "path": "SensingBoundary.PerceptionSensors",
+            "selected": true,
+            "unclassified": null,
+            "value": [
+              "LiDAR",
+              "Camera"
+            ]
+          }
+        ],
+        "summary": "no: the selections realize more than one admitted alternative: aaosIntegrated, standalone",
+        "unclassified": [],
+        "verdict_reasons": [
+          "the selections realize more than one admitted alternative: aaosIntegrated, standalone"
+        ]
+      },
+      "case": "derived-set-mixed",
+      "class": "intentional-scope",
+      "class_reason": "tool-valid; no: the selections realize more than one admitted alternative: aaosIntegrated, standalone",
+      "comparison": {
+        "differing": [],
+        "equal_on": [],
+        "ple_s_expected": null,
+        "representation_differences": [
+          {
+            "common_asset": "linuxROS2AutowareRuntime",
+            "implied_alternative_binds_variation": false,
+            "manifests": false,
+            "missing": [],
+            "representable_by": [
+              "F-PLATFORM-OS-LINUX"
+            ],
+            "represented_by": [
+              "F-PLATFORM-OS-LINUX"
+            ],
+            "variation": "osPlatform"
+          }
+        ],
+        "tool_selected": {
+          "applicationMiddlewareAdapter": "autowareToAAOSSDV",
+          "hypervisor": "none",
+          "middleware": "androidSDV",
+          "osPlatform": "linux",
+          "vehicleApplication": "autoware"
+        }
+      },
+      "configuration_valid_under_current_tool": {
+        "exit_code": 0,
+        "meaning": "valid",
+        "messages": [],
+        "summary": "valid",
+        "valid": true,
+        "violated_constraints": []
+      },
+      "operational_input": {
+        "encoding": {
+          "expressible": true,
+          "overrides": {
+            "PlatformStack.Middleware": "AndroidSDV"
+          }
+        },
+        "kind": "generated",
+        "name": "MixedDerivedSetProbe",
+        "path": null,
+        "selections": {
+          "Capabilities.AdaptiveCruiseControl": false,
+          "Capabilities.ForwardCollisionMitigation.BicycleDetection": false,
+          "Capabilities.ForwardCollisionMitigation.PedestrianDetection": false,
+          "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS": true,
+          "Capabilities.LaneKeepAssist": false,
+          "PlatformStack.Hypervisor": "None",
+          "PlatformStack.Middleware": "AndroidSDV",
+          "PlatformStack.OS": "Linux",
+          "PlatformStack.VehicleApplication": "Autoware",
+          "SensingBoundary.PerceptionSensors": [
+            "LiDAR",
+            "Camera"
+          ]
+        },
+        "sha256": "5a861b6b65d8493b3d8e035d9ff4d061f0543628c2aaffa71509ec56dfc37b94",
+        "template": "model-based-product-line-engineering/feature-configurations/aebs-autoware-linux-lidar-camera.yaml"
+      },
+      "ple_s": {
+        "alternatives_realized_by_admitted_selections": [
+          "aaosIntegrated",
+          "standalone"
+        ],
+        "common_assets": [],
+        "configuration": null,
+        "derived_asset_variants": {},
+        "element_id": null,
+        "reason": "no PLE-S configuration: the selections realize more than one admitted alternative: aaosIntegrated, standalone",
+        "selected_alternatives": [],
+        "status": null,
+        "summary": "no PLE-S configuration: the selections realize more than one admitted alternative: aaosIntegrated, standalone",
+        "violated_bound": null
+      },
+      "provenance": {
+        "bill_of_features_sha256": "5a861b6b65d8493b3d8e035d9ff4d061f0543628c2aaffa71509ec56dfc37b94",
+        "digest_origin": "projection header",
+        "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
+        "ple_s_receipt": {
+          "configuration_element_id": null,
+          "executor_revision": "7e895252ce2b3b3d5d404d2176cc7872b7f671e3",
+          "receipt_sha256": "290a5351e4f9992f6ea89c63c0559afd9ab72252fdc97fc2e5378ed4054b1f8c",
+          "run_id": "38788579272"
+        },
+        "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
+        "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
+      },
+      "purpose": "derived realizations of both alternatives mixed in one tool-valid selection",
+      "tag": "UG-14"
     },
     {
       "admitted_by_governed_scope": {
@@ -3831,7 +6805,11 @@
         "common_assets": [
           {
             "asset": "autowareApplication",
+            "complete": true,
+            "dropped": [],
             "element_id": "184fb3f2-807d-5aa0-836a-f65fd9e1adde",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [
               "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE"
             ],
@@ -3842,7 +6820,15 @@
           },
           {
             "asset": "currentSensingBaseline",
+            "complete": false,
+            "dropped": [],
             "element_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7",
+            "implied_by": [
+              "C-SENSING-MOTION"
+            ],
+            "missing": [
+              "F-SENSING-PERCEPTION-CAMERA"
+            ],
             "representable_by": [
               "C-SENSING-MOTION",
               "F-SENSING-PERCEPTION-CAMERA",
@@ -3851,27 +6837,41 @@
             "represented_by": [
               "F-SENSING-PERCEPTION-LIDAR"
             ],
-            "status": "represented"
+            "status": "partially represented (missing: F-SENSING-PERCEPTION-CAMERA)"
           },
           {
             "asset": "linuxROS2AutowareRuntime",
+            "complete": false,
+            "dropped": [],
             "element_id": "7c6ebbf5-9790-597f-9ee3-96d0ec4c7b58",
+            "implied_by": [],
+            "missing": [
+              "F-PLATFORM-OS-LINUX"
+            ],
             "representable_by": [
               "F-PLATFORM-OS-LINUX"
             ],
             "represented_by": [],
-            "status": "not represented"
+            "status": "not represented (missing: F-PLATFORM-OS-LINUX)"
           },
           {
             "asset": "protectedEmergencyCommandPathIndependence",
+            "complete": null,
+            "dropped": [],
             "element_id": "0f6ba270-c96c-5789-a427-6383d89e901c",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [],
             "represented_by": [],
             "status": "outside the catalogue's selection surface"
           },
           {
             "asset": "vehicleTargetAEBS",
+            "complete": true,
+            "dropped": [],
             "element_id": "48d42202-194a-591d-9a5d-8b41fbdd15ff",
+            "implied_by": [],
+            "missing": [],
             "representable_by": [
               "C-CAPABILITY-AEBS-VEHICLE-TARGET"
             ],
@@ -3881,7 +6881,12 @@
             "status": "represented"
           }
         ],
+        "exempted_common_assets": [],
         "implied_alternative": null,
+        "incomplete_common_assets": [
+          "currentSensingBaseline",
+          "linuxROS2AutowareRuntime"
+        ],
         "reasons": [
           "PlatformStack.VehicleApplication = Autoware: common autowareApplication",
           "PlatformStack.Middleware = EclipseSCORE: reference-only eclipseSCORE",
@@ -4128,35 +7133,33 @@
             ]
           }
         ],
-        "summary": "no: not admitted content selected: PlatformStack.Middleware = EclipseSCORE: reference-only eclipseSCORE | the selections realize more than one admitted alternative: aaosIntegrated, standalone",
+        "summary": "no: not admitted content selected: PlatformStack.Middleware = EclipseSCORE: reference-only eclipseSCORE | the selections realize more than one admitted alternative: aaosIntegrated, standalone | common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-CAMERA); linuxROS2AutowareRuntime not represented (missing: F-PLATFORM-OS-LINUX)",
         "unclassified": [],
-        "unrepresented_common_assets": [
-          "linuxROS2AutowareRuntime"
-        ],
         "verdict_reasons": [
           "not admitted content selected: PlatformStack.Middleware = EclipseSCORE: reference-only eclipseSCORE",
-          "the selections realize more than one admitted alternative: aaosIntegrated, standalone"
+          "the selections realize more than one admitted alternative: aaosIntegrated, standalone",
+          "common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-CAMERA); linuxROS2AutowareRuntime not represented (missing: F-PLATFORM-OS-LINUX)"
         ]
       },
       "case": "both-axes-negative",
-      "class": "equal",
-      "class_reason": "neither path derives a product; the reasons are independent: tool invalid (1 violation): C001; governed scope no: not admitted content selected: PlatformStack.Middleware = EclipseSCORE: reference-only eclipseSCORE | the selections realize more than one admitted alternative: aaosIntegrated, standalone; PLE-S no PLE-S configuration: the admitted tree has no feature for eclipseSCORE (reference-only)",
+      "class": "both-reject",
+      "class_reason": "the tool rejects and the governed scope does not admit, for independent reasons: tool invalid (1 violation): C001; governed scope no: not admitted content selected: PlatformStack.Middleware = EclipseSCORE: reference-only eclipseSCORE | the selections realize more than one admitted alternative: aaosIntegrated, standalone | common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-CAMERA); linuxROS2AutowareRuntime not represented (missing: F-PLATFORM-OS-LINUX); PLE-S no PLE-S configuration: the admitted tree has no feature for eclipseSCORE (reference-only)",
       "comparison": {
         "differing": [],
         "equal_on": [],
         "ple_s_expected": null,
         "representation_differences": [
           {
-            "classification": "intentional-representation",
             "common_asset": "linuxROS2AutowareRuntime",
-            "confirmed_in_graph": true,
-            "disposition": "recorded; the split execution-domain representation of the superset is owned by INC-MW-011 (owner decision D6, 2026-10-15), not by the scope alignment",
+            "implied_alternative_binds_variation": false,
             "manifests": false,
+            "missing": [
+              "F-PLATFORM-OS-LINUX"
+            ],
             "representable_by": [
               "F-PLATFORM-OS-LINUX"
             ],
             "represented_by": [],
-            "statement": "The governed scope classifies the Linux/ROS 2 Autoware runtime as common to both planned members. The shared-asset superset has a single osPlatform slot, which the AAOS-integrated alternative binds to android (the vehicle-platform domain) while the Autoware application domain keeps its Linux runtime. The superset cannot express the split topology, so the common runtime has no superset realization dependency and osPlatform is bound per alternative.",
             "variation": "osPlatform"
           }
         ],
@@ -4202,6 +7205,7 @@
         "common_assets": [],
         "configuration": null,
         "derived_asset_variants": {},
+        "element_id": null,
         "reason": "no PLE-S configuration: the admitted tree has no feature for eclipseSCORE (reference-only)",
         "selected_alternatives": [],
         "status": null,
@@ -4213,19 +7217,10 @@
         "digest_origin": "computed by the oracle (the tool generated no projection)",
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
-          "artifact": "ple-scope-alignment-7e895252ce2b3b3d5d404d2176cc7872b7f671e3-38788579272",
           "configuration_element_id": null,
-          "evaluator_sha256": "1bcf0ad586bfec714e8b2e063a5d577f0d29243fb14014d06406a4566953d508",
-          "evidence": "retained",
           "executor_revision": "7e895252ce2b3b3d5d404d2176cc7872b7f671e3",
-          "governed_scope_validation_sha256": "05bd30dce155d4ea3071858956454d1aeae17d35b3fd670e9983b8a1d50daf75",
-          "interpreter_revision": "6a99626b4af7cd01108f27dac88bf5b55bba207a",
-          "library_sha256": "1fbd5efd95b63877e88eb6b114ce67122b9dba5236d3712e73175254aaf7d216",
-          "model_sha256": "23f53587e727f24aa2f24f148e2de77720bbcfa6701df57f3b0d1b4152f77dde",
-          "pleml_pin": "5f8ab8560219dc24d8ec7ec90d6f0a145896ef8e",
           "receipt_sha256": "290a5351e4f9992f6ea89c63c0559afd9ab72252fdc97fc2e5378ed4054b1f8c",
-          "run_id": "38788579272",
-          "serializer_version": "0.10.3"
+          "run_id": "38788579272"
         },
         "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
         "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
@@ -4237,11 +7232,13 @@
   "schema": "de4sdv.ple-scope-alignment-comparison/v1",
   "summary": {
     "classes": {
-      "defect": [],
-      "equal": [
-        "standalone-member",
+      "both-reject": [
         "no-alternative",
         "both-axes-negative"
+      ],
+      "defect": [],
+      "equal": [
+        "standalone-member"
       ],
       "intentional-representation": [
         "aaos-integrated-member"
@@ -4249,8 +7246,14 @@
       "intentional-scope": [
         "ug-09-eclipse-score",
         "ug-09-apollo-qnx-qvm",
+        "ug-09-autosar-acrn",
         "ug-10-openpilot-no-middleware",
-        "ug-10-radar-only"
+        "ug-10-radar-only",
+        "ug-10-lidar-only",
+        "ug-10-camera-only",
+        "ug-10-vehicle-target-aebs-false",
+        "catalogue-only-adaptive-cruise-control",
+        "derived-set-mixed"
       ],
       "not-expressible-under-tool": [
         "both-alternatives"
