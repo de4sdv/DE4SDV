@@ -277,13 +277,13 @@ Shows the requirement set and its trace links to needs, behavior, or architectur
 
 ### `scoreTwoDomainClassificationView`
 
-Reviewers need each characteristic of the two-domain member classified as a feature, a common capability, a variability-structure change, a constraint or an evidence capability, with its reason and its baseline revalidation, before phase 4 derives needs; the realization coverage of the S-CORE variant is the framing's concern, not this one.
+Reviewers need the new member-distinguishing characteristic identified as a feature candidate, with the gap and the scope decision it waits for.
 
 - **Source:** `middleware_score_feature_classification.sysml`
 - **Viewpoint:** `selectedProductLineClassificationViewpoint` (`ProductLineClassificationViewpoint`)
 - **View type:** `TVD::TableView`
 - **Concern:** `scoreTwoDomainClassificationConcern`
-- **Exposes:** `eclipseSCOREMiddlewareVariant`, `autowareToSCOREAdapter`, `perExecutionDomainPlatformVariability`, `aaosSDVHMIGuest`, `crossDomainHMIPath`, `scoreAssumptionsOfUseConformance`, `integratorObligationsAndBench`
+- **Exposes:** `hmiGuestExecutionDomain`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
 
