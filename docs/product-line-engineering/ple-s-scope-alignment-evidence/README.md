@@ -95,13 +95,19 @@ Two paths, depending on what changed.
 scope validator or the shared-asset superset changed; the receipt no longer
 describes the tree):
 
-1. Run the privileged scope-alignment workflow on the head to retain (it runs
-   on pull requests that touch the scope-alignment paths, or on maintainer
-   dispatch with that head as `ref`).
-2. Download its artifact; copy `scope-alignment/receipt.json` and
+1. Merge that change first. The record stays bound to its own revision, so
+   the pull request that changes these inputs does not refresh it.
+2. Dispatch the privileged scope-alignment workflow on the resulting main
+   commit (maintainer dispatch with that commit as `ref`). Never retain the
+   receipt of a pull-request head: after the squash merge and the branch
+   deletion that head is unreachable from main, while the manifest test
+   requires `MERGE` to exist in every full-history checkout.
+3. Download its artifact; copy `scope-alignment/receipt.json` and
    `scope-alignment/governed-scope-validation.json` here unchanged.
-3. Continue with the lighter path below, with the new run id, head and
-   artifact name.
+4. Continue with the lighter path below, in a new pull request, with the new
+   run id and artifact name, and with that main commit as both `EXECUTOR` and
+   `MERGE`. If a bound input changes on main before that pull request merges,
+   the oracle refuses the receipt: dispatch again on the new main commit.
 
 **Lighter refresh** (only the catalogue, the configurator, the correspondence
 or the oracle script changed, or the oracle's classification of a retained
@@ -114,12 +120,12 @@ case changed): no licensed run; the retained receipt still describes the tree.
 2. Update `manifest.json`: `run_id`, `executor_revision`, `artifact_name`,
    `artifact_expires_at`, `artifact_size_bytes`, the three `files` digests,
    `elements_export.sha256` (from the receipt's `artifact_sha256`) and
-   `tree_identical_to` (after a licensed refresh the merge commit is known
-   only once the pull request is merged; until then name the pull-request
-   head and its tree, and update the entry in the merging pull request).
+   `tree_identical_to` (after a licensed refresh, the main commit the run
+   executed and its tree).
 3. Update the test constants in `tests/test_ple_scope_alignment_oracle.py`:
-   `EXECUTOR` (the head of the licensed run), `MERGE` (the merge commit whose
-   tree equals it) and `RUN_ID`; the artifact name derives from them.
+   `EXECUTOR` (the commit the licensed run executed), `MERGE` (a main commit
+   whose tree equals it; after a licensed refresh made as above, the same
+   commit) and `RUN_ID`; the artifact name derives from them.
 4. Replace the classified table in `ple-s-scope-alignment.md` with the
    oracle's `comparison.md` (its first line is the identity line the test pins:
    run id and executor revision must appear in the document), and update the

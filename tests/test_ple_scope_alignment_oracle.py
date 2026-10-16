@@ -93,6 +93,10 @@ def record(tmp_path_factory):
         tar.extractall(root, filter="data")
     for name in ("receipt.json", "governed-scope-validation.json", "comparison.json", "manifest.json"):
         assert (root / RECORD_DIR / name).is_file(), f"{name} is not part of the record at {revision}"
+    for extracted in sorted((root / RECORD_DIR).iterdir()):
+        current = ROOT / RECORD_DIR / extracted.name
+        assert current.is_file() and current.read_bytes() == extracted.read_bytes(), (
+            f"{extracted.name} in this checkout differs from the record at {revision}: commit it or restore it")
     return SimpleNamespace(revision=revision, root=root, evidence=root / RECORD_DIR,
                            work=tmp_path_factory.mktemp("oracle-work"))
 

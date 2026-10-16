@@ -201,7 +201,7 @@ model, evaluator, interpreter, PLEML pin and library digests).
 | ug-09-autosar-acrn | generated from the member template: `Middleware: AUTOSARAdaptive`, `Hypervisor: ACRN` (the remaining reference-only elements with a catalogue node) | none: reference-only content has no feature |
 | ug-10-openpilot-no-middleware, ug-10-radar-only | generated from the member template: `VehicleApplication: Openpilot` with `Middleware: None`; `PerceptionSensors: [Radar]` | none: common and deferred content has no feature |
 | ug-10-lidar-only, ug-10-camera-only | generated: `PerceptionSensors: [LiDAR]`; `[Camera]` (the common baseline without one of its sensors) | none: common content has no feature |
-| ug-10-vehicle-target-aebs-false | generated: `VehicleTargetAEBS: false`; the configurator accepts it (its root defaults to optional, so its mandatory-leaf check never fires; routed to the configurator owner, not changed here) | none: common content has no feature |
+| ug-10-vehicle-target-aebs-false | generated: `VehicleTargetAEBS: false`; the configurator accepts it (its root defaults to optional, so its mandatory-leaf check never fires; an open configurator defect, left to a separate fix and not changed here) | none: common content has no feature |
 | catalogue-only-adaptive-cruise-control | generated: `AdaptiveCruiseControl: true` | none: the governed scope has no element for it |
 | derived-set-mixed | generated: `Middleware: AndroidSDV` on the standalone derived set; tool-valid, the adapter derives | none: derived realizations are not independently selectable |
 | both-axes-negative | `fixtures/invalid-score-android.yaml` | none |
