@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="928" height="274" viewBox="0 0 928 274" role="img" aria-labelledby="title description">
+  <title id="title">table-scoreTwoDomainClassificationView</title>
+  <desc id="description">table-scoreTwoDomainClassificationView. Generated from SysIDE grid CSV.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="928" height="54" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">table-scoreTwoDomainClassificationView</text>
+  <rect x="0" y="54" width="208" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">ID</tspan>
+  </text>
+  <rect x="208" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="220" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="220" dy="0">Classification</tspan>
+  </text>
+  <rect x="568" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="580" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="580" dy="0">Rationale</tspan>
+  </text>
+  <rect x="0" y="94" width="208" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">hmiGuestExecutionDomain</tspan>
+  </text>
+  <rect x="208" y="94" width="360" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="220" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="220" dy="0">ProductLineFeatureCandidate,</tspan>
+    <tspan x="220" dy="20">ProductLineCharacteristic</tspan>
+  </text>
+  <rect x="568" y="94" width="360" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="580" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="580" dy="0">CLS-MW-004: an AAOS SDV HMI guest next to</tspan>
+    <tspan x="580" dy="20">the Linux host distinguishes the two-</tspan>
+    <tspan x="580" dy="20">domain member from the standalone member.</tspan>
+    <tspan x="580" dy="20">Acceptance waits for the scope ADR and</tspan>
+    <tspan x="580" dy="20">phase 9; the AAOS-integrated mode is only</tspan>
+    <tspan x="580" dy="20">a candidate counterpart, and the ADR</tspan>
+    <tspan x="580" dy="20">decides. Structural consequence: per-</tspan>
+    <tspan x="580" dy="20">domain platform selection (GAP-MW-032).</tspan>
+  </text>
+</svg>
