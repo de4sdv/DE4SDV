@@ -844,7 +844,7 @@ def _ple_s_side(case: Case, index: ScopeIndex, admitted: dict[str, Any]) -> dict
                         + (f" ({configuration['violated_bound']} bound)" if configuration.get("violated_bound") else "")),
         }
     inadmissible = sorted({
-        f"{kind['governed']} ({kind['kind']})" if kind["governed"] else kind["kind"]
+        f"{kind['governed'] or record['path']} ({kind['kind']})"
         for record in admitted["selections"] if record["selected"] and not record["unclassified"]
         for kind in record["classifications"]
         if kind["kind"] in INADMISSIBLE and not ({k["kind"] for k in record["classifications"]} & ADMISSIBLE)

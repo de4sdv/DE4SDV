@@ -305,6 +305,9 @@ def test_a_catalogue_only_feature_candidate_is_not_in_the_governed_scope(compari
     [item] = [r for r in row["admitted_by_governed_scope"]["selections"] if r["node"] == "F-CAPABILITY-ADAPTIVE-CRUISE-CONTROL"]
     assert item["selected"] is True
     assert {(k["kind"], k["governed"]) for k in item["classifications"]} == {("not-in-governed-scope", None)}
+    # V&V finding R6 of PR #379: the reason names the item the governed scope has no element for.
+    assert row["ple_s"]["reason"] == ("no PLE-S configuration: the admitted tree has no feature for "
+                                      "Capabilities.AdaptiveCruiseControl (not-in-governed-scope)")
     assert {case for case, r in _rows(comparison).items()
             if any(k["kind"] == "not-in-governed-scope" for s in r["admitted_by_governed_scope"]["selections"]
                    if s["selected"] for k in s["classifications"])} == {"catalogue-only-adaptive-cruise-control"}

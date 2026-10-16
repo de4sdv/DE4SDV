@@ -28,6 +28,8 @@ Selection semantics:
   - OR-groups: assign a non-empty list of child names
   - Optional/mandatory leaves: assign a YAML Boolean true or false
     e.g. Capabilities.ForwardCollisionMitigation.PedestrianDetection: false
+  - A mandatory leaf the BoF leaves out is selected, as it is whenever its
+    parent is; setting it to false is a violation.
 
 Usage:
   python tools/configure_variant.py \\
@@ -440,7 +442,11 @@ def find_alternative_groups(root):
 
 
 def find_mandatory_leaves(root):
-    """Collect all leaf nodes that are transitively mandatory."""
+    """
+    Collect all leaf nodes that are transitively mandatory.
+    The root is always selected, whatever type it declares or defaults
+    to, so the walk starts at its children.
+    """
     leaves = []
 
     def walk(node, parent_mandatory):
@@ -450,7 +456,8 @@ def find_mandatory_leaves(root):
         for child in node.children:
             walk(child, is_mandatory)
 
-    walk(root, True)
+    for child in root.children:
+        walk(child, True)
     return leaves
 
 
@@ -578,10 +585,11 @@ def validate_structure(root, all_nodes, selections):
                 f"Mandatory {group.type} group '{group.path}' has no selection"
             )
 
-    # Check: every transitively-mandatory leaf is selected
+    # Check: no transitively-mandatory leaf is set to false. A mandatory
+    # leaf the BoF leaves out is selected, as it is whenever its parent is.
     for leaf in find_mandatory_leaves(root):
         sel = selections.get(leaf.path)
-        if sel is None or sel is False:
+        if sel is False:
             errors.append(
                 f"Mandatory feature not selected: '{leaf.path}'"
             )
