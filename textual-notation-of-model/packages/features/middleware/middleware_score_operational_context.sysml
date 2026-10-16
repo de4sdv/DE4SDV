@@ -187,44 +187,44 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
       out speed : ReferenceVehicleSpeedSignal;
     }
 
-    action carrySpeed {
+    action carrySpeedOverSCORE {
       in speed : ReferenceVehicleSpeedSignal;
       out carriedSpeed : ReferenceVehicleSpeedSignal;
     }
 
-    flow from provideSpeed.speed to carrySpeed.speed;
-    first provideSpeed then carrySpeed;
+    flow from provideSpeed.speed to carrySpeedOverSCORE.speed;
+    first provideSpeed then carrySpeedOverSCORE;
 
-    action runAEBSStack {
+    action runAEBSStackOnHost {
       doc /* The Autoware-based AEBS stack on the Linux host, including the DE4SDV coordinator: its aebsSignals mix native Autoware outputs and coordinator output with the per-field provenance that the framing's HMI path scope item states (hmiPathInScope), and coordinator output is never attributed to Autoware. */
       in carriedSpeed : ReferenceVehicleSpeedSignal;
       out aebsSignals : VisualizationFrame;
       out command : EmergencyBrakingCommand;
     }
 
-    flow from carrySpeed.carriedSpeed to runAEBSStack.carriedSpeed;
-    first carrySpeed then runAEBSStack;
+    flow from carrySpeedOverSCORE.carriedSpeed to runAEBSStackOnHost.carriedSpeed;
+    first carrySpeedOverSCORE then runAEBSStackOnHost;
 
-    action gateCommand {
+    action gateCommandOnHost {
       in command : EmergencyBrakingCommand;
     }
 
-    flow from runAEBSStack.command to gateCommand.command;
+    flow from runAEBSStackOnHost.command to gateCommandOnHost.command;
 
-    action carrySignals {
+    action carrySignalsAcrossDomainBoundary {
       in aebsSignals : VisualizationFrame;
       out carriedSignals : VisualizationFrame;
     }
 
-    flow from runAEBSStack.aebsSignals to carrySignals.aebsSignals;
+    flow from runAEBSStackOnHost.aebsSignals to carrySignalsAcrossDomainBoundary.aebsSignals;
 
-    action presentState {
+    action presentStateOnHMI {
       in carriedSignals : VisualizationFrame;
       out disposition : RenderedAEBSState = TwoDomainSignalFlow::disposition;
     }
 
-    flow from carrySignals.carriedSignals to presentState.carriedSignals;
-    first carrySignals then presentState;
+    flow from carrySignalsAcrossDomainBoundary.carriedSignals to presentStateOnHMI.carriedSignals;
+    first carrySignalsAcrossDomainBoundary then presentStateOnHMI;
   }
 
   action scoreTwoDomainSignalFlow : TwoDomainSignalFlow;

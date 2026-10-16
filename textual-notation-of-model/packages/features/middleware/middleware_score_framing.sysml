@@ -16,10 +16,10 @@
  * publication and baseline decision all belong to it.
  *
  * Predecessor relationship: the increment builds on the closed INC-MW-010
- * baseline and on the needs, requirements and logical architecture of
- * INC-MW-004 to INC-MW-007. It does not reopen, extend, or retroactively
- * satisfy that baseline, copies no S-CORE code into DE4SDV, and makes no
- * safety, cybersecurity or compliance claim.
+ * baseline and on the INC-MW-002 to INC-MW-007 baseline (ASM-MW-023). It
+ * does not reopen, extend, or retroactively satisfy the closed baseline,
+ * copies no S-CORE code into DE4SDV, and makes no safety, cybersecurity or
+ * compliance claim.
  */
 
 package DE4SDV_MiddlewareSCOREFraming {
@@ -156,7 +156,7 @@ package DE4SDV_MiddlewareSCOREFraming {
      * Each later slice belongs to this increment and is not a second
      * increment identity. Owner, expected artifacts and expected review
      * evidence are declarations, not completion or review evidence. The
-     * expected artifacts name the framing package only; each later slice
+     * expected artifacts name the packages of phases 0 to 3; each later slice
      * adds its own package when it is authored. The system of interest is
      * the middleware integration layer: the needs and requirements take it
      * as their subject, the problem statement keeps the increment.
