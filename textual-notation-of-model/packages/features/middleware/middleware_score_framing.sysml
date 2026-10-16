@@ -10,10 +10,10 @@
  * travels over S-CORE communication into Autoware, and the AEBS signals of
  * the Autoware-based AEBS stack on the Linux host travel over S-CORE
  * communication across the domain boundary to the HMI in the guest. One
- * increment identity spans phases 0 to 10: this framing slice and the
- * needs, requirements, physical/software realization, variability and
- * configuration, and verification-evidence slices that follow all belong
- * to it.
+ * increment identity spans phases 0 to 12: this framing slice, the needs,
+ * requirements, physical/software realization, variability and
+ * configuration, and verification-evidence slices that follow, and the
+ * publication and baseline decision all belong to it.
  *
  * Predecessor relationship: the increment builds on the closed INC-MW-010
  * baseline and on the needs, requirements and logical architecture of
@@ -38,25 +38,26 @@ package DE4SDV_MiddlewareSCOREFraming {
      * INC-MW-011: middleware integration on Eclipse S-CORE, in a member
      * product with two execution domains under a hypervisor: Autoware,
      * S-CORE and the adapter on a Linux host, and an AAOS SDV guest with the
-     * HMI. One increment identity spanning phases 0 to 10, from framing
-     * through verification evidence: this framing slice and the needs,
-     * requirements, physical/software realization, configuration and
-     * verification-evidence slices all belong to this increment.
+     * HMI. One increment identity spanning phases 0 to 12, from framing
+     * through verification evidence, publication and the baseline decision:
+     * this framing slice and the needs, requirements, physical/software
+     * realization, configuration and verification-evidence slices all
+     * belong to this increment.
      */
   }
 
   requirement scoreMiddlewareProblemStatement : ProblemStatement {
     doc /*
-     * How can DE4SDV realize its middleware integration layer on Eclipse
-     * S-CORE as the EclipseSCORE variant of the platform stack, in a member
-     * product with two execution domains under a hypervisor (Autoware and
-     * S-CORE on a Linux host, and an AAOS SDV guest with the HMI), carry the
-     * reference vehicle speed through S-CORE communication into Autoware and
-     * the AEBS signals of the Autoware-based AEBS stack on the Linux host
-     * through S-CORE communication to the HMI in the guest, and show it
-     * running, without changing the Autoware application, without copying
-     * S-CORE code into DE4SDV, and without safety, cybersecurity or
-     * compliance claims?
+     * DE4SDV's middleware integration layer is realized only on AAOS SDV
+     * (INC-MW-008). The product line names Eclipse S-CORE as a middleware
+     * alternative, but there is no evidence that S-CORE can realize the
+     * layer (GAP-MW-030), no planned member product uses it, and the product
+     * model cannot describe the product it would need: Autoware and S-CORE
+     * on a Linux host, with an AAOS SDV guest for the HMI (GAP-MW-032).
+     * Until that changes, S-CORE stays a reference-only alternative of the
+     * governed product-line scope (ADR 0014), and product-line engineers,
+     * architects and reviewers cannot judge it as an open-source automotive
+     * middleware option.
      */
     subject increment : SCOREMiddlewareIntegrationIncrement;
     stakeholder systemArchitect : SystemArchitect;
@@ -95,15 +96,38 @@ package DE4SDV_MiddlewareSCOREFraming {
   }
 
   part scoreMiddlewareScope : IncrementScope {
-    doc /*
-     * Scope: the S-CORE realization of the six middleware components on the
-     * Linux host (phase 8); the two-domain member product and the
-     * per-execution-domain platform modeling it needs (phases 8 and 9);
-     * needs and requirements for the S-CORE variant, the reference
-     * vehicle-speed path and the cross-domain HMI path (phases 4 and 5); a
-     * runnable proof with retained evidence (phase 10); and the one-way HMI
-     * path from S-CORE on the Linux host into the AAOS SDV guest.
-     */
+    doc /* The scope of INC-MW-011: the nested parts are its in-scope items; the OutOfScopeItem parts of this package bound it. */
+    part scoreRealizationInScope : InScopeItem {
+      doc /* The S-CORE realization of the six middleware components on the Linux host (phase 8). */
+    }
+    part scoreMemberProductInScope : InScopeItem {
+      doc /* The two-domain member product: Autoware, S-CORE and the adapter on a Linux host, and an AAOS SDV guest with the HMI, under a hypervisor (phases 8 and 9). */
+    }
+    part referenceVehicleSpeedPathInScope : InScopeItem {
+      doc /* The reference vehicle-speed path (VSS Vehicle.Speed) over S-CORE communication into Autoware, like for like with the AAOS SDV realization of INC-MW-008 over the same reference signal. */
+    }
+    part perExecutionDomainPlatformModelingInScope : InScopeItem {
+      doc /* Per-execution-domain platform modeling (operating system, middleware and hypervisor per domain), so that the product model can express the two-domain member (phases 8 and 9). */
+    }
+    part scoreVariantNeedsRequirementsInScope : InScopeItem {
+      doc /* Needs and requirements for the S-CORE variant, the reference vehicle-speed path and the cross-domain HMI path (phases 4 and 5). */
+    }
+    part runnableProofInScope : InScopeItem {
+      doc /* A runnable proof with retained evidence (phase 10). */
+    }
+    part hmiPathInScope : InScopeItem {
+      doc /*
+       * The one-way cross-domain HMI path from S-CORE on the Linux host into
+       * the AAOS SDV guest, as a product interface of the member product. It
+       * carries the AEBS signals of the Autoware-based AEBS stack with the
+       * per-field provenance INC-AEBS-010 assigns: the native Autoware AEB
+       * outputs (RSS, the filtered obstacle cloud and the intervention
+       * diagnostic) and the DE4SDV coordinator's warning request, braking
+       * request and intervention lifecycle state (MONITORING, WARNING,
+       * INTERVENTION, RELEASED); coordinator output is never relabeled as
+       * native Autoware output.
+       */
+    }
   }
 
   part def SCOREMiddlewareIntegrationLayer {
@@ -114,9 +138,9 @@ package DE4SDV_MiddlewareSCOREFraming {
      * components of MiddlewareSystem (signal translation, diagnostic proxy,
      * lifecycle bridge, health proxy, update coordination, service binding)
      * on the Linux host, up to the one-way cross-domain HMI path into the
-     * AAOS SDV guest. It is a System 1 element of the member product, not an
-     * engineering instrument. The HMI application in the guest is part of
-     * the member product but outside the system of interest. The needs and
+     * AAOS SDV guest. It is part of the member product, not an engineering
+     * instrument. The HMI application in the guest is part of the member
+     * product but outside the system of interest. The needs and
      * requirements of this increment take the layer as their subject, and
      * its physical/software realization specializes it.
      */
@@ -139,11 +163,14 @@ package DE4SDV_MiddlewareSCOREFraming {
      * relationships of this package. The applicable phases cover framing,
      * concern framing, operational context, capability classification, needs,
      * requirements, functional and logical architecture, physical/software
-     * realization, variability and configuration, and verification evidence.
-     * Phases 1 to 3 and 6 to 7 are declared because the increment
-     * revalidates the middleware baseline of INC-MW-002 to INC-MW-007 for
-     * the S-CORE variant and extends it where the two-domain member needs
-     * it: the cross-domain HMI path and the per-execution-domain platform.
+     * realization, variability and configuration, verification evidence,
+     * publication, and the baseline and next-slice decision. Phases 1 to 3
+     * and 6 to 7 are declared because the increment revalidates the
+     * middleware baseline of INC-MW-002 to INC-MW-007 for the S-CORE variant
+     * and extends it where the two-domain member needs it: the cross-domain
+     * HMI path and the per-execution-domain platform. Phases 11 and 12 are
+     * declared because the lifecycle decision and the scope-revision
+     * decision record that admits the member are phase 12 work.
      * Each later slice belongs to this increment and is not a second
      * increment identity. Owner, expected artifacts and expected review
      * evidence are declarations, not completion or review evidence. The
@@ -152,7 +179,7 @@ package DE4SDV_MiddlewareSCOREFraming {
      * the middleware integration layer: the needs and requirements take it
      * as their subject, the problem statement keeps the increment.
      */
-    attribute :>> applicablePhases = (MethodPhase::phase0_incrementFraming, MethodPhase::phase1_concernFraming, MethodPhase::phase2_operationalContext, MethodPhase::phase3_capabilityClassification, MethodPhase::phase4_needs, MethodPhase::phase5_requirements, MethodPhase::phase6_functionalArchitecture, MethodPhase::phase7_logicalArchitecture, MethodPhase::phase8_physicalRealization, MethodPhase::phase9_variabilityConfiguration, MethodPhase::phase10_vvEvidence);
+    attribute :>> applicablePhases = (MethodPhase::phase0_incrementFraming, MethodPhase::phase1_concernFraming, MethodPhase::phase2_operationalContext, MethodPhase::phase3_capabilityClassification, MethodPhase::phase4_needs, MethodPhase::phase5_requirements, MethodPhase::phase6_functionalArchitecture, MethodPhase::phase7_logicalArchitecture, MethodPhase::phase8_physicalRealization, MethodPhase::phase9_variabilityConfiguration, MethodPhase::phase10_vvEvidence, MethodPhase::phase11_publication, MethodPhase::phase12_baselineNextSlice);
     ref part :>> increment = DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationIncrement;
     ref part :>> systemOfInterest = DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
     attribute :>> owner = "DE4SDV maintainers";
@@ -176,63 +203,6 @@ package DE4SDV_MiddlewareSCOREFraming {
   dependency scoreScopeToCharter
     from scoreMiddlewareScope to scoreMiddlewareCharter;
 
-  part system1SCOREMemberProduct : System1SDVProductLine {
-    doc /*
-     * The two-domain member product whose middleware integration layer is
-     * the system of interest: Autoware, Eclipse S-CORE and the adapter on a
-     * Linux host, and an AAOS SDV guest with the HMI, under a hypervisor.
-     * Its configuration cannot be expressed in the current product model
-     * (GAP-MW-032); the example bill of features "Autoware on S-CORE on
-     * Linux" describes only the Linux domain.
-     */
-  }
-  part system2RunnableProofBench : System2EngineeringAndAssuranceSystem {
-    doc /*
-     * The bounded bench that runs the member product's runnable proof and
-     * retains its evidence. It observes the signal path and the HMI
-     * read-only; the HMI is a product element, not a bench instrument.
-     */
-  }
-  part system3UpstreamReviewEcosystem : System3OpenSourceGovernanceEcosystem {
-    doc /*
-     * DE4SDV reviewers and the Eclipse S-CORE upstream project. No upstream
-     * engagement or endorsement is claimed by this increment.
-     */
-  }
-
-  part scoreMiddlewareScopeBoundary : OperationalScopeBoundary;
-  part scoreRealizationInScope : InScopeItem {
-    doc /* The S-CORE realization of the six middleware components on the Linux host (phase 8). */
-  }
-  part scoreMemberProductInScope : InScopeItem {
-    doc /* The two-domain member product: Autoware, S-CORE and the adapter on a Linux host, and an AAOS SDV guest with the HMI, under a hypervisor (phases 8 and 9). */
-  }
-  part referenceVehicleSpeedPathInScope : InScopeItem {
-    doc /* The reference vehicle-speed path (VSS Vehicle.Speed) over S-CORE communication into Autoware, like for like with the AAOS SDV realization of INC-MW-008 over the same reference signal. */
-  }
-  part perExecutionDomainPlatformModelingInScope : InScopeItem {
-    doc /* Per-execution-domain platform modeling (operating system, middleware and hypervisor per domain), so that the product model can express the two-domain member (phases 8 and 9). */
-  }
-  part scoreVariantNeedsRequirementsInScope : InScopeItem {
-    doc /* Needs and requirements for the S-CORE variant, the reference vehicle-speed path and the cross-domain HMI path (phases 4 and 5). */
-  }
-  part runnableProofInScope : InScopeItem {
-    doc /* A runnable proof with retained evidence (phase 10). */
-  }
-  part hmiPathInScope : InScopeItem {
-    doc /*
-     * The one-way cross-domain HMI path from S-CORE on the Linux host into
-     * the AAOS SDV guest, as a product interface of the member product. It
-     * carries the AEBS signals of the Autoware-based AEBS stack with the
-     * per-field provenance INC-AEBS-010 assigns: the native Autoware AEB
-     * outputs (RSS, the filtered obstacle cloud and the intervention
-     * diagnostic) and the DE4SDV coordinator's warning request, braking
-     * request and intervention lifecycle state (MONITORING, WARNING,
-     * INTERVENTION, RELEASED); coordinator output is never relabeled as
-     * native Autoware output.
-     */
-  }
-
   part complianceClaimOutOfScope : OutOfScopeItem {
     doc /*
      * ISO 26262, ISO 21434, UN R152, UN R155 and UN R156 conformance or
@@ -255,6 +225,9 @@ package DE4SDV_MiddlewareSCOREFraming {
   }
   part closedMiddlewareBaselineOutOfScope : OutOfScopeItem {
     doc /* Reopening the closed INC-MW-010 baseline or extending its retained evidence. */
+  }
+  part scoreUpstreamEngagementOutOfScope : OutOfScopeItem {
+    doc /* Engagement with, or endorsement by, the Eclipse S-CORE project; the increment claims neither. */
   }
 
   part asmSCOREBaselinePinned : IncrementAssumption {
@@ -293,7 +266,8 @@ package DE4SDV_MiddlewareSCOREFraming {
   part asmBoundedBenchDemonstration : IncrementAssumption {
     doc /*
      * ASM-MW-025: The runnable proof is a bounded bench demonstration, not a
-     * product, fleet or on-road claim.
+     * product, fleet or on-road claim. The bench observes the signal path and
+     * the HMI read-only and retains the evidence.
      */
   }
   part asmLinuxHostUbuntuThenAutoSD : IncrementAssumption {
@@ -357,10 +331,12 @@ package DE4SDV_MiddlewareSCOREFraming {
      * platform stack mirrors this with one osPlatform, one middleware and
      * one hypervisor variation per stack. The two-domain member needs Linux
      * with S-CORE on the host and Android with the AAOS SDV middleware in
-     * the guest. The same limit affects the AAOS-integrated reference
-     * member: its Autoware runs on a Linux ROS 2 runtime while its single
-     * operating-system selection says Android. Phases 8 and 9 of this
-     * increment close the gap with per-execution-domain platform modeling.
+     * the guest; the example bill of features "Autoware on S-CORE on Linux"
+     * describes only the Linux domain. The same limit affects the
+     * AAOS-integrated reference member: its Autoware runs on a Linux ROS 2
+     * runtime while its single operating-system selection says Android.
+     * Phases 8 and 9 of this increment close the gap with
+     * per-execution-domain platform modeling.
      */
   }
 
@@ -375,9 +351,9 @@ package DE4SDV_MiddlewareSCOREFraming {
   dependency hmiApplicationReusesVisualizationApplication
     from asmVisualizationApplicationReusedAsHMI to DE4SDV_AEBSVisualizationPhysicalSoftwareRealization::JavaCenterDisplayApplication;
   dependency speedPathUsesReferenceVehicleSpeedSource
-    from referenceVehicleSpeedPathInScope to DE4SDV_MiddlewarePhysicalSoftwareRealization::COVESAVehicleSpeedSemanticSource;
+    from scoreMiddlewareScope::referenceVehicleSpeedPathInScope to DE4SDV_MiddlewarePhysicalSoftwareRealization::COVESAVehicleSpeedSemanticSource;
   dependency speedPathLikeForLikeWithAAOSSDVRealization
-    from referenceVehicleSpeedPathInScope to DE4SDV_MiddlewarePhysicalSoftwareRealization::physicalSoftware;
+    from scoreMiddlewareScope::referenceVehicleSpeedPathInScope to DE4SDV_MiddlewarePhysicalSoftwareRealization::physicalSoftware;
   dependency twoDomainGapOnSinglePlatformStackSelections
     from gapTwoDomainMemberNotExpressible to DE4SDV_SDVPlatformStack::SDVPlatformStack;
   dependency twoDomainGapAffectsAAOSIntegratedMember
