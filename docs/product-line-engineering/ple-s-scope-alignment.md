@@ -15,9 +15,9 @@ The PLEML gates run in order: PLE-R and PLE-Q observed the pinned library's
 representation and serialization on synthetic fixtures; PLE-S (this record)
 aligns the *admitted* scope with the library; PLE-A would be the separate
 adoption decision. PLE-S keeps the operational path (the YAML catalogue, the
-committed configurations and `tools/configure_variant.py`) as it is. The
-comparison oracle between the operational path and this model is a later
-step and not part of this record.
+committed configurations and `tools/configure_variant.py`) as it is and runs
+it as a comparison oracle beside this model, not as a second selection
+authority ([below](#the-comparison-oracle)).
 
 ## What PLE-S demonstrates
 
@@ -74,7 +74,8 @@ cannot classify.
   `adoption_authorized: false`, `authority_activation_authorized: false` in
   every receipt.
 - No change of selection authority: the YAML catalogue, the committed
-  configurations and the configurator are untouched.
+  configurations and the configurator are untouched; the comparison oracle
+  reads them and compares, it selects nothing and admits nothing.
 - No new member: Eclipse S-CORE and every other reference-only alternative
   stays reference-only; admitting one is a scope revision with its own ADR.
 - No XOR semantics (no `xorFeatures`, no `XORConstraint`), no multi-binding
@@ -129,7 +130,200 @@ bound per alternative. The receipt records this as
 The split execution-domain representation of the superset is owned by
 INC-MW-011 (owner decision D6, 2026-10-15), whose member product has two
 execution domains (a Linux host and an AAOS SDV HMI guest under KVM); it is
-not fixed in PLE-S.
+not fixed in PLE-S. The comparison oracle's catalogue correspondence of
+`F-PLATFORM-OS-LINUX` to `linuxROS2AutowareRuntime`, through which it sees
+the runtime represented in the standalone member, is a catalogue-node
+correspondence and not a superset realization dependency; it does not
+contradict the model's statement that the runtime has no superset
+realization.
+
+## The comparison oracle
+
+The operational path stays a comparison oracle, not a second selection
+authority (plan cases UG-09, UG-10 and UG-14).
+`scripts/compare_ple_scope_alignment.py` runs the unchanged
+`tools/configure_variant.py` once per case, records its exit code (0 valid,
+1 invalid, 2 input error) and the `part :>> <variation> =
+<variation>::<variant>;` selections of the projection, and sets the result
+beside the PLE-S evaluation of the same statement. Each row reports two
+independent fields:
+
+- `configuration-valid-under-current-tool`: the configurator's verdict, with
+  its messages and violated constraints;
+- `admitted-by-governed-scope`: derived from serialized governed-scope data
+  only. A selected catalogue node is a derived realization of an admitted
+  alternative when the receipt binds its shared-asset variant to that feature
+  (`alignment.bindings`); common when the receipt records its variant as the
+  superset realization of common content (`alignment.common_assets`); and
+  otherwise classified by the governed-scope validation set (common,
+  reference-only, deferred, excluded) of the element that the declared
+  correspondence
+  [`catalogue-correspondence.yaml`](../../model-based-product-line-engineering/pleml-scope-alignment/catalogue-correspondence.yaml)
+  names for it. The correspondence carries no classification and is validated
+  against the catalogue and the serialization; a node without any
+  classification is unclassified and fails the run. A configuration is
+  admitted when every selection is common content or a derived realization
+  of exactly one alternative, that alternative's selectable derived
+  realizations are all present, and every common asset the catalogue can
+  represent is fully represented: all of its selectable nodes are chosen, a
+  mandatory leaf the selections leave untouched counts as implied, and one
+  switched off counts as dropped. The receipt's confirmed representation
+  difference exempts an asset only in rows whose implied alternative binds
+  the variation that causes the difference.
+
+Each row also carries the PLE-S outcome (validity, violated bound, derived
+shared-asset variants, common assets), a difference class, and provenance:
+the feature-model, Bill-of-Features and shared-assets SHA-256 of the
+projection header (computed by the oracle when the tool generates no
+projection) plus the receipt identity (executor revision, run id, artifact,
+model, evaluator, interpreter, PLEML pin and library digests).
+
+### Difference classes (UG-14)
+
+| Class | Meaning |
+|---|---|
+| `equal` | tool-valid and admitted, and the projection selects exactly the PLE-S derived variants and common realization |
+| `intentional-scope` | tool-valid, not admitted. The configurator accepts content the governed scope keeps reference-only, deferred or excluded (UG-09, UG-10); content the governed scope has no element for (`not-in-governed-scope`: a catalogue feature candidate such as adaptive cruise control); a selection that realizes more than one admitted alternative (derived realizations of both alternatives mixed in one selection); or a selection that leaves common content incompletely represented (a dropped baseline sensor, the vehicle-target capability switched off) |
+| `intentional-representation` | equal on every variant, but a common asset of the governed scope is not representable in the single slot the superset offers; the receipt's confirmed representation difference names it (owner decision D6) |
+| `not-expressible-under-tool` | the PLE-S statement has no scalar encoding in the catalogue (an alternative group takes one value); the oracle records the tool's actual response to the list encoding |
+| `both-reject` | tool-invalid and not admitted, for independent reasons: the tool's violations, the scope's reasons and the PLE-S outcome are recorded side by side; there are no derived assets on either side to compare |
+| `defect` | anything else: an admitted member the tool rejects, a derivation the two paths disagree on, a valid PLE-S configuration for non-admitted content, an input error, an unclassified selection. A defect or an unclassified row exits non-zero |
+
+### Cases
+
+| Case | Operational input | PLE-S statement |
+|---|---|---|
+| standalone-member | `aebs-autoware-linux-lidar-camera.yaml` | `standaloneAutowareAEBSReferenceMemberConfiguration` |
+| aaos-integrated-member | `middleware-autoware-aaos-sdv-reference.yaml` | `aaosIntegratedAutowareAEBSReferenceMemberConfiguration` |
+| both-alternatives | generated: the probe's alternatives encoded per bound layer, a list where two variants compete | `bothIntegrationModesProbe` |
+| no-alternative | generated: the member template without the bound layers; the tool's response is recorded, not asserted in advance | `noIntegrationModeProbe` |
+| ug-09-eclipse-score, ug-09-apollo-qnx-qvm | the committed examples `example-linux-score-autoware.yaml` and `apollo-qnx-qvm.yaml` | none: reference-only content has no feature |
+| ug-09-autosar-acrn | generated from the member template: `Middleware: AUTOSARAdaptive`, `Hypervisor: ACRN` (the remaining reference-only elements with a catalogue node) | none: reference-only content has no feature |
+| ug-10-openpilot-no-middleware, ug-10-radar-only | generated from the member template: `VehicleApplication: Openpilot` with `Middleware: None`; `PerceptionSensors: [Radar]` | none: common and deferred content has no feature |
+| ug-10-lidar-only, ug-10-camera-only | generated: `PerceptionSensors: [LiDAR]`; `[Camera]` (the common baseline without one of its sensors) | none: common content has no feature |
+| ug-10-vehicle-target-aebs-false | generated: `VehicleTargetAEBS: false`; the configurator accepts it (its root defaults to optional, so its mandatory-leaf check never fires; an open configurator defect, left to a separate fix and not changed here) | none: common content has no feature |
+| catalogue-only-adaptive-cruise-control | generated: `AdaptiveCruiseControl: true` | none: the governed scope has no element for it |
+| derived-set-mixed | generated: `Middleware: AndroidSDV` on the standalone derived set; tool-valid, the adapter derives | none: derived realizations are not independently selectable |
+| both-axes-negative | `fixtures/invalid-score-android.yaml` | none |
+
+Generated probes are written to a temporary directory outside the repository
+and are never committed under `feature-configurations/`. Excluded System 2
+content (engineering execution environments, simulation benchmarks, CI
+evidence campaigns, visualization instrumentation) cannot be exercised with
+this catalogue: the engineering-environment configurations use other
+catalogues, and `sdv_product_line.yaml` has no node that corresponds to an
+excluded element, so the `excluded` classification is defined but has no row.
+
+### Classified table (retained)
+
+PLE-S receipt: `retained` evidence of run `38788579272` at executor `7e895252ce2b3b3d5d404d2176cc7872b7f671e3` (artifact `ple-scope-alignment-7e895252ce2b3b3d5d404d2176cc7872b7f671e3-38788579272`); receipt SHA-256 `290a5351e4f9992f6ea89c63c0559afd9ab72252fdc97fc2e5378ed4054b1f8c`; model `23f53587e727f24aa2f24f148e2de77720bbcfa6701df57f3b0d1b4152f77dde`; evaluator `1bcf0ad586bfec714e8b2e063a5d577f0d29243fb14014d06406a4566953d508`; PLEML pin `5f8ab8560219dc24d8ec7ec90d6f0a145896ef8e`; library `1fbd5efd95b63877e88eb6b114ce67122b9dba5236d3712e73175254aaf7d216`; serializer `0.10.3`; qualified: false.
+
+| Case | Operational input | Valid under current tool | Admitted by governed scope | PLE-S outcome | Difference class |
+|---|---|---|---|---|---|
+| standalone-member | `model-based-product-line-engineering/feature-configurations/aebs-autoware-linux-lidar-camera.yaml` | yes (exit 0) | yes: standalone | configuration-valid | equal |
+| aaos-integrated-member | `model-based-product-line-engineering/feature-configurations/middleware-autoware-aaos-sdv-reference.yaml` | yes (exit 0) | yes: aaosIntegrated | configuration-valid | intentional-representation |
+| both-alternatives | generated `BothIntegrationModesProbe` from `model-based-product-line-engineering/feature-configurations/aebs-autoware-linux-lidar-camera.yaml` | no (exit 1) | no: the selections realize more than one admitted alternative: aaosIntegrated, standalone | configuration-invalid (upper bound) | not-expressible-under-tool |
+| no-alternative | generated `NoIntegrationModeProbe` from `model-based-product-line-engineering/feature-configurations/aebs-autoware-linux-lidar-camera.yaml` | no (exit 1) | no: no admitted alternative is realized by the selections; common content not fully represented by the selections: linuxROS2AutowareRuntime not represented (missing: F-PLATFORM-OS-LINUX) | configuration-invalid (lower bound) | both-reject |
+| ug-09-eclipse-score | `model-based-product-line-engineering/feature-configurations/example-linux-score-autoware.yaml` | yes (exit 0) | no: not admitted content selected: PlatformStack.Middleware = EclipseSCORE: reference-only eclipseSCORE; derived realizations of standalone missing from the selections: middleware::none | no PLE-S configuration: the admitted tree has no feature for eclipseSCORE (reference-only) | intentional-scope |
+| ug-09-apollo-qnx-qvm | `model-based-product-line-engineering/feature-configurations/apollo-qnx-qvm.yaml` | yes (exit 0) | no: not admitted content selected: PlatformStack.VehicleApplication = Apollo: reference-only apollo; PlatformStack.Middleware = EclipseSCORE: reference-only eclipseSCORE; PlatformStack.OS = QNX: reference-only qnxQVM; PlatformStack.Hypervisor = QVM: reference-only qnxQVM; SensingBoundary.PerceptionSensors = Radar: deferred sensingVariability; no admitted alternative is realized by the selections; common content not fully represented by the selections: autowareApplication not represented (missing: F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE); currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-CAMERA); linuxROS2AutowareRuntime not represented (missing: F-PLATFORM-OS-LINUX) | no PLE-S configuration: the admitted tree has no feature for apollo (reference-only), eclipseSCORE (reference-only), qnxQVM (reference-only), sensingVariability (deferred) | intentional-scope |
+| ug-09-autosar-acrn | generated `AUTOSARAdaptiveACRNProbe` from `model-based-product-line-engineering/feature-configurations/aebs-autoware-linux-lidar-camera.yaml` | yes (exit 0) | no: not admitted content selected: PlatformStack.Middleware = AUTOSARAdaptive: reference-only autosarAdaptive; PlatformStack.Hypervisor = ACRN: reference-only acrn; derived realizations of standalone missing from the selections: hypervisor::none, middleware::none | no PLE-S configuration: the admitted tree has no feature for acrn (reference-only), autosarAdaptive (reference-only) | intentional-scope |
+| ug-10-openpilot-no-middleware | generated `OpenpilotNoMiddlewareProbe` from `model-based-product-line-engineering/feature-configurations/aebs-autoware-linux-lidar-camera.yaml` | yes (exit 0) | no: not admitted content selected: PlatformStack.VehicleApplication = Openpilot: reference-only openpilot; common content not fully represented by the selections: autowareApplication not represented (missing: F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE) | no PLE-S configuration: the admitted tree has no feature for openpilot (reference-only) | intentional-scope |
+| ug-10-radar-only | generated `RadarOnlySensingProbe` from `model-based-product-line-engineering/feature-configurations/aebs-autoware-linux-lidar-camera.yaml` | yes (exit 0) | no: not admitted content selected: SensingBoundary.PerceptionSensors = Radar: deferred sensingVariability; common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-CAMERA, F-SENSING-PERCEPTION-LIDAR) | no PLE-S configuration: the admitted tree has no feature for sensingVariability (deferred) | intentional-scope |
+| ug-10-lidar-only | generated `LidarOnlySensingProbe` from `model-based-product-line-engineering/feature-configurations/aebs-autoware-linux-lidar-camera.yaml` | yes (exit 0) | no: common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-CAMERA) | no PLE-S configuration: common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-CAMERA) | intentional-scope |
+| ug-10-camera-only | generated `CameraOnlySensingProbe` from `model-based-product-line-engineering/feature-configurations/aebs-autoware-linux-lidar-camera.yaml` | yes (exit 0) | no: common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-LIDAR) | no PLE-S configuration: common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-LIDAR) | intentional-scope |
+| ug-10-vehicle-target-aebs-false | generated `VehicleTargetAEBSOffProbe` from `model-based-product-line-engineering/feature-configurations/aebs-autoware-linux-lidar-camera.yaml` | yes (exit 0) | no: common content not fully represented by the selections: vehicleTargetAEBS not represented (dropped: C-CAPABILITY-AEBS-VEHICLE-TARGET) | no PLE-S configuration: common content not fully represented by the selections: vehicleTargetAEBS not represented (dropped: C-CAPABILITY-AEBS-VEHICLE-TARGET) | intentional-scope |
+| catalogue-only-adaptive-cruise-control | generated `AdaptiveCruiseControlProbe` from `model-based-product-line-engineering/feature-configurations/aebs-autoware-linux-lidar-camera.yaml` | yes (exit 0) | no: not admitted content selected: Capabilities.AdaptiveCruiseControl = True: not-in-governed-scope | no PLE-S configuration: the admitted tree has no feature for not-in-governed-scope | intentional-scope |
+| derived-set-mixed | generated `MixedDerivedSetProbe` from `model-based-product-line-engineering/feature-configurations/aebs-autoware-linux-lidar-camera.yaml` | yes (exit 0) | no: the selections realize more than one admitted alternative: aaosIntegrated, standalone | no PLE-S configuration: the selections realize more than one admitted alternative: aaosIntegrated, standalone | intentional-scope |
+| both-axes-negative | `model-based-product-line-engineering/feature-configurations/fixtures/invalid-score-android.yaml` | no (exit 1; C001) | no: not admitted content selected: PlatformStack.Middleware = EclipseSCORE: reference-only eclipseSCORE; the selections realize more than one admitted alternative: aaosIntegrated, standalone; common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-CAMERA); linuxROS2AutowareRuntime not represented (missing: F-PLATFORM-OS-LINUX) | no PLE-S configuration: the admitted tree has no feature for eclipseSCORE (reference-only) | both-reject |
+
+| Case | Tool projection | PLE-S derived variants and common realization | Equal on | Differing | Class reason |
+|---|---|---|---|---|---|
+| standalone-member | applicationMiddlewareAdapter::none, hypervisor::none, middleware::none, osPlatform::linux, vehicleApplication::autoware | applicationMiddlewareAdapter::none, hypervisor::none, middleware::none, osPlatform::linux, vehicleApplication::autoware | applicationMiddlewareAdapter::none, hypervisor::none, middleware::none, osPlatform::linux, vehicleApplication::autoware | - | the projection selects exactly the PLE-S derived variants and common realization |
+| aaos-integrated-member | applicationMiddlewareAdapter::autowareToAAOSSDV, hypervisor::kvm, middleware::androidSDV, osPlatform::android, vehicleApplication::autoware | applicationMiddlewareAdapter::autowareToAAOSSDV, hypervisor::kvm, middleware::androidSDV, osPlatform::android, vehicleApplication::autoware | applicationMiddlewareAdapter::autowareToAAOSSDV, hypervisor::kvm, middleware::androidSDV, osPlatform::android, vehicleApplication::autoware | - | equal on applicationMiddlewareAdapter::autowareToAAOSSDV, hypervisor::kvm, middleware::androidSDV, osPlatform::android, vehicleApplication::autoware; linuxROS2AutowareRuntime is common in the governed scope but not represented (osPlatform is bound per alternative): recorded; the split execution-domain representation of the superset is owned by INC-MW-011 (owner decision D6, 2026-10-15), not by the scope alignment |
+| both-alternatives | - | - | - | - | an alternative group takes one scalar; the statement needs more than one variant per variation and the tool rejected the list encoding (exit 1); PLE-S: configuration-invalid (upper bound) |
+| no-alternative | - | - | - | - | the tool rejects and the governed scope does not admit, for independent reasons: tool invalid (4 violations): Mandatory alternative group 'PlatformStack.Middleware' has no selection; governed scope no: no admitted alternative is realized by the selections \| common content not fully represented by the selections: linuxROS2AutowareRuntime not represented (missing: F-PLATFORM-OS-LINUX); PLE-S configuration-invalid (lower bound) |
+| ug-09-eclipse-score | applicationMiddlewareAdapter::autowareToSCORE, hypervisor::none, middleware::eclipseSCORE, osPlatform::linux, vehicleApplication::autoware | - | - | - | tool-valid; no: not admitted content selected: PlatformStack.Middleware = EclipseSCORE: reference-only eclipseSCORE \| derived realizations of standalone missing from the selections: middleware::none |
+| ug-09-apollo-qnx-qvm | applicationMiddlewareAdapter::apolloToSCORE, hypervisor::qvm, middleware::eclipseSCORE, osPlatform::qnx, vehicleApplication::apollo | - | - | - | tool-valid; no: not admitted content selected: PlatformStack.VehicleApplication = Apollo: reference-only apollo; PlatformStack.Middleware = EclipseSCORE: reference-only eclipseSCORE; PlatformStack.OS = QNX: reference-only qnxQVM; PlatformStack.Hypervisor = QVM: reference-only qnxQVM; SensingBoundary.PerceptionSensors = Radar: deferred sensingVariability \| no admitted alternative is realized by the selections \| common content not fully represented by the selections: autowareApplication not represented (missing: F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE); currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-CAMERA); linuxROS2AutowareRuntime not represented (missing: F-PLATFORM-OS-LINUX) |
+| ug-09-autosar-acrn | applicationMiddlewareAdapter::autowareToAUTOSAR, hypervisor::acrn, middleware::autosarAdaptive, osPlatform::linux, vehicleApplication::autoware | - | - | - | tool-valid; no: not admitted content selected: PlatformStack.Middleware = AUTOSARAdaptive: reference-only autosarAdaptive; PlatformStack.Hypervisor = ACRN: reference-only acrn \| derived realizations of standalone missing from the selections: hypervisor::none, middleware::none |
+| ug-10-openpilot-no-middleware | applicationMiddlewareAdapter::none, hypervisor::none, middleware::none, osPlatform::linux, vehicleApplication::openpilot | - | - | - | tool-valid; no: not admitted content selected: PlatformStack.VehicleApplication = Openpilot: reference-only openpilot \| common content not fully represented by the selections: autowareApplication not represented (missing: F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE) |
+| ug-10-radar-only | applicationMiddlewareAdapter::none, hypervisor::none, middleware::none, osPlatform::linux, vehicleApplication::autoware | - | - | - | tool-valid; no: not admitted content selected: SensingBoundary.PerceptionSensors = Radar: deferred sensingVariability \| common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-CAMERA, F-SENSING-PERCEPTION-LIDAR) |
+| ug-10-lidar-only | applicationMiddlewareAdapter::none, hypervisor::none, middleware::none, osPlatform::linux, vehicleApplication::autoware | - | - | - | tool-valid; no: common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-CAMERA) |
+| ug-10-camera-only | applicationMiddlewareAdapter::none, hypervisor::none, middleware::none, osPlatform::linux, vehicleApplication::autoware | - | - | - | tool-valid; no: common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-LIDAR) |
+| ug-10-vehicle-target-aebs-false | applicationMiddlewareAdapter::none, hypervisor::none, middleware::none, osPlatform::linux, vehicleApplication::autoware | - | - | - | tool-valid; no: common content not fully represented by the selections: vehicleTargetAEBS not represented (dropped: C-CAPABILITY-AEBS-VEHICLE-TARGET) |
+| catalogue-only-adaptive-cruise-control | applicationMiddlewareAdapter::none, hypervisor::none, middleware::none, osPlatform::linux, vehicleApplication::autoware | - | - | - | tool-valid; no: not admitted content selected: Capabilities.AdaptiveCruiseControl = True: not-in-governed-scope |
+| derived-set-mixed | applicationMiddlewareAdapter::autowareToAAOSSDV, hypervisor::none, middleware::androidSDV, osPlatform::linux, vehicleApplication::autoware | - | - | - | tool-valid; no: the selections realize more than one admitted alternative: aaosIntegrated, standalone |
+| both-axes-negative | - | - | - | - | the tool rejects and the governed scope does not admit, for independent reasons: tool invalid (1 violation): C001; governed scope no: not admitted content selected: PlatformStack.Middleware = EclipseSCORE: reference-only eclipseSCORE \| the selections realize more than one admitted alternative: aaosIntegrated, standalone \| common content not fully represented by the selections: currentSensingBaseline partially represented (missing: F-SENSING-PERCEPTION-CAMERA); linuxROS2AutowareRuntime not represented (missing: F-PLATFORM-OS-LINUX); PLE-S no PLE-S configuration: the admitted tree has no feature for eclipseSCORE (reference-only) |
+
+| Case | Feature model | Bill-of-Features | Shared assets | Digest origin |
+|---|---|---|---|---|
+| standalone-member | `57b4f7eda267` | `08a73fd91ff1` | `70cbc35d9583` | projection header |
+| aaos-integrated-member | `57b4f7eda267` | `bd06674c4a6c` | `70cbc35d9583` | projection header |
+| both-alternatives | `57b4f7eda267` | `b052ec94073d` | `70cbc35d9583` | computed by the oracle (the tool generated no projection) |
+| no-alternative | `57b4f7eda267` | `c1e297c203bb` | `70cbc35d9583` | computed by the oracle (the tool generated no projection) |
+| ug-09-eclipse-score | `57b4f7eda267` | `08d6a8315a95` | `70cbc35d9583` | projection header |
+| ug-09-apollo-qnx-qvm | `57b4f7eda267` | `a99a0d0ca81b` | `70cbc35d9583` | projection header |
+| ug-09-autosar-acrn | `57b4f7eda267` | `fe47bc4124b0` | `70cbc35d9583` | projection header |
+| ug-10-openpilot-no-middleware | `57b4f7eda267` | `ee3335fed0c4` | `70cbc35d9583` | projection header |
+| ug-10-radar-only | `57b4f7eda267` | `ee536c2733aa` | `70cbc35d9583` | projection header |
+| ug-10-lidar-only | `57b4f7eda267` | `9290aa06a63a` | `70cbc35d9583` | projection header |
+| ug-10-camera-only | `57b4f7eda267` | `4bcd6cd1fdfb` | `70cbc35d9583` | projection header |
+| ug-10-vehicle-target-aebs-false | `57b4f7eda267` | `0d8a4d476e56` | `70cbc35d9583` | projection header |
+| catalogue-only-adaptive-cruise-control | `57b4f7eda267` | `7d8ffb1bbef5` | `70cbc35d9583` | projection header |
+| derived-set-mixed | `57b4f7eda267` | `5a861b6b65d8` | `70cbc35d9583` | projection header |
+| both-axes-negative | `57b4f7eda267` | `4fa3f5a4982c` | `70cbc35d9583` | computed by the oracle (the tool generated no projection) |
+
+Classes: equal: standalone-member; intentional-scope: ug-09-eclipse-score, ug-09-apollo-qnx-qvm, ug-09-autosar-acrn, ug-10-openpilot-no-middleware, ug-10-radar-only, ug-10-lidar-only, ug-10-camera-only, ug-10-vehicle-target-aebs-false, catalogue-only-adaptive-cruise-control, derived-set-mixed; intentional-representation: aaos-integrated-member; not-expressible-under-tool: both-alternatives; both-reject: no-alternative, both-axes-negative; defect: none. Full digests and reasons: the JSON comparison.
+
+### What the table shows
+
+- The two members derive the same assets on both paths. The AAOS-integrated
+  row is `intentional-representation`: the common `linuxROS2AutowareRuntime`
+  is not represented because `osPlatform` holds `android`; the receipt's
+  recorded difference owns it (INC-MW-011, owner decision D6), and the
+  exemption applies because `aaosIntegrated` binds `osPlatform`. The
+  standalone row represents the runtime by `osPlatform::linux` and is the
+  only `equal` row.
+- UG-09: the configurator accepts the committed S-CORE and Apollo/QNX/QVM
+  examples and the generated AUTOSAR Adaptive/ACRN probe; the governed scope
+  admits none of them, and the reason is read from the serialized
+  reference-only set, element ids included. Every reference-only element
+  with a catalogue node is exercised (Openpilot by its UG-10 row).
+- UG-10: Openpilot without middleware and a radar-only sensing selection are
+  tool-valid; the governed scope keeps Autoware and the LiDAR/camera baseline
+  common and defers driving-stack and sensing variability, so neither is a
+  distinguishing feature within the admitted portfolio. A baseline without
+  its camera or without its LiDAR is tool-valid and not admitted: the common
+  sensing baseline is partially represented (the motion sensors are implied
+  by the catalogue's mandatory leaf). The vehicle-target capability switched
+  off is tool-valid and not admitted: common content dropped.
+- Adaptive cruise control is a catalogue feature candidate the governed scope
+  has no element for (`not-in-governed-scope`); a selection mixing the derived
+  realizations of both alternatives is tool-valid (the adapter derives) and
+  not admitted because it realizes more than one admitted alternative.
+- The both-alternatives statement has no scalar encoding; the tool rejects
+  the list encoding, and PLE-S violates the upper bound. The no-alternative
+  probe is `both-reject`: each path rejects it for its own reason (mandatory
+  groups without a selection; the lower bound).
+- `fixtures/invalid-score-android.yaml` is `both-reject`: it fails constraint
+  C001 under the tool and is not admitted because of reference-only content;
+  the two fields are independent.
+
+The table is the **retained** comparison of run `38788579272` at
+`7e895252ce2b3b3d5d404d2176cc7872b7f671e3` (tree-identical to the merge
+`606141c8` of #376); the retained files and their manifest are in
+[`ple-s-scope-alignment-evidence/`](ple-s-scope-alignment-evidence/README.md).
+The record is **retained, bound to its own revision**: the commit that last
+changed that directory. `tests/test_ple_scope_alignment_oracle.py` extracts
+that revision's files from Git history and reproduces the comparison there at
+every CI run, never against the working tree, so a later change to the
+governed scope, the superset, the scope validator, the catalogue or the
+configurator makes the record **historical**, not failing (owner decision,
+2026-10-16); a pull request that changes the record must make it consistent
+at its own commit. Fresh evidence for a head needs a licensed run: the
+**fresh** comparison of a head is the `comparison/` directory of that head's
+workflow artifact, the same oracle on the receipt of that run, valid for that
+head only, and the oracle refuses a receipt whose digests differ from the
+tree it is compared with. Both carry `qualified: false`.
 
 ## Evidence and how to rerun
 
@@ -144,12 +338,24 @@ not fixed in PLE-S.
   set with the pinned serializer, validates the governed scope exactly as
   production does, and evaluates every configuration with the frozen Gate A
   resolver extended only for exact-one parents. A refusal of a dirty checkout
-  precedes every recording step and follows the evaluation.
+  precedes every recording step and follows the evaluation. After the receipt
+  check, `scripts/compare_ple_scope_alignment.py --evidence fresh` compares
+  the operational path with the fresh receipt of the same head, between two
+  further refusals of a dirty checkout; it runs without the licence.
 - **Artifact:** `ple-scope-alignment-<head SHA>-<run id>` (30 days):
   `receipt.json`, `scope-alignment-elements.json` (the serialized elements of
   the model, the governed scope, the platform stack and the library),
-  `governed-scope-validation.json`, `serializer-diagnostics.txt` and
-  `syside-check.txt`.
+  `governed-scope-validation.json`, `serializer-diagnostics.txt`,
+  `syside-check.txt`, and `comparison/comparison.json` with
+  `comparison/comparison.md` (the fresh comparison).
+- **Retained record:**
+  [`ple-s-scope-alignment-evidence/`](ple-s-scope-alignment-evidence/README.md)
+  keeps the receipt, the governed-scope validation and the comparison of run
+  `38788579272` with a manifest of digests. It is retained evidence of that
+  run, bound to the record's own revision and verified there by CI;
+  historical, not failing, once the files it was produced from move; fresh
+  evidence of a later head needs a licensed run, and the oracle refuses a
+  receipt whose digests differ from the tree it is compared with.
 - **Receipt identity:** executor SHA and `executor_source_dirty`, the
   verified digests of the executor inputs, the frozen interpreter revision
   and digest, the PLEML pin and library digest, the model and evaluator
@@ -168,9 +374,13 @@ not fixed in PLE-S.
 - **Unlicensed checks (public CI):** `tests/test_ple_scope_alignment_model.py`
   (boundary fence, textual shape, every qualified reference resolvable in
   its source), `tests/test_ple_scope_alignment_evaluator.py` (the evaluator on
-  synthetic API-shaped graphs with the real frozen interpreter) and
+  synthetic API-shaped graphs with the real frozen interpreter),
   `tests/test_ple_scope_alignment_workflow.py` (workflow wiring and secret
-  scoping).
+  scoping) and `tests/test_ple_scope_alignment_oracle.py` (the oracle on the
+  retained receipt: UG-09, UG-10 and UG-14 as sets, admission moving with a
+  reclassified governed element, a changed derivation and a missing
+  correspondence exiting non-zero, the refusals, and the retained record
+  reproduced from the retained receipt).
 
 Evidence is valid for its exact head only. A move of main rebinds nothing;
 the next run on the new head is the next evidence.

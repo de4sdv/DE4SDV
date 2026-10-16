@@ -13,7 +13,8 @@ name: Privileged PLE Scope Alignment
 # with the pinned library and the model, and the runner that serializes the
 # same set and evaluates every scope-alignment configuration. Every recording
 # step is preceded by a refusal of a dirty checkout, and one follows the
-# evaluation.
+# evaluation. After the receipt check, the unlicensed comparison oracle sets
+# the operational path (the unchanged configurator) beside the fresh receipt.
 #
 # The receipts say `qualified: false`. This workflow is an experiment gate; it
 # authorizes no adoption, no change of selection authority and no claim.
@@ -27,6 +28,8 @@ on:
       - "tests/test_ple_scope_alignment_model.py"
       - "tests/test_ple_scope_alignment_evaluator.py"
       - "tests/test_ple_scope_alignment_workflow.py"
+      - "scripts/compare_ple_scope_alignment.py"
+      - "tests/test_ple_scope_alignment_oracle.py"
       - ".github/workflows/privileged-ple-scope-alignment.yml"
   workflow_dispatch:
     inputs:
@@ -54,10 +57,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      # Full history: the unlicensed oracle tests verify the retained record
+      # against the files of the record's own revision, read from Git.
       - name: Checkout the pull-request head
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || inputs.ref }}
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Resolve the exact revision
@@ -170,7 +176,8 @@ jobs:
           python -B -m pytest -p no:cacheprovider \
             tests/test_ple_scope_alignment_model.py \
             tests/test_ple_scope_alignment_evaluator.py \
-            tests/test_ple_scope_alignment_workflow.py -q
+            tests/test_ple_scope_alignment_workflow.py \
+            tests/test_ple_scope_alignment_oracle.py -q
 
       - name: Refuse a dirty checkout before the licensed validation
         if: steps.licence.outputs.available == 'true'
@@ -255,6 +262,43 @@ jobs:
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
               summary.write('\n'.join(lines) + '\n')
           PY
+
+      - name: Refuse a dirty checkout before the comparison oracle
+        if: steps.licence.outputs.available == 'true'
+        run: |
+          dirty="$(git status --porcelain)"
+          if [ -n "$dirty" ]; then
+            printf 'the checkout is not clean:\n%s\n' "$dirty" >&2
+            exit 1
+          fi
+
+      # The oracle is unlicensed: it runs the unchanged configurator on the
+      # committed configurations and on probes it generates in a temporary
+      # directory beside its output (under RUNNER_TEMP), and sets the results
+      # beside the fresh receipt of this exact head. A defect or an
+      # unclassified row fails the job.
+      - name: Compare the operational path with the fresh scope alignment (unlicensed oracle)
+        if: steps.licence.outputs.available == 'true'
+        env:
+          HEAD_SHA: ${{ steps.revision.outputs.sha }}
+        run: |
+          python scripts/compare_ple_scope_alignment.py \
+            --receipt "$RUNNER_TEMP/ple-evidence/scope-alignment/receipt.json" \
+            --governed-scope "$RUNNER_TEMP/ple-evidence/scope-alignment/governed-scope-validation.json" \
+            --evidence fresh \
+            --run-id "$GITHUB_RUN_ID" \
+            --artifact "ple-scope-alignment-$HEAD_SHA-$GITHUB_RUN_ID" \
+            --out "$RUNNER_TEMP/ple-evidence/comparison"
+          cat "$RUNNER_TEMP/ple-evidence/comparison/comparison.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Refuse a dirty checkout after the comparison oracle
+        if: steps.licence.outputs.available == 'true'
+        run: |
+          dirty="$(git status --porcelain)"
+          if [ -n "$dirty" ]; then
+            printf 'the checkout is not clean:\n%s\n' "$dirty" >&2
+            exit 1
+          fi
 
       - name: Retain the evidence including failed execution
         if: always() && steps.licence.outputs.available == 'true'

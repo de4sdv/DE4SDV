@@ -44,8 +44,11 @@ OWN_PATHS = {
     "tests/test_ple_scope_alignment_model.py",
     "tests/test_ple_scope_alignment_evaluator.py",
     "tests/test_ple_scope_alignment_workflow.py",
+    "scripts/compare_ple_scope_alignment.py",
+    "tests/test_ple_scope_alignment_oracle.py",
     ".github/workflows/privileged-ple-scope-alignment.yml",
 }
+ORACLE = "scripts/compare_ple_scope_alignment.py"
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -118,6 +121,8 @@ def test_the_executor_is_the_exact_head_and_the_experiment_is_frozen_and_relocat
     head, experiment = checkouts
     assert head["with"]["ref"] == "${{ github.event.pull_request.head.sha || inputs.ref }}"
     assert head["with"]["persist-credentials"] is False
+    # The oracle tests read the retained record's revision from history: never a shallow checkout.
+    assert head["with"]["fetch-depth"] == 0
     assert experiment["with"] == {"ref": FROZEN, "path": "_ple-experiment", "submodules": "recursive",
                                   "persist-credentials": False}
     revision = next(s for s in steps if s.get("id") == "revision")
@@ -290,6 +295,39 @@ def test_the_unlicensed_tests_run_with_the_verified_interpreter() -> None:
     assert step["env"] == {"DE4SDV_PLE_INTERPRETER": "${{ runner.temp }}/_ple-experiment/tools/pleml_gate_a.py"}
     assert "tests/test_ple_scope_alignment_model.py" in step["run"]
     assert "tests/test_ple_scope_alignment_workflow.py" in step["run"]
+    assert "tests/test_ple_scope_alignment_oracle.py" in step["run"]
+
+
+def test_the_comparison_oracle_runs_unlicensed_on_the_fresh_receipt_between_two_guards() -> None:
+    steps = _steps()
+    check_index, _check = _step("receipt['expectation']")
+    oracle_index, step = _step(ORACLE)
+    assert oracle_index > check_index, "the oracle runs after the receipt passed its predicate"
+    assert step["env"] == {"HEAD_SHA": "${{ steps.revision.outputs.sha }}"}, "no licence, only the exact head"
+    guards = [i for i, s in enumerate(steps) if GUARD_TEXT in (s.get("run") or "")]
+    assert oracle_index - 1 in guards and oracle_index + 1 in guards
+    command_line, summary_line = list(clean._shell_lines(step["run"]))
+    argv = shlex.split(command_line)
+    assert argv[:2] == ["python", ORACLE]
+    options = dict(zip(argv[2::2], argv[3::2]))
+    assert options["--evidence"] == "fresh" and options["--run-id"] == "$GITHUB_RUN_ID"
+    assert options["--receipt"] == "$RUNNER_TEMP/ple-evidence/scope-alignment/receipt.json"
+    assert options["--governed-scope"] == "$RUNNER_TEMP/ple-evidence/scope-alignment/governed-scope-validation.json"
+    assert options["--out"] == "$RUNNER_TEMP/ple-evidence/comparison"
+    [upload] = [s for s in steps if str(s.get("uses", "")).startswith("actions/upload-artifact@")]
+    expected_name = upload["with"]["name"].replace("${{ steps.revision.outputs.sha }}", "$HEAD_SHA").replace(
+        "${{ github.run_id }}", "$GITHUB_RUN_ID")
+    assert options["--artifact"] == expected_name, "the oracle binds the same artifact name the upload uses"
+    assert shlex.split(summary_line) == ["cat", "$RUNNER_TEMP/ple-evidence/comparison/comparison.md",
+                                         ">>", "$GITHUB_STEP_SUMMARY"]
+    # The command line parses against the real parser.
+    from scripts import compare_ple_scope_alignment as module
+
+    substituted = [token.replace("$HEAD_SHA", "a" * 40).replace("$GITHUB_RUN_ID", "1")
+                   .replace("$RUNNER_TEMP", "/tmp/runner-temp") for token in argv[2:]]
+    args = module.build_parser().parse_args(substituted)
+    assert args.evidence == "fresh" and args.artifact == "ple-scope-alignment-" + "a" * 40 + "-1"
+    assert args.out == Path("/tmp/runner-temp/ple-evidence/comparison")
 
 
 def _predicate(tmp_path: Path, receipt: dict[str, Any]) -> subprocess.CompletedProcess[str]:
