@@ -334,6 +334,7 @@ Reviewers need the two execution domains, the hypervisor boundary, the host-side
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
+- **Presentation note:** SysIDE lists the actions of the signal flow `scoreTwoDomainSignalFlow` but does not draw the flows between them. The one-way flows are modeled in the source, in the action definition `TwoDomainSignalFlow`: the reference vehicle speed over S-CORE into the AEBS stack, the AEBS signals across the domain boundary to the HMI, and the emergency command to the command gate on the host.
 
 ![scoreTwoDomainOperationalContextView](diagrams/diagram-scoreTwoDomainOperationalContextView.svg)
 

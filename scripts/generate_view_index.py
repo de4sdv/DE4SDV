@@ -167,6 +167,14 @@ KNOWN_PRESENTATION_NOTES = {
         "Long qualified labels overlap in the current SysIDE layout; use the "
         "source and exposure list above for exact names."
     ),
+    "scoreTwoDomainOperationalContextView": (
+        "SysIDE lists the actions of the signal flow `scoreTwoDomainSignalFlow` "
+        "but does not draw the flows between them. The one-way flows are "
+        "modeled in the source, in the action definition `TwoDomainSignalFlow`: "
+        "the reference vehicle speed over S-CORE into the AEBS stack, the AEBS "
+        "signals across the domain boundary to the HMI, and the emergency "
+        "command to the command gate on the host."
+    ),
 }
 
 

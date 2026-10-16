@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="1574" viewBox="0 0 1040 1574" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="1654" viewBox="0 0 1040 1654" role="img" aria-labelledby="title description">
   <title id="title">table-scoreTwoDomainClassificationView</title>
   <desc id="description">table-scoreTwoDomainClassificationView. Generated from SysIDE grid CSV.</desc>
   <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
@@ -86,40 +86,44 @@
     <tspan x="692" dy="20">make, without changing the existing</tspan>
     <tspan x="692" dy="20">members' configurations.</tspan>
   </text>
-  <rect x="0" y="774" width="320" height="220" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="0" y="774" width="320" height="300" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="12" y="798" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">aaosSDVHMIGuest</tspan>
   </text>
-  <rect x="320" y="774" width="360" height="220" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="320" y="774" width="360" height="300" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="332" y="798" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="332" dy="0">DeferredVariantChoice,</tspan>
     <tspan x="332" dy="20">ProductLineVariantChoice,</tspan>
     <tspan x="332" dy="20">ProductLineCharacteristic</tspan>
   </text>
-  <rect x="680" y="774" width="360" height="220" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="680" y="774" width="360" height="300" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="692" y="798" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="692" dy="0">CLS-MW-004, feature-level choice: the AAOS</tspan>
-    <tspan x="692" dy="20">SDV guest with the HMI corresponds to the</tspan>
-    <tspan x="692" dy="20">governed scope's AAOS-integrated vehicle-</tspan>
-    <tspan x="692" dy="20">platform integration mode, the only</tspan>
-    <tspan x="692" dy="20">admitted first-scope variability, combined</tspan>
-    <tspan x="692" dy="20">here with S-CORE on the host. It</tspan>
-    <tspan x="692" dy="20">distinguishes the member from the</tspan>
-    <tspan x="692" dy="20">standalone member; declaring it as a</tspan>
-    <tspan x="692" dy="20">configuration is phase 9 work after the</tspan>
-    <tspan x="692" dy="20">PLEML adoption decision.</tspan>
+    <tspan x="692" dy="20">SDV guest with the HMI distinguishes the</tspan>
+    <tspan x="692" dy="20">member from the standalone member. It is a</tspan>
+    <tspan x="692" dy="20">candidate counterpart of the governed</tspan>
+    <tspan x="692" dy="20">scope's AAOS-integrated vehicle-platform</tspan>
+    <tspan x="692" dy="20">integration mode, which the scope defines</tspan>
+    <tspan x="692" dy="20">with AAOS as the vehicle-platform domain;</tspan>
+    <tspan x="692" dy="20">in this member S-CORE is on the host and</tspan>
+    <tspan x="692" dy="20">AAOS SDV runs the HMI guest. Whether the</tspan>
+    <tspan x="692" dy="20">scope revision reuses that mode or</tspan>
+    <tspan x="692" dy="20">introduces another one is the ADR's</tspan>
+    <tspan x="692" dy="20">decision; declaring a configuration is</tspan>
+    <tspan x="692" dy="20">phase 9 work after the PLEML adoption</tspan>
+    <tspan x="692" dy="20">decision.</tspan>
   </text>
-  <rect x="0" y="994" width="320" height="220" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="1018" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="1074" width="320" height="220" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1098" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">crossDomainHMIPath</tspan>
   </text>
-  <rect x="320" y="994" width="360" height="220" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="332" y="1018" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="320" y="1074" width="360" height="220" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="332" y="1098" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="332" dy="0">CommonProductLineCapability,</tspan>
     <tspan x="332" dy="20">ProductLineCharacteristic</tspan>
   </text>
-  <rect x="680" y="994" width="360" height="220" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="692" y="1018" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="680" y="1074" width="360" height="220" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="692" y="1098" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="692" dy="0">CLS-MW-005, common capability conditional</tspan>
     <tspan x="692" dy="20">on the integration mode: the one-way</tspan>
     <tspan x="692" dy="20">cross-domain HMI path is present whenever</tspan>
@@ -131,17 +135,17 @@
     <tspan x="692" dy="20">interface of the member (hmiPathInScope),</tspan>
     <tspan x="692" dy="20">not an engineering instrument.</tspan>
   </text>
-  <rect x="0" y="1214" width="320" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="1238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="1294" width="320" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1318" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">scoreAssumptionsOfUseConformance</tspan>
   </text>
-  <rect x="320" y="1214" width="360" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="332" y="1238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="320" y="1294" width="360" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="332" y="1318" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="332" dy="0">MemberConstraintCharacteristic,</tspan>
     <tspan x="332" dy="20">ProductLineCharacteristic</tspan>
   </text>
-  <rect x="680" y="1214" width="360" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="692" y="1238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="680" y="1294" width="360" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="692" y="1318" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="692" dy="0">CLS-MW-006, constraint: the assumptions of</tspan>
     <tspan x="692" dy="20">use that Eclipse S-CORE v0.9.0 states for</tspan>
     <tspan x="692" dy="20">the application and for the operating</tspan>
@@ -151,17 +155,17 @@
     <tspan x="692" dy="20">realization constraints. No conformance is</tspan>
     <tspan x="692" dy="20">claimed here.</tspan>
   </text>
-  <rect x="0" y="1394" width="320" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="1418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="1474" width="320" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1498" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">integratorObligationsAndBench</tspan>
   </text>
-  <rect x="320" y="1394" width="360" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="332" y="1418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="320" y="1474" width="360" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="332" y="1498" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="332" dy="0">EvidenceCapabilityCharacteristic,</tspan>
     <tspan x="332" dy="20">ProductLineCharacteristic</tspan>
   </text>
-  <rect x="680" y="1394" width="360" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="692" y="1418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="680" y="1474" width="360" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="692" y="1498" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="692" dy="0">CLS-MW-007, evidence capability: the</tspan>
     <tspan x="692" dy="20">integrator's obligations under the</tspan>
     <tspan x="692" dy="20">assumptions of use and the bench of the</tspan>
