@@ -6,10 +6,10 @@
  * distinguishes member products, as a feature candidate: an AAOS SDV HMI
  * guest next to the Linux host. A feature (ISO/IEC 26580) is a product's
  * characteristic that differentiates it from other products within the same
- * product line; elements that all member products use are core elements,
- * common by default and never declared. Everything else in the increment is
- * such a core element, or belongs to phase 5 (the S-CORE assumptions of use)
- * or phase 10 (the bench and its evidence).
+ * product line. Core elements, which every member uses, are common by default
+ * and not classified here; the S-CORE middleware and its Autoware adapter are
+ * already native variants of DE4SDV_SDVPlatformStack; the assumptions of use
+ * belong to phase 5, the bench to phase 10.
  */
 
 package DE4SDV_MiddlewareSCOREFeatureClassification {
