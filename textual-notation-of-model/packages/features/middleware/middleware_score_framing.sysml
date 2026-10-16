@@ -96,24 +96,9 @@ package DE4SDV_MiddlewareSCOREFraming {
   }
 
   part scoreMiddlewareScope : IncrementScope {
-    doc /* The scope of INC-MW-011: the nested parts are its in-scope items; the OutOfScopeItem parts of this package bound it. */
-    part scoreRealizationInScope : InScopeItem {
-      doc /* The S-CORE realization of the six middleware components on the Linux host (phase 8). */
-    }
-    part scoreMemberProductInScope : InScopeItem {
-      doc /* The two-domain member product: Autoware, S-CORE and the adapter on a Linux host, and an AAOS SDV guest with the HMI, under a hypervisor (phases 8 and 9). */
-    }
+    doc /* The scope of INC-MW-011: the engineering question, GAP-MW-030, GAP-MW-032 and the charter set its realization, member-product and platform scope; the nested parts are the two signal paths later slices trace to; the OutOfScopeItem parts of this package bound it. */
     part referenceVehicleSpeedPathInScope : InScopeItem {
-      doc /* The reference vehicle-speed path (VSS Vehicle.Speed) over S-CORE communication into Autoware, like for like with the AAOS SDV realization of INC-MW-008 over the same reference signal. */
-    }
-    part perExecutionDomainPlatformModelingInScope : InScopeItem {
-      doc /* Per-execution-domain platform modeling (operating system, middleware and hypervisor per domain), so that the product model can express the two-domain member (phases 8 and 9). */
-    }
-    part scoreVariantNeedsRequirementsInScope : InScopeItem {
-      doc /* Needs and requirements for the S-CORE variant, the reference vehicle-speed path and the cross-domain HMI path (phases 4 and 5). */
-    }
-    part runnableProofInScope : InScopeItem {
-      doc /* A runnable proof with retained evidence (phase 10). */
+      doc /* The reference vehicle-speed path (VSS Vehicle.Speed) over S-CORE communication into the same Autoware consumer, like for like with the AAOS SDV realization of INC-MW-008 over the same reference signal, with evidence comparable with the retained evidence of INC-MW-010. */
     }
     part hmiPathInScope : InScopeItem {
       doc /*
@@ -153,9 +138,6 @@ package DE4SDV_MiddlewareSCOREFraming {
      * as the system of interest.
      */
   }
-
-  connection scoreMiddlewareStakeholderParticipation : HasStakeholder
-    connect scoreMiddlewareIntegrationIncrement to scoreMiddlewareProblemStatement.systemArchitect;
 
   part scoreMiddlewareCharter : IncrementCharter {
     doc /*
@@ -198,11 +180,6 @@ package DE4SDV_MiddlewareSCOREFraming {
   dependency scoreLayerOnAutowareToSCOREAdapter
     from scoreMiddlewareIntegrationLayer to DE4SDV_SDVPlatformStack::AutowareToSCOREAdapter;
 
-  dependency scoreQuestionToProblemStatement
-    from scoreMiddlewareEngineeringQuestion to scoreMiddlewareProblemStatement;
-  dependency scoreScopeToCharter
-    from scoreMiddlewareScope to scoreMiddlewareCharter;
-
   part complianceClaimOutOfScope : OutOfScopeItem {
     doc /*
      * ISO 26262, ISO 21434, UN R152, UN R155 and UN R156 conformance or
@@ -213,9 +190,6 @@ package DE4SDV_MiddlewareSCOREFraming {
   }
   part qnxAndHardwareTargetsOutOfScope : OutOfScopeItem {
     doc /* QNX and hardware targets; the proof runs on Linux x86_64. */
-  }
-  part productionDeploymentOutOfScope : OutOfScopeItem {
-    doc /* Production deployment of any kind. */
   }
   part scoreSourceVendoringOutOfScope : OutOfScopeItem {
     doc /* Copying (vendoring) S-CORE code into DE4SDV. */
@@ -248,9 +222,10 @@ package DE4SDV_MiddlewareSCOREFraming {
   }
   part asmMiddlewareBaselineHolds : IncrementAssumption {
     doc /*
-     * ASM-MW-023: The needs, requirements and logical architecture of
-     * INC-MW-004 to INC-MW-007 hold for the S-CORE variant unless phases 4
-     * to 7 of this increment show otherwise.
+     * ASM-MW-023: The concerns, operational context and story, capability
+     * classification, needs, requirements, and functional and logical
+     * architecture of INC-MW-002 to INC-MW-007 hold for the S-CORE variant
+     * unless phases 1 to 7 of this increment show otherwise.
      */
   }
   part asmVisualizationApplicationReusedAsHMI : IncrementAssumption {
@@ -360,8 +335,6 @@ package DE4SDV_MiddlewareSCOREFraming {
     from gapTwoDomainMemberNotExpressible to DE4SDV_AEBSProductLineScope::InitialPlannedReferenceMemberPortfolio::aaosIntegratedAutowareAEBSReferenceMember;
   dependency emergencyPathAssumptionOnProtectedPathIndependence
     from asmEmergencyCommandPathStaysOnLinuxHost to DE4SDV_AEBSProductLineScope::InitialCommonCoreEngineeringContent::protectedEmergencyCommandPathIndependence;
-  dependency emergencyPathAssumptionOnSafetyPathIsolationRequirement
-    from asmEmergencyCommandPathStaysOnLinuxHost to DE4SDV_MiddlewareRequirements::Features::Middleware::Requirements::reqIsolateSafetyPath;
 
   concern scoreRealizationCoverageConcern : ProductLineCapabilityClassificationConcern {
     doc /*
@@ -378,18 +351,6 @@ package DE4SDV_MiddlewareSCOREFraming {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  concern applicationDecouplingConcern : IncrementBoundaryConcern {
-    doc /*
-     * Reviewers need the Autoware application to stay unchanged, with only the
-     * adapter binding to S-CORE, and the realization, configuration and
-     * evidence slices of this increment to stay separate from this framing.
-     */
-    subject;
-    stakeholder systemArchitect : SystemArchitect;
-    stakeholder softwareDeveloper : SoftwareDeveloper;
-    stakeholder reviewer : OpenSourceReviewer;
-  }
-
   concern hmiDomainBoundaryConcern : FunctionalInterfaceConcern {
     doc /*
      * Reviewers need the HMI path to be one-way and read-only across the
@@ -401,19 +362,6 @@ package DE4SDV_MiddlewareSCOREFraming {
     stakeholder systemArchitect : SystemArchitect;
     stakeholder safetyExpert : SafetyExpert;
     stakeholder verificationEngineer : VerificationEngineer;
-  }
-
-  concern noComplianceClaimConcern : RegulatoryScopeWithoutComplianceClaimConcern {
-    doc /*
-     * Reviewers need the safety, cybersecurity and regulatory anchors around
-     * S-CORE and the AEBS HMI (ISO 26262, ISO 21434, UN R152, UN R155,
-     * UN R156) to stay visible as scope boundaries without any DE4SDV
-     * conformance, compliance, certification or type-approval claim.
-     */
-    subject;
-    stakeholder safetyExpert : SafetyExpert;
-    stakeholder maintainer : Maintainer;
-    stakeholder reviewer : OpenSourceReviewer;
   }
 
   concern twoDomainMemberRepresentationConcern : ProductLineConfigurationConcern {
@@ -432,9 +380,7 @@ package DE4SDV_MiddlewareSCOREFraming {
   view scoreMiddlewareFramingView {
     viewpoint selectedFramingViewpoint : IncrementFramingViewpoint {
       frame scoreRealizationCoverageConcern;
-      frame applicationDecouplingConcern;
       frame hmiDomainBoundaryConcern;
-      frame noComplianceClaimConcern;
       frame twoDomainMemberRepresentationConcern;
     }
 
