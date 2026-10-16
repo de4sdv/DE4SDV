@@ -143,7 +143,8 @@ case changed): no licensed run; the retained receipt still describes the tree.
    run id and executor revision must appear in the document), and update the
    identity prose: in this README, the run, head, pull request, merge,
    artifact name and expiry date under "Identity" and the run id and artifact
-   name under "How to verify by hand"; in the record document, the run, head
-   and merge in the paragraph under the table.
+   name under "How to verify by hand"; in the record document, the run, head,
+   merge and pull request in the paragraph under the table and the run in the
+   "Retained record" bullet.
 5. Commit the record, the manifest, the test constants and the document in
    one commit: CI verifies the record at that commit.
