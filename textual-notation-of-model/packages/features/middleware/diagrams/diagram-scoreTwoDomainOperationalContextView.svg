@@ -133,9 +133,9 @@
   <text x="36" y="150" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^disposition : RenderedAEBSState</tspan></text>
   <text x="155.5" y="168.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">actions</tspan></text>
   <text x="36" y="184" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^provideSpeed</tspan></text>
-  <text x="36" y="196" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^carrySpeed</tspan></text>
-  <text x="36" y="208" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^runAEBSStack</tspan></text>
-  <text x="36" y="220" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^gateCommand</tspan></text>
-  <text x="36" y="232" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^carrySignals</tspan></text>
-  <text x="36" y="244" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^presentState</tspan></text>
+  <text x="36" y="196" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^carrySpeedOverSCORE</tspan></text>
+  <text x="36" y="208" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^runAEBSStackOnHost</tspan></text>
+  <text x="36" y="220" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^gateCommandOnHost</tspan></text>
+  <text x="36" y="232" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^carrySignalsAcrossDomainBoundary</tspan></text>
+  <text x="36" y="244" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^presentStateOnHMI</tspan></text>
 </svg>

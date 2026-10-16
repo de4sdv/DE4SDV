@@ -271,7 +271,7 @@
   <text x="1252" y="1318" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Each later slice belongs to this increment and is not a second</tspan></text>
   <text x="1252" y="1330" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">increment identity. Owner, expected artifacts and expected review</tspan></text>
   <text x="1252" y="1342" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">evidence are declarations, not completion or review evidence. The</tspan></text>
-  <text x="1252" y="1354" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">expected artifacts name the framing package only; each later slice</tspan></text>
+  <text x="1252" y="1354" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">expected artifacts name the packages of phases 0 to 3; each later slice</tspan></text>
   <text x="1252" y="1366" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">adds its own package when it is authored. The system of interest is</tspan></text>
   <text x="1252" y="1378" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the middleware integration layer: the needs and requirements take it</tspan></text>
   <text x="1252" y="1390" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">as their subject, the problem statement keeps the increment.</tspan></text>
