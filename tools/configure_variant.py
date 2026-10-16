@@ -28,6 +28,10 @@ Selection semantics:
   - OR-groups: assign a non-empty list of child names
   - Optional/mandatory leaves: assign a YAML Boolean true or false
     e.g. Capabilities.ForwardCollisionMitigation.PedestrianDetection: false
+  - A mandatory leaf whose ancestors below the catalogue root are all
+    mandatory counts as selected when the BoF leaves it out, for the
+    mandatory-leaf check and for the constraints alike; setting it to
+    false is a violation.
 
 Usage:
   python tools/configure_variant.py \\
@@ -440,7 +444,11 @@ def find_alternative_groups(root):
 
 
 def find_mandatory_leaves(root):
-    """Collect all leaf nodes that are transitively mandatory."""
+    """
+    Collect all leaf nodes that are transitively mandatory.
+    The root is always selected, whatever type it declares or defaults
+    to, so the walk starts at its children.
+    """
     leaves = []
 
     def walk(node, parent_mandatory):
@@ -450,7 +458,8 @@ def find_mandatory_leaves(root):
         for child in node.children:
             walk(child, is_mandatory)
 
-    walk(root, True)
+    for child in root.children:
+        walk(child, True)
     return leaves
 
 
@@ -578,10 +587,11 @@ def validate_structure(root, all_nodes, selections):
                 f"Mandatory {group.type} group '{group.path}' has no selection"
             )
 
-    # Check: every transitively-mandatory leaf is selected
+    # Check: no transitively-mandatory leaf is set to false. One the BoF
+    # leaves out counts as selected, here and in the constraint pass.
     for leaf in find_mandatory_leaves(root):
         sel = selections.get(leaf.path)
-        if sel is None or sel is False:
+        if sel is False:
             errors.append(
                 f"Mandatory feature not selected: '{leaf.path}'"
             )
@@ -1578,11 +1588,18 @@ def main():
         mapping_target_errors = validate_sysml_mapping_targets(
             root, args.shared_assets_model, projection, feature_model_data
         )
-    # Pass 2: Constraint validation
+    # Pass 2: Constraint validation. A transitively-mandatory leaf the BoF
+    # leaves out counts as selected here too, as in the structural check.
     constraint_definition_errors = validate_constraint_definitions(
         constraints, all_nodes
     )
-    constraint_errors = validate_constraints(constraints, selections)
+    implied_leaves = {
+        leaf.path: True for leaf in find_mandatory_leaves(root)
+        if leaf.path not in selections
+    }
+    constraint_errors = validate_constraints(
+        constraints, {**selections, **implied_leaves}
+    )
 
     all_errors = (
         structural_errors + bof_metadata_errors + evidence_errors + mapping_errors

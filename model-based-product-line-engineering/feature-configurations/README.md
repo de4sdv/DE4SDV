@@ -22,6 +22,10 @@ claim. Evidence status is metadata about the configuration, not a feature.
 - Alternative groups select one child name as a scalar.
 - OR groups select a non-empty YAML list.
 - Optional/mandatory leaves use YAML Booleans.
+- A mandatory leaf whose ancestors below the catalogue root are all mandatory
+  counts as selected when the Bill-of-Features leaves it out, for the
+  mandatory-leaf check and for the catalogue's constraints alike; setting it
+  to `false` is a violation.
 - Cross-tree compatibility rules reject structurally selectable but unsupported
   hardware/OS/runtime combinations.
 

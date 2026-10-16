@@ -12,6 +12,7 @@ Tests cover:
 import copy
 import hashlib
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -262,6 +263,159 @@ selections:
             self.assertIn("no selection", err.lower())
         finally:
             os.unlink(bof.name)
+
+    def test_switched_off_mandatory_leaf_is_rejected(self):
+        """Invalid: a leaf that is mandatory up to the catalogue root is false."""
+        mandatory_leaves = (
+            "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS",
+            "SensingBoundary.MotionSensors",
+        )
+        for leaf in mandatory_leaves:
+            with self.subTest(leaf=leaf):
+                bof_data = yaml.safe_load(
+                    (BOF_DIR / "example-linux-score-autoware.yaml").read_text()
+                )
+                bof_data["name"] = "TestSwitchedOffMandatoryLeaf"
+                for other in mandatory_leaves:
+                    bof_data["selections"][other] = other != leaf
+                with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".yaml", delete=False
+                ) as bof:
+                    yaml.safe_dump(bof_data, bof, sort_keys=False)
+                try:
+                    rc, out, err = self.run_config(
+                        Path(bof.name), extra_args=["--check-only"],
+                        expect_fail=True,
+                    )
+                    self.assertEqual(1, rc)
+                    self.assertIn("1 violation(s)", err)
+                    self.assertIn(
+                        f"Mandatory feature not selected: '{leaf}'", err
+                    )
+                finally:
+                    os.unlink(bof.name)
+
+    def test_omitted_mandatory_leaf_is_selected_with_its_parent(self):
+        """Valid: a mandatory leaf the BoF leaves out is part of the product."""
+        bof_data = yaml.safe_load(
+            (BOF_DIR / "example-linux-score-autoware.yaml").read_text()
+        )
+        bof_data["name"] = "TestOmittedMandatoryLeaves"
+        for leaf in (
+            "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS",
+            "SensingBoundary.MotionSensors",
+        ):
+            bof_data["selections"].pop(leaf, None)
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".yaml", delete=False
+        ) as bof:
+            yaml.safe_dump(bof_data, bof, sort_keys=False)
+        try:
+            rc, out, err = self.run_config(
+                Path(bof.name), extra_args=["--check-only"]
+            )
+            self.assertIn("Configuration valid", err)
+        finally:
+            os.unlink(bof.name)
+
+    def _pedestrian_detection_bof(self, vehicle_target_aebs):
+        """The AEBS member with PedestrianDetection on; C006 requires VehicleTargetAEBS."""
+        bof_data = yaml.safe_load(
+            (BOF_DIR / "aebs-autoware-linux-lidar-camera.yaml").read_text()
+        )
+        bof_data["name"] = "TestPedestrianDetection"
+        selections = bof_data["selections"]
+        selections[
+            "Capabilities.ForwardCollisionMitigation.PedestrianDetection"
+        ] = True
+        aebs = "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS"
+        if vehicle_target_aebs is None:
+            del selections[aebs]
+        else:
+            selections[aebs] = vehicle_target_aebs
+        bof = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".yaml", delete=False
+        )
+        with bof:
+            yaml.safe_dump(bof_data, bof, sort_keys=False)
+        self.addCleanup(os.unlink, bof.name)
+        return Path(bof.name)
+
+    def test_omitted_mandatory_leaf_is_selected_for_the_constraints(self):
+        """Valid: C006 holds when the mandatory leaf it requires is left out."""
+        rc, out, err = self.run_config(
+            self._pedestrian_detection_bof(vehicle_target_aebs=None),
+            extra_args=["--check-only"],
+        )
+        self.assertIn("Configuration valid", err)
+        self.assertNotIn("C006", err)
+
+    def test_switched_off_mandatory_leaf_fails_the_constraint_requiring_it(self):
+        """Invalid: an explicit false is not implied; C006 fails beside the check."""
+        rc, out, err = self.run_config(
+            self._pedestrian_detection_bof(vehicle_target_aebs=False),
+            extra_args=["--check-only"],
+            expect_fail=True,
+        )
+        self.assertEqual(1, rc)
+        violations = [
+            line.strip()[2:] for line in err.splitlines()
+            if line.strip().startswith("\N{BULLET}")
+        ]
+        self.assertEqual(2, len(violations), violations)
+        self.assertEqual(
+            "Mandatory feature not selected: "
+            "'Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS'",
+            violations[0],
+        )
+        self.assertTrue(violations[1].startswith(
+            "[C006] requires: "
+            "'Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS' "
+            "is not satisfied"
+        ), violations[1])
+
+    def test_committed_bills_of_features_keep_their_verdicts(self):
+        """Committed BoFs regenerate their projections; the fixture fails only C001."""
+        product_models = (
+            REPO_ROOT / "model-based-product-line-engineering" / "product-models"
+        )
+        generated = {}
+        for projection in sorted(product_models.glob("*.sysml")):
+            header = dict(re.findall(
+                r"^ \* (Regenerate from|Feature model|Shared-assets model): (.+)$",
+                projection.read_text(), re.MULTILINE,
+            ))
+            if "Regenerate from" in header:
+                generated[header["Regenerate from"]] = (
+                    header["Feature model"], header["Shared-assets model"],
+                    projection,
+                )
+        fixture = BOF_DIR / "fixtures" / "invalid-score-android.yaml"
+        self.assertEqual(
+            sorted([*generated, fixture.relative_to(REPO_ROOT).as_posix()]),
+            sorted(
+                path.relative_to(REPO_ROOT).as_posix()
+                for path in BOF_DIR.rglob("*.yaml")
+            ),
+        )
+        for bof, (feature_model, shared_model, projection) in generated.items():
+            with self.subTest(bof=bof), tempfile.TemporaryDirectory() as tmp:
+                output = Path(tmp) / "projection.sysml"
+                self.run_config(
+                    REPO_ROOT / bof,
+                    extra_args=[
+                        "--shared-assets-model", str(REPO_ROOT / shared_model),
+                        "--output", str(output),
+                    ],
+                    feature_model_path=REPO_ROOT / feature_model,
+                )
+                self.assertEqual(output.read_text(), projection.read_text())
+        rc, out, err = self.run_config(
+            fixture, extra_args=["--check-only"], expect_fail=True
+        )
+        self.assertEqual(1, rc)
+        self.assertIn("1 violation(s)", err)
+        self.assertIn("[C001]", err)
 
     def test_invalid_wrong_variant_name(self):
         """Invalid: selecting a variant that doesn't exist."""

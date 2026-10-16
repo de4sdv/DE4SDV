@@ -13,13 +13,13 @@
     "catalogue": "model-based-product-line-engineering/feature-models/sdv_product_line.yaml",
     "catalogue_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
     "configurator": "tools/configure_variant.py",
-    "configurator_sha256": "b13699675411ffe182bd04b1a48eb5af6501c2b375aafaeeacf9eb1e8ac344a5",
+    "configurator_sha256": "8cfcd4d9ba37f5fff43bfd653d0dbd17285a90a1da2a265232045fe5c6314623",
     "correspondence": "model-based-product-line-engineering/pleml-scope-alignment/catalogue-correspondence.yaml",
     "correspondence_sha256": "b82547f93c983dbff25df29a5bb984d4477b90f1d807d1a9b0eb36003f05ab20",
-    "executor_revision": "ec64a39e9fb4df1c11f5c75daf3b83c70ff4784f",
+    "executor_revision": "11b83b24fe00bee0b02035d787797e2f663fe529",
     "executor_source_dirty": false,
     "script": "scripts/compare_ple_scope_alignment.py",
-    "script_sha256": "1d16c5d1f9cf2c30bc59fd30f4e4e2f0d0b5182b0e29adce4742243ae48ec775",
+    "script_sha256": "c94e6bc00de27f8ef103e55fbf0bf5d7c4b0abee465e3212ad2ba7c9c1e8835b",
     "selection_authority": "the YAML catalogue, the committed configurations and tools/configure_variant.py, unchanged; the oracle is a comparison only",
     "shared_assets": "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml",
     "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
@@ -5727,8 +5727,8 @@
         ]
       },
       "case": "ug-10-vehicle-target-aebs-false",
-      "class": "intentional-scope",
-      "class_reason": "tool-valid; no: common content not fully represented by the selections: vehicleTargetAEBS not represented (dropped: C-CAPABILITY-AEBS-VEHICLE-TARGET)",
+      "class": "both-reject",
+      "class_reason": "the tool rejects and the governed scope does not admit, for independent reasons: tool invalid (1 violation): Mandatory feature not selected: 'Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS'; governed scope no: common content not fully represented by the selections: vehicleTargetAEBS not represented (dropped: C-CAPABILITY-AEBS-VEHICLE-TARGET); PLE-S no PLE-S configuration: common content not fully represented by the selections: vehicleTargetAEBS not represented (dropped: C-CAPABILITY-AEBS-VEHICLE-TARGET)",
       "comparison": {
         "differing": [],
         "equal_on": [],
@@ -5748,20 +5748,16 @@
             "variation": "osPlatform"
           }
         ],
-        "tool_selected": {
-          "applicationMiddlewareAdapter": "none",
-          "hypervisor": "none",
-          "middleware": "none",
-          "osPlatform": "linux",
-          "vehicleApplication": "autoware"
-        }
+        "tool_selected": null
       },
       "configuration_valid_under_current_tool": {
-        "exit_code": 0,
-        "meaning": "valid",
-        "messages": [],
-        "summary": "valid",
-        "valid": true,
+        "exit_code": 1,
+        "meaning": "invalid",
+        "messages": [
+          "Mandatory feature not selected: 'Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS'"
+        ],
+        "summary": "invalid (1 violation): Mandatory feature not selected: 'Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS'",
+        "valid": false,
         "violated_constraints": []
       },
       "operational_input": {
@@ -5808,7 +5804,7 @@
       },
       "provenance": {
         "bill_of_features_sha256": "0d8a4d476e56ece983e49afb8510b467f32511b278f5656411381cfb0a129146",
-        "digest_origin": "projection header",
+        "digest_origin": "computed by the oracle (the tool generated no projection)",
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
           "configuration_element_id": null,
@@ -6283,10 +6279,10 @@
         "configuration": null,
         "derived_asset_variants": {},
         "element_id": null,
-        "reason": "no PLE-S configuration: the admitted tree has no feature for not-in-governed-scope",
+        "reason": "no PLE-S configuration: the admitted tree has no feature for Capabilities.AdaptiveCruiseControl (not-in-governed-scope)",
         "selected_alternatives": [],
         "status": null,
-        "summary": "no PLE-S configuration: the admitted tree has no feature for not-in-governed-scope",
+        "summary": "no PLE-S configuration: the admitted tree has no feature for Capabilities.AdaptiveCruiseControl (not-in-governed-scope)",
         "violated_bound": null
       },
       "provenance": {
@@ -7234,6 +7230,7 @@
     "classes": {
       "both-reject": [
         "no-alternative",
+        "ug-10-vehicle-target-aebs-false",
         "both-axes-negative"
       ],
       "defect": [],
@@ -7251,7 +7248,6 @@
         "ug-10-radar-only",
         "ug-10-lidar-only",
         "ug-10-camera-only",
-        "ug-10-vehicle-target-aebs-false",
         "catalogue-only-adaptive-cruise-control",
         "derived-set-mixed"
       ],
