@@ -314,8 +314,8 @@ The integrator (software developer and system architect) needs the assumptions o
 
 - **Source:** `middleware_score_operational_context.sysml`
 - **Viewpoint:** `selectedStakeholderIdentificationViewpoint` (`StakeholderIdentificationViewpoint`)
-- **Concern:** `scoreAssumptionsOfUseConformanceConcern`
-- **Exposes:** `scoreAssumptionsOfUseConformanceConcern`, `runnableProofBenchConcern`, `emergencyPathIndependenceConcern`, `likeForLikeComparisonConcern`
+- **Concern:** `assumptionsOfUseConcern`
+- **Exposes:** `assumptionsOfUseConcern`, `runnableProofBenchConcern`, `emergencyPathConcern`, `likeForLikeComparisonConcern`
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
@@ -329,8 +329,8 @@ Reviewers need the two execution domains, the hypervisor boundary, the host-side
 - **Source:** `middleware_score_operational_context.sysml`
 - **Viewpoint:** `selectedOperationalContextViewpoint` (`OperationalContextDefinitionViewpoint`)
 - **Concern:** `scoreTwoDomainContextConcern`
-- **Exposes:** `scoreTwoDomainOperationalContext`, `scoreTwoDomainOperationalContext::*`
-- **Depth:** `1`
+- **Exposes:** `scoreTwoDomainOperationalContext`, `scoreTwoDomainOperationalContext::*`, `scoreTwoDomainSignalFlow`
+- **Depth:** `2`
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.

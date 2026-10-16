@@ -76,11 +76,13 @@ package DE4SDV_MiddlewareSCOREFeatureClassification {
   part aaosSDVHMIGuest : DeferredVariantChoice {
     doc /*
      * CLS-MW-004, feature-level choice: the AAOS SDV guest with the HMI
-     * corresponds to the governed scope's AAOS-integrated vehicle-platform
-     * integration mode, the only admitted first-scope variability, combined
-     * here with S-CORE on the host. It distinguishes the member from the
-     * standalone member; declaring it as a configuration is phase 9 work
-     * after the PLEML adoption decision.
+     * distinguishes the member from the standalone member. It is a candidate
+     * counterpart of the governed scope's AAOS-integrated vehicle-platform
+     * integration mode, which the scope defines with AAOS as the
+     * vehicle-platform domain; in this member S-CORE is on the host and AAOS
+     * SDV runs the HMI guest. Whether the scope revision reuses that mode or
+     * introduces another one is the ADR's decision; declaring a
+     * configuration is phase 9 work after the PLEML adoption decision.
      */
   }
 
@@ -151,7 +153,7 @@ package DE4SDV_MiddlewareSCOREFeatureClassification {
   dependency perDomainVariabilityClosesTwoDomainGap
     from perExecutionDomainPlatformVariability
     to DE4SDV_MiddlewareSCOREFraming::gapTwoDomainMemberNotExpressible;
-  dependency hmiGuestOnAAOSIntegratedMode
+  dependency hmiGuestCandidateCounterpartOfAAOSIntegratedMode
     from aaosSDVHMIGuest
     to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::aaosIntegrated;
   dependency hmiPathOnFramingScopeItem

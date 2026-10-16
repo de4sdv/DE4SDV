@@ -33,7 +33,7 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
 
   /* ───────────────────────── Phase 1: who cares and why ───────────────────────── */
 
-  concern scoreAssumptionsOfUseConformanceConcern : CommonStandardsConcern {
+  concern assumptionsOfUseConcern : CommonStandardsConcern {
     doc /*
      * The integrator (software developer and system architect) needs the
      * assumptions of use that Eclipse S-CORE v0.9.0 states for the
@@ -65,7 +65,7 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  concern emergencyPathIndependenceConcern : AssetIdentificationConcern {
+  concern emergencyPathConcern : AssetIdentificationConcern {
     doc /*
      * The safety expert needs the AEBS emergency intervention command path
      * identified as the safety-relevant asset of the member: it stays inside
@@ -96,15 +96,15 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
 
   view scoreMiddlewareStakeholderConcernView {
     viewpoint selectedStakeholderIdentificationViewpoint : StakeholderIdentificationViewpoint {
-      frame scoreAssumptionsOfUseConformanceConcern;
+      frame assumptionsOfUseConcern;
       frame runnableProofBenchConcern;
-      frame emergencyPathIndependenceConcern;
+      frame emergencyPathConcern;
       frame likeForLikeComparisonConcern;
     }
 
-    expose scoreAssumptionsOfUseConformanceConcern;
+    expose assumptionsOfUseConcern;
     expose runnableProofBenchConcern;
-    expose emergencyPathIndependenceConcern;
+    expose emergencyPathConcern;
     expose likeForLikeComparisonConcern;
     render asTreeDiagram;
   }
@@ -124,14 +124,17 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
     from DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareProblemStatement
     to DE4SDV_MiddlewareIncrementFraming::Features::Middleware::IncrementFraming::middlewareIntegrationProblemStatement;
   dependency scoreConcernsHoldBaselineAssuranceConcern
-    from scoreMiddlewareStakeholderConcernView
+    from assumptionsOfUseConcern, runnableProofBenchConcern, emergencyPathConcern, likeForLikeComparisonConcern
     to DE4SDV_MiddlewareIncrementFraming::Features::Middleware::IncrementFraming::middlewareIncrementAssuranceConcern;
   dependency emergencyPathConcernCarriesSafetyPathIsolationRequirement
-    from emergencyPathIndependenceConcern
+    from emergencyPathConcern
     to DE4SDV_MiddlewareRequirements::Features::Middleware::Requirements::reqIsolateSafetyPath;
-  dependency likeForLikeConcernOnAAOSSDVRealization
+  dependency emergencyPathConcernCarriesSafetyPathIsolationGap
+    from emergencyPathConcern
+    to DE4SDV_MiddlewareStakeholderNeeds::Features::Middleware::StakeholderNeeds::safetyPathIsolationCriteriaGap;
+  dependency likeForLikeConcernOnSpeedPathScope
     from likeForLikeComparisonConcern
-    to DE4SDV_MiddlewarePhysicalSoftwareRealization::physicalSoftware;
+    to DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareScope::referenceVehicleSpeedPathInScope;
 
   /* ───────────────────── Phase 2: what happens in the world ───────────────────── */
 
@@ -145,12 +148,9 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
 
   item def AEBSHMISignalBundle {
     doc /*
-     * The AEBS signals the HMI shows, with the per-field provenance
-     * INC-AEBS-010 assigns: the native Autoware AEB outputs (RSS, the
-     * filtered obstacle cloud and the intervention diagnostic) and the DE4SDV
-     * coordinator's warning request, braking request and intervention
-     * lifecycle state (MONITORING, WARNING, INTERVENTION, RELEASED).
-     * Coordinator output is never relabeled as native Autoware output.
+     * The AEBS signals the HMI shows: native Autoware AEB outputs and DE4SDV
+     * coordinator output, with the per-field provenance that the framing's
+     * HMI path scope item states (hmiPathInScope).
      */
   }
 
@@ -204,12 +204,7 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
   }
 
   part def AAOSSDVHMIApplication :> OperationalEntity {
-    doc /*
-     * The HMI application of the member product: the AAOS SDV visualization
-     * application of INC-AEBS-010, reused unchanged in the guest under its
-     * visualization contract (ASM-MW-024). It consumes the signal path
-     * read-only and feeds nothing back.
-     */
+    doc /* The HMI application of the member product in the AAOS SDV guest, as ASM-MW-024 states it. */
   }
 
   part scoreTwoDomainOperationalContext : SystemContext {
@@ -252,7 +247,8 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
     out carriedSpeed : ReferenceVehicleSpeedSignal;
   }
 
-  action def ConsumeSpeedInAutoware {
+  action def RunAEBSStackOnHost {
+    doc /* The Autoware-based AEBS stack on the Linux host, including the DE4SDV coordinator: its aebsSignals mix native Autoware outputs and coordinator output with the per-field provenance of AEBSHMISignalBundle, and coordinator output is never attributed to Autoware. */
     in carriedSpeed : ReferenceVehicleSpeedSignal;
     out aebsSignals : AEBSHMISignalBundle;
     out command : EmergencyInterventionCommand;
@@ -287,27 +283,27 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
     flow from provideSpeed.speed to carrySpeed.speed;
     first provideSpeed then carrySpeed;
 
-    action consumeSpeed : ConsumeSpeedInAutoware {
+    action runAEBSStack : RunAEBSStackOnHost {
       in carriedSpeed = carrySpeed.carriedSpeed;
       out aebsSignals;
       out command;
     }
 
-    flow from carrySpeed.carriedSpeed to consumeSpeed.carriedSpeed;
-    first carrySpeed then consumeSpeed;
+    flow from carrySpeed.carriedSpeed to runAEBSStack.carriedSpeed;
+    first carrySpeed then runAEBSStack;
 
     action gateCommand : GateEmergencyCommandOnHost {
-      in command = consumeSpeed.command;
+      in command = runAEBSStack.command;
     }
 
-    flow from consumeSpeed.command to gateCommand.command;
+    flow from runAEBSStack.command to gateCommand.command;
 
     action carrySignals : CarryAEBSSignalsAcrossDomainBoundary {
-      in aebsSignals = consumeSpeed.aebsSignals;
+      in aebsSignals = runAEBSStack.aebsSignals;
       out carriedSignals;
     }
 
-    flow from consumeSpeed.aebsSignals to carrySignals.aebsSignals;
+    flow from runAEBSStack.aebsSignals to carrySignals.aebsSignals;
 
     action presentState : PresentAEBSStateOnHMI {
       in carriedSignals = carrySignals.carriedSignals;
@@ -478,11 +474,12 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
 
     objective {
       doc /*
-       * SC-MW-004 (HMI guest unavailable or stale): the guest is down, the
-       * HMI application is absent, or its frames stop; the HMI shows the
-       * unavailable or stale overlay fail-closed; the speed path, the AEBS
-       * event handling and the emergency command path on the host are
-       * unaffected, because the HMI path is one-way and read-only.
+       * SC-MW-004 (HMI guest unavailable or stale): when the AEBS signal
+       * frames stop reaching the HMI, the HMI shows the stale or unavailable
+       * overlay fail-closed; when the guest or the HMI application is down,
+       * there is no display. The speed path, the AEBS event handling and the
+       * emergency command path on the host are unaffected either way,
+       * because the HMI path is one-way and read-only.
        */
     }
 
@@ -509,20 +506,6 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
 
     first start;
     then done;
-  }
-
-  /* Bounded scenario set at operational-story level. */
-  part scenarioNormalOperationWithAEBSEvent : DE4SDV_OperationalContext::Scenario {
-    doc /* SC-MW-001 and SC-MW-002: the reference speed reaches Autoware over S-CORE and an AEBS event is shown on the HMI in source order with per-field provenance. */
-  }
-  part scenarioSpeedProviderLoss : DE4SDV_OperationalContext::Scenario {
-    doc /* SC-MW-003: the provider stops; the ROS 2 side sees a stale, then unavailable, disposition and restores when the provider resumes. */
-  }
-  part scenarioHMIGuestUnavailableOrStale : DE4SDV_OperationalContext::Scenario {
-    doc /* SC-MW-004: the guest or its HMI application is unavailable or stale; the HMI degrades fail-closed and the AEBS path on the host is unaffected. */
-  }
-  part scenarioSCOREServiceLifecycle : DE4SDV_OperationalContext::Scenario {
-    doc /* SC-MW-005: the S-CORE services start, become healthy, bind the adapter and shut down in order, observed read-only by the bench. */
   }
 
   /* Operational capability beyond the baseline middleware integration capability. */
@@ -574,15 +557,18 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
   dependency scoreCapabilityExtendsBaselineIntegrationCapability
     from scoreTwoDomainCapability
     to DE4SDV_MiddlewareOperationalContext::Features::Middleware::OperationalContext::middlewareIntegrationCapability;
-  dependency scoreHypervisorOnKVMVariant
+  dependency scoreHypervisorOnKVMAssumption
     from HostHypervisor
-    to DE4SDV_SDVPlatformStack::KVMHypervisor;
-  dependency scoreHMIApplicationIsVisualizationApplication
+    to DE4SDV_MiddlewareSCOREFraming::asmKVMHypervisorWithAAOSSDVGuest;
+  dependency scoreHMIApplicationOnReuseAssumption
     from AAOSSDVHMIApplication
-    to DE4SDV_AEBSVisualizationPhysicalSoftwareRealization::JavaCenterDisplayApplication;
-  dependency scoreSpeedProviderOnReferenceVehicleSpeedSource
+    to DE4SDV_MiddlewareSCOREFraming::asmVisualizationApplicationReusedAsHMI;
+  dependency scoreSpeedProviderOnSpeedPathScope
     from VehicleSpeedProvider
-    to DE4SDV_MiddlewarePhysicalSoftwareRealization::COVESAVehicleSpeedSemanticSource;
+    to DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareScope::referenceVehicleSpeedPathInScope;
+  dependency aebsSignalBundleProvenanceOnHMIPathScope
+    from AEBSHMISignalBundle
+    to DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareScope::hmiPathInScope;
 
   concern scoreTwoDomainContextConcern : OperationalContextConcern {
     doc /*
@@ -603,7 +589,8 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
 
     expose scoreTwoDomainOperationalContext;
     expose scoreTwoDomainOperationalContext::*;
-    attribute depth = 1;
+    expose scoreTwoDomainSignalFlow;
+    attribute depth = 2;
     attribute showAnnotationRows = false;
     render asTreeDiagram;
   }
