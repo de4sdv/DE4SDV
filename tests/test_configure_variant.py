@@ -318,6 +318,62 @@ selections:
         finally:
             os.unlink(bof.name)
 
+    def _pedestrian_detection_bof(self, vehicle_target_aebs):
+        """The AEBS member with PedestrianDetection on; C006 requires VehicleTargetAEBS."""
+        bof_data = yaml.safe_load(
+            (BOF_DIR / "aebs-autoware-linux-lidar-camera.yaml").read_text()
+        )
+        bof_data["name"] = "TestPedestrianDetection"
+        selections = bof_data["selections"]
+        selections[
+            "Capabilities.ForwardCollisionMitigation.PedestrianDetection"
+        ] = True
+        aebs = "Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS"
+        if vehicle_target_aebs is None:
+            del selections[aebs]
+        else:
+            selections[aebs] = vehicle_target_aebs
+        bof = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".yaml", delete=False
+        )
+        with bof:
+            yaml.safe_dump(bof_data, bof, sort_keys=False)
+        self.addCleanup(os.unlink, bof.name)
+        return Path(bof.name)
+
+    def test_omitted_mandatory_leaf_is_selected_for_the_constraints(self):
+        """Valid: C006 holds when the mandatory leaf it requires is left out."""
+        rc, out, err = self.run_config(
+            self._pedestrian_detection_bof(vehicle_target_aebs=None),
+            extra_args=["--check-only"],
+        )
+        self.assertIn("Configuration valid", err)
+        self.assertNotIn("C006", err)
+
+    def test_switched_off_mandatory_leaf_fails_the_constraint_requiring_it(self):
+        """Invalid: an explicit false is not implied; C006 fails beside the check."""
+        rc, out, err = self.run_config(
+            self._pedestrian_detection_bof(vehicle_target_aebs=False),
+            extra_args=["--check-only"],
+            expect_fail=True,
+        )
+        self.assertEqual(1, rc)
+        violations = [
+            line.strip()[2:] for line in err.splitlines()
+            if line.strip().startswith("\N{BULLET}")
+        ]
+        self.assertEqual(2, len(violations), violations)
+        self.assertEqual(
+            "Mandatory feature not selected: "
+            "'Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS'",
+            violations[0],
+        )
+        self.assertTrue(violations[1].startswith(
+            "[C006] requires: "
+            "'Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS' "
+            "is not satisfied"
+        ), violations[1])
+
     def test_committed_bills_of_features_keep_their_verdicts(self):
         """Committed BoFs regenerate their projections; the fixture fails only C001."""
         product_models = (
