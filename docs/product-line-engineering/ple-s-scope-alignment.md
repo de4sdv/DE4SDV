@@ -130,7 +130,12 @@ bound per alternative. The receipt records this as
 The split execution-domain representation of the superset is owned by
 INC-MW-011 (owner decision D6, 2026-10-15), whose member product has two
 execution domains (a Linux host and an AAOS SDV HMI guest under KVM); it is
-not fixed in PLE-S.
+not fixed in PLE-S. The comparison oracle's catalogue correspondence of
+`F-PLATFORM-OS-LINUX` to `linuxROS2AutowareRuntime`, through which it sees
+the runtime represented in the standalone member, is a catalogue-node
+correspondence and not a superset realization dependency; it does not
+contradict the model's statement that the runtime has no superset
+realization.
 
 ## The comparison oracle
 
@@ -160,8 +165,11 @@ independent fields:
   admitted when every selection is common content or a derived realization
   of exactly one alternative, that alternative's selectable derived
   realizations are all present, and every common asset the catalogue can
-  represent is represented, unless the receipt's confirmed representation
-  difference covers it.
+  represent is fully represented: all of its selectable nodes are chosen, a
+  mandatory leaf the selections leave untouched counts as implied, and one
+  switched off counts as dropped. The receipt's confirmed representation
+  difference exempts an asset only in rows whose implied alternative binds
+  the variation that causes the difference.
 
 Each row also carries the PLE-S outcome (validity, violated bound, derived
 shared-asset variants, common assets), a difference class, and provenance:
@@ -174,10 +182,11 @@ model, evaluator, interpreter, PLEML pin and library digests).
 
 | Class | Meaning |
 |---|---|
-| `equal` | the projection selects exactly the PLE-S derived variants and common realization; or neither path derives a product (tool-invalid and not admitted) and the reasons are recorded independently |
-| `intentional-scope` | tool-valid, not admitted: the configurator accepts content the governed scope keeps reference-only, deferred or excluded (UG-09, UG-10) |
+| `equal` | tool-valid and admitted, and the projection selects exactly the PLE-S derived variants and common realization |
+| `intentional-scope` | tool-valid, not admitted. The configurator accepts content the governed scope keeps reference-only, deferred or excluded (UG-09, UG-10); content the governed scope has no element for (`not-in-governed-scope`: a catalogue feature candidate such as adaptive cruise control); a selection that realizes more than one admitted alternative (derived realizations of both alternatives mixed in one selection); or a selection that leaves common content incompletely represented (a dropped baseline sensor, the vehicle-target capability switched off) |
 | `intentional-representation` | equal on every variant, but a common asset of the governed scope is not representable in the single slot the superset offers; the receipt's confirmed representation difference names it (owner decision D6) |
 | `not-expressible-under-tool` | the PLE-S statement has no scalar encoding in the catalogue (an alternative group takes one value); the oracle records the tool's actual response to the list encoding |
+| `both-reject` | tool-invalid and not admitted, for independent reasons: the tool's violations, the scope's reasons and the PLE-S outcome are recorded side by side; there are no derived assets on either side to compare |
 | `defect` | anything else: an admitted member the tool rejects, a derivation the two paths disagree on, a valid PLE-S configuration for non-admitted content, an input error, an unclassified selection. A defect or an unclassified row exits non-zero |
 
 ### Cases
@@ -189,11 +198,21 @@ model, evaluator, interpreter, PLEML pin and library digests).
 | both-alternatives | generated: the probe's alternatives encoded per bound layer, a list where two variants compete | `bothIntegrationModesProbe` |
 | no-alternative | generated: the member template without the bound layers; the tool's response is recorded, not asserted in advance | `noIntegrationModeProbe` |
 | ug-09-eclipse-score, ug-09-apollo-qnx-qvm | the committed examples `example-linux-score-autoware.yaml` and `apollo-qnx-qvm.yaml` | none: reference-only content has no feature |
+| ug-09-autosar-acrn | generated from the member template: `Middleware: AUTOSARAdaptive`, `Hypervisor: ACRN` (the remaining reference-only elements with a catalogue node) | none: reference-only content has no feature |
 | ug-10-openpilot-no-middleware, ug-10-radar-only | generated from the member template: `VehicleApplication: Openpilot` with `Middleware: None`; `PerceptionSensors: [Radar]` | none: common and deferred content has no feature |
+| ug-10-lidar-only, ug-10-camera-only | generated: `PerceptionSensors: [LiDAR]`; `[Camera]` (the common baseline without one of its sensors) | none: common content has no feature |
+| ug-10-vehicle-target-aebs-false | generated: `VehicleTargetAEBS: false`; the configurator accepts it (its root defaults to optional, so its mandatory-leaf check never fires; routed to the configurator owner, not changed here) | none: common content has no feature |
+| catalogue-only-adaptive-cruise-control | generated: `AdaptiveCruiseControl: true` | none: the governed scope has no element for it |
+| derived-set-mixed | generated: `Middleware: AndroidSDV` on the standalone derived set; tool-valid, the adapter derives | none: derived realizations are not independently selectable |
 | both-axes-negative | `fixtures/invalid-score-android.yaml` | none |
 
 Generated probes are written to a temporary directory outside the repository
-and are never committed under `feature-configurations/`.
+and are never committed under `feature-configurations/`. Excluded System 2
+content (engineering execution environments, simulation benchmarks, CI
+evidence campaigns, visualization instrumentation) cannot be exercised with
+this catalogue: the engineering-environment configurations use other
+catalogues, and `sdv_product_line.yaml` has no node that corresponds to an
+excluded element, so the `excluded` classification is defined but has no row.
 
 ### Classified table (retained)
 
@@ -242,32 +261,51 @@ Classes: equal: standalone-member, no-alternative, both-axes-negative; intention
 - The two members derive the same assets on both paths. The AAOS-integrated
   row is `intentional-representation`: the common `linuxROS2AutowareRuntime`
   is not represented because `osPlatform` holds `android`; the receipt's
-  recorded difference owns it (INC-MW-011, owner decision D6). The standalone
-  row represents the runtime by `osPlatform::linux` and is `equal`.
+  recorded difference owns it (INC-MW-011, owner decision D6), and the
+  exemption applies because `aaosIntegrated` binds `osPlatform`. The
+  standalone row represents the runtime by `osPlatform::linux` and is the
+  only `equal` row.
 - UG-09: the configurator accepts the committed S-CORE and Apollo/QNX/QVM
-  examples; the governed scope admits neither, and the reason is read from
-  the serialized reference-only set, element ids included.
+  examples and the generated AUTOSAR Adaptive/ACRN probe; the governed scope
+  admits none of them, and the reason is read from the serialized
+  reference-only set, element ids included. Every reference-only element
+  with a catalogue node is exercised (Openpilot by its UG-10 row).
 - UG-10: Openpilot without middleware and a radar-only sensing selection are
   tool-valid; the governed scope keeps Autoware and the LiDAR/camera baseline
   common and defers driving-stack and sensing variability, so neither is a
-  distinguishing feature within the admitted portfolio.
+  distinguishing feature within the admitted portfolio. A baseline without
+  its camera or without its LiDAR is tool-valid and not admitted: the common
+  sensing baseline is partially represented (the motion sensors are implied
+  by the catalogue's mandatory leaf). The vehicle-target capability switched
+  off is tool-valid and not admitted: common content dropped.
+- Adaptive cruise control is a catalogue feature candidate the governed scope
+  has no element for (`not-in-governed-scope`); a selection mixing the derived
+  realizations of both alternatives is tool-valid (the adapter derives) and
+  not admitted because it realizes more than one admitted alternative.
 - The both-alternatives statement has no scalar encoding; the tool rejects
   the list encoding, and PLE-S violates the upper bound. The no-alternative
-  probe is rejected by both paths, each for its own reason (mandatory groups
-  without a selection; the lower bound).
-- `fixtures/invalid-score-android.yaml` fails constraint C001 under the tool
-  and is not admitted because of reference-only content; the two fields are
-  independent.
+  probe is `both-reject`: each path rejects it for its own reason (mandatory
+  groups without a selection; the lower bound).
+- `fixtures/invalid-score-android.yaml` is `both-reject`: it fails constraint
+  C001 under the tool and is not admitted because of reference-only content;
+  the two fields are independent.
 
 The table is the **retained** comparison of run `38788579272` at
 `7e895252ce2b3b3d5d404d2176cc7872b7f671e3` (tree-identical to the merge
-`606141c8` of #376), reproduced by `tests/test_ple_scope_alignment_oracle.py`
-from the retained receipt at every CI run; the retained files and their
-manifest are in
+`606141c8` of #376); the retained files and their manifest are in
 [`ple-s-scope-alignment-evidence/`](ple-s-scope-alignment-evidence/README.md).
-The **fresh** comparison of a head is the `comparison/` directory of that
-head's workflow artifact: the same oracle on the receipt of that run, valid
-for that head only. Both carry `qualified: false`.
+The record is **retained, bound to its own revision**: the commit that last
+changed that directory. `tests/test_ple_scope_alignment_oracle.py` extracts
+that revision's files from Git history and reproduces the comparison there at
+every CI run, never against the working tree, so a later change to the
+governed scope, the superset, the scope validator, the catalogue or the
+configurator makes the record **historical**, not failing (owner decision,
+2026-10-16); a pull request that changes the record must make it consistent
+at its own commit. Fresh evidence for a head needs a licensed run: the
+**fresh** comparison of a head is the `comparison/` directory of that head's
+workflow artifact, the same oracle on the receipt of that run, valid for that
+head only, and the oracle refuses a receipt whose digests differ from the
+tree it is compared with. Both carry `qualified: false`.
 
 ## Evidence and how to rerun
 
@@ -296,9 +334,10 @@ for that head only. Both carry `qualified: false`.
   [`ple-s-scope-alignment-evidence/`](ple-s-scope-alignment-evidence/README.md)
   keeps the receipt, the governed-scope validation and the comparison of run
   `38788579272` with a manifest of digests. It is retained evidence of that
-  run, not fresh evidence of a later head; the oracle refuses it as soon as
-  the model, the evaluator, the governed scope or the superset in the tree
-  differ from the digests it records.
+  run, bound to the record's own revision and verified there by CI;
+  historical, not failing, once the files it was produced from move; fresh
+  evidence of a later head needs a licensed run, and the oracle refuses a
+  receipt whose digests differ from the tree it is compared with.
 - **Receipt identity:** executor SHA and `executor_source_dirty`, the
   verified digests of the executor inputs, the frozen interpreter revision
   and digest, the PLEML pin and library digest, the model and evaluator

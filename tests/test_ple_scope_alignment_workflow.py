@@ -121,6 +121,8 @@ def test_the_executor_is_the_exact_head_and_the_experiment_is_frozen_and_relocat
     head, experiment = checkouts
     assert head["with"]["ref"] == "${{ github.event.pull_request.head.sha || inputs.ref }}"
     assert head["with"]["persist-credentials"] is False
+    # The oracle tests read the retained record's revision from history: never a shallow checkout.
+    assert head["with"]["fetch-depth"] == 0
     assert experiment["with"] == {"ref": FROZEN, "path": "_ple-experiment", "submodules": "recursive",
                                   "persist-credentials": False}
     revision = next(s for s in steps if s.get("id") == "revision")

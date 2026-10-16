@@ -57,10 +57,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      # Full history: the unlicensed oracle tests verify the retained record
+      # against the files of the record's own revision, read from Git.
       - name: Checkout the pull-request head
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || inputs.ref }}
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Resolve the exact revision
@@ -270,9 +273,10 @@ jobs:
           fi
 
       # The oracle is unlicensed: it runs the unchanged configurator on the
-      # committed configurations and on probes generated under RUNNER_TEMP, and
-      # sets the results beside the fresh receipt of this exact head. A defect
-      # or an unclassified row fails the job.
+      # committed configurations and on probes it generates in a temporary
+      # directory beside its output (under RUNNER_TEMP), and sets the results
+      # beside the fresh receipt of this exact head. A defect or an
+      # unclassified row fails the job.
       - name: Compare the operational path with the fresh scope alignment (unlicensed oracle)
         if: steps.licence.outputs.available == 'true'
         env:

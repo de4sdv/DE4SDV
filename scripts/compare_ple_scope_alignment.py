@@ -18,19 +18,26 @@ independent fields:
   governed scope does.
 
 Every difference is classified as ``equal``, ``intentional-scope``,
-``intentional-representation`` or ``not-expressible-under-tool``; anything else
-is a ``defect`` and the run exits non-zero, as does any unclassified selection.
+``intentional-representation``, ``not-expressible-under-tool`` or
+``both-reject``; anything else is a ``defect`` and the run exits non-zero, as
+does any unclassified selection.
 
 The oracle is a comparison, never a second selection authority: the YAML
 catalogue, the committed configurations and the configurator are read, never
 changed; probes are generated outside the repository and never committed; and
 every comparison it writes says ``qualified: false``.
+
+The tree it reads is this repository by default. ``--root`` points it at an
+extracted tree instead (for example ``git archive <revision>`` of the commit
+that retained a record), with ``--revision`` naming that tree's revision; this
+is how a retained record is reproduced at its own revision.
 """
 from __future__ import annotations
 
 import argparse
 import copy
 import hashlib
+import importlib.util
 import json
 import re
 import subprocess
@@ -49,7 +56,6 @@ import yaml
 
 from de4sdv.semantic import ple_scope_alignment as alignment
 from de4sdv.sysml_api.product_line_scope import SCOPE_SOURCE
-from tools import configure_variant as configurator
 
 SCHEMA = "de4sdv.ple-scope-alignment-comparison/v1"
 RECEIPT_SCHEMA = "de4sdv.ple-scope-alignment/v1"
@@ -68,13 +74,14 @@ SCOPE = Path(SCOPE_SOURCE)
 EVALUATOR = Path("de4sdv/semantic/ple_scope_alignment.py")
 SCOPE_VALIDATOR = Path("de4sdv/sysml_api/product_line_scope.py")
 
-#: Receipt inputs the comparison depends on. A retained receipt whose digests
-#: of these differ from the tree does not describe this tree's scope alignment
-#: and is refused; the other executor inputs are recorded, not binding.
+#: Receipt inputs the comparison depends on. A receipt whose digests of these
+#: differ from the tree it is compared against does not describe that tree's
+#: scope alignment and is refused; the other executor inputs are recorded.
 BINDING_EXECUTOR_INPUTS = (MODEL, EVALUATOR, SCOPE_VALIDATOR)
 BINDING_SOURCES = (SCOPE, SHARED_ASSETS)
 
-CLASSES = ("equal", "intentional-scope", "intentional-representation", "not-expressible-under-tool", "defect")
+CLASSES = ("equal", "intentional-scope", "intentional-representation", "not-expressible-under-tool",
+           "both-reject", "defect")
 EVIDENCE_KINDS = ("fresh", "retained")
 EXIT_MEANING = {0: "valid", 1: "invalid", 2: "input error"}
 
@@ -93,6 +100,8 @@ INADMISSIBLE = {"reference-only", "deferred", "excluded", "not-in-governed-scope
 CATALOGUE_ROLES = {"F": "feature", "C": "common capability", "D": "derived asset", "PL": "product line"}
 
 MEMBER_TEMPLATE = "aebs-autoware-linux-lidar-camera.yaml"
+#: An override value that removes the key from the generated probe.
+REMOVE = "<removed>"
 
 
 class OracleRefusal(ValueError):
@@ -113,8 +122,9 @@ class Case:
     overrides: tuple[tuple[str, Any], ...] = field(default_factory=tuple)
 
 
-#: The case table of the design (PLE-S design note, section 4). No row carries an
-#: expected outcome: the oracle records what the tool and the scope say.
+#: The case table: the design's rows (PLE-S design note, section 4) plus the
+#: rows the independent V&V review asked for. No row carries an expected
+#: outcome: the oracle records what the tool and the scope say.
 CASES: tuple[Case, ...] = (
     Case("standalone-member", "member", "the standalone planned reference member",
          configuration="aebs-autoware-linux-lidar-camera.yaml",
@@ -131,6 +141,10 @@ CASES: tuple[Case, ...] = (
     Case("ug-09-apollo-qnx-qvm", "UG-09",
          "a committed example that selects a reference-only application, OS and hypervisor",
          configuration="apollo-qnx-qvm.yaml"),
+    Case("ug-09-autosar-acrn", "UG-09",
+         "the remaining reference-only middleware and hypervisor on the standalone derived set",
+         probe="overrides", name="AUTOSARAdaptiveACRNProbe",
+         overrides=(("PlatformStack.Middleware", "AUTOSARAdaptive"), ("PlatformStack.Hypervisor", "ACRN"))),
     Case("ug-10-openpilot-no-middleware", "UG-10",
          "the catalogue treats the driving stack as a feature; Openpilot without middleware has a derivation rule",
          probe="overrides", name="OpenpilotNoMiddlewareProbe",
@@ -139,6 +153,24 @@ CASES: tuple[Case, ...] = (
          "the catalogue treats perception sensors as features; a radar-only selection is tool-valid",
          probe="overrides", name="RadarOnlySensingProbe",
          overrides=(("SensingBoundary.PerceptionSensors", ["Radar"]),)),
+    Case("ug-10-lidar-only", "UG-10", "the common sensing baseline without its camera",
+         probe="overrides", name="LidarOnlySensingProbe",
+         overrides=(("SensingBoundary.PerceptionSensors", ["LiDAR"]),)),
+    Case("ug-10-camera-only", "UG-10", "the common sensing baseline without its LiDAR",
+         probe="overrides", name="CameraOnlySensingProbe",
+         overrides=(("SensingBoundary.PerceptionSensors", ["Camera"]),)),
+    Case("ug-10-vehicle-target-aebs-false", "UG-10",
+         "the common vehicle-target AEBS capability switched off on the capability axis",
+         probe="overrides", name="VehicleTargetAEBSOffProbe",
+         overrides=(("Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS", False),)),
+    Case("catalogue-only-adaptive-cruise-control", "catalogue-only",
+         "a catalogue feature candidate the governed scope has no element for",
+         probe="overrides", name="AdaptiveCruiseControlProbe",
+         overrides=(("Capabilities.AdaptiveCruiseControl", True),)),
+    Case("derived-set-mixed", "UG-14",
+         "derived realizations of both alternatives mixed in one tool-valid selection",
+         probe="overrides", name="MixedDerivedSetProbe",
+         overrides=(("PlatformStack.Middleware", "AndroidSDV"),)),
     Case("both-axes-negative", "independence", "tool-invalid and not admitted, for independent reasons",
          configuration="fixtures/invalid-score-android.yaml"),
 )
@@ -149,7 +181,7 @@ def sha256_of(path: Path) -> str:
 
 
 def _label(path: Path, root: Path) -> str:
-    """A path as the record names it: repository-relative inside the tree, absolute outside."""
+    """A path as the record names it: tree-relative inside the tree, absolute outside."""
     resolved = path.resolve()
     try:
         return resolved.relative_to(root.resolve()).as_posix()
@@ -162,6 +194,19 @@ def git(root: Path, *args: str) -> str:
     if result.returncode:
         raise OracleRefusal(f"git {args[0]} failed in {root}")
     return result.stdout.decode().strip()
+
+
+def source_baseline(path: Path, relative: Path) -> str:
+    """The content identity the configurator prints as the shared-assets source baseline.
+
+    ``git hash-object`` needs no repository, so an extracted tree yields the
+    same identity as a checkout.
+    """
+    result = subprocess.run(["git", "hash-object", "--stdin"], input=path.read_bytes(), capture_output=True,
+                            check=False)
+    if result.returncode:
+        raise OracleRefusal(f"git hash-object failed for {relative.as_posix()}")
+    return f"git-blob:{result.stdout.decode().strip()}:{relative.as_posix()} (content-addressed)"
 
 
 def _require(condition: bool, message: str) -> None:
@@ -183,7 +228,7 @@ def _json(path: Path, label: str) -> dict[str, Any]:
 
 def load_evidence(receipt_path: Path, governed_path: Path, *, evidence: str, run_id: str,
                   artifact: str, root: Path = ROOT) -> dict[str, Any]:
-    """The PLE-S receipt and governed-scope validation, verified and bound to the tree."""
+    """The PLE-S receipt and governed-scope validation, verified and bound to the tree at ``root``."""
     _require(evidence in EVIDENCE_KINDS, f"evidence must be one of {EVIDENCE_KINDS}")
     _require(re.fullmatch(r"[0-9]+", run_id or "") is not None, "the run id is the numeric workflow run id")
     receipt = _json(receipt_path, "the receipt")
@@ -209,15 +254,15 @@ def load_evidence(receipt_path: Path, governed_path: Path, *, evidence: str, run
     if evidence == "fresh":
         _require(git(root, "rev-parse", "HEAD") == executor, "fresh evidence must be the receipt of this exact head")
 
-    # Content binding: the receipt must describe the scope alignment of this tree.
+    # Content binding: the receipt must describe the scope alignment of the tree it is compared against.
     executor_inputs: dict[str, str] = receipt.get("executor_inputs") or {}
     manifest = {item.get("path"): item.get("sha256") for item in receipt.get("source_manifest") or []}
     stale = []
     for path in BINDING_EXECUTOR_INPUTS:
-        if executor_inputs.get(path.as_posix()) != sha256_of(root / path):
+        if not (root / path).is_file() or executor_inputs.get(path.as_posix()) != sha256_of(root / path):
             stale.append(path.as_posix())
     for path in BINDING_SOURCES:
-        if manifest.get(path.as_posix()) != sha256_of(root / path):
+        if not (root / path).is_file() or manifest.get(path.as_posix()) != sha256_of(root / path):
             stale.append(path.as_posix())
     _require(not stale, "the receipt was produced from inputs that differ from this tree: "
              + ", ".join(stale) + "; rerun the licensed scope alignment and retain its receipt")
@@ -288,6 +333,11 @@ class ScopeIndex:
             if item.get("confirmed_in_graph") is True
         ]
 
+    def binds(self, feature: str | None, variation: str) -> bool:
+        """Whether ``feature`` binds a variant of ``variation``."""
+        return feature is not None and any(
+            key[0] == variation and item["feature"] == feature for key, item in self.bindings.items())
+
     def expected_selection(self, configuration: dict[str, Any]) -> dict[str, str]:
         """Derived variants plus common realizations of a valid PLE-S configuration."""
         selected = {item["variation"]: item["variant"] for item in configuration.get("derived_asset_variants") or []}
@@ -301,17 +351,38 @@ class ScopeIndex:
 # -- the operational side: catalogue and correspondence ------------------------------
 
 
+def load_configurator(root: Path):
+    """Import the configurator of the tree at ``root`` for its catalogue parser (never re-implemented).
+
+    The subprocess runs of the same file are the operational verdicts; the
+    import only reads the catalogue in the tool's own grammar.
+    """
+    path = (root / CONFIGURATOR).resolve()
+    _require(path.is_file(), f"the configurator is missing at {path}")
+    name = "_de4sdv_configurator_" + hashlib.sha256(str(path).encode()).hexdigest()[:16]
+    if name in sys.modules:
+        return sys.modules[name]
+    spec = importlib.util.spec_from_file_location(name, path)
+    _require(spec is not None and spec.loader is not None, f"cannot import the configurator at {path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 class Catalogue:
-    """The YAML catalogue, parsed by the configurator's own functions (never re-implemented)."""
+    """The YAML catalogue, parsed by the configurator's own functions."""
 
     def __init__(self, root: Path = ROOT) -> None:
+        self.root = root
+        self.module = load_configurator(root)
         self.path = root / CATALOGUE
         with self.path.open(encoding="utf-8") as handle:
-            self.data = configurator.load_yaml_unique(handle)
-        self.tree, _constraints = configurator.build_feature_tree(self.data)
-        self.nodes = configurator.collect_all_nodes(self.tree)  # path -> node
-        self.by_id = {node.feature_id: node for node in configurator.iter_feature_nodes(self.tree) if node.feature_id}
-        self.projection = configurator.projection_metadata(self.data)
+            self.data = self.module.load_yaml_unique(handle)
+        self.tree, _constraints = self.module.build_feature_tree(self.data)
+        self.nodes = self.module.collect_all_nodes(self.tree)  # path -> node
+        self.by_id = {node.feature_id: node for node in self.module.iter_feature_nodes(self.tree) if node.feature_id}
+        self.projection = self.module.projection_metadata(self.data)
         self.selectable_variations: dict[str, Any] = {}
         for node in self.nodes.values():
             if node.is_selection_group() and isinstance(node.maps_to, str):
@@ -320,6 +391,13 @@ class Catalogue:
             str(item.get("maps_to", "")).rsplit(".", 1)[-1]: item.get("id")
             for item in self.data.get("derived_asset_selections") or []
         }
+
+    def load_bof(self, path: Path) -> dict[str, Any]:
+        with path.open(encoding="utf-8") as handle:
+            data = self.module.load_yaml_unique(handle)
+        _require(isinstance(data, dict) and isinstance(data.get("selections"), dict),
+                 f"{path.name} is not a Bill-of-Features")
+        return data
 
     @staticmethod
     def role(node) -> str:
@@ -334,6 +412,16 @@ class Catalogue:
         if not isinstance(node.maps_to_variant, str):
             return None
         return parent.maps_to.rsplit(".", 1)[-1], node.maps_to_variant
+
+    @staticmethod
+    def is_choice(node) -> bool:
+        """A child of a selection group: selected by name through the group's key."""
+        return node.parent is not None and node.parent.is_selection_group()
+
+    @staticmethod
+    def is_implied_when_absent(node) -> bool:
+        """A mandatory leaf outside any selection group: part of every product unless switched off."""
+        return node.is_leaf() and node.type == "mandatory" and not Catalogue.is_choice(node)
 
     def child_for_variant(self, variation: str, variant: str):
         group = self.selectable_variations.get(variation)
@@ -383,13 +471,6 @@ def load_correspondence(path: Path, catalogue: Catalogue, index: ScopeIndex) -> 
 # -- probes --------------------------------------------------------------------------
 
 
-def _load_bof(path: Path) -> dict[str, Any]:
-    with path.open(encoding="utf-8") as handle:
-        data = configurator.load_yaml_unique(handle)
-    _require(isinstance(data, dict) and isinstance(data.get("selections"), dict), f"{path.name} is not a Bill-of-Features")
-    return data
-
-
 def encode_ple_s_configuration(configuration: dict[str, Any], index: ScopeIndex, catalogue: Catalogue,
                                template: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     """The tool's encoding of a PLE-S configuration: its alternatives' bound variants per selectable variation.
@@ -424,8 +505,8 @@ def encode_ple_s_configuration(configuration: dict[str, Any], index: ScopeIndex,
     return data, encoding
 
 
-def generate_probe(case: Case, index: ScopeIndex, catalogue: Catalogue, root: Path) -> tuple[dict[str, Any], dict[str, Any]]:
-    template = _load_bof(root / CONFIGURATIONS / MEMBER_TEMPLATE)
+def generate_probe(case: Case, index: ScopeIndex, catalogue: Catalogue) -> tuple[dict[str, Any], dict[str, Any]]:
+    template = catalogue.load_bof(catalogue.root / CONFIGURATIONS / MEMBER_TEMPLATE)
     encoding: dict[str, Any] = {"expressible": True}
     if case.probe == "encode-ple-s":
         configuration = index.configurations.get(case.ple_s or "")
@@ -434,7 +515,10 @@ def generate_probe(case: Case, index: ScopeIndex, catalogue: Catalogue, root: Pa
     elif case.probe == "overrides":
         data = copy.deepcopy(template)
         for key, value in case.overrides:
-            data["selections"][key] = copy.deepcopy(value)
+            if value == REMOVE:
+                data["selections"].pop(key, None)
+            else:
+                data["selections"][key] = copy.deepcopy(value)
         encoding["overrides"] = {key: copy.deepcopy(value) for key, value in case.overrides}
     else:
         raise OracleRefusal(f"{case.case}: unknown probe kind {case.probe!r}")
@@ -479,7 +563,7 @@ def parse_projection(text: str) -> dict[str, Any]:
 
 
 def run_configurator(bof: Path, output: Path, root: Path = ROOT) -> dict[str, Any]:
-    """Run the unchanged configurator once and record exactly what it says."""
+    """Run the unchanged configurator of the tree once and record exactly what it says."""
     argv = [sys.executable, str(root / CONFIGURATOR), "--feature-model", str(root / CATALOGUE),
             "--bof", str(bof), "--output", str(output)]
     result = subprocess.run(argv, cwd=str(root), capture_output=True, text=True, timeout=120, check=False)
@@ -588,12 +672,18 @@ def classify_selections(selections: dict[str, Any], catalogue: Catalogue, index:
     return records
 
 
-def _representable(index: ScopeIndex, catalogue: Catalogue,
-                   correspondence: dict[str, dict[str, Any]]) -> dict[str, list[str]]:
-    """Common asset -> catalogue nodes that represent it (correspondence and graph realization)."""
+def representable_nodes(index: ScopeIndex, catalogue: Catalogue,
+                        correspondence: dict[str, dict[str, Any]]) -> dict[str, list[str]]:
+    """Common asset -> catalogue nodes that represent it (correspondence and graph realization).
+
+    Only selection surface counts: choices of a selection group and leaves.
+    A group node corresponding to common content is variability, not a
+    representation.
+    """
     nodes: dict[str, list[str]] = {name: [] for name in index.common}
     for node_id, entry in correspondence.items():
-        if entry["classification"] == "common" and entry["governed"] in nodes:
+        node = catalogue.by_id[node_id]
+        if entry["classification"] == "common" and entry["governed"] in nodes and not node.is_selection_group():
             nodes[entry["governed"]].append(node_id)
     for (variation, variant), item in index.common_realizations.items():
         if item["asset"] in nodes and variation in catalogue.selectable_variations:
@@ -603,12 +693,54 @@ def _representable(index: ScopeIndex, catalogue: Catalogue,
     return {name: sorted(ids) for name, ids in nodes.items()}
 
 
+def _common_asset_status(asset: str, element_id: str, nodes: list[str], chosen: set[str], dropped: set[str],
+                         catalogue: Catalogue) -> dict[str, Any]:
+    """How one common asset is represented by the selections: every representable node counts.
+
+    A node is represented when it is chosen (a group choice, or a leaf set to
+    true), implied when it is a mandatory leaf outside every selection group
+    that the selections leave untouched, dropped when such a leaf is switched
+    off, and missing otherwise. The asset is represented only when no node is
+    missing or dropped (V&V finding R1 of PR #379).
+    """
+    status_by_node: dict[str, str] = {}
+    for node_id in nodes:
+        if node_id in chosen:
+            status_by_node[node_id] = "represented"
+        elif node_id in dropped:
+            status_by_node[node_id] = "dropped"
+        elif catalogue.is_implied_when_absent(catalogue.by_id[node_id]):
+            status_by_node[node_id] = "implied"
+        else:
+            status_by_node[node_id] = "missing"
+    represented = sorted(n for n, s in status_by_node.items() if s == "represented")
+    implied = sorted(n for n, s in status_by_node.items() if s == "implied")
+    missing = sorted(n for n, s in status_by_node.items() if s == "missing")
+    dropped_nodes = sorted(n for n, s in status_by_node.items() if s == "dropped")
+    if not nodes:
+        complete, status = None, "outside the catalogue's selection surface"
+    elif not missing and not dropped_nodes:
+        complete, status = True, "represented" + (f" (implied: {', '.join(implied)})" if implied else "")
+    elif represented or implied:
+        complete, status = False, "partially represented"
+    else:
+        complete, status = False, "not represented"
+    if complete is False:
+        details = [f"missing: {', '.join(missing)}" if missing else "",
+                   f"dropped: {', '.join(dropped_nodes)}" if dropped_nodes else ""]
+        status += " (" + "; ".join(d for d in details if d) + ")"
+    return {"asset": asset, "element_id": element_id, "representable_by": nodes, "represented_by": represented,
+            "implied_by": implied, "missing": missing, "dropped": dropped_nodes, "complete": complete,
+            "status": status}
+
+
 def admission(records: list[dict[str, Any]], index: ScopeIndex, catalogue: Catalogue,
               representable: dict[str, list[str]]) -> dict[str, Any]:
     """``admitted-by-governed-scope`` with its reasons, from the classified selections."""
     realized: dict[str, list[str]] = {}
     chosen_variants: dict[str, str] = {}
-    selected_nodes: set[str] = set()
+    chosen_nodes: set[str] = set()
+    dropped_nodes: set[str] = set()
     reasons: list[str] = []
     blocking: list[str] = []
     unclassified: list[str] = []
@@ -617,10 +749,12 @@ def admission(records: list[dict[str, Any]], index: ScopeIndex, catalogue: Catal
             unclassified.append(f"{record['item']}: {record['unclassified']}")
             continue
         if not record["selected"]:
+            if record["value"] is False and record["node"]:
+                dropped_nodes.add(record["node"])
             kinds = ", ".join(sorted({kind["kind"] for kind in record["classifications"]}))
             reasons.append(f"{record['item']}: not selected ({kinds})")
             continue
-        selected_nodes.add(record["node"])
+        chosen_nodes.add(record["node"])
         kinds = {kind["kind"] for kind in record["classifications"]}
         for kind in record["classifications"]:
             if kind["kind"] == "admitted-alternative":
@@ -639,51 +773,51 @@ def admission(records: list[dict[str, Any]], index: ScopeIndex, catalogue: Catal
             note = f"{record['path']} is catalogue variability ({group['catalogue_role']}); governed: {described}"
             if note not in reasons:
                 reasons.append(note)
-    implied = sorted(realized)
-    missing: list[str] = []
-    if len(implied) == 1:
+    implied_alternatives = sorted(realized)
+    implied = implied_alternatives[0] if len(implied_alternatives) == 1 else None
+    missing_derived: list[str] = []
+    if implied is not None:
         for (variation, variant), item in sorted(index.bindings.items()):
-            if item["feature"] == implied[0] and variation in catalogue.selectable_variations:
+            if item["feature"] == implied and variation in catalogue.selectable_variations:
                 if chosen_variants.get(variation) != variant:
-                    missing.append(f"{variation}::{variant}")
-    common_assets = []
-    unrepresented: list[str] = []
-    for asset in sorted(index.common):
-        nodes = representable.get(asset, [])
-        represented = sorted(set(nodes) & selected_nodes)
-        common_assets.append({"asset": asset, "element_id": index.common[asset], "representable_by": nodes,
-                              "represented_by": represented,
-                              "status": ("outside the catalogue's selection surface" if not nodes
-                                         else "represented" if represented else "not represented")})
-        if nodes and not represented:
-            unrepresented.append(asset)
+                    missing_derived.append(f"{variation}::{variant}")
+    common_assets = [
+        _common_asset_status(asset, index.common[asset], representable.get(asset, []), chosen_nodes, dropped_nodes,
+                             catalogue)
+        for asset in sorted(index.common)
+    ]
+    incomplete = [item for item in common_assets if item["complete"] is False]
+    # The confirmed representation difference exempts an asset only in the rows whose implied
+    # alternative binds the variation that causes it (V&V finding R3 of PR #379).
+    covered = {item["common_asset"] for item in index.differences if index.binds(implied, item["variation"])}
+    uncovered = [item for item in incomplete if item["asset"] not in covered]
     verdict: list[str] = []
     if unclassified:
         verdict.append("unclassified selections: " + "; ".join(unclassified))
     if blocking:
         verdict.append("not admitted content selected: " + "; ".join(blocking))
-    if len(implied) == 0:
+    if len(implied_alternatives) == 0:
         verdict.append("no admitted alternative is realized by the selections")
-    elif len(implied) > 1:
-        verdict.append("the selections realize more than one admitted alternative: " + ", ".join(implied))
-    elif missing:
-        verdict.append(f"derived realizations of {implied[0]} missing from the selections: " + ", ".join(missing))
-    covered = {item["common_asset"] for item in index.differences}
-    uncovered = [asset for asset in unrepresented if asset not in covered]
+    elif len(implied_alternatives) > 1:
+        verdict.append("the selections realize more than one admitted alternative: " + ", ".join(implied_alternatives))
+    elif missing_derived:
+        verdict.append(f"derived realizations of {implied} missing from the selections: " + ", ".join(missing_derived))
     if uncovered:
-        verdict.append("common content not represented by any selection: " + ", ".join(uncovered))
+        verdict.append("common content not fully represented by the selections: "
+                       + "; ".join(f"{item['asset']} {item['status']}" for item in uncovered))
     admitted = not verdict
     return {
         "admitted": admitted,
-        "implied_alternative": implied[0] if len(implied) == 1 else None,
+        "implied_alternative": implied,
         "alternatives_realized": {name: items for name, items in sorted(realized.items())},
-        "summary": (f"yes: {implied[0]} (every selection is common content or its derived realization)"
+        "summary": (f"yes: {implied} (every selection is common content or its derived realization)"
                     if admitted else "no: " + " | ".join(verdict)),
         "verdict_reasons": verdict,
         "reasons": reasons,
         "unclassified": unclassified,
         "common_assets": common_assets,
-        "unrepresented_common_assets": unrepresented,
+        "incomplete_common_assets": [item["asset"] for item in incomplete],
+        "exempted_common_assets": sorted(item["asset"] for item in incomplete if item["asset"] in covered),
         "selections": records,
     }
 
@@ -715,33 +849,39 @@ def _ple_s_side(case: Case, index: ScopeIndex, admitted: dict[str, Any]) -> dict
         for kind in record["classifications"]
         if kind["kind"] in INADMISSIBLE and not ({k["kind"] for k in record["classifications"]} & ADMISSIBLE)
     })
-    reason = ("no PLE-S configuration: the admitted tree has no feature for " + ", ".join(inadmissible)
-              if inadmissible else "no PLE-S configuration restates this selection")
-    return {"configuration": None, "status": None, "violated_bound": None, "selected_alternatives": [],
-            "derived_asset_variants": {}, "common_assets": [], "reason": reason,
+    if inadmissible:
+        reason = "no PLE-S configuration: the admitted tree has no feature for " + ", ".join(inadmissible)
+    elif admitted["verdict_reasons"]:
+        reason = "no PLE-S configuration: " + "; ".join(admitted["verdict_reasons"])
+    else:
+        reason = "no PLE-S configuration restates this selection"
+    return {"configuration": None, "element_id": None, "status": None, "violated_bound": None,
+            "selected_alternatives": [], "derived_asset_variants": {}, "common_assets": [], "reason": reason,
             "alternatives_realized_by_admitted_selections": sorted(admitted["alternatives_realized"]),
             "summary": reason}
 
 
-def _differences(admitted: dict[str, Any], index: ScopeIndex, representable: dict[str, list[str]]) -> list[dict[str, Any]]:
-    """The receipt's confirmed representation differences, and whether each manifests in this row."""
+def _differences(admitted: dict[str, Any], index: ScopeIndex) -> list[dict[str, Any]]:
+    """Whether each confirmed representation difference of the receipt manifests in this row."""
     result = []
-    bound = set(index.bindings)
+    assets = {item["asset"]: item for item in admitted["common_assets"]}
     for item in index.differences:
-        nodes = representable.get(item["common_asset"], [])
-        represented = next((asset["represented_by"] for asset in admitted["common_assets"]
-                            if asset["asset"] == item["common_asset"]), [])
-        alternative = admitted["implied_alternative"]
-        binds_variation = alternative is not None and any(
-            variation == item["variation"] and index.bindings[(variation, variant)]["feature"] == alternative
-            for variation, variant in bound)
-        manifests = admitted["admitted"] and binds_variation and bool(nodes) and not represented
-        result.append({**item, "representable_by": nodes, "represented_by": represented, "manifests": manifests})
+        asset = assets.get(item["common_asset"])
+        binds_variation = index.binds(admitted["implied_alternative"], item["variation"])
+        manifests = bool(admitted["admitted"] and binds_variation and asset is not None and asset["complete"] is False)
+        result.append({
+            "common_asset": item["common_asset"], "variation": item["variation"],
+            "implied_alternative_binds_variation": binds_variation,
+            "representable_by": asset["representable_by"] if asset else [],
+            "represented_by": asset["represented_by"] if asset else [],
+            "missing": asset["missing"] if asset else [],
+            "manifests": manifests,
+        })
     return result
 
 
 def classify_row(tool: dict[str, Any], admitted: dict[str, Any], ple_s: dict[str, Any],
-                 encoding: dict[str, Any], comparison: dict[str, Any]) -> tuple[str, str]:
+                 encoding: dict[str, Any], comparison: dict[str, Any], index: ScopeIndex) -> tuple[str, str]:
     """The UG-14 difference class of one row, with the reason."""
     ple_s_valid = ple_s.get("status") == "configuration-valid"
     if not encoding.get("expressible", True):
@@ -762,10 +902,11 @@ def classify_row(tool: dict[str, Any], admitted: dict[str, Any], ple_s: dict[str
             return "defect", "the projection and the PLE-S derivation differ on " + ", ".join(comparison["differing"])
         manifesting = [item for item in comparison["representation_differences"] if item["manifests"]]
         if manifesting:
+            dispositions = {item["common_asset"]: item["disposition"] for item in index.differences}
             return ("intentional-representation",
                     "equal on " + ", ".join(comparison["equal_on"]) + "; " + "; ".join(
                         f"{item['common_asset']} is common in the governed scope but not represented "
-                        f"({item['variation']} is bound per alternative): {item['disposition']}"
+                        f"({item['variation']} is bound per alternative): {dispositions[item['common_asset']]}"
                         for item in manifesting))
         return "equal", "the projection selects exactly the PLE-S derived variants and common realization"
     if tool["valid"] and not admitted["admitted"]:
@@ -776,22 +917,23 @@ def classify_row(tool: dict[str, Any], admitted: dict[str, Any], ple_s: dict[str
         return "defect", f"the operational authority rejects an admitted member: {tool['summary']}"
     if ple_s_valid:
         return "defect", "PLE-S holds a valid configuration for a selection the tool rejects and the scope does not admit"
-    return "equal", (f"neither path derives a product; the reasons are independent: tool {tool['summary']}; "
-                     f"governed scope {admitted['summary']}; PLE-S {ple_s['summary']}")
+    return "both-reject", (f"the tool rejects and the governed scope does not admit, for independent reasons: "
+                           f"tool {tool['summary']}; governed scope {admitted['summary']}; PLE-S {ple_s['summary']}")
 
 
 def compare_case(case: Case, evidence: dict[str, Any], index: ScopeIndex, catalogue: Catalogue,
                  correspondence: dict[str, dict[str, Any]], representable: dict[str, list[str]],
-                 workspace: Path, root: Path = ROOT) -> dict[str, Any]:
+                 workspace: Path) -> dict[str, Any]:
+    root = catalogue.root
     encoding: dict[str, Any] = {"expressible": True}
     if case.configuration is not None:
         bof_path = root / CONFIGURATIONS / case.configuration
         _require(bof_path.is_file(), f"{case.case}: committed configuration missing: {case.configuration}")
-        data = _load_bof(bof_path)
+        data = catalogue.load_bof(bof_path)
         operational_input = {"kind": "committed", "path": (CONFIGURATIONS / case.configuration).as_posix(),
                              "name": data.get("name"), "selections": data["selections"], "sha256": sha256_of(bof_path)}
     else:
-        data, encoding = generate_probe(case, index, catalogue, root)
+        data, encoding = generate_probe(case, index, catalogue)
         bof_path = workspace / f"{case.case}.yaml"
         bof_path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
         operational_input = {"kind": "generated", "path": None, "template": (CONFIGURATIONS / MEMBER_TEMPLATE).as_posix(),
@@ -813,8 +955,8 @@ def compare_case(case: Case, evidence: dict[str, Any], index: ScopeIndex, catalo
             else:
                 differing.append(f"{variation}: tool {tool_selected.get(variation)}, PLE-S {expected.get(variation)}")
     comparison = {"tool_selected": tool_selected, "ple_s_expected": expected, "equal_on": equal_on,
-                  "differing": differing, "representation_differences": _differences(admitted, index, representable)}
-    difference_class, reason = classify_row(tool, admitted, ple_s, encoding, comparison)
+                  "differing": differing, "representation_differences": _differences(admitted, index)}
+    difference_class, reason = classify_row(tool, admitted, ple_s, encoding, comparison, index)
 
     if tool["projection"]:
         headers = tool["projection"]["headers"]
@@ -828,14 +970,16 @@ def compare_case(case: Case, evidence: dict[str, Any], index: ScopeIndex, catalo
             "feature_model_sha256": sha256_of(root / CATALOGUE),
             "bill_of_features_sha256": operational_input["sha256"],
             "shared_assets_sha256": sha256_of(root / SHARED_ASSETS),
-            "shared_assets_source_baseline": configurator.shared_asset_baseline(root / SHARED_ASSETS),
+            "shared_assets_source_baseline": source_baseline(root / SHARED_ASSETS, SHARED_ASSETS),
             "digest_origin": "computed by the oracle (the tool generated no projection)",
         }
     identity = evidence["identity"]
-    provenance["ple_s_receipt"] = {key: identity[key] for key in (
-        "evidence", "run_id", "artifact", "executor_revision", "receipt_sha256", "governed_scope_validation_sha256",
-        "model_sha256", "evaluator_sha256", "interpreter_revision", "pleml_pin", "library_sha256", "serializer_version")}
-    provenance["ple_s_receipt"]["configuration_element_id"] = ple_s.get("element_id")
+    # The receipt identity in full is the comparison's ``ple_s`` block; each row carries the keys that
+    # name the receipt and the PLE-S element it was compared with.
+    provenance["ple_s_receipt"] = {
+        "run_id": identity["run_id"], "executor_revision": identity["executor_revision"],
+        "receipt_sha256": identity["receipt_sha256"], "configuration_element_id": ple_s.get("element_id"),
+    }
     return {
         "case": case.case,
         "tag": case.tag,
@@ -851,19 +995,33 @@ def compare_case(case: Case, evidence: dict[str, Any], index: ScopeIndex, catalo
     }
 
 
-def run_oracle(evidence: dict[str, Any], *, root: Path = ROOT, correspondence_path: Path | None = None,
+def run_oracle(evidence: dict[str, Any], *, root: Path = ROOT, revision: str | None = None,
+               work_dir: Path | None = None, correspondence_path: Path | None = None,
                cases: tuple[Case, ...] = CASES) -> dict[str, Any]:
-    """The whole comparison, as data. Probes and projections live in a temporary directory."""
+    """The whole comparison, as data.
+
+    ``root`` is the tree the operational side is read from (this repository,
+    or an extracted tree of a revision, in which case ``revision`` names it).
+    Probes and projections live in a temporary directory under ``work_dir``.
+    """
+    root = root.resolve()
+    if revision is None:
+        executor_revision = git(root, "rev-parse", "HEAD")
+        executor_source_dirty = bool(git(root, "status", "--porcelain"))
+        tree_source = "git checkout"
+    else:
+        _require(re.fullmatch(r"[0-9a-f]{40}", revision) is not None, "the revision is a full commit id")
+        executor_revision, executor_source_dirty, tree_source = revision, False, "extracted tree, revision as declared"
     index = ScopeIndex(evidence["receipt"], evidence["governed"])
     catalogue = Catalogue(root)
     correspondence_path = correspondence_path or root / CORRESPONDENCE
     correspondence = load_correspondence(correspondence_path, catalogue, index)
-    representable = _representable(index, catalogue, correspondence)
+    representable = representable_nodes(index, catalogue, correspondence)
     rows = []
-    with tempfile.TemporaryDirectory(prefix="de4sdv-ple-s-oracle-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="de4sdv-ple-s-oracle-", dir=work_dir) as temporary:
         workspace = Path(temporary)
         for case in cases:
-            rows.append(compare_case(case, evidence, index, catalogue, correspondence, representable, workspace, root))
+            rows.append(compare_case(case, evidence, index, catalogue, correspondence, representable, workspace))
     classes: dict[str, list[str]] = {name: [] for name in CLASSES}
     for row in rows:
         classes[row["class"]].append(row["case"])
@@ -872,10 +1030,11 @@ def run_oracle(evidence: dict[str, Any], *, root: Path = ROOT, correspondence_pa
     return {
         "schema": SCHEMA,
         "oracle": {
-            "script": Path(__file__).resolve().relative_to(root.resolve()).as_posix(),
+            "script": Path(__file__).resolve().relative_to(ROOT.resolve()).as_posix(),
             "script_sha256": sha256_of(Path(__file__).resolve()),
-            "executor_revision": git(root, "rev-parse", "HEAD"),
-            "executor_source_dirty": bool(git(root, "status", "--porcelain")),
+            "executor_revision": executor_revision,
+            "executor_source_dirty": executor_source_dirty,
+            "tree_source": tree_source,
             "configurator": CONFIGURATOR.as_posix(),
             "configurator_sha256": sha256_of(root / CONFIGURATOR),
             "catalogue": CATALOGUE.as_posix(),
@@ -888,6 +1047,7 @@ def run_oracle(evidence: dict[str, Any], *, root: Path = ROOT, correspondence_pa
                                     "tools/configure_variant.py, unchanged; the oracle is a comparison only"),
         },
         "ple_s": evidence["identity"],
+        "representation_differences": list(evidence["receipt"].get("known_representation_differences") or []),
         "classes": list(CLASSES),
         "rows": rows,
         "summary": {"classes": classes, "defects": defects, "unclassified": unclassified,
@@ -971,22 +1131,36 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--run-id", required=True, help="the workflow run id that produced the receipt")
     parser.add_argument("--artifact", required=True, help="the artifact name of that run")
     parser.add_argument("--correspondence", type=Path, default=None,
-                        help=f"catalogue correspondence (default: {CORRESPONDENCE.as_posix()})")
+                        help=f"catalogue correspondence (default: {CORRESPONDENCE.as_posix()} of the tree)")
+    parser.add_argument("--root", type=Path, default=None,
+                        help="the tree to compare (default: this repository); an extracted tree needs --revision")
+    parser.add_argument("--revision", default=None,
+                        help="the full commit id of an extracted --root tree (recorded, not verified)")
     parser.add_argument("--out", type=Path, required=True,
-                        help="output directory; must not exist and must be outside the repository")
+                        help="output directory; must not exist and must be outside the repository and the tree")
     return parser
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
+    root = (args.root or ROOT).resolve()
+    _require((root / CONFIGURATOR).is_file() and (root / CATALOGUE).is_file(), f"{root} is not a DE4SDV tree")
+    if args.revision is not None:
+        _require(re.fullmatch(r"[0-9a-f]{40}", args.revision) is not None, "--revision is a full commit id")
+    elif args.root is not None:
+        _require(subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True,
+                                check=False).returncode == 0, "an extracted --root tree needs --revision")
     out: Path = args.out
     if out.exists():
         raise OracleRefusal("refusing to overwrite an existing output directory")
-    if out.resolve().is_relative_to(ROOT.resolve()):
-        raise OracleRefusal("output must be outside the repository")
+    for forbidden in (ROOT.resolve(), root):
+        if out.resolve().is_relative_to(forbidden):
+            raise OracleRefusal("output must be outside the repository and the compared tree")
     evidence = load_evidence(args.receipt, args.governed_scope, evidence=args.evidence, run_id=args.run_id,
-                             artifact=args.artifact)
-    comparison = run_oracle(evidence, correspondence_path=args.correspondence)
-    out.mkdir(parents=True)
+                             artifact=args.artifact, root=root)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    comparison = run_oracle(evidence, root=root, revision=args.revision, work_dir=out.parent,
+                            correspondence_path=args.correspondence)
+    out.mkdir()
     (out / "comparison.json").write_text(json.dumps(comparison, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     (out / "comparison.md").write_text(render_markdown(comparison), encoding="utf-8")
     return comparison
@@ -1002,6 +1176,7 @@ def main() -> int:
     summary = comparison["summary"]
     print(json.dumps({
         "comparison": str(args.out / "comparison.json"), "evidence": comparison["ple_s"]["evidence"],
+        "tree": comparison["oracle"]["tree_source"], "revision": comparison["oracle"]["executor_revision"],
         "rows": len(comparison["rows"]), "classes": {name: len(cases) for name, cases in summary["classes"].items()},
         "defects": summary["defects"], "unclassified": summary["unclassified"], "qualified": False,
     }))
