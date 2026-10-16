@@ -27,7 +27,7 @@ npx markdownlint "**/*.md"
 - `textual-notation-of-model/` — system model assets
 - `sysmlv2-api/` — SysML v2 API integration assets
 - `simulation/` — FMU/FMI/SSP integration assets
-- `model-based-product-line-engineering/` — feature models, configurations, shared assets, product models
+- `model-based-product-line-engineering/` — feature models, configurations, shared assets, product models, the governed product-line scope
 - `compliance/` — safety, security, UNECE and homologation evidence structure
 - `devsecops/` — CI/CD, SBOM, security checks, policy-as-code notes
 
@@ -39,8 +39,10 @@ Before proposing a completed change:
 2. Run `python scripts/smoke_test.py`
 3. For any change that creates or modifies SysML v2 textual notation, document
    one SysML validation path: local validation evidence from the Syside Editor
-   VS Code extension or `python scripts/validate_sysml.py`, or a request for
-   maintainer-run privileged Syside validation after review
+   VS Code extension or `python scripts/validate_sysml.py`, or the licensed CI
+   validation described under "SysML v2 textual notation validation" (automatic
+   for maintainer-opened pull requests from this repository, otherwise requested
+   from a maintainer after review)
 4. Update relevant files in `docs/` if the change affects
    architecture, workflow, terminology, safety, security, or compliance
    assumptions
@@ -111,9 +113,10 @@ The other historical records are archived at the `release-2026-10-11` tag.
 
 ## SysML v2 textual notation validation
 
-All generated or modified `.sysml` files under `textual-notation-of-model/`
-and `model-based-product-line-engineering/product-models/` must be validated
-before the modeling step is treated as complete.
+All generated or modified `.sysml` files under `textual-notation-of-model/`,
+`model-based-product-line-engineering/product-models/` and
+`model-based-product-line-engineering/scoping/` must be validated before the
+modeling step is treated as complete.
 
 Use one of the two validation paths:
 
@@ -124,18 +127,20 @@ Use one of the two validation paths:
 python scripts/validate_sysml.py
 ```
 
-The wrapper validates both model roots together, equivalent to:
+The wrapper validates the three model roots together, equivalent to:
 
 ```bash
 syside check \
   textual-notation-of-model \
-  model-based-product-line-engineering/product-models
+  model-based-product-line-engineering/product-models \
+  model-based-product-line-engineering/scoping
 ```
 
-1. Maintainer-run privileged validation, requested from the pull request after
-   initial review. Maintainers run the `Privileged Syside Validation` workflow
-   from GitHub Actions with the reviewed branch, tag, or commit SHA and the
-   model path to validate.
+1. Licensed validation in CI. The `Privileged Syside Validation` workflow runs
+   on pushes to `main` that change model files, and on such pull requests when
+   they come from a branch of this repository and a maintainer opened them.
+   For any other pull request, a maintainer runs the workflow from GitHub
+   Actions after initial review, with the reviewed branch, tag, or commit SHA.
 
 If validation fails, keep the modeling work in draft state and document the
 failure instead of presenting the SysML v2 textual notation as complete.

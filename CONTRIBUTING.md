@@ -156,21 +156,27 @@ The lock file resolves the pinned grid-view library used by model-defined
 tables and matrices. Do not commit `.sysand/`; commit changes to
 `.project.json` and `sysand-lock.toml` when intentionally changing a dependency.
 
-2. **Maintainer-run privileged validation.** If local Syside validation is not
-   available, request maintainer-run licensed Syside validation in the PR after
-   initial review. Include the branch, tag, or commit SHA to validate and the
-   model path if it is not `textual-notation-of-model`.
+2. **Licensed validation in CI.** If local Syside validation is not available,
+   use the licensed CI validation. It runs automatically on pull requests that
+   change model files when they come from a branch of this repository and a
+   maintainer opened them. For any other pull request, request a maintainer-run
+   validation in the PR after initial review. Include the branch, tag, or commit
+   SHA to validate, and the model paths if they differ from the three model
+   roots (`textual-notation-of-model`,
+   `model-based-product-line-engineering/product-models` and
+   `model-based-product-line-engineering/scoping`).
 
 Local Syside validation is recommended when available, but it is not a
 prerequisite for contributing.
 
-Maintainer-run validation uses the `Privileged Syside Validation` workflow. It
+Licensed validation uses the `Privileged Syside Validation` workflow. It
 requires the `SYSIDE_LICENSE_KEY` repository secret and validates a reviewed
 branch, tag, or commit SHA without exposing the key to contributors.
 The same workflow exports native SysIDE grid views and publishes their CSV and
 reviewer-facing SVG representations with the diagram artifact.
 Maintainers run it from GitHub Actions by selecting the workflow, choosing
-**Run workflow**, and entering the reviewed `ref` and `model_path`.
+**Run workflow**, and entering the reviewed `ref` and, when needed, the
+`model_paths` (space-separated; the default is the three model roots).
 
 5. Open a pull request with:
    - Clear title

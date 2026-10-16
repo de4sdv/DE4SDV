@@ -22,8 +22,9 @@ The generator parses the authoritative `.sysml` textual notation under
 the same roots `scripts/validate_sysml.py` validates — the whole
 `textual-notation-of-model` tree (packages, imported libraries such as
 `libraries/covesa-vss-sysmlv2`, snapshots) plus
-`model-based-product-line-engineering/product-models` (stdlib only,
-deterministic output). The generated site is self-contained except that it
+`model-based-product-line-engineering/product-models` and the governed
+product-line scope in `model-based-product-line-engineering/scoping` (stdlib
+only, deterministic output). The generated site is self-contained except that it
 *references* the committed diagram SVGs in the model tree — no SVG copies,
 so it can never drift from the rendered artifacts.
 
@@ -232,8 +233,8 @@ the diagram shows is resolved back to the model:
 
 The label → element mapping is generated from the authoritative `.sysml`
 files, so the tooltip content can never say something the model does not
-declare. Labels resolve across both model roots (`textual-notation-of-model/packages`
-and `model-based-product-line-engineering/product-models`), including
+declare. Labels resolve across all the model roots the generator reads,
+including
 specializer (`:>`, `:>>`), typing (` : `), qualified (`A::b`), dotted
 deployment (`host.role.port.item`), redefines (`^name`) and package-expose
 shapes. Pure layout text and stereotype markers stay inert. Run
