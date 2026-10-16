@@ -7,7 +7,7 @@
   "binding": {
     "fresh_evidence": "needs a licensed run of the privileged scope-alignment workflow on the head under review",
     "historical_once": "the PLE-S model, the evaluator, the governed scope, the scope validator, the shared-asset superset, the catalogue or the configurator move after that revision",
-    "rule": "verified against the files of the commit that last changed this directory (git log -1 -- docs/product-line-engineering/ple-s-scope-alignment-evidence), extracted from Git history by tests/test_ple_scope_alignment_oracle.py; never against the working tree"
+    "rule": "verified against the files of the commit that last changed this directory along first parents (git log -1 --first-parent -- docs/product-line-engineering/ple-s-scope-alignment-evidence), extracted from Git history by tests/test_ple_scope_alignment_oracle.py; never against the working tree"
   },
   "comparison": {
     "content_addressed": true,

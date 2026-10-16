@@ -4,13 +4,13 @@ The oracle runs the unchanged configurator on the committed configurations and
 on generated probes, and derives ``admitted-by-governed-scope`` from the
 serialized PLE-S receipt and governed-scope validation of the retained
 licensed run. The retained record is verified against the files of its own
-revision (the commit that last changed the record directory, read from Git
-history and extracted to a temporary tree), never against the working tree:
-a later change to the governed scope, the superset, the scope validator, the
-catalogue or the configurator makes the record historical, not failing
-(owner decision, 2026-10-16). The oracle's own refusal of a receipt whose
-digests differ from the tree it is compared with stays, and is exercised here
-on an altered copy of that tree.
+revision (the commit that last changed the record directory along first
+parents, read from Git history and extracted to a temporary tree), never
+against the working tree: a later change to the governed scope, the superset,
+the scope validator, the catalogue or the configurator makes the record
+historical, not failing (owner decision, 2026-10-16). The oracle's own refusal
+of a receipt whose digests differ from the tree it is compared with stays, and
+is exercised here on an altered copy of that tree.
 
 These tests assert sets of cases and classifications, never counts; they
 fail, never skip, when a retained input or the history is missing; and they
@@ -77,7 +77,11 @@ def _record_revision() -> str:
     """The commit that last changed the retained record: the record is verified at that revision."""
     assert _git("rev-parse", "--is-shallow-repository") == "false", (
         "the retained record is verified from history; this checkout is shallow (fetch-depth 0 is needed)")
-    revision = _git("log", "-1", "--format=%H", "--", RECORD_DIR.as_posix())
+    # Along first parents: on CI's merge ref of a pull request that changes the record, this is the merge commit
+    # itself, so the record is verified in the tree main gets from the squash merge. Without it, a branch brought
+    # up to date with a merge commit resolves to its own older record commit and hides a bound input that main
+    # changed in the meantime.
+    revision = _git("log", "-1", "--first-parent", "--format=%H", "--", RECORD_DIR.as_posix())
     assert re.fullmatch(r"[0-9a-f]{40}", revision), "the retained record has no commit in this history"
     return revision
 
@@ -713,7 +717,9 @@ def test_the_record_distinguishes_retained_from_fresh_evidence_and_keeps_the_non
                      "No compliance", "catalogue-correspondence.yaml", "bound to", "historical", "licensed run",
                      "not-in-governed-scope", "more than one admitted alternative", "not a superset realization"):
         assert required in doc, required
-    for required in ("retained", "fresh", RUN_ID, EXECUTOR, "2026-11-14", "qualified", "comparison.json", "bound to",
+    manifest = json.loads((record.evidence / "manifest.json").read_text(encoding="utf-8"))
+    expires = manifest["artifact_expires_at"][:10]
+    for required in ("retained", "fresh", RUN_ID, EXECUTOR, expires, "qualified", "comparison.json", "bound to",
                      "historical", "licensed run", "PyYAML", "executor_revision", "EXECUTOR", "MERGE", "RUN_ID",
                      "--root", "--revision"):
         assert required in readme, required

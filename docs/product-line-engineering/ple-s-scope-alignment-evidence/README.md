@@ -9,8 +9,9 @@ record is a byte-exact copy of such an artifact, kept because artifacts expire.
 
 **Status: retained, bound to its own revision; historical once those files
 move.** The record is verified against the files of the commit that last
-changed this directory (`git log -1 -- <this directory>`), which CI extracts
-from Git history; it is never verified against the working tree. A later change
+changed this directory along first parents
+(`git log -1 --first-parent -- <this directory>`), which CI extracts from Git
+history; it is never verified against the working tree. A later change
 to the PLE-S model, the evaluator, the governed scope, the scope validator, the
 shared-asset superset, the catalogue or the configurator does not fail CI: it
 makes this record historical. A pull request that changes the record itself
@@ -69,6 +70,14 @@ that export (`scripts/run_ple_scope_alignment.py --replay`), not this record.
   revision (extracted with `git archive`), checks the digests in
   `manifest.json`, and fails, never skips, when the history is missing: every
   workflow that runs it checks out with full history (`fetch-depth: 0`).
+- The revision is resolved along first parents. CI tests a pull request on
+  its merge ref; when the pull request changes this directory, the revision is
+  that merge commit, so CI verifies the record against the tree main gets from
+  the squash merge, including any bound input main changed in the meantime.
+  Without first parents, a branch brought up to date with a merge commit would
+  resolve to its own older record commit and hide that change. Locally, on a
+  branch that merged main into itself, the revision can differ from CI's:
+  rebase the branch onto main to reproduce CI.
 - Nothing here is fresh evidence for a later head. The licensed workflow
   produces the fresh comparison of each head in its own artifact; this record
   is the evidence of the run it names.
@@ -76,7 +85,7 @@ that export (`scripts/run_ple_scope_alignment.py --replay`), not this record.
 ## How to verify by hand
 
 ```bash
-revision=$(git log -1 --format=%H -- docs/product-line-engineering/ple-s-scope-alignment-evidence)
+revision=$(git log -1 --first-parent --format=%H -- docs/product-line-engineering/ple-s-scope-alignment-evidence)
 mkdir -p /tmp/ple-s-record && git archive "$revision" | tar -x -C /tmp/ple-s-record
 python scripts/compare_ple_scope_alignment.py \
   --root /tmp/ple-s-record --revision "$revision" \
@@ -107,7 +116,9 @@ describes the tree):
 4. Continue with the lighter path below, in a new pull request, with the new
    run id and artifact name, and with that main commit as both `EXECUTOR` and
    `MERGE`. If a bound input changes on main before that pull request merges,
-   the oracle refuses the receipt: dispatch again on the new main commit.
+   CI on its merge ref (the `checks` run, which branch protection requires on
+   a head that is up to date with main) refuses the receipt: dispatch again on
+   the new main commit.
 
 **Lighter refresh** (only the catalogue, the configurator, the correspondence
 or the oracle script changed, or the oracle's classification of a retained
@@ -119,9 +130,10 @@ case changed): no licensed run; the retained receipt still describes the tree.
    <directory outside the repository>` and copy its `comparison.json` here.
 2. Update `manifest.json`: `run_id`, `executor_revision`, `artifact_name`,
    `artifact_expires_at`, `artifact_size_bytes`, the three `files` digests,
-   `elements_export.sha256` (from the receipt's `artifact_sha256`) and
-   `tree_identical_to` (after a licensed refresh, the main commit the run
-   executed and its tree).
+   `elements_export.sha256` (from the receipt's `artifact_sha256`),
+   `pull_request` (`null` after a licensed refresh: the run executed a main
+   commit, not a pull-request head) and `tree_identical_to` with its `note`
+   (after a licensed refresh, the main commit the run executed and its tree).
 3. Update the test constants in `tests/test_ple_scope_alignment_oracle.py`:
    `EXECUTOR` (the commit the licensed run executed), `MERGE` (a main commit
    whose tree equals it; after a licensed refresh made as above, the same
@@ -129,6 +141,9 @@ case changed): no licensed run; the retained receipt still describes the tree.
 4. Replace the classified table in `ple-s-scope-alignment.md` with the
    oracle's `comparison.md` (its first line is the identity line the test pins:
    run id and executor revision must appear in the document), and update the
-   run id and head in the prose of this README and of the record document.
+   identity prose: in this README, the run, head, pull request, merge,
+   artifact name and expiry date under "Identity" and the run id and artifact
+   name under "How to verify by hand"; in the record document, the run, head
+   and merge in the paragraph under the table.
 5. Commit the record, the manifest, the test constants and the document in
    one commit: CI verifies the record at that commit.
