@@ -29,5 +29,18 @@ checkout at the recorded pin.
 that touch this directory (same-repository, allowlisted authors) and on
 maintainer dispatch: licensed `syside check` of the reviewed roots with the
 pinned library and this model, then fresh serialization and evaluation by
-`scripts/run_ple_scope_alignment.py`. The unlicensed shape, fence and
-evaluator tests run in the public CI.
+`scripts/run_ple_scope_alignment.py`, then the unlicensed comparison oracle.
+The unlicensed shape, fence, evaluator and oracle tests run in the public CI.
+
+## Comparison oracle
+
+`scripts/compare_ple_scope_alignment.py` runs the unchanged
+`tools/configure_variant.py` on the committed configurations and on probes it
+generates outside the repository, and sets each result beside the PLE-S
+evaluation of the same statement. `catalogue-correspondence.yaml` is its only
+declared input: it names, for a catalogue node, the governed-scope element the
+node restates, and carries no classification. Whether that element is common,
+reference-only, deferred or excluded is read from the serialized governed
+scope of the licensed run; which shared-asset variants an admitted alternative
+derives is read from the serialized feature bindings. The oracle is a
+comparison, not a second selection authority.
