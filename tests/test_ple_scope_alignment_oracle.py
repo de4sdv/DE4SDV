@@ -172,10 +172,11 @@ def test_the_two_fields_are_reported_separately(comparison) -> None:
     rows = _rows(comparison)
     valid = {case for case, row in rows.items() if row["configuration_valid_under_current_tool"]["valid"]}
     admitted = {case for case, row in rows.items() if row["admitted_by_governed_scope"]["admitted"]}
-    assert valid == CASES - {"both-alternatives", "no-alternative", "both-axes-negative"}
+    assert valid == CASES - {"both-alternatives", "no-alternative", "ug-10-vehicle-target-aebs-false", "both-axes-negative"}
     assert admitted == {"standalone-member", "aaos-integrated-member"}
     assert {case for case, row in rows.items() if row["class"] == "intentional-scope"} == valid - admitted
-    assert {case for case, row in rows.items() if row["class"] == "both-reject"} == {"no-alternative", "both-axes-negative"}
+    assert {case for case, row in rows.items() if row["class"] == "both-reject"} == {
+        "no-alternative", "ug-10-vehicle-target-aebs-false", "both-axes-negative"}
     assert {case for case, row in rows.items() if row["class"] == "not-expressible-under-tool"} == {"both-alternatives"}
 
 
@@ -266,12 +267,15 @@ def test_ug10_a_dropped_baseline_sensor_is_never_admitted(comparison) -> None:
         assert set(baseline["represented_by"]) == {"F-SENSING-PERCEPTION-CAMERA", "F-SENSING-PERCEPTION-LIDAR"}
 
 
-def test_ug10_the_common_capability_switched_off_is_rejected_although_the_tool_accepts_it(comparison) -> None:
-    """V&V R5: the configurator does not enforce mandatory leaves; the oracle does not follow it."""
+def test_ug10_the_common_capability_switched_off_is_rejected_by_both_paths(comparison) -> None:
+    """V&V R5: the configurator rejects a mandatory leaf set to false; the scope rejects the dropped content."""
     row = _rows(comparison)["ug-10-vehicle-target-aebs-false"]
-    assert row["configuration_valid_under_current_tool"]["valid"] is True
+    tool = row["configuration_valid_under_current_tool"]
+    assert tool["valid"] is False and tool["exit_code"] == 1
+    assert tool["messages"] == [
+        "Mandatory feature not selected: 'Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS'"]
     assert row["admitted_by_governed_scope"]["admitted"] is False
-    assert row["class"] == "intentional-scope"
+    assert row["class"] == "both-reject" and "independent reasons" in row["class_reason"]
     capability = _asset(row, "vehicleTargetAEBS")
     assert capability["dropped"] == ["C-CAPABILITY-AEBS-VEHICLE-TARGET"] and capability["complete"] is False
     assert row["admitted_by_governed_scope"]["incomplete_common_assets"] == ["vehicleTargetAEBS"]
