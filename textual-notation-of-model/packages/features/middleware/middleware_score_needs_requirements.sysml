@@ -45,7 +45,7 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     stakeholder verificationEngineer : VerificationEngineer;
     require constraint statement { language "English" /* System architects, safety experts and verification engineers need the middleware integration layer to carry the AEBS signals of the Autoware-based AEBS stack one way, from the Linux host to the HMI in the AAOS SDV guest, in source order and with the provenance of each field preserved. */ }
     attribute :>> source = "INC-MW-011 hmiDomainBoundaryConcern, scope item hmiPathInScope (per-field provenance), scenarios SC-MW-002 and SC-MW-004, ASM-MW-024";
-    attribute :>> rationale = "The HMI is an informational display: it must show what the AEBS stack produced, attributed to native Autoware output or to DE4SDV coordinator output, and the guest must not be able to influence the AEBS stack or the middleware on the host.";
+    attribute :>> rationale = "The HMI is an informational display: it must show what the AEBS stack produced, each field attributed to its source kind (native Autoware AEB output, DE4SDV coordinator output or display-derived), and the guest must not be able to influence the AEBS stack or the middleware on the host.";
   }
 
   requirement <'NEED-MW-003'> needEmergencyCommandPathWithoutMiddleware : StakeholderNeedCandidate {
@@ -62,9 +62,9 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     stakeholder softwareDeveloper : SoftwareDeveloper;
     stakeholder systemArchitect : SystemArchitect;
     stakeholder productLineEngineer : ProductLineEngineer;
-    require constraint statement { language "English" /* Software developers, system architects and product-line engineers need the middleware integration layer to use Eclipse S-CORE v0.9.0 within the assumptions of use that S-CORE states for the applications that use it and for their operating system. */ }
-    attribute :>> source = "INC-MW-011 assumptionsOfUseConcern, ASM-MW-021, ASM-MW-026; Eclipse S-CORE SW-platform assumptions (doc__platform_assumptions, version 1) in eclipse-score/score v0.7.2 (commit 6d65a262c2329328cb9cbdd276bb143b417c54a4), the score_platform version that reference_integration v0.9.0 (commit 71b00dda29e73433064f0b2536e916099ffe75a9) pins in known_good.json; Apache-2.0";
-    attribute :>> rationale = "S-CORE states what the applications using its SW-platform and their integrator must assume; an integration outside those assumptions is not the S-CORE integration the increment evaluates.";
+    require constraint statement { language "English" /* Software developers, system architects and product-line engineers need the middleware integration layer to use Eclipse S-CORE v0.9.0 within the assumptions of use that S-CORE v0.9.0 states for the applications using S-CORE. */ }
+    attribute :>> source = "INC-MW-011 assumptionsOfUseConcern, ASM-MW-021; Eclipse S-CORE SW-platform assumptions (doc__platform_assumptions, version 1) in eclipse-score/score v0.7.2 (commit 6d65a262c2329328cb9cbdd276bb143b417c54a4), the score_platform version that reference_integration v0.9.0 (commit 71b00dda29e73433064f0b2536e916099ffe75a9) pins in known_good.json; Apache-2.0";
+    attribute :>> rationale = "S-CORE states what the applications using its SW-platform must assume; an integration outside those assumptions is not the S-CORE integration the increment evaluates. The assumptions addressed to the system integrator, such as the operating system, are recorded in GAP-MW-034.";
   }
 
   part <'SC-MW-006'> referenceVehicleSpeedValidationPlan : ValidationPlanningScenario {
@@ -140,24 +140,27 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     attribute :>> rationale = "The same reference signal, conversion and consumer as in the AAOS SDV realization make the S-CORE realization comparable with it.";
     attribute :>> verificationMethod = "test";
     attribute :>> successCriteria = "Met when an observer independent of the middleware integration layer sees provider samples of 36 km/h and 72 km/h, carried over Eclipse S-CORE communication, arrive on /vehicle/status/velocity_status as longitudinal velocities of 10 m/s and 20 m/s.";
+    attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
   requirement <'REQ-MW-011'> reqWithholdNonFiniteSpeedSample : FunctionalRequirementCandidate {
     subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
     require constraint statement { language "English" /* If a reference vehicle speed sample is not a finite number, then the middleware integration layer shall withhold it from Autoware. */ }
-    attribute :>> source = "NEED-MW-001; scenario SC-MW-001; like for like with AC-MW-010-01 of INC-MW-010 (invalid and non-finite samples rejected)";
+    attribute :>> source = "NEED-MW-001; scenario SC-MW-001; like for like with the non-finite case of AC-MW-010-01 of INC-MW-010";
     attribute :>> rationale = "A non-finite value would otherwise reach the velocity consumers of Autoware as if it were a measured speed.";
     attribute :>> verificationMethod = "test";
     attribute :>> successCriteria = "Met when NaN, positive-infinity and negative-infinity samples published by the vehicle-speed provider produce no message on /vehicle/status/velocity_status, while the finite samples published before and after them arrive.";
+    attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
   requirement <'REQ-MW-012'> reqIndicateStaleReferenceVehicleSpeed : FunctionalRequirementCandidate {
     subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
-    require constraint statement { language "English" /* If the vehicle-speed provider stops publishing finite reference vehicle speed samples, then the middleware integration layer shall indicate the reference vehicle speed as stale on the ROS 2 side within 5 s of the last finite sample and until the next finite sample arrives. */ }
-    attribute :>> source = "NEED-MW-001; scenario SC-MW-003; like for like with E-MW-014 of INC-MW-010 (a stale disposition after the five-second freshness bound, restored when the provider resumes)";
-    attribute :>> rationale = "The Autoware side must be able to tell that the reference vehicle speed is no longer current; the bound is the one the AAOS SDV realization was observed with. The baseline health states (REQ-MW-004) carry the further step to unavailable.";
+    require constraint statement { language "English" /* If the last finite reference vehicle speed sample from the vehicle-speed provider is older than 5 s, then the middleware integration layer shall publish a stale indication of the reference vehicle speed on /vehicle/status/velocity_status_health no later than 6 s after that sample. */ }
+    attribute :>> source = "NEED-MW-001; scenario SC-MW-003; like for like with E-MW-014 of INC-MW-010 (health topic /vehicle/status/velocity_status_health, max_age 5 s, a 1 s watchdog period, stale observed 5.8 s after the provider stopped)";
+    attribute :>> rationale = "The Autoware side must be able to tell that the reference vehicle speed is no longer current. The 5 s bound, the 1 s tolerance and the health topic are those of the AAOS SDV realization, so the two realizations compare like for like. Restoration shows as the resumed delivery of REQ-MW-010; the baseline health states (REQ-MW-004) carry the further step to unavailable.";
     attribute :>> verificationMethod = "test";
-    attribute :>> successCriteria = "Met when, after the vehicle-speed provider stops publishing, the stale indication of the reference vehicle speed is observable on the ROS 2 side within 5 s of the last finite sample and stays until the next finite sample is delivered.";
+    attribute :>> successCriteria = "Met when, after the vehicle-speed provider stops publishing, a stale indication of the reference vehicle speed appears on /vehicle/status/velocity_status_health no later than 6 s after the last finite sample.";
+    attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
   requirement <'REQ-MW-013'> reqDeliverSpeedSampleAtMostOnce : FunctionalRequirementCandidate {
@@ -167,24 +170,27 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     attribute :>> rationale = "A last sample repeated after the provider stopped would reach Autoware as a frozen current speed.";
     attribute :>> verificationMethod = "test";
     attribute :>> successCriteria = "Met when, after the vehicle-speed provider stops publishing, no further message appears on /vehicle/status/velocity_status until the provider publishes again, and each delivered message corresponds to one distinct provider sample.";
+    attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
   requirement <'REQ-MW-014'> reqDeliverAEBSSignalsInSourceOrder : FunctionalRequirementCandidate {
     subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
-    require constraint statement { language "English" /* The middleware integration layer shall deliver each AEBS signal frame of the Autoware-based AEBS stack from the Linux host to the HMI application in the AAOS SDV guest, in the order in which the AEBS stack produced the frames. */ }
-    attribute :>> source = "NEED-MW-002; scope item hmiPathInScope; scenario SC-MW-002";
-    attribute :>> rationale = "The HMI can present the AEBS state in source order only if every frame reaches the guest in the order the AEBS stack produced it.";
+    require constraint statement { language "English" /* While the HMI application in the AAOS SDV guest is subscribed, the middleware integration layer shall deliver each AEBS signal frame of the Autoware-based AEBS stack to the HMI application, in the order in which the AEBS stack produced the frames and with inter-arrival gaps below 500 ms. */ }
+    attribute :>> source = "NEED-MW-002; scope item hmiPathInScope; scenario SC-MW-002; the reused HMI of INC-AEBS-010 shows a stale disposition after a 1 s receipt gap, and its frame source publishes every 100 ms";
+    attribute :>> rationale = "The HMI can present the AEBS state in source order only if every frame reaches the guest in the order the AEBS stack produced it; gaps below half the 1 s staleness threshold of the HMI keep a running path from showing as stale.";
     attribute :>> verificationMethod = "test";
-    attribute :>> successCriteria = "Met when, over an AEBS event that runs MONITORING, WARNING, INTERVENTION and RELEASED, the HMI application in the AAOS SDV guest receives every frame the AEBS stack produced on the Linux host, in the same order and without a sequence gap.";
+    attribute :>> successCriteria = "Met when, over an AEBS event that runs MONITORING, WARNING, INTERVENTION and RELEASED with the HMI application subscribed, the HMI application receives every frame the AEBS stack produced on the Linux host, in the same order, without a sequence gap, and with no two consecutive frames more than 500 ms apart.";
+    attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
   requirement <'REQ-MW-015'> reqPreserveAEBSSignalProvenance : FunctionalRequirementCandidate {
     subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
-    require constraint statement { language "English" /* The middleware integration layer shall deliver each AEBS signal frame to the AAOS SDV guest unchanged, including the attribution of each field to native Autoware output (RSS, the filtered obstacle cloud and the intervention diagnostic) or to DE4SDV coordinator output (the warning request, the braking request and the intervention lifecycle state). */ }
-    attribute :>> source = "NEED-MW-002; scope item hmiPathInScope (the per-field provenance INC-AEBS-010 assigns); scenario SC-MW-002";
-    attribute :>> rationale = "Coordinator output must never reach the HMI relabeled as native Autoware output, and no carried value may change on the way.";
+    require constraint statement { language "English" /* The middleware integration layer shall deliver each AEBS signal frame to the AAOS SDV guest unchanged, field by field, including the source kind of each field of the AEBSVisualizationFrame. */ }
+    attribute :>> source = "NEED-MW-002; scope item hmiPathInScope (the per-field provenance INC-AEBS-010 assigns); scenario SC-MW-002; DE4SDV_AEBSVisualizationFunctionalArchitecture::AEBSVisualizationFrame and its VisualizationSourceKind (nativeAutowareAEB, de4sdvAebsCoordinator, displayDerived)";
+    attribute :>> rationale = "Coordinator output and display-derived values must never reach the HMI relabeled as native Autoware output, and no carried value may change on the way.";
     attribute :>> verificationMethod = "test";
-    attribute :>> successCriteria = "Met when every frame received in the AAOS SDV guest over an AEBS event equals, field by field, the frame the AEBS stack produced on the Linux host, and no field of DE4SDV coordinator output is attributed to native Autoware output.";
+    attribute :>> successCriteria = "Met when every frame received in the AAOS SDV guest over an AEBS event equals, field by field and including the source kind of each field, the frame the AEBS stack produced on the Linux host, so that no field marked de4sdvAebsCoordinator or displayDerived arrives marked nativeAutowareAEB.";
+    attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
   requirement <'REQ-MW-016'> reqNoApplicationDataFromHMIGuest : RequirementCandidate {
@@ -194,6 +200,17 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     attribute :>> rationale = "With no application data flowing back, a running, stalled or failed guest cannot influence the AEBS stack or the middleware on the host; transport control, such as acknowledgements, is not application data.";
     attribute :>> verificationMethod = "inspect";
     attribute :>> successCriteria = "Met when inspection of the interface definition of the HMI path and of the configuration of the S-CORE services and the adapter finds no receiver on the Linux host for application data from the AAOS SDV guest.";
+    attribute :>> verificationStatus = VVStatus::NotStarted;
+  }
+
+  requirement <'REQ-MW-019'> reqDiscardFramesWhileHMIUnsubscribed : FunctionalRequirementCandidate {
+    subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
+    require constraint statement { language "English" /* While the HMI application in the AAOS SDV guest is not subscribed, the middleware integration layer shall discard the AEBS signal frames of the Autoware-based AEBS stack instead of holding them for later delivery. */ }
+    attribute :>> source = "NEED-MW-002; scenario SC-MW-004 (the guest or the HMI application down)";
+    attribute :>> rationale = "A guest that is down or stalled must not make the host hold a growing backlog of frames, which could influence the AEBS stack or the middleware on the host, and the HMI must not show old frames as current when it subscribes again.";
+    attribute :>> verificationMethod = "test";
+    attribute :>> successCriteria = "Met when, after the HMI application subscribes again, it receives no frame that the AEBS stack produced while the HMI application was not subscribed.";
+    attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
   requirement <'REQ-MW-017'> reqNoEmergencyCommandOnMiddleware : RequirementCandidate {
@@ -203,15 +220,17 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     attribute :>> rationale = "The command keeps its direct path from the AEB node to the vehicle command gate on the Linux host. This does not define the failure-containment criteria of REQ-MW-006, so GAP-MW-029 stays open, and it does not cover the velocity input of the AEB node (GAP-MW-033).";
     attribute :>> verificationMethod = "inspect";
     attribute :>> successCriteria = "Met when inspection of the S-CORE service configuration, the adapter interfaces and the interface definition of the HMI path finds no element that carries the AEBS emergency intervention command, and the path of that command from the AEB node to the vehicle command gate on the Linux host contains no element of the middleware integration layer.";
+    attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
   requirement <'REQ-MW-018'> reqTerminateAdapterOnException : RequirementCandidate {
     subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
-    require constraint statement { language "English" /* The middleware integration layer shall let every exception raised in its adapter terminate the adapter instead of handling it. */ }
+    require constraint statement { language "English" /* The middleware integration layer shall abort the adapter process on every exception thrown in the adapter process. */ }
     attribute :>> source = "NEED-MW-004; Eclipse S-CORE aou_req__platform__no_exceptions (doc__platform_assumptions, version 1, eclipse-score/score v0.7.2), which applies to every application using the S-CORE SW-platform; ASM-MW-022";
-    attribute :>> rationale = "S-CORE assumes that the applications using it do not handle exceptions. Within the integration layer the adapter is such an application, the S-CORE services being the platform itself, and the Autoware-based AEBS stack does not use S-CORE directly (ASM-MW-022).";
-    attribute :>> verificationMethod = "inspect";
-    attribute :>> successCriteria = "Met when inspection of the source and the build configuration of the adapter finds no exception handler in the adapter and shows that an exception raised in the adapter terminates its process.";
+    attribute :>> rationale = "S-CORE assumes that the applications using it do not handle exceptions and supports this with an abort on any thrown exception, which acts on the whole process. Within the integration layer the adapter is such an application, the S-CORE services being the platform itself, and the Autoware-based AEBS stack does not use S-CORE directly (ASM-MW-022). The feasibility risk for phase 8 is recorded in GAP-MW-034.";
+    attribute :>> verificationMethod = "test";
+    attribute :>> successCriteria = "Met when an exception thrown in the adapter process, including one thrown inside a library the adapter links, aborts that process.";
+    attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
   connection reqDeliverReferenceVehicleSpeedDerivedFromReferenceVehicleSpeedForAutoware : DerivesFromNeed
@@ -228,6 +247,8 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     connect needOneWayAEBSSignalPathToHMI to reqPreserveAEBSSignalProvenance;
   connection reqNoApplicationDataFromHMIGuestDerivedFromOneWayAEBSSignalPathToHMI : DerivesFromNeed
     connect needOneWayAEBSSignalPathToHMI to reqNoApplicationDataFromHMIGuest;
+  connection reqDiscardFramesWhileHMIUnsubscribedDerivedFromOneWayAEBSSignalPathToHMI : DerivesFromNeed
+    connect needOneWayAEBSSignalPathToHMI to reqDiscardFramesWhileHMIUnsubscribed;
   connection reqNoEmergencyCommandOnMiddlewareDerivedFromEmergencyCommandPathWithoutMiddleware : DerivesFromNeed
     connect needEmergencyCommandPathWithoutMiddleware to reqNoEmergencyCommandOnMiddleware;
   connection reqTerminateAdapterOnExceptionDerivedFromWithinSCOREAssumptionsOfUse : DerivesFromNeed
@@ -253,9 +274,11 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
 
   part <'GAP-MW-034'> gapSCOREAssumptionsOfUseOpen : IncrementGap {
     doc /*
-     * The Eclipse S-CORE assumptions of use (doc__platform_assumptions,
-     * version 1, eclipse-score/score v0.7.2) that no requirement of this
-     * increment discharges. aou_req__platform__no_heap_alloc_after_init is a
+     * What the requirements of this increment leave open: the Eclipse S-CORE
+     * assumptions of use (doc__platform_assumptions, version 1,
+     * eclipse-score/score v0.7.2) that no requirement discharges, and the
+     * middleware baseline items listed last.
+     * aou_req__platform__no_heap_alloc_after_init is a
      * recommendation for applications; phase 8 records whether the adapter
      * allocates heap memory after initialization. aou_req__platform__testing
      * asks the integrator to run the S-CORE tests of the selected modules on
@@ -274,15 +297,24 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
      * of the Linux host; this increment does not assess them. The
      * vehicle-speed provider, a context part outside the system of
      * interest, also uses S-CORE communication; the assumptions on
-     * applications apply to it too and are not discharged here. If the
-     * Autoware side of the adapter uses a client library that signals
-     * errors with exceptions, REQ-MW-018 makes each such error terminate the
-     * adapter; phase 8 designs the adapter within that constraint.
+     * applications apply to it too and are not discharged here.
+     * Feasibility risk for phase 8: REQ-MW-018 aborts the adapter process on
+     * every thrown exception, including exceptions thrown inside the ROS 2
+     * client library and the Autoware interface helpers the adapter links,
+     * so every such error stops the adapter; the unavailable indication of
+     * REQ-MW-004 must therefore come from outside the adapter.
+     * Middleware baseline items that face this member without being acted
+     * on here: N-MW-005 (engagement with upstream maintainers) holds but is
+     * not acted on while engagement with the S-CORE project is out of
+     * scope; REQ-MW-008 and N-MW-009 (authenticated service binding across a
+     * trust boundary, GAP-MW-012) now face the hypervisor boundary between
+     * the Linux host and the AAOS SDV guest, whose trust boundary stays
+     * undefined. No security claim is made.
      */
   }
 
   concern scoreMiddlewareRequirementTraceConcern : RequirementTraceConcern {
-    doc /* Reviewers need each requirement of the middleware integration layer traced to the need it derives from, with the planned validation of each need, the verification method and success criteria of each requirement, and the gaps that stay open. */
+    doc /* Reviewers need each requirement of the middleware integration layer traced to the need it derives from, with the planned validation of each need, the verification method, success criteria and verification status of each requirement, and the gaps that stay open. */
     subject;
     stakeholder verificationEngineer : VerificationEngineer;
     stakeholder reviewer : OpenSourceReviewer;
@@ -308,6 +340,7 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     expose reqDeliverAEBSSignalsInSourceOrder;
     expose reqPreserveAEBSSignalProvenance;
     expose reqNoApplicationDataFromHMIGuest;
+    expose reqDiscardFramesWhileHMIUnsubscribed;
     expose reqNoEmergencyCommandOnMiddleware;
     expose reqTerminateAdapterOnException;
     expose gapSpeedPathFeedsAEBVelocityInput;

@@ -309,12 +309,12 @@ Reviewers need to see which of the six middleware components Eclipse S-CORE real
 
 ### `scoreMiddlewareRequirementTraceView`
 
-Reviewers need each requirement of the middleware integration layer traced to the need it derives from, with the planned validation of each need, the verification method and success criteria of each requirement, and the gaps that stay open.
+Reviewers need each requirement of the middleware integration layer traced to the need it derives from, with the planned validation of each need, the verification method, success criteria and verification status of each requirement, and the gaps that stay open.
 
 - **Source:** `middleware_score_needs_requirements.sysml`
 - **Viewpoint:** `selectedRequirementTraceViewpoint` (`SystemRequirementTraceabilityViewpoint`)
 - **Concern:** `scoreMiddlewareRequirementTraceConcern`
-- **Exposes:** `needReferenceVehicleSpeedForAutoware`, `needOneWayAEBSSignalPathToHMI`, `needEmergencyCommandPathWithoutMiddleware`, `needWithinSCOREAssumptionsOfUse`, `referenceVehicleSpeedValidationPlan`, `aebsSignalPathToHMIValidationPlan`, `emergencyCommandPathValidationPlan`, `scoreAssumptionsOfUseValidationPlan`, `reqDeliverReferenceVehicleSpeed`, `reqWithholdNonFiniteSpeedSample`, `reqIndicateStaleReferenceVehicleSpeed`, `reqDeliverSpeedSampleAtMostOnce`, `reqDeliverAEBSSignalsInSourceOrder`, `reqPreserveAEBSSignalProvenance`, `reqNoApplicationDataFromHMIGuest`, `reqNoEmergencyCommandOnMiddleware`, `reqTerminateAdapterOnException`, `gapSpeedPathFeedsAEBVelocityInput`, `gapSCOREAssumptionsOfUseOpen`
+- **Exposes:** `needReferenceVehicleSpeedForAutoware`, `needOneWayAEBSSignalPathToHMI`, `needEmergencyCommandPathWithoutMiddleware`, `needWithinSCOREAssumptionsOfUse`, `referenceVehicleSpeedValidationPlan`, `aebsSignalPathToHMIValidationPlan`, `emergencyCommandPathValidationPlan`, `scoreAssumptionsOfUseValidationPlan`, `reqDeliverReferenceVehicleSpeed`, `reqWithholdNonFiniteSpeedSample`, `reqIndicateStaleReferenceVehicleSpeed`, `reqDeliverSpeedSampleAtMostOnce`, `reqDeliverAEBSSignalsInSourceOrder`, `reqPreserveAEBSSignalProvenance`, `reqNoApplicationDataFromHMIGuest`, `reqDiscardFramesWhileHMIUnsubscribed`, `reqNoEmergencyCommandOnMiddleware`, `reqTerminateAdapterOnException`, `gapSpeedPathFeedsAEBVelocityInput`, `gapSCOREAssumptionsOfUseOpen`
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
