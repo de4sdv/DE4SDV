@@ -35,18 +35,7 @@ package DE4SDV_MiddlewareSCOREFeatureClassification {
     from hmiGuestExecutionDomain
     to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::aaosIntegrated;
 
-  /* Phase 3 revalidation of the INC-MW-003 baseline, and the increment binding. */
-  comment ClassificationRevalidationNote about scoreTwoDomainClassificationConcern /*
-   * The INC-MW-003 baseline classification holds for the S-CORE variant. Its
-   * deferred safety-path decision stays deferred, bounded for this member by
-   * ASM-MW-028.
-   */
-  dependency scoreClassificationBelongsToIncrement
-    from scoreTwoDomainClassificationConcern
-    to DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationIncrement;
-  dependency scoreClassificationFromOperationalContext
-    from scoreTwoDomainClassificationConcern
-    to DE4SDV_MiddlewareSCOREOperationalContext::scoreTwoDomainOperationalContext;
+  /* Phase 3 revalidation of the INC-MW-003 baseline. */
   dependency safetyPathDecisionBoundedByEmergencyPathAssumption
     from DE4SDV_MiddlewareSCOREFraming::asmEmergencyCommandPathStaysOnLinuxHost
     to DE4SDV_MiddlewareFeatureClassification::Features::Middleware::FeatureClassification::safetyPathDecision;

@@ -13,9 +13,9 @@
  * intervention command path stays on the host.
  *
  * Revalidation: the middleware baseline of INC-MW-002 (operational context
- * and story) holds for the S-CORE variant and is extended where the
- * two-domain member needs it. The records below name what holds unchanged
- * and what is extended; no closed slice is edited. No transport, schema or
+ * and story) holds for the S-CORE variant (ASM-MW-023) and is extended where
+ * the two-domain member needs it. The Holds and Extends dependencies below
+ * record it; no closed slice is edited. No transport, schema or
  * application technology is selected here; no safety, cybersecurity,
  * compliance or upstream-engagement claim is made.
  */
@@ -28,6 +28,9 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
   private import DE4SDV_SYSMODAdapter::*;
   private import DE4SDV_MiddlewareOperationalContext::Features::Middleware::OperationalContext::*;
   private import DE4SDV_MiddlewareSCOREFraming::*;
+  private import DE4SDV_AEBSVisualizationOperationalContext::VisualizationFrame;
+  private import DE4SDV_AEBSVisualizationOperationalContext::RenderedAEBSState;
+  private import DE4SDV_AEBSOperationalContext::Features::AEBS::OperationalContext::EmergencyBrakingCommand;
   private import SAF_Viewpoints::*;
   private import Views::*;
 
@@ -80,61 +83,29 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
     stakeholder systemArchitect : SystemArchitect;
   }
 
-  concern likeForLikeComparisonConcern : EATraceabilityConcern {
-    doc /*
-     * Reviewers need the S-CORE vehicle-speed path traced to the same
-     * reference signal (VSS Vehicle.Speed), the same Autoware consumer and
-     * the AAOS SDV realization and retained evidence of INC-MW-008 and
-     * INC-MW-010, so that the comparison of the two realizations is like for
-     * like: same signal, same consumer, comparable evidence.
-     */
-    subject;
-    stakeholder reviewer : OpenSourceReviewer;
-    stakeholder productLineEngineer : ProductLineEngineer;
-    stakeholder verificationEngineer : VerificationEngineer;
-  }
-
   view scoreMiddlewareStakeholderConcernView {
     viewpoint selectedStakeholderIdentificationViewpoint : StakeholderIdentificationViewpoint {
       frame assumptionsOfUseConcern;
       frame runnableProofBenchConcern;
       frame emergencyPathConcern;
-      frame likeForLikeComparisonConcern;
     }
 
     expose assumptionsOfUseConcern;
     expose runnableProofBenchConcern;
     expose emergencyPathConcern;
-    expose likeForLikeComparisonConcern;
     render asTreeDiagram;
   }
 
   /* Phase 1 revalidation of the INC-MW-002 baseline. */
-  comment ConcernFramingRevalidationNote about scoreMiddlewareStakeholderConcernView /*
-   * Holds unchanged for the S-CORE variant: the baseline problem statement's
-   * five explicit concerns (platform decoupling, product-line variability,
-   * safety-path boundaries, upstream engagement, evidence traceability) and
-   * its stakeholder set, and the baseline assurance concern. Extended: the
-   * four concerns above add the S-CORE assumptions of use, the bench of the
-   * runnable proof, the emergency-path independence across the domain
-   * boundary, and the like-for-like comparison with INC-MW-008. The framing's
-   * five concerns (DE4SDV_MiddlewareSCOREFraming) are not restated.
-   */
   dependency scoreProblemStatementExtendsBaselineProblemStatement
     from DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareProblemStatement
     to DE4SDV_MiddlewareIncrementFraming::Features::Middleware::IncrementFraming::middlewareIntegrationProblemStatement;
-  dependency scoreConcernsHoldBaselineAssuranceConcern
-    from assumptionsOfUseConcern, runnableProofBenchConcern, emergencyPathConcern, likeForLikeComparisonConcern
-    to DE4SDV_MiddlewareIncrementFraming::Features::Middleware::IncrementFraming::middlewareIncrementAssuranceConcern;
   dependency emergencyPathConcernCarriesSafetyPathIsolationRequirement
     from emergencyPathConcern
     to DE4SDV_MiddlewareRequirements::Features::Middleware::Requirements::reqIsolateSafetyPath;
   dependency emergencyPathConcernCarriesSafetyPathIsolationGap
     from emergencyPathConcern
     to DE4SDV_MiddlewareStakeholderNeeds::Features::Middleware::StakeholderNeeds::safetyPathIsolationCriteriaGap;
-  dependency likeForLikeConcernOnSpeedPathScope
-    from likeForLikeComparisonConcern
-    to DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareScope::referenceVehicleSpeedPathInScope;
 
   /* ───────────────────── Phase 2: what happens in the world ───────────────────── */
 
@@ -143,32 +114,6 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
      * VSS Vehicle.Speed [km/h], the reference signal of INC-MW-008: produced
      * by the vehicle-speed provider, carried over S-CORE communication and
      * consumed by Autoware's velocity consumer.
-     */
-  }
-
-  item def AEBSHMISignalBundle {
-    doc /*
-     * The AEBS signals the HMI shows: native Autoware AEB outputs and DE4SDV
-     * coordinator output, with the per-field provenance that the framing's
-     * HMI path scope item states (hmiPathInScope).
-     */
-  }
-
-  item def EmergencyInterventionCommand {
-    doc /*
-     * The brake command of the emergency intervention path, from the AEB
-     * node to the vehicle command gate inside the Linux host (ASM-MW-003,
-     * ASM-MW-028); never carried over S-CORE communication and never
-     * crossing the hypervisor boundary.
-     */
-  }
-
-  item def HMIDisposition {
-    doc /*
-     * The HMI's presentation disposition: one of the four AEBS states, or a
-     * health overlay (stale, invalid, unavailable, restored) under the
-     * INC-AEBS-010 visualization contract. An informational display, not the
-     * AEBS driver warning.
      */
   }
 
@@ -213,9 +158,9 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
      * interest is the middleware integration layer (the Autoware-to-S-CORE
      * adapter with the S-CORE services) on the Linux host; the actors are the
      * host-side application elements, the guest with its HMI application, the
-     * hypervisor between them, the driver who sees the informational display,
-     * and the bench observer and reviewer who read the retained evidence.
-     * This is the operational environment, not a deployment decomposition.
+     * hypervisor between them, and the driver who sees the informational
+     * display. This is the operational environment, not a deployment
+     * decomposition.
      */
     part integrationLayer : SCOREMiddlewareIntegrationLayer :>> systemOfInterest {
       part adapter : ApplicationMiddlewareAdapter;
@@ -232,86 +177,54 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
       part hmiApplication : AAOSSDVHMIApplication;
     }
     part driver : Driver;
-    part benchObserver : VerificationEngineer;
-    part reviewer : OpenSourceReviewer;
-    part evidenceBaseline : DE4SDVEvidenceBaseline;
   }
 
   /* Operational behavior: the two signal paths and the host-only command path. */
-  action def ProvideReferenceVehicleSpeed {
-    out speed : ReferenceVehicleSpeedSignal;
-  }
-
-  action def CarrySpeedOverSCORE {
-    in speed : ReferenceVehicleSpeedSignal;
-    out carriedSpeed : ReferenceVehicleSpeedSignal;
-  }
-
-  action def RunAEBSStackOnHost {
-    doc /* The Autoware-based AEBS stack on the Linux host, including the DE4SDV coordinator: its aebsSignals mix native Autoware outputs and coordinator output with the per-field provenance of AEBSHMISignalBundle, and coordinator output is never attributed to Autoware. */
-    in carriedSpeed : ReferenceVehicleSpeedSignal;
-    out aebsSignals : AEBSHMISignalBundle;
-    out command : EmergencyInterventionCommand;
-  }
-
-  action def GateEmergencyCommandOnHost {
-    in command : EmergencyInterventionCommand;
-  }
-
-  action def CarryAEBSSignalsAcrossDomainBoundary {
-    in aebsSignals : AEBSHMISignalBundle;
-    out carriedSignals : AEBSHMISignalBundle;
-  }
-
-  action def PresentAEBSStateOnHMI {
-    in carriedSignals : AEBSHMISignalBundle;
-    out disposition : HMIDisposition;
-  }
-
   action def TwoDomainSignalFlow {
-    out item disposition : HMIDisposition;
+    out item disposition : RenderedAEBSState;
 
-    action provideSpeed : ProvideReferenceVehicleSpeed {
-      out speed;
+    action provideSpeed {
+      out speed : ReferenceVehicleSpeedSignal;
     }
 
-    action carrySpeed : CarrySpeedOverSCORE {
-      in speed = provideSpeed.speed;
-      out carriedSpeed;
+    action carrySpeedOverSCORE {
+      in speed : ReferenceVehicleSpeedSignal;
+      out carriedSpeed : ReferenceVehicleSpeedSignal;
     }
 
-    flow from provideSpeed.speed to carrySpeed.speed;
-    first provideSpeed then carrySpeed;
+    flow from provideSpeed.speed to carrySpeedOverSCORE.speed;
+    first provideSpeed then carrySpeedOverSCORE;
 
-    action runAEBSStack : RunAEBSStackOnHost {
-      in carriedSpeed = carrySpeed.carriedSpeed;
-      out aebsSignals;
-      out command;
+    action runAEBSStackOnHost {
+      doc /* The Autoware-based AEBS stack on the Linux host, including the DE4SDV coordinator: its aebsSignals mix native Autoware outputs and coordinator output with the per-field provenance that the framing's HMI path scope item states (hmiPathInScope), and coordinator output is never attributed to Autoware. */
+      in carriedSpeed : ReferenceVehicleSpeedSignal;
+      out aebsSignals : VisualizationFrame;
+      out command : EmergencyBrakingCommand;
     }
 
-    flow from carrySpeed.carriedSpeed to runAEBSStack.carriedSpeed;
-    first carrySpeed then runAEBSStack;
+    flow from carrySpeedOverSCORE.carriedSpeed to runAEBSStackOnHost.carriedSpeed;
+    first carrySpeedOverSCORE then runAEBSStackOnHost;
 
-    action gateCommand : GateEmergencyCommandOnHost {
-      in command = runAEBSStack.command;
+    action gateCommandOnHost {
+      in command : EmergencyBrakingCommand;
     }
 
-    flow from runAEBSStack.command to gateCommand.command;
+    flow from runAEBSStackOnHost.command to gateCommandOnHost.command;
 
-    action carrySignals : CarryAEBSSignalsAcrossDomainBoundary {
-      in aebsSignals = runAEBSStack.aebsSignals;
-      out carriedSignals;
+    action carrySignalsAcrossDomainBoundary {
+      in aebsSignals : VisualizationFrame;
+      out carriedSignals : VisualizationFrame;
     }
 
-    flow from runAEBSStack.aebsSignals to carrySignals.aebsSignals;
+    flow from runAEBSStackOnHost.aebsSignals to carrySignalsAcrossDomainBoundary.aebsSignals;
 
-    action presentState : PresentAEBSStateOnHMI {
-      in carriedSignals = carrySignals.carriedSignals;
-      out disposition = TwoDomainSignalFlow::disposition;
+    action presentStateOnHMI {
+      in carriedSignals : VisualizationFrame;
+      out disposition : RenderedAEBSState = TwoDomainSignalFlow::disposition;
     }
 
-    flow from carrySignals.carriedSignals to presentState.carriedSignals;
-    first carrySignals then presentState;
+    flow from carrySignalsAcrossDomainBoundary.carriedSignals to presentStateOnHMI.carriedSignals;
+    first carrySignalsAcrossDomainBoundary then presentStateOnHMI;
   }
 
   action scoreTwoDomainSignalFlow : TwoDomainSignalFlow;
@@ -335,7 +248,7 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
   }
 
   use case operateAEBSMemberAcrossTwoDomains : OperateAEBSMemberAcrossTwoDomains {
-    subject scoreTwoDomainOperationalContext : SystemContext;
+    subject scoreTwoDomainOperationalContext : SystemContext = DE4SDV_MiddlewareSCOREOperationalContext::scoreTwoDomainOperationalContext;
     actor autowareAEBSStack : ADASApplicationStack;
     actor scoreServices : VehiclePlatformMiddleware;
     actor adapter : ApplicationMiddlewareAdapter;
@@ -344,7 +257,6 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
     actor vehicleCommandGate : VehicleCommandGate;
     actor hmiApplication : AAOSSDVHMIApplication;
     actor driver : Driver;
-    actor benchObserver : VerificationEngineer;
 
     objective {
       doc /*
@@ -390,13 +302,12 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
       subject;
       actor :>> scoreServices = operateAEBSMemberAcrossTwoDomains::scoreServices;
       actor :>> adapter = operateAEBSMemberAcrossTwoDomains::adapter;
-      actor :>> benchObserver = operateAEBSMemberAcrossTwoDomains::benchObserver;
     }
     then done;
   }
 
   use case carryReferenceVehicleSpeedIntoAutoware {
-    subject scoreTwoDomainOperationalContext : SystemContext;
+    subject scoreTwoDomainOperationalContext : SystemContext = DE4SDV_MiddlewareSCOREOperationalContext::scoreTwoDomainOperationalContext;
     actor vehicleSpeedProvider : VehicleSpeedProvider;
     actor scoreServices : VehiclePlatformMiddleware;
     actor adapter : ApplicationMiddlewareAdapter;
@@ -417,7 +328,7 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
   }
 
   use case showAEBSEventOnHMI {
-    subject scoreTwoDomainOperationalContext : SystemContext;
+    subject scoreTwoDomainOperationalContext : SystemContext = DE4SDV_MiddlewareSCOREOperationalContext::scoreTwoDomainOperationalContext;
     actor autowareAEBSStack : ADASApplicationStack;
     actor adapter : ApplicationMiddlewareAdapter;
     actor scoreServices : VehiclePlatformMiddleware;
@@ -444,7 +355,7 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
   }
 
   use case degradeOnSpeedProviderLoss {
-    subject scoreTwoDomainOperationalContext : SystemContext;
+    subject scoreTwoDomainOperationalContext : SystemContext = DE4SDV_MiddlewareSCOREOperationalContext::scoreTwoDomainOperationalContext;
     actor vehicleSpeedProvider : VehicleSpeedProvider;
     actor scoreServices : VehiclePlatformMiddleware;
     actor adapter : ApplicationMiddlewareAdapter;
@@ -466,7 +377,7 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
   }
 
   use case tolerateUnavailableOrStaleHMIGuest {
-    subject scoreTwoDomainOperationalContext : SystemContext;
+    subject scoreTwoDomainOperationalContext : SystemContext = DE4SDV_MiddlewareSCOREOperationalContext::scoreTwoDomainOperationalContext;
     actor hmiApplication : AAOSSDVHMIApplication;
     actor autowareAEBSStack : ADASApplicationStack;
     actor aebNode : AEBNode;
@@ -488,17 +399,15 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
   }
 
   use case startAndManageSCOREServices {
-    subject scoreTwoDomainOperationalContext : SystemContext;
+    subject scoreTwoDomainOperationalContext : SystemContext = DE4SDV_MiddlewareSCOREOperationalContext::scoreTwoDomainOperationalContext;
     actor scoreServices : VehiclePlatformMiddleware;
     actor adapter : ApplicationMiddlewareAdapter;
-    actor benchObserver : VerificationEngineer;
 
     objective {
       doc /*
        * SC-MW-005 (S-CORE service start and lifecycle): the S-CORE services
        * start on the host, become healthy and observable, bind the adapter,
-       * and shut down in order; the bench observes the lifecycle read-only
-       * and retains the evidence. The baseline lifecycle and health stories
+       * and shut down in order. The baseline lifecycle and health stories
        * of INC-MW-002 hold; the S-CORE lifecycle mechanism is selected in
        * phase 8.
        */
@@ -508,55 +417,13 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
     then done;
   }
 
-  /* Operational capability beyond the baseline middleware integration capability. */
-  part def ReferenceVehicleSpeedCarriageCapability {
-    doc /* CAP-MW-REFERENCE-SPEED: carry the reference vehicle speed from its provider over S-CORE communication into Autoware unchanged in meaning and unit. */
-  }
-  part def CrossDomainHMIPresentationCapability {
-    doc /* CAP-MW-CROSS-DOMAIN-HMI: carry the AEBS signals one way across the domain boundary and present them on the HMI with per-field provenance, degrading fail-closed. */
-  }
-  part def SCORETwoDomainOperationalCapability {
-    doc /*
-     * Stakeholder-visible capability of the two-domain member beyond the
-     * baseline middleware integration capability, which holds unchanged for
-     * the S-CORE variant.
-     */
-    part referenceVehicleSpeedCarriage : ReferenceVehicleSpeedCarriageCapability;
-    part crossDomainHMIPresentation : CrossDomainHMIPresentationCapability;
-  }
-  part scoreTwoDomainCapability : SCORETwoDomainOperationalCapability;
-
-  /* Phase 2 revalidation of the INC-MW-002 baseline, and the increment binding. */
-  comment OperationalContextRevalidationNote about scoreTwoDomainOperationalContext /*
-   * Holds unchanged for the S-CORE variant: the baseline actors ADAS
-   * application stack, vehicle platform middleware, adapter, AEB node and
-   * vehicle command gate (reused as the types of the host-side actors), the
-   * baseline stories exchange vehicle signals, coordinate lifecycle, monitor
-   * service health, access diagnostics and coordinate software update, and
-   * the baseline operational capability. The baseline's two emergency
-   * intervention options stay modeled; for this member the command path
-   * stays on the host (ASM-MW-028), and REQ-MW-006 with GAP-MW-029 stays
-   * open. Extended: the two execution domains and the hypervisor boundary,
-   * the vehicle-speed provider and the HMI application as actors, the
-   * one-way cross-domain HMI path, the host-only emergency command path, the
-   * five scenarios SC-MW-001 to SC-MW-005, and the two capabilities above.
-   * Diagnostics and software update are not elaborated by this increment.
-   */
-  dependency scoreContextBelongsToIncrement
-    from scoreTwoDomainOperationalContext
-    to DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationIncrement;
-  dependency scoreContextSystemOfInterestIsFramingLayer
-    from scoreTwoDomainOperationalContext
-    to DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
+  /* Phase 2 revalidation of the INC-MW-002 baseline. */
   dependency scoreContextHoldsBaselineOperationalContext
     from scoreTwoDomainOperationalContext
     to DE4SDV_MiddlewareOperationalContext::Features::Middleware::OperationalContext::middlewareOperationalContext;
   dependency scoreStoryExtendsBaselineIntegrationStory
     from operateAEBSMemberAcrossTwoDomains
     to DE4SDV_MiddlewareOperationalContext::Features::Middleware::OperationalContext::'integrate ADAS with vehicle platform';
-  dependency scoreCapabilityExtendsBaselineIntegrationCapability
-    from scoreTwoDomainCapability
-    to DE4SDV_MiddlewareOperationalContext::Features::Middleware::OperationalContext::middlewareIntegrationCapability;
   dependency scoreHypervisorOnKVMAssumption
     from HostHypervisor
     to DE4SDV_MiddlewareSCOREFraming::asmKVMHypervisorWithAAOSSDVGuest;
@@ -566,9 +433,6 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
   dependency scoreSpeedProviderOnSpeedPathScope
     from VehicleSpeedProvider
     to DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareScope::referenceVehicleSpeedPathInScope;
-  dependency aebsSignalBundleProvenanceOnHMIPathScope
-    from AEBSHMISignalBundle
-    to DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareScope::hmiPathInScope;
 
   concern scoreTwoDomainContextConcern : OperationalContextConcern {
     doc /*
@@ -616,31 +480,6 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
 
     expose operateAEBSMemberAcrossTwoDomains;
     expose operateAEBSMemberAcrossTwoDomains::*;
-    attribute depth = 1;
-    attribute showAnnotationRows = false;
-    render asTreeDiagram;
-  }
-
-  concern scoreTwoDomainCapabilityConcern : OperationalCapabilityConcern {
-    doc /*
-     * Reviewers need the operational capability expected from the two-domain
-     * member beyond the baseline: carry the reference vehicle speed over
-     * S-CORE into Autoware, and carry the AEBS signals one way across the
-     * domain boundary to the HMI with per-field provenance, degrading
-     * fail-closed.
-     */
-    subject;
-    stakeholder productLineEngineer : ProductLineEngineer;
-    stakeholder systemsEngineer : SystemsEngineer;
-    stakeholder reviewer : OpenSourceReviewer;
-  }
-
-  view scoreTwoDomainOperationalCapabilityView {
-    viewpoint selectedOperationalCapabilityViewpoint : OperationalCapabilityDefinitionViewpoint {
-      frame scoreTwoDomainCapabilityConcern;
-    }
-
-    expose SCORETwoDomainOperationalCapability;
     attribute depth = 1;
     attribute showAnnotationRows = false;
     render asTreeDiagram;
