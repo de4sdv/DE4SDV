@@ -850,17 +850,6 @@ def _method_side(reason: str) -> Callable[[_Request], Remedy]:
     return build
 
 
-def _feature_or_common_capability(request: _Request) -> Remedy:
-    remedies = [_relation_remedy(replace(request, check=relation))
-                for relation in ("specifiesFeature", "specifiesCommonCapability")]
-    authorable = [remedy for remedy in remedies if remedy.declarations]
-    if not authorable:
-        return Remedy(f"nothing to author in the model for {_subject_phrase(request)}: specifiesFeature and "
-                      "specifiesCommonCapability have no SysML mapping at this revision (method side: only a "
-                      "method or kernel change can supply it)")
-    return authorable[0]
-
-
 def _evidence_record_or_status(request: _Request) -> Remedy:
     return _relation_remedy(replace(request, check="hasEvidence"))
 
@@ -884,7 +873,6 @@ _NAMED: Mapping[str, Callable[[_Request], Remedy]] = {
     "charterExpectedArtifactsCoverContent": _expected_artifacts_cover_content,
     "oneVerificationMethodKind": _library_value,
     "successCriteriaAttribute": _library_value,
-    "specifiesFeatureOrCommonCapability": _feature_or_common_capability,
     "verifiesIncrementRequirement": _verifies(REQUIREMENT_CLASS, "requirement of the increment"),
     "evidenceRecordOrStatus": _evidence_record_or_status,
 }

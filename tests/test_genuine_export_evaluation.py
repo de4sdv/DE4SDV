@@ -37,7 +37,7 @@ def test_the_frozen_cut_passes_framing_needs_and_requirements_and_next_asks_for_
     the other declared packages as package elements only. Its verification cases
     are therefore outside the cut: phase 10 finds none, so next asks for them and
     no requirement is verified. The full export of the same revision answers next
-    none (Method Check run 38608060534); this is the cut boundary, not the model."""
+    none (Method Check run 39072952613); this is the cut boundary, not the model."""
     export = tmp_path / "export.json"
     export.write_bytes(gzip.decompress(GENUINE_EXPORT.read_bytes()))
     snapshot, evaluation = evaluate_export(export, "INC-AEBS-010")
@@ -47,7 +47,7 @@ def test_the_frozen_cut_passes_framing_needs_and_requirements_and_next_asks_for_
             if phase["gates"]} == {
         "phase0_incrementFraming": (me.VERDICT_PASS, 15),
         "phase4_needs": (me.VERDICT_PASS, 6),
-        "phase5_requirements": (me.VERDICT_PASS, 7),
+        "phase5_requirements": (me.VERDICT_PASS, 6),
         "phase10_vvEvidence": (me.VERDICT_FAIL, 3),
     }
     assert phases["phase4_needs"]["applicability"] == "declared"  # an optional [0..1] step

@@ -234,7 +234,6 @@ def test_advisory_checks_never_block_and_are_reported_as_notes() -> None:
     advisory = {entry["gate"]: entry["kind"] for entry in gaps["advisory"]}
     assert advisory == {"needSubjectIsSystemOfInterest": "violation",
                         "requirementSubjectIsSystemOfInterest": "violation",
-                        "requirementSpecifiesFeatureOrCapability": "method-side",
                         "requirementStatesSuccessCriteria": "violation",
                         "verificationCaseHasEvidenceRecordOrStatus": "method-side"}
     assert all(entry["gate"] not in advisory for entry in gaps["blocking"])

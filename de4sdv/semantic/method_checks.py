@@ -496,25 +496,6 @@ def _expected_artifacts_cover_content(view: ModelView, increment: IncrementScope
     return satisfied(list(increment.scope_packages), witnesses=[subject_id])
 
 
-def _feature_or_common_capability(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
-    targets, witnesses, method_side = [], [], []
-    for relation in ("specifiesFeature", "specifiesCommonCapability"):
-        result = check_relation(view, relation, subject_id)
-        if result.method_side:
-            method_side.append(result.problem)
-            continue
-        if result.problem:
-            return indeterminate(result.problem, result.detail)
-        targets.extend(t for t, _w in result.hops)
-        witnesses.extend(w for _t, w in result.hops)
-    if not targets and len(method_side) == 2:
-        return indeterminate(",".join(method_side), "method side: specifiesFeature and specifiesCommonCapability "
-                                                    "have no SysML mapping at this revision")
-    if not targets:
-        return violated(f"{_name(view, subject_id)} specifies no feature or common capability")
-    return satisfied(targets, witnesses)
-
-
 def _verifies_increment_requirement(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
     """The case verifies a requirement of the increment: a Requirement-lineage element of its scope."""
     result = check_relation(view, "verify", subject_id)
@@ -565,7 +546,6 @@ NAMED_CHECKS: Mapping[str, CheckFunction] = MappingProxyType({
     "charterExpectedArtifactsCoverContent": _expected_artifacts_cover_content,
     "oneVerificationMethodKind": _library_attribute("verificationMethod", allowed=STANDARD_VERIFICATION_METHOD_KINDS),
     "successCriteriaAttribute": _library_attribute("successCriteria"),
-    "specifiesFeatureOrCommonCapability": _feature_or_common_capability,
     "verifiesIncrementRequirement": _verifies_increment_requirement,
     "evidenceRecordOrStatus": _evidence_record_or_status,
 })
