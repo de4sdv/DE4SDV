@@ -314,7 +314,7 @@ some links are draft:
 Stakeholder concern
   -> Need (provenance: stakeholder, source, rationale; not framing or derivation)
   -> Requirement / constraint
-  -> Feature or common capability
+  -> Feature, for a varying requirement only (a core requirement has none)
   -> Architecture element / function / interface
   -> Verification case and validation scenario
   -> Success criteria stated on the requirement

@@ -290,8 +290,10 @@ package DE4SDV_IncrementWorkflow {
          * dependencies do not count; a requirement has a statement, exactly one native
          * subject and one primary verification method of the standard kinds. Advisory:
          * a requirement's subject is the system of interest the charter declares, never
-         * the increment; a requirement traces to a feature or common capability and
-         * states its success criteria. */
+         * the increment; a requirement states its success criteria. A requirement
+         * without a feature link is core, common to every member product; a varying
+         * requirement is a variant of a variation, which phase 9 binds to its
+         * feature. */
     attribute :>> phase = MethodPhase::phase5_requirements;
     in requirement needs[0..*] : StakeholderNeedCandidate;
     out requirement requirements[1..*] : RequirementCandidate;
@@ -316,11 +318,6 @@ package DE4SDV_IncrementWorkflow {
     metadata requirementHasVerificationMethod : MethodCheck about requirements {
       doc /* Each requirement records exactly one of inspect, demo, test or analyze; planning only, no result. */
       :>> check = "oneVerificationMethodKind";
-    }
-    metadata requirementSpecifiesFeatureOrCapability : MethodCheck about requirements {
-      doc /* Advisory: each requirement traces to a feature or common capability; no native carrier exists yet. */
-      :>> check = "specifiesFeatureOrCommonCapability";
-      :>> advisory = true;
     }
     metadata requirementStatesSuccessCriteria : MethodCheck about requirements {
       doc /* Advisory: each requirement states its success criteria; a test-verdict criterion, no verdict or acceptance claim. */

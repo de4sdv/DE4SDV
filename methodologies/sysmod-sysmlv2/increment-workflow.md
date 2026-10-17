@@ -119,14 +119,17 @@ These method rules apply to every increment:
    one native subject and exactly one primary verification method from the
    standard kinds. Its
    subject is the system of interest the charter declares, never the
-   increment (advisory).
+   increment (advisory). Requirements are shared assets: a requirement
+   without a feature link is core, common to every member product, and a
+   varying requirement is a variant of a variation, which phase 9 binds to
+   its feature.
 6. **Verification.** Each verification case verifies at least one requirement
    of the increment, and every in-scope requirement is verified by at least
    one verification case.
-7. **Advisory, not blocking.** Requirement to feature or common capability,
-   the requirement's success criteria, evidence record or status, the subject
-   of needs and requirements being the system of interest, and the expected
-   artifacts naming every package that holds increment content.
+7. **Advisory, not blocking.** The requirement's success criteria, evidence
+   record or status, the subject of needs and requirements being the system
+   of interest, and the expected artifacts naming every package that holds
+   increment content.
 8. **Principle.** Structural checks block; judgment checks (wording,
    verifiability) are advisory.
 9. **Operational context and story (phase 2).** A member product's
@@ -299,7 +302,7 @@ Every substantial increment should try to establish this chain, even if some lin
 Stakeholder concern
   -> Need (provenance: stakeholder, source, rationale; not framing or derivation)
   -> Requirement / constraint
-  -> Feature or common capability
+  -> Feature, for a varying requirement only (a core requirement has none)
   -> Architecture element / function / interface
   -> System-to-software signal mapping (when a boundary is crossed)
   -> Physical/software realization or configuration
