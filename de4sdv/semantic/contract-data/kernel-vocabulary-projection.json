@@ -847,7 +847,7 @@
       "accounting": "retained",
       "boundary": "historical-redesign",
       "definition": {
-        "documentation": "The ordered trace chain every substantial increment should establish, even if some links are draft: stakeholder concern, need, requirement, feature or common capability, architecture element, logical-to-software signal mapping when a boundary is crossed, physical/software realization, verification case, acceptance criterion, evidence artifact, baseline decision. Intentionally missing links are recorded as gaps.",
+        "documentation": "The ordered trace chain every substantial increment should establish, even if some links are draft: stakeholder concern, need, requirement, feature (for a varying requirement only; a core requirement has none), architecture element, logical-to-software signal mapping when a boundary is crossed, physical/software realization, verification case, acceptance criterion, evidence artifact, baseline decision. Intentionally missing links are recorded as gaps.",
         "documentation_witness": {
           "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml",
           "owner": "package DE4SDV_IncrementWorkflow",

@@ -55,9 +55,11 @@ package DE4SDV_MethodViewpoints {
   concern def ProductLineCapabilityClassificationConcern {
     require constraint {
       doc /*
-       * Reviewers need model content to distinguish common product-line
-       * capabilities from features, candidate features, variability decisions, and
-       * deferred variability decisions.
+       * Reviewers need model content to show which characteristics distinguish
+       * member products: the feature candidates an increment adds (the
+       * feature-model delta), with their variability decisions and deferred
+       * variability decisions. Core elements are common by default and get no
+       * record.
        */
     }
   }
@@ -127,10 +129,10 @@ package DE4SDV_MethodViewpoints {
   viewpoint def ProductLineClassificationViewpoint {
     require constraint {
       doc /*
-       * A product-line classification view shall separate common product-line
-       * capabilities from features, candidate features, variability decisions, and
-       * deferred variability decisions before downstream functional modeling
-       * starts.
+       * A product-line classification view shall show the feature candidates an
+       * increment adds (the feature-model delta), with their variability decisions
+       * and deferred variability decisions, before downstream functional modeling
+       * starts. Core elements are common by default and get no record.
        */
     }
   }

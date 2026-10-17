@@ -22,7 +22,7 @@ configured variants (System 1).
 
 | Process | What it does | Where it lives |
 |---|---|---|
-| Feature modeling | Define common and variable capabilities of the product line; classify capabilities as features or common capabilities per the feature/common-capability rule | `model-based-product-line-engineering/feature-models/`; SysML: `packages/methods/de4sdv/de4sdv_product_line.sysml` |
+| Feature modeling | Define the variability of the product line: record a feature candidate for each characteristic that distinguishes member products; core elements are common by default and get no record (feature/common-capability rule) | `model-based-product-line-engineering/feature-models/`; SysML: `packages/methods/de4sdv/de4sdv_product_line.sysml` |
 | Feature configuration | Select features for a member product and record the configuration | `model-based-product-line-engineering/feature-configurations/` |
 | Product-model assembly | Assemble variant-specific product models from shared assets and configuration decisions | `model-based-product-line-engineering/product-models/` |
 | Architecture definition | Define functional, logical, and physical/software architecture with variation points | SysML: `textual-notation-of-model/packages/` (features, architecture) |

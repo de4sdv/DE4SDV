@@ -9,8 +9,9 @@ package DE4SDV_IncrementWorkflow {
        * not a conformance, acceptance, compliance or certification claim. */
 
   doc RequiredTraceChainOntologyDefinition /* The ordered trace chain every substantial increment should establish, even if some
-   * links are draft: stakeholder concern, need, requirement, feature or common capability,
-   * architecture element, logical-to-software signal mapping when a boundary is crossed,
+   * links are draft: stakeholder concern, need, requirement, feature (for a varying
+   * requirement only; a core requirement has none), architecture element,
+   * logical-to-software signal mapping when a boundary is crossed,
    * physical/software realization, verification case, acceptance criterion, evidence
    * artifact, baseline decision. Intentionally missing links are recorded as gaps. */
   comment about RequiredTraceChainOntologyDefinition /* Historical vocabulary, kept for compatibility. It defines no

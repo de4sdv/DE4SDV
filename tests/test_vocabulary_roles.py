@@ -10,6 +10,7 @@ import yaml
 
 from de4sdv.semantic.authority_inventory import normalize_text
 from model_contract_fixtures import model_contract
+from sysml_shapes import braced_body
 
 ROOT = Path(__file__).resolve().parents[1]
 KERNEL = "textual-notation-of-model/packages/methods/de4sdv/"
@@ -242,30 +243,41 @@ PRODUCT_LINE_DEFINITIONS = {
 PLE_SELECTABLES = ("ProductLineFeatureCandidate", "CommonProductLineCapability", "ProductLineMemberProduct",
                    "ProductLineVariantChoice", "DeferredVariantChoice", "ProductLineCharacteristic")
 #: The one kernel feature a selectable product-line class may type: the output
-#: parameter of the phase-3 workflow step, which says what kind of element the
-#: step records (feature candidates, the feature-model delta) and selects nothing.
-STEP_OUTPUT_EXEMPTION = ("de4sdv_increment_workflow.sysml",
+#: parameter of the phase-3 workflow step ClassifyCapabilities, which says what
+#: kind of element the step records (feature candidates, the feature-model
+#: delta) and selects nothing. The exemption holds only inside that step's body.
+STEP_OUTPUT_EXEMPTION = ("de4sdv_increment_workflow.sysml", "action def ClassifyCapabilities",
                          "out part characteristics[0..*] : ProductLineFeatureCandidate;")
 
 
 def test_kernel_holds_no_configuration_selection_under_any_name():
     """ADR 0006: selection authority is external. The kernel product-line
     definitions are pinned, and no kernel feature is typed by a selectable
-    product-line class (a selection record under another name), except the
-    phase-3 step's output parameter (STEP_OUTPUT_EXEMPTION). Import statements
-    type nothing and are not scanned."""
+    product-line class (a selection record under another name): not with ``:``,
+    ``defined by`` or ``typed by``, and not through an alias. The one exception
+    is the phase-3 step's output parameter (STEP_OUTPUT_EXEMPTION), and only
+    inside that step's body. Import statements type nothing and are not
+    scanned."""
     active = _active(_text(PRODUCT_LINE))
     assert set(re.findall(r"\bdef\s+(\w+)", active)) == PRODUCT_LINE_DEFINITIONS
     # No reference feature at all in the product-line kernel: selections are external.
     assert not re.search(r"\bref\b", active), "reference feature in the product-line kernel"
-    typed = re.compile(r":\s*(?:[\w:]*::)?(" + "|".join(PLE_SELECTABLES) + r")\b")
     imports = re.compile(r"^\s*(?:(?:private|public)\s+)?import\s+[^;]*;", re.MULTILINE)
+    texts = {path: imports.sub(" ", _active(path.read_text()))
+             for path in sorted((ROOT / KERNEL).glob("*.sysml"))}
+    selectable = r"(?:[\w:]*::)?(?:" + "|".join(PLE_SELECTABLES) + r")\b"
+    aliases = sorted({name for text in texts.values()
+                      for name in re.findall(r"\balias\s+(\w+)\s+for\s+" + selectable, text)})
+    typed = re.compile(r"(?::|\b(?:defined|typed)\s+by)\s*(?:[\w:]*::)?("
+                       + "|".join((*PLE_SELECTABLES, *aliases)) + r")\b")
+    file, step, parameter = STEP_OUTPUT_EXEMPTION
     exempted = 0
-    for path in sorted((ROOT / KERNEL).glob("*.sysml")):
-        active = imports.sub(" ", _active(path.read_text()))
-        if path.name == STEP_OUTPUT_EXEMPTION[0]:
-            exempted = active.count(STEP_OUTPUT_EXEMPTION[1])
-            active = active.replace(STEP_OUTPUT_EXEMPTION[1], " ")
-        hit = typed.search(active)
+    for path, text in texts.items():
+        if path.name == file:
+            body = braced_body(text, step)
+            start = text.index(body, text.index(step))
+            exempted = body.count(parameter)
+            text = text[:start] + body.replace(parameter, " ", 1) + text[start + len(body):]
+        hit = typed.search(text)
         assert not hit, (path.name, hit and hit[0])
-    assert exempted == 1, "the exempted step output parameter must exist exactly once"
+    assert exempted == 1, "the exempted output parameter must appear exactly once, in the ClassifyCapabilities body"

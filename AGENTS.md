@@ -115,10 +115,12 @@ Two rules for every model change, applied by authors and reviewers alike:
 - **Method types come from the kernel.** Types for method concepts (what an
   increment, a scope item, an assumption, a gap, a need, a requirement, a
   feature candidate or an operational context is) come only from the
-  ontology and the method kernel. A feature slice never invents a
-  slice-local method type: a new method concept goes through an ontology or
-  method pull request first. A domain definition specializes a kernel base
-  where one exists.
+  ontology and the method kernel. A slice may specialize a kernel
+  definition, and must where the method asks for it: an increment's own
+  definition specializes `EngineeringIncrement`. What a slice never declares
+  is a method concept with no kernel base: a new method concept goes through
+  an ontology or method pull request first. A domain definition specializes a
+  kernel base where one exists.
 - **An element earns its place** only if (a) a method gate requires it,
   (b) something consumes it: a trace, a typing, a later phase, or a view
   framing a concern a reviewer needs, or (c) it carries a decision,
