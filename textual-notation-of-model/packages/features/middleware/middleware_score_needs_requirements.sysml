@@ -281,31 +281,8 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
      */
   }
 
-  concern scoreMiddlewareNeedsConcern : StakeholderNeedsConcern {
-    doc /* Reviewers need the needs of the middleware integration layer visible with their stakeholders, sources, rationale and planned validation. */
-    subject;
-    stakeholder systemsEngineer : SystemsEngineer;
-    stakeholder reviewer : OpenSourceReviewer;
-  }
-
-  view scoreMiddlewareNeedsView {
-    viewpoint selectedNeedsViewpoint : StakeholderRequirementDefinitionViewpoint {
-      frame scoreMiddlewareNeedsConcern;
-    }
-
-    expose needReferenceVehicleSpeedForAutoware;
-    expose needOneWayAEBSSignalPathToHMI;
-    expose needEmergencyCommandPathWithoutMiddleware;
-    expose needWithinSCOREAssumptionsOfUse;
-    expose referenceVehicleSpeedValidationPlan;
-    expose aebsSignalPathToHMIValidationPlan;
-    expose emergencyCommandPathValidationPlan;
-    expose scoreAssumptionsOfUseValidationPlan;
-    render asTreeDiagram;
-  }
-
   concern scoreMiddlewareRequirementTraceConcern : RequirementTraceConcern {
-    doc /* Reviewers need each requirement of the middleware integration layer traced to the need it derives from, with its verification method, its success criteria and the gaps that stay open. */
+    doc /* Reviewers need each requirement of the middleware integration layer traced to the need it derives from, with the planned validation of each need, the verification method and success criteria of each requirement, and the gaps that stay open. */
     subject;
     stakeholder verificationEngineer : VerificationEngineer;
     stakeholder reviewer : OpenSourceReviewer;
@@ -316,6 +293,14 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
       frame scoreMiddlewareRequirementTraceConcern;
     }
 
+    expose needReferenceVehicleSpeedForAutoware;
+    expose needOneWayAEBSSignalPathToHMI;
+    expose needEmergencyCommandPathWithoutMiddleware;
+    expose needWithinSCOREAssumptionsOfUse;
+    expose referenceVehicleSpeedValidationPlan;
+    expose aebsSignalPathToHMIValidationPlan;
+    expose emergencyCommandPathValidationPlan;
+    expose scoreAssumptionsOfUseValidationPlan;
     expose reqDeliverReferenceVehicleSpeed;
     expose reqWithholdNonFiniteSpeedSample;
     expose reqIndicateStaleReferenceVehicleSpeed;
