@@ -14,9 +14,9 @@ from pathlib import Path
 from typing import Any, Iterable
 
 
-PLEML_PIN = "5f8ab8560219dc24d8ec7ec90d6f0a145896ef8e"
+PLEML_PIN = "071a69fdb2ecfa154809913938dfe9ebdf37701b"
 GATE_A_FIXTURE = Path("docs/spikes/pleml-gate-a/pleml_gate_a_fixture.sysml")
-PLEML_SOURCE = Path("external/pleml/PLEML/PLEML.sysml")
+PLEML_SOURCE = Path("external/pleml/PLEML.sysml")
 
 
 class GateASourceError(RuntimeError):
@@ -541,7 +541,7 @@ def build_observability_matrix(
             e
             for e in values
             if _named(e, base_name)
-            and element_sources.get(_ref_id(e) or "") == "external/pleml/PLEML/PLEML.sysml"
+            and element_sources.get(_ref_id(e) or "") == PLEML_SOURCE.as_posix()
         ]
         actual_matches = [
             e

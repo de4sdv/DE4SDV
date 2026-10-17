@@ -23,7 +23,8 @@ capability as common or variable. Existing YAML feature/configuration authority
 is unchanged.
 
 The exact PLEML source is included as the `external/pleml` Git submodule pinned
-to commit `5f8ab8560219dc24d8ec7ec90d6f0a145896ef8e`.
+to commit `071a69fdb2ecfa154809913938dfe9ebdf37701b` (PLEML 1.0.0).
+Gate A ran at pin `5f8ab856`; this pin is the PLEML 1.0.0 re-qualification.
 
 ## Representations under test
 
