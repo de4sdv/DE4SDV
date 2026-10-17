@@ -31,8 +31,9 @@ WORKFLOW = ROOT / ".github/workflows/privileged-ple-scope-alignment.yml"
 VALIDATION = ROOT / ".github/workflows/privileged-syside-validation.yml"
 QUALIFICATION = ROOT / ".github/workflows/privileged-ple-qualification.yml"
 RUNNER = "scripts/run_ple_scope_alignment.py"
-FROZEN = "6a99626b4af7cd01108f27dac88bf5b55bba207a"
-PIN = "5f8ab8560219dc24d8ec7ec90d6f0a145896ef8e"
+#: The frozen experiment at PLEML 1.0.0 (tag pleml-1.0.0-frozen) and its PLEML pin.
+FROZEN = "84673ea2bca0d11b795a34afeb7584081dd24fd2"
+PIN = "071a69fdb2ecfa154809913938dfe9ebdf37701b"
 LICENCE_VALUE = "${{ secrets.SYSIDE_LICENSE_KEY }}"
 LICENCE_PRESENCE = "${{ secrets.SYSIDE_LICENSE_KEY != '' }}"
 JOB = "scope-alignment"
@@ -268,7 +269,7 @@ def test_syside_check_covers_the_reviewed_roots_the_pinned_library_and_the_model
     command = " ".join(re.sub(r"\\\n\s*", " ", check["run"]).split())
     for root in MODEL_PATHS:
         assert f" {root.as_posix()} " in command + " ", root
-    assert '"$RUNNER_TEMP/_ple-experiment/external/pleml/PLEML/PLEML.sysml"' in command
+    assert '"$RUNNER_TEMP/_ple-experiment/external/pleml/PLEML.sysml"' in command
     assert "model-based-product-line-engineering/pleml-scope-alignment/aebs_product_line_scope_alignment.sysml" in command
     assert "syside-check.txt" in command
 

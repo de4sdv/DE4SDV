@@ -6,9 +6,10 @@ name: Privileged PLE Scope Alignment
 # a change to the production model roots, which keep their own gates.
 #
 # The exact pull-request head is the executor. The exact-pinned PLEML library
-# is read from the frozen Gate A experiment checkout, relocated outside the
-# executor checkout (#369: outputs and checkouts inside the executor checkout
-# made executor_source_dirty true), and verified by revision and pin. The
+# is read from the frozen experiment checkout at PLEML 1.0.0 (tag
+# pleml-1.0.0-frozen), relocated outside the executor checkout (#369: outputs
+# and checkouts inside the executor checkout made executor_source_dirty true),
+# and verified by revision and pin. The
 # licence reaches exactly two steps: the `syside check` of the reviewed roots
 # with the pinned library and the model, and the runner that serializes the
 # same set and evaluates every scope-alignment configuration. Every recording
@@ -108,7 +109,7 @@ jobs:
         if: steps.licence.outputs.available == 'true'
         uses: actions/checkout@v4
         with:
-          ref: 6a99626b4af7cd01108f27dac88bf5b55bba207a
+          ref: 84673ea2bca0d11b795a34afeb7584081dd24fd2
           path: _ple-experiment
           submodules: recursive
           persist-credentials: false
@@ -126,10 +127,10 @@ jobs:
         run: |
           mkdir "$RUNNER_TEMP/ple-evidence"
           git -C "$RUNNER_TEMP/_ple-experiment" rev-parse HEAD > "$RUNNER_TEMP/ple-evidence/experiment-revision.txt"
-          grep -qx 6a99626b4af7cd01108f27dac88bf5b55bba207a "$RUNNER_TEMP/ple-evidence/experiment-revision.txt"
+          grep -qx 84673ea2bca0d11b795a34afeb7584081dd24fd2 "$RUNNER_TEMP/ple-evidence/experiment-revision.txt"
           git -C "$RUNNER_TEMP/_ple-experiment/external/pleml" rev-parse HEAD > "$RUNNER_TEMP/ple-evidence/pleml-pin.txt"
-          grep -qx 5f8ab8560219dc24d8ec7ec90d6f0a145896ef8e "$RUNNER_TEMP/ple-evidence/pleml-pin.txt"
-          test -f "$RUNNER_TEMP/_ple-experiment/external/pleml/PLEML/PLEML.sysml"
+          grep -qx 071a69fdb2ecfa154809913938dfe9ebdf37701b "$RUNNER_TEMP/ple-evidence/pleml-pin.txt"
+          test -f "$RUNNER_TEMP/_ple-experiment/external/pleml/PLEML.sysml"
 
       - name: Set up Python
         if: steps.licence.outputs.available == 'true'
@@ -198,7 +199,7 @@ jobs:
             textual-notation-of-model \
             model-based-product-line-engineering/product-models \
             model-based-product-line-engineering/scoping \
-            "$RUNNER_TEMP/_ple-experiment/external/pleml/PLEML/PLEML.sysml" \
+            "$RUNNER_TEMP/_ple-experiment/external/pleml/PLEML.sysml" \
             model-based-product-line-engineering/pleml-scope-alignment/aebs_product_line_scope_alignment.sysml \
             2>&1 | tee "$RUNNER_TEMP/ple-evidence/syside-check.txt"
 

@@ -253,7 +253,7 @@ def test_documentation_states_status_evidence_and_non_claims() -> None:
     doc = (ROOT / DOC).read_text(encoding="utf-8")
     readme = (ROOT / README).read_text(encoding="utf-8")
     for required in ("38780181818", "03f7fd22", "qualified: false", "intentional-representation", "INC-MW-011",
-                     "pleml-gate-a-frozen",
+                     "pleml-gate-a-frozen", "pleml-1.0.0-frozen",
                      "not an authority", "privileged-ple-scope-alignment.yml",
                      "no XOR", "Development", "No PLEML adoption", "No compliance"):
         assert required in doc, required

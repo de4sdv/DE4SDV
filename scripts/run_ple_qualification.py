@@ -3,6 +3,10 @@
 
 No models are copied or vendored. Historical replay is explicitly separate;
 observations never authorize adoption or semantic authority activation.
+
+Two frozen experiments: the historical replay and the prior of the fresh arm
+read the retained Gate A export with the Gate A experiment (``GATE_A``); the
+fresh arm serializes the current experiment at PLEML 1.0.0 (``CURRENT``).
 """
 from __future__ import annotations
 
@@ -17,7 +21,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
-from typing import Any
+from typing import Any, NamedTuple
 from urllib.parse import unquote, urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -30,11 +34,50 @@ from de4sdv.sysml_api.baseline import BaselineExportBundle, build_export_bundle
 from de4sdv.sysml_api.client import ApiClient
 from de4sdv.sysml_api.ingestion import import_baseline
 
-FROZEN_REVISION = "6a99626b4af7cd01108f27dac88bf5b55bba207a"
-PLEML_PIN = "5f8ab8560219dc24d8ec7ec90d6f0a145896ef8e"
+class ExperimentIdentity(NamedTuple):
+    """A frozen PLEML experiment the runners accept: exact revision, pin and digests."""
+
+    revision: str
+    tag: str
+    pleml_pin: str
+    library: str
+    interpreter_sha256: str
+    library_sha256: str
+    fixture_sha256: str
+
+
+#: The Gate A experiment. It produced the retained historical export (run
+#: 33543909037), so the historical replay and the prior of the fresh arm read
+#: that export with this interpreter only. It never changes.
+GATE_A = ExperimentIdentity(
+    revision="6a99626b4af7cd01108f27dac88bf5b55bba207a",
+    tag="pleml-gate-a-frozen",
+    pleml_pin="5f8ab8560219dc24d8ec7ec90d6f0a145896ef8e",
+    library="external/pleml/PLEML/PLEML.sysml",
+    interpreter_sha256="4d9180e9fc6b417f2ffef60b550398335d90225940bc8b8a5960fa733733a4c3",
+    library_sha256="1fbd5efd95b63877e88eb6b114ce67122b9dba5236d3712e73175254aaf7d216",
+    fixture_sha256="78e77890c1f3236a468a5f566ab036b868ae03fcb2b6fd85fa4e1c8817cdd55c",
+)
+#: The experiment at PLEML 1.0.0: a child of Gate A with the submodule at the
+#: 1.0.0 release commit, the library at its new path and the interpreter
+#: reading that path. The scoped probes, the fresh serialization and the scope
+#: alignment run on it.
+PLEML_1_0_0 = ExperimentIdentity(
+    revision="84673ea2bca0d11b795a34afeb7584081dd24fd2",
+    tag="pleml-1.0.0-frozen",
+    pleml_pin="071a69fdb2ecfa154809913938dfe9ebdf37701b",
+    library="external/pleml/PLEML.sysml",
+    interpreter_sha256="67400e8c8168f9e552b47a61e6d3565c46ebd0ec9a29d62c59394fd5d502e01f",
+    library_sha256="94ae698324f9da510d8d20fdf8e7047f51f1bccb71396745e48e84f416dc8159",
+    fixture_sha256="78e77890c1f3236a468a5f566ab036b868ae03fcb2b6fd85fa4e1c8817cdd55c",
+)
+CURRENT = PLEML_1_0_0
+FROZEN_REVISION = CURRENT.revision
+PLEML_PIN = CURRENT.pleml_pin
 SERIALIZER_VERSION = "0.10.3"
 FIXTURE = "docs/spikes/pleml-gate-a/pleml_gate_a_fixture.sysml"
-LIBRARY = "external/pleml/PLEML/PLEML.sysml"
+LIBRARY = CURRENT.library
+SUBMODULE = "external/pleml"
 EXECUTOR_INPUTS = ("scripts/run_ple_qualification.py", "de4sdv/semantic/ple_qualification.py",
                    "de4sdv/sysml_api/baseline.py", "de4sdv/sysml_api/ingestion.py",
                    "de4sdv/sysml_api/client.py", "de4sdv/sysml_api/repository.py",
@@ -62,40 +105,54 @@ def verified_file(root, revision, relative):
     return digest(expected.stdout)
 
 
-def load_experiment(root) -> tuple[Any, list[dict[str, Any]], dict[str, Any]]:
+def load_experiment(root, identity: ExperimentIdentity = CURRENT) -> tuple[Any, list[dict[str, Any]], dict[str, Any]]:
+    """Load the interpreter of a frozen experiment checkout after verifying it is ``identity``."""
     root = root.resolve()
-    if git(root, "rev-parse", "HEAD") != FROZEN_REVISION:
+    if git(root, "rev-parse", "HEAD") != identity.revision:
         raise ValueError("experiment checkout is not the frozen reviewed revision")
-    if git(root / "external/pleml", "rev-parse", "HEAD") != PLEML_PIN:
+    if git(root / SUBMODULE, "rev-parse", "HEAD") != identity.pleml_pin:
         raise ValueError("PLEML pin mismatch")
-    fixture_digest = verified_file(root, FROZEN_REVISION, FIXTURE)
-    library_digest = verified_file(root / "external/pleml", PLEML_PIN, "PLEML/PLEML.sysml")
-    evaluator_digest = verified_file(root, FROZEN_REVISION, "tools/pleml_gate_a.py")
-    name = "_de4sdv_verified_ple_qualification_oracle"
+    if not identity.library.startswith(SUBMODULE + "/"):
+        raise ValueError("the reviewed PLEML library lies outside the PLEML submodule")
+    fixture_digest = verified_file(root, identity.revision, FIXTURE)
+    library_digest = verified_file(root / SUBMODULE, identity.pleml_pin, identity.library[len(SUBMODULE) + 1:])
+    evaluator_digest = verified_file(root, identity.revision, "tools/pleml_gate_a.py")
+    if (evaluator_digest, library_digest, fixture_digest) != (
+            identity.interpreter_sha256, identity.library_sha256, identity.fixture_sha256):
+        raise ValueError("experiment digests differ from the reviewed identity")
+    name = "_de4sdv_verified_ple_qualification_oracle_" + identity.revision
     spec = importlib.util.spec_from_file_location(name, root / "tools/pleml_gate_a.py")
     if spec is None or spec.loader is None:
         raise ValueError("cannot load verified experiment interpreter")
     module = importlib.util.module_from_spec(spec)
     sys.modules[name] = module
     spec.loader.exec_module(module)
-    identity = module.gate_a_source_identity(root, expected_pleml_commit=PLEML_PIN)
-    return module, list(identity.source_manifest), {
-        "interpreter_revision": FROZEN_REVISION, "interpreter_sha256": evaluator_digest,
+    source = module.gate_a_source_identity(root, expected_pleml_commit=identity.pleml_pin)
+    manifest = list(source.source_manifest)
+    if [entry.get("path") for entry in manifest] != [FIXTURE, identity.library]:
+        raise ValueError("the experiment interpreter reads other sources than the reviewed identity")
+    return module, manifest, {
+        "interpreter_revision": identity.revision, "interpreter_sha256": evaluator_digest,
         "fixture_sha256": fixture_digest, "library_sha256": library_digest,
-        "pleml_pin": PLEML_PIN,
+        "pleml_pin": identity.pleml_pin,
     }
 
 
 def historical_matrix(path, module, manifest):
+    """The prior: the retained Gate A export read by the Gate A interpreter, never another one."""
+    interpreter = getattr(module, "__file__", None)
+    if interpreter is None or digest(Path(interpreter).read_bytes()) != GATE_A.interpreter_sha256:
+        raise ValueError("the historical prior requires the Gate A interpreter")
     raw = json.loads(path.read_text())
     identity = raw.get("gate_a_identity", {})
-    if raw.get("source_manifest") != manifest or identity.get("pleml_commit") != PLEML_PIN or identity.get("git_commit") != raw.get("git_commit"):
+    if (raw.get("source_manifest") != manifest or identity.get("pleml_commit") != GATE_A.pleml_pin
+            or identity.get("git_commit") != raw.get("git_commit") or raw.get("git_commit") != GATE_A.revision):
         raise ValueError("historical source manifest or identity mismatch")
     bundle = BaselineExportBundle.from_dict(raw)
     return module.build_observability_matrix(list(bundle.elements.values()), bundle.element_sources), raw["git_commit"]
 
 
-def serialize(root, manifest):
+def serialize(root, manifest, revision):
     syside = importlib.import_module("syside")
 
     version = importlib.metadata.version("syside")
@@ -118,7 +175,7 @@ def serialize(root, manifest):
         documents[source] = values
     if set(documents) != {source["path"] for source in manifest}:
         raise ValueError("serializer source coverage mismatch")
-    bundle = build_export_bundle(git_commit=FROZEN_REVISION, source_documents=documents)
+    bundle = build_export_bundle(git_commit=revision, source_documents=documents)
     raw = bundle.to_dict()
     raw["source_manifest"] = manifest
     return BaselineExportBundle.from_dict(raw), version
@@ -204,15 +261,29 @@ def observe(module, elements):
 def run(args):
     if args.out.exists():
         raise ValueError("refusing to overwrite an existing receipt")
-    module, manifest, source_identity = load_experiment(args.experiment)
+    # The historical replay is the Gate A experiment on its own export. The
+    # fresh arm serializes the current experiment and compares it with the
+    # Gate A prior, read from a separate Gate A checkout.
+    historical = args.api_url is None
+    if historical and args.historical_experiment is not None:
+        raise ValueError("the historical replay reads the Gate A experiment as --experiment; "
+                         "--historical-experiment belongs to the fresh arm")
+    if not historical and args.historical_experiment is None:
+        raise ValueError("the fresh arm needs the Gate A experiment checkout (--historical-experiment) for its prior")
+    identity = GATE_A if historical else CURRENT
+    module, manifest, source_identity = load_experiment(args.experiment, identity)
+    if historical:
+        prior_module, prior_manifest, prior_identity = module, manifest, source_identity
+    else:
+        prior_module, prior_manifest, prior_identity = load_experiment(args.historical_experiment, GATE_A)
     executor_revision = git(ROOT, "rev-parse", "HEAD")
     current_lock = verified_file(ROOT, executor_revision, "sysand-lock.toml")
     source_identity.update(executor_revision=executor_revision, current_lock_sha256=current_lock,
                            executor_source_dirty=bool(git(ROOT, "status", "--porcelain")))
-    prior, historical_revision = historical_matrix(args.historical_export, module, manifest)
+    prior, historical_revision = historical_matrix(args.historical_export, prior_module, prior_manifest)
     source_identity["historical_export_revision"] = historical_revision
     source_identity["historical_export_sha256"] = digest(args.historical_export.read_bytes())
-    if args.api_url is None:
+    if historical:
         receipt = build_case_report(prior, prior)
         receipt.update(historical=True, fresh_serialization=False, api_readback=False,
                        observations=observe(module, json.loads(args.historical_export.read_text())["elements"]))
@@ -225,7 +296,12 @@ def run(args):
             relative: verified_file(ROOT, executor_revision, relative)
             for relative in EXECUTOR_INPUTS
         }
-        bundle, version = serialize(args.experiment.resolve(), manifest)
+        source_identity["historical_interpreter"] = {
+            "interpreter_revision": prior_identity["interpreter_revision"],
+            "interpreter_sha256": prior_identity["interpreter_sha256"],
+            "pleml_pin": prior_identity["pleml_pin"],
+        }
+        bundle, version = serialize(args.experiment.resolve(), manifest, identity.revision)
         args.out.parent.mkdir(parents=True, exist_ok=True)
         for filename in ("export.json", "binding.json", "api-readback.json"):
             if (args.out.parent / filename).exists():
@@ -234,8 +310,8 @@ def run(args):
         client = ApiClient(args.api_url)
         imported = import_baseline(client, bundle, project_name="DE4SDV isolated PLE qualification")
         values = verify_readback(bundle, client.get_all(f"/projects/{imported.project_id}/commits/{imported.commit_id}/elements"))
-        binding = {"schema": "de4sdv.ple-qualification-binding/v1", "model_revision": FROZEN_REVISION,
-                   "executor_revision": executor_revision, "pleml_pin": PLEML_PIN,
+        binding = {"schema": "de4sdv.ple-qualification-binding/v1", "model_revision": identity.revision,
+                   "executor_revision": executor_revision, "pleml_pin": identity.pleml_pin,
                    "serializer_version": version, "current_lock_sha256": current_lock,
                    "export_sha256": digest((args.out.parent / "export.json").read_bytes()), **asdict(imported)}
         (args.out.parent / "binding.json").write_text(json.dumps(binding, indent=2) + "\n")
@@ -245,10 +321,14 @@ def run(args):
         receipt.update(historical=False, fresh_serialization=True, api_readback=True,
                        binding=binding, observations=observe(module, values),
                        pruning_records=list(bundle.external_references))
-    # Check that the read-only experiment and current lock did not move mid-run.
-    _, final_manifest, final_identity = load_experiment(args.experiment)
+    # Check that the read-only experiments and current lock did not move mid-run.
+    _, final_manifest, final_identity = load_experiment(args.experiment, identity)
     if final_manifest != manifest or final_identity["interpreter_sha256"] != source_identity["interpreter_sha256"] or verified_file(ROOT, executor_revision, "sysand-lock.toml") != current_lock:
         raise ValueError("qualification sources moved during execution")
+    if not historical:
+        _, final_prior_manifest, final_prior = load_experiment(args.historical_experiment, GATE_A)
+        if final_prior_manifest != prior_manifest or final_prior["interpreter_sha256"] != prior_identity["interpreter_sha256"]:
+            raise ValueError("qualification sources moved during execution")
     if args.api_url is not None:
         if git(ROOT, "rev-parse", "HEAD") != executor_revision:
             raise ValueError("executor checkout moved during execution")
@@ -264,7 +344,10 @@ def run(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--experiment", type=Path, required=True)
+    parser.add_argument("--experiment", type=Path, required=True,
+                        help="frozen experiment checkout: Gate A for the historical replay, the current one otherwise")
+    parser.add_argument("--historical-experiment", type=Path,
+                        help="Gate A experiment checkout that reads the prior of the fresh arm")
     parser.add_argument("--historical-export", type=Path, required=True)
     parser.add_argument("--api-url")
     parser.add_argument("--expected-executor")

@@ -170,7 +170,29 @@ def test_native_reproducer_exits_two_and_preserves_flags(tmp_path):
     assert report["native_xor"]["defect_reproduced_natively"] is False
     assert report["adoption_authorized"] is False
     assert report["authority_activation_authorized"] is False
-    assert "size(excluded) - 1" in report["native_xor"]["reason"]
+    assert report["native_xor"]["reason"] == runner().NATIVE_XOR_REASON
+
+
+def test_the_native_xor_reason_and_the_fixture_describe_the_pleml_1_0_0_body():
+    r = runner()
+    assert r.PLEML_PIN == "071a69fdb2ecfa154809913938dfe9ebdf37701b"
+    assert "excluded->ControlFunctions::forAll" in r.NATIVE_XOR_REASON
+    assert "PLEML.sysml:232-238" in r.NATIVE_XOR_REASON
+    assert "size(excluded)" not in r.NATIVE_XOR_REASON and "range" not in r.NATIVE_XOR_REASON
+    source = r.fixture_text(2)
+    assert f"// PLEML pin {r.PLEML_PIN}; linkage is not AND/OR/precedence." in source
+    assert "range expression" not in source
+
+
+def test_the_cited_lines_hold_the_xor_body_of_the_pinned_library():
+    if not EXPERIMENT.is_dir():
+        pytest.skip("optional pinned oracle checkout unavailable")
+    r = runner()
+    lines = (EXPERIMENT / r.LIBRARY).read_text(encoding="utf-8").splitlines()
+    body = "\n".join(lines[231:238])
+    assert lines[231].strip() == "if featureConfiguration != null"
+    assert "excluded->ControlFunctions::forAll {" in body and lines[237].strip() == "else true"
+    assert "constraint def XORConstraint" in "\n".join(lines[210:231])
 
 
 def test_invalid_binding_counts_are_refused():

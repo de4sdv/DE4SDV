@@ -100,23 +100,34 @@ qualification cases as observed, not qualified: `feature-binding` and
 `group-shapes` observed; `xor-counterexample`, `binding-time`,
 `serializer-identity` and `adapter-realization` as gaps. Its frozen
 interpreter, PLEML pin and library digests are the ones this record's receipt
-carries. Three of the six cases depend on open upstream questions to the
-PLEML maintainers (the XOR constraint body, the meaning of two bindings on
-one element, and the binding-time rule); PLE-S is built not to depend on
-them. The earlier runs `37410659181` (`e37c7f1`, 2026-10-06) and
-`38755211223` (`60847add`, 2026-10-15) are superseded history: the same case
-statuses, but receipts with `executor_source_dirty: true` because the frozen
-experiment checkout and the API log sat inside the executor checkout, the
-defect #375 fixed. No formal PLE-R or PLE-Q disposition is recorded on main;
-PLE-S proceeds on this observed status (owner decision D0).
+carries. Three of the six cases depended on questions to the PLEML
+maintainers (the XOR constraint body, the meaning of two bindings on one
+element, and the binding-time rule); their status is in the table below, and
+PLE-S is built not to depend on them. The earlier runs `37410659181`
+(`e37c7f1`, 2026-10-06) and `38755211223` (`60847add`, 2026-10-15) are
+superseded history: the same case statuses, but receipts with
+`executor_source_dirty: true` because the frozen experiment checkout and the
+API log sat inside the executor checkout, the defect #375 fixed. No formal
+PLE-R or PLE-Q disposition is recorded on main; PLE-S proceeds on this
+observed status (owner decision D0).
 
-### Dependence on the open upstream questions
+**PLEML 1.0.0.** The run above, the retained record and its receipt are at the
+Gate A pin `5f8ab856`. The PLE workflows now read the frozen experiment at
+PLEML 1.0.0: revision `84673ea2` (tag `pleml-1.0.0-frozen`), a child of the
+Gate A revision `6a99626b` (tag `pleml-gate-a-frozen`) with the PLEML
+submodule at `071a69fd` and the interpreter reading the library at its new
+path, `external/pleml/PLEML.sysml`. The historical replay and the prior of the
+fresh serialization stay on the Gate A experiment, which produced the retained
+export. Until a licensed run on PLEML 1.0.0 is recorded here, the run and the
+record above describe `5f8ab856`.
 
-| Question | Would apply to | How PLE-S avoids it |
-|---|---|---|
-| XOR loop | any cross-tree exclusion | one variability, no cross-tree constraint; exclusivity is the `[1]` bound |
-| two bindings on one element | an asset bound to two features | every variant has exactly one binding, each to one alternative |
-| binding-time rule | later-stage or partial configurations | everything stays at the Development default; both members set the only Development feature |
+### Dependence on the upstream questions
+
+| Question | Status (2026-10-17) | Would apply to | How PLE-S avoids it |
+|---|---|---|---|
+| XOR loop ([MBSE4U/PLEML#3](https://github.com/MBSE4U/PLEML/issues/3)) | fixed in PLEML 1.0.0 by reading: the body iterates over `excluded`; no tool here evaluates it | any cross-tree exclusion | one variability, no cross-tree constraint; exclusivity is the `[1]` bound |
+| two bindings on one element ([#4](https://github.com/MBSE4U/PLEML/issues/4)) | open | an asset bound to two features | every variant has exactly one binding, each to one alternative |
+| binding-time rule ([#5](https://github.com/MBSE4U/PLEML/issues/5)) | answered: the intent is completeness, a configuration that leaves a phase decides every feature bound in it; no stage-aware evaluator here | later-stage or partial configurations | everything stays at the Development default; both members set the only Development feature |
 
 ## Known representation difference (owner decision D6)
 
@@ -331,10 +342,11 @@ tree it is compared with. Both carry `qualified: false`.
 - **Workflow:** `.github/workflows/privileged-ple-scope-alignment.yml` runs on
   pull requests that touch the scope-alignment paths (same-repository,
   allowlisted authors, as the licensed validation) and on maintainer
-  dispatch with a `ref`. It checks out the exact head, reads the frozen Gate A
-  experiment at `6a99626b` with the PLEML submodule at pin `5f8ab856`,
-  relocates it outside the executor checkout, runs `syside check` on the
-  reviewed roots with the pinned library and the model, then
+  dispatch with a `ref`. It checks out the exact head, reads the frozen
+  experiment at PLEML 1.0.0, `84673ea2` (tag `pleml-1.0.0-frozen`), with the
+  PLEML submodule at pin `071a69fd`, relocates it outside the executor
+  checkout, runs `syside check` on the reviewed roots with the pinned library
+  and the model, then
   `scripts/run_ple_scope_alignment.py --licensed`, which serializes the same
   set with the pinned serializer, validates the governed scope exactly as
   production does, and evaluates every configuration with the frozen Gate A
@@ -368,10 +380,14 @@ tree it is compared with. Both carry `qualified: false`.
 - **Offline replay:** `python scripts/run_ple_scope_alignment.py --replay
   <scope-alignment-elements.json> --out <directory outside the repository>`
   re-evaluates a retained element file with the frozen interpreter read from
-  this repository's Git history: the frozen revision `6a99626b` is kept by the
-  tag `pleml-gate-a-frozen`, the code reads the exact revision, and the bytes
-  are verified against the reviewed digest. Replay evidence is not fresh
-  serialization and says so.
+  this repository's Git history: the frozen revision `84673ea2` is kept by the
+  tag `pleml-1.0.0-frozen`, the code reads the exact revision, and the bytes
+  are verified against the reviewed digest. An element file replays only with
+  the experiment it records: the runner refuses another one and names the
+  file's executor revision. Replay it at a revision that pins its experiment;
+  the element file of run `38788579272` records the Gate A experiment and
+  replays on main before PLEML 1.0.0, such as `099d33e6`. Replay evidence is
+  not fresh serialization and says so.
 - **Unlicensed checks (public CI):** `tests/test_ple_scope_alignment_model.py`
   (boundary fence, textual shape, every qualified reference resolvable in
   its source), `tests/test_ple_scope_alignment_evaluator.py` (the evaluator on

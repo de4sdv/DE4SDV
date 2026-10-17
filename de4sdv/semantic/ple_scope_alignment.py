@@ -32,13 +32,14 @@ from de4sdv.sysml_api.repository import element_id, reference_ids
 
 ROOT = Path(__file__).resolve().parents[2]
 
-#: The frozen Gate A experiment: the reviewed interpreter and the PLEML pin.
-#: The code reads the exact revision; the tag only keeps it reachable.
-FROZEN_REVISION = "6a99626b4af7cd01108f27dac88bf5b55bba207a"
-FROZEN_TAG = "pleml-gate-a-frozen"
+#: The frozen experiment at PLEML 1.0.0, a child of the Gate A revision
+#: 6a99626b (tag pleml-gate-a-frozen): the reviewed interpreter and the PLEML
+#: pin. The code reads the exact revision; the tag only keeps it reachable.
+FROZEN_REVISION = "84673ea2bca0d11b795a34afeb7584081dd24fd2"
+FROZEN_TAG = "pleml-1.0.0-frozen"
 FROZEN_INTERPRETER = "tools/pleml_gate_a.py"
-FROZEN_INTERPRETER_SHA256 = "4d9180e9fc6b417f2ffef60b550398335d90225940bc8b8a5960fa733733a4c3"
-PLEML_PIN = "5f8ab8560219dc24d8ec7ec90d6f0a145896ef8e"
+FROZEN_INTERPRETER_SHA256 = "67400e8c8168f9e552b47a61e6d3565c46ebd0ec9a29d62c59394fd5d502e01f"
+PLEML_PIN = "071a69fdb2ecfa154809913938dfe9ebdf37701b"
 
 #: Source labels of the documents the evaluation reads.
 MODEL_SOURCE = (
@@ -46,7 +47,7 @@ MODEL_SOURCE = (
     "aebs_product_line_scope_alignment.sysml"
 )
 PLATFORM_STACK_SOURCE = "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml"
-LIBRARY_SOURCE = "external/pleml/PLEML/PLEML.sysml"
+LIBRARY_SOURCE = "external/pleml/PLEML.sysml"
 EVALUATION_SOURCES = (MODEL_SOURCE, SCOPE_SOURCE, PLATFORM_STACK_SOURCE, LIBRARY_SOURCE)
 
 SCHEMA = "de4sdv.ple-scope-alignment-evaluation/v1"
@@ -136,7 +137,7 @@ def load_frozen_interpreter(path: Path | None = None, *, repository: Path | None
 
     ``path`` points at the file inside a frozen experiment checkout; without
     it the bytes come from this repository's Git history: the code reads the
-    exact frozen revision, which the tag ``pleml-gate-a-frozen`` keeps
+    exact frozen revision, which the tag ``pleml-1.0.0-frozen`` keeps
     reachable. Either way the digest must be the reviewed one.
     """
     if path is not None:

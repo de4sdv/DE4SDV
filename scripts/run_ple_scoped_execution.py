@@ -22,6 +22,14 @@ from scripts.run_ple_qualification import (
 )
 
 FORMS = ("literal-bounds", "range-operator")
+#: Why the native XOR requirement stays failed until a licensed attempt replaces it.
+NATIVE_XOR_REASON = (
+    "Pinned PLEML 1.0.0 XORConstraint iterates over the excluded features "
+    "(excluded->ControlFunctions::forAll, PLEML.sysml:232-238) and tests each for inclusion in the "
+    "configuration. The existing serializer path only loads/serializes models; GateAModel.evaluate is a "
+    "specialized incompatibility resolver, not native constraint execution. No occurrence-configuration "
+    "native evaluator is integrated; no substitute is run."
+)
 
 
 def synthetic_graph(form, binding_count=2):
@@ -129,7 +137,7 @@ package DE4SDV_ScopedPLEExecution {{
     #featureTree occurrence def ScopedTree {{
         #feature occurrence probeGroup[1..*];
 {members}
-        // A single excluded feature reaches the pinned XOR range expression.
+        // The XOR counterexample: the owner and its one excluded feature are both selected.
         #feature occurrence owner[0..1] default null {{
             assert constraint :>> xorFeatures {{
                 in #feature occurrence :>> excluded = (member0);
@@ -298,7 +306,7 @@ def run(args):
                              "selected_population": ["owner", "member0"],
                              "excluded_population": ["member0"],
                              "native_expression_executed": False, "expected_counterexample_result": False,
-                             "reason": "Pinned XORConstraint iterates (1..(size(excluded) - 1)) and tests integer f for inclusion in feature occurrences (PLEML.sysml:170-176). The existing serializer path only loads/serializes models; GateAModel.evaluate is a specialized incompatibility resolver, not native constraint execution. No occurrence-configuration native evaluator is integrated; no substitute is run.",
+                             "reason": NATIVE_XOR_REASON,
                              "source": LIBRARY, "pin": PLEML_PIN, "command": shlex.join(command),
                              "expected_exit": 2, "defect_reproduced_natively": False}}
     payloads["scoped-fixture.sysml"] = fixture_text(args.binding_count)
