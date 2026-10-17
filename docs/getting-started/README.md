@@ -8,9 +8,9 @@ work. It is also a workstream within the INCOSE Automotive Working Group.
 
 **Start with [DE4SDV through one case study](case-study.md)** for a
 plain-language tour of the configurable SDV stack and product line, the
-emergency-braking capability that exercises it, the engineering and CI/CD
-workflow, and bounded contribution tasks. No tools or modeling background are
-needed to read it.
+emergency-braking capability that exercises it, how agents, a deterministic
+Method Check, and people share the engineering work, CI/CD, and bounded
+contribution tasks. No tools or modeling background are needed to read it.
 
 This guide then covers repository layout, model exploration, and local checks.
 If you want to contribute, read [`CONTRIBUTING`](../../CONTRIBUTING.md)
@@ -115,6 +115,7 @@ Key documents:
 | [`approach/process-set/README.md`](../../approach/process-set/README.md) | The catalog of reusable processes by system layer |
 | [`methodologies/sysmod-sysmlv2/saf-viewpoint-map.md`](../../methodologies/sysmod-sysmlv2/saf-viewpoint-map.md) | Which viewpoints to select for which kind of increment |
 | [`methodologies/sysmod-sysmlv2/artifact-map.md`](../../methodologies/sysmod-sysmlv2/artifact-map.md) | How method concepts map to repository artifacts |
+| [`docs/guides/drive-an-increment-with-the-method-tools.md`](../guides/drive-an-increment-with-the-method-tools.md) | How the Method Check evaluates an increment and names its next obligation |
 
 Two rules you will meet constantly:
 
@@ -137,9 +138,9 @@ These are quick local checks, not the complete PR gate. Public CI also checks
 documentation links, runs the complete project test suite, and runs isolated
 bench unit/contract suites; see the [CI workflow](../../.github/workflows/ci.yml)
 and [contribution workflow](../../CONTRIBUTING.md#pull-request-workflow).
-SysML v2 textual validation is separate — see
-[`CONTRIBUTING`](../../CONTRIBUTING.md#sysml-v2-validation-gate) for the two
-validation paths.
+Model changes also get licensed SysML v2 validation and the advisory Method
+Check — see [`CONTRIBUTING`](../../CONTRIBUTING.md#sysml-v2-validation-gate)
+for the two validation paths.
 
 ## Make your first contribution
 
