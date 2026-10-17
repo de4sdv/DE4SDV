@@ -223,9 +223,9 @@ def _kernel_vocabulary_rows():
             "ODE4HERA requirements-management library VVStatus (NRM A13+A14) via the "
             "DE4SDV method-context adapter")), {}),
         (_kernel_vocabulary_relation_row("variesAt", "relationship-vocabulary", "Feature", "VariationPoint"), {}),
-        (dict(_kernel_vocabulary_relation_row("hasStakeholder", "relationship-vocabulary", "EngineeringIncrement",
-                                              "Stakeholder"),
-              carrier={"source_file": "x.sysml", "declaration": "connection def HasStakeholder"}), {}),
+        (dict(_kernel_vocabulary_relation_row("syntheticCarrierRelation", "relationship-vocabulary",
+                                              "EngineeringIncrement", "Stakeholder"),
+              carrier={"source_file": "x.sysml", "declaration": "connection def SyntheticCarrierRelation"}), {}),
         (hrec, {"serializer_mechanics": dependency}),
         (_kernel_vocabulary_relation_row("hasEvidence", "external-reference", "VerificationCase", "EvidenceArtifact",
                                          "external-data-required"),
@@ -283,7 +283,7 @@ def test_kernel_vocabulary_rows_route_through_their_layer(tmp_path):
     assert [r["layer"] for r in records][-1] == "definition-batch2"
     routing = _kernel_vocabulary_routing(root)
     assert routing.duplicates == ()
-    for name in ("EvidenceContract", "Interface", "EvidenceStatus", "variesAt", "hasStakeholder",
+    for name in ("EvidenceContract", "Interface", "EvidenceStatus", "variesAt", "syntheticCarrierRelation",
                  "hasRelevantEvidenceContract", "hasEvidence"):
         assert routing.providers[name].layer == "definition-batch2", name
         assert name not in routing.residual
@@ -362,7 +362,7 @@ def test_the_runtime_serves_every_evidence_contract_the_contract_declares(tmp_pa
 def _retired_without_model_record(rows):
     # Keep the profile complete so this reaches the model-retirement check.
     row, entry = rows[3]
-    row.update(identity="hasStakeholder2", admission_class="retired-name",
+    row.update(identity="syntheticRetiredName", admission_class="retired-name",
                retired={"successor": "allocatedTo",
                         "successor_navigation": "allocatedTo",
                         "refusal": "retired; use allocatedTo"})
@@ -545,8 +545,8 @@ def test_coverage_report_classifies_every_population_member():
 def test_coverage_refused_and_retired_carry_their_dispositions():
     report = coverage.build_report(ROOT)
     register = mar.load_register_rows(ROOT)
-    removed = ["addressesConcern", "derivesNeedFromConcern", "producesView", "recordsAssumption", "recordsGap",
-               "selectedViewpoint"]
+    removed = ["addressesConcern", "derivesNeedFromConcern", "hasStakeholder", "producesView", "recordsAssumption",
+               "recordsGap", "selectedViewpoint"]
     assert report["refused"] == sorted(["IncrementTraceabilityShell", *removed])
     assert {n: report["identities"][n]["register"]["final_disposition"] for n in report["refused"]} == {
         "IncrementTraceabilityShell": "MERGE", **{name: "REMOVE" for name in removed}}
@@ -554,7 +554,7 @@ def test_coverage_refused_and_retired_carry_their_dispositions():
                                  "validatesFitnessForUse"]
     for name in report["retired"]:
         assert report["identities"][name]["reason"].startswith("retired; use ")
-    assert report["summary"]["refused"] == 7 and report["summary"]["retired"] == 5
+    assert report["summary"]["refused"] == 8 and report["summary"]["retired"] == 5
     baseline = coverage.load_baseline(ROOT)
     assert baseline["refused"] == report["refused"] and baseline["retired"] == report["retired"]
     shrunk = dict(baseline, refused=["IncrementTraceabilityShell"])

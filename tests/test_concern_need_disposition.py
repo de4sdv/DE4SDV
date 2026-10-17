@@ -5,9 +5,10 @@ Covers the c4 disposition for exactly one identity:
 - relationship ``derivesNeedFromConcern`` (``Need -> Concern``): the c4
   Outcome A decision — the pre-assumed predicate is **retired without
   replacement**. It has no required engineering meaning in the target
-  architecture, no witness (no need frames, references, or addresses a
-  concern anywhere in the governed model), and no consumer (zero runtime,
-  MCP, viewer, conformance-evaluator, or model-transformation readers).
+  architecture, no witness (no need frames or addresses a concern anywhere
+  in the governed model; a plain dependency from a need to a concern is not
+  a derivation, and nothing reads it), and no consumer (zero runtime, MCP,
+  viewer, conformance-evaluator, or model-transformation readers).
   Native Concern/Viewpoint semantics plus the existing Need
   ``source``/``rationale`` provenance remain; the predicate must not be
   emitted as an active O2 Semantic Projection relation.

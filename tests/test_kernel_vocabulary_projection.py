@@ -150,7 +150,8 @@ def test_every_retained_row_and_ontology_identity_has_exactly_one_provider():
     for identity, entry in exceptions.items():
         assert register[identity]["accounting_status"] == entry["accounting"]
     assert set(exceptions) == {"IncrementTraceabilityShell", "derivesNeedFromConcern", "addressesConcern",
-                               "producesView", "recordsAssumption", "recordsGap", "selectedViewpoint"}
+                               "producesView", "recordsAssumption", "recordsGap", "selectedViewpoint",
+                               "hasStakeholder"}
     retained = {i for i, r in register.items() if r["accounting_status"] == "retained"}
     assert retained <= set().union(*layers.values())
 
@@ -184,7 +185,7 @@ def test_manifest_held_contract_fields_equal_the_recorded_values():
     rows = _rows()
     assert set(recorded["entries"]) == set(rows)
     held = {identity: entry for identity, entry in recorded["entries"].items() if entry["manifest"]}
-    assert len(held) == recorded["rows_with_manifest_held_contract_fields"] == 50
+    assert len(held) == recorded["rows_with_manifest_held_contract_fields"] == 49
     for identity, row in rows.items():
         entry = recorded["entries"][identity]
         assert row["admission_class"] == entry["admission_class"], identity
@@ -220,7 +221,7 @@ def test_every_contract_row_is_labeled_manifest_held():
                 assert "reviewed admission-manifest" in source, identity
                 assert "closure/contract-equivalence.json" in source, identity
                 assert "test-locked to the authored ontology" not in source, identity
-    assert labeled == 50
+    assert labeled == 49
 
 
 def test_successors_and_retired_names_follow_the_relationship_redesign():

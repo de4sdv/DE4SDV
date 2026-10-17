@@ -209,7 +209,7 @@ def test_vocabulary_role_names_are_unique_and_kernel_resident():
     for path in _model_files():
         for name in re.findall(r"\bcomment\s+(?!about\b)(\w+VocabularyRole)\b", _blank_comment_bodies(path.read_text())):
             homes.setdefault(name, []).append(path.relative_to(ROOT).as_posix())
-    assert len(homes) >= 23, "the scan must see the kernel's vocabulary roles"
+    assert len(homes) >= 22, "the scan must see the kernel's vocabulary roles"
     duplicated = {name: files for name, files in homes.items() if len(files) != 1}
     assert not duplicated, duplicated
     assert all(files[0].startswith(KERNEL) for files in homes.values()), homes
@@ -241,18 +241,31 @@ PRODUCT_LINE_DEFINITIONS = {
 }
 PLE_SELECTABLES = ("ProductLineFeatureCandidate", "CommonProductLineCapability", "ProductLineMemberProduct",
                    "ProductLineVariantChoice", "DeferredVariantChoice", "ProductLineCharacteristic")
+#: The one kernel feature a selectable product-line class may type: the output
+#: parameter of the phase-3 workflow step, which says what kind of element the
+#: step records (feature candidates, the feature-model delta) and selects nothing.
+STEP_OUTPUT_EXEMPTION = ("de4sdv_increment_workflow.sysml",
+                         "out part characteristics[0..*] : ProductLineFeatureCandidate;")
 
 
 def test_kernel_holds_no_configuration_selection_under_any_name():
     """ADR 0006: selection authority is external. The kernel product-line
     definitions are pinned, and no kernel feature is typed by a selectable
-    product-line class (a selection record under another name)."""
+    product-line class (a selection record under another name), except the
+    phase-3 step's output parameter (STEP_OUTPUT_EXEMPTION). Import statements
+    type nothing and are not scanned."""
     active = _active(_text(PRODUCT_LINE))
     assert set(re.findall(r"\bdef\s+(\w+)", active)) == PRODUCT_LINE_DEFINITIONS
     # No reference feature at all in the product-line kernel: selections are external.
     assert not re.search(r"\bref\b", active), "reference feature in the product-line kernel"
     typed = re.compile(r":\s*(?:[\w:]*::)?(" + "|".join(PLE_SELECTABLES) + r")\b")
+    imports = re.compile(r"^\s*(?:(?:private|public)\s+)?import\s+[^;]*;", re.MULTILINE)
+    exempted = 0
     for path in sorted((ROOT / KERNEL).glob("*.sysml")):
-        active = _active(path.read_text())
+        active = imports.sub(" ", _active(path.read_text()))
+        if path.name == STEP_OUTPUT_EXEMPTION[0]:
+            exempted = active.count(STEP_OUTPUT_EXEMPTION[1])
+            active = active.replace(STEP_OUTPUT_EXEMPTION[1], " ")
         hit = typed.search(active)
         assert not hit, (path.name, hit and hit[0])
+    assert exempted == 1, "the exempted step output parameter must exist exactly once"

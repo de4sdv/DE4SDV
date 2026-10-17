@@ -44,7 +44,6 @@
       "hasEvidenceStatus",
       "hasRegulatorySource",
       "hasRelevantEvidenceContract",
-      "hasStakeholder",
       "hasValidationScenario",
       "includesCommonCapability",
       "instantiatesCanonicalArchitecture",
@@ -74,6 +73,11 @@
         "identity": "derivesNeedFromConcern",
         "accounting": "removed",
         "reason": "Removed register row (O1 c4: retired without replacement). It has no model home by design. Since O4 Wave C2 the runtime refuses the name with its register disposition (owner decision D5; an intentional migration from the former preserved gap)."
+      },
+      {
+        "identity": "hasStakeholder",
+        "accounting": "removed",
+        "reason": "Removed register row: a vocabulary-only relation that no gate, check or traversal read. Its two framing usages linked an increment to one stakeholder of its problem statement, which the problem statement's native stakeholder membership already carries. The usages, the connection definition, its vocabulary-role comment and its generated projection were deleted from the model, so it has no model home. The runtime refuses the name with its register disposition."
       },
       {
         "identity": "producesView",
@@ -555,7 +559,7 @@
       "accounting": "unregistered",
       "boundary": "none",
       "definition": {
-        "documentation": "Scope declaration of an increment's trace obligations: the increment and its applicable phases. Required traces derive from the checks that the workflow steps of those phases declare, not from candidate-selected easy checks. The traces themselves are the increment's native model relationships (owning membership, typing, requirement subject and stakeholder membership, HasStakeholder connections, framed concerns), never parallel reference slots in this declaration. Populating this declaration is not completion evidence. Reuse prior artifacts, preserve R/F/L/P, and do not invent realization or execution for early framing. Missing required traces block the exit of the phase they belong to unless an authorized visible disposition permits it, such as a step parameter whose multiplicity allows none. Unsupported or unavailable evaluation stays UNASSESSED, never synthetic PASS.",
+        "documentation": "Scope declaration of an increment's trace obligations: the increment and its applicable phases. Required traces derive from the checks that the workflow steps of those phases declare, not from candidate-selected easy checks. The traces themselves are the increment's native model relationships (owning membership, typing, requirement subject and stakeholder membership, framed concerns), never parallel reference slots in this declaration. Populating this declaration is not completion evidence. Reuse prior artifacts, preserve R/F/L/P, and do not invent realization or execution for early framing. Missing required traces block the exit of the phase they belong to unless an authorized visible disposition permits it, such as a step parameter whose multiplicity allows none. Unsupported or unavailable evaluation stays UNASSESSED, never synthetic PASS.",
         "documentation_witness": {
           "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml",
           "owner": "part def IncrementTraceObligations",
@@ -1525,59 +1529,6 @@
         "contract_source": "domain/range/strength: reviewed admission-manifest fields (manifest-held, model-witnessed declaration: the model carries no structural domain/range, so the reviewed manifest is their authority); authored-ontology parity proven before its deletion: https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/docs/method-conformance/o4/closure/contract-equivalence.json"
       },
       "support": "runtime-mapped-candidate",
-      "traversal": false,
-      "api_identity": "unclaimed"
-    },
-    {
-      "identity": "hasStakeholder",
-      "semantic_kind": "relationship",
-      "admission_class": "relationship-vocabulary",
-      "register_wave": "W4",
-      "accounting": "retained",
-      "boundary": "none",
-      "definition": {
-        "documentation": "Vocabulary role: EngineeringIncrement -> Stakeholder. Existing native stakeholder membership is preserved; this comment introduces no additional trace slot, executable mapping, participation requirement or acceptance.",
-        "documentation_witness": {
-          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
-          "owner": "package DE4SDV_MethodContext",
-          "form": "vocabulary-role",
-          "comment_name": "hasStakeholderVocabularyRole",
-          "about": [
-            "EngineeringIncrement",
-            "Stakeholder"
-          ],
-          "about_imports": {
-            "Stakeholder": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml"
-          }
-        },
-        "documentation_observation": "model-owned-vocabulary-role"
-      },
-      "relation": {
-        "domain": {
-          "ontology_class": "EngineeringIncrement"
-        },
-        "range": {
-          "ontology_class": "Stakeholder"
-        },
-        "canonical_direction": "EngineeringIncrement -> Stakeholder",
-        "semantic_strength": null,
-        "contract_source": "domain/range/strength: reviewed admission-manifest fields (manifest-held, model-witnessed declaration: the model carries no structural domain/range, so the reviewed manifest is their authority); authored-ontology parity proven before its deletion: https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/docs/method-conformance/o4/closure/contract-equivalence.json"
-      },
-      "carrier": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
-        "declaration": "connection def HasStakeholder",
-        "ends": [
-          {
-            "name": "increment",
-            "type": "EngineeringIncrement"
-          },
-          {
-            "name": "stakeholderRole",
-            "type": "Stakeholder"
-          }
-        ]
-      },
-      "support": "vocabulary-only",
       "traversal": false,
       "api_identity": "unclaimed"
     },

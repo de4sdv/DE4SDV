@@ -108,8 +108,10 @@ These method rules apply to every increment:
    frame the concern it comes from: a requirement that frames a concern is
    satisfied only when the whole concern is addressed, while a need usually
    covers only part of one. A need traces to the concerns behind it through
-   its stakeholder, source and rationale (rule 2). A repository test checks
-   that every `frame` in the model belongs to a viewpoint.
+   its stakeholder, source and rationale (rule 2). No check or traversal
+   reads a plain dependency from a need to a concern, so such a dependency
+   only restates that provenance. A repository test checks that every
+   `frame` in the model belongs to a viewpoint.
 4. **Requirement to need.** Only the governed `DerivesFromNeed` connection
    counts. Plain dependencies don't.
 5. **Requirement.** A requirement owns a statement (a `require constraint` of
@@ -127,6 +129,40 @@ These method rules apply to every increment:
    artifacts naming every package that holds increment content.
 8. **Principle.** Structural checks block; judgment checks (wording,
    verifiability) are advisory.
+9. **Operational context and story (phase 2).** A member product's
+   operational context and story hold System 1 roles only: the system of
+   interest and the actors and entities it meets in operation. Bench,
+   reviewer and evidence roles belong to the engineering and assurance
+   system (System 2) and stay out of them; an increment whose system of
+   interest is a System 2 test system holds such roles in its own context.
+   A use case's subject is the system of interest and its actors are the
+   context parts around it: the use case usage binds its subject to the
+   system-of-interest usage (`subject s = <usage>;`) and each actor to a
+   context part (`actor a = <part>;`), standard SysML v2 subject and actor
+   binding. INC-AEBS-002's vehicle-target story
+   (`aebs_operational_context.sysml`) shows the complete binding form,
+   although two of its actors are System 2 roles.
+10. **Feature-model delta (phase 3).** Phase 3 records only what the
+    increment adds to the feature model: each characteristic it records is
+    a feature candidate (`ProductLineFeatureCandidate`). Core elements are
+    common by default and get no record, so phase 3 instantiates no
+    `CommonProductLineCapability` for them. Constraints go to the
+    requirements (phase 5) and evidence to V&V (phase 10). An increment that
+    adds no variability records nothing in phase 3. The basis is ISO/IEC
+    26580: a feature differentiates member products, and the feature model
+    covers variability only.
+11. **Unconsumed elements (advisory).** Every element earns its place by
+    the modeling rules in [AGENTS.md](../../AGENTS.md#model-elements-earn-their-place):
+    a gate requires it, something consumes it, or it carries a decision,
+    assumption or gap that a later phase acts on. An element in an
+    increment's scope that no gate requires and nothing consumes is
+    reported as unconsumed: it is the subject of none of the increment's
+    checks, and no other element references it as a type, a specialized,
+    redefined or subsetted feature, a relationship end, a feature value, a
+    framed concern, or an exposed or imported member (ownership does not
+    count). The report never blocks a phase; whether such an element
+    carries a decision, assumption or gap stays the reviewer's judgment.
+    The Method Check does not produce this report yet.
 
 [`DE4SDV_IncrementWorkflow`](../../textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml)
 models this workflow in the style of the SYSMOD default process. The
@@ -136,13 +172,16 @@ increment charter lists the step's phase. Each step definition states its
 phase question, its phase, and the artifacts it reads and produces as typed
 parameters.
 
-The rules are `MethodCheck` metadata inside the step definitions, one check
-per rule clause, each about the step parameter it constrains. The check
-identifier names the evaluation, an unknown identifier fails closed, and
-`advisory = true` marks the advisory checks. The increment framing, needs,
-requirements, and V&V and evidence steps carry checks so far. Declaring a
-check is not evaluating it, and no check result is a conformance,
-acceptance, or certification claim.
+The checks of these rules are `MethodCheck` metadata inside the step
+definitions, one check per rule clause, each about the step parameter it
+constrains. The check identifier names the evaluation, an unknown identifier
+fails closed, and `advisory = true` marks the advisory checks. The increment
+framing, needs, requirements, and V&V and evidence steps carry checks so far.
+Rules 9 and 10 have no check yet: the operational-context and
+capability-classification steps state them in their documentation, which the
+method tools report with each step. Rule 11 is a report over the whole scope,
+not a check of one step. Declaring a check is not evaluating it, and no check
+result is a conformance, acceptance, or certification claim.
 
 ## Workflow phases
 
@@ -151,7 +190,7 @@ acceptance, or certification claim.
 | 0. Increment framing | What are we changing or learning? | Common | increment charter, scope, assumptions |
 | 1. Concern framing | Who cares and why? | Common / Operational | stakeholders, concerns, viewpoint selection |
 | 2. Operational context | What happens in the world? | Operational | context, actors, scenarios, operational processes |
-| 3. Capability / feature semantics | Is this a feature, common capability, constraint, or evidence capability? | DE4SDV ontology | feature/common-capability classification, variation points |
+| 3. Capability / feature semantics | Which characteristics distinguish member products? | DE4SDV ontology | feature candidates: the feature-model delta |
 | 4. Needs | What stakeholder needs exist and how will the needs be validated? | Operational | needs, sources, rationale, validation intent |
 | 5. Requirements | What shall the system or product line do and how will those requirements be verified? | Conceptual | design input requirements, constraints, verification methods, success criteria, trace links |
 | 6. Functional architecture | What functions, flows, states, and interfaces are needed? | Conceptual | functional breakdown, interfaces, behavior slices |
@@ -311,13 +350,13 @@ For early increments, a planned verification/validation record is acceptable. Hi
 
 ## Feature/common-capability rule
 
-A characteristic is a DE4SDV **feature** only when it distinguishes at least one member product from another member product in the product line. If all member products have it, model it as a **common product-line capability**, not as a feature.
+A characteristic is a DE4SDV **feature** only when it distinguishes at least one member product from another member product in the product line. What all member products have is common, not a feature.
 
-For example, an AEBS pilot might classify:
+Phase 3 records only the feature-model delta (rule 10): the feature candidates the increment adds. Core elements are common by default and get no record. For example, an AEBS increment would:
 
-- baseline forward collision risk mitigation as a common capability if every member product has it,
-- VRU detection support as a feature if only selected variants provide it,
-- performance level or sensor package as variation points if they differ by configuration.
+- record VRU detection support as a feature candidate if only selected variants provide it,
+- record performance level or sensor package as feature candidates if they differ between member products; phase 9 turns them into variation points,
+- record nothing for baseline forward collision risk mitigation, which every member product has.
 
 ## Evidence status vocabulary
 
@@ -346,7 +385,8 @@ Each increment PR should answer:
 - Which stakeholder concerns are addressed?
 - What is explicitly out of scope?
 - Are needs separated from requirements?
-- Are features separated from common capabilities?
+- Does phase 3 record only the feature candidates the increment adds?
+- Does every element earn its place: a gate, a consumer, or a decision, assumption or gap that a later phase acts on?
 - What trace links exist and what gaps remain?
 - What verification method, success criteria, validation scenario, and evidence status are recorded?
 - Are compliance/certification claims avoided or clearly marked as not yet established?

@@ -32,6 +32,7 @@ package DE4SDV_IncrementWorkflow {
   private import DE4SDV_MethodProcess::*;
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_Stakeholders::*;
+  private import DE4SDV_ProductLine::ProductLineFeatureCandidate;
 
   metadata def MethodCheck {
     doc /* A method rule about one parameter of a step definition. Its subjects are
@@ -56,9 +57,9 @@ package DE4SDV_IncrementWorkflow {
          * that the workflow steps of those phases declare, not from
          * candidate-selected easy checks. The traces themselves are the
          * increment's native model relationships (owning membership, typing,
-         * requirement subject and stakeholder membership, HasStakeholder
-         * connections, framed concerns), never parallel reference slots in this
-         * declaration. Populating this declaration is not completion evidence.
+         * requirement subject and stakeholder membership, framed concerns),
+         * never parallel reference slots in this declaration. Populating this
+         * declaration is not completion evidence.
          * Reuse prior artifacts, preserve R/F/L/P, and do not invent realization
          * or execution for early framing. Missing required traces block the
          * exit of the phase they belong to unless an authorized visible
@@ -220,17 +221,25 @@ package DE4SDV_IncrementWorkflow {
   }
 
   action def SpecifyOperationalContext :> IncrementStep {
-    doc /* What happens in the world? */
+    doc /* What happens in the world? Rules: a member product's operational
+         * context and story hold System 1 roles only; bench, reviewer and
+         * evidence roles belong to the engineering and assurance system. Each
+         * use case of the story binds its subject to the system of interest
+         * and each actor to a context part around it. */
     attribute :>> phase = MethodPhase::phase2_operationalContext;
     in requirement problemStatement : ProblemStatement;
     out part operationalContext : SystemContext;
   }
 
   action def ClassifyCapabilities :> IncrementStep {
-    doc /* Is this a feature, common capability, constraint, or evidence capability? */
+    doc /* Which characteristics distinguish member products? Rule: the step
+         * records only the feature-model delta, the feature candidates the
+         * increment adds, and the delta may be empty. Core elements are common
+         * by default and get no record; constraints go to the requirements and
+         * evidence to V&V. */
     attribute :>> phase = MethodPhase::phase3_capabilityClassification;
     in part operationalContext : SystemContext;
-    out part characteristics[1..*];
+    out part characteristics[0..*] : ProductLineFeatureCandidate;
   }
 
   action def ElaborateNeeds :> IncrementStep {

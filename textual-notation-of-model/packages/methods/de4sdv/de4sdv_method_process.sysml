@@ -34,7 +34,7 @@ package DE4SDV_MethodProcess {
       doc /* What happens in the world? Operational domain. */
     }
     phase3_capabilityClassification {
-      doc /* Feature, common capability, constraint, or evidence? DE4SDV ontology. */
+      doc /* Which characteristics distinguish member products? DE4SDV ontology. */
     }
     phase4_needs {
       doc /* What stakeholder needs exist? Operational domain. */

@@ -201,7 +201,7 @@ excluded:
   - identity: ValidationScenario
     reason: dependencies validatedBy (W6 redesign) + Scenario (treatment unresolved)
   - identity: hasStakeholder
-    reason: decision-11 (SAF role-def disposition) unresolved
+    reason: removed register row (a vocabulary-only relation that no gate, check or traversal read; its carrier and usages were deleted and the runtime refuses the name); not an O2+ row
   - identity: specifiesFeature
     reason: PLE-Q/S qualification + authorized PLE-A adoption not satisfied
   - identity: specifiesCommonCapability

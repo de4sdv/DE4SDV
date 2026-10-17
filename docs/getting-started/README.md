@@ -112,8 +112,9 @@ Key documents:
 Two rules you will meet constantly:
 
 - **Feature/common-capability rule** — a characteristic is a *feature* only
-  when it distinguishes one member product from another. If every member
-  product has it, model it as a *common capability*.
+  when it distinguishes one member product from another. What every member
+  product has is common by default: phase 3 records only the feature
+  candidates an increment adds.
 - **Needs ≠ requirements** — stakeholder needs (problem space) stay separate
   from verifiable design-input requirements.
 

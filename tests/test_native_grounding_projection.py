@@ -164,7 +164,7 @@ EXCLUDED_REASON_KEYWORDS: dict[str, str] = {
     "instantiatesCanonicalArchitecture": "decision-10",
     "Interface": "decision-5",
     "ValidationScenario": "validatedBy",
-    "hasStakeholder": "decision-11",
+    "hasStakeholder": "removed register row",
     "specifiesFeature": "PLE-Q/S",
     "specifiesCommonCapability": "PLE-Q/S",
     "recordsGap": "removed register row",
