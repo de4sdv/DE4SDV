@@ -383,13 +383,14 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
   // its mapping record. A mapping is not a runtime-interoperability claim.
   allocation vehicleSpeedSignalMapping : SystemToSoftwareSignalMappingCandidate
     allocate DE4SDV_MiddlewareLogicalArchitecture::system::signalTranslator
-    to scoreTwoDomainPhysicalSystem::integrationLayer::adapter::referenceSpeedIn::speedSample {
+    to scoreTwoDomainPhysicalSystem::integrationLayer::adapter::referenceSpeedIn {
     item <'MAP-MW-SCORE-VEHICLE-SPEED'> vehicleSpeedMappingRecord : LogicalToSoftwareSignalMappingRecord {
       doc /*
        * The reference vehicle speed from the provider's S-CORE event through
        * the adapter to the velocity input of the Autoware vehicle velocity
-       * converter (REQ-MW-010). The owning allocation and the typed port
-       * items give the source, the endpoints and the direction; the payload's
+       * converter (REQ-MW-010). The owning allocation targets the adapter's
+       * S-CORE event port; with the typed ports and the layer's connections
+       * it gives the source, the endpoints and the direction. The payload's
        * speed_kmh is typed by VSS Vehicle_Speed, and the provider references
        * the VSS semantic source.
        */
@@ -407,14 +408,15 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
   }
   allocation velocityStatusHealthSignalMapping : SystemToSoftwareSignalMappingCandidate
     allocate DE4SDV_MiddlewareLogicalArchitecture::system::healthProxy
-    to scoreTwoDomainPhysicalSystem::integrationLayer::healthProxyNode::middlewareVelocityStatusHealthOut::diagnostics {
+    to scoreTwoDomainPhysicalSystem::integrationLayer::healthProxyNode::middlewareVelocityStatusHealthOut {
     item <'MAP-MW-SCORE-VELOCITY-STATUS-HEALTH'> velocityStatusHealthMappingRecord : LogicalToSoftwareSignalMappingRecord {
       doc /*
        * The health of the reference vehicle speed, the forwarded health of
        * the logical health proxy, from the health proxy node to its ROS 2
-       * health topic (REQ-MW-012). The owning allocation and the typed port
-       * item give the source, the endpoint and the direction. The
-       * safety-path status of the logical health proxy is not realized here.
+       * health topic (REQ-MW-012). The owning allocation targets the node's
+       * health publication port, which gives the endpoint and the direction.
+       * The safety-path status of the logical health proxy is not realized
+       * here.
        */
       attribute :>> softwareContractArtifact = "ROS 2 topic /de4sdv/middleware/velocity_status_health (owner decision D4), exact";
       attribute :>> softwareContractMessage = "diagnostic_msgs/msg/DiagnosticArray, exact";
@@ -430,15 +432,16 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
   }
   allocation aebsSignalFrameSignalMapping : SystemToSoftwareSignalMappingCandidate
     allocate DE4SDV_MiddlewareSCORELogicalArchitecture::hmiFrameRelay
-    to scoreTwoDomainPhysicalSystem::integrationLayer::hostRelay::aebsSignalFrameOut::aebsSignalFrame {
+    to scoreTwoDomainPhysicalSystem::integrationLayer::hostRelay::aebsSignalFrameOut {
     item <'MAP-MW-SCORE-AEBS-SIGNAL-FRAME'> aebsSignalFrameMappingRecord : LogicalToSoftwareSignalMappingRecord {
       doc /*
        * The AEBS signal frames on the one-way HMI path: the adapter's S-CORE
        * event inside the host, the host relay's SOME/IP event across the
        * hypervisor, and the receiver's stream on the guest loopback into the
        * unchanged INC-AEBS-010 ingress. The owning allocation targets the
-       * SOME/IP event, the crossing into the guest; the typed port items and
-       * the layer's connections give the other endpoints and the direction.
+       * host relay's SOME/IP event port, the crossing into the guest; the
+       * typed ports and the layer's connections give the other endpoints and
+       * the direction.
        * The frame is opaque by owner decision and carries no VSS signal.
        */
       attribute :>> softwareContractArtifact = "the layer's S-CORE mw::com configuration and the host relay's vsomeip 3.7.6 configuration (phase 10), candidate; the INC-AEBS-010 ingress stream (ingress/main.cpp:27-28, 142-146), exact";
