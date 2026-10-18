@@ -334,16 +334,17 @@ package DE4SDV_IncrementWorkflow {
   }
 
   action def DefineFunctionalArchitecture :> IncrementStep {
-    doc /* What functions, flows, states, and interfaces are needed? Rules: each
-         * functional requirement of the increment is allocated to at least one
-         * function by a native allocation (allocatedTo); plain dependencies do not
-         * count. Advisory: every other requirement is allocated to a function or
-         * named as relevant by an architecture element (hasRelevantArchitecture), or
-         * it is reported as covered by verification only; each function carries a
-         * requirement. The increment's functions are the AllocatableFunction usages
-         * its packages own at any depth and the functions its own allocations name.
-         * An allocation assigns responsibility only; flows, states and interfaces are
-         * not checked. */
+    doc /* What functions, flows, states, and interfaces are needed? Rules: the
+         * increment has at least one function, and each functional requirement of
+         * the increment is allocated to at least one function by a native allocation
+         * (allocatedTo); plain dependencies do not count. Advisory: each requirement
+         * of the increment, functional or not, is allocated to a function or named as
+         * relevant by an architecture element (hasRelevantArchitecture); one that is
+         * neither is reported with what else holds it, an allocation that does not
+         * count or its verification; each function carries a requirement. The
+         * increment's functions are the AllocatableFunction usages its packages own
+         * at any depth and the functions its own allocations name. An allocation
+         * assigns responsibility only; flows, states and interfaces are not checked. */
     attribute :>> phase = MethodPhase::phase6_functionalArchitecture;
     in requirement requirements[0..*] : RequirementCandidate;
     in requirement functionalRequirements[0..*] : FunctionalRequirementCandidate;
@@ -353,8 +354,12 @@ package DE4SDV_IncrementWorkflow {
       doc /* Each functional requirement of the increment is allocated to at least one function; a responsibility assignment only, no satisfaction, realization or verification claim. */
       :>> check = "allocatedTo";
     }
+    metadata incrementHasFunction : MethodCheck about functions {
+      doc /* The increment has at least one function; the count is the rule, no completeness or necessity claim. */
+      :>> check = "populationMember";
+    }
     metadata requirementCarriedByArchitecture : MethodCheck about requirements {
-      doc /* Advisory: each requirement of the increment is allocated to a function or named as relevant by an architecture element (hasRelevantArchitecture); one that is neither is carried by no architecture element and covered by verification only. No satisfaction claim. */
+      doc /* Advisory: each requirement of the increment, functional or not, is allocated to a function or named as relevant by an architecture element (hasRelevantArchitecture); one that is neither is reported with what else holds it: an allocation that grounds in no end pair, its verification alone, or no verification case yet. No satisfaction claim. */
       :>> check = "carriedByArchitecture";
       :>> advisory = true;
     }

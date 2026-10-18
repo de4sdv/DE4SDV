@@ -15,9 +15,12 @@ import hashlib
 import json
 import re
 from pathlib import Path
+from types import SimpleNamespace
 
 from de4sdv.semantic import method_evaluator as me
 from de4sdv.semantic.export_evaluation import evaluate_export
+from de4sdv.semantic.increment_scope import scope_closure
+from de4sdv.sysml_api.repository import reference_ids
 from increment_model_fixtures import GENUINE_EXPORT
 
 #: The 20 requirements of INC-AEBS-010, all in the needs-and-requirements package the cut keeps in full.
@@ -31,8 +34,9 @@ REQUIREMENTS = [
 ]
 
 
-#: Of the 20, the ones no function and no architecture element carry: covered by verification only.
-VERIFICATION_ONLY = [
+#: Of the 20, the ones no function and no architecture element carry. The cut holds no verification case,
+#: so none of them has one yet (the full export of the same revision covers them by verification only).
+UNCARRIED = [
     "reqAaosEnvironmentObservation", "reqDecisionDistanceExclusionStatement", "reqNoDisplayDerivedDecisionMetric",
     "reqNoFreshDataSubstitution", "reqNoHostBrowserSurface", "reqNoNativeImpersonation", "reqNonColorStateCue",
     "reqObstacleGeometryExpiry", "reqObstacleGeometryFromFilteredCloud", "reqReadOnlyBoundaryStatement",
@@ -108,10 +112,39 @@ def test_the_frozen_cut_traces_its_allocation_chain_through_chained_ends_and_def
         "requirementCarriedByArchitecture": (20, 10),
     }
     advisory = {note["gate"]: sorted(s["name"] for s in note["subjects"]) for note in evaluation.gaps()["advisory"]}
-    assert advisory["requirementCarriedByArchitecture"] == VERIFICATION_ONLY
+    assert advisory["requirementCarriedByArchitecture"] == UNCARRIED
+    (note,) = [note for note in evaluation.gaps()["advisory"] if note["gate"] == "requirementCarriedByArchitecture"]
+    assert {s["name"]: s["diagnostics"] for s in note["subjects"]} == {
+        name: [f"DE4SDV_AEBSVisualizationNeedsRequirements::VisualizationRequirements::{name} is carried by no "
+               "architecture element and has no verification case yet"] for name in UNCARRIED}
     assert advisory["functionCarriesRequirement"] == ["publish", "transport"]
     assert advisory["logicalElementCarriesFunction"] == ["coordinatorSource", "displayService", "nativeAebSource"]
     assert "functionalRequirementAllocatedToFunction" not in results
+
+
+def test_the_scope_closure_counts_no_parameter_and_no_definition_end_of_the_genuine_shapes(tmp_path: Path) -> None:
+    """The export owns a definition's parameters and the ends of a connection or allocation definition
+    through FeatureMembership, with ``direction`` set or ``isEnd`` true, not through ParameterMembership or
+    EndFeatureMembership. The closure reads those native feature fields: no step parameter of the workflow
+    and no end of a trace-vocabulary connection definition is an element of a scope naming their packages."""
+    _snapshot, evaluation = _evaluated(tmp_path)
+    view = evaluation.view
+    packages = {view.label(p): p for p in view.index.elements_of_type("Package")}
+    scope = SimpleNamespace(scope_packages=(packages["DE4SDV_IncrementWorkflow"], packages["DE4SDV_TraceVocabulary"]))
+    closure = set(scope_closure(view, scope))
+    labelled = {view.label(e): e for e in view.index.by_id if view.label(e)}
+    parameter = labelled["DE4SDV_IncrementWorkflow::DefineFunctionalArchitecture::functions"]
+    end = labelled["DE4SDV_TraceVocabulary::DerivesFromNeed::need"]
+    owning = {member: str(relationship.get("@type")) for owner in view.index.by_id
+              for relationship in view.index.owned_relationships(owner)
+              for member in reference_ids(relationship.get("ownedRelatedElement"))}
+    assert (owning[parameter], view.index.element(parameter).get("direction")) == ("FeatureMembership", "out")
+    assert (owning[end], view.index.element(end).get("isEnd")) == ("FeatureMembership", True)
+    assert parameter not in closure and end not in closure
+    assert not [view.label(e) for e in closure
+                if view.index.element(e).get("direction") or view.index.element(e).get("isEnd") is True]
+    assert labelled["DE4SDV_IncrementWorkflow::DefineFunctionalArchitecture"] in closure
+    assert labelled["DE4SDV_TraceVocabulary::DerivesFromNeed"] in closure
 
 
 def _canonical(value) -> bytes:

@@ -877,6 +877,7 @@ _NAMED: Mapping[str, Callable[[_Request], Remedy]] = {
     "evidenceRecordOrStatus": _evidence_record_or_status,
     "receivesAllocation": lambda request: _receives_allocation(request),
     "carriedByArchitecture": lambda request: _carried_by_architecture(request),
+    "populationMember": lambda request: _population_member(request),
 }
 
 
@@ -1034,7 +1035,8 @@ def _end_pair(request: _Request, rows: Sequence[Mapping[str, Any]], *, inverse: 
 
 
 def _receives_allocation(request: _Request) -> Remedy:
-    """An allocation to the subject from an element of the end pair's source class."""
+    """An allocation to the subject from an existing element of the end pair's source class. The check
+    is advisory: an element without one is allowed, and no source is declared just to close the note."""
     from .method_checks import allocation_relation
 
     view = request.view
@@ -1048,17 +1050,20 @@ def _receives_allocation(request: _Request) -> Remedy:
     other = _placeholder(str(row.get("sourceClass") or ""))
     subject = _subject_ref(lines, _placeholder(str(row.get("targetClass") or "")))
     other_kernel = _kernel(view, str(row.get("sourceClass") or ""))
-    if other_kernel is not None:
-        keyword = USAGE_KEYWORDS.get(str(row.get("sourceUsage") or ""), "part")
-        lines.declarations.append(f"{keyword} {other} : {lines.type(other_kernel, _SPECIALIZING)};")
     lines.declarations.append(f"allocation <name> allocate {other} to {subject};")
-    lines.notes.append(_ALLOCATION_NOTE.format(other=other))
+    if other_kernel is not None:
+        lines.notes.append(f"{other} is an existing usage of {lines.type(other_kernel, _SPECIALIZING)} or a "
+                           "definition specializing it, of this increment or a baseline; an end written as a feature "
+                           "chain (a.b) is read as its last feature, and the allocation needs no type.")
+    lines.notes.append(f"Leaving {subject} without one is allowed: the check is advisory and only reports it for "
+                       f"review; declare no new {other} just to close the note.")
     return lines.remedy(f"allocate {other} to {subject}, {_where(request) or 'in a package of the increment'}")
 
 
 def _carried_by_architecture(request: _Request) -> Remedy:
-    """Either an allocation of the requirement to a function, or a dependency to it from the architecture
-    element that carries it (``hasRelevantArchitecture``, relevance only)."""
+    """An allocation of the requirement to a function; the alternative, a dependency to it from an
+    architecture element relevant to it (``hasRelevantArchitecture``, relevance only), is a note. The
+    check is advisory: a requirement neither carries is allowed."""
     from .method_checks import allocation_relation
 
     view = request.view
@@ -1073,15 +1078,23 @@ def _carried_by_architecture(request: _Request) -> Remedy:
     function = _placeholder(str(row.get("targetClass") or ""))
     kernel = _kernel(view, str(row.get("targetClass") or ""))
     lines.declarations.append(f"allocation <name> allocate {subject} to {function};")
-    lines.declarations.append(f"dependency <name> from <architecture element> to {subject};")
     if kernel is not None:
         lines.notes.append(f"{function} is a usage of {lines.type(kernel, _SPECIALIZING)} or a definition "
                            "specializing it, of this increment or a baseline.")
-    lines.notes.append("One of the two lines carries the requirement: the allocation assigns it to a function; the "
-                       "dependency, from a part or action usage or definition, records that the element is relevant "
-                       "to it (hasRelevantArchitecture), relevance only. With neither, only its verification covers "
-                       "it.")
-    return lines.remedy(f"carry {subject} by one of these, {_where(request) or 'in a package of the increment'}")
+    lines.notes.append(f"Instead of the allocation, when a part or action usage or definition is relevant to {subject} "
+                       "without being a function that carries it, a dependency from that element to it records the "
+                       f"relevance (hasRelevantArchitecture, relevance only): dependency <name> from <element> to "
+                       f"{subject};")
+    lines.notes.append(f"Leaving {subject} carried by neither is allowed: the check is advisory, and only its "
+                       "verification (phase 10) covers it then.")
+    return lines.remedy(f"allocate {subject} to {function}, {_where(request) or 'in a package of the increment'}")
+
+
+def _population_member(request: _Request) -> Remedy:
+    """One more element the step parameter counts: its gate states only the parameter's multiplicity."""
+    lines = _lines(request)
+    lines.declarations.append(_declaration(lines, name=_subject_name(request)))
+    return lines.remedy(f"declare {_parameter_phrase(request)} {_where(request)}".rstrip())
 
 
 def _verification_membership(request: _Request, mapping: Any) -> Remedy:

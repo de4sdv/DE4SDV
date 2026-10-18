@@ -29,8 +29,9 @@ relationships only:
   problem), never narrower. Nothing else puts an element in scope: neither
   a subject typed by the increment nor a ``references`` to the increment
   usage. The scope closure (:func:`scope_closure`) adds what those packages
-  own at any depth, parameters and connector ends aside: the elements a step
-  parameter typed by an architecture class counts;
+  own at any depth, except parameters, ends and references to other features
+  (by their native feature fields): the elements a step parameter typed by an
+  architecture class counts;
 - the increment's system of interest: the usages the charter references in
   ``systemOfInterest`` (optional), the entity the increment's needs and
   requirements take as subject, and the definitions typing them.
@@ -405,9 +406,23 @@ def ordered(view: ModelView, identifiers: Sequence[str]) -> tuple[str, ...]:
     return _ordered(view, identifiers)
 
 
+def declares_no_element(view: ModelView, element: str) -> bool:
+    """Whether a feature is a parameter, an end or a reference to another feature, never an element of
+    the increment's architecture. The native feature fields decide, not the owning membership: an
+    export owns a definition's parameters and ends through FeatureMembership, with ``direction`` set
+    or ``isEnd`` true. A usage with an authored ReferenceSubsetting (``perform x;``, a reference to
+    another feature) names that feature; it declares none of its own."""
+    found = view.index.element(element)
+    if found.get("direction") or found.get("isEnd") is True:
+        return True
+    return any(not relationship.get("isImplied")
+               for relationship in view.index.owned_relationships(element, "ReferenceSubsetting"))
+
+
 def scope_closure(view: ModelView, scope: IncrementScope) -> tuple[str, ...]:
     """Every element the charter's packages own at any depth: nested packages, usages, definitions
-    and the features they own, except parameters and connector ends (and what those own).
+    and the features they own, except parameters, ends and references to other features
+    (:func:`declares_no_element`), and what those own.
 
     The scope (:attr:`IncrementScope.scope_elements`) holds what the packages own directly; this
     closure also holds, for example, the action features of a functional-flow definition and the
@@ -428,6 +443,8 @@ def scope_closure(view: ModelView, scope: IncrementScope) -> tuple[str, ...]:
                 for member in reference_ids(relationship.get("ownedRelatedElement")):
                     if member in index.by_id and member not in seen:
                         seen.add(member)
+                        if declares_no_element(view, member):
+                            continue
                         found.append(member)
                         frontier.append(member)
         return _ordered(view, found)

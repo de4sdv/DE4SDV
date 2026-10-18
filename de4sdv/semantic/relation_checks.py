@@ -24,7 +24,12 @@ Two kinds of names:
   allocations (``allocatedTo``) is read from the ends of every
   ``AllocationUsage``, typed or not: an allocation counts for the one end
   pair of the relation its two ends ground in, and an end written as a
-  feature chain (``a.b``) reads as its last chaining feature. A relation
+  feature chain (``a.b``) reads as its last chaining feature. Absence is not
+  established while any allocation is unreadable: a subject without a
+  counting allocation is then a model-witness problem, never a gap. Plain
+  dependencies between the subject and an element of the class it must
+  reach, and allocations that ground in none of the end pairs, are near
+  misses: reported, never witnesses. A relation
   without a SysML mapping, or whose content is external at this revision, is
   method side: only a method or kernel change can supply it, so it is never
   reported as a model gap.
@@ -340,7 +345,10 @@ def allocation_hops(view: ModelView, relation: str, subject_id: str, *,
 
     An allocation counts when its two ends ground in one end pair of the relation. An allocation an end
     of which grounds in two endpoint classes of the relation counts for none and is reported as a
-    problem. Raises :class:`MethodSideInput` when a class has no validated kernel binding.
+    problem. Every unreadable allocation of the revision is a problem, wherever it is: its ends are
+    unknown, so it may be the one that reaches the subject (absence is not established while any
+    allocation is unreadable). Raises :class:`MethodSideInput` when a class has no validated kernel
+    binding.
     """
     rows = native_allocation_rows(view, relation)
     classes = _end_classes(rows)
@@ -378,20 +386,51 @@ def allocation_classes(view: ModelView, relation: str, subject_id: str, *, incom
                               if in_class(view, subject_id, str(row[near]))))
 
 
-def allocation_near_misses(view: ModelView, subject_id: str, classes: list[str]) -> tuple[str, ...]:
-    """Plain dependencies from the subject to an element of ``classes``, which do not count."""
-    count = 0
+def unreadable_allocations(problems: list[str]) -> str:
+    """Why absence cannot be established: the allocations that cannot be read (the first three named)."""
+    count = len(problems)
+    return (f"{count} allocation{'' if count == 1 else 's'} cannot be read, so absence cannot be established: "
+            + "; ".join(problems[:3]))
+
+
+def ungrounded_allocations(view: ModelView, relation: str, subject_id: str) -> list[str]:
+    """The other ends of the readable binary allocations between the subject and another element, in
+    either direction, that ground in none of the end pairs of ``relation`` (model order)."""
+    others: list[str] = []
+    for _allocation, (ends, problem) in sorted(allocation_ends(view).items()):
+        if problem or len(ends) != 2 or subject_id not in ends or ends[0] == ends[1]:
+            continue
+        other = ends[1] if ends[0] == subject_id else ends[0]
+        if not allocation_pairs(view, relation, *ends) and other not in others:
+            others.append(other)
+    return others
+
+
+def allocation_near_misses(view: ModelView, relation: str, subject_id: str, classes: list[str]) -> tuple[str, ...]:
+    """What stands in for an allocation of ``relation`` from the subject and does not count: plain
+    dependencies from the subject to an element of ``classes``, dependencies from such an element to the
+    subject (the ``hasRelevantArchitecture`` shape), and allocations between the subject and another
+    element that ground in none of the relation's end pairs."""
+    outgoing = incoming = 0
     for dependency in view.index.elements_of_type("Dependency"):
         element = view.index.by_id[dependency]
         sources = reference_ids(element.get("client")) or reference_ids(element.get("source"))
-        if subject_id not in sources:
-            continue
         targets = reference_ids(element.get("supplier")) or reference_ids(element.get("target"))
-        count += sum(1 for target in targets if any(in_class(view, target, c) for c in classes))
-    if not count:
-        return ()
+        if subject_id in sources:
+            outgoing += sum(1 for target in targets if any(in_class(view, target, c) for c in classes))
+        if subject_id in targets:
+            incoming += sum(1 for source in sources if any(in_class(view, source, c) for c in classes))
     named = " or ".join(_plural(class_declaration(view, c)) for c in classes)
-    return (f"{count} plain dependency(ies) to {named} do not count; only an allocation does",)
+    found = []
+    if outgoing:
+        found.append(f"{outgoing} plain dependency(ies) to {named} do not count; only an allocation does")
+    if incoming:
+        found.append(f"{incoming} dependency(ies) from {named} to it do not count; only an allocation does")
+    others = [element_name(view, other) for other in ungrounded_allocations(view, relation, subject_id)]
+    if others:
+        found.append(f"{len(others)} allocation(s) between it and {', '.join(others[:3])} ground in no {relation} "
+                     "end pair and do not count")
+    return tuple(found)
 
 
 # ---------------------------------------------------------------------------
@@ -473,18 +512,19 @@ def connection_carried_check(relation: str) -> RelationCheck:
 
 def allocation_carried_check(relation: str) -> RelationCheck:
     """A successor relation carried by native allocations: the subject is the source end of an
-    allocation that grounds one of the relation's end pairs."""
+    allocation that grounds one of the relation's end pairs. Without one, an unreadable allocation
+    anywhere makes the result a model-witness problem (absence is not established)."""
 
     def check(view: ModelView, subject_id: str) -> RelationResult:
         name = element_name(view, subject_id)
         try:
             hops, problems = allocation_hops(view, relation, subject_id)
             classes = allocation_classes(view, relation, subject_id)
-            near_misses = () if hops else allocation_near_misses(view, subject_id, classes)
+            near_misses = () if hops else allocation_near_misses(view, relation, subject_id, classes)
         except MethodSideInput as missing:
             return RelationResult(relation, subject_id, problem=missing.marker, detail=missing.detail)
         if not hops and problems:
-            reason = f"allocations cannot be read: {problems[:3]}"
+            reason = unreadable_allocations(problems)
             return RelationResult(relation, subject_id, problem=MODEL_WITNESS_PREFIX + relation,
                                   detail=reason, reason=reason)
         reached = " or ".join(class_declaration(view, c) for c in classes)

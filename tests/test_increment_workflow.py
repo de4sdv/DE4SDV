@@ -45,7 +45,7 @@ CHECKS_BY_STEP = {
         "requirementStatesSuccessCriteria",
     },
     "DefineFunctionalArchitecture": {
-        "functionalRequirementAllocatedToFunction", "requirementCarriedByArchitecture",
+        "functionalRequirementAllocatedToFunction", "incrementHasFunction", "requirementCarriedByArchitecture",
         "functionCarriesRequirement",
     },
     "DefineLogicalArchitecture": {"functionAllocatedToLogicalElement", "logicalElementCarriesFunction"},
@@ -78,7 +78,7 @@ CHECK_REGISTRY = {
     "derivesRequirementFromNeed", "oneNativeSubject",
     "subjectIsSystemOfInterest", "charterExpectedArtifactsCoverContent",
     "oneVerificationMethodKind", "successCriteriaAttribute",
-    "allocatedTo", "carriedByArchitecture", "receivesAllocation",
+    "allocatedTo", "populationMember", "carriedByArchitecture", "receivesAllocation",
     "verifiesIncrementRequirement", "verifiedBy", "evidenceRecordOrStatus",
 }
 

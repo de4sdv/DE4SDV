@@ -19,6 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+import de4sdv.semantic.increment_workflow as workflow_reader
 from de4sdv.semantic import method_evaluator as me
 from de4sdv.semantic.increment_evaluation import evaluate_increment
 from de4sdv.semantic.increment_scope import ModelView, resolve_increment, scope_closure
@@ -35,15 +36,21 @@ from increment_model_fixtures import (
 )
 from test_revision_index import _traversal
 
-REVISION = me.RevisionIdentity("a" * 40, "project", "commit", "full-model")
+#: An export snapshot, as the pull-request Method Check evaluates: an API revision binding withholds these checks
+#: while allocatedTo has open forward obligations (test_allocation_checks_are_withheld_on_an_api_revision_binding).
+REVISION = me.RevisionIdentity("a" * 40, "", "", workflow_reader.EXPORT_SNAPSHOT_SCOPE)
+API_BINDING = me.RevisionIdentity("a" * 40, "project", "commit", "full-model")
 P0, P6, P7, P8 = ("phase0_incrementFraming", "phase6_functionalArchitecture", "phase7_logicalArchitecture",
                   "phase8_physicalRealization")
 P, C = WorkflowParameter, WorkflowCheck
 G6, G6_ADVISORY, G6B = ("functionalRequirementAllocatedToFunction", "requirementCarriedByArchitecture",
                         "functionCarriesRequirement")
+G6_POPULATION = "incrementHasFunction"
 G7, G7B, G8, G8B = ("functionAllocatedToLogicalElement", "logicalElementCarriesFunction",
                     "logicalElementAllocatedToPhysicalElement", "physicalElementCarriesLogicalElement")
 VERIFICATION_ONLY = "is carried by no architecture element and is covered by verification only"
+NO_VERIFICATION_YET = "is carried by no architecture element and has no verification case yet"
+ARCHITECTURE_GATES = (G6, G6_POPULATION, G6_ADVISORY, G6B, G7, G7B, G8, G8B)
 
 
 @dataclass
@@ -116,6 +123,7 @@ def _workflow(architecture: Architecture) -> None:
             P("functionalRequirements", architecture.functional, "RequirementUsage", "in", (0, INFINITY)),
             P("functions", "Function", "ActionUsage", "out", (1, INFINITY))), (
             C(G6, "allocatedTo", "functionalRequirements"),
+            C(G6_POPULATION, "populationMember", "functions"),
             C(G6_ADVISORY, "carriedByArchitecture", "requirements", advisory=True),
             C(G6B, "receivesAllocation", "functions", advisory=True))),
         WorkflowStep("defineLogicalArchitecture", P7, (
@@ -136,8 +144,8 @@ def _view(architecture: Architecture) -> ModelView:
     return ModelView(builder.elements, _traversal(builder), sources=builder.sources)
 
 
-def _evaluate(architecture: Architecture):
-    return evaluate_increment(_view(architecture), architecture.scenario.increment_id, revision=REVISION)
+def _evaluate(architecture: Architecture, revision: me.RevisionIdentity = REVISION):
+    return evaluate_increment(_view(architecture), architecture.scenario.increment_id, revision=revision)
 
 
 def _subjects(evaluation, gate: str) -> dict[str, str]:
@@ -156,6 +164,29 @@ def _note(evaluation, gate: str) -> dict[str, Any] | None:
 
 def _ids(*elements: dict[str, Any]) -> list[str]:
     return [element["@id"] for element in elements]
+
+
+def _diagnostics(note: dict[str, Any], name: str) -> list[str]:
+    return next(s.get("diagnostics", []) for s in note["subjects"] if s["name"] == name)
+
+
+def _verify(a: Architecture, requirement: dict[str, Any]) -> None:
+    """A verification case whose objective verifies ``requirement`` (the verifiedBy shape phase 10 reads)."""
+    b = a.builder
+    case_def = b.definition("VerificationCaseDefinition", "ConstraintVerification", a.scenario.evidence_package)
+    b.objective(case_def, "constraintObjective", [requirement])
+    b.usage("VerificationCaseUsage", "constraintVerification", a.scenario.evidence_package, [case_def])
+
+
+def _poison(a: Architecture) -> None:
+    """One allocation in an unrelated package whose chain end names a feature no longer in the revision."""
+    b = a.builder
+    other = b.package("DE4SDV_FixtureUnrelated")
+    holder = b.definition("PartDefinition", "Holder", other)
+    x = b.usage("PartUsage", "x", other, [holder])
+    y = b.usage("PartUsage", "y", holder, membership="FeatureMembership")
+    b.allocation("unrelatedUnreadable", other, [x, y], b.usage("PartUsage", "z", other))
+    b.remove(y)
 
 
 # -- the relation ----------------------------------------------------------
@@ -187,12 +218,15 @@ def test_a_feature_chain_reads_as_its_last_chaining_feature() -> None:
     assert chained_feature(view, a.fn_a["@id"]) == a.fn_a["@id"]
 
 
-def test_an_allocation_outside_the_end_pairs_counts_for_none() -> None:
+def test_an_allocation_outside_the_end_pairs_counts_for_none_and_is_a_near_miss() -> None:
     a = _architecture(workflow=False)
     a.builder.allocation("constraintToLogicalA", a.scenario.needs_package, a.constraint, a.logical_a)
-    result = check_relation(_view(a), "allocatedTo", a.constraint["@id"])
+    view = _view(a)
+    result = check_relation(view, "allocatedTo", a.constraint["@id"])
     assert result.problem == "" and result.hops == ()
     assert result.absent.endswith("constraint0 is allocated to no AllocatableFunction")
+    assert result.near_misses == (f"1 allocation(s) between it and {view.label(a.logical_a['@id'])} ground in no "
+                                  "allocatedTo end pair and do not count",)
 
 
 def test_an_end_grounding_in_two_layer_classes_is_unreadable_never_counted() -> None:
@@ -217,6 +251,22 @@ def test_plain_dependencies_to_functions_are_near_misses_never_witnesses() -> No
         "1 plain dependency(ies) to allocatableFunctions do not count; only an allocation does",)
 
 
+def test_a_dependency_from_a_function_to_a_functional_requirement_is_a_near_miss_of_the_blocking_check() -> None:
+    """The baseline's own trace shape (a dependency from the function to the requirement) carries the
+    requirement for the advisory check (hasRelevantArchitecture), never for allocatedTo: the gap says so."""
+    a = _architecture()
+    b = a.builder
+    requirement0 = a.scenario.requirements[0]
+    b.remove(next(e for e in b.elements if e.get("declaredName") == "requirement0ToFnA"))
+    b.dependency("functionRelevantToRequirement0", a.scenario.needs_package, a.function_def, requirement0)
+    evaluation = _evaluate(a)
+    assert _subjects(evaluation, G6)[requirement0["@id"]] == me.VERDICT_FAIL
+    assert _subjects(evaluation, G6_ADVISORY)[requirement0["@id"]] == me.VERDICT_PASS
+    (gap,) = [g for g in evaluation.gaps()["blocking"] if g["gate"] == G6]
+    assert _diagnostics(gap, "requirement0")[1:] == [
+        "1 dependency(ies) from allocatableFunctions to it do not count; only an allocation does"]
+
+
 # -- the subjects ----------------------------------------------------------
 
 
@@ -231,6 +281,19 @@ def test_the_scope_closure_holds_definition_features_but_no_parameters_or_connec
     assert not closure & ends and not closure & subjects
 
 
+def test_a_perform_usage_names_the_function_it_performs_and_is_no_function_of_its_own() -> None:
+    """``perform fixtureFlow.fnA;`` in a logical part: a PerformActionUsage typed like fnA, with an authored
+    ReferenceSubsetting to it (the export's shape). It declares no function, so it is not a subject."""
+    a = _architecture()
+    b = a.builder
+    perform = b.usage("PerformActionUsage", "performFnA", a.logical_a, [a.function_def],
+                      membership="FeatureMembership")
+    b.reference_subsetting(perform, a.fn_a)
+    view = _view(a)
+    assert perform["@id"] not in scope_closure(view, resolve_increment(view, a.scenario.increment_id))
+    assert _subjects(_evaluate(a), G7) == {a.fn_a["@id"]: me.VERDICT_PASS, a.fn_b["@id"]: me.VERDICT_PASS}
+
+
 def test_conforming_architecture_passes_phases_6_to_8_with_definition_features_as_subjects() -> None:
     a = _architecture()
     evaluation = _evaluate(a)
@@ -238,19 +301,40 @@ def test_conforming_architecture_passes_phases_6_to_8_with_definition_features_a
         P6: "READY", P7: "READY", P8: "READY"}
     requirement0, requirement1 = a.scenario.requirements
     assert _subjects(evaluation, G6) == {requirement0["@id"]: me.VERDICT_PASS, requirement1["@id"]: me.VERDICT_PASS}
+    assert _subjects(evaluation, G6_POPULATION) == {a.fn_a["@id"]: me.VERDICT_PASS, a.fn_b["@id"]: me.VERDICT_PASS}
     # The composite flow usage is no function: only the AllocatableFunction-typed features count.
     assert _subjects(evaluation, G7) == {a.fn_a["@id"]: me.VERDICT_PASS, a.fn_b["@id"]: me.VERDICT_PASS}
     assert _subjects(evaluation, G8) == {a.logical_a["@id"]: me.VERDICT_PASS}
     assert _subjects(evaluation, G8B) == {a.physical_a["@id"]: me.VERDICT_PASS}
 
 
-def test_a_requirement_carried_by_nothing_is_an_advisory_note_covered_by_verification_only() -> None:
+def test_a_requirement_carried_by_nothing_is_an_advisory_note_that_says_whether_verification_covers_it() -> None:
+    """Covered by verification only when a verification case verifies it (verifiedBy, as phase 10
+    reads it); otherwise it has no verification case yet."""
     a = _architecture()
     evaluation = _evaluate(a)
     note = _note(evaluation, G6_ADVISORY)
     assert note is not None and [s["name"] for s in note["subjects"]] == ["constraint0"]
-    assert any(VERIFICATION_ONLY in d for s in note["subjects"] for d in s.get("diagnostics", []))
+    (diagnostic,) = _diagnostics(note, "constraint0")
+    assert diagnostic.endswith(NO_VERIFICATION_YET) and VERIFICATION_ONLY not in diagnostic
     assert _exits(evaluation)[P6] == "READY"  # advisory: never blocks
+    _verify(a, a.constraint)
+    evaluation = _evaluate(a)
+    (diagnostic,) = _diagnostics(_note(evaluation, G6_ADVISORY), "constraint0")
+    assert diagnostic.endswith(VERIFICATION_ONLY)
+    assert _exits(evaluation)[P6] == "READY"
+
+
+def test_a_requirement_allocated_to_a_logical_element_is_never_reported_as_carried_by_nothing() -> None:
+    a = _architecture()
+    a.builder.allocation("constraintToLogicalA", a.scenario.needs_package, a.constraint, a.logical_a)
+    evaluation = _evaluate(a)
+    (diagnostic,) = _diagnostics(_note(evaluation, G6_ADVISORY), "constraint0")
+    assert "carried by no architecture element" not in diagnostic
+    assert diagnostic.endswith(
+        "constraint0 is allocated to no function and named as relevant by no architecture element "
+        f"(hasRelevantArchitecture); its allocation(s) with {_view(a).label(a.logical_a['@id'])} ground in no "
+        "allocatedTo end pair")
 
 
 def test_an_allocation_or_a_relevant_architecture_dependency_carries_a_requirement() -> None:
@@ -264,6 +348,64 @@ def test_an_allocation_or_a_relevant_architecture_dependency_carries_a_requireme
     assert check_relation(_view(relevant), "hasRelevantArchitecture", relevant.constraint["@id"]).targets == [
         relevant.function_def["@id"]]
     assert _note(_evaluate(relevant), G6_ADVISORY) is None
+
+
+def test_an_unreadable_allocation_anywhere_leaves_absence_unestablished() -> None:
+    """Absence is not established while any allocation is unreadable: its ends are unknown, so it may be
+    the one that reaches the subject. Each subject without a counting allocation is INDETERMINATE (an
+    input problem the author can fix), never a gap; subjects with one still pass."""
+    a = _architecture()
+    b = a.builder
+    requirement0 = a.scenario.requirements[0]
+    b.remove(next(e for e in b.elements if e.get("declaredName") == "requirement0ToFnA"))
+    assert _subjects(_evaluate(a), G6)[requirement0["@id"]] == me.VERDICT_FAIL
+    _poison(a)
+    evaluation = _evaluate(a)
+    results = {r.subject_id: r for r in evaluation.canonical.results if r.unit_id == G6 and r.subject_id}
+    assert results[requirement0["@id"]].verdict is None
+    assert results[requirement0["@id"]].missing == ("model-witness:allocatedTo",)
+    (diagnostic,) = results[requirement0["@id"]].diagnostics
+    assert diagnostic.startswith("1 allocation cannot be read, so absence cannot be established: "
+                                 "DE4SDV_FixtureUnrelated::unrelatedUnreadable: ")
+    assert results[a.scenario.requirements[1]["@id"]].verdict == me.VERDICT_PASS
+    assert _subjects(evaluation, G6_ADVISORY)[a.constraint["@id"]] is None
+    step = evaluation.next_obligation()["next"]
+    assert (step["gate"], step["kind"]) == (G6, "input-problem")
+
+
+def test_allocation_checks_are_withheld_on_an_api_revision_binding() -> None:
+    """While allocatedTo has open forward obligations, an API revision binding reports every check of
+    phases 6 to 8 as method side (nothing to author, exits BLOCKED); an export snapshot evaluates them."""
+    a = _architecture()
+    api, export = _evaluate(a, API_BINDING), _evaluate(a)
+    for gate in ARCHITECTURE_GATES:
+        unit = api._unit(gate)
+        assert (unit.verdict, unit.missing) == (None, ("governed-relation:allocatedTo",)), gate
+        assert "withholds the checks that read native allocations" in unit.diagnostics[0], gate
+    answer = api.next_obligation()
+    assert answer["next"] is None
+    assert [blocker["gate"] for blocker in answer["method_side_blockers"]] == [G6, G6_POPULATION, G7, G8]
+    assert _exits(api) == {P6: "BLOCKED", P7: "BLOCKED", P8: "BLOCKED"}
+    assert _exits(export) == {P6: "READY", P7: "READY", P8: "READY"}
+
+
+def test_the_allocation_guard_lifts_once_the_obligations_are_discharged(monkeypatch) -> None:
+    a = _architecture()
+    monkeypatch.setattr(workflow_reader, "open_forward_obligations", lambda relation: ())
+    api, export = _evaluate(a, API_BINDING), _evaluate(a)
+    for gate in ARCHITECTURE_GATES:
+        assert _subjects(api, gate) == _subjects(export, gate), gate
+    assert _exits(api) == _exits(export)
+
+
+def test_the_admission_still_lists_the_forward_obligations_of_allocated_to() -> None:
+    """The guard reads them from this checkout's kernel-vocabulary admission; discharging them (the
+    successor-traversal parity and an exact-SHA privileged run) is the change that lifts it."""
+    assert workflow_reader.open_forward_obligations("allocatedTo") == (
+        "exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim",
+        "exact-revision API closure of the typed allocation ends in the exact-SHA privileged run; a failure "
+        "blocks activation",
+    )
 
 
 def test_an_unallocated_functional_requirement_blocks_phase_6() -> None:
@@ -305,11 +447,17 @@ def test_a_declared_phase_without_architecture_elements_blocks_on_an_empty_popul
     architecture = Architecture(scenario, functional, {}, {}, {}, {}, {}, {}, {}, {}, {})
     _workflow(architecture)
     evaluation = _evaluate(architecture)
-    assert _exits(evaluation)[P7] == "BLOCKED" and _exits(evaluation)[P8] == "BLOCKED"
-    (gap,) = [g for g in evaluation.gaps()["blocking"] if g["gate"] == G7]
-    assert gap["what_to_author"].startswith("keep at least 1 ")
-    assert ("in the increment's packages named in the charter's expectedArtifacts, at any depth, and the "
-            "elements their allocations name") in gap["what_to_author"]
+    assert {p: s for p, s in _exits(evaluation).items() if p in (P6, P7, P8)} == {
+        P6: "BLOCKED", P7: "BLOCKED", P8: "BLOCKED"}
+    # Phase 6: no functional requirement (its blocking trace does not apply) and no function.
+    assert evaluation._unit(G6).verdict == me.VERDICT_NOT_APPLICABLE
+    for gate in (G6_POPULATION, G7):
+        (gap,) = [g for g in evaluation.gaps()["blocking"] if g["gate"] == gate]
+        assert "POPULATION_POLICY_VIOLATION" in gap["reason_codes"], gate
+        assert gap["what_to_author"].startswith("keep at least 1 "), gate
+        assert ("in the increment's packages named in the charter's expectedArtifacts, at any depth, and the "
+                "elements their allocations name") in gap["what_to_author"], gate
+    assert evaluation.next_obligation()["next"]["gate"] == G6_POPULATION
 
 
 def test_an_allocation_from_increment_content_outside_the_charter_packages_is_reported() -> None:
@@ -331,5 +479,27 @@ def test_the_remedy_writes_the_end_pair_of_the_subject_class() -> None:
     assert f"allocation <name> allocate {view.label(a.fn_a['@id'])} to <logicalElement>;" in function.declarations
     requirement = check_remedy(view, "allocatedTo", subject=a.constraint["@id"])
     assert any(line.startswith("action <function> : ") for line in requirement.declarations), requirement.text
+    constraint = view.label(a.constraint["@id"])
     carried = check_remedy(view, "carriedByArchitecture", subject=a.constraint["@id"])
-    assert carried.declarations[-1] == f"dependency <name> from <architecture element> to {view.label(a.constraint['@id'])};"
+    assert carried.declarations == (f"allocation <name> allocate {constraint} to <function>;",)
+    (alternative,) = [note for note in carried.notes if note.startswith("Instead of the allocation")]
+    assert alternative.endswith(f"dependency <name> from <element> to {constraint};")
+    assert f"Leaving {constraint} carried by neither is allowed" in carried.text
+
+
+def test_a_source_remedy_declares_no_new_source_and_says_none_is_allowed() -> None:
+    a = _architecture(workflow=False)
+    b = a.builder
+    view = _view(a)
+    received = check_remedy(view, "receivesAllocation", subject=a.fn_a["@id"])
+    function = view.label(a.fn_a["@id"])
+    assert received.declarations == (f"allocation <name> allocate <requirement> to {function};",)
+    assert f"Leaving {function} without one is allowed" in received.text
+    assert "declare no new <requirement> just to close the note" in received.text
+    logical_def = next(e for e in b.elements if e.get("declaredName") == "FixtureLogical")
+    logical_b = b.usage("PartUsage", "logicalB", a.scenario.needs_package, [logical_def])
+    _workflow(a)
+    gaps = _evaluate(a).gaps()
+    (note,) = [n for n in gaps["advisory"] if n["gate"] == G7B]
+    assert _diagnostics(note, "logicalB") == [
+        f"{_view(a).label(logical_b['@id'])} receives no allocatedTo allocation from an AllocatableFunction"]
