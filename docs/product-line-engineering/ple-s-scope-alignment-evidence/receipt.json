@@ -499,7 +499,7 @@
   "api_ingestion": false,
   "artifact_sha256": {
     "governed-scope-validation.json": "05bd30dce155d4ea3071858956454d1aeae17d35b3fd670e9983b8a1d50daf75",
-    "scope-alignment-elements.json": "cea32a9343e7b878088fd037b8a6a0630c624bf0d18c2de5a792191239029eba",
+    "scope-alignment-elements.json": "8fcf100c393b17fcc6e815422123908d8d1bdee71c9e06c704b188263d963b66",
     "serializer-diagnostics.txt": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
   },
   "authority_activation_authorized": false,
@@ -510,19 +510,19 @@
   "current_lock_sha256": "20bc2becc7a5590a7be077dc6d258faab9308bc796f26b0b4661238f6c7b863a",
   "evaluator": {
     "path": "de4sdv/semantic/ple_scope_alignment.py",
-    "sha256": "a258dac679d564c7bbd85c22d2b4e72d7d37c10e109be835fe05fb142bbbcd6d"
+    "sha256": "0780e4f66a3d2e8e6086ec19f895a7ba86dc51bae2713f40385fde29b25dfb16"
   },
   "executor_inputs": {
-    "de4sdv/semantic/ple_scope_alignment.py": "a258dac679d564c7bbd85c22d2b4e72d7d37c10e109be835fe05fb142bbbcd6d",
+    "de4sdv/semantic/ple_scope_alignment.py": "0780e4f66a3d2e8e6086ec19f895a7ba86dc51bae2713f40385fde29b25dfb16",
     "de4sdv/sysml_api/baseline.py": "a0978aa3907200c87da7b1e64d8e3896d62d6b85e5572fa6945be470ecc07500",
     "de4sdv/sysml_api/product_line_scope.py": "5490f4af3ced45b9e28b3697f2c0d351e04b43a7c9a448cbb381678248d27d95",
     "de4sdv/sysml_api/repository.py": "569a050472634b57a92a56439042e9c34a004aeea5eb9ee0318a834fcb9ceb64",
     "model-based-product-line-engineering/pleml-scope-alignment/aebs_product_line_scope_alignment.sysml": "23f53587e727f24aa2f24f148e2de77720bbcfa6701df57f3b0d1b4152f77dde",
-    "scripts/run_ple_qualification.py": "c78241386cba9c73951a7a31d1c3c20977161159fbeb876d9f34dea60131f603",
-    "scripts/run_ple_scope_alignment.py": "1445fc7640020dbf54a0ea7864180e0bb823bc580028c6f8e489a3180c9cd4d1",
+    "scripts/run_ple_qualification.py": "556d733237477725b0d395f45a8f29d55f0771f0e808f8d79d23cd76c99dd914",
+    "scripts/run_ple_scope_alignment.py": "f0f80c6cbbfbfb8ea30cf7924458bf1803550e8c666604293dd237ea47d280f2",
     "sysand-lock.toml": "20bc2becc7a5590a7be077dc6d258faab9308bc796f26b0b4661238f6c7b863a"
   },
-  "executor_revision": "f1da5c0c707990efeb378990b288778246b0d975",
+  "executor_revision": "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb",
   "executor_source_dirty": false,
   "expectation": {
     "expected_outcomes": {
@@ -580,11 +580,11 @@
     "mismatches": []
   },
   "experiment": {
-    "interpreter_revision": "84673ea2bca0d11b795a34afeb7584081dd24fd2",
-    "interpreter_sha256": "67400e8c8168f9e552b47a61e6d3565c46ebd0ec9a29d62c59394fd5d502e01f",
-    "library_sha256": "94ae698324f9da510d8d20fdf8e7047f51f1bccb71396745e48e84f416dc8159",
+    "interpreter_revision": "69bbe093c179f2121274b9f604c7d6a10de19e77",
+    "interpreter_sha256": "552b91798e8c2498e28e0042fadfc7349c2d130c685e80fe9312353545eafb67",
+    "library_sha256": "a89dc5c3436e3c8e5601e278f2b184e1a6d91f66a77f8616854ee0dd1abca787",
     "library_source": "external/pleml/PLEML.sysml",
-    "pleml_pin": "071a69fdb2ecfa154809913938dfe9ebdf37701b"
+    "pleml_pin": "76e2be934453d77c4094141400b8ad8eb90a54a2"
   },
   "fresh_serialization": true,
   "governed_scope_validation": {
@@ -861,14 +861,32 @@
     {
       "authority": "reviewed",
       "path": "textual-notation-of-model/packages/features/middleware/middleware_score_framing.sysml",
-      "sha256": "a5e47c3ead91f801c67483ce1adf9870bc88303e53a3708a1a0901064c774d2a",
-      "size": 21375
+      "sha256": "0f0843d219e7f71dcd3768fcd46641dd26e47dc27d84deb3c653562d2580bce9",
+      "size": 21511
+    },
+    {
+      "authority": "reviewed",
+      "path": "textual-notation-of-model/packages/features/middleware/middleware_score_functional_architecture.sysml",
+      "sha256": "08ba81c48024afe0ac0ca57856cdb9d5a013cf695c872d1042d8354a9d4e2d1d",
+      "size": 5396
+    },
+    {
+      "authority": "reviewed",
+      "path": "textual-notation-of-model/packages/features/middleware/middleware_score_logical_architecture.sysml",
+      "sha256": "1efb735feb19e94ce3156ef166a37c9e1c2cd78d6f129509fb19779959252e4e",
+      "size": 5502
+    },
+    {
+      "authority": "reviewed",
+      "path": "textual-notation-of-model/packages/features/middleware/middleware_score_needs_requirements.sysml",
+      "sha256": "eb00eb518e381c91156909963a7ff41e986483bf9c46f50efaeef34725f26452",
+      "size": 34891
     },
     {
       "authority": "reviewed",
       "path": "textual-notation-of-model/packages/features/middleware/middleware_score_operational_context.sysml",
-      "sha256": "58fce8c4b08c38a9efc7e5144df2484e812f1a12573e4651edb6d785771703c4",
-      "size": 21897
+      "sha256": "c2afc64c6aeaeeb4ed7f272b307d238f46fb77c19910c261de520721dd13a160",
+      "size": 21338
     },
     {
       "authority": "reviewed",
@@ -1035,8 +1053,8 @@
     {
       "authority": "pinned-experiment-library",
       "path": "external/pleml/PLEML.sysml",
-      "sha256": "94ae698324f9da510d8d20fdf8e7047f51f1bccb71396745e48e84f416dc8159",
-      "size": 15015
+      "sha256": "a89dc5c3436e3c8e5601e278f2b184e1a6d91f66a77f8616854ee0dd1abca787",
+      "size": 18110
     },
     {
       "authority": "experiment-model",

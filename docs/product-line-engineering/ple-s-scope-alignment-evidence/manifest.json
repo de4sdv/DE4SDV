@@ -1,8 +1,8 @@
 {
   "adoption_authorized": false,
-  "artifact_expires_at": "2026-11-17T09:33:14Z",
-  "artifact_name": "ple-scope-alignment-f1da5c0c707990efeb378990b288778246b0d975-39115737098",
-  "artifact_size_bytes": 190668,
+  "artifact_expires_at": "2026-11-17T21:43:36Z",
+  "artifact_name": "ple-scope-alignment-f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb-39169049300",
+  "artifact_size_bytes": 205675,
   "authority_activation_authorized": false,
   "binding": {
     "fresh_evidence": "needs a licensed run of the privileged scope-alignment workflow on the head under review",
@@ -16,25 +16,25 @@
   },
   "elements_export": {
     "file": "scope-alignment-elements.json",
-    "note": "1.1 MB serialized element export; not retained, digest recorded by the receipt",
+    "note": "1.3 MB serialized element export; not retained, digest recorded by the receipt",
     "retained": false,
-    "sha256": "cea32a9343e7b878088fd037b8a6a0630c624bf0d18c2de5a792191239029eba"
+    "sha256": "8fcf100c393b17fcc6e815422123908d8d1bdee71c9e06c704b188263d963b66"
   },
   "evidence": "retained",
-  "executor_revision": "f1da5c0c707990efeb378990b288778246b0d975",
+  "executor_revision": "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb",
   "files": {
-    "comparison.json": "9fc851772b3f3036a1810d0f9fc11942fbd5b4fe1ba4561609a69c92636ac294",
+    "comparison.json": "859f01acd248830dc1fe8ab11221d7eb45d0a3c3a90b94dc5ea8c9a98b9a2491",
     "governed-scope-validation.json": "05bd30dce155d4ea3071858956454d1aeae17d35b3fd670e9983b8a1d50daf75",
-    "receipt.json": "64fb81e261d2fa0d3fa1dc320ac8f9f8584c8dc8aad535eb581a8c33a5de1558"
+    "receipt.json": "53ba633c99695e5d38b96cc7a11f68097290f2ffd94943a2d1adbe03cff5f78b"
   },
   "pull_request": null,
   "qualified": false,
-  "run_id": 39115737098,
+  "run_id": 39169049300,
   "schema": "de4sdv.retained-ple-scope-alignment-evidence/v1",
   "tree_identical_to": {
     "note": "the run executed this main commit (maintainer dispatch with it as ref), not a pull-request head; the executor and the merge are the same commit",
-    "revision": "f1da5c0c707990efeb378990b288778246b0d975",
-    "tree": "7164c448a2ae534f15f543225d45c1573c5d22ea"
+    "revision": "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb",
+    "tree": "fe59155f06451deab1844f9e28d5a1d50d32c764"
   },
   "workflow": ".github/workflows/privileged-ple-scope-alignment.yml"
 }

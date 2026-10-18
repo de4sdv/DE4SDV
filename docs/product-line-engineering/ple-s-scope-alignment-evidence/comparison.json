@@ -16,7 +16,7 @@
     "configurator_sha256": "8cfcd4d9ba37f5fff43bfd653d0dbd17285a90a1da2a265232045fe5c6314623",
     "correspondence": "model-based-product-line-engineering/pleml-scope-alignment/catalogue-correspondence.yaml",
     "correspondence_sha256": "b82547f93c983dbff25df29a5bb984d4477b90f1d807d1a9b0eb36003f05ab20",
-    "executor_revision": "f1da5c0c707990efeb378990b288778246b0d975",
+    "executor_revision": "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb",
     "executor_source_dirty": false,
     "script": "scripts/compare_ple_scope_alignment.py",
     "script_sha256": "c94e6bc00de27f8ef103e55fbf0bf5d7c4b0abee465e3212ad2ba7c9c1e8835b",
@@ -26,8 +26,8 @@
     "tree_source": "git checkout"
   },
   "ple_s": {
-    "artifact": "ple-scope-alignment-f1da5c0c707990efeb378990b288778246b0d975-39115737098",
-    "evaluator_sha256": "a258dac679d564c7bbd85c22d2b4e72d7d37c10e109be835fe05fb142bbbcd6d",
+    "artifact": "ple-scope-alignment-f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb-39169049300",
+    "evaluator_sha256": "0780e4f66a3d2e8e6086ec19f895a7ba86dc51bae2713f40385fde29b25dfb16",
     "evidence": "retained",
     "executor_inputs_matching_tree": {
       "de4sdv/semantic/ple_scope_alignment.py": true,
@@ -39,19 +39,19 @@
       "scripts/run_ple_scope_alignment.py": true,
       "sysand-lock.toml": true
     },
-    "executor_revision": "f1da5c0c707990efeb378990b288778246b0d975",
+    "executor_revision": "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb",
     "executor_source_dirty": false,
     "expectation_matches": true,
     "governed_scope_sha256": "bf282c410e3c9ea1718304e3aa2c20c047f75886ee68c947a62c450e7899297a",
     "governed_scope_validation_sha256": "05bd30dce155d4ea3071858956454d1aeae17d35b3fd670e9983b8a1d50daf75",
-    "interpreter_revision": "84673ea2bca0d11b795a34afeb7584081dd24fd2",
-    "interpreter_sha256": "67400e8c8168f9e552b47a61e6d3565c46ebd0ec9a29d62c59394fd5d502e01f",
-    "library_sha256": "94ae698324f9da510d8d20fdf8e7047f51f1bccb71396745e48e84f416dc8159",
+    "interpreter_revision": "69bbe093c179f2121274b9f604c7d6a10de19e77",
+    "interpreter_sha256": "552b91798e8c2498e28e0042fadfc7349c2d130c685e80fe9312353545eafb67",
+    "library_sha256": "a89dc5c3436e3c8e5601e278f2b184e1a6d91f66a77f8616854ee0dd1abca787",
     "model_sha256": "23f53587e727f24aa2f24f148e2de77720bbcfa6701df57f3b0d1b4152f77dde",
-    "pleml_pin": "071a69fdb2ecfa154809913938dfe9ebdf37701b",
+    "pleml_pin": "76e2be934453d77c4094141400b8ad8eb90a54a2",
     "qualified": false,
-    "receipt_sha256": "64fb81e261d2fa0d3fa1dc320ac8f9f8584c8dc8aad535eb581a8c33a5de1558",
-    "run_id": "39115737098",
+    "receipt_sha256": "53ba633c99695e5d38b96cc7a11f68097290f2ffd94943a2d1adbe03cff5f78b",
+    "run_id": "39169049300",
     "serializer_version": "0.10.3",
     "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
     "workflow": ".github/workflows/privileged-ple-scope-alignment.yml"
@@ -555,9 +555,9 @@
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
           "configuration_element_id": "d913eae6-e783-5a1f-a7de-43f28a0006f3",
-          "executor_revision": "f1da5c0c707990efeb378990b288778246b0d975",
-          "receipt_sha256": "64fb81e261d2fa0d3fa1dc320ac8f9f8584c8dc8aad535eb581a8c33a5de1558",
-          "run_id": "39115737098"
+          "executor_revision": "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb",
+          "receipt_sha256": "53ba633c99695e5d38b96cc7a11f68097290f2ffd94943a2d1adbe03cff5f78b",
+          "run_id": "39169049300"
         },
         "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
         "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
@@ -1049,9 +1049,9 @@
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
           "configuration_element_id": "8fde5017-7f45-57b9-b2c6-b22f04481c82",
-          "executor_revision": "f1da5c0c707990efeb378990b288778246b0d975",
-          "receipt_sha256": "64fb81e261d2fa0d3fa1dc320ac8f9f8584c8dc8aad535eb581a8c33a5de1558",
-          "run_id": "39115737098"
+          "executor_revision": "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb",
+          "receipt_sha256": "53ba633c99695e5d38b96cc7a11f68097290f2ffd94943a2d1adbe03cff5f78b",
+          "run_id": "39169049300"
         },
         "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
         "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
@@ -1661,9 +1661,9 @@
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
           "configuration_element_id": "e4fbc3ef-74df-5fd8-8be2-fe281d23fe6e",
-          "executor_revision": "f1da5c0c707990efeb378990b288778246b0d975",
-          "receipt_sha256": "64fb81e261d2fa0d3fa1dc320ac8f9f8584c8dc8aad535eb581a8c33a5de1558",
-          "run_id": "39115737098"
+          "executor_revision": "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb",
+          "receipt_sha256": "53ba633c99695e5d38b96cc7a11f68097290f2ffd94943a2d1adbe03cff5f78b",
+          "run_id": "39169049300"
         },
         "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
         "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
@@ -2063,9 +2063,9 @@
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
           "configuration_element_id": "94afdbda-2ed2-5e7a-badd-5d681ed7ad1b",
-          "executor_revision": "f1da5c0c707990efeb378990b288778246b0d975",
-          "receipt_sha256": "64fb81e261d2fa0d3fa1dc320ac8f9f8584c8dc8aad535eb581a8c33a5de1558",
-          "run_id": "39115737098"
+          "executor_revision": "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb",
+          "receipt_sha256": "53ba633c99695e5d38b96cc7a11f68097290f2ffd94943a2d1adbe03cff5f78b",
+          "run_id": "39169049300"
         },
         "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
         "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
@@ -2539,9 +2539,9 @@
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
           "configuration_element_id": null,
-          "executor_revision": "f1da5c0c707990efeb378990b288778246b0d975",
-          "receipt_sha256": "64fb81e261d2fa0d3fa1dc320ac8f9f8584c8dc8aad535eb581a8c33a5de1558",
-          "run_id": "39115737098"
+          "executor_revision": "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb",
+          "receipt_sha256": "53ba633c99695e5d38b96cc7a11f68097290f2ffd94943a2d1adbe03cff5f78b",
+          "run_id": "39169049300"
         },
         "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
         "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
@@ -3007,9 +3007,9 @@
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
           "configuration_element_id": null,
-          "executor_revision": "f1da5c0c707990efeb378990b288778246b0d975",
-          "receipt_sha256": "64fb81e261d2fa0d3fa1dc320ac8f9f8584c8dc8aad535eb581a8c33a5de1558",
-          "run_id": "39115737098"
+          "executor_revision": "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb",
+          "receipt_sha256": "53ba633c99695e5d38b96cc7a11f68097290f2ffd94943a2d1adbe03cff5f78b",
+          "run_id": "39169049300"
         },
         "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
         "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
@@ -3490,9 +3490,9 @@
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
           "configuration_element_id": null,
-          "executor_revision": "f1da5c0c707990efeb378990b288778246b0d975",
-          "receipt_sha256": "64fb81e261d2fa0d3fa1dc320ac8f9f8584c8dc8aad535eb581a8c33a5de1558",
-          "run_id": "39115737098"
+          "executor_revision": "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb",
+          "receipt_sha256": "53ba633c99695e5d38b96cc7a11f68097290f2ffd94943a2d1adbe03cff5f78b",
+          "run_id": "39169049300"
         },
         "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
         "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
@@ -3977,9 +3977,9 @@
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
           "configuration_element_id": null,
-          "executor_revision": "f1da5c0c707990efeb378990b288778246b0d975",
-          "receipt_sha256": "64fb81e261d2fa0d3fa1dc320ac8f9f8584c8dc8aad535eb581a8c33a5de1558",
-          "run_id": "39115737098"
+          "executor_revision": "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb",
+          "receipt_sha256": "53ba633c99695e5d38b96cc7a11f68097290f2ffd94943a2d1adbe03cff5f78b",
+          "run_id": "39169049300"
         },
         "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
         "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
@@ -4427,9 +4427,9 @@
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
           "configuration_element_id": null,
-          "executor_revision": "f1da5c0c707990efeb378990b288778246b0d975",
-          "receipt_sha256": "64fb81e261d2fa0d3fa1dc320ac8f9f8584c8dc8aad535eb581a8c33a5de1558",
-          "run_id": "39115737098"
+          "executor_revision": "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb",
+          "receipt_sha256": "53ba633c99695e5d38b96cc7a11f68097290f2ffd94943a2d1adbe03cff5f78b",
+          "run_id": "39169049300"
         },
         "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
         "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
@@ -4877,9 +4877,9 @@
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
           "configuration_element_id": null,
-          "executor_revision": "f1da5c0c707990efeb378990b288778246b0d975",
-          "receipt_sha256": "64fb81e261d2fa0d3fa1dc320ac8f9f8584c8dc8aad535eb581a8c33a5de1558",
-          "run_id": "39115737098"
+          "executor_revision": "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb",
+          "receipt_sha256": "53ba633c99695e5d38b96cc7a11f68097290f2ffd94943a2d1adbe03cff5f78b",
+          "run_id": "39169049300"
         },
         "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
         "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
@@ -5327,9 +5327,9 @@
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
           "configuration_element_id": null,
-          "executor_revision": "f1da5c0c707990efeb378990b288778246b0d975",
-          "receipt_sha256": "64fb81e261d2fa0d3fa1dc320ac8f9f8584c8dc8aad535eb581a8c33a5de1558",
-          "run_id": "39115737098"
+          "executor_revision": "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb",
+          "receipt_sha256": "53ba633c99695e5d38b96cc7a11f68097290f2ffd94943a2d1adbe03cff5f78b",
+          "run_id": "39169049300"
         },
         "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
         "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
@@ -5808,9 +5808,9 @@
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
           "configuration_element_id": null,
-          "executor_revision": "f1da5c0c707990efeb378990b288778246b0d975",
-          "receipt_sha256": "64fb81e261d2fa0d3fa1dc320ac8f9f8584c8dc8aad535eb581a8c33a5de1558",
-          "run_id": "39115737098"
+          "executor_revision": "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb",
+          "receipt_sha256": "53ba633c99695e5d38b96cc7a11f68097290f2ffd94943a2d1adbe03cff5f78b",
+          "run_id": "39169049300"
         },
         "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
         "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
@@ -6291,9 +6291,9 @@
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
           "configuration_element_id": null,
-          "executor_revision": "f1da5c0c707990efeb378990b288778246b0d975",
-          "receipt_sha256": "64fb81e261d2fa0d3fa1dc320ac8f9f8584c8dc8aad535eb581a8c33a5de1558",
-          "run_id": "39115737098"
+          "executor_revision": "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb",
+          "receipt_sha256": "53ba633c99695e5d38b96cc7a11f68097290f2ffd94943a2d1adbe03cff5f78b",
+          "run_id": "39169049300"
         },
         "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
         "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
@@ -6777,9 +6777,9 @@
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
           "configuration_element_id": null,
-          "executor_revision": "f1da5c0c707990efeb378990b288778246b0d975",
-          "receipt_sha256": "64fb81e261d2fa0d3fa1dc320ac8f9f8584c8dc8aad535eb581a8c33a5de1558",
-          "run_id": "39115737098"
+          "executor_revision": "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb",
+          "receipt_sha256": "53ba633c99695e5d38b96cc7a11f68097290f2ffd94943a2d1adbe03cff5f78b",
+          "run_id": "39169049300"
         },
         "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
         "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
@@ -7214,9 +7214,9 @@
         "feature_model_sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c",
         "ple_s_receipt": {
           "configuration_element_id": null,
-          "executor_revision": "f1da5c0c707990efeb378990b288778246b0d975",
-          "receipt_sha256": "64fb81e261d2fa0d3fa1dc320ac8f9f8584c8dc8aad535eb581a8c33a5de1558",
-          "run_id": "39115737098"
+          "executor_revision": "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb",
+          "receipt_sha256": "53ba633c99695e5d38b96cc7a11f68097290f2ffd94943a2d1adbe03cff5f78b",
+          "run_id": "39169049300"
         },
         "shared_assets_sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
         "shared_assets_source_baseline": "git-blob:5271cb594699ddb3598cedd172ee5dda2e09156c:textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml (content-addressed)"
