@@ -75,10 +75,11 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * exchange of the layer that crosses the hypervisor. The host half
      * enforces REQ-MW-016 on it, and REQ-MW-019 while the guest's
      * subscription is absent; the guest half discards while the HMI
-     * application is not connected (hostRelay, someipReceiver). The guest
-     * platform, Android HLOS with the AAOS SDV middleware, and the reused HMI
-     * chain are context, with their obligations as assumptions (ASM-MW-024,
-     * ASM-MW-029). Consequences, with no claim: the trust boundary between
+     * application is not connected (hostRelay, someipReceiver). The reused
+     * HMI chain is context, with its obligations as assumptions (ASM-MW-024,
+     * ASM-MW-029); the guest platform, Android HLOS with the AAOS SDV
+     * middleware, is context too, and what the receiver needs from it is open
+     * in GAP-MW-038. Consequences, with no claim: the trust boundary between
      * host and guest lies inside the layer (GAP-MW-012), the GAP-MW-033
      * safety review sees the crossing as an internal interface, and the guest
      * image rebuild is realization work of the layer (GAP-MW-038). No element
@@ -156,7 +157,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * proxy, and it offers each frame unchanged as a SOME/IP event through
        * COVESA vsomeip 3.7.6 (commit
        * 4187431d2815bd351845a09d01aa85b2a3163cab, MPL-2.0), used unchanged as
-       * a dependency and not vendored. It is the only process on the host
+       * a dependency and not vendored. It is the only process of the layer
        * that the guest reaches, so REQ-MW-016, and REQ-MW-019 while the
        * guest's subscription is absent, are enforced here by the host's own
        * configuration and do not rely on the guest; the trust boundary to the
@@ -318,9 +319,10 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
     part hmiGuest {
       doc /*
        * The AAOS SDV guest under KVM, the display-capable sdv_ivi_cf guest of
-       * INC-AEBS-010 (ASM-MW-027). Its platform, Android HLOS with the AAOS
-       * SDV middleware, and the reused HMI chain are context, with their
-       * obligations stated as assumptions (ASM-MW-024, ASM-MW-029). Of the
+       * INC-AEBS-010 (ASM-MW-027). The reused HMI chain is context, with its
+       * obligations as assumptions (ASM-MW-024, ASM-MW-029); the guest
+       * platform, Android HLOS with the AAOS SDV middleware, is context too,
+       * and what the receiver needs from it is open in GAP-MW-038. Of the
        * layer, only the SOME/IP receiver runs here.
        */
       part os : AndroidHLOS;
