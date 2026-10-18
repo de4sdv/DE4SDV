@@ -91,11 +91,11 @@ cannot classify.
 ## PLE-R and PLE-Q status (observed, not qualified)
 
 The observed PLE-R/PLE-Q status is the privileged PLE qualification run
-`39114284825` on main at `f1da5c0c`, the commit this record's run executed
+`39167884450` on main at `f967a519`, the commit this record's run executed
 (artifact
-`ple-qualification-f1da5c0c707990efeb378990b288778246b0d975-39114284825`).
+`ple-qualification-f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb-39167884450`).
 Its three receipts (historical replay, current serialization with API
-readback, scoped probes) record the executor `f1da5c0c` with
+readback, scoped probes) record the executor `f967a519` with
 `executor_source_dirty: false` and `qualified: false` throughout; the
 historical replay and the current serialization record the six qualification
 cases as observed, not qualified: `feature-binding` and `group-shapes`
@@ -107,15 +107,18 @@ replay stays on the Gate A experiment. Three of the six cases depended on
 questions to the PLEML maintainers (the XOR constraint body, the meaning of
 two bindings on one element, and the binding-time rule); their status is in
 the table below, and PLE-S is built not to depend on them. The run
-`38780181818` on main at `03f7fd22` (artifact
-`ple-qualification-03f7fd22137ad8caaba8dc3d1006c308164f62a1-38780181818`)
-recorded the same six case statuses at the Gate A pin `5f8ab856` and is kept
-as history. The earlier runs `37410659181` (`e37c7f1`, 2026-10-06) and
-`38755211223` (`60847add`, 2026-10-15) are superseded history: the same case
-statuses, but receipts with `executor_source_dirty: true` because the frozen
-experiment checkout and the API log sat inside the executor checkout, the
-defect #375 fixed. No formal PLE-R or PLE-Q disposition is recorded on main;
-PLE-S proceeds on this observed status (owner decision D0).
+`39114284825` on main at `f1da5c0c` (artifact
+`ple-qualification-f1da5c0c707990efeb378990b288778246b0d975-39114284825`)
+recorded the same six case statuses at PLEML 1.0.0, and the run `38780181818`
+on main at `03f7fd22` (artifact
+`ple-qualification-03f7fd22137ad8caaba8dc3d1006c308164f62a1-38780181818`) at
+the Gate A pin `5f8ab856`; both are kept as history. The earlier runs
+`37410659181` (`e37c7f1`, 2026-10-06) and `38755211223` (`60847add`,
+2026-10-15) are superseded history: the same case statuses, but receipts with
+`executor_source_dirty: true` because the frozen experiment checkout and the
+API log sat inside the executor checkout, the defect #375 fixed. No formal
+PLE-R or PLE-Q disposition is recorded on main; PLE-S proceeds on this
+observed status (owner decision D0).
 
 **PLEML 1.1.0.** The PLE workflows read the frozen experiment at PLEML 1.1.0:
 revision `69bbe093` (tag `pleml-1.1.0-frozen`), a child of the experiment at
@@ -137,11 +140,10 @@ the check verified. Before the tag, a licensed scratch check (run
 passed the Gate A path. The historical replay and the prior of the fresh
 serialization stay on the Gate A experiment, which produced the retained
 export. The run above and the run this record retains (below) read PLEML
-1.0.0, from the experiment `84673ea2` with the submodule at `071a69fd`; the
-PLE-Q and PLE-S runs on PLEML 1.1.0 come after this re-pin, and the record is
-refreshed from them. The run
-`38780181818` and the record's previous run `38788579272` describe the Gate A
-pin `5f8ab856`.
+1.1.0. The PLE-Q run `39114284825` and the record's previous run
+`39115737098` read PLEML 1.0.0, from the experiment `84673ea2` with the
+submodule at `071a69fd`; the run `38780181818` and the record's earlier run
+`38788579272` describe the Gate A pin `5f8ab856`.
 
 ### Dependence on the upstream questions
 
@@ -249,7 +251,7 @@ excluded element, so the `excluded` classification is defined but has no row.
 
 ### Classified table (retained)
 
-PLE-S receipt: `retained` evidence of run `39115737098` at executor `f1da5c0c707990efeb378990b288778246b0d975` (artifact `ple-scope-alignment-f1da5c0c707990efeb378990b288778246b0d975-39115737098`); receipt SHA-256 `64fb81e261d2fa0d3fa1dc320ac8f9f8584c8dc8aad535eb581a8c33a5de1558`; model `23f53587e727f24aa2f24f148e2de77720bbcfa6701df57f3b0d1b4152f77dde`; evaluator `a258dac679d564c7bbd85c22d2b4e72d7d37c10e109be835fe05fb142bbbcd6d`; PLEML pin `071a69fdb2ecfa154809913938dfe9ebdf37701b`; library `94ae698324f9da510d8d20fdf8e7047f51f1bccb71396745e48e84f416dc8159`; serializer `0.10.3`; qualified: false.
+PLE-S receipt: `retained` evidence of run `39169049300` at executor `f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb` (artifact `ple-scope-alignment-f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb-39169049300`); receipt SHA-256 `53ba633c99695e5d38b96cc7a11f68097290f2ffd94943a2d1adbe03cff5f78b`; model `23f53587e727f24aa2f24f148e2de77720bbcfa6701df57f3b0d1b4152f77dde`; evaluator `0780e4f66a3d2e8e6086ec19f895a7ba86dc51bae2713f40385fde29b25dfb16`; PLEML pin `76e2be934453d77c4094141400b8ad8eb90a54a2`; library `a89dc5c3436e3c8e5601e278f2b184e1a6d91f66a77f8616854ee0dd1abca787`; serializer `0.10.3`; qualified: false.
 
 | Case | Operational input | Valid under current tool | Admitted by governed scope | PLE-S outcome | Difference class |
 |---|---|---|---|---|---|
@@ -342,9 +344,9 @@ Classes: equal: standalone-member; intentional-scope: ug-09-eclipse-score, ug-09
   C001 under the tool and is not admitted because of reference-only content;
   the two fields are independent.
 
-The table is the **retained** comparison of run `39115737098` at
-`f1da5c0c707990efeb378990b288778246b0d975`, the main commit the run executed
-(the merge of #385, dispatched as `ref`; no pull-request head); the retained
+The table is the **retained** comparison of run `39169049300` at
+`f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb`, the main commit the run executed
+(the merge of #391, dispatched as `ref`; no pull-request head); the retained
 files and their manifest are in
 [`ple-s-scope-alignment-evidence/`](ple-s-scope-alignment-evidence/README.md).
 The record is **retained, bound to its own revision**: the commit that last
@@ -387,7 +389,7 @@ tree it is compared with. Both carry `qualified: false`.
 - **Retained record:**
   [`ple-s-scope-alignment-evidence/`](ple-s-scope-alignment-evidence/README.md)
   keeps the receipt, the governed-scope validation and the comparison of run
-  `39115737098` with a manifest of digests. It is retained evidence of that
+  `39169049300` with a manifest of digests. It is retained evidence of that
   run, bound to the record's own revision and verified there by CI;
   historical, not failing, once the files it was produced from move; fresh
   evidence of a later head needs a licensed run, and the oracle refuses a
@@ -408,12 +410,13 @@ tree it is compared with. Both carry `qualified: false`.
   are verified against the reviewed digest. An element file replays only with
   the experiment it records: the runner refuses another one and names the
   file's executor revision. Replay it at a revision that pins its experiment:
-  the element file of the retained run `39115737098` records the PLEML 1.0.0
-  experiment and replays on main from `f1da5c0c` until the PLEML 1.1.0 re-pin,
-  such as `2a9a1c81`; the element file of the
-  previous run `38788579272` records the Gate A experiment and replays on main
-  before PLEML 1.0.0, such as `099d33e6`. Replay evidence is not fresh
-  serialization and says so.
+  the element file of the retained run `39169049300` records the PLEML 1.1.0
+  experiment and replays at `f967a519` or later; the element file of the
+  previous run `39115737098` records the PLEML 1.0.0 experiment and replays on
+  main from `f1da5c0c` until the PLEML 1.1.0 re-pin, such as `2a9a1c81`; the
+  element file of the earlier run `38788579272` records the Gate A experiment
+  and replays on main before PLEML 1.0.0, such as `099d33e6`. Replay evidence
+  is not fresh serialization and says so.
 - **Unlicensed checks (public CI):** `tests/test_ple_scope_alignment_model.py`
   (boundary fence, textual shape, every qualified reference resolvable in
   its source), `tests/test_ple_scope_alignment_evaluator.py` (the evaluator on

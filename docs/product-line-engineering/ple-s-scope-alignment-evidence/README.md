@@ -28,20 +28,20 @@ retained record does not gate production pull requests.)
 | `manifest.json` | this record | the identity and digests that bind the three files to the run, the artifact and the merge tree, and the binding rule above |
 
 The serialized element export of the run (`scope-alignment-elements.json`,
-1.1 MB) is not retained; `manifest.json` records its digest, which the receipt
+1.3 MB) is not retained; `manifest.json` records its digest, which the receipt
 also carries, so a copy can be verified. Offline replay of the evaluation needs
 that export (`scripts/run_ple_scope_alignment.py --replay`), not this record.
 
 ## Identity
 
-- Run `39115737098` of `.github/workflows/privileged-ple-scope-alignment.yml`
-  on the main commit `f1da5c0c707990efeb378990b288778246b0d975`, the merge of
-  #385, by maintainer dispatch with that commit as `ref`. The run executed a
+- Run `39169049300` of `.github/workflows/privileged-ple-scope-alignment.yml`
+  on the main commit `f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb`, the merge of
+  #391, by maintainer dispatch with that commit as `ref`. The run executed a
   main commit, not a pull-request head, so the executor and the merge are the
   same commit; `tests/test_ple_scope_alignment_oracle.py` verifies its tree
-  from Git. The receipt is at PLEML 1.0.0: the frozen experiment `84673ea2`
-  (tag `pleml-1.0.0-frozen`) with the PLEML pin `071a69fd`.
-- Artifact `ple-scope-alignment-f1da5c0c707990efeb378990b288778246b0d975-39115737098`,
+  from Git. The receipt is at PLEML 1.1.0: the frozen experiment `69bbe093`
+  (tag `pleml-1.1.0-frozen`) with the PLEML pin `76e2be93`.
+- Artifact `ple-scope-alignment-f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb-39169049300`,
   expiring on 2026-11-17 (30-day retention). The receipt in this directory is
   the artifact's `scope-alignment/receipt.json`, byte for byte.
 - The receipt says `qualified: false`, `adoption_authorized: false` and
@@ -49,7 +49,7 @@ that export (`scripts/run_ple_scope_alignment.py --replay`), not this record.
 - `comparison.json` is content-addressed: it carries the digests of the
   catalogue, the configurator, the shared-asset superset, the correspondence
   and the oracle script it was produced with. Its `oracle.executor_revision`
-  is the commit it was produced at (here `f1da5c0c`, from a clean checkout)
+  is the commit it was produced at (here `f967a519`, from a clean checkout)
   and is informational; the content digests are authoritative. The
   reproduction ignores the oracle's own identity fields
   (`executor_revision`, `executor_source_dirty`, `tree_source`, `script`,
@@ -92,8 +92,8 @@ python scripts/compare_ple_scope_alignment.py \
   --root /tmp/ple-s-record --revision "$revision" \
   --receipt /tmp/ple-s-record/docs/product-line-engineering/ple-s-scope-alignment-evidence/receipt.json \
   --governed-scope /tmp/ple-s-record/docs/product-line-engineering/ple-s-scope-alignment-evidence/governed-scope-validation.json \
-  --evidence retained --run-id 39115737098 \
-  --artifact ple-scope-alignment-f1da5c0c707990efeb378990b288778246b0d975-39115737098 \
+  --evidence retained --run-id 39169049300 \
+  --artifact ple-scope-alignment-f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb-39169049300 \
   --out /tmp/ple-s-record-check/out
 ```
 

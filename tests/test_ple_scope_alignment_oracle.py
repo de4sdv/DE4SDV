@@ -40,9 +40,9 @@ ROOT = Path(__file__).resolve().parents[1]
 RECORD_DIR = Path("docs/product-line-engineering/ple-s-scope-alignment-evidence")
 DOC = ROOT / "docs/product-line-engineering/ple-s-scope-alignment.md"
 CORRESPONDENCE = ROOT / oracle.CORRESPONDENCE
-EXECUTOR = "f1da5c0c707990efeb378990b288778246b0d975"
-MERGE = "f1da5c0c707990efeb378990b288778246b0d975"
-RUN_ID = "39115737098"
+EXECUTOR = "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb"
+MERGE = "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb"
+RUN_ID = "39169049300"
 ARTIFACT = f"ple-scope-alignment-{EXECUTOR}-{RUN_ID}"
 #: What the oracle reads of a tree, extracted from the record's revision.
 RECORD_TREE = (
@@ -400,7 +400,7 @@ def test_ug14_every_row_carries_the_projection_digests_and_the_receipt_identity(
     shared = oracle.sha256_of(record.root / oracle.SHARED_ASSETS)
     identity = comparison["ple_s"]
     assert identity["artifact"] == ARTIFACT and identity["evidence"] == "retained"
-    assert identity["pleml_pin"] == "071a69fdb2ecfa154809913938dfe9ebdf37701b"
+    assert identity["pleml_pin"] == "76e2be934453d77c4094141400b8ad8eb90a54a2"
     assert HEX64.fullmatch(identity["model_sha256"]) and HEX64.fullmatch(identity["library_sha256"])
     for row in comparison["rows"]:
         provenance = row["provenance"]
@@ -427,7 +427,7 @@ def test_the_receipt_identity_is_bound_to_the_record_tree_content(comparison, re
     assert identity["evaluator_sha256"] == oracle.sha256_of(record.root / oracle.EVALUATOR)
     assert identity["governed_scope_sha256"] == oracle.sha256_of(record.root / oracle.SCOPE)
     assert identity["shared_assets_sha256"] == oracle.sha256_of(record.root / oracle.SHARED_ASSETS)
-    assert identity["interpreter_revision"] == "84673ea2bca0d11b795a34afeb7584081dd24fd2"
+    assert identity["interpreter_revision"] == "69bbe093c179f2121274b9f604c7d6a10de19e77"
     assert identity["executor_inputs_matching_tree"][oracle.MODEL.as_posix()] is True
     assert identity["qualified"] is False and identity["expectation_matches"] is True
 
