@@ -1,6 +1,7 @@
 """Qualification observations never imply adoption or constraint execution."""
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import importlib
 import importlib.util
@@ -612,16 +613,21 @@ def _commit(path, *args):
                           cwd=path, check=True, capture_output=True, text=True).stdout.strip()
 
 
-def _scratch_experiment(tmp_path, identity):
+def _scratch_experiment(tmp_path, identity, *, extra_library=None):
     """A scratch experiment checkout with an identity's interpreter and fixture and a library submodule.
 
     Returns the checkout and the identity of the scratch commits (same layout and
     digests, scratch revisions), so load_experiment runs without the network.
+    ``extra_library`` adds a second library file at another submodule path.
     """
     library_repository = tmp_path / "library"
     library_path = Path(identity.library).relative_to("external/pleml")
     (library_repository / library_path).parent.mkdir(parents=True)
     (library_repository / library_path).write_text("library package Scratch;\n")
+    if extra_library is not None:
+        extra = library_repository / Path(extra_library).relative_to("external/pleml")
+        extra.parent.mkdir(parents=True, exist_ok=True)
+        extra.write_text("library package ScratchElsewhere;\n")
     _commit(tmp_path, "init", "-q", str(library_repository))
     _commit(library_repository, "add", ".")
     _commit(library_repository, "commit", "-q", "-m", "library")
@@ -663,13 +669,145 @@ def test_load_experiment_verifies_the_identity_it_is_given(tmp_path, name):
 
 
 def test_load_experiment_refuses_an_interpreter_that_reads_another_library_path(tmp_path):
-    """The Gate A interpreter in a PLEML 1.0.0 layout reads a library path the identity does not name."""
+    """The Gate A interpreter in a PLEML 1.0.0 layout reads the old library path, which the identity does not name.
+
+    Both library files exist, so the interpreter's own source check passes and
+    only the runner's manifest check can refuse.
+    """
     r = runner()
-    experiment, identity = _scratch_experiment(tmp_path, r.PLEML_1_0_0)
+    experiment, identity = _scratch_experiment(tmp_path, r.PLEML_1_0_0, extra_library=r.GATE_A.library)
     gate_a_bytes = _git_object("show", f"{r.GATE_A.revision}:tools/pleml_gate_a.py")
     (experiment / "tools/pleml_gate_a.py").write_bytes(gate_a_bytes)
     _commit(experiment, "commit", "-q", "-am", "gate a interpreter in the 1.0.0 layout")
     mixed = identity._replace(revision=_commit(experiment, "rev-parse", "HEAD"),
                               interpreter_sha256=r.GATE_A.interpreter_sha256)
-    with pytest.raises((ValueError, RuntimeError)):
+    with pytest.raises(ValueError, match="the experiment interpreter reads other sources than the reviewed identity"):
         r.load_experiment(experiment, mixed)
+
+
+# -- the runner end to end, offline: both arms with scratch experiments --------------------
+#
+# GATE_A and CURRENT are replaced by scratch experiments that carry the real
+# interpreters and fixture. Only Syside and the API are faked: the "fresh
+# serialization" is the committed Gate A export with the library label moved to
+# the 1.0.0 path (label-only), never a PLEML 1.0.0 serialization or evidence.
+# The executor's own source verification is covered by the licensed runs; it is
+# switched off here so these tests pin the experiment wiring only.
+
+
+@dataclasses.dataclass(frozen=True)
+class _OfflineImport:
+    project_id: str
+    commit_id: str
+    element_count: int
+    internal_reference_count: int
+    content_sha256: str
+
+
+def _offline_runner(tmp_path, monkeypatch, *, move_prior=False):
+    from de4sdv.sysml_api.baseline import BaselineExportBundle, build_export_bundle
+
+    r = runner()
+    gate_a_checkout, gate_a = _scratch_experiment(tmp_path / "gate-a", r.GATE_A)
+    current_checkout, current = _scratch_experiment(tmp_path / "current", r.PLEML_1_0_0)
+    monkeypatch.setattr(r, "GATE_A", gate_a)
+    monkeypatch.setattr(r, "CURRENT", current)
+    monkeypatch.setattr(r, "EXECUTOR_INPUTS", ())
+    _, gate_a_manifest, _ = r.load_experiment(gate_a_checkout, gate_a)
+    export_path, raw = _committed_export(tmp_path)
+    raw = dict(raw, git_commit=gate_a.revision, source_manifest=gate_a_manifest,
+               gate_a_identity=dict(raw["gate_a_identity"], git_commit=gate_a.revision, pleml_commit=gate_a.pleml_pin))
+    export_path.write_text(json.dumps(raw))
+    seen = {}
+
+    def serialize(root, manifest, revision):
+        seen.update(root=root, revision=revision, manifest=[entry["path"] for entry in manifest])
+        if move_prior:  # the Gate A checkout moves while the fresh arm runs
+            interpreter = gate_a_checkout / "tools/pleml_gate_a.py"
+            interpreter.write_bytes(interpreter.read_bytes() + b"\n# moved during the run\n")
+        documents = {}
+        for element in raw["elements"]:
+            label = raw["element_sources"][element["@id"]]
+            documents.setdefault(current.library if label == gate_a.library else label, []).append(element)
+        bundle = build_export_bundle(git_commit=revision, source_documents=documents).to_dict()
+        bundle["source_manifest"] = manifest
+        return BaselineExportBundle.from_dict(bundle), r.SERIALIZER_VERSION
+
+    class Client:
+        def __init__(self, url):
+            seen["api_url"] = url
+
+        def get_all(self, path):
+            return [seen["bundle"].elements[key] for key in sorted(seen["bundle"].elements)]
+
+    def import_baseline(client, bundle, project_name):
+        seen["bundle"] = bundle
+        return _OfflineImport("offline-project", "offline-commit", len(bundle.elements), 0, "offline")
+
+    monkeypatch.setattr(r, "serialize", serialize)
+    monkeypatch.setattr(r, "ApiClient", Client)
+    monkeypatch.setattr(r, "import_baseline", import_baseline)
+    head = _commit(ROOT, "rev-parse", "HEAD")
+    args = SimpleNamespace(out=tmp_path / "out/receipt.json", experiment=current_checkout,
+                           historical_experiment=gate_a_checkout, historical_export=export_path,
+                           api_url="http://127.0.0.1:9000", expected_executor=head)
+    return r, args, gate_a, current, seen
+
+
+def test_the_fresh_arm_serializes_the_current_experiment_against_the_gate_a_prior(tmp_path, monkeypatch):
+    r, args, gate_a, current, seen = _offline_runner(tmp_path, monkeypatch)
+    receipt = r.run(args)
+    # The current experiment is the one serialized, at its own revision.
+    assert seen["root"] == args.experiment.resolve() and seen["revision"] == current.revision
+    assert seen["manifest"] == [FIXTURE, current.library]
+    assert json.loads((args.out.parent / "export.json").read_text())["git_commit"] == current.revision
+    assert (receipt["binding"]["model_revision"], receipt["binding"]["pleml_pin"]) == (current.revision, current.pleml_pin)
+    identity = receipt["source_identity"]
+    assert (identity["interpreter_revision"], identity["interpreter_sha256"], identity["pleml_pin"],
+            identity["library_sha256"]) == (current.revision, current.interpreter_sha256, current.pleml_pin,
+                                            current.library_sha256)
+    # The prior is the Gate A experiment's, and the receipt says which interpreter read it.
+    assert identity["historical_interpreter"] == {"interpreter_revision": gate_a.revision,
+                                                  "interpreter_sha256": gate_a.interpreter_sha256,
+                                                  "pleml_pin": gate_a.pleml_pin}
+    assert identity["historical_export_revision"] == gate_a.revision
+    assert receipt["differences"] == []
+    assert {case["case"]: (case["status"], case["inadequate_concepts"]) for case in receipt["cases"]} == GATE_A_CASES
+    assert receipt["historical"] is False and receipt["fresh_serialization"] is True and receipt["qualified"] is False
+
+
+def test_the_historical_replay_runs_the_gate_a_experiment_on_its_own_export(tmp_path, monkeypatch):
+    r, args, gate_a, current, seen = _offline_runner(tmp_path, monkeypatch)
+    replay = SimpleNamespace(out=tmp_path / "replay/historical-replay.json", experiment=args.historical_experiment,
+                             historical_experiment=None, historical_export=args.historical_export,
+                             api_url=None, expected_executor=None)
+    receipt = r.run(replay)
+    assert seen == {}, "the historical replay serializes nothing and reaches no API"
+    identity = receipt["source_identity"]
+    assert (identity["interpreter_revision"], identity["pleml_pin"]) == (gate_a.revision, gate_a.pleml_pin)
+    # The historical-replay receipt keeps the shape of run 38780181818.
+    assert set(identity) == {"current_lock_sha256", "executor_revision", "executor_source_dirty", "fixture_sha256",
+                             "historical_export_revision", "historical_export_sha256", "interpreter_revision",
+                             "interpreter_sha256", "library_sha256", "pleml_pin"}
+    assert receipt["historical"] is True and receipt["fresh_serialization"] is False
+    assert receipt["differences"] == []
+    assert {case["case"]: (case["status"], case["inadequate_concepts"]) for case in receipt["cases"]} == GATE_A_CASES
+
+
+def test_the_fresh_arm_refuses_when_the_gate_a_checkout_moves_during_the_run(tmp_path, monkeypatch):
+    r, args, _, _, _ = _offline_runner(tmp_path, monkeypatch, move_prior=True)
+    with pytest.raises(ValueError, match="source differs from recorded Git object: tools/pleml_gate_a.py"):
+        r.run(args)
+    assert not args.out.exists()
+
+
+@pytest.mark.parametrize("experiment, historical_experiment", [
+    ("historical_experiment", "experiment"), ("historical_experiment", "historical_experiment"),
+    ("experiment", "experiment")])
+def test_the_fresh_arm_refuses_swapped_or_doubled_experiments(tmp_path, monkeypatch, experiment, historical_experiment):
+    r, args, _, _, _ = _offline_runner(tmp_path, monkeypatch)
+    swapped = SimpleNamespace(**{**vars(args), "experiment": getattr(args, experiment),
+                                 "historical_experiment": getattr(args, historical_experiment)})
+    with pytest.raises(ValueError, match="not the frozen reviewed revision|requires the Gate A interpreter"):
+        r.run(swapped)
+    assert not args.out.exists()
