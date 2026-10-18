@@ -57,9 +57,12 @@ this shape, which the method checks read:
   advisory check reports a package that holds increment content but is not
   named: the increment usage itself, elements connected by `DerivesFromNeed`
   to an element in scope, verification cases that verify an in-scope
-  requirement, requirements verified by an in-scope verification case, and
-  elements that reference the increment usage (a reference to any other
-  increment element does not count).
+  requirement, requirements verified by an in-scope verification case,
+  allocations from an element of the named packages, and elements that
+  reference the increment usage (a reference to any other increment element
+  does not count). The architecture checks of phases 6 to 8 also count what
+  those packages own at any depth and the elements their allocations name
+  (rule 12).
 - **System of interest:** the charter names it by reference to a usage,
   `ref part :>> systemOfInterest = <usage>;`, such as the test system or the
   product line the increment specifies, or by type,
@@ -128,8 +131,8 @@ These method rules apply to every increment:
    one verification case.
 7. **Advisory, not blocking.** The requirement's success criteria, evidence
    record or status, the subject of needs and requirements being the system
-   of interest, and the expected artifacts naming every package that holds
-   increment content.
+   of interest, the expected artifacts naming every package that holds
+   increment content, and the architecture traces rule 12 marks advisory.
 8. **Principle.** Structural checks block; judgment checks (wording,
    verifiability) are advisory.
 9. **Operational context and story (phase 2).** A member product's
@@ -166,6 +169,30 @@ These method rules apply to every increment:
     count). The report never blocks a phase; whether such an element
     carries a decision, assumption or gap stays the reviewer's judgment.
     The Method Check does not produce this report yet.
+12. **Allocation chain (phases 6 to 8).** Each functional requirement of the
+    increment (`FunctionalRequirementCandidate`) is allocated to at least one
+    function, each function of the increment to at least one logical
+    element, and each logical element of the increment to at least one
+    physical element. The trace is the `allocatedTo` relation: a native
+    `allocation ... allocate <source> to <target>;`, typed or not, whose
+    ends ground in one of its three end pairs. An end written as a feature
+    chain (`a.b`) counts as its last feature; plain dependencies don't count.
+    The increment's functions, logical and physical elements are the usages
+    of `AllocatableFunction`, `LogicalAllocationElement` and
+    `PhysicalAllocationElement` its packages own at any depth, plus the
+    elements its own allocations name, so a reused baseline element enters
+    through the increment's allocation and its baseline chain is read where
+    it is. A declared phase 7 or 8 without any such element blocks. Advisory:
+    every other requirement is allocated to a function or named as relevant
+    by an architecture element (`hasRelevantArchitecture`: a dependency from
+    a part or action usage or definition to it); one that is neither is
+    reported as carried by no architecture element, which only its
+    verification (rule 6) covers. Also advisory: each function, logical and
+    physical element of the increment receives an allocation from the layer
+    before it. An allocation assigns responsibility only: it claims no
+    satisfaction, realization, transitivity, deployment or execution. The
+    flows, states, exchanges and interfaces of these phases, and phase 8's
+    signal-mapping and realization-readiness controls below, stay with review.
 
 [`DE4SDV_IncrementWorkflow`](../../textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml)
 models this workflow in the style of the SYSMOD default process. The
@@ -179,8 +206,9 @@ The checks of these rules are `MethodCheck` metadata inside the step
 definitions, one check per rule clause, each about the step parameter it
 constrains. The check identifier names the evaluation, an unknown identifier
 fails closed, and `advisory = true` marks the advisory checks. The increment
-framing, needs, requirements, and V&V and evidence steps carry checks so far.
-Rules 9 and 10 have no check yet: the operational-context and
+framing, needs, requirements, functional, logical and physical architecture,
+and V&V and evidence steps carry checks so far. Rules 9 and 10 have no check
+yet: the operational-context and
 capability-classification steps state them in their documentation, which the
 method tools report with each step. Rule 11 is a report over the whole scope,
 not a check of one step. Declaring a check is not evaluating it, and no check

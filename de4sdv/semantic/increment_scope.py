@@ -28,7 +28,9 @@ relationships only:
   without exactly one top-level package leaves the scope unresolved (a
   problem), never narrower. Nothing else puts an element in scope: neither
   a subject typed by the increment nor a ``references`` to the increment
-  usage;
+  usage. The scope closure (:func:`scope_closure`) adds what those packages
+  own at any depth, parameters and connector ends aside: the elements a step
+  parameter typed by an architecture class counts;
 - the increment's system of interest: the usages the charter references in
   ``systemOfInterest`` (optional), the entity the increment's needs and
   requirements take as subject, and the definitions typing them.
@@ -45,6 +47,7 @@ from typing import Any, Iterable, Mapping, Sequence
 
 from de4sdv.sysml_api.errors import IdentityNotFoundError
 from de4sdv.sysml_api.qualified_names import QualifiedNameIndex
+from de4sdv.sysml_api.repository import reference_ids
 
 from .revision_index import RevisionIndex
 
@@ -390,6 +393,46 @@ def _package_contents(view: ModelView, package: str) -> list[str]:
             if str(view.index.element(member).get("@type")) in _PACKAGE_TYPES:
                 frontier.append(member)
     return found
+
+
+#: Memberships whose member is a parameter or a connector end, never an element of the increment.
+_PARAMETER_MEMBERSHIPS = ("ParameterMembership", "SubjectMembership", "ActorMembership", "StakeholderMembership",
+                          "ReturnParameterMembership", "EndFeatureMembership")
+
+
+def ordered(view: ModelView, identifiers: Sequence[str]) -> tuple[str, ...]:
+    """Distinct identifiers in the corpus-order-independent order the scope uses."""
+    return _ordered(view, identifiers)
+
+
+def scope_closure(view: ModelView, scope: IncrementScope) -> tuple[str, ...]:
+    """Every element the charter's packages own at any depth: nested packages, usages, definitions
+    and the features they own, except parameters and connector ends (and what those own).
+
+    The scope (:attr:`IncrementScope.scope_elements`) holds what the packages own directly; this
+    closure also holds, for example, the action features of a functional-flow definition and the
+    parts of a logical system's definition, which a step parameter typed by an architecture class
+    counts. Built once per corpus and package set.
+    """
+    packages = tuple(scope.scope_packages)
+
+    def build() -> tuple[str, ...]:
+        index = view.index
+        found: list[str] = []
+        frontier, seen = list(packages), set(packages)
+        while frontier:
+            current = frontier.pop()
+            for relationship in index.owned_relationships(current):
+                if str(relationship.get("@type") or "") in _PARAMETER_MEMBERSHIPS:
+                    continue
+                for member in reference_ids(relationship.get("ownedRelatedElement")):
+                    if member in index.by_id and member not in seen:
+                        seen.add(member)
+                        found.append(member)
+                        frontier.append(member)
+        return _ordered(view, found)
+
+    return view.index.memo(("scope-closure", packages), build)
 
 
 def declared_artifacts(view: ModelView, charter: str) -> tuple[list[str], list[str]]:

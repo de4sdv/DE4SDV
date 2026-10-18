@@ -34,6 +34,12 @@ No element is identified by its name. Member names (`workflow`, `phase`,
   that rule until a model change removes the redundancy. Content in a package
   the charter does not name is never evaluated;
   `charterExpectedArtifactsCoverContent` reports such a package (advisory).
+  A parameter typed by a function, logical or physical element class (the
+  architecture steps of phases 6 to 8) also counts what those packages own
+  at any depth, such as the actions of a functional-flow definition or the
+  parts of a logical system's definition, and the elements the increment's
+  own allocations name: a reused baseline function enters through the
+  increment's allocation, and its baseline chain is read where it is.
 - **Subject.** Needs and requirements take the increment's system of interest
   as subject, the one the charter declares in `systemOfInterest` by
   reference to a usage or by type, never the increment. A subject matches
@@ -153,9 +159,33 @@ of an untyped parameter, not a model element (`subject_type_kind` is
 - **Relations.** A check that names a relation is decided by the relation check
   of that name in `de4sdv/semantic/relation_checks.py`: a relation of the
   model-built contract through the production traversal (a connection-carried
-  relation from the connections of its pinned carrier), and the native SysML
-  relations `frame`, `stakeholder`, `subject` and `verify` from their
-  memberships. A relation check reads only the model, never method fields.
+  relation from the connections of its pinned carrier, and `allocatedTo` from
+  the ends of every native allocation), and the native SysML relations
+  `frame`, `stakeholder`, `subject` and `verify` from their memberships. A
+  relation check reads only the model, never method fields.
+- **Allocations (phases 6 to 8).** `allocatedTo` counts an
+  `allocation <name> allocate <source> to <target>;`, typed or not, when its
+  two ends ground in one end pair: requirement to function, function to
+  logical element, logical element to physical element (the
+  `AllocatableFunction`, `LogicalAllocationElement` and
+  `PhysicalAllocationElement` lineages). An end written as a feature chain
+  (`fixtureFlow.fnA`) counts as its last feature; a plain dependency is
+  reported as a near miss, never as the trace. So, for the first open check
+  of each phase:
+
+  ```sysml
+  private import DE4SDV_TraceVocabulary::AllocatableFunction;
+  action <function> : <a definition specializing AllocatableFunction>;
+  allocation <name> allocate <functional requirement> to <function>;
+  allocation <name> allocate <function> to <logical element>;
+  allocation <name> allocate <logical element> to <physical element>;
+  ```
+
+  The other end may be an existing element, of the increment or a baseline.
+  A requirement that is not functional needs no function: it is carried
+  either by an allocation or by a dependency from the part or action usage
+  or definition that is relevant to it (`hasRelevantArchitecture`); one with
+  neither is an advisory note, covered by its verification only.
 - **Method side versus model.** Some inputs only a method or kernel change can
   supply, for example a declaration without a validated kernel identity or a
   relation without a SysML mapping. Those checks are listed under

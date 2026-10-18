@@ -34,12 +34,17 @@ package DE4SDV_IncrementWorkflow {
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_ProductLine::ProductLineFeatureCandidate;
+  private import DE4SDV_TraceVocabulary::AllocatableFunction;
+  private import DE4SDV_TraceVocabulary::LogicalAllocationElement;
+  private import DE4SDV_TraceVocabulary::PhysicalAllocationElement;
 
   metadata def MethodCheck {
     doc /* A method rule about one parameter of a step definition. Its subjects are
          * the increment's elements that conform to that parameter's type and scope;
          * their number must lie within the parameter's multiplicity, and an empty
-         * population with lower bound 0 means the check does not apply. Principle:
+         * population with lower bound 0 means the check does not apply. A parameter
+         * typed by a function, logical or physical element class counts the scope at
+         * any depth and the elements the increment's own allocations name. Principle:
          * structural checks block; judgment checks (wording, verifiability) are advisory. */
     attribute check : String {
       doc /* Check identifier in the evaluation registry; an unknown identifier fails closed. */
@@ -206,8 +211,9 @@ package DE4SDV_IncrementWorkflow {
       doc /* Advisory: the expected artifacts name every top-level package holding increment content:
            * the increment usage, elements connected by DerivesFromNeed to an element in scope,
            * verification cases verifying an in-scope requirement, requirements verified by an
-           * in-scope verification case, and elements referencing the increment usage. Content in a
-           * package they do not name is never evaluated. No completeness claim. */
+           * in-scope verification case, allocations from an element in scope, and elements
+           * referencing the increment usage. Content in a package they do not name is never
+           * evaluated. No completeness claim. */
       :>> check = "charterExpectedArtifactsCoverContent";
       :>> advisory = true;
     }
@@ -328,24 +334,80 @@ package DE4SDV_IncrementWorkflow {
   }
 
   action def DefineFunctionalArchitecture :> IncrementStep {
-    doc /* What functions, flows, states, and interfaces are needed? */
+    doc /* What functions, flows, states, and interfaces are needed? Rules: each
+         * functional requirement of the increment is allocated to at least one
+         * function by a native allocation (allocatedTo); plain dependencies do not
+         * count. Advisory: every other requirement is allocated to a function or
+         * named as relevant by an architecture element (hasRelevantArchitecture), or
+         * it is reported as covered by verification only; each function carries a
+         * requirement. The increment's functions are the AllocatableFunction usages
+         * its packages own at any depth and the functions its own allocations name.
+         * An allocation assigns responsibility only; flows, states and interfaces are
+         * not checked. */
     attribute :>> phase = MethodPhase::phase6_functionalArchitecture;
     in requirement requirements[0..*] : RequirementCandidate;
-    out action functions[1..*];
+    in requirement functionalRequirements[0..*] : FunctionalRequirementCandidate;
+    out action functions[1..*] : AllocatableFunction;
+
+    metadata functionalRequirementAllocatedToFunction : MethodCheck about functionalRequirements {
+      doc /* Each functional requirement of the increment is allocated to at least one function; a responsibility assignment only, no satisfaction, realization or verification claim. */
+      :>> check = "allocatedTo";
+    }
+    metadata requirementCarriedByArchitecture : MethodCheck about requirements {
+      doc /* Advisory: each requirement of the increment is allocated to a function or named as relevant by an architecture element (hasRelevantArchitecture); one that is neither is carried by no architecture element and covered by verification only. No satisfaction claim. */
+      :>> check = "carriedByArchitecture";
+      :>> advisory = true;
+    }
+    metadata functionCarriesRequirement : MethodCheck about functions {
+      doc /* Advisory: each function of the increment receives an allocation from a requirement; no necessity or completeness claim. */
+      :>> check = "receivesAllocation";
+      :>> advisory = true;
+    }
   }
 
   action def DefineLogicalArchitecture :> IncrementStep {
-    doc /* What technology-independent logical elements realize the functions? */
+    doc /* What technology-independent logical elements realize the functions? Rules:
+         * each function of the increment is allocated to at least one logical element
+         * (allocatedTo). The increment's logical elements are the
+         * LogicalAllocationElement usages its packages own at any depth and the ones
+         * its own allocations name. Advisory: each logical element carries a function.
+         * Exchanges and interfaces are not checked. */
     attribute :>> phase = MethodPhase::phase7_logicalArchitecture;
-    in action functions[0..*];
-    out part logicalElements[1..*];
+    in action functions[1..*] : AllocatableFunction;
+    out part logicalElements[1..*] : LogicalAllocationElement;
+
+    metadata functionAllocatedToLogicalElement : MethodCheck about functions {
+      doc /* Each function of the increment is allocated to at least one logical element; a responsibility assignment only, no realization or transitivity claim. */
+      :>> check = "allocatedTo";
+    }
+    metadata logicalElementCarriesFunction : MethodCheck about logicalElements {
+      doc /* Advisory: each logical element of the increment receives an allocation from a function; no necessity or completeness claim. */
+      :>> check = "receivesAllocation";
+      :>> advisory = true;
+    }
   }
 
   action def DefinePhysicalRealization :> IncrementStep {
-    doc /* What software, hardware, deployment, or tool elements realize the system design? */
+    doc /* What software, hardware, deployment, or tool elements realize the system
+         * design? Rules: each logical element of the increment is allocated to at
+         * least one physical element (allocatedTo). The increment's physical elements
+         * are the PhysicalAllocationElement usages its packages own at any depth and
+         * the ones its own allocations name. Advisory: each physical element carries a
+         * logical element. An allocation is no deployment, execution or runtime claim;
+         * the signal-mapping and realization-readiness controls stay with review. */
     attribute :>> phase = MethodPhase::phase8_physicalRealization;
-    in part logicalElements[0..*];
-    out part physicalElements[1..*];
+    in part logicalElements[1..*] : LogicalAllocationElement;
+    out part physicalElements[1..*] : PhysicalAllocationElement;
+
+    metadata logicalElementAllocatedToPhysicalElement : MethodCheck about logicalElements {
+      doc /* Each logical element of the increment is allocated to at least one physical element; a responsibility assignment only, no deployment, execution or runtime claim. */
+      :>> check = "allocatedTo";
+    }
+    metadata physicalElementCarriesLogicalElement : MethodCheck about physicalElements {
+      doc /* Advisory: each physical element of the increment receives an allocation from a logical element; no necessity or completeness claim. */
+      :>> check = "receivesAllocation";
+      :>> advisory = true;
+    }
   }
 
   action def DefineVariabilityAndConfiguration :> IncrementStep {

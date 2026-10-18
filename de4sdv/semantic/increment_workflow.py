@@ -35,7 +35,12 @@ Contract, one obligation per check:
   ``out verification cases[1..*]``, of its usage kind) in the framing step's
   scope, the increment's own package (the mandatory step: framing always
   applies), or in a later step's scope, the packages the charter names in
-  ``expectedArtifacts``;
+  ``expectedArtifacts``. A parameter typed by a class that an end pair of a
+  native-allocation relation reaches (a function, logical or physical
+  element) counts those packages at any depth, and the elements of that
+  type that the allocations owned there name (one hop): the increment's
+  architecture elements include what it reuses through its own
+  allocations;
 - population: within the parameter's multiplicity (no multiplicity: exactly
   one); a lower bound of 0 permits an empty population;
 - cardinality: ``minimum`` distinct targets, bounded above where the check
@@ -76,8 +81,11 @@ from .increment_scope import (
     SCOPE_PROBLEM,
     IncrementScope,
     ModelView,
+    ordered,
+    scope_closure,
 )
 from .method_checks import CHECK_MAXIMUM, default_claim, method_checks
+from .relation_checks import MethodSideInput, allocation_ends, allocation_pairs, native_allocation_rows
 from .revision_index import MultiplicityError
 
 #: The governed ``MethodPhase`` literals of the method kernel, by phase number.
@@ -112,6 +120,11 @@ OWN_PACKAGE_SELECTOR = "workflow-framing-parameter"
 KIND_PREFIX = "kind:"
 APPLICABILITY_ALWAYS = "unconditional"
 APPLICABILITY_DECLARED = "increment declares the step phase"
+#: Where the subjects of a later step's parameter come from.
+SCOPE_LABEL = "packages named in the charter's expectedArtifacts"
+#: ... and of a parameter typed by a class an allocation end pair reaches.
+ARCHITECTURE_SCOPE_LABEL = ("packages named in the charter's expectedArtifacts, at any depth, and the elements "
+                            "their allocations name")
 DEFAULT_MINIMUM = 1
 _DIRECTIONS = {"in", "out", "inout"}
 _SUCCESSION_TYPES = ("SuccessionAsUsage", "Succession")
@@ -176,9 +189,58 @@ def _scoped_subjects(spec: me.ObligationSpec, ctx: me.EvaluationContext, *,
     return [element for element in elements if view.index.typed_by(element) & types], []
 
 
+def allocation_rows_entering(view: ModelView, definition: str) -> list[tuple[str, Mapping[str, Any]]]:
+    """The native-allocation end pairs whose target class lineage holds ``definition`` (validated kernel
+    bindings): the end pairs that reach an element typed by it. A target class without a validated
+    binding reaches nothing (an export whose bindings fail validation is refused before evaluation)."""
+    entering = []
+    for relation, row in native_allocation_rows(view):
+        try:
+            kernel = view.kernel_element(str(row["targetClass"]))
+        except IdentityNotFoundError:
+            continue
+        if definition in view.index.specializations(kernel):
+            entering.append((relation, row))
+    return entering
+
+
+def _architecture_subjects(view: ModelView, increment: IncrementScope, definition: str,
+                           rows: list[tuple[str, Mapping[str, Any]]]) -> list[str]:
+    """The increment's elements typed by ``definition`` (or a specialization): owned at any depth by the
+    charter's packages, plus the targets of the allocations owned there that ground one of ``rows``."""
+    lineage = view.index.specializations(definition)
+    closure = scope_closure(view, increment)
+    inside = set(closure)
+    found = [element for element in closure if view.index.typed_by(element) & lineage]
+    wanted = [row for _relation, row in rows]
+    relations = sorted({relation for relation, _row in rows})
+    for allocation, (ends, problem) in sorted(allocation_ends(view).items()):
+        if problem or len(ends) != 2 or allocation not in inside:
+            continue
+        source, target = ends
+        if target in found or not view.index.typed_by(target) & lineage:
+            continue
+        grounded = [row for relation in relations for row in allocation_pairs(view, relation, source, target)]
+        if any(row in wanted for row in grounded):
+            found.append(target)
+    return list(ordered(view, found))
+
+
 def _parameter_subjects(spec: me.ObligationSpec, ctx: me.EvaluationContext) -> tuple[list[str], list[str]]:
-    """Subjects of a later step's check: the charter-declared scope."""
-    return _scoped_subjects(spec, ctx, own_package=False)
+    """Subjects of a later step's check: the charter-declared scope; for a parameter typed by a class an
+    allocation end pair reaches, that scope at any depth plus what its allocations name (one hop)."""
+    subjects, diagnostics = _scoped_subjects(spec, ctx, own_package=False)
+    if spec.subject_selector.startswith(KIND_PREFIX):
+        return subjects, diagnostics
+    view, increment = ctx.model, ctx.increment  # type: ignore[attr-defined]  # checked by _scoped_subjects
+    rows = allocation_rows_entering(view, spec.subject_selector)
+    if not rows:
+        return subjects, diagnostics
+    try:
+        return _architecture_subjects(view, increment, spec.subject_selector, rows), diagnostics
+    except MethodSideInput as missing:
+        raise me.SubjectResolutionError(me.INPUT_UNAVAILABLE, diagnostics=(missing.detail,),
+                                        missing=(missing.marker,))
 
 
 def _framing_subjects(spec: me.ObligationSpec, ctx: me.EvaluationContext) -> tuple[list[str], list[str]]:
@@ -454,8 +516,10 @@ def _check(view: ModelView, metadata: str, step_name: str, phase: str, parameter
         maximum_population=upper,
     )
     keyword = USAGE_KEYWORDS.get(kind, "")
+    architecture = bool(types) and optional and bool(allocation_rows_entering(view, types[0]))
+    scope = (ARCHITECTURE_SCOPE_LABEL if architecture else SCOPE_LABEL) if optional else "increment package"
     label = {"step": step_name, "parameter": parameters[parameter],
-             "scope": "packages named in the charter's expectedArtifacts" if optional else "increment package",
+             "scope": scope,
              "direction": str(index.element(parameter).get("direction") or ""),
              "subject_type": view.label(types[0]) if types else kind, "check": check_id,
              "check_definition": view.label(sorted(index.typed_by(metadata))[0]),

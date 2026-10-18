@@ -20,9 +20,14 @@ Two kinds of names:
   profile pins as a connection definition is read from the ends of the
   connections typed by that carrier (the reviewed connection-end mechanics),
   so export-shaped connections stay readable; its targets are the ends in
-  the relation's range lineage. A relation without a SysML mapping, or whose
-  content is external at this revision, is method side: only a method or
-  kernel change can supply it, so it is never reported as a model gap.
+  the relation's range lineage. A successor relation carried by native
+  allocations (``allocatedTo``) is read from the ends of every
+  ``AllocationUsage``, typed or not: an allocation counts for the one end
+  pair of the relation its two ends ground in, and an end written as a
+  feature chain (``a.b``) reads as its last chaining feature. A relation
+  without a SysML mapping, or whose content is external at this revision, is
+  method side: only a method or kernel change can supply it, so it is never
+  reported as a model gap.
 - **Native SysML v2 relations**, named by their keyword: ``frame`` (framed
   concerns), ``stakeholder``, ``subject`` and ``verify`` (requirements
   verified by the own or inherited objectives).
@@ -143,7 +148,7 @@ def _connection_carrier(view: ModelView, relation: str) -> str | None:
     return _declared_name(declaration)
 
 
-def _class_declaration(view: ModelView, ontology_class: str) -> str:
+def class_declaration(view: ModelView, ontology_class: str) -> str:
     """Declared name the profile pins for a class (the class name otherwise)."""
     profile = getattr(view.contract, "profile", None) or {}
     pin = (profile.get("classes") or {}).get(ontology_class)
@@ -258,6 +263,137 @@ def connection_ends(view: ModelView) -> dict[str, tuple[tuple[str, ...], str]]:
     return view.index.memo("connection-ends", build)
 
 
+#: The successor mechanism of a relation whose witnesses are native allocations.
+NATIVE_ALLOCATION = "native-allocation"
+
+
+def chained_feature(view: ModelView, feature: str) -> str:
+    """A feature chain read as its last chaining feature; any other feature as itself.
+
+    An end written ``a.b`` references a feature whose FeatureChaining
+    relationships list the chained features in order (native KerML
+    structure); the end names the feature the chain ends in. No name is read.
+    Raises :class:`IdentityNotFoundError` when that feature is not in the bound
+    revision.
+    """
+    chainings = view.index.owned_relationships(feature, "FeatureChaining")
+    if not chainings:
+        return feature
+    last = reference_ids(chainings[-1].get("chainingFeature"))
+    if not last or last[0] not in view.index.by_id:
+        raise IdentityNotFoundError(f"feature chain {feature!r} ends in a feature that is not in the bound revision")
+    return last[0]
+
+
+def allocation_ends(view: ModelView) -> dict[str, tuple[tuple[str, ...], str]]:
+    """Allocation usage -> (allocated features in end order, problem), once per corpus.
+
+    The ends are read like connection ends (EndFeatureMembership -> authored
+    ReferenceSubsetting); a feature-chain end reads as its last chaining feature.
+    """
+
+    def build() -> dict[str, tuple[tuple[str, ...], str]]:
+        traversal = view.traversal
+        index = view.index
+        found: dict[str, tuple[tuple[str, ...], str]] = {}
+        for allocation in index.elements_of_type("AllocationUsage"):
+            element = index.by_id[allocation]
+            try:
+                records = traversal._connection_end_records(element, index.by_id, index.graph)
+                ends = tuple(
+                    chained_feature(view, traversal._connected_usage_id(
+                        record["end_element_id"], index.graph, index.by_id)[0])
+                    for record in records
+                )
+                found[allocation] = (ends, "")
+            except IdentityNotFoundError as error:
+                found[allocation] = ((), str(error))
+        return found
+
+    return view.index.memo("allocation-ends", build)
+
+
+def native_allocation_rows(view: ModelView, relation: str | None = None) -> list[tuple[str, Mapping[str, Any]]]:
+    """``(relation, end-pair row)`` of the served successor relations carried by native allocations."""
+    profile = getattr(view.contract, "profile", None) or {}
+    relations = profile.get("relations") or {}
+    return [(name, row) for name in sorted(relations) if relation is None or name == relation
+            for row in relations[name] or () if row.get("mechanism") == NATIVE_ALLOCATION]
+
+
+def _end_classes(rows: list[tuple[str, Mapping[str, Any]]]) -> list[str]:
+    """Every endpoint class of the end pairs, in row order."""
+    return list(dict.fromkeys(str(row[key]) for _name, row in rows for key in ("sourceClass", "targetClass")))
+
+
+def allocation_pairs(view: ModelView, relation: str, source: str, target: str) -> list[Mapping[str, Any]]:
+    """The end pairs of ``relation`` an allocation from ``source`` to ``target`` grounds in (validated
+    kernel lineage). Raises :class:`MethodSideInput` when a class has no validated kernel binding."""
+    return [row for _name, row in native_allocation_rows(view, relation)
+            if in_class(view, source, str(row["sourceClass"])) and in_class(view, target, str(row["targetClass"]))]
+
+
+def allocation_hops(view: ModelView, relation: str, subject_id: str, *,
+                    incoming: bool = False) -> tuple[list[tuple[str, str]], list[str]]:
+    """``(other end, allocation)`` of the allocations of ``relation`` from (or, ``incoming``, to) the
+    subject, and the allocations that cannot be read.
+
+    An allocation counts when its two ends ground in one end pair of the relation. An allocation an end
+    of which grounds in two endpoint classes of the relation counts for none and is reported as a
+    problem. Raises :class:`MethodSideInput` when a class has no validated kernel binding.
+    """
+    rows = native_allocation_rows(view, relation)
+    classes = _end_classes(rows)
+    hops: list[tuple[str, str]] = []
+    problems: list[str] = []
+    for allocation, (ends, problem) in sorted(allocation_ends(view).items()):
+        if problem:
+            problems.append(f"{element_name(view, allocation)}: {problem}")
+            continue
+        if subject_id not in ends:
+            continue
+        if len(ends) != 2:
+            problems.append(f"{element_name(view, allocation)}: {len(ends)} ends, a binary allocation has 2")
+            continue
+        source, target = ends
+        if (target if incoming else source) != subject_id:
+            continue
+        overlapping = [end for end in ends if sum(1 for c in classes if in_class(view, end, c)) > 1]
+        if overlapping:
+            problems.append(f"{element_name(view, allocation)}: {element_name(view, overlapping[0])} grounds in "
+                            f"more than one of {', '.join(classes)}")
+            continue
+        other = source if incoming else target
+        if allocation_pairs(view, relation, source, target) and other not in (o for o, _a in hops):
+            hops.append((other, allocation))
+    return hops, problems
+
+
+def allocation_classes(view: ModelView, relation: str, subject_id: str, *, incoming: bool = False) -> list[str]:
+    """The classes the subject's allocations of ``relation`` reach: the target classes of the end pairs
+    whose source class the subject grounds in (or, ``incoming``, the source classes of the end pairs
+    whose target class it grounds in)."""
+    near, far = ("targetClass", "sourceClass") if incoming else ("sourceClass", "targetClass")
+    return list(dict.fromkeys(str(row[far]) for _name, row in native_allocation_rows(view, relation)
+                              if in_class(view, subject_id, str(row[near]))))
+
+
+def allocation_near_misses(view: ModelView, subject_id: str, classes: list[str]) -> tuple[str, ...]:
+    """Plain dependencies from the subject to an element of ``classes``, which do not count."""
+    count = 0
+    for dependency in view.index.elements_of_type("Dependency"):
+        element = view.index.by_id[dependency]
+        sources = reference_ids(element.get("client")) or reference_ids(element.get("source"))
+        if subject_id not in sources:
+            continue
+        targets = reference_ids(element.get("supplier")) or reference_ids(element.get("target"))
+        count += sum(1 for target in targets if any(in_class(view, target, c) for c in classes))
+    if not count:
+        return ()
+    named = " or ".join(_plural(class_declaration(view, c)) for c in classes)
+    return (f"{count} plain dependency(ies) to {named} do not count; only an allocation does",)
+
+
 # ---------------------------------------------------------------------------
 # Relation checks
 # ---------------------------------------------------------------------------
@@ -328,10 +464,38 @@ def connection_carried_check(relation: str) -> RelationCheck:
                                   detail=reason, reason=reason)
         return RelationResult(
             relation, subject_id, hops=tuple(hops),
-            absent=f"{name} has no {carrier} connection to a {_class_declaration(view, target_class)}",
+            absent=f"{name} has no {carrier} connection to a {class_declaration(view, target_class)}",
         )
 
     check.__name__ = f"connection_{relation}"
+    return check
+
+
+def allocation_carried_check(relation: str) -> RelationCheck:
+    """A successor relation carried by native allocations: the subject is the source end of an
+    allocation that grounds one of the relation's end pairs."""
+
+    def check(view: ModelView, subject_id: str) -> RelationResult:
+        name = element_name(view, subject_id)
+        try:
+            hops, problems = allocation_hops(view, relation, subject_id)
+            classes = allocation_classes(view, relation, subject_id)
+            near_misses = () if hops else allocation_near_misses(view, subject_id, classes)
+        except MethodSideInput as missing:
+            return RelationResult(relation, subject_id, problem=missing.marker, detail=missing.detail)
+        if not hops and problems:
+            reason = f"allocations cannot be read: {problems[:3]}"
+            return RelationResult(relation, subject_id, problem=MODEL_WITNESS_PREFIX + relation,
+                                  detail=reason, reason=reason)
+        reached = " or ".join(class_declaration(view, c) for c in classes)
+        return RelationResult(
+            relation, subject_id, hops=tuple(hops),
+            absent=(f"{name} is allocated to no {reached}" if reached
+                    else f"{name} grounds in no source class of the {relation} end pairs"),
+            near_misses=near_misses,
+        )
+
+    check.__name__ = f"allocation_{relation}"
     return check
 
 
@@ -383,6 +547,7 @@ def relation_checks(view: ModelView) -> Mapping[str, RelationCheck]:
     def build() -> Mapping[str, RelationCheck]:
         contract = view.contract
         carriers = (getattr(contract, "profile", None) or {}).get("carriers") or {}
+        allocated = {name for name, _row in native_allocation_rows(view)}
         table: dict[str, RelationCheck] = {}
         for relation in sorted(getattr(contract, "relationships", {}) or {}):
             try:
@@ -390,8 +555,12 @@ def relation_checks(view: ModelView) -> Mapping[str, RelationCheck]:
             except Exception:  # noqa: BLE001 - unmapped: decided as method side
                 strategy = ""
             pinned = str((carriers.get(relation) or {}).get("declaration") or "")
-            carried = strategy == "successor" and pinned.startswith("connection def ")
-            table[relation] = (connection_carried_check if carried else governed_relation_check)(relation)
+            if strategy == "successor" and pinned.startswith("connection def "):
+                table[relation] = connection_carried_check(relation)
+            elif strategy == "successor" and relation in allocated:
+                table[relation] = allocation_carried_check(relation)
+            else:
+                table[relation] = governed_relation_check(relation)
         if set(table) & set(_NATIVE_CHECKS):
             raise ValueError(f"contract relations shadow native relations: {sorted(set(table) & set(_NATIVE_CHECKS))}")
         return MappingProxyType({**table, **_NATIVE_CHECKS})

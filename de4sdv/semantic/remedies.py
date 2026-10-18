@@ -875,6 +875,8 @@ _NAMED: Mapping[str, Callable[[_Request], Remedy]] = {
     "successCriteriaAttribute": _library_value,
     "verifiesIncrementRequirement": _verifies(REQUIREMENT_CLASS, "requirement of the increment"),
     "evidenceRecordOrStatus": _evidence_record_or_status,
+    "receivesAllocation": lambda request: _receives_allocation(request),
+    "carriedByArchitecture": lambda request: _carried_by_architecture(request),
 }
 
 
@@ -984,7 +986,7 @@ def _successor(request: _Request, mapping: Any) -> Remedy:
         inverse = bool(rows)
     if not rows:
         return _unsupported(request, mapping.strategy)
-    row = rows[0]
+    row = _end_pair(request, rows, inverse=inverse)
     lines = _lines(request)
     source_class, target_class = str(row.get("sourceClass") or ""), str(row.get("targetClass") or "")
     subject_class, other_class = (target_class, source_class) if inverse else (source_class, target_class)
@@ -1011,10 +1013,75 @@ def _successor(request: _Request, mapping: Any) -> Remedy:
         instruction = f"declare {other} and connect {subject} to it"
     elif mechanism == "native-allocation":
         lines.declarations.append(f"allocation <name> allocate {source} to {target};")
+        lines.notes.append(_ALLOCATION_NOTE.format(other=other))
         instruction = f"allocate {source} to {target}"
     else:
         return _unsupported(request, f"{mapping.strategy}/{mechanism}")
     return lines.remedy(f"{instruction}, {_where(request) or 'in a package of the increment'}")
+
+
+#: How the other end of an allocation remedy may be given.
+_ALLOCATION_NOTE = ("{other} may also be an existing element, of this increment or a baseline; an end written as a "
+                    "feature chain (a.b) is read as its last feature, and the allocation needs no type.")
+
+
+def _end_pair(request: _Request, rows: Sequence[Mapping[str, Any]], *, inverse: bool) -> Mapping[str, Any]:
+    """The end pair a remedy writes: the one whose subject-side class the subject (else the parameter's
+    type) grounds in, through the validated kernel bindings; the first when none does."""
+    key = "targetClass" if inverse else "sourceClass"
+    types = _subject_types(request)
+    return next((row for row in rows if _in_lineage(request.view, types, str(row.get(key) or ""))), rows[0])
+
+
+def _receives_allocation(request: _Request) -> Remedy:
+    """An allocation to the subject from an element of the end pair's source class."""
+    from .method_checks import allocation_relation
+
+    view = request.view
+    relation = allocation_relation(view)
+    profile = getattr(view.contract, "profile", None) or {}
+    rows = list((profile.get("relations") or {}).get(relation or "") or ())
+    if relation is None or not rows:
+        return _method_side("the served contract has not exactly one relation carried by native allocations")(request)
+    row = _end_pair(request, rows, inverse=True)
+    lines = _lines(request)
+    other = _placeholder(str(row.get("sourceClass") or ""))
+    subject = _subject_ref(lines, _placeholder(str(row.get("targetClass") or "")))
+    other_kernel = _kernel(view, str(row.get("sourceClass") or ""))
+    if other_kernel is not None:
+        keyword = USAGE_KEYWORDS.get(str(row.get("sourceUsage") or ""), "part")
+        lines.declarations.append(f"{keyword} {other} : {lines.type(other_kernel, _SPECIALIZING)};")
+    lines.declarations.append(f"allocation <name> allocate {other} to {subject};")
+    lines.notes.append(_ALLOCATION_NOTE.format(other=other))
+    return lines.remedy(f"allocate {other} to {subject}, {_where(request) or 'in a package of the increment'}")
+
+
+def _carried_by_architecture(request: _Request) -> Remedy:
+    """Either an allocation of the requirement to a function, or a dependency to it from the architecture
+    element that carries it (``hasRelevantArchitecture``, relevance only)."""
+    from .method_checks import allocation_relation
+
+    view = request.view
+    relation = allocation_relation(view)
+    profile = getattr(view.contract, "profile", None) or {}
+    rows = list((profile.get("relations") or {}).get(relation or "") or ())
+    if relation is None or not rows:
+        return _method_side("the served contract has not exactly one relation carried by native allocations")(request)
+    row = _end_pair(request, rows, inverse=False)
+    lines = _lines(request)
+    subject = _subject_ref(lines, _placeholder(str(row.get("sourceClass") or "")))
+    function = _placeholder(str(row.get("targetClass") or ""))
+    kernel = _kernel(view, str(row.get("targetClass") or ""))
+    lines.declarations.append(f"allocation <name> allocate {subject} to {function};")
+    lines.declarations.append(f"dependency <name> from <architecture element> to {subject};")
+    if kernel is not None:
+        lines.notes.append(f"{function} is a usage of {lines.type(kernel, _SPECIALIZING)} or a definition "
+                           "specializing it, of this increment or a baseline.")
+    lines.notes.append("One of the two lines carries the requirement: the allocation assigns it to a function; the "
+                       "dependency, from a part or action usage or definition, records that the element is relevant "
+                       "to it (hasRelevantArchitecture), relevance only. With neither, only its verification covers "
+                       "it.")
+    return lines.remedy(f"carry {subject} by one of these, {_where(request) or 'in a package of the increment'}")
 
 
 def _verification_membership(request: _Request, mapping: Any) -> Remedy:

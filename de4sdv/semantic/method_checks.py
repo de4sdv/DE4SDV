@@ -14,12 +14,17 @@ maps the id to the implementation that decides it for one subject:
   ``oneVerificationMethodKind`` (one standard verification method kind is
   recorded), ``ownedByIncrementPackage``, ``subjectIsSystemOfInterest``
   (the subject is the system of interest the charter declares, never the
-  increment) or ``charterExpectedArtifactsCoverContent`` (no package
+  increment), ``charterExpectedArtifactsCoverContent`` (no package
   holding increment content is missing from the charter's
-  ``expectedArtifacts``, the scope the checks evaluate);
+  ``expectedArtifacts``, the scope the checks evaluate),
+  ``receivesAllocation`` (the subject is the target end of an allocation
+  that grounds an end pair of the relation native allocations carry) or
+  ``carriedByArchitecture`` (a requirement is allocated to a function or
+  named as relevant by an architecture element);
 - **relation names**, for example ``derivesRequirementFromNeed``,
-  ``hasValidationScenario`` or ``verifiedBy``: the subject reaches targets
-  through that relation (see :mod:`de4sdv.semantic.relation_checks`).
+  ``hasValidationScenario``, ``verifiedBy`` or ``allocatedTo``: the subject
+  reaches targets through that relation (see
+  :mod:`de4sdv.semantic.relation_checks`).
 
 An implementation takes the model view, the increment and one subject; it
 reads no method-representation field (no selector, filter or phase text). How
@@ -53,12 +58,18 @@ from .increment_scope import (
     own_increment_definitions,
 )
 from .relation_checks import (
+    MODEL_WITNESS_PREFIX,
     MethodSideInput,
+    allocation_classes,
+    allocation_ends,
+    allocation_hops,
     check_relation,
+    class_declaration,
     connection_ends,
     element_name,
     in_class,
     membership_members,
+    native_allocation_rows,
     relation_checks,
 )
 
@@ -428,8 +439,9 @@ def increment_content_outside_scope(view: ModelView, increment: IncrementScope) 
     Increment content is the increment usage itself, a requirement or need
     connected by DerivesFromNeed to an element in scope, a verification case
     verifying a requirement in scope, a requirement verified by a
-    verification case in scope, and an element referencing the increment
-    usage (only the usage: a reference to another increment element is not
+    verification case in scope, an allocation from an element of the scope
+    packages (at any depth), and an element referencing the increment usage
+    (only the usage: a reference to another increment element is not
     content). Such content in a package the charter does not name is never
     evaluated by the checks, so it is reported here. Raises
     :class:`MethodSideInput` when the DerivesFromNeed lineage is unbound.
@@ -467,6 +479,9 @@ def increment_content_outside_scope(view: ModelView, increment: IncrementScope) 
         inside = [target for target in verified if target in scope]
         if inside:
             note(case, f"verifies {_name(view, inside[0])}")
+    for allocation, (ends, problem) in sorted(allocation_ends(view).items()):
+        if not problem and len(ends) == 2 and view.top_package(ends[0]) in packages:
+            note(allocation, f"allocates {_name(view, ends[0])}")
     if increment.usage_id:
         for relationship in index.elements_of_type("ReferenceSubsetting"):
             element = index.element(relationship)
@@ -518,6 +533,60 @@ def _evidence_record_or_status(view: ModelView, increment: IncrementScope, subje
     return satisfied([t for t, _w in result.hops], [w for _t, w in result.hops])
 
 
+def allocation_relation(view: ModelView) -> str | None:
+    """The one relation of the served contract that native allocations carry (None: none or several)."""
+    relations = sorted({name for name, _row in native_allocation_rows(view)})
+    return relations[0] if len(relations) == 1 else None
+
+
+def _receives_allocation(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """The subject is the target end of an allocation that grounds an end pair of the relation native
+    allocations carry (``allocatedTo``): a function from a requirement, a logical element from a
+    function, a physical element from a logical element."""
+    relation = allocation_relation(view)
+    if relation is None:
+        return indeterminate("governed-relation:native-allocation",
+                             "method side: the served contract has not exactly one relation carried by native "
+                             "allocations")
+    hops, problems = allocation_hops(view, relation, subject_id, incoming=True)
+    if not hops:
+        if problems:
+            return indeterminate(MODEL_WITNESS_PREFIX + relation, f"allocations cannot be read: {problems[:3]}")
+        sources = " or ".join(class_declaration(view, c)
+                              for c in allocation_classes(view, relation, subject_id, incoming=True))
+        return violated(f"{_name(view, subject_id)} receives no {relation} allocation from a "
+                        f"{sources or 'source class of its end pairs'}")
+    return satisfied([s for s, _a in hops], [a for _s, a in hops])
+
+
+#: The relevance relation through which an architecture element names a requirement it carries.
+RELEVANT_ARCHITECTURE = "hasRelevantArchitecture"
+
+
+def _carried_by_architecture(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """The requirement is allocated to a function (the relation native allocations carry), or an
+    architecture element names it as relevant (``hasRelevantArchitecture``: an incoming dependency
+    from a part or action usage or definition, member-product lineage excluded). A requirement that is
+    neither is carried by no architecture element: only its verification covers it."""
+    relation = allocation_relation(view)
+    allocated, problems = allocation_hops(view, relation, subject_id) if relation else ([], [])
+    if allocated:
+        return satisfied([t for t, _a in allocated], [a for _t, a in allocated])
+    relevant = check_relation(view, RELEVANT_ARCHITECTURE, subject_id)
+    if relevant.hops:
+        return satisfied(relevant.targets, relevant.witnesses)
+    if relation is None:
+        return indeterminate("governed-relation:native-allocation",
+                             "method side: the served contract has not exactly one relation carried by native "
+                             "allocations")
+    if problems:
+        return indeterminate(MODEL_WITNESS_PREFIX + relation, f"allocations cannot be read: {problems[:3]}")
+    if relevant.problem:
+        return indeterminate(relevant.problem, relevant.detail)
+    return violated(f"{_name(view, subject_id)} is carried by no architecture element and is covered by "
+                    "verification only")
+
+
 #: The member each of these checks reads, which a remedy sets (de4sdv.semantic.remedies).
 _charter_references_increment.member = INCREMENT_ATTRIBUTE  # type: ignore[attr-defined]
 _charter_applicable_phases.member = PHASES_ATTRIBUTE  # type: ignore[attr-defined]
@@ -548,6 +617,8 @@ NAMED_CHECKS: Mapping[str, CheckFunction] = MappingProxyType({
     "successCriteriaAttribute": _library_attribute("successCriteria"),
     "verifiesIncrementRequirement": _verifies_increment_requirement,
     "evidenceRecordOrStatus": _evidence_record_or_status,
+    "receivesAllocation": _receives_allocation,
+    "carriedByArchitecture": _carried_by_architecture,
 })
 
 #: Check id -> the most distinct targets the check accepts (absent: unbounded).

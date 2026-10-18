@@ -330,7 +330,7 @@ class IncrementEvaluation:
             bounds = f"between {lower} and {upper}"
         observed = unit.diagnostics[0] if unit.diagnostics else ""
         where = ("package" if gate.selector_kind == OWN_PACKAGE_SELECTOR
-                 else "packages named in the charter's expectedArtifacts")
+                 else str(label.get("scope") or "packages named in the charter's expectedArtifacts"))
         return population_remedy(
             self.view, gate.predicate, keep=f"keep {bounds} {subject_type} in the increment's {where} ({observed})",
             parameter=label.get("parameter_element_id"), framing=gate.selector_kind == OWN_PACKAGE_SELECTOR,
