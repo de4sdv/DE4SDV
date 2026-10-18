@@ -386,24 +386,29 @@ views:
 
 ## 3. Pick a bounded contribution
 
-These are small task proposals, not assignments or a second ticket tracker.
-Check [open issues](https://github.com/de4sdv/DE4SDV/issues) and existing PRs
-first. Continue an existing issue where it fits; otherwise agree the scope in
-an issue before starting. Each task below names a starting point and a result
-that can be reviewed.
+Open tasks live in GitHub issues, so this page links live searches instead of
+a fixed list:
 
-| Task | Start here | Reviewable result / done when |
-|---|---|---|
-| Try the newcomer path (documentation) | This page and [#300](https://github.com/de4sdv/DE4SDV/issues/300) | Report confusing passages and propose one focused correction. A reader can answer the four questions below without private project context. |
-| Try the issue-to-PR path as a first-time GitHub user (community/docs) | [CONTRIBUTING](../../CONTRIBUTING.md) and [#37: GitHub onboarding](https://github.com/de4sdv/DE4SDV/issues/37), where an onboarding guide is proposed | Follow the issue-to-pull-request steps once and post in #37 where you got stuck and what helped. Feed that guide; do not start a second one. |
-| Configure both reference members (product line) | The two bills of features named above and the [configurator](../../tools/configure_variant.py) | Run the check for both members and the invalid fixture, then run without `--check-only`. Record the revision, commands, results, and the derived adapter for each member. Report any mismatch with the member table on this page. |
-| Follow one requirement (systems/traceability) | `REQ-AEBS-003` in the [draft needs and requirements](../../methodologies/sysmod-sysmlv2/pilots/aebs-needs-requirements.md) and the example above | At one revision, review its need, design, verification, and evidence links. Report one broken or missing link, or confirm the bounded chain, keeping candidate status and open gaps visible. |
-| Make one bench's evidence check reproducible (verification/software) | The [moving-target bench](../../implementation/aebs-autoware-nominal-vehicle-target-bench/README.md) and its [evidence hygiene test](../../tests/test_evidence_repository_hygiene.py) | From a clean checkout, the documented check of the retained evidence stops because an empty run log is deliberately not tracked (empty files are not evidence). Agree the fix in an issue, then show the check passing from a clean checkout. Replaying retained evidence is not a new simulation or vehicle test. |
-| Bring the implementation index up to date (docs/QA) | The [implementation index](../../implementation/README.md), the [AAOS visualization evidence model](../../textual-notation-of-model/packages/features/aebs/aebs_visualization_verification_evidence.sysml), and the [video disposition index](../../implementation/aebs-aaos-sdv-visualization-bench/evidence/010/VIDEO-EVIDENCE-DISPOSITION.md) | The index lists four of the seven implementation folders and calls the visualization bench's runtime evidence pending. The owning model records observations on a build that is not exactly identified, with inconclusive verdicts, while the video disposition index still says `observed_bounded`. Propose one small correction that follows the model and keeps the deferred safety outcome and the media limits visible. |
+- [open issues labelled `good first issue`](https://github.com/de4sdv/DE4SDV/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22),
+  small tasks suited to a first contribution;
+- [open issues labelled `help wanted`](https://github.com/de4sdv/DE4SDV/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22),
+  where maintainers ask for help.
+
+Each issue describes its task. Read it for where to start, what to produce,
+and when the task is done, and for whether it needs licensed tools; if that is
+unclear, ask in the issue. The labels show the
+[lane](../../CONTRIBUTING.md#contribution-lanes) (`lane:*`) and the
+[size](../../CONTRIBUTING.md#contribution-sizes) (`size:*`). Comment on an
+issue before you start, so that two people do not do the same work.
+
+A contribution task adds no engineering claim by itself: a corrected document
+or a passing check is not verification or certification.
 
 You can begin with reading and feedback; coding is not required. For a change,
 follow [CONTRIBUTING](../../CONTRIBUTING.md). The
 [getting started guide](README.md) covers repository layout, setup, and checks.
+To propose a task that is not listed, open an issue with the **Question or
+contribution proposal** template.
 
 ### Does this page work for a newcomer?
 
@@ -419,6 +424,6 @@ After reading it, can you explain:
 4. Which small task you could take, what you would produce, and how it is
    checked?
 
-If not, point out the missing explanation in
-[#300](https://github.com/de4sdv/DE4SDV/issues/300). Newcomer feedback is part of
-validating this guide, not something automated repository tests can prove.
+If not, open an issue with the **Documentation / methodology update** template
+and point out the missing explanation. Newcomer feedback is part of validating
+this guide, not something automated repository tests can prove.
