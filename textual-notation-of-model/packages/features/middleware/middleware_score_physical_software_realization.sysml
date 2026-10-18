@@ -30,6 +30,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
   private import DE4SDV_AEBSPhysicalSoftwareRealization::VelocityReportSubscription;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::DiagnosticPublication;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::VehicleTargetAEBSPhysicalSoftwareBoundary;
+  private import DE4SDV_AEBSPhysicalSoftwareRealization::PartialLogicalToPhysicalSoftwareRealization;
   private import DE4SDV_Stakeholders::*;
   private import SAF_Viewpoints::*;
   private import SysideViews::**;
@@ -110,13 +111,17 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
     part healthProxyNode : PhysicalAllocationElement {
       doc /*
        * A DE4SDV ROS 2 node on the Linux host, outside the adapter process:
-       * REQ-MW-018 aborts the whole adapter process, so the stale indication
-       * of REQ-MW-012, and the unavailable indication that GAP-MW-034 names,
-       * come from outside it. It observes /de4sdv/middleware/velocity_status
-       * and, with a 1 s watchdog, publishes a stale indication once the last
-       * sample is older than 5 s and a restored indication with the next
-       * sample. Provider loss and an aborted adapter look alike to it. It
-       * uses no S-CORE module.
+       * REQ-MW-018 aborts the whole adapter process, so the stale and
+       * restored indications of REQ-MW-012 come from outside it. It observes
+       * /de4sdv/middleware/velocity_status and, with a 1 s watchdog,
+       * publishes a stale indication once the last sample is older than 5 s
+       * and a restored indication with the next sample. Provider loss and an
+       * aborted adapter look alike to it. The further step to unavailable is
+       * specified only by the baseline (REQ-MW-004 and the unavailable state
+       * of the baseline health proxy), with no trigger or bound for this
+       * member: this node is where GAP-MW-034 puts it, but phase 8 does not
+       * realize it, and it stays open with GAP-MW-034. It uses no S-CORE
+       * module.
        */
       port middlewareVelocityStatusIn : VelocityReportSubscription {
         doc /* Subscription to /de4sdv/middleware/velocity_status. */
@@ -162,8 +167,12 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * loopback to one client, the reused ingress (ASM-MW-029). It drops
        * frames while no client is connected and replays nothing
        * (REQ-MW-019). It sends the host nothing but SOME/IP service discovery
-       * and TCP protocol control (REQ-MW-016). vsomeip on AAOS is untested
-       * (GAP-MW-038).
+       * and TCP protocol control (REQ-MW-016). It runs as a native init
+       * service of the guest, outside the Launch Manager, which runs only on
+       * the Linux host. It must listen before the ingress starts, because the
+       * ingress exits when nothing listens (ingress/main.cpp:183-188), and it
+       * is not a oneshot service, so init restarts it when it exits. vsomeip
+       * on AAOS is untested (GAP-MW-038).
        */
       port aebsSignalFrameIn : AEBSSignalFrameIn {
         doc /* Subscription to the host relay's SOME/IP frame event. */
@@ -192,18 +201,24 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
          * The Launch Manager of lifecycle v0.6.1. It starts the adapter, the
          * health proxy node and the host relay as Native components, which
          * use no lifecycle API, starts the host relay after the adapter and
-         * stops them in order with SIGTERM. When one of them terminates
-         * unexpectedly after its ready state, for example on the abort of
-         * REQ-MW-018, it runs the component's recovery action, which in
-         * v0.6.1 is a switch of the Run Target; a switch to the same Run
-         * Target re-activates it (lifecycle README.md:24-30;
-         * launch_manager.schema.json:19-27, 162-172 and 240-259). Phase 10
-         * shows the re-activation after an injected abort. It realizes part
-         * of the lifecycle bridge, the process lifecycle of the layer on the
-         * S-CORE side; nothing in the layer makes that lifecycle state
-         * visible to Autoware. The Health Monitor is not used: its
-         * supervision needs the lifecycle API, which none of these processes
-         * uses.
+         * stops them in order with SIGTERM (lifecycle README.md:24-30;
+         * launch_manager.schema.json:19-27, 65-72 and 201). When one of them
+         * terminates unexpectedly after its ready state, for example on the
+         * abort of REQ-MW-018, it runs the component's recovery action. In
+         * v0.6.1 that action can only switch to the fallback Run Target
+         * (known_limitations.rst:32-33, lifecycle_config.py:559-569), which
+         * has no recovery action of its own
+         * (launch_manager.schema.json:489-491). Whether a fallback Run Target
+         * that holds the same components brings the adapter back once is
+         * unproven; phase 10 tests it. By owner decision of 2026-10-18 the
+         * Launch Manager stays: REQ-MW-018 needs only the abort, and the
+         * health topic of REQ-MW-012 and the stale overlay of the HMI make the
+         * loss visible. It realizes part of the lifecycle bridge, the process
+         * lifecycle of the layer on the S-CORE side; nothing in the layer
+         * makes that lifecycle state visible to Autoware. The SOME/IP
+         * receiver in the guest is outside it. The Health Monitor is not
+         * used: its supervision needs the lifecycle API, which none of these
+         * processes uses.
          */
       }
     }
@@ -300,10 +315,11 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
 
   part scoreTwoDomainPhysicalSystem : SCORETwoDomainPhysicalSystem;
 
-  // Logical-to-physical allocations (allocatedTo, logical element to physical element).
+  // Logical-to-physical allocations (allocatedTo, logical element to physical element);
+  // the two partial ones are typed PartialLogicalToPhysicalSoftwareRealization.
   allocation signalTranslatorToAdapter allocate DE4SDV_MiddlewareLogicalArchitecture::system::signalTranslator to scoreTwoDomainPhysicalSystem::integrationLayer::adapter;
-  allocation healthProxyToHealthProxyNode allocate DE4SDV_MiddlewareLogicalArchitecture::system::healthProxy to scoreTwoDomainPhysicalSystem::integrationLayer::healthProxyNode;
-  allocation lifecycleBridgeToLaunchManager allocate DE4SDV_MiddlewareLogicalArchitecture::system::lifecycleBridge to scoreTwoDomainPhysicalSystem::integrationLayer::scoreServices::launchManager;
+  allocation healthProxyToHealthProxyNode : PartialLogicalToPhysicalSoftwareRealization allocate DE4SDV_MiddlewareLogicalArchitecture::system::healthProxy to scoreTwoDomainPhysicalSystem::integrationLayer::healthProxyNode;
+  allocation lifecycleBridgeToLaunchManager : PartialLogicalToPhysicalSoftwareRealization allocate DE4SDV_MiddlewareLogicalArchitecture::system::lifecycleBridge to scoreTwoDomainPhysicalSystem::integrationLayer::scoreServices::launchManager;
   allocation hmiFrameRelayToAdapter allocate DE4SDV_MiddlewareSCORELogicalArchitecture::hmiFrameRelay to scoreTwoDomainPhysicalSystem::integrationLayer::adapter;
   allocation hmiFrameRelayToHostRelay allocate DE4SDV_MiddlewareSCORELogicalArchitecture::hmiFrameRelay to scoreTwoDomainPhysicalSystem::integrationLayer::hostRelay;
   allocation hmiFrameRelayToSomeipReceiver allocate DE4SDV_MiddlewareSCORELogicalArchitecture::hmiFrameRelay to scoreTwoDomainPhysicalSystem::integrationLayer::someipReceiver;
@@ -367,14 +383,23 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
     doc /*
      * Unproven: that one adapter process can link the ROS 2 client library
      * and S-CORE communication v0.4.0 with baselibs v0.2.12, including
-     * aborts_upon_exception, and build and run on the Linux host. S-CORE
-     * builds with Bazel and needs GCC 12 or later on Ubuntu 24.04 or later
-     * (communication README.md:90-93 at v0.4.0), while the Autoware benches
-     * of DE4SDV run ROS 2 Humble images
-     * (implementation/aebs-autoware-executable-bench/compose.yaml:3). Phase
-     * 10 preflights it first. If the two cannot share a process, the adapter
-     * splits into an S-CORE process and a ROS 2 process, which changes the
-     * adapter process that REQ-MW-018 names.
+     * aborts_upon_exception, and build and run on the Linux host; and that
+     * the host relay can link S-CORE communication v0.4.0 with COVESA
+     * vsomeip 3.7.6 and Boost in one process, with or without
+     * aborts_upon_exception. S-CORE builds with Bazel and needs GCC 12 or
+     * later on Ubuntu 24.04 or later (communication README.md:90-93 at
+     * v0.4.0), while the Autoware benches of DE4SDV run ROS 2 Humble images
+     * (implementation/aebs-autoware-executable-bench/compose.yaml:3).
+     * S-CORE's own someipd links mw::com with vsomeip, but only on
+     * communication 0.5.0 with vsomeip 3.6.1 (score/someipd/BUILD.bazel:39,
+     * 56, 69 and 83-84, MODULE.bazel:303-316 in inc_someip_gateway at
+     * 1415cae9). Under aborts_upon_exception an exception that vsomeip
+     * catches internally, for example in
+     * implementation/endpoints/src/tcp_server_endpoint_impl.cpp:556 at
+     * 4187431d, aborts the relay instead. Phase 10 preflights the adapter
+     * first, then the relay. If the adapter's two libraries cannot share a
+     * process, the adapter splits into an S-CORE process and a ROS 2
+     * process, which changes the adapter process that REQ-MW-018 names.
      */
   }
 
@@ -394,12 +419,11 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
 
   part <'GAP-MW-037'> gapInOrderFrameDeliveryNotGuaranteed : IncrementGap {
     doc /*
-     * REQ-MW-014 is not guaranteed by design. LoLa expresses back pressure
-     * as a failing sample allocation while all sample slots of an event are
-     * held, so the adapter then drops the update, as the mw::com binding of
-     * the S-CORE SOME/IP gateway does
-     * (score/gateway_ipc_binding/docs/mw_com_binding.rst:324-325 in
-     * eclipse-score/inc_someip_gateway at 1415cae9). SOME/IP gives no
+     * REQ-MW-014 is not guaranteed by design. In communication v0.4.0 an
+     * mw::com skeleton cannot send an update while no sample slot is free:
+     * Send fails with kSampleAllocationFailure
+     * (score/mw/com/impl/bindings/lola/skeleton_event.h:139-142 and 173-178),
+     * so the adapter then drops that frame. SOME/IP gives no
      * delivery guarantee for events to the application, even over TCP
      * (eclipse-score discussion 3240, 2026-09-04). The bounded queue of the
      * host relay (REQ-MW-019) drops frames while a subscribed guest stalls.
@@ -431,14 +455,16 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * mapped to the physical elements it is allocated to, with the
      * components that S-CORE v0.9.0 leaves unrealized as empty rows
      * (GAP-MW-030). A mark assigns responsibility for the S-CORE member's
-     * scope only: the Launch Manager realizes the lifecycle bridge in part,
-     * and the health proxy node forwards the health of the reference speed,
-     * not the safety-path status. The diagnostic proxy and the update
-     * coordinator stay empty because reference_integration v0.9.0 integrates
-     * no diagnostics or update module. The service binding manager stays
-     * empty because mw::com and SOME/IP service discovery bind services
-     * without the authentication that REQ-MW-008 asks for across a trust
-     * boundary (GAP-MW-012).
+     * scope only. Two allocations are partial and typed
+     * PartialLogicalToPhysicalSoftwareRealization: the Launch Manager
+     * realizes the lifecycle bridge in part, and the health proxy node
+     * forwards the health of the reference speed, not the safety-path
+     * status. The diagnostic proxy and the update coordinator stay empty
+     * because reference_integration v0.9.0 integrates no diagnostics or
+     * update module. The service binding manager stays empty because
+     * mw::com and SOME/IP service discovery bind services without the
+     * authentication that REQ-MW-008 asks for across a trust boundary
+     * (GAP-MW-012).
      */
     subject;
     stakeholder productLineEngineer : ProductLineEngineer;
@@ -500,7 +526,9 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * S-CORE modules with the Launch Manager, their ports and the three
      * connections between the processes. The connections to the context
      * parts are in SCORETwoDomainPhysicalSystem; the layer has no boundary
-     * ports to delegate them. Allocations are filtered out.
+     * ports to delegate them. Allocations are filtered out. Domain placement
+     * is stated in the process docs and the connection name; the view does
+     * not draw the host/guest boundary.
      */
     expose scoreTwoDomainPhysicalSystem::integrationLayer;
     expose scoreTwoDomainPhysicalSystem::integrationLayer::**;

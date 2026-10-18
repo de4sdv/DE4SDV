@@ -8,9 +8,10 @@
  * Autoware, Eclipse S-CORE and the adapter, and the AAOS SDV guest with the
  * HMI under the hypervisor. The reference vehicle speed travels over S-CORE
  * communication into Autoware; the AEBS signals of the Autoware-based AEBS
- * stack travel over S-CORE communication across the domain boundary to the
- * HMI, with the per-field provenance INC-AEBS-010 assigns; the emergency
- * intervention command path stays on the host.
+ * stack travel over S-CORE communication inside the host, and a DE4SDV
+ * SOME/IP relay carries them across the domain boundary to the HMI (phase 8
+ * selects it), with the per-field provenance INC-AEBS-010 assigns; the
+ * emergency intervention command path stays on the host.
  *
  * Revalidation: the middleware baseline of INC-MW-002 (operational context
  * and story) holds for the S-CORE variant (ASM-MW-023) and is extended where
@@ -316,7 +317,8 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
       doc /*
        * SC-MW-002 (normal operation, AEBS event): an AEBS event runs
        * MONITORING, WARNING, INTERVENTION and RELEASED on the host; the
-       * adapter and the S-CORE services carry the AEBS signals across the
+       * adapter and the S-CORE services carry the AEBS signals inside the
+       * host, and the layer's DE4SDV SOME/IP relay carries them across the
        * domain boundary; the HMI in the guest presents them in source order
        * with per-field provenance; the driver sees an informational display,
        * not the AEBS driver warning; the emergency intervention command goes

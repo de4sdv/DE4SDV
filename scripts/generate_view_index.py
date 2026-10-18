@@ -168,12 +168,8 @@ KNOWN_PRESENTATION_NOTES = {
         "source and exposure list above for exact names."
     ),
     "scoreMiddlewarePhysicalLogicalMappingView": (
-        "A mark assigns responsibility for the S-CORE member's scope, not a "
-        "complete realization: the Launch Manager realizes only the S-CORE "
-        "side of the lifecycle bridge, and the health proxy node forwards the "
-        "health of the reference speed, not the safety-path status. The doc of "
-        "`scoreMiddlewarePhysicalAllocationConcern` in the source says why the "
-        "three empty rows have no S-CORE v0.9.0 realization."
+        "Cells show ↗ for every allocation; the two partial allocations are "
+        "typed `PartialLogicalToPhysicalSoftwareRealization`."
     ),
     "scoreMiddlewareLayerInternalExchangeView": (
         "The four «connection» boxes above the layer are its connections to the "
@@ -182,7 +178,9 @@ KNOWN_PRESENTATION_NOTES = {
         "view; none of them reaches the velocity input of the AEB node. The "
         "S-CORE part shows the platform-stack ports it inherits from "
         "`MiddlewareLayer`, unconnected: the processes link S-CORE "
-        "communication and connect to each other directly."
+        "communication and connect to each other directly. Domain placement "
+        "is stated in the process docs and the connection name; the view "
+        "does not draw the host/guest boundary."
     ),
     "scoreTwoDomainOperationalContextView": (
         "SysIDE lists the actions of the signal flow `scoreTwoDomainSignalFlow` "

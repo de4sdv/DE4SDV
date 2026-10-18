@@ -7,9 +7,10 @@
  * stack, in a member product with two execution domains under a hypervisor.
  * The Linux host runs Autoware, Eclipse S-CORE and the Autoware-to-S-CORE
  * adapter; an AAOS SDV guest runs the HMI. The reference vehicle speed
- * travels over S-CORE communication into Autoware, and the AEBS signals of
- * the Autoware-based AEBS stack on the Linux host travel over S-CORE
- * communication across the domain boundary to the HMI in the guest. One
+ * travels over S-CORE communication into Autoware. The AEBS signals of the
+ * Autoware-based AEBS stack on the Linux host travel over S-CORE
+ * communication inside the host, and a DE4SDV SOME/IP relay carries them
+ * across the domain boundary to the HMI in the guest. One
  * increment identity spans phases 0 to 12: this framing slice, the needs,
  * requirements, physical/software realization, variability and
  * configuration, and verification-evidence slices that follow, and the
@@ -166,7 +167,7 @@ package DE4SDV_MiddlewareSCOREFraming {
     ref part :>> systemOfInterest = DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
     attribute :>> owner = "DE4SDV maintainers";
     attribute :>> expectedArtifacts = ("DE4SDV_MiddlewareSCOREFraming", "DE4SDV_MiddlewareSCOREOperationalContext", "DE4SDV_MiddlewareSCOREFeatureClassification", "DE4SDV_MiddlewareSCORENeedsRequirements", "DE4SDV_MiddlewareSCOREFunctionalArchitecture", "DE4SDV_MiddlewareSCORELogicalArchitecture", "DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization");
-    attribute :>> expectedReviewEvidence = ("exact-head licensed SysML validation of the increment model slices", "repository gates and the Method Check at the reviewed head", "retained evidence of the runnable proof: the reference vehicle speed over S-CORE into Autoware and the AEBS signals over S-CORE to the HMI in the AAOS SDV guest");
+    attribute :>> expectedReviewEvidence = ("exact-head licensed SysML validation of the increment model slices", "repository gates and the Method Check at the reviewed head", "retained evidence of the runnable proof: the reference vehicle speed over S-CORE into Autoware and the AEBS signals over S-CORE inside the Linux host and over the DE4SDV SOME/IP relay to the HMI in the AAOS SDV guest");
   }
 
   /* Qualified references to the accepted baseline and to the platform-stack
