@@ -275,12 +275,14 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
      * node keeps a speed source that does not pass through the middleware
      * integration layer, and the reference vehicle speed carried over S-CORE
      * goes to the non-braking consumers of Autoware (REQ-MW-010,
-     * REQ-MW-020). Open, to settle before phase 7: the name and the
-     * ownership of the topic that carries the S-CORE speed to the vehicle
-     * velocity converter, with its health topic (REQ-MW-012), and the
-     * publishers of /vehicle/status/velocity_status, the velocity input of
-     * the AEB node, where the simulator of the INC-AEBS-009B bench is a
-     * second publisher. For the safety expert's review, which is due
+     * REQ-MW-020). Open: the name and the ownership of the topic that
+     * carries the S-CORE speed to the vehicle velocity converter, with its
+     * health topic (REQ-MW-012), and the publishers of
+     * /vehicle/status/velocity_status, the velocity input of the AEB node,
+     * where the simulator of the INC-AEBS-009B bench is a second publisher.
+     * Phase 7 proposes the ownership and the publishers
+     * (speedTranslationAllocation in DE4SDV_MiddlewareSCORELogicalArchitecture);
+     * the topic names stay open. For the safety expert's review, which is due
      * before this gap closes together with the assumptions-of-use split of
      * GAP-MW-034: in a full Autoware stack the S-CORE speed would still
      * reach the vehicle command gate indirectly, from the vehicle velocity
