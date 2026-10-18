@@ -127,8 +127,10 @@ case changed): no licensed run; the retained receipt still describes the tree.
 
 1. From a clean checkout, run `python scripts/compare_ple_scope_alignment.py
    --receipt <receipt> --governed-scope <validation> --evidence retained
-   --run-id <run> --artifact ple-scope-alignment-<head>-<run> --out
-   <directory outside the repository>` and copy its `comparison.json` here.
+   --run-id <run> --artifact ple-scope-alignment-<executor>-<run> --out
+   <directory outside the repository>` and copy its `comparison.json` here
+   (`<executor>`: the commit the licensed run executed; after a licensed
+   refresh, the main commit).
 2. Update `manifest.json`: `run_id`, `executor_revision`, `artifact_name`,
    `artifact_expires_at`, `artifact_size_bytes`, the three `files` digests,
    `elements_export.sha256` (from the receipt's `artifact_sha256`),

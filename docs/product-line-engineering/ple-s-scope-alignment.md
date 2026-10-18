@@ -96,10 +96,11 @@ The observed PLE-R/PLE-Q status is the privileged PLE qualification run
 `ple-qualification-f1da5c0c707990efeb378990b288778246b0d975-39114284825`).
 Its three receipts (historical replay, current serialization with API
 readback, scoped probes) record the executor `f1da5c0c` with
-`executor_source_dirty: false`, `qualified: false` throughout, and the six
-qualification cases as observed, not qualified: `feature-binding` and
-`group-shapes` observed; `xor-counterexample`, `binding-time`,
-`serializer-identity` and `adapter-realization` as gaps. The frozen
+`executor_source_dirty: false` and `qualified: false` throughout; the
+historical replay and the current serialization record the six qualification
+cases as observed, not qualified: `feature-binding` and `group-shapes`
+observed; `xor-counterexample`, `binding-time`, `serializer-identity` and
+`adapter-realization` as gaps. The frozen
 interpreter, PLEML pin and library digests of its current serialization and
 scoped probes are the ones this record's receipt carries; its historical
 replay stays on the Gate A experiment. Three of the six cases depended on
@@ -390,10 +391,12 @@ tree it is compared with. Both carry `qualified: false`.
   tag `pleml-1.0.0-frozen`, the code reads the exact revision, and the bytes
   are verified against the reviewed digest. An element file replays only with
   the experiment it records: the runner refuses another one and names the
-  file's executor revision. Replay it at a revision that pins its experiment;
-  the element file of run `38788579272` records the Gate A experiment and
-  replays on main before PLEML 1.0.0, such as `099d33e6`. Replay evidence is
-  not fresh serialization and says so.
+  file's executor revision. Replay it at a revision that pins its experiment:
+  the element file of the retained run `39115737098` records the PLEML 1.0.0
+  experiment and replays at `f1da5c0c` or later; the element file of the
+  previous run `38788579272` records the Gate A experiment and replays on main
+  before PLEML 1.0.0, such as `099d33e6`. Replay evidence is not fresh
+  serialization and says so.
 - **Unlicensed checks (public CI):** `tests/test_ple_scope_alignment_model.py`
   (boundary fence, textual shape, every qualified reference resolvable in
   its source), `tests/test_ple_scope_alignment_evaluator.py` (the evaluator on

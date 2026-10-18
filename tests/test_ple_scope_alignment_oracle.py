@@ -699,8 +699,12 @@ def test_the_retained_record_manifest_binds_the_files_the_run_and_the_merge_tree
     assert "never against the working tree" in binding["rule"] and "licensed run" in binding["fresh_evidence"]
     assert "catalogue" in binding["historical_once"] and "configurator" in binding["historical_once"]
     assert manifest["tree_identical_to"]["revision"] == MERGE
-    # The merge commit is on main and reachable in every full-history checkout; the pull-request head
-    # that produced the receipt is only reachable where its ref was fetched.
+    if EXECUTOR == MERGE:
+        # A licensed refresh retains the run of a main commit, which has no pull request.
+        assert manifest["pull_request"] is None, "the run executed a main commit; pull_request must be null"
+    # MERGE is a main commit, reachable in every full-history checkout. After a licensed refresh EXECUTOR is
+    # the same commit; an EXECUTOR that differs from MERGE (a pull-request head, as before #386) is checked
+    # only where it is reachable.
     assert subprocess.run(["git", "cat-file", "-e", f"{MERGE}^{{commit}}"], cwd=ROOT, capture_output=True).returncode == 0
     reachable = [revision for revision in (MERGE, EXECUTOR) if subprocess.run(
         ["git", "cat-file", "-e", f"{revision}^{{commit}}"], cwd=ROOT, capture_output=True).returncode == 0]
