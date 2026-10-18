@@ -16,7 +16,9 @@
  * platform as context (owner decision of 2026-10-18). The S-CORE Launch
  * Manager starts and supervises the layer's host processes. The two domains
  * are typed with existing platform-stack layers; the per-domain variation is
- * phase 9 work. An allocation assigns responsibility only; it asserts no
+ * phase 9 work. Three system-to-software signal mappings, each owning its
+ * record, cover the speed, health and HMI-frame crossings into software
+ * contracts. An allocation assigns responsibility only; it asserts no
  * satisfaction, deployment or execution. No closed slice is edited. No
  * safety, cybersecurity, compliance or freedom-from-interference claim is
  * made, and the HMI stays an informational display, not the AEBS driver
@@ -25,12 +27,16 @@
 
 package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
   private import DE4SDV_MethodContext::*;
+  private import DE4SDV_MethodProcess::SystemToSoftwareSignalMappingCandidate;
+  private import DE4SDV_MethodProcess::LogicalToSoftwareSignalMappingRecord;
+  private import DE4SDV_MethodProcess::SignalMappingDisposition;
   private import DE4SDV_TraceVocabulary::PhysicalAllocationElement;
   private import DE4SDV_SDVPlatformStack::*;
   private import DE4SDV_MiddlewareSCOREFraming::SCOREMiddlewareIntegrationLayer;
-  private import DE4SDV_MiddlewareSCOREOperationalContext::ReferenceVehicleSpeedSignal;
   private import DE4SDV_MiddlewareSCOREOperationalContext::AEBSSignalFrame;
   private import DE4SDV_MiddlewarePhysicalSoftwareRealization::VelocityReportPublication;
+  private import DE4SDV_MiddlewarePhysicalSoftwareRealization::DE4SDVReferenceVehicleSpeedPayload;
+  private import DE4SDV_MiddlewarePhysicalSoftwareRealization::COVESAVehicleSpeedSemanticSource;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::VelocityReportSubscription;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::DiagnosticPublication;
   private import DE4SDV_AEBSPhysicalSoftwareRealization::VehicleTargetAEBSPhysicalSoftwareBoundary;
@@ -41,12 +47,12 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
   private import Views::*;
 
   port def ReferenceVehicleSpeedEventOut {
-    doc /* Offers the reference vehicle speed, one sample per update. */
-    out item speedSample : ReferenceVehicleSpeedSignal;
+    doc /* Offers the reference vehicle speed, one sample per update; the payload is reused from INC-MW-008. */
+    out item speedSample : DE4SDVReferenceVehicleSpeedPayload;
   }
 
   port def ReferenceVehicleSpeedEventIn {
-    in item speedSample : ReferenceVehicleSpeedSignal;
+    in item speedSample : DE4SDVReferenceVehicleSpeedPayload;
   }
 
   port def AEBSSignalFrameOut {
@@ -93,22 +99,23 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * The Autoware-to-S-CORE adapter: one DE4SDV process on the Linux host
        * that is both an S-CORE application and a ROS 2 node (GAP-MW-035).
        * Speed: it receives the reference vehicle speed as an mw::com proxy
-       * and publishes each finite sample once as a VelocityReport whose
-       * longitudinal velocity is the sample divided by 3.6; it withholds
-       * non-finite samples and never publishes a sample twice, also not
-       * after a restart (REQ-MW-010, REQ-MW-011, REQ-MW-013). Frames: it
-       * reads the length-delimited frame stream of the INC-AEBS-010 frame
-       * assembler on the host loopback and offers each frame, unread and
-       * unchanged, as an mw::com event (REQ-MW-015); a sample holds one
-       * length-prefixed frame of at most 2048 bytes, the gateway slot of the
-       * reused ingress (ingress/main.cpp:36 of the INC-AEBS-010 bench). It
-       * links aborts_upon_exception of baselibs, so an exception thrown
-       * anywhere in the process, also in the ROS 2 client library, aborts the
-       * whole process (REQ-MW-018); the health topic then turns stale and the
-       * HMI shows its stale overlay. Heap use after initialization
-       * (GAP-MW-034): the adapter allocates, because the ROS 2 client library
-       * allocates with its default allocator when it publishes and when its
-       * executor runs, so the recommendation
+       * and publishes each finite sample once as an Autoware VelocityReport,
+       * which is not a VSS signal, whose longitudinal velocity in m/s is the
+       * sample's speed_kmh divided by 3.6; it withholds non-finite samples
+       * and never publishes a sample twice, also not after a restart
+       * (REQ-MW-010, REQ-MW-011, REQ-MW-013). Frames: it reads the
+       * length-delimited frame stream of the INC-AEBS-010 frame assembler on
+       * the host loopback and offers each frame, unread and unchanged, as an
+       * mw::com event (REQ-MW-015); a sample holds one length-prefixed frame
+       * of at most 2048 bytes, the gateway slot of the reused ingress
+       * (ingress/main.cpp:36 of the INC-AEBS-010 bench). It links
+       * aborts_upon_exception of baselibs, so an exception thrown anywhere in
+       * the process, also in the ROS 2 client library, aborts the whole
+       * process (REQ-MW-018); the health topic then turns stale and the HMI
+       * shows its stale overlay. Heap use after initialization (GAP-MW-034):
+       * the adapter allocates, because the ROS 2 client library allocates
+       * with its default allocator when it publishes and when its executor
+       * runs, so the recommendation
        * aou_req__platform__no_heap_alloc_after_init is not followed.
        */
       port referenceSpeedIn : ReferenceVehicleSpeedEventIn {
@@ -248,13 +255,16 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
          * that holds the same components brings the adapter back once is
          * unproven; phase 10 tests it. By owner decision of 2026-10-18 the
          * Launch Manager stays: REQ-MW-018 needs only the abort, and the
-         * health topic of REQ-MW-012 and the stale overlay of the HMI make the
-         * loss visible. It realizes part of the lifecycle bridge, the process
-         * lifecycle of the layer on the S-CORE side; nothing in the layer
-         * makes that lifecycle state visible to Autoware. The SOME/IP
-         * receiver in the guest is outside it. The Health Monitor is not
-         * used: its supervision needs the lifecycle API, which none of these
-         * processes uses.
+         * health topic of REQ-MW-012 and the stale overlay of the HMI make
+         * the loss visible. It realizes part of the lifecycle bridge, the
+         * process lifecycle of the layer on the S-CORE side; nothing in the
+         * layer makes that lifecycle state visible to Autoware. So the
+         * lifecycle request and status items of the logical lifecycle bridge
+         * cross no software contract here, and the process control (start,
+         * SIGTERM, exit status) carries no information item: neither needs a
+         * signal mapping. The SOME/IP receiver in the guest is outside it.
+         * The Health Monitor is not used: its supervision needs the lifecycle
+         * API, which none of these processes uses.
          */
       }
     }
@@ -288,7 +298,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
       part hypervisor : KVMHypervisor;
 
       part vehicleSpeedProvider {
-        doc /* The vehicle-speed provider, an S-CORE application outside the system of interest; it offers VSS Vehicle.Speed [km/h] as an mw::com event. */
+        doc /* The vehicle-speed provider, an S-CORE application outside the system of interest; it offers the reference vehicle speed as an mw::com event. */
+        ref part vssVehicleSpeedSource : COVESAVehicleSpeedSemanticSource;
         port referenceSpeedOut : ReferenceVehicleSpeedEventOut;
       }
       part aebsSignalFrameAssembler {
@@ -366,6 +377,82 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
   allocation hmiFrameRelayToAdapter allocate DE4SDV_MiddlewareSCORELogicalArchitecture::hmiFrameRelay to scoreTwoDomainPhysicalSystem::integrationLayer::adapter;
   allocation hmiFrameRelayToHostRelay allocate DE4SDV_MiddlewareSCORELogicalArchitecture::hmiFrameRelay to scoreTwoDomainPhysicalSystem::integrationLayer::hostRelay;
   allocation hmiFrameRelayToSomeipReceiver allocate DE4SDV_MiddlewareSCORELogicalArchitecture::hmiFrameRelay to scoreTwoDomainPhysicalSystem::integrationLayer::someipReceiver;
+
+  // System-to-software signal mappings (the method's phase-8 exit rule): one per
+  // crossing of a logical information item into a software contract, each with
+  // its mapping record. A mapping is not a runtime-interoperability claim.
+  allocation vehicleSpeedSignalMapping : SystemToSoftwareSignalMappingCandidate
+    allocate DE4SDV_MiddlewareLogicalArchitecture::system::signalTranslator
+    to scoreTwoDomainPhysicalSystem::integrationLayer::adapter::referenceSpeedIn::speedSample {
+    item <'MAP-MW-SCORE-VEHICLE-SPEED'> vehicleSpeedMappingRecord : LogicalToSoftwareSignalMappingRecord {
+      doc /*
+       * The reference vehicle speed from the provider's S-CORE event through
+       * the adapter to the velocity input of the Autoware vehicle velocity
+       * converter (REQ-MW-010). The owning allocation and the typed port
+       * items give the source, the endpoints and the direction; the payload's
+       * speed_kmh is typed by VSS Vehicle_Speed, and the provider references
+       * the VSS semantic source.
+       */
+      attribute :>> softwareContractArtifact = "in: the layer's S-CORE mw::com configuration (phase 10), candidate; out: ROS 2 topic /de4sdv/middleware/velocity_status (owner decision D4), exact";
+      attribute :>> softwareContractMessage = "in: the reference vehicle-speed service instance with one event, candidate; out: autoware_vehicle_msgs/msg/VelocityReport, exact";
+      attribute :>> softwareContractField = "in: speed_kmh, candidate; out: longitudinal_velocity, exact";
+      attribute :>> dataTypeAndUnit = "in: speed_kmh : Vehicle_Speed, km/h; out: longitudinal_velocity, float32, m/s, an Autoware message field and not a VSS signal";
+      attribute :>> timingQualityAndState = "one VelocityReport per finite sample; non-finite samples withheld (REQ-MW-011); each sample at most once, also after a restart (REQ-MW-013)";
+      attribute :>> transformationRule = "unit conversion: longitudinal_velocity = speed_kmh / 3.6 (REQ-MW-010)";
+      attribute :>> disposition = SignalMappingDisposition::candidate;
+      attribute :>> owner = "DE4SDV maintainers";
+      attribute :>> nextAction = "phase 10: author the mw::com configuration and run the REQ-MW-010 test (36 and 72 km/h to 10 and 20 m/s) with REQ-MW-011 and REQ-MW-013";
+      attribute :>> evidenceOrGap = "no runtime evidence yet; GAP-MW-035 (the adapter build), GAP-MW-033 (the publisher of /vehicle/status/velocity_status)";
+    }
+  }
+  allocation velocityStatusHealthSignalMapping : SystemToSoftwareSignalMappingCandidate
+    allocate DE4SDV_MiddlewareLogicalArchitecture::system::healthProxy
+    to scoreTwoDomainPhysicalSystem::integrationLayer::healthProxyNode::middlewareVelocityStatusHealthOut::diagnostics {
+    item <'MAP-MW-SCORE-VELOCITY-STATUS-HEALTH'> velocityStatusHealthMappingRecord : LogicalToSoftwareSignalMappingRecord {
+      doc /*
+       * The health of the reference vehicle speed, the forwarded health of
+       * the logical health proxy, from the health proxy node to its ROS 2
+       * health topic (REQ-MW-012). The owning allocation and the typed port
+       * item give the source, the endpoint and the direction. The
+       * safety-path status of the logical health proxy is not realized here.
+       */
+      attribute :>> softwareContractArtifact = "ROS 2 topic /de4sdv/middleware/velocity_status_health (owner decision D4), exact";
+      attribute :>> softwareContractMessage = "diagnostic_msgs/msg/DiagnosticArray, exact";
+      attribute :>> softwareContractField = "status[].level, exact; the status name and hardware_id, candidate";
+      attribute :>> dataTypeAndUnit = "byte level: STALE for the stale indication, OK for the restored one; no unit";
+      attribute :>> timingQualityAndState = "a 1 s watchdog; stale once the last sample on /de4sdv/middleware/velocity_status is older than 5 s, restored with the next sample; provider loss and an aborted adapter look alike";
+      attribute :>> transformationRule = "state rule: a sample age above 5 s gives STALE, the next sample gives OK; the unavailable step of REQ-MW-004 is not realized (GAP-MW-034)";
+      attribute :>> disposition = SignalMappingDisposition::candidate;
+      attribute :>> owner = "DE4SDV maintainers";
+      attribute :>> nextAction = "phase 10: pin the status name and hardware_id and run the stale and restored test of REQ-MW-012";
+      attribute :>> evidenceOrGap = "no runtime evidence yet; GAP-MW-034";
+    }
+  }
+  allocation aebsSignalFrameSignalMapping : SystemToSoftwareSignalMappingCandidate
+    allocate DE4SDV_MiddlewareSCORELogicalArchitecture::hmiFrameRelay
+    to scoreTwoDomainPhysicalSystem::integrationLayer::hostRelay::aebsSignalFrameOut::aebsSignalFrame {
+    item <'MAP-MW-SCORE-AEBS-SIGNAL-FRAME'> aebsSignalFrameMappingRecord : LogicalToSoftwareSignalMappingRecord {
+      doc /*
+       * The AEBS signal frames on the one-way HMI path: the adapter's S-CORE
+       * event inside the host, the host relay's SOME/IP event across the
+       * hypervisor, and the receiver's stream on the guest loopback into the
+       * unchanged INC-AEBS-010 ingress. The owning allocation targets the
+       * SOME/IP event, the crossing into the guest; the typed port items and
+       * the layer's connections give the other endpoints and the direction.
+       * The frame is opaque by owner decision and carries no VSS signal.
+       */
+      attribute :>> softwareContractArtifact = "the layer's S-CORE mw::com configuration and the host relay's vsomeip 3.7.6 configuration (phase 10), candidate; the INC-AEBS-010 ingress stream (ingress/main.cpp:27-28, 142-146), exact";
+      attribute :>> softwareContractMessage = "mw::com: the AEBS signal frame service instance with one event; SOME/IP: one service with one reliable event, events only, IDs not yet assigned; guest loopback: the length-delimited frame stream";
+      attribute :>> softwareContractField = "the whole frame, opaque";
+      attribute :>> dataTypeAndUnit = "a length-prefixed frame of at most 2048 bytes; no unit";
+      attribute :>> timingQualityAndState = "source order (REQ-MW-014), not guaranteed (GAP-MW-037); discarded while the HMI application is not subscribed, at the host while the guest's subscription is absent and at the receiver while the ingress is not connected, with no replay (REQ-MW-019)";
+      attribute :>> transformationRule = "pass-through, unread and unchanged (REQ-MW-015); no VSS signal, by owner decision";
+      attribute :>> disposition = SignalMappingDisposition::candidate;
+      attribute :>> owner = "DE4SDV maintainers";
+      attribute :>> nextAction = "phase 10: assign the mw::com instance and the SOME/IP service, instance and event IDs, then run the sequence-gap and resubscription tests of REQ-MW-014 and REQ-MW-019";
+      attribute :>> evidenceOrGap = "no runtime evidence yet; GAP-MW-035, GAP-MW-036, GAP-MW-037, GAP-MW-038";
+    }
+  }
 
   dependency adapterProcessTracesToAbortRequirement
     from scoreTwoDomainPhysicalSystem::integrationLayer::adapter
