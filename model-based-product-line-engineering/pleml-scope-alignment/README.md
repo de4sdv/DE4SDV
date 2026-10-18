@@ -20,8 +20,8 @@ This directory is outside every production selector: not in the reviewed
 export roots, not a validation root, not served, not in the method check and
 not in any production workflow's trigger (`tests/test_ple_scope_alignment_model.py`
 is the fence). PLEML itself is never copied into this repository: the
-privileged scope-alignment workflow reads it from the frozen Gate A experiment
-checkout at the recorded pin.
+privileged scope-alignment workflow reads it from the frozen experiment
+checkout at PLEML 1.0.0 (tag `pleml-1.0.0-frozen`) at the recorded pin.
 
 ## Validation
 

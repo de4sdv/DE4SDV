@@ -8,9 +8,10 @@ their inputs and evidence into that checkout (``_ple-baseline/``,
 into the checkout, that the frozen experiment leaves it, that background
 services run outside it, that the uploaded artifact keeps its name and layout,
 and that a guard refuses a dirty checkout before each script that records the
-flag. The guard and relocation steps run for real in scratch checkouts; the
-script command lines parse against the real parsers (spied, nothing executes).
-No network, no dispatch.
+flag. Both experiment checkouts (the experiment at PLEML 1.0.0 and the Gate A
+experiment) leave it right after their checkout. The guard and relocation
+steps run for real in scratch checkouts; the script command lines parse
+against the real parsers (spied, nothing executes). No network, no dispatch.
 """
 from __future__ import annotations
 
@@ -32,6 +33,11 @@ JOB = "qualify"
 REV = "a" * 40
 EXPERIMENT_CHECKOUT = "Checkout frozen experiment read-only as a separate input"
 RELOCATE = "Relocate the frozen experiment outside the executor checkout"
+GATE_A_CHECKOUT = "Checkout the Gate A experiment read-only as a separate input"
+RELOCATE_GATE_A = "Relocate the Gate A experiment outside the executor checkout"
+#: Each experiment checkout, the step that relocates it, and its workspace path.
+EXPERIMENTS = ((EXPERIMENT_CHECKOUT, RELOCATE, "_ple-experiment"),
+               (GATE_A_CHECKOUT, RELOCATE_GATE_A, "_ple-gate-a"))
 LOCK = "Resolve current executor library lock without modifying frozen inputs"
 REPLAY = "Exercise qualification guards and historical replay"
 SCOPED = "Execute missing scoped PLE probes"
@@ -43,13 +49,13 @@ GUARDS = ("Refuse a dirty checkout before the historical replay",
           "Refuse a dirty checkout before the fresh serialization")
 # Everything the workflow produces; each name must only ever appear anchored
 # outside the checkout.
-OUTPUTS = ("_ple-baseline", "ple-evidence", "_ple-experiment", "ple-scoped-execution")
+OUTPUTS = ("_ple-baseline", "ple-evidence", "_ple-experiment", "_ple-gate-a", "ple-scoped-execution")
 ANCHORS = ("/", "$RUNNER_TEMP/", "${RUNNER_TEMP}/", "$HOME/", "${HOME}/")
 # Files the runner keeps under its own temporary directory.
 RUNNER_FILES = frozenset(form % name for form in ("$%s", "${%s}")
                          for name in ("GITHUB_OUTPUT", "GITHUB_ENV", "GITHUB_STEP_SUMMARY", "GITHUB_PATH"))
 INSIDE = ("./", "$GITHUB_WORKSPACE", "${GITHUB_WORKSPACE}")
-PATH_OPTIONS = ("--out", "--historical-export", "--experiment", "-o")
+PATH_OPTIONS = ("--out", "--historical-export", "--experiment", "--historical-experiment", "-o")
 HEREDOC = re.compile(r"<<'PY'\n(.*?)\nPY(?:\n|$)", re.S)
 REDIRECTION = re.compile(r"^(?:\d|&)?>>?(.*)$")
 # A Path or open() literal rooted at a workflow output is a path relative to
@@ -107,6 +113,7 @@ def _written_paths(argv):
     ("serve > ple-evidence/sysml-api.log 2>&1 &", ["ple-evidence/sysml-api.log"]),
     ("printf x >&2", []), ("echo x >>out.txt", ["out.txt"]),
     ("python scripts/x.py --out ple-evidence/r.json --experiment _ple-experiment", ["ple-evidence/r.json", "_ple-experiment"]),
+    ("python scripts/x.py --historical-experiment _ple-gate-a", ["_ple-gate-a"]),
     ("mkdir -p ple-evidence/scoped", ["ple-evidence/scoped"]),
     ('cp -R "$RUNNER_TEMP/x/." ple-evidence/scoped/', ["ple-evidence/scoped/"]),
     ('mv _ple-experiment "$RUNNER_TEMP/_ple-experiment"', ["$RUNNER_TEMP/_ple-experiment"]),
@@ -300,15 +307,37 @@ def test_background_services_run_outside_the_checkout():
     assert '> "$RUNNER_TEMP/ple-evidence/sysml-api.log" 2>&1 &' in _step(API)["run"]
 
 
-def test_the_frozen_experiment_leaves_the_executor_checkout_right_after_its_checkout():
+@pytest.mark.parametrize("checkout, relocate, path", EXPERIMENTS)
+def test_each_experiment_leaves_the_executor_checkout_right_after_its_checkout(checkout, relocate, path):
     # actions/checkout refuses a path outside the workspace, and a nested
     # checkout is an untracked path of the executor checkout ("?? _ple-experiment/").
     names = _names()
-    assert names.index(RELOCATE) == names.index(EXPERIMENT_CHECKOUT) + 1
-    assert _step(EXPERIMENT_CHECKOUT)["with"]["path"] == "_ple-experiment"
+    assert names.index(relocate) == names.index(checkout) + 1
+    assert _step(checkout)["with"]["path"] == path
+    assert _step(relocate)["run"] == _step(RELOCATE)["run"].replace("_ple-experiment", path)
+
+
+def test_every_checkout_into_the_workspace_is_a_relocated_output():
+    # A further nested checkout must be an output the path checks know and be
+    # relocated in the next step, or it would make the receipts dirty unseen.
+    steps = _steps()
+    nested = [(index, step) for index, step in enumerate(steps)
+              if str(step.get("uses", "")).startswith("actions/checkout@") and "path" in step.get("with", {})]
+    assert [step["with"]["path"] for _, step in nested] == [path for _, _, path in EXPERIMENTS]
+    for index, step in nested:
+        path = step["with"]["path"]
+        assert path in OUTPUTS, path
+        assert f'mv {path} "$RUNNER_TEMP/{path}"' in (steps[index + 1].get("run") or ""), path
+
+
+def test_the_replay_reads_gate_a_and_the_current_arms_read_the_pleml_1_0_0_experiment():
     assert _step(SCOPED)["env"]["DE4SDV_PLE_ORACLE"] == "${{ runner.temp }}/_ple-experiment"
-    for name in (REPLAY, SCOPED, FRESH):
+    assert '--experiment "$RUNNER_TEMP/_ple-gate-a"' in _step(REPLAY)["run"]
+    assert "_ple-experiment" not in _step(REPLAY)["run"]
+    for name in (SCOPED, FRESH):
         assert '--experiment "$RUNNER_TEMP/_ple-experiment"' in _step(name)["run"], name
+    assert '--historical-experiment "$RUNNER_TEMP/_ple-gate-a"' in _step(FRESH)["run"]
+    assert "--historical-experiment" not in _step(REPLAY)["run"] + _step(SCOPED)["run"]
 
 
 def test_the_upload_keeps_the_artifact_name_and_layout():
@@ -327,6 +356,7 @@ def test_the_upload_keeps_the_artifact_name_and_layout():
 
 def test_dirty_checkout_guards_run_before_each_script_that_records_the_flag():
     names = _names()
+    assert names.index(RELOCATE) < names.index(LOCK) and names.index(RELOCATE_GATE_A) < names.index(LOCK)
     assert names.index(LOCK) < names.index(GUARDS[0]) < names.index(REPLAY)
     assert names.index(REPLAY) < names.index(GUARDS[1]) < names.index(SCOPED)
     assert names.index(API) < names.index(GUARDS[2]) < names.index(FRESH)
@@ -394,10 +424,10 @@ def test_a_dirty_checkout_guard_refuses_what_the_receipts_would_record(tmp_path,
         assert result.returncode == 0, result.stderr
 
 
-def _experiment_checkout(workspace, library):
-    """A nested scratch checkout with a submodule, as actions/checkout leaves the experiment."""
+def _experiment_checkout(workspace, library, name="_ple-experiment"):
+    """A nested scratch checkout with a submodule, as actions/checkout leaves an experiment."""
     _scratch_checkout(library)
-    experiment = workspace / "_ple-experiment"
+    experiment = workspace / name
     _scratch_checkout(experiment)
     _git(experiment, "-c", "protocol.file.allow=always", "submodule", "add", "-q",
          str(library), "external/pleml")
@@ -405,34 +435,36 @@ def _experiment_checkout(workspace, library):
     return _git(experiment, "rev-parse", "HEAD")
 
 
-def _relocate(tmp_path, *, occupied=False):
-    """Run the relocation step in a scratch workspace; the scripts verify the frozen revision themselves."""
+def _relocate(tmp_path, relocate, name, *, occupied=False):
+    """Run a relocation step in a scratch workspace; the scripts verify the frozen revision themselves."""
     workspace, temp = tmp_path / "workspace", tmp_path / "runner-temp"
     _scratch_checkout(workspace)
-    head = _experiment_checkout(workspace, tmp_path / "pleml")
+    head = _experiment_checkout(workspace, tmp_path / "pleml", name)
     temp.mkdir()
     if occupied:
-        (temp / "_ple-experiment").mkdir()
-    result = _bash(_step(RELOCATE)["run"], workspace, dict(os.environ, RUNNER_TEMP=str(temp)))
+        (temp / name).mkdir()
+    result = _bash(_step(relocate)["run"], workspace, dict(os.environ, RUNNER_TEMP=str(temp)))
     return result, workspace, temp, head
 
 
-def test_the_relocation_leaves_a_clean_executor_checkout_and_a_working_experiment(tmp_path):
-    result, workspace, temp, head = _relocate(tmp_path)
+@pytest.mark.parametrize("checkout, relocate, name", EXPERIMENTS)
+def test_the_relocation_leaves_a_clean_executor_checkout_and_a_working_experiment(tmp_path, checkout, relocate, name):
+    result, workspace, temp, head = _relocate(tmp_path, relocate, name)
     assert result.returncode == 0, result.stderr
     assert _git(workspace, "status", "--porcelain") == ""
-    assert not (workspace / "_ple-experiment").exists()
-    moved = temp / "_ple-experiment"
+    assert not (workspace / name).exists()
+    moved = temp / name
     assert _git(moved, "rev-parse", "HEAD") == head
     assert _git(moved, "status", "--porcelain") == ""
     assert _git(moved, "show", "HEAD:tracked.txt") == "tracked"
     assert _git(moved / "external/pleml", "rev-parse", "HEAD") == _git(tmp_path / "pleml", "rev-parse", "HEAD")
 
 
-def test_the_relocation_refuses_an_occupied_destination(tmp_path):
-    result, workspace, _, _ = _relocate(tmp_path, occupied=True)
+@pytest.mark.parametrize("checkout, relocate, name", EXPERIMENTS)
+def test_the_relocation_refuses_an_occupied_destination(tmp_path, checkout, relocate, name):
+    result, workspace, _, _ = _relocate(tmp_path, relocate, name, occupied=True)
     assert result.returncode == 1, result.stderr
-    assert (workspace / "_ple-experiment").is_dir()  # nothing moved
+    assert (workspace / name).is_dir()  # nothing moved
 
 
 def _script_commands():
@@ -478,7 +510,7 @@ def test_command_lines_parse_with_the_real_parsers_and_point_outside_the_checkou
     namespace = vars(captured["namespace"])
     if namespace.get("expected_executor") is not None:
         assert namespace["expected_executor"] == REV
-    for key in ("out", "historical_export", "experiment"):
+    for key in ("out", "historical_export", "experiment", "historical_experiment"):
         if namespace.get(key) is not None:
             path = Path(namespace[key])
             assert path.is_absolute() and not path.resolve().is_relative_to(ROOT), (name, key, path)

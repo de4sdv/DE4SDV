@@ -449,6 +449,31 @@ def test_replay_of_a_drifted_retained_file_exits_one_but_keeps_the_receipt(inter
     assert any("osPlatform" in line for line in receipt["expectation"]["mismatches"])
 
 
+#: The Gate A experiment, which recorded the element files of the runs before PLEML 1.0.0.
+GATE_A_EXPERIMENT = {
+    "interpreter_revision": "6a99626b4af7cd01108f27dac88bf5b55bba207a",
+    "interpreter_sha256": "4d9180e9fc6b417f2ffef60b550398335d90225940bc8b8a5960fa733733a4c3",
+    "pleml_pin": "5f8ab8560219dc24d8ec7ec90d6f0a145896ef8e",
+    "library_source": "external/pleml/PLEML/PLEML.sysml",
+}
+
+
+@pytest.mark.parametrize("field", sorted(GATE_A_EXPERIMENT))
+def test_replay_refuses_an_element_file_recorded_with_another_experiment(tmp_path, field):
+    """An element file replays only with the experiment it records; an older one at its own executor revision."""
+    import json
+
+    retained = _retained_elements(build())
+    retained["experiment"][field] = GATE_A_EXPERIMENT[field]
+    path = tmp_path / "recorded-elsewhere.json"
+    path.write_text(json.dumps(retained))
+    result = _runner(["--replay", str(path), "--out", str(tmp_path / "replay")], tmp_path)
+    assert result.returncode == 2, result.stdout
+    assert "not with the current experiment" in result.stderr
+    assert "replay it at a revision that pins that experiment, such as its executor revision " + "a" * 40 in result.stderr
+    assert not (tmp_path / "replay").exists()
+
+
 @pytest.mark.parametrize("arguments, message", [
     (["--licensed", "--experiment", "/tmp/nowhere", "--out", "{tmp}/x"], "exact executor SHA"),
     (["--licensed", "--expected-executor", "a" * 40, "--out", "{tmp}/x"], "frozen experiment checkout"),
@@ -562,7 +587,7 @@ def test_an_unreachable_frozen_revision_names_the_tag_that_keeps_it(tmp_path):
     import subprocess
 
     subprocess.run(["git", "init", "-q", str(tmp_path / "empty")], check=True)
-    with pytest.raises(alignment.ScopeAlignmentError, match="pleml-gate-a-frozen"):
+    with pytest.raises(alignment.ScopeAlignmentError, match="pleml-1.0.0-frozen"):
         alignment.load_frozen_interpreter(repository=tmp_path / "empty")
 
 

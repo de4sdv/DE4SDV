@@ -105,10 +105,12 @@ jobs:
               output.write('artifact_id=' + str(manifest['historical_artifact_id']) + '\n')
           PY
 
+      # The experiment at PLEML 1.0.0 (tag pleml-1.0.0-frozen): the scoped
+      # probes and the fresh serialization run on it.
       - name: Checkout frozen experiment read-only as a separate input
         uses: actions/checkout@v4
         with:
-          ref: 6a99626b4af7cd01108f27dac88bf5b55bba207a
+          ref: 84673ea2bca0d11b795a34afeb7584081dd24fd2
           path: _ple-experiment
           submodules: recursive
           persist-credentials: false
@@ -119,6 +121,22 @@ jobs:
         run: |
           test ! -e "$RUNNER_TEMP/_ple-experiment"
           mv _ple-experiment "$RUNNER_TEMP/_ple-experiment"
+
+      # The Gate A experiment (tag pleml-gate-a-frozen) produced the retained
+      # historical export: the historical replay and the prior of the fresh
+      # serialization read that export with its interpreter only.
+      - name: Checkout the Gate A experiment read-only as a separate input
+        uses: actions/checkout@v4
+        with:
+          ref: 6a99626b4af7cd01108f27dac88bf5b55bba207a
+          path: _ple-gate-a
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Relocate the Gate A experiment outside the executor checkout
+        run: |
+          test ! -e "$RUNNER_TEMP/_ple-gate-a"
+          mv _ple-gate-a "$RUNNER_TEMP/_ple-gate-a"
 
       - uses: actions/setup-python@v5
         with:
@@ -159,7 +177,7 @@ jobs:
         run: |
           python -m pytest tests/test_ple_qualification.py -q
           python scripts/run_ple_qualification.py \
-            --experiment "$RUNNER_TEMP/_ple-experiment" \
+            --experiment "$RUNNER_TEMP/_ple-gate-a" \
             --historical-export "$RUNNER_TEMP/_ple-baseline/de4sdv-pleml-gate-a-export.json" \
             --out "$RUNNER_TEMP/ple-evidence/historical-replay.json"
 
@@ -251,6 +269,7 @@ jobs:
         run: |
           python scripts/run_ple_qualification.py \
             --experiment "$RUNNER_TEMP/_ple-experiment" \
+            --historical-experiment "$RUNNER_TEMP/_ple-gate-a" \
             --historical-export "$RUNNER_TEMP/_ple-baseline/de4sdv-pleml-gate-a-export.json" \
             --expected-executor "$SELECTED_REVISION" \
             --api-url http://127.0.0.1:9000 \

@@ -2,12 +2,12 @@
 """Evaluate the PLEML scope alignment of the admitted AEBS product line (PLE-S).
 
 Licensed mode loads the reviewed model roots, the exact-pinned PLEML library
-(read from the frozen Gate A experiment checkout, never from a copy in this
-repository) and the scope-alignment model together with the pinned
+(read from the frozen experiment checkout at PLEML 1.0.0, never from a copy in
+this repository) and the scope-alignment model together with the pinned
 serializer, serializes them, validates the governed scope exactly as
 production does, and evaluates every scope-alignment configuration with the
 frozen Gate A resolver extended for exact-one parents. Replay mode
-re-evaluates a retained element file offline.
+re-evaluates a retained element file offline, with the experiment it records.
 
 Both modes write receipts that say ``qualified: false``: this is an
 experiment and never adoption, selection authority or a compliance claim.
@@ -59,6 +59,32 @@ EXECUTOR_INPUTS = (
 )
 ELEMENTS_SCHEMA = "de4sdv.ple-scope-alignment-elements/v1"
 RECEIPT_SCHEMA = "de4sdv.ple-scope-alignment/v1"
+#: The experiment this revision evaluates with, as a licensed run records it.
+CURRENT_EXPERIMENT = {
+    "interpreter_revision": FROZEN_REVISION,
+    "interpreter_sha256": alignment.FROZEN_INTERPRETER_SHA256,
+    "pleml_pin": PLEML_PIN,
+    "library_source": alignment.LIBRARY_SOURCE,
+}
+
+
+def require_current_experiment(experiment: Any, executor_revision: Any) -> None:
+    """Refuse to replay an element file recorded with another frozen experiment.
+
+    The evaluation reads the library by its source label, with the interpreter
+    of one experiment. An element file therefore replays only at a revision
+    that pins the experiment it records, such as its own executor revision.
+    """
+    if not isinstance(experiment, dict):
+        raise ValueError("the element file records no experiment identity")
+    recorded = {key: experiment.get(key) for key in CURRENT_EXPERIMENT}
+    if recorded != CURRENT_EXPERIMENT:
+        raise ValueError(
+            f"the element file was recorded with the interpreter {recorded['interpreter_revision']} "
+            f"(digest {recorded['interpreter_sha256']}, PLEML pin {recorded['pleml_pin']}, library "
+            f"{recorded['library_source']}), not with the current experiment; replay it at a revision that "
+            f"pins that experiment, such as its executor revision {executor_revision}"
+        )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -66,7 +92,7 @@ def build_parser() -> argparse.ArgumentParser:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--experiment", type=Path,
-                        help="frozen Gate A experiment checkout (licensed mode)")
+                        help="frozen experiment checkout at PLEML 1.0.0 (licensed mode)")
     parser.add_argument("--licensed", action="store_true",
                         help="fresh serialization with the pinned licensed serializer on the x86_64 runner")
     parser.add_argument("--expected-executor", help="exact executor SHA (licensed mode)")
@@ -208,7 +234,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], list[str]]:
         executor_inputs = {relative: verified_file(ROOT, executor, relative) for relative in EXECUTOR_INPUTS}
         module, _, identity = load_experiment(args.experiment)
         if identity["interpreter_sha256"] != alignment.FROZEN_INTERPRETER_SHA256:
-            raise ValueError("frozen Gate A interpreter digest differs from the reviewed one")
+            raise ValueError("the frozen experiment interpreter (PLEML 1.0.0) digest differs from the reviewed one")
         experiment = {
             "interpreter_revision": FROZEN_REVISION,
             "interpreter_sha256": identity["interpreter_sha256"],
@@ -236,6 +262,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], list[str]]:
             raise ValueError("replay input is not a retained scope-alignment element file")
         elements, sources = payload["elements"], payload["element_sources"]
         scope, experiment = payload["governed_scope_validation"], payload["experiment"]
+        require_current_experiment(experiment, payload.get("executor_revision"))
         source_manifest, version = payload["source_manifest"], payload.get("serializer_version")
         module = alignment.load_frozen_interpreter(args.interpreter)
         executor_inputs = {}
