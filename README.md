@@ -11,6 +11,12 @@ trade-off decisions, and lifecycle-wide assurance.
 
 DE4SDV is a workstream within the INCOSE Automotive Working Group.
 
+**New here? Start with [DE4SDV through one case study](docs/getting-started/case-study.md):**
+the configurable SDV stack and product line, the emergency-braking capability
+that exercises it, how agents, a deterministic Method Check, and people share
+the engineering work, and small tasks you can contribute without knowing the
+whole project.
+
 ## Vision
 
 In the SDV future, OEM differentiation will extend beyond traditional choices
