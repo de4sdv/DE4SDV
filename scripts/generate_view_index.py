@@ -175,6 +175,15 @@ KNOWN_PRESENTATION_NOTES = {
         "`scoreMiddlewarePhysicalAllocationConcern` in the source says why the "
         "three empty rows have no S-CORE v0.9.0 realization."
     ),
+    "scoreMiddlewareLayerInternalExchangeView": (
+        "The four «connection» boxes above the layer are its connections to the "
+        "context parts of `SCORETwoDomainPhysicalSystem`, drawn as nodes with "
+        "their source and target ends because one end of each lies outside the "
+        "view; none of them reaches the velocity input of the AEB node. The "
+        "S-CORE part shows the platform-stack ports it inherits from "
+        "`MiddlewareLayer`, unconnected: the processes link S-CORE "
+        "communication and connect to each other directly."
+    ),
     "scoreTwoDomainOperationalContextView": (
         "SysIDE lists the actions of the signal flow `scoreTwoDomainSignalFlow` "
         "but does not draw the flows between them. The one-way flows are "
