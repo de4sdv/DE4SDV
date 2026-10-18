@@ -21,7 +21,7 @@ package DE4SDV_MiddlewareSCORELogicalArchitecture {
   private import DE4SDV_MiddlewareSCOREFunctionalArchitecture::*;
   private import DE4SDV_Stakeholders::*;
   private import SAF_Viewpoints::*;
-  private import Views::*;
+  private import SysideViews::**;
 
   part hmiFrameRelay : LogicalAllocationElement {
     doc /*
@@ -55,10 +55,11 @@ package DE4SDV_MiddlewareSCORELogicalArchitecture {
 
   concern scoreMiddlewareLogicalAllocationConcern : ConceptualFunctionMappingConcern {
     doc /*
-     * Reviewers, and the safety expert who reviews GAP-MW-033, need the
-     * logical element that owns each function of the S-CORE member's speed
-     * and HMI paths: the proposed owners of the speed topic and its health
-     * topic, and the relay of the HMI path.
+     * Reviewers, and the safety expert who reviews GAP-MW-033, need each
+     * function that carries a requirement of the S-CORE member mapped to the
+     * logical element it is allocated to: the proposed owners of the speed
+     * topic and its health topic, the relay of the HMI path, and the baseline
+     * allocation of the safety-path function.
      */
     subject;
     stakeholder systemArchitect : SystemArchitect;
@@ -66,19 +67,27 @@ package DE4SDV_MiddlewareSCORELogicalArchitecture {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  view scoreMiddlewareFunctionMappingView {
+  view scoreMiddlewareFunctionMappingView : MVD::MatrixView {
     viewpoint selectedFunctionMappingViewpoint : SystemFunctionMappingViewpoint {
       frame scoreMiddlewareLogicalAllocationConcern;
     }
-
-    expose hmiFrameRelay;
-    expose DE4SDV_MiddlewareLogicalArchitecture::system::signalTranslator;
-    expose DE4SDV_MiddlewareLogicalArchitecture::system::healthProxy;
-    expose speedTranslationAllocation;
-    expose frameRelayAllocation;
-    expose DE4SDV_MiddlewareLogicalArchitecture::healthProxyAllocation;
-    expose speedTopicOwnershipProposal;
-    attribute showAnnotationRows = false;
-    render asTreeDiagram;
+    view :>> rowView {
+      expose translateReferenceSpeed;
+      expose DE4SDV_MiddlewareLogicalArchitecture::functionalFlow::forwardHealth;
+      expose carryAEBSSignalFramesToHMI;
+      expose DE4SDV_MiddlewareLogicalArchitecture::functionalFlow::protectSafetyPath;
+      attribute :>> representation = Rep::name;
+    }
+    view :>> columnView {
+      expose DE4SDV_MiddlewareLogicalArchitecture::system::signalTranslator;
+      expose DE4SDV_MiddlewareLogicalArchitecture::system::healthProxy;
+      expose hmiFrameRelay;
+      attribute :>> representation = Rep::name;
+    }
+    view :>> cellView {
+      expose DE4SDV_MiddlewareSCORELogicalArchitecture::*;
+      expose DE4SDV_MiddlewareLogicalArchitecture::*;
+      attribute :>> direction = SysideViews::MatrixTraceabilityDirection::row2col;
+    }
   }
 }

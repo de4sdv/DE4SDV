@@ -59,6 +59,12 @@ GRID_METADATA = {
         "system functions (action usages)",
         "conceptual system elements (part usages)",
     ),
+    "matrix-scoreMiddlewareFunctionMappingView": GridMetadata(
+        "S-CORE middleware function mapping",
+        "Maps the functions that carry the S-CORE member's requirements to the logical elements they are allocated to.",
+        "functions (action usages)",
+        "logical elements (part usages)",
+    ),
     "matrix-middlewarePhysicalLogicalMappingView": GridMetadata(
         "Middleware conceptual-to-physical mapping",
         "Maps conceptual system elements to physical/software elements.",

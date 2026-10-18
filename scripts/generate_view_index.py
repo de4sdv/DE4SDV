@@ -167,6 +167,15 @@ KNOWN_PRESENTATION_NOTES = {
         "Long qualified labels overlap in the current SysIDE layout; use the "
         "source and exposure list above for exact names."
     ),
+    "scoreMiddlewareFunctionalArchitectureView": (
+        "SysIDE draws an allocation here only when one of its ends belongs to "
+        "this view's package, so the allocations of REQ-MW-012 to the baseline "
+        "function `forwardHealth` and of REQ-MW-017 to the baseline function "
+        "`protectSafetyPath` are modeled but not drawn; both functions are "
+        "shown. Each drawn allocation names its requirement and its function "
+        "in its two end boxes, with no edge to the function's own box. "
+        "REQ-MW-018 has no allocation."
+    ),
     "scoreTwoDomainOperationalContextView": (
         "SysIDE lists the actions of the signal flow `scoreTwoDomainSignalFlow` "
         "but does not draw the flows between them. The one-way flows are "
