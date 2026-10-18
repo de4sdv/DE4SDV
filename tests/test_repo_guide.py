@@ -1,4 +1,5 @@
-"""Tests for DE4SDV Guide: repository retrieval, /api/repo-chat, and UI.
+"""Tests for DE4SDV Guide: repository retrieval, /api/repo-chat, and the
+viewer's Ask window (one chat window, Model and Repository modes).
 
 DE4SDV Guide is the repository/documentation assistant — a capability
 separate from Ask the model. These tests follow the no-mirror rule: all
@@ -738,496 +739,369 @@ def test_repo_chat_response_carries_repo_blob_base(
 
 # ---- UI generation (node-level, same approach as test_ask_model.py) ----------
 
-def test_guide_panel_is_generated_minimized_and_expandable():
-    script = r"""
+# One mock DOM for the Ask window tests. The shipped viewer.js runs its
+# real init() (readyState 'complete'); fetch records each request and
+# answers with `reply(url)`.
+_CHAT_DOM = r"""
 const fs = require('fs');
 const vm = require('vm');
-
 const registry = {};
+const docListeners = [];
 const store = {};
 const fetches = [];
+let reply = () => ({ok: true, status: 200, data: {}});
 
-function textNode(text) {
-  return {nodeType: 3, textContent: String(text), children: []};
+function textNode(t) {
+  return {nodeType: 3, textContent: String(t), children: []};
 }
 function element(tag) {
-  const node = {
-    nodeType: 1, tagName: String(tag).toUpperCase(), children: [],
-    attributes: {}, style: {}, _handlers: {}, value: '', focused: false,
-    appendChild(c) { c.parentNode = node; this.children.push(c); return c; },
-    remove() {
-      if (this.parentNode) {
-        const i = this.parentNode.children.indexOf(this);
-        if (i >= 0) this.parentNode.children.splice(i, 1);
-      }
-    },
+  const node = {nodeType: 1, tagName: String(tag).toUpperCase(), children: [],
+    attributes: {}, style: {}, _handlers: {}, value: '', disabled: false,
+    appendChild(c) { c._parent = node; this.children.push(c); return c; },
+    remove() {},
     setAttribute(k, v) { this.attributes[k] = String(v); },
     getAttribute(k) { return k in this.attributes ? this.attributes[k] : null; },
-    addEventListener(t, f) { (this._handlers[t] = this._handlers[t] || []).push(f); },
-    dispatch(t) { (this._handlers[t] || []).forEach((f) => f({
-      preventDefault() {}, stopPropagation() {}, key: ''
-    })); },
-    querySelectorAll() { return []; },
-    querySelector() { return null; },
-    closest() { return null; },
-    focus() { this.focused = true; },
-    get scrollTop() { return this._scrollTop || 0; },
-    set scrollTop(v) { this._scrollTop = v; },
-    get scrollHeight() { return 0; }
+    removeAttribute(k) { delete this.attributes[k]; },
+    addEventListener(t, f) {
+      (this._handlers[t] = this._handlers[t] || []).push(f);
+    },
+    dispatch(t, ev) {
+      (this._handlers[t] || []).forEach((f) => f(Object.assign({
+        preventDefault() {}, stopPropagation() {}, key: '', shiftKey: false,
+        clientX: 5, clientY: 5, target: node
+      }, ev || {})));
+    },
+    querySelectorAll() { return []; }, querySelector() { return null; },
+    closest() { return null; }, focus() {}, contains() { return false; }
   };
+  Object.defineProperty(node, 'parentNode', {
+    get() { return node._parent || null; }, set(v) { node._parent = v; }});
+  Object.defineProperty(node, 'parentElement', {
+    get() { return node._parent || null; }, set(v) { node._parent = v; }});
   const classes = new Set();
-  let classNameStr = '';
+  let cn = '';
   Object.defineProperty(node, 'className', {
-    get() { return classNameStr; },
+    get() { return cn; },
     set(v) {
-      classNameStr = String(v);
-      classes.clear();
-      classNameStr.split(/\\s+/).filter(Boolean).forEach((c) => classes.add(c));
+      cn = String(v); classes.clear();
+      cn.split(/\s+/).filter(Boolean).forEach((c) => classes.add(c));
     }
   });
   node.classList = {
-    add: (c) => classes.add(c),
-    remove: (c) => classes.delete(c),
-    toggle: (c, on) => {
+    add: (c) => classes.add(c), remove: (c) => classes.delete(c),
+    toggle(c, on) {
       if (on === undefined) { classes.has(c) ? classes.delete(c) : classes.add(c); }
       else if (on) classes.add(c); else classes.delete(c);
     },
     contains: (c) => classes.has(c)
   };
   Object.defineProperty(node, 'id', {
-    get() { return this.attributes.id || ''; },
-    set(v) { this.attributes.id = v; registry[v] = node; }
-  });
+    get() { return node.attributes.id || ''; },
+    set(v) { node.attributes.id = v; registry[v] = node; }});
   Object.defineProperty(node, 'textContent', {
-    get() { return this.children.map((c) => c.textContent).join(''); },
-    set(v) { this.children = v ? [textNode(v)] : []; }
-  });
+    get() { return node.children.map((c) => c.textContent).join(''); },
+    set(v) { node.children = v ? [textNode(v)] : []; }});
+  Object.defineProperty(node, 'offsetWidth', {get() { return 10; }});
   return node;
 }
 
 const body = element('body');
 global.document = {
-  readyState: 'loading',   // keeps the IIFE from auto-running real init()
-  addEventListener() {},
-  createElement: element,
-  createTextNode: textNode,
+  readyState: 'complete', body,
+  createElement: element, createTextNode: textNode,
   getElementById(id) { return registry[id] || null; },
-  body
+  documentElement: {style: {setProperty() {}}, getAttribute: () => null,
+    setAttribute() {}, classList: {toggle() {}}},
+  querySelector() { return null; }, querySelectorAll() { return []; },
+  addEventListener(t, f) { docListeners.push([t, f]); }
 };
 global.window = {
   localStorage: {
     getItem: (k) => (k in store ? store[k] : null),
-    setItem: (k, v) => { store[k] = String(v); }
-  }
+    setItem: (k, v) => { store[k] = String(v); },
+    removeItem: (k) => { delete store[k]; }
+  },
+  GUIDE_REPO_BLOB_BASE: '', addEventListener() {}, removeEventListener() {}
 };
 global.location = {hash: '', pathname: ''};
+global.sessionStorage = {getItem: () => null, setItem() {}};
 global.fetch = function (url, opts) {
-  fetches.push({url, opts});
-  return Promise.resolve({ok: true, json: () => Promise.resolve({
-    answer: 'stub answer',
-    sources: [{path: 'docs/guides/adrs.md', start: 1, end: 5,
-               github_url: 'https://github.com/de4sdv/DE4SDV/blob/'
-                 + 'a'.repeat(40) + '/docs/guides/adrs.md#L1-L5'}],
-    git_sha: 'a'.repeat(40)
-  })});
+  fetches.push({url, body: JSON.parse(opts.body)});
+  const r = reply(url);
+  return Promise.resolve({ok: r.ok, status: r.status,
+                          json: () => Promise.resolve(r.data)});
 };
 
-let source = fs.readFileSync(process.argv[1], 'utf8');
-source = source.replace(
-  '  function init() {',
-  '  global.renderAskAnswer = renderAskAnswer;\n'
-  + '  global.initRepoGuide = initRepoGuide;\n\n  function init() {'
-);
-vm.runInThisContext(source);
-if (typeof global.initRepoGuide !== 'function') {
-  throw new Error('initRepoGuide was not loaded from the shipped viewer.js');
-}
-
-global.initRepoGuide();
-
-const fab = registry.guideFab;
-const panel = registry.guidePanel;
-if (!fab || !panel) throw new Error('FAB or panel not generated');
-if (panel.classList.contains('open')) {
-  throw new Error('panel must be minimized by default');
-}
-if (fab.style.display === 'none') {
-  throw new Error('collapsed FAB must be visible by default');
-}
-const bodyEl = registry.guideBody;
-const starters = bodyEl.children.filter(
-  (c) => c.classList && c.classList.contains('guide-starter'));
-if (starters.length !== 4) {
-  throw new Error('expected 4 starter questions, got ' + starters.length);
-}
-
-// expand
-fab.dispatch('click');
-if (!panel.classList.contains('open')) throw new Error('panel did not expand');
-if (fab.style.display !== 'none') throw new Error('FAB not hidden when open');
-
-// send a question -> POST /api/repo-chat
-const input = registry.guideInput;
-input.value = 'where do architecture decision records live?';
-registry.guideInput._handlers = registry.guideInput._handlers || {};
-const sendBtn = bodyEl.parentNode.children
-  .find((c) => c.classList && c.classList.contains('guide-foot'));
-if (!sendBtn) throw new Error('footer not found');
-
-function send() {
-  const foot = bodyEl.parentNode.children
-    .find((c) => c.classList && c.classList.contains('guide-foot'));
-  foot.children.find((c) => c.classList.contains('guide-send'))
-    .dispatch('click');
-}
-send();
-if (fetches.length !== 1) throw new Error('expected one fetch');
-if (fetches[0].url !== '/api/repo-chat') {
-  throw new Error('guide must POST /api/repo-chat, got ' + fetches[0].url);
-}
-const sent = JSON.parse(fetches[0].opts.body);
-if (sent.question !== 'where do architecture decision records live?') {
-  throw new Error('question not sent verbatim');
-}
-
-setTimeout(() => {
-  // minimized state + persisted conversation (client-side only)
-  const saved = JSON.parse(store['de4sdv-guide-state']);
-  if (!Array.isArray(saved.messages) || saved.messages.length !== 2) {
-    throw new Error('conversation not persisted: ' + JSON.stringify(saved));
-  }
-  if (saved.messages[0].role !== 'user'
-      || saved.messages[1].role !== 'guide') {
-    throw new Error('unexpected message roles');
-  }
-
-  // clear (new chat) resets to intro + starters
-  const head = bodyEl.parentNode.children
-    .find((c) => c.classList && c.classList.contains('guide-head'));
-  head.children.find((c) => c.classList.contains('guide-clear'))
-    .dispatch('click');
-  const savedAfterClear = JSON.parse(store['de4sdv-guide-state']);
-  if (savedAfterClear.messages.length !== 0) {
-    throw new Error('clear did not reset the conversation');
-  }
-
-  // minimize again: state persisted as closed
-  head.children.find((c) => c.classList.contains('guide-min'))
-    .dispatch('click');
-  if (panel.classList.contains('open')) {
-    throw new Error('panel did not minimize');
-  }
-  const savedClosed = JSON.parse(store['de4sdv-guide-state']);
-  if (savedClosed.open !== false) throw new Error('open state not persisted');
-
-  // source reference rendering: SHA-pinned GitHub link with provenance
-  // (checked on the pre-clear answer flow via a second round)
-  input.value = 'adr locations';
-  send();
-  setTimeout(() => {
-    const sourceLinks = [];
-    (function collect(n) {
-      (n.children || []).forEach((c) => {
-        if (c.classList && c.classList.contains('guide-source')) {
-          sourceLinks.push(c);
-        }
-        collect(c);
-      });
-    })(bodyEl);
-    if (!sourceLinks.length) throw new Error('no source links rendered');
-    const link = sourceLinks[sourceLinks.length - 1];
-    if (!/github\.com\/de4sdv\/DE4SDV\/blob\/a{40}\//.test(link.href)
-        || !/#L1-L5$/.test(link.href)) {
-      throw new Error('source link not pinned to the deployed SHA: '
-        + link.href);
-    }
-    if (link.target !== '_blank' || link.rel !== 'noopener') {
-      throw new Error('external source link must be rel=noopener new tab');
-    }
-    console.log('guide UI OK');
-  }, 20);
-}, 20);
-"""
-    result = subprocess.run(
-        ["node", "-e", script,
-         str(REPO_ROOT / "tools/sysml_html_viewer/viewer.js")],
-        capture_output=True,
-        text=True,
-        timeout=60,
-    )
-    assert result.returncode == 0, result.stderr or result.stdout
-    assert "guide UI OK" in result.stdout
-
-
-def test_tree_context_menu_offers_both_assistants():
-    """Right-clicking an element tree node must offer 'Ask repo assistant'
-    (opens the Guide prefilled) and 'Ask the model… (element-grounded query)'.
-    The identity attrs live on the .tree-node container, so askInfoFor must
-    walk up from the matched anchor."""
-    import re
-    script = r"""
-const fs = require('fs');
-const vm = require('vm');
-const registry = {};
-const docListeners = [];
-function textNode(t){return {nodeType:3, textContent:String(t), children:[]};}
-function element(tag){
-  const node = {nodeType:1, tagName:String(tag).toUpperCase(), children:[],
-    attributes:{}, style:{}, _handlers:{}, value:'',
-    appendChild(c){c._parent=node; this.children.push(c); return c;},
-    remove(){}, setAttribute(k,v){this.attributes[k]=String(v);},
-    getAttribute(k){return k in this.attributes?this.attributes[k]:null;},
-    addEventListener(t,f){(this._handlers[t]=this._handlers[t]||[]).push(f);},
-    dispatch(t,ev){(this._handlers[t]||[]).forEach(f=>f(ev||{preventDefault(){},stopPropagation(){},key:'',clientX:5,clientY:5,target:node}));},
-    querySelectorAll(){return [];}, querySelector(){return null;},
-    removeAttribute(k){delete this.attributes[k];},
-    focus(){}, contains(){return false;}
-  };
-  Object.defineProperty(node,'parentNode',{get(){return node._parent||null;},set(v){node._parent=v;}});
-  Object.defineProperty(node,'parentElement',{get(){return node._parent||null;},set(v){node._parent=v;}});
-  const classes = new Set();
-  let classNameStr = '';
-  Object.defineProperty(node,'className',{
-    get(){return classNameStr;},
-    set(v){classNameStr=String(v); classes.clear();
-      classNameStr.split(/\s+/).filter(Boolean).forEach(c=>classes.add(c));}
-  });
-  node.classList = {add:c=>classes.add(c), remove:c=>classes.delete(c),
-    toggle(c,on){if(on===undefined){classes.has(c)?classes.delete(c):classes.add(c);}else if(on)classes.add(c);else classes.delete(c);},
-    contains:c=>classes.has(c)};
-  Object.defineProperty(node,'id',{get(){return node.attributes.id||'';},set(v){node.attributes.id=v;registry[v]=node;}});
-  Object.defineProperty(node,'textContent',{get(){return node.children.map(c=>c.textContent).join('');},set(v){node.children=v?[textNode(v)]:[];}});
-  Object.defineProperty(node,'offsetWidth',{get(){return 10;}});
-  return node;
-}
-function attachClosest(node) {
-  node.closest = function (sel) {
-    for (const s of sel.split(',').map(x=>x.trim())) {
-      if (s.indexOf('.tree-node[data-tip-name]') === 0) {
-        const p = node._parent;
-        if (p && p.classList && p.classList.contains('tree-node')
-            && p.attributes['data-tip-name']) return node;
-      }
-    }
-    return null;
-  };
-}
-const body = element('body');
-global.document = {
-  readyState:'complete', body,
-  createElement:element, createTextNode:textNode,
-  getElementById(id){return registry[id]||null;},
-  documentElement:{style:{setProperty(){}}, getAttribute:()=>null,
-    setAttribute(){}, classList:{toggle(){}}},
-  querySelector(){return null;}, querySelectorAll(){return [];},
-  addEventListener(t,f){docListeners.push([t,f]);}
-};
-global.window = {localStorage:{getItem:()=>null,setItem(){}},
-  GUIDE_REPO_BLOB_BASE:'', addEventListener(){}, removeEventListener(){}};
-global.location = {hash:'', pathname:''};
-global.sessionStorage = {getItem:()=>null, setItem(){}};
-global.fetch = () => Promise.resolve({ok:true, json:()=>Promise.resolve({})});
-let source = fs.readFileSync(process.argv[1], 'utf8');
-vm.runInThisContext(source);
-
-const anchor = element('a'); anchor.attributes['href']='pages/x.html#src-3';
-const li = element('li');
-li.setAttribute('class','tree-node tree-part def');
-li.setAttribute('data-kind','part def');
-li.setAttribute('data-tip-name','FixtureSystem');
-li.setAttribute('data-tip-kind','part def');
-li.setAttribute('data-tip-file','textual-notation-of-model/packages/features/fixture/fixture_feature.sysml');
-li.setAttribute('data-tip-line','3');
-li.appendChild(anchor);
-anchor._parent = li;
-attachClosest(anchor);
-global.window.__DE4SDV_VIEWER_SERVER__ = true;
-
-const cm = docListeners.filter(x=>x[0]==='contextmenu').map(x=>x[1]);
-if (!cm.length) throw new Error('no contextmenu listener');
-cm[0]({preventDefault(){}, stopPropagation(){}, clientX:5, clientY:5, target:anchor, closest:anchor.closest});
-
-function findByClass(n, cls){
-  if (n.classList && n.classList.contains(cls)) return n;
-  for (const c of (n.children||[])) { const hit = findByClass(c, cls); if (hit) return hit; }
-  return null;
-}
-const menuEl = findByClass(body, 'uses-menu');
-if (!menuEl) throw new Error('menu not opened');
-const items = menuEl.children.filter(c=>c.classList.contains('uses-menu-item'));
-const labels = items.map(i=>i.textContent);
-if (labels.length !== 2) throw new Error('expected 2 items, got ' + JSON.stringify(labels));
-const repoItem = labels.find(l => l.indexOf('Ask repo assistant') !== -1);
-const askItem = labels.find(l => l.indexOf('Ask the model') !== -1
-  && l.indexOf('(element-grounded query)') !== -1);
-if (labels.some(l => l.includes('(authoritative query)'))) {
-  throw new Error('generated answer is mislabeled as authoritative');
-}
-if (!repoItem) throw new Error('repo item missing, labels: ' + JSON.stringify(labels));
-if (!askItem) throw new Error('element-grounded label missing: ' + JSON.stringify(labels));
-items[0].dispatch('click');
-const panel = registry.guidePanel;
-const input = registry.guideInput;
-if (!panel || !panel.classList.contains('open')) throw new Error('guide panel not opened');
-if (!input.value || input.value.indexOf('FixtureSystem') === -1) {
-  throw new Error('guide input not prefilled: ' + input.value);
-}
-console.log('TREE MENU OK');
-"""
-    result = subprocess.run(
-        ["node", "-e", script,
-         str(REPO_ROOT / "tools/sysml_html_viewer/viewer.js")],
-        capture_output=True, text=True, timeout=60,
-    )
-    assert result.returncode == 0, result.stderr or result.stdout
-    assert "TREE MENU OK" in result.stdout
-
-
-
-def test_chat_panels_layout_states():
-    """Single Guide entry point (FAB) + fixed panel order:
-    [Ask panel/chip] left, [Guide panel] right (corner). States:
-    Guide open -> FAB hidden, corner; both open -> Ask shifted left;
-    Ask minimized -> chip left of Guide; Guide minimized -> FAB returns
-    and Ask owns the corner."""
-    script = r"""
-const fs = require('fs');
-const vm = require('vm');
-const registry = {};
-const docListeners = [];
-const store = {};
-function textNode(t){return {nodeType:3, textContent:String(t), children:[]};}
-function element(tag){
-  const node = {nodeType:1, tagName:String(tag).toUpperCase(), children:[],
-    attributes:{}, style:{}, _handlers:{}, value:'',
-    appendChild(c){c._parent=node; this.children.push(c); return c;},
-    remove(){}, setAttribute(k,v){this.attributes[k]=String(v);},
-    getAttribute(k){return k in this.attributes?this.attributes[k]:null;},
-    addEventListener(t,f){(this._handlers[t]=this._handlers[t]||[]).push(f);},
-    dispatch(t,ev){(this._handlers[t]||[]).forEach(f=>f(ev||{preventDefault(){},stopPropagation(){},key:'',clientX:5,clientY:5,target:node}));},
-    querySelectorAll(){return [];}, querySelector(){return null;},
-    removeAttribute(k){delete this.attributes[k];},
-    focus(){}, contains(){return false;}
-  };
-  Object.defineProperty(node,'parentNode',{get(){return node._parent||null;},set(v){node._parent=v;}});
-  Object.defineProperty(node,'parentElement',{get(){return node._parent||null;},set(v){node._parent=v;}});
-  const classes = new Set();
-  let cn = '';
-  Object.defineProperty(node,'className',{
-    get(){return cn;},
-    set(v){cn=String(v); classes.clear();
-      cn.split(/\\s+/).filter(Boolean).forEach(c=>classes.add(c));}
-  });
-  node.classList = {add:c=>classes.add(c), remove:c=>classes.delete(c),
-    toggle(c,on){if(on===undefined){classes.has(c)?classes.delete(c):classes.add(c);}else if(on)classes.add(c);else classes.delete(c);},
-    contains:c=>classes.has(c)};
-  Object.defineProperty(node,'id',{get(){return node.attributes.id||'';},set(v){node.attributes.id=v;registry[v]=node;}});
-  Object.defineProperty(node,'textContent',{get(){return node.children.map(c=>c.textContent).join('');},set(v){node.children=v?[textNode(v)]:[];}});
-  Object.defineProperty(node,'offsetWidth',{get(){return 10;}});
-  return node;
-}
-function attachClosest(node) {
-  node.closest = function (sel) {
-    for (const s of sel.split(',').map(x=>x.trim())) {
-      if (s === 'a.src-ref' && (node.attributes['class']||'').includes('src-ref')) return node;
-    }
-    return null;
-  };
-}
-const body = element('body');
-const bodyClasses = new Set();
-body.classList = {add:c=>bodyClasses.add(c), remove:c=>bodyClasses.delete(c),
-  toggle(c,on){if(on===undefined){bodyClasses.has(c)?bodyClasses.delete(c):bodyClasses.add(c);}else if(on)bodyClasses.add(c);else bodyClasses.delete(c);},
-  contains:c=>bodyClasses.has(c)};
-global.document = {
-  readyState:'complete', body,
-  createElement:element, createTextNode:textNode,
-  getElementById(id){return registry[id]||null;},
-  documentElement:{style:{setProperty(){}}, getAttribute:()=>null,
-    setAttribute(){}, classList:{toggle(){}}},
-  querySelector(){return null;}, querySelectorAll(){return [];},
-  addEventListener(t,f){docListeners.push([t,f]);}
-};
-global.window = {localStorage:{
-  getItem:(k)=> (k in store ? store[k] : null),
-  setItem:(k,v)=> { store[k] = String(v); }
-}, GUIDE_REPO_BLOB_BASE:'', addEventListener(){}, removeEventListener(){}};
-global.location = {hash:'', pathname:''};
-global.sessionStorage = {getItem:()=>null, setItem(){}};
-global.fetch = () => Promise.resolve({ok:true, json:()=>Promise.resolve({})});
-let source = fs.readFileSync(process.argv[process.argv.length - 1], 'utf8');
-vm.runInThisContext(source);
-global.window.__DE4SDV_VIEWER_SERVER__ = true;
 function assert(cond, msg) { if (!cond) throw new Error(msg); }
-function findByClass(n, cls){
-  if (n.classList && n.classList.contains(cls)) return n;
-  for (const c of (n.children||[])) { const hit = findByClass(c, cls); if (hit) return hit; }
-  return null;
+function all(n, pred, out) {
+  out = out || [];
+  (n.children || []).forEach((c) => {
+    if (pred(c)) out.push(c);
+    all(c, pred, out);
+  });
+  return out;
 }
-
-// A: both closed -> FAB visible, no ask chip
-assert(registry.guideFab.style.display !== 'none', 'A fab hidden');
-assert(!registry.askMinChip || registry.askMinChip.style.display !== 'inline-flex', 'A ask chip visible');
-
-// B: Guide open via FAB -> FAB hidden, Guide at corner
-const fab = registry.guideFab;
-fab.dispatch('click');
-assert(registry.guidePanel.classList.contains('open'), 'B guide not open');
-assert(fab.style.display === 'none', 'B fab visible while guide open');
-
-// C: open Ask via context menu -> both open, Ask shifted left
-const anchor = element('a');
-anchor.setAttribute('class','src-ref');
-anchor.setAttribute('data-tip-name','FixtureSystem');
-anchor.setAttribute('data-tip-kind','part def');
-anchor.setAttribute('data-tip-file','fix/fixture.sysml');
-anchor.setAttribute('data-tip-line','3');
-anchor._parent = body;
-attachClosest(anchor);
-const cm = docListeners.filter(x=>x[0]==='contextmenu').map(x=>x[1]);
-cm[0]({preventDefault(){}, stopPropagation(){}, clientX:5, clientY:5, target:anchor, closest:anchor.closest});
-const menuEl = findByClass(body, 'uses-menu');
-const items = menuEl.children.filter(c => c.classList.contains('uses-menu-item'));
-const askItem = items.find(c => c.textContent.indexOf('Ask the model') !== -1);
-assert(askItem, 'C ask menu item missing');
-askItem.dispatch('click');
-const askPanel = registry.askPanel;
-assert(askPanel && askPanel.classList.contains('open'), 'C ask not open');
-assert(bodyClasses.has('chat-both-open'), 'C both-open class missing');
-assert(askPanel.classList.contains('shifted'), 'C ask must shift left of guide');
-assert(!registry.guidePanel.classList.contains('shifted'), 'C guide must own the corner');
-
-// D: minimize Ask -> chip appears; Guide keeps corner; chip shifted
-const askMin = findByClass(askPanel, 'ask-min');
-askMin.dispatch('click');
-assert(!askPanel.classList.contains('open'), 'D ask not hidden');
-const askChip = registry.askMinChip;
-assert(askChip && askChip.style.display === 'inline-flex', 'D ask chip missing');
-assert(askChip.style.display === 'inline-flex', 'D ask chip must be visible');
-
-// E: chip restores Ask with element context
-askChip.dispatch('click');
-assert(askPanel.classList.contains('open'), 'E ask not restored');
-assert(askPanel.__els.title.textContent === 'FixtureSystem',
-  'E element context lost');
-
-// F: minimize Guide -> FAB returns; Ask (open) owns the corner unshifted
-const guideMin = findByClass(registry.guidePanel, 'guide-min');
-guideMin.dispatch('click');
-assert(!registry.guidePanel.classList.contains('open'), 'F guide not hidden');
-assert(fab.style.display !== 'none', 'F fab missing');
-assert(!askPanel.classList.contains('shifted'), 'F ask must own the corner');
-
-// G: reopen Guide -> both open again, ask re-shifts
-fab.dispatch('click');
-assert(askPanel.classList.contains('shifted'), 'G ask must re-shift');
-
-console.log('LAYOUT STATES OK');
+function byClass(n, cls) {
+  return all(n, (c) => c.classList && c.classList.contains(cls));
+}
+function modeButton(mode) {
+  return byClass(registry.chatPanel, 'chat-mode')
+    .find((b) => b.getAttribute('data-mode') === mode);
+}
+function saved() { return JSON.parse(store['de4sdv-chat-state']); }
+function later(f) {
+  return new Promise((done) => setTimeout(() => { f(); done(); }, 20));
+}
+function load() {
+  vm.runInThisContext(
+    fs.readFileSync(process.argv[process.argv.length - 1], 'utf8'));
+}
+// right-click `anchor` and return the context menu items
+function contextMenu(anchor) {
+  docListeners.filter((x) => x[0] === 'contextmenu').forEach((x) => x[1]({
+    preventDefault() {}, stopPropagation() {}, clientX: 5, clientY: 5,
+    target: anchor
+  }));
+  const menu = byClass(body, 'uses-menu')[0];
+  assert(menu, 'context menu not opened');
+  return menu.children.filter((c) => c.classList.contains('uses-menu-item'));
+}
+// a source reference to a model element, as rendered on file pages
+function sourceRef(name) {
+  const a = element('a');
+  a.setAttribute('class', 'src-ref');
+  a.setAttribute('data-tip-name', name);
+  a.setAttribute('data-tip-kind', 'part def');
+  a.setAttribute('data-tip-file', 'fix/fixture.sysml');
+  a.setAttribute('data-tip-line', '3');
+  a._parent = body;
+  a.closest = (sel) => sel.split(',').map((s) => s.trim())
+    .indexOf('a.src-ref') !== -1 ? a : null;
+  return a;
+}
 """
+
+
+def _run_chat_ui(script: str, marker: str) -> None:
     result = subprocess.run(
-        ["node", "-e", script,
+        ["node", "-e", _CHAT_DOM + script,
          str(REPO_ROOT / "tools/sysml_html_viewer/viewer.js")],
         capture_output=True, text=True, timeout=60,
     )
     assert result.returncode == 0, result.stderr or result.stdout
-    assert "LAYOUT STATES OK" in result.stdout
+    assert marker in result.stdout
+
+
+def test_ask_window_is_one_minimized_window_asking_the_repository():
+    """One Ask window replaces the two floating panels. It starts
+    minimized in Repository mode, sends Repository questions only to
+    /api/repo-chat, renders SHA-pinned sources and persists its state
+    client-side."""
+    _run_chat_ui(r"""
+load();
+const fab = registry.chatFab;
+const panel = registry.chatPanel;
+assert(fab && panel, 'Ask window not generated');
+assert(!registry.guideFab && !registry.guidePanel && !registry.askPanel
+       && !registry.askMinChip, 'a second chat window still exists');
+assert(!panel.classList.contains('open'), 'window must be minimized by default');
+assert(fab.style.display !== 'none', 'collapsed FAB must be visible by default');
+const modes = byClass(panel, 'chat-mode');
+assert(modes.map((b) => b.getAttribute('data-mode')).join() === 'model,repo',
+  'the window must offer Model and Repository');
+assert(modeButton('repo').getAttribute('aria-pressed') === 'true'
+       && modeButton('model').getAttribute('aria-pressed') === 'false',
+  'Repository must be the default mode');
+assert(byClass(registry.chatBody, 'chat-starter').length === 4,
+  'expected 4 repository starter questions');
+
+fab.dispatch('click');
+assert(panel.classList.contains('open'), 'window did not expand');
+assert(fab.style.display === 'none', 'FAB not hidden while the window is open');
+
+reply = () => ({ok: true, status: 200, data: {
+  answer: 'stub answer',
+  sources: [{path: 'docs/guides/adrs.md', start: 1, end: 5,
+             github_url: 'https://github.com/de4sdv/DE4SDV/blob/'
+               + 'a'.repeat(40) + '/docs/guides/adrs.md#L1-L5'}],
+  git_sha: 'a'.repeat(40)
+}});
+registry.chatInput.value = 'where do architecture decision records live?';
+byClass(panel, 'chat-send')[0].dispatch('click');
+assert(fetches.length === 1 && fetches[0].url === '/api/repo-chat',
+  'Repository mode must POST /api/repo-chat only');
+assert(fetches[0].body.question
+       === 'where do architecture decision records live?',
+  'question not sent verbatim');
+
+later(() => {
+  const st = saved();
+  assert(st.threads.repo.length === 2 && st.threads.repo[0].role === 'user'
+         && st.threads.repo[1].role === 'guide',
+    'repository conversation not persisted: ' + JSON.stringify(st));
+  assert(st.threads.model.length === 0,
+    'repository answer leaked into the model conversation');
+  const link = byClass(registry.chatBody, 'guide-source').pop();
+  assert(link && /github\.com\/de4sdv\/DE4SDV\/blob\/a{40}\//.test(link.href)
+         && /#L1-L5$/.test(link.href),
+    'source link not pinned to the deployed SHA');
+  assert(link.target === '_blank' && link.rel === 'noopener',
+    'external source link must be rel=noopener new tab');
+
+  byClass(panel, 'chat-clear')[0].dispatch('click');
+  assert(saved().threads.repo.length === 0, 'New chat did not clear the conversation');
+  byClass(panel, 'chat-min')[0].dispatch('click');
+  assert(!panel.classList.contains('open'), 'window did not minimize');
+  assert(saved().open === false, 'open state not persisted');
+  assert(fab.style.display !== 'none', 'FAB not restored after minimizing');
+  console.log('ASK WINDOW OK');
+});
+""", "ASK WINDOW OK")
+
+
+def test_tree_context_menu_opens_the_one_window_in_either_mode():
+    """Right-clicking an element tree node offers 'Ask the model…
+    (element-grounded query)' and 'Ask the repository…'. Both open the same
+    window: the model item selects the element in Model mode, the
+    repository item prefills a question in Repository mode. The identity
+    attrs live on the .tree-node container, so askInfoFor must walk up from
+    the matched anchor."""
+    _run_chat_ui(r"""
+load();
+window.__DE4SDV_VIEWER_SERVER__ = true;
+const anchor = element('a');
+anchor.attributes.href = 'pages/x.html#src-3';
+const li = element('li');
+li.setAttribute('class', 'tree-node tree-part def');
+li.setAttribute('data-kind', 'part def');
+li.setAttribute('data-tip-name', 'FixtureSystem');
+li.setAttribute('data-tip-kind', 'part def');
+li.setAttribute('data-tip-file',
+  'textual-notation-of-model/packages/features/fixture/fixture_feature.sysml');
+li.setAttribute('data-tip-line', '3');
+li.appendChild(anchor);
+anchor.closest = (sel) => sel.split(',').map((s) => s.trim())
+  .some((s) => s.indexOf('.tree-node[data-tip-name]') === 0) ? anchor : null;
+
+let items = contextMenu(anchor);
+const labels = items.map((i) => i.textContent);
+assert(labels.length === 2, 'expected 2 items, got ' + JSON.stringify(labels));
+assert(labels[0].indexOf('Ask the model') !== -1
+       && labels[0].indexOf('(element-grounded query)') !== -1,
+  'element-grounded model item missing: ' + JSON.stringify(labels));
+assert(labels[1].indexOf('Ask the repository') !== -1,
+  'repository item missing: ' + JSON.stringify(labels));
+assert(!labels.some((l) => l.includes('(authoritative query)')),
+  'generated answer is mislabeled as authoritative');
+
+items[1].dispatch('click');
+const panel = registry.chatPanel;
+assert(panel.classList.contains('open'), 'window not opened');
+assert(panel.getAttribute('data-mode') === 'repo', 'not in Repository mode');
+assert(registry.chatInput.value.indexOf('FixtureSystem') !== -1,
+  'repository question not prefilled: ' + registry.chatInput.value);
+
+items = contextMenu(anchor);
+items[0].dispatch('click');
+assert(panel.getAttribute('data-mode') === 'model', 'not in Model mode');
+const context = byClass(panel, 'chat-context')[0];
+assert(context.textContent.indexOf('FixtureSystem') !== -1
+       && context.textContent.indexOf('fixture_feature.sysml:3') !== -1,
+  'selected element not shown: ' + context.textContent);
+assert(byClass(body, 'chat-panel').length === 1, 'more than one chat window');
+console.log('TREE MENU OK');
+""", "TREE MENU OK")
+
+
+def test_ask_window_modes_keep_separate_conversations_without_fallback():
+    """Each mode keeps its own conversation and calls only its own
+    endpoint: a failed model query is reported in the model conversation
+    and never retried against the repository. Model mode needs a selected
+    element and the viewer server; one request is in flight at a time; the
+    Guide conversation of the two-panel layout is migrated once."""
+    _run_chat_ui(r"""
+store['de4sdv-guide-state'] = JSON.stringify({open: false, messages: [
+  {role: 'user', text: 'old repo question'},
+  {role: 'guide', text: 'old repo answer', sources: [], sha: '',
+   repoBlobBase: ''}
+]});
+store['de4sdv-ask-open'] = '0';
+store['de4sdv-guide-minimized'] = '1';
+load();
+assert(saved().threads.repo.length === 2, 'Guide conversation not migrated');
+['de4sdv-guide-state', 'de4sdv-ask-open', 'de4sdv-guide-minimized']
+  .forEach((k) => assert(!(k in store), 'legacy key not removed: ' + k));
+
+const panel = registry.chatPanel;
+const input = registry.chatInput;
+const send = byClass(panel, 'chat-send')[0];
+const context = byClass(panel, 'chat-context')[0];
+
+// Model mode on a static page: Ask the model needs the viewer server
+modeButton('model').dispatch('click');
+assert(panel.getAttribute('data-mode') === 'model', 'Model mode not selected');
+assert(context.textContent.indexOf('served statically') !== -1,
+  'static page must say Ask the model needs the viewer server');
+window.__DE4SDV_VIEWER_SERVER__ = true;
+
+// no element selected: nothing to ask, nothing sent
+assert(send.disabled, 'Send must be disabled without a model element');
+input.value = 'what is this?';
+input.dispatch('keydown', {key: 'Enter'});
+assert(fetches.length === 0, 'Model mode sent a question without an element');
+
+const items = contextMenu(sourceRef('FixtureSystem'));
+items.find((i) => i.textContent.indexOf('Ask the model') !== -1)
+  .dispatch('click');
+assert(!send.disabled, 'Send must be enabled once an element is selected');
+
+reply = (url) => (url === '/ask'
+  ? {ok: false, status: 404, data: {error: "element 'FixtureSystem' is not "
+       + 'in the model index of this revision'}}
+  : {ok: true, status: 200, data: {answer: 'repo answer', sources: [],
+       git_sha: 'b'.repeat(40)}});
+input.value = 'what is this?';
+send.dispatch('click');
+assert(fetches.length === 1 && fetches[0].url === '/ask',
+  'Model mode must POST /ask');
+const sent = fetches[0].body;
+assert(sent.element === 'FixtureSystem' && sent.file === 'fix/fixture.sysml'
+       && sent.line === '3' && sent.question === 'what is this?',
+  'element identity not sent: ' + JSON.stringify(sent));
+input.value = 'again?';
+send.dispatch('click');
+assert(fetches.length === 1, 'a second request was sent while one is in flight');
+
+later(() => {
+  assert(fetches.length === 1,
+    'a failed model query fell back to another endpoint');
+  const st = saved();
+  assert(st.threads.model.length === 2 && st.threads.model[1].error === true,
+    'model failure not reported in the model conversation');
+  assert(st.threads.model[0].element.name === 'FixtureSystem',
+    'question not tagged with its element');
+  assert(st.threads.repo.length === 2,
+    'model exchange leaked into the repository conversation');
+
+  // switching modes swaps conversations and keeps the text being typed
+  input.value = 'how do I contribute?';
+  modeButton('repo').dispatch('click');
+  const shown = registry.chatBody.textContent;
+  assert(shown.indexOf('old repo answer') !== -1,
+    'repository conversation not shown');
+  assert(shown.indexOf('not in the model index') === -1,
+    'model conversation shown in Repository mode');
+  assert(input.value === 'how do I contribute?', 'draft lost when switching modes');
+  send.dispatch('click');
+  assert(fetches.length === 2 && fetches[1].url === '/api/repo-chat',
+    'Repository mode must POST /api/repo-chat');
+}).then(() => later(() => {
+  const st = saved();
+  assert(st.threads.repo.length === 4 && st.threads.model.length === 2,
+    'an answer landed in the wrong conversation');
+  modeButton('model').dispatch('click');
+  assert(registry.chatBody.textContent.indexOf('not in the model index') !== -1,
+    'model conversation lost after switching back');
+  console.log('MODES OK');
+}));
+""", "MODES OK")

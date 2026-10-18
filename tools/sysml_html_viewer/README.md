@@ -108,7 +108,7 @@ Switching to a revision that is not built yet shows a progress overlay
 ("Building revision …") while the server generates it; already-built
 revisions switch instantly.
 
-### Two assistant capabilities: DE4SDV Guide and Ask the model
+### Two assistant capabilities in one Ask window
 
 In server mode the viewer offers **two separate** assistant capabilities.
 They never fall back to each other and have separate endpoints, prompts,
@@ -134,17 +134,27 @@ and rate-limit budgets:
   and method-layer relations (semantic layer, server-side only).
 - The element-grounded model capability; unchanged by DE4SDV Guide.
 
-**DE4SDV Guide** is the floating chat widget at the bottom-right of every
-viewer page. It is minimized by default; expanding it keeps the
-conversation while navigating the generated viewer (state lives in the
-browser's `localStorage` only — no server-side user memory), and
-"New chat" clears it. Answers carry source references rendered as GitHub
-links pinned to the deployed application Git SHA, and the LLM receives
-only the question plus the retrieved repository context. The API key
-stays server-side (same mechanism as Ask the model).
+Both live in one chat window, **Ask**, at the bottom-right of every
+viewer page. It is minimized by default. A switch in its header picks the
+capability: **Model** (Ask the model) or **Repository** (DE4SDV Guide).
+Each mode keeps its own conversation and sends only to its own endpoint;
+a failed answer is reported in that mode and never retried in the other.
+The window, the mode, the selected element and both conversations persist
+while navigating the generated viewer (browser `localStorage` only — no
+server-side user memory); "New chat" clears the conversation of the
+current mode.
 
-**Ask the model** is the element-context-menu capability: right-click any
-model element and ask about that element.
+- **Model** answers about one element. Right-click a model element and
+  choose **Ask the model… (element-grounded query)**: the window opens in
+  Model mode with that element selected. Each answer names the element it
+  was grounded on.
+- **Repository** answers carry source references rendered as GitHub links
+  pinned to the deployed application Git SHA, and the LLM receives only
+  the question plus the retrieved repository context. **Ask the
+  repository…** in the context menu opens this mode with a question about
+  the element prefilled.
+
+The API key stays server-side for both.
 
 ## Publishing for collaborators
 

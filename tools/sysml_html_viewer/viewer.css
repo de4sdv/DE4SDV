@@ -759,162 +759,15 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
   background: var(--line);
 }
 
-/* ---- ask-model panel (server mode) ---- */
-.ask-panel {
+/* ---- Ask window: one chat window, two capabilities (all pages) ----
+ * The FAB is the collapsed form, .chat-panel.open the expanded one. The
+ * mode switch picks the capability: Model (Ask the model, POST /ask) or
+ * Repository (DE4SDV Guide, POST /api/repo-chat). Answer footers keep
+ * their capability namespace: .ask-* for the model, .guide-* for the
+ * repository. */
+.chat-fab {
   position: fixed;
-  z-index: 4200; /* above tooltips (3000) and fullscreen overlay (2000) */
-  right: 18px;
-  bottom: 18px;
-  width: min(430px, calc(100vw - 36px));
-  max-height: min(70vh, 640px);
-  display: none;
-  flex-direction: column;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  box-shadow: 0 10px 34px rgba(15, 23, 42, 0.18);
-  overflow: hidden;
-}
-.ask-panel.open { display: flex; }
-.ask-head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 10px 12px 6px;
-  border-bottom: 1px solid var(--line);
-}
-.ask-title {
-  font-weight: 600;
-  font-size: 14px;
-  overflow-wrap: anywhere;
-}
-.ask-kind {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  background: var(--accent-soft);
-  border-radius: 4px;
-  padding: 1px 6px;
-}
-.ask-close {
-  margin-left: auto;
-  border: none;
-  background: none;
-  color: var(--muted);
-  font-size: 13px;
-  cursor: pointer;
-  padding: 2px 6px;
-}
-.ask-close:hover { color: var(--ink); }
-.ask-meta {
-  display: block;
-  padding: 4px 12px 8px;
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--muted);
-  text-decoration: none;
-  overflow-wrap: anywhere;
-  border-bottom: 1px solid var(--line);
-}
-.ask-meta:hover { color: var(--accent); }
-.ask-body {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px 12px;
-  overflow-y: auto;
-}
-.ask-input {
-  font-family: var(--sans);
-  font-size: 13px;
-  color: var(--ink);
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 8px 10px;
-  resize: vertical;
-  min-height: 58px;
-}
-.ask-input:focus {
-  outline: none;
-  border-color: var(--accent);
-  background: var(--panel);
-}
-.ask-status {
-  font-size: 12px;
-  color: var(--muted);
-  min-height: 1em;
-}
-.ask-answer {
-  font-size: 13px;
-  line-height: 1.55;
-  overflow-wrap: anywhere;
-}
-.ask-answer:empty { display: none; }
-.ask-answer p { margin: 0 0 10px; }
-.ask-answer p:last-child { margin-bottom: 0; }
-.ask-answer h3,
-.ask-answer h4,
-.ask-answer h5,
-.ask-answer h6 {
-  margin: 12px 0 6px;
-  font-size: 13px;
-  line-height: 1.35;
-}
-.ask-answer ul,
-.ask-answer ol {
-  margin: 2px 0 10px;
-  padding-left: 22px;
-}
-.ask-answer li { margin: 3px 0; }
-.ask-answer code {
-  font-family: var(--mono);
-  font-size: 0.92em;
-  color: var(--accent);
-  background: var(--accent-soft);
-  border-radius: 3px;
-  padding: 1px 3px;
-}
-.ask-answer pre {
-  margin: 4px 0 10px;
-  padding: 8px 10px;
-  overflow-x: auto;
-  color: #dce6f2;
-  background: #0f1a26;
-  border-radius: 5px;
-}
-.ask-answer pre code {
-  color: inherit;
-  background: none;
-  padding: 0;
-  white-space: pre;
-}
-.ask-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 11px;
-  color: var(--muted);
-}
-.ask-grounded {
-  color: var(--accent);
-  text-decoration: none;
-  font-family: var(--mono);
-  overflow-wrap: anywhere;
-}
-.ask-grounded:hover { text-decoration: underline; }
-.ask-grounded:empty { display: none; }
-.ask-model-line:empty, .ask-alts:empty { display: none; }
-.ask-alts { overflow-wrap: anywhere; }
-
-/* ---- DE4SDV Guide: floating repository chatbot (all viewer pages) ----
- * Same visual language as the ask-model panel (tokens, radius, shadows);
- * a separate capability with its own namespace. Collapsed by default:
- * the FAB is the collapsed form, .guide-panel.open the expanded one. */
-.guide-fab {
-  position: fixed;
-  z-index: 4100; /* under the ask-panel (4200), above tooltips */
+  z-index: 4100; /* above tooltips (3000), under the context menu (5000) */
   right: 18px;
   bottom: 18px;
   display: inline-flex;
@@ -931,12 +784,12 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
   cursor: pointer;
   box-shadow: 0 6px 22px rgba(15, 23, 42, 0.16);
 }
-.guide-fab:hover {
+.chat-fab:hover {
   border-color: var(--accent);
   color: var(--accent);
   background: var(--accent-soft);
 }
-.guide-panel {
+.chat-panel {
   position: fixed;
   z-index: 4100;
   right: 18px;
@@ -951,31 +804,44 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
   box-shadow: 0 10px 34px rgba(15, 23, 42, 0.18);
   overflow: hidden;
 }
-.guide-panel.open { display: flex; }
-.guide-head {
+.chat-panel.open { display: flex; }
+.chat-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--line);
   background: var(--panel);
 }
-.guide-title {
+.chat-title {
   font-weight: 600;
   font-size: 14px;
 }
-.guide-cap {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  background: var(--accent-soft);
-  border-radius: 4px;
-  padding: 1px 6px;
-  cursor: help;
+/* mode switch: one segmented control, the active mode filled */
+.chat-modes {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
 }
-.guide-clear,
-.guide-min {
+.chat-mode {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--panel);
+  border: none;
+  padding: 4px 11px;
+  cursor: pointer;
+}
+.chat-mode + .chat-mode { border-left: 1px solid var(--line); }
+.chat-mode:hover { color: var(--ink); }
+.chat-mode.active {
+  color: #ffffff;
+  background: var(--accent);
+}
+.chat-clear,
+.chat-min {
   border: none;
   background: none;
   color: var(--muted);
@@ -983,10 +849,43 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
   cursor: pointer;
   padding: 2px 6px;
 }
-.guide-clear { margin-left: auto; }
-.guide-min { font-size: 15px; line-height: 1; }
-.guide-clear:hover, .guide-min:hover { color: var(--ink); }
-.guide-body {
+.chat-clear { margin-left: auto; }
+.chat-min { font-size: 15px; line-height: 1; }
+.chat-clear:hover, .chat-min:hover { color: var(--ink); }
+/* what the active mode answers from: the element or the repository */
+.chat-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  padding: 6px 12px;
+  font-size: 11px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+.chat-context-kind {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--accent-soft);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.chat-context-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.chat-context-src {
+  font-family: var(--mono);
+  color: var(--muted);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.chat-context-src:hover { color: var(--accent); }
+.chat-body {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -995,13 +894,13 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
   overflow-y: auto;
   background: var(--bg);
 }
-.guide-msg {
+.chat-msg {
   font-size: 13px;
   line-height: 1.55;
   overflow-wrap: anywhere;
   max-width: 92%;
 }
-.guide-msg-user {
+.chat-msg-user {
   align-self: flex-end;
   background: var(--accent-soft);
   border: 1px solid var(--line);
@@ -1009,17 +908,32 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
   padding: 7px 10px;
   white-space: pre-wrap;
 }
-.guide-msg-guide {
+.chat-msg-about {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: normal;
+}
+.chat-msg-bot {
   align-self: flex-start;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 10px 10px 10px 3px;
   padding: 7px 10px;
 }
-.guide-msg-guide p { margin: 0 0 8px; }
-.guide-msg-guide p:last-child { margin-bottom: 0; }
-.guide-msg-guide ul, .guide-msg-guide ol { margin: 2px 0 8px; padding-left: 20px; }
-.guide-msg-guide code {
+.chat-msg-bot p { margin: 0 0 8px; }
+.chat-msg-bot p:last-child { margin-bottom: 0; }
+.chat-msg-bot h3,
+.chat-msg-bot h4,
+.chat-msg-bot h5,
+.chat-msg-bot h6 {
+  margin: 10px 0 6px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.chat-msg-bot ul, .chat-msg-bot ol { margin: 2px 0 8px; padding-left: 20px; }
+.chat-msg-bot li { margin: 3px 0; }
+.chat-msg-bot code {
   font-family: var(--mono);
   font-size: 0.92em;
   color: var(--accent);
@@ -1027,16 +941,30 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
   border-radius: 3px;
   padding: 1px 3px;
 }
-.guide-msg-guide a { color: var(--accent); }
-.guide-msg-guide a.guide-inline-src {
+.chat-msg-bot pre {
+  margin: 4px 0 8px;
+  padding: 8px 10px;
+  overflow-x: auto;
+  color: #dce6f2;
+  background: #0f1a26;
+  border-radius: 5px;
+}
+.chat-msg-bot pre code {
+  color: inherit;
+  background: none;
+  padding: 0;
+  white-space: pre;
+}
+.chat-msg-bot a { color: var(--accent); }
+.chat-msg-bot a.guide-inline-src {
   font-family: var(--mono);
   font-size: 0.92em;
   text-decoration: none;
 }
-.guide-msg-guide a.guide-inline-src:hover { text-decoration: underline; }
-.guide-status { color: var(--muted); font-size: 12px; }
-.guide-intro { background: var(--accent-soft); }
-.guide-starter {
+.chat-msg-bot a.guide-inline-src:hover { text-decoration: underline; }
+.chat-status { color: var(--muted); font-size: 12px; }
+.chat-intro { background: var(--accent-soft); }
+.chat-starter {
   align-self: flex-start;
   font-family: var(--sans);
   font-size: 12px;
@@ -1048,10 +976,11 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
   cursor: pointer;
   text-align: left;
 }
-.guide-starter:hover {
+.chat-starter:hover {
   border-color: var(--accent);
   background: var(--accent-soft);
 }
+/* Repository answers: SHA-pinned source references */
 .guide-sources {
   display: flex;
   flex-wrap: wrap;
@@ -1083,7 +1012,27 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
   font-size: 10px;
   color: var(--muted);
 }
-.guide-foot {
+/* Model answers: grounding element, inference model, same-name elements */
+.ask-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--line);
+  font-size: 11px;
+  color: var(--muted);
+}
+.ask-grounded {
+  color: var(--accent);
+  text-decoration: none;
+  font-family: var(--mono);
+  overflow-wrap: anywhere;
+}
+.ask-grounded:hover { text-decoration: underline; }
+.ask-grounded:not([href]) { color: var(--muted); text-decoration: none; }
+.ask-alts { overflow-wrap: anywhere; }
+.chat-foot {
   display: flex;
   align-items: flex-end;
   gap: 8px;
@@ -1091,7 +1040,7 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
   border-top: 1px solid var(--line);
   background: var(--panel);
 }
-.guide-input {
+.chat-input {
   flex: 1;
   font-family: var(--sans);
   font-size: 13px;
@@ -1102,12 +1051,12 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
   padding: 8px 10px;
   resize: none;
 }
-.guide-input:focus {
+.chat-input:focus {
   outline: none;
   border-color: var(--accent);
   background: var(--panel);
 }
-.guide-send {
+.chat-send {
   font-family: var(--sans);
   font-size: 13px;
   font-weight: 600;
@@ -1118,84 +1067,20 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
   padding: 8px 14px;
   cursor: pointer;
 }
-.guide-send:hover { filter: brightness(1.08); }
+.chat-send:hover { filter: brightness(1.08); }
+.chat-send:disabled {
+  opacity: 0.45;
+  cursor: default;
+  filter: none;
+}
 @media (max-width: 640px) {
-  .guide-fab { right: 12px; bottom: 12px; padding: 8px 13px; }
-  .guide-panel {
+  .chat-fab { right: 12px; bottom: 12px; padding: 8px 13px; }
+  .chat-panel {
     right: 8px;
     bottom: 8px;
     width: calc(100vw - 16px);
     height: min(70vh, 520px);
   }
-}
-
-/* ---- chat panel layout: side-by-side when both open ---- */
-/* Fixed order left -> right: Ask panel, Guide panel (corner). When both
- * are open the ASK panel shifts left; Guide always owns the corner. */
-.ask-panel.open.shifted {
-  right: calc(18px + min(430px, calc(100vw - 36px)) + 16px);
-}
-
-/* Ask panel minimize button (same idiom as the guide panel) */
-.ask-min {
-  margin-left: auto;
-  border: none;
-  background: none;
-  color: var(--muted);
-  font-size: 15px;
-  line-height: 1;
-  cursor: pointer;
-  padding: 2px 6px;
-}
-.ask-min:hover { color: var(--ink); }
-.ask-close { margin-left: 0; }
-
-/* Minimized chat chips (bottom-right, side by side) */
-.chat-chip {
-  position: fixed;
-  z-index: 4150;
-  bottom: 18px;
-  /* same visual metrics as .guide-fab: height 37px, font 13px/600 */
-  height: 37px;
-  min-width: 37px;
-  padding: 0 16px;
-  display: none; /* JS sets inline-flex when its panel is minimized */
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: var(--sans);
-  color: var(--ink);
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  cursor: pointer;
-  box-shadow: 0 6px 22px rgba(15, 23, 42, 0.16);
-}
-.chat-chip:hover {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-/* Chat chips and the Guide FAB align flush on the bottom line:
- * rightmost = repo assistant (Guide FAB, corner slot); left of it the
- * ask-the-model chip. When panels are open, panels follow the same
- * order (Ask panel shifted left of the Guide panel). */
-#askMinChip {
-  /* left of the Guide FAB (corner, right: 18px; FAB pill is ~93px wide):
-   * 18 + 93 + 12 gap = 123px. Bottom edges flush. */
-  right: 123px;
-  bottom: 18px;
-}
-/* When the Guide PANEL is open, the chip must clear the panel, not just
- * the FAB: panel spans right 18px..448px (width 430 + 18), so the chip
- * moves to 448 + 12 = 460px. */
-body.chat-guide-open #askMinChip {
-  right: 460px;
-}
-@media (max-width: 640px) {
-  #askMinChip { right: 104px; }
-  body.chat-guide-open #askMinChip { right: 448px; }
 }
 
 /* return path note after arriving via the uses-menu */
