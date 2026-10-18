@@ -24,8 +24,9 @@ from scripts.run_ple_qualification import (
 FORMS = ("literal-bounds", "range-operator")
 #: Why the native XOR requirement stays failed until a licensed attempt replaces it.
 NATIVE_XOR_REASON = (
-    "Pinned PLEML 1.0.0 XORConstraint iterates over the excluded features "
-    "(excluded->ControlFunctions::forAll, PLEML.sysml:232-238) and tests each for inclusion in the "
+    "Pinned PLEML 1.1.0 XORConstraint iterates over the excluded features "
+    "(excluded = constrainedFeatures.operandB; excluded->ControlFunctions::forAll, PLEML.sysml:254-260) "
+    "and tests each for inclusion in the "
     "configuration. The existing serializer path only loads/serializes models; GateAModel.evaluate is a "
     "specialized incompatibility resolver, not native constraint execution. No occurrence-configuration "
     "native evaluator is integrated; no substitute is run."
@@ -140,7 +141,7 @@ package DE4SDV_ScopedPLEExecution {{
         // The XOR counterexample: the owner and its one excluded feature are both selected.
         #feature occurrence owner[0..1] default null {{
             assert constraint :>> xorFeatures {{
-                in #feature occurrence :>> excluded = (member0);
+                in occurrence constrainedFeatures = new FeatureOperand(that, member0);
             }}
         }}
     }}
@@ -164,8 +165,7 @@ package DE4SDV_ScopedPLEExecution {{
 {bindings}
     constraint nativeXorProbe : PLEML::XORConstraint {{
         in occurrence :>> featureConfiguration = xorCounterexample;
-        in occurrence :>> owningFeature = ScopedTree::owner;
-        in occurrence :>> excluded = (ScopedTree::member0);
+        in occurrence :>> constrainedFeatures = new FeatureOperand(ScopedTree::owner, ScopedTree::member0);
     }}
 }}
 """

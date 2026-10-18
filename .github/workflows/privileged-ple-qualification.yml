@@ -105,12 +105,12 @@ jobs:
               output.write('artifact_id=' + str(manifest['historical_artifact_id']) + '\n')
           PY
 
-      # The experiment at PLEML 1.0.0 (tag pleml-1.0.0-frozen): the scoped
+      # The experiment at PLEML 1.1.0 (tag pleml-1.1.0-frozen): the scoped
       # probes and the fresh serialization run on it.
       - name: Checkout frozen experiment read-only as a separate input
         uses: actions/checkout@v4
         with:
-          ref: 84673ea2bca0d11b795a34afeb7584081dd24fd2
+          ref: 69bbe093c179f2121274b9f604c7d6a10de19e77
           path: _ple-experiment
           submodules: recursive
           persist-credentials: false

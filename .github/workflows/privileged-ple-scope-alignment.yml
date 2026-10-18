@@ -5,17 +5,18 @@ name: Privileged PLE Scope Alignment
 # pull requests that touch the experiment's own paths and on demand; never on
 # a change to the production model roots, which keep their own gates.
 #
-# The exact pull-request head is the executor. The exact-pinned PLEML library
-# is read from the frozen experiment checkout at PLEML 1.0.0 (tag
-# pleml-1.0.0-frozen), relocated outside the executor checkout (#369: outputs
-# and checkouts inside the executor checkout made executor_source_dirty true),
-# and verified by revision and pin. The
-# licence reaches exactly two steps: the `syside check` of the reviewed roots
-# with the pinned library and the model, and the runner that serializes the
-# same set and evaluates every scope-alignment configuration. Every recording
-# step is preceded by a refusal of a dirty checkout, and one follows the
-# evaluation. After the receipt check, the unlicensed comparison oracle sets
-# the operational path (the unchanged configurator) beside the fresh receipt.
+# The executor is the exact commit under evaluation: the pull-request head, or
+# the dispatched `ref`. The exact-pinned PLEML library is read from the frozen
+# experiment checkout at PLEML 1.1.0 (tag pleml-1.1.0-frozen), relocated
+# outside the executor checkout (#369: outputs and checkouts inside the
+# executor checkout made executor_source_dirty true), and verified by revision
+# and pin. The licence reaches exactly two steps: the `syside check` of the
+# reviewed roots with the pinned library and the model, and the runner that
+# serializes the same set and evaluates every scope-alignment configuration.
+# Every recording step is preceded by a refusal of a dirty checkout, and one
+# follows the evaluation. After the receipt check, the unlicensed comparison
+# oracle sets the operational path (the unchanged configurator) beside the
+# fresh receipt.
 #
 # The receipts say `qualified: false`. This workflow is an experiment gate; it
 # authorizes no adoption, no change of selection authority and no claim.
@@ -60,7 +61,7 @@ jobs:
     steps:
       # Full history: the unlicensed oracle tests verify the retained record
       # against the files of the record's own revision, read from Git.
-      - name: Checkout the pull-request head
+      - name: Checkout the executor commit
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || inputs.ref }}
@@ -109,7 +110,7 @@ jobs:
         if: steps.licence.outputs.available == 'true'
         uses: actions/checkout@v4
         with:
-          ref: 84673ea2bca0d11b795a34afeb7584081dd24fd2
+          ref: 69bbe093c179f2121274b9f604c7d6a10de19e77
           path: _ple-experiment
           submodules: recursive
           persist-credentials: false
@@ -127,9 +128,9 @@ jobs:
         run: |
           mkdir "$RUNNER_TEMP/ple-evidence"
           git -C "$RUNNER_TEMP/_ple-experiment" rev-parse HEAD > "$RUNNER_TEMP/ple-evidence/experiment-revision.txt"
-          grep -qx 84673ea2bca0d11b795a34afeb7584081dd24fd2 "$RUNNER_TEMP/ple-evidence/experiment-revision.txt"
+          grep -qx 69bbe093c179f2121274b9f604c7d6a10de19e77 "$RUNNER_TEMP/ple-evidence/experiment-revision.txt"
           git -C "$RUNNER_TEMP/_ple-experiment/external/pleml" rev-parse HEAD > "$RUNNER_TEMP/ple-evidence/pleml-pin.txt"
-          grep -qx 071a69fdb2ecfa154809913938dfe9ebdf37701b "$RUNNER_TEMP/ple-evidence/pleml-pin.txt"
+          grep -qx 76e2be934453d77c4094141400b8ad8eb90a54a2 "$RUNNER_TEMP/ple-evidence/pleml-pin.txt"
           test -f "$RUNNER_TEMP/_ple-experiment/external/pleml/PLEML.sysml"
 
       - name: Set up Python

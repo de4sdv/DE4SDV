@@ -32,14 +32,14 @@ from de4sdv.sysml_api.repository import element_id, reference_ids
 
 ROOT = Path(__file__).resolve().parents[2]
 
-#: The frozen experiment at PLEML 1.0.0, a child of the Gate A revision
-#: 6a99626b (tag pleml-gate-a-frozen): the reviewed interpreter and the PLEML
-#: pin. The code reads the exact revision; the tag only keeps it reachable.
-FROZEN_REVISION = "84673ea2bca0d11b795a34afeb7584081dd24fd2"
-FROZEN_TAG = "pleml-1.0.0-frozen"
+#: The frozen experiment at PLEML 1.1.0, a child of the experiment at PLEML
+#: 1.0.0 (84673ea2, tag pleml-1.0.0-frozen): the reviewed interpreter and the
+#: PLEML pin. The code reads the exact revision; the tag only keeps it reachable.
+FROZEN_REVISION = "69bbe093c179f2121274b9f604c7d6a10de19e77"
+FROZEN_TAG = "pleml-1.1.0-frozen"
 FROZEN_INTERPRETER = "tools/pleml_gate_a.py"
-FROZEN_INTERPRETER_SHA256 = "67400e8c8168f9e552b47a61e6d3565c46ebd0ec9a29d62c59394fd5d502e01f"
-PLEML_PIN = "071a69fdb2ecfa154809913938dfe9ebdf37701b"
+FROZEN_INTERPRETER_SHA256 = "552b91798e8c2498e28e0042fadfc7349c2d130c685e80fe9312353545eafb67"
+PLEML_PIN = "76e2be934453d77c4094141400b8ad8eb90a54a2"
 
 #: Source labels of the documents the evaluation reads.
 MODEL_SOURCE = (
@@ -137,7 +137,7 @@ def load_frozen_interpreter(path: Path | None = None, *, repository: Path | None
 
     ``path`` points at the file inside a frozen experiment checkout; without
     it the bytes come from this repository's Git history: the code reads the
-    exact frozen revision, which the tag ``pleml-1.0.0-frozen`` keeps
+    exact frozen revision, which the tag ``pleml-1.1.0-frozen`` keeps
     reachable. Either way the digest must be the reviewed one.
     """
     if path is not None:

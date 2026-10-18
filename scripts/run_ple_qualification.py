@@ -6,7 +6,7 @@ observations never authorize adoption or semantic authority activation.
 
 Two frozen experiments: the historical replay and the prior of the fresh arm
 read the retained Gate A export with the Gate A experiment (``GATE_A``); the
-fresh arm serializes the current experiment at PLEML 1.0.0 (``CURRENT``).
+fresh arm serializes the current experiment at PLEML 1.1.0 (``CURRENT``).
 """
 from __future__ import annotations
 
@@ -60,8 +60,7 @@ GATE_A = ExperimentIdentity(
 )
 #: The experiment at PLEML 1.0.0: a child of Gate A with the submodule at the
 #: 1.0.0 release commit, the library at its new path and the interpreter
-#: reading that path. The scoped probes, the fresh serialization and the scope
-#: alignment run on it.
+#: reading that path. It is the reviewed parent of the experiment at 1.1.0.
 PLEML_1_0_0 = ExperimentIdentity(
     revision="84673ea2bca0d11b795a34afeb7584081dd24fd2",
     tag="pleml-1.0.0-frozen",
@@ -71,7 +70,21 @@ PLEML_1_0_0 = ExperimentIdentity(
     library_sha256="94ae698324f9da510d8d20fdf8e7047f51f1bccb71396745e48e84f416dc8159",
     fixture_sha256="78e77890c1f3236a468a5f566ab036b868ae03fcb2b6fd85fa4e1c8817cdd55c",
 )
-CURRENT = PLEML_1_0_0
+#: The experiment at PLEML 1.1.0: a child of the experiment at 1.0.0 with the
+#: submodule at the 1.1.0 release commit, the fixture's constraint usages in
+#: the 1.1 form and the interpreter reading the excluded feature as operand B
+#: of constrainedFeatures (operand A must name the owner). The scoped probes,
+#: the fresh serialization and the scope alignment run on it.
+PLEML_1_1_0 = ExperimentIdentity(
+    revision="69bbe093c179f2121274b9f604c7d6a10de19e77",
+    tag="pleml-1.1.0-frozen",
+    pleml_pin="76e2be934453d77c4094141400b8ad8eb90a54a2",
+    library="external/pleml/PLEML.sysml",
+    interpreter_sha256="552b91798e8c2498e28e0042fadfc7349c2d130c685e80fe9312353545eafb67",
+    library_sha256="a89dc5c3436e3c8e5601e278f2b184e1a6d91f66a77f8616854ee0dd1abca787",
+    fixture_sha256="2b858117aee7cfc4fc08d005bf2ba09c5a4dbb433d6c25dc2c013b5e8ec9f763",
+)
+CURRENT = PLEML_1_1_0
 FROZEN_REVISION = CURRENT.revision
 PLEML_PIN = CURRENT.pleml_pin
 SERIALIZER_VERSION = "0.10.3"

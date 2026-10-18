@@ -587,7 +587,7 @@ def test_an_unreachable_frozen_revision_names_the_tag_that_keeps_it(tmp_path):
     import subprocess
 
     subprocess.run(["git", "init", "-q", str(tmp_path / "empty")], check=True)
-    with pytest.raises(alignment.ScopeAlignmentError, match="pleml-1.0.0-frozen"):
+    with pytest.raises(alignment.ScopeAlignmentError, match="pleml-1.1.0-frozen"):
         alignment.load_frozen_interpreter(repository=tmp_path / "empty")
 
 

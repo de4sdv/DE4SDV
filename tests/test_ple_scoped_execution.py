@@ -106,8 +106,10 @@ def test_cli_emits_typed_fixture_without_promoting_native_evidence(tmp_path, bin
     assert "#feature occurrence :>> owner[1];" in bodies["xorCounterexample"]
     assert "constraint nativeXorProbe : PLEML::XORConstraint {" in source
     assert "in occurrence :>> featureConfiguration = xorCounterexample;" in source
-    assert "in occurrence :>> owningFeature = ScopedTree::owner;" in source
-    assert "in occurrence :>> excluded = (ScopedTree::member0);" in source
+    assert ("in occurrence :>> constrainedFeatures = new FeatureOperand(ScopedTree::owner, ScopedTree::member0);"
+            in source)
+    assert "in occurrence constrainedFeatures = new FeatureOperand(that, member0);" in source
+    assert ":>> excluded" not in source and ":>> owningFeature" not in source
     assert report["fresh_serialization"] is False
     assert report["representation"]["licensed_validation"] is False
     assert report["native_expression_executed"] is False
@@ -173,11 +175,12 @@ def test_native_reproducer_exits_two_and_preserves_flags(tmp_path):
     assert report["native_xor"]["reason"] == runner().NATIVE_XOR_REASON
 
 
-def test_the_native_xor_reason_and_the_fixture_describe_the_pleml_1_0_0_body():
+def test_the_native_xor_reason_and_the_fixture_describe_the_pleml_1_1_0_body():
     r = runner()
-    assert r.PLEML_PIN == "071a69fdb2ecfa154809913938dfe9ebdf37701b"
+    assert r.PLEML_PIN == "76e2be934453d77c4094141400b8ad8eb90a54a2"
     assert "excluded->ControlFunctions::forAll" in r.NATIVE_XOR_REASON
-    assert "PLEML.sysml:232-238" in r.NATIVE_XOR_REASON
+    assert "PLEML.sysml:254-260" in r.NATIVE_XOR_REASON
+    assert "constrainedFeatures.operandB" in r.NATIVE_XOR_REASON
     assert "size(excluded)" not in r.NATIVE_XOR_REASON and "range" not in r.NATIVE_XOR_REASON
     source = r.fixture_text(2)
     assert f"// PLEML pin {r.PLEML_PIN}; linkage is not AND/OR/precedence." in source
@@ -189,10 +192,11 @@ def test_the_cited_lines_hold_the_xor_body_of_the_pinned_library():
         pytest.skip("optional pinned oracle checkout unavailable")
     r = runner()
     lines = (EXPERIMENT / r.LIBRARY).read_text(encoding="utf-8").splitlines()
-    body = "\n".join(lines[231:238])
-    assert lines[231].strip() == "if featureConfiguration != null"
-    assert "excluded->ControlFunctions::forAll {" in body and lines[237].strip() == "else true"
-    assert "constraint def XORConstraint" in "\n".join(lines[210:231])
+    body = "\n".join(lines[253:260])
+    assert lines[253].strip() == "if featureConfiguration != null"
+    assert "excluded->ControlFunctions::forAll {" in body and lines[259].strip() == "else true"
+    assert "constraint def XORConstraint" in "\n".join(lines[235:253])
+    assert lines[249].strip() == "ref occurrence excluded[1..*] : Feature = constrainedFeatures.operandB {"
 
 
 def test_invalid_binding_counts_are_refused():
