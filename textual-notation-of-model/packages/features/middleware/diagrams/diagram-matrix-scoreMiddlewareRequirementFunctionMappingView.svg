@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="888" height="564" viewBox="0 0 888 564" role="img" aria-labelledby="title description">
+  <title id="title">S-CORE middleware requirement-function mapping</title>
+  <desc id="description">Maps the requirements of the S-CORE member's integration layer to the system functions that carry them.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="888" height="84" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">S-CORE middleware requirement-function mapping</text>
+  <text x="12" y="62" font-family="Inter, Arial, sans-serif" font-size="13" fill="#d9e2f2">Rows ↓: requirements (requirement usages)   |   Columns →: system functions (action usages)</text>
+  <rect x="0" y="84" width="320" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0"></tspan>
+  </text>
+  <rect x="320" y="84" width="208" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="332" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="332" dy="0">translateReferenceSpeed</tspan>
+  </text>
+  <rect x="528" y="84" width="128" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="540" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="540" dy="0">forwardHealth</tspan>
+  </text>
+  <rect x="656" y="84" width="232" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="668" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="668" dy="0">carryAEBSSignalFramesToHMI</tspan>
+  </text>
+  <rect x="0" y="124" width="320" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">reqDeliverReferenceVehicleSpeed</tspan>
+  </text>
+  <rect x="320" y="124" width="208" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="323" y="127" width="202" height="34" rx="5" fill="#dff4e5"/>
+  <text x="424.0" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="424.0" dy="0">↗</tspan>
+  </text>
+  <rect x="528" y="124" width="128" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="540" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="540" dy="0"></tspan>
+  </text>
+  <rect x="656" y="124" width="232" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="668" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="668" dy="0"></tspan>
+  </text>
+  <rect x="0" y="164" width="320" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">reqWithholdNonFiniteSpeedSample</tspan>
+  </text>
+  <rect x="320" y="164" width="208" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="323" y="167" width="202" height="34" rx="5" fill="#dff4e5"/>
+  <text x="424.0" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="424.0" dy="0">↗</tspan>
+  </text>
+  <rect x="528" y="164" width="128" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="540" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="540" dy="0"></tspan>
+  </text>
+  <rect x="656" y="164" width="232" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="668" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="668" dy="0"></tspan>
+  </text>
+  <rect x="0" y="204" width="320" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">reqIndicateStaleReferenceVehicleSpeed</tspan>
+  </text>
+  <rect x="320" y="204" width="208" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="332" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="332" dy="0"></tspan>
+  </text>
+  <rect x="528" y="204" width="128" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="531" y="207" width="122" height="34" rx="5" fill="#dff4e5"/>
+  <text x="592.0" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="592.0" dy="0">↗</tspan>
+  </text>
+  <rect x="656" y="204" width="232" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="668" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="668" dy="0"></tspan>
+  </text>
+  <rect x="0" y="244" width="320" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">reqDeliverSpeedSampleAtMostOnce</tspan>
+  </text>
+  <rect x="320" y="244" width="208" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="323" y="247" width="202" height="34" rx="5" fill="#dff4e5"/>
+  <text x="424.0" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="424.0" dy="0">↗</tspan>
+  </text>
+  <rect x="528" y="244" width="128" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="540" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="540" dy="0"></tspan>
+  </text>
+  <rect x="656" y="244" width="232" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="668" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="668" dy="0"></tspan>
+  </text>
+  <rect x="0" y="284" width="320" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="308" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">reqDeliverAEBSSignalsInSourceOrder</tspan>
+  </text>
+  <rect x="320" y="284" width="208" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="332" y="308" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="332" dy="0"></tspan>
+  </text>
+  <rect x="528" y="284" width="128" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="540" y="308" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="540" dy="0"></tspan>
+  </text>
+  <rect x="656" y="284" width="232" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="659" y="287" width="226" height="34" rx="5" fill="#dff4e5"/>
+  <text x="772.0" y="308" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="772.0" dy="0">↗</tspan>
+  </text>
+  <rect x="0" y="324" width="320" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="348" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">reqPreserveAEBSSignalProvenance</tspan>
+  </text>
+  <rect x="320" y="324" width="208" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="332" y="348" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="332" dy="0"></tspan>
+  </text>
+  <rect x="528" y="324" width="128" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="540" y="348" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="540" dy="0"></tspan>
+  </text>
+  <rect x="656" y="324" width="232" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="659" y="327" width="226" height="34" rx="5" fill="#dff4e5"/>
+  <text x="772.0" y="348" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="772.0" dy="0">↗</tspan>
+  </text>
+  <rect x="0" y="364" width="320" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="388" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">reqNoApplicationDataFromHMIGuest</tspan>
+  </text>
+  <rect x="320" y="364" width="208" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="332" y="388" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="332" dy="0"></tspan>
+  </text>
+  <rect x="528" y="364" width="128" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="540" y="388" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="540" dy="0"></tspan>
+  </text>
+  <rect x="656" y="364" width="232" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="659" y="367" width="226" height="34" rx="5" fill="#dff4e5"/>
+  <text x="772.0" y="388" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="772.0" dy="0">↗</tspan>
+  </text>
+  <rect x="0" y="404" width="320" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="428" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">reqNoEmergencyCommandOnMiddleware</tspan>
+  </text>
+  <rect x="320" y="404" width="208" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="332" y="428" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="332" dy="0"></tspan>
+  </text>
+  <rect x="528" y="404" width="128" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="540" y="428" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="540" dy="0"></tspan>
+  </text>
+  <rect x="656" y="404" width="232" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="668" y="428" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="668" dy="0"></tspan>
+  </text>
+  <rect x="0" y="444" width="320" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="468" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">reqTerminateAdapterOnException</tspan>
+  </text>
+  <rect x="320" y="444" width="208" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="332" y="468" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="332" dy="0"></tspan>
+  </text>
+  <rect x="528" y="444" width="128" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="540" y="468" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="540" dy="0"></tspan>
+  </text>
+  <rect x="656" y="444" width="232" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="668" y="468" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="668" dy="0"></tspan>
+  </text>
+  <rect x="0" y="484" width="320" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="508" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">reqDiscardFramesWhileHMIUnsubscribed</tspan>
+  </text>
+  <rect x="320" y="484" width="208" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="332" y="508" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="332" dy="0"></tspan>
+  </text>
+  <rect x="528" y="484" width="128" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="540" y="508" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="540" dy="0"></tspan>
+  </text>
+  <rect x="656" y="484" width="232" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="659" y="487" width="226" height="34" rx="5" fill="#dff4e5"/>
+  <text x="772.0" y="508" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="772.0" dy="0">↗</tspan>
+  </text>
+  <rect x="0" y="524" width="320" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="548" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">reqNoSpeedSampleToAEBVelocityInput</tspan>
+  </text>
+  <rect x="320" y="524" width="208" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="323" y="527" width="202" height="34" rx="5" fill="#dff4e5"/>
+  <text x="424.0" y="548" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="424.0" dy="0">↗</tspan>
+  </text>
+  <rect x="528" y="524" width="128" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="540" y="548" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="540" dy="0"></tspan>
+  </text>
+  <rect x="656" y="524" width="232" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="668" y="548" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="668" dy="0"></tspan>
+  </text>
+</svg>

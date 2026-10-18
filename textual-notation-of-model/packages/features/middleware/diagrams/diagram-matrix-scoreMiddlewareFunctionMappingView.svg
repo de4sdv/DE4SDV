@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="624" height="284" viewBox="0 0 624 284" role="img" aria-labelledby="title description">
-  <title id="title">S-CORE middleware function mapping</title>
-  <desc id="description">Maps the functions that carry the S-CORE member's requirements to the logical elements they are allocated to.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="624" height="244" viewBox="0 0 624 244" role="img" aria-labelledby="title description">
+  <title id="title">S-CORE middleware system-function mapping</title>
+  <desc id="description">Maps the system functions that carry the S-CORE member's requirements to the conceptual system elements they are allocated to.</desc>
   <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
   <rect width="100%" height="100%" fill="#ffffff"/>
   <rect x="0" y="0" width="624" height="84" fill="#172033"/>
-  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">S-CORE middleware function mapping</text>
-  <text x="12" y="62" font-family="Inter, Arial, sans-serif" font-size="13" fill="#d9e2f2">Rows ↓: functions (action usages)   |   Columns →: logical elements (part usages)</text>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">S-CORE middleware system-function mapping</text>
+  <text x="12" y="62" font-family="Inter, Arial, sans-serif" font-size="13" fill="#d9e2f2">Rows ↓: system functions (action usages)   |   Columns →: conceptual system elements (part usages)</text>
   <rect x="0" y="84" width="232" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
   <text x="12" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0"></tspan>
@@ -73,22 +73,5 @@
   <rect x="499" y="207" width="122" height="34" rx="5" fill="#dff4e5"/>
   <text x="560.0" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
     <tspan x="560.0" dy="0">↗</tspan>
-  </text>
-  <rect x="0" y="244" width="232" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
-    <tspan x="12" dy="0">protectSafetyPath</tspan>
-  </text>
-  <rect x="232" y="244" width="152" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="244" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="244" dy="0"></tspan>
-  </text>
-  <rect x="384" y="244" width="112" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <rect x="387" y="247" width="106" height="34" rx="5" fill="#dff4e5"/>
-  <text x="440.0" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
-    <tspan x="440.0" dy="0">↗</tspan>
-  </text>
-  <rect x="496" y="244" width="128" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="508" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="508" dy="0"></tspan>
   </text>
 </svg>
