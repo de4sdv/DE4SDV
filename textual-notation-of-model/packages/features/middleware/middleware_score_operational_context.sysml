@@ -248,15 +248,13 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
   }
 
   use case operateAEBSMemberAcrossTwoDomains : OperateAEBSMemberAcrossTwoDomains {
-    subject scoreTwoDomainOperationalContext : SystemContext = DE4SDV_MiddlewareSCOREOperationalContext::scoreTwoDomainOperationalContext;
-    actor autowareAEBSStack : ADASApplicationStack;
-    actor scoreServices : VehiclePlatformMiddleware;
-    actor adapter : ApplicationMiddlewareAdapter;
-    actor vehicleSpeedProvider : VehicleSpeedProvider;
-    actor aebNode : AEBNode;
-    actor vehicleCommandGate : VehicleCommandGate;
-    actor hmiApplication : AAOSSDVHMIApplication;
-    actor driver : Driver;
+    subject integrationLayer : SCOREMiddlewareIntegrationLayer = scoreTwoDomainOperationalContext::integrationLayer;
+    actor autowareAEBSStack : ADASApplicationStack = scoreTwoDomainOperationalContext::linuxHost::autowareAEBSStack;
+    actor vehicleSpeedProvider : VehicleSpeedProvider = scoreTwoDomainOperationalContext::linuxHost::vehicleSpeedProvider;
+    actor aebNode : AEBNode = scoreTwoDomainOperationalContext::linuxHost::aebNode;
+    actor vehicleCommandGate : VehicleCommandGate = scoreTwoDomainOperationalContext::linuxHost::vehicleCommandGate;
+    actor hmiApplication : AAOSSDVHMIApplication = scoreTwoDomainOperationalContext::aaosSDVGuest::hmiApplication;
+    actor driver : Driver = scoreTwoDomainOperationalContext::driver;
 
     objective {
       doc /*
@@ -267,51 +265,18 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
     }
 
     first start;
-    then include carryReferenceVehicleSpeedIntoAutoware {
-      subject;
-      actor :>> vehicleSpeedProvider = operateAEBSMemberAcrossTwoDomains::vehicleSpeedProvider;
-      actor :>> scoreServices = operateAEBSMemberAcrossTwoDomains::scoreServices;
-      actor :>> adapter = operateAEBSMemberAcrossTwoDomains::adapter;
-      actor :>> autowareAEBSStack = operateAEBSMemberAcrossTwoDomains::autowareAEBSStack;
-    }
-    then include showAEBSEventOnHMI {
-      subject;
-      actor :>> autowareAEBSStack = operateAEBSMemberAcrossTwoDomains::autowareAEBSStack;
-      actor :>> adapter = operateAEBSMemberAcrossTwoDomains::adapter;
-      actor :>> scoreServices = operateAEBSMemberAcrossTwoDomains::scoreServices;
-      actor :>> hmiApplication = operateAEBSMemberAcrossTwoDomains::hmiApplication;
-      actor :>> driver = operateAEBSMemberAcrossTwoDomains::driver;
-      actor :>> aebNode = operateAEBSMemberAcrossTwoDomains::aebNode;
-      actor :>> vehicleCommandGate = operateAEBSMemberAcrossTwoDomains::vehicleCommandGate;
-    }
-    then include degradeOnSpeedProviderLoss {
-      subject;
-      actor :>> vehicleSpeedProvider = operateAEBSMemberAcrossTwoDomains::vehicleSpeedProvider;
-      actor :>> scoreServices = operateAEBSMemberAcrossTwoDomains::scoreServices;
-      actor :>> adapter = operateAEBSMemberAcrossTwoDomains::adapter;
-      actor :>> autowareAEBSStack = operateAEBSMemberAcrossTwoDomains::autowareAEBSStack;
-    }
-    then include tolerateUnavailableOrStaleHMIGuest {
-      subject;
-      actor :>> hmiApplication = operateAEBSMemberAcrossTwoDomains::hmiApplication;
-      actor :>> autowareAEBSStack = operateAEBSMemberAcrossTwoDomains::autowareAEBSStack;
-      actor :>> aebNode = operateAEBSMemberAcrossTwoDomains::aebNode;
-      actor :>> vehicleCommandGate = operateAEBSMemberAcrossTwoDomains::vehicleCommandGate;
-    }
-    then include startAndManageSCOREServices {
-      subject;
-      actor :>> scoreServices = operateAEBSMemberAcrossTwoDomains::scoreServices;
-      actor :>> adapter = operateAEBSMemberAcrossTwoDomains::adapter;
-    }
+    then include carryReferenceVehicleSpeedIntoAutoware;
+    then include showAEBSEventOnHMI;
+    then include degradeOnSpeedProviderLoss;
+    then include tolerateUnavailableOrStaleHMIGuest;
+    then include startAndManageSCOREServices;
     then done;
   }
 
   use case carryReferenceVehicleSpeedIntoAutoware {
-    subject scoreTwoDomainOperationalContext : SystemContext = DE4SDV_MiddlewareSCOREOperationalContext::scoreTwoDomainOperationalContext;
-    actor vehicleSpeedProvider : VehicleSpeedProvider;
-    actor scoreServices : VehiclePlatformMiddleware;
-    actor adapter : ApplicationMiddlewareAdapter;
-    actor autowareAEBSStack : ADASApplicationStack;
+    subject integrationLayer : SCOREMiddlewareIntegrationLayer = scoreTwoDomainOperationalContext::integrationLayer;
+    actor vehicleSpeedProvider : VehicleSpeedProvider = scoreTwoDomainOperationalContext::linuxHost::vehicleSpeedProvider;
+    actor autowareAEBSStack : ADASApplicationStack = scoreTwoDomainOperationalContext::linuxHost::autowareAEBSStack;
 
     objective {
       doc /*
@@ -328,14 +293,12 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
   }
 
   use case showAEBSEventOnHMI {
-    subject scoreTwoDomainOperationalContext : SystemContext = DE4SDV_MiddlewareSCOREOperationalContext::scoreTwoDomainOperationalContext;
-    actor autowareAEBSStack : ADASApplicationStack;
-    actor adapter : ApplicationMiddlewareAdapter;
-    actor scoreServices : VehiclePlatformMiddleware;
-    actor hmiApplication : AAOSSDVHMIApplication;
-    actor driver : Driver;
-    actor aebNode : AEBNode;
-    actor vehicleCommandGate : VehicleCommandGate;
+    subject integrationLayer : SCOREMiddlewareIntegrationLayer = scoreTwoDomainOperationalContext::integrationLayer;
+    actor autowareAEBSStack : ADASApplicationStack = scoreTwoDomainOperationalContext::linuxHost::autowareAEBSStack;
+    actor hmiApplication : AAOSSDVHMIApplication = scoreTwoDomainOperationalContext::aaosSDVGuest::hmiApplication;
+    actor driver : Driver = scoreTwoDomainOperationalContext::driver;
+    actor aebNode : AEBNode = scoreTwoDomainOperationalContext::linuxHost::aebNode;
+    actor vehicleCommandGate : VehicleCommandGate = scoreTwoDomainOperationalContext::linuxHost::vehicleCommandGate;
 
     objective {
       doc /*
@@ -355,11 +318,9 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
   }
 
   use case degradeOnSpeedProviderLoss {
-    subject scoreTwoDomainOperationalContext : SystemContext = DE4SDV_MiddlewareSCOREOperationalContext::scoreTwoDomainOperationalContext;
-    actor vehicleSpeedProvider : VehicleSpeedProvider;
-    actor scoreServices : VehiclePlatformMiddleware;
-    actor adapter : ApplicationMiddlewareAdapter;
-    actor autowareAEBSStack : ADASApplicationStack;
+    subject integrationLayer : SCOREMiddlewareIntegrationLayer = scoreTwoDomainOperationalContext::integrationLayer;
+    actor vehicleSpeedProvider : VehicleSpeedProvider = scoreTwoDomainOperationalContext::linuxHost::vehicleSpeedProvider;
+    actor autowareAEBSStack : ADASApplicationStack = scoreTwoDomainOperationalContext::linuxHost::autowareAEBSStack;
 
     objective {
       doc /*
@@ -377,11 +338,11 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
   }
 
   use case tolerateUnavailableOrStaleHMIGuest {
-    subject scoreTwoDomainOperationalContext : SystemContext = DE4SDV_MiddlewareSCOREOperationalContext::scoreTwoDomainOperationalContext;
-    actor hmiApplication : AAOSSDVHMIApplication;
-    actor autowareAEBSStack : ADASApplicationStack;
-    actor aebNode : AEBNode;
-    actor vehicleCommandGate : VehicleCommandGate;
+    subject integrationLayer : SCOREMiddlewareIntegrationLayer = scoreTwoDomainOperationalContext::integrationLayer;
+    actor hmiApplication : AAOSSDVHMIApplication = scoreTwoDomainOperationalContext::aaosSDVGuest::hmiApplication;
+    actor autowareAEBSStack : ADASApplicationStack = scoreTwoDomainOperationalContext::linuxHost::autowareAEBSStack;
+    actor aebNode : AEBNode = scoreTwoDomainOperationalContext::linuxHost::aebNode;
+    actor vehicleCommandGate : VehicleCommandGate = scoreTwoDomainOperationalContext::linuxHost::vehicleCommandGate;
 
     objective {
       doc /*
@@ -399,17 +360,16 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
   }
 
   use case startAndManageSCOREServices {
-    subject scoreTwoDomainOperationalContext : SystemContext = DE4SDV_MiddlewareSCOREOperationalContext::scoreTwoDomainOperationalContext;
-    actor scoreServices : VehiclePlatformMiddleware;
-    actor adapter : ApplicationMiddlewareAdapter;
+    subject integrationLayer : SCOREMiddlewareIntegrationLayer = scoreTwoDomainOperationalContext::integrationLayer;
+    actor autowareAEBSStack : ADASApplicationStack = scoreTwoDomainOperationalContext::linuxHost::autowareAEBSStack;
 
     objective {
       doc /*
        * SC-MW-005 (S-CORE service start and lifecycle): the S-CORE services
-       * start on the host, become healthy and observable, bind the adapter,
-       * and shut down in order. The baseline lifecycle and health stories
-       * of INC-MW-002 hold; the S-CORE lifecycle mechanism is selected in
-       * phase 8.
+       * start on the host, become healthy and observable to the
+       * Autoware-based AEBS stack, bind the adapter, and shut down in order.
+       * The baseline lifecycle and health stories of INC-MW-002 hold; the
+       * S-CORE lifecycle mechanism is selected in phase 8.
        */
     }
 
