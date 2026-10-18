@@ -37,6 +37,12 @@ Add **DE4SDV Guide** as a second, separate viewer capability on the same
 - A floating, minimized-by-default chat panel on every viewer page with
   expand/minimize, a clear/new-chat control, newcomer starter questions,
   and client-side-only state (no server-side user memory or accounts).
+
+  > Note (2026-10-18): the Guide panel and the Ask the model panel were
+  > merged into one floating **Ask** window with a Model / Repository
+  > switch. DE4SDV Guide is its Repository mode and Ask the model its
+  > Model mode. Each mode keeps its own conversation and calls only its
+  > own endpoint. The rest of this decision is unchanged.
 - A separate endpoint, `POST /api/repo-chat`, implemented in
   `tools/sysml_html_viewer/repo_guide.py`. It does not route through Ask
   the model and never queries the Systems Modeling API.

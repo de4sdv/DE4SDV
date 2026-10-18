@@ -323,13 +323,14 @@ def render_index(
         <li>Hover labels and connectors in a diagram for documentation and
         source links; right-click an element to list every diagram that uses
         it.</li>
-        <li>Right-click an element — in a diagram, on a page, or in the
-        project tree — to ask about it. Two capabilities, never mixed:
-        <strong>Ask the model… (element-grounded query)</strong> answers from
-        the model element itself (declared elements only), while
-        <strong>Ask repo assistant…</strong> opens the DE4SDV Guide, the
-        generated repository/documentation assistant at the bottom right
-        (not a model authority).</li>
+        <li>Ask questions in the <strong>Ask</strong> window at the bottom
+        right and choose what answers. <strong>Model</strong> answers about
+        one model element (declared elements only): right-click it — in a
+        diagram, on a page, or in the project tree — and choose
+        <strong>Ask the model… (element-grounded query)</strong>.
+        <strong>Repository</strong> is the DE4SDV Guide, the generated
+        repository/documentation assistant (not a model authority). The two
+        never mix or fall back to each other.</li>
       </ul>
     </div>
     <div>

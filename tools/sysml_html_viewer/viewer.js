@@ -248,120 +248,179 @@
     }
   }
 
-  /* ---- DE4SDV Guide: floating repository chatbot (all viewer pages) ----
-   * Separate from "Ask the model": repository/documentation assistant,
-   * grounded in the checked-out Git repository via /api/repo-chat.
-   * Never routes through the Systems Modeling API, never falls back to
-   * Ask the model, and states that boundary in its intro. Conversation
-   * and collapsed/expanded state persist client-side (localStorage). */
-  var GUIDE_STORAGE_KEY = 'de4sdv-guide-state';
+  /* ---- Ask window: one chat window, two capabilities (all pages) ----
+   * One floating window with a mode switch:
+   *   Model      -> POST /ask, "Ask the model": one model element, picked
+   *                 by right-click, element-grounded answer
+   *   Repository -> POST /api/repo-chat, "DE4SDV Guide": repository and
+   *                 documentation assistant grounded in the checked-out Git
+   *                 repository; never queries the Systems Modeling API
+   * Each mode keeps its own conversation and calls only its own endpoint;
+   * neither falls back to the other, and the mode in use is always visible.
+   * Window, mode, selected element and both conversations persist
+   * client-side (localStorage). */
+  var CHAT_STORAGE_KEY = 'de4sdv-chat-state';
+  /* keys of the former two-panel layout: migrated once, then removed */
+  var CHAT_LEGACY_GUIDE_KEY = 'de4sdv-guide-state';
+  var CHAT_LEGACY_KEYS = ['de4sdv-ask-open', 'de4sdv-guide-minimized'];
+  var CHAT_MODES = ['model', 'repo'];
+  var chatWindow = null;
 
-  function guideLoadState() {
-    try {
-      var st = JSON.parse(
-        window.localStorage.getItem(GUIDE_STORAGE_KEY) || 'null'
-      );
-      if (st && typeof st === 'object' && Array.isArray(st.messages)) {
-        return st;
-      }
-    } catch (err) {}
-    return { open: false, messages: [] };
+  function chatEmptyState() {
+    return {
+      open: false, mode: 'repo', element: null,
+      threads: { model: [], repo: [] }
+    };
   }
 
-  function guideSaveState(state) {
+  function chatLoadState() {
+    var state = chatEmptyState();
     try {
-      window.localStorage.setItem(
-        GUIDE_STORAGE_KEY, JSON.stringify(state)
+      var st = JSON.parse(
+        window.localStorage.getItem(CHAT_STORAGE_KEY) || 'null'
       );
+      if (st && typeof st === 'object' && st.threads
+          && typeof st.threads === 'object') {
+        state.open = !!st.open;
+        if (CHAT_MODES.indexOf(st.mode) !== -1) state.mode = st.mode;
+        if (st.element && st.element.name) state.element = st.element;
+        CHAT_MODES.forEach(function (m) {
+          if (Array.isArray(st.threads[m])) state.threads[m] = st.threads[m];
+        });
+        return state;
+      }
+      // first visit since the two-panel layout: keep the Guide conversation
+      var legacy = JSON.parse(
+        window.localStorage.getItem(CHAT_LEGACY_GUIDE_KEY) || 'null'
+      );
+      if (legacy && typeof legacy === 'object'
+          && Array.isArray(legacy.messages)) {
+        state.open = !!legacy.open;
+        state.threads.repo = legacy.messages;
+      }
+      [CHAT_LEGACY_GUIDE_KEY].concat(CHAT_LEGACY_KEYS).forEach(function (k) {
+        window.localStorage.removeItem(k);
+      });
+    } catch (err) {}
+    return state;
+  }
+
+  function chatSaveState(state) {
+    try {
+      window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(state));
     } catch (err) { /* file:// or private mode: no persistence */ }
   }
 
-  function initRepoGuide() {
-    if (document.getElementById('guideFab')) return;
+  function chatServerMode() {
+    return !!window.__DE4SDV_VIEWER_SERVER__;
+  }
 
-    var state = guideLoadState();
+  function initChatWindow() {
+    if (document.getElementById('chatFab')) return;
+
+    var state = chatLoadState();
+    // element identity (file:line) is revision-bound: pick again elsewhere
+    if (state.element && state.element.ref !== currentRefFromPath()) {
+      state.element = null;
+    }
+    var pendingMode = '';
 
     /* floating action button (the collapsed form, bottom-right) */
     var fab = document.createElement('button');
     fab.type = 'button';
-    fab.id = 'guideFab';
-    fab.className = 'guide-fab';
-    fab.setAttribute('aria-label', 'Open the DE4SDV Guide chat');
-    fab.title = 'DE4SDV Guide \u2014 repository & documentation assistant';
+    fab.id = 'chatFab';
+    fab.className = 'chat-fab';
+    fab.setAttribute('aria-label',
+      'Open the Ask window: ask the model or the repository');
+    fab.title = 'Ask the model or the repository';
     var fabIcon = document.createElement('span');
-    fabIcon.className = 'guide-fab-icon';
+    fabIcon.className = 'chat-fab-icon';
     fabIcon.textContent = '\u{1F4AC}';
     fabIcon.setAttribute('aria-hidden', 'true');
     var fabLabel = document.createElement('span');
-    fabLabel.textContent = 'Guide';
+    fabLabel.textContent = 'Ask';
     fab.appendChild(fabIcon);
     fab.appendChild(fabLabel);
 
-    /* panel (the expanded form) */
+    /* window (the expanded form) */
     var panel = document.createElement('div');
-    panel.className = 'guide-panel';
-    panel.id = 'guidePanel';
+    panel.className = 'chat-panel';
+    panel.id = 'chatPanel';
     panel.setAttribute('role', 'dialog');
-    panel.setAttribute('aria-label', 'DE4SDV Guide');
+    panel.setAttribute('aria-label', 'Ask the model or the repository');
 
     var head = document.createElement('div');
-    head.className = 'guide-head';
+    head.className = 'chat-head';
     var title = document.createElement('span');
-    title.className = 'guide-title';
-    title.textContent = 'DE4SDV Guide';
-    var cap = document.createElement('span');
-    cap.className = 'guide-cap';
-    cap.textContent = 'repo assistant';
-    cap.title = 'Generated answers grounded in the checked-out Git '
-      + 'repository. Not an engineering or model authority; no '
-      + 'Systems Modeling API queries. For a model element, '
-      + 'right-click it and use Ask the model.';
+    title.className = 'chat-title';
+    title.textContent = 'Ask';
+    var modes = document.createElement('div');
+    modes.className = 'chat-modes';
+    modes.setAttribute('role', 'group');
+    modes.setAttribute('aria-label', 'What to ask');
+    var modeButtons = [
+      ['model', 'Model', 'Ask the model: one model element, '
+        + 'element-grounded query'],
+      ['repo', 'Repository', 'Ask the repository: DE4SDV Guide, '
+        + 'generated from the checked-out Git repository']
+    ].map(function (spec) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chat-mode';
+      b.setAttribute('data-mode', spec[0]);
+      b.textContent = spec[1];
+      b.title = spec[2];
+      b.addEventListener('click', function () { setMode(spec[0]); });
+      modes.appendChild(b);
+      return b;
+    });
     var clearBtn = document.createElement('button');
     clearBtn.type = 'button';
-    clearBtn.className = 'guide-clear';
+    clearBtn.className = 'chat-clear';
     clearBtn.textContent = 'New chat';
-    clearBtn.title = 'Clear the conversation';
+    clearBtn.title = 'Clear this conversation';
     var minBtn = document.createElement('button');
     minBtn.type = 'button';
-    minBtn.className = 'guide-min';
+    minBtn.className = 'chat-min';
     minBtn.textContent = '\u2212';
-    minBtn.setAttribute('aria-label', 'Minimize the DE4SDV Guide');
+    minBtn.setAttribute('aria-label', 'Minimize the Ask window');
     minBtn.title = 'Minimize';
     head.appendChild(title);
-    head.appendChild(cap);
+    head.appendChild(modes);
     head.appendChild(clearBtn);
     head.appendChild(minBtn);
 
+    /* what the active mode answers from */
+    var context = document.createElement('div');
+    context.className = 'chat-context';
+
     var body = document.createElement('div');
-    body.className = 'guide-body';
-    body.id = 'guideBody';
+    body.className = 'chat-body';
+    body.id = 'chatBody';
 
     var foot = document.createElement('div');
-    foot.className = 'guide-foot';
+    foot.className = 'chat-foot';
     var input = document.createElement('textarea');
-    input.className = 'guide-input';
-    input.id = 'guideInput';
-    input.placeholder = 'Ask about the repository, docs, workflow\u2026';
+    input.className = 'chat-input';
+    input.id = 'chatInput';
     input.rows = 2;
-    input.setAttribute('aria-label', 'Ask the DE4SDV Guide');
     var sendBtn = document.createElement('button');
     sendBtn.type = 'button';
-    sendBtn.className = 'guide-send';
+    sendBtn.className = 'chat-send';
     sendBtn.textContent = 'Send';
     foot.appendChild(input);
     foot.appendChild(sendBtn);
 
     panel.appendChild(head);
+    panel.appendChild(context);
     panel.appendChild(body);
     panel.appendChild(foot);
 
     document.body.appendChild(fab);
     document.body.appendChild(panel);
 
-    var els = { body: body, input: input };
-
     /* --- rendering (untrusted model output never reaches innerHTML) --- */
-    function guideSourcesBlock(answer, sources, sha) {
+    function guideSourcesBlock(sources, sha) {
       var wrap = document.createElement('div');
       wrap.className = 'guide-sources';
       var label = document.createElement('span');
@@ -394,262 +453,372 @@
       return wrap;
     }
 
-    function guideAppendUser(text) {
+    function botBubble() {
       var b = document.createElement('div');
-      b.className = 'guide-msg guide-msg-user';
-      b.textContent = text;
-      els.body.appendChild(b);
-      els.body.scrollTop = els.body.scrollHeight;
-    }
-
-    function guideAppendStarter(text) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'guide-starter';
-      b.textContent = text;
-      b.addEventListener('click', function () {
-        b.remove();
-        guideSubmit(text);
-      });
-      els.body.appendChild(b);
-    }
-
-    function guidePendingBubble() {
-      var b = document.createElement('div');
-      b.className = 'guide-msg guide-msg-guide';
-      var st = document.createElement('span');
-      st.className = 'guide-status';
-      st.textContent = 'Searching the repository\u2026';
-      b.appendChild(st);
-      els.body.appendChild(b);
-      els.body.scrollTop = els.body.scrollHeight;
+      b.className = 'chat-msg chat-msg-bot';
+      body.appendChild(b);
       return b;
     }
 
-    function guideRemoveStarterButtons() {
-      Array.prototype.slice.call(
-        els.body.querySelectorAll('.guide-starter')
-      ).forEach(function (b) { b.remove(); });
+    function appendUser(m) {
+      var b = document.createElement('div');
+      b.className = 'chat-msg chat-msg-user';
+      b.textContent = m.text;
+      if (m.element) {
+        var about = document.createElement('div');
+        about.className = 'chat-msg-about';
+        about.textContent = 'about ' + m.element.name;
+        b.appendChild(about);
+      }
+      body.appendChild(b);
     }
 
-    function guideSubmit(text) {
+    function appendRepoAnswer(m) {
+      var b = botBubble();
+      window.GUIDE_REPO_BLOB_BASE = m.repoBlobBase
+        || window.GUIDE_REPO_BLOB_BASE || '';
+      renderAskAnswer(b, m.text || '', function (parent, text) {
+        appendGuideInline(parent, text, m.sha || null);
+      });
+      if (m.sources && m.sources.length) {
+        b.appendChild(guideSourcesBlock(m.sources, m.sha));
+      }
+    }
+
+    function appendModelAnswer(m) {
+      var b = botBubble();
+      renderAskAnswer(b, m.text || '');
+      var footer = document.createElement('div');
+      footer.className = 'ask-footer';
+      var el = m.element;
+      if (el && el.name) {
+        var grounded = document.createElement('a');
+        grounded.className = 'ask-grounded';
+        grounded.textContent =
+          'grounded on ' + el.name + ' \u00b7 ' + el.file + ':' + el.line;
+        // a grounding link only resolves on the revision it was asked on
+        if ((m.ref || '') === currentRefFromPath()) {
+          if (el.href) grounded.href = (window.VIEWER_PREFIX || '') + el.href;
+        } else {
+          grounded.textContent += ' \u00b7 '
+            + (m.ref ? 'revision ' + m.ref : 'working tree');
+        }
+        footer.appendChild(grounded);
+      }
+      if (m.model) {
+        var modelLine = document.createElement('span');
+        modelLine.className = 'ask-model-line';
+        modelLine.textContent = 'model: ' + m.model
+          + (m.methodContextSource
+            ? ' \u00b7 method context: ' + m.methodContextSource
+            : '');
+        footer.appendChild(modelLine);
+      }
+      var alts = m.alternatives || [];
+      if (alts.length) {
+        var altsLine = document.createElement('div');
+        altsLine.className = 'ask-alts';
+        altsLine.textContent =
+          'same-name elements exist (' + alts.length + ' more) \u2014 ' +
+          alts.map(function (x) { return x.file + ':' + x.line; }).join(', ');
+        footer.appendChild(altsLine);
+      }
+      if (footer.children.length) b.appendChild(footer);
+    }
+
+    function appendStarter(text) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chat-starter';
+      b.textContent = text;
+      b.addEventListener('click', function () { submit(text); });
+      body.appendChild(b);
+    }
+
+    function appendIntro() {
+      var intro = botBubble();
+      intro.className += ' chat-intro';
+      if (state.mode === 'model') {
+        renderAskAnswer(intro,
+          'Ask about one model element at a time. To pick it, right-click '
+          + 'the element in a diagram, on a page or in the project tree and '
+          + 'choose **Ask the model\u2026** from the menu. Answers are '
+          + 'generated from that element\u2019s declaration, documentation, '
+          + 'children and method relations \u2014 verify important conclusions '
+          + 'against the model.');
+        return;
+      }
+      renderAskAnswer(intro,
+        'I can help you understand the DE4SDV repository, '
+        + 'architecture, documentation and contribution workflow. '
+        + 'Answers are generated from the checked-out Git repository '
+        + '\u2014 not from the Systems Modeling API. For a specific '
+        + 'model element, switch to **Model**.');
+      ['How do I contribute to the repository?',
+       'Where are the architecture decision records (ADRs)?',
+       'How is the SysML v2 model organized?',
+       'What does the public deployment stack look like?'
+      ].forEach(appendStarter);
+    }
+
+    function renderContext() {
+      context.textContent = '';
+      var el = state.element;
+      if (state.mode === 'repo') {
+        context.textContent = 'DE4SDV Guide \u2014 generated from the Git '
+          + 'repository; not a model authority';
+        context.title = 'Generated answers grounded in the checked-out Git '
+          + 'repository. Not an engineering or model authority; no '
+          + 'Systems Modeling API queries.';
+        return;
+      }
+      context.title = 'Ask the model answers about one model element '
+        + '(element-grounded query, declared elements only)';
+      if (!chatServerMode()) {
+        context.textContent = 'Ask the model needs the viewer server '
+          + '(viewer.de4sdv.org); this page is served statically.';
+        return;
+      }
+      if (!el) {
+        context.textContent = 'No element selected';
+        return;
+      }
+      var kind = document.createElement('span');
+      kind.className = 'chat-context-kind';
+      kind.textContent = el.kind || 'element';
+      var name = document.createElement('span');
+      name.className = 'chat-context-name';
+      name.textContent = el.name;
+      context.appendChild(kind);
+      context.appendChild(name);
+      if (el.file) {
+        var src = document.createElement('a');
+        src.className = 'chat-context-src';
+        src.textContent = el.file.split('/').pop() + ':' + el.line;
+        src.title = el.file + ':' + el.line;
+        src.href = (window.VIEWER_PREFIX || '') + 'pages/' + el.file
+          + '.html#src-' + el.line;
+        context.appendChild(src);
+      }
+    }
+
+    function replay() {
+      body.textContent = '';
+      var thread = state.threads[state.mode];
+      if (!thread.length) appendIntro();
+      thread.forEach(function (m) {
+        if (m.role === 'user') appendUser(m);
+        else if (state.mode === 'model') appendModelAnswer(m);
+        else appendRepoAnswer(m);
+      });
+      if (pendingMode === state.mode) {
+        var st = document.createElement('span');
+        st.className = 'chat-status';
+        st.textContent = pendingMode === 'model'
+          ? 'Asking the model\u2026' : 'Searching the repository\u2026';
+        botBubble().appendChild(st);
+      }
+      scrollToLatest();
+    }
+
+    /* show the latest exchange from its question, so a long answer is
+     * read from its start rather than from its last line */
+    function scrollToLatest() {
+      var asked = body.querySelectorAll('.chat-msg-user');
+      var last = asked.length ? asked[asked.length - 1] : null;
+      body.scrollTop = last ? last.offsetTop - body.offsetTop - 8 : 0;
+    }
+
+    function canSend() {
+      if (pendingMode) return false;
+      return state.mode === 'repo' || (chatServerMode() && !!state.element);
+    }
+
+    function render() {
+      panel.setAttribute('data-mode', state.mode);
+      modeButtons.forEach(function (b) {
+        var on = b.getAttribute('data-mode') === state.mode;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      renderContext();
+      replay();
+      var model = state.mode === 'model';
+      input.placeholder = model
+        ? (state.element
+          ? 'Ask about ' + state.element.name + '\u2026'
+          : 'Right-click a model element first\u2026')
+        : 'Ask about the repository, docs, workflow\u2026';
+      input.setAttribute('aria-label',
+        model ? 'Ask the model' : 'Ask the repository');
+      sendBtn.disabled = !canSend();
+      sendBtn.title = pendingMode ? 'Waiting for the previous answer' : '';
+    }
+
+    function setMode(mode) {
+      if (CHAT_MODES.indexOf(mode) === -1) return;
+      state.mode = mode;
+      chatSaveState(state);
+      render();
+      input.focus();
+    }
+
+    function modelMessage(res) {
+      var data = res.data || {};
+      var ref = currentRefFromPath();
+      if (!res.ok || data.error) {
+        return {
+          role: 'model', error: true, ref: ref,
+          text: data.error || 'request failed (HTTP ' + res.status + ')'
+        };
+      }
+      var el = data.element || {};
+      return {
+        role: 'model', ref: ref,
+        text: data.answer || '(empty answer)',
+        element: el.href ? {
+          name: el.name, kind: el.kind, file: el.file, line: el.line,
+          href: el.href
+        } : null,
+        model: data.model || '?',
+        methodContextSource: data.method_context_source || '',
+        alternatives: (data.ambiguous_alternatives || []).map(function (x) {
+          return { file: x.file, line: x.line };
+        })
+      };
+    }
+
+    function repoMessage(res) {
+      var data = res.data || {};
+      return {
+        role: 'guide', error: !!data.error,
+        text: data.error || data.answer || '(empty answer)',
+        sources: data.sources || [],
+        sha: data.git_sha || '',
+        repoBlobBase: data.repo_blob_base || ''
+      };
+    }
+
+    /* Send to the endpoint of the active mode only. The answer lands in
+     * the conversation it was asked in, even if the mode changed while
+     * waiting; a failure is reported there and never retried elsewhere. */
+    function submit(text) {
       var q = String(text || '').trim();
-      if (!q) return;
-      guideRemoveStarterButtons();
-      guideAppendUser(q);
-      state.messages.push({ role: 'user', text: q });
-      guideSaveState(state);
-      var bubble = guidePendingBubble();
+      if (!q || !canSend()) return;
+      var mode = state.mode;
+      var thread = state.threads[mode];
+      var question = { role: 'user', text: q };
+      var request;
+      if (mode === 'model') {
+        var el = state.element;
+        question.element = {
+          kind: el.kind, name: el.name, file: el.file, line: el.line
+        };
+        request = ['/ask', {
+          element: el.name,
+          question: q,
+          file: el.file || '',
+          line: el.line || '',
+          ref: currentRefFromPath()
+        }];
+      } else {
+        request = ['/api/repo-chat', { question: q }];
+      }
+      thread.push(question);
+      pendingMode = mode;
       input.value = '';
-      var answerSha = null;
-      fetch('/api/repo-chat', {
+      chatSaveState(state);
+      render();
+      fetch(request[0], {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: q })
+        body: JSON.stringify(request[1])
       }).then(function (r) {
         return r.json().then(function (data) {
-          return { ok: r.ok, data: data };
+          return { ok: r.ok, status: r.status, data: data };
         });
       }).then(function (res) {
-        bubble.remove();
-        answerSha = res.data.git_sha || null;
-        window.GUIDE_REPO_BLOB_BASE = res.data.repo_blob_base
-          || window.GUIDE_REPO_BLOB_BASE || '';
-        var b = document.createElement('div');
-        b.className = 'guide-msg guide-msg-guide';
-        renderAskAnswer(b, res.data.error
-          ? res.data.error
-          : (res.data.answer || '(empty answer)'),
-          function (parent, text) {
-            appendGuideInline(parent, text, answerSha);
-          });
-        if (res.data.sources && res.data.sources.length) {
-          b.appendChild(guideSourcesBlock(
-            res.data.answer, res.data.sources, res.data.git_sha
-          ));
-        }
-        els.body.appendChild(b);
-        state.messages.push({
-          role: 'guide',
-          text: res.data.answer || res.data.error || '',
-          sources: res.data.sources || [],
-          sha: res.data.git_sha || '',
-          repoBlobBase: res.data.repo_blob_base || ''
-        });
-        guideSaveState(state);
-        els.body.scrollTop = els.body.scrollHeight;
+        thread.push(mode === 'model' ? modelMessage(res) : repoMessage(res));
       }).catch(function (err) {
-        bubble.remove();
-        var b = document.createElement('div');
-        b.className = 'guide-msg guide-msg-guide';
-        renderAskAnswer(b, 'DE4SDV Guide request failed: ' + err);
-        els.body.appendChild(b);
-        els.body.scrollTop = els.body.scrollHeight;
-      });
-    }
-
-    function guideReplay() {
-      els.body.textContent = '';
-      if (state.messages.length) {
-        state.messages.forEach(function (m) {
-          if (m.role === 'user') {
-            guideAppendUser(m.text);
-            return;
-          }
-          var b = document.createElement('div');
-          b.className = 'guide-msg guide-msg-guide';
-          window.GUIDE_REPO_BLOB_BASE = m.repoBlobBase
-            || window.GUIDE_REPO_BLOB_BASE || '';
-          renderAskAnswer(b, m.text || '', function (parent, text) {
-            appendGuideInline(parent, text, m.sha || null);
-          });
-          if (m.sources && m.sources.length) {
-            b.appendChild(guideSourcesBlock(
-              m.text, m.sources, m.sha
-            ));
-          }
-          els.body.appendChild(b);
+        thread.push({
+          role: mode === 'model' ? 'model' : 'guide', error: true,
+          ref: currentRefFromPath(),
+          text: (mode === 'model' ? 'Ask the model' : 'DE4SDV Guide')
+            + ' request failed: ' + err
         });
-      } else {
-        var intro = document.createElement('div');
-        intro.className = 'guide-msg guide-msg-guide guide-intro';
-        renderAskAnswer(intro,
-          'I can help you understand the DE4SDV repository, '
-          + 'architecture, documentation and contribution workflow. '
-          + 'Answers are generated from the checked-out Git repository '
-          + '\u2014 not from the Systems Modeling API. For a specific '
-          + 'model element, right-click it and use Ask the model.');
-        els.body.appendChild(intro);
-        ['How do I contribute to the repository?',
-         'Where are the architecture decision records (ADRs)?',
-         'How is the SysML v2 model organized?',
-         'What does the public deployment stack look like?'
-        ].forEach(guideAppendStarter);
-      }
-      els.body.scrollTop = els.body.scrollHeight;
+      }).then(function () {
+        pendingMode = '';
+        chatSaveState(state);
+        render();
+      });
     }
 
     function applyOpen(open) {
       state.open = !!open;
       panel.classList.toggle('open', state.open);
-      guideSaveState(state);
-      chatSyncLayout();
-      if (state.open) input.focus();
+      fab.style.display = state.open ? 'none' : '';
+      chatSaveState(state);
     }
 
-    fab.addEventListener('click', function () { applyOpen(true); });
+    fab.addEventListener('click', function () {
+      applyOpen(true);
+      scrollToLatest();
+      input.focus();
+    });
     minBtn.addEventListener('click', function () {
       applyOpen(false);
     });
     clearBtn.addEventListener('click', function () {
-      state.messages = [];
-      guideSaveState(state);
-      guideReplay();
+      state.threads[state.mode] = [];
+      chatSaveState(state);
+      render();
     });
     sendBtn.addEventListener('click', function () {
-      guideSubmit(input.value);
+      submit(input.value);
     });
     input.addEventListener('keydown', function (ev) {
       if (ev.key === 'Enter' && !ev.shiftKey) {
         ev.preventDefault();
-        guideSubmit(input.value);
+        submit(input.value);
+      }
+    });
+    panel.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape') {
+        applyOpen(false);
+        fab.focus();
       }
     });
 
-    guideReplay();
-    applyOpen(state.open);
-    chatSyncLayout();
-  }
-
-    /* Open the DE4SDV Guide panel with a prefilled question (context-menu
-     * entry point). The question goes into the input so the user can adjust
-     * before sending; the panel expands and keeps its persisted
-     * conversation. */
-    function openGuideWith(question) {
-      var panel = document.getElementById('guidePanel');
-      var input = document.getElementById('guideInput');
-      if (!panel || !input) {
-        initRepoGuide();
-        panel = document.getElementById('guidePanel');
-        input = document.getElementById('guideInput');
-        if (!panel || !input) return;
+    /* entry point for the element context menu: open the window in one
+     * mode, with the element to ask the model about or a prefilled
+     * repository question (the user can adjust it before sending) */
+    chatWindow = {
+      open: function (mode, opts) {
+        opts = opts || {};
+        if (opts.element) {
+          state.element = {
+            kind: opts.element.kind || 'element',
+            name: opts.element.name,
+            file: opts.element.file || '',
+            line: opts.element.line || '',
+            ref: currentRefFromPath()
+          };
+        }
+        if (typeof opts.question === 'string') input.value = opts.question;
+        state.mode = mode;
+        applyOpen(true);
+        render();
+        input.focus();
       }
-      input.value = question;
-      panel.classList.add('open');
-      try {
-        window.localStorage.setItem(CHAT_GUIDE_CHIP_KEY, '0');
-      } catch (err) {}
-      chatSyncLayout();
-      try {
-        var st = JSON.parse(
-          window.localStorage.getItem(GUIDE_STORAGE_KEY) || '{}'
-        );
-        st.open = true;
-        window.localStorage.setItem(
-          GUIDE_STORAGE_KEY, JSON.stringify(st)
-        );
-      } catch (err) {}
-      input.focus();
-    }
+    };
 
-  /* ---- chat panel layout coordinator ----
-   * Two floating panels share the bottom-right corner: Ask the model
-   * (.ask-panel) and DE4SDV Guide (.guide-panel). When both are open they
-   * sit side by side (Ask keeps the corner, Guide shifts left); when only
-   * one is open it takes the corner; the Guide FAB is visible only when
-   * neither is open. Minimized panels reappear as small chips. */
-  var CHAT_ASK_OPEN_KEY = 'de4sdv-ask-open';
-  var CHAT_GUIDE_CHIP_KEY = 'de4sdv-guide-minimized';
-
-  function chatAskMinimized() {
-    try { return window.localStorage.getItem(CHAT_ASK_OPEN_KEY) === '0'; }
-    catch (err) { return false; }
+    applyOpen(state.open);
+    render();
   }
 
-  function chatSetAskMinimized(min) {
-    try {
-      window.localStorage.setItem(CHAT_ASK_OPEN_KEY, min ? '0' : '1');
-    } catch (err) {}
-  }
-
-  function chatGuidePanelOpen() {
-    var panel = document.getElementById('guidePanel');
-    return !!(panel && panel.classList.contains('open'));
-  }
-
-  function chatAskPanelOpen() {
-    var panel = document.getElementById('askPanel');
-    return !!(panel && panel.classList.contains('open'));
-  }
-
-  function chatSyncLayout() {
-    var askOpen = chatAskPanelOpen();
-    var guideOpen = chatGuidePanelOpen();
-    var both = askOpen && guideOpen;
-
-    document.body.classList.toggle('chat-ask-open', askOpen);
-    document.body.classList.toggle('chat-guide-open', guideOpen);
-    document.body.classList.toggle('chat-both-open', both);
-
-    // Fixed order, left to right: [Ask panel/chip] [Guide panel]
-    // Guide always owns the corner slot; Ask shifts left when both open.
-    var askPanel = document.getElementById('askPanel');
-    if (askPanel) askPanel.classList.toggle('shifted', both);
-
-    var guidePanel = document.getElementById('guidePanel');
-    if (guidePanel) guidePanel.classList.remove('shifted');
-
-    var fab = document.getElementById('guideFab');
-    if (fab) {
-      // The FAB is the single Guide entry point: hidden only while the
-      // Guide panel itself is open.
-      fab.style.display = guideOpen ? 'none' : '';
-    }
-    var askChip = document.getElementById('askMinChip');
-    if (askChip) {
-      askChip.style.display =
-        (!askOpen && chatAskMinimized()) ? 'inline-flex' : 'none';
-    }
+  function openChatWindow(mode, opts) {
+    if (!chatWindow) initChatWindow();
+    if (chatWindow) chatWindow.open(mode, opts);
   }
 
 
@@ -884,26 +1053,6 @@
           var divider = document.createElement('div');
           divider.className = 'uses-menu-divider';
           menu.appendChild(divider);
-          var repoItem = document.createElement('button');
-          repoItem.type = 'button';
-          repoItem.className = 'uses-menu-item';
-          var repoIcon = document.createElement('span');
-          repoIcon.className = 'uses-menu-icon';
-          repoIcon.textContent = '\u{1F4AC}';
-          repoItem.appendChild(repoIcon);
-          var repoLabel = document.createElement('span');
-          repoLabel.textContent = 'Ask repo assistant\u2026';
-          repoItem.appendChild(repoLabel);
-          repoItem.title = 'Open the DE4SDV Guide with this element ' +
-            'named in the question — repository and documentation ' +
-            'context, generated answer (not model authority)';
-          repoItem.addEventListener('click', function (e) {
-            e.stopPropagation();
-            closeMenu();
-            openGuideWith('What is the ' + (ask.kind || 'element')
-              + ' ' + ask.name + ' and where is it documented?');
-          });
-          menu.appendChild(repoItem);
           var askItem = document.createElement('button');
           askItem.type = 'button';
           askItem.className = 'uses-menu-item';
@@ -919,210 +1068,36 @@
           askItem.addEventListener('click', function (e) {
             e.stopPropagation();
             closeMenu();
-            openAskPanel(ask);
+            openChatWindow('model', { element: ask });
           });
           menu.appendChild(askItem);
+          var repoItem = document.createElement('button');
+          repoItem.type = 'button';
+          repoItem.className = 'uses-menu-item';
+          var repoIcon = document.createElement('span');
+          repoIcon.className = 'uses-menu-icon';
+          repoIcon.textContent = '\u{1F4AC}';
+          repoItem.appendChild(repoIcon);
+          var repoLabel = document.createElement('span');
+          repoLabel.textContent = 'Ask the repository\u2026';
+          repoItem.appendChild(repoLabel);
+          repoItem.title = 'Ask the DE4SDV Guide with this element ' +
+            'named in the question — repository and documentation ' +
+            'context, generated answer (not model authority)';
+          repoItem.addEventListener('click', function (e) {
+            e.stopPropagation();
+            closeMenu();
+            openChatWindow('repo', {
+              question: 'What is the ' + (ask.kind || 'element')
+                + ' ' + ask.name + ' and where is it documented?'
+            });
+          });
+          menu.appendChild(repoItem);
         }
         menu.style.left = Math.min(ev.clientX, window.innerWidth - 240) + 'px';
         menu.style.top = Math.min(ev.clientY, window.innerHeight - menu.offsetHeight - 8) + 'px';
         menu.style.display = 'block';
       });
-
-      /* ---- ask-model panel (server mode only) ---- */
-      var askPanel = null;
-      function ensureAskPanel() {
-        if (askPanel) return;
-        askPanel = document.createElement('div');
-        askPanel.className = 'ask-panel';
-        askPanel.id = 'askPanel';
-
-        var head = document.createElement('div');
-        head.className = 'ask-head';
-        var askTitle = document.createElement('span');
-        askTitle.className = 'ask-title';
-        var askKind = document.createElement('span');
-        askKind.className = 'ask-kind';
-        var closeBtn = document.createElement('button');
-        closeBtn.type = 'button';
-        closeBtn.className = 'ask-close';
-        closeBtn.textContent = '\u2715';
-        closeBtn.title = 'Close (Esc)';
-        closeBtn.addEventListener('click', function () { hideAskPanel(); });
-        head.appendChild(askTitle);
-        head.appendChild(askKind);
-        head.appendChild(closeBtn);
-
-        var meta = document.createElement('a');
-        meta.className = 'ask-meta';
-
-        var body = document.createElement('div');
-        body.className = 'ask-body';
-        var input = document.createElement('textarea');
-        input.className = 'ask-input';
-        input.placeholder = 'Ask about this element\u2026 (Enter to ask, Shift+Enter for a new line)';
-        input.rows = 3;
-        var status = document.createElement('div');
-        status.className = 'ask-status';
-        var answer = document.createElement('div');
-        answer.className = 'ask-answer';
-        var footer = document.createElement('div');
-        footer.className = 'ask-footer';
-        var grounded = document.createElement('a');
-        grounded.className = 'ask-grounded';
-        var modelLine = document.createElement('span');
-        modelLine.className = 'ask-model-line';
-        var altsLine = document.createElement('div');
-        altsLine.className = 'ask-alts';
-        footer.appendChild(grounded);
-        footer.appendChild(modelLine);
-        footer.appendChild(altsLine);
-        body.appendChild(input);
-        body.appendChild(status);
-        body.appendChild(answer);
-        body.appendChild(footer);
-
-        askPanel.appendChild(head);
-        askPanel.appendChild(meta);
-        askPanel.appendChild(body);
-        var askChip = document.createElement('button');
-        askChip.type = 'button';
-        askChip.id = 'askMinChip';
-        askChip.className = 'chat-chip chat-chip-ask';
-        askChip.setAttribute('aria-label',
-          'Reopen the Ask the model panel');
-        askChip.title = 'Ask the model — minimized';
-        askChip.textContent = '\u2753';
-        askChip.addEventListener('click', function () {
-          showAskPanel();
-        });
-        document.body.appendChild(askChip);
-        document.body.appendChild(askPanel);
-        chatSyncLayout();
-
-        input.addEventListener('keydown', function (ev) {
-          if (ev.key === 'Enter' && !ev.shiftKey) {
-            ev.preventDefault();
-            submitAsk();
-          }
-        });
-        document.addEventListener('keydown', function (ev) {
-          if (ev.key === 'Escape' && askPanel.classList.contains('open')) {
-            hideAskPanel();
-          }
-        });
-        var askMin = document.createElement('button');
-        askMin.type = 'button';
-        askMin.className = 'ask-min';
-        askMin.textContent = '\u2212';
-        askMin.setAttribute('aria-label', 'Minimize the Ask the model panel');
-        askMin.title = 'Minimize (keeps this answer)';
-        askMin.addEventListener('click', function (e) {
-          e.stopPropagation();
-          hideAskPanel();
-        });
-        head.appendChild(askMin);
-
-        askPanel.__els = {
-          title: askTitle, kind: askKind, meta: meta, input: input,
-          status: status, answer: answer, grounded: grounded,
-          modelLine: modelLine, altsLine: altsLine
-        };
-      }
-
-      function hideAskPanel() {
-        if (askPanel) {
-          askPanel.classList.remove('open');
-          chatSetAskMinimized(true);
-          chatSyncLayout();
-        }
-      }
-
-      function showAskPanel() {
-        if (!askPanel) return;
-        askPanel.classList.add('open');
-        chatSetAskMinimized(false);
-        chatSyncLayout();
-        if (askPanel.__els && askPanel.__els.input) askPanel.__els.input.focus();
-      }
-
-      function openAskPanel(info) {
-        ensureAskPanel();
-        var els = askPanel.__els;
-        askPanel.__info = info;
-        askPanel.classList.add('open');
-        chatSetAskMinimized(false);
-        chatSyncLayout();
-        els.title.textContent = info.name;
-        els.kind.textContent =
-          (info.kind || 'element') + ' (element-grounded query)';
-        els.meta.textContent = info.file ? info.file + ':' + info.line : '';
-        els.meta.href = info.file
-          ? (window.VIEWER_PREFIX || '') + 'pages/' + info.file + '.html#src-' + info.line
-          : '';
-        els.input.value = '';
-        els.status.textContent = '';
-        els.answer.textContent = '';
-        els.grounded.textContent = '';
-        els.grounded.removeAttribute('href');
-        els.modelLine.textContent = '';
-        els.altsLine.textContent = '';
-        els.input.focus();
-      }
-
-      function submitAsk() {
-        if (!askPanel) return;
-        var els = askPanel.__els;
-        var info = askPanel.__info;
-        var q = els.input.value.trim();
-        if (!info || !q || els.status.textContent) return;
-        els.status.textContent = 'Asking the model\u2026';
-        els.answer.textContent = '';
-        els.grounded.textContent = '';
-        els.modelLine.textContent = '';
-        els.altsLine.textContent = '';
-        fetch('/ask', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            element: info.name,
-            question: q,
-            file: info.file || '',
-            line: info.line || '',
-            ref: currentRefFromPath()
-          })
-        }).then(function (r) {
-          return r.json().then(function (data) {
-            return { ok: r.ok, data: data };
-          });
-        }).then(function (res) {
-          els.status.textContent = '';
-          if (!res.ok || res.data.error) {
-            renderAskAnswer(els.answer, res.data.error ||
-              'request failed (HTTP ' + (res.ok ? 200 : '?') + ')');
-            return;
-          }
-          renderAskAnswer(els.answer, res.data.answer || '(empty answer)');
-          var el = res.data.element || {};
-          if (el.href) {
-            els.grounded.href = (window.VIEWER_PREFIX || '') + el.href;
-            els.grounded.textContent =
-              'grounded on ' + el.name + ' \u00b7 ' + el.file + ':' + el.line;
-          }
-          els.modelLine.textContent = 'model: ' + (res.data.model || '?')
-            + (res.data.method_context_source
-              ? ' \u00b7 method context: ' + res.data.method_context_source
-              : '');
-          var alts = res.data.ambiguous_alternatives || [];
-          if (alts.length) {
-            els.altsLine.textContent =
-              'same-name elements exist (' + alts.length + ' more) \u2014 ' +
-              alts.map(function (x) { return x.file + ':' + x.line; }).join(', ');
-          }
-        }).catch(function (err) {
-          els.status.textContent = '';
-          renderAskAnswer(els.answer, 'ask-model request failed: ' + err);
-        });
-      }
     }
 
     /* when landing on a view with a pending highlight, flash the labels of
@@ -1360,7 +1335,7 @@
     initUsesMenu();
     initTreeSearch();
     initRequirements();
-    initRepoGuide();
+    initChatWindow();
     flashTarget();
     highlightFromUses();
     window.addEventListener('hashchange', function () {

@@ -155,25 +155,32 @@ detects newer files.
 The **Chat** link in the header points to the DE4SDV Mattermost community
 (<https://chat.de4sdv.org>).
 
-### DE4SDV Guide (repository assistant)
+### Ask window: the model or the repository
 
-The **Guide** button at the bottom-right of every page opens the DE4SDV
-Guide, a chat assistant for the **repository**: documentation,
-architecture material, architecture decision records, tooling, the
-contribution workflow, and product-line assets. It is minimized by
-default; "New chat" clears the conversation, and the conversation stays
+The **Ask** button at the bottom-right of every page opens one chat
+window. A switch in its header chooses what answers:
+
+- **Model** — Ask the model, for one **specific model element**.
+  Right-click the element in a diagram, on a page or in the project tree
+  and choose **Ask the model…**; the window switches to Model mode with
+  that element selected. Answers are generated from the element's
+  declaration, documentation, children and method relations, and name the
+  element they were grounded on.
+- **Repository** — DE4SDV Guide, a chat assistant for the
+  **repository**: documentation, architecture material, architecture
+  decision records, tooling, the contribution workflow, and product-line
+  assets. Answers carry source references that open on GitHub at the
+  exact deployed revision.
+
+Both are **generated** answer sources, not engineering or model
+authorities. DE4SDV Guide is grounded in the deployed Git checkout and
+never queries the Systems Modeling API; when the repository material does
+not answer a question, it says so instead of guessing. The two modes keep
+separate conversations and never substitute for each other.
+
+The window is minimized by default. "New chat" clears the conversation of
+the current mode; the window, the mode and both conversations stay
 available while you navigate the viewer (stored in your browser only).
-
-DE4SDV Guide is a **generated** answer source grounded in the deployed
-Git checkout — it is **not** an engineering or model authority and it
-never queries the Systems Modeling API. When the repository material does
-not answer a question, it says so instead of guessing. Answers carry
-source references that open on GitHub at the exact deployed revision.
-
-For questions about a **specific model element**, use **Ask the model**
-instead: right-click the element in the viewer. Ask the model is the
-element-grounded model capability and is separate from DE4SDV Guide —
-the two never substitute for each other.
 
 ## Static vs. server mode
 
