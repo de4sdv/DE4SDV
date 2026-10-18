@@ -15,12 +15,12 @@
  * with a host half and a guest half, S-CORE on the host only, and the guest
  * platform as context (owner decision of 2026-10-18). The S-CORE Launch
  * Manager starts and supervises the layer's host processes. The two domains
- * are typed with existing platform-stack
- * layers; the per-domain variation is phase 9 work. An allocation assigns
- * responsibility only; it asserts no satisfaction, deployment or execution.
- * No closed slice is edited. No safety, cybersecurity, compliance or
- * freedom-from-interference claim is made, and the HMI stays an informational
- * display, not the AEBS driver warning.
+ * are typed with existing platform-stack layers; the per-domain variation is
+ * phase 9 work. An allocation assigns responsibility only; it asserts no
+ * satisfaction, deployment or execution. No closed slice is edited. No
+ * safety, cybersecurity, compliance or freedom-from-interference claim is
+ * made, and the HMI stays an informational display, not the AEBS driver
+ * warning.
  */
 
 package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
@@ -63,29 +63,28 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * The physical/software realization of the middleware integration layer,
      * the system of interest of INC-MW-011: four DE4SDV processes and the
      * Eclipse S-CORE modules they use. It spans both domains. The adapter,
-     * the health proxy node, the host relay and S-CORE run on the Linux
-     * host; the SOME/IP receiver, the guest end of the one-way HMI path,
-     * runs in the AAOS SDV guest, so the layer reaches the HMI application's
-     * ingress, as REQ-MW-014 asks. The HMI frame relay is one logical
-     * element with a host half, the adapter's frame ingest and the host
-     * relay, and a guest half, the SOME/IP receiver, joined by one internal
-     * link across the hypervisor. S-CORE structures a crossing it owns on
-     * both sides the same way: one logical gateway with one process per
-     * domain (communication v0.4.0, score/mw/com/gateway/README.md:33-34).
-     * That link is the only exchange of the layer that crosses the
-     * hypervisor. The host half enforces REQ-MW-016 on it, and REQ-MW-019
-     * while the guest's subscription is absent; the guest half discards
-     * while the HMI application is not connected (hostRelay,
-     * someipReceiver). The guest platform, Android HLOS with the AAOS SDV
-     * middleware, and the reused HMI chain are context, with their
-     * obligations as assumptions (ASM-MW-024, ASM-MW-029). Consequences,
-     * with no claim: the trust boundary between host and guest lies inside
-     * the layer (GAP-MW-012), the GAP-MW-033 safety review sees the crossing
-     * as an internal interface, and the guest image rebuild is realization
-     * work of the layer (GAP-MW-038). No element of the layer carries the
-     * AEBS emergency intervention command (REQ-MW-017, ASM-MW-028). The
-     * layer has no boundary ports of its own: the context parts connect to
-     * its processes directly.
+     * the health proxy node, the host relay and S-CORE run on the Linux host;
+     * the SOME/IP receiver, the guest end of the one-way HMI path, runs in
+     * the AAOS SDV guest, so the layer reaches the HMI application's ingress,
+     * as REQ-MW-014 asks. The HMI frame relay is one logical element with a
+     * host half, the adapter's frame ingest and the host relay, and a guest
+     * half, the SOME/IP receiver, joined by one internal link across the
+     * hypervisor. S-CORE structures a crossing it owns on both sides the same
+     * way: one logical gateway with one process per domain (communication
+     * v0.4.0, score/mw/com/gateway/README.md:33-34). That link is the only
+     * exchange of the layer that crosses the hypervisor. The host half
+     * enforces REQ-MW-016 on it, and REQ-MW-019 while the guest's
+     * subscription is absent; the guest half discards while the HMI
+     * application is not connected (hostRelay, someipReceiver). The guest
+     * platform, Android HLOS with the AAOS SDV middleware, and the reused HMI
+     * chain are context, with their obligations as assumptions (ASM-MW-024,
+     * ASM-MW-029). Consequences, with no claim: the trust boundary between
+     * host and guest lies inside the layer (GAP-MW-012), the GAP-MW-033
+     * safety review sees the crossing as an internal interface, and the guest
+     * image rebuild is realization work of the layer (GAP-MW-038). No element
+     * of the layer carries the AEBS emergency intervention command
+     * (REQ-MW-017, ASM-MW-028). The layer has no boundary ports of its own:
+     * the context parts connect to its processes directly.
      */
 
     part adapter : PhysicalAllocationElement {
@@ -105,12 +104,11 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * links aborts_upon_exception of baselibs, so an exception thrown
        * anywhere in the process, also in the ROS 2 client library, aborts the
        * whole process (REQ-MW-018); the health topic then turns stale and the
-       * HMI shows its stale overlay.
-       * Heap use after initialization (GAP-MW-034): the adapter allocates,
-       * because the ROS 2 client library allocates with its default
-       * allocator when it publishes and when its executor runs, so the
-       * recommendation aou_req__platform__no_heap_alloc_after_init is not
-       * followed.
+       * HMI shows its stale overlay. Heap use after initialization
+       * (GAP-MW-034): the adapter allocates, because the ROS 2 client library
+       * allocates with its default allocator when it publishes and when its
+       * executor runs, so the recommendation
+       * aou_req__platform__no_heap_alloc_after_init is not followed.
        */
       port referenceSpeedIn : ReferenceVehicleSpeedEventIn {
         doc /* mw::com proxy of the reference vehicle-speed event. */
@@ -156,26 +154,26 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * SOME/IP gateway (owner decision of 2026-10-18; GAP-MW-036). It is an
        * S-CORE application that subscribes to the frame event as an mw::com
        * proxy, and it offers each frame unchanged as a SOME/IP event through
-       * COVESA vsomeip 3.7.6 (commit 4187431d2815bd351845a09d01aa85b2a3163cab,
-       * MPL-2.0), used unchanged as a dependency and not vendored. It is the
-       * only process on the host that the guest reaches, and the guest is the
-       * untrusted side, so it enforces REQ-MW-016, and REQ-MW-019 for an
-       * absent guest subscription, whatever the guest does; the trust
-       * boundary to the guest lies here, inside the layer (GAP-MW-012).
-       * REQ-MW-016: its vsomeip configuration offers one service with one
-       * event and no method, and the relay registers no handler for messages
-       * from the guest, so the host has no receiver for guest data
-       * (vsomeipConfiguration.md:1069-1081). REQ-MW-019: the event
-       * is reliable (TCP) and neither a field nor cyclic, so a frame goes only
-       * to a current subscriber and is dropped at the host while the guest's
-       * subscription is absent; vsomeip keeps a value to replay to a new
-       * subscriber only for fields
+       * COVESA vsomeip 3.7.6 (commit
+       * 4187431d2815bd351845a09d01aa85b2a3163cab, MPL-2.0), used unchanged as
+       * a dependency and not vendored. It is the only process on the host
+       * that the guest reaches, and the guest is the untrusted side, so it
+       * enforces REQ-MW-016, and REQ-MW-019 for an absent guest subscription,
+       * whatever the guest does; the trust boundary to the guest lies here,
+       * inside the layer (GAP-MW-012). REQ-MW-016: its vsomeip configuration
+       * offers one service with one event and no method, and the relay
+       * registers no handler for messages from the guest, so the host has no
+       * receiver for guest data (vsomeipConfiguration.md:1069-1081).
+       * REQ-MW-019: the event is reliable (TCP) and neither a field nor
+       * cyclic, so a frame goes only to a current subscriber and is dropped
+       * at the host while the guest's subscription is absent; vsomeip keeps a
+       * value to replay to a new subscriber only for fields
        * (implementation/routing/src/provider_event.cpp:308-313 at 4187431d),
        * and the relay bounds the external endpoint queue, which vsomeip
        * leaves unlimited by default (vsomeipConfiguration.md:366), so a
        * stalled guest gets no growing backlog. As an application using S-CORE
-       * it falls under aou_req__platform__no_exceptions as well (NEED-MW-004),
-       * while REQ-MW-018 names the adapter only (GAP-MW-034).
+       * it falls under aou_req__platform__no_exceptions as well
+       * (NEED-MW-004), while REQ-MW-018 names the adapter only (GAP-MW-034).
        */
       port aebsSignalFrameIn : AEBSSignalFrameIn {
         doc /* mw::com proxy of the AEBS signal frame event. */
@@ -192,18 +190,18 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * subscribes to the frame event over TCP, and serves each frame
        * unchanged as the INC-AEBS-010 length-delimited stream on the guest
        * loopback to one client, the reused ingress (ASM-MW-029). It drops
-       * frames while no client is connected and replays nothing
-       * (REQ-MW-019). The host half cannot see whether the HMI application
-       * is connected, so while the receiver is subscribed but the ingress is
-       * not, this drop is the discard REQ-MW-019 relies on. It sends the host
-       * nothing but SOME/IP service discovery and TCP protocol control; that
-       * is a design property, not the protection of REQ-MW-016, which the
-       * host half enforces. It runs as a native init service of the guest,
-       * outside the Launch Manager, which runs only on the Linux host. It
-       * must listen before the ingress starts, because the
-       * ingress exits when nothing listens (ingress/main.cpp:183-188), and it
-       * is not a oneshot service, so init restarts it when it exits. vsomeip
-       * on AAOS is untested (GAP-MW-038).
+       * frames while no client is connected and replays nothing (REQ-MW-019).
+       * The host half cannot see whether the HMI application is connected, so
+       * while the receiver is subscribed but the ingress is not, this drop is
+       * the discard REQ-MW-019 relies on. It sends the host nothing but
+       * SOME/IP service discovery and TCP protocol control; that is a design
+       * property, not the protection of REQ-MW-016, which the host half
+       * enforces. It runs as a native init service of the guest, outside the
+       * Launch Manager, which runs only on the Linux host. It must listen
+       * before the ingress starts, because the ingress exits when nothing
+       * listens (ingress/main.cpp:183-188), and it is not a oneshot service,
+       * so init restarts it when it exits. vsomeip on AAOS is untested
+       * (GAP-MW-038).
        */
       port aebsSignalFrameIn : AEBSSignalFrameIn {
         doc /* Subscription to the host relay's SOME/IP frame event. */
@@ -227,9 +225,9 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * so S-CORE carries both events only inside the Linux host. S-CORE runs
        * on the Linux host only: the AAOS SDV guest is a non-converged system
        * beside it, as S-CORE's platform architecture draws an Android IVI
-       * (score v0.7.2, docs/architecture/_assets/platform_architecture.drawio.svg).
-       * These are the selected modules of aou_req__platform__testing
-       * (GAP-MW-034).
+       * (score v0.7.2,
+       * docs/architecture/_assets/platform_architecture.drawio.svg). These
+       * are the selected modules of aou_req__platform__testing (GAP-MW-034).
        */
       part launchManager : PhysicalAllocationElement {
         doc /*
@@ -318,8 +316,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
     part hmiGuest {
       doc /*
        * The AAOS SDV guest under KVM, the display-capable sdv_ivi_cf guest of
-       * INC-AEBS-010 (ASM-MW-027). Its platform, Android HLOS with the AAOS SDV
-       * middleware, and the reused HMI chain are context, with their
+       * INC-AEBS-010 (ASM-MW-027). Its platform, Android HLOS with the AAOS
+       * SDV middleware, and the reused HMI chain are context, with their
        * obligations stated as assumptions (ASM-MW-024, ASM-MW-029). Of the
        * layer, only the SOME/IP receiver runs here.
        */
@@ -466,14 +464,14 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * mw::com skeleton cannot send an update while no sample slot is free:
      * Send fails with kSampleAllocationFailure
      * (score/mw/com/impl/bindings/lola/skeleton_event.h:139-142 and 173-178),
-     * so the adapter then drops that frame. SOME/IP gives no
-     * delivery guarantee for events to the application, even over TCP
-     * (eclipse-score discussion 3240, 2026-09-04). The bounded queue of the
-     * host relay (REQ-MW-019) drops frames while a subscribed guest stalls.
-     * Reliable events keep the order on one connection, and slot and queue
-     * sizes for 10 Hz frames of at most 2048 bytes make a gap unlikely, but
-     * none of this rules out a sequence gap. Phase 10 measures it with the
-     * frames' own sequence numbers.
+     * so the adapter then drops that frame. SOME/IP gives no delivery
+     * guarantee for events to the application, even over TCP (eclipse-score
+     * discussion 3240, 2026-09-04). The bounded queue of the host relay
+     * (REQ-MW-019) drops frames while a subscribed guest stalls. Reliable
+     * events keep the order on one connection, and slot and queue sizes for
+     * 10 Hz frames of at most 2048 bytes make a gap unlikely, but none of
+     * this rules out a sequence gap. Phase 10 measures it with the frames'
+     * own sequence numbers.
      */
   }
 
@@ -481,14 +479,14 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
     doc /*
      * DE4SDV has not exercised COVESA vsomeip in the AAOS SDV guest. vsomeip
      * 3.7.6 ships an Android.bp, but Boost 1.75 or later (system and
-     * filesystem) must be added to the AOSP source tree with an Android.bp
-     * of its own (vsomeip README.md:95-115 at 4187431d), and the sdv_ivi_cf
-     * guest must be rebuilt with vsomeip, Boost, the SOME/IP receiver and
-     * its SELinux policy. Because the receiver belongs to the system of
-     * interest, that rebuild is realization work of the layer; the rest of
-     * the guest image is context. SOME/IP service discovery between the host
-     * and the guest over the Cuttlefish guest network is untested too. Phase
-     * 10 preflights a guest vsomeip client that subscribes to a host service
+     * filesystem) must be added to the AOSP source tree with an Android.bp of
+     * its own (vsomeip README.md:95-115 at 4187431d), and the sdv_ivi_cf
+     * guest must be rebuilt with vsomeip, Boost, the SOME/IP receiver and its
+     * SELinux policy. Because the receiver belongs to the system of interest,
+     * that rebuild is realization work of the layer; the rest of the guest
+     * image is context. SOME/IP service discovery between the host and the
+     * guest over the Cuttlefish guest network is untested too. Phase 10
+     * preflights a guest vsomeip client that subscribes to a host service
      * before the full chain.
      */
   }

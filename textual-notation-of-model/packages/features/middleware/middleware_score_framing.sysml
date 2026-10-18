@@ -10,11 +10,11 @@
  * travels over S-CORE communication into Autoware. The AEBS signals of the
  * Autoware-based AEBS stack on the Linux host travel over S-CORE
  * communication inside the host, and a DE4SDV SOME/IP relay carries them
- * across the domain boundary to the HMI in the guest. One
- * increment identity spans phases 0 to 12: this framing slice, the needs,
- * requirements, physical/software realization, variability and
- * configuration, and verification-evidence slices that follow, and the
- * publication and baseline decision all belong to it.
+ * across the domain boundary to the HMI in the guest. One increment identity
+ * spans phases 0 to 12: this framing slice, the needs, requirements,
+ * physical/software realization, variability and configuration, and
+ * verification-evidence slices that follow, and the publication and baseline
+ * decision all belong to it.
  *
  * Predecessor relationship: the increment builds on the closed INC-MW-010
  * baseline and on the INC-MW-002 to INC-MW-007 baseline (ASM-MW-023). It
@@ -125,11 +125,10 @@ package DE4SDV_MiddlewareSCOREFraming {
      * lifecycle bridge, health proxy, update coordination, service binding)
      * on the Linux host, and the one-way cross-domain HMI path into the AAOS
      * SDV guest up to the HMI application. It is part of the member product,
-     * not an engineering
-     * instrument. The HMI application in the guest is part of the member
-     * product but outside the system of interest. The needs and
-     * requirements of this increment take the layer as their subject, and
-     * its physical/software realization specializes it.
+     * not an engineering instrument. The HMI application in the guest is part
+     * of the member product but outside the system of interest. The needs and
+     * requirements of this increment take the layer as their subject, and its
+     * physical/software realization specializes it.
      */
   }
 

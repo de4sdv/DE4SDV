@@ -174,11 +174,10 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
      * The operational context of the two-domain member product. The system of
      * interest is the middleware integration layer (the Autoware-to-S-CORE
      * adapter with the S-CORE services) on the Linux host and the guest end of
-     * the one-way HMI path; the actors are the
-     * host-side application elements, the guest with its HMI application, the
-     * hypervisor between them, and the driver who sees the informational
-     * display. This is the operational environment, not a deployment
-     * decomposition.
+     * the one-way HMI path; the actors are the host-side application
+     * elements, the guest with its HMI application, the hypervisor between
+     * them, and the driver who sees the informational display. This is the
+     * operational environment, not a deployment decomposition.
      */
     part integrationLayer : SCOREMiddlewareIntegrationLayer :>> systemOfInterest {
       part adapter : ApplicationMiddlewareAdapter;
