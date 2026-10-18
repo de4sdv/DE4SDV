@@ -20,6 +20,9 @@ MATRIX_VIEWS = {
     "textual-notation-of-model/packages/features/middleware/middleware_physical_software_realization.sysml": (
         "middlewarePhysicalLogicalMappingView",
     ),
+    "textual-notation-of-model/packages/features/middleware/middleware_score_physical_software_realization.sysml": (
+        "scoreMiddlewarePhysicalLogicalMappingView",
+    ),
 }
 TABLE_VIEWS = {
     "textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml": (

@@ -37,6 +37,10 @@ EXPECTED_MAPPING_AXES = {
         "system functions (action usages)",
         "conceptual system elements (part usages)",
     ),
+    "matrix-scoreMiddlewarePhysicalLogicalMappingView": (
+        "conceptual system elements (part usages)",
+        "physical/software elements (part usages)",
+    ),
 }
 
 
