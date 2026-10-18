@@ -395,8 +395,9 @@ new work must never follow it.
   `part <'INC-EXAMPLE-001'> sensorDiagnosticsIncrement : SensorDiagnosticsIncrement`,
   not `incEXAMPLE001`. Existing increment usages (`incMW002`, `incAEBS010`)
   keep their names (owner decision D15, 2026-10-15).
-- **IDs:** a model element's registered ID is its SysML short name, as in
-  `requirement <'REQ-MW-010'> reqDeliverReferenceVehicleSpeed`.
+- **IDs:** a new model element's registered ID is its SysML short name, as
+  in `requirement <'REQ-MW-010'> reqDeliverReferenceVehicleSpeed`; IDs that
+  earlier elements carry in their doc text stay valid.
 - **Views:** lowerCamelCase semantic identity
   (`aebsLogicalStructureView`). A view that is an enduring canonical view
   introduced by an increment takes the semantic name and keeps the increment
