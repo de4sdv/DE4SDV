@@ -33,7 +33,7 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     stakeholder softwareDeveloper : SoftwareDeveloper;
     stakeholder systemArchitect : SystemArchitect;
     stakeholder productLineEngineer : ProductLineEngineer;
-    require constraint statement { language "English" /* Software developers, system architects and product-line engineers need the middleware integration layer to give Autoware the reference vehicle speed (VSS Vehicle.Speed) over Eclipse S-CORE communication, with its meaning and unit intact and with its loss visible, like for like with the AAOS SDV realization of the same signal. */ }
+    require constraint statement { language "English" /* Software developers, system architects and product-line engineers need the middleware integration layer to give the non-braking velocity consumers of Autoware the reference vehicle speed (VSS Vehicle.Speed) over Eclipse S-CORE communication, with its meaning and unit intact and with its loss visible, like for like with the AAOS SDV realization of the same signal. */ }
     attribute :>> source = "INC-MW-011 scoreRealizationCoverageConcern (like-for-like comparison with the AAOS SDV realization of INC-MW-008), scope item referenceVehicleSpeedPathInScope, scenarios SC-MW-001 and SC-MW-003; refines N-MW-001 for the S-CORE member";
     attribute :>> rationale = "The S-CORE variant is comparable with the AAOS SDV realization only over the same reference signal, the same Autoware consumer and the same behavior on provider loss, and Autoware must not take a lost speed for a current one.";
   }
@@ -48,13 +48,13 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     attribute :>> rationale = "The HMI is an informational display: it must show what the AEBS stack produced, each field attributed to its source kind (native Autoware AEB output, DE4SDV coordinator output or display-derived), and the guest must not be able to influence the AEBS stack or the middleware on the host.";
   }
 
-  requirement <'NEED-MW-003'> needEmergencyCommandPathWithoutMiddleware : StakeholderNeedCandidate {
+  requirement <'NEED-MW-003'> needEmergencyPathWithoutMiddleware : StakeholderNeedCandidate {
     subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
     stakeholder safetyExpert : SafetyExpert;
     stakeholder systemArchitect : SystemArchitect;
-    require constraint statement { language "English" /* Safety experts and system architects need the middleware integration layer to stay out of the AEBS emergency intervention command path, which runs from the AEB node to the vehicle command gate on the Linux host. */ }
-    attribute :>> source = "INC-MW-011 emergencyPathConcern, ASM-MW-028, scenario SC-MW-002; refines N-MW-004 for the S-CORE member, which takes the direct vehicle-command path";
-    attribute :>> rationale = "The emergency intervention command path is the safety-relevant asset of the member; keeping S-CORE communication and the guest out of it keeps the direct brake command path of the middleware baseline (ASM-MW-003). The isolation criteria stay open (REQ-MW-006, GAP-MW-029).";
+    require constraint statement { language "English" /* Safety experts and system architects need the middleware integration layer to stay out of the AEBS emergency intervention path on the Linux host, from the velocity input of the AEB node to its command to the vehicle command gate. */ }
+    attribute :>> source = "INC-MW-011 emergencyPathConcern, ASM-MW-028, scenario SC-MW-002; owner decision 2026-10-18 (the AEB node keeps a host-side speed source); refines N-MW-004 for the S-CORE member, which takes the direct vehicle-command path";
+    attribute :>> rationale = "The emergency intervention command path is the safety-relevant asset of the member; keeping S-CORE communication and the guest out of it keeps the direct brake command path of the middleware baseline (ASM-MW-003) and the braking decision input on the host. The isolation criteria stay open (REQ-MW-006, GAP-MW-029).";
   }
 
   requirement <'NEED-MW-004'> needWithinSCOREAssumptionsOfUse : StakeholderNeedCandidate {
@@ -71,8 +71,9 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     doc /* For NEED-MW-001, a planned stakeholder review. While the member
          * runs the speed-path scenario (SC-MW-001) and the provider-loss
          * scenario (SC-MW-003), can software developers, system architects
-         * and product-line engineers confirm that Autoware receives the
-         * reference vehicle speed with its meaning and unit intact, that its
+         * and product-line engineers confirm that the non-braking velocity
+         * consumers of Autoware receive the reference vehicle speed with its
+         * meaning and unit intact, that its
          * loss shows as stale rather than as a frozen value, and that the
          * result compares like for like with the AAOS SDV realization of the
          * same signal? */
@@ -104,18 +105,19 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     from aebsSignalPathToHMIValidationPlan
     to DE4SDV_MiddlewareSCOREOperationalContext::tolerateUnavailableOrStaleHMIGuest;
 
-  part <'SC-MW-008'> emergencyCommandPathValidationPlan : ValidationPlanningScenario {
+  part <'SC-MW-008'> emergencyPathValidationPlan : ValidationPlanningScenario {
     doc /* For NEED-MW-003, a planned stakeholder review. In the AEBS-event
          * scenario (SC-MW-002), can safety experts and system architects
-         * confirm that the emergency intervention command goes from the AEB
-         * node to the vehicle command gate on the Linux host without passing
-         * through the middleware integration layer or the AAOS SDV guest?
-         * No freedom-from-interference claim. */
+         * confirm that the AEB node takes its velocity from a host-side
+         * source and that its emergency intervention command goes to the
+         * vehicle command gate on the Linux host, neither passing through
+         * the middleware integration layer or the AAOS SDV guest? No
+         * freedom-from-interference claim. */
   }
-  connection emergencyCommandPathValidationPlanning : ValidationPlanningAssociation
-    connect needEmergencyCommandPathWithoutMiddleware to emergencyCommandPathValidationPlan;
-  dependency emergencyCommandPathValidationFromAEBSEventScenario
-    from emergencyCommandPathValidationPlan
+  connection emergencyPathValidationPlanning : ValidationPlanningAssociation
+    connect needEmergencyPathWithoutMiddleware to emergencyPathValidationPlan;
+  dependency emergencyPathValidationFromAEBSEventScenario
+    from emergencyPathValidationPlan
     to DE4SDV_MiddlewareSCOREOperationalContext::showAEBSEventOnHMI;
 
   part <'SC-MW-009'> scoreAssumptionsOfUseValidationPlan : ValidationPlanningScenario {
@@ -135,11 +137,11 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
 
   requirement <'REQ-MW-010'> reqDeliverReferenceVehicleSpeed : FunctionalRequirementCandidate {
     subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
-    require constraint statement { language "English" /* The middleware integration layer shall deliver each finite reference vehicle speed sample (VSS Vehicle.Speed, in km/h) from the vehicle-speed provider over Eclipse S-CORE communication to Autoware on /vehicle/status/velocity_status, as a longitudinal velocity in m/s equal to the sample divided by 3.6. */ }
-    attribute :>> source = "NEED-MW-001; scenario SC-MW-001; like for like with AC-MW-010-01 and E-MW-013 of INC-MW-010 (the same signal, conversion and Autoware consumer)";
-    attribute :>> rationale = "The same reference signal, conversion and consumer as in the AAOS SDV realization make the S-CORE realization comparable with it.";
+    require constraint statement { language "English" /* The middleware integration layer shall deliver each finite reference vehicle speed sample (VSS Vehicle.Speed, in km/h) from the vehicle-speed provider over Eclipse S-CORE communication to the velocity input of the Autoware vehicle velocity converter, as a longitudinal velocity in m/s equal to the sample divided by 3.6. */ }
+    attribute :>> source = "NEED-MW-001; scenario SC-MW-001; like for like with AC-MW-010-01 and E-MW-013 of INC-MW-010 (the same signal, conversion and consumer, autoware_vehicle_velocity_converter); owner decision 2026-10-18";
+    attribute :>> rationale = "The same reference signal, conversion and consumer as in the AAOS SDV realization make the S-CORE realization comparable with it. One deliberate deviation from that wiring: the speed does not travel on /vehicle/status/velocity_status, the velocity input of the AEB node, which keeps a host-side source by owner decision, following the safety-path isolation intent of N-MW-004 and REQ-MW-006. The topic that reaches the converter, and who owns it, are settled before phase 7 (GAP-MW-033).";
     attribute :>> verificationMethod = "test";
-    attribute :>> successCriteria = "Met when an observer independent of the middleware integration layer sees provider samples of 36 km/h and 72 km/h, carried over Eclipse S-CORE communication, arrive on /vehicle/status/velocity_status as longitudinal velocities of 10 m/s and 20 m/s.";
+    attribute :>> successCriteria = "Met when an observer independent of the middleware integration layer sees provider samples of 36 km/h and 72 km/h, carried over Eclipse S-CORE communication, arrive at the velocity input of the Autoware vehicle velocity converter as longitudinal velocities of 10 m/s and 20 m/s.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
@@ -149,27 +151,27 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     attribute :>> source = "NEED-MW-001; scenario SC-MW-001; like for like with the non-finite case of AC-MW-010-01 of INC-MW-010";
     attribute :>> rationale = "A non-finite value would otherwise reach the velocity consumers of Autoware as if it were a measured speed.";
     attribute :>> verificationMethod = "test";
-    attribute :>> successCriteria = "Met when NaN, positive-infinity and negative-infinity samples published by the vehicle-speed provider produce no message on /vehicle/status/velocity_status, while the finite samples published before and after them arrive.";
+    attribute :>> successCriteria = "Met when NaN, positive-infinity and negative-infinity samples published by the vehicle-speed provider produce no message at the velocity input of the Autoware vehicle velocity converter, while the finite samples published before and after them arrive.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
   requirement <'REQ-MW-012'> reqIndicateStaleReferenceVehicleSpeed : FunctionalRequirementCandidate {
     subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
-    require constraint statement { language "English" /* If the last finite reference vehicle speed sample from the vehicle-speed provider is older than 5 s, then the middleware integration layer shall publish a stale indication of the reference vehicle speed on /vehicle/status/velocity_status_health no later than 6 s after that sample. */ }
+    require constraint statement { language "English" /* If the last finite reference vehicle speed sample from the vehicle-speed provider is older than 5 s, then the middleware integration layer shall publish a stale indication of the reference vehicle speed on the health topic that accompanies the speed topic of REQ-MW-010 no later than 6 s after that sample. */ }
     attribute :>> source = "NEED-MW-001; scenario SC-MW-003; like for like with E-MW-014 of INC-MW-010 (health topic /vehicle/status/velocity_status_health, max_age 5 s, a 1 s watchdog period, stale observed 5.8 s after the provider stopped)";
-    attribute :>> rationale = "The Autoware side must be able to tell that the reference vehicle speed is no longer current. The 5 s bound, the 1 s tolerance and the health topic are those of the AAOS SDV realization, so the two realizations compare like for like. Restoration shows as the resumed delivery of REQ-MW-010; the baseline health states (REQ-MW-004) carry the further step to unavailable.";
+    attribute :>> rationale = "The Autoware side must be able to tell that the reference vehicle speed is no longer current. The 5 s bound and the 1 s tolerance are those of the AAOS SDV realization, whose health topic accompanied its speed topic in the same way, so the two realizations compare like for like; the health topic is named with the speed topic (GAP-MW-033). Restoration shows as the resumed delivery of REQ-MW-010; the baseline health states (REQ-MW-004) carry the further step to unavailable.";
     attribute :>> verificationMethod = "test";
-    attribute :>> successCriteria = "Met when, after the vehicle-speed provider stops publishing, a stale indication of the reference vehicle speed appears on /vehicle/status/velocity_status_health no later than 6 s after the last finite sample.";
+    attribute :>> successCriteria = "Met when, after the vehicle-speed provider stops publishing, a stale indication of the reference vehicle speed appears on the health topic that accompanies the speed topic of REQ-MW-010 no later than 6 s after the last finite sample.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
   requirement <'REQ-MW-013'> reqDeliverSpeedSampleAtMostOnce : FunctionalRequirementCandidate {
     subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
-    require constraint statement { language "English" /* The middleware integration layer shall deliver each reference vehicle speed sample to Autoware on /vehicle/status/velocity_status at most once. */ }
+    require constraint statement { language "English" /* The middleware integration layer shall deliver each reference vehicle speed sample to the velocity input of the Autoware vehicle velocity converter at most once. */ }
     attribute :>> source = "NEED-MW-001; scenario SC-MW-003 (a stale, then unavailable, disposition instead of a frozen value)";
     attribute :>> rationale = "A last sample repeated after the provider stopped would reach Autoware as a frozen current speed.";
     attribute :>> verificationMethod = "test";
-    attribute :>> successCriteria = "Met when, after the vehicle-speed provider stops publishing, no further message appears on /vehicle/status/velocity_status until the provider publishes again, and each delivered message corresponds to one distinct provider sample.";
+    attribute :>> successCriteria = "Met when, after the vehicle-speed provider stops publishing, no further message appears at the velocity input of the Autoware vehicle velocity converter until the provider publishes again, and each delivered message corresponds to one distinct provider sample.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
@@ -217,9 +219,19 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
     require constraint statement { language "English" /* The middleware integration layer shall carry no AEBS emergency intervention command. */ }
     attribute :>> source = "NEED-MW-003; ASM-MW-028; refines the direct vehicle-command path option of REQ-MW-006 (reqIsolateSafetyPath) for the S-CORE member";
-    attribute :>> rationale = "The command keeps its direct path from the AEB node to the vehicle command gate on the Linux host. This does not define the failure-containment criteria of REQ-MW-006, so GAP-MW-029 stays open, and it does not cover the velocity input of the AEB node (GAP-MW-033).";
+    attribute :>> rationale = "The command keeps its direct path from the AEB node to the vehicle command gate on the Linux host. This does not define the failure-containment criteria of REQ-MW-006, so GAP-MW-029 stays open; REQ-MW-020 keeps the reference vehicle speed carried over S-CORE off the velocity input of the AEB node.";
     attribute :>> verificationMethod = "inspect";
     attribute :>> successCriteria = "Met when inspection of the S-CORE service configuration, the adapter interfaces and the interface definition of the HMI path finds no element that carries the AEBS emergency intervention command, and the path of that command from the AEB node to the vehicle command gate on the Linux host contains no element of the middleware integration layer.";
+    attribute :>> verificationStatus = VVStatus::NotStarted;
+  }
+
+  requirement <'REQ-MW-020'> reqNoSpeedSampleToAEBVelocityInput : RequirementCandidate {
+    subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
+    require constraint statement { language "English" /* The middleware integration layer shall deliver no reference vehicle speed sample to the velocity input of the Autoware AEB node. */ }
+    attribute :>> source = "NEED-MW-003; owner decision 2026-10-18 (the AEB node keeps a host-side speed source)";
+    attribute :>> rationale = "The braking decision input stays on the host, following the safety-path isolation intent of N-MW-004 and REQ-MW-006; the host-side source and the publishers of that input are settled before phase 7 (GAP-MW-033). No freedom-from-interference claim is made.";
+    attribute :>> verificationMethod = "inspect";
+    attribute :>> successCriteria = "Met when inspection of the topic wiring of the member shows that no publisher of the velocity input of the Autoware AEB node belongs to the middleware integration layer.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
@@ -249,27 +261,30 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     connect needOneWayAEBSSignalPathToHMI to reqNoApplicationDataFromHMIGuest;
   connection reqDiscardFramesWhileHMIUnsubscribedDerivedFromOneWayAEBSSignalPathToHMI : DerivesFromNeed
     connect needOneWayAEBSSignalPathToHMI to reqDiscardFramesWhileHMIUnsubscribed;
-  connection reqNoEmergencyCommandOnMiddlewareDerivedFromEmergencyCommandPathWithoutMiddleware : DerivesFromNeed
-    connect needEmergencyCommandPathWithoutMiddleware to reqNoEmergencyCommandOnMiddleware;
+  connection reqNoEmergencyCommandOnMiddlewareDerivedFromEmergencyPathWithoutMiddleware : DerivesFromNeed
+    connect needEmergencyPathWithoutMiddleware to reqNoEmergencyCommandOnMiddleware;
+  connection reqNoSpeedSampleToAEBVelocityInputDerivedFromEmergencyPathWithoutMiddleware : DerivesFromNeed
+    connect needEmergencyPathWithoutMiddleware to reqNoSpeedSampleToAEBVelocityInput;
   connection reqTerminateAdapterOnExceptionDerivedFromWithinSCOREAssumptionsOfUse : DerivesFromNeed
     connect needWithinSCOREAssumptionsOfUse to reqTerminateAdapterOnException;
 
-  part <'GAP-MW-033'> gapSpeedPathFeedsAEBVelocityInput : IncrementGap {
+  part <'GAP-MW-033'> gapSCORESpeedTopicOwnershipOpen : IncrementGap {
     doc /*
-     * The reference vehicle speed that the middleware integration layer
-     * delivers on /vehicle/status/velocity_status (REQ-MW-010) is also the
-     * default velocity input of the Autoware AEB node (~/input/velocity), so
-     * the emergency braking decision would take an input over S-CORE
-     * communication although the command does not (REQ-MW-017). Whether the
-     * AEB node takes its velocity from this path, and the failure-containment
-     * criteria it would then need (REQ-MW-006, GAP-MW-029), are open; phases
-     * 7 and 8 decide the wiring. The S-CORE assumptions of use for systems
-     * with safety goals are not applied, because the increment allocates no
-     * safety goal to the integration layer and makes no safety claim.
+     * By owner decision (2026-10-18) the velocity input of the Autoware AEB
+     * node keeps a host-side speed source, and the reference vehicle speed
+     * carried over S-CORE goes to the non-braking consumers of Autoware
+     * (REQ-MW-010, REQ-MW-020). Open, to settle before phase 7: the name and
+     * the ownership of the topic that carries the S-CORE speed to the
+     * vehicle velocity converter, with its health topic (REQ-MW-012), and
+     * the publishers of /vehicle/status/velocity_status, the velocity input
+     * of the AEB node, where the simulator of the INC-AEBS-009B bench is a
+     * second publisher. A safety expert reviews the assumptions-of-use split
+     * of GAP-MW-034 before this gap closes. No safety or
+     * freedom-from-interference claim is made.
      */
   }
-  dependency speedPathGapOnAEBVelocityInput
-    from gapSpeedPathFeedsAEBVelocityInput
+  dependency speedTopicGapOnAEBVelocityInput
+    from gapSCORESpeedTopicOwnershipOpen
     to DE4SDV_AEBSPhysicalSoftwareRealization::AutowareAutonomousEmergencyBrakingNode::velocityIn;
 
   part <'GAP-MW-034'> gapSCOREAssumptionsOfUseOpen : IncrementGap {
@@ -291,8 +306,10 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
      * Linux host of ASM-MW-026 runs a configuration that S-CORE v0.9.0
      * supports; its conformance to IEEE Std 1003.1 is not established. The
      * assumptions for systems with safety goals (the certifiable level, the
-     * safety applications and the safety system) are not applied
-     * (GAP-MW-033). The supplier assumptions address the suppliers of the
+     * safety applications and the safety system) are not applied, because no
+     * safety goal is allocated to the integration layer and no safety claim
+     * is made; a safety expert reviews this split before GAP-MW-033 closes.
+     * The supplier assumptions address the suppliers of the
      * external software elements S-CORE uses, such as the operating system
      * of the Linux host; this increment does not assess them. The
      * vehicle-speed provider, a context part outside the system of
@@ -327,11 +344,11 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
 
     expose needReferenceVehicleSpeedForAutoware;
     expose needOneWayAEBSSignalPathToHMI;
-    expose needEmergencyCommandPathWithoutMiddleware;
+    expose needEmergencyPathWithoutMiddleware;
     expose needWithinSCOREAssumptionsOfUse;
     expose referenceVehicleSpeedValidationPlan;
     expose aebsSignalPathToHMIValidationPlan;
-    expose emergencyCommandPathValidationPlan;
+    expose emergencyPathValidationPlan;
     expose scoreAssumptionsOfUseValidationPlan;
     expose reqDeliverReferenceVehicleSpeed;
     expose reqWithholdNonFiniteSpeedSample;
@@ -342,8 +359,9 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     expose reqNoApplicationDataFromHMIGuest;
     expose reqDiscardFramesWhileHMIUnsubscribed;
     expose reqNoEmergencyCommandOnMiddleware;
+    expose reqNoSpeedSampleToAEBVelocityInput;
     expose reqTerminateAdapterOnException;
-    expose gapSpeedPathFeedsAEBVelocityInput;
+    expose gapSCORESpeedTopicOwnershipOpen;
     expose gapSCOREAssumptionsOfUseOpen;
     render asTreeDiagram;
   }

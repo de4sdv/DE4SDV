@@ -198,7 +198,7 @@ are not syntax-validated.
 |---|---|---|---|---|
 | `INC` | Engineering increment | Increment charter/parts | `INC-AEBS-010` | CANONICAL |
 | `REQ` | Requirement | Design-input requirement | `REQ-AEBS-014` | CANONICAL |
-| `NEED` | Stakeholder need (readable form) | Stakeholder need usage | *(none yet)* | CANONICAL — use for new need IDs |
+| `NEED` | Stakeholder need (readable form) | Stakeholder need usage | `NEED-MW-001` | CANONICAL — use for new need IDs |
 | `N` | Stakeholder need (legacy spelling) | Stakeholder need usage | `N-AEBS-009` | GRANDFATHERED (§5.1) — use `NEED` |
 | `AC` | Acceptance criterion (historical) | Criterion on a verification case | `AC-MW-010-02` | GRANDFATHERED (§5.1) — no new AC IDs; a requirement states its success criteria |
 | `VC` | Verification case | Verification activity | `VC-MW-010-01` | CANONICAL |
@@ -251,7 +251,9 @@ SysML elements guide), `AC-MW-010-01`…`AC-MW-010-07`,
 
 New need IDs use `NEED-<SUBJECT>-<SEQ>`; new evidence IDs use
 `EVID-<SUBJECT>-<SEQ>`; new requirements state their success criteria
-instead of allocating AC IDs.
+instead of allocating AC IDs. `NEED` and `N` numbers are separate ID
+families: the first middleware need under the readable grammar is
+`NEED-MW-001`, independent of `N-MW-001`…`N-MW-009`.
 
 ### Free-form prefixes (registered; remainder is a meaningful name)
 
@@ -393,6 +395,8 @@ new work must never follow it.
   `part <'INC-EXAMPLE-001'> sensorDiagnosticsIncrement : SensorDiagnosticsIncrement`,
   not `incEXAMPLE001`. Existing increment usages (`incMW002`, `incAEBS010`)
   keep their names (owner decision D15, 2026-10-15).
+- **IDs:** a model element's registered ID is its SysML short name, as in
+  `requirement <'REQ-MW-010'> reqDeliverReferenceVehicleSpeed`.
 - **Views:** lowerCamelCase semantic identity
   (`aebsLogicalStructureView`). A view that is an enduring canonical view
   introduced by an increment takes the semantic name and keeps the increment
