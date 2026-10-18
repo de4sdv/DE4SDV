@@ -5,7 +5,7 @@ open-source parts and keep the design, configuration choices, tests, and
 evidence connected while those parts change. We build an open engineering
 reference, not a production car or a certificate.
 
-![Concept illustration, not a model view: four stages from left to right. One SysML v2 model, with requirements, architecture, variability and V&V evidence (existing today), is configured along dimensions such as these two. Platform stack (application · middleware · OS): the members Autoware · none · Linux and Autoware · Android SDV · Android exist today; not admitted yet are the candidate Autoware · Eclipse S-CORE · Linux with an AAOS SDV HMI guest (in progress) and more stacks (deferred). Sensor set: LiDAR and camera, shared by both members, exists today; variants, for example entry, mid and premium, are deferred and not admitted. Every change is re-checked by CI and review, and model changes also by the Method Check; evidence per member is in progress. The aim is re-checkable evidence for every member and a continuously certifiable product line.](concept-vision-and-aim.drawio.svg)
+![Concept illustration, not a model view: four stages from left to right. One SysML v2 model, with requirements, architecture, variability and V&V evidence (existing today), is configured along dimensions such as these two. Platform stack (application · middleware · OS): the members Autoware · none · Linux and Autoware · Android SDV · Android exist today; not admitted yet are the candidate Autoware · Eclipse S-CORE · Linux with an AAOS SDV HMI guest (in progress) and more stacks (reference-only). Sensor set: LiDAR and camera, shared by both members, exists today; variants, for example entry, mid and premium, are deferred and not admitted. Every change is re-checked by CI and review, and model changes also by the Method Check; evidence per member is in progress. The aim is re-checkable evidence for every member and a continuously certifiable product line.](concept-vision-and-aim.drawio.svg)
 
 *Concept illustration, not a model view: the vision at a glance.* DE4SDV
 keeps one SysML v2 model for the whole product line and configures each member
@@ -66,7 +66,9 @@ is managed together. Two levels matter, and it is easy to confuse them:
   so alternatives can be compared and kept in view.
 - **What DE4SDV currently governs.** A
   [reviewed scope decision](../architecture-decisions/0014-ratify-initial-aebs-product-line-scope.md)
-  admits exactly two planned reference members. Apollo, Openpilot, Eclipse
+  and its
+  [scope model](../../model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml)
+  admit exactly two planned reference members. Apollo, Openpilot, Eclipse
   S-CORE, AUTOSAR Adaptive, QNX/QVM, ACRN, and similar options remain
   reference-only or deferred until a future reviewed decision admits a member
   that needs them.
