@@ -31,9 +31,10 @@ workflow, which `GOVERNANCE.md` asks to capture in an ADR.
    a decision, assumption or gap that a later phase acts on. A doc-only
    restatement has none of them. Reviewers judge necessity, not only
    correctness.
-3. **Unconsumed elements are reported, advisory.** The Method Check reports
-   an element in an increment's scope that no gate requires and nothing
-   consumes. The report never blocks a phase.
+3. **Unconsumed elements are reported, advisory.** The Method Check will
+   report, once the follow-up pull request implements it, an element in an
+   increment's scope that no gate requires and nothing consumes. The report
+   never blocks a phase.
 4. **Phase 3 records only the feature-model delta.** The characteristics it
    records are feature candidates. Core elements are common by default and
    get no record, so `CommonProductLineCapability` stays in the kernel but is
