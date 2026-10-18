@@ -496,19 +496,14 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
       frame scoreMiddlewareLayerInternalExchangeConcern;
     }
     doc /*
-     * Bounded projection of the layer's four processes, their ports and the
-     * three connections between them. The connections to the context parts
-     * are in SCORETwoDomainPhysicalSystem; the layer has no boundary ports to
-     * delegate them. Allocations are filtered out.
+     * Bounded projection of the integration layer: its four processes, the
+     * S-CORE modules with the Launch Manager, their ports and the three
+     * connections between the processes. The connections to the context
+     * parts are in SCORETwoDomainPhysicalSystem; the layer has no boundary
+     * ports to delegate them. Allocations are filtered out.
      */
-    expose scoreTwoDomainPhysicalSystem::integrationLayer::adapter;
-    expose scoreTwoDomainPhysicalSystem::integrationLayer::adapter::**;
-    expose scoreTwoDomainPhysicalSystem::integrationLayer::healthProxyNode;
-    expose scoreTwoDomainPhysicalSystem::integrationLayer::healthProxyNode::**;
-    expose scoreTwoDomainPhysicalSystem::integrationLayer::hostRelay;
-    expose scoreTwoDomainPhysicalSystem::integrationLayer::hostRelay::**;
-    expose scoreTwoDomainPhysicalSystem::integrationLayer::someipReceiver;
-    expose scoreTwoDomainPhysicalSystem::integrationLayer::someipReceiver::**;
+    expose scoreTwoDomainPhysicalSystem::integrationLayer;
+    expose scoreTwoDomainPhysicalSystem::integrationLayer::**;
     filter not (@ SysML::AllocationUsage);
     attribute depth = -1;
     attribute showAnnotationRows = false;
