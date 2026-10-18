@@ -36,6 +36,9 @@ AEBS_SIM = FEATURES / "aebs/aebs_simulation_deployment.sysml"
 MODEL_ROOTS = (ROOT / "textual-notation-of-model", ROOT / "model-based-product-line-engineering")
 AEBS_NEEDS = FEATURES / "aebs/aebs_needs_requirements.sysml"
 AEBS_YAML = ROOT / "methodologies/sysmod-sysmlv2/pilots/aebs-needs-requirements.yaml"
+SCORE_N = FEATURES / "middleware/middleware_score_needs_requirements.sysml"
+SCORE_F = FEATURES / "middleware/middleware_score_functional_architecture.sysml"
+SCORE_L = FEATURES / "middleware/middleware_score_logical_architecture.sysml"
 
 FUNCTION, LOGICAL, PHYSICAL = "AllocatableFunction", "LogicalAllocationElement", "PhysicalAllocationElement"
 REQUIREMENT = "RequirementCandidate"
@@ -97,6 +100,8 @@ ALLOCATION_FILES = {
     AEBS_L: ((AEBS_L, AEBS_F), {(FUNCTION, LOGICAL): 10}, {}, None),
     AEBS_P: ((AEBS_P, AEBS_L), {(LOGICAL, PHYSICAL): 7}, {}, None),
     AEBS_SIM: ((AEBS_SIM, AEBS_L), {(LOGICAL, PHYSICAL): 7}, {"LogicalToPhysicalItemRealization": 4}, None),
+    SCORE_F: ((SCORE_F, SCORE_N, MW_F), {(REQUIREMENT, FUNCTION): 9}, {}, (REQUIREMENT, FUNCTION)),
+    SCORE_L: ((SCORE_L, SCORE_F, MW_L), {(FUNCTION, LOGICAL): 2}, {}, (FUNCTION, LOGICAL)),
 }
 LINEAGE_FILES = (VIS_F, VIS_L, VIS_P, VIS_N, MW_F, MW_L, MW_P, AEBS_P, AEBS_F, AEBS_L, AEBS_SIM, AEBS_NEEDS,
                  KERNEL / "de4sdv_method_context.sysml")
@@ -170,7 +175,8 @@ def lineage(codes, name, seen=None):
     return seen
 
 
-USAGE = r"\b(?:part|action|requirement)\s+{name}\s*:\s*(\w+)\s*([{{;])"
+# An optional short name (<'REQ-MW-010'>) may precede the declared name.
+USAGE = r"\b(?:part|action|requirement)\s+(?:<'[^']*'>\s*)?{name}\s*:\s*(\w+)\s*([{{;])"
 
 
 def member(body: str, name: str):
