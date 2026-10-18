@@ -28,8 +28,6 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
   private import DE4SDV_SYSMODAdapter::*;
   private import DE4SDV_MiddlewareOperationalContext::Features::Middleware::OperationalContext::*;
   private import DE4SDV_MiddlewareSCOREFraming::*;
-  private import DE4SDV_AEBSVisualizationOperationalContext::VisualizationFrame;
-  private import DE4SDV_AEBSVisualizationOperationalContext::RenderedAEBSState;
   private import DE4SDV_AEBSOperationalContext::Features::AEBS::OperationalContext::EmergencyBrakingCommand;
   private import SAF_Viewpoints::*;
   private import Views::*;
@@ -117,6 +115,23 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
      */
   }
 
+  item def AEBSSignalFrame {
+    doc /*
+     * One frame of the AEBS signals that the Autoware-based AEBS stack
+     * produces on the Linux host, as the HMI path carries it, with the
+     * per-field provenance that the framing's hmiPathInScope states; the
+     * integration layer carries it unchanged and reads none of its fields
+     * (REQ-MW-015). A System 1 item that references no System 2 element, so a
+     * System 2 frame type can specialize it; it replaces the System 2 frame
+     * type of the HMI flow (owner decision of 2026-10-18). By the same
+     * decision it stays opaque, with no DE4SDV VSS extension signal: the two
+     * candidates, Vehicle.ADAS.AEBS.DriverWarning.IsActive and
+     * Vehicle.ADAS.AEBS.EmergencyBraking.IsCommanded, carry actuator-signal
+     * semantics that would be conflated with the warning request and the
+     * emergency command.
+     */
+  }
+
   part def LinuxHostExecutionDomain :> OperationalEntity {
     doc /*
      * The Linux execution domain: Ubuntu x86_64 first, Red Hat AutoSD second
@@ -181,8 +196,6 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
 
   /* Operational behavior: the two signal paths and the host-only command path. */
   action def TwoDomainSignalFlow {
-    out item disposition : RenderedAEBSState;
-
     action provideSpeed {
       out speed : ReferenceVehicleSpeedSignal;
     }
@@ -198,7 +211,7 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
     action runAEBSStackOnHost {
       doc /* The Autoware-based AEBS stack on the Linux host, including the DE4SDV coordinator: its aebsSignals mix native Autoware outputs and coordinator output with the per-field provenance that the framing's HMI path scope item states (hmiPathInScope), and coordinator output is never attributed to Autoware. */
       in carriedSpeed : ReferenceVehicleSpeedSignal;
-      out aebsSignals : VisualizationFrame;
+      out aebsSignals : AEBSSignalFrame;
       out command : EmergencyBrakingCommand;
     }
 
@@ -212,15 +225,14 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
     flow from runAEBSStackOnHost.command to gateCommandOnHost.command;
 
     action carrySignalsAcrossDomainBoundary {
-      in aebsSignals : VisualizationFrame;
-      out carriedSignals : VisualizationFrame;
+      in aebsSignals : AEBSSignalFrame;
+      out carriedSignals : AEBSSignalFrame;
     }
 
     flow from runAEBSStackOnHost.aebsSignals to carrySignalsAcrossDomainBoundary.aebsSignals;
 
     action presentStateOnHMI {
-      in carriedSignals : VisualizationFrame;
-      out disposition : RenderedAEBSState = TwoDomainSignalFlow::disposition;
+      in carriedSignals : AEBSSignalFrame;
     }
 
     flow from carrySignalsAcrossDomainBoundary.carriedSignals to presentStateOnHMI.carriedSignals;

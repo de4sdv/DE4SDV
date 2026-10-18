@@ -140,7 +140,7 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
     require constraint statement { language "English" /* The middleware integration layer shall deliver each finite reference vehicle speed sample (VSS Vehicle.Speed, in km/h) from the vehicle-speed provider over Eclipse S-CORE communication to the velocity input of the Autoware vehicle velocity converter, as a longitudinal velocity in m/s equal to the sample divided by 3.6. */ }
     attribute :>> source = "NEED-MW-001; scenario SC-MW-001; like for like with AC-MW-010-01 and E-MW-013 of INC-MW-010 (the same signal, conversion and consumer, autoware_vehicle_velocity_converter); owner decision 2026-10-18";
-    attribute :>> rationale = "The same reference signal, conversion and consumer as in the AAOS SDV realization make the S-CORE realization comparable with it. One deliberate deviation from that wiring: the speed does not travel on /vehicle/status/velocity_status, the velocity input of the AEB node, which by owner decision keeps a source that does not pass through the middleware integration layer, following the safety-path isolation intent of N-MW-004 and REQ-MW-006. The topic that reaches the converter, and who owns it, are settled before phase 7 (GAP-MW-033).";
+    attribute :>> rationale = "The same reference signal, conversion and consumer as in the AAOS SDV realization make the S-CORE realization comparable with it. One deliberate deviation from that wiring: the speed does not travel on /vehicle/status/velocity_status, the velocity input of the AEB node, which by owner decision keeps a source that does not pass through the middleware integration layer, following the safety-path isolation intent of N-MW-004 and REQ-MW-006. The owner of the topic that reaches the converter is proposed in phase 7 (speedTranslationAllocation), and phase 8 chooses the topic names (GAP-MW-033; owner decision of 2026-10-18).";
     attribute :>> verificationMethod = "test";
     attribute :>> successCriteria = "Met when an observer independent of the middleware integration layer sees provider samples of 36 km/h and 72 km/h, carried over Eclipse S-CORE communication, arrive at the velocity input of the Autoware vehicle velocity converter as longitudinal velocities of 10 m/s and 20 m/s.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
@@ -188,11 +188,11 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
 
   requirement <'REQ-MW-015'> reqPreserveAEBSSignalProvenance : FunctionalRequirementCandidate {
     subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
-    require constraint statement { language "English" /* The middleware integration layer shall keep each AEBS signal frame delivered to the AAOS SDV guest unchanged, field by field, with the AEBSVisualizationFrame source kind of each field. */ }
-    attribute :>> source = "NEED-MW-002; scope item hmiPathInScope (the per-field provenance INC-AEBS-010 assigns); scenario SC-MW-002; DE4SDV_AEBSVisualizationFunctionalArchitecture::AEBSVisualizationFrame and its VisualizationSourceKind (nativeAutowareAEB, de4sdvAebsCoordinator, displayDerived)";
+    require constraint statement { language "English" /* The middleware integration layer shall keep each AEBS signal frame delivered to the AAOS SDV guest unchanged, field by field, including the source kind each field carries (native Autoware AEB output, DE4SDV coordinator output or display-derived; hmiPathInScope). */ }
+    attribute :>> source = "NEED-MW-002; scope item hmiPathInScope (the per-field provenance INC-AEBS-010 assigns, with three source kinds); scenario SC-MW-002; owner decision 2026-10-18 (the requirement names no System 2 type)";
     attribute :>> rationale = "Coordinator output and display-derived values must never reach the HMI relabeled as native Autoware output, and no carried value may change on the way.";
     attribute :>> verificationMethod = "test";
-    attribute :>> successCriteria = "Met when every frame received in the AAOS SDV guest over an AEBS event equals, field by field and with the source kind of each field, the frame the AEBS stack produced on the Linux host, so that no field marked de4sdvAebsCoordinator or displayDerived arrives marked nativeAutowareAEB.";
+    attribute :>> successCriteria = "Met when every frame received in the AAOS SDV guest over an AEBS event equals, field by field and with the source kind each field carries, the frame the AEBS stack produced on the Linux host, so that no field that carries DE4SDV coordinator output or a display-derived value arrives marked as native Autoware AEB output.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
@@ -230,7 +230,7 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
     require constraint statement { language "English" /* The middleware integration layer shall deliver no reference vehicle speed sample to the velocity input of the Autoware AEB node. */ }
     attribute :>> source = "NEED-MW-003; owner decision 2026-10-18 (the AEB node keeps a speed source that does not pass through the middleware integration layer)";
-    attribute :>> rationale = "The velocity input of the braking decision stays free of the middleware integration layer, following the safety-path isolation intent of N-MW-004 and REQ-MW-006; its source and the publishers of that input are settled before phase 7 (GAP-MW-033). No freedom-from-interference claim is made.";
+    attribute :>> rationale = "The velocity input of the braking decision stays free of the middleware integration layer, following the safety-path isolation intent of N-MW-004 and REQ-MW-006. Phase 7 proposes that no element of the integration layer publishes that input (speedTopicOwnershipProposal); its publisher in the member product stays open under GAP-MW-033. No freedom-from-interference claim is made.";
     attribute :>> verificationMethod = "inspect";
     attribute :>> successCriteria = "Met when inspection of the topic wiring of the member shows that no publisher of the velocity input of the Autoware AEB node belongs to the middleware integration layer.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
@@ -280,15 +280,21 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
      * health topic (REQ-MW-012), and the publishers of
      * /vehicle/status/velocity_status, the velocity input of the AEB node,
      * where the simulator of the INC-AEBS-009B bench is a second publisher.
-     * Phase 7 proposes the ownership and the publishers
-     * (speedTranslationAllocation in DE4SDV_MiddlewareSCORELogicalArchitecture);
-     * the topic names stay open. For the safety expert's review, which is due
+     * Phase 7 proposes the owners of the speed and health topics, and that no
+     * element of the integration layer publishes
+     * /vehicle/status/velocity_status (speedTopicOwnershipProposal in
+     * DE4SDV_MiddlewareSCORELogicalArchitecture); the topic names and the
+     * member product's publisher of that input stay open. By owner decision
+     * of 2026-10-18, phase 8 settles the topic names, and the safety expert's
+     * review is held until after phase 8. For that review, which is due
      * before this gap closes together with the assumptions-of-use split of
      * GAP-MW-034: in a full Autoware stack the S-CORE speed would still
-     * reach the vehicle command gate indirectly, from the vehicle velocity
-     * converter through the EKF localizer to /localization/kinematic_state,
-     * the topic that aebs_009b_bench.launch.py of INC-AEBS-009B maps to the
-     * kinematics input of the gate. That route is absent on the
+     * reach the vehicle command gate and the MRM handler indirectly, from the
+     * vehicle velocity converter through the EKF localizer to
+     * /localization/kinematic_state, the topic that aebs_009b_bench.launch.py
+     * of INC-AEBS-009B maps to the kinematics input of the gate and that the
+     * INC-AEBS-008 simulation deployment binds to the kinematic-state input
+     * of the MRM handler. That route is absent on the
      * INC-AEBS-009B bench, where the simulator publishes the kinematic
      * state and the predicted-trajectory input of the AEB node is blocked.
      * No safety or freedom-from-interference claim is made.

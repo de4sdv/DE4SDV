@@ -7,33 +7,25 @@
  * architecture of INC-MW-006 holds for the S-CORE member (ASM-MW-023): a
  * requirement is allocated to a baseline function where one carries it, and
  * a function is added where none does, for the reference vehicle speed with
- * its VSS type and for the one-way HMI path. REQ-MW-018 constrains the
- * adapter process, which phase 8 defines, and no function; GAP-MW-034
- * records its phase-8 risk. An allocation assigns responsibility only
- * (allocatedTo); it asserts no satisfaction. No closed slice is edited, no
- * transport or technology is selected, and no safety, cybersecurity,
- * compliance or freedom-from-interference claim is made.
+ * its VSS type and for the one-way HMI path. Two requirements are carried by
+ * no function. REQ-MW-017 constrains the layer's interfaces and
+ * configuration (ASM-MW-028); phase 10 verifies it by inspection. REQ-MW-018
+ * constrains the adapter process, which phase 8 defines; GAP-MW-034 records
+ * its phase-8 risk. An allocation assigns responsibility only (allocatedTo);
+ * it asserts no satisfaction. No closed slice is edited, no transport or
+ * technology is selected, and no safety, cybersecurity, compliance or
+ * freedom-from-interference claim is made.
  */
 
 package DE4SDV_MiddlewareSCOREFunctionalArchitecture {
   private import COVESA_VSS::**;
   private import DE4SDV_TraceVocabulary::AllocatableFunction;
   private import DE4SDV_MiddlewareFunctionalArchitecture::Features::Middleware::FunctionalArchitecture::*;
+  private import DE4SDV_MiddlewareSCOREOperationalContext::AEBSSignalFrame;
   private import DE4SDV_MiddlewareSCORENeedsRequirements::*;
   private import DE4SDV_Stakeholders::*;
   private import SAF_Viewpoints::*;
-  private import Views::*;
-
-  item def AEBSSignalFrame {
-    doc /*
-     * The System 1 payload of the HMI path: one frame of the AEBS signals
-     * that the Autoware-based AEBS stack produces on the Linux host, with the
-     * per-field provenance that the framing's hmiPathInScope states. The
-     * integration layer carries it unchanged and reads none of its fields.
-     * It references no System 2 element, so a System 2 frame type can
-     * specialize it.
-     */
-  }
+  private import SysideViews::**;
 
   action translateReferenceSpeed : TranslateVehicleSignal {
     doc /*
@@ -80,42 +72,46 @@ package DE4SDV_MiddlewareSCOREFunctionalArchitecture {
   allocation unsubscribedFrameDiscardResponsibility
     allocate reqDiscardFramesWhileHMIUnsubscribed to carryAEBSSignalFramesToHMI;
 
-  /* Requirement-to-function allocation: the emergency intervention path. */
-  allocation emergencyCommandExclusionResponsibility
-    allocate reqNoEmergencyCommandOnMiddleware to MiddlewareIntegrationFunctionalFlow::protectSafetyPath;
-
   concern scoreMiddlewareFunctionAllocationConcern : FunctionalBehaviorConcern {
     doc /*
-     * Reviewers need the requirements of the middleware integration layer
-     * allocated to the functions that carry them, baseline functions of
-     * INC-MW-006 or functions added for the S-CORE member, and the typed
-     * inputs of the added functions.
+     * Reviewers need each requirement of the middleware integration layer
+     * mapped to the function that carries it, a baseline function of
+     * INC-MW-006 or a function added for the S-CORE member.
      */
     subject;
     stakeholder systemArchitect : SystemArchitect;
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  view scoreMiddlewareFunctionalArchitectureView {
+  view scoreMiddlewareRequirementFunctionMappingView : MVD::MatrixView {
     viewpoint selectedFunctionalBreakdownViewpoint : SystemFunctionalBreakdownStructureViewpoint {
       frame scoreMiddlewareFunctionAllocationConcern;
     }
-
-    expose translateReferenceSpeed;
-    expose carryAEBSSignalFramesToHMI;
-    expose MiddlewareIntegrationFunctionalFlow::forwardHealth;
-    expose MiddlewareIntegrationFunctionalFlow::protectSafetyPath;
-    expose speedDeliveryResponsibility;
-    expose nonFiniteSpeedResponsibility;
-    expose speedAtMostOnceResponsibility;
-    expose aebVelocityInputExclusionResponsibility;
-    expose staleSpeedIndicationResponsibility;
-    expose frameOrderResponsibility;
-    expose frameProvenanceResponsibility;
-    expose oneWayHMIPathResponsibility;
-    expose unsubscribedFrameDiscardResponsibility;
-    expose emergencyCommandExclusionResponsibility;
-    attribute showAnnotationRows = false;
-    render asTreeDiagram;
+    view :>> rowView {
+      expose reqDeliverReferenceVehicleSpeed;
+      expose reqWithholdNonFiniteSpeedSample;
+      expose reqIndicateStaleReferenceVehicleSpeed;
+      expose reqDeliverSpeedSampleAtMostOnce;
+      expose reqDeliverAEBSSignalsInSourceOrder;
+      expose reqPreserveAEBSSignalProvenance;
+      expose reqNoApplicationDataFromHMIGuest;
+      expose reqNoEmergencyCommandOnMiddleware;
+      expose reqTerminateAdapterOnException;
+      expose reqDiscardFramesWhileHMIUnsubscribed;
+      expose reqNoSpeedSampleToAEBVelocityInput;
+      attribute :>> includeReferenceElements = true;
+      attribute :>> representation = Rep::name;
+    }
+    view :>> columnView {
+      expose translateReferenceSpeed;
+      expose middlewareIntegrationFunctionalFlow::forwardHealth;
+      expose carryAEBSSignalFramesToHMI;
+      attribute :>> includeReferenceElements = true;
+      attribute :>> representation = Rep::name;
+    }
+    view :>> cellView {
+      expose DE4SDV_MiddlewareSCOREFunctionalArchitecture::*;
+      attribute :>> direction = SysideViews::MatrixTraceabilityDirection::row2col;
+    }
   }
 }
