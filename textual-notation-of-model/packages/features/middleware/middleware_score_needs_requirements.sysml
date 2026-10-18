@@ -158,11 +158,11 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
 
   requirement <'REQ-MW-012'> reqIndicateStaleReferenceVehicleSpeed : FunctionalRequirementCandidate {
     subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
-    require constraint statement { language "English" /* If the last finite reference vehicle speed sample from the vehicle-speed provider is older than 5 s, then the middleware integration layer shall publish a stale indication of the reference vehicle speed on the health topic that accompanies the speed topic of REQ-MW-010 no later than 6 s after that sample, and a restored indication on the same topic within 2 s of the next finite sample. */ }
+    require constraint statement { language "English" /* If the last finite reference vehicle speed sample from the vehicle-speed provider is older than 5 s, then the middleware integration layer shall publish a stale indication of the reference vehicle speed on the health topic that accompanies the speed topic of REQ-MW-010 no later than 6 s after that sample, and a restored indication on the same topic no later than 2 s after the next finite sample. */ }
     attribute :>> source = "NEED-MW-001; scenario SC-MW-003; like for like with E-MW-014 of INC-MW-010 (health topic /vehicle/status/velocity_status_health, max_age 5 s, a 1 s watchdog period, stale observed 5.8 s after the provider stopped, restored=healthy observed 2 s after the provider restarted)";
-    attribute :>> rationale = "The Autoware side must be able to tell that the reference vehicle speed is no longer current. The 5 s bound and the 1 s tolerance are those of the AAOS SDV realization, whose health topic accompanied its speed topic in the same way, so the two realizations compare like for like; the health topic is named with the speed topic (GAP-MW-033). The 2 s restoration bound is the one E-MW-014 observed, and SC-MW-003 asks for the disposition to restore; the baseline health states (REQ-MW-004) carry the further step to unavailable.";
+    attribute :>> rationale = "The Autoware side must be able to tell that the reference vehicle speed is no longer current, and that it is current again. The 5 s bound and the 1 s tolerance are those of the AAOS SDV realization, whose health topic accompanied its speed topic in the same way, so the two realizations compare like for like; the health topic is named with the speed topic (GAP-MW-033). The 2 s restoration bound is the one E-MW-014 observed. That realization only logged its restoration (restored=healthy) and did not publish it on its health topic; here the restoration goes on the health topic, because SC-MW-003 has the disposition restore on the ROS 2 side. The baseline health states (REQ-MW-004) carry the further step to unavailable.";
     attribute :>> verificationMethod = "test";
-    attribute :>> successCriteria = "Met when, after the vehicle-speed provider stops publishing, a stale indication of the reference vehicle speed appears on the health topic that accompanies the speed topic of REQ-MW-010 no later than 6 s after the last finite sample, and a restored indication appears on the same topic within 2 s of the next finite sample.";
+    attribute :>> successCriteria = "Met when, after the vehicle-speed provider stops publishing, a stale indication of the reference vehicle speed appears on the health topic that accompanies the speed topic of REQ-MW-010 no later than 6 s after the last finite sample, and, after the provider resumes publishing, a restored indication appears on the same topic no later than 2 s after the next finite sample.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
@@ -188,11 +188,11 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
 
   requirement <'REQ-MW-015'> reqPreserveAEBSSignalProvenance : FunctionalRequirementCandidate {
     subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
-    require constraint statement { language "English" /* The middleware integration layer shall keep each AEBS signal frame it delivers to the AAOS SDV guest unchanged, field by field, including the source kind of each field of the AEBSVisualizationFrame. */ }
+    require constraint statement { language "English" /* The middleware integration layer shall keep each AEBS signal frame delivered to the AAOS SDV guest unchanged, field by field, with the AEBSVisualizationFrame source kind of each field. */ }
     attribute :>> source = "NEED-MW-002; scope item hmiPathInScope (the per-field provenance INC-AEBS-010 assigns); scenario SC-MW-002; DE4SDV_AEBSVisualizationFunctionalArchitecture::AEBSVisualizationFrame and its VisualizationSourceKind (nativeAutowareAEB, de4sdvAebsCoordinator, displayDerived)";
     attribute :>> rationale = "Coordinator output and display-derived values must never reach the HMI relabeled as native Autoware output, and no carried value may change on the way.";
     attribute :>> verificationMethod = "test";
-    attribute :>> successCriteria = "Met when every frame received in the AAOS SDV guest over an AEBS event equals, field by field and including the source kind of each field, the frame the AEBS stack produced on the Linux host, so that no field marked de4sdvAebsCoordinator or displayDerived arrives marked nativeAutowareAEB.";
+    attribute :>> successCriteria = "Met when every frame received in the AAOS SDV guest over an AEBS event equals, field by field and with the source kind of each field, the frame the AEBS stack produced on the Linux host, so that no field marked de4sdvAebsCoordinator or displayDerived arrives marked nativeAutowareAEB.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
@@ -283,13 +283,13 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
      * second publisher. For the safety expert's review, which is due
      * before this gap closes together with the assumptions-of-use split of
      * GAP-MW-034: in a full Autoware stack the S-CORE speed would still
-     * reach the vehicle command gate indirectly, through the vehicle
-     * velocity converter, the EKF localizer and /localization/kinematic_state,
-     * which the gate takes as its kinematics input (aebs_009b_bench.launch.py
-     * of INC-AEBS-009B wires it so). That route is absent on that bench,
-     * where the simulator publishes /localization/kinematic_state and the
-     * predicted-trajectory input of the AEB node is blocked. No safety or
-     * freedom-from-interference claim is made.
+     * reach the vehicle command gate indirectly, from the vehicle velocity
+     * converter through the EKF localizer to /localization/kinematic_state,
+     * the topic that aebs_009b_bench.launch.py of INC-AEBS-009B maps to the
+     * kinematics input of the gate. That route is absent on the
+     * INC-AEBS-009B bench, where the simulator publishes the kinematic
+     * state and the predicted-trajectory input of the AEB node is blocked.
+     * No safety or freedom-from-interference claim is made.
      */
   }
   dependency speedTopicGapOnAEBVelocityInput
