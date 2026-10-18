@@ -55,7 +55,7 @@ def test_the_frozen_cut_passes_framing_needs_and_requirements_and_next_asks_for_
     physical packages in full and the other declared packages as package elements
     only. Its verification cases are therefore outside the cut: phase 10 finds
     none, so next asks for them and no requirement is verified. The full export of
-    the same revision answers next none (Method Check run 39149278617); this is the
+    the same revision answers next none (Method Check run 39158344342); this is the
     cut boundary, not the model."""
     snapshot, evaluation = _evaluated(tmp_path)
     assert snapshot.identity_mode == "export-validated-kernel-bindings"
@@ -65,7 +65,7 @@ def test_the_frozen_cut_passes_framing_needs_and_requirements_and_next_asks_for_
         "phase0_incrementFraming": (me.VERDICT_PASS, 15),
         "phase4_needs": (me.VERDICT_PASS, 6),
         "phase5_requirements": (me.VERDICT_PASS, 6),
-        "phase6_functionalArchitecture": (me.VERDICT_NOT_APPLICABLE, 3),
+        "phase6_functionalArchitecture": (me.VERDICT_PASS, 4),
         "phase7_logicalArchitecture": (me.VERDICT_PASS, 2),
         "phase8_physicalRealization": (me.VERDICT_PASS, 2),
         "phase10_vvEvidence": (me.VERDICT_FAIL, 3),
@@ -92,8 +92,9 @@ def test_the_frozen_cut_traces_its_allocation_chain_through_chained_ends_and_def
     """Genuine shapes of phases 6 to 8: the functions and logical roles are features of the flow and
     system definitions (counted at any depth), and the function-to-logical and logical-to-physical
     allocations are written with feature chains (read as their last feature). No requirement is a
-    FunctionalRequirementCandidate, so the blocking phase-6 check does not apply; ten of the twenty
-    requirements are carried by no architecture element (advisory)."""
+    FunctionalRequirementCandidate, so the blocking phase-6 trace does not apply, while the phase's
+    population check counts its eight functions; ten of the twenty requirements are carried by no
+    architecture element (advisory)."""
     _snapshot, evaluation = _evaluated(tmp_path)
     results = {}
     for result in evaluation.canonical.results:
@@ -101,9 +102,10 @@ def test_the_frozen_cut_traces_its_allocation_chain_through_chained_ends_and_def
             results.setdefault(result.unit_id, {})[result.subject_id] = result.verdict
     assert {gate: (len(found), sum(v == me.VERDICT_PASS for v in found.values()))
             for gate, found in results.items() if gate in (
-                "functionAllocatedToLogicalElement", "logicalElementAllocatedToPhysicalElement",
+                "incrementHasFunction", "functionAllocatedToLogicalElement", "logicalElementAllocatedToPhysicalElement",
                 "physicalElementCarriesLogicalElement", "functionCarriesRequirement",
                 "logicalElementCarriesFunction", "requirementCarriedByArchitecture")} == {
+        "incrementHasFunction": (8, 8),
         "functionAllocatedToLogicalElement": (8, 8),
         "logicalElementAllocatedToPhysicalElement": (9, 9),
         "physicalElementCarriesLogicalElement": (8, 8),

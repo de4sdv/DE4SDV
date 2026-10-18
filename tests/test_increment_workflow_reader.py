@@ -54,7 +54,7 @@ ADVISORY = {"expectedArtifactsCoverIncrementContent", "needSubjectIsSystemOfInte
             "requirementCarriedByArchitecture", "functionCarriesRequirement", "logicalElementCarriesFunction",
             "physicalElementCarriesLogicalElement", "verificationCaseHasEvidenceRecordOrStatus"}
 #: The checks of the architecture steps, which the fixture's charter does not declare applicable.
-ARCHITECTURE = {"functionalRequirementAllocatedToFunction", "requirementCarriedByArchitecture",
+ARCHITECTURE = {"functionalRequirementAllocatedToFunction", "incrementHasFunction", "requirementCarriedByArchitecture",
                 "functionCarriesRequirement", "functionAllocatedToLogicalElement", "logicalElementCarriesFunction",
                 "logicalElementAllocatedToPhysicalElement", "physicalElementCarriesLogicalElement"}
 
@@ -105,7 +105,7 @@ def test_the_charter_declares_the_workflow_read_into_one_contract() -> None:
     assert method.available, method.problems or method.reason
     assert not any(b["ontology_class"] in {"IncrementWorkflow", "MethodCheck"} for b in scenario.builder.bindings)
     obligations = method.contract.obligations
-    assert len(obligations) == 37
+    assert len(obligations) == 38
     assert [o.obligation_id for o in obligations][:2] == ["incrementHasIdentifier", "incrementHasCharter"]
     by_id = {o.obligation_id: o for o in obligations}
     assert by_id["needHasValidationScenario"].predicate == "hasValidationScenario"

@@ -373,7 +373,7 @@ def test_the_summary_names_next_and_the_blocking_gaps_per_increment(tmp_path: Pa
     assert "**Blocking gaps: 1** (violation: 1)" in lines
     assert "| `needHasStakeholder` | phase4_needs | violation | 1 | `need1` |" in lines
     assert ("**Phase exits:** phase0_incrementFraming READY (15/15 pass), phase4_needs BLOCKED (4/6 pass), "
-            "phase5_requirements READY (4/6 pass), phase6_functionalArchitecture READY (0/3 pass, 3 not applicable), "
+            "phase5_requirements READY (4/6 pass), phase6_functionalArchitecture READY (0/4 pass, 4 not applicable), "
             "phase7_logicalArchitecture READY (0/2 pass, 2 not applicable), phase8_physicalRealization READY "
             "(0/2 pass, 2 not applicable), phase10_vvEvidence READY (2/3 pass)") in lines
     assert "<details><summary>Advisory notes: 4</summary>" in lines
