@@ -395,7 +395,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * the VSS semantic source.
        */
       attribute :>> softwareContractArtifact = "in: the layer's S-CORE mw::com configuration (phase 10), candidate; out: ROS 2 topic /de4sdv/middleware/velocity_status (owner decision D4), exact";
-      attribute :>> softwareContractMessage = "in: the reference vehicle-speed service instance with one event, candidate; out: autoware_vehicle_msgs/msg/VelocityReport, exact";
+      attribute :>> softwareContractMessage = "in: the reference vehicle-speed service instance with one event, candidate; out: autoware_vehicle_msgs/msg/VelocityReport, exact type, revision pinned in phase 10 with the Autoware image (GAP-MW-035)";
       attribute :>> softwareContractField = "in: speed_kmh, candidate; out: longitudinal_velocity, exact";
       attribute :>> dataTypeAndUnit = "in: speed_kmh : Vehicle_Speed, km/h; out: longitudinal_velocity, float32, m/s, an Autoware message field and not a VSS signal";
       attribute :>> timingQualityAndState = "one VelocityReport per finite sample; non-finite samples withheld (REQ-MW-011); each sample at most once, also after a restart (REQ-MW-013)";
@@ -419,7 +419,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * here.
        */
       attribute :>> softwareContractArtifact = "ROS 2 topic /de4sdv/middleware/velocity_status_health (owner decision D4), exact";
-      attribute :>> softwareContractMessage = "diagnostic_msgs/msg/DiagnosticArray, exact";
+      attribute :>> softwareContractMessage = "diagnostic_msgs/msg/DiagnosticArray, exact type, revision pinned in phase 10 with the ROS 2 distribution of the Autoware image (GAP-MW-035)";
       attribute :>> softwareContractField = "status[].level, exact; the status name and hardware_id, candidate";
       attribute :>> dataTypeAndUnit = "byte level: STALE for the stale indication, OK for the restored one; no unit";
       attribute :>> timingQualityAndState = "a 1 s watchdog; stale once the last sample on /de4sdv/middleware/velocity_status is older than 5 s, restored with the next sample; provider loss and an aborted adapter look alike";
@@ -435,17 +435,18 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
     to scoreTwoDomainPhysicalSystem::integrationLayer::hostRelay::aebsSignalFrameOut {
     item <'MAP-MW-SCORE-AEBS-SIGNAL-FRAME'> aebsSignalFrameMappingRecord : LogicalToSoftwareSignalMappingRecord {
       doc /*
-       * The AEBS signal frames on the one-way HMI path: the adapter's S-CORE
-       * event inside the host, the host relay's SOME/IP event across the
-       * hypervisor, and the receiver's stream on the guest loopback into the
-       * unchanged INC-AEBS-010 ingress. The owning allocation targets the
-       * host relay's SOME/IP event port, the crossing into the guest; the
-       * typed ports and the layer's connections give the other endpoints and
-       * the direction.
-       * The frame is opaque by owner decision and carries no VSS signal.
+       * The AEBS signal frames on the one-way HMI path: the INC-AEBS-010
+       * frame-server stream into the adapter on the host loopback, the
+       * adapter's S-CORE event inside the host, the host relay's SOME/IP
+       * event across the hypervisor, and the receiver's stream on the guest
+       * loopback into the unchanged INC-AEBS-010 ingress. The owning
+       * allocation targets the host relay's SOME/IP event port, the crossing
+       * into the guest; the typed ports and the layer's connections give the
+       * other endpoints and the direction. The frame is opaque by owner
+       * decision and carries no VSS signal.
        */
-      attribute :>> softwareContractArtifact = "the layer's S-CORE mw::com configuration and the host relay's vsomeip 3.7.6 configuration (phase 10), candidate; the INC-AEBS-010 ingress stream (ingress/main.cpp:27-28, 142-146), exact";
-      attribute :>> softwareContractMessage = "mw::com: the AEBS signal frame service instance with one event; SOME/IP: one service with one reliable event, events only, IDs not yet assigned; guest loopback: the length-delimited frame stream";
+      attribute :>> softwareContractArtifact = "the INC-AEBS-010 frame-server stream into the adapter on the host loopback, 127.0.0.1:4721 (de4sdv_aebs_010_bridge/ros_node.py:34-35), exact; the layer's S-CORE mw::com configuration and the host relay's vsomeip 3.7.6 configuration (phase 10), candidate; the INC-AEBS-010 ingress stream (ingress/main.cpp:27-28, 142-146), exact";
+      attribute :>> softwareContractMessage = "host and guest loopback: the length-delimited frame stream; mw::com: the AEBS signal frame service instance with one event; SOME/IP: one service with one reliable event, events only, IDs not yet assigned";
       attribute :>> softwareContractField = "the whole frame, opaque";
       attribute :>> dataTypeAndUnit = "a length-prefixed frame of at most 2048 bytes; no unit";
       attribute :>> timingQualityAndState = "source order (REQ-MW-014), not guaranteed (GAP-MW-037); discarded while the HMI application is not subscribed, at the host while the guest's subscription is absent and at the receiver while the ingress is not connected, with no replay (REQ-MW-019)";
