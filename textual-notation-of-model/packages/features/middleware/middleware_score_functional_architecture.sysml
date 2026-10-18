@@ -103,6 +103,8 @@ package DE4SDV_MiddlewareSCOREFunctionalArchitecture {
 
     expose translateReferenceSpeed;
     expose carryAEBSSignalFramesToHMI;
+    expose MiddlewareIntegrationFunctionalFlow::forwardHealth;
+    expose MiddlewareIntegrationFunctionalFlow::protectSafetyPath;
     expose speedDeliveryResponsibility;
     expose nonFiniteSpeedResponsibility;
     expose speedAtMostOnceResponsibility;

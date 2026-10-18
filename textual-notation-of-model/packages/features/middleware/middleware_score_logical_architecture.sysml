@@ -72,6 +72,8 @@ package DE4SDV_MiddlewareSCORELogicalArchitecture {
     }
 
     expose hmiFrameRelay;
+    expose DE4SDV_MiddlewareLogicalArchitecture::system::signalTranslator;
+    expose DE4SDV_MiddlewareLogicalArchitecture::system::healthProxy;
     expose speedTranslationAllocation;
     expose frameRelayAllocation;
     expose DE4SDV_MiddlewareLogicalArchitecture::healthProxyAllocation;

@@ -314,7 +314,7 @@ Reviewers need the requirements of the middleware integration layer allocated to
 - **Source:** `middleware_score_functional_architecture.sysml`
 - **Viewpoint:** `selectedFunctionalBreakdownViewpoint` (`SystemFunctionalBreakdownStructureViewpoint`)
 - **Concern:** `scoreMiddlewareFunctionAllocationConcern`
-- **Exposes:** `translateReferenceSpeed`, `carryAEBSSignalFramesToHMI`, `speedDeliveryResponsibility`, `nonFiniteSpeedResponsibility`, `speedAtMostOnceResponsibility`, `aebVelocityInputExclusionResponsibility`, `staleSpeedIndicationResponsibility`, `frameOrderResponsibility`, `frameProvenanceResponsibility`, `oneWayHMIPathResponsibility`, `unsubscribedFrameDiscardResponsibility`, `emergencyCommandExclusionResponsibility`
+- **Exposes:** `translateReferenceSpeed`, `carryAEBSSignalFramesToHMI`, `MiddlewareIntegrationFunctionalFlow::forwardHealth`, `MiddlewareIntegrationFunctionalFlow::protectSafetyPath`, `speedDeliveryResponsibility`, `nonFiniteSpeedResponsibility`, `speedAtMostOnceResponsibility`, `aebVelocityInputExclusionResponsibility`, `staleSpeedIndicationResponsibility`, `frameOrderResponsibility`, `frameProvenanceResponsibility`, `oneWayHMIPathResponsibility`, `unsubscribedFrameDiscardResponsibility`, `emergencyCommandExclusionResponsibility`
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Not yet published in this folder.
@@ -330,7 +330,7 @@ Reviewers, and the safety expert who reviews GAP-MW-033, need the logical elemen
 - **Source:** `middleware_score_logical_architecture.sysml`
 - **Viewpoint:** `selectedFunctionMappingViewpoint` (`SystemFunctionMappingViewpoint`)
 - **Concern:** `scoreMiddlewareLogicalAllocationConcern`
-- **Exposes:** `hmiFrameRelay`, `speedTranslationAllocation`, `frameRelayAllocation`, `DE4SDV_MiddlewareLogicalArchitecture::healthProxyAllocation`, `speedTopicOwnershipProposal`
+- **Exposes:** `hmiFrameRelay`, `DE4SDV_MiddlewareLogicalArchitecture::system::signalTranslator`, `DE4SDV_MiddlewareLogicalArchitecture::system::healthProxy`, `speedTranslationAllocation`, `frameRelayAllocation`, `DE4SDV_MiddlewareLogicalArchitecture::healthProxyAllocation`, `speedTopicOwnershipProposal`
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Not yet published in this folder.
