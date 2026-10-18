@@ -10,12 +10,12 @@ package GateAPLEMLFixture {
             #feature occurrence autoware[0..1] :> application default null;
             #feature occurrence apollo[0..1] :> application default null {
                 assert constraint :>> xorFeatures {
-                    in #feature occurrence :>> excluded = (androidSDV);
+                    in occurrence constrainedFeatures = new FeatureOperand(that, androidSDV);
                 }
             }
             #feature occurrence openpilot[0..1] :> application default null {
                 assert constraint :>> requiresFeatures {
-                    in #feature occurrence :>> requiredFeatures = (diagnostics);
+                    in occurrence constrainedFeatures = new FeatureOperand(that, diagnostics);
                 }
             }
 

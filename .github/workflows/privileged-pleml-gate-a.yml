@@ -48,7 +48,7 @@ jobs:
       - name: Verify exact PLEML pin
         run: |
           test "$(git -C external/pleml rev-parse HEAD)" = \
-            "071a69fdb2ecfa154809913938dfe9ebdf37701b"
+            "76e2be934453d77c4094141400b8ad8eb90a54a2"
           git submodule status --recursive
 
       - uses: actions/setup-python@v5

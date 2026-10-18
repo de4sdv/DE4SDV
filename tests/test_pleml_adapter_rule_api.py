@@ -131,8 +131,62 @@ def _rule_set(
         _own(elements, rule_set_id, rule, rule_id)
 
 
+def _feature_operand(
+    elements: list[dict[str, Any]], constraint_id: str, operand_b_id: str
+) -> None:
+    """``in occurrence constrainedFeatures = new FeatureOperand(that, <operand B>);`` (PLEML 1.1).
+
+    The official minimal serializer shape. Operand A refers to the kernel
+    feature ``that``, which lies outside the bundle, so it has no target here.
+    """
+
+    def own(kind: str, owner: str, member: str, name: str | None = None) -> dict[str, Any]:
+        value = {"@id": f"{kind}-{member}", "@type": kind,
+                 "memberElement": REF(member), "owningRelatedElement": REF(owner)}
+        if name is not None:
+            value["memberName"] = name
+        return value
+
+    if not any(item["@id"] == "pleml-feature-operand" for item in elements):
+        elements.append(
+            _element("pleml-feature-operand", "OccurrenceDefinition", "FeatureOperand")
+        )
+    parameter, constructor, result = (
+        f"{part}-{constraint_id}" for part in ("parameter", "constructor", "result")
+    )
+    elements += [
+        {"@id": parameter, "@type": "OccurrenceUsage", "declaredName": "constrainedFeatures",
+         "direction": "in"},
+        own("FeatureMembership", constraint_id, parameter, "constrainedFeatures"),
+        {"@id": constructor, "@type": "ConstructorExpression"},
+        own("FeatureValue", parameter, constructor),
+        {**own("Membership", constructor, "pleml-feature-operand"),
+         "@id": f"instantiated-{constraint_id}"},
+        {"@id": result, "@type": "Feature", "direction": "out"},
+        own("ReturnParameterMembership", constructor, result),
+    ]
+    for operand, target in (("operandA", None), ("operandB", operand_b_id)):
+        argument, reference = f"{operand}-{constraint_id}", f"reference-{operand}-{constraint_id}"
+        membership = {"@id": f"target-{reference}", "@type": "Membership",
+                      "owningRelatedElement": REF(reference)}
+        if target is not None:
+            membership["memberElement"] = REF(target)
+        elements += [
+            {"@id": argument, "@type": "Feature", "direction": "in", "name": operand},
+            own("ParameterMembership", result, argument, operand),
+            {"@id": reference, "@type": "FeatureReferenceExpression"},
+            own("FeatureValue", argument, reference),
+            membership,
+        ]
+
+
 def _pleml_xor_constraint(
-    elements: list[dict[str, Any]], constraint_id: str, owner_id: str, excluded_id: str
+    elements: list[dict[str, Any]],
+    constraint_id: str,
+    owner_id: str,
+    excluded_id: str,
+    *,
+    parameters: Any = _feature_operand,
 ) -> None:
     base = _element("pleml-xor-features", "AssertConstraintUsage", "xorFeatures")
     definition = _element("pleml-xor-def", "ConstraintDefinition", "XORConstraint")
@@ -154,7 +208,7 @@ def _pleml_xor_constraint(
     )
     _type(elements, base, definition["@id"])
     _own(elements, owner_id, actual, "xorFeatures")
-    _assigned_reference(elements, constraint_id, "excluded", excluded_id)
+    parameters(elements, constraint_id, excluded_id)
 
 
 def _model() -> list[dict[str, Any]]:
@@ -230,6 +284,96 @@ def test_pinned_pleml_xor_constraint_is_resolved_by_api_identity() -> None:
     assert outcome.status == "configuration-invalid"
     assert outcome.constraint_ids == ("pleml-apollo-xor-android",)
     assert outcome.derivation_attempted is False
+
+
+def _with_pleml_xor(excluded_id: str, **xor: Any) -> list[dict[str, Any]]:
+    """The model with a pinned PLEML XOR constraint of apollo instead of the custom one."""
+    custom_ids = {
+        "constraint-apollo-android", "incompatibility-def", "typing-constraint-apollo-android"
+    }
+    elements = [item for item in _model() if item["@id"] not in custom_ids]
+    _pleml_xor_constraint(elements, "pleml-apollo-xor", "apollo", excluded_id, **xor)
+    return elements
+
+
+def test_pinned_pleml_xor_excludes_operand_b_of_its_constrained_features() -> None:
+    from tools.pleml_gate_a import GateAModel
+
+    # apollo excludes eclipseSCORE, so the pair apollo and androidSDV is no longer forbidden.
+    outcome = GateAModel(_with_pleml_xor("score")).evaluate("forbidden")
+
+    assert outcome.status == "derivation-incomplete"
+    assert outcome.constraint_ids == ()
+
+
+def _legacy_excluded_role(
+    elements: list[dict[str, Any]], constraint_id: str, excluded_id: str
+) -> None:
+    """PLEML 1.0: ``in #feature occurrence :>> excluded = (<feature>);``"""
+    _assigned_reference(elements, constraint_id, "excluded", excluded_id)
+
+
+def _not_a_feature_operand(
+    elements: list[dict[str, Any]], constraint_id: str, excluded_id: str
+) -> None:
+    _feature_operand(elements, constraint_id, excluded_id)
+    instantiated = next(
+        item for item in elements if item["@id"] == f"instantiated-{constraint_id}"
+    )
+    instantiated["memberElement"] = REF("adapter-realization-rule-def")
+
+
+def _sequence_operand_b(
+    elements: list[dict[str, Any]], constraint_id: str, excluded_id: str
+) -> None:
+    """``new FeatureOperand(that, (a, b))``: operand B is a "," sequence, not one reference."""
+    _feature_operand(elements, constraint_id, excluded_id)
+    expression = next(
+        item for item in elements if item["@id"] == f"reference-operandB-{constraint_id}"
+    )
+    expression.update({"@type": "OperatorExpression", "operator": ","})
+
+
+def _operand_a(target_id: str) -> Any:
+    """``new FeatureOperand(<target>, <operand B>)``: operand A names a feature of the model."""
+
+    def parameters(elements: list[dict[str, Any]], constraint_id: str, excluded_id: str) -> None:
+        _feature_operand(elements, constraint_id, excluded_id)
+        reference = f"target-reference-operandA-{constraint_id}"
+        target = next(item for item in elements if item["@id"] == reference)
+        target["memberElement"] = REF(target_id)
+
+    return parameters
+
+
+def test_pinned_pleml_xor_accepts_its_owner_as_operand_a() -> None:
+    from tools.pleml_gate_a import GateAModel
+
+    outcome = GateAModel(_with_pleml_xor("android", parameters=_operand_a("apollo"))).evaluate(
+        "forbidden"
+    )
+
+    assert outcome.status == "configuration-invalid"
+    assert outcome.constraint_ids == ("pleml-apollo-xor",)
+
+
+@pytest.mark.parametrize(
+    "parameters, message",
+    [
+        (_legacy_excluded_role, "constrainedFeatures"),
+        (_not_a_feature_operand, "FeatureOperand"),
+        (_sequence_operand_b, "OperatorExpression"),
+        (_operand_a("openpilot"), "operand A is openpilot"),
+    ],
+    ids=["pleml-1.0-role", "not-a-feature-operand", "sequence-operand-b", "foreign-operand-a"],
+)
+def test_pinned_pleml_xor_outside_the_pleml_1_1_shape_fails_closed(
+    parameters: Any, message: str
+) -> None:
+    from tools.pleml_gate_a import GateAModel, UnsupportedSemanticShape
+
+    with pytest.raises(UnsupportedSemanticShape, match=message):
+        GateAModel(_with_pleml_xor("android", parameters=parameters)).evaluate("forbidden")
 
 
 def test_valid_no_adapter_rule_is_complete_without_adapter() -> None:

@@ -8,7 +8,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "docs/spikes/pleml-gate-a/pleml_gate_a_fixture.sysml"
 PLEML = ROOT / "external/pleml/PLEML.sysml"
-PIN = "071a69fdb2ecfa154809913938dfe9ebdf37701b"
+PIN = "76e2be934453d77c4094141400b8ad8eb90a54a2"
 
 
 def test_gate_a_source_identity_is_exact_and_fixture_scoped() -> None:
@@ -41,6 +41,10 @@ def test_fixture_contains_required_synthetic_semantics_only() -> None:
     assert "#featureTree occurrence gateAFeatureTree" in text
     assert "assert constraint :>> requiresFeatures" in text
     assert "assert constraint :>> xorFeatures" in text
+    # PLEML 1.1 constraint parameters: operand A is the owning feature, operand B the other one.
+    assert "in occurrence constrainedFeatures = new FeatureOperand(that, androidSDV);" in text
+    assert "in occurrence constrainedFeatures = new FeatureOperand(that, diagnostics);" in text
+    assert ":>> excluded" not in text and ":>> requiredFeatures" not in text
     assert "#FeatureBinding dependency gateASimpleFeatureBinding" in text
     assert "variation part gateAAdapterVariation" in text
     assert "part gateACommonCoreAsset" in text

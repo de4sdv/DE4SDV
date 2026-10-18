@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 
-PLEML_PIN = "071a69fdb2ecfa154809913938dfe9ebdf37701b"
+PLEML_PIN = "76e2be934453d77c4094141400b8ad8eb90a54a2"
 GATE_A_FIXTURE = Path("docs/spikes/pleml-gate-a/pleml_gate_a_fixture.sysml")
 PLEML_SOURCE = Path("external/pleml/PLEML.sysml")
 
@@ -584,60 +584,10 @@ def build_observability_matrix(
             )
         return base_id, actual_id
 
-    def _role_target(owner_id: str, role_name: str) -> str:
-        """Resolve a named role's UUID through the observed reference chain.
-
-        Chain (real-serializer evidence): owning membership named
-        ``role_name`` -> role usage -> ``FeatureValue`` ->
-        ``FeatureReferenceExpression`` -> ``Membership`` -> target feature.
-        """
-
-        role_ids = [
-            _ref_id(m.get("memberElement") or m.get("ownedRelatedElement"))
-            for m in values
-            if m.get("@type")
-            in ("FeatureMembership", "OwningMembership", "Membership")
-            and m.get("memberName") == role_name
-            and _ref_id(m.get("owningRelatedElement")) == owner_id
-        ]
-        role_ids = [item for item in role_ids if item]
-        if len(role_ids) != 1:
-            raise UnsupportedSemanticShape(
-                f"{owner_id} has {len(role_ids)} {role_name} role usages"
-            )
-        role_id = role_ids[0]
-        value_ids = [
-            _ref_id(item.get("memberElement") or item.get("ownedRelatedElement"))
-            for item in values
-            if item.get("@type") == "FeatureValue"
-            and _ref_id(item.get("owningRelatedElement")) == role_id
-        ]
-        value_ids = [item for item in value_ids if item]
-        if len(value_ids) != 1:
-            raise UnsupportedSemanticShape(
-                f"{owner_id}.{role_name} has {len(value_ids)} value expressions"
-            )
-        expression = by_id.get(value_ids[0])
-        if not expression or expression.get("@type") != "FeatureReferenceExpression":
-            raise UnsupportedSemanticShape(
-                f"{owner_id}.{role_name} is not a feature reference expression"
-            )
-        targets = [
-            _ref_id(m.get("memberElement"))
-            for m in values
-            if m.get("@type") == "Membership"
-            and _ref_id(m.get("owningRelatedElement")) == value_ids[0]
-        ]
-        targets = [item for item in targets if item]
-        if len(targets) != 1:
-            raise UnsupportedSemanticShape(
-                f"{owner_id}.{role_name} reference has {len(targets)} targets"
-            )
-        return targets[0]
-
     def _check_incompatibility_shape() -> None:
         base_id, actual_id = _constraint_chain("xorFeatures")
-        excluded_id = _role_target(actual_id, "excluded")
+        owner_id = next((step["owner_uuid"] for step in ownership_path(actual_id)), "")
+        excluded_id = _excluded_feature(values, by_id, actual_id, owner_id)
         excluded_element = by_id.get(excluded_id)
         if not excluded_element or not _named(excluded_element, "androidSDV"):
             raise UnsupportedSemanticShape(
@@ -1260,11 +1210,16 @@ class GateAModel:
                     raise UnsupportedSemanticShape(
                         f"PLEML xor constraint {candidate_id} has a null owner"
                     )
+                # PLEML 1.1: the excluded feature is operand B of the
+                # constraint's constrainedFeatures; operand A must name the
+                # feature that owns the constraint.
                 constraints.append(
                     (
                         candidate_id,
                         owner_id,
-                        self._required_role(candidate_id, "excluded"),
+                        _excluded_feature(
+                            self.elements, self.by_id, candidate_id, owner_id
+                        ),
                     )
                 )
         if not constraints:
@@ -1401,6 +1356,106 @@ def _ref_id(value: object) -> str | None:
 
 def _named(element: dict[str, Any], name: str) -> bool:
     return (element.get("declaredName") or element.get("name")) == name
+
+
+def _excluded_feature(
+    elements: tuple[dict[str, Any], ...],
+    by_id: dict[str, dict[str, Any]],
+    constraint_id: str,
+    owner_id: str,
+) -> str:
+    """The feature that a PLEML 1.1 XOR constraint owned by ``owner_id`` excludes.
+
+    Chain (official minimal serializer): ``constrainedFeatures`` parameter ->
+    ``FeatureValue`` -> ``ConstructorExpression`` of ``FeatureOperand`` ->
+    result parameter -> ``operandA``/``operandB`` argument -> ``FeatureValue``
+    -> ``FeatureReferenceExpression`` -> ``Membership`` -> referenced feature.
+    Operand A must name the owner: ``that``, the kernel feature outside the
+    bundle (so its reference has no target here), or the owner itself. Operand
+    B is the excluded feature and must be in the bundle. Anything else fails
+    closed.
+    """
+
+    def one(
+        owner: str, kind: str, what: str, member_name: str | None = None
+    ) -> dict[str, Any]:
+        members = [
+            _ref_id(item.get("memberElement") or item.get("ownedRelatedElement"))
+            for item in elements
+            if item.get("@type") == kind
+            and _ref_id(item.get("owningRelatedElement")) == owner
+            and (member_name is None or item.get("memberName") == member_name)
+        ]
+        members = [member for member in members if member]
+        if len(members) != 1:
+            raise UnsupportedSemanticShape(
+                f"{constraint_id} has {len(members)} {what}"
+            )
+        if members[0] not in by_id:
+            raise UnsupportedSemanticShape(
+                f"API reference targets missing UUID: {members[0]}"
+            )
+        return by_id[members[0]]
+
+    def referent(operand: str) -> str | None:
+        argument = one(
+            _ref_id(result) or "",
+            "ParameterMembership",
+            f"{operand} arguments",
+            operand,
+        )
+        expression = one(_ref_id(argument) or "", "FeatureValue", f"{operand} values")
+        if expression.get("@type") != "FeatureReferenceExpression":
+            raise UnsupportedSemanticShape(
+                f"{constraint_id}.{operand} uses unsupported expression "
+                f"{expression.get('@type')}"
+            )
+        references = [
+            item
+            for item in elements
+            if item.get("@type") == "Membership"
+            and _ref_id(item.get("owningRelatedElement")) == _ref_id(expression)
+        ]
+        if len(references) != 1:
+            raise UnsupportedSemanticShape(
+                f"{constraint_id} has {len(references)} {operand} references"
+            )
+        return _ref_id(references[0].get("memberElement"))
+
+    parameter = one(
+        constraint_id,
+        "FeatureMembership",
+        "constrainedFeatures parameters",
+        "constrainedFeatures",
+    )
+    constructor = one(
+        _ref_id(parameter) or "", "FeatureValue", "constrainedFeatures values"
+    )
+    constructor_id = _ref_id(constructor) or ""
+    instantiated = (
+        one(constructor_id, "Membership", "instantiated types")
+        if constructor.get("@type") == "ConstructorExpression"
+        else {}
+    )
+    if instantiated.get("@type") != "OccurrenceDefinition" or not _named(
+        instantiated, "FeatureOperand"
+    ):
+        raise UnsupportedSemanticShape(
+            f"{constraint_id}.constrainedFeatures is not a FeatureOperand constructor"
+        )
+    result = one(constructor_id, "ReturnParameterMembership", "constructor results")
+    premise = referent("operandA")
+    if premise is not None and premise != owner_id:
+        raise UnsupportedSemanticShape(
+            f"{constraint_id} operand A is {premise}, "
+            f"neither its owner {owner_id} nor that"
+        )
+    excluded = referent("operandB")
+    if excluded is None or excluded not in by_id:
+        raise UnsupportedSemanticShape(
+            f"{constraint_id} operand B references no feature in the bundle"
+        )
+    return excluded
 
 
 def _git_output(repository: Path, *args: str) -> str:
