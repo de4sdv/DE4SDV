@@ -1,20 +1,13 @@
 # DE4SDV — Digital Engineering for Software-Defined Vehicle
 
-When a vehicle's software or hardware changes, which designs and tests need
-to change with it? DE4SDV builds an open engineering reference that connects
-requirements, system models, vehicle configurations, implementations, and
-test evidence so engineers can inspect those dependencies and identify gaps.
-
-The goal is **digitally engineered, configurable, continuously certifiable
-software-defined vehicle (SDV) product lines**, using model-based systems
-engineering with SysML v2, product-line engineering, simulation, and lifecycle
-traceability, so that SDV variability across application domains (such as
-ADAS, telematics, and connectivity), middleware, the hardware abstraction
-layer, and the adapter layer is modeled explicitly as configurable
-architectures. That enables systematic comparison of alternatives, transparent
-trade-off decisions, and lifecycle-wide assurance. Today the model holds ADAS
-application candidates; other domains are to be added. Reference examples are
-not certified vehicles or regulatory approvals.
+An open-source project for **digitally engineered, configurable, continuously
+certifiable software-defined vehicle (SDV) product lines**. DE4SDV applies
+model-based systems engineering with SysML v2, product-line engineering, digital
+continuity, simulation interoperability, and continuous compliance — so that
+SDV variability across application domains (such as ADAS, telematics,
+connectivity), middleware, hardware abstraction layer and adapter layer is modeled explicitly as configurable
+architectures, enabling systematic comparison of alternatives, transparent
+trade-off decisions, and lifecycle-wide assurance.
 
 DE4SDV is a workstream within the INCOSE Automotive Working Group.
 

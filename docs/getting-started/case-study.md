@@ -5,7 +5,7 @@ open-source parts and keep the design, configuration choices, tests, and
 evidence connected while those parts change. We build an open engineering
 reference, not a production car or a certificate.
 
-![Concept illustration, not a model view: four stages from left to right. One SysML v2 model, with requirements, architecture, variability and V&V evidence (existing today), is configured along dimensions such as these two. Platform stack (application · middleware · OS): the members Autoware · none · Linux and Autoware · Android SDV · Android exist today; not admitted yet are the candidate Autoware · Eclipse S-CORE · Linux with an AAOS SDV HMI guest (in progress) and more stacks (reference-only). Sensor set: LiDAR and camera, shared by both members, exists today; variants, for example entry, mid and premium, are deferred and not admitted. Every change is re-checked by CI and review, and model changes also by the Method Check; evidence per member is in progress. The aim is re-checkable evidence for every member and a continuously certifiable product line.](concept-vision-and-aim.drawio.svg)
+![Concept illustration, not a model view: four stages from left to right. One SysML v2 model, with requirements, architecture, variability and verification and validation (V&V) evidence (existing today), is configured along dimensions such as these two. Platform stack (application · middleware · OS): the member configurations Autoware · none · Linux and Autoware · Android SDV · Android exist today; not admitted yet are the candidate Autoware · Eclipse S-CORE · Linux with an AAOS SDV guest for the human-machine interface (HMI), in progress, and more stacks (deferred). Sensor set: LiDAR and camera, shared by both members, exists today; variants, for example entry, mid and premium, are deferred and not admitted. Every change is re-checked by CI and review, and model changes also by the Method Check; evidence per member is in progress. The aim is re-checkable evidence for every member and a continuously certifiable product line.](concept-vision-and-aim.drawio.svg)
 
 *Concept illustration, not a model view: the vision at a glance.* DE4SDV
 keeps one SysML v2 model for the whole product line and configures each member
@@ -49,7 +49,7 @@ most layers have several candidate implementations:
 | Application–middleware adapter | Translates between the application's internal messaging and the vehicle middleware | Derived from the two choices around it, never picked by hand |
 | Middleware | Vehicle-level communication, lifecycle, service discovery, diagnostics | Eclipse S-CORE, Android SDV, AUTOSAR Adaptive, or none |
 | Operating system | Scheduling, memory, drivers | Linux, Android, QNX |
-| Hypervisor | Isolates several operating systems on one chip | KVM, QNX QVM, ACRN, or none |
+| Hypervisor | Isolates several operating systems on one chip | KVM (Kernel-based Virtual Machine), QNX QVM, ACRN, or none |
 | Hardware | The compute platform the stack runs on | Kept abstract |
 
 Not every combination is valid. The
@@ -74,34 +74,41 @@ is managed together. Two levels matter, and it is easy to confuse them:
   that needs them.
 
 Eclipse S-CORE is the first of those options under test: increment
-`INC-MW-011`, in progress, asks whether S-CORE can realize the middleware layer
-of a member with Autoware on a Linux host and an Android Automotive OS (AAOS)
-guest for the display. Admitting such a member would take a new reviewed scope
-decision.
+`INC-MW-011` (an increment answers one engineering question; see
+[part 2](#2-how-the-engineering-work-runs)), in progress, asks whether S-CORE
+can realize the middleware layer of a member with Autoware on a Linux host and
+an Android Automotive OS (AAOS) guest for the display
+([framing model](../../textual-notation-of-model/packages/features/middleware/middleware_score_framing.sysml)).
+Admitting such a member would take a new reviewed scope decision.
 
-![Concept illustration, not a model view: a shared model holds every option. Platform stack: application Autoware, Openpilot or Apollo; middleware Eclipse S-CORE, Android SDV, AUTOSAR Adaptive or none; operating system Linux, Android or QNX; an adapter derived from application and middleware. Sensors: LiDAR, radar and camera in any combination. Common: vehicle-target AEBS and motion sensors. Bill of features A selects Autoware, no middleware, Linux, LiDAR and camera; bill of features B selects Autoware, Android SDV, Android, LiDAR and camera. The configurator checks the rules, derives the adapter and generates the two members' product models: the standalone member with no adapter and simulation-bench evidence, and the AAOS-integrated member with the Autoware-to-AAOS SDV adapter and evidence still planned.](concept-product-line.drawio.svg)
+![Concept illustration, not a model view: a shared model holds every option. Platform stack: application Autoware, Openpilot or Apollo; middleware Eclipse S-CORE, Android SDV, AUTOSAR Adaptive or none; operating system Linux, Android or QNX; an adapter derived from application and middleware. Sensors: LiDAR, radar and camera: at least one, in any combination. Common: vehicle-target AEBS and motion sensors. Bill of features A selects Autoware, no middleware, Linux, LiDAR and camera; bill of features B selects Autoware, Android SDV, Android, LiDAR and camera. The configurator checks the rules, derives the adapter and generates the two members' product models: the standalone member with no adapter and simulation-bench evidence, and the AAOS-integrated member with the Autoware-to-AAOS SDV adapter and evidence still planned.](concept-product-line.drawio.svg)
 
 *Concept illustration, not a model view: how the product line works.* One
 shared model holds every option; a bill of features picks one option per
-platform-stack layer and a combination of perception sensors, and the
-configurator checks the rules, derives the adapter, and generates the member's
-product model. Both planned members come from the same model, not from copies,
-share the LiDAR and camera sensor set, and each has its own evidence status.
-Hypervisor choices are left out of the picture.
+platform-stack layer and at least one perception sensor, and the configurator
+checks the rules, derives the adapter, and generates the member's product
+model. The generated model resolves the platform stack; sensor and capability
+selections are recorded in its comment, not yet resolved in SysML. Both planned
+members come from the same model, not from copies, share the LiDAR and camera
+sensor set, and each has its own evidence status. Hypervisor choices are left
+out of the picture.
 
 The two governed members differ in one product decision, **Vehicle Platform
-Integration Mode**, and that one decision drives several layer choices:
+Integration Mode**, and that one decision drives several layer choices. The
+last two rows are common to both members:
 
-| Layer | Standalone member | AAOS-integrated member |
+| Aspect | Standalone member | AAOS-integrated member |
 |---|---|---|
 | Vehicle application | Autoware | Autoware |
 | Middleware | none | Android SDV |
 | Operating system (platform domain) | Linux | Android¹ |
 | Hypervisor | none | KVM |
 | Adapter | none (derived) | Autoware→AAOS SDV (derived) |
+| Capability (common) | Emergency braking (vehicle-target AEBS) | Emergency braking (vehicle-target AEBS) |
+| Sensing baseline (common) | LiDAR + camera, IMU, wheel odometry | LiDAR + camera, IMU, wheel odometry |
 
-¹ Autoware keeps its own Linux/ROS 2 runtime; the AAOS domain is added beside
-it. In the AAOS member's
+¹ Autoware keeps its own Linux and ROS 2 (Robot Operating System 2) runtime;
+the AAOS domain is added beside it. In the AAOS member's
 [configuration](../../model-based-product-line-engineering/feature-configurations/middleware-autoware-aaos-sdv-reference.yaml),
 cross-domain deployment and transport remain unresolved and the evidence
 status is `planned`.
@@ -111,8 +118,8 @@ This is what the right-hand column looks like in the model itself:
 ![SysIDE render of the model view middlewareProductLineConfigurationView: the part definition MiddlewareAutowareAAOSSDVReference specializes SDVPlatformStack and selects vehicleApplication autoware, middleware androidSDV, osPlatform android, hypervisor kvm and applicationMiddlewareAdapter autowareToAAOSSDV.](../../textual-notation-of-model/packages/features/middleware/diagrams/diagram-middlewareProductLineConfigurationView.svg)
 
 *SysIDE render of the model view `middlewareProductLineConfigurationView`.*
-It shows the product model that the configurator generated for the
-AAOS-integrated member: one selection per layer, and the adapter
+It shows the platform-stack product model that the configurator generated for
+the AAOS-integrated member: one selection per layer, and the adapter
 `autowareToAAOSSDV` that the rules derived from the application and middleware
 choices. It records a configuration; it does not show a built or running
 stack.
@@ -120,9 +127,11 @@ stack.
 Two lessons sit in this table. First, the adapter is **derived** from the
 application and middleware choices, never selected on its own. Second,
 emergency braking, Autoware, and the sensing baseline are **common** to both
-members. A characteristic is a product feature only when it distinguishes one
-member from another. Planned membership also does not mean both members have
-the same implementation or test maturity.
+members; the
+[scope decision](../architecture-decisions/0014-ratify-initial-aebs-product-line-scope.md#common-within-the-governed-portfolio)
+lists all common content. A characteristic is a product feature only when it
+distinguishes one member from another. Planned membership also does not mean
+both members have the same implementation or test maturity.
 
 ### The capability that exercises it: emergency braking
 
@@ -183,23 +192,29 @@ In the repository today:
 - the AEBS reference thread, increments `INC-AEBS-001` to `INC-AEBS-010`,
   with no recorded baseline yet;
 - the middleware chain, increments `INC-MW-001` to `INC-MW-010`, closed at a
-  recorded baseline;
+  bounded baseline recorded in the
+  [baseline register](../../configuration-management/baseline-register.md);
 - the feature catalogue, the bills of features of the two planned members,
   the configurator, and the product models it generated;
-- reference implementations with retained, bounded evidence: Autoware
-  benches on the standalone path, and an AEBS status display in an AAOS SDV
-  guest that was observed on a build that is not exactly identified, so its
-  verification verdicts stay inconclusive;
+- reference implementations with retained evidence and stated limits:
+  Autoware benches on the standalone path, each with its own stated evidence
+  boundary, and an AEBS status display in an AAOS SDV guest that was observed
+  on a build that is not exactly identified, so its verification verdicts stay
+  inconclusive
+  ([evidence model](../../textual-notation-of-model/packages/features/aebs/aebs_visualization_verification_evidence.sysml));
 - public CI, licensed model validation, the Method Check, and a public viewer
   and SysML v2 API that serve one reviewed revision.
 
 In progress, or not there yet:
 
 - `INC-MW-011`, Eclipse S-CORE as the middleware layer: phases 0 to 7 are
-  merged, phase 8 is in review, and phases 9 to 12 are still to come;
+  merged, phase 8 is in review, and phases 9 to 12 are still to come
+  ([framing model](../../textual-notation-of-model/packages/features/middleware/middleware_score_framing.sysml));
 - a fenced experiment that restates the governed scope in the PLEML
-  product-line library, pinned to an exact upstream revision. It is not
-  adopted: the catalogue and the configurator remain the selection authority;
+  product-line library, pinned to an exact upstream revision
+  ([experiment](../../model-based-product-line-engineering/pleml-scope-alignment/README.md)).
+  It is not adopted: the catalogue and the configurator remain the selection
+  authority;
 - executable method checks for the phases that have none yet;
 - verification of the candidate requirements; `REQ-AEBS-003` is still
   `NotStarted`;
@@ -230,15 +245,18 @@ Work happens in **increments**. An increment answers one engineering question,
 such as "can Eclipse S-CORE realize the middleware layer?". Its charter, which
 is part of the model, names the question, the scope, the owner, and the phases
 the increment covers. The method has 13 phases, from framing (0) through
-needs (4), requirements (5), architecture (6 to 8), variability (9), and V&V
-and evidence (10) to publication (11) and the baseline decision (12).
+needs (4), requirements (5), architecture (6 to 8), variability (9), and
+verification and validation (V&V) and evidence (10) to publication (11) and the
+baseline decision (12).
 
 ![Concept illustration, not a model view: three lanes. Agent: read the next obligation, author model content, open a pull request. Deterministic evaluation: on each push the Method Check evaluates the model (same revision, same verdict) and returns gaps and the next obligation to the agent; executable checks today cover phases 0, 4, 5 and 10. People: the report goes to independent review and owner decisions, and only then to a merge to main.](concept-agentic-engineering.drawio.svg)
 
 *Concept illustration, not a model view: deterministic agentic engineering.*
 An agent authors model content and a deterministic evaluation judges it: on
 each push the Method Check names the gaps and the next obligation, and the same
-revision always gets the same verdict. People review, decide, and merge.
+revision always gets the same verdict. People review, decide, and merge. The
+Method Check runs automatically on maintainer pull requests from this
+repository; see [CI/CD](#cicd-in-plain-language).
 
 This works because the method itself is part of the model: a phase step can
 declare the checks its artifacts must pass, and evaluating those checks is
@@ -250,7 +268,8 @@ An agent, or a person, runs the loop **next → author → gaps**: it reads the
 package), authors that content, and pushes. The method tools answer for the
 published revision, so work on a branch is evaluated by the **Method Check** of
 its pull request, which exports the pull-request head and evaluates every
-increment the model declares; that export can also be re-evaluated offline. INC-AEBS-010 was walked this way, push by push
+increment the model declares; that export can also be re-evaluated offline.
+INC-AEBS-010 was walked this way, push by push
 ([#349](https://github.com/de4sdv/DE4SDV/pull/349)), and INC-MW-011 is being
 authored the same way ([#374](https://github.com/de4sdv/DE4SDV/pull/374)).
 
@@ -288,7 +307,8 @@ Choosing layer options is done with files, not by editing the model by hand:
    [standalone member's](../../model-based-product-line-engineering/feature-configurations/aebs-autoware-linux-lidar-camera.yaml).
 3. The **configurator** checks the selections against the rules and derives
    dependent choices such as the adapter.
-4. It generates a SysML **product model** for that member. Generated product
+4. It generates a SysML **product model** that resolves the member's platform
+   stack; the other selections are recorded in its comment. Generated product
    models are marked do-not-edit; change the selections instead.
 
 You can try the check yourself:
@@ -300,11 +320,12 @@ python tools/configure_variant.py \
   --check-only
 ```
 
-Swap in `feature-configurations/fixtures/invalid-score-android.yaml` to watch
-rule C001 reject an incompatible combination. Without `--check-only`, the
-configurator prints the generated product model; its doc comment lists the
-derived adapter (`none` for the standalone member, `autowareToAAOSSDV` for the
-AAOS-integrated one). See the
+Swap in
+`model-based-product-line-engineering/feature-configurations/fixtures/invalid-score-android.yaml`
+to watch rule C001 reject an incompatible combination. Without
+`--check-only`, the configurator prints the generated product model; its doc
+comment lists the derived adapter (`none` for the standalone member,
+`autowareToAAOSSDV` for the AAOS-integrated one). See the
 [product-line engineering guide](../../model-based-product-line-engineering/README.md)
 for the full chain and its validation boundary.
 
@@ -338,12 +359,13 @@ model is not a successfully executed implementation.
 tools. The [Pages workflow](../../.github/workflows/deploy-viewer.yml)
 publishes a browse-only engineering mirror after each change to `main`. The
 [public viewer deployment](../../.github/workflows/deploy-public-ask-viewer.yml),
-which includes **Ask the model**, and the
+which includes the **Ask** window (Model and Repository modes), and the
 [API deployment](../../.github/workflows/deploy-public-sysml-api.yml) are
 separate, maintainer-triggered workflows bound to one exact revision, so the
 public viewer can trail `main`. A green PR is not automatically the deployed
-public baseline, and an Ask answer is generated, not model authority: follow
-its links back to the model.
+public baseline, and an Ask answer is generated, not an engineering or model
+authority: follow its element or source links
+([viewer guide](../guides/model-viewer.md)).
 
 ### More model views
 
