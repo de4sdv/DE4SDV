@@ -76,12 +76,14 @@ package DE4SDV_MiddlewareSCORELogicalArchitecture {
       expose DE4SDV_MiddlewareLogicalArchitecture::functionalFlow::forwardHealth;
       expose carryAEBSSignalFramesToHMI;
       expose DE4SDV_MiddlewareLogicalArchitecture::functionalFlow::protectSafetyPath;
+      attribute :>> includeReferenceElements = true;
       attribute :>> representation = Rep::name;
     }
     view :>> columnView {
       expose DE4SDV_MiddlewareLogicalArchitecture::system::signalTranslator;
       expose DE4SDV_MiddlewareLogicalArchitecture::system::healthProxy;
       expose hmiFrameRelay;
+      attribute :>> includeReferenceElements = true;
       attribute :>> representation = Rep::name;
     }
     view :>> cellView {
