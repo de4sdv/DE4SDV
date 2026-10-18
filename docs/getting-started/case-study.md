@@ -5,15 +5,19 @@ open-source parts and keep the design, configuration choices, tests, and
 evidence connected while those parts change. We build an open engineering
 reference, not a production car or a certificate.
 
-![Concept illustration, not a model view: four stages from left to right. One SysML v2 model, with requirements, architecture, variability and V&V evidence (existing today), is configured into the member products Autoware · Linux and Autoware · AAOS SDV (existing today). An Autoware · S-CORE candidate is under test outside the member set; only a scope decision can admit it. Every change is re-checked by CI and review, and model changes also by the Method Check (existing today); evidence per member is in progress. The aim is re-checkable evidence for every member and a continuously certifiable product line.](concept-vision-and-aim.drawio.svg)
+![Concept illustration, not a model view: four stages from left to right. One SysML v2 model, with requirements, architecture, variability and V&V evidence (existing today), is configured along dimensions such as these two. Platform stack (application · middleware · OS): the members Autoware · none · Linux and Autoware · Android SDV · Android exist today; not admitted yet are the candidate Autoware · Eclipse S-CORE · Linux with an AAOS SDV HMI guest (in progress) and more stacks (deferred). Sensor set: LiDAR and camera, shared by both members, exists today; variants, for example entry, mid and premium, are deferred and not admitted. Every change is re-checked by CI and review, and model changes also by the Method Check; evidence per member is in progress. The aim is re-checkable evidence for every member and a continuously certifiable product line.](concept-vision-and-aim.drawio.svg)
 
 *Concept illustration, not a model view: the vision at a glance.* DE4SDV
-keeps one SysML v2 model for the whole product line, configures each member
-product from it, and re-checks changes: CI and review check every change, and
-the Method Check also checks model changes. The aim is traceable, re-checkable
-evidence for every member; that is what **continuously certifiable SDV product
-lines** means here. Green exists today, blue is in progress, yellow is the aim,
-and no member is certified.
+keeps one SysML v2 model for the whole product line and configures each member
+product from it, along dimensions such as the platform stack (application,
+middleware, OS) and the sensor set. Today two members are admitted, each with
+its own platform stack, and both share one LiDAR and camera sensor set; an
+Eclipse S-CORE stack is under test but not admitted, and sensor-set variants,
+for example entry, mid and premium, are deferred until a scope decision admits
+them. CI and review re-check every change, the Method Check also checks model
+changes, and the aim is traceable, re-checkable evidence for every member: that
+is what **continuously certifiable SDV product lines** means here, and no
+member is certified.
 
 Start with the story below. Then follow the engineering workflow or pick a
 small contribution. You do not need to know SysML or install tools to read it.
@@ -73,14 +77,15 @@ of a member with Autoware on a Linux host and an Android Automotive OS (AAOS)
 guest for the display. Admitting such a member would take a new reviewed scope
 decision.
 
-![Concept illustration, not a model view: a shared model holds every option per layer: application Autoware, Openpilot or Apollo; middleware Eclipse S-CORE, Android SDV, AUTOSAR Adaptive or none; operating system Linux, Android or QNX; an adapter derived from application and middleware; and the common vehicle-target AEBS and motion sensors. Bill of features A selects Autoware, no middleware and Linux; bill of features B selects Autoware, Android SDV and Android. The configurator checks the rules, derives the adapter and generates the two members' product models: the standalone member with no adapter and simulation-bench evidence, and the AAOS-integrated member with the Autoware-to-AAOS SDV adapter and evidence still planned.](concept-product-line.drawio.svg)
+![Concept illustration, not a model view: a shared model holds every option. Platform stack: application Autoware, Openpilot or Apollo; middleware Eclipse S-CORE, Android SDV, AUTOSAR Adaptive or none; operating system Linux, Android or QNX; an adapter derived from application and middleware. Sensors: LiDAR, radar and camera in any combination. Common: vehicle-target AEBS and motion sensors. Bill of features A selects Autoware, no middleware, Linux, LiDAR and camera; bill of features B selects Autoware, Android SDV, Android, LiDAR and camera. The configurator checks the rules, derives the adapter and generates the two members' product models: the standalone member with no adapter and simulation-bench evidence, and the AAOS-integrated member with the Autoware-to-AAOS SDV adapter and evidence still planned.](concept-product-line.drawio.svg)
 
 *Concept illustration, not a model view: how the product line works.* One
 shared model holds every option; a bill of features picks one option per
-layer, and the configurator checks the rules, derives the adapter, and
-generates the member's product model. Both planned members come from the same
-model, not from copies, and each has its own evidence status. Hypervisor and
-sensor choices are left out of the picture.
+platform-stack layer and a combination of perception sensors, and the
+configurator checks the rules, derives the adapter, and generates the member's
+product model. Both planned members come from the same model, not from copies,
+share the LiDAR and camera sensor set, and each has its own evidence status.
+Hypervisor choices are left out of the picture.
 
 The two governed members differ in one product decision, **Vehicle Platform
 Integration Mode**, and that one decision drives several layer choices:
@@ -188,8 +193,8 @@ In the repository today:
 
 In progress, or not there yet:
 
-- `INC-MW-011`, Eclipse S-CORE as the middleware layer: phases 0 to 3 are
-  merged, the next phases are in progress;
+- `INC-MW-011`, Eclipse S-CORE as the middleware layer: phases 0 to 7 are
+  merged, and phases 8 to 12 are still to come;
 - a fenced experiment that restates the governed scope in the PLEML
   product-line library, pinned to an exact upstream revision. It is not
   adopted: the catalogue and the configurator remain the selection authority;
