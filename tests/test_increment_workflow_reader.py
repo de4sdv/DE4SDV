@@ -49,8 +49,8 @@ P0, P4, P5, P10 = ("phase0_incrementFraming", "phase4_needs", "phase5_requiremen
 P = WorkflowParameter
 C = WorkflowCheck
 ADVISORY = {"expectedArtifactsCoverIncrementContent", "needSubjectIsSystemOfInterest",
-            "requirementSubjectIsSystemOfInterest", "requirementSpecifiesFeatureOrCapability",
-            "requirementStatesSuccessCriteria", "verificationCaseHasEvidenceRecordOrStatus"}
+            "requirementSubjectIsSystemOfInterest", "requirementStatesSuccessCriteria",
+            "verificationCaseHasEvidenceRecordOrStatus"}
 
 
 def _named(scenario, name: str) -> dict:
@@ -99,7 +99,7 @@ def test_the_charter_declares_the_workflow_read_into_one_contract() -> None:
     assert method.available, method.problems or method.reason
     assert not any(b["ontology_class"] in {"IncrementWorkflow", "MethodCheck"} for b in scenario.builder.bindings)
     obligations = method.contract.obligations
-    assert len(obligations) == 31
+    assert len(obligations) == 30
     assert [o.obligation_id for o in obligations][:2] == ["incrementHasIdentifier", "incrementHasCharter"]
     by_id = {o.obligation_id: o for o in obligations}
     assert by_id["needHasValidationScenario"].predicate == "hasValidationScenario"

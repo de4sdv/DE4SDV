@@ -147,7 +147,7 @@ def test_merged_trace_shell_is_refused_with_its_register_disposition():
         contract.mapping("IncrementTraceabilityShell")
 
 
-def test_reusable_stakeholder_roles_and_relationship_carrier_are_not_authority_grants():
+def test_reusable_stakeholder_roles_are_not_authority_grants():
     from de4sdv.semantic import model_projection_coverage as coverage
     prefix = "textual-notation-of-model/packages/methods/de4sdv/"
     text = (ROOT / prefix / "de4sdv_stakeholders.sysml").read_text()
@@ -162,25 +162,37 @@ def test_reusable_stakeholder_roles_and_relationship_carrier_are_not_authority_g
     assert set(declarations) == roles
     assert len(declarations) == len(roles)
     assert not re.search(r"\bindividual\s+(?:part|item)\s+def\b", code)
-    contract = model_contract()
-    assert contract.relationships["hasStakeholder"]["domain"] == "EngineeringIncrement"
-    assert contract.relationships["hasStakeholder"]["range"] == "Stakeholder"
-    assert "sysml_mapping" not in contract.relationships["hasStakeholder"]
     report = coverage.build_report(ROOT)
     assert not report["kernel_accounting_errors"]
     assert not report["residual_declarations"]
 
 
-def test_saf_adaptation_notices_and_stakeholder_carrier_are_bounded():
+def test_the_retired_increment_stakeholder_relation_is_refused_and_unused():
+    """HasStakeholder is retired: an increment's stakeholders are the native
+    stakeholder members of its problem statement (incrementHasStakeholder
+    reads them). The vocabulary-only relation, its carrier, its vocabulary
+    role and its framing usages are gone from every model root, and the
+    contract refuses the name with its register disposition."""
+    from de4sdv.semantic.kernel_contract import RetiredIdentityError
+    contract = model_contract()
+    assert "hasStakeholder" not in contract.relationships
+    assert "register disposition REMOVE" in contract.refused["hasStakeholder"]
+    with pytest.raises(RetiredIdentityError, match="register disposition REMOVE"):
+        contract.relationship_mapping("hasStakeholder")
+    model_files = [path for root in ("textual-notation-of-model", "model-based-product-line-engineering")
+                   for path in sorted((ROOT / root).rglob("*.sysml"))]
+    assert len(model_files) > 50, "the scan must see the model files"
+    for path in model_files:
+        code = re.sub(r"/\*.*?\*/|//[^\n]*", " ", path.read_text(encoding="utf-8"), flags=re.S)
+        assert not re.search(r"\b(?:HasStakeholder|hasStakeholderVocabularyRole)\b", code), path
+
+
+def test_saf_adaptation_notices_are_bounded():
     kernel = ROOT / "textual-notation-of-model/packages/methods/de4sdv"
     roles = (kernel / "de4sdv_stakeholders.sysml").read_text()
     assert "c57bd42db60a00c51168f6aba8e2229ba0165b6c" in roles
     assert "not forbidden" in roles
     assert "locally adapted" in roles
-    context = (kernel / "de4sdv_method_context.sysml").read_text()
-    assert "connection def HasStakeholder" in context
-    assert "end increment : EngineeringIncrement;" in context
-    assert "end stakeholderRole : Stakeholder;" in context
 
 
 def test_eight_adapted_and_seven_local_roles_remain_reusable():

@@ -592,19 +592,6 @@
       "mechanics_source": "reviewed admission-manifest field (representation mechanics, manifest-held: the model does not carry them, so the reviewed manifest is their authority); authored-ontology parity proven before its deletion: https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/docs/method-conformance/o4/closure/contract-equivalence.json"
     },
     {
-      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#hasStakeholder",
-      "for_concept": "hasStakeholder",
-      "representation_class": "vocabulary-role-comment",
-      "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
-        "owner": "package DE4SDV_MethodContext",
-        "api_metaclass": "Comment"
-      },
-      "witness_forms": [
-        "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)"
-      ]
-    },
-    {
       "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#hasValidationScenario",
       "for_concept": "hasValidationScenario",
       "representation_class": "vocabulary-role-comment",

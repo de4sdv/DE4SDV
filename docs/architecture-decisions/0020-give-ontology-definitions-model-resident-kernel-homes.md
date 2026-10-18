@@ -16,6 +16,12 @@ superseded by the D4 follow-up in O4 Wave A; see
 > many specializing definitions as that closure declares; and the release
 > evidence check compares the two sets by element id. The decision text below
 > is unchanged.
+>
+> Note (2026-10-17): the `hasStakeholderVocabularyRole` comment that I3 names
+> as an example was removed with the vocabulary-only `HasStakeholder` relation
+> ([#383](https://github.com/de4sdv/DE4SDV/pull/383)). The naming rule of I3
+> is unchanged; `hasAcceptanceCriterionVocabularyRole` still follows it. The
+> decision text below is unchanged.
 
 ## Context
 

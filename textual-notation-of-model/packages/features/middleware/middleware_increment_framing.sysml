@@ -48,9 +48,6 @@ package DE4SDV_MiddlewareIncrementFraming {
            */
         }
 
-        connection middlewareStakeholderParticipation : HasStakeholder
-          connect incMW002 to middlewareIntegrationProblemStatement.systemsEngineer;
-
         part traceObligationsMW002 : IncrementTraceObligations {
           doc /* Scope declaration only; traces are the native relationships of this package. */
           attribute :>> applicablePhases = (MethodPhase::phase0_incrementFraming, MethodPhase::phase1_concernFraming, MethodPhase::phase2_operationalContext);

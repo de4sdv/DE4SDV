@@ -79,9 +79,6 @@ package DE4SDV_AEBSVisualizationFraming {
      */
   }
 
-  connection visualizationStakeholderParticipation : HasStakeholder
-    connect incAEBS010 to visualizationProblemStatement.systemsEngineer;
-
   part visualizationTraceObligations : IncrementCharter {
     doc /*
      * Charter declaration of the increment; traces are the native

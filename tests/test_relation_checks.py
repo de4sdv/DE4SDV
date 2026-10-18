@@ -83,7 +83,7 @@ def test_a_need_without_a_planning_connection_reaches_no_scenario() -> None:
         "need0 has no ValidationPlanningAssociation connection to a ValidationPlanningScenario")
 
 
-@pytest.mark.parametrize("relation", ["hasStakeholder", "usesVerificationMethod", "specifiesFeature"])
+@pytest.mark.parametrize("relation", ["specifiesCommonCapability", "usesVerificationMethod", "specifiesFeature"])
 def test_a_relation_without_a_sysml_mapping_is_method_side_never_missing(relation: str) -> None:
     scenario = increment_scenario()
     result = _check(scenario, relation, scenario.requirements[0])

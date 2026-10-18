@@ -98,6 +98,16 @@ exceptions:
     used. Its connection definition and its generated projection were
     deleted from the method kernel, so it has no model home. The runtime
     refuses the name with its register disposition.
+- identity: hasStakeholder
+  accounting: removed
+  reason: >-
+    Removed register row: a vocabulary-only relation that no gate, check or
+    traversal read. Its two framing usages linked an increment to one
+    stakeholder of its problem statement, which the problem statement's
+    native stakeholder membership already carries. The usages, the
+    connection definition, its vocabulary-role comment and its generated
+    projection were deleted from the model, so it has no model home. The
+    runtime refuses the name with its register disposition.
 
 admitted:
 - identity: AcceptanceCriterion
@@ -921,32 +931,6 @@ admitted:
     - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic4
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
-- identity: hasStakeholder
-  semantic_kind: relationship
-  admission_class: relationship-vocabulary
-  register:
-    wave: W4
-    accounting: retained
-  boundary: none
-  home:
-    form: vocabulary-role
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
-    owner: package DE4SDV_MethodContext
-    name: hasStakeholderVocabularyRole
-    about:
-    - EngineeringIncrement
-    - Stakeholder
-    about_imports:
-      Stakeholder: textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml
-  relation:
-    domain: EngineeringIncrement
-    range: Stakeholder
-    semantic_strength: null
-  carrier:
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
-    declaration: connection def HasStakeholder
-  gates: []
-  forward_obligations: []
 - identity: includesCommonCapability
   semantic_kind: relationship
   admission_class: relationship-vocabulary

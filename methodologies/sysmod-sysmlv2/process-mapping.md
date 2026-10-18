@@ -141,14 +141,18 @@ method package part definitions.
 Define system boundary, actors, interfaces, and operational scenarios.
 Expressed as a SysML v2 package with part definitions, connections, and
 flows in textual notation. Actor kinds become enumeration literals in a
-DE4SDV method package.
+DE4SDV method package. A member product's context and story hold System 1
+roles only, and each use case binds its subject to the system of interest
+and its actors to context parts (rule 9 of the
+[increment workflow](increment-workflow.md#method-rules-and-the-increment-workflow-model)).
 
 ### Phase 3 — Capability/feature semantics
 
-Classify each capability as a feature or a common capability per the
-feature/common-capability rule in the
+Record the feature-model delta: the feature candidates the increment adds,
+per the feature/common-capability rule in the
 [increment workflow](increment-workflow.md#featurecommon-capability-rule).
-This classification is a DE4SDV-specific step.
+Core elements are common by default and get no record; constraints go to
+phase 5 and evidence to phase 10. This is a DE4SDV-specific step.
 
 ### Phase 4 — Needs
 
@@ -230,10 +234,10 @@ domain mapping, and selection guidance.
 
 | Phase | Typical viewpoints produced | Variability concerns |
 |---|---|---|
-| 0 — Increment framing | IncrementFramingViewpoint, ProductLineClassificationViewpoint, RegulatoryScopeViewpoint, Common Terms Definition, Common Standards Definition, EA Traceability | Product-line scope and feature/common-capability classification are recorded here |
+| 0 — Increment framing | IncrementFramingViewpoint, ProductLineClassificationViewpoint, RegulatoryScopeViewpoint, Common Terms Definition, Common Standards Definition, EA Traceability | Product-line scope is recorded here; feature candidates are recorded in phase 3 |
 | 1 — Concern framing | Stakeholder Identification Viewpoint | — |
 | 2 — Operational context | Operational Context Definition, Operational Story, Operational Capability Definition, Operational Process | Operational capabilities may vary by variant |
-| 3 — Capability/feature semantics | ProductLineClassificationViewpoint (DE4SDV method viewpoint) | Core variability decision: feature vs common capability per the feature/common-capability rule |
+| 3 — Capability/feature semantics | ProductLineClassificationViewpoint (DE4SDV method viewpoint) | Core variability decision: the feature candidates the increment adds; core elements are common by default |
 | 4 — Needs | Stakeholder Requirement Definition Viewpoint | Needs may be variant-specific |
 | 5 — Requirements | System Context Definition, System Use Case, System Capability Definition, System Process, System Requirement Definition, System Interface Definition, System Requirement Traceability | Requirements can carry variant-specific constraints and applicability |
 | 6 — Functional architecture | System Functional Breakdown Structure | Functional structure may contain variation points |
@@ -245,21 +249,22 @@ domain mapping, and selection guidance.
 | 12 — Baseline and next slice | EA Traceability (baseline decision record) | — |
 
 Variability is not confined to Phase 9. It is a cross-cutting concern that
-starts at Phase 3 (feature vs common capability classification), runs
+starts at Phase 3 (the feature candidates an increment adds), runs
 through requirements and architecture (variant-specific constraints and
 variation points), and is consolidated in Phase 9 where feature models,
 configurations, and product models are assembled. Phase 9 is where
 variability is explicitly configured — but the decisions that feed it
 are made throughout the earlier phases.
 
-Phase 3 and Phase 9 are sequential, not redundant. Phase 3 labels each
-capability as a feature or common capability — a per-capability
-classification decision made before requirements and architecture. Phase
-9 takes the variation points that accumulated through phases 5–8
-(variant-specific requirements, sensor suite options, middleware
-alternatives, platform stack choices) and assembles them into configured
-product models. A capability classified as a feature in Phase 3 becomes
-a variation point in Phase 9; a common capability becomes a shared asset.
+Phase 3 and Phase 9 are sequential, not redundant. Phase 3 records the
+feature candidates an increment adds — the feature-model delta, decided
+before requirements and architecture; core elements are common by default
+and get no record. Phase 9 takes the variation points that accumulated
+through phases 5–8 (variant-specific requirements, sensor suite options,
+middleware alternatives, platform stack choices) and assembles them into
+configured product models. A feature candidate from Phase 3 becomes a
+variation point in Phase 9 once member-product variability is shown; core
+elements are shared assets.
 
 Each phase consumes the viewpoints produced by earlier phases. For
 example, phase 5 (requirements) consumes the operational context views
@@ -309,7 +314,7 @@ some links are draft:
 Stakeholder concern
   -> Need (provenance: stakeholder, source, rationale; not framing or derivation)
   -> Requirement / constraint
-  -> Feature or common capability
+  -> Feature, for a varying requirement only (a core requirement has none)
   -> Architecture element / function / interface
   -> Verification case and validation scenario
   -> Success criteria stated on the requirement

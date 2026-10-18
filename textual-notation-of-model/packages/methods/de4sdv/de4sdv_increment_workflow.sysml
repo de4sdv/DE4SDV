@@ -9,8 +9,9 @@ package DE4SDV_IncrementWorkflow {
        * not a conformance, acceptance, compliance or certification claim. */
 
   doc RequiredTraceChainOntologyDefinition /* The ordered trace chain every substantial increment should establish, even if some
-   * links are draft: stakeholder concern, need, requirement, feature or common capability,
-   * architecture element, logical-to-software signal mapping when a boundary is crossed,
+   * links are draft: stakeholder concern, need, requirement, feature (for a varying
+   * requirement only; a core requirement has none), architecture element,
+   * logical-to-software signal mapping when a boundary is crossed,
    * physical/software realization, verification case, acceptance criterion, evidence
    * artifact, baseline decision. Intentionally missing links are recorded as gaps. */
   comment about RequiredTraceChainOntologyDefinition /* Historical vocabulary, kept for compatibility. It defines no
@@ -32,6 +33,7 @@ package DE4SDV_IncrementWorkflow {
   private import DE4SDV_MethodProcess::*;
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_Stakeholders::*;
+  private import DE4SDV_ProductLine::ProductLineFeatureCandidate;
 
   metadata def MethodCheck {
     doc /* A method rule about one parameter of a step definition. Its subjects are
@@ -56,9 +58,9 @@ package DE4SDV_IncrementWorkflow {
          * that the workflow steps of those phases declare, not from
          * candidate-selected easy checks. The traces themselves are the
          * increment's native model relationships (owning membership, typing,
-         * requirement subject and stakeholder membership, HasStakeholder
-         * connections, framed concerns), never parallel reference slots in this
-         * declaration. Populating this declaration is not completion evidence.
+         * requirement subject and stakeholder membership, framed concerns),
+         * never parallel reference slots in this declaration. Populating this
+         * declaration is not completion evidence.
          * Reuse prior artifacts, preserve R/F/L/P, and do not invent realization
          * or execution for early framing. Missing required traces block the
          * exit of the phase they belong to unless an authorized visible
@@ -220,17 +222,25 @@ package DE4SDV_IncrementWorkflow {
   }
 
   action def SpecifyOperationalContext :> IncrementStep {
-    doc /* What happens in the world? */
+    doc /* What happens in the world? Rules: a member product's operational
+         * context and story hold System 1 roles only; bench, reviewer and
+         * evidence roles belong to the engineering and assurance system. Each
+         * use case of the story binds its subject to the system of interest
+         * and each actor to a context part around it. */
     attribute :>> phase = MethodPhase::phase2_operationalContext;
     in requirement problemStatement : ProblemStatement;
     out part operationalContext : SystemContext;
   }
 
   action def ClassifyCapabilities :> IncrementStep {
-    doc /* Is this a feature, common capability, constraint, or evidence capability? */
+    doc /* Which characteristics distinguish member products? Rule: the step
+         * records only the feature-model delta, the feature candidates the
+         * increment adds, and the delta may be empty. Core elements are common
+         * by default and get no record; constraints go to the requirements and
+         * evidence to V&V. */
     attribute :>> phase = MethodPhase::phase3_capabilityClassification;
     in part operationalContext : SystemContext;
-    out part characteristics[1..*];
+    out part characteristics[0..*] : ProductLineFeatureCandidate;
   }
 
   action def ElaborateNeeds :> IncrementStep {
@@ -281,8 +291,10 @@ package DE4SDV_IncrementWorkflow {
          * dependencies do not count; a requirement has a statement, exactly one native
          * subject and one primary verification method of the standard kinds. Advisory:
          * a requirement's subject is the system of interest the charter declares, never
-         * the increment; a requirement traces to a feature or common capability and
-         * states its success criteria. */
+         * the increment; a requirement states its success criteria. A requirement
+         * without a feature link is core, common to every member product; a varying
+         * requirement is a variant of a variation, which phase 9 binds to its
+         * feature. */
     attribute :>> phase = MethodPhase::phase5_requirements;
     in requirement needs[0..*] : StakeholderNeedCandidate;
     out requirement requirements[1..*] : RequirementCandidate;
@@ -307,11 +319,6 @@ package DE4SDV_IncrementWorkflow {
     metadata requirementHasVerificationMethod : MethodCheck about requirements {
       doc /* Each requirement records exactly one of inspect, demo, test or analyze; planning only, no result. */
       :>> check = "oneVerificationMethodKind";
-    }
-    metadata requirementSpecifiesFeatureOrCapability : MethodCheck about requirements {
-      doc /* Advisory: each requirement traces to a feature or common capability; no native carrier exists yet. */
-      :>> check = "specifiesFeatureOrCommonCapability";
-      :>> advisory = true;
     }
     metadata requirementStatesSuccessCriteria : MethodCheck about requirements {
       doc /* Advisory: each requirement states its success criteria; a test-verdict criterion, no verdict or acceptance claim. */

@@ -182,20 +182,23 @@ def test_listed_carrier_pin_is_a_second_home():
     not also be listed (the six C1 carry-overs were removed)."""
     document = _manifest()
     document["declarations"].setdefault(
-        GOVERNED_DIR + "/de4sdv_method_context.sysml", {}
-    )["connection def HasStakeholder"] = "carry-over"
+        GOVERNED_DIR + "/de4sdv_trace_vocabulary.sysml", {}
+    )["connection def ValidationPlanningAssociation"] = "carry-over"
     errors = _accounting_errors(_report_with_manifest(document))
-    assert any("HasStakeholder" in e and "is both projected" in e for e in errors), errors
+    assert any("ValidationPlanningAssociation" in e and "is both projected" in e for e in errors), errors
 
 
-def test_the_stakeholder_carrier_pin_is_projected_not_listed():
+def test_the_trace_carrier_pins_are_projected_not_listed():
+    """The two relationship carriers of the trace-vocabulary contract are
+    projected; neither is listed as kernel-internal."""
     report = coverage.build_report(ROOT)
     listed = {declaration for declarations in _manifest()["declarations"].values()
               for declaration in declarations}
-    keys = [k for k in report["kernel_declarations"] if k.endswith(" def HasStakeholder")]
-    assert len(keys) == 1, keys
-    assert report["kernel_declarations"][keys[0]]["status"] == "projected"
-    assert not any(d.endswith(" def HasStakeholder") for d in listed)
+    for carrier in ("ValidationPlanningAssociation", "RegulatorySourceAssociation"):
+        keys = [k for k in report["kernel_declarations"] if k.endswith(f" def {carrier}")]
+        assert len(keys) == 1, keys
+        assert report["kernel_declarations"][keys[0]]["status"] == "projected"
+        assert not any(d.endswith(f" def {carrier}") for d in listed)
 
 
 # -- feature-slice guard (relocated from sync point 5) ----------------------
@@ -238,7 +241,7 @@ def test_refused_and_retired_identities_are_ratcheted():
     report = coverage.build_report(ROOT)
     assert report["refused"] == sorted(["IncrementTraceabilityShell", "derivesNeedFromConcern",
                                         "addressesConcern", "producesView", "recordsAssumption",
-                                        "recordsGap", "selectedViewpoint"])
+                                        "recordsGap", "selectedViewpoint", "hasStakeholder"])
     assert report["retired"] == sorted(["realizedBy", "deployedTo", "validatedBy",
                                         "constrainedBy", "validatesFitnessForUse"])
     baseline = coverage.load_baseline(ROOT)

@@ -100,9 +100,6 @@ When a change touches the method kernel:
   and a regeneration commit.
 - Kernel-internal entries must stay inside the governed directory and must
   not also be projected (as a class pin or a relationship-carrier pin).
-- When a feature slice introduces a concept that is reusable method
-  vocabulary (not feature-specific), propose moving it to the kernel instead
-  of leaving a local duplicate.
 - Do not re-declare class-mapped kernel names as local `def`s inside feature
   slices; specialize or import the kernel declarations instead.
 
@@ -110,6 +107,30 @@ The historical records the runtime still serves are frozen; never regenerate
 or edit them. See
 [`de4sdv/semantic/contract-data/frozen-records.md`](de4sdv/semantic/contract-data/frozen-records.md).
 The other historical records are archived at the `release-2026-10-11` tag.
+
+## Model elements earn their place
+
+Two rules for every model change, applied by authors and reviewers alike:
+
+- **Method types come from the kernel.** Types for method concepts (what an
+  increment, a scope item, an assumption, a gap, a need, a requirement, a
+  feature candidate or an operational context is) come only from the
+  ontology and the method kernel. A slice may specialize a kernel
+  definition, and must where the method asks for it: an increment's own
+  definition specializes `EngineeringIncrement`. What a slice never declares
+  is a method concept with no kernel base: a new method concept goes through
+  an ontology or method pull request first. A domain definition specializes a
+  kernel base where one exists.
+- **An element earns its place** only if (a) a method gate requires it,
+  (b) something consumes it: a trace, a typing, a later phase, or a view
+  framing a concern a reviewer needs, or (c) it carries a decision,
+  assumption or gap that a later phase acts on. A doc-only restatement fails
+  all three. Reviewers judge necessity, not only correctness.
+
+Rule 11 of the
+[increment workflow](methodologies/sysmod-sysmlv2/increment-workflow.md#method-rules-and-the-increment-workflow-model)
+states the advisory, never blocking report of the elements that fail (a)
+and (b).
 
 ## SysML v2 textual notation validation
 

@@ -174,7 +174,7 @@ def test_gaps_never_fail_the_check(tmp_path: Path, real_reports) -> None:
     assert entry["outcome"] == "evaluated"
     assert entry["counts"]["blocking"] == 1
     assert entry["counts"]["blocking_by_kind"] == {"violation": 1}
-    assert entry["counts"]["advisory"] == 5
+    assert entry["counts"]["advisory"] == 4
     assert entry["next"]["gate"] == "needHasStakeholder"
     assert entry["next"]["stage"] == "phase4_needs"
     assert entry["phase_exits"]["phase4_needs"] == "BLOCKED"
@@ -358,7 +358,7 @@ def test_the_summary_names_next_and_the_blocking_gaps_per_increment(tmp_path: Pa
     lines = text.splitlines()
     assert lines[0] == "## Method check"
     assert "Advisory: gaps never fail this check; only a technical error does." in text
-    assert f"| `{FIRST}` | evaluated | `needHasStakeholder` (phase4_needs) | 1 | 5 |" in lines
+    assert f"| `{FIRST}` | evaluated | `needHasStakeholder` (phase4_needs) | 1 | 4 |" in lines
     assert f"| `{SECOND}` | method unavailable | none | - | - |" in lines
     assert f"### `{FIRST}`" in lines
     assert "**Next:** `needHasStakeholder` in phase4_needs (violation)" in lines
@@ -373,8 +373,8 @@ def test_the_summary_names_next_and_the_blocking_gaps_per_increment(tmp_path: Pa
     assert "**Blocking gaps: 1** (violation: 1)" in lines
     assert "| `needHasStakeholder` | phase4_needs | violation | 1 | `need1` |" in lines
     assert ("**Phase exits:** phase0_incrementFraming READY (15/15 pass), phase4_needs BLOCKED (4/6 pass), "
-            "phase5_requirements READY (4/7 pass), phase10_vvEvidence READY (2/3 pass)") in lines
-    assert "<details><summary>Advisory notes: 5</summary>" in lines
+            "phase5_requirements READY (4/6 pass), phase10_vvEvidence READY (2/3 pass)") in lines
+    assert "<details><summary>Advisory notes: 4</summary>" in lines
     assert "| `verificationCaseHasEvidenceRecordOrStatus` | phase10_vvEvidence | method-side | 1 | `firstVerification` |" in lines
     assert f"gh run download 4242 -R de4sdv/DE4SDV -n method-check-{GIT}" in text
     assert "no acceptance, compliance or certification claim" in text

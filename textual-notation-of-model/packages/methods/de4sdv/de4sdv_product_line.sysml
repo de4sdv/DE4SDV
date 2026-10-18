@@ -148,6 +148,11 @@ package DE4SDV_ProductLine {
     private doc ontologyDefinition /* A capability or characteristic present in all relevant member products; not a feature
      * unless it distinguishes variants. */
     doc /* Capability required across member products; not a feature unless it distinguishes member products. */
+    comment /* Phase 3 instantiates no common capability: core elements are common by
+             * default and get no record, because ClassifyCapabilities records only
+             * feature candidates. The definition stays for the ontology's
+             * CommonCapability class, the disjointness below and the records that
+             * use it. */
     /* Feature/common-capability disjointness (ADR 0020, decision 7) as a checked
      * constraint: the licensed toolchain rejects the standalone KerML disjoining in a
      * SysML package, so the axiom is a checked constraint on both definitions. */

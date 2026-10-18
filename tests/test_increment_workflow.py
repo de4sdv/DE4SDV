@@ -42,7 +42,7 @@ CHECKS_BY_STEP = {
     "SpecifyRequirements": {
         "requirementHasStatement", "requirementDerivesFromNeed", "requirementHasOneSubject",
         "requirementSubjectIsSystemOfInterest", "requirementHasVerificationMethod",
-        "requirementSpecifiesFeatureOrCapability", "requirementStatesSuccessCriteria",
+        "requirementStatesSuccessCriteria",
     },
     "PlanVerificationAndEvidence": {
         "verificationCaseVerifiesRequirement", "requirementVerifiedByVerificationCase",
@@ -53,7 +53,6 @@ ADVISORY = {
     "expectedArtifactsCoverIncrementContent",
     "needSubjectIsSystemOfInterest",
     "requirementSubjectIsSystemOfInterest",
-    "requirementSpecifiesFeatureOrCapability",
     "requirementStatesSuccessCriteria",
     "verificationCaseHasEvidenceRecordOrStatus",
 }
@@ -66,7 +65,7 @@ CHECK_REGISTRY = {
     "requireConstraint", "sourceAttribute", "rationaleAttribute", "hasValidationScenario",
     "derivesRequirementFromNeed", "oneNativeSubject",
     "subjectIsSystemOfInterest", "charterExpectedArtifactsCoverContent",
-    "oneVerificationMethodKind", "successCriteriaAttribute", "specifiesFeatureOrCommonCapability",
+    "oneVerificationMethodKind", "successCriteriaAttribute",
     "verifiesIncrementRequirement", "verifiedBy", "evidenceRecordOrStatus",
 }
 

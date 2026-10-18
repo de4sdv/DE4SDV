@@ -191,9 +191,10 @@ part configuredMember : MiddlewareAutowareAAOSSDVConfiguredMember {
   varies* — see `de4sdv_product_line.sysml` and
   `model-based-product-line-engineering/`.
 - A characteristic is a **feature** only when it distinguishes one member
-  product from another; otherwise it is a **common capability**. The model
-  keeps this classification explicit (Phase 3) and assembles configurations
-  in Phase 9.
+  product from another; otherwise it is common. Phase 3 records only the
+  feature candidates (`ProductLineFeatureCandidate`) an increment adds, the
+  feature-model delta; core elements are common by default and get no
+  record. Phase 9 assembles configurations.
 - `DeferredProductLineScope` parts (with `GAP-…` doc IDs) record what is
   *not yet* decided — out-of-scope and deferred choices stay visible instead
   of being silently assumed.

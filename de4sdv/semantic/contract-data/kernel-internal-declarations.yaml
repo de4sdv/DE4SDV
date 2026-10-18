@@ -12,8 +12,9 @@
 #
 # Since O4 Wave C2 (authored ontology deleted) this file is the only home of
 # these declarations. A relationship-carrier pin projected through a
-# model-generated layer (HasStakeholder, through the kernel-vocabulary layer)
-# is never listed here: listing it would give it a second home.
+# model-generated layer (RegulatorySourceAssociation and
+# ValidationPlanningAssociation, through the trace-vocabulary contract) is
+# never listed here: listing it would give it a second home.
 # Authored governance data; not generated, no binding block.
 schema: de4sdv.kernel-internal-declarations/v1
 governed_directory: textual-notation-of-model/packages/methods/de4sdv

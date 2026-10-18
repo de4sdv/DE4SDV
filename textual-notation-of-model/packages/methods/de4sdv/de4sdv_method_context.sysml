@@ -123,7 +123,6 @@ package DE4SDV_MethodContext {
 
 
   private import DE4SDV_SYSMODAdapter::*;
-  private import DE4SDV_Stakeholders::*;
 
   /* Re-exported so feature packages can assign `attribute :>> status =
    * ReqStatus::...` (ADR 0009) without importing the adapter directly. */
@@ -134,23 +133,8 @@ package DE4SDV_MethodContext {
    * importing the adapter directly. */
   public import VVStatus;
 
-  comment hasStakeholderVocabularyRole about EngineeringIncrement, Stakeholder /* Vocabulary
-   * role: EngineeringIncrement -> Stakeholder. Existing native stakeholder
-   * membership is preserved; this comment introduces no additional trace
-   * slot, executable mapping, participation requirement or acceptance. */
-
   part def EngineeringIncrement {
     doc /* A bounded DE4SDV work package that changes, tests, or publishes engineering knowledge. */
-  }
-
-  connection def HasStakeholder {
-    doc /* An engineering increment identifies a stakeholder role participating
-         * in or affected by it. Domain EngineeringIncrement; range Stakeholder.
-         * Vocabulary-only typed carrier: not executable traversal proof,
-         * native StakeholderMembership equivalence, real-person assignment,
-         * approval authority, competence or safety acceptance. */
-    end increment : EngineeringIncrement;
-    end stakeholderRole : Stakeholder;
   }
 
   part def FeatureIncrement :> EngineeringIncrement {
