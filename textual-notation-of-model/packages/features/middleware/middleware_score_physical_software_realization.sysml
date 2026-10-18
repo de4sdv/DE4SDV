@@ -157,17 +157,19 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * COVESA vsomeip 3.7.6 (commit
        * 4187431d2815bd351845a09d01aa85b2a3163cab, MPL-2.0), used unchanged as
        * a dependency and not vendored. It is the only process on the host
-       * that the guest reaches, and the guest is the untrusted side, so it
-       * enforces REQ-MW-016, and REQ-MW-019 for an absent guest subscription,
-       * whatever the guest does; the trust boundary to the guest lies here,
-       * inside the layer (GAP-MW-012). REQ-MW-016: its vsomeip configuration
-       * offers one service with one event and no method, and the relay
-       * registers no handler for messages from the guest, so the host has no
-       * receiver for guest data (vsomeipConfiguration.md:1069-1081).
-       * REQ-MW-019: the event is reliable (TCP) and neither a field nor
-       * cyclic, so a frame goes only to a current subscriber and is dropped
-       * at the host while the guest's subscription is absent; vsomeip keeps a
-       * value to replay to a new subscriber only for fields
+       * that the guest reaches, so REQ-MW-016, and REQ-MW-019 while the
+       * guest's subscription is absent, are enforced here by the host's own
+       * configuration and do not rely on the guest; the trust boundary to the
+       * guest lies here, inside the layer (GAP-MW-012), and no robustness
+       * against malformed input from the guest is claimed. REQ-MW-016: its
+       * vsomeip configuration offers one service with one event and no
+       * method, and the relay registers no handler for messages from the
+       * guest, so the host has no receiver for guest data
+       * (vsomeipConfiguration.md:1069-1081). REQ-MW-019: the event is
+       * reliable (TCP) and neither a field nor cyclic, so a frame goes only
+       * to a current subscriber and is dropped at the host while the guest's
+       * subscription is absent; vsomeip keeps a value to replay to a new
+       * subscriber only for fields
        * (implementation/routing/src/provider_event.cpp:308-313 at 4187431d),
        * and the relay bounds the external endpoint queue, which vsomeip
        * leaves unlimited by default (vsomeipConfiguration.md:366), so a
