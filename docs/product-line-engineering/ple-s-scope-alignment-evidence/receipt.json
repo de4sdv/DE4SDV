@@ -491,7 +491,7 @@
     "schema": "de4sdv.ple-scope-alignment-evaluation/v1",
     "sources": {
       "governed_scope": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
-      "library": "external/pleml/PLEML/PLEML.sysml",
+      "library": "external/pleml/PLEML.sysml",
       "model": "model-based-product-line-engineering/pleml-scope-alignment/aebs_product_line_scope_alignment.sysml",
       "platform_stack": "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml"
     }
@@ -499,7 +499,7 @@
   "api_ingestion": false,
   "artifact_sha256": {
     "governed-scope-validation.json": "05bd30dce155d4ea3071858956454d1aeae17d35b3fd670e9983b8a1d50daf75",
-    "scope-alignment-elements.json": "e0c06e72edd4b15524b48b4ad52d597338955c9dfe7edca7ac4cce97db590fe1",
+    "scope-alignment-elements.json": "cea32a9343e7b878088fd037b8a6a0630c624bf0d18c2de5a792191239029eba",
     "serializer-diagnostics.txt": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
   },
   "authority_activation_authorized": false,
@@ -510,19 +510,19 @@
   "current_lock_sha256": "20bc2becc7a5590a7be077dc6d258faab9308bc796f26b0b4661238f6c7b863a",
   "evaluator": {
     "path": "de4sdv/semantic/ple_scope_alignment.py",
-    "sha256": "1bcf0ad586bfec714e8b2e063a5d577f0d29243fb14014d06406a4566953d508"
+    "sha256": "a258dac679d564c7bbd85c22d2b4e72d7d37c10e109be835fe05fb142bbbcd6d"
   },
   "executor_inputs": {
-    "de4sdv/semantic/ple_scope_alignment.py": "1bcf0ad586bfec714e8b2e063a5d577f0d29243fb14014d06406a4566953d508",
+    "de4sdv/semantic/ple_scope_alignment.py": "a258dac679d564c7bbd85c22d2b4e72d7d37c10e109be835fe05fb142bbbcd6d",
     "de4sdv/sysml_api/baseline.py": "a0978aa3907200c87da7b1e64d8e3896d62d6b85e5572fa6945be470ecc07500",
     "de4sdv/sysml_api/product_line_scope.py": "5490f4af3ced45b9e28b3697f2c0d351e04b43a7c9a448cbb381678248d27d95",
     "de4sdv/sysml_api/repository.py": "569a050472634b57a92a56439042e9c34a004aeea5eb9ee0318a834fcb9ceb64",
     "model-based-product-line-engineering/pleml-scope-alignment/aebs_product_line_scope_alignment.sysml": "23f53587e727f24aa2f24f148e2de77720bbcfa6701df57f3b0d1b4152f77dde",
-    "scripts/run_ple_qualification.py": "5f3c78302652e817d8d1c16c0eefdb933769378744c998bf0edb0867acaf35a7",
-    "scripts/run_ple_scope_alignment.py": "21429eb8d8d24eac57124d125bb433d21b807fc9cd72da3271b1adfbfa9d83dc",
+    "scripts/run_ple_qualification.py": "c78241386cba9c73951a7a31d1c3c20977161159fbeb876d9f34dea60131f603",
+    "scripts/run_ple_scope_alignment.py": "1445fc7640020dbf54a0ea7864180e0bb823bc580028c6f8e489a3180c9cd4d1",
     "sysand-lock.toml": "20bc2becc7a5590a7be077dc6d258faab9308bc796f26b0b4661238f6c7b863a"
   },
-  "executor_revision": "7e895252ce2b3b3d5d404d2176cc7872b7f671e3",
+  "executor_revision": "f1da5c0c707990efeb378990b288778246b0d975",
   "executor_source_dirty": false,
   "expectation": {
     "expected_outcomes": {
@@ -580,11 +580,11 @@
     "mismatches": []
   },
   "experiment": {
-    "interpreter_revision": "6a99626b4af7cd01108f27dac88bf5b55bba207a",
-    "interpreter_sha256": "4d9180e9fc6b417f2ffef60b550398335d90225940bc8b8a5960fa733733a4c3",
-    "library_sha256": "1fbd5efd95b63877e88eb6b114ce67122b9dba5236d3712e73175254aaf7d216",
-    "library_source": "external/pleml/PLEML/PLEML.sysml",
-    "pleml_pin": "5f8ab8560219dc24d8ec7ec90d6f0a145896ef8e"
+    "interpreter_revision": "84673ea2bca0d11b795a34afeb7584081dd24fd2",
+    "interpreter_sha256": "67400e8c8168f9e552b47a61e6d3565c46ebd0ec9a29d62c59394fd5d502e01f",
+    "library_sha256": "94ae698324f9da510d8d20fdf8e7047f51f1bccb71396745e48e84f416dc8159",
+    "library_source": "external/pleml/PLEML.sysml",
+    "pleml_pin": "071a69fdb2ecfa154809913938dfe9ebdf37701b"
   },
   "fresh_serialization": true,
   "governed_scope_validation": {
@@ -765,8 +765,8 @@
     {
       "authority": "reviewed",
       "path": "textual-notation-of-model/packages/features/aebs/aebs_visualization_framing.sysml",
-      "sha256": "04c7c778ff18023a0ea5dde3d8dd10ce9b8fecebdc76c17496535cdbd039f91d",
-      "size": 11688
+      "sha256": "17ef7aca4932a3abae1a2143796f0b2c66e418ef43e62a0d6bcb4030677662ef",
+      "size": 11546
     },
     {
       "authority": "reviewed",
@@ -825,8 +825,8 @@
     {
       "authority": "reviewed",
       "path": "textual-notation-of-model/packages/features/middleware/middleware_increment_framing.sysml",
-      "sha256": "5c0026b22cd92802d5dbd56544c6938fced49d9a032920967030af7c6ea1cb57",
-      "size": 6166
+      "sha256": "7ac8206c1acee159d151bf95a605e59430d21db8e4dc2852156c695ee143e178",
+      "size": 6009
     },
     {
       "authority": "reviewed",
@@ -854,6 +854,24 @@
     },
     {
       "authority": "reviewed",
+      "path": "textual-notation-of-model/packages/features/middleware/middleware_score_feature_classification.sysml",
+      "sha256": "3c64f796dcd54b9df08f03d4caec48ba34fd759de3b5aaf69c96560a7171d3c4",
+      "size": 3193
+    },
+    {
+      "authority": "reviewed",
+      "path": "textual-notation-of-model/packages/features/middleware/middleware_score_framing.sysml",
+      "sha256": "a5e47c3ead91f801c67483ce1adf9870bc88303e53a3708a1a0901064c774d2a",
+      "size": 21375
+    },
+    {
+      "authority": "reviewed",
+      "path": "textual-notation-of-model/packages/features/middleware/middleware_score_operational_context.sysml",
+      "sha256": "58fce8c4b08c38a9efc7e5144df2484e812f1a12573e4651edb6d785771703c4",
+      "size": 21897
+    },
+    {
+      "authority": "reviewed",
       "path": "textual-notation-of-model/packages/features/middleware/middleware_stakeholder_needs.sysml",
       "sha256": "3b51c49a47e73ee6659594d5d0bde79c1e39649b821f4994e30b58d5dfc25134",
       "size": 14385
@@ -873,14 +891,14 @@
     {
       "authority": "reviewed",
       "path": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml",
-      "sha256": "cb64d265df9095cfce60f839aeee58959db58dd6e582db5319a91dffef9bca7b",
-      "size": 21252
+      "sha256": "18c689a913fc291665cba6ab6cc7b6a55dd73de6199745c5745c66269a663b69",
+      "size": 21796
     },
     {
       "authority": "reviewed",
       "path": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml",
-      "sha256": "96ecc6f2f09030fb5fc69392fdb0e7d287e7200bbb43718398cc8f5039e939c1",
-      "size": 7471
+      "sha256": "dea5cfd6974f1cae50c160f73db4daa10f67e421badc0f4f65b65b2777badf2b",
+      "size": 7660
     },
     {
       "authority": "reviewed",
@@ -891,14 +909,14 @@
     {
       "authority": "reviewed",
       "path": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
-      "sha256": "6c4ae783b13eba7af08c9625ea764578935a87e8edf8b3b1e6d9c51d627f5460",
-      "size": 28746
+      "sha256": "89c51b945f375fce2865b24495c74ad5b12b2e1d38192bb5a86ebcf98314e791",
+      "size": 27887
     },
     {
       "authority": "reviewed",
       "path": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
-      "sha256": "8f94ee5e83539b8ade4341dd78027fd481cd77871549ae99b8e7417d0639fabe",
-      "size": 7148
+      "sha256": "1c42fc157a0c4afdb6245a9b0ce743afc0819e2c47ac255a96e93161679fd8ea",
+      "size": 7146
     },
     {
       "authority": "reviewed",
@@ -915,8 +933,8 @@
     {
       "authority": "reviewed",
       "path": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
-      "sha256": "5706f56cdee6bd87128dd1255db9316c3978b1110760a35f035cc0d0499408ad",
-      "size": 11473
+      "sha256": "13300119cc64d3530f556bc8183531ace9343763e4544f7458a80c36a64ca3ee",
+      "size": 11827
     },
     {
       "authority": "reviewed",
@@ -1016,9 +1034,9 @@
     },
     {
       "authority": "pinned-experiment-library",
-      "path": "external/pleml/PLEML/PLEML.sysml",
-      "sha256": "1fbd5efd95b63877e88eb6b114ce67122b9dba5236d3712e73175254aaf7d216",
-      "size": 9750
+      "path": "external/pleml/PLEML.sysml",
+      "sha256": "94ae698324f9da510d8d20fdf8e7047f51f1bccb71396745e48e84f416dc8159",
+      "size": 15015
     },
     {
       "authority": "experiment-model",

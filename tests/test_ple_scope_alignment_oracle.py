@@ -40,9 +40,9 @@ ROOT = Path(__file__).resolve().parents[1]
 RECORD_DIR = Path("docs/product-line-engineering/ple-s-scope-alignment-evidence")
 DOC = ROOT / "docs/product-line-engineering/ple-s-scope-alignment.md"
 CORRESPONDENCE = ROOT / oracle.CORRESPONDENCE
-EXECUTOR = "7e895252ce2b3b3d5d404d2176cc7872b7f671e3"
-MERGE = "606141c80ad83b320a88fd2644f23558cf4fdb8b"
-RUN_ID = "38788579272"
+EXECUTOR = "f1da5c0c707990efeb378990b288778246b0d975"
+MERGE = "f1da5c0c707990efeb378990b288778246b0d975"
+RUN_ID = "39115737098"
 ARTIFACT = f"ple-scope-alignment-{EXECUTOR}-{RUN_ID}"
 #: What the oracle reads of a tree, extracted from the record's revision.
 RECORD_TREE = (
@@ -400,7 +400,7 @@ def test_ug14_every_row_carries_the_projection_digests_and_the_receipt_identity(
     shared = oracle.sha256_of(record.root / oracle.SHARED_ASSETS)
     identity = comparison["ple_s"]
     assert identity["artifact"] == ARTIFACT and identity["evidence"] == "retained"
-    assert identity["pleml_pin"] == "5f8ab8560219dc24d8ec7ec90d6f0a145896ef8e"
+    assert identity["pleml_pin"] == "071a69fdb2ecfa154809913938dfe9ebdf37701b"
     assert HEX64.fullmatch(identity["model_sha256"]) and HEX64.fullmatch(identity["library_sha256"])
     for row in comparison["rows"]:
         provenance = row["provenance"]
@@ -427,7 +427,7 @@ def test_the_receipt_identity_is_bound_to_the_record_tree_content(comparison, re
     assert identity["evaluator_sha256"] == oracle.sha256_of(record.root / oracle.EVALUATOR)
     assert identity["governed_scope_sha256"] == oracle.sha256_of(record.root / oracle.SCOPE)
     assert identity["shared_assets_sha256"] == oracle.sha256_of(record.root / oracle.SHARED_ASSETS)
-    assert identity["interpreter_revision"] == "6a99626b4af7cd01108f27dac88bf5b55bba207a"
+    assert identity["interpreter_revision"] == "84673ea2bca0d11b795a34afeb7584081dd24fd2"
     assert identity["executor_inputs_matching_tree"][oracle.MODEL.as_posix()] is True
     assert identity["qualified"] is False and identity["expectation_matches"] is True
 
@@ -699,8 +699,12 @@ def test_the_retained_record_manifest_binds_the_files_the_run_and_the_merge_tree
     assert "never against the working tree" in binding["rule"] and "licensed run" in binding["fresh_evidence"]
     assert "catalogue" in binding["historical_once"] and "configurator" in binding["historical_once"]
     assert manifest["tree_identical_to"]["revision"] == MERGE
-    # The merge commit is on main and reachable in every full-history checkout; the pull-request head
-    # that produced the receipt is only reachable where its ref was fetched.
+    if EXECUTOR == MERGE:
+        # A licensed refresh retains the run of a main commit, which has no pull request.
+        assert manifest["pull_request"] is None, "the run executed a main commit; pull_request must be null"
+    # MERGE is a main commit, reachable in every full-history checkout. After a licensed refresh EXECUTOR is
+    # the same commit; an EXECUTOR that differs from MERGE (a pull-request head, as before #386) is checked
+    # only where it is reachable.
     assert subprocess.run(["git", "cat-file", "-e", f"{MERGE}^{{commit}}"], cwd=ROOT, capture_output=True).returncode == 0
     reachable = [revision for revision in (MERGE, EXECUTOR) if subprocess.run(
         ["git", "cat-file", "-e", f"{revision}^{{commit}}"], cwd=ROOT, capture_output=True).returncode == 0]
