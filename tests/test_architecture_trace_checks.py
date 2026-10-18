@@ -19,6 +19,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+import pytest
+
 import de4sdv.semantic.increment_workflow as workflow_reader
 from de4sdv.semantic import method_evaluator as me
 from de4sdv.semantic.increment_evaluation import evaluate_increment
@@ -373,15 +375,26 @@ def test_an_unreadable_allocation_anywhere_leaves_absence_unestablished() -> Non
     assert (step["gate"], step["kind"]) == (G6, "input-problem")
 
 
+def _withheld(evaluation) -> dict[str, str]:
+    """Phase 6 to 8 gate -> the diagnostic it is withheld with (method side, no verdict); every gate
+    when the guard holds."""
+    found = {}
+    for gate in ARCHITECTURE_GATES:
+        unit = evaluation._unit(gate)
+        if (unit.verdict, unit.missing) == (None, ("governed-relation:allocatedTo",)):
+            found[gate] = unit.diagnostics[0]
+    return found
+
+
 def test_allocation_checks_are_withheld_on_an_api_revision_binding() -> None:
     """While allocatedTo has open forward obligations, an API revision binding reports every check of
     phases 6 to 8 as method side (nothing to author, exits BLOCKED); an export snapshot evaluates them."""
     a = _architecture()
     api, export = _evaluate(a, API_BINDING), _evaluate(a)
-    for gate in ARCHITECTURE_GATES:
-        unit = api._unit(gate)
-        assert (unit.verdict, unit.missing) == (None, ("governed-relation:allocatedTo",)), gate
-        assert "withholds the checks that read native allocations" in unit.diagnostics[0], gate
+    withheld = _withheld(api)
+    assert list(withheld) == list(ARCHITECTURE_GATES)
+    assert all("withholds the checks that read native allocations" in d for d in withheld.values())
+    assert _withheld(export) == {}
     answer = api.next_obligation()
     assert answer["next"] is None
     assert [blocker["gate"] for blocker in answer["method_side_blockers"]] == [G6, G6_POPULATION, G7, G8]
@@ -406,6 +419,46 @@ def test_the_admission_still_lists_the_forward_obligations_of_allocated_to() -> 
         "exact-revision API closure of the typed allocation ends in the exact-SHA privileged run; a failure "
         "blocks activation",
     )
+
+
+@pytest.fixture
+def admission_path(tmp_path, monkeypatch):
+    """Where the guard reads the kernel-vocabulary admission, under a root the test controls. The
+    obligation cache is cleared around the test, so nothing read here outlives it."""
+    workflow_reader.open_forward_obligations.cache_clear()
+    monkeypatch.setattr(workflow_reader, "ROOT", tmp_path)
+    yield tmp_path / workflow_reader.ADMISSION_PATH
+    workflow_reader.open_forward_obligations.cache_clear()
+
+
+def test_an_admission_that_cannot_be_read_leaves_the_obligations_open(admission_path) -> None:
+    """Fail closed: a missing or malformed admission counts as one open obligation, so an API revision
+    binding still withholds every check of phases 6 to 8."""
+    (missing,) = workflow_reader.open_forward_obligations("allocatedTo")
+    assert missing.startswith("the kernel-vocabulary admission cannot be read: ")
+    admission_path.parent.mkdir(parents=True)
+    admission_path.write_text("admitted: [unclosed\n", encoding="utf-8")
+    workflow_reader.open_forward_obligations.cache_clear()
+    (malformed,) = workflow_reader.open_forward_obligations("allocatedTo")
+    assert malformed.startswith("the kernel-vocabulary admission cannot be read: ")
+    withheld = _withheld(_evaluate(_architecture(), API_BINDING))
+    assert list(withheld) == list(ARCHITECTURE_GATES)
+    assert all("allocatedTo: the kernel-vocabulary admission cannot be read" in d for d in withheld.values())
+
+
+def test_an_admission_without_an_allocated_to_row_leaves_the_obligations_open(admission_path) -> None:
+    """Fail closed: an admission that lists no allocatedTo row counts as one open obligation (only a
+    row whose obligations are discharged lifts the guard)."""
+    admission_path.parent.mkdir(parents=True)
+    admission_path.write_text("admitted:\n- identity: hasRelevantArchitecture\n  forward_obligations: []\n",
+                              encoding="utf-8")
+    assert workflow_reader.open_forward_obligations("hasRelevantArchitecture") == ()
+    assert workflow_reader.open_forward_obligations("allocatedTo") == (
+        "the kernel-vocabulary admission has no row for allocatedTo",)
+    withheld = _withheld(_evaluate(_architecture(), API_BINDING))
+    assert list(withheld) == list(ARCHITECTURE_GATES)
+    assert all("allocatedTo: the kernel-vocabulary admission has no row for allocatedTo" in d
+               for d in withheld.values())
 
 
 def test_an_unallocated_functional_requirement_blocks_phase_6() -> None:
