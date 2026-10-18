@@ -704,7 +704,8 @@ class _OfflineImport:
     content_sha256: str
 
 
-def _offline_runner(tmp_path, monkeypatch, *, move_prior=False):
+def _offline_runner(tmp_path, monkeypatch, *, move_prior=False, keep_gate_a_label=False):
+    """The runner with scratch experiments as GATE_A and CURRENT; ``keep_gate_a_label`` leaves the library label unmoved."""
     from de4sdv.sysml_api.baseline import BaselineExportBundle, build_export_bundle
 
     r = runner()
@@ -728,7 +729,8 @@ def _offline_runner(tmp_path, monkeypatch, *, move_prior=False):
         documents = {}
         for element in raw["elements"]:
             label = raw["element_sources"][element["@id"]]
-            documents.setdefault(current.library if label == gate_a.library else label, []).append(element)
+            moved = label == gate_a.library and not keep_gate_a_label
+            documents.setdefault(current.library if moved else label, []).append(element)
         bundle = build_export_bundle(git_commit=revision, source_documents=documents).to_dict()
         bundle["source_manifest"] = manifest
         return BaselineExportBundle.from_dict(bundle), r.SERIALIZER_VERSION
@@ -774,6 +776,23 @@ def test_the_fresh_arm_serializes_the_current_experiment_against_the_gate_a_prio
     assert receipt["differences"] == []
     assert {case["case"]: (case["status"], case["inadequate_concepts"]) for case in receipt["cases"]} == GATE_A_CASES
     assert receipt["historical"] is False and receipt["fresh_serialization"] is True and receipt["qualified"] is False
+
+
+def test_the_fresh_arm_compares_with_the_gate_a_prior_not_with_itself(tmp_path, monkeypatch):
+    """Negative control: a serialization that keeps the Gate A library label differs from the prior.
+
+    The current interpreter reads the library at the 1.0.0 path, so on the Gate A
+    label exactly the two label-bound rows turn inadequate. The differences are
+    those two rows only when they are computed against the Gate A prior.
+    """
+    r, args, _, _, _ = _offline_runner(tmp_path, monkeypatch, keep_gate_a_label=True)
+    receipt = r.run(args)
+    differences = receipt["differences"]
+    assert [item["concept"] for item in differences] == LABEL_BOUND_ROWS
+    for item in differences:
+        assert item["classification"] == "review-required"
+        assert item["before"]["api_only_consumption_adequate"] is True
+        assert item["after"]["api_only_consumption_adequate"] is False and "found 0" in item["after"]["exact_gap"]
 
 
 def test_the_historical_replay_runs_the_gate_a_experiment_on_its_own_export(tmp_path, monkeypatch):
