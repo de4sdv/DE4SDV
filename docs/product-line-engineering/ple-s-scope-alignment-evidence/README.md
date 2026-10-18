@@ -34,23 +34,24 @@ that export (`scripts/run_ple_scope_alignment.py --replay`), not this record.
 
 ## Identity
 
-- Run `38788579272` of `.github/workflows/privileged-ple-scope-alignment.yml`
-  on the head `7e895252ce2b3b3d5d404d2176cc7872b7f671e3` of pull request #376.
-  That head's tree is identical to the merge `606141c80ad83b320a88fd2644f23558cf4fdb8b`
-  on main (the squash merge changed the commit, not the tree);
-  `tests/test_ple_scope_alignment_oracle.py` verifies the merge commit's tree
-  from Git, and the pull-request head's where its ref is reachable.
-- Artifact `ple-scope-alignment-7e895252ce2b3b3d5d404d2176cc7872b7f671e3-38788579272`,
-  expiring on 2026-11-14 (30-day retention). The receipt in this directory is
+- Run `39115737098` of `.github/workflows/privileged-ple-scope-alignment.yml`
+  on the main commit `f1da5c0c707990efeb378990b288778246b0d975`, the merge of
+  #385, by maintainer dispatch with that commit as `ref`. The run executed a
+  main commit, not a pull-request head, so the executor and the merge are the
+  same commit; `tests/test_ple_scope_alignment_oracle.py` verifies its tree
+  from Git. The receipt is at PLEML 1.0.0: the frozen experiment `84673ea2`
+  (tag `pleml-1.0.0-frozen`) with the PLEML pin `071a69fd`.
+- Artifact `ple-scope-alignment-f1da5c0c707990efeb378990b288778246b0d975-39115737098`,
+  expiring on 2026-11-17 (30-day retention). The receipt in this directory is
   the artifact's `scope-alignment/receipt.json`, byte for byte.
 - The receipt says `qualified: false`, `adoption_authorized: false` and
   `authority_activation_authorized: false`; so does the comparison.
 - `comparison.json` is content-addressed: it carries the digests of the
   catalogue, the configurator, the shared-asset superset, the correspondence
   and the oracle script it was produced with. Its `oracle.executor_revision`
-  is the pull-request commit it was produced at and is informational; after
-  the squash merge that commit is not on main, and the content digests are
-  authoritative. The reproduction ignores the oracle's own identity fields
+  is the commit it was produced at (here `f1da5c0c`, from a clean checkout)
+  and is informational; the content digests are authoritative. The
+  reproduction ignores the oracle's own identity fields
   (`executor_revision`, `executor_source_dirty`, `tree_source`, `script`,
   `script_sha256`) and compares everything else.
 - The digests of the generated probes (`operational_input.sha256`,
@@ -91,8 +92,8 @@ python scripts/compare_ple_scope_alignment.py \
   --root /tmp/ple-s-record --revision "$revision" \
   --receipt /tmp/ple-s-record/docs/product-line-engineering/ple-s-scope-alignment-evidence/receipt.json \
   --governed-scope /tmp/ple-s-record/docs/product-line-engineering/ple-s-scope-alignment-evidence/governed-scope-validation.json \
-  --evidence retained --run-id 38788579272 \
-  --artifact ple-scope-alignment-7e895252ce2b3b3d5d404d2176cc7872b7f671e3-38788579272 \
+  --evidence retained --run-id 39115737098 \
+  --artifact ple-scope-alignment-f1da5c0c707990efeb378990b288778246b0d975-39115737098 \
   --out /tmp/ple-s-record-check/out
 ```
 
@@ -137,7 +138,9 @@ case changed): no licensed run; the retained receipt still describes the tree.
 3. Update the test constants in `tests/test_ple_scope_alignment_oracle.py`:
    `EXECUTOR` (the commit the licensed run executed), `MERGE` (a main commit
    whose tree equals it; after a licensed refresh made as above, the same
-   commit) and `RUN_ID`; the artifact name derives from them.
+   commit) and `RUN_ID`; the artifact name derives from them. When the
+   receipt's frozen experiment moved, also update the PLEML pin and the
+   interpreter revision that the identity tests assert.
 4. Replace the classified table in `ple-s-scope-alignment.md` with the
    oracle's `comparison.md` (its first line is the identity line the test pins:
    run id and executor revision must appear in the document), and update the
