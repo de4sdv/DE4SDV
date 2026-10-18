@@ -97,11 +97,11 @@
   <text x="828" y="100" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#F9A825" fill-opacity="1.000" font-style="italic">«doc»</tspan></text>
   <text x="649" y="120" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">The operational context of the two-domain member product. The system of</tspan></text>
   <text x="649" y="136" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">interest is the middleware integration layer (the Autoware-to-S-CORE</tspan></text>
-  <text x="649" y="152" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">adapter with the S-CORE services) on the Linux host; the actors are the</tspan></text>
-  <text x="649" y="168" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">host-side application elements, the guest with its HMI application, the</tspan></text>
-  <text x="649" y="184" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">hypervisor between them, and the driver who sees the informational</tspan></text>
-  <text x="649" y="200" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">display. This is the operational environment, not a deployment</tspan></text>
-  <text x="649" y="216" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">decomposition.</tspan></text>
+  <text x="649" y="152" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">adapter with the S-CORE services) on the Linux host and the guest end of</tspan></text>
+  <text x="649" y="168" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the one-way HMI path; the actors are the host-side application</tspan></text>
+  <text x="649" y="184" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">elements, the guest with its HMI application, the hypervisor between</tspan></text>
+  <text x="649" y="200" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">them, and the driver who sees the informational display. This is the</tspan></text>
+  <text x="649" y="216" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">operational environment, not a deployment decomposition.</tspan></text>
   <text x="827.5" y="256" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
   <text x="827.5" y="272" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">integrationLayer : SCOREMiddlewareIntegrationLayer :&gt;&gt; systemOfInterest</tspan></text>
   <text x="827.5" y="290.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">parts</tspan></text>
