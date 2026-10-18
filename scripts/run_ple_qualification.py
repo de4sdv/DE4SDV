@@ -239,7 +239,9 @@ def verify_constraint_operands(bundle, values):
 
     The constructor must instantiate the ``FeatureOperand`` of the pinned library document. Operand A must reference
     the feature that owns the constraint, or the kernel ``that``: a reference the bundle leaves out whose one pruning
-    record names the target of the library's own ``featureConfiguration = that``. Anything else refuses.
+    record names the target of the library's own ``featureConfiguration = that``. Anything else refuses, and so does
+    a constraint without an owner or a reference the readback does not resolve. ``count`` makes a pass without
+    constraints, which an experiment may legitimately have, visible as 0.
     """
     elements = {item["@id"]: item for item in values}
     records = {}
@@ -255,12 +257,18 @@ def verify_constraint_operands(bundle, values):
             raise ValueError(f"constraint operand check: {len(found)} {what}")
         return found[0]
 
+    def resolved(key, what):
+        if key is None or key not in elements:
+            raise ValueError(f"constraint operand check: {what}")
+        return key
+
     def owned(owner, kind, name=None):
         return [key for key, item in elements.items() if item.get("@type") == kind
                 and ref(item.get("owningRelatedElement")) == owner and (name is None or item.get("memberName") == name)]
 
-    def member(owner, kind, name=None):
-        return ref(elements[one(owned(owner, kind, name), f"{kind} {name or ''} of {owner}")].get("memberElement"))
+    def member(owner, kind, name=None):  # the member element, which the readback must hold
+        what = f"{kind} {name} of {owner}" if name else f"{kind} of {owner}"
+        return resolved(ref(elements[one(owned(owner, kind, name), what)].get("memberElement")), f"the {what} has no member element")
 
     def library(name):
         return one([key for key, item in elements.items() if item.get("@type") == "OccurrenceDefinition"
@@ -281,13 +289,14 @@ def verify_constraint_operands(bundle, values):
         constructor = member(member(usage, "FeatureMembership", "constrainedFeatures"), "FeatureValue")
         if member(constructor, "Membership") != feature_operand:
             raise ValueError(f"constraint operand check: {usage} does not instantiate the library's FeatureOperand")
-        owner = ref(elements[ref(elements[usage].get("owningRelationship"))].get("owningRelatedElement"))
+        relationship = resolved(ref(elements[usage].get("owningRelationship")), f"{usage} has no owning relationship")
+        owner = resolved(ref(elements[relationship].get("owningRelatedElement")), f"{usage} has no owner")
         target, pruned = reference(member(member(constructor, "ReturnParameterMembership"), "ParameterMembership", "operandA"))
-        if target != owner and (target is not None or pruned != that[1]):
+        if not (target == owner if target is not None else pruned == that[1]):  # in the bundle: the owner; left out: that
             raise ValueError(f"constraint operand check: operand A of {usage} is neither its owner {owner} nor that")
         verified.append({"constraint": usage, "name": elements[usage].get("declaredName") or elements[usage].get("name"),
-                         "owner": owner, "operand_a": "owner" if target == owner else "that", "feature_operand": feature_operand})
-    return verified
+                         "owner": owner, "operand_a": "that" if target is None else "owner", "feature_operand": feature_operand})
+    return {"count": len(verified), "constraints": verified}
 
 
 def observe(module, elements):

@@ -130,13 +130,16 @@ model than the owner, but it cannot tell the kernel `that` from another feature
 the bundle leaves out. The PLE-Q runner therefore checks the operands by
 identity: operand A must be the owner or the kernel `that` (the target of the
 library's own `featureConfiguration = that`), and the constructor must
-instantiate the pinned library's `FeatureOperand`. Before the tag, a licensed scratch check (run `39151970312`, not evidence)
-loaded this fixture with the 1.1.0 library and passed the Gate A path. The
-historical replay and the prior of the fresh serialization stay on the Gate A
-experiment, which produced the retained export. The run above and the run
-this record retains (below) read PLEML 1.0.0, from the experiment `84673ea2`
-with the submodule at `071a69fd`; the PLE-Q and PLE-S runs on PLEML 1.1.0 come
-after this re-pin, and the record is refreshed from them. The run
+instantiate the pinned library's `FeatureOperand`. A constraint without an
+owner refuses, and the receipt's `constraint_operands` counts the constraints
+the check verified. Before the tag, a licensed scratch check (run
+`39151970312`, not evidence) loaded this fixture with the 1.1.0 library and
+passed the Gate A path. The historical replay and the prior of the fresh
+serialization stay on the Gate A experiment, which produced the retained
+export. The run above and the run this record retains (below) read PLEML
+1.0.0, from the experiment `84673ea2` with the submodule at `071a69fd`; the
+PLE-Q and PLE-S runs on PLEML 1.1.0 come after this re-pin, and the record is
+refreshed from them. The run
 `38780181818` and the record's previous run `38788579272` describe the Gate A
 pin `5f8ab856`.
 

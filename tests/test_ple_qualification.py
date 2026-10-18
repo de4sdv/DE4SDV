@@ -476,7 +476,7 @@ def _flipped(matrix, baseline):
 
 
 def _pleml_1_1_shape(elements, sources, *, operand_a=None, operand_a_target=KERNEL_THAT,
-                     look_alike_feature_operand=False):
+                     look_alike_feature_operand=False, no_owner=None, no_owning_relationship=None):
     """The committed Gate A export with its two constraint usages in the PLEML 1.1 parameter shape.
 
     Test scaffolding, never a PLEML 1.1.0 serialization or evidence. Each owned
@@ -489,6 +489,8 @@ def _pleml_1_1_shape(elements, sources, *, operand_a=None, operand_a_target=KERN
     usage, ``operand_a`` names a fixture feature instead and ``operand_a_target``
     another left-out target; ``look_alike_feature_operand`` makes the
     constructors instantiate a fixture definition named ``FeatureOperand``.
+    ``no_owner`` and ``no_owning_relationship`` name a usage whose owning
+    membership loses its owner, or which loses its owning relationship.
     Returns the elements, their source labels and the pruning records.
     """
     import copy
@@ -558,6 +560,10 @@ def _pleml_1_1_shape(elements, sources, *, operand_a=None, operand_a_target=KERN
                 records.append({"source_element_id": membership, "property_path": "memberElement",
                                 "target_id": operand_a_target if xor else KERNEL_THAT,
                                 "uri": "Kernel%20Libraries/Kernel%20Semantic%20Library/Base.kerml"})
+        if usage_name == no_owner:
+            by_id[by_id[usage]["owningRelationship"]["@id"]].pop("owningRelatedElement")
+        if usage_name == no_owning_relationship:
+            by_id[usage].pop("owningRelationship")
     return list(by_id.values()), labels, records
 
 
@@ -953,7 +959,7 @@ def test_the_fresh_arm_compares_with_the_gate_a_prior_not_with_itself(tmp_path, 
     r, args, _, _, _ = _offline_runner(tmp_path, monkeypatch, keep_gate_a_label=True)
     with pytest.raises(ValueError, match="0 library FeatureOperand"):
         r.run(args)
-    monkeypatch.setattr(r, "verify_constraint_operands", lambda bundle, values: [])
+    monkeypatch.setattr(r, "verify_constraint_operands", lambda bundle, values: {"count": 0, "constraints": []})
     receipt = r.run(SimpleNamespace(**{**vars(args), "out": tmp_path / "compared/receipt.json"}))
     differences = receipt["differences"]
     assert [item["concept"] for item in differences] == LABEL_BOUND_ROWS
@@ -970,16 +976,38 @@ def test_the_fresh_arm_checks_the_constraint_operands_by_identity(tmp_path, monk
     assert len(library_that) == 2 and all(r["uri"].endswith("Kernel%20Semantic%20Library/Base.kerml") for r in library_that)
     r, args, _, _, _ = _offline_runner(tmp_path, monkeypatch, shape={"operand_a": "apollo"})
     operands = r.run(args)["constraint_operands"]
-    assert [(item["name"], item["operand_a"]) for item in operands] == [
+    assert operands["count"] == 2
+    assert [(item["name"], item["operand_a"]) for item in operands["constraints"]] == [
         ("requiresFeatures", "that"), ("xorFeatures", "owner")]
-    assert {item["feature_operand"] for item in operands} == {"pleml-1.1:FeatureOperand"}
+    assert {item["feature_operand"] for item in operands["constraints"]} == {"pleml-1.1:FeatureOperand"}
+
+
+def test_the_operand_check_records_an_empty_pass_as_a_count_of_zero(tmp_path):
+    """No constraint usage with a constrainedFeatures parameter is legitimate; the receipt shows it as 0."""
+    from de4sdv.sysml_api.baseline import BaselineExportBundle, build_export_bundle
+
+    r = runner()
+    _, raw = _committed_export(tmp_path)
+    elements, sources = _elements_and_sources(raw)
+    shaped, labels, records = _pleml_1_1_shape(elements, _moved(sources, r.GATE_A.library, r.CURRENT.library))
+    for element in shaped:
+        if element.get("memberName") == "constrainedFeatures":
+            element["memberName"] = "renamedParameter"
+    documents = {}
+    for element in shaped:
+        documents.setdefault(labels[element["@id"]], []).append(element)
+    bundle = build_export_bundle(git_commit="0" * 40, source_documents=documents).to_dict()
+    bundle = BaselineExportBundle.from_dict(dict(bundle, external_references=raw["external_references"] + records))
+    assert r.verify_constraint_operands(bundle, list(bundle.elements.values())) == {"count": 0, "constraints": []}
 
 
 @pytest.mark.parametrize("shape, message", [
     ({"operand_a_target": "00000000-0000-5000-8000-0000000000aa"}, "operand A"),
     ({"operand_a": "openpilot"}, "operand A"),
     ({"look_alike_feature_operand": True}, "FeatureOperand"),
-], ids=["left-out-but-not-that", "foreign-feature", "look-alike-FeatureOperand"])
+    ({"no_owner": "requiresFeatures"}, "constraint operand check: .* has no owner"),
+    ({"no_owning_relationship": "requiresFeatures"}, "constraint operand check: .* has no owning relationship"),
+], ids=["left-out-but-not-that", "foreign-feature", "look-alike-FeatureOperand", "ownerless-usage", "malformed-usage"])
 def test_the_fresh_arm_refuses_operands_outside_the_library_identities(tmp_path, monkeypatch, shape, message):
     r, args, _, _, _ = _offline_runner(tmp_path, monkeypatch, shape=shape)
     with pytest.raises(ValueError, match=message):
