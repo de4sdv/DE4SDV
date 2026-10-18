@@ -9,8 +9,9 @@ allocations from their target end, and ``carriedByArchitecture`` accepts an
 allocation to a function or a ``hasRelevantArchitecture`` dependency. A step
 parameter typed by a function, logical or physical element class counts the
 charter's packages at any depth and the elements the increment's own
-allocations name. The scenarios declare a synthetic workflow with these checks:
-the frozen genuine-export cut's workflow predates them.
+allocations name. The scenarios declare a synthetic workflow with these checks, so
+each test controls the parameters it reads; the genuine-shape evaluation of the
+same checks is in ``test_genuine_export_evaluation.py``.
 """
 
 from __future__ import annotations
