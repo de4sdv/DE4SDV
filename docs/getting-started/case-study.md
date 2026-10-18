@@ -194,7 +194,7 @@ In the repository today:
 In progress, or not there yet:
 
 - `INC-MW-011`, Eclipse S-CORE as the middleware layer: phases 0 to 7 are
-  merged, and phases 8 to 12 are still to come;
+  merged, phase 8 is in review, and phases 9 to 12 are still to come;
 - a fenced experiment that restates the governed scope in the PLEML
   product-line library, pinned to an exact upstream revision. It is not
   adopted: the catalogue and the configurator remain the selection authority;
