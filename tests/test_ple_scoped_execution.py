@@ -106,10 +106,6 @@ def test_cli_emits_typed_fixture_without_promoting_native_evidence(tmp_path, bin
     assert "#feature occurrence :>> owner[1];" in bodies["xorCounterexample"]
     assert "constraint nativeXorProbe : PLEML::XORConstraint {" in source
     assert "in occurrence :>> featureConfiguration = xorCounterexample;" in source
-    assert ("in occurrence :>> constrainedFeatures = new FeatureOperand(ScopedTree::owner, ScopedTree::member0);"
-            in source)
-    assert "in occurrence constrainedFeatures = new FeatureOperand(that, member0);" in source
-    assert ":>> excluded" not in source and ":>> owningFeature" not in source
     assert report["fresh_serialization"] is False
     assert report["representation"]["licensed_validation"] is False
     assert report["native_expression_executed"] is False
@@ -179,12 +175,18 @@ def test_the_native_xor_reason_and_the_fixture_describe_the_pleml_1_1_0_body():
     r = runner()
     assert r.PLEML_PIN == "76e2be934453d77c4094141400b8ad8eb90a54a2"
     assert "excluded->ControlFunctions::forAll" in r.NATIVE_XOR_REASON
-    assert "PLEML.sysml:254-260" in r.NATIVE_XOR_REASON
+    assert "PLEML.sysml:250, 254-260" in r.NATIVE_XOR_REASON
     assert "constrainedFeatures.operandB" in r.NATIVE_XOR_REASON
     assert "size(excluded)" not in r.NATIVE_XOR_REASON and "range" not in r.NATIVE_XOR_REASON
     source = r.fixture_text(2)
     assert f"// PLEML pin {r.PLEML_PIN}; linkage is not AND/OR/precedence." in source
     assert "range expression" not in source
+    # The PLEML 1.1 constraint form, checked without the oracle checkout so that CI catches a revert.
+    assert "in occurrence :>> featureConfiguration = xorCounterexample;" in source
+    assert ("in occurrence :>> constrainedFeatures = new FeatureOperand(ScopedTree::owner, ScopedTree::member0);"
+            in source)
+    assert "in occurrence constrainedFeatures = new FeatureOperand(that, member0);" in source
+    assert ":>> excluded" not in source and ":>> owningFeature" not in source
 
 
 def test_the_cited_lines_hold_the_xor_body_of_the_pinned_library():

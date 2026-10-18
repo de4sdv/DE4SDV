@@ -25,7 +25,7 @@ FORMS = ("literal-bounds", "range-operator")
 #: Why the native XOR requirement stays failed until a licensed attempt replaces it.
 NATIVE_XOR_REASON = (
     "Pinned PLEML 1.1.0 XORConstraint iterates over the excluded features "
-    "(excluded = constrainedFeatures.operandB; excluded->ControlFunctions::forAll, PLEML.sysml:254-260) "
+    "(excluded = constrainedFeatures.operandB; excluded->ControlFunctions::forAll, PLEML.sysml:250, 254-260) "
     "and tests each for inclusion in the "
     "configuration. The existing serializer path only loads/serializes models; GateAModel.evaluate is a "
     "specialized incompatibility resolver, not native constraint execution. No occurrence-configuration "

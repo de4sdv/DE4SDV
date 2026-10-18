@@ -125,8 +125,12 @@ at `76e2be93`. PLEML 1.1.0 gives every feature constraint the parameter
 `constrainedFeatures` with the operands A and B, so the fixture's XOR and
 REQUIRES usages take the 1.1 form (`in occurrence constrainedFeatures = new
 FeatureOperand(that, androidSDV);`), and the interpreter reads the excluded
-feature as operand B and refuses an operand A other than the owning feature.
-Before the tag, a licensed scratch check (run `39151970312`, not evidence)
+feature as operand B. It refuses an operand A that names another feature of the
+model than the owner, but it cannot tell the kernel `that` from another feature
+the bundle leaves out. The PLE-Q runner therefore checks the operands by
+identity: operand A must be the owner or the kernel `that` (the target of the
+library's own `featureConfiguration = that`), and the constructor must
+instantiate the pinned library's `FeatureOperand`. Before the tag, a licensed scratch check (run `39151970312`, not evidence)
 loaded this fixture with the 1.1.0 library and passed the Gate A path. The
 historical replay and the prior of the fresh serialization stay on the Gate A
 experiment, which produced the retained export. The run above and the run
@@ -138,11 +142,11 @@ pin `5f8ab856`.
 
 ### Dependence on the upstream questions
 
-| Question | Status (2026-10-17) | Would apply to | How PLE-S avoids it |
+| Question | Status (2026-10-18) | Would apply to | How PLE-S avoids it |
 |---|---|---|---|
-| XOR loop ([MBSE4U/PLEML#3](https://github.com/MBSE4U/PLEML/issues/3)) | fixed in PLEML 1.0.0 by reading: the body iterates over `excluded`; no tool here evaluates it | any cross-tree exclusion | one variability, no cross-tree constraint; exclusivity is the `[1]` bound |
-| two bindings on one element ([#4](https://github.com/MBSE4U/PLEML/issues/4)) | open | an asset bound to two features | every variant has exactly one binding, each to one alternative |
-| binding-time rule ([#5](https://github.com/MBSE4U/PLEML/issues/5)) | answered: the intent is completeness, a configuration that leaves a phase decides every feature bound in it; no stage-aware evaluator here | later-stage or partial configurations | everything stays at the Development default; both members set the only Development feature |
+| XOR loop ([MBSE4U/PLEML#3](https://github.com/MBSE4U/PLEML/issues/3)) | fixed in PLEML 1.0.0 by reading: the body iterates over `excluded`; no tool here evaluates it; closed upstream | any cross-tree exclusion | one variability, no cross-tree constraint; exclusivity is the `[1]` bound |
+| two bindings on one element ([#4](https://github.com/MBSE4U/PLEML/issues/4)) | answered upstream and closed: PLEML 1.1.0 adds `ImpliesConstraint` (`(A and B) implies C`); PLE-S keeps one binding per variant and does not use it; the adapter pattern is the planned follow-up | an asset bound to two features | every variant has exactly one binding, each to one alternative |
+| binding-time rule ([#5](https://github.com/MBSE4U/PLEML/issues/5)) | answered: the intent is completeness, a configuration that leaves a phase decides every feature bound in it; no stage-aware evaluator here; closed upstream | later-stage or partial configurations | everything stays at the Development default; both members set the only Development feature |
 
 ## Known representation difference (owner decision D6)
 

@@ -73,8 +73,9 @@ PLEML_1_0_0 = ExperimentIdentity(
 #: The experiment at PLEML 1.1.0: a child of the experiment at 1.0.0 with the
 #: submodule at the 1.1.0 release commit, the fixture's constraint usages in
 #: the 1.1 form and the interpreter reading the excluded feature as operand B
-#: of constrainedFeatures (operand A must name the owner). The scoped probes,
-#: the fresh serialization and the scope alignment run on it.
+#: of constrainedFeatures (verify_constraint_operands checks the operands by
+#: identity). The scoped probes, the fresh serialization and the scope
+#: alignment run on it.
 PLEML_1_1_0 = ExperimentIdentity(
     revision="69bbe093c179f2121274b9f604c7d6a10de19e77",
     tag="pleml-1.1.0-frozen",
@@ -233,6 +234,62 @@ def reference_edges(elements):
     return edges
 
 
+def verify_constraint_operands(bundle, values):
+    """Check the operands of the fixture's PLEML 1.1 constraints by identity; the interpreter reads them by shape.
+
+    The constructor must instantiate the ``FeatureOperand`` of the pinned library document. Operand A must reference
+    the feature that owns the constraint, or the kernel ``that``: a reference the bundle leaves out whose one pruning
+    record names the target of the library's own ``featureConfiguration = that``. Anything else refuses.
+    """
+    elements = {item["@id"]: item for item in values}
+    records = {}
+    for record in bundle.external_references:
+        if record.get("property_path") == "memberElement":
+            records.setdefault(record.get("source_element_id"), []).append(record.get("target_id"))
+
+    def ref(value):
+        return value.get("@id") if isinstance(value, dict) else None
+
+    def one(found, what):
+        if len(found) != 1:
+            raise ValueError(f"constraint operand check: {len(found)} {what}")
+        return found[0]
+
+    def owned(owner, kind, name=None):
+        return [key for key, item in elements.items() if item.get("@type") == kind
+                and ref(item.get("owningRelatedElement")) == owner and (name is None or item.get("memberName") == name)]
+
+    def member(owner, kind, name=None):
+        return ref(elements[one(owned(owner, kind, name), f"{kind} {name or ''} of {owner}")].get("memberElement"))
+
+    def library(name):
+        return one([key for key, item in elements.items() if item.get("@type") == "OccurrenceDefinition"
+                    and item.get("declaredName") == name and bundle.element_sources.get(key) == LIBRARY], f"library {name}")
+
+    def reference(feature):  # a feature whose value is one feature reference: (target, pruning record targets)
+        membership = one(owned(member(feature, "FeatureValue"), "Membership"), f"references of {feature}")
+        return ref(elements[membership].get("memberElement")), records.get(membership, [])
+
+    feature_operand = library("FeatureOperand")
+    configuration = member(library("FeatureConfiguration"), "FeatureMembership", "featureConstraints")
+    that = reference(member(configuration, "FeatureMembership", "featureConfiguration"))
+    if that[0] is not None or len(that[1]) != 1:
+        raise ValueError("constraint operand check: the library's own that is not one left-out reference")
+    verified = []
+    for usage in sorted(key for key, item in elements.items() if item.get("@type") == "AssertConstraintUsage"
+                        and bundle.element_sources.get(key) == FIXTURE and owned(key, "FeatureMembership", "constrainedFeatures")):
+        constructor = member(member(usage, "FeatureMembership", "constrainedFeatures"), "FeatureValue")
+        if member(constructor, "Membership") != feature_operand:
+            raise ValueError(f"constraint operand check: {usage} does not instantiate the library's FeatureOperand")
+        owner = ref(elements[ref(elements[usage].get("owningRelationship"))].get("owningRelatedElement"))
+        target, pruned = reference(member(member(constructor, "ReturnParameterMembership"), "ParameterMembership", "operandA"))
+        if target != owner and (target is not None or pruned != that[1]):
+            raise ValueError(f"constraint operand check: operand A of {usage} is neither its owner {owner} nor that")
+        verified.append({"constraint": usage, "name": elements[usage].get("declaredName") or elements[usage].get("name"),
+                         "owner": owner, "operand_a": "owner" if target == owner else "that", "feature_operand": feature_operand})
+    return verified
+
+
 def observe(module, elements):
     model = module.GateAModel(elements)
 
@@ -323,6 +380,7 @@ def run(args):
         client = ApiClient(args.api_url)
         imported = import_baseline(client, bundle, project_name="DE4SDV isolated PLE qualification")
         values = verify_readback(bundle, client.get_all(f"/projects/{imported.project_id}/commits/{imported.commit_id}/elements"))
+        constraint_operands = verify_constraint_operands(bundle, values)
         binding = {"schema": "de4sdv.ple-qualification-binding/v1", "model_revision": identity.revision,
                    "executor_revision": executor_revision, "pleml_pin": identity.pleml_pin,
                    "serializer_version": version, "current_lock_sha256": current_lock,
@@ -333,6 +391,7 @@ def run(args):
         receipt = build_case_report(matrix, prior)
         receipt.update(historical=False, fresh_serialization=True, api_readback=True,
                        binding=binding, observations=observe(module, values),
+                       constraint_operands=constraint_operands,
                        pruning_records=list(bundle.external_references))
     # Check that the read-only experiments and current lock did not move mid-run.
     _, final_manifest, final_identity = load_experiment(args.experiment, identity)
