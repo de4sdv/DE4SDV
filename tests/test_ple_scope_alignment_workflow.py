@@ -31,9 +31,9 @@ WORKFLOW = ROOT / ".github/workflows/privileged-ple-scope-alignment.yml"
 VALIDATION = ROOT / ".github/workflows/privileged-syside-validation.yml"
 QUALIFICATION = ROOT / ".github/workflows/privileged-ple-qualification.yml"
 RUNNER = "scripts/run_ple_scope_alignment.py"
-#: The frozen experiment at PLEML 1.0.0 (tag pleml-1.0.0-frozen) and its PLEML pin.
-FROZEN = "84673ea2bca0d11b795a34afeb7584081dd24fd2"
-PIN = "071a69fdb2ecfa154809913938dfe9ebdf37701b"
+#: The frozen experiment at PLEML 1.1.0 (tag pleml-1.1.0-frozen) and its PLEML pin.
+FROZEN = "69bbe093c179f2121274b9f604c7d6a10de19e77"
+PIN = "76e2be934453d77c4094141400b8ad8eb90a54a2"
 LICENCE_VALUE = "${{ secrets.SYSIDE_LICENSE_KEY }}"
 LICENCE_PRESENCE = "${{ secrets.SYSIDE_LICENSE_KEY != '' }}"
 JOB = "scope-alignment"
@@ -120,6 +120,9 @@ def test_the_executor_is_the_exact_head_and_the_experiment_is_frozen_and_relocat
     checkouts = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
     assert len(checkouts) == 2
     head, experiment = checkouts
+    # The executor is the pull-request head or the dispatched ref, so the step names neither.
+    assert head["name"] == "Checkout the executor commit"
+    assert "pull-request head is the executor" not in WORKFLOW.read_text()
     assert head["with"]["ref"] == "${{ github.event.pull_request.head.sha || inputs.ref }}"
     assert head["with"]["persist-credentials"] is False
     # The oracle tests read the retained record's revision from history: never a shallow checkout.

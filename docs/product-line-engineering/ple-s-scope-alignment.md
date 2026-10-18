@@ -117,23 +117,39 @@ experiment checkout and the API log sat inside the executor checkout, the
 defect #375 fixed. No formal PLE-R or PLE-Q disposition is recorded on main;
 PLE-S proceeds on this observed status (owner decision D0).
 
-**PLEML 1.0.0.** The PLE workflows read the frozen experiment at PLEML 1.0.0:
-revision `84673ea2` (tag `pleml-1.0.0-frozen`), a child of the Gate A revision
-`6a99626b` (tag `pleml-gate-a-frozen`) with the PLEML submodule at `071a69fd`
-and the interpreter reading the library at its new path,
-`external/pleml/PLEML.sysml`. The historical replay and the prior of the fresh
+**PLEML 1.1.0.** The PLE workflows read the frozen experiment at PLEML 1.1.0:
+revision `69bbe093` (tag `pleml-1.1.0-frozen`), a child of the experiment at
+PLEML 1.0.0, `84673ea2` (tag `pleml-1.0.0-frozen`), which is a child of the
+Gate A revision `6a99626b` (tag `pleml-gate-a-frozen`). Its PLEML submodule is
+at `76e2be93`. PLEML 1.1.0 gives every feature constraint the parameter
+`constrainedFeatures` with the operands A and B, so the fixture's XOR and
+REQUIRES usages take the 1.1 form (`in occurrence constrainedFeatures = new
+FeatureOperand(that, androidSDV);`), and the interpreter reads the excluded
+feature as operand B. It refuses an operand A that names another feature of the
+model than the owner, but it cannot tell the kernel `that` from another feature
+the bundle leaves out. The PLE-Q runner therefore checks the operands by
+identity: operand A must be the owner or the kernel `that` (the target of the
+library's own `featureConfiguration = that`), and the constructor must
+instantiate the pinned library's `FeatureOperand`. A constraint without an
+owner refuses, and the receipt's `constraint_operands` counts the constraints
+the check verified. Before the tag, a licensed scratch check (run
+`39151970312`, not evidence) loaded this fixture with the 1.1.0 library and
+passed the Gate A path. The historical replay and the prior of the fresh
 serialization stay on the Gate A experiment, which produced the retained
 export. The run above and the run this record retains (below) read PLEML
-1.0.0; the run `38780181818` and the record's previous run `38788579272`
-describe the Gate A pin `5f8ab856`.
+1.0.0, from the experiment `84673ea2` with the submodule at `071a69fd`; the
+PLE-Q and PLE-S runs on PLEML 1.1.0 come after this re-pin, and the record is
+refreshed from them. The run
+`38780181818` and the record's previous run `38788579272` describe the Gate A
+pin `5f8ab856`.
 
 ### Dependence on the upstream questions
 
-| Question | Status (2026-10-17) | Would apply to | How PLE-S avoids it |
+| Question | Status (2026-10-18) | Would apply to | How PLE-S avoids it |
 |---|---|---|---|
-| XOR loop ([MBSE4U/PLEML#3](https://github.com/MBSE4U/PLEML/issues/3)) | fixed in PLEML 1.0.0 by reading: the body iterates over `excluded`; no tool here evaluates it | any cross-tree exclusion | one variability, no cross-tree constraint; exclusivity is the `[1]` bound |
-| two bindings on one element ([#4](https://github.com/MBSE4U/PLEML/issues/4)) | open | an asset bound to two features | every variant has exactly one binding, each to one alternative |
-| binding-time rule ([#5](https://github.com/MBSE4U/PLEML/issues/5)) | answered: the intent is completeness, a configuration that leaves a phase decides every feature bound in it; no stage-aware evaluator here | later-stage or partial configurations | everything stays at the Development default; both members set the only Development feature |
+| XOR loop ([MBSE4U/PLEML#3](https://github.com/MBSE4U/PLEML/issues/3)) | fixed in PLEML 1.0.0 by reading: the body iterates over `excluded`; no tool here evaluates it; closed upstream | any cross-tree exclusion | one variability, no cross-tree constraint; exclusivity is the `[1]` bound |
+| two bindings on one element ([#4](https://github.com/MBSE4U/PLEML/issues/4)) | answered upstream and closed: PLEML 1.1.0 adds `ImpliesConstraint` (`(A and B) implies C`); PLE-S keeps one binding per variant and does not use it; the adapter pattern is the planned follow-up | an asset bound to two features | every variant has exactly one binding, each to one alternative |
+| binding-time rule ([#5](https://github.com/MBSE4U/PLEML/issues/5)) | answered: the intent is completeness, a configuration that leaves a phase decides every feature bound in it; no stage-aware evaluator here; closed upstream | later-stage or partial configurations | everything stays at the Development default; both members set the only Development feature |
 
 ## Known representation difference (owner decision D6)
 
@@ -350,8 +366,8 @@ tree it is compared with. Both carry `qualified: false`.
   pull requests that touch the scope-alignment paths (same-repository,
   allowlisted authors, as the licensed validation) and on maintainer
   dispatch with a `ref`. It checks out the exact head, reads the frozen
-  experiment at PLEML 1.0.0, `84673ea2` (tag `pleml-1.0.0-frozen`), with the
-  PLEML submodule at pin `071a69fd`, relocates it outside the executor
+  experiment at PLEML 1.1.0, `69bbe093` (tag `pleml-1.1.0-frozen`), with the
+  PLEML submodule at pin `76e2be93`, relocates it outside the executor
   checkout, runs `syside check` on the reviewed roots with the pinned library
   and the model, then
   `scripts/run_ple_scope_alignment.py --licensed`, which serializes the same
@@ -387,13 +403,14 @@ tree it is compared with. Both carry `qualified: false`.
 - **Offline replay:** `python scripts/run_ple_scope_alignment.py --replay
   <scope-alignment-elements.json> --out <directory outside the repository>`
   re-evaluates a retained element file with the frozen interpreter read from
-  this repository's Git history: the frozen revision `84673ea2` is kept by the
-  tag `pleml-1.0.0-frozen`, the code reads the exact revision, and the bytes
+  this repository's Git history: the frozen revision `69bbe093` is kept by the
+  tag `pleml-1.1.0-frozen`, the code reads the exact revision, and the bytes
   are verified against the reviewed digest. An element file replays only with
   the experiment it records: the runner refuses another one and names the
   file's executor revision. Replay it at a revision that pins its experiment:
   the element file of the retained run `39115737098` records the PLEML 1.0.0
-  experiment and replays at `f1da5c0c` or later; the element file of the
+  experiment and replays on main from `f1da5c0c` until the PLEML 1.1.0 re-pin,
+  such as `2a9a1c81`; the element file of the
   previous run `38788579272` records the Gate A experiment and replays on main
   before PLEML 1.0.0, such as `099d33e6`. Replay evidence is not fresh
   serialization and says so.

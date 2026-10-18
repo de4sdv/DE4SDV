@@ -112,11 +112,11 @@ def test_licensed_workflow_is_qualification_only_and_pins_every_checkout():
     assert workflow["permissions"] == {"contents": "read", "actions": "read"}
     job = workflow["jobs"]["qualify"]
     checkouts = [item for item in job["steps"] if item.get("uses", "").startswith("actions/checkout@")]
-    # The executor, the experiment at PLEML 1.0.0 (scoped probes, fresh
+    # The executor, the experiment at PLEML 1.1.0 (scoped probes, fresh
     # serialization) and the Gate A experiment (historical replay, prior).
     assert len(checkouts) == 3
     executor, experiment, gate_a = checkouts
-    assert experiment["with"]["ref"] == "84673ea2bca0d11b795a34afeb7584081dd24fd2" == runner().CURRENT.revision
+    assert experiment["with"]["ref"] == "69bbe093c179f2121274b9f604c7d6a10de19e77" == runner().CURRENT.revision
     assert gate_a["with"]["ref"] == "6a99626b4af7cd01108f27dac88bf5b55bba207a" == runner().GATE_A.revision
     assert experiment["with"]["path"] == "_ple-experiment" and gate_a["with"]["path"] == "_ple-gate-a"
     for checkout in (experiment, gate_a):
@@ -352,12 +352,13 @@ def test_readback_refuses_noncanonical_reference_objects(payload):
         runner().verify_readback(bundle, actual)
 
 
-# -- PLEML 1.0.0 re-qualification: two experiment identities ------------------------------
+# -- PLEML re-qualification: the experiment identities ------------------------------------
 #
 # The historical replay (PLE-R) and the prior of the fresh arm stay on the
 # Gate A experiment; the scoped probes, the fresh serialization and the scope
-# alignment run on the experiment at PLEML 1.0.0. These tests read committed
-# data and Git objects only (CI fetches the full history and the tags).
+# alignment run on the experiment at PLEML 1.1.0, a reviewed child of the one
+# at PLEML 1.0.0. These tests read committed data and Git objects only (CI
+# fetches the full history and the tags).
 
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE = ROOT / "docs/product-line-engineering/gate-a-baseline"
@@ -390,6 +391,28 @@ REVIEWED_INTERPRETER_CHANGE = (
      'PLEML_SOURCE = Path("external/pleml/PLEML.sysml")',
      '            and element_sources.get(_ref_id(e) or "") == PLEML_SOURCE.as_posix()'],
 )
+#: The reviewed change of the experiment at PLEML 1.1.0 against the one at 1.0.0.
+REVIEWED_PATHS_1_1_0 = {
+    ".github/workflows/privileged-pleml-gate-a.yml", "docs/spikes/pleml-gate-a/README.md",
+    "docs/spikes/pleml-gate-a/pleml_gate_a_fixture.sysml", "external/pleml",
+    "tests/test_pleml_adapter_rule_api.py", "tests/test_pleml_api_observability.py",
+    "tests/test_pleml_group_semantics.py", "tools/pleml_gate_a.py",
+}
+#: The fixture's two constraint usages, from the PLEML 1.0 form to the 1.1 form.
+REVIEWED_FIXTURE_CHANGE_1_1_0 = (
+    ["                    in #feature occurrence :>> excluded = (androidSDV);",
+     "                    in #feature occurrence :>> requiredFeatures = (diagnostics);"],
+    ["                    in occurrence constrainedFeatures = new FeatureOperand(that, androidSDV);",
+     "                    in occurrence constrainedFeatures = new FeatureOperand(that, diagnostics);"],
+)
+#: The kernel feature ``that`` as the serializer names it: the target of the PLEML library's own
+#: ``featureConfiguration = that`` reference in the pruning records of the committed Gate A export.
+KERNEL_THAT = "dbd75b49-0e57-5cf9-ba35-9f8843b1e657"
+#: The verdicts of the five Gate A configurations.
+GATE_A_STATUSES = {
+    "adapter-required-exactly-one": "derivation-complete", "valid-no-adapter": "derivation-complete",
+    "configuration-invalid": "configuration-invalid", "derivation-incomplete": "derivation-incomplete",
+    "derivation-ambiguous": "derivation-ambiguous"}
 
 
 def _git_object(*args):
@@ -452,14 +475,106 @@ def _flipped(matrix, baseline):
     return {concept: value for concept, value in adequacy.items() if value != baseline[concept]}
 
 
-def test_the_current_identity_is_pleml_1_0_0_and_the_scope_alignment_identity():
+def _pleml_1_1_shape(elements, sources, *, operand_a=None, operand_a_target=KERNEL_THAT,
+                     look_alike_feature_operand=False, no_owner=None, no_owning_relationship=None):
+    """The committed Gate A export with its two constraint usages in the PLEML 1.1 parameter shape.
+
+    Test scaffolding, never a PLEML 1.1.0 serialization or evidence. Each owned
+    ``excluded`` or ``requiredFeatures`` role becomes ``in occurrence
+    constrainedFeatures = new FeatureOperand(that, <feature>);`` in the shape of
+    the official minimal serializer (licensed scratch check run 39151970312),
+    and the library gains the ``FeatureOperand`` definition the constructor
+    instantiates. Operand A refers to the kernel ``that``, which the bundle
+    leaves out: its reference has no target and one pruning record. For the XOR
+    usage, ``operand_a`` names a fixture feature instead and ``operand_a_target``
+    another left-out target; ``look_alike_feature_operand`` makes the
+    constructors instantiate a fixture definition named ``FeatureOperand``.
+    ``no_owner`` and ``no_owning_relationship`` name a usage whose owning
+    membership loses its owner, or which loses its owning relationship.
+    Returns the elements, their source labels and the pruning records.
+    """
+    import copy
+
+    by_id = {element["@id"]: copy.deepcopy(element) for element in elements}
+    labels = dict(sources)
+
+    def owned(owner, kind, member_name=None):
+        found = [e for e in by_id.values() if e["@type"] == kind and e.get("owningRelatedElement") == {"@id": owner}
+                 and (member_name is None or e.get("memberName") == member_name)]
+        assert len(found) == 1, (owner, kind, member_name)
+        return found[0]
+
+    def drop(root):
+        element = by_id.pop(root)
+        del labels[root]
+        for item in element.get("ownedRelationship", []) + element.get("ownedRelatedElement", []):
+            if item["@id"] in by_id:
+                drop(item["@id"])
+
+    def add(identifier, kind, owner=None, member=None, **properties):
+        by_id[identifier] = {"@id": identifier, "@type": kind, **properties}
+        labels[identifier] = FIXTURE
+        if owner is not None:
+            by_id[identifier]["owningRelatedElement"] = {"@id": owner}
+        if member is not None:
+            by_id[identifier]["memberElement"] = {"@id": member}
+        return identifier
+
+    def fixture_feature(name):
+        found = [i for i, e in by_id.items() if labels[i] == FIXTURE and e.get("declaredName") == name]
+        assert len(found) == 1, name
+        return found[0]
+
+    library = next(label for label in labels.values() if label.endswith("PLEML.sysml"))
+    add("pleml-1.1:FeatureOperand", "OccurrenceDefinition", declaredName="FeatureOperand")
+    labels["pleml-1.1:FeatureOperand"] = library
+    instantiated = "pleml-1.1:FeatureOperand"
+    if look_alike_feature_operand:
+        instantiated = add("pleml-1.1:look-alike-FeatureOperand", "OccurrenceDefinition", declaredName="FeatureOperand")
+    records = []
+    for usage_name, role in (("xorFeatures", "excluded"), ("requiresFeatures", "requiredFeatures")):
+        xor = usage_name == "xorFeatures"
+        premise = fixture_feature(operand_a) if xor and operand_a is not None else None
+        usage = next(i for i, e in by_id.items() if labels[i] == FIXTURE and e["@type"] == "AssertConstraintUsage"
+                     and (e.get("declaredName") or e.get("name")) == usage_name)
+        legacy = owned(usage, "FeatureMembership", role)
+        value = owned(legacy["memberElement"]["@id"], "FeatureValue")
+        target = owned(value["memberElement"]["@id"], "Membership")["memberElement"]["@id"]
+        drop(legacy["@id"])
+        prefix = f"pleml-1.1:{usage_name}"
+        parameter = add(f"{prefix}:constrainedFeatures", "OccurrenceUsage", declaredName="constrainedFeatures", direction="in")
+        by_id[usage]["ownedRelationship"] = [item for item in by_id[usage]["ownedRelationship"] if item["@id"] in by_id] + [
+            {"@id": add(f"{prefix}:parameter", "FeatureMembership", usage, parameter, memberName="constrainedFeatures")}]
+        constructor = add(f"{prefix}:constructor", "ConstructorExpression")
+        add(f"{prefix}:value", "FeatureValue", parameter, constructor)
+        add(f"{prefix}:instantiated", "Membership", constructor, instantiated)
+        result = add(f"{prefix}:result", "Feature", direction="out")
+        add(f"{prefix}:return", "ReturnParameterMembership", constructor, result)
+        for operand, referent in (("operandA", premise), ("operandB", target)):
+            argument = add(f"{prefix}:{operand}", "Feature", name=operand, direction="in")
+            add(f"{prefix}:{operand}:membership", "ParameterMembership", result, argument, memberName=operand)
+            reference = add(f"{prefix}:{operand}:reference", "FeatureReferenceExpression")
+            add(f"{prefix}:{operand}:value", "FeatureValue", argument, reference)
+            membership = add(f"{prefix}:{operand}:target", "Membership", reference, referent)
+            if referent is None:
+                records.append({"source_element_id": membership, "property_path": "memberElement",
+                                "target_id": operand_a_target if xor else KERNEL_THAT,
+                                "uri": "Kernel%20Libraries/Kernel%20Semantic%20Library/Base.kerml"})
+        if usage_name == no_owner:
+            by_id[by_id[usage]["owningRelationship"]["@id"]].pop("owningRelatedElement")
+        if usage_name == no_owning_relationship:
+            by_id[usage].pop("owningRelationship")
+    return list(by_id.values()), labels, records
+
+
+def test_the_current_identity_is_pleml_1_1_0_and_the_scope_alignment_identity():
     from de4sdv.semantic import ple_scope_alignment as alignment
 
     r = runner()
-    assert r.CURRENT == r.PLEML_1_0_0 != r.GATE_A
+    assert r.CURRENT == r.PLEML_1_1_0 not in (r.GATE_A, r.PLEML_1_0_0)
     assert (r.FROZEN_REVISION, r.PLEML_PIN, r.LIBRARY) == (r.CURRENT.revision, r.CURRENT.pleml_pin, r.CURRENT.library)
-    assert r.CURRENT.revision == "84673ea2bca0d11b795a34afeb7584081dd24fd2"
-    assert r.CURRENT.pleml_pin == "071a69fdb2ecfa154809913938dfe9ebdf37701b"
+    assert r.CURRENT.revision == "69bbe093c179f2121274b9f604c7d6a10de19e77"
+    assert r.CURRENT.pleml_pin == "76e2be934453d77c4094141400b8ad8eb90a54a2"
     assert r.CURRENT.library == "external/pleml/PLEML.sysml"
     # PLE-S reads the same experiment: one current identity, not two.
     assert (alignment.FROZEN_REVISION, alignment.FROZEN_TAG, alignment.FROZEN_INTERPRETER_SHA256,
@@ -477,7 +592,7 @@ def test_the_gate_a_identity_is_the_retained_baseline_identity(tmp_path):
         (FIXTURE, gate_a.fixture_sha256), (gate_a.library, gate_a.library_sha256)]
 
 
-@pytest.mark.parametrize("name", ["GATE_A", "PLEML_1_0_0"])
+@pytest.mark.parametrize("name", ["GATE_A", "PLEML_1_0_0", "PLEML_1_1_0"])
 def test_each_identity_is_its_tagged_revision_with_its_interpreter_fixture_and_pin(name):
     identity = getattr(runner(), name)
     assert _git_object("rev-parse", f"{identity.tag}^{{commit}}").decode().strip() == identity.revision
@@ -500,6 +615,55 @@ def test_the_pleml_1_0_0_experiment_is_the_reviewed_delta_of_gate_a():
     assert (_git_object("rev-parse", f"{gate_a.revision}:{FIXTURE}")
             == _git_object("rev-parse", f"{current.revision}:{FIXTURE}"))
     assert gate_a.fixture_sha256 == current.fixture_sha256
+
+
+def test_the_pleml_1_1_0_experiment_is_the_reviewed_delta_of_pleml_1_0_0():
+    r = runner()
+    parent, current = r.PLEML_1_0_0, r.PLEML_1_1_0
+    assert _git_object("rev-parse", f"{current.revision}^").decode().strip() == parent.revision
+    assert set(_git_object("diff", "--name-only", parent.revision, current.revision).decode().split()) == REVIEWED_PATHS_1_1_0
+
+    def change(path):
+        diff = _git_object("diff", "--unified=0", parent.revision, current.revision, "--", path).decode().splitlines()
+        return ([line[1:] for line in diff if line.startswith("-") and not line.startswith("---")],
+                [line[1:] for line in diff if line.startswith("+") and not line.startswith("+++")])
+
+    assert change(FIXTURE) == REVIEWED_FIXTURE_CHANGE_1_1_0
+    # The pin moves, the reader of the 1.0 excluded role goes and one reader of
+    # both operands comes in; the source paths and the constraint chain stay.
+    removed, added = change("tools/pleml_gate_a.py")
+    assert (len(removed), len(added)) == (54, 109)
+    assert 'PLEML_PIN = "071a69fdb2ecfa154809913938dfe9ebdf37701b"' in removed
+    assert 'PLEML_PIN = "76e2be934453d77c4094141400b8ad8eb90a54a2"' in added
+    assert "    def _role_target(owner_id: str, role_name: str) -> str:" in removed
+    assert "def _excluded_feature(" in added
+    assert not [line for line in removed + added if "PLEML_SOURCE" in line or "def _constraint_chain" in line]
+
+
+def test_the_pleml_1_1_0_interpreter_reads_the_1_1_shape_as_gate_a_reads_its_export(tmp_path):
+    from de4sdv.semantic.ple_qualification import build_case_report
+
+    r = runner()
+    gate_a, current = _interpreter_at(r.GATE_A, tmp_path), _interpreter_at(r.PLEML_1_1_0, tmp_path)
+    _, raw = _committed_export(tmp_path)
+    elements, sources = _elements_and_sources(raw)
+    prior = gate_a.build_observability_matrix(elements, sources)
+    moved = _moved(sources, r.GATE_A.library, r.PLEML_1_1_0.library)
+    shaped, shaped_sources, _ = _pleml_1_1_shape(elements, moved)
+    report = build_case_report(current.build_observability_matrix(shaped, shaped_sources), prior)
+    assert report["differences"] == []
+    assert {case["case"]: (case["status"], case["inadequate_concepts"]) for case in report["cases"]} == GATE_A_CASES
+    assert {label: value["status"] for label, value in r.observe(current, shaped)["outcomes"].items()} == GATE_A_STATUSES
+    # The 1.0 form is refused: the row names the missing parameter and the verdict refuses.
+    flipped = _flipped(current.build_observability_matrix(elements, moved), _adequacy(prior))
+    assert list(flipped) == ["Incompatibility constraint"]
+    assert "constrainedFeatures" in flipped["Incompatibility constraint"][1]
+    with pytest.raises(current.UnsupportedSemanticShape, match="constrainedFeatures"):
+        r.observe(current, elements)
+    # Operand A must name the owner of the constraint: a foreign feature is refused.
+    foreign, _, _ = _pleml_1_1_shape(elements, moved, operand_a="openpilot")
+    with pytest.raises(current.UnsupportedSemanticShape, match="operand A"):
+        r.observe(current, foreign)
 
 
 def test_the_gate_a_interpreter_reproduces_the_gate_a_cases_on_the_committed_export(tmp_path):
@@ -550,9 +714,10 @@ def test_the_pleml_1_0_0_interpreter_on_the_moved_library_is_the_gate_a_matrix(t
     assert sorted(_flipped(current.build_observability_matrix(elements, sources), _adequacy(before))) == LABEL_BOUND_ROWS
 
 
-def test_the_prior_refuses_an_interpreter_other_than_gate_a(tmp_path):
+@pytest.mark.parametrize("name", ["PLEML_1_0_0", "PLEML_1_1_0"])
+def test_the_prior_refuses_an_interpreter_other_than_gate_a(tmp_path, name):
     r = runner()
-    current = _interpreter_at(r.PLEML_1_0_0, tmp_path)
+    current = _interpreter_at(getattr(r, name), tmp_path)
     path, raw = _committed_export(tmp_path)
     with pytest.raises(ValueError, match="Gate A interpreter"):
         r.historical_matrix(path, current, raw["source_manifest"])
@@ -648,7 +813,7 @@ def _scratch_experiment(tmp_path, identity, *, extra_library=None):
     return experiment, scratch
 
 
-@pytest.mark.parametrize("name", ["GATE_A", "PLEML_1_0_0"])
+@pytest.mark.parametrize("name", ["GATE_A", "PLEML_1_0_0", "PLEML_1_1_0"])
 def test_load_experiment_verifies_the_identity_it_is_given(tmp_path, name):
     r = runner()
     experiment, identity = _scratch_experiment(tmp_path, getattr(r, name))
@@ -690,7 +855,8 @@ def test_load_experiment_refuses_an_interpreter_that_reads_another_library_path(
 # GATE_A and CURRENT are replaced by scratch experiments that carry the real
 # interpreters and fixture. Only Syside and the API are faked: the "fresh
 # serialization" is the committed Gate A export with the library label moved to
-# the 1.0.0 path (label-only), never a PLEML 1.0.0 serialization or evidence.
+# the current path and the constraint usages in the PLEML 1.1 shape
+# (_pleml_1_1_shape), never a PLEML 1.1.0 serialization or evidence.
 # The executor's own source verification is covered by the licensed runs; it is
 # switched off here so these tests pin the experiment wiring only.
 
@@ -704,13 +870,13 @@ class _OfflineImport:
     content_sha256: str
 
 
-def _offline_runner(tmp_path, monkeypatch, *, move_prior=False, keep_gate_a_label=False):
+def _offline_runner(tmp_path, monkeypatch, *, move_prior=False, keep_gate_a_label=False, shape=None):
     """The runner with scratch experiments as GATE_A and CURRENT; ``keep_gate_a_label`` leaves the library label unmoved."""
     from de4sdv.sysml_api.baseline import BaselineExportBundle, build_export_bundle
 
     r = runner()
     gate_a_checkout, gate_a = _scratch_experiment(tmp_path / "gate-a", r.GATE_A)
-    current_checkout, current = _scratch_experiment(tmp_path / "current", r.PLEML_1_0_0)
+    current_checkout, current = _scratch_experiment(tmp_path / "current", r.PLEML_1_1_0)
     monkeypatch.setattr(r, "GATE_A", gate_a)
     monkeypatch.setattr(r, "CURRENT", current)
     monkeypatch.setattr(r, "EXECUTOR_INPUTS", ())
@@ -727,12 +893,15 @@ def _offline_runner(tmp_path, monkeypatch, *, move_prior=False, keep_gate_a_labe
             interpreter = gate_a_checkout / "tools/pleml_gate_a.py"
             interpreter.write_bytes(interpreter.read_bytes() + b"\n# moved during the run\n")
         documents = {}
-        for element in raw["elements"]:
-            label = raw["element_sources"][element["@id"]]
+        shaped, shaped_sources, records = _pleml_1_1_shape(raw["elements"], raw["element_sources"], **(shape or {}))
+        for element in shaped:
+            label = shaped_sources[element["@id"]]
             moved = label == gate_a.library and not keep_gate_a_label
             documents.setdefault(current.library if moved else label, []).append(element)
         bundle = build_export_bundle(git_commit=revision, source_documents=documents).to_dict()
         bundle["source_manifest"] = manifest
+        # The serializer records what the bundle leaves out: the export's records and the shape's.
+        bundle["external_references"] = raw["external_references"] + records + bundle["external_references"]
         return BaselineExportBundle.from_dict(bundle), r.SERIALIZER_VERSION
 
     class Client:
@@ -781,18 +950,69 @@ def test_the_fresh_arm_serializes_the_current_experiment_against_the_gate_a_prio
 def test_the_fresh_arm_compares_with_the_gate_a_prior_not_with_itself(tmp_path, monkeypatch):
     """Negative control: a serialization that keeps the Gate A library label differs from the prior.
 
-    The current interpreter reads the library at the 1.0.0 path, so on the Gate A
-    label exactly the two label-bound rows turn inadequate. The differences are
-    those two rows only when they are computed against the Gate A prior.
+    The current interpreter reads the library at the 1.0.0 and 1.1.0 path, so on
+    the Gate A label exactly the two label-bound rows turn inadequate. The differences are
+    those two rows only when they are computed against the Gate A prior. The constraint
+    operand check refuses this serialization first (the current library document holds
+    no FeatureOperand); it is switched off for the second run, which reaches the comparison.
     """
     r, args, _, _, _ = _offline_runner(tmp_path, monkeypatch, keep_gate_a_label=True)
-    receipt = r.run(args)
+    with pytest.raises(ValueError, match="0 library FeatureOperand"):
+        r.run(args)
+    monkeypatch.setattr(r, "verify_constraint_operands", lambda bundle, values: {"count": 0, "constraints": []})
+    receipt = r.run(SimpleNamespace(**{**vars(args), "out": tmp_path / "compared/receipt.json"}))
     differences = receipt["differences"]
     assert [item["concept"] for item in differences] == LABEL_BOUND_ROWS
     for item in differences:
         assert item["classification"] == "review-required"
         assert item["before"]["api_only_consumption_adequate"] is True
         assert item["after"]["api_only_consumption_adequate"] is False and "found 0" in item["after"]["exact_gap"]
+
+
+def test_the_fresh_arm_checks_the_constraint_operands_by_identity(tmp_path, monkeypatch):
+    """The interpreter reads the operands by shape; the runner checks them by identity."""
+    _, raw = _committed_export(tmp_path)
+    library_that = [r for r in raw["external_references"] if r["target_id"] == KERNEL_THAT]
+    assert len(library_that) == 2 and all(r["uri"].endswith("Kernel%20Semantic%20Library/Base.kerml") for r in library_that)
+    r, args, _, _, _ = _offline_runner(tmp_path, monkeypatch, shape={"operand_a": "apollo"})
+    operands = r.run(args)["constraint_operands"]
+    assert operands["count"] == 2
+    assert [(item["name"], item["operand_a"]) for item in operands["constraints"]] == [
+        ("requiresFeatures", "that"), ("xorFeatures", "owner")]
+    assert {item["feature_operand"] for item in operands["constraints"]} == {"pleml-1.1:FeatureOperand"}
+
+
+def test_the_operand_check_records_an_empty_pass_as_a_count_of_zero(tmp_path):
+    """No constraint usage with a constrainedFeatures parameter is legitimate; the receipt shows it as 0."""
+    from de4sdv.sysml_api.baseline import BaselineExportBundle, build_export_bundle
+
+    r = runner()
+    _, raw = _committed_export(tmp_path)
+    elements, sources = _elements_and_sources(raw)
+    shaped, labels, records = _pleml_1_1_shape(elements, _moved(sources, r.GATE_A.library, r.CURRENT.library))
+    for element in shaped:
+        if element.get("memberName") == "constrainedFeatures":
+            element["memberName"] = "renamedParameter"
+    documents = {}
+    for element in shaped:
+        documents.setdefault(labels[element["@id"]], []).append(element)
+    bundle = build_export_bundle(git_commit="0" * 40, source_documents=documents).to_dict()
+    bundle = BaselineExportBundle.from_dict(dict(bundle, external_references=raw["external_references"] + records))
+    assert r.verify_constraint_operands(bundle, list(bundle.elements.values())) == {"count": 0, "constraints": []}
+
+
+@pytest.mark.parametrize("shape, message", [
+    ({"operand_a_target": "00000000-0000-5000-8000-0000000000aa"}, "operand A"),
+    ({"operand_a": "openpilot"}, "operand A"),
+    ({"look_alike_feature_operand": True}, "FeatureOperand"),
+    ({"no_owner": "requiresFeatures"}, "constraint operand check: .* has no owner"),
+    ({"no_owning_relationship": "requiresFeatures"}, "constraint operand check: .* has no owning relationship"),
+], ids=["left-out-but-not-that", "foreign-feature", "look-alike-FeatureOperand", "ownerless-usage", "malformed-usage"])
+def test_the_fresh_arm_refuses_operands_outside_the_library_identities(tmp_path, monkeypatch, shape, message):
+    r, args, _, _, _ = _offline_runner(tmp_path, monkeypatch, shape=shape)
+    with pytest.raises(ValueError, match=message):
+        r.run(args)
+    assert not args.out.exists()
 
 
 def test_the_historical_replay_runs_the_gate_a_experiment_on_its_own_export(tmp_path, monkeypatch):

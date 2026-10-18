@@ -2,7 +2,7 @@
 """Evaluate the PLEML scope alignment of the admitted AEBS product line (PLE-S).
 
 Licensed mode loads the reviewed model roots, the exact-pinned PLEML library
-(read from the frozen experiment checkout at PLEML 1.0.0, never from a copy in
+(read from the frozen experiment checkout at PLEML 1.1.0, never from a copy in
 this repository) and the scope-alignment model together with the pinned
 serializer, serializes them, validates the governed scope exactly as
 production does, and evaluates every scope-alignment configuration with the
@@ -92,7 +92,7 @@ def build_parser() -> argparse.ArgumentParser:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--experiment", type=Path,
-                        help="frozen experiment checkout at PLEML 1.0.0 (licensed mode)")
+                        help="frozen experiment checkout at PLEML 1.1.0 (licensed mode)")
     parser.add_argument("--licensed", action="store_true",
                         help="fresh serialization with the pinned licensed serializer on the x86_64 runner")
     parser.add_argument("--expected-executor", help="exact executor SHA (licensed mode)")
@@ -234,7 +234,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], list[str]]:
         executor_inputs = {relative: verified_file(ROOT, executor, relative) for relative in EXECUTOR_INPUTS}
         module, _, identity = load_experiment(args.experiment)
         if identity["interpreter_sha256"] != alignment.FROZEN_INTERPRETER_SHA256:
-            raise ValueError("the frozen experiment interpreter (PLEML 1.0.0) digest differs from the reviewed one")
+            raise ValueError("the frozen experiment interpreter (PLEML 1.1.0) digest differs from the reviewed one")
         experiment = {
             "interpreter_revision": FROZEN_REVISION,
             "interpreter_sha256": identity["interpreter_sha256"],

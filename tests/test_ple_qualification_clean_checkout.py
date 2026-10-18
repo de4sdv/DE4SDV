@@ -8,7 +8,7 @@ their inputs and evidence into that checkout (``_ple-baseline/``,
 into the checkout, that the frozen experiment leaves it, that background
 services run outside it, that the uploaded artifact keeps its name and layout,
 and that a guard refuses a dirty checkout before each script that records the
-flag. Both experiment checkouts (the experiment at PLEML 1.0.0 and the Gate A
+flag. Both experiment checkouts (the experiment at PLEML 1.1.0 and the Gate A
 experiment) leave it right after their checkout. The guard and relocation
 steps run for real in scratch checkouts; the script command lines parse
 against the real parsers (spied, nothing executes). No network, no dispatch.
@@ -330,7 +330,7 @@ def test_every_checkout_into_the_workspace_is_a_relocated_output():
         assert f'mv {path} "$RUNNER_TEMP/{path}"' in (steps[index + 1].get("run") or ""), path
 
 
-def test_the_replay_reads_gate_a_and_the_current_arms_read_the_pleml_1_0_0_experiment():
+def test_the_replay_reads_gate_a_and_the_current_arms_read_the_pleml_1_1_0_experiment():
     assert _step(SCOPED)["env"]["DE4SDV_PLE_ORACLE"] == "${{ runner.temp }}/_ple-experiment"
     assert '--experiment "$RUNNER_TEMP/_ple-gate-a"' in _step(REPLAY)["run"]
     assert "_ple-experiment" not in _step(REPLAY)["run"]
