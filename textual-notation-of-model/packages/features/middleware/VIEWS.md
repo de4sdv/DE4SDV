@@ -372,7 +372,7 @@ The integrator (software developer and system architect) needs the assumptions o
 
 ### `scoreTwoDomainOperationalContextView`
 
-Reviewers need the two execution domains, the hypervisor boundary, the host-side and guest-side actors, the system of interest on the host and the one-way HMI path visible for the two-domain member.
+Reviewers need the two execution domains, the hypervisor boundary, the host-side and guest-side actors, the system of interest in both domains and the one-way HMI path visible for the two-domain member.
 
 - **Source:** `middleware_score_operational_context.sysml`
 - **Viewpoint:** `selectedOperationalContextViewpoint` (`OperationalContextDefinitionViewpoint`)

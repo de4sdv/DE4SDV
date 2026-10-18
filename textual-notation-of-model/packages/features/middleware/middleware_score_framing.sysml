@@ -123,8 +123,9 @@ package DE4SDV_MiddlewareSCOREFraming {
      * together with the S-CORE services that realize the six logical
      * components of MiddlewareSystem (signal translation, diagnostic proxy,
      * lifecycle bridge, health proxy, update coordination, service binding)
-     * on the Linux host, up to the one-way cross-domain HMI path into the
-     * AAOS SDV guest. It is part of the member product, not an engineering
+     * on the Linux host, and the one-way cross-domain HMI path into the AAOS
+     * SDV guest up to the HMI application. It is part of the member product,
+     * not an engineering
      * instrument. The HMI application in the guest is part of the member
      * product but outside the system of interest. The needs and
      * requirements of this increment take the layer as their subject, and
@@ -135,8 +136,9 @@ package DE4SDV_MiddlewareSCOREFraming {
   part scoreMiddlewareIntegrationLayer : SCOREMiddlewareIntegrationLayer {
     doc /*
      * The middleware integration layer as realized on Eclipse S-CORE on the
-     * Linux host of the two-domain member product; the charter references it
-     * as the system of interest.
+     * Linux host of the two-domain member product, up to the HMI application
+     * in the AAOS SDV guest; the charter references it as the system of
+     * interest.
      */
   }
 

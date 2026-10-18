@@ -145,7 +145,8 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
   part def AAOSSDVGuestExecutionDomain :> OperationalEntity {
     doc /*
      * The AAOS SDV guest execution domain under the hypervisor (ASM-MW-027);
-     * it runs the HMI application and nothing of the AEBS path.
+     * it runs the HMI application, the guest end of the HMI path and nothing
+     * of the AEBS path.
      */
   }
 
@@ -172,7 +173,8 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
     doc /*
      * The operational context of the two-domain member product. The system of
      * interest is the middleware integration layer (the Autoware-to-S-CORE
-     * adapter with the S-CORE services) on the Linux host; the actors are the
+     * adapter with the S-CORE services) on the Linux host and the guest end of
+     * the one-way HMI path; the actors are the
      * host-side application elements, the guest with its HMI application, the
      * hypervisor between them, and the driver who sees the informational
      * display. This is the operational environment, not a deployment
@@ -411,8 +413,8 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
   concern scoreTwoDomainContextConcern : OperationalContextConcern {
     doc /*
      * Reviewers need the two execution domains, the hypervisor boundary, the
-     * host-side and guest-side actors, the system of interest on the host and
-     * the one-way HMI path visible for the two-domain member.
+     * host-side and guest-side actors, the system of interest in both domains
+     * and the one-way HMI path visible for the two-domain member.
      */
     subject;
     stakeholder systemArchitect : SystemArchitect;
