@@ -167,6 +167,21 @@ KNOWN_PRESENTATION_NOTES = {
         "Long qualified labels overlap in the current SysIDE layout; use the "
         "source and exposure list above for exact names."
     ),
+    "scoreMiddlewarePhysicalLogicalMappingView": (
+        "Cells show ↗ for every allocation; the two partial allocations are "
+        "typed `PartialLogicalToPhysicalSoftwareRealization`."
+    ),
+    "scoreMiddlewareLayerInternalExchangeView": (
+        "The four «connection» boxes above the layer are its connections to the "
+        "context parts of `SCORETwoDomainPhysicalSystem`, drawn as nodes with "
+        "their source and target ends because one end of each lies outside the "
+        "view; none of them reaches the velocity input of the AEB node. The "
+        "S-CORE part shows the platform-stack ports it inherits from "
+        "`MiddlewareLayer`, unconnected: the processes link S-CORE "
+        "communication and connect to each other directly. Domain placement "
+        "is stated in the process docs and the connection name; the view "
+        "does not draw the host/guest boundary."
+    ),
     "scoreTwoDomainOperationalContextView": (
         "SysIDE lists the actions of the signal flow `scoreTwoDomainSignalFlow` "
         "but does not draw the flows between them. The one-way flows are "

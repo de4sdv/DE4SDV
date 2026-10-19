@@ -7,13 +7,14 @@
  * stack, in a member product with two execution domains under a hypervisor.
  * The Linux host runs Autoware, Eclipse S-CORE and the Autoware-to-S-CORE
  * adapter; an AAOS SDV guest runs the HMI. The reference vehicle speed
- * travels over S-CORE communication into Autoware, and the AEBS signals of
- * the Autoware-based AEBS stack on the Linux host travel over S-CORE
- * communication across the domain boundary to the HMI in the guest. One
- * increment identity spans phases 0 to 12: this framing slice, the needs,
- * requirements, physical/software realization, variability and
- * configuration, and verification-evidence slices that follow, and the
- * publication and baseline decision all belong to it.
+ * travels over S-CORE communication into Autoware. The AEBS signals of the
+ * Autoware-based AEBS stack on the Linux host travel over S-CORE
+ * communication inside the host, and a DE4SDV SOME/IP relay carries them
+ * across the domain boundary to the HMI in the guest. One increment identity
+ * spans phases 0 to 12: this framing slice, the needs, requirements,
+ * physical/software realization, variability and configuration, and
+ * verification-evidence slices that follow, and the publication and baseline
+ * decision all belong to it.
  *
  * Predecessor relationship: the increment builds on the closed INC-MW-010
  * baseline and on the INC-MW-002 to INC-MW-007 baseline (ASM-MW-023). It
@@ -122,20 +123,21 @@ package DE4SDV_MiddlewareSCOREFraming {
      * together with the S-CORE services that realize the six logical
      * components of MiddlewareSystem (signal translation, diagnostic proxy,
      * lifecycle bridge, health proxy, update coordination, service binding)
-     * on the Linux host, up to the one-way cross-domain HMI path into the
-     * AAOS SDV guest. It is part of the member product, not an engineering
-     * instrument. The HMI application in the guest is part of the member
-     * product but outside the system of interest. The needs and
-     * requirements of this increment take the layer as their subject, and
-     * its physical/software realization specializes it.
+     * on the Linux host, and the one-way cross-domain HMI path into the AAOS
+     * SDV guest up to the HMI application. It is part of the member product,
+     * not an engineering instrument. The HMI application in the guest is part
+     * of the member product but outside the system of interest. The needs and
+     * requirements of this increment take the layer as their subject, and its
+     * physical/software realization specializes it.
      */
   }
 
   part scoreMiddlewareIntegrationLayer : SCOREMiddlewareIntegrationLayer {
     doc /*
      * The middleware integration layer as realized on Eclipse S-CORE on the
-     * Linux host of the two-domain member product; the charter references it
-     * as the system of interest.
+     * Linux host of the two-domain member product, up to the HMI application
+     * in the AAOS SDV guest; the charter references it as the system of
+     * interest.
      */
   }
 
@@ -156,7 +158,7 @@ package DE4SDV_MiddlewareSCOREFraming {
      * Each later slice belongs to this increment and is not a second
      * increment identity. Owner, expected artifacts and expected review
      * evidence are declarations, not completion or review evidence. The
-     * expected artifacts name the packages of phases 0 to 7; each later slice
+     * expected artifacts name the packages of phases 0 to 8; each later slice
      * adds its own package when it is authored. The system of interest is
      * the middleware integration layer: the needs and requirements take it
      * as their subject, the problem statement keeps the increment.
@@ -165,8 +167,8 @@ package DE4SDV_MiddlewareSCOREFraming {
     ref part :>> increment = DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationIncrement;
     ref part :>> systemOfInterest = DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
     attribute :>> owner = "DE4SDV maintainers";
-    attribute :>> expectedArtifacts = ("DE4SDV_MiddlewareSCOREFraming", "DE4SDV_MiddlewareSCOREOperationalContext", "DE4SDV_MiddlewareSCOREFeatureClassification", "DE4SDV_MiddlewareSCORENeedsRequirements", "DE4SDV_MiddlewareSCOREFunctionalArchitecture", "DE4SDV_MiddlewareSCORELogicalArchitecture");
-    attribute :>> expectedReviewEvidence = ("exact-head licensed SysML validation of the increment model slices", "repository gates and the Method Check at the reviewed head", "retained evidence of the runnable proof: the reference vehicle speed over S-CORE into Autoware and the AEBS signals over S-CORE to the HMI in the AAOS SDV guest");
+    attribute :>> expectedArtifacts = ("DE4SDV_MiddlewareSCOREFraming", "DE4SDV_MiddlewareSCOREOperationalContext", "DE4SDV_MiddlewareSCOREFeatureClassification", "DE4SDV_MiddlewareSCORENeedsRequirements", "DE4SDV_MiddlewareSCOREFunctionalArchitecture", "DE4SDV_MiddlewareSCORELogicalArchitecture", "DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization");
+    attribute :>> expectedReviewEvidence = ("exact-head licensed SysML validation of the increment model slices", "repository gates and the Method Check at the reviewed head", "retained evidence of the runnable proof: the reference vehicle speed over S-CORE into Autoware and the AEBS signals over S-CORE inside the Linux host and over the DE4SDV SOME/IP relay to the HMI in the AAOS SDV guest");
   }
 
   /* Qualified references to the accepted baseline and to the platform-stack

@@ -39,6 +39,7 @@ AEBS_YAML = ROOT / "methodologies/sysmod-sysmlv2/pilots/aebs-needs-requirements.
 SCORE_N = FEATURES / "middleware/middleware_score_needs_requirements.sysml"
 SCORE_F = FEATURES / "middleware/middleware_score_functional_architecture.sysml"
 SCORE_L = FEATURES / "middleware/middleware_score_logical_architecture.sysml"
+SCORE_P = FEATURES / "middleware/middleware_score_physical_software_realization.sysml"
 
 FUNCTION, LOGICAL, PHYSICAL = "AllocatableFunction", "LogicalAllocationElement", "PhysicalAllocationElement"
 REQUIREMENT = "RequirementCandidate"
@@ -102,6 +103,8 @@ ALLOCATION_FILES = {
     AEBS_SIM: ((AEBS_SIM, AEBS_L), {(LOGICAL, PHYSICAL): 7}, {"LogicalToPhysicalItemRealization": 4}, None),
     SCORE_F: ((SCORE_F, SCORE_N, MW_F), {(REQUIREMENT, FUNCTION): 9}, {}, (REQUIREMENT, FUNCTION)),
     SCORE_L: ((SCORE_L, SCORE_F, MW_L), {(FUNCTION, LOGICAL): 2}, {}, (FUNCTION, LOGICAL)),
+    SCORE_P: ((SCORE_P, SCORE_L, MW_L), {(LOGICAL, PHYSICAL): 6}, {"SystemToSoftwareSignalMappingCandidate": 3},
+              (LOGICAL, PHYSICAL)),
 }
 LINEAGE_FILES = (VIS_F, VIS_L, VIS_P, VIS_N, MW_F, MW_L, MW_P, AEBS_P, AEBS_F, AEBS_L, AEBS_SIM, AEBS_NEEDS,
                  KERNEL / "de4sdv_method_context.sysml")
@@ -221,9 +224,11 @@ def no_strings(code):
 
 def allocations(code):
     """Every native allocation usage as (name, definition or "", source, target).
-    Any ``allocate`` or ``allocation`` usage outside this one form fails."""
+    The usage ends with ``;`` or opens a body ``{`` (a signal mapping owns its
+    record there). Any ``allocate`` or ``allocation`` usage outside this one
+    form fails."""
     code = no_strings(code)
-    rows = re.findall(r"\ballocation\s+(\w+)(?:\s*:\s*(\w+))?\s+allocate\s+(\S+)\s+to\s+([^\s;]+)\s*;", code)
+    rows = re.findall(r"\ballocation\s+(\w+)(?:\s*:\s*(\w+))?\s+allocate\s+(\S+)\s+to\s+([^\s;{]+)\s*[;{]", code)
     assert len(rows) == len(re.findall(r"\ballocate\b", code)), "unrecognized allocation form"
     assert len(rows) == len(re.findall(r"\ballocation\b(?!\s+def\b)", code)), "unrecognized allocation usage"
     return rows

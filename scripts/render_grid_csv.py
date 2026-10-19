@@ -77,6 +77,12 @@ GRID_METADATA = {
         "conceptual system elements (part usages)",
         "physical/software elements (part usages)",
     ),
+    "matrix-scoreMiddlewarePhysicalLogicalMappingView": GridMetadata(
+        "S-CORE middleware conceptual-to-physical mapping",
+        "Maps the conceptual system elements of the S-CORE member's integration layer to the physical/software elements they are allocated to.",
+        "conceptual system elements (part usages)",
+        "physical/software elements (part usages)",
+    ),
     "table-middlewareProductLineClassificationView": GridMetadata(
         "Middleware product-line classification",
         "Classifies middleware characteristics and attaches each rationale to its element.",
