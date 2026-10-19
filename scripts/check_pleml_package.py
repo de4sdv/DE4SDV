@@ -36,8 +36,19 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 sys.dont_write_bytecode = True
 
-from de4sdv.semantic import pleml_package as package
-from de4sdv.semantic.pleml_package import PackageError
+
+def _require_python() -> None:
+    """The record needs ``tomllib`` (3.11+): refuse an older interpreter with a message, never a check result."""
+    if tuple(sys.version_info[:2]) < (3, 11):
+        found = ".".join(str(part) for part in sys.version_info[:3])
+        print(f"{Path(__file__).name} needs Python 3.11+ (this is {found}); nothing was checked", file=sys.stderr)
+        raise SystemExit(2)
+
+
+_require_python()
+
+from de4sdv.semantic import pleml_package as package  # noqa: E402
+from de4sdv.semantic.pleml_package import PackageError  # noqa: E402
 
 #: The upstream repository whose release tags the record names.
 UPSTREAM = "https://github.com/MBSE4U/PLEML"

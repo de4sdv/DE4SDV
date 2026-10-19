@@ -152,6 +152,11 @@ RELEASE_PATH = REPIN.path
 
 #: Where ``sysand sync`` in ``PROJECT`` installs the library, relative to the repository.
 LIBRARY_PATH = PROJECT / ".sysand/lib" / f"mbse4u-pleml_{RELEASE.version}" / RELEASE.library.path
+#: Where a run read each release's library, relative to the checkout that held it:
+#: the previous release from the frozen experiment's PLEML submodule, the pinned
+#: one from this project. A re-pin moves the library's serialized references from
+#: the one to the other, and nothing else.
+PROVISION_PATHS = {PREVIOUS.version: Path("external/pleml") / PREVIOUS.library.path, RELEASE.version: LIBRARY_PATH}
 
 #: Confinement (ADR 0022, decision 1): only the feature-model packages and
 #: their fixtures import PLEML. These are the roots the feature models and

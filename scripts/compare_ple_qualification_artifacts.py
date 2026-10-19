@@ -11,10 +11,15 @@ The baseline is the artifact of a PLE qualification run on the previous release
 - The library's own text, which may differ only as the recorded re-pin
   (``pleml_package.REPIN``) says: its Documentation body, the library entry of
   the source manifest, and the pin in the scoped fixture's comment.
+- A reference into the library, whose resource moves with the provision
+  (``pleml_package.PROVISION_PATHS``): from the previous release's path in the
+  baseline to the pinned release's in the candidate, after any checkout prefix,
+  with the same target and fragment.
 
 A difference anywhere else, a missing or extra file, or an allowed path without
 the expected value fails. ``sysml-api.log`` is not compared. The candidate adds
-``pleml-package.json``, the byte check of the fenced package.
+``pleml-package.json``, the byte check of the fenced package. The script needs
+Python 3.11+ and exits 2 on an older one, without comparing anything.
 """
 from __future__ import annotations
 
@@ -24,13 +29,25 @@ import re
 import sys
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote, urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 sys.dont_write_bytecode = True
 
-from de4sdv.semantic import pleml_package as package
+
+def _require_python() -> None:
+    """The record needs ``tomllib`` (3.11+): refuse an older interpreter with a message, never a verdict."""
+    if tuple(sys.version_info[:2]) < (3, 11):
+        found = ".".join(str(part) for part in sys.version_info[:3])
+        print(f"{Path(__file__).name} needs Python 3.11+ (this is {found}); nothing was compared", file=sys.stderr)
+        raise SystemExit(2)
+
+
+_require_python()
+
+from de4sdv.semantic import pleml_package as package  # noqa: E402
 
 SCHEMA = "de4sdv.ple-qualification-comparison/v1"
 #: The library label of the frozen interpreter, in the source manifests.
@@ -130,6 +147,66 @@ def _elements(data: Any) -> list[dict[str, Any]]:
     return data["elements"] if isinstance(data, dict) else data
 
 
+def _leaves(left: Any, right: Any, path: str = "") -> list[tuple[str, Any, Any]]:
+    """Each differing leaf: its dotted path and the two objects holding it (lists of equal length item by item)."""
+    if isinstance(left, dict) and isinstance(right, dict):
+        found: list[tuple[str, Any, Any]] = []
+        for key in sorted(set(left) | set(right), key=str):
+            child = f"{path}.{key}" if path else str(key)
+            if key not in left or key not in right:
+                found.append((child, None, None))
+            elif isinstance(left[key], (dict, list)) or isinstance(right[key], (dict, list)):
+                found.extend(_leaves(left[key], right[key], child))
+            elif left[key] != right[key]:
+                found.append((child, left, right))
+        return found
+    if isinstance(left, list) and isinstance(right, list) and len(left) == len(right):
+        return [leaf for index, pair in enumerate(zip(left, right)) for leaf in _leaves(*pair, f"{path}[{index}]")]
+    return [] if left == right else [(path or "<root>", None, None)]
+
+
+def _resource(uri: Any) -> tuple[list[str], str] | None:
+    """The path segments and the fragment of a file reference, without its checkout prefix; None for anything else.
+
+    Serialized references name the library relative to the referencing document
+    (``../../<checkout>/…``) or absolutely: the leading ``..`` segments, an
+    absolute root and percent-encoding go; a ``..`` inside the path refuses.
+    """
+    if not isinstance(uri, str):
+        return None
+    parsed = urlparse(uri)
+    if parsed.scheme not in ("", "file") or parsed.netloc not in ("", "localhost"):
+        return None
+    segments = [segment for segment in unquote(parsed.path).split("/") if segment not in ("", ".")]
+    while segments and segments[0] == "..":
+        segments.pop(0)
+    return None if ".." in segments else (segments, parsed.fragment)
+
+
+def _under(segments: list[str], provision: Path | None) -> bool:
+    parts = list(provision.parts) if provision is not None else []
+    return bool(parts) and segments[-len(parts):] == parts
+
+
+def _library_moved(before: Any, after: Any, *, previous: package.Release, release: package.Release) -> bool:
+    """A library reference whose resource moved with the provision, and nothing else.
+
+    The target (``@id``) and every other key are equal, the fragments are equal,
+    the baseline's resource is the previous release's library under its
+    provision path and the candidate's the pinned release's under its own.
+    """
+    if not (isinstance(before, dict) and isinstance(after, dict)):
+        return False
+    if {key: value for key, value in before.items() if key != "@uri"} != {
+            key: value for key, value in after.items() if key != "@uri"}:
+        return False
+    old, new = _resource(before.get("@uri")), _resource(after.get("@uri"))
+    if old is None or new is None or old[1] != new[1] or not (before.get("@id") or old[1]):
+        return False
+    return (_under(old[0], package.PROVISION_PATHS.get(previous.version))
+            and _under(new[0], package.PROVISION_PATHS.get(release.version)))
+
+
 def compare_elements(name: str, baseline: Any, candidate: Any, *, release: package.Release,
                      previous: package.Release, repin: package.Repin) -> list[str]:
     problems: list[str] = []
@@ -137,17 +214,23 @@ def compare_elements(name: str, baseline: Any, candidate: Any, *, release: packa
     right = {item.get("@id"): item for item in _elements(candidate)}
     if set(left) != set(right):
         return [f"{name}: the element ids differ ({len(set(left) ^ set(right))} not in both)"]
-    changed = [key for key in sorted(left) if left[key] != right[key]]
-    for key in changed:
+    changed = 0
+    for key in sorted(left):
         before, after = left[key], right[key]
-        keys = _differences(before, after)
+        if before == after:
+            continue
+        keys = [path for path, old, new in _leaves(before, after)
+                if not (path.endswith("@uri") and _library_moved(old, new, previous=previous, release=release))]
+        if not keys:
+            continue  # only references into the library moved with its provision
+        changed += 1
         if before.get("@type") != "Documentation" or keys != ["body"]:
             problems.append(f"{name}: element {key} differs in {keys}")
             continue
         problems.extend(f"{name}: element {key} body {line}"
                         for line in _version_lines(before["body"], after["body"], release, repin))
-    if len(changed) > 1 or (repin.previous_lines and not changed and previous.library != release.library):
-        problems.append(f"{name}: {len(changed)} elements differ; the re-pin changes exactly one Documentation body")
+    if changed > 1 or (repin.previous_lines and not changed and previous.library != release.library):
+        problems.append(f"{name}: {changed} elements differ; the re-pin changes exactly one Documentation body")
     if isinstance(baseline, dict):
         for key in _differences({k: v for k, v in baseline.items() if k not in ("elements", "source_manifest")},
                                 {k: v for k, v in candidate.items() if k not in ("elements", "source_manifest")}):

@@ -87,6 +87,8 @@ def test_the_record_is_the_release_tag() -> None:
     assert package.RELEASE_PATH == package.REPIN.path == "fast"
     assert previous.licenses == release.licenses == {"LICENSES/MIT.txt": "cb71f2bdde4cf2bd85e961678081df132fbefe38"}
     assert package.LIBRARY_PATH == PROJECT / ".sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml"
+    # Where a run read each release: 1.1.0 from the frozen experiment's submodule, 1.1.1 from this project.
+    assert package.PROVISION_PATHS == {"1.1.0": Path("external/pleml/PLEML.sysml"), "1.1.1": package.LIBRARY_PATH}
     for record in (*release.files, *previous.files):
         assert re.fullmatch(r"[0-9a-f]{40}", record.blob) and re.fullmatch(r"[0-9a-f]{64}", record.sha256)
 
