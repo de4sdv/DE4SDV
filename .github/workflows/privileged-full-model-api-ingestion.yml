@@ -91,9 +91,20 @@ jobs:
           distribution: temurin
           java-version: "11"
 
+      # The deploy host's client version (deploy-public-sysml-api.yml), never
+      # the newest release: the release archive is checked by its SHA-256 first.
       - name: Install Sysand and pinned model dependencies
         run: |
-          curl -fsSL https://sysand.com/install.sh | bash
+          SYSAND_VERSION=0.2.1
+          SYSAND_ASSET=sysand-linux-x86_64-gnu.tar.gz
+          SYSAND_SHA256=8b743d8270071a1141f6b1c0a07815407db5517e5b4a0bb4f38a9c39b2112bd8
+          curl -fsSL -o "$RUNNER_TEMP/$SYSAND_ASSET" \
+            "https://github.com/sensmetry/sysand/releases/download/v$SYSAND_VERSION/$SYSAND_ASSET"
+          echo "$SYSAND_SHA256  $RUNNER_TEMP/$SYSAND_ASSET" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/_sysand" "$HOME/.local/bin"
+          tar -xzf "$RUNNER_TEMP/$SYSAND_ASSET" -C "$RUNNER_TEMP/_sysand"
+          install -m 755 "$RUNNER_TEMP/_sysand/sysand" "$HOME/.local/bin/sysand"
+          test "$("$HOME/.local/bin/sysand" --version)" = "sysand $SYSAND_VERSION"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           "$HOME/.local/bin/sysand" sync
 

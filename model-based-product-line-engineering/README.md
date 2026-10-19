@@ -35,6 +35,11 @@ scope-alignment workflow. It sits outside every production selector and
 changes nothing above. See
 [`docs/product-line-engineering/ple-s-scope-alignment.md`](../docs/product-line-engineering/ple-s-scope-alignment.md).
 
+The [`libraries/pleml/`](libraries/pleml/README.md) directory is the fenced
+Sysand lock of the PLEML library: `=1.1.1`, byte-checked against its release
+tag. It holds no PLEML source. Until the switch to PLEML as the product-line
+authority, only the PLE workflows read it.
+
 ## Configurable families
 
 | Family | System role | Feature catalogue | Shared SysML owner |

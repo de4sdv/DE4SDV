@@ -171,9 +171,10 @@ def test_native_reproducer_exits_two_and_preserves_flags(tmp_path):
     assert report["native_xor"]["reason"] == runner().NATIVE_XOR_REASON
 
 
-def test_the_native_xor_reason_and_the_fixture_describe_the_pleml_1_1_0_body():
+def test_the_native_xor_reason_and_the_fixture_describe_the_pinned_pleml_1_1_1_body():
     r = runner()
-    assert r.PLEML_PIN == "76e2be934453d77c4094141400b8ad8eb90a54a2"
+    assert r.PLEML_PIN == "b694648cce4b96126eda2de3eb881c54397ae035"
+    assert r.NATIVE_XOR_REASON.startswith("Pinned PLEML 1.1.1 XORConstraint")
     assert "excluded->ControlFunctions::forAll" in r.NATIVE_XOR_REASON
     assert "PLEML.sysml:250, 254-260" in r.NATIVE_XOR_REASON
     assert "constrainedFeatures.operandB" in r.NATIVE_XOR_REASON
@@ -190,10 +191,12 @@ def test_the_native_xor_reason_and_the_fixture_describe_the_pleml_1_1_0_body():
 
 
 def test_the_cited_lines_hold_the_xor_body_of_the_pinned_library():
-    if not EXPERIMENT.is_dir():
-        pytest.skip("optional pinned oracle checkout unavailable")
-    r = runner()
-    lines = (EXPERIMENT / r.LIBRARY).read_text(encoding="utf-8").splitlines()
+    """The reason cites the library the fenced Sysand lock installs (the public CI syncs it)."""
+    from scripts import run_ple_qualification as qualification
+
+    if not qualification.PLEML_LIBRARY.is_file():
+        pytest.skip("the fenced PLEML package is not installed: run `sysand sync` in its project")
+    lines = qualification.PLEML_LIBRARY.read_text(encoding="utf-8").splitlines()
     body = "\n".join(lines[253:260])
     assert lines[253].strip() == "if featureConfiguration != null"
     assert "excluded->ControlFunctions::forAll {" in body and lines[259].strip() == "else true"

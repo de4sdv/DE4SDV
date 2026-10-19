@@ -481,13 +481,14 @@ class _Parsed(Exception):
     pass
 
 
-_SCRIPTS = ("run_ple_qualification.py", "run_ple_scoped_execution.py")
+#: The qualification scripts and the byte check of the fenced PLEML package they read.
+_SCRIPTS = ("run_ple_qualification.py", "run_ple_scoped_execution.py", "check_pleml_package.py")
 _COMMANDS = _script_commands()
 
 
 def test_every_qualification_script_is_exercised():
     assert {Path(argv[1]).name for _, argv in _COMMANDS} == set(_SCRIPTS)
-    assert len(_COMMANDS) == 3
+    assert len(_COMMANDS) == 4
 
 
 @pytest.mark.parametrize("name, argv", _COMMANDS, ids=[c[0] for c in _COMMANDS])

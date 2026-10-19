@@ -43,6 +43,13 @@ jobs:
       - name: Sync pinned SysML dependencies
         run: sysand sync
 
+      # The fenced PLEML lock: the byte check against the committed record of
+      # the release tag, and the release diff of the pin (fast or full path).
+      - name: Sync and byte-check the fenced PLEML package
+        run: |
+          (cd model-based-product-line-engineering/libraries/pleml && sysand sync)
+          python scripts/check_pleml_package.py --release-diff
+
       - name: Run repository checks
         run: python scripts/check_repo.py
 

@@ -31,9 +31,10 @@ WORKFLOW = ROOT / ".github/workflows/privileged-ple-scope-alignment.yml"
 VALIDATION = ROOT / ".github/workflows/privileged-syside-validation.yml"
 QUALIFICATION = ROOT / ".github/workflows/privileged-ple-qualification.yml"
 RUNNER = "scripts/run_ple_scope_alignment.py"
-#: The frozen experiment at PLEML 1.1.0 (tag pleml-1.1.0-frozen) and its PLEML pin.
+#: The frozen experiment at PLEML 1.1.0 (tag pleml-1.1.0-frozen): the interpreter only.
 FROZEN = "69bbe093c179f2121274b9f604c7d6a10de19e77"
-PIN = "76e2be934453d77c4094141400b8ad8eb90a54a2"
+#: PLEML itself: the fenced Sysand lock's install, byte-checked against its release tag.
+LIBRARY = "model-based-product-line-engineering/libraries/pleml/.sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml"
 LICENCE_VALUE = "${{ secrets.SYSIDE_LICENSE_KEY }}"
 LICENCE_PRESENCE = "${{ secrets.SYSIDE_LICENSE_KEY != '' }}"
 JOB = "scope-alignment"
@@ -48,6 +49,11 @@ OWN_PATHS = {
     "scripts/compare_ple_scope_alignment.py",
     "tests/test_ple_scope_alignment_oracle.py",
     ".github/workflows/privileged-ple-scope-alignment.yml",
+    # The PLEML pin and the code that reads it: a re-pin gets the licensed validation.
+    "model-based-product-line-engineering/libraries/pleml/**",
+    "de4sdv/semantic/pleml_package.py",
+    "scripts/check_pleml_package.py",
+    "scripts/run_ple_qualification.py",
 }
 ORACLE = "scripts/compare_ple_scope_alignment.py"
 
@@ -127,8 +133,8 @@ def test_the_executor_is_the_exact_head_and_the_experiment_is_frozen_and_relocat
     assert head["with"]["persist-credentials"] is False
     # The oracle tests read the retained record's revision from history: never a shallow checkout.
     assert head["with"]["fetch-depth"] == 0
-    assert experiment["with"] == {"ref": FROZEN, "path": "_ple-experiment", "submodules": "recursive",
-                                  "persist-credentials": False}
+    # The interpreter only: PLEML is not read from the experiment's submodule.
+    assert experiment["with"] == {"ref": FROZEN, "path": "_ple-experiment", "persist-credentials": False}
     revision = next(s for s in steps if s.get("id") == "revision")
     assert revision["env"] == {"EXPECTED_HEAD": "${{ github.event.pull_request.head.sha }}"}
     assert "${{" not in revision["run"]
@@ -140,10 +146,14 @@ def test_the_executor_is_the_exact_head_and_the_experiment_is_frozen_and_relocat
     assert relocate["name"] == qualification["name"] and relocate["run"] == qualification["run"]
     assert steps.index(relocate) == steps.index(experiment) + 1
     _index, verify = _step(f"grep -qx {FROZEN} ")
-    assert f"grep -qx {PIN} " in verify["run"]
     assert 'rev-parse HEAD > "$RUNNER_TEMP/ple-evidence/experiment-revision.txt"' in verify["run"]
-    assert 'rev-parse HEAD > "$RUNNER_TEMP/ple-evidence/pleml-pin.txt"' in verify["run"]
+    assert "external/pleml" not in WORKFLOW.read_text(), "no step reads PLEML from the experiment's submodule"
     assert steps.index(verify) == steps.index(relocate) + 1
+    # The fenced package is installed and byte-checked before the first step that reads it.
+    check_index, check = _step("scripts/check_pleml_package.py")
+    assert "(cd model-based-product-line-engineering/libraries/pleml && sysand sync)" in check["run"]
+    assert check_index < min(_step(needle)[0] for needle in ("tests/test_ple_scope_alignment_evaluator.py",
+                                                            "syside check", RUNNER))
 
 
 # -- the clean-checkout discipline of #375, applied with the merged helpers ----------------
@@ -272,7 +282,10 @@ def test_syside_check_covers_the_reviewed_roots_the_pinned_library_and_the_model
     command = " ".join(re.sub(r"\\\n\s*", " ", check["run"]).split())
     for root in MODEL_PATHS:
         assert f" {root.as_posix()} " in command + " ", root
-    assert '"$RUNNER_TEMP/_ple-experiment/external/pleml/PLEML.sysml"' in command
+    from de4sdv.semantic import pleml_package
+
+    assert LIBRARY == pleml_package.LIBRARY_PATH.as_posix()
+    assert f" {LIBRARY} " in command
     assert "model-based-product-line-engineering/pleml-scope-alignment/aebs_product_line_scope_alignment.sysml" in command
     assert "syside-check.txt" in command
 
