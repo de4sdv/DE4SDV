@@ -40,21 +40,23 @@ No element is identified by its name. Member names (`workflow`, `phase`,
   that rule until a model change removes the redundancy. Content in a package
   the charter does not name is never evaluated;
   `charterExpectedArtifactsCoverContent` reports such a package (advisory).
-  A parameter typed by a function, logical or physical element class (the
-  architecture steps of phases 6 to 8) also counts what those packages own
-  at any depth, such as the actions of a functional-flow definition or the
-  parts of a logical system's definition, and the elements the increment's
-  own allocations name: a reused baseline function enters through the
-  increment's allocation, and its baseline chain is read where it is. A
-  parameter, an end (`direction` set or `isEnd`) or a reference to another
-  feature (a `perform` usage, say) declares no element of its own, so it is
-  not counted, nor is anything it owns.
+  The architecture steps of phases 6 to 8 have parameters typed by a
+  function, logical or physical element class. Such a parameter also counts
+  what the declared packages own, at any depth. Examples are the actions of a
+  functional-flow definition or the parts of a logical system's definition.
+  It also counts the elements that the increment's own allocations name. In
+  this way, a reused baseline function enters through the increment's
+  allocation, and its baseline chain is read where it is. A parameter, an end
+  (`direction` set or `isEnd`) or a reference to another feature (a `perform`
+  usage, say) declares no element of its own. So it is not counted, and
+  nothing it owns is counted either.
 - **Subject.** Needs and requirements take the increment's system of interest
-  as subject, the one the charter declares in `systemOfInterest` by
-  reference to a usage or by type, never the increment. A subject matches
-  when it is, narrows, or is typed by that system of interest's definition or
-  a specialization of it (type-level: another usage of the definition also
-  passes); `subjectIsSystemOfInterest` reports a deviation (advisory).
+  as subject, never the increment. The system of interest is the one the
+  charter declares in `systemOfInterest`, by reference to a usage or by type.
+  A subject matches when it is, narrows, or is typed by that system of
+  interest's definition or a specialization of it. The match is type-level:
+  another usage of the definition also passes. `subjectIsSystemOfInterest`
+  reports a deviation (advisory).
 - **Population.** The parameter's multiplicity bounds the number of subjects:
   `[1]` means exactly one, `[0..*]` lets an empty population mean "does not
   apply". `phase_contract` gives it per check as `population`, for example
@@ -170,28 +172,36 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   `INC-EXAMPLE-001`). `resolution` is not a reason code of the result
   algebra, so it never appears in `reason_codes`.
 - **Relations.** A check that names a relation is decided by the relation check
-  of that name in `de4sdv/semantic/relation_checks.py`: a relation of the
-  model-built contract through the production traversal (a connection-carried
-  relation from the connections of its pinned carrier, and `allocatedTo` from
-  the ends of every native allocation), and the native SysML relations
+  of that name in `de4sdv/semantic/relation_checks.py`. That relation check
+  decides a relation of the model-built contract through the production
+  traversal. In that traversal, a connection-carried relation comes from the
+  connections of its pinned carrier, and `allocatedTo` from the ends of every
+  native allocation. The relation check decides the native SysML relations
   `frame`, `stakeholder`, `subject` and `verify` from their memberships. A
   relation check reads only the model, never method fields.
 - **Allocations (phases 6 to 8).** `allocatedTo` counts an
   `allocation <name> allocate <source> to <target>;`, typed or not, when its
-  two ends ground in one end pair: requirement to function, function to
-  logical element, logical element to physical element (the
+  two ends ground in one end pair:
+  - requirement to function;
+  - function to logical element;
+  - logical element to physical element.
+
+  Functions, logical elements and physical elements are those of the
   `AllocatableFunction`, `LogicalAllocationElement` and
-  `PhysicalAllocationElement` lineages). An end written as a feature chain
-  (`fixtureFlow.fnA`) counts as its last feature. Near misses are reported
-  with the gap, never counted as the trace: a plain dependency from the
-  subject to an element of the class it must reach, a dependency from such
-  an element to the subject, and an allocation whose ends ground in no end
-  pair (a requirement allocated to a logical element, say). Absence is not
-  established while any allocation is unreadable: the subject is then
-  reported as unreadable ("N allocations cannot be read, so absence cannot
-  be established"), an input problem, not a gap. Phase 6 also needs at least
-  one function (`incrementHasFunction`). So, for the first open check of
-  each phase:
+  `PhysicalAllocationElement` lineages, in that order. An end written as a
+  feature chain (`fixtureFlow.fnA`) counts as its last feature. Near misses
+  are reported with the gap, never counted as the trace:
+  - a plain dependency from the subject to an element of the class it must
+    reach;
+  - a dependency from such an element to the subject;
+  - an allocation whose ends ground in no end pair (a requirement allocated
+    to a logical element, say).
+
+  Absence is not established while any allocation is unreadable. In that
+  case, the subject is reported as unreadable ("N allocations cannot be read,
+  so absence cannot be established"). This is an input problem, not a gap.
+  Phase 6 also needs at least one function (`incrementHasFunction`). So, for
+  the first open check of each phase:
 
   ```sysml
   private import DE4SDV_TraceVocabulary::AllocatableFunction;
@@ -202,21 +212,23 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   ```
 
   The other end may be an existing element, of the increment or a baseline.
-  A requirement that is not functional needs no function: it is carried
-  either by an allocation to a function or by a dependency from the part or
-  action usage or definition that is relevant to it
-  (`hasRelevantArchitecture`). One with neither is an advisory note, which
-  says what else holds it: an allocation that does not count, its
-  verification alone, or no verification case yet. Leaving it so, or leaving
-  a function, logical or physical element without an allocation from the
-  layer before it, is allowed; the advisory remedies name one line to
-  author and give the alternative as a note, and nothing is authored just
-  to clear them. On an API revision binding the method tools report these
-  checks as method side (`method_side_blockers`) until the `allocatedTo`
-  relation's admission obligations are discharged; the PR Method Check
-  evaluates them on the export of the head.
+  A requirement that is not functional needs no function. It is carried
+  either:
+  - by an allocation to a function; or
+  - by a dependency from the part or action usage or definition that is
+    relevant to it (`hasRelevantArchitecture`).
+
+  One with neither is an advisory note. The note says what else holds it: an
+  allocation that does not count, its verification alone, or no verification
+  case yet. Leaving it so is allowed. Leaving a function, logical or physical
+  element without an allocation from the layer before it is also allowed. The
+  advisory remedies name one line to author and give the alternative as a
+  note. Nothing is authored just to clear them. On an API revision binding,
+  the method tools report these checks as method side (`method_side_blockers`)
+  until the `allocatedTo` relation's admission obligations are discharged.
+  The PR Method Check evaluates them on the export of the head.
 - **Method side versus model.** Some inputs only a method or kernel change can
-  supply, for example a declaration without a validated kernel identity or a
+  supply. Examples are a declaration without a validated kernel identity, or a
   relation without a SysML mapping. Those checks are listed under
   `method_side_blockers`, not offered as authoring work. A check with an
   authorable failure stays actionable; its method-side subjects are listed
