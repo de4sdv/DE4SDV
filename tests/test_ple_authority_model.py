@@ -2,10 +2,12 @@
 
 The PLEML feature models (``feature-models/*.sysml``) and their configurations
 (``feature-configurations/**/*.sysml``) are fenced until the authority switch
-(ADR 0022, step S6). These checks are lexical: they pin the reviewed shape so
-that a rename or a drift fails here before the licensed run. The privileged
-PLE authority workflow (licensed validation, serialization, API round trip)
-is the validator, and the evaluator of step S2 owns the semantics. They pin:
+(ADR 0022, step S6). These checks read the model text: they pin the reviewed
+shape so that a rename or a drift fails here before the licensed run, and the
+closed-world and admission checks evaluate the stated semantics on that text.
+The privileged PLE authority workflow (licensed validation, serialization, API
+round trip) is the validator, and the evaluator of step S2 owns the
+semantics. They pin:
 
 - the fence: outside every production selector;
 - each feature model restating its YAML catalogue node for node, by ID, except
@@ -14,14 +16,18 @@ is the validator, and the evaluator of step S2 owns the semantics. They pin:
   one derivation rule for each allowed pair, exactly one exclusion for each
   unsupported one, and the rule table equal to the catalogue's row by row;
 - the complement check of the allowed lists of C001 and C003, and of C002's;
+- the closed world: on every structurally valid selection, the model's groups,
+  constraints and rules decide as the configurator does;
 - one feature binding per shared-asset variant, the correspondences, the
   projection metadata and the unassigned binding times;
-- each configuration against its bill of features.
+- each configuration against its bill of features, and its admission by the
+  stated reading of the correspondences.
 """
 
 from __future__ import annotations
 
 import importlib.util
+import itertools
 import re
 import subprocess
 from dataclasses import dataclass, field
@@ -669,6 +675,132 @@ def test_the_environment_catalogue_constraints_become_requires_constraints(name:
         assert [by_name[operand].id for operand in constraint["operands"]] == [_choice(nodes, target_group, target).feature_id]
 
 
+# -- the closed world, evaluated ------------------------------------------------------------------
+
+
+def _valid_selections(root) -> list[dict]:
+    """Every structurally valid selection of a catalogue, as Bill-of-Features selections.
+
+    One choice per alternative group, a non-empty subset per OR group, and both
+    values of each optional leaf; a mandatory leaf stays implied. Structurally
+    invalid selections are outside the equality: an exclusion presumes the
+    exactly-one structure of its group, so both sides reject them, but not
+    always for the same constraint IDs.
+    """
+    axes = []
+    for node in configurator.collect_all_nodes(root).values():
+        if node.is_selection_group():
+            names = [child.name for child in node.children]
+            axes.append((node.path, names if node.type == "alternative" else
+                         [list(subset) for size in range(1, len(names) + 1)
+                          for subset in itertools.combinations(names, size)]))
+        elif node.is_leaf() and node.type == "optional" and node.parent.type not in GROUPS:
+            axes.append((node.path, [False, True]))
+    return [dict(zip((path for path, _values in axes), combination))
+            for combination in itertools.product(*(values for _path, values in axes))]
+
+
+def _configurator_verdict(data: dict, root, constraints: list, selection: dict) -> tuple[bool, frozenset, bool, str | None]:
+    """(valid, constraint IDs, no matching rule, derived variant) as the configurator decides.
+
+    The derived variant counts for a valid selection only: derivation applies
+    to valid configurations (the kernel's derivation rule).
+    """
+    nodes = configurator.collect_all_nodes(root)
+    assert configurator.validate_structure(root, nodes, selection) == [], selection
+    implied = {leaf.path: True for leaf in configurator.find_mandatory_leaves(root) if leaf.path not in selection}
+    errors = configurator.validate_constraints(constraints, {**selection, **implied})
+    ids = frozenset(re.match(r"\[([^\]]+)\]", error)[1] for error in errors)
+    resolved, unresolved = configurator.resolve_derived_asset_selections(data, selection)
+    no_rule = any("has no rule" in error for error in unresolved)
+    valid = not errors and not unresolved
+    return valid, ids, no_rule, resolved[0][1] if valid and resolved else None
+
+
+def _model_verdict(features: list[Feature], rules: list[Dependency], selected: set[str]) -> tuple[bool, frozenset, bool, str | None]:
+    """(valid, constraint IDs, pair exclusion, derived variant) by the model's own semantics.
+
+    A ``[1]`` group needs exactly one selected member and a ``[1..*]`` group
+    at least one. An exclusion of a selected owner fails when it selects an
+    excluded feature, a requires constraint when it misses a required one;
+    an exclusion without an ID is a pair exclusion. A valid configuration
+    then derives the variant of the one rule whose premises are all selected;
+    none or several rejects it.
+    """
+    by_name = _by_name(features)
+    reasons: set[str] = set()
+    for group in {feature.parent for feature in features if feature.parent}:
+        count = sum(feature.name in selected for feature in features if feature.parent == group)
+        lower, _, upper = by_name[group].multiplicity.partition("..")
+        if count < int(lower) or (upper != "*" and count > int(upper or lower)):
+            reasons.add(f"group {group}")
+    for feature in features:
+        if feature.name in selected:
+            for constraint in feature.constraints:
+                operands = set(constraint["operands"])
+                if (constraint["kind"] == "xorFeatures" and operands & selected
+                        or constraint["kind"] == "requiresFeatures" and not operands <= selected):
+                    reasons.add(constraint["id"] or f"pair {feature.name}")
+    variant = None
+    if rules and not reasons:
+        matching = [rule for rule in rules if {premise.rsplit("::", 1)[1] for premise in rule.suppliers} <= selected]
+        if len(matching) == 1:
+            variant = matching[0].client.rsplit("::", 1)[1]
+        else:
+            reasons.add("no rule" if not matching else "several rules")
+    ids = frozenset(reason for reason in reasons if " " not in reason and reason != "no rule")
+    return not reasons, ids, any(reason.startswith("pair ") for reason in reasons), variant
+
+
+def _selected_features(selection: dict, root, features: list[Feature]) -> set[str]:
+    """The features a selection selects: its choices and set leaves, plus every mandatory feature."""
+    index, nodes = _by_id(features), configurator.collect_all_nodes(root)
+    selected = {feature.name for feature in features if not feature.multiplicity.startswith("0")}
+    for path, value in selection.items():
+        if value is False:
+            continue
+        names = [value] if isinstance(value, str) else value if isinstance(value, list) else []
+        targets = [_choice(nodes, path, name) for name in names] if names else [nodes[path]]
+        selected.update(index[node.feature_id].name for node in targets if not _is_common(node))
+    return selected
+
+
+@pytest.mark.parametrize("name", FAMILIES)
+def test_the_closed_world_decides_as_the_catalogue_on_every_structurally_valid_selection(name: str) -> None:
+    """The agreement and complement checks, evaluated: on every structurally valid
+    selection the model and the configurator give the same verdict, the same
+    constraint IDs and the same derived variant, and an unsupported pair is
+    rejected by a pair exclusion exactly where the configurator finds no rule."""
+    family = FAMILIES[name]
+    data, root, constraints = _catalogue(family)
+    features = _tree(family)[1]
+    rules = [d for d in _dependencies(family.model) if d.metadata == "DerivationRule"]
+    selections = _valid_selections(root)
+    assert len(selections) == {"sdv": 16128, "engineering": 27, "vehicle": 8}[name]
+    verdicts = {True: 0, False: 0}
+    for selection in selections:
+        expected = _configurator_verdict(data, root, constraints, selection)
+        assert _model_verdict(features, rules, _selected_features(selection, root, features)) == expected, selection
+        verdicts[expected[0]] += 1
+    assert verdicts[True] and verdicts[False], verdicts
+
+
+def test_the_closed_world_check_catches_a_dropped_exclusion() -> None:
+    family = FAMILIES["sdv"]
+    data, root, constraints = _catalogue(family)
+    features = _tree(family)[1]
+    rules = [d for d in _dependencies(family.model) if d.metadata == "DerivationRule"]
+    weakened = [Feature(**{**feature.__dict__, "constraints": [c for c in feature.constraints if c["id"] != "C001"]})
+                for feature in features]
+    selection = {**_valid_selections(root)[0], "PlatformStack.VehicleApplication": "Autoware",
+                 "PlatformStack.Middleware": "EclipseSCORE", "PlatformStack.OS": "Android",
+                 "PlatformStack.Hypervisor": "None"}
+    expected = _configurator_verdict(data, root, constraints, selection)
+    assert expected == (False, frozenset({"C001"}), False, None)
+    assert _model_verdict(features, rules, _selected_features(selection, root, features)) == expected
+    assert _model_verdict(weakened, rules, _selected_features(selection, root, weakened)) != expected
+
+
 # -- bindings, correspondences and projection metadata -------------------------------------------------
 
 
@@ -872,3 +1004,123 @@ def test_the_fixture_is_the_only_configuration_outside_the_authority_roots() -> 
     fixture = _bill(CONFIGURATIONS_DIR / "fixtures/invalid-score-android.yaml")
     assert (fixture["selections"]["PlatformStack.Middleware"], fixture["selections"]["PlatformStack.OS"]) == (
         "EclipseSCORE", "Android")
+
+
+# -- admission by the stated reading of the correspondences ----------------------------------------------
+
+
+#: The class of a governed element, by the set or variation that owns it in the governed scope.
+GOVERNED_CLASSES = {
+    "InitialCommonCoreEngineeringContent": "common", "ReferenceOnlyAlternativeSet": "reference-only",
+    "DeferredVariabilitySet": "deferred", "ExcludedSystem2ConcernSet": "excluded",
+    "vehiclePlatformIntegrationMode": "admitted-alternative",
+}
+ADMISSIBLE = {"admitted-alternative", "common"}
+#: The representation difference PLE-S recorded: the common Linux runtime, whose one choice shares the
+#: single operating-system slot with the realization of an alternative that takes that slot otherwise.
+REPRESENTATION_DIFFERENCES = {("InitialCommonCoreEngineeringContent::linuxROS2AutowareRuntime", "operatingSystem")}
+#: The governed members of ADR 0014 and the alternative each realizes.
+GOVERNED_MEMBERS = {"aebs_autoware_linux_lidar_camera": "vehiclePlatformIntegrationMode::standalone",
+                    "middleware_autoware_aaos_sdv_reference": "vehiclePlatformIntegrationMode::aaosIntegrated"}
+
+
+def _classes(elements: set[str]) -> set[str]:
+    return {GOVERNED_CLASSES[element.split("::")[0]] for element in elements}
+
+
+def admission(features: list[Feature], correspondences: dict[str, set[str]], family_elements: set[str],
+              selected: set[str]) -> tuple[str | None, list[str]]:
+    """(the realized admitted alternative, the blocking reasons) by the reading the model states.
+
+    ``correspondences`` maps a feature to the governed elements it corresponds
+    to, and ``family_elements`` holds the family-level ones. Only selected
+    choices and leaves block: a grouping feature carries no admission, and a
+    group feature's correspondence never blocks.
+    """
+    groups = {feature.parent for feature in features if feature.parent}
+    owners = {feature.path[-2] for feature in features if len(feature.path) > 1}
+    choices = {feature.name: feature for feature in features if feature.name not in groups | owners}
+    chosen = selected & set(choices)
+    blocking = []
+    if family_elements and not _classes(family_elements) & ADMISSIBLE:
+        blocking.append(f"the family is {', '.join(sorted(_classes(family_elements)))}")
+    for name in sorted(chosen):
+        kinds = _classes(correspondences.get(name, set()))
+        if not kinds & ADMISSIBLE:
+            blocking.append(f"{name}: {', '.join(sorted(kinds)) or 'not in the governed scope'}")
+    realized = {element for name in chosen for element in correspondences.get(name, set())
+                if _classes({element}) == {"admitted-alternative"}}
+    if len(realized) != 1:
+        return None, [*blocking, f"realizes {len(realized)} admitted alternatives"]
+    [alternative] = realized
+    realizations = {name for name in choices if alternative in correspondences.get(name, set())}
+    slots = {choices[name].parent for name in realizations}
+    for slot in sorted(slots):
+        if not any(choices[name].parent == slot for name in realizations & chosen):
+            blocking.append(f"a derived realization of {alternative} is missing in {slot}")
+    for name in sorted(set(choices) - chosen):
+        for element in sorted(correspondences.get(name, set())):
+            if _classes({element}) != {"common"}:
+                continue
+            slot = choices[name].parent
+            exempt = (element, slot) in REPRESENTATION_DIFFERENCES and slot in slots and name not in realizations
+            if not exempt:
+                blocking.append(f"{element} is not represented: {name} is not selected")
+    return alternative, blocking
+
+
+def _correspondences(family: Family) -> tuple[dict[str, set[str]], set[str]]:
+    features, family_elements = {}, set()
+    for dependency in _dependencies(family.model):
+        if dependency.metadata:
+            continue
+        [target] = dependency.suppliers
+        element = target.removeprefix("DE4SDV_AEBSProductLineScope::")
+        if dependency.client == family.tree:
+            family_elements.add(element)
+        else:
+            features.setdefault(dependency.client.rsplit("::", 1)[1], set()).add(element)
+    return features, family_elements
+
+
+def _configuration_selection(bill: Path) -> tuple[Family, set[str]]:
+    family = FAMILIES[_family_of(_bill(bill))]
+    code = _code(_configuration_of(bill))
+    [match] = list(_CONFIGURATION.finditer(code))
+    body, _end = _braced(code, match.end() - 1)
+    return family, {key[-1] for key, (multiplicity, _operands) in _redefinitions(body).items() if multiplicity != "0"}
+
+
+@pytest.mark.parametrize("bill", [bill for bill in BILLS if "fixtures" not in bill.parts], ids=lambda path: path.stem)
+def test_admission_admits_exactly_the_governed_members(bill: Path) -> None:
+    """Review R2: read as PLE-S read it, admission admits the standalone and the
+    AAOS-integrated member of ADR 0014 and nothing else: the reference examples
+    and both execution-environment families are not admitted."""
+    family, selected = _configuration_selection(bill)
+    correspondences, family_elements = _correspondences(family)
+    alternative, blocking = admission(_tree(family)[1], correspondences, family_elements, selected)
+    stem = _configuration_of(bill).stem
+    if stem in GOVERNED_MEMBERS:
+        assert (alternative, blocking) == (GOVERNED_MEMBERS[stem], [])
+    else:
+        assert blocking, stem
+
+
+def test_admission_blocks_only_on_selected_choices_and_leaves() -> None:
+    family = FAMILIES["sdv"]
+    features = _tree(family)[1]
+    correspondences, family_elements = _correspondences(family)
+    _family, standalone = _configuration_selection(CONFIGURATIONS_DIR / "aebs-autoware-linux-lidar-camera.yaml")
+    # A deferred group correspondence and the uncorresponded grouping features never block.
+    assert _classes(correspondences["vehicleApplication"]) == {"deferred"} and "vehicleApplication" in standalone
+    assert {"platformStack", "middleware"} <= standalone - set(correspondences)
+    assert admission(features, correspondences, family_elements, standalone) == (
+        "vehiclePlatformIntegrationMode::standalone", [])
+    # A selected leaf without a correspondence blocks, and so does a partly represented common asset.
+    assert admission(features, correspondences, family_elements, standalone | {"adaptiveCruiseControl"})[1] == [
+        "adaptiveCruiseControl: not in the governed scope"]
+    assert admission(features, correspondences, family_elements, standalone - {"camera"})[1] == [
+        "InitialCommonCoreEngineeringContent::currentSensingBaseline is not represented: camera is not selected"]
+    # Two admitted alternatives, or a missing derived realization, reject.
+    assert admission(features, correspondences, family_elements, standalone - {"linux"} | {"android"})[1] == [
+        "realizes 2 admitted alternatives"]

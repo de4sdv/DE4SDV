@@ -19,8 +19,8 @@ compliance claim; every record says `qualified: false`.
 
 Each feature model is a `#featureModel` definition whose feature tree is a
 `#featureTree` definition. Each configuration is a `#featureConfiguration`
-typed by that tree, in its own file with the stem of its Bill-of-Features,
-so the fixture can stay outside the authority roots.
+typed by that tree, in its own file with the stem of its Bill-of-Features in
+snake case, so the fixture can stay outside the authority roots.
 
 How the catalogue is restated:
 
@@ -74,12 +74,72 @@ check proves that each exclusion set equals the complement of its list over
 the current operating-system options, so a new option fails CI until the
 rules are re-assessed.
 
+A test also evaluates the closed world: for every structurally valid
+selection of each catalogue (16,128 for the SDV product line), the model's
+groups, exclusions, requires constraints and derivation rules give the same
+verdict, the same constraint IDs and the same derived adapter as the
+configurator. Structurally invalid selections are outside that equality:
+both sides reject them, but not always for the same constraint IDs, because
+an exclusion presumes the exactly-one structure of its group.
+
+## Admission
+
+The governed scope is the admission authority, so a configuration can be
+valid without being admitted. The correspondences are read as the PLE-S
+record read its catalogue correspondence, the reading that reproduced its
+retained verdicts. A valid configuration is admitted when all of these hold:
+
+- Every selected choice and leaf corresponds to an admitted alternative or to
+  common content. One that corresponds only to reference-only, deferred or
+  excluded content, or to nothing, blocks.
+- A grouping feature carries no admission. A group feature's correspondence
+  (`vehicleApplication`, `perceptionSensors`) classifies its variation point:
+  it is a note and never blocks. An execution-environment family corresponds
+  as a whole, so its classification applies to every configuration of the
+  family.
+- The selections realize exactly one admitted alternative and select every
+  derived realization of it.
+- Every common asset that features represent is represented by all of them.
+  The exception is the representation difference that PLE-S recorded: the
+  AAOS-integrated alternative takes the single operating-system slot, so the
+  common Linux runtime is exempt under that alternative. Common content without
+  a feature is part of every member.
+
+So the two governed members of ADR 0014 are admitted: the standalone member
+(`aebs_autoware_linux_lidar_camera`) and the AAOS-integrated member
+(`middleware_autoware_aaos_sdv_reference`). The two reference examples
+(Eclipse S-CORE, and Apollo on QNX) are not admitted. Neither is any
+configuration of the two execution-environment families: the engineering
+family is the excluded System 2 concern, and the vehicle-target family is
+the deferred vehicle runtime variability. A test computes these verdicts from
+the model. The evaluator of step S2 owns the verdict.
+
+## Features that distinguish no member yet
+
+Ontology rule R001 asks every feature to distinguish at least one member
+product from another. These features restate catalogue options that no
+configuration of their family selects, or that every one selects:
+
+| Family | In every configuration | In no configuration |
+|---|---|---|
+| SDV product line (4 configurations) | LiDAR | Openpilot, AUTOSAR Adaptive, ACRN, and the four capabilities |
+| Engineering execution environments (2) | none | the Intel x86-64 nested-KVM host, the x86-64 Linux AOSP build, and nested-KVM Cuttlefish |
+| Vehicle-target execution environments (1) | NXP compute, Zephyr and native Zephyr | the three "no concrete" choices |
+
+They stay features. The migration restates the full catalogue, reference-only
+options included (owner decision O1 of the plan), and a family with one
+configuration can distinguish nothing. The ontology pull request before the
+switch (S5o) decides whether R001 applies to the features of a PLEML feature
+model. The grouping and group features are structure, not member
+distinctions.
+
 ## The fence
 
 The files are outside every production selector: not in the reviewed export
 roots or the pinned dependencies, not a validation root, not a viewer root,
 not served and not in the method check. No production workflow triggers on
-them. Only the feature models and their fixture import PLEML.
+them. Only the feature models, their configurations and the fixture import
+PLEML.
 
 ## The authority job
 
@@ -101,21 +161,23 @@ exact head it:
 5. hands the bundle to the evaluator (ADR 0022, step S2), which writes the
    receipts.
 
-The receipts and their compressed elements are committed after a licensed
-run, with the owner's yes to committing them. Unlicensed CI then re-runs the
-evaluator on the committed elements and refuses a stale receipt. Until the
-Sysand lock of step S1 provides PLEML 1.1.1, the job reads the library from
-the frozen experiment at 1.1.0, whose content equals 1.1.1 apart from its
-version line.
+The receipts and their compressed elements, in the evaluator's format and
+layout, are committed after a licensed run; the owner said yes to committing
+them on 2026-10-19. Unlicensed CI then re-runs the evaluator on the
+committed elements and refuses a stale receipt. Until the Sysand lock of step
+S1 provides PLEML 1.1.1, the job reads the library from the frozen experiment
+at 1.1.0, whose content equals 1.1.1 apart from the version line of its doc.
 
 The unlicensed checks are
 [`test_ple_authority_model.py`](../../tests/test_ple_authority_model.py)
 (the fence, the catalogue restatement, the agreement and complement checks,
-the bindings, correspondences and configurations),
+the closed world, admission, the bindings, correspondences and
+configurations),
 [`test_ple_authority_runner.py`](../../tests/test_ple_authority_runner.py)
 and [`test_ple_authority_workflow.py`](../../tests/test_ple_authority_workflow.py).
-They are lexical: licensed validation is the validator, and the evaluator
-owns the semantics.
+They read the model text: the closed-world and admission checks evaluate the
+stated semantics on it, and the other checks pin its shape. Licensed
+validation is the validator, and the evaluator owns the semantics.
 
 ## Evidence records
 

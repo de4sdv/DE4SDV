@@ -7,6 +7,8 @@ configured family member or candidate projection.
 
 | File | Family | Evidence status | Meaning |
 |---|---|---|---|
+| `aebs-autoware-linux-lidar-camera.yaml` | SDV product line | not declared | Standalone AEBS reference member (ADR 0014) |
+| `middleware-autoware-aaos-sdv-reference.yaml` | SDV product line | `planned` | Planned AAOS-integrated middleware reference member (ADR 0014) |
 | `example-linux-score-autoware.yaml` | SDV product line | not declared | Example platform projection |
 | `apollo-qnx-qvm.yaml` | SDV product line | not declared | Example mixed-criticality platform projection |
 | `fixtures/invalid-score-android.yaml` | SDV product line | invalid fixture | Deliberate C001 violation |
@@ -36,8 +38,8 @@ repository; symbolic-link paths and repository metadata are rejected.
 
 ## PLEML configurations (fenced)
 
-Each Bill-of-Features has a PLEML feature configuration with the same file
-stem (`aebs-autoware-linux-lidar-camera.yaml` restates as
+Each Bill-of-Features has a PLEML feature configuration with the same stem
+in snake case (`aebs-autoware-linux-lidar-camera.yaml` restates as
 `aebs_autoware_linux_lidar_camera.sysml`), and the fixture has one under
 `fixtures/`, outside the authority roots. They are fenced until the switch
 of [ADR 0022](../../docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md);

@@ -220,10 +220,21 @@ def test_the_round_trip_records_the_verified_production_import(monkeypatch) -> N
 
     monkeypatch.setattr(runner, "import_baseline", fake_import)
     record = runner.round_trip(SimpleNamespace(external_references=(1, 2)), "http://127.0.0.1:9000")
-    # The production import's timeout: the API commits the bundle in one request.
-    assert seen == {"base_url": "http://127.0.0.1:9000", "timeout": 600.0, "project_name": runner.API_PROJECT}
+    assert seen == {"base_url": "http://127.0.0.1:9000", "timeout": runner.API_TIMEOUT_SECONDS,
+                    "project_name": runner.API_PROJECT}
     assert record["verified"] is True and record["element_count"] == 4 and record["external_reference_count"] == 2
     assert "full-payload" in record["check"]
+
+
+def test_the_round_trip_timeout_is_the_production_imports() -> None:
+    """The API commits the bundle in one request, which outlasts the client's
+    30-second default (run 39244883381), so the round trip uses the request
+    timeout of the production import."""
+    import re
+
+    source = (ROOT / "scripts/import_sysml_api_baseline.py").read_text(encoding="utf-8")
+    [timeout] = re.findall(r"\bApiClient\(api_url, timeout=([0-9.]+)", source)
+    assert runner.API_TIMEOUT_SECONDS == float(timeout) == 600.0
 
 
 def test_the_elements_are_written_plain_and_compressed_with_their_digests(tmp_path) -> None:

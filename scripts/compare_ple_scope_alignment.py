@@ -27,10 +27,12 @@ catalogue, the committed configurations and the configurator are read, never
 changed; probes are generated outside the repository and never committed; and
 every comparison it writes says ``qualified: false``.
 
-The tree it reads is this repository by default. ``--root`` points it at an
-extracted tree instead (for example ``git archive <revision>`` of the commit
-that retained a record), with ``--revision`` naming that tree's revision; this
-is how a retained record is reproduced at its own revision.
+The tree it reads is an extracted tree of a revision that holds the scope
+alignment, given by ``--root`` and named by ``--revision``: for example
+``git archive f6d6f980`` of the commit that retained the record. This is how a
+retained record is reproduced at its own revision. PLE-S is retired (ADR 0022,
+step S3), so the repository's own tree no longer holds the scope-alignment
+model, and the oracle has no default tree.
 """
 from __future__ import annotations
 
@@ -265,7 +267,8 @@ def load_evidence(receipt_path: Path, governed_path: Path, *, evidence: str, run
         if not (root / path).is_file() or manifest.get(path.as_posix()) != sha256_of(root / path):
             stale.append(path.as_posix())
     _require(not stale, "the receipt was produced from inputs that differ from this tree: "
-             + ", ".join(stale) + "; rerun the licensed scope alignment and retain its receipt")
+             + ", ".join(stale) + "; compare it with the tree of the revision that produced it"
+             " (--root and --revision): the scope alignment is retired and produces no new receipt")
     matching = {path: digest == sha256_of(root / path) for path, digest in sorted(executor_inputs.items())
                 if (root / path).is_file()}
 
@@ -1131,24 +1134,23 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--run-id", required=True, help="the workflow run id that produced the receipt")
     parser.add_argument("--artifact", required=True, help="the artifact name of that run")
     parser.add_argument("--correspondence", type=Path, default=None,
-                        help=f"catalogue correspondence (default: {CORRESPONDENCE.as_posix()} of the tree)")
-    parser.add_argument("--root", type=Path, default=None,
-                        help="the tree to compare (default: this repository); an extracted tree needs --revision")
-    parser.add_argument("--revision", default=None,
-                        help="the full commit id of an extracted --root tree (recorded, not verified)")
+                        help=f"catalogue correspondence (default: {CORRESPONDENCE.as_posix()} of the --root tree)")
+    parser.add_argument("--root", type=Path, required=True,
+                        help="the extracted tree to compare, of a revision that holds the scope alignment")
+    parser.add_argument("--revision", required=True,
+                        help="the full commit id of the --root tree (recorded, not verified)")
     parser.add_argument("--out", type=Path, required=True,
                         help="output directory; must not exist and must be outside the repository and the tree")
     return parser
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
-    root = (args.root or ROOT).resolve()
+    _require(args.root is not None and args.revision is not None,
+             "--root and --revision are required: the scope alignment is retired, so the repository's own tree "
+             "holds no scope-alignment model to compare")
+    root = args.root.resolve()
     _require((root / CONFIGURATOR).is_file() and (root / CATALOGUE).is_file(), f"{root} is not a DE4SDV tree")
-    if args.revision is not None:
-        _require(re.fullmatch(r"[0-9a-f]{40}", args.revision) is not None, "--revision is a full commit id")
-    elif args.root is not None:
-        _require(subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True,
-                                check=False).returncode == 0, "an extracted --root tree needs --revision")
+    _require(re.fullmatch(r"[0-9a-f]{40}", args.revision) is not None, "--revision is a full commit id")
     out: Path = args.out
     if out.exists():
         raise OracleRefusal("refusing to overwrite an existing output directory")

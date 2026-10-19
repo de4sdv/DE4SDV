@@ -384,9 +384,12 @@ tree it is compared with. Both carry `qualified: false`.
 ## Evidence and how to rerun
 
 Since the retirement, the workflow, the model and the runner below exist
-only in history, up to `cdb20aa0`, the last revision of main before the
-retirement. A replay runs at such a revision; the retained record itself is
-still verified at its own revision by CI.
+only in history. The workflow is described as it was last, at the parent of
+the retirement merge, where it read PLEML 1.1.1; at `f6d6f980`, the revision
+that retained the record, it read 1.1.0. A replay runs at a revision that
+pins the experiment of its element file (below). CI still verifies the
+retained record at its pinned revision `f6d6f980`, and the record directory
+is frozen: its files at the head must equal those at `f6d6f980`.
 
 - **Workflow:** `.github/workflows/privileged-ple-scope-alignment.yml` runs on
   pull requests that touch the scope-alignment paths (same-repository,
@@ -439,22 +442,20 @@ still verified at its own revision by CI.
   file's executor revision. Replay it at a revision that pins its experiment:
   the element file of the retained run `39169049300` records the PLEML 1.1.0
   experiment and replays on main from `f967a519` until the PLEML 1.1.1
-  re-pin, such as `cdb20aa0`; the element file of the
-  previous run `39115737098` records the PLEML 1.0.0 experiment and replays on
-  main from `f1da5c0c` until the PLEML 1.1.0 re-pin, such as `2a9a1c81`; the
-  element file of the earlier run `38788579272` records the Gate A experiment
-  and replays on main before PLEML 1.0.0, such as `099d33e6`. Replay evidence
-  is not fresh serialization and says so.
-- **Unlicensed checks (public CI):** `tests/test_ple_scope_alignment_model.py`
-  (boundary fence, textual shape, every qualified reference resolvable in
-  its source), `tests/test_ple_scope_alignment_evaluator.py` (the evaluator on
-  synthetic API-shaped graphs with the real frozen interpreter),
-  `tests/test_ple_scope_alignment_workflow.py` (workflow wiring and secret
-  scoping) and `tests/test_ple_scope_alignment_oracle.py` (the oracle on the
-  retained receipt: UG-09, UG-10 and UG-14 as sets, admission moving with a
-  reclassified governed element, a changed derivation and a missing
-  correspondence exiting non-zero, the refusals, and the retained record
-  reproduced from the retained receipt).
+  re-pin, such as `f6d6f980`; the element file of the previous run
+  `39115737098` records the PLEML 1.0.0 experiment and replays on main from
+  `f1da5c0c` until the PLEML 1.1.0 re-pin, such as `2a9a1c81`; the element
+  file of the earlier run `38788579272` records the Gate A experiment and
+  replays on main before PLEML 1.0.0, such as `099d33e6`. Replay evidence is
+  not fresh serialization and says so.
+- **Unlicensed checks (public CI):** `tests/test_ple_scope_alignment_evaluator.py`
+  (the evaluator on synthetic API-shaped graphs with the real frozen
+  interpreter) and `tests/test_ple_scope_alignment_oracle.py` (the oracle on
+  the retained receipt at the record's revision: UG-09, UG-10 and UG-14 as
+  sets, admission moving with a reclassified governed element, a changed
+  derivation and a missing correspondence exiting non-zero, the refusals, and
+  the retained record reproduced from the retained receipt). The model and
+  workflow tests retired with the model and the workflow.
 
 Evidence is valid for its exact head only. A move of main rebinds nothing;
 the next run on the new head is the next evidence.

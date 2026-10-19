@@ -243,10 +243,31 @@ package DE4SDV_SDVProductLineFeatureModel {
      * authority, each naming a governed element a feature restates. They
      * replace the PLE-S catalogue correspondence, feature by feature; a
      * feature without one has no governed-scope element of its own. The
-     * classification (admitted alternative, common, reference-only, deferred)
-     * is read from the governed scope, never from these dependencies. A
-     * derived realization of an admitted alternative corresponds to that
-     * alternative.
+     * classification (admitted alternative, common, reference-only, deferred,
+     * excluded) is read from the governed scope, never from these
+     * dependencies. A derived realization of an admitted alternative
+     * corresponds to that alternative.
+     *
+     * Admission reads them as the PLE-S record did, the reading that
+     * reproduced its retained verdicts. A valid configuration is admitted
+     * when all of these hold:
+     *   - Every selected choice and leaf corresponds to an admitted
+     *     alternative or to common content. One that corresponds only to
+     *     reference-only, deferred or excluded content, or to nothing,
+     *     blocks.
+     *   - A grouping feature carries no admission. The correspondence of a
+     *     group feature (vehicleApplication, perceptionSensors) classifies
+     *     its variation point: it is a note and never blocks.
+     *   - The selections realize exactly one admitted alternative and select
+     *     every derived realization of it.
+     *   - Every common asset that features represent is represented by all
+     *     of them. The exception is the representation difference that
+     *     PLE-S recorded: the AAOS-integrated alternative takes the single
+     *     operating-system slot, so the common Linux runtime, represented
+     *     by linux, is exempt under that alternative. Common content without
+     *     a feature (decision 2) is part of every member.
+     * So the two governed members of ADR 0014, standalone and
+     * AAOS-integrated, are admitted, and the reference examples are not.
      */
     dependency vehicleApplicationCorrespondsToDrivingStackVariability
         from SDVProductLineFeatureTree::platformStack::vehicleApplication
