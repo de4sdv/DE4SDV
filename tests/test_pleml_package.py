@@ -93,6 +93,26 @@ def test_the_record_is_the_release_tag() -> None:
         assert re.fullmatch(r"[0-9a-f]{40}", record.blob) and re.fullmatch(r"[0-9a-f]{64}", record.sha256)
 
 
+def test_the_previous_and_the_pinned_release_each_have_their_provision_path() -> None:
+    """The guard a re-pin cannot forget: each recorded release says where a run read it."""
+    package.check_provision_paths()
+
+
+@pytest.mark.parametrize("release, previous, message", [
+    (package.RELEASE._replace(version="1.1.2"), package.RELEASE, "no entry for PLEML ['1.1.2']"),
+    (package.RELEASE, package.PREVIOUS._replace(version="1.0.0"), "no entry for PLEML ['1.0.0']"),
+], ids=["next-re-pin-without-its-entry", "another-previous-release"])
+def test_a_re_pin_without_its_provision_path_fails(release, previous, message) -> None:
+    with pytest.raises(package.PackageError, match=re.escape(message)):
+        package.check_provision_paths(release, previous)
+
+
+def test_a_stale_provision_path_for_the_pinned_release_fails() -> None:
+    stale = dict(package.PROVISION_PATHS, **{package.RELEASE.version: Path("external/pleml/PLEML.sysml")})
+    with pytest.raises(package.PackageError, match="not where the fenced lock installs it"):
+        package.check_provision_paths(paths=stale)
+
+
 # -- the fence --------------------------------------------------------------------------
 
 

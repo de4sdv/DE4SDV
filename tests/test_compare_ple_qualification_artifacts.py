@@ -43,6 +43,23 @@ def _write(root: Path, name: str, value) -> None:
     path.write_text(value if isinstance(value, str) else json.dumps(value))
 
 
+#: The runner's Python toolcache, before and after a runner image update.
+TOOLCACHE_VERSIONS = ("3.12.15", "3.12.16")
+
+
+def _toolcache(version: str) -> str:
+    return f"file:///opt/hostedtoolcache/Python/{version}/x64/lib/python3.12/site-packages/"
+
+
+#: References the bundle leaves out, into the serializer's standard library: the export's
+#: external references and the receipt's pruning records hold the same records.
+RECORDS = [{"property_path": "memberElement", "source_element_id": "membership", "target_id": "base-anything",
+            "uri": _toolcache(TOOLCACHE_VERSIONS[0]) + "_syside/sysml.library/Kernel%20Libraries/"
+                   "Kernel%20Semantic%20Library/Base.kerml"},
+           {"property_path": "type", "source_element_id": "usage", "target_id": "parts-part",
+            "uri": _toolcache(TOOLCACHE_VERSIONS[0]) + "_syside/sysml.library/Systems%20Library/SysML.sysml"}]
+
+
 def _baseline(root: Path) -> Path:
     identity = {"executor_revision": EXECUTOR, "pleml_pin": OLD.tag_commit, "library_sha256": OLD.library.sha256,
                 "current_lock_sha256": LOCK, "executor_inputs": {"scripts/run_ple_qualification.py": "1" * 64}}
@@ -51,12 +68,13 @@ def _baseline(root: Path) -> Path:
                "current_lock_sha256": LOCK, "element_count": 2}
     _write(root, "current/receipt.json", {"binding": binding, "source_identity": identity,
                                           "cases": [{"case": "feature-binding", "status": "observed"}],
-                                          "differences": [], "qualified": False})
+                                          "differences": [], "qualified": False, "pruning_records": RECORDS})
     _write(root, "current/binding.json", binding)
     manifest = [{"path": "fixture.sysml", "sha256": "4" * 64, "size": 9},
                 {"path": comparison.LIBRARY_LABEL, "sha256": OLD.library.sha256, "size": OLD.library.size}]
     _write(root, "current/export.json", {"schema": "s", "git_commit": "f" * 40, "elements": [DOC, PART],
-                                         "element_sources": {}, "source_manifest": manifest})
+                                         "element_sources": {}, "source_manifest": manifest,
+                                         "external_references": RECORDS})
     _write(root, "current/api-readback.json", [DOC, PART])
     _write(root, "historical-replay.json", {"source_identity": {"executor_revision": EXECUTOR,
                                                                 "current_lock_sha256": LOCK}, "cases": []})
@@ -313,6 +331,57 @@ def test_any_other_standard_library_change_fails(artifacts, plant) -> None:
     assert any("element ref differs" in problem for problem in report["problems"]), report["problems"]
 
 
+def _new_image(root: Path, old: str = TOOLCACHE_VERSIONS[0], new: str = TOOLCACHE_VERSIONS[1]) -> int:
+    """Rewrite the toolcache version in every file of an artifact, as a runner image update does."""
+    count = 0
+    for path in sorted(root.rglob("*")):
+        if path.is_file():
+            text = path.read_text(encoding="utf-8")
+            needle = f"/hostedtoolcache/Python/{old}/"
+            count += text.count(needle)
+            path.write_text(text.replace(needle, f"/hostedtoolcache/Python/{new}/"), encoding="utf-8")
+    return count
+
+
+def test_a_new_runner_image_passes_in_every_file(artifacts) -> None:
+    """The whole-artifact image plant: every occurrence of the toolcache path, in every file, moves."""
+    baseline, candidate = artifacts
+    _edit(baseline, SERIALIZED, lambda d: _ref(d)["superclassifier"].update({"@uri": _toolcache("3.12.15") + SYSML}))
+    _edit(candidate, SERIALIZED, lambda d: _ref(d)["superclassifier"].update({"@uri": _toolcache("3.12.15") + SYSML}))
+    assert _new_image(candidate) == 2 * len(RECORDS) + 1
+    report = comparison.compare(baseline, candidate, candidate_revision=CANDIDATE_EXECUTOR)
+    assert report["verdict"] == "pass", report["problems"]
+
+
+def _record(name: str, key: str, index: int, change):
+    def plant(candidate):
+        _edit(candidate, name, lambda d: change(d[key][index]))
+    return plant
+
+
+@pytest.mark.parametrize("plant, message", [
+    (_record("current/export.json", "external_references", 1,
+             lambda r: r.update(uri=r["uri"].replace("SysML.sysml", "Parts.sysml"))), "external_references[1]"),
+    (_record("current/receipt.json", "pruning_records", 0,
+             lambda r: r.update(uri=r["uri"].replace("Base.kerml", "Occurrences.kerml"))), "pruning_records[0]"),
+    (_record("current/export.json", "external_references", 0, lambda r: r.update(target_id="another")),
+     "external_references[0]"),
+    (_record("current/receipt.json", "pruning_records", 1, lambda r: r.update(uri=r["uri"] + "#other")),
+     "pruning_records[1]"),
+    (_record("current/export.json", "external_references", 1,
+             lambda r: r.update(uri="file:///opt/other/Systems%20Library/SysML.sysml")), "external_references[1]"),
+    (lambda c: _edit(c, "current/receipt.json", lambda d: d["pruning_records"].pop()), "pruning_records"),
+], ids=["another-file-external", "another-file-pruning", "another-target", "another-fragment", "outside-the-library",
+        "a-record-less"])
+def test_record_lists_fail_on_anything_but_the_install_prefix(artifacts, plant, message) -> None:
+    baseline, candidate = artifacts
+    _new_image(candidate)
+    plant(candidate)
+    report = comparison.compare(baseline, candidate, candidate_revision=CANDIDATE_EXECUTOR)
+    assert report["verdict"] == "fail"
+    assert any(message in problem for problem in report["problems"]), report["problems"]
+
+
 # -- the real pair: the run at the S1 merge against the last run on 1.1.0 --------------------
 
 REAL = {key: os.environ.get(f"DE4SDV_PLE_Q_{key}") for key in ("BASELINE", "CANDIDATE", "REVISION")}
@@ -350,10 +419,17 @@ def test_the_real_pair_passes_and_its_plants_fail(tmp_path) -> None:
             (standard, lambda reference: reference.update({"@uri": reference["@uri"].rsplit("/", 1)[0] + "/Parts.sysml"}))):
         key, result = planted_verdict(marker, change)
         assert result["verdict"] == "fail" and any(f"element {key} differs" in problem for problem in result["problems"])
-    # Another runner image: the same standard library under another toolcache path passes.
-    _, result = planted_verdict(standard, lambda reference: reference.update(
-        {"@uri": reference["@uri"].replace("/Python/3.12.15/", "/Python/3.12.16/")}))
+    # Another runner image: every occurrence of the toolcache path, in every file, moves; that passes.
+    image = tmp_path / "image"
+    shutil.copytree(candidate, image)
+    assert _new_image(image) > 300  # the elements, the external references, the pruning records, the command
+    result = comparison.compare(baseline, image, candidate_revision=REAL["REVISION"])
     assert result["verdict"] == "pass", result["problems"]
+    # ... and a different standard-library file in the external references still fails.
+    _edit(image, "current/export.json", lambda d: d["external_references"][0].update(
+        uri=d["external_references"][0]["uri"].rsplit("/", 1)[0] + "/Parts.sysml"))
+    result = comparison.compare(baseline, image, candidate_revision=REAL["REVISION"])
+    assert result["verdict"] == "fail" and any("external_references[0]" in problem for problem in result["problems"])
 
 
 # -- an older interpreter gets a clear message, not a verdict --------------------------------

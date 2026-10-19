@@ -17,7 +17,10 @@ The baseline is the artifact of a PLE qualification run on the previous release
   with the same target and fragment.
 - A reference into the serializer's standard library under another install
   prefix (another runner image's Python toolcache): the same file inside the
-  library (``STANDARD_LIBRARY``), with the same target and fragment.
+  library (``STANDARD_LIBRARY``), with the same target and fragment. The same
+  rule holds record by record in the lists of references the bundle leaves out
+  (``RECORD_LISTS``: the export's external references, the receipt's pruning
+  records), where every other field must be equal.
 
 A difference anywhere else, a missing or extra file, or an allowed path without
 the expected value fails. ``sysml-api.log`` is not compared. The candidate adds
@@ -224,6 +227,15 @@ def _library_relative(segments: list[str]) -> tuple[str, ...] | None:
     return None
 
 
+def _same_standard_library_file(before: Any, after: Any) -> bool:
+    """Two URIs of the same file inside the serializer's standard library, with the same fragment."""
+    old, new = _resource(before), _resource(after)
+    if old is None or new is None or old[1] != new[1]:
+        return False
+    path = _library_relative(old[0])
+    return path is not None and path == _library_relative(new[0])
+
+
 def _standard_library_moved(before: Any, after: Any) -> bool:
     """A standard-library reference under another install prefix, and nothing else.
 
@@ -235,11 +247,33 @@ def _standard_library_moved(before: Any, after: Any) -> bool:
     if {key: value for key, value in before.items() if key != "@uri"} != {
             key: value for key, value in after.items() if key != "@uri"}:
         return False
-    old, new = _resource(before.get("@uri")), _resource(after.get("@uri"))
-    if old is None or new is None or old[1] != new[1] or not (before.get("@id") or old[1]):
+    if not (before.get("@id") or urlparse(str(before.get("@uri", ""))).fragment):
         return False
-    path = _library_relative(old[0])
-    return path is not None and path == _library_relative(new[0])
+    return _same_standard_library_file(before.get("@uri"), after.get("@uri"))
+
+
+#: Lists of references the bundle leaves out, each record with a ``uri``: compared record by record.
+RECORD_LISTS = {"current/export.json": "external_references", "current/receipt.json": "pruning_records"}
+
+
+def compare_records(name: str, key: str, baseline: Any, candidate: Any) -> list[str]:
+    """Record by record: every field equal, except a ``uri`` naming the same standard-library file."""
+    if not (isinstance(baseline, list) and isinstance(candidate, list)):
+        return [] if baseline == candidate else [f"{name}: {key} differs"]
+    if len(baseline) != len(candidate):
+        return [f"{name}: {key} has {len(candidate)} records, not {len(baseline)}"]
+    problems = []
+    for index, (before, after) in enumerate(zip(baseline, candidate)):
+        if before == after:
+            continue
+        if not (isinstance(before, dict) and isinstance(after, dict)):
+            problems.append(f"{name}: {key}[{index}] differs")
+            continue
+        fields = sorted(field for field in set(before) | set(after) if before.get(field) != after.get(field)
+                        or field not in before or field not in after)
+        if fields != ["uri"] or not _same_standard_library_file(before["uri"], after["uri"]):
+            problems.append(f"{name}: {key}[{index}] differs in {fields}")
+    return problems
 
 
 def _moved(before: Any, after: Any, *, previous: package.Release, release: package.Release) -> bool:
@@ -272,9 +306,13 @@ def compare_elements(name: str, baseline: Any, candidate: Any, *, release: packa
     if changed > 1 or (repin.previous_lines and not changed and previous.library != release.library):
         problems.append(f"{name}: {changed} elements differ; the re-pin changes exactly one Documentation body")
     if isinstance(baseline, dict):
-        for key in _differences({k: v for k, v in baseline.items() if k not in ("elements", "source_manifest")},
-                                {k: v for k, v in candidate.items() if k not in ("elements", "source_manifest")}):
+        records = RECORD_LISTS.get(name)
+        skipped = ("elements", "source_manifest", records)
+        for key in _differences({k: v for k, v in baseline.items() if k not in skipped},
+                                {k: v for k, v in candidate.items() if k not in skipped}):
             problems.append(f"{name}: {key} differs")
+        if records:
+            problems.extend(compare_records(name, records, baseline.get(records), candidate.get(records)))
         manifests = baseline.get("source_manifest"), candidate.get("source_manifest")
         for side, manifest, release_side in (("baseline", manifests[0], previous), ("candidate", manifests[1], release)):
             entry = next((item for item in manifest or [] if item.get("path") == LIBRARY_LABEL), None)
@@ -291,6 +329,10 @@ def compare(baseline: Path, candidate: Path, *, candidate_revision: str | None =
             release: package.Release = package.RELEASE, previous: package.Release = package.PREVIOUS,
             repin: package.Repin = package.REPIN) -> dict[str, Any]:
     problems: list[str] = []
+    try:
+        package.check_provision_paths(release, previous)
+    except package.PackageError as exc:
+        problems.append(f"the record cannot place the library references: {exc}")
     left = {path.relative_to(baseline).as_posix() for path in baseline.rglob("*") if path.is_file()}
     right = {path.relative_to(candidate).as_posix() for path in candidate.rglob("*") if path.is_file()}
     if right != left | {NEW_FILE} or NEW_FILE in left:
@@ -304,9 +346,12 @@ def compare(baseline: Path, candidate: Path, *, candidate_revision: str | None =
         if name not in left or name not in right:
             continue
         old, new = load(baseline, name), load(candidate, name)
+        records = RECORD_LISTS.get(name)
         for path in _differences(old, new):
-            if not _allowed(path, allowed):
+            if not _allowed(path, allowed) and path != records:
                 problems.append(f"{name}: {path} differs")
+        if records:
+            problems.extend(compare_records(name, records, old.get(records), new.get(records)))
         for side, data, values in (("baseline", old, before_expected.get(name, {})),
                                    ("candidate", new, after_expected.get(name, {}))):
             for path, value in values.items():

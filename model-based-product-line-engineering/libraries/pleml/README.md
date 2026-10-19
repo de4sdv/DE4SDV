@@ -56,7 +56,8 @@ from the installed library. The re-pin from 1.1.0 to 1.1.1 took the fast path:
 the 1.1.0 package carried CRLF line endings, and the two libraries differ only
 in line 25, the version line. `scripts/compare_ple_qualification_artifacts.py`
 compares a PLE qualification run on the new pin with the last run on the
-previous one.
+previous one. A re-pin also adds the new release's entry to `PROVISION_PATHS`,
+where its run reads the library; a test fails until it does.
 
 ## At the switch
 
