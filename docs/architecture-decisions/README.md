@@ -101,6 +101,8 @@ Each record's own Status section is authoritative.
   homes](0020-give-ontology-definitions-model-resident-kernel-homes.md)
 - [ADR 0021: Model elements earn their
   place](0021-make-model-elements-earn-their-place.md)
+- [ADR 0022: Adopt PLEML as the product-line
+  authority](0022-adopt-pleml-as-product-line-authority.md)
 
 ## Template
 
