@@ -51,6 +51,7 @@ CHECKS_BY_STEP = {
     "DefineLogicalArchitecture": {"functionAllocatedToLogicalElement", "logicalElementCarriesFunction"},
     "DefinePhysicalRealization": {
         "logicalElementAllocatedToPhysicalElement", "physicalElementCarriesLogicalElement",
+        "crossingHasSignalMapping", "signalMappingNamesSemanticSource",
     },
     "PlanVerificationAndEvidence": {
         "verificationCaseVerifiesRequirement", "requirementVerifiedByVerificationCase",
@@ -66,6 +67,8 @@ ADVISORY = {
     "functionCarriesRequirement",
     "logicalElementCarriesFunction",
     "physicalElementCarriesLogicalElement",
+    "crossingHasSignalMapping",
+    "signalMappingNamesSemanticSource",
     "verificationCaseHasEvidenceRecordOrStatus",
 }
 # Registry contract for the evaluation engine: every check identifier the model
@@ -79,6 +82,7 @@ CHECK_REGISTRY = {
     "subjectIsSystemOfInterest", "charterExpectedArtifactsCoverContent",
     "oneVerificationMethodKind", "successCriteriaAttribute",
     "allocatedTo", "populationMember", "carriedByArchitecture", "receivesAllocation",
+    "signalMappingRecorded", "semanticSourceNamed",
     "verifiesIncrementRequirement", "verifiedBy", "evidenceRecordOrStatus",
 }
 
@@ -170,7 +174,8 @@ ARCHITECTURE_PARAMETERS = {
         ("out", "part", "logicalElements", "[1..*]", "LogicalAllocationElement")],
     "DefinePhysicalRealization": [
         ("in", "part", "logicalElements", "[1..*]", "LogicalAllocationElement"),
-        ("out", "part", "physicalElements", "[1..*]", "PhysicalAllocationElement")],
+        ("out", "part", "physicalElements", "[1..*]", "PhysicalAllocationElement"),
+        ("out", "allocation", "signalMappings", "[0..*]", "SystemToSoftwareSignalMappingCandidate")],
 }
 
 

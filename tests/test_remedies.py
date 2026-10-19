@@ -252,6 +252,8 @@ _MEMBER_FORMS = {
     "frame": rf"frame {_REF};",
     "viewpoint": rf"viewpoint {_NAME} : {_REF} \{{ frame {_REF}; \}}",  # INC-TEST-001's view
 }
+#: A signal-mapping record, a member of its mapping: the INC-MW-011 phase-8 form (#389), short name first.
+_MEMBER_FORMS["record"] = rf"item <'[^']*'> {_NAME} : {_REF} \{{(?: {_MEMBER_FORMS['redefinition']})+ \}}"
 #: The members each container's body may hold. A subject, stakeholder, statement or framed concern is a
 #: member of a requirement (a concern is one; a case has a subject); a verify sits in a case's objective;
 #: a viewpoint in a view; a redefinition in the part or requirement that inherits the feature.
@@ -278,6 +280,8 @@ TOP_LEVEL_FORMS = [
     rf"(?:part|viewpoint) def {_NAME}(?: :> {_REF})?(?:;| \{{ {_DOC} \}})",
     rf"connection {_NAME} : {_REF} connect {_REF} to {_REF};",  # DerivesFromNeed, ValidationPlanningAssociation
     rf"allocation {_NAME} allocate {_REF} to {_REF};",  # the AEBS requirement allocations
+    # a system-to-software signal mapping owning its record (INC-MW-011's phase-8 slice)
+    rf"allocation {_NAME} : {_REF} allocate {_REF} to {_REF} \{{ {_MEMBER_FORMS['record']} \}}",
     rf"dependency {_NAME} from {_REF} to {_REF};",  # the AEBS evidence dependencies
 ]
 #: A member on its own line: only in a remedy for an existing element, the container its instruction names.

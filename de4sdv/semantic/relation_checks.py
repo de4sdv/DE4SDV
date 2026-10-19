@@ -41,6 +41,14 @@ A result records a problem with a marker: ``kernel-binding:``,
 ``governed-relation:`` or ``external-relation:`` for method-side inputs, and
 ``model-witness:`` for engineering witnesses that cannot be read, which the
 author can fix.
+
+The module also reads the phase-8 signal-mapping control for the named checks
+that judge it: the ports of an element that exchange an information item (a
+directed feature of the port or its definition), the allocations typed by the
+kernel's ``SystemToSoftwareSignalMappingCandidate`` with their records, and the
+VSS signals an endpoint carries (definitions a metadata usage with a ``path``
+annotates, the form of ``@VssSignalMetadata`` in COVESA_VSS and
+DE4SDV_VSS_Extensions; a path in a doc or a string is no typing).
 """
 
 from __future__ import annotations
@@ -431,6 +439,128 @@ def allocation_near_misses(view: ModelView, relation: str, subject_id: str, clas
         found.append(f"{len(others)} allocation(s) between it and {', '.join(others[:3])} ground in no {relation} "
                      "end pair and do not count")
     return tuple(found)
+
+
+# ---------------------------------------------------------------------------
+# System-to-software signal mappings (the phase-8 control)
+# ---------------------------------------------------------------------------
+
+#: The kernel's non-claiming allocation from a logical signal responsibility to a software endpoint.
+SIGNAL_MAPPING = "SystemToSoftwareSignalMappingCandidate"
+#: The kernel's control record a signal mapping owns.
+SIGNAL_MAPPING_RECORD = "LogicalToSoftwareSignalMappingRecord"
+#: The kernel's disposition of a mapping record.
+SIGNAL_MAPPING_DISPOSITION = "SignalMappingDisposition"
+#: The member of a VSS signal's metadata that names the signal (``@VssSignalMetadata``, ``path``).
+VSS_PATH = "path"
+_VSS_DEPTH = 4
+
+
+def kernel_lineage(view: ModelView, ontology_class: str) -> frozenset[str]:
+    """The validated kernel definition of a class and its specializations. Raises
+    :class:`MethodSideInput` when the class has no validated kernel binding."""
+    try:
+        return view.index.specializations(view.kernel_element(ontology_class))
+    except IdentityNotFoundError as error:
+        raise MethodSideInput(f"kernel-binding:{ontology_class}",
+                              f"method side: no validated kernel binding for {ontology_class}: {error}")
+
+
+def type_lineage(view: ModelView, element: str) -> list[str]:
+    """The definitions that type ``element`` and those they specialize, nearest first."""
+    found: list[str] = []
+    for definition in sorted(view.index.typed_by(element)):
+        for general in view.index.generals(definition):
+            if general not in found:
+                found.append(general)
+    return found
+
+
+def member_features(view: ModelView, element: str) -> list[str]:
+    """What ``element`` owns and what its definitions own, in that order."""
+    index = view.index
+    found = list(index.owned_members(element))
+    for definition in type_lineage(view, element):
+        found.extend(member for member in index.owned_members(definition) if member not in found)
+    return found
+
+
+def information_ports(view: ModelView, element: str) -> list[str]:
+    """The ports of ``element``, own or inherited, that exchange an information item: a port with a
+    directed feature of its own or of its definition (``in item speedSample : Payload;``)."""
+    index = view.index
+    return [port for port in member_features(view, element)
+            if str(index.element(port).get("@type")) == "PortUsage"
+            and any(index.element(feature).get("direction") for feature in member_features(view, port))]
+
+
+def signal_mappings(view: ModelView) -> Mapping[str, tuple[tuple[str, ...], str]]:
+    """Signal-mapping allocation -> (its ends, problem): every allocation typed in the lineage of the
+    kernel's system-to-software signal mapping, read like any allocation (a chain end as its last
+    feature), once per corpus. Raises :class:`MethodSideInput` when that class has no validated
+    kernel binding."""
+    lineage = kernel_lineage(view, SIGNAL_MAPPING)
+
+    def build() -> Mapping[str, tuple[tuple[str, ...], str]]:
+        return MappingProxyType({allocation: found for allocation, found in sorted(allocation_ends(view).items())
+                                 if view.index.typed_by(allocation) & lineage})
+
+    return view.index.memo(("signal-mappings", lineage), build)
+
+
+def mapping_records(view: ModelView, mapping: str) -> list[str]:
+    """The kernel mapping records a signal mapping owns, in model order."""
+    lineage = kernel_lineage(view, SIGNAL_MAPPING_RECORD)
+    return [member for member in view.index.owned_members(mapping) if view.index.typed_by(member) & lineage]
+
+
+def vss_signal_paths(view: ModelView) -> Mapping[str, tuple[str, ...]]:
+    """Element -> the VSS paths its signal metadata names: every element a metadata usage with a
+    ``path`` value annotates (``@VssSignalMetadata about Vehicle_Speed { path = "Vehicle.Speed"; }``,
+    as COVESA_VSS and DE4SDV_VSS_Extensions declare each signal), once per corpus."""
+
+    def build() -> Mapping[str, tuple[str, ...]]:
+        index = view.index
+        found: dict[str, list[str]] = {}
+        for metadata in index.elements_of_type("MetadataUsage"):
+            paths = [str(leaf.value) for leaf in index.feature_values(metadata, VSS_PATH)
+                     if leaf.kind == "string" and str(leaf.value or "").strip()]
+            if not paths:
+                continue
+            annotated = list(reference_ids(index.element(metadata).get("annotatedElement")))
+            for relationship in index.owned_relationships(metadata, "Annotation"):
+                annotated.extend(reference_ids(relationship.get("annotatedElement")))
+            for element in dict.fromkeys(annotated):
+                bucket = found.setdefault(element, [])
+                bucket.extend(path for path in paths if path not in bucket)
+        return MappingProxyType({element: tuple(paths) for element, paths in found.items()})
+
+    return view.index.memo("vss-signal-paths", build)
+
+
+def carried_vss_paths(view: ModelView, element: str) -> list[str]:
+    """The VSS paths of the signals ``element`` carries: of its definitions, and of the features it and
+    they own (a port's items, an item's attributes), to a bounded depth. A path in a doc or a string is
+    no VSS typing."""
+    signals = vss_signal_paths(view)
+    found: list[str] = []
+    seen: set[str] = set()
+    frontier = [(element, 0)]
+    while frontier:
+        current, depth = frontier.pop(0)
+        if current in seen:
+            continue
+        seen.add(current)
+        for definition in type_lineage(view, current):
+            found.extend(path for path in signals.get(definition, ()) if path not in found)
+        if depth < _VSS_DEPTH:
+            frontier.extend((feature, depth + 1) for feature in member_features(view, current)
+                            if str(view.index.element(feature).get("@type")) in _SIGNAL_CARRIERS)
+    return found
+
+
+#: The usages through which an endpoint carries a signal (a port's items, an item's attributes).
+_SIGNAL_CARRIERS = frozenset({"PortUsage", "ItemUsage", "AttributeUsage", "ReferenceUsage"})
 
 
 # ---------------------------------------------------------------------------

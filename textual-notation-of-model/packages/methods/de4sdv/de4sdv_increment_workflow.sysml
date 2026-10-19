@@ -398,11 +398,20 @@ package DE4SDV_IncrementWorkflow {
          * least one physical element (allocatedTo). The increment's physical elements
          * are the PhysicalAllocationElement usages its packages own at any depth and
          * the ones its own allocations name. Advisory: each physical element carries a
-         * logical element. An allocation is no deployment, execution or runtime claim;
-         * the signal-mapping and realization-readiness controls stay with review. */
+         * logical element. Advisory, the system-to-software signal-mapping control: a
+         * physical element that realizes a logical element and has a port with a
+         * directed feature is a crossing, and each logical element it realizes has a
+         * SystemToSoftwareSignalMappingCandidate allocation to a physical element of
+         * the increment that realizes it, owning a LogicalToSoftwareSignalMappingRecord
+         * with a disposition, an owner and a next action; the item of each signal
+         * mapping is VSS-typed, or its record states the semantic source. An
+         * allocation is no deployment, execution or runtime claim, and a mapping no
+         * runtime-interoperability claim; the realization-readiness control stays
+         * with review. */
     attribute :>> phase = MethodPhase::phase8_physicalRealization;
     in part logicalElements[1..*] : LogicalAllocationElement;
     out part physicalElements[1..*] : PhysicalAllocationElement;
+    out allocation signalMappings[0..*] : SystemToSoftwareSignalMappingCandidate;
 
     metadata logicalElementAllocatedToPhysicalElement : MethodCheck about logicalElements {
       doc /* Each logical element of the increment is allocated to at least one physical element; a responsibility assignment only, no deployment, execution or runtime claim. */
@@ -411,6 +420,16 @@ package DE4SDV_IncrementWorkflow {
     metadata physicalElementCarriesLogicalElement : MethodCheck about physicalElements {
       doc /* Advisory: each physical element of the increment receives an allocation from a logical element; no necessity or completeness claim. */
       :>> check = "receivesAllocation";
+      :>> advisory = true;
+    }
+    metadata crossingHasSignalMapping : MethodCheck about physicalElements {
+      doc /* Advisory: each crossing has a system-to-software signal mapping whose record states a disposition, an owner and a next action; a control record, no runtime-interoperability claim. */
+      :>> check = "signalMappingRecorded";
+      :>> advisory = true;
+    }
+    metadata signalMappingNamesSemanticSource : MethodCheck about signalMappings {
+      doc /* Advisory: the item of each signal mapping is typed by a VSS signal (COVESA VSS or the DE4SDV extensions), or its record states the semantic source; no claim that the item is or is not a vehicle signal. */
+      :>> check = "semanticSourceNamed";
       :>> advisory = true;
     }
   }

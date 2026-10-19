@@ -57,6 +57,13 @@ from .increment_scope import (
     typed_by_the_kernel_itself,
 )
 from .model_edges import DEFINITION_END_FAMILIES, END_FAMILIES
+from .relation_checks import (
+    SIGNAL_MAPPING,
+    SIGNAL_MAPPING_DISPOSITION,
+    SIGNAL_MAPPING_RECORD,
+    MethodSideInput,
+    mapping_records,
+)
 
 #: Ontology classes whose validated kernel bindings name a type a remedy needs (binding keys).
 STAKEHOLDER_CLASS = "Stakeholder"
@@ -878,6 +885,8 @@ _NAMED: Mapping[str, Callable[[_Request], Remedy]] = {
     "receivesAllocation": lambda request: _receives_allocation(request),
     "carriedByArchitecture": lambda request: _carried_by_architecture(request),
     "populationMember": lambda request: _population_member(request),
+    "signalMappingRecorded": lambda request: _signal_mapping_recorded(request),
+    "semanticSourceNamed": lambda request: _semantic_source_named(request),
 }
 
 
@@ -1095,6 +1104,99 @@ def _population_member(request: _Request) -> Remedy:
     lines = _lines(request)
     lines.declarations.append(_declaration(lines, name=_subject_name(request)))
     return lines.remedy(f"declare {_parameter_phrase(request)} {_where(request)}".rstrip())
+
+
+#: The text a remedy gives a record that states its semantic source.
+_SEMANTIC_SOURCE = 'attribute :>> semanticSource = "<what the item is, and why it is no VSS signal>";'
+_MAPPING_NOTES = (
+    "<ID> is the mapping ID, the record's short name (naming: MAP); the mapping's ends, the typed ports and the "
+    "connections give the endpoints and the direction.",
+    "The target is the port where the item enters the software contract the record is about. One mapping per logical "
+    "element may cover the processes of its chain; the record's softwareContractArtifact, softwareContractMessage "
+    "and softwareContractField name the further contracts.",
+    "The disposition is mapped, candidate, deferred, or notApplicable when the item crosses no software contract "
+    "(evidenceOrGap says why); the record also states the data type and unit, timing, the transformation rule and "
+    "the evidence or gap. A mapping is no runtime-interoperability claim.",
+)
+_VSS_NOTE = (
+    "If the item is a vehicle signal, type it with COVESA VSS instead of stating it: private import COVESA_VSS::**; "
+    "and an attribute typed by the VSS signal in the item at the mapping's target, as INC-MW-008's "
+    "DE4SDVReferenceVehicleSpeedPayload types speed_kmh with Vehicle_Speed. A signal the pinned VSS snapshot lacks "
+    "goes into DE4SDV_VSS_Extensions with @VssSignalMetadata (path, kind, datatype, sourceDescription, "
+    "sourceComment); proposing it to COVESA needs the owner's approval. A VSS path in a doc or a string is no VSS "
+    "typing; data that is no vehicle signal (a ROS 2 message, a diagnostic, a display frame) says so here."
+)
+
+
+def _mapping_line(lines: _Lines, kernel: dict[str, str], source: str, target: str, members: Sequence[str]) -> str:
+    """``allocation <name> : <mapping> allocate <source> to <target> { item <'MAP-<ID>'> <record> : <record
+    def> { <members> } }``: a system-to-software signal mapping owning its record."""
+    record = f"item <'MAP-<ID>'> <record> : {lines.type(kernel[SIGNAL_MAPPING_RECORD])} {{ {' '.join(members)} }}"
+    return f"allocation <name> : {lines.type(kernel[SIGNAL_MAPPING])} allocate {source} to {target} {{ {record} }}"
+
+
+def _signal_mapping_kernel(view: ModelView) -> dict[str, str] | None:
+    kernel = {name: _kernel(view, name) for name in (SIGNAL_MAPPING, SIGNAL_MAPPING_RECORD, SIGNAL_MAPPING_DISPOSITION)}
+    return None if None in kernel.values() else kernel  # type: ignore[return-value]
+
+
+def _signal_mapping_recorded(request: _Request) -> Remedy:
+    """A signal mapping owning its record, from a logical element the physical element realizes to the
+    port of that element where the item enters its software contract."""
+    from .method_checks import crossing_coverage
+
+    view = request.view
+    kernel = _signal_mapping_kernel(view)
+    if kernel is None:
+        return _method_side("the signal-mapping classes have no validated kernel binding")(request)
+    lines = _lines(request)
+    source, target, where = "<logical element>", "<port>", ""
+    if request.subject is not None and request.scope is not None:
+        try:
+            _realized, ports, coverage, _notes, _problems = crossing_coverage(view, request.scope, request.subject)
+        except MethodSideInput as missing:
+            return _method_side(missing.detail)(request)
+        uncovered = [logical for logical, found in coverage.items() if not found]
+        source = view.label(uncovered[0]) if uncovered else source
+        target = view.label(ports[0]) if ports else target
+        where = f" of {view.label(request.subject)}"
+    disposition = f"{lines.type(kernel[SIGNAL_MAPPING_DISPOSITION])}::candidate"
+    lines.declarations.append(_mapping_line(lines, kernel, source, target, (
+        f"attribute :>> disposition = {disposition};", 'attribute :>> owner = "<owner>";',
+        'attribute :>> nextAction = "<next action>";')))
+    lines.notes.extend(_MAPPING_NOTES)
+    return lines.remedy(f"record the crossing{where} with a system-to-software signal mapping, "
+                        f"{_where(request) or 'in a package of the increment'}")
+
+
+def _semantic_source_named(request: _Request) -> Remedy:
+    """The record states the semantic source of an item that is no VSS signal; a vehicle signal is typed
+    with COVESA VSS instead (a note)."""
+    view = request.view
+    kernel = _signal_mapping_kernel(view)
+    if kernel is None:
+        return _method_side("the signal-mapping classes have no validated kernel binding")(request)
+    lines = _lines(request)
+    if request.subject is not None:
+        try:
+            records = mapping_records(view, request.subject)
+        except MethodSideInput as missing:
+            return _method_side(missing.detail)(request)
+        if records:
+            lines.declarations.append(_SEMANTIC_SOURCE)
+            lines.placed[_SEMANTIC_SOURCE] = f"in the existing {view.label(records[0])}:"
+            instruction = f"state the semantic source of {view.label(request.subject)}"
+        else:
+            record = f"item <'MAP-<ID>'> <record> : {lines.type(kernel[SIGNAL_MAPPING_RECORD])} {{ {_SEMANTIC_SOURCE} }}"
+            lines.declarations.append(record)
+            lines.placed[record] = f"in the existing {view.label(request.subject)}:"
+            instruction = f"give {view.label(request.subject)} its mapping record, with the semantic source"
+            lines.notes.extend(_MAPPING_NOTES)
+    else:
+        lines.declarations.append(_mapping_line(lines, kernel, "<logical element>", "<port>", (_SEMANTIC_SOURCE,)))
+        instruction = f"state the semantic source in the record, {_where(request) or 'in a package of the increment'}"
+    lines.notes.append(_VSS_NOTE)
+    return lines.remedy(instruction)
 
 
 def _verification_membership(request: _Request, mapping: Any) -> Remedy:

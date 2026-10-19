@@ -86,7 +86,7 @@ package DE4SDV_MethodProcess {
       doc /* The mapping is known to be needed but is intentionally postponed with an owned gap and next action. */
     }
     notApplicable {
-      doc /* The signal does not cross the applicable software/physical boundary; the reason is recorded externally. */
+      doc /* The signal does not cross the applicable software/physical boundary; the record's evidenceOrGap states why. */
     }
   }
 
@@ -101,13 +101,12 @@ package DE4SDV_MethodProcess {
      * remain in their authoritative external artifacts; this record preserves
      * the stable trace and review obligations.
      */
-    attribute mappingId : ScalarValues::String;
-    attribute semanticSource : ScalarValues::String;
+    attribute semanticSource : ScalarValues::String {
+      doc /* For an item that is no VSS-typed vehicle signal: what it is, and why no VSS signal applies. A vehicle signal names its source by its VSS typing instead; the record's short name is its mapping ID, and the owning mapping's ends give the endpoints and the direction. */
+    }
     attribute softwareContractArtifact : ScalarValues::String;
     attribute softwareContractMessage : ScalarValues::String;
     attribute softwareContractField : ScalarValues::String;
-    attribute adapterEndpoints : ScalarValues::String;
-    attribute direction : ScalarValues::String;
     attribute dataTypeAndUnit : ScalarValues::String;
     attribute timingQualityAndState : ScalarValues::String;
     attribute transformationRule : ScalarValues::String;

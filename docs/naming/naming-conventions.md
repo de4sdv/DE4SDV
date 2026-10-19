@@ -279,7 +279,7 @@ never mistaken for a project ID.
 | `ITEM` | Information item | pilot index | `ITEM-INTERNAL-001` | CANONICAL |
 | `LCOMP` | Logical component | pilot index | `LCOMP-AEBS-001` | CANONICAL |
 | `LPORT` | Logical port | pilot index | `LPORT-AEBS-IN-001` | CANONICAL |
-| `MAP` | Signal mapping record | pilot index | `MAP-MW-008-VEHICLE-SPEED` | CANONICAL |
+| `MAP` | Signal mapping record | pilot index; the short name of a `LogicalToSoftwareSignalMappingRecord` in SysML | `MAP-MW-008-VEHICLE-SPEED` | CANONICAL |
 | `MC` | Method-conformance matrix case | method-conformance specification (`docs/method-evaluation/`) | `MC-01` | CANONICAL |
 | `PC` | Pilot contract obligation | declared method-conformance pilot (`docs/method-evaluation/pilot-scope.md`) | `PC-009D-VC-EXISTS` | CANONICAL |
 | `PSC` | Pilot scope record | model-resident evaluation scope for a declared pilot (`textual-notation-of-model/`) | `PSC-009D` | CANONICAL |

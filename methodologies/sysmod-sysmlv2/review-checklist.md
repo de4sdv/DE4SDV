@@ -26,9 +26,10 @@ Use this checklist for future contributions that adopt or extend the SYSMOD SysM
 
 ## System-to-software signal mapping
 
-- [ ] Every applicable logical or semantic information item crossing into a software, service, topic, API, or physical interface has a stable mapping record.
-- [ ] The mapping identifies the qualified source item/catalog path, contract message/field, adapter endpoints, direction, units/types, and transformation or state rule.
-- [ ] Exact, candidate, deferred, and not-applicable mappings are distinguished; a generic dependency or same-name element is not treated as field-level traceability.
+- [ ] Every crossing, a physical element that realizes a logical element and has a port with a directed feature, has a `SystemToSoftwareSignalMappingCandidate` allocation from each logical element it realizes, owning a `LogicalToSoftwareSignalMappingRecord` with a disposition, an owner and a next action ([increment workflow rule 13](increment-workflow.md); an advisory Method Check).
+- [ ] The record's short name is the mapping ID; the mapping's ends, the typed ports and the connections give the source, the adapter endpoints and the direction; the contract fields name the message, the field and any further contract, with units/types and the transformation or state rule.
+- [ ] Vehicle signals are VSS-typed, with COVESA VSS or a `DE4SDV_VSS_Extensions` candidate with `@VssSignalMetadata`; the record of any other item states its `semanticSource`, and a VSS path written in a doc or a string does not count as typing.
+- [ ] Exact, candidate, deferred, and not-applicable mappings are distinguished; a not-applicable record states why in `evidenceOrGap`; a generic dependency or same-name element is not treated as field-level traceability.
 - [ ] Each candidate or deferred mapping names its open gap, owner/next action, and planned verification or evidence.
 - [ ] The mapping does not duplicate executable `.proto`, `.vsidl`, implementation, test, or runtime evidence artifacts.
 
