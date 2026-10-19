@@ -89,32 +89,104 @@ def test_no_kernel_evidence_status_type():
     assert not [name for name in re.findall(r"\bdef\s+(\w+)", active) if re.search("status|evidence", name, re.I)]
 
 
+#: A feature in these texts is a feature of a PLEML feature model (review R2).
+PLEML_FEATURE = "Feature here means a feature of a PLEML feature model, not the ontology class Feature"
+
+
 def test_the_definitions_state_the_closed_world_the_evaluator_implements():
+    """The shape the evaluator (S2) implements and the feature models (S3)
+    author: one client, how each premise maps to its source feature, no
+    supplier order, no rule outside a derived variation (review R1 to R3)."""
     derived = _first_doc("DerivedVariation")
-    for clause in ("whose client is the variation and whose suppliers are its source features",
+    for clause in ("Declares that a shared-asset variation is derived",
+                   "Applied to a dependency with exactly one client, the variation, whose suppliers are its "
+                   "source features",
+                   "Supplier order carries no meaning",
                    "exactly one of its rules must match",
                    "a configuration that matches no rule or several is rejected",
                    "never a feature and never a manual product choice",
                    "a feature binding or configuration entry that targets one is refused",
-                   "The short name of the dependency is the stable identity of the derivation"):
+                   "The short name of the dependency is the stable identity of the derivation",
+                   PLEML_FEATURE):
         assert clause in derived, clause
     rule = _first_doc("DerivationRule")
-    for clause in ("whose client is that variant and whose suppliers are the premises",
-                   "one alternative of each source feature of the variation",
-                   "matches a configuration that selects every premise",
-                   "Derivation applies to valid configurations only"):
+    for clause in ("Applied to a dependency with exactly one client, that variant, whose suppliers are the premises",
+                   "one premise per source feature of the variation, each a direct sub-feature of a distinct "
+                   "source feature, that is, a feature of the feature model with an authored subsetting of it",
+                   "Supplier order carries no meaning",
+                   "The client is a variant of a variation that exactly one derived variation names; a rule "
+                   "without one is invalid",
+                   "The rule matches a valid configuration that selects every premise",
+                   "derivation applies to valid configurations only"):
         assert clause in rule, clause
     assert "The names identify nothing" in _first_doc("ProductModelProjection")
     assert "is not one of its features" in _first_doc("ProductModelProjectionName")
     unassigned = _first_doc("UnassignedBindingTime")
-    assert "no configuration verdict depends on the annotation" in unassigned
-    assert "never carries this annotation" in unassigned
+    for clause in ("the binding time of the annotated feature of the feature model is not yet decided",
+                   "no configuration verdict depends on the annotation",
+                   "An annotated feature does not redefine bindingTime; a feature that does both is refused",
+                   "never carries this annotation",
+                   PLEML_FEATURE):
+        assert clause in unassigned, clause
 
 
 def test_the_header_keeps_the_pre_switch_authority_fence():
     header = " ".join(_source().split("package DE4SDV_ProductLineDerivation", 1)[0].replace("*", " ").split())
     assert "until the switch of ADR 0022, the YAML catalogue and the configurator remain the derivation authority" in header
     assert "(ADR 0006 decision 6)" in header and "only the fenced feature models apply these definitions" in header
+    assert "a repository test refuses any file of the model roots that imports this package or applies them" in header
+    assert ("In these definitions a feature is a feature of a PLEML feature model, not the ontology class Feature "
+            "(kernel ProductLineFeatureCandidate); the ontology pull request before the switch (S5o) decides "
+            "that boundary") in header
+
+
+#: The model roots that ingestion exports and serves (the production selectors).
+MODEL_ROOTS = ("textual-notation-of-model", "model-based-product-line-engineering/product-models",
+               "model-based-product-line-engineering/scoping")
+#: An import or qualified use of the package, or an application of one of its
+#: definitions: prefix or body metadata (#Name, @Name) or a named metadata usage.
+_APPLIES = re.compile(
+    r"\bDE4SDV_ProductLineDerivation\b"
+    r"|[#@]\s*(?:" + "|".join(SHAPES) + r")\b"
+    r"|\bmetadata\s+\w+\s*:\s*(?:[\w:]*::)?(?:" + "|".join(SHAPES) + r")\b")
+
+
+def _model_root_files_applying_the_kernel(root: Path) -> list[str]:
+    found = []
+    for model_root in MODEL_ROOTS:
+        for path in sorted((root / model_root).rglob("*.sysml")):
+            relative = path.relative_to(root).as_posix()
+            if relative != DERIVATION and _APPLIES.search(strip_comments(path.read_text(encoding="utf-8"))):
+                found.append(relative)
+    return found
+
+
+def test_until_the_switch_no_model_root_file_applies_the_derivation_kernel():
+    """ADR 0022 fence (review R4): until the switch, only the fenced feature
+    models outside the model roots, and synthetic test fixtures, import this
+    package or apply its definitions. A file of the model roots that does is
+    refused, so the served model cannot apply the derivation kernel before
+    the switch. The switch rewrites this guard together with the header."""
+    assert _model_root_files_applying_the_kernel(ROOT) == []
+
+
+@pytest.mark.parametrize("text", [
+    "package P { private import DE4SDV_ProductLineDerivation::*; }",
+    "package P { #DerivedVariation dependency d from a to b, c; }",
+    "package P { #DE4SDV_ProductLineDerivation::DerivationRule dependency r from a to b; }",
+    "package P { occurrence def M { @ProductModelProjection { packageName = \"P\"; } } }",
+    "package P { occurrence c { metadata name : ProductModelProjectionName; } }",
+    "package P { #UnassignedBindingTime occurrence f; }",
+])
+def test_the_fence_guard_refuses_a_planted_model_root_file(tmp_path, text):
+    planted = tmp_path / "textual-notation-of-model/packages/features/probe/probe.sysml"
+    planted.parent.mkdir(parents=True)
+    planted.write_text(text + "\n", encoding="utf-8")
+    fenced = tmp_path / "model-based-product-line-engineering/feature-models/probe.sysml"
+    fenced.parent.mkdir(parents=True)
+    fenced.write_text(text + "\n", encoding="utf-8")
+    assert _model_root_files_applying_the_kernel(tmp_path) == [
+        "textual-notation-of-model/packages/features/probe/probe.sysml"]
 
 
 @pytest.mark.parametrize("name", sorted(SHAPES))

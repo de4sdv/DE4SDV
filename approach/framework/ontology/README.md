@@ -103,3 +103,8 @@ requirements as `RequirementCandidate` specializations. Product-line classes
 map to `DE4SDV_ProductLine` (`CommonProductLineCapability`,
 `ProductLineFeatureCandidate`), which enforces the ISO/IEC 26580-aligned rule
 that a characteristic is only a feature once it distinguishes member products.
+The derivation classes (`DerivedVariation`, `DerivationRule`,
+`ProductModelProjection`, `ProductModelProjectionName` and
+`UnassignedBindingTime`) map to `DE4SDV_ProductLineDerivation`, metadata that
+feature models and their configurations apply
+([ADR 0022](../../../docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md)).

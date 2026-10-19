@@ -343,7 +343,7 @@
       "accounting": "method-admitted",
       "boundary": "none",
       "definition": {
-        "documentation": "A rule that derives one variant of a derived variation. Applied to a dependency whose client is that variant and whose suppliers are the premises: one alternative of each source feature of the variation. The rule matches a configuration that selects every premise. Derivation applies to valid configurations only.",
+        "documentation": "A rule that derives one variant of a derived variation. Applied to a dependency with exactly one client, that variant, whose suppliers are the premises: one premise per source feature of the variation, each a direct sub-feature of a distinct source feature, that is, a feature of the feature model with an authored subsetting of it. Supplier order carries no meaning. The client is a variant of a variation that exactly one derived variation names; a rule without one is invalid. The rule matches a valid configuration that selects every premise; derivation applies to valid configurations only.",
         "documentation_witness": {
           "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
           "owner": "metadata def DerivationRule",
@@ -376,7 +376,7 @@
       "accounting": "method-admitted",
       "boundary": "none",
       "definition": {
-        "documentation": "A shared-asset variation whose variant no configuration selects: its derivation rules derive the variant from the selected features. Applied to a dependency whose client is the variation and whose suppliers are its source features, the features whose selected alternative the rules condition on. A valid configuration derives exactly one variant of the variation: exactly one of its rules must match, and a configuration that matches no rule or several is rejected. A derived variant is never a feature and never a manual product choice, so a feature binding or configuration entry that targets one is refused. The short name of the dependency is the stable identity of the derivation.",
+        "documentation": "Declares that a shared-asset variation is derived: no configuration selects its variant, and its derivation rules derive the variant from the selected features of the feature model. Applied to a dependency with exactly one client, the variation, whose suppliers are its source features: the features of the feature model whose selected alternative the rules condition on. Supplier order carries no meaning. A valid configuration derives exactly one variant of the variation: exactly one of its rules must match, and a configuration that matches no rule or several is rejected. A derived variant is never a feature and never a manual product choice, so a feature binding or configuration entry that targets one is refused. The short name of the dependency is the stable identity of the derivation. Feature here means a feature of a PLEML feature model, not the ontology class Feature.",
         "documentation_witness": {
           "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
           "owner": "metadata def DerivedVariation",
@@ -1077,7 +1077,7 @@
       "accounting": "method-admitted",
       "boundary": "none",
       "definition": {
-        "documentation": "Feature metadata: the binding time of the annotated feature is not yet decided. The feature keeps its default binding time, and no configuration verdict depends on the annotation. A feature that a feature binding, a derived variation or a derivation rule names has a decided binding time, so it never carries this annotation.",
+        "documentation": "Feature metadata: the binding time of the annotated feature of the feature model is not yet decided. The feature keeps its default binding time, and no configuration verdict depends on the annotation. An annotated feature does not redefine bindingTime; a feature that does both is refused. A feature that a feature binding, a derived variation or a derivation rule names has a decided binding time, so it never carries this annotation. Feature here means a feature of a PLEML feature model, not the ontology class Feature.",
         "documentation_witness": {
           "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
           "owner": "metadata def UnassignedBindingTime",

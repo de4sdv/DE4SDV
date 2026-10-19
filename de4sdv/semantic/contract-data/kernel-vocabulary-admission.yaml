@@ -1,7 +1,8 @@
 # O4 definition-admission batch 2 - governed admission document.
 #
-# ADMITTED (engineering evidence). The admitted family is DERIVED, not
-# hand-picked (tests, fail-closed, both directions):
+# ADMITTED (engineering evidence). The admitted family is derived (tests,
+# fail-closed, both directions); the exception is the method-admitted rows,
+# which a reviewed method pull request admits and a test pins:
 #   * every retained O4 register row (not O3-complete) that no other generated
 #     layer projects (O2 chain, definition batch 1, O2+);
 #   * every former authored-ontology class that is not an O4 register row
@@ -10,11 +11,14 @@
 #     hasRegulatorySource (allocatedTo is a register row), and the retired
 #     name validatesFitnessForUse (merged register row with a model retirement
 #     record);
-#   * every class that a method pull request admits after the authored
-#     ontology's deletion (accounting method-admitted): a kernel class with no
-#     register row and no authored-ontology comparison, whose manifest fields
-#     are its reviewed contract (the product-line derivation classes of
-#     ADR 0022).
+#   * the method-admitted classes (accounting method-admitted): kernel classes
+#     that a reviewed method pull request admitted after the authored
+#     ontology's deletion, with no register row and no authored-ontology
+#     comparison; their manifest fields are their reviewed contract. ADR 0022
+#     (step S2k, pull request #402) admitted the five product-line derivation
+#     classes DerivationRule, DerivedVariation, ProductModelProjection,
+#     ProductModelProjectionName and UnassignedBindingTime;
+#     tests/test_kernel_vocabulary_projection.py pins that set.
 # Rows whose register entry is gated name, per gate, the governance record that
 # resolved it (approved semantic decisions, ADR 0020, the October 2026 owner
 # record, the W6 transition plan). Gates resolved here unblock ADMISSION
