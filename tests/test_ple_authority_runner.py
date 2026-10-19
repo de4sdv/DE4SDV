@@ -214,13 +214,14 @@ def test_the_round_trip_records_the_verified_production_import(monkeypatch) -> N
     seen = {}
 
     def fake_import(client, bundle, *, project_name):
-        seen.update(base_url=client.base_url, project_name=project_name)
+        seen.update(base_url=client.base_url, timeout=client.timeout, project_name=project_name)
         return SimpleNamespace(project_id="p", commit_id="c", element_count=4, internal_reference_count=2,
                                content_sha256="sha256:" + "0" * 64)
 
     monkeypatch.setattr(runner, "import_baseline", fake_import)
     record = runner.round_trip(SimpleNamespace(external_references=(1, 2)), "http://127.0.0.1:9000")
-    assert seen == {"base_url": "http://127.0.0.1:9000", "project_name": runner.API_PROJECT}
+    # The production import's timeout: the API commits the bundle in one request.
+    assert seen == {"base_url": "http://127.0.0.1:9000", "timeout": 600.0, "project_name": runner.API_PROJECT}
     assert record["verified"] is True and record["element_count"] == 4 and record["external_reference_count"] == 2
     assert "full-payload" in record["check"]
 

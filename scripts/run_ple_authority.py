@@ -118,6 +118,10 @@ EXECUTOR_INPUTS = (
 RUN_SCHEMA = "de4sdv.ple-authority-run/v1"
 ELEMENTS = "authority-elements.json"
 API_PROJECT = "DE4SDV isolated PLE authority round trip"
+#: The production import's request timeout (scripts/import_sysml_api_baseline.py).
+#: The API commits the authority bundle in one request, which outlasts the
+#: client's 30-second default (run 39244883381).
+API_TIMEOUT_SECONDS = 600.0
 
 Documents = dict[str, list[dict[str, Any]]]
 
@@ -263,7 +267,7 @@ def round_trip(bundle: BaselineExportBundle, api_url: str) -> dict[str, Any]:
     """
     if re.fullmatch(r"http://127\.0\.0\.1:[0-9]{1,5}", api_url) is None or not 1 <= int(api_url.rsplit(":", 1)[1]) <= 65535:
         raise ValueError("the round trip may write only to an ephemeral loopback API")
-    imported = import_baseline(ApiClient(api_url), bundle, project_name=API_PROJECT)
+    imported = import_baseline(ApiClient(api_url, timeout=API_TIMEOUT_SECONDS), bundle, project_name=API_PROJECT)
     return {
         "verified": True,
         "check": "full-payload readback: element identities, internal references and element payloads",
