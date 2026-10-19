@@ -511,6 +511,46 @@ def test_a_port_that_cannot_be_read_leaves_the_crossing_indeterminate() -> None:
     assert "remotePort is typed by an element that is not in the bound revision" in result.diagnostics[0]
 
 
+def _broken_connector(r: Realization) -> None:
+    """An unrelated connection elsewhere in the revision whose target end names a feature that is not in it."""
+    b = r.builder
+    other = b.package("FixtureUnrelated")
+    link = b.definition("ConnectionDefinition", "UnrelatedLink", other)
+    source, target = b.usage("PartUsage", "a", other), b.usage("PartUsage", "c", other)
+    b.connection("brokenLink", other, link, (("source", source), ("target", target)))
+    missing = {"@id": "00000000-0000-5000-8000-00000000dead"}
+    for element in b.elements:
+        if element.get("@type") == "ReferenceSubsetting" and element.get("referencedFeature") == ref(target):
+            element.update(general=missing, subsettedFeature=missing, referencedFeature=missing)
+
+
+def _status_port(r: Realization) -> None:
+    """``port statusPort : StatusPort;`` on the launcher, whose definition has no directed feature."""
+    b = r.builder
+    status = b.definition("PortDefinition", "StatusPort", r.package)
+    b.usage("AttributeUsage", "code", status, [], membership="FeatureMembership")  # no direction
+    b.usage("PortUsage", "statusPort", r.launcher, [status], membership="FeatureMembership")
+
+
+def test_an_unreadable_connector_leaves_only_ports_without_their_own_directed_feature_unread() -> None:
+    """Delta D1: one unreadable connector elsewhere does not change the result of an element without ports.
+    It leaves a port without a directed feature of its own unread, because its connected ports decide; the
+    same port is no crossing when every connector can be read."""
+    r = _realization()
+    _broken_connector(r)
+    result = _results(_evaluate(r), CROSSING)[r.launcher["@id"]]
+    assert result.verdict == me.VERDICT_NOT_APPLICABLE
+    assert result.diagnostics[-1] == (
+        f"{_view(r).label(r.launcher['@id'])} declares no port with a directed feature: no crossing")
+    _status_port(r)
+    result = _results(_evaluate(r), CROSSING)[r.launcher["@id"]]
+    assert (result.verdict, result.missing) == (INDETERMINATE, ("model-witness:port",))
+    assert "the connected ports of 1 port(s) are unknown while 1 connector(s) cannot be read" in result.diagnostics[0]
+    readable = _realization()
+    _status_port(readable)
+    assert _verdicts(_evaluate(readable), CROSSING)[readable.launcher["@id"]] == me.VERDICT_NOT_APPLICABLE
+
+
 def test_any_directed_feature_counts_and_a_non_information_flow_is_recorded_not_applicable() -> None:
     """R12: the check reads structure, never names, so a power port with a directed attribute is a crossing
     like any other; its record says notApplicable, and why."""

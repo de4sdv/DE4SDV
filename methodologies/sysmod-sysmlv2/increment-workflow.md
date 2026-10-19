@@ -230,7 +230,9 @@ These method rules apply to every increment:
       crossing and needs no record. A port whose definition is not in the
       revision, or that has no type, no feature, nothing it narrows and no
       connected port, cannot be read: the result is indeterminate, not "no
-      crossing".
+      crossing". So can a port without a directed feature of its own while
+      a connector of the revision cannot be read, because its connected
+      ports decide; an element without ports is unaffected.
     - **Mappings.** Each logical element a crossing realizes has a
       system-to-software signal mapping: an allocation typed
       `SystemToSoftwareSignalMappingCandidate` from the logical element to a

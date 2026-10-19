@@ -595,11 +595,14 @@ def port_reading(view: ModelView, element: str) -> tuple[list[str], list[str]]:
     (a conjugated port definition's original included), of a feature it narrows, or of a port a connector
     connects it to (``in item speedSample : Payload;``). A port cannot be read when a definition typing it
     is not in the bound revision, or when it has no type, no feature, nothing it narrows and no connected
-    port; and while a connector of the revision cannot be read, no port's peers are known."""
+    port. While a connector of the revision cannot be read, the connected ports of a port without a
+    directed feature of its own are not known, so such a port cannot be read either; an element without
+    such a port is unaffected."""
     index = view.index
     peers, problems = connected_peers(view)
     information: list[str] = []
     unreadable: list[str] = []
+    peer_dependent: list[str] = []
     for port in member_features(view, element):
         if str(index.element(port).get("@type")) != "PortUsage":
             continue
@@ -609,14 +612,16 @@ def port_reading(view: ModelView, element: str) -> tuple[list[str], list[str]]:
         if any(index.element(feature).get("direction") for feature in content):
             information.append(port)
             continue
+        peer_dependent.append(port)  # no directed feature of its own: its connected ports decide
         types = [definition for feature in narrowed for definition in type_lineage(view, feature)]
         missing = [definition for definition in types if definition not in index.by_id]
         if missing:
             unreadable.append(f"{element_name(view, port)} is typed by an element that is not in the bound revision")
         elif not (types or content or connected or len(narrowed) > 1):
             unreadable.append(f"{element_name(view, port)} has no type, no feature and no connected port")
-    if not information and problems:
-        unreadable.append(f"{len(problems)} connector(s) cannot be read: {'; '.join(problems[:3])}")
+    if not information and problems and peer_dependent:
+        unreadable.append(f"the connected ports of {len(peer_dependent)} port(s) are unknown while "
+                          f"{len(problems)} connector(s) cannot be read: {'; '.join(problems[:3])}")
     return information, unreadable
 
 
