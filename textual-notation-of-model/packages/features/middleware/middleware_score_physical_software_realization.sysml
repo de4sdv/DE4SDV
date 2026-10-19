@@ -418,6 +418,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * The safety-path status of the logical health proxy is not realized
        * here.
        */
+      attribute :>> semanticSource = "the health of the reference vehicle speed, the forwarded health of the logical health proxy: a ROS 2 diagnostic status (DiagnosticArray, STALE or OK) that the health proxy node derives from the age of the last sample on /de4sdv/middleware/velocity_status; a diagnostic, not a vehicle signal, so no VSS source applies";
       attribute :>> softwareContractArtifact = "ROS 2 topic /de4sdv/middleware/velocity_status_health (owner decision D4), exact";
       attribute :>> softwareContractMessage = "diagnostic_msgs/msg/DiagnosticArray, exact type, revision pinned in phase 10 with the ROS 2 distribution of the Autoware image (GAP-MW-035)";
       attribute :>> softwareContractField = "status[].level, exact; the status name and hardware_id, candidate";
@@ -445,6 +446,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * other endpoints and the direction. The frame is opaque by owner
        * decision and carries no VSS signal.
        */
+      attribute :>> semanticSource = "the AEBS signal frame (AEBSSignalFrame), opaque DE4SDV content: it carries no VSS signal, by the owner decision of 2026-10-18 recorded on AEBSSignalFrame";
       attribute :>> softwareContractArtifact = "the INC-AEBS-010 frame-server stream into the adapter on the host loopback, 127.0.0.1:4721 (de4sdv_aebs_010_bridge/ros_node.py:34-35), exact; the layer's S-CORE mw::com configuration and the host relay's vsomeip 3.7.6 configuration (phase 10), candidate; the INC-AEBS-010 ingress stream (ingress/main.cpp:27-28, 142-146), exact";
       attribute :>> softwareContractMessage = "host and guest loopback: the length-delimited frame stream; mw::com: the AEBS signal frame service instance with one event; SOME/IP: one service with one reliable event, events only, IDs not yet assigned";
       attribute :>> softwareContractField = "the whole frame, opaque";
