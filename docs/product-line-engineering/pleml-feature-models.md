@@ -166,8 +166,9 @@ dispatch. On the exact head it:
 6. hands the bundle to the entry point of the evaluator (ADR 0022, step S2),
    `write_receipts` of `scripts/run_pleml_configuration_evaluation.py`, which
    writes the compressed elements and one receipt per feature model, and
-   requires the fresh elements to equal the committed ones. Only the
-   provenance of the run, its executor revision, may differ.
+   compares them with the committed receipts by the evaluator's
+   `compare_with_committed`: the elements must be identical. Only the run's
+   provenance, which the receipts record beside the elements, may differ.
 
 The library document of the bundle is labelled by its repository path,
 `LIBRARY_PATH` of `de4sdv/semantic/pleml_package.py`.

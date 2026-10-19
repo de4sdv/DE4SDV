@@ -361,7 +361,7 @@ def test_a_run_writes_the_receipts_through_the_entry_point_and_compares_them(
         monkeypatch, tmp_path, failures, compared, status, expected_code) -> None:
     calls: list = []
     monkeypatch.setattr(runner, "receipt_writer", _fake_writer(calls, failures))
-    monkeypatch.setattr(runner, "compare_with_committed", lambda result, committed: list(compared))
+    monkeypatch.setattr(runner, "committed_receipt_failures", lambda fresh: list(compared))
     _scoped, args = _stub_run(monkeypatch, tmp_path)
     record, code = runner.run(args)
     assert code == expected_code
@@ -373,46 +373,14 @@ def test_a_run_writes_the_receipts_through_the_entry_point_and_compares_them(
                                     "failures": failures + compared}
 
 
-def _fresh(tmp_path: Path, names: list[str]) -> dict:
-    out = tmp_path / "fresh"
-    out.mkdir()
-    (out / "e.elements.json.xz").write_bytes(b"fresh")
-    for name in names:
-        (out / name).write_text("{}")
-    return {"elements": out / "e.elements.json.xz", "receipts": [out / name for name in names]}
+def test_the_committed_receipts_are_compared_by_the_evaluators_own_function(monkeypatch) -> None:
+    """One comparison, the evaluator's: the runner passes the fresh receipts and the committed directory."""
+    import de4sdv.semantic as semantic
 
-
-def _committed(tmp_path: Path, names: list[str], content: bytes = b"committed") -> Path:
-    committed = tmp_path / "committed"
-    committed.mkdir()
-    (committed / "e.elements.json.xz").write_bytes(content)
-    for name in names:
-        (committed / name).write_text(json.dumps({"elements": {"path": "e.elements.json.xz"}}))
-    return committed
-
-
-def test_the_committed_receipts_must_hold_this_serializations_elements(monkeypatch, tmp_path) -> None:
-    identity = {"fresh": b"same", "committed": b"same"}
-    monkeypatch.setattr(runner, "_identity_of", lambda path: identity[path.parent.name])
-    fresh = _fresh(tmp_path, ["a.receipt.json", "b.receipt.json"])
-    assert runner.compare_with_committed(fresh, tmp_path / "missing") == [
-        "a.receipt.json: not committed; commit the receipts and elements of this run",
-        "b.receipt.json: not committed; commit the receipts and elements of this run"]
-    committed = _committed(tmp_path, ["a.receipt.json", "b.receipt.json", "c.receipt.json"])
-    assert runner.compare_with_committed(fresh, committed) == [
-        "c.receipt.json: committed, but this run writes no such receipt"]
-    identity["committed"] = b"other"
-    assert runner.compare_with_committed(fresh, committed)[1:] == [
-        "a.receipt.json: the committed elements are not this serialization's; commit the fresh receipts",
-        "b.receipt.json: the committed elements are not this serialization's; commit the fresh receipts"]
-
-
-def test_the_elements_identity_ignores_only_the_runs_provenance() -> None:
-    payload = {"schema": "s", "elements": [{"@id": "e"}], "serializer": {
-        "name": "syside", "version": "0.10.3", "options": "production export",
-        "executor_revision": "a" * 40, "bundle_git_commit": "a" * 40}}
-    later = {**payload, "serializer": {**payload["serializer"], "executor_revision": "b" * 40,
-                                       "bundle_git_commit": "b" * 40}}
-    assert runner._elements_identity(later) == runner._elements_identity(payload)
-    for change in ({"elements": [{"@id": "f"}]}, {"serializer": {**payload["serializer"], "version": "0.10.4"}}):
-        assert runner._elements_identity({**payload, **change}) != runner._elements_identity(payload)
+    calls = []
+    fake = SimpleNamespace(compare_with_committed=lambda fresh, committed: calls.append((fresh, committed)) or ["x"])
+    monkeypatch.setitem(sys.modules, "de4sdv.semantic.pleml_receipts", fake)
+    monkeypatch.setattr(semantic, "pleml_receipts", fake, raising=False)
+    fresh = [Path("/tmp/fresh/sdv_product_line.receipt.json")]
+    assert runner.committed_receipt_failures(fresh) == ["x"]
+    assert calls == [(fresh, ROOT / runner.RECEIPTS_DIR)]

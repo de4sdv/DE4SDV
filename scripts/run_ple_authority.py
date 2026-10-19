@@ -133,8 +133,6 @@ EVALUATION_CLI = "scripts/run_pleml_configuration_evaluation.py"
 RECEIPTS_DIR = f"{PLE}/feature-models/receipts"
 #: The file stem of the compressed elements: ``<name>.elements.json.xz``.
 RECEIPTS_NAME = "pleml-feature-models"
-#: Serialization provenance that differs between runs of the same sources.
-PROVENANCE = ("executor_revision", "bundle_git_commit")
 #: The evaluator's code: executor inputs too, once it is on the revision.
 EVALUATOR_INPUTS = (EVALUATION_CLI, "de4sdv/semantic/pleml_configuration.py", "de4sdv/semantic/pleml_receipts.py")
 API_PROJECT = "DE4SDV isolated PLE authority round trip"
@@ -316,61 +314,30 @@ def receipt_writer():
     return write_receipts
 
 
-def _elements_identity(payload: dict[str, Any]) -> bytes:
-    """The elements as the serializer produced them, without the provenance of one run."""
-    serializer = {key: value for key, value in payload["serializer"].items() if key not in PROVENANCE}
-    return json.dumps({**payload, "serializer": serializer}, sort_keys=True, separators=(",", ":"),
-                      ensure_ascii=False).encode("utf-8")
+def committed_receipt_failures(fresh: list[Path]) -> list[str]:
+    """Why the committed receipts are not this run's, by the evaluator's own comparison.
 
-
-def _identity_of(elements: Path) -> bytes:
-    """The identity of an elements file, read by the evaluator's own reader."""
+    Their elements must equal the fresh ones; the run's provenance may differ.
+    A receipt that only one side has fails too.
+    """
     from de4sdv.semantic import pleml_receipts
 
-    return _elements_identity(pleml_receipts.read_elements(elements))
-
-
-def compare_with_committed(result: dict[str, Any], committed: Path) -> list[str]:
-    """Why the committed receipts are not this run's: their elements must equal the fresh ones.
-
-    Only the provenance of the run (its executor revision) may differ. A
-    receipt that is fresh but not committed, or committed but not fresh, fails
-    too: the fresh receipts in the evidence are then the ones to commit.
-    """
-    failures = []
-    fresh = {path.name for path in result["receipts"]}
-    present = {path.name for path in committed.glob("*.receipt.json")} if committed.is_dir() else set()
-    for name in sorted(present - fresh):
-        failures.append(f"{name}: committed, but this run writes no such receipt")
-    identity = _identity_of(result["elements"])
-    for name in sorted(fresh):
-        if name not in present:
-            failures.append(f"{name}: not committed; commit the receipts and elements of this run")
-            continue
-        receipt = json.loads((committed / name).read_text(encoding="utf-8"))
-        try:
-            same = _identity_of(committed / str((receipt.get("elements") or {}).get("path"))) == identity
-        except ValueError as exc:
-            failures.append(f"{name}: {exc}")
-            continue
-        if not same:
-            failures.append(f"{name}: the committed elements are not this serialization's; commit the fresh receipts")
-    return failures
+    return pleml_receipts.compare_with_committed(fresh, ROOT / RECEIPTS_DIR)
 
 
 def evaluate(bundle: BaselineExportBundle, executor: str, out: Path) -> dict[str, Any]:
     """Write the receipts through the evaluator's entry point and compare them with the committed ones.
 
     The entry point writes ``<name>.elements.json.xz`` and one receipt per
-    feature model to ``out/receipts``. Its failures (integrity, complement and
-    rule-table errors) and any difference from the committed elements fail
-    the run.
+    feature model to ``out/receipts``, with the run's provenance beside the
+    elements. Its failures (integrity, complement and rule-table errors) and
+    any difference from the committed elements fail the run.
     """
     write_receipts = receipt_writer()
     result = write_receipts(bundle, out / "receipts", serializer={
         "name": "syside", "version": SERIALIZER_VERSION, "options": "production export",
         "executor_revision": executor}, name=RECEIPTS_NAME)
-    failures = [*result["failures"], *compare_with_committed(result, ROOT / RECEIPTS_DIR)]
+    failures = [*result["failures"], *committed_receipt_failures(result["receipts"])]
     return {
         "status": "failed" if failures else "evaluated",
         "elements": result["elements"].name,
