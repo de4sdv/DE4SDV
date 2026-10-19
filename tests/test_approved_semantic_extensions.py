@@ -46,6 +46,35 @@ def test_historical_ontology_review_population_is_not_silently_expanded():
     assert {r["identity"] for r in rows if r["o3_protected"]} == set(MIGRATED_IDENTITIES)
 
 
+def test_a_later_review_supersedes_named_statements_and_keeps_the_rows_as_reviewed():
+    """A later review is a ``superseding_reviews`` entry: it names the revision it
+    reviewed, existing rows and the statements of them it supersedes. Everything
+    else equals the integrated review archived at the release tag."""
+    import subprocess
+
+    review = json.loads((ROOT / "de4sdv/semantic/contract-data/ontology-review.json").read_text())
+    archived = json.loads(subprocess.run(
+        ["git", "show", "release-2026-10-11:docs/method-conformance/o4/ontology-review/integrated-review.json"],
+        cwd=ROOT, capture_output=True, text=True, check=True).stdout)
+    assert {key: value for key, value in review.items() if key != "superseding_reviews"} == archived
+    rows = {row["identity"]: row for row in review["rows"]}
+    entries = review["superseding_reviews"]
+    assert entries and len({entry["id"] for entry in entries}) == len(entries)
+    for entry in entries:
+        assert re.fullmatch(r"[0-9a-f]{40}", entry["reviewed_revision"]), entry["id"]
+        assert entry["findings"], entry["id"]
+        for finding in entry["findings"]:
+            assert finding["statement"].strip() and finding["supersedes"], finding["identity"]
+            for path in finding["supersedes"]:
+                node = rows[finding["identity"]]
+                for part in re.split(r"[.\[\]]+", path.rstrip("]")):
+                    node = node[int(part)] if part.isdigit() else node[part]
+    # The signal-mapping usage review (finding R9 of the #400 review) covers the cluster.
+    signal = next(entry for entry in entries if entry["id"] == "signal-mapping-usage")
+    assert {finding["identity"] for finding in signal["findings"]} == {
+        "SystemToSoftwareSignalMappingCandidate", "LogicalToSoftwareSignalMappingRecord", "SignalMappingDisposition"}
+
+
 def test_every_new_record_is_reviewed_and_model_mapped_without_waiving_coverage():
     """Every extension has a model-built mapping and a generated row, and
     coverage stays exact."""
