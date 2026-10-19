@@ -22,6 +22,7 @@ LIBRARY = "external/pleml/PLEML.sysml"
 MODEL = "model-based-product-line-engineering/feature-models/synthetic_feature_model.sysml"
 CONFIGURATIONS = "model-based-product-line-engineering/feature-configurations/synthetic_configurations.sysml"
 ASSETS = "textual-notation-of-model/packages/architecture/synthetic_shared_assets.sysml"
+SCOPE = "model-based-product-line-engineering/scoping/synthetic_product_line_scope.sysml"
 #: The kernel ``that`` feature lives in the standard library, outside every bundle.
 THAT = "dbd75b49-0e57-5cf9-ba35-9f8843b1e657"
 
@@ -48,7 +49,8 @@ class PlemlGraph:
         self._build_kernel()
         self.package = self.element("Package", model, declaredName="SyntheticProductLine")
         self.model_documents = {model}
-        self.configuration_package: str | None = None
+        self.configuration_packages: dict[str, str] = {}
+        self.scope_record: dict[str, Any] | None = None
 
     # -- element plumbing --------------------------------------------------------------
 
@@ -357,18 +359,26 @@ class PlemlGraph:
                 short: str | None = None) -> str:
         return self.constraint(owner, "implies", premises, conclusions, short=short)
 
+    def model_document(self, document: str, package: str) -> str:
+        """Start another model document: later trees, feature models and dependencies go into its package."""
+        self.package = self.element("Package", document, declaredName=package)
+        self.model = document
+        self.model_documents.add(document)
+        return self.package
+
     def configuration(self, owner: str, name: str, tree: str, *, keyword: bool = True,
-                      projection_name: str | None = None, description: str | None = None) -> str:
+                      projection_name: str | None = None, description: str | None = None,
+                      document: str = CONFIGURATIONS) -> str:
         """In a feature model, ``... :> tree, featureConfigurations``; for a tree definition, in the configurations
         document, ``#featureConfiguration occurrence name : TreeDefinition :> featureConfigurations``."""
         props = {"declaredName": name, "isComposite": True, "isVariable": True, "isVariation": False}
         typed = self.by_id[tree]["@type"] == "OccurrenceDefinition"
         if typed:
-            if self.configuration_package is None:
-                self.configuration_package = self.element("Package", CONFIGURATIONS,
-                                                          declaredName="SyntheticConfigurations")
-                self.model_documents.add(CONFIGURATIONS)
-            owner = self.configuration_package
+            if document not in self.configuration_packages:
+                self.configuration_packages[document] = self.element(
+                    "Package", document, declaredName=f"SyntheticConfigurations{len(self.configuration_packages)}")
+                self.model_documents.add(document)
+            owner = self.configuration_packages[document]
         relationship = "OwningMembership" if typed else "FeatureMembership"
         configuration = self.own(owner, relationship, "OccurrenceUsage", member_name=name, **props)
         if keyword:
@@ -421,9 +431,11 @@ class PlemlGraph:
                                        declaredName=variant, isVariation=False)
         return result
 
-    def dependency(self, clients: Sequence[str], suppliers: Sequence[str], metadata: str, *,
+    def dependency(self, clients: Sequence[str], suppliers: Sequence[str], metadata: str | None, *,
                    name: str | None = None, short: str | None = None, shape: str = "both") -> str:
         """``#metadata dependency <short> name from clients to suppliers;`` (the annotation form).
+
+        Without ``metadata`` it is a plain dependency, the form of a correspondence.
 
         ``shape`` emits the endpoint lists as the serializer may: ``both``
         (client/source and supplier/target), ``primary`` (client, supplier),
@@ -441,6 +453,8 @@ class PlemlGraph:
         endpoints = {"both": {**primary, **alias}, "primary": primary, "alias": alias,
                      "reordered": {**primary, **alias}}[shape]
         dependency = self.own(self.package, "OwningMembership", "Dependency", member_name=name, **props, **endpoints)
+        if metadata is None:
+            return dependency
         annotation = self.element("Annotation", self.model, owningRelatedElement=ref(dependency),
                                   annotatedElement=ref(dependency))
         usage = self.element("MetadataUsage", self.model, owningRelationship=ref(annotation), isVariation=False)
@@ -473,9 +487,40 @@ class PlemlGraph:
         return evaluator.kernel_bindings(synthetic_contract(self.kernel, self.names), elements, sources,
                                          vocabulary=self.names)
 
+    # -- the governed scope (the admission authority) -------------------------------------------
+
+    def governed_scope(self, sets: dict[str, Sequence[str]]) -> dict[str, str]:
+        """Scope elements per governed set, and the record the production scope validator would return.
+
+        ``sets`` maps ``alternatives``, ``common_core``, ``reference_only``,
+        ``deferred``, ``excluded_system2`` and ``derived_realization`` to element
+        names. Returns the element identities by name.
+        """
+        package = self.element("Package", SCOPE, declaredName="SyntheticProductLineScope")
+        made: dict[str, str] = {}
+        record: dict[str, Any] = {"schema": evaluator.SCOPE_SCHEMA, "scope_source": SCOPE}
+        for key, names in sets.items():
+            members = {}
+            for name in names:
+                made[name] = members[name] = made.get(name) or self.own(
+                    package, "OwningMembership", "PartUsage", member_name=name, declaredName=name)
+            if key == "alternatives":
+                record["vehicle_platform_integration_mode"] = {"alternatives": members}
+            else:
+                record[key] = members
+        self.scope_record = record
+        return made
+
+    def correspondence(self, client: str, governed: str, *, name: str | None = None) -> str:
+        """``dependency name from client to governed;``: a plain dependency to a governed-scope element."""
+        name = name or f"{self.by_id[client]['declaredName']}CorrespondsTo{self.by_id[governed]['declaredName']}"
+        return self.dependency([client], [governed], None, name=name)
+
     def evaluate(self, **options: Any) -> dict[str, Any]:
         elements, sources = self.build()
         options.setdefault("model_sources", tuple(sorted(self.model_documents)))
+        if self.scope_record is not None:
+            options.setdefault("governed_scope", self.scope_record)
         options.setdefault("library_source", self.library)
         options.setdefault("kernel_bindings", self.kernel_bindings())
         return evaluator.evaluate(elements, sources, **options)
@@ -499,6 +544,28 @@ def synthetic_contract(kernel_file: str = evaluator.KERNEL_SOURCE, names: Any = 
 # optional capabilities, the adapter variation derived by rules, the pair
 # exclusions of the closed world and the catalogue's allowed-list exclusions.
 
+#: A governed scope in the shape of the ratified one: two admitted alternatives, the common core, and the
+#: reference-only, deferred, excluded and derived sets.
+GOVERNED_SETS = {
+    "alternatives": ("standalone", "aaosIntegrated"),
+    "common_core": ("vehicleTargetAEBS", "autowareApplication", "linuxROS2AutowareRuntime", "currentSensingBaseline"),
+    "reference_only": ("apollo", "openpilot", "eclipseSCORE", "autosarAdaptive", "qnxQVM", "acrn"),
+    "deferred": ("drivingStackVariability", "sensingVariability", "expandedAEBSCapabilityVariability"),
+    "excluded_system2": ("engineeringExecutionEnvironments",),
+    "derived_realization": ("adapterRealization",),
+}
+#: Feature -> the governed elements it corresponds to, as the fenced SDV feature model states them.
+CORRESPONDENCES = {
+    "vehicleApplication": ("drivingStackVariability",), "autoware": ("autowareApplication",),
+    "openpilot": ("openpilot",), "apollo": ("apollo",), "eclipseSCORE": ("eclipseSCORE",),
+    "androidSDV": ("aaosIntegrated",), "autosarAdaptive": ("autosarAdaptive",), "noMiddleware": ("standalone",),
+    "linux": ("standalone", "linuxROS2AutowareRuntime"), "android": ("aaosIntegrated",), "qnx": ("qnxQVM",),
+    "qvm": ("qnxQVM",), "acrn": ("acrn",), "kvm": ("aaosIntegrated",), "noHypervisor": ("standalone",),
+    "perceptionSensors": ("sensingVariability",), "lidar": ("currentSensingBaseline",),
+    "radar": ("sensingVariability",), "camera": ("currentSensingBaseline",),
+    "pedestrianDetection": ("expandedAEBSCapabilityVariability",),
+    "bicycleDetection": ("expandedAEBSCapabilityVariability",),
+}
 APPLICATIONS = ("autoware", "openpilot", "apollo")
 MIDDLEWARE = ("eclipseSCORE", "androidSDV", "autosarAdaptive", "noMiddleware")
 OPERATING_SYSTEMS = ("linux", "android", "qnx")
@@ -538,7 +605,7 @@ class PlatformLine:
 
     def __init__(self, graph: PlemlGraph | None = None, *, rules: dict[tuple[str, str], str] | None = None,
                  unsupported: dict[str, tuple[str, ...]] | None = None, bind: bool = True,
-                 shape: str = "both") -> None:
+                 shape: str = "both", governed: bool = False) -> None:
         self.graph = graph = graph or PlemlGraph()
         graph.shared_assets("DE4SDV_SDVPlatformStack", "SDVPlatformStack")
         self.variations = {
@@ -596,6 +663,11 @@ class PlatformLine:
         for (application, middleware), variant in (ADAPTER_RULES if rules is None else rules).items():
             graph.rule(adapter[variant], [f[application], f[middleware]],
                        name=f"{application}On{middleware[0].upper()}{middleware[1:]}", shape=shape)
+        if governed:
+            self.scope = graph.governed_scope(GOVERNED_SETS)
+            for feature, targets in CORRESPONDENCES.items():
+                for target in targets:
+                    graph.correspondence(f[feature], self.scope[target])
 
     def configure(self, name: str, application: str, middleware: str, os: str, hypervisor: str,
                   sensors: Sequence[str] = ("lidar", "camera"), *, disabled: Sequence[str] = CAPABILITIES,

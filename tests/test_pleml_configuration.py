@@ -740,3 +740,148 @@ def test_document_order_comes_from_the_ownership_properties():
     for shuffle in (list.reverse, random.Random(406).shuffle):
         shuffle(line.graph.elements)
         assert line.graph.evaluate() == expected
+
+
+
+# -- admission: the governed scope stays the admission authority (ADR 0014) ------------------
+
+
+def admission(line: PlatformLine, name: str) -> dict:
+    (model,) = line.graph.evaluate()["feature_models"]
+    return next(item for item in model["configurations"] if item["configuration"] == name)["admission"]
+
+
+def test_the_two_governed_members_are_admitted():
+    line = PlatformLine(governed=True)
+    line.configure("standalone", "autoware", "noMiddleware", "linux", "noHypervisor")
+    line.configure("integrated", "autoware", "androidSDV", "android", "kvm")
+    standalone, integrated = admission(line, "standalone"), admission(line, "integrated")
+    assert (standalone["admitted"], standalone["alternative"], standalone["reasons"]) == (True, "standalone", [])
+    assert (integrated["admitted"], integrated["alternative"], integrated["reasons"]) == (True, "aaosIntegrated", [])
+    runtime = next(item for item in integrated["common_content"] if item["asset"] == "linuxROS2AutowareRuntime")
+    assert runtime == {"asset": "linuxROS2AutowareRuntime", "represented_by": ["platformStack.linux"], "missing": [],
+                       "exempted": ["platformStack.linux"], "complete": True}
+    assert "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability" in (
+        standalone["notes"])
+    target = next(item for item in standalone["common_content"] if item["asset"] == "vehicleTargetAEBS")
+    assert target["complete"] is None  # common content no feature corresponds to
+
+
+def test_a_valid_reference_example_is_not_admitted():
+    line = PlatformLine(governed=True)
+    line.configure("score", "autoware", "eclipseSCORE", "linux", "noHypervisor")
+    line.configure("apollo", "apollo", "eclipseSCORE", "qnx", "qvm", sensors=("lidar", "radar"))
+    model = line.graph.evaluate()["feature_models"][0]
+    assert [item["valid"] for item in model["configurations"]] == [True, True]
+    score, apollo = admission(line, "score"), admission(line, "apollo")
+    assert score["admitted"] is False and score["alternative"] == "standalone"
+    assert score["reasons"] == [
+        "selects content the governed scope does not admit: platformStack.eclipseSCORE: reference-only eclipseSCORE",
+        "misses derived realizations of standalone: platformStack.middleware = platformStack.noMiddleware"]
+    assert apollo["admitted"] is False and apollo["alternative"] is None
+    assert "realizes no admitted alternative" in apollo["reasons"]
+
+
+def test_mixed_derived_realizations_are_not_admitted():
+    line = PlatformLine(governed=True)
+    line.configure("mixed", "autoware", "androidSDV", "linux", "noHypervisor")
+    result = admission(line, "mixed")
+    assert result["admitted"] is False and result["alternative"] is None
+    assert result["alternatives_realized"] == {"aaosIntegrated": ["platformStack.androidSDV"],
+                                               "standalone": ["platformStack.linux", "platformStack.noHypervisor"]}
+    assert result["reasons"] == ["realizes more than one admitted alternative: aaosIntegrated, standalone"]
+
+
+def test_a_selected_feature_without_correspondence_is_not_in_the_governed_scope():
+    line = PlatformLine(governed=True)
+    line.configure("cruise", "autoware", "noMiddleware", "linux", "noHypervisor",
+                   disabled=("pedestrianDetection", "bicycleDetection", "laneKeepAssist"),
+                   enabled=("adaptiveCruiseControl",))
+    line.configure("pedestrian", "autoware", "noMiddleware", "linux", "noHypervisor",
+                   disabled=("bicycleDetection", "adaptiveCruiseControl", "laneKeepAssist"),
+                   enabled=("pedestrianDetection",))
+    assert admission(line, "cruise")["reasons"] == [
+        "selects content the governed scope does not admit: capabilities.adaptiveCruiseControl: not in the governed "
+        "scope"]
+    assert admission(line, "pedestrian")["reasons"] == [
+        "selects content the governed scope does not admit: capabilities.pedestrianDetection: deferred "
+        "expandedAEBSCapabilityVariability"]
+
+
+def test_common_content_must_be_represented():
+    line = PlatformLine(governed=True)
+    line.configure("lidarOnly", "autoware", "noMiddleware", "linux", "noHypervisor", sensors=("lidar",))
+    assert admission(line, "lidarOnly")["reasons"] == [
+        "does not represent the common content: currentSensingBaseline (missing sensingBoundary.camera)"]
+
+
+def test_admission_is_decided_apart_from_validity():
+    line = PlatformLine(governed=True)
+    graph, f = line.graph, line.features
+    configuration = line.new_configuration("invalidButAdmitted")
+    stack = graph.setting(configuration, f["platformStack"], (1, 1))
+    for group, choice in (("vehicleApplication", "autoware"), ("middleware", "noMiddleware"), ("os", "linux"),
+                          ("hypervisor", "noHypervisor")):
+        line.choose(stack, group, [choice])
+    sensing = graph.setting(configuration, f["sensingBoundary"], (1, 1))
+    line.choose(sensing, "perceptionSensors", ["lidar", "camera"], multiplicity=(1, None))
+    graph.setting(configuration, f["capabilities"], (0, 0))
+    line.configure("invalidAndNotAdmitted", "autoware", "eclipseSCORE", "android", "kvm")
+    model = graph.evaluate()["feature_models"][0]
+    decided = {item["configuration"]: item for item in model["configurations"]}
+    assert [reason["code"] for reason in decided["invalidButAdmitted"]["reasons"]] == ["lower-bound"]
+    assert decided["invalidButAdmitted"]["admission"]["admitted"] is True
+    assert [reason["constraint"] for reason in decided["invalidAndNotAdmitted"]["reasons"]] == ["C001"]
+    assert decided["invalidAndNotAdmitted"]["admission"]["reasons"][0] == (
+        "selects content the governed scope does not admit: platformStack.eclipseSCORE: reference-only eclipseSCORE")
+
+
+def test_a_family_correspondence_applies_to_every_configuration():
+    graph = PlemlGraph()
+    tree = graph.tree_definition("EnvironmentTree")
+    environment = graph.feature(tree, "environment", (1, 1))
+    compute = graph.feature(environment, "compute", (1, 1))
+    board = graph.feature(environment, "board", (0, 1), subsets=compute)
+    model = graph.feature_model("EnvironmentFeatureModel", tree_definition=tree)
+    scope = graph.governed_scope({"alternatives": ("standalone", "aaosIntegrated"), "common_core": (),
+                                  "reference_only": (), "deferred": (), "derived_realization": (),
+                                  "excluded_system2": ("engineeringExecutionEnvironments",)})
+    graph.correspondence(tree, scope["engineeringExecutionEnvironments"])
+    candidate = graph.configuration(model, "candidate", tree)
+    graph.select(graph.setting(candidate, environment, (1, 1)), board)
+    (evaluated,) = graph.evaluate()["feature_models"]
+    (configuration,) = evaluated["configurations"]
+    assert configuration["valid"] is True
+    assert configuration["admission"]["reasons"] == [
+        "selects content the governed scope does not admit: the feature family: excluded "
+        "engineeringExecutionEnvironments | environment.board: not in the governed scope",
+        "realizes no admitted alternative"]
+    assert evaluated["correspondences"][0]["feature"] is None
+
+
+@pytest.mark.parametrize("target, message", [
+    ("adapterRealization", "names the derived realization adapterRealization; a derived realization corresponds"),
+    (None, "which the governed scope does not classify"),
+])
+def test_a_correspondence_to_unclassified_content_is_refused(target, message):
+    line = PlatformLine(governed=True)
+    governed = line.scope[target] if target else line.graph.own(line.graph.by_id[line.scope["acrn"]]["@id"],
+                                                                "FeatureMembership", "PartUsage",
+                                                                member_name="stray", declaredName="stray")
+    line.graph.correspondence(line.features["laneKeepAssist"], governed)
+    with pytest.raises(PlemlShapeError, match=message):
+        line.graph.evaluate()
+
+
+def test_a_grouping_feature_carries_no_admission():
+    line = PlatformLine(governed=True)
+    line.graph.correspondence(line.features["platformStack"], line.scope["drivingStackVariability"])
+    with pytest.raises(PlemlShapeError, match="the grouping feature platformStack carries no admission"):
+        line.graph.evaluate()
+
+
+def test_without_a_governed_scope_admission_is_not_evaluated():
+    line = PlatformLine()
+    line.configure("standalone", "autoware", "noMiddleware", "linux", "noHypervisor")
+    assert admission(line, "standalone") == {"evaluated": False, "admitted": None,
+                                             "reasons": ["no governed scope among the evaluated elements"]}

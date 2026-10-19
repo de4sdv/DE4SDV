@@ -119,6 +119,14 @@ REASON_CLASSES: dict[str, str] = {
 LIFE_CYCLE = {"Development": 1, "Production": 2, "Operation": 3}
 IDENTIFIER = re.compile(r"[A-Za-z_]\w*")
 
+#: The governed-scope sets a correspondence may name, with the class each confers (ADR 0014). The
+#: integration-mode alternatives confer ``admitted-alternative``. A derived realization corresponds to
+#: its alternative, never to a feature.
+SCOPE_SCHEMA = "de4sdv-aebs-product-line-scope-validation/v1"
+SCOPE_CLASSES = (("common_core", "common"), ("reference_only", "reference-only"), ("deferred", "deferred"),
+                 ("excluded_system2", "excluded"))
+ADMISSIBLE = frozenset({"admitted-alternative", "common"})
+
 _SPECIALIZATIONS = {"Subsetting", "Redefinition", "ReferenceSubsetting", "FeatureTyping"}
 _SKIPPED = _SPECIALIZATIONS | {"Subclassification", "Import", "NamespaceImport", "MembershipImport"}
 _LITERALS = {"LiteralString": str, "LiteralBoolean": bool, "LiteralInteger": int}
@@ -151,6 +159,27 @@ class _Outside:
     """A referent outside the element set (pruned, or in the standard library)."""
 
     identifier: str
+
+
+class _GovernedScope:
+    """The governed product-line scope, the admission authority, as the production scope validator reads it."""
+
+    def __init__(self, record: Mapping[str, Any], graph: "_Graph") -> None:
+        if record.get("schema") != SCOPE_SCHEMA:
+            raise PlemlShapeError("the governed scope is not a validated product-line scope record")
+        self.source = str(record["scope_source"])
+        self.classes: dict[str, tuple[str, str]] = {}
+        sets = [("admitted-alternative", record["vehicle_platform_integration_mode"]["alternatives"])]
+        sets += [(kind, record[key]) for key, kind in SCOPE_CLASSES]
+        for kind, members in sets:
+            for name, identifier in sorted(members.items()):
+                if identifier in self.classes:
+                    raise PlemlShapeError(f"the governed scope classifies {name} twice")
+                if graph.sources.get(identifier) != self.source:
+                    raise PlemlShapeError(f"governed-scope element {name} is not in {self.source}")
+                self.classes[identifier] = (kind, name)
+        self.derived = {identifier: name for name, identifier in record["derived_realization"].items()}
+        self.common = dict(sorted(record["common_core"].items()))
 
 
 # -- the element graph -------------------------------------------------------------------
@@ -627,8 +656,10 @@ class _Derivation:
 class _FeatureModel:
     """One feature tree with its features, constraints, bindings, rules and integrity errors."""
 
-    def __init__(self, identity: _Identity, model_sources: Sequence[str], tree: str, definition: str | None) -> None:
+    def __init__(self, identity: _Identity, model_sources: Sequence[str], tree: str, definition: str | None,
+                 scope: _GovernedScope | None = None) -> None:
         self.identity = identity
+        self.scope = scope
         self.graph = identity.graph
         self.model_sources = set(model_sources)
         self.tree, self.definition = tree, definition
@@ -655,6 +686,7 @@ class _FeatureModel:
         self._classify_pair_exclusions()
         self.agreement = self._agreement()
         self._binding_integrity()
+        self.correspondences = self._correspondences() if scope is not None else {}
 
     def path(self, feature: str | None) -> str | None:
         return self.features[feature].path if feature in self.features else None
@@ -1059,6 +1091,170 @@ class _FeatureModel:
         if duplicates:
             self.errors.append(f"duplicate feature short names: {duplicates}")
 
+    # -- admission (ADR 0014: the governed scope stays the admission authority) ---------------
+
+    def role(self, feature: _Feature) -> str:
+        """``group`` (a variation point), ``choice`` (a group member), ``grouping`` or ``leaf``."""
+        if feature.is_group:
+            return "group"
+        if feature.group is not None:
+            return "choice"
+        if any(item.owner == feature.identifier for item in self.features.values()):
+            return "grouping"
+        return "leaf"
+
+    def _correspondences(self) -> dict[str, list[dict[str, Any]]]:
+        """Feature, or the tree for the whole family, to its correspondences with the governed scope.
+
+        A correspondence is a dependency of this tree that carries none of the
+        consumed roles. Its one client is a feature or the tree, and each
+        supplier is an element the governed scope classifies.
+        """
+        graph, scope = self.graph, self.scope
+        assert scope is not None
+        found: dict[str, list[dict[str, Any]]] = {}
+        for dependency in sorted(graph.by_id, key=graph.order.__getitem__):
+            if graph.kind(dependency) != "Dependency" or graph.sources[dependency] not in self.model_sources:
+                continue
+            if set(self._ROLES) & set(self.identity.metadata_kinds(dependency)):
+                continue
+            clients = self._endpoints(dependency, "client", "source")
+            if not any(item == self.tree or item in self.features for item in clients):
+                continue
+            label = graph.label(dependency)
+            if len(clients) != 1:
+                raise PlemlShapeError(f"correspondence {label} has {len(clients)} clients; one feature per "
+                                      "correspondence")
+            client = clients[0]
+            if client in self.features and self.role(self.features[client]) == "grouping":
+                raise PlemlShapeError(f"correspondence {label}: the grouping feature {self.path(client)} carries no "
+                                      "admission")
+            suppliers = self._endpoints(dependency, "supplier", "target")
+            if not suppliers:
+                raise PlemlShapeError(f"correspondence {label} names no governed-scope element")
+            for supplier in suppliers:
+                if supplier in scope.derived:
+                    raise PlemlShapeError(f"correspondence {label} names the derived realization "
+                                          f"{scope.derived[supplier]}; a derived realization corresponds to its "
+                                          "alternative")
+                if supplier not in scope.classes:
+                    raise PlemlShapeError(f"correspondence {label} names {graph.label(supplier)}, which the governed "
+                                          "scope does not classify")
+                kind, name = scope.classes[supplier]
+                found.setdefault(client, []).append({"correspondence": graph.name(dependency), "element_id": dependency,
+                                                     "governed": name, "governed_id": supplier,
+                                                     "classification": kind})
+        return found
+
+    def _corresponds(self, feature: str, kind: str, governed: str) -> bool:
+        return any(item["classification"] == kind and item["governed"] == governed
+                   for item in self.correspondences.get(feature, []))
+
+    def admission(self, selected: set[str]) -> dict[str, Any]:
+        """Whether the governed scope admits a selection, decided apart from its validity.
+
+        Grouping features carry no admission. A group feature's correspondence
+        classifies its variation point and never blocks. Each selected choice
+        or leaf blocks unless one of its correspondences is admissible, and
+        one without a correspondence is not in the governed scope; a family
+        correspondence applies to every configuration of the tree. The
+        selection must realize exactly one admitted alternative, select its
+        derived realization in every group that has one, and represent every
+        common element that features correspond to.
+        """
+        if self.scope is None:
+            return {"evaluated": False, "admitted": None, "reasons": ["no governed scope among the evaluated elements"]}
+
+        def described(items: Sequence[Mapping[str, Any]]) -> str:
+            return "; ".join(f"{item['classification']} {item['governed']}" for item in items)
+
+        considered: list[tuple[str, list[dict[str, Any]]]] = []
+        if self.tree in self.correspondences:
+            considered.append(("the feature family", self.correspondences[self.tree]))
+        notes: list[str] = []
+        for feature in sorted(self.features.values(), key=lambda item: item.order):
+            if feature.identifier not in selected or self.role(feature) == "grouping":
+                continue
+            items = self.correspondences.get(feature.identifier, [])
+            if self.role(feature) == "group":
+                if items:
+                    notes.append(f"{feature.path} is a variation point; governed: {described(items)}")
+                continue
+            considered.append((feature.path, items))
+        blocking: list[str] = []
+        realized: dict[str, list[str]] = {}
+        for label, items in considered:
+            if not items:
+                blocking.append(f"{label}: not in the governed scope")
+                continue
+            for item in items:
+                if item["classification"] == "admitted-alternative":
+                    realized.setdefault(item["governed"], []).append(label)
+            if not {item["classification"] for item in items} & ADMISSIBLE:
+                blocking.append(f"{label}: {described(items)}")
+        reasons = []
+        if blocking:
+            reasons.append("selects content the governed scope does not admit: " + " | ".join(blocking))
+        alternative = next(iter(realized)) if len(realized) == 1 else None
+        if not realized:
+            reasons.append("realizes no admitted alternative")
+        elif alternative is None:
+            reasons.append("realizes more than one admitted alternative: " + ", ".join(sorted(realized)))
+        else:
+            missing = self._unrealized(alternative, selected)
+            if missing:
+                reasons.append(f"misses derived realizations of {alternative}: {', '.join(missing)}")
+        common = self._common_content(alternative, selected)
+        incomplete = [item for item in common if item["complete"] is False]
+        if incomplete:
+            reasons.append("does not represent the common content: " + "; ".join(
+                f"{item['asset']} (missing {', '.join(item['missing'])})" for item in incomplete))
+        return {"evaluated": True, "admitted": not reasons, "alternative": alternative,
+                "alternatives_realized": {name: paths for name, paths in sorted(realized.items())},
+                "reasons": reasons, "notes": notes, "common_content": common}
+
+    def _unrealized(self, alternative: str, selected: set[str]) -> list[str]:
+        """The derived realizations of ``alternative`` a selection leaves out, by group or leaf."""
+        missing = []
+        for feature in sorted(self.features.values(), key=lambda item: item.order):
+            if feature.is_group:
+                realizing = [item for item in feature.members if self._corresponds(item, "admitted-alternative",
+                                                                                   alternative)]
+                if realizing and not any(item in selected for item in realizing):
+                    missing.append(f"{feature.path} = {' or '.join(str(self.path(item)) for item in realizing)}")
+            elif (self.role(feature) == "leaf" and feature.identifier not in selected
+                  and self._corresponds(feature.identifier, "admitted-alternative", alternative)):
+                missing.append(feature.path)
+        return missing
+
+    def _common_content(self, alternative: str | None, selected: set[str]) -> list[dict[str, Any]]:
+        """How a selection represents each common element of the governed scope.
+
+        Every choice or leaf that corresponds to a common element must be
+        selected. A choice is exempt where the realized alternative's derived
+        realization selects another member of its group: the feature model has
+        one slot there. A common element no feature corresponds to is common
+        content outside the selection surface.
+        """
+        assert self.scope is not None
+        result = []
+        for name in self.scope.common:
+            representing = [feature for feature in sorted(self.features.values(), key=lambda item: item.order)
+                            if self.role(feature) in {"choice", "leaf"}
+                            and self._corresponds(feature.identifier, "common", name)]
+            missing, exempted = [], []
+            for feature in representing:
+                if feature.identifier in selected:
+                    continue
+                displaced = alternative is not None and feature.group is not None and any(
+                    item in selected and self._corresponds(item, "admitted-alternative", alternative)
+                    for item in self.features[feature.group].members)
+                (exempted if displaced else missing).append(feature.path)
+            result.append({"asset": name, "represented_by": [feature.path for feature in representing],
+                           "missing": missing, "exempted": exempted,
+                           "complete": (not missing) if representing else None})
+        return result
+
     def derived_targets(self) -> set[str]:
         found = set()
         for derivation in self.derivations:
@@ -1100,6 +1296,11 @@ class _FeatureModel:
                 for item in self.derivations
             ],
             "agreement": self.agreement,
+            "correspondences": [
+                {"feature": self.path(client), **item}
+                for client in sorted(self.correspondences, key=graph.order.__getitem__)
+                for item in self.correspondences[client]
+            ],
             "integrity_errors": list(self.errors),
         }
 
@@ -1337,6 +1538,7 @@ class _Configuration:
             "valid": not self.reasons,
             "reasons": sorted(self.reasons, key=lambda item: (item["class"], item.get("constraint") or "",
                                                               item["detail"])),
+            "admission": model.admission(selected),
             "selected": sorted(str(model.path(item)) for item in selected),
             "states": states,
             "derived_variants": sorted(derived_variants, key=lambda item: item["variation"]),
@@ -1439,6 +1641,7 @@ def evaluate(
     external_references: Iterable[Mapping[str, Any]] = (),
     kernel_bindings: Mapping[str, str] | None = None,
     kernel: KernelVocabulary = KERNEL,
+    governed_scope: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Evaluate every feature tree and configuration declared in ``model_sources``.
 
@@ -1446,8 +1649,11 @@ def evaluate(
     every document the models reference (the kernel and the shared assets).
     ``kernel_bindings`` maps the kernel classes to their validated element
     identities (see :func:`kernel_bindings`); an unbound kernel definition
-    that a model uses is refused. Raises :class:`PlemlShapeError` on any shape
-    it does not accept.
+    that a model uses is refused. ``governed_scope`` is the record of the
+    production scope validator
+    (:func:`de4sdv.sysml_api.product_line_scope.validate_scope_elements`);
+    with it, every configuration is also decided for admission. Raises
+    :class:`PlemlShapeError` on any shape it does not accept.
     """
     graph = _Graph(elements, element_sources, external_references)
     absent = sorted(set(model_sources) - set(graph.sources.values()))
@@ -1456,10 +1662,11 @@ def evaluate(
     identity = _Identity(graph, library_source, kernel_source, kernel, kernel_bindings)
     identity.refuse_homonyms(model_sources)
     identity.refuse_about_metadata(model_sources)
+    scope = _GovernedScope(governed_scope, graph) if governed_scope is not None else None
     roots, tree_of = _trees_and_configurations(graph, identity, model_sources)
     feature_models = []
     for root, owner in roots.items():
-        model = _FeatureModel(identity, model_sources, root, owner)
+        model = _FeatureModel(identity, model_sources, root, owner, scope)
         decided = [_Configuration(model, item).decide()
                    for item in sorted((item for item, tree in tree_of.items() if tree == root),
                                       key=graph.order.__getitem__)]
@@ -1472,6 +1679,7 @@ def evaluate(
         "kernel_bindings": {name: identity.kernel[role] for role, (_, name, _) in kernel.definitions().items()
                             if role in identity.kernel},
         "model_sources": sorted(model_sources),
+        "admission_authority": scope.source if scope is not None else None,
         "feature_models": feature_models,
         "binding_time_scope": "Development-only",
         "native_expression_executed": False,
