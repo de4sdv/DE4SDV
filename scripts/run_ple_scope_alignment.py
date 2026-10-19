@@ -2,12 +2,14 @@
 """Evaluate the PLEML scope alignment of the admitted AEBS product line (PLE-S).
 
 Licensed mode loads the reviewed model roots, the exact-pinned PLEML library
-(read from the frozen experiment checkout at PLEML 1.1.0, never from a copy in
-this repository) and the scope-alignment model together with the pinned
-serializer, serializes them, validates the governed scope exactly as
-production does, and evaluates every scope-alignment configuration with the
-frozen Gate A resolver extended for exact-one parents. Replay mode
-re-evaluates a retained element file offline, with the experiment it records.
+(PLEML 1.1.1 as the fenced Sysand lock installs it, byte-checked against its
+release tag; never a copy committed to this repository) and the
+scope-alignment model together with the pinned serializer, serializes them,
+validates the governed scope exactly as production does, and evaluates every
+scope-alignment configuration with the frozen Gate A resolver extended for
+exact-one parents, read from the frozen experiment checkout at PLEML 1.1.0.
+Replay mode re-evaluates a retained element file offline, with the experiment
+it records.
 
 Both modes write receipts that say ``qualified: false``: this is an
 experiment and never adoption, selection authority or a compliance claim.
@@ -36,7 +38,8 @@ from de4sdv.sysml_api.product_line_scope import validate_scope_elements
 from de4sdv.sysml_api.repository import element_id
 from scripts.run_ple_qualification import (
     FROZEN_REVISION,
-    LIBRARY,
+    PLEML_INPUTS,
+    PLEML_LIBRARY,
     PLEML_PIN,
     SERIALIZER_VERSION,
     digest,
@@ -56,6 +59,7 @@ EXECUTOR_INPUTS = (
     "de4sdv/sysml_api/repository.py",
     MODEL,
     "sysand-lock.toml",
+    *PLEML_INPUTS,
 )
 ELEMENTS_SCHEMA = "de4sdv.ple-scope-alignment-elements/v1"
 RECEIPT_SCHEMA = "de4sdv.ple-scope-alignment/v1"
@@ -92,7 +96,7 @@ def build_parser() -> argparse.ArgumentParser:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--experiment", type=Path,
-                        help="frozen experiment checkout at PLEML 1.1.0 (licensed mode)")
+                        help="frozen experiment checkout at PLEML 1.1.0, for its interpreter (licensed mode)")
     parser.add_argument("--licensed", action="store_true",
                         help="fresh serialization with the pinned licensed serializer on the x86_64 runner")
     parser.add_argument("--expected-executor", help="exact executor SHA (licensed mode)")
@@ -132,14 +136,15 @@ def _element_array(serialized: str, label: str) -> list[dict[str, Any]]:
     return values
 
 
-def serialize(experiment: Path, out: Path) -> tuple[Documents, Documents, BaselineManifest, str]:
+def serialize(library: Path, out: Path) -> tuple[Documents, Documents, BaselineManifest, str]:
     """Load the reviewed roots, the pinned library and the model in one model; serialize twice.
 
-    The four evaluation documents (model, governed scope, platform stack,
-    library) are serialized with the minimal options the frozen Gate A
-    interpreter was built against; every production document is serialized
-    with the production export's options, so the governed scope is validated
-    on the same shapes production validates.
+    ``library`` is the installed PLEML library file, labelled
+    ``LIBRARY_SOURCE``. The four evaluation documents (model, governed scope,
+    platform stack, library) are serialized with the minimal options the
+    frozen Gate A interpreter was built against; every production document is
+    serialized with the production export's options, so the governed scope is
+    validated on the same shapes production validates.
     """
     if platform.machine() not in {"x86_64", "AMD64"}:
         raise ValueError("licensed Syside requires the supported x86_64 runner; not executed on this host")
@@ -150,7 +155,7 @@ def serialize(experiment: Path, out: Path) -> tuple[Documents, Documents, Baseli
     from scripts.export_sysml_api_baseline import _serialization_options as production_options
 
     manifest = BaselineManifest.discover(ROOT)
-    library_path = experiment.resolve() / LIBRARY
+    library_path = library.resolve()
     paths = [ROOT / source.path for source in manifest.sources] + [library_path, ROOT / MODEL]
     model, diagnostics = syside.try_load_model(paths)
     (out / "serializer-diagnostics.txt").write_text(str(diagnostics) + "\n")
@@ -232,7 +237,8 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], list[str]]:
         if re.fullmatch(r"[0-9a-f]{40}", args.expected_executor or "") is None or args.expected_executor != executor:
             raise ValueError("licensed mode requires the exact executor SHA")
         executor_inputs = {relative: verified_file(ROOT, executor, relative) for relative in EXECUTOR_INPUTS}
-        module, _, identity = load_experiment(args.experiment)
+        library = PLEML_LIBRARY
+        module, _, identity = load_experiment(args.experiment, library=library)
         if identity["interpreter_sha256"] != alignment.FROZEN_INTERPRETER_SHA256:
             raise ValueError("the frozen experiment interpreter (PLEML 1.1.0) digest differs from the reviewed one")
         experiment = {
@@ -241,12 +247,13 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], list[str]]:
             "pleml_pin": PLEML_PIN,
             "library_source": alignment.LIBRARY_SOURCE,
             "library_sha256": identity["library_sha256"],
+            "library_provision": identity["library_provision"],
         }
         out.mkdir(parents=True)
-        evaluation, production, manifest, version = serialize(args.experiment, out)
+        evaluation, production, manifest, version = serialize(library, out)
         elements, sources = flatten(evaluation)
         scope = validate_scope_elements(*flatten(production))
-        library_bytes = (args.experiment.resolve() / LIBRARY).read_bytes()
+        library_bytes = library.read_bytes()
         model_bytes = (ROOT / MODEL).read_bytes()
         source_manifest = [
             *manifest.to_dicts(),
@@ -283,8 +290,8 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], list[str]]:
     (out / "governed-scope-validation.json").write_text(json.dumps(scope, indent=2, sort_keys=True) + "\n")
 
     if args.licensed:
-        # The read-only experiment, the executor checkout and its inputs did not move mid-run.
-        _, _, final_identity = load_experiment(args.experiment)
+        # The read-only experiment, the library, the executor checkout and its inputs did not move mid-run.
+        _, _, final_identity = load_experiment(args.experiment, library=library)
         if final_identity["interpreter_sha256"] != experiment["interpreter_sha256"] or final_identity["library_sha256"] != experiment["library_sha256"]:
             raise ValueError("experiment sources moved during execution")
         if git(ROOT, "rev-parse", "HEAD") != executor:

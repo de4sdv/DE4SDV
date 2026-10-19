@@ -509,8 +509,8 @@ def test_serialize_labels_every_document_and_serializes_twice(monkeypatch, tmp_p
     from de4sdv.sysml_api.baseline import BaselineManifest, BaselineSource
 
     runner = _runner_module()
-    experiment = tmp_path / "experiment"
-    library = experiment / runner.LIBRARY
+    # The installed library, laid out as the fenced Sysand lock installs it.
+    library = tmp_path / "fenced/.sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml"
     production_paths = [PLATFORM, alignment.SCOPE_SOURCE, "textual-notation-of-model/packages/other.sysml"]
     urls = [f"file://{ROOT / path}" for path in production_paths] + [f"file://{library}", f"file://{ROOT / MODEL}"]
     calls = []
@@ -556,7 +556,7 @@ def test_serialize_labels_every_document_and_serializes_twice(monkeypatch, tmp_p
 
     monkeypatch.setattr(export, "_serialization_options", lambda: Options("minimal").with_options(include_implied=True))
 
-    evaluation, production, returned, version = runner.serialize(experiment, tmp_path)
+    evaluation, production, returned, version = runner.serialize(library, tmp_path)
     assert returned is manifest and version == runner.SERIALIZER_VERSION
     assert set(evaluation) == set(alignment.EVALUATION_SOURCES)
     assert set(production) == set(production_paths) | {LIBRARY}

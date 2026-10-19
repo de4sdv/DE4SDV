@@ -105,14 +105,15 @@ jobs:
               output.write('artifact_id=' + str(manifest['historical_artifact_id']) + '\n')
           PY
 
-      # The experiment at PLEML 1.1.0 (tag pleml-1.1.0-frozen): the scoped
-      # probes and the fresh serialization run on it.
+      # The experiment at PLEML 1.1.0 (tag pleml-1.1.0-frozen): the reviewed
+      # interpreter and fixture of the scoped probes and the fresh
+      # serialization. Its PLEML submodule is not checked out: PLEML 1.1.1
+      # comes from the fenced Sysand lock, byte-checked against its tag.
       - name: Checkout frozen experiment read-only as a separate input
         uses: actions/checkout@v4
         with:
           ref: 69bbe093c179f2121274b9f604c7d6a10de19e77
           path: _ple-experiment
-          submodules: recursive
           persist-credentials: false
 
       # actions/checkout places a checkout only under the workspace, where it
@@ -155,11 +156,32 @@ jobs:
           python -m pip install --disable-pip-version-check \
             "syside==0.10.3" "PyYAML==6.0.2" "pytest==8.4.2"
 
+      # The deploy host's client version (deploy-public-sysml-api.yml), never
+      # the newest release: the release archive is checked by its SHA-256 first.
+      - name: Install the pinned Sysand client
+        run: |
+          SYSAND_VERSION=0.2.1
+          SYSAND_ASSET=sysand-linux-x86_64-gnu.tar.gz
+          SYSAND_SHA256=8b743d8270071a1141f6b1c0a07815407db5517e5b4a0bb4f38a9c39b2112bd8
+          curl -fsSL -o "$RUNNER_TEMP/$SYSAND_ASSET" \
+            "https://github.com/sensmetry/sysand/releases/download/v$SYSAND_VERSION/$SYSAND_ASSET"
+          echo "$SYSAND_SHA256  $RUNNER_TEMP/$SYSAND_ASSET" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/_sysand" "$HOME/.local/bin"
+          tar -xzf "$RUNNER_TEMP/$SYSAND_ASSET" -C "$RUNNER_TEMP/_sysand"
+          install -m 755 "$RUNNER_TEMP/_sysand/sysand" "$HOME/.local/bin/sysand"
+          test "$("$HOME/.local/bin/sysand" --version)" = "sysand $SYSAND_VERSION"
+
       - name: Resolve current executor library lock without modifying frozen inputs
         run: |
-          curl -fsSL https://sysand.com/install.sh | bash
           "$HOME/.local/bin/sysand" sync
           "$HOME/.local/bin/sysand" --version > "$RUNNER_TEMP/ple-evidence/sysand-version.txt"
+
+      # PLEML 1.1.1 from the fenced Sysand lock: the byte check against the
+      # committed record of its release tag runs before any step reads it.
+      - name: Install and byte-check the fenced PLEML package
+        run: |
+          (cd model-based-product-line-engineering/libraries/pleml && "$HOME/.local/bin/sysand" sync)
+          python scripts/check_pleml_package.py --out "$RUNNER_TEMP/ple-evidence/pleml-package.json"
 
       # The qualification scripts record executor_source_dirty from this
       # checkout's `git status --porcelain`. These guards run the same check

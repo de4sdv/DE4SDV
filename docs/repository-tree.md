@@ -20,7 +20,7 @@ This is a maintained orientation map, not a hand-copied file inventory. Run
 | Path | Purpose |
 |---|---|
 | `textual-notation-of-model/` | Governed SysML v2 method, architecture, feature, evidence, and view assets |
-| `model-based-product-line-engineering/` | Feature configurations, shared assets, configured product models, the governed product-line scope (`scoping/`), and the PLEML scope-alignment experiment (`pleml-scope-alignment/`, outside every production selector; its retained record is `docs/product-line-engineering/ple-s-scope-alignment-evidence/`) |
+| `model-based-product-line-engineering/` | Feature configurations, shared assets, configured product models, the governed product-line scope (`scoping/`), and the PLEML scope-alignment experiment (`pleml-scope-alignment/`, outside every production selector; its retained record is `docs/product-line-engineering/ple-s-scope-alignment-evidence/`), and the fenced Sysand lock of the PLEML library (`libraries/pleml/`, read only by the PLE workflows until the switch) |
 | `approach/` | Process set, ontology, and framework material |
 | `methodologies/` | Reusable engineering methods and increment guidance |
 | `implementation/` | Reference implementations and bounded execution evidence |

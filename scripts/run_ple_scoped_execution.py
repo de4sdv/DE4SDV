@@ -20,11 +20,12 @@ from scripts.run_ple_qualification import (
     FROZEN_REVISION, PLEML_PIN, SERIALIZER_VERSION, LIBRARY,
     digest, git, load_experiment, verified_file,
 )
+from scripts import run_ple_qualification as qualification
 
 FORMS = ("literal-bounds", "range-operator")
 #: Why the native XOR requirement stays failed until a licensed attempt replaces it.
 NATIVE_XOR_REASON = (
-    "Pinned PLEML 1.1.0 XORConstraint iterates over the excluded features "
+    "Pinned PLEML 1.1.1 XORConstraint iterates over the excluded features "
     "(excluded = constrainedFeatures.operandB; excluded->ControlFunctions::forAll, PLEML.sysml:250, 254-260) "
     "and tests each for inclusion in the "
     "configuration. The existing serializer path only loads/serializes models; GateAModel.evaluate is a "
@@ -180,7 +181,7 @@ def licensed_probe(args, report):
     version = importlib.metadata.version("syside")
     if version != SERIALIZER_VERSION:
         raise ValueError("installed serializer differs from reviewed 0.10.3 pin")
-    library = args.experiment.resolve() / LIBRARY
+    library = qualification.PLEML_LIBRARY
     source = args.out / "scoped-fixture.sysml"
     model, diagnostics = syside.try_load_model([library, source])
     (args.out / "serializer-diagnostics.txt").write_text(str(diagnostics) + "\n")
@@ -272,7 +273,8 @@ def run(args):
     if args.licensed:
         if re.fullmatch(r"[0-9a-f]{40}", args.expected_executor or "") is None or args.expected_executor != executor:
             raise ValueError("licensed mode requires exact executor SHA")
-        for path in ("scripts/run_ple_scoped_execution.py", "scripts/run_ple_qualification.py", "de4sdv/semantic/ple_qualification.py", "sysand-lock.toml"):
+        for path in ("scripts/run_ple_scoped_execution.py", "scripts/run_ple_qualification.py",
+                     "de4sdv/semantic/ple_qualification.py", "sysand-lock.toml", *qualification.PLEML_INPUTS):
             verified_file(ROOT, executor, path)
     module, _, identity = load_experiment(args.experiment)
     groups, bindings = [], []

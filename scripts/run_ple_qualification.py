@@ -6,7 +6,9 @@ observations never authorize adoption or semantic authority activation.
 
 Two frozen experiments: the historical replay and the prior of the fresh arm
 read the retained Gate A export with the Gate A experiment (``GATE_A``); the
-fresh arm serializes the current experiment at PLEML 1.1.0 (``CURRENT``).
+fresh arm serializes the current experiment (``CURRENT``): the interpreter and
+the fixture of the experiment at PLEML 1.1.0 with PLEML 1.1.1 from the fenced
+Sysand lock, byte-checked against its release tag.
 """
 from __future__ import annotations
 
@@ -29,13 +31,21 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 sys.dont_write_bytecode = True
 
+from de4sdv.semantic import pleml_package
 from de4sdv.semantic.ple_qualification import build_case_report
 from de4sdv.sysml_api.baseline import BaselineExportBundle, build_export_bundle
 from de4sdv.sysml_api.client import ApiClient
 from de4sdv.sysml_api.ingestion import import_baseline
 
 class ExperimentIdentity(NamedTuple):
-    """A frozen PLEML experiment the runners accept: exact revision, pin and digests."""
+    """A frozen PLEML experiment the runners accept: exact revision, pin and digests.
+
+    ``provision`` says where the library comes from. ``submodule``: the
+    checkout's PLEML submodule at ``pleml_pin``. ``sysand``: the package the
+    fenced Sysand lock installs, the release whose tag commit is ``pleml_pin``;
+    the checkout then supplies only the interpreter and the fixture. ``library``
+    is the source label the interpreter reads the library by, either way.
+    """
 
     revision: str
     tag: str
@@ -44,6 +54,7 @@ class ExperimentIdentity(NamedTuple):
     interpreter_sha256: str
     library_sha256: str
     fixture_sha256: str
+    provision: str = "submodule"
 
 
 #: The Gate A experiment. It produced the retained historical export (run
@@ -74,8 +85,7 @@ PLEML_1_0_0 = ExperimentIdentity(
 #: submodule at the 1.1.0 release commit, the fixture's constraint usages in
 #: the 1.1 form and the interpreter reading the excluded feature as operand B
 #: of constrainedFeatures (verify_constraint_operands checks the operands by
-#: identity). The scoped probes, the fresh serialization and the scope
-#: alignment run on it.
+#: identity). Its interpreter and fixture are those of the current experiment.
 PLEML_1_1_0 = ExperimentIdentity(
     revision="69bbe093c179f2121274b9f604c7d6a10de19e77",
     tag="pleml-1.1.0-frozen",
@@ -85,17 +95,33 @@ PLEML_1_1_0 = ExperimentIdentity(
     library_sha256="a89dc5c3436e3c8e5601e278f2b184e1a6d91f66a77f8616854ee0dd1abca787",
     fixture_sha256="2b858117aee7cfc4fc08d005bf2ba09c5a4dbb433d6c25dc2c013b5e8ec9f763",
 )
-CURRENT = PLEML_1_1_0
+#: The current experiment: PLEML 1.1.1 from the fenced Sysand lock, byte-checked
+#: against its release tag. Its library equals that of 1.1.0 but for the version
+#: line (the fast path of the upstream release policy), so the interpreter, the
+#: fixture and the library label stay those of the experiment at 1.1.0, and no
+#: frozen-experiment commit is made for it. The scoped probes, the fresh
+#: serialization and the scope alignment run on it.
+PLEML_1_1_1 = PLEML_1_1_0._replace(
+    pleml_pin=pleml_package.RELEASE.tag_commit,
+    library_sha256=pleml_package.RELEASE.library.sha256,
+    provision="sysand",
+)
+CURRENT = PLEML_1_1_1
 FROZEN_REVISION = CURRENT.revision
 PLEML_PIN = CURRENT.pleml_pin
 SERIALIZER_VERSION = "0.10.3"
 FIXTURE = "docs/spikes/pleml-gate-a/pleml_gate_a_fixture.sysml"
 LIBRARY = CURRENT.library
 SUBMODULE = "external/pleml"
+#: The library of a ``sysand`` experiment: where the fenced lock installs it.
+PLEML_LIBRARY = ROOT / pleml_package.LIBRARY_PATH
+#: The executor files that pin and record that library.
+PLEML_INPUTS = ("de4sdv/semantic/pleml_package.py", (pleml_package.PROJECT / ".project.json").as_posix(),
+                (pleml_package.PROJECT / "sysand-lock.toml").as_posix())
 EXECUTOR_INPUTS = ("scripts/run_ple_qualification.py", "de4sdv/semantic/ple_qualification.py",
                    "de4sdv/sysml_api/baseline.py", "de4sdv/sysml_api/ingestion.py",
                    "de4sdv/sysml_api/client.py", "de4sdv/sysml_api/repository.py",
-                   "de4sdv/sysml_api/errors.py")
+                   "de4sdv/sysml_api/errors.py", *PLEML_INPUTS)
 
 
 def git(root, *args):
@@ -119,17 +145,41 @@ def verified_file(root, revision, relative):
     return digest(expected.stdout)
 
 
-def load_experiment(root, identity: ExperimentIdentity = CURRENT) -> tuple[Any, list[dict[str, Any]], dict[str, Any]]:
-    """Load the interpreter of a frozen experiment checkout after verifying it is ``identity``."""
+def sysand_library(library, identity: ExperimentIdentity) -> bytes:
+    """The bytes of a ``sysand`` experiment's library, refused unless they are the reviewed release's."""
+    path = Path(library)
+    if path.is_symlink() or not path.is_file():
+        raise ValueError(f"the PLEML library is not installed as a regular file at {path}: "
+                         f"run `sysand sync` in {pleml_package.PROJECT}")
+    data = path.read_bytes()
+    if digest(data) != identity.library_sha256:
+        raise ValueError("experiment digests differ from the reviewed identity: the PLEML library")
+    return data
+
+
+def load_experiment(root, identity: ExperimentIdentity = CURRENT,
+                    library=None) -> tuple[Any, list[dict[str, Any]], dict[str, Any]]:
+    """Load the interpreter of a frozen experiment checkout after verifying it is ``identity``.
+
+    A ``submodule`` identity reads its library from the checkout's submodule
+    and refuses ``library``. A ``sysand`` identity reads it from ``library``
+    (default ``PLEML_LIBRARY``, the fenced install), never from the checkout.
+    """
     root = root.resolve()
     if git(root, "rev-parse", "HEAD") != identity.revision:
         raise ValueError("experiment checkout is not the frozen reviewed revision")
-    if git(root / SUBMODULE, "rev-parse", "HEAD") != identity.pleml_pin:
-        raise ValueError("PLEML pin mismatch")
-    if not identity.library.startswith(SUBMODULE + "/"):
-        raise ValueError("the reviewed PLEML library lies outside the PLEML submodule")
+    if identity.provision == "sysand":
+        library_bytes = sysand_library(PLEML_LIBRARY if library is None else library, identity)
+        library_digest = digest(library_bytes)
+    elif identity.provision == "submodule" and library is None:
+        if git(root / SUBMODULE, "rev-parse", "HEAD") != identity.pleml_pin:
+            raise ValueError("PLEML pin mismatch")
+        if not identity.library.startswith(SUBMODULE + "/"):
+            raise ValueError("the reviewed PLEML library lies outside the PLEML submodule")
+        library_digest = verified_file(root / SUBMODULE, identity.pleml_pin, identity.library[len(SUBMODULE) + 1:])
+    else:
+        raise ValueError(f"the experiment reads its PLEML library from its {identity.provision}, not from {library}")
     fixture_digest = verified_file(root, identity.revision, FIXTURE)
-    library_digest = verified_file(root / SUBMODULE, identity.pleml_pin, identity.library[len(SUBMODULE) + 1:])
     evaluator_digest = verified_file(root, identity.revision, "tools/pleml_gate_a.py")
     if (evaluator_digest, library_digest, fixture_digest) != (
             identity.interpreter_sha256, identity.library_sha256, identity.fixture_sha256):
@@ -141,15 +191,26 @@ def load_experiment(root, identity: ExperimentIdentity = CURRENT) -> tuple[Any, 
     module = importlib.util.module_from_spec(spec)
     sys.modules[name] = module
     spec.loader.exec_module(module)
-    source = module.gate_a_source_identity(root, expected_pleml_commit=identity.pleml_pin)
-    manifest = list(source.source_manifest)
+    if identity.provision == "sysand":
+        # The manifest the interpreter's own source check builds, with the library under its label.
+        fixture = (root / FIXTURE).read_bytes()
+        manifest = [{"path": FIXTURE, "authority": "fixture", "sha256": digest(fixture), "size": len(fixture)},
+                    {"path": identity.library, "authority": "pinned-dependency", "sha256": library_digest,
+                     "size": len(library_bytes)}]
+    else:
+        manifest = list(module.gate_a_source_identity(root, expected_pleml_commit=identity.pleml_pin).source_manifest)
     if [entry.get("path") for entry in manifest] != [FIXTURE, identity.library]:
         raise ValueError("the experiment interpreter reads other sources than the reviewed identity")
-    return module, manifest, {
+    source_identity = {
         "interpreter_revision": identity.revision, "interpreter_sha256": evaluator_digest,
         "fixture_sha256": fixture_digest, "library_sha256": library_digest,
         "pleml_pin": identity.pleml_pin,
     }
+    if identity.provision == "sysand":
+        source_identity["library_provision"] = {
+            "provision": "sysand", "package": pleml_package.PACKAGE, "version": pleml_package.RELEASE.version,
+            "tag": pleml_package.RELEASE.tag, "lock": (pleml_package.PROJECT / "sysand-lock.toml").as_posix()}
+    return module, manifest, source_identity
 
 
 def historical_matrix(path, module, manifest):
@@ -166,13 +227,18 @@ def historical_matrix(path, module, manifest):
     return module.build_observability_matrix(list(bundle.elements.values()), bundle.element_sources), raw["git_commit"]
 
 
-def serialize(root, manifest, revision):
+def serialize(root, manifest, revision, library=None):
+    """Serialize the manifest's sources; ``library`` (a ``sysand`` experiment's) is read under the library label."""
     syside = importlib.import_module("syside")
 
     version = importlib.metadata.version("syside")
     if version != SERIALIZER_VERSION:
         raise ValueError("installed serializer differs from current reviewed pin")
-    paths = [root / source["path"] for source in manifest]
+    located = {source["path"]: root / source["path"] for source in manifest}
+    if library is not None:
+        located[LIBRARY] = Path(library)
+    paths = list(located.values())
+    labels = {path.resolve(): label for label, path in located.items()}
     model, diagnostics = syside.try_load_model(paths)
     if diagnostics.contains_errors(warnings_as_errors=False):
         raise ValueError(f"current serializer rejected frozen qualification inputs: {diagnostics}")
@@ -180,7 +246,8 @@ def serialize(root, manifest, revision):
     for document in model.user_docs:
         with document.lock() as locked:
             parsed = urlparse(str(locked.url))
-            source = Path(unquote(parsed.path if parsed.scheme == "file" else str(locked.url))).resolve().relative_to(root).as_posix()
+            location = Path(unquote(parsed.path if parsed.scheme == "file" else str(locked.url))).resolve()
+            source = labels.get(location) or location.relative_to(root).as_posix()
             values = json.loads(syside.json.dumps(locked.root_node, syside.SerializationOptions.minimal()))
         if not isinstance(values, list) or not all(isinstance(item, dict) for item in values):
             raise ValueError("serializer did not produce an element array")
@@ -350,7 +417,8 @@ def run(args):
     if not historical and args.historical_experiment is None:
         raise ValueError("the fresh arm needs the Gate A experiment checkout (--historical-experiment) for its prior")
     identity = GATE_A if historical else CURRENT
-    module, manifest, source_identity = load_experiment(args.experiment, identity)
+    library = PLEML_LIBRARY if identity.provision == "sysand" else None
+    module, manifest, source_identity = load_experiment(args.experiment, identity, library)
     if historical:
         prior_module, prior_manifest, prior_identity = module, manifest, source_identity
     else:
@@ -380,7 +448,7 @@ def run(args):
             "interpreter_sha256": prior_identity["interpreter_sha256"],
             "pleml_pin": prior_identity["pleml_pin"],
         }
-        bundle, version = serialize(args.experiment.resolve(), manifest, identity.revision)
+        bundle, version = serialize(args.experiment.resolve(), manifest, identity.revision, library)
         args.out.parent.mkdir(parents=True, exist_ok=True)
         for filename in ("export.json", "binding.json", "api-readback.json"):
             if (args.out.parent / filename).exists():
@@ -402,8 +470,8 @@ def run(args):
                        binding=binding, observations=observe(module, values),
                        constraint_operands=constraint_operands,
                        pruning_records=list(bundle.external_references))
-    # Check that the read-only experiments and current lock did not move mid-run.
-    _, final_manifest, final_identity = load_experiment(args.experiment, identity)
+    # Check that the read-only experiments, the library and current lock did not move mid-run.
+    _, final_manifest, final_identity = load_experiment(args.experiment, identity, library)
     if final_manifest != manifest or final_identity["interpreter_sha256"] != source_identity["interpreter_sha256"] or verified_file(ROOT, executor_revision, "sysand-lock.toml") != current_lock:
         raise ValueError("qualification sources moved during execution")
     if not historical:

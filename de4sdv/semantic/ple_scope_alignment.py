@@ -27,21 +27,25 @@ import uuid
 from pathlib import Path
 from typing import Any, Iterable
 
+from de4sdv.semantic import pleml_package
 from de4sdv.sysml_api.product_line_scope import SCOPE_SOURCE, validate_scope_elements
 from de4sdv.sysml_api.repository import element_id, reference_ids
 
 ROOT = Path(__file__).resolve().parents[2]
 
 #: The frozen experiment at PLEML 1.1.0, a child of the experiment at PLEML
-#: 1.0.0 (84673ea2, tag pleml-1.0.0-frozen): the reviewed interpreter and the
-#: PLEML pin. The code reads the exact revision; the tag only keeps it reachable.
+#: 1.0.0 (84673ea2, tag pleml-1.0.0-frozen): the reviewed interpreter. The code
+#: reads the exact revision; the tag only keeps it reachable.
 FROZEN_REVISION = "69bbe093c179f2121274b9f604c7d6a10de19e77"
 FROZEN_TAG = "pleml-1.1.0-frozen"
 FROZEN_INTERPRETER = "tools/pleml_gate_a.py"
 FROZEN_INTERPRETER_SHA256 = "552b91798e8c2498e28e0042fadfc7349c2d130c685e80fe9312353545eafb67"
-PLEML_PIN = "76e2be934453d77c4094141400b8ad8eb90a54a2"
+#: The PLEML release the library comes from: the tag commit of the release the
+#: fenced Sysand lock pins, byte-checked by ``pleml_package``.
+PLEML_PIN = pleml_package.RELEASE.tag_commit
 
-#: Source labels of the documents the evaluation reads.
+#: Source labels of the documents the evaluation reads. The library's label is
+#: the frozen interpreter's, whatever file the pinned package is installed as.
 MODEL_SOURCE = (
     "model-based-product-line-engineering/pleml-scope-alignment/"
     "aebs_product_line_scope_alignment.sysml"

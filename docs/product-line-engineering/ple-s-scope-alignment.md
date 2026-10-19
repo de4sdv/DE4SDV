@@ -145,6 +145,19 @@ export. The run above and the run this record retains (below) read PLEML
 submodule at `071a69fd`; the run `38780181818` and the record's earlier run
 `38788579272` describe the Gate A pin `5f8ab856`.
 
+**PLEML 1.1.1.** The PLE workflows now install PLEML 1.1.1 through the fenced
+Sysand lock in
+[`libraries/pleml/`](../../model-based-product-line-engineering/libraries/pleml/README.md)
+and byte-check it against the committed record of its release tag before any
+step reads it
+([ADR 0022](../architecture-decisions/0022-adopt-pleml-as-product-line-authority.md)).
+They no longer check out the experiment's PLEML submodule. The 1.1.1 library
+equals the 1.1.0 library except for its version line, so the interpreter, the
+fixture and the library label stay those of the experiment `69bbe093`, and no
+frozen-experiment commit is made. The receipts name the release tag commit
+`b694648c` as the PLEML pin. The runs named above and the retained record read
+PLEML 1.1.0 and stay history.
+
 ### Dependence on the upstream questions
 
 | Question | Status (2026-10-18) | Would apply to | How PLE-S avoids it |
@@ -368,10 +381,12 @@ tree it is compared with. Both carry `qualified: false`.
   pull requests that touch the scope-alignment paths (same-repository,
   allowlisted authors, as the licensed validation) and on maintainer
   dispatch with a `ref`. It checks out the exact head, reads the frozen
-  experiment at PLEML 1.1.0, `69bbe093` (tag `pleml-1.1.0-frozen`), with the
-  PLEML submodule at pin `76e2be93`, relocates it outside the executor
-  checkout, runs `syside check` on the reviewed roots with the pinned library
-  and the model, then
+  interpreter from the experiment at PLEML 1.1.0, `69bbe093` (tag
+  `pleml-1.1.0-frozen`), checked out without its PLEML submodule and
+  relocated outside the executor checkout, installs PLEML 1.1.1 from the
+  fenced Sysand lock and byte-checks it against its release tag, runs
+  `syside check` on the reviewed roots with the pinned library and the
+  model, then
   `scripts/run_ple_scope_alignment.py --licensed`, which serializes the same
   set with the pinned serializer, validates the governed scope exactly as
   production does, and evaluates every configuration with the frozen Gate A
@@ -396,7 +411,8 @@ tree it is compared with. Both carry `qualified: false`.
   receipt whose digests differ from the tree it is compared with.
 - **Receipt identity:** executor SHA and `executor_source_dirty`, the
   verified digests of the executor inputs, the frozen interpreter revision
-  and digest, the PLEML pin and library digest, the model and evaluator
+  and digest, the PLEML pin and library digest, the library's Sysand
+  provision (package, version, tag and lock), the model and evaluator
   digests, the serializer version, the `sysand-lock.toml` digest, the source
   manifest, the per-configuration outcomes with selected features, violated
   bound, derived variants and correspondence, the common-asset
@@ -411,7 +427,8 @@ tree it is compared with. Both carry `qualified: false`.
   the experiment it records: the runner refuses another one and names the
   file's executor revision. Replay it at a revision that pins its experiment:
   the element file of the retained run `39169049300` records the PLEML 1.1.0
-  experiment and replays at `f967a519` or later; the element file of the
+  experiment and replays on main from `f967a519` until the PLEML 1.1.1
+  re-pin, such as `cdb20aa0`; the element file of the
   previous run `39115737098` records the PLEML 1.0.0 experiment and replays on
   main from `f1da5c0c` until the PLEML 1.1.0 re-pin, such as `2a9a1c81`; the
   element file of the earlier run `38788579272` records the Gate A experiment
