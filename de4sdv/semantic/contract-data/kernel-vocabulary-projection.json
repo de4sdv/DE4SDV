@@ -86,7 +86,7 @@
       {
         "identity": "includesCommonCapability",
         "accounting": "removed",
-        "reason": "Removed register row: no configuration chooses a common capability, because every member product of the line has it. A PLEML feature configuration owns only features, and common capabilities are not features (ADR 0022), so the relation has no carrier after the switch. Its vocabulary-role comment and its generated projection were deleted from the method kernel, so it has no model home. The runtime refuses the name with its register disposition."
+        "reason": "Removed register row: a vocabulary-only relation that no gate, check, traversal or consumer read (ADR 0021). From the switch, common content is not a configuration selection (ADR 0022 decision 2). Whether a configuration's selections represent each governed common element is a result that the governed-scope admission check derives from the selections and their correspondences, with no ontology relation. Its vocabulary-role comment and its generated projection were deleted from the method kernel, so it has no model home. The runtime refuses the name with its register disposition."
       },
       {
         "identity": "producesView",
@@ -574,7 +574,7 @@
       "accounting": "retained",
       "boundary": "ple-no-configurator-authority",
       "definition": {
-        "documentation": "A selection of features that describes a member product or scenario. Its variation choices are derived from the selected features. It does not select common capabilities, because every member product has them.",
+        "documentation": "A selection of features that describes a member product or scenario. Its variation choices are derived from the selected features. Common capabilities are not configuration choices: admission against the governed scope checks that the selections represent the common content.",
         "documentation_witness": {
           "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
           "owner": "package DE4SDV_ProductLine",
@@ -1317,7 +1317,7 @@
       "accounting": "retained",
       "boundary": "ple-no-configurator-authority",
       "definition": {
-        "documentation": "Vocabulary role of the reviewed relationship appliesToMemberProduct: domain FeatureConfiguration, range MemberProduct (kernel ProductLineMemberProduct). Vocabulary only, with no sysml_mapping and no runtime traversal. No configurator authority; configuration authority follows ADR 0022. Until the switch, the Bill-of-Features configuration layer owns the binding. From the switch, the relationship grounds on the PLEML FeatureConfigurationBinding, which binds a member product's model element to its configuration, and the governed scope stays the admission authority. Existing runtime exclusions are preserved verbatim and are not collapsed into hasSubject.",
+        "documentation": "Vocabulary role of the reviewed relationship appliesToMemberProduct: domain FeatureConfiguration, range MemberProduct (kernel ProductLineMemberProduct). Vocabulary only, with no sysml_mapping and no runtime traversal. No configurator authority; configuration authority follows ADR 0022. The relationship is a DE4SDV derived fact: a configuration applies to each member product whose definition owns a usage typed by the part definition that the configuration's product-model projection declares. Until the switch, the configurator generates that part definition under the Bill-of-Features name. From the switch, the PLEML feature configuration's owned ProductModelProjectionName annotation names it, and the generator keeps the name (ADR 0022 decision 5). A configuration whose projection no member product uses applies to no member product, and the governed scope stays the admission authority. Existing runtime exclusions are preserved verbatim and are not collapsed into hasSubject.",
         "documentation_witness": {
           "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
           "owner": "package DE4SDV_ProductLine",
@@ -1847,7 +1847,7 @@
       "accounting": "retained",
       "boundary": "ple-no-configurator-authority",
       "definition": {
-        "documentation": "Vocabulary role of the reviewed relationship selectsFeature: domain FeatureConfiguration, range Feature (kernel ProductLineFeatureCandidate). Vocabulary only, with no sysml_mapping and no runtime traversal. No configurator authority; configuration authority follows ADR 0022. Until the switch, Bill-of-Features selections, evaluated by the configurator, are the operational selection. From the switch, the relationship grounds on the PLEML feature configuration, which selects a feature by redefining it with multiplicity 1. A realization needs a reviewed carrier, because a PLEML configuration selects PLEML features and the range is the kernel ProductLineFeatureCandidate: the correspondence that links a PLEML feature to the governed Feature it restates is the candidate bridge.",
+        "documentation": "Vocabulary role of the reviewed relationship selectsFeature: domain FeatureConfiguration, range Feature (kernel ProductLineFeatureCandidate). Vocabulary only, with no sysml_mapping and no runtime traversal. No configurator authority; configuration authority follows ADR 0022. The relationship is a DE4SDV derived fact: a configuration selects options of the catalogue, and it selects the governed Feature that those options realize through their correspondences to the governed product-line scope, as the governed-scope admission check derives it. Until the switch, the options are the Bill-of-Features selections, evaluated by the configurator. From the switch, they are the features that a PLEML feature configuration selects by redefining each with multiplicity 1.",
         "documentation_witness": {
           "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
           "owner": "package DE4SDV_ProductLine",
@@ -2142,7 +2142,7 @@
       "accounting": "retained",
       "boundary": "none",
       "definition": {
-        "documentation": "Vocabulary role of the reviewed relationship variesAt: domain Feature (kernel ProductLineFeatureCandidate), range VariationPoint (native SysML v2 variation definition/usage; see VariationPointOntologyDefinition). The identity is kept as navigation vocabulary only. Its model authority is the native variation structure: a realization is a derived fact over native variation/variant membership, and its evidence gate is a feature usage that participates in a variation's variant membership. Until such a usage exists, variesAt stays vocabulary-only: no runtime traversal, no sysml_mapping, no variation-point part taxonomy, no YAML edge mapping and no PLEML dependency. The switch of ADR 0022 does not change this grounding: a PLEML feature binding of a variant is not that evidence gate.",
+        "documentation": "Vocabulary role of the reviewed relationship variesAt: domain Feature (kernel ProductLineFeatureCandidate), range VariationPoint (native SysML v2 variation definition/usage; see VariationPointOntologyDefinition). The identity is kept as navigation vocabulary only. Its model authority is the native variation structure: a realization is a derived fact over native variation/variant membership, and its evidence gate is a feature usage that participates in a variation's variant membership. The governed product-line scope meets that gate: its admitted alternatives are variants typed by feature candidates. variesAt still stays vocabulary-only until a consumer needs it and a reviewed derived realization has exact-revision traversal evidence: no runtime traversal, no sysml_mapping, no variation-point part taxonomy, no YAML edge mapping and no PLEML dependency. The switch of ADR 0022 does not change this grounding: a PLEML feature binding of a variant is not that evidence gate.",
         "documentation_witness": {
           "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
           "owner": "package DE4SDV_ProductLine",

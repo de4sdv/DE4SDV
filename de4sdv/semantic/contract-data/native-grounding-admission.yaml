@@ -187,11 +187,11 @@ excluded:
   - identity: FeatureConfiguration
     reason: decision-9 decided by ADR 0022; from the switch the class grounds on the pinned PLEML library, which is not a native construct of this layer; a kernel-vocabulary row
   - identity: selectsFeature
-    reason: decision-9 decided by ADR 0022; from the switch a PLEML feature configuration carries the selection, not a native construct of this layer; a kernel-vocabulary row
+    reason: decision-9 decided by ADR 0022; a DE4SDV derived fact over the selected options and their correspondences to the governed scope, not a native construct of this layer; a kernel-vocabulary row
   - identity: appliesToMemberProduct
-    reason: decision-9 decided by ADR 0022; from the switch the PLEML FeatureConfigurationBinding carries it, not a native construct of this layer; a kernel-vocabulary row
+    reason: decision-9 decided by ADR 0022; a DE4SDV derived fact over the configuration's owned projection name and the member product's typed usage, not a native construct of this layer; a kernel-vocabulary row
   - identity: includesCommonCapability
-    reason: removed register row (no configuration chooses a common capability; a PLEML feature configuration owns only features, ADR 0022); not an O2+ row
+    reason: removed register row (no gate, check, traversal or consumer read it, ADR 0021; the governed-scope admission check derives common-content representation without it); not an O2+ row
   - identity: selectsVariant
     reason: decision-9 decided by ADR 0022; a DE4SDV derived fact (ADR 0022 decision 4), not a native construct of this layer; a kernel-vocabulary row
   - identity: instantiatesCanonicalArchitecture
@@ -203,9 +203,9 @@ excluded:
   - identity: hasStakeholder
     reason: removed register row (a vocabulary-only relation that no gate, check or traversal read; its carrier and usages were deleted and the runtime refuses the name); not an O2+ row
   - identity: specifiesFeature
-    reason: PLE-Q/S qualification + authorized PLE-A adoption not satisfied
+    reason: kernel-vocabulary navigation row; no reviewed native realization yet (the PLE adoption gates are decided by ADR 0022)
   - identity: specifiesCommonCapability
-    reason: PLE-Q/S qualification + authorized PLE-A adoption not satisfied
+    reason: kernel-vocabulary navigation row; no reviewed native realization yet (the PLE adoption gates are decided by ADR 0022)
   - identity: recordsGap
     reason: removed register row (a vocabulary-only relation no model element used; its carrier was deleted and the runtime refuses the name); not an O2+ row
   - identity: recordsAssumption

@@ -10,9 +10,9 @@
     },
     "by_disposition": {
       "BLOCKED": 1,
-      "KEEP_ACCEPTED_LIBRARY": 4,
+      "KEEP_ACCEPTED_LIBRARY": 2,
       "KEEP_CONDITIONAL": 1,
-      "KEEP_DE4SDV_APPLICATION_SEMANTIC": 51,
+      "KEEP_DE4SDV_APPLICATION_SEMANTIC": 53,
       "KEEP_EXTERNAL_REFERENCE": 5,
       "KEEP_NATIVE": 8,
       "KEEP_VOCABULARY_ONLY": 4,
@@ -26,9 +26,9 @@
       "CURRENT_O3_13": 13,
       "EXTERNAL_BOUNDARY": 5,
       "MODEL_AUTHORITY_PARITY": 26,
-      "NATIVE_OR_LIBRARY_ADOPTION": 6,
+      "NATIVE_OR_LIBRARY_ADOPTION": 4,
       "NEW_APPLICATION_SEMANTICS": 10,
-      "PROJECTION_ONLY": 9,
+      "PROJECTION_ONLY": 11,
       "REMOVE_FROM_ONTOLOGY": 8,
       "REQUIRES_SEMANTIC_MIGRATION": 10
     },
@@ -240,14 +240,14 @@
         "selectsVariant",
         "variesAt"
       ],
-      "statement": "Decision-9 (PLE configurator authority) is superseded at the switch. Wave-A decision 9 kept the external catalogue authority (ADR 0006) and the selection rows as vocabulary only, to be revisited after the PLE migration. ADR 0022, the owner's decision of 2026-10-19, makes PLEML the configuration-validity authority from its switch, with DE4SDV owning evaluation and derivation; until the switch the YAML authority of ADR 0014 stays in force. The ontology pull request of ADR 0022 decision 8 (S5o, which merges only with the owner's yes) classifies the rows for after the switch, in texts that hold before and after it: FeatureConfiguration, selectsFeature and appliesToMemberProduct ground on the pinned PLEML library (KEEP_ACCEPTED_LIBRARY); selectsVariant is a DE4SDV derived fact (ADR 0022 decision 4); variesAt keeps its native grounding. Feature stays grounded on the kernel ProductLineFeatureCandidate: a feature of a PLEML feature model is a distinct element, the configuration authority's option, linked to the governed Feature it restates by a correspondence in the feature models. All stay vocabulary-only, with no configurator authority. FeatureConfiguration stays external in the served kernel mapping until the switch adds the PLEML library to the API baseline; the switch maps it to the pinned PLEML declaration (ADR 0011). The source review is not modified; this is a reviewed register edit."
+      "statement": "Decision-9 (PLE configurator authority) is superseded at the switch. Wave-A decision 9 kept the external catalogue authority (ADR 0006) and the selection rows as vocabulary only, to be revisited after the PLE migration. ADR 0022, the owner's decision of 2026-10-19, makes PLEML the configuration-validity authority from its switch, with DE4SDV owning evaluation and derivation; until the switch the YAML authority of ADR 0014 stays in force. The ontology pull request of ADR 0022 decision 8 (S5o, which merges only with the owner's yes) classifies the rows for after the switch, in texts that hold before and after it: FeatureConfiguration grounds on the pinned PLEML library (KEEP_ACCEPTED_LIBRARY); selectsFeature, appliesToMemberProduct and selectsVariant are DE4SDV derived facts: selectsFeature over the selected options and their correspondences to the governed scope, appliesToMemberProduct over the configuration's owned ProductModelProjectionName annotation and the member product that types a usage by the generated part definition (ADR 0022 decision 5), and selectsVariant over the selected features, their bindings and the derivation rules (ADR 0022 decision 4); variesAt keeps its native grounding, and the governed scope's admitted alternatives meet its evidence gate. Feature stays grounded on the kernel ProductLineFeatureCandidate: a feature of a PLEML feature model is a distinct element, a configurable option of the catalogue, and only a correspondence to a governed feature candidate relates an option to a Feature. All stay vocabulary-only, with no configurator authority. FeatureConfiguration stays external in the served kernel mapping exactly while the PLEML library is outside the API baseline, and a repository test ties the mapping to that state; the switch maps it to the pinned PLEML declaration (ADR 0011). The four reclassified rows keep base_wave W5 and their wave basis as the history of the review that binned them as external boundaries; the wave does not classify them now. The source review is not modified; this is a reviewed register edit."
     },
     {
       "id": "interp-10",
       "rows": [
         "includesCommonCapability"
       ],
-      "statement": "Removed at the switch of ADR 0022: includesCommonCapability was a vocabulary-only relation from a configuration to a common capability. No configuration chooses a common capability, because every member product of the line has it, and a PLEML feature configuration owns only features, while common capabilities are not features (ADR 0022 decision 2, and the owner's rule that features distinguish member products). The relation has no carrier after the switch, and no gate, check or traversal read it. Its vocabulary-role comment and its generated projection were deleted from the method kernel, and the runtime refuses the name with this register disposition. The source review is not modified; this is a reviewed register edit."
+      "statement": "Removed at the switch of ADR 0022: includesCommonCapability was a vocabulary-only relation from a configuration to a common capability that no gate, check, traversal or consumer read (ADR 0021; the precedent is hasStakeholder). The fact it names is a DE4SDV-derived result, not a configuration fact. From the switch, common content is not a configuration selection: the catalogue's common nodes have no PLEML feature (ADR 0022 decision 2), and a configuration selects options of the catalogue. Whether a configuration's selections represent each governed common element is what the governed-scope admission check derives, from the selections and the correspondences of the selected options to the governed common elements; a missing or dropped representation blocks admission. That result needs no ontology relation. Before the switch, a bill of features may list a common capability, which the catalogue marks mandatory, so it is no choice either. Its vocabulary-role comment and its generated projection were deleted from the method kernel, and the runtime refuses the name with this register disposition. The source review is not modified; this is a reviewed register edit."
     }
   ],
   "o4_completion_boundary": [
@@ -1263,7 +1263,7 @@
         "Resolve disjointness delta: add native classification disjointness or record a reviewed equivalence/drop decision",
         "Preserve candidate-until-shown obligation as reviewed doc rule; never claim it as native semantic consequence",
         "No PLEML dependency",
-        "Classified by S5o (ADR 0022 decision 8; it merges only with the owner's yes): Feature stays grounded on the kernel ProductLineFeatureCandidate before and after the switch. A feature of a PLEML feature model is a distinct element, an option the configuration authority makes configurable: reference-only options and derived realizations are PLEML features without being Features, and a correspondence in the feature models links a PLEML feature to the governed Feature it restates"
+        "Classified by S5o (ADR 0022 decision 8; it merges only with the owner's yes): Feature stays grounded on the kernel ProductLineFeatureCandidate before and after the switch. A feature of a PLEML feature model is a distinct element, a configurable option of the catalogue that is never typed by a product-line characteristic. A correspondence relates an option to the governed element it restates, and only a correspondence to a governed feature candidate relates an option to a Feature; options for common content, reference-only alternatives or deferred variability, grouping options and options without a governed element relate to no Feature, and the derived adapter is no PLEML feature"
       ],
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
@@ -1586,7 +1586,7 @@
       "accounting_status": "retained",
       "base_wave": "W5",
       "blockers": [
-        "Any accepted-library-grounded target is blocked by PLEML adoption gates (PLE-R \u2192 PLE-Q \u2192 PLE-S \u2192 PLE-A); current PLEML pin is pinned-not-adopted, and this review does not contact upstream or declare adoption."
+        "The accepted-library-grounded target takes effect at the switch (ADR 0022, step S6), when the pinned PLEML library joins the API baseline; until then the served kernel mapping stays external (ADR 0011), and a repository test ties the mapping to that state in both directions."
       ],
       "corrections_batch": null,
       "current_authority": "external-reference",
@@ -1603,7 +1603,7 @@
         "ple": true,
         "saf": false
       },
-      "desired_target_authority": "accepted-library-grounded: from the switch of ADR 0022 the class grounds on the pinned PLEML library definition FeatureConfiguration, which selects features only; its variation choices are derived (ADR 0022 decision 4) and common capabilities are not selected. Until the switch the Bill-of-Features YAML under model-based-product-line-engineering/feature-configurations/ stays the operational authority (ADR 0014).",
+      "desired_target_authority": "accepted-library-grounded: from the switch of ADR 0022 the class grounds on the pinned PLEML library definition FeatureConfiguration; its variation choices are derived (ADR 0022 decision 4), and common capabilities are not configuration choices (ADR 0022 decision 2). Until the switch the Bill-of-Features YAML under model-based-product-line-engineering/feature-configurations/ stays the operational authority (ADR 0014).",
       "final_disposition": "KEEP_ACCEPTED_LIBRARY",
       "gate_decisions": [
         "decision-9"
@@ -1619,13 +1619,13 @@
       "o3_complete": false,
       "open_decisions": [
         "Classified by S5o (ADR 0022 decision 8; it merges only with the owner's yes): ground on the pinned PLEML library definition from the switch",
-        "The served kernel mapping stays external until the switch, and the switch makes it the file mapping of the pinned PLEML declaration, when the library joins the API baseline (ADR 0011)",
+        "The served kernel mapping stays external until the switch, and the switch makes it the file mapping of the pinned PLEML declaration, when the library joins the API baseline (ADR 0011); tests/test_vocabulary_roles.py refuses either without the other",
         "Report configuration validity and governed-scope admission separately",
         "No DE4SDV definition for FeatureConfiguration: the library defines it"
       ],
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
-        "grounding": "accepted-library-grounded: from the switch of ADR 0022 the class grounds on the pinned PLEML library definition FeatureConfiguration, which selects features only; its variation choices are derived (ADR 0022 decision 4) and common capabilities are not selected. Until the switch the Bill-of-Features YAML under model-based-product-line-engineering/feature-configurations/ stays the operational authority (ADR 0014).",
+        "grounding": "accepted-library-grounded: from the switch of ADR 0022 the class grounds on the pinned PLEML library definition FeatureConfiguration; its variation choices are derived (ADR 0022 decision 4), and common capabilities are not configuration choices (ADR 0022 decision 2). Until the switch the Bill-of-Features YAML under model-based-product-line-engineering/feature-configurations/ stays the operational authority (ADR 0014).",
         "native_representation_exists": true,
         "new_modeling_required": false,
         "proposed_name": null
@@ -4372,7 +4372,7 @@
       "review_classification": "NO_NATIVE_SEMANTIC_FIT",
       "review_index": 67,
       "validation_evidence_requirement": [
-        "PLE-Q/S qualification + authorized PLE-A adoption"
+        "a reviewed native realization (a signature and migration review) and exact-revision evidence before any runtime claim; the PLE adoption gates are decided by ADR 0022 (decision 1), and the relation keeps no PLEML dependency"
       ],
       "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in Deliverable 8)"
     },
@@ -4432,7 +4432,7 @@
       "review_classification": "NO_NATIVE_SEMANTIC_FIT",
       "review_index": 68,
       "validation_evidence_requirement": [
-        "PLE-Q/S qualification + authorized PLE-A adoption"
+        "a reviewed native realization (a signature and migration review) and exact-revision evidence before any runtime claim; the PLE adoption gates are decided by ADR 0022 (decision 1), and the relation keeps no PLEML dependency"
       ],
       "wave_basis": "fall-through rule F1 (low-dependency application semantics/vocabulary; not named in Deliverable 8)"
     },
@@ -5349,7 +5349,8 @@
       "dependencies": [
         "FeatureConfiguration row",
         "MemberProduct row",
-        "hasSubject frozen meaning (O3 13)"
+        "hasSubject frozen meaning (O3 13)",
+        "ProductModelProjectionName row (kernel DE4SDV_ProductLineDerivation)"
       ],
       "dependency_flags": {
         "canonical_architecture": false,
@@ -5363,8 +5364,8 @@
         "ple": true,
         "saf": false
       },
-      "desired_target_authority": "accepted-library-grounded: from the switch of ADR 0022 the relationship grounds on the PLEML FeatureConfigurationBinding, which binds a member product's model element to its feature configuration; until the switch the Bill-of-Features configuration layer owns the binding. The governed scope stays the admission authority (ADR 0014).",
-      "final_disposition": "KEEP_ACCEPTED_LIBRARY",
+      "desired_target_authority": "model-authoritative derived fact: a configuration applies to each member product whose definition owns a usage typed by the part definition that the configuration's product-model projection declares. From the switch of ADR 0022 the configuration's owned ProductModelProjectionName annotation names that part definition, and the generator keeps the name (ADR 0022 decision 5); until the switch the configurator generates it under the Bill-of-Features name. The governed scope stays the admission authority (ADR 0014).",
+      "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
       "gate_decisions": [
         "decision-9"
       ],
@@ -5375,17 +5376,18 @@
       "membership": "o4-target",
       "merge_into": null,
       "merge_note": null,
-      "migration_class": "NATIVE_OR_LIBRARY_ADOPTION",
+      "migration_class": "PROJECTION_ONLY",
       "o3_complete": false,
       "open_decisions": [
-        "Classified by S5o (ADR 0022 decision 8; it merges only with the owner's yes): ground on the PLEML FeatureConfigurationBinding from the switch; whether the authority models carry the binding is decided where they are modeled (S3)",
+        "Classified by S5o (ADR 0022 decision 8; it merges only with the owner's yes): a DE4SDV derived fact over the configuration's owned ProductModelProjectionName annotation and the member product that types a usage by the generated part definition; no PLEML construct carries it",
+        "Each configuration owns exactly one ProductModelProjectionName annotation (S2 and S3), and each member product types its product model by the part definition of its configuration's projection (S3 and S4)",
         "Preserve runtime exclusions verbatim (no collapse into hasSubject)",
-        "Vocabulary-only until a reviewed realization with exact-revision evidence"
+        "Vocabulary-only until a reviewed derived realization with exact-revision evidence"
       ],
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
-        "grounding": "accepted-library-grounded: from the switch of ADR 0022 the relationship grounds on the PLEML FeatureConfigurationBinding, which binds a member product's model element to its feature configuration; until the switch the Bill-of-Features configuration layer owns the binding. The governed scope stays the admission authority (ADR 0014).",
-        "native_representation_exists": true,
+        "grounding": "model-authoritative derived fact: a configuration applies to each member product whose definition owns a usage typed by the part definition that the configuration's product-model projection declares. From the switch of ADR 0022 the configuration's owned ProductModelProjectionName annotation names that part definition, and the generator keeps the name (ADR 0022 decision 5); until the switch the configurator generates it under the Bill-of-Features name. The governed scope stays the admission authority (ADR 0014).",
+        "native_representation_exists": false,
         "new_modeling_required": false,
         "proposed_name": null
       },
@@ -5399,7 +5401,7 @@
       "review_classification": "NO_NATIVE_SEMANTIC_FIT",
       "review_index": 84,
       "validation_evidence_requirement": [
-        "a reviewed realization over the PLEML FeatureConfigurationBinding and exact-revision evidence before any runtime claim"
+        "a reviewed derived realization over the owned ProductModelProjectionName annotation and the member product's typed usage, and exact-revision evidence, before any runtime claim"
       ],
       "wave_basis": "review Deliverable 8 Wave 4 (EXTERNAL_BOUNDARY bin, 10 rows named)"
     },
@@ -5529,7 +5531,8 @@
       "current_evidence_state": "blocked",
       "dependencies": [
         "FeatureConfiguration row",
-        "Feature row (catalogue side)"
+        "Feature row (the governed feature candidates)",
+        "the correspondences of the catalogue options to the governed scope (S3)"
       ],
       "dependency_flags": {
         "canonical_architecture": false,
@@ -5541,8 +5544,8 @@
         "ple": true,
         "saf": false
       },
-      "desired_target_authority": "accepted-library-grounded: from the switch of ADR 0022 a PLEML feature configuration selects a feature by redefining it with multiplicity 1; until the switch the Bill-of-Features selections, evaluated by the configurator, are the operational selection.",
-      "final_disposition": "KEEP_ACCEPTED_LIBRARY",
+      "desired_target_authority": "model-authoritative derived fact: a configuration selects options of the catalogue, and it selects the governed Feature that those options realize through their correspondences to the governed product-line scope, as the governed-scope admission check derives it. From the switch of ADR 0022 a PLEML feature configuration selects an option by redefining it with multiplicity 1; until the switch the Bill-of-Features selections, evaluated by the configurator, are the operational selection.",
+      "final_disposition": "KEEP_DE4SDV_APPLICATION_SEMANTIC",
       "gate_decisions": [
         "decision-9"
       ],
@@ -5553,17 +5556,17 @@
       "membership": "o4-target",
       "merge_into": null,
       "merge_note": null,
-      "migration_class": "NATIVE_OR_LIBRARY_ADOPTION",
+      "migration_class": "PROJECTION_ONLY",
       "o3_complete": false,
       "open_decisions": [
-        "Classified by S5o (ADR 0022 decision 8; it merges only with the owner's yes): ground on the multiplicity-1 redefinition of a PLEML feature configuration from the switch",
-        "Open for a reviewed realization: the range Feature maps to the kernel ProductLineFeatureCandidate, while a PLEML configuration selects PLEML features; S5o does not change the Feature row",
-        "Preserve configurator behavior and tests as operational evidence for the YAML shadow until S7"
+        "Classified by S5o (ADR 0022 decision 8; it merges only with the owner's yes): a DE4SDV derived fact over the selected options and their correspondences to the governed scope; the range Feature stays the kernel ProductLineFeatureCandidate",
+        "Preserve configurator behavior and tests as operational evidence for the YAML shadow until S7",
+        "Vocabulary-only until a reviewed derived realization with exact-revision evidence"
       ],
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
-        "grounding": "accepted-library-grounded: from the switch of ADR 0022 a PLEML feature configuration selects a feature by redefining it with multiplicity 1; until the switch the Bill-of-Features selections, evaluated by the configurator, are the operational selection.",
-        "native_representation_exists": true,
+        "grounding": "model-authoritative derived fact: a configuration selects options of the catalogue, and it selects the governed Feature that those options realize through their correspondences to the governed product-line scope, as the governed-scope admission check derives it. From the switch of ADR 0022 a PLEML feature configuration selects an option by redefining it with multiplicity 1; until the switch the Bill-of-Features selections, evaluated by the configurator, are the operational selection.",
+        "native_representation_exists": false,
         "new_modeling_required": false,
         "proposed_name": null
       },
@@ -5577,7 +5580,7 @@
       "review_classification": "NO_NATIVE_SEMANTIC_FIT",
       "review_index": 87,
       "validation_evidence_requirement": [
-        "a reviewed carrier that resolves the range, and exact-revision evidence, before any runtime claim"
+        "a reviewed derived realization over the selected options and their correspondences, and exact-revision evidence, before any runtime claim"
       ],
       "wave_basis": "review Deliverable 8 Wave 4 (EXTERNAL_BOUNDARY bin, 10 rows named)"
     },
@@ -5668,7 +5671,7 @@
         "ple": true,
         "saf": false
       },
-      "desired_target_authority": "removed; no configuration chooses a common capability, because every member product of the line has it, and a PLEML feature configuration owns only features (ADR 0022)",
+      "desired_target_authority": "removed: no gate, check, traversal or consumer read the relation (ADR 0021). From the switch, common content is not a configuration selection (ADR 0022 decision 2), and whether a configuration's selections represent each governed common element is a result that the governed-scope admission check derives from the selections and their correspondences; it needs no ontology relation.",
       "final_disposition": "REMOVE",
       "gate_decisions": [],
       "gate_wave": null,
@@ -5683,7 +5686,7 @@
       "open_decisions": [],
       "required_api_representation_profile_change": false,
       "required_model_or_library_change": {
-        "grounding": "removed; no configuration chooses a common capability, because every member product of the line has it, and a PLEML feature configuration owns only features (ADR 0022)",
+        "grounding": "removed: no gate, check, traversal or consumer read the relation (ADR 0021). From the switch, common content is not a configuration selection (ADR 0022 decision 2), and whether a configuration's selections represent each governed common element is a result that the governed-scope admission check derives from the selections and their correspondences; it needs no ontology relation.",
         "native_representation_exists": false,
         "new_modeling_required": false,
         "proposed_name": null
@@ -5694,7 +5697,7 @@
         "traversal_required": false
       },
       "required_semantic_projection_change": false,
-      "retirement_condition": "retired without a successor: no configuration chooses a common capability, because every member product of the line has it; a PLEML feature configuration owns only features (ADR 0022)",
+      "retirement_condition": "retired without a successor: no gate, check, traversal or consumer read it (ADR 0021); from the switch common content is not a configuration selection, and the governed-scope admission check derives whether a configuration's selections represent the governed common content (ADR 0022)",
       "review_classification": "NO_NATIVE_SEMANTIC_FIT",
       "review_index": 89,
       "validation_evidence_requirement": [
@@ -5741,7 +5744,7 @@
       "open_decisions": [
         "Keep relation identity as navigation vocabulary; realize as derived fact over native variation membership",
         "Do not author a variation-point part taxonomy or a YAML edge mapping",
-        "Evidence gate: a feature usage participating in a variation's variant membership; until then vocabulary-only",
+        "Evidence gate met: the governed scope's admitted alternatives are variants typed by feature candidates; vocabulary-only until a consumer needs the relation and a reviewed derived realization has exact-revision traversal evidence",
         "No PLEML dependency",
         "ADR 0022 leaves the native grounding unchanged: a PLEML feature binding of a variant is not the evidence gate"
       ],

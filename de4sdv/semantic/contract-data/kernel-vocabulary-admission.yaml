@@ -122,13 +122,15 @@ exceptions:
 - identity: includesCommonCapability
   accounting: removed
   reason: >-
-    Removed register row: no configuration chooses a common capability,
-    because every member product of the line has it. A PLEML feature
-    configuration owns only features, and common capabilities are not
-    features (ADR 0022), so the relation has no carrier after the switch.
-    Its vocabulary-role comment and its generated projection were deleted
-    from the method kernel, so it has no model home. The runtime refuses
-    the name with its register disposition.
+    Removed register row: a vocabulary-only relation that no gate, check,
+    traversal or consumer read (ADR 0021). From the switch, common content
+    is not a configuration selection (ADR 0022 decision 2). Whether a
+    configuration's selections represent each governed common element is a
+    result that the governed-scope admission check derives from the
+    selections and their correspondences, with no ontology relation. Its
+    vocabulary-role comment and its generated projection were deleted from
+    the method kernel, so it has no model home. The runtime refuses the name
+    with its register disposition.
 
 admitted:
 - identity: AcceptanceCriterion
@@ -418,6 +420,8 @@ admitted:
     - release-2026-10-11:docs/method-conformance/o4/owner-decisions-2026-10.md#2026-10-05-7
     - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#decision-7
   forward_obligations:
+  - a feature usage of a PLEML feature model is never typed by a ProductLineCharacteristic
+    specialization; the evaluator (S2) refuses one, and the feature models (S3) declare none
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
 - identity: FeatureConfiguration
   semantic_kind: class
@@ -450,7 +454,8 @@ admitted:
   forward_obligations:
   - at the switch (ADR 0022, step S6) the kernel mapping becomes the file mapping of the pinned PLEML
     library declaration occurrence def FeatureConfiguration; it resolves only once the switch adds the
-    library to the API baseline (ADR 0011), so the switch makes this edit
+    library to the API baseline (ADR 0011), so the switch makes this edit, and
+    tests/test_vocabulary_roles.py refuses the switch without it
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
 - identity: Function
   semantic_kind: class
@@ -1002,7 +1007,8 @@ admitted:
     - docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md#decision-1
     - docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md#decision-8
   forward_obligations:
-  - a reviewed realization over the PLEML FeatureConfigurationBinding before any runtime claim
+  - a reviewed derived realization over the configuration's owned ProductModelProjectionName and the
+    member product that types a usage by the generated part definition, before any runtime claim
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
 - identity: hasAcceptanceCriterion
   semantic_kind: relationship
@@ -1115,8 +1121,8 @@ admitted:
     - docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md#decision-1
     - docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md#decision-8
   forward_obligations:
-  - a reviewed carrier that resolves the range (PLEML features against the kernel
-    ProductLineFeatureCandidate) before any runtime claim
+  - a reviewed derived realization over the selected options and their correspondences to the governed
+    scope before any runtime claim
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
 - identity: selectsVariant
   semantic_kind: relationship

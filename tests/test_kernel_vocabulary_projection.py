@@ -614,7 +614,8 @@ def _record_keys(path, text):
     owner-decisions-2026-10.md ``#2026-10-05-7`` is row 7 of the 2026-10-05
     table and ``#wave-a-decision-9`` the Decision 9 row of the Wave A table;
     ADR 0020 ``#d1`` to ``#d4``, ``#d4-follow-up``, ``#decision-7`` and
-    ``#decision-8`` name its numbered decision items.
+    ``#decision-8`` name its numbered decision items, and ADR 0022
+    ``#decision-1`` to ``#decision-8`` name its numbered decisions.
     """
     if not path.endswith(".yaml"):
         return None
