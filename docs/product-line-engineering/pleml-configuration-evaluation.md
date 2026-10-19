@@ -18,9 +18,11 @@ only (ADR 0011). For each feature tree it decides:
 - **configurations.** A setting `[1]` selects a feature and `[0]` deselects it. An
   omitted optional feature is deselected, and an omitted mandatory one is
   selected. Every bound of every feature and group is checked, as is that a
-  configuration owns only features and binds at Development. Metadata, such as
-  `ProductModelProjectionName`, annotates a configuration and is not one of its
-  entries.
+  configuration owns only features. As in the library, each selected feature
+  binds no later than the configuration, which binds at Development: a
+  later-bound feature rejects only the configurations that select it.
+  Metadata, such as `ProductModelProjectionName`, annotates a configuration and
+  is not one of its entries.
 - **constraints.** `requires`, XOR and `implies` keep the library's semantics,
   read from the `FeatureOperand` operands.
 - **feature bindings.** Each binding names one variant and one feature, and each
@@ -90,11 +92,12 @@ The evaluator refuses anything outside these shapes:
 - **features.** Every tree feature carries `#feature` and an explicit
   multiplicity. Group members are `[0..1]` siblings of their group, and a member
   that is itself a group is refused. The only value a tree feature may carry is
-  `default null`;
+  `default null`. A feature, and a setting, is typed by the library's `Feature`
+  only, never by a product-line characteristic;
 - **configurations.** A configuration is `#featureConfiguration occurrence name :
-  Definition :> featureConfigurations`, typed by its tree definition and
-  usually in its own file. One that subsets a tree usage with a body is accepted
-  too, and one typed by no tree is refused. Settings state their multiplicity and
+  Definition :> featureConfigurations`, typed by its tree definition, in a file
+  of its own. One that subsets a tree usage with a body is accepted too, and one
+  typed by no tree is refused. Settings state their multiplicity and
   may nest inside the setting of their owning feature. A group setting may list
   its selected members as its value, and the list must agree with the member
   settings;
@@ -115,6 +118,12 @@ The evaluator refuses anything outside these shapes:
   one client. Each premise of a rule is a direct sub-feature of a distinct source
   feature, and supplier order carries no meaning. A rule whose variant no single
   derived variation names is refused;
+- **dependencies.** Every dependency of the model documents is read by exactly
+  one feature tree, and none is skipped. A binding, derived variation, rule or
+  correspondence with an empty endpoint list is refused. So is one that names
+  no feature of a tree: a premise or source that is no feature, a binding of a
+  derived variant, a correspondence from an element that is no feature. A
+  correspondence needs the governed scope among the evaluated elements;
 - **exports.** The production export's options are the accepted ones. Implied
   relationships carry nothing authored, so they are neither refused nor read.
   Document order comes from the ordered ownership properties, never from the
@@ -148,6 +157,16 @@ python scripts/run_pleml_configuration_evaluation.py replay <receipt>...
 python scripts/run_pleml_configuration_evaluation.py refresh <receipt>...
 ```
 
+Every receipt binds the PLEML release the fenced package pins: its version,
+tag commit, path and digest. A bundle with another library is refused, and a
+receipt refuses to replay when the library is missing or the package is
+re-pinned. A bundle without the governed scope is refused too, because every
+receipt records the admission. The run's provenance (the executor revision and
+the bundle's commit) sits in the receipt beside the elements, never inside
+them. So the same serialization on another commit gives the same elements file.
+`pleml_receipts.compare_with_committed` is the comparison the licensed job runs
+against the committed receipts.
+
 A receipt never depends on where it was cut. References are element
 identities: the resource path of a serializer URI depends on the checkout and
 on where the library is provisioned, so the elements file keeps none, and a
@@ -156,10 +175,21 @@ runner replays the same in unlicensed CI and locally.
 
 `replay` refuses a receipt in any of these cases:
 
-- its elements differ from the recorded digest;
-- a source document changed after the serialization;
-- another evaluator revision produced it;
+- its elements differ from the recorded digest, even by an edit that changes
+  no verdict;
+- a source document changed after the serialization. The receipts of one
+  bundle bind all of its sources, so one edited document makes them all stale;
+- the pinned library is missing, or the package pins another release;
+- another revision of an evaluator module produced it: of the evaluator, the
+  receipts, the package record, the kernel contract, the binding validation,
+  the bundle reader, the scope validator, the repository helpers or the
+  revision identities;
 - its verdicts, derived variants or admission do not reproduce.
+
+Replay works offline, so it cannot tell an edit that rewrites an elements file
+and the digests of its receipts. The licensed comparison on every head that
+carries receipts closes that gap, together with the review of the committed
+diff.
 
 `receipts --compare <directory>` refuses when the fresh elements differ from
 the committed receipts' elements.
