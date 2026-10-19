@@ -139,7 +139,7 @@ def test_queries_take_no_selector_or_bundle_arguments(tmp_path):
     import inspect
 
     assert set(inspect.signature(queries.run_queries).parameters) == {
-        "api_url", "binding_path", "semantic_report_path"}
+        "api_url", "binding_path", "semantic_report_path", "export_path"}
 
 
 # -- MCP Proof A under model ------------------------------------------------------

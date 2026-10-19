@@ -164,7 +164,20 @@ in two layer classes; any successor answer is `incomplete` when a witness's
 end, owning context or typing evidence cannot be decided. A typing or
 specialization relationship that names no target is a reference the export
 leaves out (to the standard library) and carries no meaning; a named target
-that is not in the revision leaves the answer `incomplete`.
+that is not in the revision leaves the answer `incomplete`. The viewer's Ask
+reads `allocatedTo` the same way.
+
+The privileged run checks this reading on the API revision it imported. With
+`--export`, `scripts/validate_full_model_semantic_queries.py` compares the
+`allocatedTo` and `hasValidationScenario` facts the production runtime serves
+with the imported export's, read as the PR Method Check and the method read
+them. It also checks the API closure of the typed allocation ends: one
+validated kernel binding per end-pair class, equal to the profile pin and
+served, and every served allocation readable with the export's ends
+(`de4sdv/semantic/successor_parity.py`). A failure fails the run, and the
+release evidence requires the passing report. This is the evidence the
+`allocatedTo` forward obligations ask for; the admission records them until a
+run at the exact SHA produces it.
 
 ## `hasRelevantEvidenceContract` discriminator
 

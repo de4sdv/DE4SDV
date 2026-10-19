@@ -26,13 +26,20 @@ KB = [{"ontology_class": "Need", "element_id": "e-need", "source_file": "m.sysml
        "declaration": "part def Need"}]
 
 
+def _parity():
+    """A passing successor parity section of the query-coverage battery (the allocatedTo obligations)."""
+    return {"schema": cre.PARITY_SCHEMA, "passed": True,
+            "relations": {name: {"passed": True} for name in cre.PARITY_RELATIONS},
+            "allocation_end_closure": {"passed": True}}
+
+
 def _batteries():
     authority = {"semantic_authority": SAI["id"], "served_model": CONTENT}
     revision = {"git_commit": HEAD, "sysml_project_id": "p", "sysml_commit_id": "c"}
     return {
         "query_coverage": {"schema": cre.BATTERY_SCHEMAS["query_coverage"], "git_commit": HEAD,
                            "sysml_project_id": "p", "sysml_commit_id": "c",
-                           "semantic_authority": dict(authority)},
+                           "semantic_authority": dict(authority), "successor_parity": _parity()},
         "scope_validation": {"schema": cre.BATTERY_SCHEMAS["scope_validation"],
                              "revision": dict(revision), "model_authority": dict(authority),
                              "api_element_count": 2},
@@ -77,7 +84,7 @@ def _failed(evidence):
 def test_agreeing_evidence_passes_every_check():
     results = cre.evaluate(_evidence())
     assert all(r["ok"] for r in results), [r for r in results if not r["ok"]]
-    assert len(results) == 17
+    assert len(results) == 18
 
 
 def _mutated(mutate):
@@ -115,6 +122,15 @@ def _mutated(mutate):
     (lambda e: e.batteries["query_coverage"]["semantic_authority"].update(served_model=None),
      "battery query_coverage"),
     (lambda e: e.batteries["mcp_validation"].update(tool_count=6), "seven exercised tools"),
+    (lambda e: e.batteries["query_coverage"].pop("successor_parity"), "successor parity"),
+    (lambda e: e.batteries["query_coverage"]["successor_parity"].update(passed=False), "successor parity"),
+    (lambda e: e.batteries["query_coverage"]["successor_parity"]["relations"].pop("hasValidationScenario"),
+     "successor parity"),
+    (lambda e: e.batteries["query_coverage"]["successor_parity"]["relations"]["allocatedTo"].update(
+        passed=False), "successor parity"),
+    (lambda e: e.batteries["query_coverage"]["successor_parity"]["allocation_end_closure"].update(
+        passed=False), "successor parity"),
+    (lambda e: e.batteries["query_coverage"]["successor_parity"].update(schema="other"), "successor parity"),
     (lambda e: e.batteries["scope_validation"].update(api_element_count=1),
      "listing holds the served model"),
 ])

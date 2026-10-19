@@ -24,7 +24,8 @@ ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github/workflows/privileged-full-model-api-ingestion.yml"
 JOB = "ingest-and-validate"
 REV = "a" * 40
-BATTERIES = ("Exercise three production semantic concerns",
+PARITY = "Exercise production semantic concerns and the successor parity"
+BATTERIES = (PARITY,
              "Validate governed product-line scope through API identity",
              "Exercise read-only semantic MCP tools")
 EVIDENCE = "Release evidence over the export"
@@ -94,6 +95,21 @@ def test_the_import_rehearsal_is_marked_for_removal_after_two_releases():
     marker = text.index("# CI import rehearsal")
     note = text[marker:text.index("- name: Build pinned Systems Modeling API service")]
     assert "two releases" in note and "owner decision 2026-10-11" in note
+
+
+def test_the_successor_parity_compares_the_imported_api_revision_with_the_imported_export():
+    """The allocatedTo forward obligations: the parity runs over the API revision this run imported
+    and the export it imported, before the release evidence reads its report, and a failure fails the
+    run (no continue-on-error), so no deploy takes the run's evidence."""
+    names = _names()
+    assert names.index("Import and validate exact API revision") < names.index(PARITY) < names.index(EVIDENCE)
+    run = re.sub(r"\\\n\s*", " ", _step(PARITY)["run"])
+    for argument in ("python scripts/validate_full_model_semantic_queries.py",
+                     "--api-url http://127.0.0.1:9000",
+                     "--export /tmp/de4sdv-full-model-export.json",
+                     "--output /tmp/de4sdv-full-model-semantic-query-coverage.json"):
+        assert argument in run, argument
+    assert _step(PARITY).get("continue-on-error") is None
 
 
 def test_batteries_run_through_the_deployed_runtime_without_selector_flags():

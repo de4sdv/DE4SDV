@@ -108,7 +108,7 @@ def _evidence_bundle(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
             "scope": "full-model",
         },
     }
-    coverage = {"schema": "de4sdv-full-model-semantic-query-coverage/v1"}
+    coverage = {"schema": "de4sdv-full-model-semantic-query-coverage/v2"}
     for name, payload in (
         ("de4sdv-full-model-semantic-validation.json", report),
         ("de4sdv-full-model-binding.json", binding),

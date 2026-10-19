@@ -23,6 +23,7 @@ import mcp.client.stdio  # noqa: F401 - keep session-global stderr for later MCP
 import pytest
 
 from de4sdv.semantic import relation_checks as rc
+from de4sdv.semantic import successor_parity as sp
 from de4sdv.semantic.export_evaluation import export_view, load_export_snapshot
 from de4sdv.semantic.increment_scope import ModelView
 from de4sdv.semantic.mcp_server import create_mcp_server
@@ -54,10 +55,10 @@ def view(snapshot) -> ModelView:
     return export_view(snapshot)
 
 
-def _service(snapshot):
+def _service(snapshot, elements=None):
     """The production service assembly over a revision binding that carries the export's validated
-    kernel bindings; only the API transport is replaced."""
-    elements = snapshot.elements
+    kernel bindings; only the API transport is replaced (it serves ``elements``, by default the cut)."""
+    elements = snapshot.elements if elements is None else elements
 
     class Repository:
         def list_elements(self, *args):
@@ -69,44 +70,23 @@ def _service(snapshot):
     return model_service(RevisionBinding.from_dict(document), Repository())
 
 
-def _connectors(view: ModelView, relation: str) -> dict[str, tuple[tuple[str, ...], str]]:
-    """The connectors the method reads for ``relation``: every native allocation, or the connections
-    typed by the relation's carrier."""
-    if relation == ALLOCATED_TO:
-        return dict(rc.allocation_ends(view))
-    carriers = view.traversal.class_lineage(relation, view.elements)["explicit_lineage_ids"]
-    return {c: ends for c, ends in rc.connection_ends(view).items() if view.index.typed_by(c) & carriers}
-
-
-def _end_pair(view: ModelView, relation: str, source: str, target: str) -> str:
-    rows = (rc.allocation_pairs(view, relation, source, target) if relation == ALLOCATED_TO
-            else view.contract.profile["relations"][relation])
-    (row,) = rows
-    return str(row["carrier"])
-
-
-def method_facts(view: ModelView, relation: str) -> set[tuple[str, str, str, str]]:
+def method_facts(view: ModelView, relation: str) -> frozenset[sp.Fact]:
     """(source, target, end pair, witness) the method's relation check finds from every connector end."""
-    subjects = {end for ends, _problem in _connectors(view, relation).values() for end in ends}
-    found = set()
-    for subject in subjects:
-        result = rc.check_relation(view, relation, subject)
-        assert not result.problem, result
-        found |= {(subject, target, _end_pair(view, relation, subject, target), witness)
-                  for target, witness in result.hops}
-    return found
+    facts, problems = sp.method_facts(view, relation)
+    assert problems == (), problems
+    return facts
 
 
 def traversal_facts(traversal, view: ModelView, relation: str, predicate: str | None = None
-                    ) -> set[tuple[str, str, str, str]]:
+                    ) -> frozenset[sp.Fact]:
     """(source, target, end pair, witness) the successor traversal returns from every connector end."""
-    subjects = {end for ends, _problem in _connectors(view, relation).values() for end in ends}
-    traversal.unsupported = []
-    found = {(hop.source["@id"], hop.target["@id"], hop.witness["carrier"], hop.api_object["@id"])
-             for subject in subjects
-             for hop in traversal.traverse(predicate or relation, view.element(subject), view.elements)}
-    assert traversal.unsupported == []
-    return found
+    facts, incomplete = sp.traversal_facts(traversal, view, relation, predicate)
+    assert incomplete == (), incomplete
+    return facts
+
+
+def _connectors(view: ModelView, relation: str) -> dict[str, tuple[tuple[str, ...], str]]:
+    return sp.connectors(view, relation)
 
 
 def test_the_cut_holds_the_native_shapes_the_traversal_must_read(view) -> None:
@@ -202,3 +182,79 @@ def test_a_broken_shared_reader_breaks_the_method_checks_and_the_traversal_alike
     method = method_facts(broken, ALLOCATED_TO)
     assert sorted(pair for _s, _t, pair, _w in method) == ["RequirementFunctionAssignment"] * 10
     assert traversal_facts(traversal, broken, ALLOCATED_TO) == method
+
+
+# -- the privileged parity over an API revision (successor_parity) -------------------------------------
+
+
+def _api_view(snapshot, elements=None) -> ModelView:
+    """The production service assembly over a revision binding, serving ``elements`` (default: the cut)."""
+    service = _service(snapshot) if elements is None else _service(snapshot, elements)
+    return ModelView(service._elements(), service.traversal)
+
+
+def test_the_parity_report_holds_over_a_revision_binding_on_the_genuine_cut(snapshot, view) -> None:
+    """Export snapshot and API revision of one revision: both relations equal, end-pair classes closed."""
+    report = sp.parity_report(view, _api_view(snapshot))
+    assert report["passed"], report
+    assert {name: len(record["facts"]) for name, record in report["relations"].items()} == {
+        ALLOCATED_TO: 27, VALIDATION: 5}
+    closure = report["allocation_end_closure"]
+    assert closure["passed"] and closure["allocations"] == 27
+    assert sorted(closure["end_pair_classes"]) == ["Function", "LogicalElement", "PhysicalElement", "Requirement"]
+    assert all(record["closed"] for record in closure["end_pair_classes"].values())
+
+
+def _without(elements, identifiers):
+    return [element for element in elements if element["@id"] not in identifiers]
+
+
+def test_the_parity_report_fails_closed_when_the_api_loses_an_allocation_end(snapshot, view) -> None:
+    allocation = _resolve(view, CHAIN[1])
+    (membership, *_rest) = [r["@id"] for r in view.index.owned_relationships(allocation, "EndFeatureMembership")]
+    api = _api_view(snapshot, _without(snapshot.elements, {membership}))
+    report = sp.parity_report(view, api)
+    assert not report["passed"]
+    allocated = report["relations"][ALLOCATED_TO]
+    assert not allocated["checks"]["the API-served traversal returns the method's facts"]
+    assert [fact[3] for fact in allocated["only_method"]] == [allocation]
+    closure = report["allocation_end_closure"]
+    assert closure["unreadable"] == [allocation] and closure["differing_from_export"] == [allocation]
+    assert not closure["passed"]
+
+
+def test_the_parity_report_fails_closed_on_an_end_pair_class_the_api_does_not_serve(snapshot, view) -> None:
+    function_root = view.kernel_element("Function")
+    report = sp.parity_report(view, _api_view(snapshot, _without(snapshot.elements, {function_root})))
+    assert not report["passed"]
+    record = report["allocation_end_closure"]["end_pair_classes"]["Function"]
+    assert not record["closed"] and "does not exist in the bound revision" in record["served_error"]
+    assert not report["relations"][ALLOCATED_TO]["passed"]
+
+
+# -- the viewer's Ask reads allocatedTo the same way ---------------------------------------------------
+
+
+def test_the_ask_allocated_to_family_gives_the_method_and_traversal_facts(snapshot, view) -> None:
+    """The Ask window's ``allocated_to`` family (tools/sysml_html_viewer/ask_model_semantic.py), asked
+    for each allocation source end of the cut, names exactly the targets the method and the traversal
+    find: the export's shape carries no top-level ``source``, so a derived-key read finds none."""
+    from tools.sysml_html_viewer import ask_model_semantic as ams
+
+    service = _service(snapshot)
+    elements = service._elements()
+    method = {(source, target) for source, target, _pair, _witness in method_facts(view, ALLOCATED_TO)}
+    traversal = {(source, target) for source, target, _pair, _witness in
+                 traversal_facts(service.traversal, ModelView(elements, service.traversal), ALLOCATED_TO)}
+    by_id = {element["@id"]: element for element in elements}
+    asked = set()
+    ams._SEMANTIC_CTX_CACHE.clear()
+    try:
+        for source in sorted({source for source, _target in method}):
+            context = ams.api_method_context(service, [by_id[source]], elements, max_hops=1)
+            asked |= {(source, entry["element_id"]) for entry in context.get("allocated_to", ())}
+            assert "allocated_to_unreadable" not in context
+    finally:
+        ams._SEMANTIC_CTX_CACHE.clear()
+    assert len(method) == 27
+    assert asked == method == traversal

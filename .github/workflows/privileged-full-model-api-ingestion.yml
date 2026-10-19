@@ -182,12 +182,20 @@ jobs:
             --binding /tmp/de4sdv-full-model-binding.json \
             --report /tmp/de4sdv-full-model-semantic-validation.json
 
-      - name: Exercise three production semantic concerns
+      - name: Exercise production semantic concerns and the successor parity
+        # Three impact concerns, then the successor parity: over the API
+        # revision this run imported, the production runtime must serve the
+        # allocatedTo and hasValidationScenario facts the imported export holds
+        # (read as the PR Method Check and the method read them), and the typed
+        # allocation ends must close. That is the exact-SHA evidence the
+        # allocatedTo forward obligations of kernel-vocabulary-admission.yaml
+        # ask for; a failure fails the run, so no deploy takes its evidence.
         run: |
           python scripts/validate_full_model_semantic_queries.py \
             --api-url http://127.0.0.1:9000 \
             --binding /tmp/de4sdv-full-model-binding.json \
             --semantic-report /tmp/de4sdv-full-model-semantic-validation.json \
+            --export /tmp/de4sdv-full-model-export.json \
             --output /tmp/de4sdv-full-model-semantic-query-coverage.json
 
       - name: Validate governed product-line scope through API identity

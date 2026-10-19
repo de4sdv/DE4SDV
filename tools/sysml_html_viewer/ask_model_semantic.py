@@ -330,10 +330,18 @@ def api_method_context(service, targets: list[dict],
       Dependency edges targeting the element; covers evidence-contract
       and derivation dependencies, semantic_strength: relevance)
     - allocated_to            (allocatedTo, the successor of the retired
-      realizedBy/deployedTo names: AllocationUsage edges whose source is
-      the element; the targets are what it is allocated to — direction
-      outgoing, the same mechanics realizedBy had; allocation only, no
-      realization, deployment or satisfaction claim)
+      realizedBy/deployedTo names: the native allocations from the element,
+      read as the method checks and the successor traversal read them
+      (``relation_checks``: each end's EndFeatureMembership and authored
+      ReferenceSubsetting, a feature-chain end as its last chaining
+      feature, counted for the one end pair both ends ground in through
+      the validated kernel bindings); the targets are what it is allocated
+      to. Derived ``source``/``target`` keys are not read: the export has
+      no ``source``. Allocation only, no realization, deployment or
+      satisfaction claim. When the allocations cannot be read (an
+      unreadable allocation, an end grounding in two layer classes, a
+      missing kernel binding), ``allocated_to_unreadable`` says why for the
+      element and no target is listed for it)
 
     Every entry records ``hops`` (1 = direct neighbor of the asked
     element, 2 = reached through one chained element), so a consumer can
@@ -360,6 +368,18 @@ def api_method_context(service, targets: list[dict],
         eid = e.get("elementId") or e.get("@id")
         if eid:
             by_id[str(eid)] = e
+
+    # allocatedTo is read with the method's reader over the service's own
+    # traversal and corpus (one reading per corpus, shared with the method
+    # tools and semantic_neighbors). A service without a traversal (a test
+    # double) has no allocatedTo family.
+    traversal = getattr(service, "traversal", None)
+    view = None
+    if traversal is not None:
+        from de4sdv.semantic.increment_scope import ModelView
+        from de4sdv.semantic.relation_checks import check_relation
+
+        view = ModelView(elements, traversal)
 
     def element_ref(e: dict, role: str) -> dict:
         return {
@@ -400,14 +420,9 @@ def api_method_context(service, targets: list[dict],
             "target_property", "target"))
         # O4 Wave C2 (owner decision D4): realizedBy is retired and the
         # contract refuses it (RetiredIdentityError); its successor is
-        # allocatedTo. The successor mapping carries no relationship_types
-        # configuration, so the native carrier AllocationUsage applies
-        # (source = allocated element, target = allocation target).
-        alloc_mapping = service.contract.relationship_mapping("allocatedTo")
-        alloc_types = {
-            str(t) for t in alloc_mapping.configuration.get(
-                "relationship_types", ["AllocationUsage"])
-        }
+        # allocatedTo, read below with the method's reader.
+        service.contract.relationship_mapping("allocatedTo")
+        unreadable: dict[str, dict] = {}
 
         for m in elements:
             mtype = str(m.get("@type") or "")
@@ -450,14 +465,19 @@ def api_method_context(service, targets: list[dict],
                                 ),
                             }
                             reached.add(sid)
-            elif mtype in alloc_types:
-                if target_ids & set(_ref_ids(m.get("source"))):
-                    for tid in _ref_ids(m.get("target")):
-                        tgt = by_id.get(tid)
-                        if tgt is not None:
-                            allocations[tid] = element_ref(
-                                tgt, "allocation_target")
-                            reached.add(tid)
+        if view is not None:
+            for subject in sorted(target_ids & set(by_id)):
+                result = check_relation(view, "allocatedTo", subject)
+                if result.problem:
+                    unreadable[subject] = {"reason": result.detail,
+                                           "element_id": subject}
+                    continue
+                for tid, _allocation in result.hops:
+                    tgt = by_id.get(tid)
+                    if tgt is not None:
+                        allocations[tid] = element_ref(
+                            tgt, "allocation_target")
+                        reached.add(tid)
         families: dict[str, list] = {}
         if subject_reqs:
             families["requirement_subject_of"] = sorted(
@@ -479,6 +499,9 @@ def api_method_context(service, targets: list[dict],
             families["allocated_to"] = sorted(
                 allocations.values(),
                 key=lambda r: (r["allocation_target"], r["element_id"]))
+        if unreadable:
+            families["allocated_to_unreadable"] = sorted(
+                unreadable.values(), key=lambda r: r["element_id"])
         return families, reached
 
     merged: dict[str, dict[str, dict]] = {}
