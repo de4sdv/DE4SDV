@@ -4,7 +4,7 @@ Repository-wide instructions for AI coding agents and human contributors using A
 
 ## Project purpose
 
-This repository develops open-source reference assets for systems engineering of Software-Defined Vehicles using SysML v2, MBSE, product-line engineering, digital continuity, digital twins, simulation interoperability, and continuous compliance.
+This repository develops open-source reference assets for the systems engineering of Software-Defined Vehicles. It uses SysML v2, MBSE, product-line engineering, digital continuity, digital twins, simulation interoperability, and continuous compliance.
 
 ## Commands agents can run
 
@@ -37,12 +37,14 @@ Before proposing a completed change:
 
 1. Run `python scripts/check_repo.py`
 2. Run `python scripts/smoke_test.py`
-3. For any change that creates or modifies SysML v2 textual notation, document
-   one SysML validation path: local validation evidence from the Syside Editor
-   VS Code extension or `python scripts/validate_sysml.py`, or the licensed CI
-   validation described under "SysML v2 textual notation validation" (automatic
-   for maintainer-opened pull requests from this repository, otherwise requested
-   from a maintainer after review)
+3. If the change creates or modifies SysML v2 textual notation, document one
+   SysML validation path:
+   - local validation evidence from the Syside Editor VS Code extension or
+     `python scripts/validate_sysml.py`, or
+   - the licensed CI validation described under "SysML v2 textual notation
+     validation". It runs automatically for pull requests that a maintainer
+     opens from a branch of this repository. For other pull requests, ask a
+     maintainer to run it after initial review.
 4. Update relevant files in `docs/` if the change affects
    architecture, workflow, terminology, safety, security, or compliance
    assumptions
@@ -75,29 +77,28 @@ these gates to make a change pass:
   register row or a governed declaration without a model provider) fails the
   gate regardless of the baseline.
 - **Mapping direction** — `scripts/check_model_sync.py` sync point 5
-  (`[ONTOLOGY-KERNEL]` errors): every class of the model-built kernel contract
-  has one well-formed mapping and every file mapping resolves in its kernel
-  file.
+  (`[ONTOLOGY-KERNEL]` errors). Every class of the model-built kernel contract
+  has one well-formed mapping. Every file mapping resolves in its kernel file.
 - **R003 groundings** — sync point 6 reads them from
   `constraint ontologyRuleR003` in `de4sdv_ontology_validation_rules.sysml`;
   keep their text format exact.
 
 When a change touches the method kernel:
 
-- Every new declaration (`part def`, `requirement def`, `enum def`, and every
-  other `def` kind) in a kernel file must be classified in the same commit:
-  project it through a model-generated layer, or list it as kernel-internal
-  with a non-empty reason in the manifest above. Unclassified declarations
-  fail CI.
+- Classify every new declaration in a kernel file in the same commit. This
+  applies to `part def`, `requirement def`, `enum def` and every other `def`
+  kind. Either project the declaration through a model-generated layer, or
+  list it as kernel-internal with a non-empty reason in the manifest above.
+  Unclassified declarations fail CI.
 - Renaming or removing a kernel declaration requires updating its projection
   or kernel-internal entry in the same commit; stale entries fail the gate.
-- The projection files are generated from the current sources. When
-  `check_repo.py` reports one as stale or missing, regenerate it by running its
-  generator (never hand-edit the JSON), as described in
-  [`docs/guides/generated-semantic-assets.md`](docs/guides/generated-semantic-assets.md),
-  and commit the output together with the source change. A model change is
-  one commit and can be squash-merged; never split it into a source commit
-  and a regeneration commit.
+- The projection files are generated from the current sources. If
+  `check_repo.py` reports one as stale or missing, regenerate it with its
+  generator, as described in
+  [`docs/guides/generated-semantic-assets.md`](docs/guides/generated-semantic-assets.md).
+  Never hand-edit the JSON. Commit the output together with the source change.
+  A model change is one commit and can be squash-merged. Never split it into
+  a source commit and a regeneration commit.
 - Kernel-internal entries must stay inside the governed directory and must
   not also be projected (as a class pin or a relationship-carrier pin).
 - Do not re-declare class-mapped kernel names as local `def`s inside feature
@@ -112,20 +113,23 @@ The other historical records are archived at the `release-2026-10-11` tag.
 
 Two rules for every model change, applied by authors and reviewers alike:
 
-- **Method types come from the kernel.** Types for method concepts (what an
-  increment, a scope item, an assumption, a gap, a need, a requirement, a
-  feature candidate or an operational context is) come only from the
-  ontology and the method kernel. A slice may specialize a kernel
-  definition, and must where the method asks for it: an increment's own
-  definition specializes `EngineeringIncrement`. What a slice never declares
-  is a method concept with no kernel base: a new method concept goes through
-  an ontology or method pull request first. A domain definition specializes a
+- **Method types come from the kernel.** Types for method concepts come only
+  from the ontology and the method kernel. These types say what an increment,
+  a scope item, an assumption, a gap, a need, a requirement, a feature
+  candidate or an operational context is. A slice may specialize a kernel
+  definition. It must do so where the method asks for it: an increment's own
+  definition specializes `EngineeringIncrement`. A slice never declares a
+  method concept with no kernel base. A new method concept goes through an
+  ontology or method pull request first. A domain definition specializes a
   kernel base where one exists.
-- **An element earns its place** only if (a) a method gate requires it,
-  (b) something consumes it: a trace, a typing, a later phase, or a view
-  framing a concern a reviewer needs, or (c) it carries a decision,
-  assumption or gap that a later phase acts on. A doc-only restatement fails
-  all three. Reviewers judge necessity, not only correctness.
+- **An element earns its place** only if at least one of these is true:
+  - (a) a method gate requires it;
+  - (b) something consumes it: a trace, a typing, a later phase, or a view
+    that frames a concern that a reviewer needs;
+  - (c) it carries a decision, assumption or gap that a later phase acts on.
+
+  A doc-only restatement fails all three. Reviewers judge necessity, not only
+  correctness.
 
 Rule 11 of the
 [increment workflow](methodologies/sysmod-sysmlv2/increment-workflow.md#method-rules-and-the-increment-workflow-model)
@@ -158,9 +162,9 @@ syside check \
 ```
 
 1. Licensed validation in CI. The `Privileged Syside Validation` workflow runs
-   on pushes to `main` that change model files, and on such pull requests when
-   they come from a branch of this repository and a maintainer opened them.
-   For any other pull request, a maintainer runs the workflow from GitHub
+   on pushes to `main` that change model files. It also runs on such pull
+   requests when they come from a branch of this repository and a maintainer
+   opened them. For any other pull request, a maintainer runs the workflow from GitHub
    Actions after initial review, with the reviewed branch, tag, or commit SHA.
 
 If validation fails, keep the modeling work in draft state and document the
@@ -173,6 +177,34 @@ failure instead of presenting the SysML v2 textual notation as complete.
 - Define domain terms in [`docs/terminology/glossary`](docs/terminology/glossary.md).
 - Use Architecture Decision Records in `docs/architecture-decisions/`.
 - Avoid inventing compliance claims. Mark evidence as `draft`, `example`, or `not yet validated`.
+
+Write prose 80% of the way to ASD-STE100 (Simplified Technical English). This
+applies to documentation, model `doc` comments and pull request descriptions:
+
+- Keep a sentence to 25 words or fewer, and a step to 20 words or fewer.
+- Give each sentence one topic. Use a list for a series of items, conditions
+  or steps.
+- Write a procedure as commands, one action per step. Put a condition before
+  its action.
+- Use active voice when you know the actor. Do not invent an actor to make a
+  sentence active.
+- Use the terms of the glossary, the method kernel and SysML v2 exactly, each
+  with one meaning. Do not replace them with synonyms or simpler words. For
+  example, `NOT_APPLICABLE` is a check verdict, so do not write "not
+  applicable" for a condition that is not met.
+- Keep open lists open: keep "such as", "for example" and "something".
+- Do not apply the STE dictionary. Do not claim that a text conforms to
+  ASD-STE100.
+
+When you rewrite existing text, keep every fact, condition, exception and
+qualifier. When you split a sentence, carry each condition into every part
+that it governs, for example "In that case, …". Compare each rewrite with the
+original.
+
+Apply the style to new and changed text. Do not apply it to frozen records or
+accepted ADRs. Change generated text through its generator. Do not rewrite
+requirement statements to apply this section. They keep their own quality
+rules.
 
 ## Boundaries
 
