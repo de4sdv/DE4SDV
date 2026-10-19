@@ -8,6 +8,7 @@ code is not vendored.
 from __future__ import annotations
 
 import copy
+import random
 
 import pytest
 
@@ -708,3 +709,34 @@ def test_a_constraint_subsets_or_redefines_exactly_one_base():
     line.graph.redefines(constraint, line.graph.lib["Feature::requiresFeatures"])
     with pytest.raises(PlemlShapeError, match="exactly one of the requiresFeatures, xorFeatures and impliesFeatures"):
         line.graph.evaluate()
+
+
+def test_serializer_implied_relationships_are_ignored():
+    """An export with implied relationships (the production options) evaluates as its minimal form does."""
+    line = PlatformLine()
+    line.configure("member", "autoware", "androidSDV", "android", "kvm")
+    minimal = line.graph.evaluate()
+    outside = "0d0d0d0d-0000-5000-8000-0000000000aa"
+    for feature in [line.tree, *line.features.values()]:
+        line.graph.relate(feature, "Subsetting", general={"@id": outside}, subsettedFeature={"@id": outside},
+                          specific={"@id": feature}, subsettingFeature={"@id": feature}, isImplied=True)
+        line.graph.relate(feature, "FeatureTyping", general={"@id": outside}, type={"@id": outside},
+                          specific={"@id": feature}, typedFeature={"@id": feature}, isImplied=True)
+        line.graph.relate(feature, "TypeFeaturing", featuringType={"@id": outside}, featureOfType={"@id": feature},
+                          isImplied=True)
+    line.graph.relate(line.tree, "Specialization", general={"@id": outside}, specific={"@id": line.tree},
+                      isImplied=True)
+    assert line.graph.evaluate() == minimal
+
+
+def test_document_order_comes_from_the_ownership_properties():
+    """An API export lists elements in no document order; the evaluation must not depend on that order."""
+    line = PlatformLine()
+    line.configure("standalone", "autoware", "noMiddleware", "linux", "noHypervisor")
+    line.configure("integrated", "autoware", "androidSDV", "android", "kvm")
+    line.configure("excluded", "openpilot", "androidSDV", "android", "kvm")
+    expected = line.graph.evaluate()
+    assert [item["valid"] for item in expected["feature_models"][0]["configurations"]] == [True, True, False]
+    for shuffle in (list.reverse, random.Random(406).shuffle):
+        shuffle(line.graph.elements)
+        assert line.graph.evaluate() == expected

@@ -157,12 +157,22 @@ class _Outside:
 
 
 class _Graph:
-    """Indexes over one element set: identity, ownership, specializations and pruned references."""
+    """Indexes over one element set: identity, ownership, specializations and pruned references.
+
+    Relationships the language implies (``isImplied``), other than memberships,
+    stay out of the ownership and specialization indexes. They follow from the
+    implicit specializations of KerML, carry nothing authored, and an export
+    carries them or not depending on its options.
+
+    Document order comes from the ordered ``ownedRelationship`` and
+    ``ownedRelatedElement`` properties, never from the order of the element
+    list: an API export lists elements in no document order.
+    """
 
     def __init__(self, elements: Iterable[dict[str, Any]], sources: Mapping[str, str],
                  external_references: Iterable[Mapping[str, Any]] = ()) -> None:
         self.by_id: dict[str, dict[str, Any]] = {}
-        self.order: dict[str, int] = {}
+        listed: dict[str, int] = {}
         for index, element in enumerate(elements):
             identifier = element_id(element)
             if not identifier or not isinstance(element.get("@type"), str):
@@ -170,11 +180,12 @@ class _Graph:
             if identifier in self.by_id:
                 raise PlemlShapeError(f"duplicate element identity {identifier}")
             self.by_id[identifier] = element
-            self.order[identifier] = index
+            listed[identifier] = index
         missing = sorted(identifier for identifier in self.by_id if identifier not in sources)
         if missing:
             raise PlemlShapeError(f"elements without a source document: {missing[:3]}")
         self.sources = {identifier: sources[identifier] for identifier in self.by_id}
+        self.order = self._document_order(listed)
         self.external: dict[tuple[str, str], str] = {}
         for record in external_references:
             source, path, target = (record.get("source_element_id"), record.get("property_path"),
@@ -184,6 +195,8 @@ class _Graph:
         self.owned: dict[str, list[str]] = {}
         self.specializations: dict[str, list[str]] = {}
         for identifier, element in self.by_id.items():
+            if element.get("isImplied") is True and not element["@type"].endswith("Membership"):
+                continue
             owner = self.target(element, "owningRelatedElement")
             if owner is not None:
                 self.owned.setdefault(owner, []).append(identifier)
@@ -191,6 +204,44 @@ class _Graph:
                 specific = self.target(element, "specific") or owner
                 if specific is not None:
                     self.specializations.setdefault(specific, []).append(identifier)
+        for index in (self.owned, self.specializations):
+            for items in index.values():
+                items.sort(key=self.order.__getitem__)
+
+    def _document_order(self, listed: Mapping[str, int]) -> dict[str, tuple[Any, ...]]:
+        """Each element's position: its document and root, then its index under each owner.
+
+        An element its owner does not list comes after the listed ones. The
+        element list orders only the roots of a document.
+        """
+        index_of: dict[tuple[str, str], int] = {}
+        for identifier, element in self.by_id.items():
+            for key in ("ownedRelationship", "ownedRelatedElement"):
+                value = element.get(key)
+                for position, item in enumerate(reference_ids(value) if isinstance(value, list) else []):
+                    index_of.setdefault((identifier, item), position)
+        unlisted = len(self.by_id)
+        order: dict[str, tuple[Any, ...]] = {}
+        for start in self.by_id:
+            chain: list[tuple[str, int]] = []
+            current = start
+            while current not in order:
+                if any(item == current for item, _ in chain):
+                    raise PlemlShapeError(f"the ownership of {current} is cyclic")
+                element = self.by_id[current]
+                container = element_id(element.get("owningRelationship"))
+                if container not in self.by_id:
+                    container = element_id(element.get("owningRelatedElement"))
+                if container not in self.by_id:
+                    order[current] = (self.sources[current], listed[current])
+                    break
+                chain.append((current, index_of.get((container, current), unlisted + listed[current])))
+                current = container
+            position = order[current]
+            for item, index in reversed(chain):
+                position = (*position, index)
+                order[item] = position
+        return order
 
     def kind(self, identifier: str) -> str:
         element = self.by_id.get(identifier)
@@ -536,7 +587,7 @@ class _Feature:
     owner: str  # the tree or an owning feature
     path: str
     multiplicity: Multiplicity
-    order: int
+    order: tuple[Any, ...]
     group: str | None = None
     members: tuple[str, ...] = ()
     binding_time: str = "Development"
@@ -624,6 +675,8 @@ class _FeatureModel:
                     for metadata in reference_ids(graph.by_id[relationship].get("ownedRelatedElement")):
                         self._feature_metadata(owner, metadata)
                 continue
+            if not kind.endswith("Membership") and kind != "FeatureValue":
+                raise PlemlShapeError(f"unsupported {kind} relationship of {graph.label(owner)} in the feature tree")
             member = graph.member_of(relationship)
             if member is None or member not in graph.by_id:
                 raise PlemlShapeError(f"a membership of {graph.label(owner)} has no member in the set")
@@ -798,8 +851,8 @@ class _FeatureModel:
         """The model's binding, derived-variation and rule dependencies: (dependency, clients, suppliers)."""
         graph = self.graph
         found: dict[str, list[tuple[str, list[str], list[str]]]] = {role: [] for role in self._ROLES.values()}
-        for dependency, element in graph.by_id.items():
-            if element["@type"] != "Dependency" or graph.sources[dependency] not in self.model_sources:
+        for dependency in sorted(graph.by_id, key=graph.order.__getitem__):
+            if graph.kind(dependency) != "Dependency" or graph.sources[dependency] not in self.model_sources:
                 continue
             kinds = self.identity.metadata_kinds(dependency)
             roles = [self._ROLES[kind] for kind in kinds if kind in self._ROLES]
@@ -866,9 +919,10 @@ class _FeatureModel:
             if variation is None or variation not in derivations:
                 raise PlemlShapeError(f"derivation rule {graph.label(dependency)} does not yield one variant of a "
                                       "derived variation")
-            derivations[variation].rules.append({"rule": graph.name(dependency) or graph.short_name(dependency)
-                                                 or dependency, "element_id": dependency,
-                                                 "premises": tuple(suppliers), "result": clients[0]})
+            derivations[variation].rules.append({
+                "rule": graph.name(dependency) or graph.short_name(dependency) or dependency,
+                "element_id": dependency, "result": clients[0],
+                "premises": tuple(sorted(suppliers, key=lambda item: self.features[item].order))})
         for derivation in derivations.values():
             for group in derivation.source_groups:
                 if not self.features[group].is_group:
