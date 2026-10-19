@@ -3,37 +3,36 @@
 
 Commands:
 
-* ``licensed``: on the x86_64 runner with the pinned serializer, load the
-  reviewed roots, the pinned PLEML library and the fenced model files, keep
-  the documents the models reference, evaluate them, and write
-  ``<name>.elements.json.xz`` and ``<name>.receipt.json`` to ``--out``.
-  ``--compare`` refuses when the fresh elements differ from a committed
-  receipt's (its elements are stale or are not the serializer's output).
+* ``receipts``: the entry point of the licensed authority job. It takes the
+  job's export bundle (serialized with the production export's options, the
+  PLEML library labelled with the fenced package's ``LIBRARY_PATH``), writes
+  ``<name>.elements.json.xz`` and one ``<feature-model file stem>.receipt.json``
+  per feature model to ``--out``, and exits 1 on an integrity, complement or
+  rule-table failure. ``--compare`` refuses when the fresh elements differ
+  from the committed receipts' (they are stale or are not the serializer's
+  output). :func:`write_receipts` is the same entry point as a function.
 * ``replay``: unlicensed. Re-run the evaluator on the committed elements of
   each receipt; exit 1 when a receipt is stale by digest or does not
   reproduce, including its shadow checks.
 * ``refresh``: unlicensed. Rewrite a receipt from its committed elements when
   only the evaluator changed.
 
-Until S7 the YAML catalogue is the reviewed source of three shadow checks the
-receipt records: each feature's catalogue path (by short name), the
-allowed-list complement check and the row-by-row rule-table comparison. The
-configurator's rejection messages are classified here for the parity check.
-Nothing here qualifies anything or executes a PLEML expression natively.
+Until S7 the YAML catalogue with the feature model's file stem is the reviewed
+source of three shadow checks the receipt records: each feature's catalogue
+path (by short name), the allowed-list complement check and the row-by-row
+rule-table comparison. The configurator's rejection messages are classified
+here for the parity check. Nothing here qualifies anything or executes a PLEML
+expression natively.
 """
 from __future__ import annotations
 
 import argparse
-import importlib
-import importlib.metadata
 import importlib.util
 import json
-import platform
 import re
 import sys
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
-from urllib.parse import unquote, urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -42,9 +41,8 @@ sys.dont_write_bytecode = True
 
 from de4sdv.semantic import pleml_configuration as evaluator  # noqa: E402
 from de4sdv.semantic import pleml_receipts as receipts  # noqa: E402
-from de4sdv.sysml_api.baseline import BaselineManifest, build_export_bundle  # noqa: E402
+from de4sdv.sysml_api.baseline import BaselineExportBundle  # noqa: E402
 
-SERIALIZER_VERSION = "0.10.3"
 CONFIGURATOR = Path("tools/configure_variant.py")
 
 # -- the YAML shadow (until S7) --------------------------------------------------------------
@@ -263,121 +261,75 @@ def yaml_reason_keys(messages: Sequence[str], selections: Mapping[str, Any],
     return keys, counted
 
 
-# -- licensed serialization --------------------------------------------------------------------
+# -- the entry point of the licensed authority job ----------------------------------------------
 
 
-def _label(url: object, library: Path, library_label: str, root: Path) -> str:
-    parsed = urlparse(str(url))
-    candidate = Path(unquote(parsed.path if parsed.scheme == "file" else str(url))).resolve()
-    if candidate == library.resolve():
-        return library_label
-    try:
-        return candidate.relative_to(root.resolve()).as_posix()
-    except ValueError as exc:
-        raise ValueError(f"the serializer produced a document outside the reviewed sources: {url}") from exc
+def catalogue_for(model_document: str, root: Path = ROOT) -> Path | None:
+    """The YAML catalogue a feature model restates until S7: the same path, with the ``.yaml`` suffix."""
+    candidate = Path(model_document).with_suffix(".yaml")
+    return candidate if (root / candidate).is_file() else None
 
 
-def serialize(models: Sequence[Path], library: Path, library_label: str,
-              root: Path = ROOT) -> tuple[dict[str, list[dict[str, Any]]], str]:
-    """Every loaded document, minimally serialized and labelled by its source."""
-    if platform.machine() not in {"x86_64", "AMD64"}:
-        raise ValueError("licensed Syside requires the supported x86_64 runner; not executed on this host")
-    syside = importlib.import_module("syside")
-    version = importlib.metadata.version("syside")
-    if version != SERIALIZER_VERSION:
-        raise ValueError(f"the installed serializer {version} differs from the reviewed {SERIALIZER_VERSION}")
-    manifest = BaselineManifest.discover(root)
-    paths = [root / source.path for source in manifest.sources] + [library] + [root / model for model in models]
-    model, diagnostics = syside.try_load_model(paths)
-    if diagnostics.contains_errors(warnings_as_errors=False):
-        raise ValueError(f"the serializer rejected the reviewed roots with the library and the models: {diagnostics}")
-    documents: dict[str, list[dict[str, Any]]] = {}
-    for document in model.user_docs:
-        with document.lock() as locked:
-            label = _label(locked.url, library, library_label, root)
-            values = json.loads(syside.json.dumps(locked.root_node, syside.SerializationOptions.minimal()))
-        if label in documents or not isinstance(values, list):
-            raise ValueError(f"the serializer repeated or malformed the document {label}")
-        documents[label] = values
-    return documents, version
+def write_receipts(bundle: BaselineExportBundle | Mapping[str, Any], out: Path, *, serializer: Mapping[str, Any],
+                   name: str = "pleml-feature-models", model_sources: Iterable[str] | None = None,
+                   root: Path = ROOT) -> dict[str, Any]:
+    """Write the elements file and one receipt per feature model of a licensed bundle into ``out``.
+
+    ``serializer`` records the serialization: at least its name, version and
+    options, and the executor revision. ``out`` must not exist. Returns the
+    written paths and the failures (integrity, complement and rule-table
+    errors), which a licensed job must treat as a failed run.
+    """
+    payload = receipts.payload_from_bundle(bundle, serializer=serializer, model_sources=model_sources)
+    combined = receipts.evaluate_payload(payload)
+    groups: dict[str, set[str]] = {}
+    for model in combined["feature_models"]:
+        document = model["tree"]["source"]
+        groups.setdefault(document, {document}).update(item["source"] for item in model["configurations"])
+    owners: dict[str, list[str]] = {}
+    for document, members in groups.items():
+        for member in members:
+            owners.setdefault(member, []).append(document)
+    shared = sorted(member for member, documents in owners.items() if len(documents) > 1)
+    unused = sorted(set(payload["model_sources"]) - set(owners))
+    if shared or unused:
+        raise ValueError(f"each model document belongs to one feature model; shared: {shared}, in none: {unused}")
+    out.mkdir(parents=True)
+    elements_file = f"{name}.elements.json.xz"
+    digest = receipts.write_elements(out / elements_file, payload)
+    written, failures = [], []
+    for document in sorted(groups):
+        receipt = receipts.build_receipt(payload, elements_file=elements_file, elements_sha256=digest,
+                                         model_sources=sorted(groups[document]))
+        expected = [item for item in combined["feature_models"] if item["tree"]["source"] == document]
+        if receipts.canonical(receipt["evaluation"]["feature_models"]) != receipts.canonical(expected):
+            raise ValueError(f"the feature model of {document} does not evaluate alone; it needs other documents")
+        receipt["shadow"] = shadow_checks(receipt["evaluation"], catalogue_for(document, root), root)
+        path = out / f"{Path(document).stem}.receipt.json"
+        path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        written.append(path)
+        failures += _shadow_failures(receipt)
+    return {"elements": out / elements_file, "receipts": written, "failures": failures}
 
 
-def evaluation_documents(documents: Mapping[str, list[dict[str, Any]]], models: Sequence[str],
-                         library: str) -> list[str]:
-    """The model documents, the library and every document a model element references (the kernel among them)."""
-    where = {element["@id"]: label for label, values in documents.items() for element in values}
-    chosen = set(models) | {library}
-
-    def referenced(value: Any) -> Iterable[str]:
-        if isinstance(value, dict):
-            if "@id" in value and "@type" not in value:
-                yield str(value["@id"])
-            else:
-                for item in value.values():
-                    yield from referenced(item)
-        elif isinstance(value, list):
-            for item in value:
-                yield from referenced(item)
-
-    for label in models:
-        for element in documents[label]:
-            for key, value in element.items():
-                if key != "@id":
-                    chosen.update(where[target] for target in referenced(value) if target in where)
-    missing = sorted(chosen - set(documents))
-    if missing:
-        raise ValueError(f"documents absent from the serialization: {missing}")
-    return sorted(chosen)
-
-
-def payload_from_documents(documents: Mapping[str, list[dict[str, Any]]], chosen: Sequence[str],
-                           models: Sequence[str], library_label: str, library: Path, root: Path,
-                           version: str) -> dict[str, Any]:
-    bundle = build_export_bundle(git_commit="", source_documents={label: documents[label] for label in chosen})
-    manifest = []
-    for label in chosen:
-        data = (library if label == library_label else root / label).read_bytes()
-        manifest.append({"path": label, "sha256": receipts.sha256(data), "size": len(data)})
-    external = [{key: record[key] for key in ("source_element_id", "property_path", "target_id")}
-                for record in bundle.external_references]
-    return receipts.elements_payload(
-        elements=list(bundle.elements.values()), element_sources=bundle.element_sources, model_sources=models,
-        library_source=library_label, kernel_source=evaluator.KERNEL_SOURCE, source_manifest=manifest,
-        serializer={"name": "syside", "version": version, "options": "minimal"}, external_references=external)
-
-
-# -- commands ----------------------------------------------------------------------------------
-
-
-def run_licensed(args: argparse.Namespace) -> int:
-    from scripts.run_ple_qualification import git
-
+def run_receipts(args: argparse.Namespace) -> int:
     out: Path = args.out
     if out.exists() or out.resolve().is_relative_to(ROOT.resolve()):
         raise ValueError("--out must be a new directory outside the repository")
-    executor = git(ROOT, "rev-parse", "HEAD")
-    if args.expected_executor != executor or git(ROOT, "status", "--porcelain"):
-        raise ValueError("licensed mode requires the exact, clean executor revision")
-    library = (ROOT / args.library) if not args.library.is_absolute() else args.library
-    models = [model.as_posix() for model in args.model]
-    documents, version = serialize(args.model, library, args.library_label)
-    chosen = evaluation_documents(documents, models, args.library_label)
-    payload = payload_from_documents(documents, chosen, models, args.library_label, library, ROOT, version)
-    out.mkdir(parents=True)
-    elements_file = f"{args.name}.elements.json.xz"
-    digest = receipts.write_elements(out / elements_file, payload)
-    report = receipts.evaluate_payload(payload)
-    receipt = receipts.build_receipt(payload, elements_file=elements_file, elements_sha256=digest,
-                                     shadow=shadow_checks(report, args.catalogue))
-    receipt["serializer"] = {**receipt["serializer"], "executor_revision": executor}
-    (out / f"{args.name}.receipt.json").write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n",
-                                                  encoding="utf-8")
-    failures = _shadow_failures(receipt)
+    serializer = {"name": "syside", "version": args.serializer_version, "options": "production export",
+                  "executor_revision": args.executor_revision}
+    result = write_receipts(BaselineExportBundle.load(args.bundle), out, serializer=serializer, name=args.name)
+    failures = list(result["failures"])
     if args.compare is not None:
-        committed = json.loads(args.compare.read_text(encoding="utf-8"))
-        if committed["elements"]["content_sha256"] != receipt["elements"]["content_sha256"]:
-            failures.append("the fresh elements differ from the committed receipt's elements")
-    print(json.dumps({"receipt": str(out / f"{args.name}.receipt.json"), "failures": failures}))
+        for path in result["receipts"]:
+            committed = args.compare / path.name
+            if not committed.is_file():
+                failures.append(f"{path.name}: no committed receipt in {args.compare}")
+            elif (json.loads(committed.read_text(encoding="utf-8"))["elements"]["content_sha256"]
+                  != json.loads(path.read_text(encoding="utf-8"))["elements"]["content_sha256"]):
+                failures.append(f"{path.name}: the fresh elements differ from the committed receipt's elements")
+    print(json.dumps({"elements": str(result["elements"]), "receipts": [str(path) for path in result["receipts"]],
+                      "failures": failures}, indent=2))
     return 1 if failures else 0
 
 
@@ -425,18 +377,13 @@ def run_refresh(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
-    licensed = commands.add_parser("licensed", help="serialize and evaluate on the licensed x86_64 runner")
-    licensed.add_argument("--model", type=Path, action="append", required=True,
-                          help="a fenced PLEML model file, repository-relative (repeatable)")
-    licensed.add_argument("--name", required=True, help="file stem of the receipt and its elements")
-    licensed.add_argument("--library", type=Path, default=Path(evaluator.LIBRARY_SOURCE),
-                          help="the pinned PLEML library file")
-    licensed.add_argument("--library-label", default=evaluator.LIBRARY_SOURCE,
-                          help="the source label the library is recorded under")
-    licensed.add_argument("--catalogue", type=Path, help="the YAML catalogue of the shadow checks (until S7)")
-    licensed.add_argument("--expected-executor", required=True, help="exact 40-character executor revision")
-    licensed.add_argument("--compare", type=Path, help="a committed receipt the fresh elements must equal")
-    licensed.add_argument("--out", type=Path, required=True, help="new output directory outside the repository")
+    command = commands.add_parser("receipts", help="write the receipts of a licensed authority bundle")
+    command.add_argument("--bundle", type=Path, required=True, help="the export bundle of the licensed job (JSON)")
+    command.add_argument("--serializer-version", required=True, help="the serializer version of the bundle")
+    command.add_argument("--executor-revision", required=True, help="the exact executor revision of the job")
+    command.add_argument("--name", default="pleml-feature-models", help="file stem of the elements file")
+    command.add_argument("--compare", type=Path, help="a directory of committed receipts the fresh elements must equal")
+    command.add_argument("--out", type=Path, required=True, help="new output directory outside the repository")
     for name, help_text in (("replay", "re-run the evaluator on committed elements (unlicensed)"),
                             ("refresh", "rewrite receipts from their committed elements (unlicensed)")):
         command = commands.add_parser(name, help=help_text)
@@ -447,7 +394,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
-        return {"licensed": run_licensed, "replay": run_replay, "refresh": run_refresh}[args.command](args)
+        return {"receipts": run_receipts, "replay": run_replay, "refresh": run_refresh}[args.command](args)
     except (ValueError, OSError, ImportError, KeyError) as exc:
         print(f"refused: {exc}", file=sys.stderr)
         return 2

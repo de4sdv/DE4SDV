@@ -1,11 +1,13 @@
 """Receipts of the PLEML configuration evaluation and the parity primitives (ADR 0022).
 
-A licensed run serializes the fenced feature models and writes, per feature
-model, a receipt together with the serialized elements it evaluated. Every
-other run is unlicensed: it re-runs the evaluator on the committed elements
-and refuses a receipt that is stale by digest or does not reproduce. A
-receipt whose only difference is the evaluator revision can be refreshed
-offline from the same elements.
+The licensed authority job serializes the fenced feature models with the
+production export's options into one export bundle. From that bundle, one
+elements file holds the serialized elements, compressed, and each feature
+model gets a receipt: its verdicts, derived variants and admission, with the
+input digests. Every other run is unlicensed: it re-runs the evaluator on the
+committed elements and refuses a receipt that is stale by digest or does not
+reproduce. A receipt whose only difference is the evaluator revision can be
+refreshed offline from the same elements.
 
 The parity primitives serve the comparison with the configurator until S7:
 the normalised projection body, the writer inputs a receipt carries, the
@@ -24,9 +26,13 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from de4sdv.semantic import pleml_configuration as evaluator
+from de4sdv.sysml_api.baseline import BaselineExportBundle
+from de4sdv.sysml_api.product_line_scope import SCOPE_SOURCE, ScopeSemanticError, validate_scope_elements
 
 RECEIPT_SCHEMA = "de4sdv.pleml-configuration-receipt/v1"
 ELEMENTS_SCHEMA = "de4sdv.pleml-configuration-elements/v1"
+#: The source-manifest roles of the authority bundle that mark the PLEML model documents.
+MODEL_ROLES = ("pleml-feature-model", "pleml-feature-configuration", "pleml-fixture")
 EVALUATOR = "de4sdv/semantic/pleml_configuration.py"
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -50,7 +56,7 @@ def elements_payload(*, elements: Iterable[dict[str, Any]], element_sources: Map
                      model_sources: Iterable[str], library_source: str, kernel_source: str,
                      source_manifest: Iterable[Mapping[str, Any]], serializer: Mapping[str, Any],
                      external_references: Iterable[Mapping[str, Any]] = ()) -> dict[str, Any]:
-    """The serialized element set of one evaluation, in serializer order, with what it was evaluated as."""
+    """The serialized element set of one evaluation, in its bundle order, with what it was evaluated as."""
     ordered = list(elements)
     return {
         "schema": ELEMENTS_SCHEMA,
@@ -83,6 +89,38 @@ def read_elements(path: Path) -> dict[str, Any]:
     return payload
 
 
+def payload_from_bundle(bundle: BaselineExportBundle | Mapping[str, Any], *, serializer: Mapping[str, Any],
+                        model_sources: Iterable[str] | None = None) -> dict[str, Any]:
+    """The elements payload of a licensed authority bundle, read by the production bundle reader.
+
+    The model documents are those the bundle's source manifest marks with a
+    PLEML role, unless ``model_sources`` names them. The pinned library must
+    carry the label of the fenced package, ``LIBRARY_SOURCE``.
+    """
+    if not isinstance(bundle, BaselineExportBundle):
+        bundle = BaselineExportBundle.from_dict(dict(bundle))
+    manifest = [dict(item) for item in bundle.source_manifest]
+    labels = [str(item.get("path")) for item in manifest]
+    present = set(bundle.element_sources.values())
+    if len(set(labels)) != len(labels) or present - set(labels):
+        raise ValueError("the bundle's source manifest must name each of its documents once; unnamed: "
+                         f"{sorted(present - set(labels))}")
+    if evaluator.LIBRARY_SOURCE not in present:
+        found = sorted(label for label in present if label.endswith("PLEML.sysml"))
+        raise ValueError(f"the bundle carries no PLEML library at {evaluator.LIBRARY_SOURCE}, the label of the "
+                         f"fenced package; it carries {found or 'none'}")
+    models = sorted(model_sources if model_sources is not None else
+                    (item["path"] for item in manifest if item.get("authority") in MODEL_ROLES))
+    if not models:
+        raise ValueError("the bundle names no PLEML model documents")
+    external = [{key: record[key] for key in ("source_element_id", "property_path", "target_id")}
+                for record in bundle.external_references]
+    return elements_payload(
+        elements=bundle.to_dict()["elements"], element_sources=bundle.element_sources, model_sources=models,
+        library_source=evaluator.LIBRARY_SOURCE, kernel_source=evaluator.KERNEL_SOURCE, source_manifest=manifest,
+        serializer={**serializer, "bundle_git_commit": bundle.git_commit}, external_references=external)
+
+
 @lru_cache(maxsize=4)
 def model_contract(root: Path = ROOT) -> Any:
     """The model-built kernel contract of the tree, which the kernel bindings are validated against."""
@@ -91,13 +129,29 @@ def model_contract(root: Path = ROOT) -> Any:
     return KernelContract.from_layers(root)
 
 
-def evaluate_payload(payload: Mapping[str, Any], *, contract: Any = None) -> dict[str, Any]:
-    """Evaluate the committed elements, binding the kernel classes as ingestion does."""
+def governed_scope(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    """The governed scope, as the production scope validator reads it, when the elements carry it."""
+    if SCOPE_SOURCE not in set(payload["element_sources"].values()):
+        return None
+    try:
+        return validate_scope_elements(payload["elements"], dict(payload["element_sources"]))
+    except ScopeSemanticError as exc:
+        raise evaluator.PlemlShapeError(f"the governed scope does not validate: {exc}") from exc
+
+
+def evaluate_payload(payload: Mapping[str, Any], *, model_sources: Iterable[str] | None = None,
+                     contract: Any = None) -> dict[str, Any]:
+    """Evaluate the committed elements, binding the kernel classes as ingestion does.
+
+    With the governed scope among the elements, admission is decided too.
+    """
     bindings = evaluator.kernel_bindings(model_contract() if contract is None else contract, payload["elements"],
                                          payload["element_sources"])
     return evaluator.evaluate(payload["elements"], payload["element_sources"],
-                              model_sources=payload["model_sources"], library_source=payload["library_source"],
-                              kernel_source=payload["kernel_source"], kernel_bindings=bindings,
+                              model_sources=sorted(payload["model_sources"] if model_sources is None
+                                                   else model_sources),
+                              library_source=payload["library_source"], kernel_source=payload["kernel_source"],
+                              kernel_bindings=bindings, governed_scope=governed_scope(payload),
                               external_references=payload.get("external_references") or ())
 
 
@@ -110,15 +164,20 @@ def evaluator_digest() -> str:
 
 
 def build_receipt(payload: Mapping[str, Any], *, elements_file: str, elements_sha256: str,
-                  shadow: Mapping[str, Any] | None = None, contract: Any = None) -> dict[str, Any]:
-    """The receipt of one evaluation: inputs by digest, the evaluation, and the shadow checks until S7."""
+                  model_sources: Iterable[str] | None = None, shadow: Mapping[str, Any] | None = None,
+                  contract: Any = None) -> dict[str, Any]:
+    """The receipt of the feature models in ``model_sources``: inputs by digest, the evaluation, the shadow."""
+    models = sorted(payload["model_sources"] if model_sources is None else model_sources)
+    evaluation = evaluate_payload(payload, model_sources=models, contract=contract)
     return {
         "schema": RECEIPT_SCHEMA,
+        "feature_models": [item["feature_model"] for item in evaluation["feature_models"]],
+        "model_sources": models,
         "elements": {"path": elements_file, "sha256": elements_sha256, "content_sha256": sha256(canonical(payload))},
         "serializer": payload["serializer"],
         "sources": payload["source_manifest"],
         "evaluator": {"path": EVALUATOR, "sha256": evaluator_digest()},
-        "evaluation": evaluate_payload(payload, contract=contract),
+        "evaluation": evaluation,
         "shadow": dict(shadow or {}),
         "native_expression_executed": False,
         "qualified": False,
@@ -169,7 +228,7 @@ def replay(receipt_path: Path, root: Path = ROOT, *, shadow: Mapping[str, Any] |
     if reasons:
         raise StaleReceipt("; ".join(reasons))
     payload = read_elements(receipt_path.parent / receipt["elements"]["path"])
-    evaluation = evaluate_payload(payload, contract=contract)
+    evaluation = evaluate_payload(payload, model_sources=receipt.get("model_sources"), contract=contract)
     if canonical(evaluation) != canonical(receipt["evaluation"]):
         raise StaleReceipt("the committed evaluation does not reproduce from the committed elements")
     if shadow is not None and canonical(dict(shadow)) != canonical(receipt.get("shadow") or {}):
@@ -186,7 +245,7 @@ def refresh(receipt_path: Path, root: Path = ROOT, *, shadow: Mapping[str, Any] 
         raise StaleReceipt("; ".join(reasons))
     payload = read_elements(receipt_path.parent / receipt["elements"]["path"])
     fresh = build_receipt(payload, elements_file=receipt["elements"]["path"],
-                          elements_sha256=receipt["elements"]["sha256"],
+                          elements_sha256=receipt["elements"]["sha256"], model_sources=receipt.get("model_sources"),
                           shadow=receipt.get("shadow") if shadow is None else shadow, contract=contract)
     fresh["serializer"] = receipt.get("serializer") or fresh["serializer"]  # the serialization did not change
     previous = (receipt.get("evaluator") or {}).get("sha256")

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import ast
 import copy
+import dataclasses
 import json
 import re
 import subprocess
@@ -21,8 +22,10 @@ import yaml
 from de4sdv.semantic import pleml_configuration as evaluator
 from de4sdv.semantic import pleml_receipts as receipts
 from de4sdv.semantic.kernel_contract import KernelContract
+from de4sdv.sysml_api.baseline import BaselineExportBundle, build_export_bundle
 from scripts import run_pleml_configuration_evaluation as cli
-from tests.pleml_graph_fixtures import LIBRARY, MODEL, PlatformLine, PlemlGraph, synthetic_contract
+from tests.pleml_graph_fixtures import (CONFIGURATIONS as CONFIGURATION_DOCUMENT, LIBRARY, MODEL, SCOPE, PlatformLine,
+                                        PlemlGraph, synthetic_contract)
 
 ROOT = Path(__file__).resolve().parents[1]
 CATALOGUE = Path("model-based-product-line-engineering/feature-models/sdv_product_line.yaml")
@@ -168,32 +171,136 @@ def test_a_receipt_with_integrity_errors_fails_the_replay(tmp_path, monkeypatch,
     assert "has 0 rules and 0 exclusions" in capsys.readouterr().out
 
 
-# -- the licensed path, without a serializer ----------------------------------------------------
+# -- the entry point of the licensed authority job ---------------------------------------------
+
+ENVIRONMENTS = "model-based-product-line-engineering/feature-models/synthetic_environments.sysml"
+ENVIRONMENT_CONFIGURATIONS = ("model-based-product-line-engineering/feature-configurations/"
+                              "synthetic_environment_configurations.sysml")
+SERIALIZER = {"name": "syside", "version": "0.10.3", "options": "production export", "executor_revision": "e" * 40}
+ROLES = {MODEL: "pleml-feature-model", ENVIRONMENTS: "pleml-feature-model",
+         CONFIGURATION_DOCUMENT: "pleml-feature-configuration",
+         ENVIRONMENT_CONFIGURATIONS: "pleml-feature-configuration"}
 
 
-def test_the_licensed_serialization_refuses_an_unsupported_host(monkeypatch):
-    monkeypatch.setattr(cli.platform, "machine", lambda: "aarch64")
-    with pytest.raises(ValueError, match="x86_64 runner"):
-        cli.serialize([Path(MODEL)], ROOT / "PLEML.sysml", LIBRARY)
+def two_family_graph(*, governed: bool = False, environment_document: str = ENVIRONMENT_CONFIGURATIONS) -> PlemlGraph:
+    """The platform line and an environment family, each in its own model and configurations document."""
+    graph = PlemlGraph(library=evaluator.LIBRARY_SOURCE)
+    line = PlatformLine(graph, governed=governed)
+    line.configure("member", "autoware", "noMiddleware", "linux", "noHypervisor", projection_name="Member")
+    line.configure("pair", "openpilot", "androidSDV", "linux", "noHypervisor")
+    graph.model_document(ENVIRONMENTS, "SyntheticEnvironments")
+    tree = graph.tree_definition("EnvironmentTree")
+    compute = graph.feature(tree, "compute", (1, 1))
+    board = graph.feature(tree, "board", (0, 1), subsets=compute)
+    model = graph.feature_model("EnvironmentFeatureModel", tree_definition=tree)
+    graph.select(graph.configuration(model, "candidate", tree, document=environment_document), board)
+    return graph
 
 
-def test_the_evaluation_keeps_the_documents_the_model_references(tmp_path):
-    graph = platform_line().graph
+def bundle_of(graph: PlemlGraph, root: Path) -> BaselineExportBundle:
+    """The graph as the authority job's export bundle, its documents written under ``root``."""
     elements, sources = graph.build()
     documents: dict[str, list] = {}
     for element in elements:
         documents.setdefault(sources[element["@id"]], []).append(element)
-    documents["textual-notation-of-model/packages/unrelated.sysml"] = [
-        {"@id": "aaaaaaaa-0000-5000-8000-000000000000", "@type": "Package", "declaredName": "Unrelated"}]
-    models = sorted(graph.model_documents)
-    chosen = cli.evaluation_documents(documents, models, LIBRARY)
-    assert chosen == sorted({*models, LIBRARY, graph.kernel, graph.assets})
-    for label in chosen:
-        (tmp_path / label).parent.mkdir(parents=True, exist_ok=True)
-        (tmp_path / label).write_text(label)
-    payload = cli.payload_from_documents(documents, chosen, models, LIBRARY, tmp_path / LIBRARY, tmp_path, "0.10.3")
-    assert all("@uri" not in json.dumps(element) for element in payload["elements"])
-    assert receipts.evaluate_payload(payload)["feature_models"] == graph.evaluate()["feature_models"]
+    bundle = build_export_bundle(git_commit="a" * 40, source_documents=documents)
+    manifest = []
+    for label in sorted(documents):
+        data = f"synthetic {label}\n".encode()
+        (root / label).parent.mkdir(parents=True, exist_ok=True)
+        (root / label).write_bytes(data)
+        manifest.append({"path": label, "authority": ROLES.get(label, "reviewed"), "sha256": receipts.sha256(data),
+                         "size": len(data)})
+    return dataclasses.replace(bundle, source_manifest=tuple(manifest))
+
+
+def test_a_licensed_bundle_becomes_one_receipt_per_feature_model(tmp_path):
+    graph = two_family_graph()
+    root = tmp_path / "tree"
+    result = cli.write_receipts(bundle_of(graph, root), tmp_path / "out", serializer=SERIALIZER, root=root)
+    assert result["failures"] == []
+    assert result["elements"].name == "pleml-feature-models.elements.json.xz"
+    assert [path.name for path in result["receipts"]] == ["synthetic_environments.receipt.json",
+                                                          "synthetic_feature_model.receipt.json"]
+    expected = {item["feature_model"]: item for item in graph.evaluate()["feature_models"]}
+    for path, documents in zip(result["receipts"], ([ENVIRONMENT_CONFIGURATIONS, ENVIRONMENTS],
+                                                    [CONFIGURATION_DOCUMENT, MODEL])):
+        replayed = receipts.replay(path, root)
+        assert replayed["model_sources"] == documents
+        (model,) = replayed["evaluation"]["feature_models"]
+        assert replayed["feature_models"] == [model["feature_model"]]
+        assert model == expected[model["feature_model"]]
+        assert replayed["serializer"] == {**SERIALIZER, "bundle_git_commit": "a" * 40}
+        assert replayed["qualified"] is False and replayed["native_expression_executed"] is False
+
+
+def test_the_receipts_command_writes_and_compares(tmp_path, monkeypatch, capsys):
+    root = tmp_path / "tree"
+    bundle = bundle_of(two_family_graph(), root)
+    bundle.write(tmp_path / "bundle.json")
+    monkeypatch.setattr(cli, "ROOT", root)
+    arguments = ["receipts", "--bundle", str(tmp_path / "bundle.json"), "--serializer-version", "0.10.3",
+                 "--executor-revision", "e" * 40]
+    assert cli.main([*arguments, "--out", str(tmp_path / "first")]) == 0
+    assert cli.main([*arguments, "--out", str(tmp_path / "second"), "--compare", str(tmp_path / "first")]) == 0
+    edited = json.loads((tmp_path / "first/synthetic_feature_model.receipt.json").read_text())
+    edited["elements"]["content_sha256"] = "0" * 64
+    (tmp_path / "first/synthetic_feature_model.receipt.json").write_text(json.dumps(edited))
+    capsys.readouterr()
+    assert cli.main([*arguments, "--out", str(tmp_path / "third"), "--compare", str(tmp_path / "first")]) == 1
+    assert "the fresh elements differ from the committed receipt's elements" in capsys.readouterr().out
+    assert cli.main([*arguments, "--out", str(root / "inside")]) == 2
+
+
+def test_a_bundle_whose_library_is_not_the_fenced_package_is_refused(tmp_path):
+    graph = PlemlGraph()
+    PlatformLine(graph).configure("member", "autoware", "noMiddleware", "linux", "noHypervisor")
+    with pytest.raises(ValueError, match="carries no PLEML library at .*mbse4u-pleml_1.1.1/PLEML.sysml.*"
+                                         "external/pleml/PLEML.sysml"):
+        receipts.payload_from_bundle(bundle_of(graph, tmp_path), serializer=SERIALIZER)
+
+
+def test_a_bundle_document_outside_its_manifest_is_refused(tmp_path):
+    bundle = bundle_of(two_family_graph(), tmp_path)
+    bundle = dataclasses.replace(bundle, source_manifest=tuple(item for item in bundle.source_manifest
+                                                               if item["path"] != ENVIRONMENTS))
+    with pytest.raises(ValueError, match="must name each of its documents once"):
+        receipts.payload_from_bundle(bundle, serializer=SERIALIZER)
+
+
+def test_a_document_shared_by_two_feature_models_is_refused(tmp_path):
+    graph = two_family_graph(environment_document=CONFIGURATION_DOCUMENT)
+    with pytest.raises(ValueError, match="each model document belongs to one feature model; shared: "):
+        cli.write_receipts(bundle_of(graph, tmp_path / "tree"), tmp_path / "out", serializer=SERIALIZER,
+                           root=tmp_path / "tree")
+
+
+def test_the_receipt_decides_admission_with_the_production_scope_reader(tmp_path, monkeypatch):
+    graph = two_family_graph(governed=True)
+    calls = []
+
+    def validator(elements, sources):
+        calls.append(len(elements))
+        return graph.scope_record
+
+    monkeypatch.setattr(receipts, "SCOPE_SOURCE", SCOPE)
+    monkeypatch.setattr(receipts, "validate_scope_elements", validator)
+    root = tmp_path / "tree"
+    result = cli.write_receipts(bundle_of(graph, root), tmp_path / "out", serializer=SERIALIZER, root=root)
+    platform = receipts.replay(result["receipts"][1], root)
+    admitted = {item["configuration"]: item["admission"]["admitted"]
+                for item in platform["evaluation"]["feature_models"][0]["configurations"]}
+    assert admitted == {"member": True, "pair": False}
+    assert platform["evaluation"]["admission_authority"] == SCOPE and calls
+
+
+def test_without_the_governed_scope_the_receipt_does_not_decide_admission(tmp_path):
+    payload = receipts.payload_from_bundle(bundle_of(two_family_graph(), tmp_path), serializer=SERIALIZER)
+    assert receipts.governed_scope(payload) is None
+    evaluation = receipts.evaluate_payload(payload)
+    assert evaluation["admission_authority"] is None
+    assert all(item["admission"]["evaluated"] is False
+               for model in evaluation["feature_models"] for item in model["configurations"])
 
 
 # -- writer inputs and the normalised body (R19) -------------------------------------------------
