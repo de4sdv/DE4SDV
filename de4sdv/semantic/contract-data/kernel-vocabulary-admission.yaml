@@ -1009,6 +1009,9 @@ admitted:
   forward_obligations:
   - a reviewed derived realization over the configuration's owned ProductModelProjectionName and the
     member product that types a usage by the generated part definition, before any runtime claim
+  - the realization binds the generated part definition through validated identity (the evaluation
+    receipt, or its metatype, declared name and generated product-model document), never by the
+    partDefinitionName string alone (ADR 0011; ADR 0022 decision 3)
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
 - identity: hasAcceptanceCriterion
   semantic_kind: relationship
