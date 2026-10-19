@@ -299,6 +299,19 @@ declares no workflow, is reported, not failed. Pull
 requests from forks get no licensed export; a maintainer can run the workflow
 by hand with the reviewed ref.
 
+The check also compares how the method and the semantic service read the
+successor relations on that export (`successor_parity`). For `allocatedTo`
+and `hasValidationScenario`, the facts the method's relation checks read must
+equal the facts the semantic service returns, one per connector. Neither side
+may report a problem or an `incomplete` answer, and every allocation must be
+readable and have two ends. The privileged ingestion repeats the comparison
+over the imported API revision, so the check runs it here first: a failure is
+a technical error, and the summary names the elements. Typical causes are an
+allocation without its own ends, a planning connection written scenario first,
+or an untyped connection between a need and a validation scenario. That last
+one could be a planning connection without its typing: type it, or connect
+other elements.
+
 Read the result for your head commit:
 
 ```bash
@@ -325,6 +338,10 @@ jq '.increments[] | {id, outcome, next: .next.gate, counts}' method-check.json
 The summary shows the next check's imports and declarations as a SysML block
 to copy. The top-level `errors` lists technical errors, and `notes` lists what could
 not be evaluated, such as a charter whose increment carries no identifier.
+The top-level `successor_parity` holds the comparison: per relation its
+`checks`, `facts` and `details`, the export half of the allocation-end
+closure, and a note for a relation without facts (the privileged run requires
+at least one).
 Such an increment is also listed in `not_evaluated` with its `usage`,
 `charters` and `reason` (outcome `not-evaluated`), and the summary shows it
 as a "not evaluated" row: the method finds an increment only by its

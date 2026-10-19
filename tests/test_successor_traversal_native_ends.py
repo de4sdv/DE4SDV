@@ -17,7 +17,9 @@ revision binding (the MCP path, offline). Parity: both find the same
 from __future__ import annotations
 
 import asyncio
+import copy
 import gzip
+import json
 
 import mcp.client.stdio  # noqa: F401 - keep session-global stderr for later MCP tests
 import pytest
@@ -114,6 +116,70 @@ def test_allocated_to_parity_between_the_method_reader_and_the_successor_travers
         + ["RequirementFunctionAssignment"] * 10)
     assert {witness for *_rest, witness in method} == set(rc.allocation_ends(view))
     assert traversal_facts(view.traversal, view, ALLOCATED_TO) == method
+
+
+# The cut's facts by qualified name (review round 1, R7): the parity compares two readings by one
+# reader, so a reader change that moves both alike passes it; these pins do not.
+F = "DE4SDV_AEBSVisualizationFunctionalArchitecture::"
+L = "DE4SDV_AEBSVisualizationLogicalArchitecture::"
+P = "DE4SDV_AEBSVisualizationPhysicalSoftwareRealization::"
+N = "DE4SDV_AEBSVisualizationNeedsRequirements::"
+FF = F + "AebsVisualizationFunctionalFlow::"
+LI, LS = L + "AEBSVisualizationLogicalInstrument::", L + "AEBSVisualizationLogicalSystem::"
+PI, PS = P + "AEBSVisualizationInstrumentRealization::", P + "AEBSVisualizationPhysicalSystem::"
+NR, NN = N + "VisualizationRequirements::", N + "VisualizationNeeds::"
+RF, FL, LP, VP = ("RequirementFunctionAssignment", "FunctionLogicalAssignment", "LogicalPhysicalAssignment",
+                  "ValidationPlanningAssociation")
+PINNED_ALLOCATIONS = {
+    (FF + "assemble", LI + "sourceAdapter", FL, L + "assembleByAdapter"),
+    (FF + "observe", LI + "sourceAdapter", FL, L + "observeBySources"),
+    (FF + "present", LI + "application", FL, L + "presentByApplication"),
+    (FF + "publish", LI + "ingress", FL, L + "publishByIngress"),
+    (FF + "record", LI + "evidence", FL, L + "recordByEvidence"),
+    (FF + "supervise", LI + "healthSupervisor", FL, L + "superviseByHealth"),
+    (FF + "transport", LI + "transport", FL, L + "transportByTransport"),
+    (FF + "validate", LI + "sourceAdapter", FL, L + "validateByAdapter"),
+    (LI + "application", PI + "iviGuest::displayApp", LP, P + "applicationAllocated"),
+    (LI + "displayService", PI + "iviGuest::dataTunnel", LP, P + "serviceAllocated"),
+    (LI + "evidence", PI + "evidenceRecorder", LP, P + "evidenceAllocated"),
+    (LI + "healthSupervisor", PI + "iviGuest::displayApp", LP, P + "healthAllocated"),
+    (LI + "ingress", PI + "iviGuest::gatewayIngress", LP, P + "ingressAllocated"),
+    (LI + "sourceAdapter", PI + "sourceAdapter", LP, P + "adapterAllocated"),
+    (LI + "transport", PI + "transport", LP, P + "transportAllocated"),
+    (LS + "coordinatorSource", PS + "coordinator", LP, P + "coordinatorAllocated"),
+    (LS + "nativeAebSource", PS + "pinnedAeb", LP, P + "aebSourceAllocated"),
+    (NR + "reqAvailabilityDisposition", FF + "supervise", RF, F + "availabilityDispositionAllocation"),
+    (NR + "reqDe4sdvParticipation", FF + "observe", RF, F + "de4sdvParticipationAllocation"),
+    (NR + "reqEvidenceCorrelation", FF + "record", RF, F + "evidenceCorrelationAllocation"),
+    (NR + "reqFailClosedFreshness", FF + "supervise", RF, F + "failClosedFreshnessAllocation"),
+    (NR + "reqInvalidRejection", FF + "validate", RF, F + "invalidRejectionAllocation"),
+    (NR + "reqNativeParticipation", FF + "observe", RF, F + "nativeParticipationAllocation"),
+    (NR + "reqNonInterference", FF + "observe", RF, F + "nonInterferenceAllocation"),
+    (NR + "reqRealAAOSRendering", FF + "present", RF, F + "realAaosRenderingAllocation"),
+    (NR + "reqRestorationBehavior", FF + "supervise", RF, F + "restorationBehaviorAllocation"),
+    (NR + "reqSourceFidelity", FF + "assemble", RF, F + "sourceFidelityAllocation"),
+}
+PINNED_PLANNING = {
+    (NN + "needCorrelatableEvidence", N + "correlatableEvidenceValidationPlan",
+     VP, N + "correlatableEvidenceValidationPlanning"),
+    (NN + "needFailClosedDegradation", N + "failClosedDegradationValidationPlan",
+     VP, N + "failClosedDegradationValidationPlanning"),
+    (NN + "needLiveVisualizationOnAAOS", N + "liveVisualizationOnAAOSValidationPlan",
+     VP, N + "liveVisualizationOnAAOSValidationPlanning"),
+    (NN + "needNonInterference", N + "nonInterferenceValidationPlan", VP, N + "nonInterferenceValidationPlanning"),
+    (NN + "needPreservedSourceProvenance", N + "preservedSourceProvenanceValidationPlan",
+     VP, N + "preservedSourceProvenanceValidationPlanning"),
+}
+
+
+def test_the_cut_facts_are_pinned_by_qualified_name(view) -> None:
+    """Source, target, end pair and witness of every fact on the cut, by qualified name: ten
+    requirement-to-function, eight function-to-logical and nine logical-to-physical allocations, and
+    the five planning connections. The chained ends read as the feature each chain ends in."""
+    for relation, pinned in ((ALLOCATED_TO, PINNED_ALLOCATIONS), (VALIDATION, PINNED_PLANNING)):
+        facts, problems = sp.method_facts(view, relation)
+        assert not problems
+        assert {(view.label(s), view.label(t), pair, view.label(w)) for s, t, pair, w in facts} == pinned, relation
 
 
 def test_has_validation_scenario_parity_between_the_method_reader_and_the_successor_traversal(view) -> None:
@@ -258,3 +324,150 @@ def test_the_ask_allocated_to_family_gives_the_method_and_traversal_facts(snapsh
         ams._SEMANTIC_CTX_CACHE.clear()
     assert len(method) == 27
     assert asked == method == traversal
+
+
+# -- valid models pass the parity, real defects still fail it (review round 1, D1) -------------------
+
+
+def _ids(value) -> list[str]:
+    if isinstance(value, dict):
+        return [value["@id"]] if "@id" in value else []
+    return [i for item in value for i in _ids(item)] if isinstance(value, list) else []
+
+
+def _cloned_allocation(export: dict, name: str, prefix: str) -> list[dict]:
+    """A second allocation of the same pair: ``name``'s owned subtree with new identities, owned by the
+    same package through a new OwningMembership."""
+    by_id = {e["@id"]: e for e in export["elements"]}
+    allocation = next(e for e in export["elements"] if e.get("declaredName") == name)
+    subtree, stack = [], [allocation["@id"]]
+    while stack:
+        current = stack.pop()
+        if current in subtree or current not in by_id:
+            continue
+        subtree.append(current)
+        stack += _ids(by_id[current].get("ownedRelationship")) + _ids(by_id[current].get("ownedRelatedElement"))
+    owning = allocation["owningRelationship"]["@id"]
+    rename = {old: f"{prefix}-{old}" for old in subtree + [owning]}
+
+    def renamed(value):
+        if isinstance(value, dict):
+            return {key: (rename.get(item, item) if key in ("@id", "elementId") else renamed(item))
+                    for key, item in value.items()}
+        return [renamed(item) for item in value] if isinstance(value, list) else value
+
+    clones = [renamed(copy.deepcopy(by_id[old])) for old in subtree + [owning]]
+    next(c for c in clones if c["@id"] == rename[allocation["@id"]])["declaredName"] = name + "Again"
+    package = next(e for e in export["elements"] if e["@id"] == by_id[owning]["owningRelatedElement"]["@id"])
+    package["ownedRelationship"] = list(package.get("ownedRelationship", [])) + [{"@id": rename[owning]}]
+    export["element_sources"].update({rename[old]: export["element_sources"][old] for old in subtree + [owning]})
+    return clones
+
+
+def _untyped_connection(export: dict, view: ModelView, source: str, target: str, prefix: str) -> list[dict]:
+    """An untyped ConnectionUsage from ``source`` to ``target`` in the export's end shape, owned by the
+    package that owns the first planning connection."""
+    package = view.index.owner_of(sorted(sp.connectors(view, VALIDATION))[0])
+    added = [
+        {"@id": f"{prefix}-own", "@type": "OwningMembership", "owningRelatedElement": {"@id": package},
+         "ownedRelatedElement": [{"@id": f"{prefix}-conn"}], "memberElement": {"@id": f"{prefix}-conn"}},
+        {"@id": f"{prefix}-conn", "@type": "ConnectionUsage", "declaredName": f"{prefix}Link",
+         "owningRelationship": {"@id": f"{prefix}-own"},
+         "ownedRelationship": [{"@id": f"{prefix}-end-1"}, {"@id": f"{prefix}-end-2"}]}]
+    for index, usage in ((1, source), (2, target)):
+        added += [
+            {"@id": f"{prefix}-end-{index}", "@type": "EndFeatureMembership",
+             "owningRelatedElement": {"@id": f"{prefix}-conn"}, "ownedRelatedElement": [{"@id": f"{prefix}-f-{index}"}],
+             "memberElement": {"@id": f"{prefix}-f-{index}"}},
+            {"@id": f"{prefix}-f-{index}", "@type": "Feature", "isEnd": True,
+             "owningRelationship": {"@id": f"{prefix}-end-{index}"}, "ownedRelationship": [{"@id": f"{prefix}-rs-{index}"}]},
+            {"@id": f"{prefix}-rs-{index}", "@type": "ReferenceSubsetting",
+             "owningRelatedElement": {"@id": f"{prefix}-f-{index}"}, "specific": {"@id": f"{prefix}-f-{index}"},
+             "subsettingFeature": {"@id": f"{prefix}-f-{index}"}, "general": {"@id": usage},
+             "subsettedFeature": {"@id": usage}, "referencedFeature": {"@id": usage}}]
+    package_element = next(e for e in export["elements"] if e["@id"] == package)
+    package_element["ownedRelationship"] = list(package_element.get("ownedRelationship", [])) + [{"@id": f"{prefix}-own"}]
+    source_file = export["element_sources"][package]
+    export["element_sources"].update({e["@id"]: source_file for e in added})
+    return added
+
+
+def _changed_cut(tmp_path, view, change) -> tuple[ModelView, ModelView]:
+    """The cut with ``change(export, view) -> added elements``: its export snapshot view, and the
+    production assembly over the same changed elements (the API side)."""
+    export = json.loads(gzip.decompress(GENUINE_EXPORT.read_bytes()))
+    export["elements"] = export["elements"] + change(export, view)
+    path = tmp_path / "changed-export.json"
+    path.write_text(json.dumps(export), encoding="utf-8")
+    changed = load_export_snapshot(path)
+    return export_view(changed), _api_view(changed)
+
+
+def test_a_duplicate_allocation_and_an_untyped_connection_from_a_need_pass_the_parity(view, tmp_path) -> None:
+    """Valid models that pass CI and the PR Method Check pass the parity: a second allocation of one
+    requirement-to-function pair (two witnesses of one pair: the method's check keeps one per target,
+    the facts keep both), and an untyped connection from a planning need to another requirement (no
+    carrier candidate: absence, as the method answers)."""
+    need = sorted(sp.connectors(view, VALIDATION).values())[0][0][0]
+    other = _resolve(view, "DE4SDV_AEBSVisualizationNeedsRequirements::VisualizationRequirements::reqSourceFidelity")
+
+    def change(export, view_):
+        return (_cloned_allocation(export, "realAaosRenderingAllocation", "again")
+                + _untyped_connection(export, view_, need, other, "informal"))
+
+    export_side, api_side = _changed_cut(tmp_path, view, change)
+    report = sp.parity_report(export_side, api_side)
+    assert report["passed"], json.dumps({n: r["checks"] for n, r in report["relations"].items()})
+    witnesses = [fact for fact in report["relations"][ALLOCATED_TO]["facts"] if fact[2] == "RequirementFunctionAssignment"
+                 and fact[0] == _resolve(view, REQUIREMENT)]
+    assert len(witnesses) == 2 and len({tuple(fact[:3]) for fact in witnesses}) == 1
+    assert len(report["relations"][ALLOCATED_TO]["facts"]) == 28
+    assert sp.export_parity(export_side)["passed"]
+
+
+def test_an_untyped_planning_shaped_connection_fails_the_parity_on_the_export_already(view, tmp_path) -> None:
+    """A real defect still fails: an untyped connection from a need to a validation scenario could be
+    a planning connection that lacks its carrier typing, so the planning answers are incomplete. The
+    export-side half, which the PR Method Check runs, shows it before any privileged run."""
+    need, scenario = sorted(sp.connectors(view, VALIDATION).values())[0][0]
+    export_side, api_side = _changed_cut(
+        tmp_path, view, lambda export, view_: _untyped_connection(export, view_, need, scenario, "untypedPlan"))
+    report = sp.parity_report(export_side, api_side)
+    assert not report["passed"]
+    assert not report["relations"][VALIDATION]["checks"]["no incomplete traversal answer on either corpus"]
+    export_report = sp.export_parity(export_side)
+    assert not export_report["passed"]
+    record = export_report["relations"][VALIDATION]
+    assert not record["checks"]["the export-snapshot traversal answers completely"]
+    assert f"from {export_side.label(need)}: carrier typing evidence is missing or unresolved" in record["details"]
+
+
+def test_the_export_side_closure_holds_on_the_cut_and_refuses_an_allocation_without_ends(view, tmp_path) -> None:
+    """The PR Method Check runs the export half of the allocation-end closure too: every end-pair class
+    resolves to one validated kernel element of the export, and every allocation is readable and binary
+    (the privileged closure's rule, so an allocation without its own ends fails on the pull request
+    first, not in the privileged run)."""
+    closure = sp.export_parity(view)["allocation_end_closure"]
+    assert closure["passed"] and closure["allocations"] == 27
+    assert sorted(closure["end_pair_classes"]) == ["Function", "LogicalElement", "PhysicalElement", "Requirement"]
+
+    def change(export, view_):
+        package = view_.index.owner_of(sorted(sp.connectors(view_, ALLOCATED_TO))[0])
+        package_element = next(e for e in export["elements"] if e["@id"] == package)
+        package_element["ownedRelationship"] = list(package_element.get("ownedRelationship", [])) + [
+            {"@id": "endless-own"}]
+        export["element_sources"].update(dict.fromkeys(("endless-own", "endless"), export["element_sources"][package]))
+        return [{"@id": "endless-own", "@type": "OwningMembership", "owningRelatedElement": {"@id": package},
+                 "ownedRelatedElement": [{"@id": "endless"}], "memberElement": {"@id": "endless"}},
+                {"@id": "endless", "@type": "AllocationUsage", "declaredName": "endlessAllocation",
+                 "owningRelationship": {"@id": "endless-own"}}]
+
+    export_side, api_side = _changed_cut(tmp_path, view, change)
+    report = sp.export_parity(export_side)
+    assert not report["passed"] and report["relations"][ALLOCATED_TO]["passed"]
+    assert not report["allocation_end_closure"]["checks"]["every allocation is readable and binary"]
+    assert report["allocation_end_closure"]["unreadable"] == ["endless"]
+    assert report["allocation_end_closure"]["unreadable_reasons"] == [
+        f"{export_side.label('endless')}: 0 ends, a binary allocation has 2"]
+    privileged = sp.parity_report(export_side, api_side)["allocation_end_closure"]
+    assert not privileged["checks"]["every served allocation is readable and binary"]

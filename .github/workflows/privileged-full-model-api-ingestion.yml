@@ -130,7 +130,10 @@ jobs:
       # after the release-ceremony retirement (owner decision 2026-10-11),
       # then dropped. The deploy repeats the same import with the same
       # full-payload read-back; after the drop the batteries move to the
-      # export like scripts/check_release_evidence.py.
+      # export like scripts/check_release_evidence.py. The successor parity's
+      # API half (the allocatedTo forward obligations) needs this import: keep
+      # the rehearsal while they depend on it, or move the parity and the
+      # allocation-end closure to the deploy when it is dropped.
       - name: Build pinned Systems Modeling API service
         run: |
           git clone --filter=blob:none https://github.com/Systems-Modeling/SysML-v2-API-Services.git /tmp/sysmlv2-api-services

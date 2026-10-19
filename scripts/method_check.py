@@ -24,11 +24,21 @@ three outputs report the failure with the diagnostics the export recorded
 (``scripts/export_sysml_api_baseline.py --diagnostics``; a missing file is
 reported as such).
 
+The check also runs the export half of the successor parity
+(``de4sdv.semantic.successor_parity.export_parity``): the method's reading of
+``allocatedTo`` and ``hasValidationScenario`` and the export-snapshot traversal
+that the semantic service runs must return the same facts, one per witness,
+with no reader problem and no incomplete answer, and every allocation must be
+readable and binary. The privileged ingestion runs the same checks and
+compares the facts with the imported API revision, so a model it would refuse
+for its content fails here, on the pull request, first.
+
 Advisory: gaps never fail the check (owner decision 3: the delivery gate stays
 advisory). Exit code 1 only for a technical error: an unreadable or refused
 export, a failed export, an export of another revision, increments that
-cannot be identified, an entry point that refuses or fails, or a method that
-cannot be read (an invalid workflow). Read-only; no API or network.
+cannot be identified, an entry point that refuses or fails, a method that
+cannot be read (an invalid workflow), or a successor parity that fails.
+Read-only; no API or network.
 """
 
 from __future__ import annotations
@@ -54,6 +64,8 @@ from de4sdv.semantic.export_evaluation import (  # noqa: E402
     load_export_snapshot,
 )
 from de4sdv.semantic.increment_discovery import DeclaredIncrement, declared_increments  # noqa: E402
+from de4sdv.semantic.relation_checks import MethodSideInput  # noqa: E402
+from de4sdv.semantic.successor_parity import export_parity  # noqa: E402
 from de4sdv.sysml_api.errors import IdentityNotFoundError  # noqa: E402
 
 ENTRY_POINT = ROOT / "scripts" / "evaluate_increment.py"
@@ -133,24 +145,56 @@ def check(export: Path, revision: str, output_dir: Path, *, runner: Runner = sub
         result["errors"].append(
             f"the export is of revision {snapshot.revision.git_commit or '(none)'}, not of {revision}")
         return result
+    view = export_view(snapshot)
     try:
-        discovery = declared_increments(export_view(snapshot))
+        discovery = declared_increments(view)
     except IdentityNotFoundError as error:
         result["errors"].append(f"the declared increments cannot be identified: {error}")
         return result
-    del snapshot  # each entry-point process loads the export itself
     result["notes"] = list(discovery.notes)
     result["not_evaluated"] = [
         {"outcome": OUTCOME_NOT_EVALUATED, "usage": dict(item.usage),
          "charters": [dict(charter) for charter in item.charters], "reason": item.reason, "notes": list(item.notes)}
         for item in discovery.not_evaluated]
     result["timings"]["discovery_seconds"] = round(time.perf_counter() - started, 3)
+    parity_started = time.perf_counter()
+    result["successor_parity"] = _successor_parity(view)
+    if not result["successor_parity"].get("passed"):
+        result["errors"].append(_parity_failure(result["successor_parity"]))
+    result["timings"]["successor_parity_seconds"] = round(time.perf_counter() - parity_started, 3)
+    del snapshot, view  # each entry-point process loads the export itself
     for increment in discovery.increments:
         entry, errors = _evaluate(increment, export, output_dir, runner)
         result["increments"].append(entry)
         result["errors"].extend(errors)
     result["timings"]["total_seconds"] = round(time.perf_counter() - started, 3)
     return result
+
+
+def _successor_parity(view: Any) -> dict[str, Any]:
+    """The export-side successor parity, or why it cannot be computed (a failure either way)."""
+    try:
+        return export_parity(view)
+    except (IdentityNotFoundError, MethodSideInput) as error:
+        return {"passed": False, "relations": {}, "error": str(error)}
+
+
+def _parity_failures(parity: Mapping[str, Any]) -> list[str]:
+    """Each failed check of the export-side parity, then up to three details naming the elements."""
+    records = dict(parity.get("relations") or {})
+    if parity.get("allocation_end_closure"):
+        records["allocation-end closure"] = parity["allocation_end_closure"]
+    failed, details = [], []
+    for name, record in records.items():
+        failed += [f"{name}: {check}" for check, ok in (record.get("checks") or {}).items() if not ok]
+        if not record.get("passed", True):
+            details += [f"{name}: {detail}" for detail in record.get("details") or record.get("unreadable_reasons") or ()]
+    return (failed + details[:3]) or [str(parity.get("error") or "the parity could not be computed")]
+
+
+def _parity_failure(parity: Mapping[str, Any]) -> str:
+    return ("the successor parity fails on this export (the semantic service would not answer the "
+            "method's facts): " + "; ".join(_parity_failures(parity)))
 
 
 def export_failure(diagnostics: Path, revision: str) -> dict[str, Any]:
@@ -478,6 +522,17 @@ def render_summary(result: Mapping[str, Any], *, artifact: str | None = None, ru
         if not_evaluated:
             facts.append(f"{len(not_evaluated)} not evaluated")
     lines += [", ".join(facts), ""]
+    parity = result.get("successor_parity")
+    if parity:
+        counts = ", ".join(f"{name} {record.get('facts', 0)} facts"
+                           for name, record in (parity.get("relations") or {}).items())
+        if parity.get("passed"):
+            lines += [f"Successor parity on the export: passed ({counts}).", ""]
+        else:
+            lines += [f"Successor parity on the export: failed ({'; '.join(_parity_failures(parity))}).", ""]
+        lines += [f"- {note}" for note in parity.get("notes") or ()]
+        if parity.get("notes"):
+            lines.append("")
 
     errors = list(result.get("errors") or [])
     if errors:

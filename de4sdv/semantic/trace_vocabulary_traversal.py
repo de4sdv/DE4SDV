@@ -22,7 +22,9 @@ its witness checks (identity, owning context, decidable typing evidence) and
 reports a witness it cannot decide as incomplete.
 """
 from __future__ import annotations
-from typing import Any
+import posixpath
+from typing import Any, Iterable, Mapping
+from urllib.parse import unquote, urlsplit
 from de4sdv.sysml_api.errors import IdentityNotFoundError
 from de4sdv.sysml_api.repository import element_id, reference_ids
 from .increment_scope import ModelView
@@ -39,6 +41,31 @@ from .relationships import build_relationship_graph, is_family
 
 #: What an allocatedTo or planning hop never claims.
 CLAIM_BOUNDARY = "no satisfaction, execution, result, fulfillment, deployment or compliance"
+
+
+def unreadable_ends(view: ModelView, connector: str, ends: tuple[str, ...], problem: str, *,
+                    kind: str = "connection") -> str:
+    """Why a native connector's ends cannot be read, prefixed by the connector ('' when they can).
+
+    The shared reader's own problem; an owned relationship of the connector (an end membership may be
+    among them) or one of its read ends that the revision does not hold; or, once the connector owns an
+    end, a number of ends other than two. A connector that owns no end is no fact, not unreadable.
+    While any connector of a relation cannot be read, the relation's answers are incomplete: the
+    connector's ends are unknown, so it may be the one that reaches the subject.
+    """
+    by_id = view.index.by_id
+    reason = problem
+    if not reason:
+        missing = [r for r in reference_ids(view.index.element(connector).get("ownedRelationship"))
+                   if r not in by_id]
+        dangling = [end for end in ends if end not in by_id]
+        if missing:
+            reason = f"its owned relationship {missing[0]!r} is not in the bound revision"
+        elif dangling:
+            reason = f"its end {dangling[0]!r} is not in the bound revision"
+        elif ends and len(ends) != 2:
+            reason = f"{len(ends)} ends, a binary {kind} has 2"
+    return f"{view.label(connector)}: {reason}" if reason else ""
 
 
 class SuccessorTraversal(SemanticTraversal):
@@ -171,18 +198,43 @@ class SuccessorTraversal(SemanticTraversal):
                 continue
             if item in raw_index.get(None, []):
                 raise IdentityNotFoundError("raw relationship source is absent or undecidable")
-            cls._checked_references({"witness": item}, "witness")
-            for key in cls._RAW_SOURCES:
-                cls._checked_references(item, key)
-            targets = [ref for key in cls._RAW_TARGETS + extra_target_keys
-                       for ref in cls._checked_references(item, key)]
-            targets = [ref for ref in targets if element_id(ref) != identifier]
             # A relationship that names no target is a reference the export leaves out: the
             # licensed serializer omits every reference to an element outside the export (the
             # standard library), implied or authored. No such element is in a governed lineage,
-            # so it supplies no meaning; a target that is named but missing stays undecided.
-            references.extend(targets)
+            # so it supplies no meaning; a target that is named but missing stays undecided. The
+            # import asserts that every such skip is a standard-library omission
+            # (targetless_check), so the skip cannot hide a governed type.
+            references.extend(cls._named_targets(item, identifier, extra_target_keys))
         return references
+
+    @classmethod
+    def _named_targets(cls, item, identifier, extra_target_keys=()):
+        """The validated targets a raw relationship names, other than ``identifier`` (its source)."""
+        cls._checked_references({"witness": item}, "witness")
+        for key in cls._RAW_SOURCES:
+            cls._checked_references(item, key)
+        targets = [ref for key in cls._RAW_TARGETS + extra_target_keys
+                   for ref in cls._checked_references(item, key)]
+        return [ref for ref in targets if element_id(ref) != identifier]
+
+    @classmethod
+    def targetless_relationships(cls, elements):
+        """The ids of the typing and specialization relationships the traversal skips for naming no
+        target (sorted). A relationship it cannot read is refused at use (incomplete), not skipped."""
+        found = set()
+        for source, items in cls._raw_relationship_index(elements).items():
+            if source is None:
+                continue
+            for item in items:
+                if not isinstance(item, dict) or not is_family(str(item.get("@type") or ""),
+                                                               TYPING_FAMILIES + SUBSUMPTION_FAMILIES):
+                    continue
+                try:
+                    if not cls._named_targets(item, source):
+                        found.add(element_id(item))
+                except IdentityNotFoundError:
+                    continue
+        return sorted(found)
 
     @classmethod
     def _successor_graph(cls, elements, raw_index):
@@ -291,27 +343,61 @@ class SuccessorTraversal(SemanticTraversal):
 
     @staticmethod
     def _context(relationship, index):
-        """The connector's owning namespace: the owner of its owning relationship (the export's
-        shape), else a derived owner key. An absent or dangling context refuses."""
-        owner = index.owner_of(element_id(relationship) or "")
-        contexts = [owner] if owner else (reference_ids(relationship.get("owningNamespace"))
-                                          or reference_ids(relationship.get("owner"))
-                                          or reference_ids(relationship.get("owningRelatedElement")))
+        """The connector's owning namespace: the one owner its owning relationship names (the export's
+        shape), else a derived owner key. An absent or dangling context refuses, and so does an owning
+        relationship that the revision does not hold or that names other than one owner."""
+        membership = element_id(relationship.get("owningRelationship"))
+        if membership is not None:
+            contexts = reference_ids(index.by_id.get(membership, {}).get("owningRelatedElement"))
+        else:
+            contexts = (reference_ids(relationship.get("owningNamespace"))
+                        or reference_ids(relationship.get("owner"))
+                        or reference_ids(relationship.get("owningRelatedElement")))
         if len(contexts) != 1 or contexts[0] not in index.by_id:
             raise IdentityNotFoundError("native connection context is absent or dangling")
         return contexts[0]
+
+    def _may_carry(self, connection, ends, reader_problem, carriers, view, graph, raw_index):
+        """Whether a connection whose ends cannot be read as two could still carry the relation, so its
+        unknown ends leave every answer incomplete: typed by the relation's carrier (as the method
+        selects it), typing evidence that cannot decide, or untyped with ends that cannot be read. One
+        typed by another definition, or an untyped one whose readable ends are not two (no binary
+        carrier lacking its typing), carries none of the relation's facts."""
+        by_id = view.index.by_id
+        if view.index.typed_by(element_id(connection)) & carriers():
+            return True
+        if self._typing_is_unresolved(connection, graph, by_id, raw_index, require_typing=False):
+            return True
+        if not self._typing_is_unresolved(connection, graph, by_id, raw_index):
+            return False
+        readable = (not reader_problem and all(end in by_id for end in ends)
+                    and all(r in by_id for r in reference_ids(connection.get("ownedRelationship"))))
+        return not readable
+
+    def _carrier_candidate(self, left, right, rows, resolver_for, graph, by_id, raw_index):
+        """True when an untyped connection's ends ground in an end pair of the relation, so it could be a
+        carrier that lacks its typing; its endpoints' typing evidence must decide."""
+        for endpoint in (left, right):
+            if self._typing_is_unresolved(endpoint, graph, by_id, raw_index, require_typing=False):
+                raise IdentityNotFoundError("usage endpoint typing evidence is missing or unresolved")
+        return any(self._endpoint_grounding(left, resolver_for(row["sourceClass"]))
+                   and self._endpoint_grounding(right, resolver_for(row["targetClass"])) for row in rows)
 
     def _successor_hops(self, predicate, canonical, rows, source, elements):
         """The hops of one successor relation from ``source``.
 
         A connector's ends are the method's reading of its native ends (``allocation_ends`` or
-        ``connection_ends``): the first end is the source, the second the target. For native
-        allocations the method's reader also decides the end pair (``allocation_hops``: the one end
-        pair both ends ground in through the validated kernel bindings; an end grounding in two
-        endpoint classes, or an allocation it cannot read, leaves the relation incomplete). For typed
-        connections the profile rows decide (carrier typing, usage kinds, endpoint lineage). A
-        witness whose identity, owning context or typing evidence cannot be decided is incomplete,
-        never a hop and never an absence.
+        ``connection_ends``): the first end is the source, the second the target. A connector whose
+        ends cannot be read as two (:func:`unreadable_ends`) leaves every answer of the relation
+        incomplete when it may carry the relation: any allocation, and a connection typed by the
+        carrier, with typing that cannot decide, or untyped with ends that cannot be read
+        (``_may_carry``). For native allocations the method's reader also decides the end pair
+        (``allocation_hops``: the one end pair both ends ground in through the validated kernel
+        bindings; an end grounding in two endpoint classes, or an allocation it cannot read, leaves
+        the relation incomplete). For typed connections the profile rows decide (carrier typing, usage
+        kinds, endpoint lineage); an untyped connection is incomplete only when its ends ground in an
+        end pair (``_carrier_candidate``), else it is no fact. A witness whose identity, owning context
+        or typing evidence cannot be decided is incomplete, never a hop and never an absence.
         """
         index = self.revision_index(elements)
         by_id = index.by_id
@@ -334,6 +420,12 @@ class SuccessorTraversal(SemanticTraversal):
             reached = {other for other, _allocation in counted}
         native_ends = allocation_ends(view) if allocation else connection_ends(view)
         resolvers = {}
+        carrier_ids = []
+
+        def carriers():
+            if not carrier_ids:
+                carrier_ids.append(frozenset(self.class_lineage(canonical, elements)["explicit_lineage_ids"]))
+            return carrier_ids[0]
 
         def resolver_for(class_name):
             if class_name not in resolvers:
@@ -346,20 +438,28 @@ class SuccessorTraversal(SemanticTraversal):
                 continue
             try:
                 self._checked_references({"witness": rel}, "witness")
-                ends, problem = native_ends.get(element_id(rel), ((), ""))
-                if allocation and (problem or len(ends) != 2):
-                    continue  # reported by the method's reader above
-                if problem:
+                ends, reader_problem = native_ends.get(element_id(rel), ((), ""))
+                if allocation and reader_problem:
+                    continue  # reported by the method's reader above (absence is not established)
+                problem = unreadable_ends(view, element_id(rel), ends, reader_problem,
+                                          kind="allocation" if allocation else "connection")
+                if problem and (allocation or self._may_carry(rel, ends, reader_problem, carriers, view,
+                                                              graph, raw_index)):
                     raise IdentityNotFoundError(problem)
+                if problem or not ends:
+                    continue  # it cannot carry the relation, or owns no end: no fact
                 sources, targets = list(ends[:1]), list(ends[1:])
                 if source_id not in (targets if inverse else sources):
                     continue
-                if len(sources) != 1 or len(targets) != 1:
-                    raise IdentityNotFoundError("native binary connection endpoints are incomplete or ambiguous")
                 context = self._context(rel, index)
                 left, right = by_id[sources[0]], by_id[targets[0]]
-                if self._typing_is_unresolved(rel, graph, by_id, raw_index, require_typing=not allocation):
+                if self._typing_is_unresolved(rel, graph, by_id, raw_index, require_typing=False):
                     raise IdentityNotFoundError("carrier typing evidence is missing or unresolved")
+                if not allocation and self._typing_is_unresolved(rel, graph, by_id, raw_index):
+                    # Untyped: no carrier. Incomplete only when its ends could carry the relation.
+                    if self._carrier_candidate(left, right, rows, resolver_for, graph, by_id, raw_index):
+                        raise IdentityNotFoundError("carrier typing evidence is missing or unresolved")
+                    continue
                 if allocation:
                     for endpoint in (left, right):
                         if self._typing_is_unresolved(endpoint, graph, by_id, raw_index, require_typing=False):
@@ -416,6 +516,52 @@ class SuccessorTraversal(SemanticTraversal):
             self.unavailable(predicate, "overlapping endpoint lineage identity routing")
             return []
         return result
+
+
+#: The schema of the import's target-less relationship check.
+TARGETLESS_SCHEMA = "de4sdv.targetless-relationships/v1"
+
+
+def _standard_library_uri(uri: str, source_file: str) -> bool:
+    """True when ``uri`` names a file of the SysML standard library: an absolute file URI into the
+    ``sysml.library`` the serializer ships, or, from an element of a standard-library document the
+    export carries (``@library/...``), a relative URI that stays inside the library."""
+    parts = urlsplit(uri)
+    if parts.scheme or parts.netloc:
+        return parts.scheme == "file" and "/sysml.library/" in unquote(parts.path)
+    if not parts.path or not source_file.startswith("@library/"):
+        return False
+    resolved = posixpath.normpath(posixpath.join(posixpath.dirname(source_file), unquote(parts.path)))
+    return resolved.startswith("@library/")
+
+
+def targetless_check(elements: Iterable[Mapping[str, Any]], external_references: Iterable[Mapping[str, Any]],
+                     element_sources: Mapping[str, str]) -> dict[str, Any]:
+    """Every relationship the successor traversal skips for naming no target must be a reference
+    the serializer left out because it names a standard-library element: at least one
+    external-reference row records the relationship's target, and every row on a target key has a
+    standard-library URI. Anything else could hide a governed type, so the import fails closed."""
+    rows: dict[str, list[Mapping[str, Any]]] = {}
+    for row in external_references:
+        rows.setdefault(str(row.get("source_element_id")), []).append(row)
+    target_keys = set(SuccessorTraversal._RAW_TARGETS)
+    targetless = SuccessorTraversal.targetless_relationships(list(elements))
+    violations = []
+    for relationship in targetless:
+        on_targets = [row for row in rows.get(relationship, ())
+                      if str(row.get("property_path") or "").split("[", 1)[0] in target_keys]
+        source_file = str(element_sources.get(relationship) or "")
+        outside = [str(row.get("uri") or "") for row in on_targets
+                   if not _standard_library_uri(str(row.get("uri") or ""), source_file)]
+        if not on_targets:
+            violations.append({"relationship": relationship, "source_file": source_file,
+                               "reason": "no external reference records its target"})
+        elif outside:
+            violations.append({"relationship": relationship, "source_file": source_file,
+                               "reason": "its target is outside the standard library", "uri": outside[0]})
+    return {"schema": TARGETLESS_SCHEMA, "targetless": len(targetless),
+            "standard_library": len(targetless) - len(violations), "violation_count": len(violations),
+            "violations": violations[:20], "passed": not violations}
 
 
 class SuccessorQueryService(SemanticQueryService):

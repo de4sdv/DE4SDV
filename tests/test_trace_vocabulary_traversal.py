@@ -261,10 +261,163 @@ def test_the_witness_is_the_connector_and_its_read_ends():
     assert report["semantic_status"] == "complete"
     (edge_record,) = report["edges"]
     assert (edge_record["target"], edge_record["api_object_id"]) == ("use-Function", "allocation")
-    assert {key: edge_record["witness"][key] for key in ("native_source", "native_target", "context_id", "carrier")} == {
+    assert edge_record["witness"] == {
         "native_source": "use-Requirement", "native_target": "use-Function", "context_id": "context",
-        "carrier": "RequirementFunctionAssignment"}
+        "carrier": "RequirementFunctionAssignment", "canonical_predicate": "allocatedTo",
+        "source_lineage": "explicit", "target_lineage": "explicit",
+        "source_root": "root-Requirement", "target_root": "root-Function",
+        "claim_boundary": "no satisfaction, execution, result, fulfillment, deployment or compliance"}
     assert method.hops == (("use-Function", "allocation"),)
+
+
+def test_a_planning_witness_names_its_carrier_lineage_and_roots():
+    def mutate(elements):
+        elements.extend(edge("ConnectionUsage", "use-Need", "use-ValidationScenario", name="plan",
+                             type=[{"@id": "root-hasValidationScenario"}]))
+    report, _method = _with_method(mutate, "hasValidationScenario", "use-Need")
+    (edge_record,) = report["edges"]
+    assert edge_record["witness"] == {
+        "native_source": "use-Need", "native_target": "use-ValidationScenario", "context_id": "context",
+        "carrier": "ValidationPlanningAssociation", "canonical_predicate": "hasValidationScenario",
+        "source_lineage": "explicit", "target_lineage": "explicit",
+        "source_root": "root-Need", "target_root": "root-ValidationScenario",
+        "claim_boundary": "no satisfaction, execution, result, fulfillment, deployment or compliance"}
+
+
+def _mcp_answers(elements, binding, contract):
+    """semantic_neighbors, impact and trace through the MCP tool functions (never an exception)."""
+    import asyncio
+
+    from de4sdv.semantic.mcp_server import create_mcp_server
+
+    server = create_mcp_server(rebuild(elements, binding, contract))
+    calls = (("semantic_neighbors", {"identifier": "use-Requirement", "predicates": ["allocatedTo"]}),
+             ("impact", {"identifier": "use-Requirement"}),
+             ("trace", {"source_identifier": "use-Requirement", "target_identifier": "use-Function"}))
+    return {tool: asyncio.run(server._tool_manager.call_tool(tool, arguments)) for tool, arguments in calls}
+
+
+@pytest.mark.parametrize("missing, reason", [
+    (("allocation-target", "allocation-target-reference"), "its end 'allocation-target' is not in the bound revision"),
+    (("allocation-source-end",), "its owned relationship 'allocation-source-end' is not in the bound revision"),
+    (("allocation-target-end",), "its owned relationship 'allocation-target-end' is not in the bound revision"),
+    ((), "its owned relationship 'allocation-note' is not in the bound revision"),
+], ids=["end-feature", "source-end-membership", "target-end-membership", "other-owned-relationship"])
+def test_an_allocation_end_not_in_the_revision_is_incomplete_on_every_public_surface(missing, reason):
+    """An end feature, an end membership, or any other owned relationship (it may be an end) that the
+    revision does not hold: the allocation cannot be read, so every answer is incomplete, from either
+    end, never a crash and never an absence."""
+    _, elements, binding, contract = fixture_service()
+    elements[:] = [e for e in elements if e["@id"] not in missing]
+    if not missing:
+        _element(elements, "allocation")["ownedRelationship"].append({"@id": "allocation-note"})
+    answers = _mcp_answers(elements, binding, contract)
+    for tool, report in answers.items():
+        assert report["semantic_status"] == "incomplete", (tool, report)
+        assert {"predicate": "allocatedTo", "authority_state": "incomplete", "reason": f"allocation: {reason}"} in (
+            report["unsupported_predicates"]), (tool, report["unsupported_predicates"])
+    assert answers["semantic_neighbors"]["edges"] == [] and answers["trace"]["path"] == []
+    from_target = rebuild(elements, binding, contract).semantic_neighbors("use-Function", predicates=["allocatedTo"])
+    assert from_target["semantic_status"] == "incomplete"
+
+
+@pytest.mark.parametrize("shape", ["dangling-owning-relationship", "two-parents"])
+def test_an_owning_relationship_that_cannot_name_one_owner_refuses_the_context(shape):
+    """The owning relationship decides the context: one that is not in the revision, or that names
+    two owners, refuses it even where a derived owner key is present."""
+    def mutate(elements):
+        allocation = _element(elements, "allocation")
+        if shape == "dangling-owning-relationship":
+            allocation["owningRelationship"] = {"@id": "missing-membership"}
+        else:
+            elements.append({"@id": "owning", "@type": "OwningMembership",
+                             "owningRelatedElement": [{"@id": "context"}, {"@id": "use-Need"}],
+                             "ownedRelatedElement": [{"@id": "allocation"}]})
+            allocation["owningRelationship"] = {"@id": "owning"}
+    report, _method = _with_method(mutate)
+    assert report["edges"] == [] and report["semantic_status"] == "incomplete"
+    assert any("context" in r["reason"] for r in report["unsupported_predicates"])
+
+
+def test_a_method_side_input_missing_inside_the_witness_loop_is_incomplete(monkeypatch):
+    """The end pair of a witness needs a method-side input (a kernel binding) that is missing: the
+    answer is incomplete with the method's detail, never an exception and never an absence."""
+    from de4sdv.semantic import trace_vocabulary_traversal as tvt
+    from de4sdv.semantic.relation_checks import MethodSideInput
+
+    def missing(*_args, **_kwargs):
+        raise MethodSideInput("kernel-binding:Function", "method side: no validated kernel binding for Function")
+
+    monkeypatch.setattr(tvt, "allocation_pairs", missing)
+    report, _method = _with_method(lambda elements: None)
+    assert report["edges"] == [] and report["semantic_status"] == "incomplete"
+    assert any(r["reason"] == "method side: no validated kernel binding for Function"
+               for r in report["unsupported_predicates"]), report["unsupported_predicates"]
+
+
+def _connector(kind, name, ends, **kwargs):
+    """A connector with the ``(role, usage)`` ends in order, in the export's shape."""
+    elements = [element for role, usage in ends for element in native_end(name, role, usage)]
+    connector = {"@id": name, "@type": kind, "owningNamespace": {"@id": "context"},
+                 "ownedRelationship": [{"@id": e["@id"]} for e in elements if e["@type"] == "EndFeatureMembership"],
+                 **kwargs}
+    return [connector, *elements]
+
+
+THREE_ENDS = [("a", "use-Need"), ("b", "use-ValidationScenario"), ("c", "use-Function")]
+
+
+@pytest.mark.parametrize("typing", [None, "root-hasRegulatorySource"], ids=["untyped", "another-carrier"])
+def test_a_connection_that_is_no_binary_planning_carrier_leaves_the_answer_complete(typing):
+    """Three ends from a need, untyped or typed by another relation's carrier: it cannot carry the
+    binary planning relation, so the answer stays complete, as the method's."""
+    def mutate(elements):
+        elements.extend(_connector("ConnectionUsage", "triple", THREE_ENDS,
+                                   **({"type": [{"@id": typing}]} if typing else {})))
+    report, method = _with_method(mutate, "hasValidationScenario", "use-Need")
+    assert report["edges"] == [] and report["semantic_status"] == "complete", report["unsupported_predicates"]
+    assert method.hops == () and not method.problem
+
+
+def test_a_planning_connection_with_three_ends_is_incomplete_from_every_need():
+    """A connection typed by the planning carrier with three ends: its planning fact cannot be read,
+    so every planning answer is incomplete, also from a need it does not name."""
+    def mutate(elements):
+        elements.append({"@id": "use-OtherNeed", "@type": "RequirementUsage", "type": [{"@id": "root-Need"}]})
+        elements.extend(_connector("ConnectionUsage", "triple", THREE_ENDS,
+                                   type=[{"@id": "root-hasValidationScenario"}]))
+    report, _method = _with_method(mutate, "hasValidationScenario", "use-OtherNeed")
+    assert report["edges"] == [] and report["semantic_status"] == "incomplete"
+    assert any("3 ends" in r["reason"] for r in report["unsupported_predicates"]), report["unsupported_predicates"]
+
+
+@pytest.mark.parametrize("typing, expected", [(None, "incomplete"), ("root-hasValidationScenario", "incomplete"),
+                                              ("root-hasRegulatorySource", "complete")],
+                         ids=["untyped", "planning-carrier", "another-carrier"])
+def test_a_connection_whose_source_end_membership_is_missing(typing, expected):
+    """The source end membership of a need-to-scenario connection is not in the revision. If the
+    connection may be a planning connection (typed by the carrier, or untyped), the need's answer is
+    incomplete, never a complete absence; typed by another relation's carrier, it carries no planning
+    fact."""
+    def mutate(elements):
+        elements.extend(_connector("ConnectionUsage", "plan",
+                                   [("source", "use-Need"), ("target", "use-ValidationScenario")],
+                                   **({"type": [{"@id": typing}]} if typing else {})))
+        elements[:] = [e for e in elements
+                       if e["@id"] not in ("plan-source-end", "plan-source", "plan-source-reference")]
+    report, _method = _with_method(mutate, "hasValidationScenario", "use-Need")
+    assert report["edges"] == [] and report["semantic_status"] == expected, report["unsupported_predicates"]
+
+
+def test_an_untyped_connection_that_is_no_carrier_candidate_is_no_answer_at_all():
+    """An untyped connection whose ends ground in no typed-connection end pair (a need to a function)
+    cannot carry the relation: absence, as the method answers, not incomplete. One whose ends do ground
+    in the planning pair stays incomplete (test_untyped_carrier_candidate_is_incomplete_not_silent_absence)."""
+    def mutate(elements):
+        elements.extend(edge("ConnectionUsage", "use-Need", "use-Function", name="plain"))
+    report, method = _with_method(mutate, "hasValidationScenario", "use-Need")
+    assert report["edges"] == [] and report["semantic_status"] == "complete", report["unsupported_predicates"]
+    assert method.hops == () and not method.problem
 
 
 def test_a_feature_chain_end_reads_as_its_last_chaining_feature():

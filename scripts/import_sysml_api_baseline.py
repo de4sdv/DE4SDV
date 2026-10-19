@@ -16,6 +16,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from de4sdv.semantic.kernel_contract import KernelContract
+from de4sdv.semantic.trace_vocabulary_traversal import targetless_check
 from de4sdv.semantic.validation import cross_check_model_provider, validate_ontology_bindings
 from de4sdv.sysml_api.baseline import BaselineExportBundle, BaselineManifest
 from de4sdv.sysml_api.client import ApiClient
@@ -74,6 +75,10 @@ def run_import(
     elements = repository.list_elements(imported.project_id, imported.commit_id)
     contract = KernelContract.from_layers(ROOT)
     ontology = validate_ontology_bindings(contract, elements, bundle.element_sources)
+    # The successor traversal skips a typing or specialization relationship that names no
+    # target, as a reference the serializer omitted because it names a standard-library
+    # element. Assert that every such skip is one, over the served corpus.
+    targetless = targetless_check(elements, bundle.external_references, bundle.element_sources)
     # Persist the ingestion-validated kernel identities: each file-mapped
     # ontology class whose binding resolved to exactly one API UUID carries
     # that UUID, its serializer-recorded source file, and the governed
@@ -115,6 +120,7 @@ def run_import(
         "source_manifest": list(bundle.source_manifest),
         "external_references": list(bundle.external_references),
         "kernel_binding_validation": ontology.to_dict(),
+        "targetless_relationship_check": targetless,
         "semantic_authority": contract.identity.to_dict(),
     }
     cross_check = cross_check_model_provider(contract, kernel_bindings, root=ROOT)
@@ -131,6 +137,13 @@ def run_import(
             f"{len(cross_check['mismatches'])} mismatch(es), "
             f"{len(cross_check['duplicate_providers'])} conflicting provider(s); "
             f"report={report_path}"
+        )
+    if not targetless["passed"]:
+        raise RuntimeError(
+            "target-less relationship check failed closed: "
+            f"{targetless['violation_count']} of {targetless['targetless']} relationships that name "
+            "no target are not recorded standard-library references "
+            f"(first: {targetless['violations'][0]}); report={report_path}"
         )
     binding = RevisionBinding(
         git_repository=git_repository,

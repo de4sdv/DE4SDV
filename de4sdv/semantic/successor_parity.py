@@ -36,8 +36,10 @@ from .relation_checks import (
     connection_ends,
     native_allocation_rows,
 )
+from .trace_vocabulary_traversal import unreadable_ends
 
 PARITY_SCHEMA = "de4sdv.successor-parity/v1"
+EXPORT_PARITY_SCHEMA = "de4sdv.successor-parity-export/v1"
 ALLOCATED_TO = "allocatedTo"
 #: The relations whose facts the privileged ingestion compares (owner decision 2026-10-18, #4).
 PARITY_RELATIONS = (ALLOCATED_TO, "hasValidationScenario")
@@ -72,34 +74,75 @@ def _subjects(view: ModelView, relation: str) -> list[str]:
 
 
 def method_facts(view: ModelView, relation: str) -> tuple[frozenset[Fact], tuple[str, ...]]:
-    """The facts the method's relation check finds from every connector end, and its problems."""
+    """The method's facts, one per witness, and its problems.
+
+    For every connector the method reads, a fact for each direction in which the method's relation
+    check from one end reaches the other: source to target for an allocation; either way for a typed
+    connection, which the check reads from either end. The check keeps one witness per target, so the
+    facts count every connector between a pair (two allocations of one pair are two facts). The problems
+    are the check's own and every connector whose ends cannot be read, by the traversal's rule
+    (:func:`~de4sdv.semantic.trace_vocabulary_traversal.unreadable_ends`).
+    """
     found: set[Fact] = set()
     problems: list[str] = []
-    for subject in _subjects(view, relation):
-        result = check_relation(view, relation, subject)
-        if result.problem:
-            problems.append(f"{subject}: {result.problem}: {result.detail}")
-        for target, witness in result.hops:
+    reached: dict[str, frozenset[str]] = {}
+
+    def targets_of(subject: str) -> frozenset[str]:
+        if subject not in reached:
+            result = check_relation(view, relation, subject)
+            if result.problem:
+                problems.append(f"{view.label(subject)}: {result.problem}: {result.detail}")
+            reached[subject] = frozenset(target for target, _witness in result.hops)
+        return reached[subject]
+
+    kind = "allocation" if relation == ALLOCATED_TO else "connection"
+    for connector, (ends, problem) in sorted(connectors(view, relation).items()):
+        problem = unreadable_ends(view, connector, ends, problem, kind=kind)
+        if problem:
+            problems.append(problem)
+            continue
+        if not ends:
+            continue  # a connector that owns no end is no fact
+        directions = [(ends[0], ends[1])] if relation == ALLOCATED_TO else [(ends[0], ends[1]), (ends[1], ends[0])]
+        for subject, other in directions:
+            if other not in targets_of(subject):
+                continue
             try:
-                found.add((subject, target, end_pair(view, relation, subject, target), witness))
+                found.add((subject, other, end_pair(view, relation, subject, other), connector))
             except (IdentityNotFoundError, MethodSideInput) as error:
-                problems.append(f"{subject}: {error}")
+                problems.append(f"{view.label(connector)}: {error}")
     return frozenset(found), tuple(problems)
 
 
 def traversal_facts(traversal: Any, view: ModelView, relation: str, predicate: str | None = None
                     ) -> tuple[frozenset[Fact], tuple[dict[str, Any], ...]]:
-    """The facts the successor traversal returns from every connector end, and its incomplete records."""
-    traversal.unsupported = []
+    """The facts the successor traversal returns from every connector end, and its incomplete records,
+    each with the ``subject`` it was answered from."""
+    name = predicate or relation
     found: set[Fact] = set()
+    incomplete: list[dict[str, Any]] = []
     for subject in _subjects(view, relation):
-        for hop in traversal.traverse(predicate or relation, view.element(subject), view.elements):
+        traversal.unsupported = []
+        for hop in traversal.traverse(name, view.element(subject), view.elements):
             found.add((str(hop.source["@id"]), str(hop.target["@id"]), str(hop.witness.get("carrier")),
                        str(hop.api_object["@id"])))
-    incomplete = tuple(record for record in traversal.unsupported
-                       if record.get("predicate") == (predicate or relation))
+        incomplete.extend(dict(record, subject=subject) for record in traversal.unsupported
+                          if record.get("predicate") == name)
     traversal.unsupported = []
-    return frozenset(found), incomplete
+    return frozenset(found), tuple(incomplete)
+
+
+def _details(view: ModelView, method: frozenset[Fact], traversal: frozenset[Fact], problems: tuple[str, ...],
+             incomplete: tuple[Mapping[str, Any], ...]) -> list[str]:
+    """What a modeller needs to find each failure, by qualified name."""
+    def fact(item: Fact) -> str:
+        source, target, pair, witness = item
+        return f"{view.label(source)} -> {view.label(target)} ({pair}, witness {view.label(witness)})"
+
+    return ([f"the method reads {fact(item)}; the traversal does not" for item in sorted(method - traversal)]
+            + [f"the traversal returns {fact(item)}; the method does not" for item in sorted(traversal - method)]
+            + list(problems)
+            + [f"from {view.label(record.get('subject'))}: {record.get('reason')}" for record in incomplete])
 
 
 def _facts_record(facts: frozenset[Fact]) -> list[list[str]]:
@@ -166,8 +209,7 @@ def allocation_end_closure(export_view: ModelView, api_view: ModelView, *,
         end_classes[name] = record
     api_allocations = allocation_ends(api_view)
     export_allocations = allocation_ends(export_view)
-    unreadable = sorted(allocation for allocation, (ends, problem) in api_allocations.items()
-                        if problem or len(ends) != 2)
+    unreadable = _unreadable_allocations(api_view, api_allocations)
     differing = sorted(allocation for allocation in set(api_allocations) | set(export_allocations)
                        if api_allocations.get(allocation) != export_allocations.get(allocation))
     checks = {
@@ -180,10 +222,95 @@ def allocation_end_closure(export_view: ModelView, api_view: ModelView, *,
     return {
         "end_pair_classes": end_classes,
         "allocations": len(api_allocations),
-        "unreadable": unreadable[:10],
+        "unreadable": sorted(unreadable)[:10],
+        "unreadable_reasons": [unreadable[key] for key in sorted(unreadable)][:10],
         "differing_from_export": differing[:10],
         "checks": checks,
         "passed": all(checks.values()),
+    }
+
+
+def _unreadable_allocations(view: ModelView, allocations: Mapping[str, tuple[tuple[str, ...], str]]
+                            ) -> dict[str, str]:
+    """The closure's rule, allocation -> reason: an allocation is readable and binary when the traversal
+    can read its ends (:func:`~de4sdv.semantic.trace_vocabulary_traversal.unreadable_ends`) and it has
+    exactly two; an allocation without its own ends is no fact for the traversal, and not binary here."""
+    found = {}
+    for allocation, (ends, problem) in sorted(allocations.items()):
+        reason = unreadable_ends(view, allocation, ends, problem, kind="allocation")
+        if not reason and len(ends) != 2:
+            reason = f"{view.label(allocation)}: {len(ends)} ends, a binary allocation has 2"
+        if reason:
+            found[allocation] = reason
+    return found
+
+
+def export_allocation_closure(view: ModelView) -> dict[str, Any]:
+    """The export half of :func:`allocation_end_closure`: every class that types an end of an
+    ``allocatedTo`` end pair resolves to one validated kernel element of the export, and every native
+    allocation is readable and binary. The API half (the binding equals the pin and the API serves the
+    export's allocations with the same ends) needs the imported revision."""
+    classes = sorted({str(row[key]) for _name, row in native_allocation_rows(view, ALLOCATED_TO)
+                      for key in ("sourceClass", "targetClass")})
+    end_classes: dict[str, dict[str, Any]] = {}
+    for name in classes:
+        try:
+            end_classes[name] = {"element_id": view.kernel_element(name), "resolved": True}
+        except IdentityNotFoundError as error:
+            end_classes[name] = {"error": str(error), "resolved": False}
+    allocations = allocation_ends(view)
+    unreadable = _unreadable_allocations(view, allocations)
+    checks = {
+        "every end-pair class resolves to a validated kernel element of the export": bool(end_classes) and all(
+            record["resolved"] for record in end_classes.values()),
+        "every allocation is readable and binary": not unreadable,
+    }
+    return {"end_pair_classes": end_classes, "allocations": len(allocations), "unreadable": sorted(unreadable)[:10],
+            "unreadable_reasons": [unreadable[key] for key in sorted(unreadable)][:10],
+            "checks": checks, "passed": all(checks.values())}
+
+
+def export_parity(view: ModelView) -> dict[str, Any]:
+    """The export half of :func:`parity_report`, over one export.
+
+    Per relation: the export-snapshot traversal returns the method's facts, one per witness, with no
+    reader problem and no incomplete answer; and the export half of the allocation-end closure
+    (:func:`export_allocation_closure`). These are the checks of the privileged parity that need no
+    imported API revision, run with the same functions, so a model the privileged parity would refuse
+    for its content fails here, on the pull request, first. A relation without facts passes here with a
+    note (a model under construction may declare none); the privileged parity, over the full model,
+    requires at least one. ``details`` name each failure by qualified name.
+    """
+    relations: dict[str, Any] = {}
+    for relation in PARITY_RELATIONS:
+        method, problems = method_facts(view, relation)
+        traversal, incomplete = traversal_facts(view.traversal, view, relation)
+        checks = {
+            "the export-snapshot traversal returns the method's facts": traversal == method,
+            "no reader problem": not problems,
+            "the export-snapshot traversal answers completely": not incomplete,
+        }
+        relations[relation] = {
+            "facts": len(method),
+            "by_end_pair": dict(sorted(Counter(pair for _s, _t, pair, _w in method).items())),
+            "only_method": _facts_record(method - traversal)[:10],
+            "only_traversal": _facts_record(traversal - method)[:10],
+            "problems": list(problems)[:10],
+            "incomplete": [dict(record) for record in incomplete][:10],
+            "details": _details(view, method, traversal, problems, incomplete)[:10],
+            "checks": checks,
+            "passed": all(checks.values()),
+        }
+    closure = export_allocation_closure(view)
+    return {
+        "schema": EXPORT_PARITY_SCHEMA,
+        "relations": relations,
+        "allocation_end_closure": closure,
+        "notes": [f"{relation} has no fact on this export; the privileged parity requires at least one"
+                  for relation, record in relations.items() if not record["facts"]],
+        "passed": all(record["passed"] for record in relations.values()) and closure["passed"],
+        "claim_boundary": ("consistency of the method's reading and the export-snapshot traversal on one "
+                           "export; no satisfaction, realization, deployment or compliance claim"),
     }
 
 
@@ -205,5 +332,6 @@ def parity_report(export_view: ModelView, api_view: ModelView) -> dict[str, Any]
     }
 
 
-__all__ = ["ALLOCATED_TO", "Fact", "PARITY_RELATIONS", "PARITY_SCHEMA", "allocation_end_closure",
-           "connectors", "end_pair", "method_facts", "parity_report", "relation_parity", "traversal_facts"]
+__all__ = ["ALLOCATED_TO", "EXPORT_PARITY_SCHEMA", "Fact", "PARITY_RELATIONS", "PARITY_SCHEMA",
+           "allocation_end_closure", "connectors", "end_pair", "export_allocation_closure", "export_parity",
+           "method_facts", "parity_report", "relation_parity", "traversal_facts"]
