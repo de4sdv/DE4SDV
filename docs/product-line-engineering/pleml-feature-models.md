@@ -52,7 +52,9 @@ How the catalogue is restated:
   family to the excluded System 2 concern, the vehicle-target family to the
   deferred vehicle runtime variability.
 - **Projection metadata.** Each feature model carries its catalogue's
-  projection block, and each configuration the name of its projection.
+  projection block, and each configuration the name of its projection. The
+  metadata sits in the body of the element it annotates, never in an `about`
+  from outside, because the evaluator reads only the metadata an element owns.
 - **Descriptions.** The doc of a configuration is its Bill-of-Features'
   description, a `false` selection is a `[0]` redefinition, and an unlisted
   feature is left unset.

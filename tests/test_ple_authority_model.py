@@ -285,13 +285,24 @@ def _variants(superset: Path, owner: str, variation: str) -> set[str]:
     return set(re.findall(r"\bvariant part (\w+)", inner))
 
 
-def _metadata_about(path: Path | str, metadata: str) -> dict[str, dict[str, str]]:
-    """``@<metadata> about <element> { name = "value"; }`` as element -> attributes."""
-    found = {}
-    for match in re.finditer(rf"@{metadata} about (\w+)\s*\{{(.*?)\}}", _code(path), re.DOTALL):
-        assert match[1] not in found, match[1]
-        found[match[1]] = dict(re.findall(r'(\w+) = "([^"]*)";', match[2]))
+def _owned_metadata(body: str, metadata: str) -> list[dict[str, str]]:
+    """The ``@<metadata> { name = "value"; }`` blocks that ``body`` owns directly, as attribute maps.
+
+    Kernel metadata sits in the body of the element it annotates; a block
+    nested in a member of that element annotates the member instead.
+    """
+    found = []
+    for match in re.finditer(rf"@{metadata}\s*\{{", body):
+        prefix = body[:match.start()]
+        if prefix.count("{") != prefix.count("}"):
+            continue
+        inner, _end = _braced(body, match.end() - 1)
+        found.append(dict(re.findall(r'(\w+) = "([^"]*)";', inner)))
     return found
+
+
+#: Metadata applied from outside the annotated element: ``@M about X`` or ``metadata m : M about X``.
+_METADATA_ABOUT = re.compile(r"(?:@\s*[\w:]+|\bmetadata\s+(?:\w+\s*)?:\s*[\w:]+)\s+about\b")
 
 
 # -- the fence --------------------------------------------------------------------------------
@@ -689,8 +700,30 @@ def test_the_feature_model_carries_the_catalogue_projection_block(name: str) -> 
     family = FAMILIES[name]
     data, _root, _constraints = _catalogue(family)
     projection = configurator.projection_metadata(data)
-    assert _metadata_about(family.model, "ProductModelProjection") == {family.feature_model: {
-        "packageName": projection["package"], "ownerName": projection["owner"], "label": projection["label"]}}
+    code = _code(family.model)
+    [match] = re.finditer(rf"#featureModel occurrence def {family.feature_model}\s*\{{", code)
+    body, _end = _braced(code, match.end() - 1)
+    assert _owned_metadata(body, "ProductModelProjection") == [{
+        "packageName": projection["package"], "ownerName": projection["owner"], "label": projection["label"]}]
+    assert len(re.findall(r"@ProductModelProjection\b", code)) == 1, "the projection is owned by the feature model only"
+
+
+@pytest.mark.parametrize("path", PLEML_FILES)
+def test_kernel_metadata_sits_in_the_body_of_the_element_it_annotates(path: str) -> None:
+    """The evaluator reads only the metadata an element owns, the prefix ``#M`` or a body ``@M``,
+    so metadata applied from outside with ``about`` is refused here before the licensed run."""
+    assert not _METADATA_ABOUT.findall(_code(path))
+
+
+@pytest.mark.parametrize("text", [
+    "@ProductModelProjection about M { label = \"x\"; }",
+    "@DE4SDV_ProductLineDerivation::ProductModelProjectionName about c { partDefinitionName = \"X\"; }",
+    "metadata name : ProductModelProjectionName about c { partDefinitionName = \"X\"; }",
+    "metadata : UnassignedBindingTime about f;",
+])
+def test_the_about_guard_refuses_metadata_applied_from_outside(text: str) -> None:
+    assert _METADATA_ABOUT.findall(text)
+    assert not _METADATA_ABOUT.findall("comment about f /* a comment is no metadata */")
 
 
 def _governed_elements() -> set[str]:
@@ -815,12 +848,13 @@ def test_the_configuration_restates_its_bill_of_features(bill: Path) -> None:
     configuration = _configuration_of(bill)
     code = _code(configuration)
     [match] = list(_CONFIGURATION.finditer(code))
-    usage, tree = match[1], match[2]
+    tree = match[2]
     assert tree == family.tree
     assert f"private import {family.package}::{family.tree};" in code
     body, _end = _braced(code, match.end() - 1)
     assert _redefinitions(body) == _expected_redefinitions(family, data)
-    assert _metadata_about(configuration, "ProductModelProjectionName") == {usage: {"partDefinitionName": data["name"]}}
+    assert _owned_metadata(body, "ProductModelProjectionName") == [{"partDefinitionName": data["name"]}]
+    assert len(re.findall(r"@ProductModelProjectionName\b", code)) == 1, "the name is owned by the configuration only"
 
 
 @pytest.mark.parametrize("bill", BILLS, ids=lambda path: path.stem)

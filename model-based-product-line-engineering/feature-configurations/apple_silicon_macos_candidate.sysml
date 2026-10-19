@@ -16,6 +16,9 @@ package DE4SDV_AppleSiliconMacOSCandidateConfiguration {
              * M-series Mac running macOS with a virtualized Linux/ARM64 OCI
              * environment. No specific Mac, container implementation, or DE4SDV
              * runtime result is claimed. */
+        @ProductModelProjectionName {
+            partDefinitionName = "AppleSiliconMacOSCandidate";
+        }
 
         #feature occurrence :>> environment[1] {
             #feature occurrence :>> computeNode[1] = (appleSiliconMac);
@@ -25,8 +28,5 @@ package DE4SDV_AppleSiliconMacOSCandidateConfiguration {
             #feature occurrence :>> executionRuntime[1] = (virtualizedLinuxArm64OCIOnMacOS);
             #feature occurrence :>> virtualizedLinuxArm64OCIOnMacOS[1];
         }
-    }
-    @ProductModelProjectionName about appleSiliconMacOSCandidate {
-        partDefinitionName = "AppleSiliconMacOSCandidate";
     }
 }

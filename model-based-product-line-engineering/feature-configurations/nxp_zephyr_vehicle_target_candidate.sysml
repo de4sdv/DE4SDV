@@ -18,6 +18,9 @@ package DE4SDV_NXPZephyrVehicleTargetCandidateConfiguration {
              * execution. This does not claim that the Autoware ROS 2 application
              * composition executes on Zephyr; software allocation and
              * vehicle-platform interfaces remain unresolved. */
+        @ProductModelProjectionName {
+            partDefinitionName = "NXPZephyrVehicleTargetCandidate";
+        }
 
         #feature occurrence :>> environment[1] {
             #feature occurrence :>> computeNode[1] = (nxpVehicleCompute);
@@ -27,8 +30,5 @@ package DE4SDV_NXPZephyrVehicleTargetCandidateConfiguration {
             #feature occurrence :>> executionRuntime[1] = (nativeZephyr);
             #feature occurrence :>> nativeZephyr[1];
         }
-    }
-    @ProductModelProjectionName about nxpZephyrVehicleTargetCandidate {
-        partDefinitionName = "NXPZephyrVehicleTargetCandidate";
     }
 }

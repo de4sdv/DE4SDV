@@ -81,14 +81,15 @@ package DE4SDV_EngineeringExecutionEnvironmentFeatureModel {
 
     #featureModel occurrence def EngineeringExecutionEnvironmentFeatureModel {
         doc /* The engineering execution-environment feature model: the feature
-             * tree. Each configuration specializes the tree in its own file,
-             * one per bill of features. */
+             * tree, and the product-model projection that its configurations
+             * generate. Each configuration specializes the tree in its own
+             * file, one per bill of features. */
+        @ProductModelProjection {
+            packageName = "DE4SDV_ExecutionEnvironments";
+            ownerName = "EngineeringExecutionEnvironment";
+            label = "engineering execution-environment";
+        }
         #featureTree occurrence engineeringExecutionEnvironmentFeatureTree : EngineeringExecutionEnvironmentFeatureTree :> featureTrees;
-    }
-    @ProductModelProjection about EngineeringExecutionEnvironmentFeatureModel {
-        packageName = "DE4SDV_ExecutionEnvironments";
-        ownerName = "EngineeringExecutionEnvironment";
-        label = "engineering execution-environment";
     }
 
     /*

@@ -16,6 +16,9 @@ package DE4SDV_ExampleLinuxSCOREVariantConfiguration {
         doc /* Single-domain reference configuration.
              * Autoware (ADAS) on Eclipse S-CORE on Linux, no hypervisor.
              * Vehicle-target AEBS only (no pedestrian/bicycle detection). */
+        @ProductModelProjectionName {
+            partDefinitionName = "ExampleLinuxSCOREVariant";
+        }
 
         #feature occurrence :>> platformStack[1] {
             #feature occurrence :>> vehicleApplication[1] = (autoware);
@@ -38,8 +41,5 @@ package DE4SDV_ExampleLinuxSCOREVariantConfiguration {
             #feature occurrence :>> adaptiveCruiseControl[0];
             #feature occurrence :>> laneKeepAssist[0];
         }
-    }
-    @ProductModelProjectionName about exampleLinuxSCOREVariant {
-        partDefinitionName = "ExampleLinuxSCOREVariant";
     }
 }

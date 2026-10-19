@@ -77,14 +77,15 @@ package DE4SDV_VehicleTargetExecutionEnvironmentFeatureModel {
 
     #featureModel occurrence def VehicleTargetExecutionEnvironmentFeatureModel {
         doc /* The vehicle-target execution-environment feature model: the
-             * feature tree. Each configuration specializes the tree in its own
-             * file, one per bill of features. */
+             * feature tree, and the product-model projection that its
+             * configurations generate. Each configuration specializes the tree
+             * in its own file, one per bill of features. */
+        @ProductModelProjection {
+            packageName = "DE4SDV_ExecutionEnvironments";
+            ownerName = "VehicleTargetExecutionEnvironment";
+            label = "vehicle-target execution-environment";
+        }
         #featureTree occurrence vehicleTargetExecutionEnvironmentFeatureTree : VehicleTargetExecutionEnvironmentFeatureTree :> featureTrees;
-    }
-    @ProductModelProjection about VehicleTargetExecutionEnvironmentFeatureModel {
-        packageName = "DE4SDV_ExecutionEnvironments";
-        ownerName = "VehicleTargetExecutionEnvironment";
-        label = "vehicle-target execution-environment";
     }
 
     /*

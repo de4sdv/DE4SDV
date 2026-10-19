@@ -16,6 +16,9 @@ package DE4SDV_ApolloQNXQVMVariantConfiguration {
         doc /* Mixed-criticality reference configuration.
              * Apollo (ADAS) on Eclipse S-CORE on QNX with QNX QVM hypervisor.
              * Vehicle-target AEBS only. */
+        @ProductModelProjectionName {
+            partDefinitionName = "ApolloQNXQVMVariant";
+        }
 
         #feature occurrence :>> platformStack[1] {
             #feature occurrence :>> vehicleApplication[1] = (apollo);
@@ -38,8 +41,5 @@ package DE4SDV_ApolloQNXQVMVariantConfiguration {
             #feature occurrence :>> adaptiveCruiseControl[0];
             #feature occurrence :>> laneKeepAssist[0];
         }
-    }
-    @ProductModelProjectionName about apolloQNXQVMVariant {
-        partDefinitionName = "ApolloQNXQVMVariant";
     }
 }

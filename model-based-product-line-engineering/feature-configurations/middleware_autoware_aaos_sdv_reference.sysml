@@ -21,6 +21,9 @@ package DE4SDV_MiddlewareAutowareAAOSSDVReferenceConfiguration {
              * binding, discovery, transport, adapter deployment, ROS 2
              * publication, Autoware observation, safety, compliance, or runtime
              * interoperability. */
+        @ProductModelProjectionName {
+            partDefinitionName = "MiddlewareAutowareAAOSSDVReference";
+        }
 
         #feature occurrence :>> platformStack[1] {
             #feature occurrence :>> vehicleApplication[1] = (autoware);
@@ -43,8 +46,5 @@ package DE4SDV_MiddlewareAutowareAAOSSDVReferenceConfiguration {
             #feature occurrence :>> adaptiveCruiseControl[0];
             #feature occurrence :>> laneKeepAssist[0];
         }
-    }
-    @ProductModelProjectionName about middlewareAutowareAAOSSDVReference {
-        partDefinitionName = "MiddlewareAutowareAAOSSDVReference";
     }
 }

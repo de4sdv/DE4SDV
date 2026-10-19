@@ -16,6 +16,9 @@ package DE4SDV_AEBSAutowareLinuxLidarCameraConfiguration {
              * Autoware on Linux, single-domain (no middleware, no hypervisor).
              * LiDAR + camera perception, IMU + wheel odometry common.
              * Vehicle-target AEBS only (no pedestrian/bicycle detection). */
+        @ProductModelProjectionName {
+            partDefinitionName = "AEBSAutowareLinuxLidarCamera";
+        }
 
         #feature occurrence :>> platformStack[1] {
             #feature occurrence :>> vehicleApplication[1] = (autoware);
@@ -38,8 +41,5 @@ package DE4SDV_AEBSAutowareLinuxLidarCameraConfiguration {
             #feature occurrence :>> adaptiveCruiseControl[0];
             #feature occurrence :>> laneKeepAssist[0];
         }
-    }
-    @ProductModelProjectionName about aebsAutowareLinuxLidarCamera {
-        partDefinitionName = "AEBSAutowareLinuxLidarCamera";
     }
 }

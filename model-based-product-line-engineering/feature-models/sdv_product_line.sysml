@@ -127,16 +127,17 @@ package DE4SDV_SDVProductLineFeatureModel {
     }
 
     #featureModel occurrence def SDVProductLineFeatureModel {
-        doc /* The SDV product-line feature model: the feature tree. Each
+        doc /* The SDV product-line feature model: the feature tree, and the
+             * product-model projection that its configurations generate. Each
              * configuration specializes the tree in its own file, one per
              * bill of features, so the invalid fixture can stay outside the
              * authority roots. */
+        @ProductModelProjection {
+            packageName = "DE4SDV_SDVPlatformStack";
+            ownerName = "SDVPlatformStack";
+            label = "platform-stack";
+        }
         #featureTree occurrence sdvProductLineFeatureTree : SDVProductLineFeatureTree :> featureTrees;
-    }
-    @ProductModelProjection about SDVProductLineFeatureModel {
-        packageName = "DE4SDV_SDVPlatformStack";
-        ownerName = "SDVPlatformStack";
-        label = "platform-stack";
     }
 
     /*

@@ -18,6 +18,9 @@ package DE4SDV_INCAEBS009AJetsonExecutionEnvironmentConfiguration {
              * Historical 009A runtime evidence proves a Jetson 8 GiB context but
              * does not identify the exact SKU; this configuration therefore does
              * not claim exact-SKU execution continuity. */
+        @ProductModelProjectionName {
+            partDefinitionName = "INCAEBS009AJetsonExecutionEnvironment";
+        }
 
         #feature occurrence :>> environment[1] {
             #feature occurrence :>> computeNode[1] = (jetsonOrinNano);
@@ -27,8 +30,5 @@ package DE4SDV_INCAEBS009AJetsonExecutionEnvironmentConfiguration {
             #feature occurrence :>> executionRuntime[1] = (nativeLinuxArm64OCI);
             #feature occurrence :>> nativeLinuxArm64OCI[1];
         }
-    }
-    @ProductModelProjectionName about incAEBS009AJetsonExecutionEnvironment {
-        partDefinitionName = "INCAEBS009AJetsonExecutionEnvironment";
     }
 }

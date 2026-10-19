@@ -15,6 +15,9 @@ package DE4SDV_InvalidSCOREAndroidVariantConfiguration {
     #featureConfiguration occurrence invalidSCOREAndroidVariant : SDVProductLineFeatureTree :> featureConfigurations {
         doc /* Deliberately invalid: S-CORE + Android HLOS.
              * Should fail constraint C001. */
+        @ProductModelProjectionName {
+            partDefinitionName = "InvalidSCOREAndroidVariant";
+        }
 
         #feature occurrence :>> platformStack[1] {
             #feature occurrence :>> vehicleApplication[1] = (autoware);
@@ -36,8 +39,5 @@ package DE4SDV_InvalidSCOREAndroidVariantConfiguration {
             #feature occurrence :>> adaptiveCruiseControl[0];
             #feature occurrence :>> laneKeepAssist[0];
         }
-    }
-    @ProductModelProjectionName about invalidSCOREAndroidVariant {
-        partDefinitionName = "InvalidSCOREAndroidVariant";
     }
 }
