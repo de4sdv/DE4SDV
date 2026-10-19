@@ -3,7 +3,8 @@
 This cleanup retires live Git binding and the copied documentation oracle, not model
 ownership or contract validation. The manifest holds the reviewed contract
 fields; the generated rows label them with their pre-deletion comparison
-evidence, which is archived at the release-2026-10-11 tag.
+evidence, which is archived at the release-2026-10-11 tag, or say that none
+exists for a class a method pull request admitted after the deletion.
 Synthetic negative tests preserve successor, retirement, about-target, carrier,
 lineage, external-reference, PLE and non-claim guards. No real model copies.
 """
@@ -37,6 +38,12 @@ OTHER_LAYERS = {
 }
 NEW_SUCCESSOR_PREDICATES = {"hasValidationScenario", "hasRegulatorySource"}
 MERGED_ALIASES = {"validatesFitnessForUse"}
+#: Classes a method pull request admitted after the authored ontology's
+#: deletion (ADR 0022 step S2k): no authored-ontology comparison exists for them.
+METHOD_ADMITTED_CLASSES = {"DerivationRule", "DerivedVariation", "ProductModelProjection",
+                           "ProductModelProjectionName", "UnassignedBindingTime"}
+#: Rows whose manifest-held fields were proven equal to the authored ontology.
+ONTOLOGY_COMPARED_HELD_ROWS = 49
 #: Owner decision 2026-10-06 (ADR 0020 D4 follow-up): the closure is exactly these.
 AEBS = "textual-notation-of-model/packages/features/aebs/"
 EC_CLOSURE = {
@@ -185,7 +192,9 @@ def test_manifest_held_contract_fields_equal_the_recorded_values():
     rows = _rows()
     assert set(recorded["entries"]) == set(rows)
     held = {identity: entry for identity, entry in recorded["entries"].items() if entry["manifest"]}
-    assert len(held) == recorded["rows_with_manifest_held_contract_fields"] == 49
+    assert len(held) == recorded["rows_with_manifest_held_contract_fields"] == (
+        ONTOLOGY_COMPARED_HELD_ROWS + len(METHOD_ADMITTED_CLASSES))
+    assert {i for i, r in rows.items() if r["register"]["accounting"] == "method-admitted"} == METHOD_ADMITTED_CLASSES
     for identity, row in rows.items():
         entry = recorded["entries"][identity]
         assert row["admission_class"] == entry["admission_class"], identity
@@ -212,16 +221,23 @@ def test_manifest_gates_match_the_register_gate_decisions():
 def test_every_contract_row_is_labeled_manifest_held():
     """Every generated row with manifest-held contract fields says so."""
     projected = {row["identity"]: row for row in _outputs()["projection_rows"]}
-    labeled = 0
+    labeled = compared = 0
     for identity, row in projected.items():
         for source in ((row.get("relation") or {}).get("contract_source"),
                        (row.get("grounding") or {}).get("contract_source")):
             if source:
                 labeled += 1
                 assert "reviewed admission-manifest" in source, identity
-                assert "closure/contract-equivalence.json" in source, identity
                 assert "test-locked to the authored ontology" not in source, identity
-    assert labeled == 49
+                if identity in METHOD_ADMITTED_CLASSES:
+                    # Admitted after the deletion: the row never claims a comparison.
+                    assert "no authored-ontology comparison exists" in source, identity
+                    assert "contract-equivalence.json" not in source and "parity" not in source, identity
+                else:
+                    compared += 1
+                    assert "closure/contract-equivalence.json" in source, identity
+    assert compared == ONTOLOGY_COMPARED_HELD_ROWS
+    assert labeled == ONTOLOGY_COMPARED_HELD_ROWS + len(METHOD_ADMITTED_CLASSES)
 
 
 def test_successors_and_retired_names_follow_the_relationship_redesign():
@@ -506,6 +522,8 @@ _NEGATIVE_MANIFESTS = {
                                                                       "mechanics": {"strategy": "dependency"}}),
     "retired name without retirement home": lambda r, m: r["oldAlphaLink"].update({"home": copy.deepcopy(r["betaLink"]["home"])}),
     "traversal claim key": lambda r, m: r["betaLink"].update({"traversal": True}),
+    "method-admitted relationship": lambda r, m: r["betaLink"].update(
+        {"register": {"wave": None, "accounting": "method-admitted"}}),
 }
 
 
@@ -529,7 +547,36 @@ _NEGATIVE_REASONS = {
     "ple row with runtime class": "PLE configuration rows stay vocabulary-only",
     "retired name without retirement home": "homed by a retirement record",
     "traversal claim key": "unknown keys",
+    "method-admitted relationship": "a method-admitted row is a class definition",
 }
+
+
+def test_method_admitted_metadata_class_is_projected_without_a_comparison_claim(tmp_path):
+    """A class a method pull request admits after the deletion (synthetic metadata
+    definition) gets a metadata-definition profile and a row that never claims an
+    authored-ontology comparison; a compared row keeps its parity label."""
+    sysml = _FIXTURE_SYSML.replace(
+        "  doc BetaOntologyDefinition",
+        "  metadata def Gamma {\n    doc /* Gamma is a method-admitted fixture definition. */\n  }\n"
+        "  doc BetaOntologyDefinition", 1)
+    gamma = {
+        "identity": "Gamma", "semantic_kind": "class", "admission_class": "definition",
+        "register": {"wave": None, "accounting": "method-admitted"}, "boundary": "none",
+        "home": {"form": "owned-doc", "file": _FIXTURE_FILE, "owner": "metadata def Gamma", "index": 0},
+        "grounding": {"kernel_mapping": {"file": _FIXTURE_FILE, "declaration": "metadata def Gamma"},
+                      "sub_class_of": None, "disjoint_with": []},
+        "gates": [], "forward_obligations": [],
+    }
+    outputs = _build(_fixture(tmp_path, manifest=_mutated(lambda r, m: m["admitted"].append(gamma)), sysml=sysml))
+    rows = {row["identity"]: row for row in outputs["projection_rows"]}
+    profiles = {entry["for_concept"]: entry for entry in outputs["profile_entries"]}
+    assert rows["Gamma"]["accounting"] == "method-admitted"
+    assert rows["Gamma"]["definition"]["documentation"] == "Gamma is a method-admitted fixture definition."
+    source = rows["Gamma"]["grounding"]["contract_source"]
+    assert "no authored-ontology comparison exists" in source and "parity" not in source
+    assert "closure/contract-equivalence.json" in rows["Alpha"]["grounding"]["contract_source"]
+    assert profiles["Gamma"]["representation_class"] == "metadata-definition"
+    assert profiles["Gamma"]["binding_contract_echo"]["api_metaclass"] == "MetadataDefinition"
 
 
 def test_gate_records_archived_at_a_release_tag_are_tag_qualified(tmp_path):
