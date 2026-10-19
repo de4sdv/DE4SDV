@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from de4sdv.semantic import pleml_configuration as evaluator
+from de4sdv.semantic import pleml_package
 from de4sdv.sysml_api.baseline import BaselineExportBundle
 from de4sdv.sysml_api.product_line_scope import SCOPE_SOURCE, ScopeSemanticError, validate_scope_elements
 
@@ -33,7 +34,22 @@ RECEIPT_SCHEMA = "de4sdv.pleml-configuration-receipt/v1"
 ELEMENTS_SCHEMA = "de4sdv.pleml-configuration-elements/v1"
 #: The source-manifest roles of the authority bundle that mark the PLEML model documents.
 MODEL_ROLES = ("pleml-feature-model", "pleml-feature-configuration", "pleml-fixture")
-EVALUATOR = "de4sdv/semantic/pleml_configuration.py"
+#: The provenance of one licensed run. A receipt records it beside the elements, never inside them, so the
+#: same serialization on another commit gives the same elements file and the same digests.
+PROVENANCE = ("executor_revision", "bundle_git_commit")
+#: The modules whose code decides an evaluation, relative to the tree of the running evaluator. A change
+#: to any of them makes every receipt stale until it is refreshed.
+EVALUATOR_MODULES = (
+    "de4sdv/semantic/pleml_configuration.py",
+    "de4sdv/semantic/pleml_receipts.py",
+    "de4sdv/semantic/pleml_package.py",
+    "de4sdv/semantic/kernel_contract.py",
+    "de4sdv/semantic/validation.py",
+    "de4sdv/sysml_api/baseline.py",
+    "de4sdv/sysml_api/product_line_scope.py",
+    "de4sdv/sysml_api/repository.py",
+    "de4sdv/sysml_api/revisions.py",
+)
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -97,16 +113,29 @@ def _carries_uri(value: Any) -> bool:
     return False
 
 
+def pinned_library() -> dict[str, str]:
+    """The PLEML release the fenced package pins, which every receipt binds."""
+    release = pleml_package.RELEASE
+    return {"package": pleml_package.PACKAGE, "version": release.version, "tag_commit": release.tag_commit,
+            "path": pleml_package.LIBRARY_PATH.as_posix(), "sha256": release.library.sha256}
+
+
+def run_provenance(bundle: BaselineExportBundle, serializer: Mapping[str, Any]) -> dict[str, Any]:
+    """The provenance of the licensed run that produced a bundle."""
+    return {"executor_revision": serializer.get("executor_revision"), "bundle_git_commit": bundle.git_commit}
+
+
 def payload_from_bundle(bundle: BaselineExportBundle | Mapping[str, Any], *, serializer: Mapping[str, Any],
                         model_sources: Iterable[str] | None = None) -> dict[str, Any]:
     """The elements payload of a licensed authority bundle, read by the production bundle reader.
 
     The model documents are those the bundle's source manifest marks with a
-    PLEML role, unless ``model_sources`` names them. The pinned library must
-    carry the label of the fenced package, ``LIBRARY_SOURCE``. References are
-    element identities only: the resource path of a serializer URI depends on
-    the checkout and on where the library is provisioned, so a receipt keeps
-    none, and a bundle element that carries one is refused.
+    PLEML role, unless ``model_sources`` names them. The PLEML library must be
+    the pinned release: the label of the fenced package and the digest of its
+    tag. References are element identities only: the resource path of a
+    serializer URI depends on the checkout and on where the library is
+    provisioned, so a receipt keeps none, and a bundle element that carries
+    one is refused. The run provenance stays out of the payload.
     """
     if not isinstance(bundle, BaselineExportBundle):
         bundle = BaselineExportBundle.from_dict(dict(bundle))
@@ -120,10 +149,15 @@ def payload_from_bundle(bundle: BaselineExportBundle | Mapping[str, Any], *, ser
     if len(set(labels)) != len(labels) or present - set(labels):
         raise ValueError("the bundle's source manifest must name each of its documents once; unnamed: "
                          f"{sorted(present - set(labels))}")
-    if evaluator.LIBRARY_SOURCE not in present:
+    library = pinned_library()
+    if evaluator.LIBRARY_SOURCE not in present or library["path"] != evaluator.LIBRARY_SOURCE:
         found = sorted(label for label in present if label.endswith("PLEML.sysml"))
         raise ValueError(f"the bundle carries no PLEML library at {evaluator.LIBRARY_SOURCE}, the label of the "
                          f"fenced package; it carries {found or 'none'}")
+    entry = next(item for item in manifest if item.get("path") == library["path"])
+    if entry.get("sha256") != library["sha256"]:
+        raise ValueError(f"the bundle's PLEML library is not the pinned {library['version']}: its sha256 is "
+                         f"{entry.get('sha256')}, the tag's {library['sha256']}")
     models = sorted(model_sources if model_sources is not None else
                     (item["path"] for item in manifest if item.get("authority") in MODEL_ROLES))
     if not models:
@@ -133,7 +167,8 @@ def payload_from_bundle(bundle: BaselineExportBundle | Mapping[str, Any], *, ser
     return elements_payload(
         elements=bundle.to_dict()["elements"], element_sources=bundle.element_sources, model_sources=models,
         library_source=evaluator.LIBRARY_SOURCE, kernel_source=evaluator.KERNEL_SOURCE, source_manifest=manifest,
-        serializer={**serializer, "bundle_git_commit": bundle.git_commit}, external_references=external)
+        serializer={key: value for key, value in serializer.items() if key not in PROVENANCE},
+        external_references=external)
 
 
 @lru_cache(maxsize=4)
@@ -173,14 +208,20 @@ def evaluate_payload(payload: Mapping[str, Any], *, model_sources: Iterable[str]
 # -- receipts ------------------------------------------------------------------------------
 
 
+def evaluator_identity() -> dict[str, Any]:
+    """The digest of every module that decides an evaluation, in the tree of the evaluator that runs."""
+    base = Path(evaluator.__file__).resolve().parents[2]
+    modules = {module: sha256((base / module).read_bytes()) for module in EVALUATOR_MODULES}
+    return {"modules": modules, "sha256": sha256(canonical(modules))}
+
+
 def evaluator_digest() -> str:
-    """The digest of the evaluator code that runs (the imported module, wherever the tree is)."""
-    return sha256(Path(evaluator.__file__).read_bytes())
+    return evaluator_identity()["sha256"]
 
 
 def build_receipt(payload: Mapping[str, Any], *, elements_file: str, elements_sha256: str,
                   model_sources: Iterable[str] | None = None, shadow: Mapping[str, Any] | None = None,
-                  contract: Any = None) -> dict[str, Any]:
+                  provenance: Mapping[str, Any] | None = None, contract: Any = None) -> dict[str, Any]:
     """The receipt of the feature models in ``model_sources``: inputs by digest, the evaluation, the shadow."""
     models = sorted(payload["model_sources"] if model_sources is None else model_sources)
     evaluation = evaluate_payload(payload, model_sources=models, contract=contract)
@@ -189,9 +230,11 @@ def build_receipt(payload: Mapping[str, Any], *, elements_file: str, elements_sh
         "feature_models": [item["feature_model"] for item in evaluation["feature_models"]],
         "model_sources": models,
         "elements": {"path": elements_file, "sha256": elements_sha256, "content_sha256": sha256(canonical(payload))},
+        "library": pinned_library(),
         "serializer": payload["serializer"],
+        "provenance": dict(provenance or {}),
         "sources": payload["source_manifest"],
-        "evaluator": {"path": EVALUATOR, "sha256": evaluator_digest()},
+        "evaluator": evaluator_identity(),
         "evaluation": evaluation,
         "shadow": dict(shadow or {}),
         "native_expression_executed": False,
@@ -223,12 +266,24 @@ def stale_reasons(receipt: Mapping[str, Any], receipt_path: Path, root: Path = R
         reasons.append("the elements content differs from the receipt's content digest")
     if payload["source_manifest"] != receipt.get("sources"):
         reasons.append("the receipt and its elements name different sources")
+    pinned = pinned_library()
+    bound = receipt.get("library") or {}
+    if bound != pinned:
+        reasons.append(f"the receipt binds PLEML {bound.get('version')} at {bound.get('path')}, and the fenced "
+                       f"package pins {pinned['version']} at {pinned['path']}; rerun the licensed evaluation")
+    library = {source["path"]: source for source in receipt.get("sources") or []}.get(pinned["path"])
+    if payload["library_source"] != pinned["path"] or library is None or library.get("sha256") != pinned["sha256"]:
+        reasons.append("the elements were not serialized with the pinned PLEML library; rerun the licensed "
+                       "evaluation")
     for source in receipt.get("sources") or []:
         path = root / source["path"]
         if path.is_file():
             if sha256(path.read_bytes()) != source.get("sha256"):
                 reasons.append(f"{source['path']} changed after the serialization; rerun the licensed evaluation")
-        elif _tracked(root, source["path"]) or ".sysand" not in Path(source["path"]).parts:
+        elif source["path"] == pinned["path"]:
+            reasons.append(f"the pinned PLEML library {source['path']} is missing; run sysand sync in "
+                           f"{pleml_package.PROJECT.as_posix()}")
+        else:
             reasons.append(f"{source['path']} is missing; rerun the licensed evaluation")
     if (receipt.get("evaluator") or {}).get("sha256") != evaluator_digest():
         reasons.append("the receipt was evaluated by another evaluator revision; refresh it offline")
@@ -251,9 +306,9 @@ def replay(receipt_path: Path, root: Path = ROOT, *, shadow: Mapping[str, Any] |
     return receipt
 
 
-def refresh(receipt_path: Path, root: Path = ROOT, *, shadow: Mapping[str, Any] | None = None,
-            contract: Any = None) -> dict[str, Any]:
-    """Re-evaluate a receipt offline when only the evaluator changed; elements and sources must still match."""
+def refreshed(receipt_path: Path, root: Path = ROOT, *, shadow: Mapping[str, Any] | None = None,
+              contract: Any = None) -> dict[str, Any]:
+    """A receipt re-evaluated offline when only the evaluator changed; elements and sources must still match."""
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     reasons = [reason for reason in stale_reasons(receipt, receipt_path, root) if "evaluator revision" not in reason]
     if reasons:
@@ -261,13 +316,56 @@ def refresh(receipt_path: Path, root: Path = ROOT, *, shadow: Mapping[str, Any] 
     payload = read_elements(receipt_path.parent / receipt["elements"]["path"])
     fresh = build_receipt(payload, elements_file=receipt["elements"]["path"],
                           elements_sha256=receipt["elements"]["sha256"], model_sources=receipt.get("model_sources"),
-                          shadow=receipt.get("shadow") if shadow is None else shadow, contract=contract)
-    fresh["serializer"] = receipt.get("serializer") or fresh["serializer"]  # the serialization did not change
+                          shadow=receipt.get("shadow") if shadow is None else shadow,
+                          provenance=receipt.get("provenance"), contract=contract)
     previous = (receipt.get("evaluator") or {}).get("sha256")
     if previous != fresh["evaluator"]["sha256"]:
         fresh["evaluator"]["refreshed_from"] = previous
-    receipt_path.write_text(json.dumps(fresh, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return fresh
+
+
+def write_receipt(receipt_path: Path, receipt: Mapping[str, Any]) -> None:
+    receipt_path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def refresh(receipt_path: Path, root: Path = ROOT, *, shadow: Mapping[str, Any] | None = None,
+            contract: Any = None) -> dict[str, Any]:
+    """Rewrite one receipt from its committed elements when only the evaluator changed."""
+    fresh = refreshed(receipt_path, root, shadow=shadow, contract=contract)
+    write_receipt(receipt_path, fresh)
+    return fresh
+
+
+def _elements_identity(receipt_path: Path) -> str:
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    return sha256(canonical(read_elements(receipt_path.parent / str(receipt["elements"]["path"]))))
+
+
+def compare_with_committed(fresh: Iterable[Path], committed: Path) -> list[str]:
+    """Why the committed receipts are not those of a fresh licensed run (empty when they are).
+
+    Their elements must be identical; the run provenance may differ. A receipt
+    that only one side has fails too. This is the authenticity check of the
+    committed elements: offline replay cannot tell a consistent edit of an
+    elements file and its receipts, so a licensed run compares every head that
+    carries receipts.
+    """
+    fresh_by_name = {path.name: path for path in fresh}
+    present = {path.name: path for path in committed.glob("*.receipt.json")} if committed.is_dir() else {}
+    failures = [f"{name}: committed, but the fresh run writes no such receipt"
+                for name in sorted(set(present) - set(fresh_by_name))]
+    for name in sorted(fresh_by_name):
+        if name not in present:
+            failures.append(f"{name}: not committed; commit the fresh receipts and their elements")
+            continue
+        try:
+            same = _elements_identity(present[name]) == _elements_identity(fresh_by_name[name])
+        except (StaleReceipt, OSError, ValueError, KeyError) as exc:
+            failures.append(f"{name}: {exc}")
+            continue
+        if not same:
+            failures.append(f"{name}: the committed elements differ from the fresh serialization")
+    return failures
 
 
 # -- writer inputs and the normalised body (plan section 5) ---------------------------------

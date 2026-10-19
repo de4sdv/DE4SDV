@@ -332,6 +332,14 @@ class _Graph:
         """Relationships owned by ``owner`` in document order, optionally of the given metatypes."""
         return [item for item in self.owned.get(owner, []) if not kinds or self.by_id[item]["@type"] in kinds]
 
+    def endpoints(self, dependency: str, primary: str, alias: str) -> list[str]:
+        """One endpoint list of a dependency, whether the serializer emits it under one name or both."""
+        element = self.by_id[dependency]
+        first, second = self.targets(element, primary), self.targets(element, alias)
+        if first and second and set(first) != set(second):
+            raise PlemlShapeError(f"dependency {self.label(dependency)} has different {primary} and {alias} lists")
+        return first or second
+
     def member_of(self, relationship: str) -> str | None:
         element = self.by_id[relationship]
         member = self.target(element, "memberElement")
@@ -566,6 +574,8 @@ class _Identity:
                 continue
             name = graph.label(definitions[0])
             owner = graph.owner(usage)  # the element itself, or the annotated owner of a prefix annotation
+            if owner is None:
+                raise PlemlShapeError(f"{name} metadata usage {usage} has no owner among the evaluated elements")
             annotated = {graph.target(graph.by_id[relationship], "annotatedElement")
                          for relationship in graph.relationships(usage, "Annotation")}
             if annotated - {owner} or graph.kind(owner or "") in {"Package", "LibraryPackage", "Namespace"}:
@@ -674,6 +684,7 @@ class _FeatureModel:
         self.features: dict[str, _Feature] = {}
         self.constraints: list[_Constraint] = []
         self.errors: list[str] = []
+        self.consumed: set[str] = set()  # the dependencies this tree reads; evaluate() refuses any other
         for kind in identity.metadata_kinds(tree):
             if kind != "FeatureTreeMetadata":
                 raise PlemlShapeError(f"unsupported metadata on the feature tree: {kind}")
@@ -753,7 +764,9 @@ class _FeatureModel:
                 raise PlemlShapeError(f"duplicate feature path {path}")
             for typing in identity.typings(member):
                 if typing != identity.lib["Feature"]:
-                    raise PlemlShapeError(f"tree feature {path} is typed by {graph.label(typing)}")
+                    raise PlemlShapeError(f"tree feature {path} is typed by {graph.label(typing)}; a PLEML feature is "
+                                          "typed by the library's Feature only, never by a product-line "
+                                          "characteristic")
             self.features[member] = _Feature(member, name, graph.short_name(member), owner, path, multiplicity,
                                              graph.order[member])
             self._walk(member, path)
@@ -878,14 +891,13 @@ class _FeatureModel:
     _ROLES = {"FeatureBinding": "binding", "kernel:derived_variation": "derived-variation",
               "kernel:derivation_rule": "rule", "FeatureConfigurationBinding": "configuration-binding"}
 
+    #: What each role names as its client and supplier, for the refusal of an empty endpoint list.
+    _ENDPOINTS = {"binding": ("binding", "variant", "feature"),
+                  "derived-variation": ("derived variation", "variation", "source feature"),
+                  "rule": ("derivation rule", "resulting variant", "premise")}
+
     def _endpoints(self, dependency: str, primary: str, alias: str) -> list[str]:
-        """One endpoint list of a dependency, whether the serializer emits it under one name or both."""
-        element = self.graph.by_id[dependency]
-        first, second = self.graph.targets(element, primary), self.graph.targets(element, alias)
-        if first and second and set(first) != set(second):
-            raise PlemlShapeError(f"dependency {self.graph.label(dependency)} has different {primary} and {alias} "
-                                  "lists")
-        return first or second
+        return self.graph.endpoints(dependency, primary, alias)
 
     def _dependencies(self) -> dict[str, list[tuple[str, list[str], list[str]]]]:
         """The model's binding, derived-variation and rule dependencies: (dependency, clients, suppliers)."""
@@ -900,8 +912,15 @@ class _FeatureModel:
                 continue  # a plain dependency, such as a correspondence, is not consumed here
             if len(kinds) != 1:
                 raise PlemlShapeError(f"dependency {graph.label(dependency)} carries {kinds}; one role per dependency")
-            found[roles[0]].append((dependency, self._endpoints(dependency, "client", "source"),
-                                    self._endpoints(dependency, "supplier", "target")))
+            if roles[0] == "configuration-binding":
+                raise PlemlShapeError(f"FeatureConfigurationBinding {graph.label(dependency)} is not read: the "
+                                      "projection name metadata names a configuration's product")
+            clients = self._endpoints(dependency, "client", "source")
+            suppliers = self._endpoints(dependency, "supplier", "target")
+            what, client, supplier = self._ENDPOINTS[roles[0]]
+            if not clients or not suppliers:
+                raise PlemlShapeError(f"{what} {graph.label(dependency)} names no {client if not clients else supplier}")
+            found[roles[0]].append((dependency, clients, suppliers))
         return found
 
     def _here(self, features: Sequence[str], what: str) -> bool:
@@ -921,6 +940,7 @@ class _FeatureModel:
             client, supplier = clients[0], suppliers[0]
             if not self._here([supplier], f"binding {graph.label(dependency)}"):
                 continue  # it binds a feature of another tree
+            self.consumed.add(dependency)
             variation = self.variation_of(client)
             if variation is None:
                 raise PlemlShapeError(f"binding {graph.label(dependency)} binds {graph.label(client)}, which is no "
@@ -939,6 +959,7 @@ class _FeatureModel:
         for dependency, clients, suppliers in derived:
             if not self._here(suppliers, f"derived variation {graph.label(dependency)}"):
                 continue
+            self.consumed.add(dependency)
             if len(clients) != 1:
                 raise PlemlShapeError(f"derived variation {graph.label(dependency)} must have exactly one client, "
                                       f"not {len(clients)}")
@@ -952,6 +973,7 @@ class _FeatureModel:
         for dependency, clients, suppliers in rules:
             if not self._here(suppliers, f"derivation rule {graph.label(dependency)}"):
                 continue
+            self.consumed.add(dependency)
             if len(clients) != 1:
                 raise PlemlShapeError(f"derivation rule {graph.label(dependency)} must have exactly one client, "
                                       f"not {len(clients)}")
@@ -1152,6 +1174,7 @@ class _FeatureModel:
                 found.setdefault(client, []).append({"correspondence": graph.name(dependency), "element_id": dependency,
                                                      "governed": name, "governed_id": supplier,
                                                      "classification": kind})
+            self.consumed.add(dependency)
         return found
 
     def _corresponds(self, feature: str, kind: str, governed: str) -> bool:
@@ -1392,6 +1415,11 @@ class _Configuration:
                     self.reason("not-a-feature", f"{graph.label(member)} is no feature: a feature configuration owns "
                                 "only features")
                 continue
+            for typing in identity.typings(member):
+                if typing != identity.lib["Feature"]:
+                    raise PlemlShapeError(f"setting {graph.label(member)} is typed by {graph.label(typing)}; a PLEML "
+                                          "feature is typed by the library's Feature only, never by a product-line "
+                                          "characteristic")
             redefined = graph.generals(member, "Redefinition")
             if len(redefined) != 1:
                 raise PlemlShapeError(f"setting {graph.label(member)} redefines {len(redefined)} features")
@@ -1494,8 +1522,10 @@ class _Configuration:
                     self.reason("upper-bound", f"group {feature.path} selects {len(members)} of {bound.text()}")
                     break
 
+        # PLEML's nodeFeaturesAreSet compares the binding time of each suboccurrence of the configuration,
+        # that is of each feature it selects, with the configuration's own (PLEML.sysml:95-104).
         for feature in model.features.values():
-            if LIFE_CYCLE[feature.binding_time] > LIFE_CYCLE["Development"]:
+            if feature.identifier in selected and LIFE_CYCLE[feature.binding_time] > LIFE_CYCLE["Development"]:
                 self.reason("binding-time", f"{feature.path} binds at {feature.binding_time}, later than the "
                                             "Development configuration")
 
@@ -1556,6 +1586,45 @@ class _Configuration:
 # -- entry point -------------------------------------------------------------------------
 
 
+def _refuse_unread_dependencies(graph: _Graph, identity: _Identity, model_sources: Sequence[str],
+                                models: Sequence[_FeatureModel], scope: _GovernedScope | None) -> None:
+    """Every dependency of the model documents is read by exactly one tree; none is ever skipped silently.
+
+    A binding, derived variation, rule or correspondence that names no feature of
+    a tree (a premise or source that is no feature, a binding of a derived variant,
+    a correspondence from an element that is no feature) is refused.
+    """
+    readers: dict[str, int] = {}
+    for model in models:
+        for dependency in model.consumed:
+            readers[dependency] = readers.get(dependency, 0) + 1
+    derived = set().union(*(model.derived_targets() for model in models))
+    roles = {"FeatureBinding": "binding", "kernel:derived_variation": "derived variation",
+             "kernel:derivation_rule": "derivation rule"}
+    for dependency in sorted(graph.by_id, key=graph.order.__getitem__):
+        if graph.kind(dependency) != "Dependency" or graph.sources[dependency] not in model_sources:
+            continue
+        count = readers.get(dependency, 0)
+        if count == 1:
+            continue
+        label = graph.label(dependency)
+        kinds = [roles[kind] for kind in identity.metadata_kinds(dependency) if kind in roles]
+        what = kinds[0] if kinds else "correspondence"
+        if count > 1:
+            raise PlemlShapeError(f"{what} {label} is read by {count} feature trees")
+        if what == "correspondence" and scope is None:
+            raise PlemlShapeError(f"correspondence {label} cannot be read: the governed scope is not among the "
+                                  "evaluated elements, so admission cannot be decided")
+        suppliers = graph.endpoints(dependency, "supplier", "target")
+        if what == "binding" and set(suppliers) & derived:
+            raise PlemlShapeError(f"binding {label} targets the derived variant "
+                                  f"{', '.join(graph.label(item) for item in suppliers)}; derived variants are never "
+                                  "bound")
+        ends = graph.endpoints(dependency, "client", "source") if what == "correspondence" else suppliers
+        raise PlemlShapeError(f"{what} {label} names no feature of a feature tree: "
+                              f"{', '.join(graph.label(item) for item in ends) or 'nothing'}")
+
+
 def _trees_and_configurations(graph: _Graph, identity: _Identity,
                               model_sources: Sequence[str]) -> tuple[dict[str, str | None], dict[str, str]]:
     """The feature trees, each with the feature model that names it, and the tree of each configuration.
@@ -1613,6 +1682,14 @@ def _trees_and_configurations(graph: _Graph, identity: _Identity,
                                   f"{'no' if not candidates else len(candidates)} feature tree"
                                   f"{'s' if len(candidates) > 1 else ''}")
         tree_of[configuration] = candidates.pop()
+    for configuration in configurations:
+        if not set(identity.typings(configuration)) & set(definitions):
+            continue  # the library's form, owned by its feature model
+        document = graph.sources[configuration]
+        sharing = [item for item in configurations if graph.sources[item] == document]
+        if len(sharing) != 1 or any(graph.sources[root] == document for root in roots):
+            raise PlemlShapeError(f"{document} holds {len(sharing)} configurations; a configuration typed by its tree "
+                                  "definition has a file of its own")
     ordered = dict(sorted(roots.items(), key=lambda item: graph.order[item[0]]))
     return ordered, tree_of
 
@@ -1673,13 +1750,16 @@ def evaluate(
     scope = _GovernedScope(governed_scope, graph) if governed_scope is not None else None
     roots, tree_of = _trees_and_configurations(graph, identity, model_sources)
     feature_models = []
+    models = []
     for root, owner in roots.items():
         model = _FeatureModel(identity, model_sources, root, owner, scope)
+        models.append(model)
         decided = [_Configuration(model, item).decide()
                    for item in sorted((item for item, tree in tree_of.items() if tree == root),
                                       key=graph.order.__getitem__)]
         feature_models.append({"feature_model": graph.name(owner), "element_id": owner,
                                **model.to_dict(), "configurations": decided})
+    _refuse_unread_dependencies(graph, identity, model_sources, models, scope)
     return {
         "schema": SCHEMA,
         "library_source": library_source,

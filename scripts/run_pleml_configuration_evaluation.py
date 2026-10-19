@@ -197,7 +197,7 @@ _YAML_CLASSES: tuple[tuple[str, str], ...] = (
     (r"^'(?P<path>[^']+)' is an or_group and requires a non-empty list$", "lower-bound"),
     (r"^'(?P<path>[^']+)' (OR choices must all be strings|has invalid OR choice)", "unknown-feature"),
     (r"^'(?P<path>[^']+)' is a \w+ group node with non-variant children", "unknown-feature"),
-    (r"^'(?P<path>[^']+)' (contains duplicate OR choices|must be a YAML boolean)", "yaml-encoding"),
+    (r"^'(?P<path>[^']+)' (contains duplicate OR choices|must be a YAML boolean)", "input-error"),
     (r"^Unknown feature path in selections: '(?P<path>[^']+)'$", "unknown-feature"),
     (r"^Mandatory feature not selected: '(?P<path>[^']+)'$", "lower-bound"),
     (r"^\[(?P<id>[^\]]+)\] (requires|excludes): ", "constraint"),
@@ -275,13 +275,22 @@ def write_receipts(bundle: BaselineExportBundle | Mapping[str, Any], out: Path, 
                    root: Path = ROOT) -> dict[str, Any]:
     """Write the elements file and one receipt per feature model of a licensed bundle into ``out``.
 
-    ``serializer`` records the serialization: at least its name, version and
-    options, and the executor revision. ``out`` must not exist. Returns the
-    written paths and the failures (integrity, complement and rule-table
-    errors), which a licensed job must treat as a failed run.
+    ``serializer`` records the serialization: its name, version and options,
+    which the elements carry, and the executor revision, which only the
+    receipts record (with the bundle's commit) as the run's provenance. ``out``
+    must not exist. Returns the written paths and the failures (integrity,
+    complement and rule-table errors), which a licensed job must treat as a
+    failed run. A bundle without the governed scope is refused: every receipt
+    records the admission of its configurations.
     """
+    if not isinstance(bundle, BaselineExportBundle):
+        bundle = BaselineExportBundle.from_dict(dict(bundle))
     payload = receipts.payload_from_bundle(bundle, serializer=serializer, model_sources=model_sources)
+    provenance = receipts.run_provenance(bundle, serializer)
     combined = receipts.evaluate_payload(payload)
+    if combined["admission_authority"] is None:
+        raise ValueError("the bundle carries no governed scope; every receipt records the admission of its "
+                         "configurations")
     groups: dict[str, set[str]] = {}
     for model in combined["feature_models"]:
         document = model["tree"]["source"]
@@ -300,7 +309,7 @@ def write_receipts(bundle: BaselineExportBundle | Mapping[str, Any], out: Path, 
     written, failures = [], []
     for document in sorted(groups):
         receipt = receipts.build_receipt(payload, elements_file=elements_file, elements_sha256=digest,
-                                         model_sources=sorted(groups[document]))
+                                         model_sources=sorted(groups[document]), provenance=provenance)
         expected = [item for item in combined["feature_models"] if item["tree"]["source"] == document]
         if receipts.canonical(receipt["evaluation"]["feature_models"]) != receipts.canonical(expected):
             raise ValueError(f"the feature model of {document} does not evaluate alone; it needs other documents")
@@ -321,13 +330,7 @@ def run_receipts(args: argparse.Namespace) -> int:
     result = write_receipts(BaselineExportBundle.load(args.bundle), out, serializer=serializer, name=args.name)
     failures = list(result["failures"])
     if args.compare is not None:
-        for path in result["receipts"]:
-            committed = args.compare / path.name
-            if not committed.is_file():
-                failures.append(f"{path.name}: no committed receipt in {args.compare}")
-            elif (json.loads(committed.read_text(encoding="utf-8"))["elements"]["content_sha256"]
-                  != json.loads(path.read_text(encoding="utf-8"))["elements"]["content_sha256"]):
-                failures.append(f"{path.name}: the fresh elements differ from the committed receipt's elements")
+        failures += receipts.compare_with_committed(result["receipts"], args.compare)
     print(json.dumps({"elements": str(result["elements"]), "receipts": [str(path) for path in result["receipts"]],
                       "failures": failures}, indent=2))
     return 1 if failures else 0
@@ -349,7 +352,7 @@ def _receipt_shadow(receipt_path: Path) -> dict[str, Any] | None:
         return None
     if receipts.sha256((ROOT / catalogue["path"]).read_bytes()) != catalogue["sha256"]:
         raise receipts.StaleReceipt(f"{catalogue['path']} changed after the receipt; refresh it")
-    return shadow_checks(receipt["evaluation"], Path(catalogue["path"]))
+    return shadow_checks(receipt["evaluation"], Path(catalogue["path"]), ROOT)
 
 
 def run_replay(args: argparse.Namespace) -> int:
@@ -365,12 +368,17 @@ def run_replay(args: argparse.Namespace) -> int:
 
 
 def run_refresh(args: argparse.Namespace) -> int:
+    """Refresh every receipt before writing any of them, so a refusal leaves all of them as they were."""
+    fresh = []
     for path in args.receipt:
         receipt = json.loads(path.read_text(encoding="utf-8"))
         catalogue = (receipt.get("shadow") or {}).get("catalogue")
         payload = receipts.read_elements(path.parent / receipt["elements"]["path"])
-        shadow = shadow_checks(receipts.evaluate_payload(payload), Path(catalogue["path"])) if catalogue else {}
-        receipts.refresh(path, ROOT, shadow=shadow)
+        evaluation = receipts.evaluate_payload(payload, model_sources=receipt.get("model_sources"))
+        shadow = shadow_checks(evaluation, Path(catalogue["path"]), ROOT) if catalogue else {}
+        fresh.append((path, receipts.refreshed(path, ROOT, shadow=shadow)))
+    for path, receipt in fresh:
+        receipts.write_receipt(path, receipt)
     return 0
 
 

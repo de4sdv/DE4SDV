@@ -318,14 +318,28 @@ def test_a_derived_variant_is_never_bound_to_a_feature():
     assert any("derived variants are not selectable" in error for error in errors)
 
 
-def test_a_bound_feature_stays_at_development_and_a_later_feature_invalidates_configurations():
+def test_a_bound_feature_stays_at_development():
     line = PlatformLine()
     line.graph.binding_time(line.features["qnx"], "Production")
     line.configure("member", "autoware", "noMiddleware", "linux", "noHypervisor")
+    line.configure("onQNX", "apollo", "noMiddleware", "qnx", "qvm")
     report = line.graph.evaluate()
     assert any("bound feature platformStack.qnx must stay at the Development binding time" in error
                for error in feature_model(report)["integrity_errors"])
-    assert ("binding-time", None) in classes(configuration(report, "member"))
+    assert classes(configuration(report, "member")) == {("model-integrity", None)}
+    assert ("binding-time", None) in classes(configuration(report, "onQNX"))
+
+
+def test_a_later_bound_feature_rejects_only_the_configurations_that_select_it():
+    """PLEML compares the binding time of each feature a configuration sets (PLEML.sysml:95-104)."""
+    line = PlatformLine()
+    line.graph.binding_time(line.features["radar"], "Production")
+    line.configure("withoutRadar", "autoware", "noMiddleware", "linux", "noHypervisor")
+    line.configure("withRadar", "autoware", "noMiddleware", "linux", "noHypervisor", sensors=("lidar", "radar"))
+    report = line.graph.evaluate()
+    assert feature_model(report)["integrity_errors"] == []
+    assert configuration(report, "withoutRadar")["valid"] is True
+    assert classes(configuration(report, "withRadar")) == {("binding-time", None)}
 
 
 def test_a_bound_variation_belongs_to_the_projection_owner():
@@ -662,8 +676,10 @@ def test_the_documented_verdicts_hold_in_the_tree_definition_form():
     assert verdicts(report) == verdicts(constraint_test_model().evaluate())
     (model,) = report["feature_models"]
     assert model["feature_model"] == "ConstraintTestFeatureModel" and model["tree"]["name"] == "ConstraintTestTree"
-    assert {item["source"] for item in model["configurations"]} == {
-        "model-based-product-line-engineering/feature-configurations/synthetic_configurations.sysml"}
+    assert [item["source"] for item in model["configurations"]] == [
+        f"model-based-product-line-engineering/feature-configurations/synthetic_{name}.sysml"
+        for name in ("implies_valid1", "implies_valid2", "implies_violated", "requires_valid", "requires_violated",
+                     "xor_valid", "xor_violated")]
 
 
 def test_kernel_metadata_placed_with_about_is_refused():
@@ -748,7 +764,8 @@ def test_document_order_comes_from_the_ownership_properties():
     line.configure("integrated", "autoware", "androidSDV", "android", "kvm")
     line.configure("excluded", "openpilot", "androidSDV", "android", "kvm")
     expected = line.graph.evaluate()
-    assert [item["valid"] for item in expected["feature_models"][0]["configurations"]] == [True, True, False]
+    assert [(item["configuration"], item["valid"]) for item in expected["feature_models"][0]["configurations"]] == [
+        ("excluded", False), ("integrated", True), ("standalone", True)]
     for shuffle in (list.reverse, random.Random(406).shuffle):
         shuffle(line.graph.elements)
         assert line.graph.evaluate() == expected
@@ -897,3 +914,133 @@ def test_without_a_governed_scope_admission_is_not_evaluated():
     line.configure("standalone", "autoware", "noMiddleware", "linux", "noHypervisor")
     assert admission(line, "standalone") == {"evaluated": False, "admitted": None,
                                              "reasons": ["no governed scope among the evaluated elements"]}
+
+
+
+# -- review round 1, R1: a dependency is read by exactly one tree, never skipped ----------------
+
+
+def test_a_rule_without_premises_is_refused():
+    line = PlatformLine()
+    line.graph.rule(line.variations["applicationMiddlewareAdapter"]["autowareToSCORE"], [], name="matchAllRule")
+    with pytest.raises(PlemlShapeError, match="derivation rule matchAllRule names no premise"):
+        line.graph.evaluate()
+
+
+def test_a_rule_whose_premises_are_no_features_is_refused():
+    line = PlatformLine()
+    variations = line.variations
+    line.graph.rule(variations["applicationMiddlewareAdapter"]["autowareToSCORE"],
+                    [variations["vehicleApplication"]["autoware"], variations["middleware"]["none"]], name="strayRule")
+    with pytest.raises(PlemlShapeError, match="derivation rule strayRule names no feature of a feature tree: "
+                                              "autoware, none"):
+        line.graph.evaluate()
+
+
+def test_a_binding_that_targets_a_derived_variant_is_refused():
+    line = PlatformLine()
+    line.graph.binding(line.variations["middleware"]["none"], line.variations["applicationMiddlewareAdapter"]["none"],
+                       name="adapterTargetBinding")
+    with pytest.raises(PlemlShapeError, match="binding adapterTargetBinding targets the derived variant none; "
+                                              "derived variants are never bound"):
+        line.graph.evaluate()
+
+
+def test_a_derived_variation_without_source_features_is_refused():
+    line = PlatformLine()
+    line.graph.derived_variation(line.variations["hypervisor"]["@variation"], [], name="hypervisorDerivation")
+    with pytest.raises(PlemlShapeError, match="derived variation hypervisorDerivation names no source feature"):
+        line.graph.evaluate()
+
+
+def test_a_correspondence_whose_client_is_no_feature_is_refused():
+    """Skipping it would silently cost the standalone member its admission."""
+    line = PlatformLine(governed=True)
+    line.graph.correspondence(line.variations["middleware"]["none"], line.scope["standalone"],
+                              name="strayCorrespondence")
+    with pytest.raises(PlemlShapeError, match="correspondence strayCorrespondence names no feature of a feature tree: "
+                                              "none"):
+        line.graph.evaluate()
+
+
+def test_a_correspondence_without_the_governed_scope_is_refused():
+    line = PlatformLine()
+    line.graph.correspondence(line.features["laneKeepAssist"], line.variations["middleware"]["none"],
+                              name="unscopedCorrespondence")
+    with pytest.raises(PlemlShapeError, match="correspondence unscopedCorrespondence cannot be read: the governed "
+                                              "scope is not among the evaluated elements"):
+        line.graph.evaluate()
+
+
+def test_a_configuration_binding_is_refused():
+    line = PlatformLine()
+    member = line.configure("member", "autoware", "noMiddleware", "linux", "noHypervisor")
+    line.graph.binding(line.graph.asset_owner, member, name="memberBinding", metadata="FeatureConfigurationBinding")
+    with pytest.raises(PlemlShapeError, match="FeatureConfigurationBinding memberBinding is not read"):
+        line.graph.evaluate()
+
+
+# -- D3: a PLEML feature is never typed by a product-line characteristic --------------------------
+
+
+def characteristic(line: PlatformLine) -> str:
+    """A part definition of the governed scope, the kind of a product-line characteristic."""
+    return line.graph.own(line.graph.by_id[line.scope["standalone"]]["@id"], "OwningMembership", "PartDefinition",
+                          member_name="StandaloneVehiclePlatformIntegration",
+                          declaredName="StandaloneVehiclePlatformIntegration")
+
+
+def test_a_tree_feature_typed_by_a_characteristic_is_refused():
+    line = PlatformLine(governed=True)
+    line.graph.typed(line.features["noMiddleware"], characteristic(line))
+    with pytest.raises(PlemlShapeError, match="tree feature platformStack.noMiddleware is typed by "
+                                              "StandaloneVehiclePlatformIntegration; a PLEML feature is typed by the "
+                                              "library's Feature only, never by a product-line characteristic"):
+        line.graph.evaluate()
+
+
+def test_a_setting_typed_by_a_characteristic_is_refused():
+    line = PlatformLine(governed=True)
+    member = line.configure("member", "autoware", "noMiddleware", "linux", "noHypervisor")
+    stack = next(item for item in line.graph.by_id.values() if item.get("@type") == "OccurrenceUsage"
+                 and line.graph.sources[item["@id"]] == line.graph.sources[member] and item["@id"] != member)
+    line.graph.typed(stack["@id"], characteristic(line))
+    with pytest.raises(PlemlShapeError, match="is typed by StandaloneVehiclePlatformIntegration; a PLEML feature is "
+                                              "typed by the library's Feature only"):
+        line.graph.evaluate()
+
+
+# -- R8: a configuration typed by its tree definition has a file of its own ------------------------
+
+
+def test_two_typed_configurations_in_one_file_are_refused():
+    line = PlatformLine()
+    document = "model-based-product-line-engineering/feature-configurations/synthetic_two.sysml"
+    line.graph.configuration(line.model, "first", line.tree, document=document)
+    line.graph.configuration(line.model, "second", line.tree, document=document)
+    with pytest.raises(PlemlShapeError, match="synthetic_two.sysml holds 2 configurations; a configuration typed by "
+                                              "its tree definition has a file of its own"):
+        line.graph.evaluate()
+
+
+def test_the_metadata_of_an_unowned_usage_is_refused_explicitly():
+    line = PlatformLine()
+    usage = line.graph.element("MetadataUsage", line.graph.model)
+    line.graph.typed(usage, line.graph.kernel_defs["projection"])
+    with pytest.raises(PlemlShapeError, match="metadata usage .* has no owner among the evaluated elements"):
+        line.graph.evaluate()
+
+
+
+def test_the_bounds_of_a_range_carry_no_order():
+    """The licensed bundle writes ``[1..*]`` with the integer first; the reverse order reads the same."""
+    reports = []
+    for infinity_first in (False, True):
+        graph = PlemlGraph()
+        graph.infinity_first = infinity_first
+        line = PlatformLine(graph)
+        line.configure("member", "autoware", "noMiddleware", "linux", "noHypervisor")
+        line.configure("noSensor", "autoware", "noMiddleware", "linux", "noHypervisor", sensors=())
+        reports.append(graph.evaluate()["feature_models"][0])
+    assert reports[0] == reports[1]
+    assert [item["valid"] for item in reports[0]["configurations"]] == [True, False]

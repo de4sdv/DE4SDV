@@ -12,6 +12,7 @@ is copied: every element is generated here.
 """
 from __future__ import annotations
 
+import re
 import uuid
 from typing import Any, Iterable, Sequence
 
@@ -20,7 +21,7 @@ from de4sdv.semantic import pleml_configuration as evaluator
 NAMESPACE = uuid.UUID("3f1c4f9e-7a55-4b49-9a3c-8f1f6d0d2a11")
 LIBRARY = "external/pleml/PLEML.sysml"
 MODEL = "model-based-product-line-engineering/feature-models/synthetic_feature_model.sysml"
-CONFIGURATIONS = "model-based-product-line-engineering/feature-configurations/synthetic_configurations.sysml"
+CONFIGURATIONS = "model-based-product-line-engineering/feature-configurations"
 ASSETS = "textual-notation-of-model/packages/architecture/synthetic_shared_assets.sysml"
 SCOPE = "model-based-product-line-engineering/scoping/synthetic_product_line_scope.sysml"
 #: The kernel ``that`` feature lives in the standard library, outside every bundle.
@@ -51,6 +52,7 @@ class PlemlGraph:
         self.model_documents = {model}
         self.configuration_packages: dict[str, str] = {}
         self.scope_record: dict[str, Any] | None = None
+        self.infinity_first = False
 
     # -- element plumbing --------------------------------------------------------------
 
@@ -106,8 +108,14 @@ class PlemlGraph:
         metadata = self.own(usage, "OwningMembership", "MetadataUsage", isVariation=False)
         self.typed(metadata, self.lib[metadata_definition])
 
-    def multiplicity(self, usage: str, lower: int | None, upper: int | None, *, infinity_first: bool = True) -> None:
-        """``[N]`` as one literal; ``[l..u]`` as a range operator (the serializer's two shapes)."""
+    def multiplicity(self, usage: str, lower: int | None, upper: int | None, *,
+                     infinity_first: bool | None = None) -> None:
+        """``[N]`` as one literal; ``[l..u]`` as a range operator (the serializer's two shapes).
+
+        The licensed bundle lists the integer bound first; ``infinity_first`` (by default the graph's) writes
+        the reverse order.
+        """
+        infinity_first = self.infinity_first if infinity_first is None else infinity_first
         multiplicity = self.own(usage, "OwningMembership", "MultiplicityRange")
         if lower == upper and lower is not None:
             self.own(multiplicity, "OwningMembership", "LiteralInteger", value=lower)
@@ -116,7 +124,7 @@ class PlemlGraph:
         bounds: list[tuple[str, Any]] = [("LiteralInteger", lower)]
         bounds.append(("LiteralInfinity", None) if upper is None else ("LiteralInteger", upper))
         if infinity_first and upper is None:
-            bounds.reverse()  # real evidence: [1..*] serialized with the infinity first
+            bounds.reverse()
         for kind, value in bounds:
             parameter = self.own(operator, "ParameterMembership", "Feature", direction="in")
             props = {} if value is None else {"value": value}
@@ -368,9 +376,10 @@ class PlemlGraph:
 
     def configuration(self, owner: str, name: str, tree: str, *, keyword: bool = True,
                       projection_name: str | None = None, description: str | None = None,
-                      document: str = CONFIGURATIONS) -> str:
-        """In a feature model, ``... :> tree, featureConfigurations``; for a tree definition, in the configurations
-        document, ``#featureConfiguration occurrence name : TreeDefinition :> featureConfigurations``."""
+                      document: str | None = None) -> str:
+        """In a feature model, ``... :> tree, featureConfigurations``; for a tree definition, in a file of its
+        own, ``#featureConfiguration occurrence name : TreeDefinition :> featureConfigurations``."""
+        document = document or f"{CONFIGURATIONS}/synthetic_{re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower()}.sysml"
         props = {"declaredName": name, "isComposite": True, "isVariable": True, "isVariation": False}
         typed = self.by_id[tree]["@type"] == "OccurrenceDefinition"
         if typed:
