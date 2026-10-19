@@ -3,19 +3,23 @@
 An open-source project for **digitally engineered, configurable, continuously
 certifiable software-defined vehicle (SDV) product lines**. DE4SDV applies
 model-based systems engineering with SysML v2, product-line engineering, digital
-continuity, simulation interoperability, and continuous compliance — so that
-SDV variability across application domains (such as ADAS, telematics,
-connectivity), middleware, hardware abstraction layer and adapter layer is modeled explicitly as configurable
-architectures, enabling systematic comparison of alternatives, transparent
-trade-off decisions, and lifecycle-wide assurance.
+continuity, simulation interoperability and continuous compliance to model SDV
+variability explicitly as configurable architectures. The variability spans
+application domains (such as ADAS, telematics, connectivity), middleware, the
+hardware abstraction layer and the adapter layer. Modeling it explicitly
+enables systematic comparison of alternatives, transparent trade-off
+decisions, and lifecycle-wide assurance.
 
 DE4SDV is a workstream within the INCOSE Automotive Working Group.
 
-**New here? Start with [DE4SDV through one case study](docs/getting-started/case-study.md):**
-the configurable SDV stack and product line, the emergency-braking capability
-that exercises it, how agents, a deterministic Method Check, and people share
-the engineering work, and small tasks you can contribute without knowing the
-whole project.
+**New here? Start with [DE4SDV through one case study](docs/getting-started/case-study.md).**
+It covers:
+
+- the configurable SDV stack and product line;
+- the emergency-braking capability that exercises it;
+- how agents, a deterministic Method Check, and people share the engineering
+  work;
+- small tasks you can contribute without knowing the whole project.
 
 ## Vision
 
@@ -37,10 +41,11 @@ The core artifact is the SysML v2 systems model under
 [`textual-notation-of-model/`](textual-notation-of-model/README.md). Explore
 it in the live viewer:
 
-- **https://viewer.de4sdv.org** — the public, read-only HTML viewer: model
-  tree, member documentation, and every declared view with the diagram SysIDE
-  renders from it — including hover tooltips on elements and connections,
-  go-to-definition, branch/PR revision picking, and diagram fullscreen.
+- **https://viewer.de4sdv.org** — the public, read-only HTML viewer. It shows
+  the model tree, member documentation, and every declared view with the
+  diagram SysIDE renders from it. It also has hover tooltips on elements and
+  connections, go-to-definition, branch and PR revision picking, and diagram
+  fullscreen.
 - Running it locally serves **your own working tree and unmerged branches**:
 
 ```bash
@@ -54,15 +59,15 @@ published on the viewer website too).
 
 ## Getting started
 
-New here? The [getting started guide](docs/getting-started/README.md) walks
-you through: what DE4SDV works on, the three-system framing, repository
-layout, exploring the model, understanding the increment process, running the
-checks, and making a first contribution.
+New here? The [getting started guide](docs/getting-started/README.md)
+explains what DE4SDV works on, the three-system framing and the repository
+layout. It then shows how to explore the model, understand the increment
+process, run the checks and make a first contribution.
 
-To read the model source itself, the
-[model element guide](docs/guides/sysml-elements.md) explains the SysML v2
-element kinds used across the model and why DE4SDV uses them — from the
-increment shell and views to the verification/evidence chain.
+To read the model source itself, use the
+[model element guide](docs/guides/sysml-elements.md). It explains the SysML v2
+element kinds used across the model, from the increment shell and views to the
+verification and evidence chain. It also explains why DE4SDV uses them.
 
 ## System-of-Interest
 
@@ -70,22 +75,24 @@ DE4SDV uses the ASELCM three-system framing to keep product, engineering, and
 ecosystem scopes distinct:
 
 - **System 1: configurable SDV product line and configured vehicle/software
-  variants.** The engineered system managed by DE4SDV: SDV vehicle
-  architecture variants, feature configurations, product models, software and
-  hardware alternatives, interfaces, operational behavior, and
+  variants.** The engineered system that DE4SDV manages. It covers SDV
+  vehicle architecture variants, feature configurations, product models,
+  software and hardware alternatives, interfaces, operational behavior, and
   variant-specific safety, security, and compliance constraints.
 - **System 2: DE4SDV life-cycle engineering and assurance system.** The
-  primary repository System-of-Interest: a project-governed, open-source,
-  model-based SDV product-line engineering and assurance management system
-  that specifies configurable architectures, manages variability, integrates
-  project-owned and selected external OSS assets through controlled interfaces
-  and adapters, executes verification, validation, simulation, and digital-twin
-  workflows, and maintains continuous-certification evidence baselines for SDV
-  variants.
+  primary repository System-of-Interest. It is a project-governed,
+  open-source, model-based SDV product-line engineering and assurance
+  management system. It:
+  - specifies configurable architectures;
+  - manages variability;
+  - integrates project-owned and selected external OSS assets through
+    controlled interfaces and adapters;
+  - executes verification, validation, simulation, and digital-twin workflows;
+  - maintains continuous-certification evidence baselines for SDV variants.
 - **System 3: DE4SDV open innovation ecosystem.** The governance, standards,
   methodology, contributor, toolchain, and upstream ecosystem that evolves
-  System 2: maintainers, contributors, ADRs, review workflows, standards
-  communities, external OSS projects, and methodology owners.
+  System 2. It covers maintainers, contributors, ADRs, review workflows,
+  standards communities, external OSS projects, and methodology owners.
 
 Inside the System 2 boundary:
 
@@ -167,7 +174,7 @@ See [`COMMUNICATION`](COMMUNICATION.md) for the full communication policy.
 
 Except where otherwise noted, original DE4SDV content is licensed under the
 [Apache License 2.0](LICENSE). This repository also contains third-party or
-derived material under other licenses; in particular, the generated
+derived material under other licenses. In particular, the generated
 [`COVESA_VSS.sysml`](textual-notation-of-model/libraries/covesa-vss-sysmlv2/COVESA_VSS.sysml)
 library is licensed under the Mozilla Public License 2.0. Per-file SPDX
 identifiers and accompanying license files identify the license applicable to

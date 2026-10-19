@@ -131,8 +131,8 @@ python -m pytest tests -q
 ```
 
 For public pull requests, CI runs these repository checks and the complete
-project-owned pytest suite in the same dependency environment, without
-requiring licensed Syside validation or repository secrets. `sysand sync`
+project-owned pytest suite in the same dependency environment. It needs no
+licensed Syside validation and no repository secrets. `sysand sync`
 restores the pinned public SysML libraries from the lock file; it is the same
 command documented in the SysML v2 validation gate below.
 
@@ -174,8 +174,8 @@ requires the `SYSIDE_LICENSE_KEY` repository secret and validates a reviewed
 branch, tag, or commit SHA without exposing the key to contributors.
 The same workflow exports native SysIDE grid views and publishes their CSV and
 reviewer-facing SVG representations with the diagram artifact.
-Maintainers run it from GitHub Actions by selecting the workflow, choosing
-**Run workflow**, and entering the reviewed `ref` and, when needed, the
+Maintainers run it from GitHub Actions. They select the workflow and choose
+**Run workflow**. Then they enter the reviewed `ref` and, when needed, the
 `model_paths` (space-separated; the default is the three model roots).
 
 5. Open a pull request with:
@@ -194,6 +194,13 @@ Documentation PRs are highly valued. Please:
 - Keep terminology consistent with existing docs
 - Add cross-links to related sections when useful
 - Mark assumptions explicitly, especially for compliance/safety claims
+- Keep sentences to 25 words or fewer, with one topic each
+- Write steps as commands, one action per step
+- Use active voice when you know the actor
+- Use glossary terms exactly; do not replace them with synonyms
+
+AI agents follow the full rule in [`AGENTS`](AGENTS.md#documentation-style):
+prose 80% of the way to ASD-STE100.
 
 ## Model and example contribution guidance
 
@@ -261,8 +268,9 @@ decisions, as defined in [`GOVERNANCE`](GOVERNANCE.md) and
 The pull request author cannot approve their own pull request; the normal
 path always requires an independent review. While the maintainer team is a
 single administrator, administrator merges of their own pull requests follow
-the documented exception path in [`GOVERNANCE`](GOVERNANCE.md): a recorded
-reason in the pull request and a follow-up review task.
+the documented exception path in [`GOVERNANCE`](GOVERNANCE.md). Among other
+conditions, that path requires a recorded reason in the pull request and a
+follow-up review task.
 
 Role promotion and authority changes follow the public process in
 [`GOVERNANCE`](GOVERNANCE.md).
