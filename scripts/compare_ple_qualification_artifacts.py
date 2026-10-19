@@ -15,6 +15,9 @@ The baseline is the artifact of a PLE qualification run on the previous release
   (``pleml_package.PROVISION_PATHS``): from the previous release's path in the
   baseline to the pinned release's in the candidate, after any checkout prefix,
   with the same target and fragment.
+- A reference into the serializer's standard library under another install
+  prefix (another runner image's Python toolcache): the same file inside the
+  library (``STANDARD_LIBRARY``), with the same target and fragment.
 
 A difference anywhere else, a missing or extra file, or an allowed path without
 the expected value fails. ``sysml-api.log`` is not compared. The candidate adds
@@ -207,6 +210,43 @@ def _library_moved(before: Any, after: Any, *, previous: package.Release, releas
             and _under(new[0], package.PROVISION_PATHS.get(release.version)))
 
 
+#: The standard library inside the pinned serializer's package. A runner image
+#: changes only the install prefix before it (the Python toolcache path).
+STANDARD_LIBRARY = ("_syside", "sysml.library")
+
+
+def _library_relative(segments: list[str]) -> tuple[str, ...] | None:
+    """The path of a standard-library file inside the serializer's library, or None outside it."""
+    width = len(STANDARD_LIBRARY)
+    for index in range(len(segments) - width, -1, -1):
+        if tuple(segments[index:index + width]) == STANDARD_LIBRARY:
+            return tuple(segments[index + width:]) or None
+    return None
+
+
+def _standard_library_moved(before: Any, after: Any) -> bool:
+    """A standard-library reference under another install prefix, and nothing else.
+
+    The target (``@id``) and every other key are equal, the fragments are equal,
+    and both resources are the same file inside the serializer's standard library.
+    """
+    if not (isinstance(before, dict) and isinstance(after, dict)):
+        return False
+    if {key: value for key, value in before.items() if key != "@uri"} != {
+            key: value for key, value in after.items() if key != "@uri"}:
+        return False
+    old, new = _resource(before.get("@uri")), _resource(after.get("@uri"))
+    if old is None or new is None or old[1] != new[1] or not (before.get("@id") or old[1]):
+        return False
+    path = _library_relative(old[0])
+    return path is not None and path == _library_relative(new[0])
+
+
+def _moved(before: Any, after: Any, *, previous: package.Release, release: package.Release) -> bool:
+    return (_library_moved(before, after, previous=previous, release=release)
+            or _standard_library_moved(before, after))
+
+
 def compare_elements(name: str, baseline: Any, candidate: Any, *, release: package.Release,
                      previous: package.Release, repin: package.Repin) -> list[str]:
     problems: list[str] = []
@@ -220,9 +260,9 @@ def compare_elements(name: str, baseline: Any, candidate: Any, *, release: packa
         if before == after:
             continue
         keys = [path for path, old, new in _leaves(before, after)
-                if not (path.endswith("@uri") and _library_moved(old, new, previous=previous, release=release))]
+                if not (path.endswith("@uri") and _moved(old, new, previous=previous, release=release))]
         if not keys:
-            continue  # only references into the library moved with its provision
+            continue  # only references moved: into PLEML with its provision, or into the standard library
         changed += 1
         if before.get("@type") != "Documentation" or keys != ["body"]:
             problems.append(f"{name}: element {key} differs in {keys}")

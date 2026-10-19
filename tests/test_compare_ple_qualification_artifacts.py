@@ -241,7 +241,7 @@ def _both(baseline_uri, candidate_uri):
     lambda b, c: _edit(c, SERIALIZED, lambda d: _ref(d)["ownedRelatedElement"][0].update(
         {"@uri": "../../runner-checkout/repository/model-based-product-line-engineering/other/PLEML.sysml"})),
     lambda b, c: _edit(c, SERIALIZED, lambda d: _ref(d)["superclassifier"].update(
-        {"@uri": STANDARD_URI.replace("/opt/python/", "/opt/python-3.13/")})),
+        {"@uri": STANDARD_URI.replace("Systems%20Library/SysML.sysml", "Systems%20Library/Parts.sysml")})),
     _both(NEW_URI, OLD_URI),
     _both(NEW_URI, NEW_URI.replace("1.1.1", "1.1.2")),
     _both(OLD_URI + "#a", NEW_URI + "#b"),
@@ -249,8 +249,8 @@ def _both(baseline_uri, candidate_uri):
         {"@uri": NEW_URI.replace("model-based-product-line-engineering/", "x/../model-based-product-line-engineering/")})),
     lambda b, c: _edit(c, SERIALIZED, lambda d: _ref(d)["general"].update(
         {"@uri": "https://example.invalid/" + package.PROVISION_PATHS[NEW.version].as_posix()})),
-], ids=["another-target", "non-library-resource", "list-non-library", "standard-library", "wrong-direction",
-        "not-the-pinned-version", "another-fragment", "dot-dot-inside", "non-file-scheme"])
+], ids=["another-target", "non-library-resource", "list-non-library", "another-standard-library-file",
+        "wrong-direction", "not-the-pinned-version", "another-fragment", "dot-dot-inside", "non-file-scheme"])
 def test_any_other_reference_change_fails(artifacts, plant) -> None:
     baseline, candidate = artifacts
     plant(baseline, candidate)
@@ -263,6 +263,54 @@ def test_an_equal_fragment_on_a_moved_library_reference_passes(artifacts) -> Non
     baseline, candidate = artifacts
     _both(OLD_URI + "#lib-feature", NEW_URI + "#lib-feature")(baseline, candidate)
     assert comparison.compare(baseline, candidate, candidate_revision=CANDIDATE_EXECUTOR)["verdict"] == "pass"
+
+
+# -- standard-library references: the runner's toolcache prefix does not matter -------------
+
+#: Two runner images: the same pinned serializer under another Python toolcache path.
+TOOLCACHE = ("file:///opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/",
+             "file:///opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/")
+SYSML = "_syside/sysml.library/Systems%20Library/SysML.sysml"
+
+
+def _standard(baseline_uri, candidate_uri, *, target=None):
+    def plant(baseline, candidate):
+        _edit(baseline, SERIALIZED, lambda d: _ref(d)["superclassifier"].update({"@uri": baseline_uri}))
+        _edit(candidate, SERIALIZED, lambda d: _ref(d)["superclassifier"].update(
+            {"@uri": candidate_uri, **({"@id": target} if target else {})}))
+    return plant
+
+
+@pytest.mark.parametrize("plant", [
+    _standard(TOOLCACHE[0] + SYSML, TOOLCACHE[1] + SYSML),
+    _standard(TOOLCACHE[0] + SYSML, "file:///usr/lib/python3/dist-packages/" + SYSML),
+    _standard(TOOLCACHE[0] + SYSML + "#std-type", TOOLCACHE[1] + SYSML + "#std-type"),
+    _standard(TOOLCACHE[0] + SYSML, TOOLCACHE[0] + SYSML),
+], ids=["another-python-patch", "another-install-root", "equal-fragment", "unchanged"])
+def test_a_standard_library_reference_under_another_toolcache_passes(artifacts, plant) -> None:
+    baseline, candidate = artifacts
+    plant(baseline, candidate)
+    report = comparison.compare(baseline, candidate, candidate_revision=CANDIDATE_EXECUTOR)
+    assert report["verdict"] == "pass", report["problems"]
+
+
+@pytest.mark.parametrize("plant", [
+    _standard(TOOLCACHE[0] + SYSML, TOOLCACHE[1] + SYSML.replace("SysML.sysml", "Parts.sysml")),
+    _standard(TOOLCACHE[0] + SYSML, TOOLCACHE[1] + SYSML.replace("Systems%20Library", "Domain%20Libraries")),
+    _standard(TOOLCACHE[0] + SYSML + "#a", TOOLCACHE[1] + SYSML + "#b"),
+    _standard(TOOLCACHE[0] + SYSML, TOOLCACHE[1] + SYSML, target="another-type"),
+    _standard(TOOLCACHE[0] + SYSML, "file:///opt/other/Systems%20Library/SysML.sysml"),
+    _standard(TOOLCACHE[0] + SYSML, TOOLCACHE[1] + "_syside/sysml.library/"),
+    _standard(TOOLCACHE[0] + SYSML, TOOLCACHE[1] + "_syside/sysml.library/x/../Systems%20Library/SysML.sysml"),
+    _standard(TOOLCACHE[0] + SYSML, "https://example.invalid/" + SYSML),
+], ids=["another-file", "another-folder", "another-fragment", "another-target", "outside-the-library",
+        "the-library-root-only", "dot-dot-inside", "non-file-scheme"])
+def test_any_other_standard_library_change_fails(artifacts, plant) -> None:
+    baseline, candidate = artifacts
+    plant(baseline, candidate)
+    report = comparison.compare(baseline, candidate, candidate_revision=CANDIDATE_EXECUTOR)
+    assert report["verdict"] == "fail"
+    assert any("element ref differs" in problem for problem in report["problems"]), report["problems"]
 
 
 # -- the real pair: the run at the S1 merge against the last run on 1.1.0 --------------------
@@ -280,21 +328,32 @@ def test_the_real_pair_passes_and_its_plants_fail(tmp_path) -> None:
     shutil.copytree(candidate, planted)
     original = (planted / SERIALIZED).read_text()
 
-    def first_library_reference(elements):
+    def first_reference(elements, marker):
         for element in elements:
             for value in element.values():
-                if isinstance(value, dict) and package.PROVISION_PATHS[NEW.version].as_posix() in value.get("@uri", ""):
+                if isinstance(value, dict) and marker in value.get("@uri", ""):
                     return element["@id"], value
-        raise AssertionError("no library reference in the real candidate")
+        raise AssertionError(f"no reference to {marker} in the real candidate")
 
-    for change in (lambda reference: reference.update({"@id": "00000000-0000-5000-8000-000000000000"}),
-                   lambda reference: reference.update({"@uri": "../../DE4SDV/DE4SDV/textual-notation-of-model/x.sysml"})):
+    def planted_verdict(marker, change):
         elements = json.loads(original)
-        key, reference = first_library_reference(elements)
+        key, reference = first_reference(elements, marker)
         change(reference)
         (planted / SERIALIZED).write_text(json.dumps(elements))
         result = comparison.compare(baseline, planted, candidate_revision=REAL["REVISION"])
+        return key, result
+
+    library, standard = package.PROVISION_PATHS[NEW.version].as_posix(), "/_syside/sysml.library/"
+    for marker, change in (
+            (library, lambda reference: reference.update({"@id": "00000000-0000-5000-8000-000000000000"})),
+            (library, lambda reference: reference.update({"@uri": "../../DE4SDV/DE4SDV/textual-notation-of-model/x.sysml"})),
+            (standard, lambda reference: reference.update({"@uri": reference["@uri"].rsplit("/", 1)[0] + "/Parts.sysml"}))):
+        key, result = planted_verdict(marker, change)
         assert result["verdict"] == "fail" and any(f"element {key} differs" in problem for problem in result["problems"])
+    # Another runner image: the same standard library under another toolcache path passes.
+    _, result = planted_verdict(standard, lambda reference: reference.update(
+        {"@uri": reference["@uri"].replace("/Python/3.12.15/", "/Python/3.12.16/")}))
+    assert result["verdict"] == "pass", result["problems"]
 
 
 # -- an older interpreter gets a clear message, not a verdict --------------------------------
