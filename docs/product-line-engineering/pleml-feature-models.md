@@ -144,8 +144,9 @@ PLEML.
 ## The authority job
 
 [`privileged-ple-authority.yml`](../../.github/workflows/privileged-ple-authority.yml)
-runs on pull requests that touch these models, their runner, their tests or
-the PLEML pin (same-repository, allowlisted authors) and on maintainer
+runs on pull requests that touch these models, their runner, their tests,
+the PLEML pin, the committed receipts or the documents and catalogues the
+receipts bind (same-repository, allowlisted authors), and on maintainer
 dispatch. On the exact head it:
 
 1. installs PLEML 1.1.1 from the fenced Sysand project of step S1
@@ -162,23 +163,46 @@ dispatch. On the exact head it:
    derivation kernel and the library;
 5. imports the bundle into an ephemeral SysML v2 API and verifies the
    full-payload readback (the API round trip);
-6. hands the bundle to the evaluator (ADR 0022, step S2), which writes the
-   receipts.
+6. hands the bundle to the entry point of the evaluator (ADR 0022, step S2),
+   `write_receipts` of `scripts/run_pleml_configuration_evaluation.py`, which
+   writes the compressed elements and one receipt per feature model, and
+   requires the fresh elements to equal the committed ones. Only the
+   provenance of the run, its executor revision, may differ.
+
+The library document of the bundle is labelled by its repository path,
+`LIBRARY_PATH` of `de4sdv/semantic/pleml_package.py`.
+
+## Receipts
 
 The receipts and their compressed elements, in the evaluator's format and
-layout, are committed after a licensed run; the owner said yes to committing
-them on 2026-10-19. Unlicensed CI then re-runs the evaluator on the
-committed elements and refuses a stale receipt. The library document of the
-bundle is labelled by its repository path, `LIBRARY_PATH` of
-`de4sdv/semantic/pleml_package.py`.
+layout, are committed in
+[`feature-models/receipts/`](../../model-based-product-line-engineering/feature-models/receipts/):
+`pleml-feature-models.elements.json.xz` and one `<feature-model file
+stem>.receipt.json` per feature model. The owner said yes to committing them
+on 2026-10-19. Unlicensed CI re-runs the evaluator on the committed elements
+and refuses a receipt that is stale by digest or does not reproduce. Each
+receipt binds the documents of the bundle by digest, so a change to a
+feature model, a configuration, a superset, the governed scope, the kernel,
+the library or a catalogue makes it stale:
+
+- when a document changes, the authority job writes fresh receipts into
+  `authority/receipts/` of its evidence; commit those;
+- when only the evaluator changes, refresh the receipts offline with
+  `python scripts/run_pleml_configuration_evaluation.py refresh <receipt>...`.
+
+The licensed job runs only where the evaluator is on the revision: until
+then it stops after the round trip, as the evaluation is pending.
 
 The unlicensed checks are
 [`test_ple_authority_model.py`](../../tests/test_ple_authority_model.py)
 (the fence, the catalogue restatement, the agreement and complement checks,
 the closed world, admission, the bindings, correspondences and
 configurations),
-[`test_ple_authority_runner.py`](../../tests/test_ple_authority_runner.py)
-and [`test_ple_authority_workflow.py`](../../tests/test_ple_authority_workflow.py).
+[`test_ple_authority_runner.py`](../../tests/test_ple_authority_runner.py),
+[`test_ple_authority_workflow.py`](../../tests/test_ple_authority_workflow.py)
+and [`test_ple_authority_receipts.py`](../../tests/test_ple_authority_receipts.py)
+(the committed receipts: their files, digests, sources and verdicts, and
+their offline replay).
 They read the model text: the closed-world and admission checks evaluate the
 stated semantics on it, and the other checks pin its shape. Licensed
 validation is the validator, and the evaluator owns the semantics.

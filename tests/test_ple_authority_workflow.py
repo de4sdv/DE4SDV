@@ -111,7 +111,7 @@ def test_triggers_are_the_authority_paths_and_maintainer_dispatch() -> None:
     assert len(paths) == len(set(paths)) and set(paths) == OWN_PATHS | PIN_PATHS | BOUND_PATHS
     for path in OWN_PATHS | PIN_PATHS | BOUND_PATHS:
         if path.endswith("/**"):
-            assert (ROOT / path[:-3]).is_dir() or path == f"{runner.RECEIPTS_DIR}/**", path
+            assert (ROOT / path[:-3]).is_dir(), path
         elif "/**/" in path:
             base, pattern = path.split("/**/")
             assert any((ROOT / base).rglob(pattern)), path

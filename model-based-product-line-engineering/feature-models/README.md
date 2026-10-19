@@ -22,6 +22,10 @@ only by the privileged PLE authority workflow. Until the switch the
 catalogues above remain the selection authority. See
 [`docs/product-line-engineering/pleml-feature-models.md`](../../docs/product-line-engineering/pleml-feature-models.md).
 
+`receipts/` holds their receipts: one per feature model, with the
+compressed serialized elements of the licensed run they were evaluated from.
+The evaluator of ADR 0022 step S2 writes them and replays them offline.
+
 ## Relationship to SysML v2
 
 SysML v2 `variation`/`variant` provides structural variability in a shared asset.

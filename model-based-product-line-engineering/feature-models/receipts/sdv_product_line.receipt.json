@@ -1,0 +1,2271 @@
+{
+  "elements": {
+    "content_sha256": "8347aea3e03526bb8f61dc82d80b7b2179ca0060f2a91266035bb6e3b284de09",
+    "path": "pleml-feature-models.elements.json.xz",
+    "sha256": "36ac1069df6fa244f40a82298aa3a29bc1911a44589e1f035e5176b1fbfb4681"
+  },
+  "evaluation": {
+    "admission_authority": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
+    "binding_time_scope": "Development-only",
+    "feature_models": [
+      {
+        "agreement": [
+          {
+            "derivation": "D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER",
+            "derived_variation": "applicationMiddlewareAdapter",
+            "pairs": 12,
+            "rows": [
+              {
+                "exclusions": [],
+                "pair": [
+                  "platformStack.autoware",
+                  "platformStack.eclipseSCORE"
+                ],
+                "rules": [
+                  "autowareEclipseSCORERule"
+                ]
+              },
+              {
+                "exclusions": [],
+                "pair": [
+                  "platformStack.autoware",
+                  "platformStack.androidSDV"
+                ],
+                "rules": [
+                  "autowareAndroidSDVRule"
+                ]
+              },
+              {
+                "exclusions": [],
+                "pair": [
+                  "platformStack.autoware",
+                  "platformStack.autosarAdaptive"
+                ],
+                "rules": [
+                  "autowareAUTOSARAdaptiveRule"
+                ]
+              },
+              {
+                "exclusions": [],
+                "pair": [
+                  "platformStack.autoware",
+                  "platformStack.noMiddleware"
+                ],
+                "rules": [
+                  "autowareNoMiddlewareRule"
+                ]
+              },
+              {
+                "exclusions": [],
+                "pair": [
+                  "platformStack.openpilot",
+                  "platformStack.eclipseSCORE"
+                ],
+                "rules": [
+                  "openpilotEclipseSCORERule"
+                ]
+              },
+              {
+                "exclusions": [
+                  "openpilotExcludesUnsupportedMiddleware"
+                ],
+                "pair": [
+                  "platformStack.openpilot",
+                  "platformStack.androidSDV"
+                ],
+                "rules": []
+              },
+              {
+                "exclusions": [
+                  "openpilotExcludesUnsupportedMiddleware"
+                ],
+                "pair": [
+                  "platformStack.openpilot",
+                  "platformStack.autosarAdaptive"
+                ],
+                "rules": []
+              },
+              {
+                "exclusions": [],
+                "pair": [
+                  "platformStack.openpilot",
+                  "platformStack.noMiddleware"
+                ],
+                "rules": [
+                  "openpilotNoMiddlewareRule"
+                ]
+              },
+              {
+                "exclusions": [],
+                "pair": [
+                  "platformStack.apollo",
+                  "platformStack.eclipseSCORE"
+                ],
+                "rules": [
+                  "apolloEclipseSCORERule"
+                ]
+              },
+              {
+                "exclusions": [
+                  "apolloExcludesUnsupportedMiddleware"
+                ],
+                "pair": [
+                  "platformStack.apollo",
+                  "platformStack.androidSDV"
+                ],
+                "rules": []
+              },
+              {
+                "exclusions": [
+                  "apolloExcludesUnsupportedMiddleware"
+                ],
+                "pair": [
+                  "platformStack.apollo",
+                  "platformStack.autosarAdaptive"
+                ],
+                "rules": []
+              },
+              {
+                "exclusions": [],
+                "pair": [
+                  "platformStack.apollo",
+                  "platformStack.noMiddleware"
+                ],
+                "rules": [
+                  "apolloNoMiddlewareRule"
+                ]
+              }
+            ],
+            "source_groups": [
+              "platformStack.vehicleApplication",
+              "platformStack.middleware"
+            ],
+            "with_exclusion": 4,
+            "with_rule": 8
+          }
+        ],
+        "bindings": [
+          {
+            "binding": "vehicleApplicationAutowareBinding",
+            "element_id": "36b3aa1b-e6aa-531b-b00e-9491b3d5952e",
+            "feature": "platformStack.autoware",
+            "feature_id": "57b25f2e-40dd-572c-b0d1-0caf98a6534f",
+            "feature_short_name": "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE",
+            "variant": "autoware",
+            "variant_id": "c18b4ccc-8f57-5241-8f90-3ce459469a32",
+            "variation": "vehicleApplication",
+            "variation_id": "220db22f-ef58-5fba-9073-4a2154c344b1"
+          },
+          {
+            "binding": "vehicleApplicationOpenpilotBinding",
+            "element_id": "14a90813-5fec-5f04-becf-8bc89d1bb0ee",
+            "feature": "platformStack.openpilot",
+            "feature_id": "815281a6-1bf2-561e-b7a3-958b7e6f95a7",
+            "feature_short_name": "F-PLATFORM-VEHICLE-APPLICATION-OPENPILOT",
+            "variant": "openpilot",
+            "variant_id": "38794787-572a-5580-a43f-eff38e74390a",
+            "variation": "vehicleApplication",
+            "variation_id": "220db22f-ef58-5fba-9073-4a2154c344b1"
+          },
+          {
+            "binding": "vehicleApplicationApolloBinding",
+            "element_id": "8cbfcc6b-1b45-5fdc-b71b-3da05b8edd91",
+            "feature": "platformStack.apollo",
+            "feature_id": "274d7221-b68e-5224-a489-e0487f08ee45",
+            "feature_short_name": "F-PLATFORM-VEHICLE-APPLICATION-APOLLO",
+            "variant": "apollo",
+            "variant_id": "70a07927-c9df-5415-87a9-aefbdf14ab59",
+            "variation": "vehicleApplication",
+            "variation_id": "220db22f-ef58-5fba-9073-4a2154c344b1"
+          },
+          {
+            "binding": "middlewareEclipseSCOREBinding",
+            "element_id": "d4ca66db-2ad3-541b-a7c2-7f96a40b7c7f",
+            "feature": "platformStack.eclipseSCORE",
+            "feature_id": "289f9d85-ebdb-525c-b96c-149625e1e5dd",
+            "feature_short_name": "F-PLATFORM-MIDDLEWARE-ECLIPSE-SCORE",
+            "variant": "eclipseSCORE",
+            "variant_id": "db135c9e-c653-5275-8a88-409a0fa4afea",
+            "variation": "middleware",
+            "variation_id": "ecc1aa85-d790-5840-8bb5-e81d2a1851bc"
+          },
+          {
+            "binding": "middlewareAndroidSDVBinding",
+            "element_id": "21764b42-7aa1-5903-9579-be22d72b3c35",
+            "feature": "platformStack.androidSDV",
+            "feature_id": "17d69440-2797-5293-b094-2226eac77fca",
+            "feature_short_name": "F-PLATFORM-MIDDLEWARE-ANDROID-SDV",
+            "variant": "androidSDV",
+            "variant_id": "7249f096-905b-5aa7-8cbf-eb3f11935803",
+            "variation": "middleware",
+            "variation_id": "ecc1aa85-d790-5840-8bb5-e81d2a1851bc"
+          },
+          {
+            "binding": "middlewareAUTOSARAdaptiveBinding",
+            "element_id": "609be61d-e493-55ea-81c1-b88eeb1cf38e",
+            "feature": "platformStack.autosarAdaptive",
+            "feature_id": "c9878d15-8c2a-5835-8e99-deb583d16ce3",
+            "feature_short_name": "F-PLATFORM-MIDDLEWARE-AUTOSAR-ADAPTIVE",
+            "variant": "autosarAdaptive",
+            "variant_id": "100f7e51-a30b-5951-828e-2b520b9e1147",
+            "variation": "middleware",
+            "variation_id": "ecc1aa85-d790-5840-8bb5-e81d2a1851bc"
+          },
+          {
+            "binding": "middlewareNoneBinding",
+            "element_id": "23926f94-8740-5de9-9d31-bcfe7df5c16e",
+            "feature": "platformStack.noMiddleware",
+            "feature_id": "c70c1c3e-87f9-50c3-b64d-99e97b7ebbbd",
+            "feature_short_name": "F-PLATFORM-MIDDLEWARE-NONE",
+            "variant": "none",
+            "variant_id": "b9825418-9bb9-57a7-8e57-67c9078d47a5",
+            "variation": "middleware",
+            "variation_id": "ecc1aa85-d790-5840-8bb5-e81d2a1851bc"
+          },
+          {
+            "binding": "osPlatformLinuxBinding",
+            "element_id": "46753ba2-5ed6-58e1-a589-a764c6618d18",
+            "feature": "platformStack.linux",
+            "feature_id": "6b514b6c-fe01-5912-a26d-122fc2be9b51",
+            "feature_short_name": "F-PLATFORM-OS-LINUX",
+            "variant": "linux",
+            "variant_id": "a6fea382-a4e0-55ec-b42f-736e915fcd02",
+            "variation": "osPlatform",
+            "variation_id": "64eb0845-18cb-5e28-8ee6-1b5cae5ad3ca"
+          },
+          {
+            "binding": "osPlatformAndroidBinding",
+            "element_id": "d0580514-5b0b-5528-8163-93ab08f27721",
+            "feature": "platformStack.android",
+            "feature_id": "211be20e-8e81-516a-be9a-589f0de351bb",
+            "feature_short_name": "F-PLATFORM-OS-ANDROID",
+            "variant": "android",
+            "variant_id": "9fe145b5-a5cd-5d92-ba08-6fac1d1b9f2b",
+            "variation": "osPlatform",
+            "variation_id": "64eb0845-18cb-5e28-8ee6-1b5cae5ad3ca"
+          },
+          {
+            "binding": "osPlatformQNXBinding",
+            "element_id": "42927ccd-7803-568c-abee-b34c0ab2cecc",
+            "feature": "platformStack.qnx",
+            "feature_id": "3a79fce9-bd8e-59a8-a43c-4250c255b1e3",
+            "feature_short_name": "F-PLATFORM-OS-QNX",
+            "variant": "qnx",
+            "variant_id": "0abcdde1-fdb3-578b-95da-c10132b08323",
+            "variation": "osPlatform",
+            "variation_id": "64eb0845-18cb-5e28-8ee6-1b5cae5ad3ca"
+          },
+          {
+            "binding": "hypervisorQVMBinding",
+            "element_id": "57703f7c-a33e-580d-a28d-264c2928bfa1",
+            "feature": "platformStack.qvm",
+            "feature_id": "f146d779-4548-528b-93c6-b7b8cdf4f115",
+            "feature_short_name": "F-PLATFORM-HYPERVISOR-QVM",
+            "variant": "qvm",
+            "variant_id": "8d6a70f9-387c-5834-b180-1273438ce108",
+            "variation": "hypervisor",
+            "variation_id": "e3496884-92b2-5aee-bca2-66a605aaddb9"
+          },
+          {
+            "binding": "hypervisorACRNBinding",
+            "element_id": "cdbe197d-4cf0-5ef2-b8ee-51031daf91c9",
+            "feature": "platformStack.acrn",
+            "feature_id": "15ef0585-70b0-5fe9-a4ee-c2bacb2a17d9",
+            "feature_short_name": "F-PLATFORM-HYPERVISOR-ACRN",
+            "variant": "acrn",
+            "variant_id": "21f11945-cb18-5a6d-a5f1-5d20a5447188",
+            "variation": "hypervisor",
+            "variation_id": "e3496884-92b2-5aee-bca2-66a605aaddb9"
+          },
+          {
+            "binding": "hypervisorKVMBinding",
+            "element_id": "611116ba-f62d-5d7c-9cee-2d8e8c499c5f",
+            "feature": "platformStack.kvm",
+            "feature_id": "60f8efc8-48d1-586a-9929-2f1e59a7ef48",
+            "feature_short_name": "F-PLATFORM-HYPERVISOR-KVM",
+            "variant": "kvm",
+            "variant_id": "81032cdb-ae10-58eb-b691-ca5cc2b8ade0",
+            "variation": "hypervisor",
+            "variation_id": "e3496884-92b2-5aee-bca2-66a605aaddb9"
+          },
+          {
+            "binding": "hypervisorNoneBinding",
+            "element_id": "ed596296-7355-52a7-b0fd-fcb1a551db43",
+            "feature": "platformStack.noHypervisor",
+            "feature_id": "94c73d48-0e10-57f9-9047-f54b1ccf8f23",
+            "feature_short_name": "F-PLATFORM-HYPERVISOR-NONE",
+            "variant": "none",
+            "variant_id": "f605a4bc-33da-5a7a-a414-764a041406f8",
+            "variation": "hypervisor",
+            "variation_id": "e3496884-92b2-5aee-bca2-66a605aaddb9"
+          }
+        ],
+        "configurations": [
+          {
+            "admission": {
+              "admitted": true,
+              "alternative": "standalone",
+              "alternatives_realized": {
+                "standalone": [
+                  "platformStack.noMiddleware",
+                  "platformStack.linux",
+                  "platformStack.noHypervisor"
+                ]
+              },
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": []
+            },
+            "configuration": "aebsAutowareLinuxLidarCamera",
+            "derived_variants": [
+              {
+                "derivation": "D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER",
+                "rule": "autowareNoMiddlewareRule",
+                "variant": "none",
+                "variant_id": "4d5d88d4-d00e-576d-8c5f-1d39c0963350",
+                "variation": "applicationMiddlewareAdapter"
+              },
+              {
+                "binding": "hypervisorNoneBinding",
+                "variant": "none",
+                "variant_id": "f605a4bc-33da-5a7a-a414-764a041406f8",
+                "variation": "hypervisor"
+              },
+              {
+                "binding": "middlewareNoneBinding",
+                "variant": "none",
+                "variant_id": "b9825418-9bb9-57a7-8e57-67c9078d47a5",
+                "variation": "middleware"
+              },
+              {
+                "binding": "osPlatformLinuxBinding",
+                "variant": "linux",
+                "variant_id": "a6fea382-a4e0-55ec-b42f-736e915fcd02",
+                "variation": "osPlatform"
+              },
+              {
+                "binding": "vehicleApplicationAutowareBinding",
+                "variant": "autoware",
+                "variant_id": "c18b4ccc-8f57-5241-8f90-3ce459469a32",
+                "variation": "vehicleApplication"
+              }
+            ],
+            "description": "AEBS reference member product.\nAutoware on Linux, single-domain (no middleware, no hypervisor).\nLiDAR + camera perception, IMU + wheel odometry common.\nVehicle-target AEBS only (no pedestrian/bicycle detection).",
+            "element_id": "01c24551-6a90-5b5e-a730-5d80b95f4943",
+            "projection_name": "AEBSAutowareLinuxLidarCamera",
+            "reasons": [],
+            "selected": [
+              "capabilities",
+              "platformStack",
+              "platformStack.autoware",
+              "platformStack.hypervisor",
+              "platformStack.linux",
+              "platformStack.middleware",
+              "platformStack.noHypervisor",
+              "platformStack.noMiddleware",
+              "platformStack.operatingSystem",
+              "platformStack.vehicleApplication",
+              "sensingBoundary",
+              "sensingBoundary.camera",
+              "sensingBoundary.lidar",
+              "sensingBoundary.perceptionSensors"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/aebs_autoware_linux_lidar_camera.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "omitted",
+              "platformStack.android": "omitted",
+              "platformStack.androidSDV": "omitted",
+              "platformStack.apollo": "omitted",
+              "platformStack.autosarAdaptive": "omitted",
+              "platformStack.autoware": "enabled",
+              "platformStack.eclipseSCORE": "omitted",
+              "platformStack.hypervisor": "enabled",
+              "platformStack.kvm": "omitted",
+              "platformStack.linux": "enabled",
+              "platformStack.middleware": "enabled",
+              "platformStack.noHypervisor": "enabled",
+              "platformStack.noMiddleware": "enabled",
+              "platformStack.openpilot": "omitted",
+              "platformStack.operatingSystem": "enabled",
+              "platformStack.qnx": "omitted",
+              "platformStack.qvm": "omitted",
+              "platformStack.vehicleApplication": "enabled",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "enabled",
+              "sensingBoundary.lidar": "enabled",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "omitted"
+            },
+            "valid": true
+          },
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": null,
+              "alternatives_realized": {},
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "platformStack.autoware"
+                  ],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "sensingBoundary.camera"
+                  ],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "platformStack.linux"
+                  ],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": [
+                "selects content the governed scope does not admit: platformStack.apollo: reference-only apollo | platformStack.eclipseSCORE: reference-only eclipseSCORE | platformStack.qnx: reference-only qnxQVM | platformStack.qvm: reference-only qnxQVM | sensingBoundary.radar: deferred sensingVariability",
+                "realizes no admitted alternative",
+                "does not represent the common content: autowareApplication (missing platformStack.autoware); currentSensingBaseline (missing sensingBoundary.camera); linuxROS2AutowareRuntime (missing platformStack.linux)"
+              ]
+            },
+            "configuration": "apolloQNXQVMVariant",
+            "derived_variants": [
+              {
+                "derivation": "D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER",
+                "rule": "apolloEclipseSCORERule",
+                "variant": "apolloToSCORE",
+                "variant_id": "c5373e15-5571-59ca-bccb-e84e72098f48",
+                "variation": "applicationMiddlewareAdapter"
+              },
+              {
+                "binding": "hypervisorQVMBinding",
+                "variant": "qvm",
+                "variant_id": "8d6a70f9-387c-5834-b180-1273438ce108",
+                "variation": "hypervisor"
+              },
+              {
+                "binding": "middlewareEclipseSCOREBinding",
+                "variant": "eclipseSCORE",
+                "variant_id": "db135c9e-c653-5275-8a88-409a0fa4afea",
+                "variation": "middleware"
+              },
+              {
+                "binding": "osPlatformQNXBinding",
+                "variant": "qnx",
+                "variant_id": "0abcdde1-fdb3-578b-95da-c10132b08323",
+                "variation": "osPlatform"
+              },
+              {
+                "binding": "vehicleApplicationApolloBinding",
+                "variant": "apollo",
+                "variant_id": "70a07927-c9df-5415-87a9-aefbdf14ab59",
+                "variation": "vehicleApplication"
+              }
+            ],
+            "description": "Mixed-criticality reference configuration.\nApollo (ADAS) on Eclipse S-CORE on QNX with QNX QVM hypervisor.\nVehicle-target AEBS only.",
+            "element_id": "4cb14e8b-0ba2-5712-8ff7-2352425e0df3",
+            "projection_name": "ApolloQNXQVMVariant",
+            "reasons": [],
+            "selected": [
+              "capabilities",
+              "platformStack",
+              "platformStack.apollo",
+              "platformStack.eclipseSCORE",
+              "platformStack.hypervisor",
+              "platformStack.middleware",
+              "platformStack.operatingSystem",
+              "platformStack.qnx",
+              "platformStack.qvm",
+              "platformStack.vehicleApplication",
+              "sensingBoundary",
+              "sensingBoundary.lidar",
+              "sensingBoundary.perceptionSensors",
+              "sensingBoundary.radar"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/apollo_qnx_qvm.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "omitted",
+              "platformStack.android": "omitted",
+              "platformStack.androidSDV": "omitted",
+              "platformStack.apollo": "enabled",
+              "platformStack.autosarAdaptive": "omitted",
+              "platformStack.autoware": "omitted",
+              "platformStack.eclipseSCORE": "enabled",
+              "platformStack.hypervisor": "enabled",
+              "platformStack.kvm": "omitted",
+              "platformStack.linux": "omitted",
+              "platformStack.middleware": "enabled",
+              "platformStack.noHypervisor": "omitted",
+              "platformStack.noMiddleware": "omitted",
+              "platformStack.openpilot": "omitted",
+              "platformStack.operatingSystem": "enabled",
+              "platformStack.qnx": "enabled",
+              "platformStack.qvm": "enabled",
+              "platformStack.vehicleApplication": "enabled",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "omitted",
+              "sensingBoundary.lidar": "enabled",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "enabled"
+            },
+            "valid": true
+          },
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": "standalone",
+              "alternatives_realized": {
+                "standalone": [
+                  "platformStack.linux",
+                  "platformStack.noHypervisor"
+                ]
+              },
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": [
+                "selects content the governed scope does not admit: platformStack.eclipseSCORE: reference-only eclipseSCORE",
+                "misses derived realizations of standalone: platformStack.middleware = platformStack.noMiddleware"
+              ]
+            },
+            "configuration": "exampleLinuxSCOREVariant",
+            "derived_variants": [
+              {
+                "derivation": "D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER",
+                "rule": "autowareEclipseSCORERule",
+                "variant": "autowareToSCORE",
+                "variant_id": "ad3688f6-00c0-5341-a3b7-e7b5c0b12a11",
+                "variation": "applicationMiddlewareAdapter"
+              },
+              {
+                "binding": "hypervisorNoneBinding",
+                "variant": "none",
+                "variant_id": "f605a4bc-33da-5a7a-a414-764a041406f8",
+                "variation": "hypervisor"
+              },
+              {
+                "binding": "middlewareEclipseSCOREBinding",
+                "variant": "eclipseSCORE",
+                "variant_id": "db135c9e-c653-5275-8a88-409a0fa4afea",
+                "variation": "middleware"
+              },
+              {
+                "binding": "osPlatformLinuxBinding",
+                "variant": "linux",
+                "variant_id": "a6fea382-a4e0-55ec-b42f-736e915fcd02",
+                "variation": "osPlatform"
+              },
+              {
+                "binding": "vehicleApplicationAutowareBinding",
+                "variant": "autoware",
+                "variant_id": "c18b4ccc-8f57-5241-8f90-3ce459469a32",
+                "variation": "vehicleApplication"
+              }
+            ],
+            "description": "Single-domain reference configuration.\nAutoware (ADAS) on Eclipse S-CORE on Linux, no hypervisor.\nVehicle-target AEBS only (no pedestrian/bicycle detection).",
+            "element_id": "6a02500e-2192-54a3-91d1-4f44a9cf2856",
+            "projection_name": "ExampleLinuxSCOREVariant",
+            "reasons": [],
+            "selected": [
+              "capabilities",
+              "platformStack",
+              "platformStack.autoware",
+              "platformStack.eclipseSCORE",
+              "platformStack.hypervisor",
+              "platformStack.linux",
+              "platformStack.middleware",
+              "platformStack.noHypervisor",
+              "platformStack.operatingSystem",
+              "platformStack.vehicleApplication",
+              "sensingBoundary",
+              "sensingBoundary.camera",
+              "sensingBoundary.lidar",
+              "sensingBoundary.perceptionSensors"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/example_linux_score_autoware.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "omitted",
+              "platformStack.android": "omitted",
+              "platformStack.androidSDV": "omitted",
+              "platformStack.apollo": "omitted",
+              "platformStack.autosarAdaptive": "omitted",
+              "platformStack.autoware": "enabled",
+              "platformStack.eclipseSCORE": "enabled",
+              "platformStack.hypervisor": "enabled",
+              "platformStack.kvm": "omitted",
+              "platformStack.linux": "enabled",
+              "platformStack.middleware": "enabled",
+              "platformStack.noHypervisor": "enabled",
+              "platformStack.noMiddleware": "omitted",
+              "platformStack.openpilot": "omitted",
+              "platformStack.operatingSystem": "enabled",
+              "platformStack.qnx": "omitted",
+              "platformStack.qvm": "omitted",
+              "platformStack.vehicleApplication": "enabled",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "enabled",
+              "sensingBoundary.lidar": "enabled",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "omitted"
+            },
+            "valid": true
+          },
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": null,
+              "alternatives_realized": {
+                "aaosIntegrated": [
+                  "platformStack.android"
+                ],
+                "standalone": [
+                  "platformStack.noHypervisor"
+                ]
+              },
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "sensingBoundary.camera"
+                  ],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "platformStack.linux"
+                  ],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": [
+                "selects content the governed scope does not admit: platformStack.eclipseSCORE: reference-only eclipseSCORE",
+                "realizes more than one admitted alternative: aaosIntegrated, standalone",
+                "does not represent the common content: currentSensingBaseline (missing sensingBoundary.camera); linuxROS2AutowareRuntime (missing platformStack.linux)"
+              ]
+            },
+            "configuration": "invalidSCOREAndroidVariant",
+            "derived_variants": [],
+            "description": "Deliberately invalid: S-CORE + Android HLOS.\nShould fail constraint C001.",
+            "element_id": "f6f84832-f880-58bf-930c-3f29e0e785c8",
+            "projection_name": "InvalidSCOREAndroidVariant",
+            "reasons": [
+              {
+                "class": "constraint",
+                "code": "constraint",
+                "constraint": "C001",
+                "detail": "platformStack.eclipseSCORE excludes ['platformStack.android']",
+                "kind": "xor"
+              }
+            ],
+            "selected": [
+              "capabilities",
+              "platformStack",
+              "platformStack.android",
+              "platformStack.autoware",
+              "platformStack.eclipseSCORE",
+              "platformStack.hypervisor",
+              "platformStack.middleware",
+              "platformStack.noHypervisor",
+              "platformStack.operatingSystem",
+              "platformStack.vehicleApplication",
+              "sensingBoundary",
+              "sensingBoundary.lidar",
+              "sensingBoundary.perceptionSensors"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/fixtures/invalid_score_android.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "omitted",
+              "platformStack.android": "enabled",
+              "platformStack.androidSDV": "omitted",
+              "platformStack.apollo": "omitted",
+              "platformStack.autosarAdaptive": "omitted",
+              "platformStack.autoware": "enabled",
+              "platformStack.eclipseSCORE": "enabled",
+              "platformStack.hypervisor": "enabled",
+              "platformStack.kvm": "omitted",
+              "platformStack.linux": "omitted",
+              "platformStack.middleware": "enabled",
+              "platformStack.noHypervisor": "enabled",
+              "platformStack.noMiddleware": "omitted",
+              "platformStack.openpilot": "omitted",
+              "platformStack.operatingSystem": "enabled",
+              "platformStack.qnx": "omitted",
+              "platformStack.qvm": "omitted",
+              "platformStack.vehicleApplication": "enabled",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "omitted",
+              "sensingBoundary.lidar": "enabled",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "omitted"
+            },
+            "valid": false
+          },
+          {
+            "admission": {
+              "admitted": true,
+              "alternative": "aaosIntegrated",
+              "alternatives_realized": {
+                "aaosIntegrated": [
+                  "platformStack.androidSDV",
+                  "platformStack.android",
+                  "platformStack.kvm"
+                ]
+              },
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": true,
+                  "exempted": [
+                    "platformStack.linux"
+                  ],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": []
+            },
+            "configuration": "middlewareAutowareAAOSSDVReference",
+            "derived_variants": [
+              {
+                "derivation": "D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER",
+                "rule": "autowareAndroidSDVRule",
+                "variant": "autowareToAAOSSDV",
+                "variant_id": "7aa95899-b3cf-5377-9676-a282a9cfc561",
+                "variation": "applicationMiddlewareAdapter"
+              },
+              {
+                "binding": "hypervisorKVMBinding",
+                "variant": "kvm",
+                "variant_id": "81032cdb-ae10-58eb-b691-ca5cc2b8ade0",
+                "variation": "hypervisor"
+              },
+              {
+                "binding": "middlewareAndroidSDVBinding",
+                "variant": "androidSDV",
+                "variant_id": "7249f096-905b-5aa7-8cbf-eb3f11935803",
+                "variation": "middleware"
+              },
+              {
+                "binding": "osPlatformAndroidBinding",
+                "variant": "android",
+                "variant_id": "9fe145b5-a5cd-5d92-ba08-6fac1d1b9f2b",
+                "variation": "osPlatform"
+              },
+              {
+                "binding": "vehicleApplicationAutowareBinding",
+                "variant": "autoware",
+                "variant_id": "c18b4ccc-8f57-5241-8f90-3ce459469a32",
+                "variation": "vehicleApplication"
+              }
+            ],
+            "description": "Planned Autoware + AAOS SDV middleware reference member on the\nAndroid/KVM SDV Core platform domain with LiDAR and camera\nperception. Autoware retains its ROS 2/Linux application runtime;\ncross-domain deployment and transport remain unresolved. This\nconfiguration and its projection do not prove provider, generated\nbinding, discovery, transport, adapter deployment, ROS 2\npublication, Autoware observation, safety, compliance, or runtime\ninteroperability.",
+            "element_id": "e4b7316b-9878-5127-af74-e525e518be3a",
+            "projection_name": "MiddlewareAutowareAAOSSDVReference",
+            "reasons": [],
+            "selected": [
+              "capabilities",
+              "platformStack",
+              "platformStack.android",
+              "platformStack.androidSDV",
+              "platformStack.autoware",
+              "platformStack.hypervisor",
+              "platformStack.kvm",
+              "platformStack.middleware",
+              "platformStack.operatingSystem",
+              "platformStack.vehicleApplication",
+              "sensingBoundary",
+              "sensingBoundary.camera",
+              "sensingBoundary.lidar",
+              "sensingBoundary.perceptionSensors"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "omitted",
+              "platformStack.android": "enabled",
+              "platformStack.androidSDV": "enabled",
+              "platformStack.apollo": "omitted",
+              "platformStack.autosarAdaptive": "omitted",
+              "platformStack.autoware": "enabled",
+              "platformStack.eclipseSCORE": "omitted",
+              "platformStack.hypervisor": "enabled",
+              "platformStack.kvm": "enabled",
+              "platformStack.linux": "omitted",
+              "platformStack.middleware": "enabled",
+              "platformStack.noHypervisor": "omitted",
+              "platformStack.noMiddleware": "omitted",
+              "platformStack.openpilot": "omitted",
+              "platformStack.operatingSystem": "enabled",
+              "platformStack.qnx": "omitted",
+              "platformStack.qvm": "omitted",
+              "platformStack.vehicleApplication": "enabled",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "enabled",
+              "sensingBoundary.lidar": "enabled",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "omitted"
+            },
+            "valid": true
+          }
+        ],
+        "constraints": [
+          {
+            "element_id": "2ee4ee0e-c2d2-5c86-993c-13c83c32bacb",
+            "kind": "xor",
+            "operand_a": [
+              "platformStack.openpilot"
+            ],
+            "operand_b": [
+              "platformStack.androidSDV",
+              "platformStack.autosarAdaptive"
+            ],
+            "owner": "platformStack.openpilot",
+            "pair_exclusion": true,
+            "short_name": null
+          },
+          {
+            "element_id": "9c583bce-5e55-5e9c-a563-73cef566620c",
+            "kind": "xor",
+            "operand_a": [
+              "platformStack.apollo"
+            ],
+            "operand_b": [
+              "platformStack.androidSDV",
+              "platformStack.autosarAdaptive"
+            ],
+            "owner": "platformStack.apollo",
+            "pair_exclusion": true,
+            "short_name": null
+          },
+          {
+            "element_id": "87b0b01c-2654-5466-8ddb-1624f8222381",
+            "kind": "xor",
+            "operand_a": [
+              "platformStack.eclipseSCORE"
+            ],
+            "operand_b": [
+              "platformStack.android"
+            ],
+            "owner": "platformStack.eclipseSCORE",
+            "pair_exclusion": false,
+            "short_name": "C001"
+          },
+          {
+            "element_id": "b97c81f1-a300-5d56-aa8d-98511eb7a6d0",
+            "kind": "xor",
+            "operand_a": [
+              "platformStack.autosarAdaptive"
+            ],
+            "operand_b": [
+              "platformStack.android"
+            ],
+            "owner": "platformStack.autosarAdaptive",
+            "pair_exclusion": false,
+            "short_name": "C003"
+          },
+          {
+            "element_id": "5d8e123d-a317-5d1e-b07f-48559846fd3a",
+            "kind": "xor",
+            "operand_a": [
+              "platformStack.acrn"
+            ],
+            "operand_b": [
+              "platformStack.qnx"
+            ],
+            "owner": "platformStack.acrn",
+            "pair_exclusion": false,
+            "short_name": "C004"
+          },
+          {
+            "element_id": "29c43f93-2716-5025-a82c-f28d8ec1d6c4",
+            "kind": "xor",
+            "operand_a": [
+              "platformStack.kvm"
+            ],
+            "operand_b": [
+              "platformStack.qnx"
+            ],
+            "owner": "platformStack.kvm",
+            "pair_exclusion": false,
+            "short_name": "C005"
+          }
+        ],
+        "correspondences": [
+          {
+            "classification": "deferred",
+            "correspondence": "vehicleApplicationCorrespondsToDrivingStackVariability",
+            "element_id": "896c321c-45b5-5850-87b6-9595e0999f30",
+            "feature": "platformStack.vehicleApplication",
+            "governed": "drivingStackVariability",
+            "governed_id": "d5cdb8e3-7771-52bb-89b6-3a7428147fe3"
+          },
+          {
+            "classification": "common",
+            "correspondence": "autowareCorrespondsToCommonAutowareApplication",
+            "element_id": "209d0de1-570a-55c7-9558-2a9c83075a03",
+            "feature": "platformStack.autoware",
+            "governed": "autowareApplication",
+            "governed_id": "184fb3f2-807d-5aa0-836a-f65fd9e1adde"
+          },
+          {
+            "classification": "reference-only",
+            "correspondence": "openpilotCorrespondsToReferenceOnlyOpenpilot",
+            "element_id": "fb4ffd3c-1a01-5a71-a38b-f700a0c56390",
+            "feature": "platformStack.openpilot",
+            "governed": "openpilot",
+            "governed_id": "1af5fe0c-1499-53ee-8649-d27b5750d755"
+          },
+          {
+            "classification": "reference-only",
+            "correspondence": "apolloCorrespondsToReferenceOnlyApollo",
+            "element_id": "08efbe0b-2e6f-5629-8581-73e4cf941b32",
+            "feature": "platformStack.apollo",
+            "governed": "apollo",
+            "governed_id": "4db25409-9262-5995-a954-5c6d801577a2"
+          },
+          {
+            "classification": "reference-only",
+            "correspondence": "eclipseSCORECorrespondsToReferenceOnlyEclipseSCORE",
+            "element_id": "ed993c7f-0d23-56e0-904a-8d51247b269d",
+            "feature": "platformStack.eclipseSCORE",
+            "governed": "eclipseSCORE",
+            "governed_id": "0320d441-642c-5029-8ae7-fb55a26b89f5"
+          },
+          {
+            "classification": "admitted-alternative",
+            "correspondence": "androidSDVCorrespondsToAAOSIntegrated",
+            "element_id": "388af692-05ed-5f83-8270-d5a0a02b36a1",
+            "feature": "platformStack.androidSDV",
+            "governed": "aaosIntegrated",
+            "governed_id": "bbcaaea1-e378-5dc2-8751-c871bb5a14f1"
+          },
+          {
+            "classification": "reference-only",
+            "correspondence": "autosarAdaptiveCorrespondsToReferenceOnlyAUTOSARAdaptive",
+            "element_id": "a752f8e8-e602-5475-8437-7d9907870045",
+            "feature": "platformStack.autosarAdaptive",
+            "governed": "autosarAdaptive",
+            "governed_id": "77c45ab0-6ca7-58ce-ab70-c84912152b86"
+          },
+          {
+            "classification": "admitted-alternative",
+            "correspondence": "noMiddlewareCorrespondsToStandalone",
+            "element_id": "6765c2df-edb2-5994-83f5-8ff82d4c8637",
+            "feature": "platformStack.noMiddleware",
+            "governed": "standalone",
+            "governed_id": "3bbea54b-b0c6-50f5-b50b-beb0f85241bc"
+          },
+          {
+            "classification": "admitted-alternative",
+            "correspondence": "linuxCorrespondsToStandalone",
+            "element_id": "58b408ea-d086-5e9e-8ce2-7f1212e4d0e2",
+            "feature": "platformStack.linux",
+            "governed": "standalone",
+            "governed_id": "3bbea54b-b0c6-50f5-b50b-beb0f85241bc"
+          },
+          {
+            "classification": "common",
+            "correspondence": "linuxCorrespondsToCommonAutowareRuntime",
+            "element_id": "b007ce26-1c6d-55e9-9676-37ba1e1b9bf5",
+            "feature": "platformStack.linux",
+            "governed": "linuxROS2AutowareRuntime",
+            "governed_id": "7c6ebbf5-9790-597f-9ee3-96d0ec4c7b58"
+          },
+          {
+            "classification": "admitted-alternative",
+            "correspondence": "androidCorrespondsToAAOSIntegrated",
+            "element_id": "3eb94962-7c97-5ff7-a78e-f926148d471d",
+            "feature": "platformStack.android",
+            "governed": "aaosIntegrated",
+            "governed_id": "bbcaaea1-e378-5dc2-8751-c871bb5a14f1"
+          },
+          {
+            "classification": "reference-only",
+            "correspondence": "qnxCorrespondsToReferenceOnlyQNXQVM",
+            "element_id": "f522c767-e699-5979-b525-3f4629d216f4",
+            "feature": "platformStack.qnx",
+            "governed": "qnxQVM",
+            "governed_id": "246200d3-e591-5b7d-bd4b-2fe307fc551e"
+          },
+          {
+            "classification": "reference-only",
+            "correspondence": "qvmCorrespondsToReferenceOnlyQNXQVM",
+            "element_id": "ef39fc2f-328a-5ab7-bca4-a754243a7f72",
+            "feature": "platformStack.qvm",
+            "governed": "qnxQVM",
+            "governed_id": "246200d3-e591-5b7d-bd4b-2fe307fc551e"
+          },
+          {
+            "classification": "reference-only",
+            "correspondence": "acrnCorrespondsToReferenceOnlyACRN",
+            "element_id": "dc9c8a9e-52dd-5b27-9f55-b989e8f72afc",
+            "feature": "platformStack.acrn",
+            "governed": "acrn",
+            "governed_id": "8ad65dd6-49dc-539f-9551-09a2e3c16564"
+          },
+          {
+            "classification": "admitted-alternative",
+            "correspondence": "kvmCorrespondsToAAOSIntegrated",
+            "element_id": "f788584e-1ef2-5b16-a372-3538d883f779",
+            "feature": "platformStack.kvm",
+            "governed": "aaosIntegrated",
+            "governed_id": "bbcaaea1-e378-5dc2-8751-c871bb5a14f1"
+          },
+          {
+            "classification": "admitted-alternative",
+            "correspondence": "noHypervisorCorrespondsToStandalone",
+            "element_id": "ec390384-ace0-5e24-b18f-23949f808f7c",
+            "feature": "platformStack.noHypervisor",
+            "governed": "standalone",
+            "governed_id": "3bbea54b-b0c6-50f5-b50b-beb0f85241bc"
+          },
+          {
+            "classification": "deferred",
+            "correspondence": "perceptionSensorsCorrespondToSensingVariability",
+            "element_id": "b5d8b8f9-6506-558e-b44e-367724836a47",
+            "feature": "sensingBoundary.perceptionSensors",
+            "governed": "sensingVariability",
+            "governed_id": "b14d209f-de65-5a75-b260-93f5ac8c48da"
+          },
+          {
+            "classification": "common",
+            "correspondence": "lidarCorrespondsToCommonSensingBaseline",
+            "element_id": "3b0b817e-a1f4-5fb0-a584-6eea93c0033b",
+            "feature": "sensingBoundary.lidar",
+            "governed": "currentSensingBaseline",
+            "governed_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7"
+          },
+          {
+            "classification": "deferred",
+            "correspondence": "radarCorrespondsToSensingVariability",
+            "element_id": "fec3a7b6-8544-526c-b8a7-37f98dfd28cb",
+            "feature": "sensingBoundary.radar",
+            "governed": "sensingVariability",
+            "governed_id": "b14d209f-de65-5a75-b260-93f5ac8c48da"
+          },
+          {
+            "classification": "common",
+            "correspondence": "cameraCorrespondsToCommonSensingBaseline",
+            "element_id": "f1df1a4d-981e-5e80-90a9-9bb7b495c745",
+            "feature": "sensingBoundary.camera",
+            "governed": "currentSensingBaseline",
+            "governed_id": "91f6fc6d-08e0-5723-b1b4-7be532d8d4f7"
+          },
+          {
+            "classification": "deferred",
+            "correspondence": "pedestrianDetectionCorrespondsToExpandedAEBSCapabilityVariability",
+            "element_id": "ebbe5ee3-91cb-5ab6-951c-86a1407ee4b0",
+            "feature": "capabilities.pedestrianDetection",
+            "governed": "expandedAEBSCapabilityVariability",
+            "governed_id": "bbc3a850-629e-546f-aeaa-0ac014f3935b"
+          },
+          {
+            "classification": "deferred",
+            "correspondence": "bicycleDetectionCorrespondsToExpandedAEBSCapabilityVariability",
+            "element_id": "a15b0347-4fd4-5eb5-9c89-4215a4a86a03",
+            "feature": "capabilities.bicycleDetection",
+            "governed": "expandedAEBSCapabilityVariability",
+            "governed_id": "bbc3a850-629e-546f-aeaa-0ac014f3935b"
+          }
+        ],
+        "derivations": [
+          {
+            "derivation": "applicationMiddlewareAdapterDerivation",
+            "derived_variation": "applicationMiddlewareAdapter",
+            "derived_variation_id": "e7b72568-3ba4-511f-a74e-5214ef39c53b",
+            "element_id": "b86dbf13-46d2-5494-a73a-b10c00040784",
+            "rules": [
+              {
+                "element_id": "95378e2c-7046-50a8-b0d7-6970dd7cff23",
+                "premises": [
+                  "platformStack.autoware",
+                  "platformStack.eclipseSCORE"
+                ],
+                "result": "autowareToSCORE",
+                "result_id": "ad3688f6-00c0-5341-a3b7-e7b5c0b12a11",
+                "rule": "autowareEclipseSCORERule"
+              },
+              {
+                "element_id": "c2e91eae-1aff-5135-9a94-1c182d48e565",
+                "premises": [
+                  "platformStack.autoware",
+                  "platformStack.androidSDV"
+                ],
+                "result": "autowareToAAOSSDV",
+                "result_id": "7aa95899-b3cf-5377-9676-a282a9cfc561",
+                "rule": "autowareAndroidSDVRule"
+              },
+              {
+                "element_id": "44d89baf-1301-5482-b064-f2911dbcf274",
+                "premises": [
+                  "platformStack.autoware",
+                  "platformStack.autosarAdaptive"
+                ],
+                "result": "autowareToAUTOSAR",
+                "result_id": "c0e51cce-a97b-507a-bbd1-80559bfd53c1",
+                "rule": "autowareAUTOSARAdaptiveRule"
+              },
+              {
+                "element_id": "07c0ed40-8340-5b41-88ad-b2bec5ff2c4a",
+                "premises": [
+                  "platformStack.openpilot",
+                  "platformStack.eclipseSCORE"
+                ],
+                "result": "openpilotToSCORE",
+                "result_id": "b6410af7-3eb6-5856-977e-036a276bc71f",
+                "rule": "openpilotEclipseSCORERule"
+              },
+              {
+                "element_id": "c8f215dd-3c2c-51b0-adbc-e3490aac73c3",
+                "premises": [
+                  "platformStack.apollo",
+                  "platformStack.eclipseSCORE"
+                ],
+                "result": "apolloToSCORE",
+                "result_id": "c5373e15-5571-59ca-bccb-e84e72098f48",
+                "rule": "apolloEclipseSCORERule"
+              },
+              {
+                "element_id": "fea7ce6d-1274-505f-81d4-bbfd9b54d872",
+                "premises": [
+                  "platformStack.autoware",
+                  "platformStack.noMiddleware"
+                ],
+                "result": "none",
+                "result_id": "4d5d88d4-d00e-576d-8c5f-1d39c0963350",
+                "rule": "autowareNoMiddlewareRule"
+              },
+              {
+                "element_id": "8a2872f1-9dbe-529f-a22c-bb505cb7969c",
+                "premises": [
+                  "platformStack.openpilot",
+                  "platformStack.noMiddleware"
+                ],
+                "result": "none",
+                "result_id": "4d5d88d4-d00e-576d-8c5f-1d39c0963350",
+                "rule": "openpilotNoMiddlewareRule"
+              },
+              {
+                "element_id": "ad2d3fb8-ca3c-5874-8d91-cbc0fc47090a",
+                "premises": [
+                  "platformStack.apollo",
+                  "platformStack.noMiddleware"
+                ],
+                "result": "none",
+                "result_id": "4d5d88d4-d00e-576d-8c5f-1d39c0963350",
+                "rule": "apolloNoMiddlewareRule"
+              }
+            ],
+            "short_name": "D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER",
+            "source_groups": [
+              "platformStack.vehicleApplication",
+              "platformStack.middleware"
+            ]
+          }
+        ],
+        "element_id": "fab58aac-445c-5f9a-8937-6547034a58af",
+        "feature_model": "SDVProductLineFeatureModel",
+        "features": [
+          {
+            "binding_time": "Development",
+            "element_id": "3b6d50a4-d95e-5c0f-8d46-3e4cd9dabe73",
+            "group": null,
+            "members": [],
+            "multiplicity": {
+              "lower": 1,
+              "upper": 1
+            },
+            "name": "platformStack",
+            "owner": null,
+            "path": "platformStack",
+            "short_name": "F-PLATFORM-STACK",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "ba5e5c71-0e05-5f90-a737-55f208da4678",
+            "group": null,
+            "members": [
+              "platformStack.autoware",
+              "platformStack.openpilot",
+              "platformStack.apollo"
+            ],
+            "multiplicity": {
+              "lower": 1,
+              "upper": 1
+            },
+            "name": "vehicleApplication",
+            "owner": "platformStack",
+            "path": "platformStack.vehicleApplication",
+            "short_name": "F-PLATFORM-VEHICLE-APPLICATION",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "57b25f2e-40dd-572c-b0d1-0caf98a6534f",
+            "group": "platformStack.vehicleApplication",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "autoware",
+            "owner": "platformStack",
+            "path": "platformStack.autoware",
+            "short_name": "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "815281a6-1bf2-561e-b7a3-958b7e6f95a7",
+            "group": "platformStack.vehicleApplication",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "openpilot",
+            "owner": "platformStack",
+            "path": "platformStack.openpilot",
+            "short_name": "F-PLATFORM-VEHICLE-APPLICATION-OPENPILOT",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "274d7221-b68e-5224-a489-e0487f08ee45",
+            "group": "platformStack.vehicleApplication",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "apollo",
+            "owner": "platformStack",
+            "path": "platformStack.apollo",
+            "short_name": "F-PLATFORM-VEHICLE-APPLICATION-APOLLO",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "61cba809-31a4-5868-86ac-f1959f56393b",
+            "group": null,
+            "members": [
+              "platformStack.eclipseSCORE",
+              "platformStack.androidSDV",
+              "platformStack.autosarAdaptive",
+              "platformStack.noMiddleware"
+            ],
+            "multiplicity": {
+              "lower": 1,
+              "upper": 1
+            },
+            "name": "middleware",
+            "owner": "platformStack",
+            "path": "platformStack.middleware",
+            "short_name": "F-PLATFORM-MIDDLEWARE",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "289f9d85-ebdb-525c-b96c-149625e1e5dd",
+            "group": "platformStack.middleware",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "eclipseSCORE",
+            "owner": "platformStack",
+            "path": "platformStack.eclipseSCORE",
+            "short_name": "F-PLATFORM-MIDDLEWARE-ECLIPSE-SCORE",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "17d69440-2797-5293-b094-2226eac77fca",
+            "group": "platformStack.middleware",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "androidSDV",
+            "owner": "platformStack",
+            "path": "platformStack.androidSDV",
+            "short_name": "F-PLATFORM-MIDDLEWARE-ANDROID-SDV",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "c9878d15-8c2a-5835-8e99-deb583d16ce3",
+            "group": "platformStack.middleware",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "autosarAdaptive",
+            "owner": "platformStack",
+            "path": "platformStack.autosarAdaptive",
+            "short_name": "F-PLATFORM-MIDDLEWARE-AUTOSAR-ADAPTIVE",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "c70c1c3e-87f9-50c3-b64d-99e97b7ebbbd",
+            "group": "platformStack.middleware",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "noMiddleware",
+            "owner": "platformStack",
+            "path": "platformStack.noMiddleware",
+            "short_name": "F-PLATFORM-MIDDLEWARE-NONE",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "8e709b1f-9f3f-55a0-8622-10a181d4f834",
+            "group": null,
+            "members": [
+              "platformStack.linux",
+              "platformStack.android",
+              "platformStack.qnx"
+            ],
+            "multiplicity": {
+              "lower": 1,
+              "upper": 1
+            },
+            "name": "operatingSystem",
+            "owner": "platformStack",
+            "path": "platformStack.operatingSystem",
+            "short_name": "F-PLATFORM-OS",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "6b514b6c-fe01-5912-a26d-122fc2be9b51",
+            "group": "platformStack.operatingSystem",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "linux",
+            "owner": "platformStack",
+            "path": "platformStack.linux",
+            "short_name": "F-PLATFORM-OS-LINUX",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "211be20e-8e81-516a-be9a-589f0de351bb",
+            "group": "platformStack.operatingSystem",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "android",
+            "owner": "platformStack",
+            "path": "platformStack.android",
+            "short_name": "F-PLATFORM-OS-ANDROID",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "3a79fce9-bd8e-59a8-a43c-4250c255b1e3",
+            "group": "platformStack.operatingSystem",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "qnx",
+            "owner": "platformStack",
+            "path": "platformStack.qnx",
+            "short_name": "F-PLATFORM-OS-QNX",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "c3a068ee-0d00-58e1-8e8e-68e20d4f61fd",
+            "group": null,
+            "members": [
+              "platformStack.qvm",
+              "platformStack.acrn",
+              "platformStack.kvm",
+              "platformStack.noHypervisor"
+            ],
+            "multiplicity": {
+              "lower": 1,
+              "upper": 1
+            },
+            "name": "hypervisor",
+            "owner": "platformStack",
+            "path": "platformStack.hypervisor",
+            "short_name": "F-PLATFORM-HYPERVISOR",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "f146d779-4548-528b-93c6-b7b8cdf4f115",
+            "group": "platformStack.hypervisor",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "qvm",
+            "owner": "platformStack",
+            "path": "platformStack.qvm",
+            "short_name": "F-PLATFORM-HYPERVISOR-QVM",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "15ef0585-70b0-5fe9-a4ee-c2bacb2a17d9",
+            "group": "platformStack.hypervisor",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "acrn",
+            "owner": "platformStack",
+            "path": "platformStack.acrn",
+            "short_name": "F-PLATFORM-HYPERVISOR-ACRN",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "60f8efc8-48d1-586a-9929-2f1e59a7ef48",
+            "group": "platformStack.hypervisor",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "kvm",
+            "owner": "platformStack",
+            "path": "platformStack.kvm",
+            "short_name": "F-PLATFORM-HYPERVISOR-KVM",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "94c73d48-0e10-57f9-9047-f54b1ccf8f23",
+            "group": "platformStack.hypervisor",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "noHypervisor",
+            "owner": "platformStack",
+            "path": "platformStack.noHypervisor",
+            "short_name": "F-PLATFORM-HYPERVISOR-NONE",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "b1dc0c90-30d0-5b28-b7b8-ec1bb9590119",
+            "group": null,
+            "members": [],
+            "multiplicity": {
+              "lower": 1,
+              "upper": 1
+            },
+            "name": "sensingBoundary",
+            "owner": null,
+            "path": "sensingBoundary",
+            "short_name": "F-SENSING",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "4a1aa3cb-8084-5f0e-ba25-afb94ee2cb93",
+            "group": null,
+            "members": [
+              "sensingBoundary.lidar",
+              "sensingBoundary.radar",
+              "sensingBoundary.camera"
+            ],
+            "multiplicity": {
+              "lower": 1,
+              "upper": null
+            },
+            "name": "perceptionSensors",
+            "owner": "sensingBoundary",
+            "path": "sensingBoundary.perceptionSensors",
+            "short_name": "F-SENSING-PERCEPTION",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "ed3512dc-e6ef-54e5-a553-3ec71b11d7e6",
+            "group": "sensingBoundary.perceptionSensors",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "lidar",
+            "owner": "sensingBoundary",
+            "path": "sensingBoundary.lidar",
+            "short_name": "F-SENSING-PERCEPTION-LIDAR",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "55056761-7d40-593d-a2a5-91f63f31c2b8",
+            "group": "sensingBoundary.perceptionSensors",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "radar",
+            "owner": "sensingBoundary",
+            "path": "sensingBoundary.radar",
+            "short_name": "F-SENSING-PERCEPTION-RADAR",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "bb99bef7-1032-5311-98cd-2c6243842294",
+            "group": "sensingBoundary.perceptionSensors",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "camera",
+            "owner": "sensingBoundary",
+            "path": "sensingBoundary.camera",
+            "short_name": "F-SENSING-PERCEPTION-CAMERA",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "04f70269-b83c-5525-a319-977f4d2ed15a",
+            "group": null,
+            "members": [],
+            "multiplicity": {
+              "lower": 1,
+              "upper": 1
+            },
+            "name": "capabilities",
+            "owner": null,
+            "path": "capabilities",
+            "short_name": "F-CAPABILITIES",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "40edf052-0851-556e-ad05-5f3db968a10b",
+            "group": null,
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "pedestrianDetection",
+            "owner": "capabilities",
+            "path": "capabilities.pedestrianDetection",
+            "short_name": "F-CAPABILITY-AEBS-PEDESTRIAN-DETECTION",
+            "unassigned": true
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "05e85fc0-bbfb-562f-946b-221b3fdfe3a2",
+            "group": null,
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "bicycleDetection",
+            "owner": "capabilities",
+            "path": "capabilities.bicycleDetection",
+            "short_name": "F-CAPABILITY-AEBS-BICYCLE-DETECTION",
+            "unassigned": true
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "dd6417e4-5c14-5b2c-867a-61a0004614b3",
+            "group": null,
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "adaptiveCruiseControl",
+            "owner": "capabilities",
+            "path": "capabilities.adaptiveCruiseControl",
+            "short_name": "F-CAPABILITY-ADAPTIVE-CRUISE-CONTROL",
+            "unassigned": true
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "7e3dcf74-b100-5294-ac2a-aaa440eadd45",
+            "group": null,
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "laneKeepAssist",
+            "owner": "capabilities",
+            "path": "capabilities.laneKeepAssist",
+            "short_name": "F-CAPABILITY-LANE-KEEP-ASSIST",
+            "unassigned": true
+          }
+        ],
+        "integrity_errors": [],
+        "projection": {
+          "label": "platform-stack",
+          "owner": "SDVPlatformStack",
+          "package": "DE4SDV_SDVPlatformStack"
+        },
+        "tree": {
+          "element_id": "27165698-1c2e-5466-9e5b-f191cbe3ee35",
+          "name": "SDVProductLineFeatureTree",
+          "short_name": "PL-DE4SDV",
+          "source": "model-based-product-line-engineering/feature-models/sdv_product_line.sysml"
+        }
+      }
+    ],
+    "kernel_bindings": {
+      "DerivationRule": "b96ac9b3-70eb-54df-aa05-761bd369e4f2",
+      "DerivedVariation": "dcd0afa7-3827-57d4-9974-cf92e7c86eab",
+      "ProductModelProjection": "d64e7d12-b679-58b0-bcb6-4cbcccc2ea78",
+      "ProductModelProjectionName": "494c25ff-5daf-56c3-8d3f-0abb285028c3",
+      "UnassignedBindingTime": "ecb8f0b3-977d-58de-b6a1-3462907cf574"
+    },
+    "kernel_source": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
+    "library_source": "model-based-product-line-engineering/libraries/pleml/.sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml",
+    "model_sources": [
+      "model-based-product-line-engineering/feature-configurations/aebs_autoware_linux_lidar_camera.sysml",
+      "model-based-product-line-engineering/feature-configurations/apollo_qnx_qvm.sysml",
+      "model-based-product-line-engineering/feature-configurations/example_linux_score_autoware.sysml",
+      "model-based-product-line-engineering/feature-configurations/fixtures/invalid_score_android.sysml",
+      "model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml",
+      "model-based-product-line-engineering/feature-models/sdv_product_line.sysml"
+    ],
+    "native_expression_executed": false,
+    "qualified": false,
+    "schema": "de4sdv.pleml-configuration-evaluation/v1"
+  },
+  "evaluator": {
+    "path": "de4sdv/semantic/pleml_configuration.py",
+    "sha256": "d77280b70c52eea5c9184046a3b262e786a9506f2261717c0c9d297b9d006840"
+  },
+  "feature_models": [
+    "SDVProductLineFeatureModel"
+  ],
+  "model_sources": [
+    "model-based-product-line-engineering/feature-configurations/aebs_autoware_linux_lidar_camera.sysml",
+    "model-based-product-line-engineering/feature-configurations/apollo_qnx_qvm.sysml",
+    "model-based-product-line-engineering/feature-configurations/example_linux_score_autoware.sysml",
+    "model-based-product-line-engineering/feature-configurations/fixtures/invalid_score_android.sysml",
+    "model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml",
+    "model-based-product-line-engineering/feature-models/sdv_product_line.sysml"
+  ],
+  "native_expression_executed": false,
+  "qualified": false,
+  "schema": "de4sdv.pleml-configuration-receipt/v1",
+  "serializer": {
+    "bundle_git_commit": "6f3f3304b5a6289449bdb9fcce28905b7f3f8dfc",
+    "executor_revision": "6f3f3304b5a6289449bdb9fcce28905b7f3f8dfc",
+    "name": "syside",
+    "options": "production export",
+    "version": "0.10.3"
+  },
+  "shadow": {
+    "allowed_lists": [
+      {
+        "allowed": [
+          "F-PLATFORM-OS-LINUX",
+          "F-PLATFORM-OS-QNX"
+        ],
+        "group": "F-PLATFORM-OS",
+        "id": "C001",
+        "owner": "F-PLATFORM-MIDDLEWARE-ECLIPSE-SCORE"
+      },
+      {
+        "allowed": [
+          "F-PLATFORM-OS-ANDROID",
+          "F-PLATFORM-OS-LINUX",
+          "F-PLATFORM-OS-QNX"
+        ],
+        "group": "F-PLATFORM-OS",
+        "id": "C002",
+        "owner": "F-PLATFORM-MIDDLEWARE-ANDROID-SDV"
+      },
+      {
+        "allowed": [
+          "F-PLATFORM-OS-LINUX",
+          "F-PLATFORM-OS-QNX"
+        ],
+        "group": "F-PLATFORM-OS",
+        "id": "C003",
+        "owner": "F-PLATFORM-MIDDLEWARE-AUTOSAR-ADAPTIVE"
+      }
+    ],
+    "catalogue": {
+      "path": "model-based-product-line-engineering/feature-models/sdv_product_line.yaml",
+      "sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c"
+    },
+    "feature_models": [
+      {
+        "complement_errors": [],
+        "rule_table_errors": [],
+        "tree": "SDVProductLineFeatureTree",
+        "writer_inputs": {
+          "aebsAutowareLinuxLidarCamera": {
+            "catalogue_paths": {
+              "capabilities": "Capabilities",
+              "capabilities.adaptiveCruiseControl": "Capabilities.AdaptiveCruiseControl",
+              "capabilities.bicycleDetection": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+              "capabilities.laneKeepAssist": "Capabilities.LaneKeepAssist",
+              "capabilities.pedestrianDetection": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+              "platformStack": "PlatformStack",
+              "platformStack.acrn": "PlatformStack.Hypervisor.ACRN",
+              "platformStack.android": "PlatformStack.OS.Android",
+              "platformStack.androidSDV": "PlatformStack.Middleware.AndroidSDV",
+              "platformStack.apollo": "PlatformStack.VehicleApplication.Apollo",
+              "platformStack.autosarAdaptive": "PlatformStack.Middleware.AUTOSARAdaptive",
+              "platformStack.autoware": "PlatformStack.VehicleApplication.Autoware",
+              "platformStack.eclipseSCORE": "PlatformStack.Middleware.EclipseSCORE",
+              "platformStack.hypervisor": "PlatformStack.Hypervisor",
+              "platformStack.kvm": "PlatformStack.Hypervisor.KVM",
+              "platformStack.linux": "PlatformStack.OS.Linux",
+              "platformStack.middleware": "PlatformStack.Middleware",
+              "platformStack.noHypervisor": "PlatformStack.Hypervisor.None",
+              "platformStack.noMiddleware": "PlatformStack.Middleware.None",
+              "platformStack.openpilot": "PlatformStack.VehicleApplication.Openpilot",
+              "platformStack.operatingSystem": "PlatformStack.OS",
+              "platformStack.qnx": "PlatformStack.OS.QNX",
+              "platformStack.qvm": "PlatformStack.Hypervisor.QVM",
+              "platformStack.vehicleApplication": "PlatformStack.VehicleApplication",
+              "sensingBoundary": "SensingBoundary",
+              "sensingBoundary.camera": "SensingBoundary.PerceptionSensors.Camera",
+              "sensingBoundary.lidar": "SensingBoundary.PerceptionSensors.LiDAR",
+              "sensingBoundary.perceptionSensors": "SensingBoundary.PerceptionSensors",
+              "sensingBoundary.radar": "SensingBoundary.PerceptionSensors.Radar"
+            },
+            "description": "AEBS reference member product. Autoware on Linux, single-domain (no middleware, no hypervisor). LiDAR + camera perception, IMU + wheel odometry common. Vehicle-target AEBS only (no pedestrian/bicycle detection).",
+            "explicit_optional_states": {
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled"
+            },
+            "projection_name": "AEBSAutowareLinuxLidarCamera"
+          },
+          "apolloQNXQVMVariant": {
+            "catalogue_paths": {
+              "capabilities": "Capabilities",
+              "capabilities.adaptiveCruiseControl": "Capabilities.AdaptiveCruiseControl",
+              "capabilities.bicycleDetection": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+              "capabilities.laneKeepAssist": "Capabilities.LaneKeepAssist",
+              "capabilities.pedestrianDetection": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+              "platformStack": "PlatformStack",
+              "platformStack.acrn": "PlatformStack.Hypervisor.ACRN",
+              "platformStack.android": "PlatformStack.OS.Android",
+              "platformStack.androidSDV": "PlatformStack.Middleware.AndroidSDV",
+              "platformStack.apollo": "PlatformStack.VehicleApplication.Apollo",
+              "platformStack.autosarAdaptive": "PlatformStack.Middleware.AUTOSARAdaptive",
+              "platformStack.autoware": "PlatformStack.VehicleApplication.Autoware",
+              "platformStack.eclipseSCORE": "PlatformStack.Middleware.EclipseSCORE",
+              "platformStack.hypervisor": "PlatformStack.Hypervisor",
+              "platformStack.kvm": "PlatformStack.Hypervisor.KVM",
+              "platformStack.linux": "PlatformStack.OS.Linux",
+              "platformStack.middleware": "PlatformStack.Middleware",
+              "platformStack.noHypervisor": "PlatformStack.Hypervisor.None",
+              "platformStack.noMiddleware": "PlatformStack.Middleware.None",
+              "platformStack.openpilot": "PlatformStack.VehicleApplication.Openpilot",
+              "platformStack.operatingSystem": "PlatformStack.OS",
+              "platformStack.qnx": "PlatformStack.OS.QNX",
+              "platformStack.qvm": "PlatformStack.Hypervisor.QVM",
+              "platformStack.vehicleApplication": "PlatformStack.VehicleApplication",
+              "sensingBoundary": "SensingBoundary",
+              "sensingBoundary.camera": "SensingBoundary.PerceptionSensors.Camera",
+              "sensingBoundary.lidar": "SensingBoundary.PerceptionSensors.LiDAR",
+              "sensingBoundary.perceptionSensors": "SensingBoundary.PerceptionSensors",
+              "sensingBoundary.radar": "SensingBoundary.PerceptionSensors.Radar"
+            },
+            "description": "Mixed-criticality reference configuration. Apollo (ADAS) on Eclipse S-CORE on QNX with QNX QVM hypervisor. Vehicle-target AEBS only.",
+            "explicit_optional_states": {
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled"
+            },
+            "projection_name": "ApolloQNXQVMVariant"
+          },
+          "exampleLinuxSCOREVariant": {
+            "catalogue_paths": {
+              "capabilities": "Capabilities",
+              "capabilities.adaptiveCruiseControl": "Capabilities.AdaptiveCruiseControl",
+              "capabilities.bicycleDetection": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+              "capabilities.laneKeepAssist": "Capabilities.LaneKeepAssist",
+              "capabilities.pedestrianDetection": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+              "platformStack": "PlatformStack",
+              "platformStack.acrn": "PlatformStack.Hypervisor.ACRN",
+              "platformStack.android": "PlatformStack.OS.Android",
+              "platformStack.androidSDV": "PlatformStack.Middleware.AndroidSDV",
+              "platformStack.apollo": "PlatformStack.VehicleApplication.Apollo",
+              "platformStack.autosarAdaptive": "PlatformStack.Middleware.AUTOSARAdaptive",
+              "platformStack.autoware": "PlatformStack.VehicleApplication.Autoware",
+              "platformStack.eclipseSCORE": "PlatformStack.Middleware.EclipseSCORE",
+              "platformStack.hypervisor": "PlatformStack.Hypervisor",
+              "platformStack.kvm": "PlatformStack.Hypervisor.KVM",
+              "platformStack.linux": "PlatformStack.OS.Linux",
+              "platformStack.middleware": "PlatformStack.Middleware",
+              "platformStack.noHypervisor": "PlatformStack.Hypervisor.None",
+              "platformStack.noMiddleware": "PlatformStack.Middleware.None",
+              "platformStack.openpilot": "PlatformStack.VehicleApplication.Openpilot",
+              "platformStack.operatingSystem": "PlatformStack.OS",
+              "platformStack.qnx": "PlatformStack.OS.QNX",
+              "platformStack.qvm": "PlatformStack.Hypervisor.QVM",
+              "platformStack.vehicleApplication": "PlatformStack.VehicleApplication",
+              "sensingBoundary": "SensingBoundary",
+              "sensingBoundary.camera": "SensingBoundary.PerceptionSensors.Camera",
+              "sensingBoundary.lidar": "SensingBoundary.PerceptionSensors.LiDAR",
+              "sensingBoundary.perceptionSensors": "SensingBoundary.PerceptionSensors",
+              "sensingBoundary.radar": "SensingBoundary.PerceptionSensors.Radar"
+            },
+            "description": "Single-domain reference configuration. Autoware (ADAS) on Eclipse S-CORE on Linux, no hypervisor. Vehicle-target AEBS only (no pedestrian/bicycle detection).",
+            "explicit_optional_states": {
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled"
+            },
+            "projection_name": "ExampleLinuxSCOREVariant"
+          },
+          "invalidSCOREAndroidVariant": {
+            "catalogue_paths": {
+              "capabilities": "Capabilities",
+              "capabilities.adaptiveCruiseControl": "Capabilities.AdaptiveCruiseControl",
+              "capabilities.bicycleDetection": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+              "capabilities.laneKeepAssist": "Capabilities.LaneKeepAssist",
+              "capabilities.pedestrianDetection": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+              "platformStack": "PlatformStack",
+              "platformStack.acrn": "PlatformStack.Hypervisor.ACRN",
+              "platformStack.android": "PlatformStack.OS.Android",
+              "platformStack.androidSDV": "PlatformStack.Middleware.AndroidSDV",
+              "platformStack.apollo": "PlatformStack.VehicleApplication.Apollo",
+              "platformStack.autosarAdaptive": "PlatformStack.Middleware.AUTOSARAdaptive",
+              "platformStack.autoware": "PlatformStack.VehicleApplication.Autoware",
+              "platformStack.eclipseSCORE": "PlatformStack.Middleware.EclipseSCORE",
+              "platformStack.hypervisor": "PlatformStack.Hypervisor",
+              "platformStack.kvm": "PlatformStack.Hypervisor.KVM",
+              "platformStack.linux": "PlatformStack.OS.Linux",
+              "platformStack.middleware": "PlatformStack.Middleware",
+              "platformStack.noHypervisor": "PlatformStack.Hypervisor.None",
+              "platformStack.noMiddleware": "PlatformStack.Middleware.None",
+              "platformStack.openpilot": "PlatformStack.VehicleApplication.Openpilot",
+              "platformStack.operatingSystem": "PlatformStack.OS",
+              "platformStack.qnx": "PlatformStack.OS.QNX",
+              "platformStack.qvm": "PlatformStack.Hypervisor.QVM",
+              "platformStack.vehicleApplication": "PlatformStack.VehicleApplication",
+              "sensingBoundary": "SensingBoundary",
+              "sensingBoundary.camera": "SensingBoundary.PerceptionSensors.Camera",
+              "sensingBoundary.lidar": "SensingBoundary.PerceptionSensors.LiDAR",
+              "sensingBoundary.perceptionSensors": "SensingBoundary.PerceptionSensors",
+              "sensingBoundary.radar": "SensingBoundary.PerceptionSensors.Radar"
+            },
+            "description": "Deliberately invalid: S-CORE + Android HLOS. Should fail constraint C001.",
+            "explicit_optional_states": {
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled"
+            },
+            "projection_name": "InvalidSCOREAndroidVariant"
+          },
+          "middlewareAutowareAAOSSDVReference": {
+            "catalogue_paths": {
+              "capabilities": "Capabilities",
+              "capabilities.adaptiveCruiseControl": "Capabilities.AdaptiveCruiseControl",
+              "capabilities.bicycleDetection": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+              "capabilities.laneKeepAssist": "Capabilities.LaneKeepAssist",
+              "capabilities.pedestrianDetection": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+              "platformStack": "PlatformStack",
+              "platformStack.acrn": "PlatformStack.Hypervisor.ACRN",
+              "platformStack.android": "PlatformStack.OS.Android",
+              "platformStack.androidSDV": "PlatformStack.Middleware.AndroidSDV",
+              "platformStack.apollo": "PlatformStack.VehicleApplication.Apollo",
+              "platformStack.autosarAdaptive": "PlatformStack.Middleware.AUTOSARAdaptive",
+              "platformStack.autoware": "PlatformStack.VehicleApplication.Autoware",
+              "platformStack.eclipseSCORE": "PlatformStack.Middleware.EclipseSCORE",
+              "platformStack.hypervisor": "PlatformStack.Hypervisor",
+              "platformStack.kvm": "PlatformStack.Hypervisor.KVM",
+              "platformStack.linux": "PlatformStack.OS.Linux",
+              "platformStack.middleware": "PlatformStack.Middleware",
+              "platformStack.noHypervisor": "PlatformStack.Hypervisor.None",
+              "platformStack.noMiddleware": "PlatformStack.Middleware.None",
+              "platformStack.openpilot": "PlatformStack.VehicleApplication.Openpilot",
+              "platformStack.operatingSystem": "PlatformStack.OS",
+              "platformStack.qnx": "PlatformStack.OS.QNX",
+              "platformStack.qvm": "PlatformStack.Hypervisor.QVM",
+              "platformStack.vehicleApplication": "PlatformStack.VehicleApplication",
+              "sensingBoundary": "SensingBoundary",
+              "sensingBoundary.camera": "SensingBoundary.PerceptionSensors.Camera",
+              "sensingBoundary.lidar": "SensingBoundary.PerceptionSensors.LiDAR",
+              "sensingBoundary.perceptionSensors": "SensingBoundary.PerceptionSensors",
+              "sensingBoundary.radar": "SensingBoundary.PerceptionSensors.Radar"
+            },
+            "description": "Planned Autoware + AAOS SDV middleware reference member on the Android/KVM SDV Core platform domain with LiDAR and camera perception. Autoware retains its ROS 2/Linux application runtime; cross-domain deployment and transport remain unresolved. This configuration and its projection do not prove provider, generated binding, discovery, transport, adapter deployment, ROS 2 publication, Autoware observation, safety, compliance, or runtime interoperability.",
+            "explicit_optional_states": {
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled"
+            },
+            "projection_name": "MiddlewareAutowareAAOSSDVReference"
+          }
+        }
+      }
+    ]
+  },
+  "sources": [
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/aebs_autoware_linux_lidar_camera.sysml",
+      "sha256": "670c8b09d1dee84790ee7209c3dc322fc1587abdea62cf35c443a35fa65e666d",
+      "size": 2195
+    },
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/apollo_qnx_qvm.sysml",
+      "sha256": "e96011f9b56f06fc65527de4f5b2453156c5f2f1193e56b83a6a3fea725a5a7c",
+      "size": 2052
+    },
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/apple_silicon_macos_candidate.sysml",
+      "sha256": "3422a9440abc590e61775c09b3e1df62efd80e60be77312d5c244f975d4bfd93",
+      "size": 1667
+    },
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/example_linux_score_autoware.sysml",
+      "sha256": "7f49e536de4f0d038bb2da6894cd116c2b7ae767aa7d9aecc05437af2dc3bc36",
+      "size": 2134
+    },
+    {
+      "authority": "pleml-fixture",
+      "path": "model-based-product-line-engineering/feature-configurations/fixtures/invalid_score_android.sysml",
+      "sha256": "302b160dcd9c2e863db89619c40d3aa90167bd978e65d20187c9c885e590e598",
+      "size": 2048
+    },
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/inc_aebs_009a_jetson.sysml",
+      "sha256": "f907461aa2bb0ffb3a03da11ab16788b58231bca4de1170e1d0ed6d93343cd5d",
+      "size": 1850
+    },
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml",
+      "sha256": "df58bbc4da84a3bbdec30b160a7de306c4cfb520161e4dd36a2e0569e7038541",
+      "size": 2554
+    },
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/nxp_zephyr_vehicle_target_candidate.sysml",
+      "sha256": "0d333866326fe00177c64b0cdfad0fcfdb8a8a3f3320a16c22f2333df7b24517",
+      "size": 1737
+    },
+    {
+      "authority": "pleml-feature-model",
+      "path": "model-based-product-line-engineering/feature-models/engineering_execution_environments.sysml",
+      "sha256": "8c82c6ac5008c0277ff2c7b19325ba2748eb3b47dee762964a1497b59572e280",
+      "size": 9072
+    },
+    {
+      "authority": "pleml-feature-model",
+      "path": "model-based-product-line-engineering/feature-models/sdv_product_line.sysml",
+      "sha256": "c53abbba2e4a3b254091074225ef5fdf3e7c2a8cb2babdaa533b5f701d801141",
+      "size": 23346
+    },
+    {
+      "authority": "pleml-feature-model",
+      "path": "model-based-product-line-engineering/feature-models/vehicle_execution_environments.sysml",
+      "sha256": "02a6fb00f3a48e94c8e47dd7ea59741e1edf7416c6dd1280bdc4c7018126db3b",
+      "size": 7728
+    },
+    {
+      "authority": "pinned-pleml-library",
+      "path": "model-based-product-line-engineering/libraries/pleml/.sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml",
+      "sha256": "a3f23c2531272b4cab684f0f1d1a982a443f0a2cdca824cc893f4004980ae02c",
+      "size": 18112
+    },
+    {
+      "authority": "reviewed",
+      "path": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
+      "sha256": "bf282c410e3c9ea1718304e3aa2c20c047f75886ee68c947a62c450e7899297a",
+      "size": 9850
+    },
+    {
+      "authority": "reviewed",
+      "path": "textual-notation-of-model/packages/architecture/execution_environments.sysml",
+      "sha256": "0c1781ff83fdb8dcef36cd070b578eef04793e9554e815e9876477ecb6475328",
+      "size": 8707
+    },
+    {
+      "authority": "reviewed",
+      "path": "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml",
+      "sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
+      "size": 26877
+    },
+    {
+      "authority": "reviewed",
+      "path": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
+      "sha256": "975e1663f871803b67481c8ebe54c83285a06e4f025ac9c27626278e9e96295b",
+      "size": 5681
+    }
+  ]
+}

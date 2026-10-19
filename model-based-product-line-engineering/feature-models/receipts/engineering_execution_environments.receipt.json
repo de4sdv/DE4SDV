@@ -1,0 +1,828 @@
+{
+  "elements": {
+    "content_sha256": "8347aea3e03526bb8f61dc82d80b7b2179ca0060f2a91266035bb6e3b284de09",
+    "path": "pleml-feature-models.elements.json.xz",
+    "sha256": "36ac1069df6fa244f40a82298aa3a29bc1911a44589e1f035e5176b1fbfb4681"
+  },
+  "evaluation": {
+    "admission_authority": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
+    "binding_time_scope": "Development-only",
+    "feature_models": [
+      {
+        "agreement": [],
+        "bindings": [
+          {
+            "binding": "computeNodeJetsonOrinNanoBinding",
+            "element_id": "4c1d1a33-dd73-50ad-9a8b-aea7a092b563",
+            "feature": "environment.jetsonOrinNano",
+            "feature_id": "364526d2-3dce-5975-ae35-6e6ade84ec9a",
+            "feature_short_name": "F-ENG-COMPUTE-JETSON-ORIN-NANO",
+            "variant": "jetsonOrinNano",
+            "variant_id": "1ca6d644-7d57-544e-85e8-a0404d0a7d36",
+            "variation": "computeNode",
+            "variation_id": "0a0ca7f7-db5d-51da-9025-fd49f6733dda"
+          },
+          {
+            "binding": "computeNodeAppleSiliconMacBinding",
+            "element_id": "4f9ac908-2f5d-5ac8-8b63-87f70abf1c43",
+            "feature": "environment.appleSiliconMac",
+            "feature_id": "0a155cdf-df9e-5304-9b86-07ad2dd09e16",
+            "feature_short_name": "F-ENG-COMPUTE-APPLE-SILICON",
+            "variant": "appleSiliconMac",
+            "variant_id": "aac8a906-87c9-558e-81de-da6f1cb33fe9",
+            "variation": "computeNode",
+            "variation_id": "0a0ca7f7-db5d-51da-9025-fd49f6733dda"
+          },
+          {
+            "binding": "computeNodeIntelX8664NestedKvmHostBinding",
+            "element_id": "433e286f-63ee-5412-929a-bc422f435ae9",
+            "feature": "environment.intelX8664NestedKvmHost",
+            "feature_id": "7c6360d8-feff-5cc2-9f1e-48bcff83813a",
+            "feature_short_name": "F-ENG-COMPUTE-INTEL-X86-64-NESTED-KVM",
+            "variant": "intelX8664NestedKvmHost",
+            "variant_id": "609ab766-5ce5-568e-9ca0-7b425198fe71",
+            "variation": "computeNode",
+            "variation_id": "0a0ca7f7-db5d-51da-9025-fd49f6733dda"
+          },
+          {
+            "binding": "operatingSystemUbuntu2204TegraBinding",
+            "element_id": "6beaf613-5ed7-517f-8bdf-eb45bcc76c4b",
+            "feature": "environment.ubuntu2204Tegra",
+            "feature_id": "840c656a-4262-5ce5-a28c-4e66cf7eb2cc",
+            "feature_short_name": "F-ENG-OS-UBUNTU-2204-TEGRA",
+            "variant": "ubuntu2204Tegra",
+            "variant_id": "b8669f7d-8ae7-56aa-94b7-6b8b20b5a27e",
+            "variation": "operatingSystem",
+            "variation_id": "b98c1906-d43c-57ac-b081-0204862da1a2"
+          },
+          {
+            "binding": "operatingSystemMacOSAppleSiliconBinding",
+            "element_id": "7b76cd19-da18-5bed-b7dd-9d47839e2b6a",
+            "feature": "environment.macOSAppleSilicon",
+            "feature_id": "1afb69b7-3a8d-5383-97b4-dcfdb62838a8",
+            "feature_short_name": "F-ENG-OS-MACOS-APPLE-SILICON",
+            "variant": "macOSAppleSilicon",
+            "variant_id": "b796eda6-adbb-5a90-82ca-803ca1be0e1b",
+            "variation": "operatingSystem",
+            "variation_id": "b98c1906-d43c-57ac-b081-0204862da1a2"
+          },
+          {
+            "binding": "operatingSystemLinuxX8664AOSPBuildBinding",
+            "element_id": "a45aa981-3a96-5b62-ad9e-42a569b0384f",
+            "feature": "environment.linuxX8664AOSPBuild",
+            "feature_id": "e60c3971-b131-5410-9f6b-cfa84781dee9",
+            "feature_short_name": "F-ENG-OS-LINUX-X86-64-AOSP",
+            "variant": "linuxX8664AOSPBuild",
+            "variant_id": "b2e5c23f-ad64-59c6-abc1-241de8105eeb",
+            "variation": "operatingSystem",
+            "variation_id": "b98c1906-d43c-57ac-b081-0204862da1a2"
+          },
+          {
+            "binding": "executionRuntimeNativeLinuxArm64OCIBinding",
+            "element_id": "a7abfb3d-d0c0-519d-bd04-bf047d28c1c4",
+            "feature": "environment.nativeLinuxArm64OCI",
+            "feature_id": "d4c63578-f355-58c1-affb-3e86219c1e9c",
+            "feature_short_name": "F-ENG-RUNTIME-NATIVE-LINUX-ARM64-OCI",
+            "variant": "nativeLinuxArm64OCI",
+            "variant_id": "95a36e28-2fc8-5a9a-ba89-b7a82d440c7c",
+            "variation": "executionRuntime",
+            "variation_id": "f513de98-831c-57a3-9f57-5d9a8e3d4ccd"
+          },
+          {
+            "binding": "executionRuntimeVirtualizedLinuxArm64OCIOnMacOSBinding",
+            "element_id": "ae95d6d1-4f2b-56bf-b46b-77ab04654f17",
+            "feature": "environment.virtualizedLinuxArm64OCIOnMacOS",
+            "feature_id": "6ea6f14c-a7d9-595d-9838-1e0a7abc1450",
+            "feature_short_name": "F-ENG-RUNTIME-VIRTUAL-LINUX-ARM64-OCI-MACOS",
+            "variant": "virtualizedLinuxArm64OCIOnMacOS",
+            "variant_id": "ebbc4f6a-03d3-5220-9068-ef486d2f1c81",
+            "variation": "executionRuntime",
+            "variation_id": "f513de98-831c-57a3-9f57-5d9a8e3d4ccd"
+          },
+          {
+            "binding": "executionRuntimeNestedKvmCuttlefishBinding",
+            "element_id": "350a1b5a-ec65-55b8-868f-210d6a3fe0fc",
+            "feature": "environment.nestedKvmCuttlefish",
+            "feature_id": "93be2162-35f0-59a5-89fd-709eb3ff1361",
+            "feature_short_name": "F-ENG-RUNTIME-NESTED-KVM-CUTTLEFISH",
+            "variant": "nestedKvmCuttlefish",
+            "variant_id": "388c3f99-9bd5-5259-a52a-eae95c17789a",
+            "variation": "executionRuntime",
+            "variation_id": "f513de98-831c-57a3-9f57-5d9a8e3d4ccd"
+          }
+        ],
+        "configurations": [
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": null,
+              "alternatives_realized": {},
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [],
+              "reasons": [
+                "selects content the governed scope does not admit: the feature family: excluded engineeringExecutionEnvironments | environment.appleSiliconMac: not in the governed scope | environment.macOSAppleSilicon: not in the governed scope | environment.virtualizedLinuxArm64OCIOnMacOS: not in the governed scope",
+                "realizes no admitted alternative"
+              ]
+            },
+            "configuration": "appleSiliconMacOSCandidate",
+            "derived_variants": [
+              {
+                "binding": "computeNodeAppleSiliconMacBinding",
+                "variant": "appleSiliconMac",
+                "variant_id": "aac8a906-87c9-558e-81de-da6f1cb33fe9",
+                "variation": "computeNode"
+              },
+              {
+                "binding": "executionRuntimeVirtualizedLinuxArm64OCIOnMacOSBinding",
+                "variant": "virtualizedLinuxArm64OCIOnMacOS",
+                "variant_id": "ebbc4f6a-03d3-5220-9068-ef486d2f1c81",
+                "variation": "executionRuntime"
+              },
+              {
+                "binding": "operatingSystemMacOSAppleSiliconBinding",
+                "variant": "macOSAppleSilicon",
+                "variant_id": "b796eda6-adbb-5a90-82ca-803ca1be0e1b",
+                "variation": "operatingSystem"
+              }
+            ],
+            "description": "Planned and unverified System 2 candidate for an Apple Silicon\nM-series Mac running macOS with a virtualized Linux/ARM64 OCI\nenvironment. No specific Mac, container implementation, or DE4SDV\nruntime result is claimed.",
+            "element_id": "c76318be-e000-5890-8701-26877c6579df",
+            "projection_name": "AppleSiliconMacOSCandidate",
+            "reasons": [],
+            "selected": [
+              "environment",
+              "environment.appleSiliconMac",
+              "environment.computeNode",
+              "environment.executionRuntime",
+              "environment.macOSAppleSilicon",
+              "environment.operatingSystem",
+              "environment.virtualizedLinuxArm64OCIOnMacOS"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/apple_silicon_macos_candidate.sysml",
+            "states": {
+              "environment": "enabled",
+              "environment.appleSiliconMac": "enabled",
+              "environment.computeNode": "enabled",
+              "environment.executionRuntime": "enabled",
+              "environment.intelX8664NestedKvmHost": "omitted",
+              "environment.jetsonOrinNano": "omitted",
+              "environment.linuxX8664AOSPBuild": "omitted",
+              "environment.macOSAppleSilicon": "enabled",
+              "environment.nativeLinuxArm64OCI": "omitted",
+              "environment.nestedKvmCuttlefish": "omitted",
+              "environment.operatingSystem": "enabled",
+              "environment.ubuntu2204Tegra": "omitted",
+              "environment.virtualizedLinuxArm64OCIOnMacOS": "enabled"
+            },
+            "valid": true
+          },
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": null,
+              "alternatives_realized": {},
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [],
+              "reasons": [
+                "selects content the governed scope does not admit: the feature family: excluded engineeringExecutionEnvironments | environment.jetsonOrinNano: not in the governed scope | environment.ubuntu2204Tegra: not in the governed scope | environment.nativeLinuxArm64OCI: not in the governed scope",
+                "realizes no admitted alternative"
+              ]
+            },
+            "configuration": "incAEBS009AJetsonExecutionEnvironment",
+            "derived_variants": [
+              {
+                "binding": "computeNodeJetsonOrinNanoBinding",
+                "variant": "jetsonOrinNano",
+                "variant_id": "1ca6d644-7d57-544e-85e8-a0404d0a7d36",
+                "variation": "computeNode"
+              },
+              {
+                "binding": "executionRuntimeNativeLinuxArm64OCIBinding",
+                "variant": "nativeLinuxArm64OCI",
+                "variant_id": "95a36e28-2fc8-5a9a-ba89-b7a82d440c7c",
+                "variation": "executionRuntime"
+              },
+              {
+                "binding": "operatingSystemUbuntu2204TegraBinding",
+                "variant": "ubuntu2204Tegra",
+                "variant_id": "b8669f7d-8ae7-56aa-94b7-6b8b20b5a27e",
+                "variation": "operatingSystem"
+              }
+            ],
+            "description": "Inspected exact System 2 environment currently maintained for\nINC-AEBS-009A: NVIDIA Jetson Orin Nano Developer Kit Super, Ubuntu\n22.04 Tegra Linux, and native linux/arm64 OCI-container execution.\nHistorical 009A runtime evidence proves a Jetson 8 GiB context but\ndoes not identify the exact SKU; this configuration therefore does\nnot claim exact-SKU execution continuity.",
+            "element_id": "287178b4-c3de-5f94-a239-2db1245f0485",
+            "projection_name": "INCAEBS009AJetsonExecutionEnvironment",
+            "reasons": [],
+            "selected": [
+              "environment",
+              "environment.computeNode",
+              "environment.executionRuntime",
+              "environment.jetsonOrinNano",
+              "environment.nativeLinuxArm64OCI",
+              "environment.operatingSystem",
+              "environment.ubuntu2204Tegra"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/inc_aebs_009a_jetson.sysml",
+            "states": {
+              "environment": "enabled",
+              "environment.appleSiliconMac": "omitted",
+              "environment.computeNode": "enabled",
+              "environment.executionRuntime": "enabled",
+              "environment.intelX8664NestedKvmHost": "omitted",
+              "environment.jetsonOrinNano": "enabled",
+              "environment.linuxX8664AOSPBuild": "omitted",
+              "environment.macOSAppleSilicon": "omitted",
+              "environment.nativeLinuxArm64OCI": "enabled",
+              "environment.nestedKvmCuttlefish": "omitted",
+              "environment.operatingSystem": "enabled",
+              "environment.ubuntu2204Tegra": "enabled",
+              "environment.virtualizedLinuxArm64OCIOnMacOS": "omitted"
+            },
+            "valid": true
+          }
+        ],
+        "constraints": [
+          {
+            "element_id": "c45747de-d892-5266-a9af-a86a1618f30f",
+            "kind": "requires",
+            "operand_a": [
+              "environment.jetsonOrinNano"
+            ],
+            "operand_b": [
+              "environment.ubuntu2204Tegra"
+            ],
+            "owner": "environment.jetsonOrinNano",
+            "pair_exclusion": false,
+            "short_name": "C-ENG-JETSON-REQUIRES-TEGRA-LINUX"
+          },
+          {
+            "element_id": "452ee4b4-4f4e-556e-a72c-1cf4325754aa",
+            "kind": "requires",
+            "operand_a": [
+              "environment.jetsonOrinNano"
+            ],
+            "operand_b": [
+              "environment.nativeLinuxArm64OCI"
+            ],
+            "owner": "environment.jetsonOrinNano",
+            "pair_exclusion": false,
+            "short_name": "C-ENG-JETSON-REQUIRES-NATIVE-OCI"
+          },
+          {
+            "element_id": "7a6d71f6-c7b1-527a-add3-05aaee6dcdc7",
+            "kind": "requires",
+            "operand_a": [
+              "environment.appleSiliconMac"
+            ],
+            "operand_b": [
+              "environment.macOSAppleSilicon"
+            ],
+            "owner": "environment.appleSiliconMac",
+            "pair_exclusion": false,
+            "short_name": "C-ENG-APPLE-REQUIRES-MACOS"
+          },
+          {
+            "element_id": "bb7712c2-2c78-5898-8051-776172bd55c2",
+            "kind": "requires",
+            "operand_a": [
+              "environment.appleSiliconMac"
+            ],
+            "operand_b": [
+              "environment.virtualizedLinuxArm64OCIOnMacOS"
+            ],
+            "owner": "environment.appleSiliconMac",
+            "pair_exclusion": false,
+            "short_name": "C-ENG-APPLE-REQUIRES-VIRTUAL-LINUX-OCI"
+          },
+          {
+            "element_id": "65d78a85-dc57-56dd-959e-1c6f10789cb7",
+            "kind": "requires",
+            "operand_a": [
+              "environment.intelX8664NestedKvmHost"
+            ],
+            "operand_b": [
+              "environment.linuxX8664AOSPBuild"
+            ],
+            "owner": "environment.intelX8664NestedKvmHost",
+            "pair_exclusion": false,
+            "short_name": "C-ENG-AOSP-HOST-REQUIRES-LINUX-X86-64"
+          },
+          {
+            "element_id": "b6453a8c-ecc1-5da2-8b78-f86cfccc1176",
+            "kind": "requires",
+            "operand_a": [
+              "environment.intelX8664NestedKvmHost"
+            ],
+            "operand_b": [
+              "environment.nestedKvmCuttlefish"
+            ],
+            "owner": "environment.intelX8664NestedKvmHost",
+            "pair_exclusion": false,
+            "short_name": "C-ENG-AOSP-HOST-REQUIRES-NESTED-KVM"
+          }
+        ],
+        "correspondences": [
+          {
+            "classification": "excluded",
+            "correspondence": "engineeringExecutionEnvironmentsCorrespondToExcludedSystem2Concern",
+            "element_id": "bdb7b60c-9841-5d48-a2eb-05b9cbca59d5",
+            "feature": null,
+            "governed": "engineeringExecutionEnvironments",
+            "governed_id": "49150f84-870c-51aa-9b20-778b4e469817"
+          }
+        ],
+        "derivations": [],
+        "element_id": "2f726cef-9cd8-5c12-b417-c8bf332ec369",
+        "feature_model": "EngineeringExecutionEnvironmentFeatureModel",
+        "features": [
+          {
+            "binding_time": "Development",
+            "element_id": "88a6e04e-36a2-55c6-89fb-060020fee657",
+            "group": null,
+            "members": [],
+            "multiplicity": {
+              "lower": 1,
+              "upper": 1
+            },
+            "name": "environment",
+            "owner": null,
+            "path": "environment",
+            "short_name": "F-ENG-ENVIRONMENT",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "c35a4a07-b8bd-563b-9787-fbaf8dc44f8c",
+            "group": null,
+            "members": [
+              "environment.jetsonOrinNano",
+              "environment.appleSiliconMac",
+              "environment.intelX8664NestedKvmHost"
+            ],
+            "multiplicity": {
+              "lower": 1,
+              "upper": 1
+            },
+            "name": "computeNode",
+            "owner": "environment",
+            "path": "environment.computeNode",
+            "short_name": "F-ENG-COMPUTE",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "364526d2-3dce-5975-ae35-6e6ade84ec9a",
+            "group": "environment.computeNode",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "jetsonOrinNano",
+            "owner": "environment",
+            "path": "environment.jetsonOrinNano",
+            "short_name": "F-ENG-COMPUTE-JETSON-ORIN-NANO",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "0a155cdf-df9e-5304-9b86-07ad2dd09e16",
+            "group": "environment.computeNode",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "appleSiliconMac",
+            "owner": "environment",
+            "path": "environment.appleSiliconMac",
+            "short_name": "F-ENG-COMPUTE-APPLE-SILICON",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "7c6360d8-feff-5cc2-9f1e-48bcff83813a",
+            "group": "environment.computeNode",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "intelX8664NestedKvmHost",
+            "owner": "environment",
+            "path": "environment.intelX8664NestedKvmHost",
+            "short_name": "F-ENG-COMPUTE-INTEL-X86-64-NESTED-KVM",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "32bef9e7-0e62-5198-8946-8df809c1d432",
+            "group": null,
+            "members": [
+              "environment.ubuntu2204Tegra",
+              "environment.macOSAppleSilicon",
+              "environment.linuxX8664AOSPBuild"
+            ],
+            "multiplicity": {
+              "lower": 1,
+              "upper": 1
+            },
+            "name": "operatingSystem",
+            "owner": "environment",
+            "path": "environment.operatingSystem",
+            "short_name": "F-ENG-OS",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "840c656a-4262-5ce5-a28c-4e66cf7eb2cc",
+            "group": "environment.operatingSystem",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "ubuntu2204Tegra",
+            "owner": "environment",
+            "path": "environment.ubuntu2204Tegra",
+            "short_name": "F-ENG-OS-UBUNTU-2204-TEGRA",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "1afb69b7-3a8d-5383-97b4-dcfdb62838a8",
+            "group": "environment.operatingSystem",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "macOSAppleSilicon",
+            "owner": "environment",
+            "path": "environment.macOSAppleSilicon",
+            "short_name": "F-ENG-OS-MACOS-APPLE-SILICON",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "e60c3971-b131-5410-9f6b-cfa84781dee9",
+            "group": "environment.operatingSystem",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "linuxX8664AOSPBuild",
+            "owner": "environment",
+            "path": "environment.linuxX8664AOSPBuild",
+            "short_name": "F-ENG-OS-LINUX-X86-64-AOSP",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "69896762-69ff-557b-8dda-6e8acc0ea536",
+            "group": null,
+            "members": [
+              "environment.nativeLinuxArm64OCI",
+              "environment.virtualizedLinuxArm64OCIOnMacOS",
+              "environment.nestedKvmCuttlefish"
+            ],
+            "multiplicity": {
+              "lower": 1,
+              "upper": 1
+            },
+            "name": "executionRuntime",
+            "owner": "environment",
+            "path": "environment.executionRuntime",
+            "short_name": "F-ENG-RUNTIME",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "d4c63578-f355-58c1-affb-3e86219c1e9c",
+            "group": "environment.executionRuntime",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "nativeLinuxArm64OCI",
+            "owner": "environment",
+            "path": "environment.nativeLinuxArm64OCI",
+            "short_name": "F-ENG-RUNTIME-NATIVE-LINUX-ARM64-OCI",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "6ea6f14c-a7d9-595d-9838-1e0a7abc1450",
+            "group": "environment.executionRuntime",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "virtualizedLinuxArm64OCIOnMacOS",
+            "owner": "environment",
+            "path": "environment.virtualizedLinuxArm64OCIOnMacOS",
+            "short_name": "F-ENG-RUNTIME-VIRTUAL-LINUX-ARM64-OCI-MACOS",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "93be2162-35f0-59a5-89fd-709eb3ff1361",
+            "group": "environment.executionRuntime",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "nestedKvmCuttlefish",
+            "owner": "environment",
+            "path": "environment.nestedKvmCuttlefish",
+            "short_name": "F-ENG-RUNTIME-NESTED-KVM-CUTTLEFISH",
+            "unassigned": false
+          }
+        ],
+        "integrity_errors": [],
+        "projection": {
+          "label": "engineering execution-environment",
+          "owner": "EngineeringExecutionEnvironment",
+          "package": "DE4SDV_ExecutionEnvironments"
+        },
+        "tree": {
+          "element_id": "9aceb6af-99b3-5efa-8894-29c75bc7cd5d",
+          "name": "EngineeringExecutionEnvironmentFeatureTree",
+          "short_name": "PL-ENGINEERING-EXECUTION-ENVIRONMENT",
+          "source": "model-based-product-line-engineering/feature-models/engineering_execution_environments.sysml"
+        }
+      }
+    ],
+    "kernel_bindings": {
+      "DerivationRule": "b96ac9b3-70eb-54df-aa05-761bd369e4f2",
+      "DerivedVariation": "dcd0afa7-3827-57d4-9974-cf92e7c86eab",
+      "ProductModelProjection": "d64e7d12-b679-58b0-bcb6-4cbcccc2ea78",
+      "ProductModelProjectionName": "494c25ff-5daf-56c3-8d3f-0abb285028c3",
+      "UnassignedBindingTime": "ecb8f0b3-977d-58de-b6a1-3462907cf574"
+    },
+    "kernel_source": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
+    "library_source": "model-based-product-line-engineering/libraries/pleml/.sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml",
+    "model_sources": [
+      "model-based-product-line-engineering/feature-configurations/apple_silicon_macos_candidate.sysml",
+      "model-based-product-line-engineering/feature-configurations/inc_aebs_009a_jetson.sysml",
+      "model-based-product-line-engineering/feature-models/engineering_execution_environments.sysml"
+    ],
+    "native_expression_executed": false,
+    "qualified": false,
+    "schema": "de4sdv.pleml-configuration-evaluation/v1"
+  },
+  "evaluator": {
+    "path": "de4sdv/semantic/pleml_configuration.py",
+    "sha256": "d77280b70c52eea5c9184046a3b262e786a9506f2261717c0c9d297b9d006840"
+  },
+  "feature_models": [
+    "EngineeringExecutionEnvironmentFeatureModel"
+  ],
+  "model_sources": [
+    "model-based-product-line-engineering/feature-configurations/apple_silicon_macos_candidate.sysml",
+    "model-based-product-line-engineering/feature-configurations/inc_aebs_009a_jetson.sysml",
+    "model-based-product-line-engineering/feature-models/engineering_execution_environments.sysml"
+  ],
+  "native_expression_executed": false,
+  "qualified": false,
+  "schema": "de4sdv.pleml-configuration-receipt/v1",
+  "serializer": {
+    "bundle_git_commit": "6f3f3304b5a6289449bdb9fcce28905b7f3f8dfc",
+    "executor_revision": "6f3f3304b5a6289449bdb9fcce28905b7f3f8dfc",
+    "name": "syside",
+    "options": "production export",
+    "version": "0.10.3"
+  },
+  "shadow": {
+    "allowed_lists": [],
+    "catalogue": {
+      "path": "model-based-product-line-engineering/feature-models/engineering_execution_environments.yaml",
+      "sha256": "c3a91f45f29e218f25bcd085ccf1fe5e2adf52074ae0f336f00661c5ec2f2334"
+    },
+    "feature_models": [
+      {
+        "complement_errors": [],
+        "rule_table_errors": [],
+        "tree": "EngineeringExecutionEnvironmentFeatureTree",
+        "writer_inputs": {
+          "appleSiliconMacOSCandidate": {
+            "catalogue_paths": {
+              "environment": "Environment",
+              "environment.appleSiliconMac": "Environment.ComputeNode.AppleSiliconMac",
+              "environment.computeNode": "Environment.ComputeNode",
+              "environment.executionRuntime": "Environment.ExecutionRuntime",
+              "environment.intelX8664NestedKvmHost": "Environment.ComputeNode.IntelX8664NestedKvmHost",
+              "environment.jetsonOrinNano": "Environment.ComputeNode.JetsonOrinNano",
+              "environment.linuxX8664AOSPBuild": "Environment.OperatingSystem.LinuxX8664AOSPBuild",
+              "environment.macOSAppleSilicon": "Environment.OperatingSystem.MacOSAppleSilicon",
+              "environment.nativeLinuxArm64OCI": "Environment.ExecutionRuntime.NativeLinuxArm64OCI",
+              "environment.nestedKvmCuttlefish": "Environment.ExecutionRuntime.NestedKvmCuttlefish",
+              "environment.operatingSystem": "Environment.OperatingSystem",
+              "environment.ubuntu2204Tegra": "Environment.OperatingSystem.Ubuntu2204Tegra",
+              "environment.virtualizedLinuxArm64OCIOnMacOS": "Environment.ExecutionRuntime.VirtualizedLinuxArm64OCIOnMacOS"
+            },
+            "description": "Planned and unverified System 2 candidate for an Apple Silicon M-series Mac running macOS with a virtualized Linux/ARM64 OCI environment. No specific Mac, container implementation, or DE4SDV runtime result is claimed.",
+            "explicit_optional_states": {},
+            "projection_name": "AppleSiliconMacOSCandidate"
+          },
+          "incAEBS009AJetsonExecutionEnvironment": {
+            "catalogue_paths": {
+              "environment": "Environment",
+              "environment.appleSiliconMac": "Environment.ComputeNode.AppleSiliconMac",
+              "environment.computeNode": "Environment.ComputeNode",
+              "environment.executionRuntime": "Environment.ExecutionRuntime",
+              "environment.intelX8664NestedKvmHost": "Environment.ComputeNode.IntelX8664NestedKvmHost",
+              "environment.jetsonOrinNano": "Environment.ComputeNode.JetsonOrinNano",
+              "environment.linuxX8664AOSPBuild": "Environment.OperatingSystem.LinuxX8664AOSPBuild",
+              "environment.macOSAppleSilicon": "Environment.OperatingSystem.MacOSAppleSilicon",
+              "environment.nativeLinuxArm64OCI": "Environment.ExecutionRuntime.NativeLinuxArm64OCI",
+              "environment.nestedKvmCuttlefish": "Environment.ExecutionRuntime.NestedKvmCuttlefish",
+              "environment.operatingSystem": "Environment.OperatingSystem",
+              "environment.ubuntu2204Tegra": "Environment.OperatingSystem.Ubuntu2204Tegra",
+              "environment.virtualizedLinuxArm64OCIOnMacOS": "Environment.ExecutionRuntime.VirtualizedLinuxArm64OCIOnMacOS"
+            },
+            "description": "Inspected exact System 2 environment currently maintained for INC-AEBS-009A: NVIDIA Jetson Orin Nano Developer Kit Super, Ubuntu 22.04 Tegra Linux, and native linux/arm64 OCI-container execution. Historical 009A runtime evidence proves a Jetson 8 GiB context but does not identify the exact SKU; this configuration therefore does not claim exact-SKU execution continuity.",
+            "explicit_optional_states": {},
+            "projection_name": "INCAEBS009AJetsonExecutionEnvironment"
+          }
+        }
+      }
+    ]
+  },
+  "sources": [
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/aebs_autoware_linux_lidar_camera.sysml",
+      "sha256": "670c8b09d1dee84790ee7209c3dc322fc1587abdea62cf35c443a35fa65e666d",
+      "size": 2195
+    },
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/apollo_qnx_qvm.sysml",
+      "sha256": "e96011f9b56f06fc65527de4f5b2453156c5f2f1193e56b83a6a3fea725a5a7c",
+      "size": 2052
+    },
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/apple_silicon_macos_candidate.sysml",
+      "sha256": "3422a9440abc590e61775c09b3e1df62efd80e60be77312d5c244f975d4bfd93",
+      "size": 1667
+    },
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/example_linux_score_autoware.sysml",
+      "sha256": "7f49e536de4f0d038bb2da6894cd116c2b7ae767aa7d9aecc05437af2dc3bc36",
+      "size": 2134
+    },
+    {
+      "authority": "pleml-fixture",
+      "path": "model-based-product-line-engineering/feature-configurations/fixtures/invalid_score_android.sysml",
+      "sha256": "302b160dcd9c2e863db89619c40d3aa90167bd978e65d20187c9c885e590e598",
+      "size": 2048
+    },
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/inc_aebs_009a_jetson.sysml",
+      "sha256": "f907461aa2bb0ffb3a03da11ab16788b58231bca4de1170e1d0ed6d93343cd5d",
+      "size": 1850
+    },
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml",
+      "sha256": "df58bbc4da84a3bbdec30b160a7de306c4cfb520161e4dd36a2e0569e7038541",
+      "size": 2554
+    },
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/nxp_zephyr_vehicle_target_candidate.sysml",
+      "sha256": "0d333866326fe00177c64b0cdfad0fcfdb8a8a3f3320a16c22f2333df7b24517",
+      "size": 1737
+    },
+    {
+      "authority": "pleml-feature-model",
+      "path": "model-based-product-line-engineering/feature-models/engineering_execution_environments.sysml",
+      "sha256": "8c82c6ac5008c0277ff2c7b19325ba2748eb3b47dee762964a1497b59572e280",
+      "size": 9072
+    },
+    {
+      "authority": "pleml-feature-model",
+      "path": "model-based-product-line-engineering/feature-models/sdv_product_line.sysml",
+      "sha256": "c53abbba2e4a3b254091074225ef5fdf3e7c2a8cb2babdaa533b5f701d801141",
+      "size": 23346
+    },
+    {
+      "authority": "pleml-feature-model",
+      "path": "model-based-product-line-engineering/feature-models/vehicle_execution_environments.sysml",
+      "sha256": "02a6fb00f3a48e94c8e47dd7ea59741e1edf7416c6dd1280bdc4c7018126db3b",
+      "size": 7728
+    },
+    {
+      "authority": "pinned-pleml-library",
+      "path": "model-based-product-line-engineering/libraries/pleml/.sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml",
+      "sha256": "a3f23c2531272b4cab684f0f1d1a982a443f0a2cdca824cc893f4004980ae02c",
+      "size": 18112
+    },
+    {
+      "authority": "reviewed",
+      "path": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
+      "sha256": "bf282c410e3c9ea1718304e3aa2c20c047f75886ee68c947a62c450e7899297a",
+      "size": 9850
+    },
+    {
+      "authority": "reviewed",
+      "path": "textual-notation-of-model/packages/architecture/execution_environments.sysml",
+      "sha256": "0c1781ff83fdb8dcef36cd070b578eef04793e9554e815e9876477ecb6475328",
+      "size": 8707
+    },
+    {
+      "authority": "reviewed",
+      "path": "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml",
+      "sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
+      "size": 26877
+    },
+    {
+      "authority": "reviewed",
+      "path": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
+      "sha256": "975e1663f871803b67481c8ebe54c83285a06e4f025ac9c27626278e9e96295b",
+      "size": 5681
+    }
+  ]
+}
