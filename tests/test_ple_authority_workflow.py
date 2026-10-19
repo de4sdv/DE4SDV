@@ -2,9 +2,10 @@
 
 Pins: the triggers (pull requests on the PLEML files, the runner and these
 tests only, plus maintainer dispatch), the fork and author guard of the
-licensed validation, read-only permissions, the exact-head resolution, the
-frozen experiment checkout relocated outside the executor checkout, the
-clean-checkout discipline of the PLE qualification workflow, the API service
+licensed validation, read-only permissions, the exact-head resolution as the
+only checkout, the fenced PLEML package installed and byte-checked before any
+step reads it, the clean-checkout discipline of the PLE qualification
+workflow, the API service
 started outside the checkout, the dirty-checkout refusals around every
 recording step, the secret scoping (the licence reaches only the two Syside
 steps), the validation roots, the runner command line (parsed against the
@@ -13,7 +14,6 @@ real parser) and the artifact.
 
 from __future__ import annotations
 
-import os
 import re
 import shlex
 from pathlib import Path
@@ -23,6 +23,7 @@ import pytest
 import yaml
 
 import test_ple_qualification_clean_checkout as clean
+from de4sdv.semantic import pleml_package
 from scripts import run_ple_authority as runner
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,10 +32,9 @@ VALIDATION = ROOT / ".github/workflows/privileged-syside-validation.yml"
 QUALIFICATION = ROOT / ".github/workflows/privileged-ple-qualification.yml"
 INGESTION = ROOT / ".github/workflows/privileged-full-model-api-ingestion.yml"
 RUNNER = "scripts/run_ple_authority.py"
-#: The frozen experiment at PLEML 1.1.0 (tag pleml-1.1.0-frozen) and its PLEML pin.
-FROZEN = "69bbe093c179f2121274b9f604c7d6a10de19e77"
-PIN = "76e2be934453d77c4094141400b8ad8eb90a54a2"
-LIBRARY = '"$RUNNER_TEMP/_ple-experiment/external/pleml/PLEML.sysml"'
+#: PLEML 1.1.1 as the fenced Sysand project installs it (ADR 0022, step S1).
+LIBRARY = pleml_package.LIBRARY_PATH.as_posix()
+PROJECT = pleml_package.PROJECT.as_posix()
 LICENCE_VALUE = "${{ secrets.SYSIDE_LICENSE_KEY }}"
 LICENCE_PRESENCE = "${{ secrets.SYSIDE_LICENSE_KEY != '' }}"
 JOB = "authority"
@@ -48,6 +48,13 @@ OWN_PATHS = {
     "tests/test_ple_authority_runner.py",
     "tests/test_ple_authority_workflow.py",
     ".github/workflows/privileged-ple-authority.yml",
+}
+#: The PLEML pin: a re-pin gets this licensed validation (the upstream release policy).
+PIN_PATHS = {
+    "model-based-product-line-engineering/libraries/pleml/**",
+    "de4sdv/semantic/pleml_package.py",
+    "scripts/check_pleml_package.py",
+    "scripts/run_ple_qualification.py",
 }
 
 
@@ -93,13 +100,17 @@ def test_triggers_are_the_authority_paths_and_maintainer_dispatch() -> None:
     triggers = _workflow()[True]
     assert set(triggers) == {"pull_request", "workflow_dispatch"}
     paths = triggers["pull_request"]["paths"]
-    assert len(paths) == len(set(paths)) and set(paths) == OWN_PATHS
-    for path in OWN_PATHS:
-        if "*" in path:
+    assert len(paths) == len(set(paths)) and set(paths) == OWN_PATHS | PIN_PATHS
+    for path in OWN_PATHS | PIN_PATHS:
+        if path.endswith("/**"):
+            assert (ROOT / path[:-3]).is_dir(), path
+        elif "*" in path:
             base, pattern = path.split("/**/")
             assert any((ROOT / base).rglob(pattern)), path
         else:
             assert (ROOT / path).is_file(), path
+    # The runner reads the pin from the package record and its inputs from the qualification runner.
+    assert {"de4sdv/semantic/pleml_package.py", f"{PROJECT}/sysand-lock.toml"} <= set(runner.EXECUTOR_INPUTS)
     # No production model path: the production selectors stay untouched until the switch.
     validation = set(_load(VALIDATION)[True]["pull_request"]["paths"])
     assert not (set(paths) & validation)
@@ -120,38 +131,40 @@ def test_the_job_keeps_the_privileged_validation_guard_and_read_only_permissions
     assert workflow["concurrency"]["cancel-in-progress"] is True
 
 
-def test_the_executor_is_the_exact_head_and_the_experiment_is_frozen_and_relocated() -> None:
+def test_the_executor_is_the_exact_head_and_the_only_checkout() -> None:
     steps = _steps()
     checkouts = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
-    assert len(checkouts) == 2
-    head, experiment = checkouts
+    assert len(checkouts) == 1, "no frozen experiment: the library comes from the fenced Sysand project"
+    [head] = checkouts
     assert head["name"] == "Checkout the executor commit"
-    assert head["with"]["ref"] == "${{ github.event.pull_request.head.sha || inputs.ref }}"
-    assert head["with"]["persist-credentials"] is False
-    assert head["with"]["fetch-depth"] == 0
-    assert experiment["with"] == {"ref": FROZEN, "path": "_ple-experiment", "submodules": "recursive",
-                                  "persist-credentials": False}
+    assert head["with"] == {"ref": "${{ github.event.pull_request.head.sha || inputs.ref }}",
+                            "fetch-depth": 0, "persist-credentials": False}
     revision = next(s for s in steps if s.get("id") == "revision")
     assert revision["env"] == {"EXPECTED_HEAD": "${{ github.event.pull_request.head.sha }}"}
     assert "${{" not in revision["run"]
     assert "git rev-parse HEAD" in revision["run"] and '"$EXPECTED_HEAD"' in revision["run"]
-    # The relocation is the merged PLE qualification step (#375), verbatim.
-    _index, relocate = _step('mv _ple-experiment "$RUNNER_TEMP/_ple-experiment"')
-    qualification = next(s for s in _load(QUALIFICATION)["jobs"]["qualify"]["steps"]
-                         if s.get("name") == "Relocate the frozen experiment outside the executor checkout")
-    assert relocate["name"] == qualification["name"] and relocate["run"] == qualification["run"]
-    assert steps.index(relocate) == steps.index(experiment) + 1
-    _index, verify = _step(f"grep -qx {FROZEN} ")
-    assert f"grep -qx {PIN} " in verify["run"]
-    assert steps.index(verify) == steps.index(relocate) + 1
-    # The runner's pinned library is the experiment's.
-    assert runner.LIBRARY["experiment_revision"] == FROZEN and runner.LIBRARY["pleml_pin"] == PIN
+
+
+def test_the_fenced_package_is_installed_and_byte_checked_before_any_step_reads_it() -> None:
+    steps = _steps()
+    index, step = _named("Install and byte-check the fenced PLEML package")
+    assert f"(cd {PROJECT} && sysand sync)" in step["run"]
+    assert ("python scripts/check_pleml_package.py --release-diff --from-index --verify-tag "
+            '--out "$RUNNER_TEMP/ple-evidence/pleml-package.json"') in step["run"]
+    readers = [i for i, s in enumerate(steps)
+               if any(reader in (s.get("run") or "") for reader in ("tests/test_ple_", "syside check", RUNNER))]
+    assert readers and min(readers) > index
+    # The installed package is untracked and ignored, so the dirty-checkout guards never see it.
+    import subprocess
+
+    assert subprocess.run(["git", "check-ignore", "-q", LIBRARY], cwd=ROOT).returncode == 0
+    assert runner.LIBRARY["label"] == LIBRARY and runner.LIBRARY_PATH == ROOT / LIBRARY
 
 
 # -- the clean-checkout discipline of #375, applied with the merged helpers ----------------
 
 _RUN_STEPS = [s["name"] for s in _steps() if s.get("run")]
-_OUTPUTS = ("_ple-experiment", "ple-evidence")
+_OUTPUTS = ("ple-evidence",)
 
 
 @pytest.mark.parametrize("name", _RUN_STEPS)
@@ -170,10 +183,8 @@ def test_every_workflow_output_is_addressed_outside_the_checkout(name) -> None:
     step = next(s for s in _steps() if s.get("name") == name)
     for code in clean._shell_lines(step["run"]):
         argv = shlex.split(code)
-        for index, token in enumerate(argv):
+        for token in argv:
             if any(output in token for output in _OUTPUTS):
-                if argv[0] == "mv" and index < len(argv) - 1:
-                    continue  # the relocation takes the experiment out of the checkout
                 assert clean._outside_the_checkout(token), (name, token)
 
 
@@ -230,19 +241,6 @@ def test_a_dirty_checkout_guard_refuses_what_the_runner_would_refuse(tmp_path, k
         assert result.returncode == 0, result.stderr
 
 
-def test_the_relocation_leaves_a_clean_executor_checkout_and_a_working_experiment(tmp_path) -> None:
-    workspace, temp = tmp_path / "workspace", tmp_path / "runner-temp"
-    clean._scratch_checkout(workspace)
-    head = clean._experiment_checkout(workspace, tmp_path / "pleml")
-    temp.mkdir()
-    _index, relocate = _step('mv _ple-experiment "$RUNNER_TEMP/_ple-experiment"')
-    result = clean._bash(relocate["run"], workspace, dict(os.environ, RUNNER_TEMP=str(temp)))
-    assert result.returncode == 0, result.stderr
-    assert clean._git(workspace, "status", "--porcelain") == ""
-    assert not (workspace / "_ple-experiment").exists()
-    assert clean._git(temp / "_ple-experiment", "rev-parse", "HEAD") == head
-
-
 def test_dirty_checkout_refusals_surround_every_recording_step() -> None:
     steps = _steps()
     guards = [i for i, s in enumerate(steps) if GUARD_TEXT in (s.get("run") or "")]
@@ -289,7 +287,7 @@ def test_syside_check_covers_the_reviewed_roots_the_pinned_library_and_the_pleml
     command = " ".join(re.sub(r"\\\n\s*", " ", check["run"]).split()) + " "
     for root in MODEL_PATHS:
         assert f" {root.as_posix()} " in command, root
-    assert f" {LIBRARY} " in command
+    assert f" {LIBRARY} " in command and "external/pleml" not in command
     for directory in ("model-based-product-line-engineering/feature-models",
                       "model-based-product-line-engineering/feature-configurations"):
         assert f" {directory} " in command, directory
@@ -304,7 +302,7 @@ def test_the_runner_command_parses_against_the_real_parser() -> None:
     substituted = command.replace("$HEAD_SHA", "a" * 40).replace("$RUNNER_TEMP", "/tmp/runner-temp")
     args = runner.build_parser().parse_args(shlex.split(substituted)[2:])
     assert args.licensed is True and args.expected_executor == "a" * 40
-    assert args.library == Path("/tmp/runner-temp/_ple-experiment/external/pleml/PLEML.sysml")
+    assert "--library" not in command, "the runner reads the library from the fenced package"
     assert args.api_url == "http://127.0.0.1:9000"
     assert args.out == Path("/tmp/runner-temp/ple-evidence/authority")
     _start_index, start = _named(API_START)

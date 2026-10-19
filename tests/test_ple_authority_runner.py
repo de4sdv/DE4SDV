@@ -41,28 +41,46 @@ def test_every_executor_input_exists_and_the_pleml_files_are_inputs() -> None:
     assert "scripts/run_ple_authority.py" in runner.EXECUTOR_INPUTS
 
 
-def test_the_library_is_the_frozen_experiments_until_the_sysand_lock() -> None:
-    from scripts.run_ple_qualification import PLEML_1_1_0
+def test_the_library_is_the_fenced_sysand_package_of_its_record() -> None:
+    """One source names the library: the package record of step S1 (#404). Its repository
+    path is the label of the library document in the bundle."""
+    from de4sdv.semantic import pleml_package
+    from scripts.run_ple_qualification import PLEML_INPUTS
 
-    assert runner.LIBRARY["provisioning"] == "frozen-experiment"
-    assert (runner.LIBRARY["label"], runner.LIBRARY["sha256"], runner.LIBRARY["experiment_revision"],
-            runner.LIBRARY["pleml_pin"]) == (PLEML_1_1_0.library, PLEML_1_1_0.library_sha256,
-                                             PLEML_1_1_0.revision, PLEML_1_1_0.pleml_pin)
+    assert runner.LIBRARY == {
+        "provisioning": "sysand", "package": pleml_package.PACKAGE, "version": pleml_package.RELEASE.version,
+        "tag": pleml_package.RELEASE.tag, "tag_commit": pleml_package.RELEASE.tag_commit,
+        "label": pleml_package.LIBRARY_PATH.as_posix(), "sha256": pleml_package.RELEASE.library.sha256,
+        "lock": (pleml_package.PROJECT / "sysand-lock.toml").as_posix(),
+    }
+    assert (runner.LIBRARY["version"], runner.LIBRARY["tag"]) == ("1.1.1", "v1.1.1")
+    assert runner.LIBRARY_PATH == ROOT / pleml_package.LIBRARY_PATH
+    assert set(PLEML_INPUTS) <= set(runner.EXECUTOR_INPUTS)
 
 
-def test_the_library_is_refused_inside_the_checkout_or_with_other_bytes(tmp_path, monkeypatch) -> None:
-    with pytest.raises(ValueError, match="outside the executor checkout"):
-        runner.verify_library(ROOT / "README.md")
-    library = tmp_path / "PLEML.sysml"
+def test_the_library_is_refused_unless_the_fenced_package_is_its_record(tmp_path, monkeypatch) -> None:
+    from de4sdv.semantic import pleml_package
+
+    # The byte check runs first: an unreadable or missing project is refused.
+    with pytest.raises(pleml_package.PackageError, match="not readable"):
+        runner.verify_library(tmp_path)
+    monkeypatch.setattr(runner.pleml_package, "verify_installed", lambda root: {"byte_identical_to_tag": True})
+    library = tmp_path / pleml_package.LIBRARY_PATH
+    library.parent.mkdir(parents=True)
     library.write_bytes(b"library package PLEML {}\n")
     with pytest.raises(ValueError, match="differs from the pinned bytes"):
-        runner.verify_library(library)
+        runner.verify_library(tmp_path)
     monkeypatch.setitem(runner.LIBRARY, "sha256", runner.digest(library.read_bytes()))
-    assert runner.verify_library(library) == library.read_bytes()
+    assert runner.verify_library(tmp_path) == library.read_bytes()
+    library.unlink()
+    library.symlink_to(tmp_path / "elsewhere.sysml")
+    with pytest.raises(ValueError, match="regular file"):
+        runner.verify_library(tmp_path)
 
 
 def test_documents_are_labelled_by_repository_path_or_as_the_library(tmp_path) -> None:
-    library = tmp_path / "experiment/external/pleml/PLEML.sysml"
+    assert runner.document_label(f"file://{runner.LIBRARY_PATH}") == runner.LIBRARY["label"]
+    library = tmp_path / "PLEML.sysml"
     assert runner.document_label(f"file://{library}", library) == runner.LIBRARY["label"]
     model = ROOT / runner.FEATURE_MODELS[0]
     assert runner.document_label(f"file://{model}", library) == runner.FEATURE_MODELS[0]
@@ -137,7 +155,7 @@ def test_serialize_loads_everything_together_and_serializes_once_with_the_produc
     loaded: list = []
     calls = _fake_serializer(monkeypatch, urls, loaded=loaded)
     manifest = _manifest(monkeypatch, production)
-    documents, returned, version = runner.serialize(library, tmp_path)
+    documents, returned, version = runner.serialize(tmp_path, library)
     assert returned is manifest and version == runner.SERIALIZER_VERSION
     assert set(documents) == set(production) | set(PLEML) | {runner.LIBRARY["label"]}
     assert loaded == [ROOT / p for p in production] + [library] + [ROOT / p for p in PLEML]
@@ -153,23 +171,23 @@ def test_serialize_refuses_errors_a_missing_document_and_a_repeated_one(monkeypa
     _manifest(monkeypatch, production)
     _fake_serializer(monkeypatch, every, errors=True)
     with pytest.raises(ValueError, match="rejected"):
-        runner.serialize(library, tmp_path)
+        runner.serialize(tmp_path, library)
     _fake_serializer(monkeypatch, every[1:])
     with pytest.raises(ValueError, match="coverage mismatch"):
-        runner.serialize(library, tmp_path)
+        runner.serialize(tmp_path, library)
     _fake_serializer(monkeypatch, [*every, every[0]])
     with pytest.raises(ValueError, match="repeated a source document"):
-        runner.serialize(library, tmp_path)
+        runner.serialize(tmp_path, library)
 
 
 def test_serialize_refuses_another_host_or_serializer(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(platform, "machine", lambda: "aarch64")
     with pytest.raises(ValueError, match="x86_64"):
-        runner.serialize(tmp_path / "PLEML.sysml", tmp_path)
+        runner.serialize(tmp_path, tmp_path / "PLEML.sysml")
     _fake_serializer(monkeypatch, [])
     monkeypatch.setattr(runner.importlib.metadata, "version", lambda name: "0.0.0")
     with pytest.raises(ValueError, match="differs from the reviewed pin"):
-        runner.serialize(tmp_path / "PLEML.sysml", tmp_path)
+        runner.serialize(tmp_path, tmp_path / "PLEML.sysml")
 
 
 # -- the authority bundle and the round trip ---------------------------------------------------------
@@ -256,11 +274,11 @@ def _cli(*arguments: str, cwd: Path) -> subprocess.CompletedProcess[str]:
 
 
 @pytest.mark.parametrize("arguments, message", [
-    (["--licensed", "--library", "{tmp}/PLEML.sysml", "--expected-executor", "a" * 40,
+    (["--licensed", "--expected-executor", "a" * 40,
       "--api-url", "http://127.0.0.1:9000", "--out", str(ROOT / "inside")], "outside the repository"),
-    (["--library", "{tmp}/PLEML.sysml", "--expected-executor", "a" * 40,
+    (["--expected-executor", "a" * 40,
       "--api-url", "http://127.0.0.1:9000", "--out", "{tmp}/out"], "only --licensed"),
-    (["--licensed", "--library", "{tmp}/PLEML.sysml", "--expected-executor", "a" * 40,
+    (["--licensed", "--expected-executor", "a" * 40,
       "--api-url", "http://127.0.0.1:9000", "--out", "{tmp}/out"], "exact executor SHA"),
 ])
 def test_the_runner_refuses_before_touching_any_input(tmp_path, arguments, message) -> None:
@@ -272,7 +290,7 @@ def test_the_runner_refuses_before_touching_any_input(tmp_path, arguments, messa
 
 def test_an_existing_output_directory_is_refused(tmp_path) -> None:
     (tmp_path / "out").mkdir()
-    result = _cli("--licensed", "--library", str(tmp_path / "PLEML.sysml"), "--expected-executor", "a" * 40,
+    result = _cli("--licensed", "--expected-executor", "a" * 40,
                   "--api-url", "http://127.0.0.1:9000", "--out", str(tmp_path / "out"), cwd=tmp_path)
     assert result.returncode == 2 and "existing output directory" in result.stderr
 
@@ -284,15 +302,13 @@ def test_the_evaluation_is_pending_until_the_evaluator_exists() -> None:
 
 def test_a_run_without_the_evaluator_stops_after_the_round_trip_and_exits_three(monkeypatch, tmp_path) -> None:
     executor = "b" * 40
-    library = tmp_path / "PLEML.sysml"
-    library.write_bytes(b"library")
-    monkeypatch.setitem(runner.LIBRARY, "sha256", runner.digest(b"library"))
+    monkeypatch.setattr(runner, "verify_library", lambda root=None: b"library")
     monkeypatch.setattr(runner, "git", lambda root, *args: executor if args[0] == "rev-parse" else "")
     monkeypatch.setattr(runner, "verified_file", lambda root, revision, relative: "0" * 64)
     documents = _documents()
     manifest = BaselineManifest(tuple(BaselineSource(path=p, authority="reviewed", sha256="0" * 64, size=1)
                                       for p in [*runner.REFERENCED_SOURCES, "textual-notation-of-model/x.sysml"]))
-    monkeypatch.setattr(runner, "serialize", lambda path, out: (documents, manifest, runner.SERIALIZER_VERSION))
+    monkeypatch.setattr(runner, "serialize", lambda out: (documents, manifest, runner.SERIALIZER_VERSION))
     scoped = {}
     monkeypatch.setattr(runner, "validate_scope_elements",
                         lambda elements, sources: scoped.update(sources=set(sources.values())) or {"schema": "scope"})
@@ -300,7 +316,7 @@ def test_a_run_without_the_evaluator_stops_after_the_round_trip_and_exits_three(
         "de4sdv.sysml_api.baseline", fromlist=["build_export_bundle"]).build_export_bundle(
             git_commit=revision, source_documents={runner.FEATURE_MODELS[0]: documents[runner.FEATURE_MODELS[0]]}))
     monkeypatch.setattr(runner, "round_trip", lambda bundle, url: {"verified": True})
-    args = runner.build_parser().parse_args(["--licensed", "--library", str(library), "--expected-executor", executor,
+    args = runner.build_parser().parse_args(["--licensed", "--expected-executor", executor,
                                              "--api-url", "http://127.0.0.1:9000", "--out", str(tmp_path / "out")])
     record, code = runner.run(args)
     assert code == 3

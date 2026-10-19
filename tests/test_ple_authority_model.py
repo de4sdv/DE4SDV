@@ -404,6 +404,18 @@ def test_only_the_pleml_files_import_the_pleml_library() -> None:
     assert importing == set(PLEML_FILES)
 
 
+def test_the_pleml_files_are_the_model_files_of_the_import_roots() -> None:
+    """The confinement of step S1: the import roots of the package record hold exactly
+    the files the authority job validates, the fixture included."""
+    from de4sdv.semantic import pleml_package
+
+    under = {path.relative_to(ROOT).as_posix() for root in pleml_package.IMPORT_ROOTS
+             for path in (ROOT / root).rglob("*.sysml")}
+    assert under == set(PLEML_FILES)
+    assert not any(path.startswith("model-based-product-line-engineering/pleml-scope-alignment/")
+                   for path in pleml_package.IMPORT_EXEMPTIONS), "S3 retired the PLE-S model and its exemption"
+
+
 @pytest.mark.parametrize("path", PLEML_FILES)
 def test_the_pleml_files_follow_the_naming_rules(path: str) -> None:
     text = _raw(path)

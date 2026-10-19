@@ -30,7 +30,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PROJECT = package.PROJECT
 WORKFLOWS = ROOT / ".github/workflows"
 #: The privileged workflows that sync and byte-check the fenced package before they read it.
-FENCED_WORKFLOWS = ("privileged-ple-qualification.yml", "privileged-ple-scope-alignment.yml")
+FENCED_WORKFLOWS = ("privileged-ple-qualification.yml", "privileged-ple-authority.yml")
 #: Production workflows: none of them may install, read or trigger on the fenced package.
 PRODUCTION_WORKFLOWS = ("privileged-syside-validation.yml", "method-check.yml",
                         "privileged-full-model-api-ingestion.yml", "deploy-public-sysml-api.yml")
@@ -241,10 +241,8 @@ def test_only_the_feature_model_packages_and_the_named_exemptions_import_pleml()
 
 
 def test_every_import_exemption_is_named_with_its_end_and_still_needed() -> None:
-    assert set(package.IMPORT_EXEMPTIONS) == {
-        "model-based-product-line-engineering/pleml-scope-alignment/aebs_product_line_scope_alignment.sysml",
-        "scripts/run_ple_scoped_execution.py",
-    }
+    # Step S3 retired the PLE-S model, and its exemption with it.
+    assert set(package.IMPORT_EXEMPTIONS) == {"scripts/run_ple_scoped_execution.py"}
     importers = _importers()
     for path, reason in package.IMPORT_EXEMPTIONS.items():
         assert reason.strip(), path
@@ -638,9 +636,9 @@ def test_public_ci_byte_checks_the_package_and_its_release_diff_before_the_suite
     assert check < _index(steps, "python -m pytest tests -q")
 
 
-#: The network checks each privileged workflow adds: the tag in both, the index on re-pin PRs (PLE-S).
+#: The network checks each privileged workflow adds: the tag in both, the index on re-pin PRs (the authority job).
 NETWORK_CHECKS = {"privileged-ple-qualification.yml": ("--verify-tag",),
-                  "privileged-ple-scope-alignment.yml": ("--from-index", "--verify-tag")}
+                  "privileged-ple-authority.yml": ("--from-index", "--verify-tag")}
 
 
 @pytest.mark.parametrize("name", FENCED_WORKFLOWS)

@@ -144,29 +144,33 @@ PLEML.
 ## The authority job
 
 [`privileged-ple-authority.yml`](../../.github/workflows/privileged-ple-authority.yml)
-runs on pull requests that touch these models, their runner or their tests
-(same-repository, allowlisted authors) and on maintainer dispatch. On the
-exact head it:
+runs on pull requests that touch these models, their runner, their tests or
+the PLEML pin (same-repository, allowlisted authors) and on maintainer
+dispatch. On the exact head it:
 
-1. runs the unlicensed checks;
-2. validates the reviewed roots, the pinned library and the PLEML files with
+1. installs PLEML 1.1.1 from the fenced Sysand project of step S1
+   ([`libraries/pleml/`](../../model-based-product-line-engineering/libraries/pleml/README.md))
+   and byte-checks it against the committed record of its release tag before
+   any step reads it;
+2. runs the unlicensed checks;
+3. validates the reviewed roots, the pinned library and the PLEML files with
    the licensed `syside check`;
-3. serializes them once with the production export options
+4. serializes them once with the production export options
    ([`run_ple_authority.py`](../../scripts/run_ple_authority.py)), validates
    the governed scope as production does, and builds the authority bundle:
    the PLEML files, the shared-asset supersets, the governed scope, the
    derivation kernel and the library;
-4. imports the bundle into an ephemeral SysML v2 API and verifies the
+5. imports the bundle into an ephemeral SysML v2 API and verifies the
    full-payload readback (the API round trip);
-5. hands the bundle to the evaluator (ADR 0022, step S2), which writes the
+6. hands the bundle to the evaluator (ADR 0022, step S2), which writes the
    receipts.
 
 The receipts and their compressed elements, in the evaluator's format and
 layout, are committed after a licensed run; the owner said yes to committing
 them on 2026-10-19. Unlicensed CI then re-runs the evaluator on the
-committed elements and refuses a stale receipt. Until the Sysand lock of step
-S1 provides PLEML 1.1.1, the job reads the library from the frozen experiment
-at 1.1.0, whose content equals 1.1.1 apart from the version line of its doc.
+committed elements and refuses a stale receipt. The library document of the
+bundle is labelled by its repository path, `LIBRARY_PATH` of
+`de4sdv/semantic/pleml_package.py`.
 
 The unlicensed checks are
 [`test_ple_authority_model.py`](../../tests/test_ple_authority_model.py)

@@ -10,14 +10,14 @@ name: Privileged PLE Authority
 # fenced until the authority switch (ADR 0022, step S6).
 #
 # The executor is the exact commit under evaluation: the pull-request head, or
-# the dispatched `ref`. The pinned PLEML library is read from the frozen
-# experiment checkout at PLEML 1.1.0 (tag pleml-1.1.0-frozen), relocated
-# outside the executor checkout and verified by revision, pin and digest,
-# until the Sysand lock of step S1 provides PLEML 1.1.1. The licence reaches
-# exactly two steps: the `syside check` and the runner, which serializes,
-# round-trips the authority bundle through an ephemeral SysML v2 API and hands
-# it to the evaluator. Every recording step is preceded by a refusal of a
-# dirty checkout, and one follows the runner.
+# the dispatched `ref`. The exact-pinned PLEML library (1.1.1) comes from the
+# fenced Sysand lock (model-based-product-line-engineering/libraries/pleml/)
+# and is byte-checked against the committed record of its release tag before
+# any step reads it. The licence reaches exactly two steps: the `syside check`
+# and the runner, which serializes, round-trips the authority bundle through
+# an ephemeral SysML v2 API and hands it to the evaluator. Every recording
+# step is preceded by a refusal of a dirty checkout, and one follows the
+# runner.
 #
 # Every record says `qualified: false`. This workflow switches no authority and
 # makes no claim.
@@ -32,6 +32,11 @@ on:
       - "tests/test_ple_authority_runner.py"
       - "tests/test_ple_authority_workflow.py"
       - ".github/workflows/privileged-ple-authority.yml"
+      # The PLEML pin: a re-pin gets this licensed validation (release policy).
+      - "model-based-product-line-engineering/libraries/pleml/**"
+      - "de4sdv/semantic/pleml_package.py"
+      - "scripts/check_pleml_package.py"
+      - "scripts/run_ple_qualification.py"
   workflow_dispatch:
     inputs:
       ref:
@@ -116,34 +121,6 @@ jobs:
           fi
           echo "available=true" >> "$GITHUB_OUTPUT"
 
-      # The pinned library, until the Sysand lock of step S1 provides PLEML 1.1.1.
-      - name: Checkout the frozen experiment read-only as a separate input
-        if: steps.licence.outputs.available == 'true'
-        uses: actions/checkout@v4
-        with:
-          ref: 69bbe093c179f2121274b9f604c7d6a10de19e77
-          path: _ple-experiment
-          submodules: recursive
-          persist-credentials: false
-
-      # actions/checkout places a checkout only under the workspace, where it
-      # is an untracked path of the executor checkout ("?? _ple-experiment/").
-      - name: Relocate the frozen experiment outside the executor checkout
-        if: steps.licence.outputs.available == 'true'
-        run: |
-          test ! -e "$RUNNER_TEMP/_ple-experiment"
-          mv _ple-experiment "$RUNNER_TEMP/_ple-experiment"
-
-      - name: Verify the frozen experiment revision and the PLEML pin
-        if: steps.licence.outputs.available == 'true'
-        run: |
-          mkdir "$RUNNER_TEMP/ple-evidence"
-          git -C "$RUNNER_TEMP/_ple-experiment" rev-parse HEAD > "$RUNNER_TEMP/ple-evidence/experiment-revision.txt"
-          grep -qx 69bbe093c179f2121274b9f604c7d6a10de19e77 "$RUNNER_TEMP/ple-evidence/experiment-revision.txt"
-          git -C "$RUNNER_TEMP/_ple-experiment/external/pleml" rev-parse HEAD > "$RUNNER_TEMP/ple-evidence/pleml-pin.txt"
-          grep -qx 76e2be934453d77c4094141400b8ad8eb90a54a2 "$RUNNER_TEMP/ple-evidence/pleml-pin.txt"
-          test -f "$RUNNER_TEMP/_ple-experiment/external/pleml/PLEML.sysml"
-
       - name: Set up Python
         if: steps.licence.outputs.available == 'true'
         uses: actions/setup-python@v5
@@ -175,6 +152,17 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           "$HOME/.local/bin/syside" --version
           sysand sync
+
+      # PLEML 1.1.1 from the fenced Sysand lock: the byte check against the
+      # committed record of its release tag, the re-pin re-derived from the
+      # Sysand index (this workflow runs on re-pin PRs) and the upstream tag's
+      # commit and blobs, before any step reads it.
+      - name: Install and byte-check the fenced PLEML package
+        if: steps.licence.outputs.available == 'true'
+        run: |
+          mkdir "$RUNNER_TEMP/ple-evidence"
+          (cd model-based-product-line-engineering/libraries/pleml && sysand sync)
+          python scripts/check_pleml_package.py --release-diff --from-index --verify-tag --out "$RUNNER_TEMP/ple-evidence/pleml-package.json"
 
       - name: Refuse a dirty checkout before the unlicensed checks
         if: steps.licence.outputs.available == 'true'
@@ -248,7 +236,7 @@ jobs:
             textual-notation-of-model \
             model-based-product-line-engineering/product-models \
             model-based-product-line-engineering/scoping \
-            "$RUNNER_TEMP/_ple-experiment/external/pleml/PLEML.sysml" \
+            model-based-product-line-engineering/libraries/pleml/.sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml \
             model-based-product-line-engineering/feature-models \
             model-based-product-line-engineering/feature-configurations \
             2>&1 | tee "$RUNNER_TEMP/ple-evidence/syside-check.txt"
@@ -270,7 +258,6 @@ jobs:
         run: |
           python scripts/run_ple_authority.py \
             --licensed \
-            --library "$RUNNER_TEMP/_ple-experiment/external/pleml/PLEML.sysml" \
             --expected-executor "$HEAD_SHA" \
             --api-url http://127.0.0.1:9000 \
             --out "$RUNNER_TEMP/ple-evidence/authority"
