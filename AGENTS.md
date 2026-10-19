@@ -197,8 +197,9 @@ applies to documentation, model `doc` comments and pull request descriptions:
   ASD-STE100.
 
 When you rewrite existing text, keep every fact, condition, exception and
-qualifier. When you split a sentence, carry its condition into each part, for
-example "In that case, …". Then compare the result with the original.
+qualifier. When you split a sentence, carry each condition into every part
+that it governs, for example "In that case, …". Compare each rewrite with the
+original.
 
 Apply the style to new and changed text. Do not apply it to frozen records or
 accepted ADRs. Change generated text through its generator. Do not rewrite
