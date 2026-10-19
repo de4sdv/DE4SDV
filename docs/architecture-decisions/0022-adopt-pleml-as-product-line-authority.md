@@ -13,7 +13,7 @@ then, the YAML authority of ADR 0014 stays in force.
 
 [ADR 0014](0014-ratify-initial-aebs-product-line-scope.md) ratified the
 initial AEBS product-line scope: two planned members and one admitted
-variability, bound at Development. ADR 0014 also:
+variability, bound at Development. It also:
 
 - kept the YAML catalogue, the bills of features and
   `tools/configure_variant.py` authoritative until a separate migration
@@ -56,7 +56,7 @@ On 2026-10-19 the owner decided:
 1. **Authority and provisioning.** PLEML is the configuration-validity
    authority of DE4SDV's feature models, feature configurations and
    feature-to-shared-asset bindings.
-   - **Pin.** `pkg:sysand/mbse4u/pleml` `=1.1.1` (licence MIT), through the
+   - **Pin.** `pkg:sysand/mbse4u/pleml` `=1.1.1` (license MIT), through the
      committed Sysand lock, as [ADR 0007](0007-pin-sysmod-sysand-dependency.md)
      does for SYSMOD.
    - **Byte check.** A CI step compares the installed library with committed
@@ -66,7 +66,9 @@ On 2026-10-19 the owner decided:
      - sha256
        `a3f23c2531272b4cab684f0f1d1a982a443f0a2cdca824cc893f4004980ae02c`.
    - **Confinement.** Only the feature-model packages and their fixtures
-     import PLEML, and a CI guard enforces this.
+     import PLEML, and a CI guard enforces this. Two exceptions are allowed:
+     - the PLE-S model, until S3 retires it;
+     - the PLE-Q probe text that `scripts/run_ple_scoped_execution.py` writes.
 2. **Scope.**
    - The migration covers the full SDV product-line catalogue, including its
      reference-only options.
@@ -76,8 +78,8 @@ On 2026-10-19 the owner decided:
    - Every committed bill of features becomes a PLEML feature configuration,
      and the invalid fixture becomes a fixture configuration.
    - Common capabilities are not features. The catalogue's `C-` nodes become
-     common content, with a correspondence to the governed common elements and
-     no PLEML feature.
+     common content, with no PLEML feature and no new model element. Until S7,
+     the parity check maps them to the governed common elements.
    - The governed scope of ADR 0014 stays the admission authority: a
      configuration can be valid without being admitted.
 3. **Evaluation and identity.**
@@ -90,9 +92,11 @@ On 2026-10-19 the owner decided:
      - completeness and Development binding time;
      - that a configuration owns only features;
      - the integrity of the bindings.
-   - **Identity.** The module recognises PLEML and kernel definitions only by
-     validated bindings or by the serializer-recorded source document, never by
-     a name.
+   - **Identity.** It recognises PLEML and kernel definitions by API metatype,
+     declaration name and serializer-recorded source document (the
+     byte-checked library or a reviewed kernel file), or by a validated
+     binding. It never recognises them by a name alone, or by a name in
+     another document.
    - **After S6.** Variation and variant identity come from the evaluation
      receipt.
    - **Limits.** It refuses unknown shapes and never reports native expression
@@ -110,9 +114,13 @@ On 2026-10-19 the owner decided:
      rule for each allowed pair and exactly one exclusion for each unsupported
      one. Each rule must have exactly one application premise and one
      middleware premise.
-   - **Allowed lists.** Constraints the catalogue states as allowed lists keep
-     that list as their reviewed source, and a CI check proves each exclusion
-     equals the list's complement.
+   - **Allowed lists.** C001 and C003 keep their allowed lists as reviewed
+     source, and a CI check proves that each exclusion set equals its list's
+     complement.
+   - **Dropped rules.** C002 and C006 are dropped as constraints, because they
+     never fire. Their rationale stays in the model, and the complement check
+     also reads the list recorded in C002's rationale, so a new operating
+     system option fails CI until C002 is re-assessed.
    - **Adapters.** The adapter remains a derived realization: never a feature,
      never a manual product choice. No helper features and no implies pattern
      are introduced for adapters now, because the derivation rules own them.
@@ -127,13 +135,22 @@ On 2026-10-19 the owner decided:
 6. **Migration, rollback and phase 9.**
    - **Parity.** From step S4 on, YAML parity gates every step. Every bill of
      features, the fixture and the probes must give the same verdict, reason
-     class, derived variants and normalised projection body, or carry a
-     reviewed `not-expressible` class. The steps before S4 change no YAML
-     input, configurator path or projection.
+     class, derived variants and normalised projection body. The only
+     exception is a row on the plan's pinned `not-expressible` list. The steps
+     before S4 change no YAML input, configurator path or projection.
    - **Switch.** The authority switches only once parity is complete. An
      annotated tag marks the last commit under YAML authority.
    - **Shadow.** After the switch, the YAML path stays as a non-authoritative
-     shadow for 30 days.
+     shadow for at least 30 days.
+   - **Rollback triggers.** A rollback trigger is any of:
+     - a parity defect on main;
+     - a failed post-merge check of S6;
+     - an evaluator or derivation defect that changes a verdict or a derived
+       variant;
+     - the owner's call.
+   - **Rollback.** A rollback reverts S6 together with S5o. It needs its own
+     privileged ingestion and deploy, because the served-model identity
+     changes back.
    - **Retiring YAML.** It is retired only when three conditions hold:
      - the 30 days have passed;
      - at least one full-parity run on main after the switch is green;
@@ -152,14 +169,17 @@ On 2026-10-19 the owner decided:
      - an unadapted constraint form;
      - an unreviewed change to the configuration or constraint definitions;
      - a package that differs from its tag;
-     - a licence change.
+     - a license change.
    - The maintainers are informed after the switch, in a note that explains
      the derivation-rule approach, with text the owner approves.
 8. **Ontology and evidence status.**
-   - **Ontology PR.** An ontology pull request before the switch decides the
+   - **Ontology PR (S5o).** A method and ontology pull request decides the
      post-switch classification of `FeatureConfiguration`, the four selection
-     relations and `variesAt`. It needs the owner's yes and is part of the
-     switch gate.
+     relations and `variesAt`.
+     - It needs the owner's yes.
+     - S5o and S6 merge as one gate: S5o directly before S6, with no ingestion
+       or deploy between them.
+     - S6's gate requires S5o.
    - **Evidence status.** The kernel gets no evidence-status type.
      Configuration evidence status stays an external typed reference until
      the ontology review's `decision-4` (the EvidenceStatus split) is decided.
@@ -209,7 +229,7 @@ Clauses are quoted. The step that rewrites a text is named in brackets.
 - ADR 0006 decision 3. Projections are generated from evaluation receipts, not
   from bill-of-features YAML. [S6]
 - ADR 0006 decision 6. `derived_asset_selections` becomes model-native
-  derivation rules under the same exactly-one rule. [S3a, effective at S6]
+  derivation rules under the same exactly-one rule. [S3, effective at S6]
 - ADR 0011 import scope ("the pinned SysML library sources required to resolve
   those documents"). The PLEML library and the feature models join it. [S6]
 
@@ -243,10 +263,13 @@ Clauses are quoted. The step that rewrites a text is named in brackets.
 
 **Rewritten:**
 
-- [S3a] The feature-model namespace note in
-  `docs/naming/naming-conventions.md`, once `F-`, `C-`, `D-` and `PL-` IDs
-  become SysML short names.
-- [Ontology pull request before S6]
+- [S3]
+  - The feature-model namespace note in
+    `docs/naming/naming-conventions.md`, once `F-`, `D-` and `PL-` IDs become
+    SysML short names.
+  - The product-line README paragraph and the `docs/repository-tree.md` row
+    that name the PLE-S experiment, which S3 retires.
+- [S5o]
   - The register rows of `FeatureConfiguration`, `appliesToMemberProduct`,
     `selectsFeature`, `includesCommonCapability` and `selectsVariant`, all
     "external-reference: Bill-of-Features YAML", and the review decision
@@ -254,18 +277,19 @@ Clauses are quoted. The step that rewrites a text is named in brackets.
   - The `native-grounding-admission.yaml` exclusions for those five and
     `variesAt`.
   - The guard test `tests/test_vocabulary_roles.py`.
-  - The kernel vocabulary-role comments that say "selection authority stays
-    with the external catalogue (ADR 0006)" or "no PLEML dependency".
-  - These change the served-model `sai-` identity, so the switch needs a
-    fresh privileged binding.
-- [S6k] The method concern and viewpoints that name "the feature catalogue
-  and bill-of-features" or the YAML as the "source of truth".
+  - The kernel comment that "Bill-of-Features contents and
+    catalogue/configurator authority remain external. No PLEML adoption".
+  - The vocabulary-role comments that say "selection authority stays with the
+    external catalogue (ADR 0006)" or "no PLEML dependency".
+  - The method concern and viewpoints that name "the feature catalogue and
+    bill-of-features" or the YAML as the "source of truth".
+  - These change the served-model `sai-` identity, which is why S5o and S6
+    form one gate and the switch needs a fresh privileged binding.
 - [S6]
   - The governed scope model's "does not replace the current YAML
     configuration authority", and `scoping/README.md`.
   - The product-line, product-model, feature-model and feature-configuration
     READMEs.
-  - `docs/repository-tree.md`.
   - The validation scope in `AGENTS.md`.
   - The "three external Sysand dependency sources" check in
     `.github/workflows/deploy-public-sysml-api.yml`.
@@ -301,10 +325,10 @@ Costs and risks:
   kernel definitions, delivered as method pull requests. The ontology
   classification needs its own pull request.
 - **Production change.** The switch changes the served-model identity, so it
-  needs a privileged ingestion and a deploy.
-- **Two representations.** The YAML shadow and PLEML coexist for 30 days
-  after the switch. Rollback is one revert of the switch while the shadow
-  exists. After that, rollback means restoring from the tag.
+  needs a privileged ingestion and a deploy, and so does a rollback.
+- **Two representations.** The YAML shadow and PLEML coexist for at least 30
+  days after the switch. While the shadow exists, a rollback reverts S6
+  together with S5o. After that, rollback means restoring from the tag.
 
 ## Non-decisions
 
@@ -315,8 +339,7 @@ This ADR does not:
 - merge the governed scope's native variation with any PLEML feature model;
 - use PLEML for the method, evidence or ontology vocabulary;
 - decide the post-switch ontology classification or grounding of
-  `FeatureConfiguration`, the selection relations or `variesAt` (an ontology
-  pull request before the switch does);
+  `FeatureConfiguration`, the selection relations or `variesAt` (S5o does);
 - decide the ontology review's `decision-4` on evidence status;
 - claim native execution of PLEML constraint expressions;
 - modify the frozen PLEML experiments or their tags; or
