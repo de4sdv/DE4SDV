@@ -2,28 +2,35 @@
 
 ## Status
 
-Proposed
+Accepted
+
+The owner took the decision on 2026-10-19. It takes effect at the switch,
+step S6 of the
+[migration plan](../plans/2026-10-19-pleml-product-line-authority.md). Until
+then, the YAML authority of ADR 0014 stays in force.
 
 ## Context
 
 [ADR 0014](0014-ratify-initial-aebs-product-line-scope.md) ratified the
 initial AEBS product-line scope: two planned members and one admitted
-variability, bound at Development. It kept the YAML catalogue, the bills of
-features and `tools/configure_variant.py` operationally authoritative until a
-separate migration decision. It kept PLEML exact-pinned and experimental, and
-it asked a future PLEML feature model to start from the admitted variability
-rather than restate the catalogue node for node.
+variability, bound at Development. ADR 0014 also:
+
+- kept the YAML catalogue, the bills of features and
+  `tools/configure_variant.py` authoritative until a separate migration
+  decision;
+- kept PLEML exact-pinned and experimental;
+- asked a future PLEML feature model to start from the admitted variability.
 
 [ADR 0006](0006-variant-selection-construct-and-ple-adequacy.md) made the YAML
 decision layer the bridge between native SysML v2 variability and
 feature-model semantics. The configurator derives the application-middleware
-adapter from a rule table and rejects unsupported pairs and hand-picked
-adapters.
+adapter from a rule table. It rejects unsupported pairs and adapters chosen by
+hand.
 
 The PLEML adoption gates have run:
 
-- **PLE-Q.** Run `39167884450` recorded six cases on PLEML 1.1.0, observed
-  but not qualified. Two are observed and four are gaps.
+- **PLE-Q.** Run `39167884450` on PLEML 1.1.0 recorded six cases as observed,
+  not qualified. Native constraint evaluation was not executed.
 - **PLE-S.** Run `39169049300` compared 15 cases of the admitted scope with the
   configurator and found no defect.
 - **Trial.** A scratch trial showed that PLEML can express a two-premise
@@ -32,132 +39,239 @@ The PLEML adoption gates have run:
   1.1.0 and 1.1.1. Version 1.1.1 has the library of 1.1.0, and its Sysand
   package is byte-identical to its release tag.
 
-Two capabilities are missing from PLEML and the toolchain:
-
-- SysIDE 0.10.3 does not evaluate PLEML constraint bodies.
-- PLEML defines no derivation: a feature configuration is either valid or
-  invalid.
+PLEML defines no derivation: a feature configuration is either valid or
+invalid. SysIDE 0.10.3 does not evaluate PLEML constraint bodies.
 
 On 2026-10-19 the owner decided:
 
 - to make PLEML the product-line authority, with DE4SDV owning evaluation and
   derivation;
-- to migrate the full catalogue and every bill of features;
+- to migrate the full catalogue and every bill of features, including the two
+  execution-environment catalogues;
 - to provision PLEML through Sysand;
-- the rollback, release and sequencing rules that the
-  [migration plan](../plans/2026-10-19-pleml-product-line-authority.md)
-  records.
+- the rollback, release and sequencing rules below.
 
 ## Decision
 
-1. **Authority.** PLEML is the representation and the configuration-validity
+1. **Authority and provisioning.** PLEML is the configuration-validity
    authority of DE4SDV's feature models, feature configurations and
    feature-to-shared-asset bindings.
-   - It is pinned as `pkg:sysand/mbse4u/pleml` `=1.1.1` through the committed
-     Sysand lock, as [ADR 0007](0007-pin-sysmod-sysand-dependency.md) does for
-     SYSMOD.
-   - A CI step checks that the installed library is byte-identical to the
-     release tag.
-   - The authority takes effect at the switch step of the migration plan.
-     Until then the YAML clause of ADR 0014 stays in force.
-2. **Scope.** The migration covers the full SDV product-line catalogue,
-   including its reference-only options, and the engineering and
-   vehicle-target execution-environment catalogues. Each catalogue becomes its
-   own feature model.
+   - **Pin.** `pkg:sysand/mbse4u/pleml` `=1.1.1` (licence MIT), through the
+     committed Sysand lock, as [ADR 0007](0007-pin-sysmod-sysand-dependency.md)
+     does for SYSMOD.
+   - **Byte check.** A CI step compares the installed library with committed
+     values:
+     - tag commit `b694648cce4b96126eda2de3eb881c54397ae035`;
+     - blob `8624fe1e29f9ac96299484f86dfb9a0725e48c2e`;
+     - sha256
+       `a3f23c2531272b4cab684f0f1d1a982a443f0a2cdca824cc893f4004980ae02c`.
+   - **Confinement.** Only the feature-model packages and their fixtures
+     import PLEML, and a CI guard enforces this.
+2. **Scope.**
+   - The migration covers the full SDV product-line catalogue, including its
+     reference-only options.
+   - It also covers the engineering and vehicle-target execution-environment
+     catalogues and their three configurations, by the owner's decision of
+     2026-10-19. Each catalogue becomes its own feature model.
    - Every committed bill of features becomes a PLEML feature configuration,
      and the invalid fixture becomes a fixture configuration.
+   - Common capabilities are not features. The catalogue's `C-` nodes become
+     common content, with a correspondence to the governed common elements and
+     no PLEML feature.
    - The governed scope of ADR 0014 stays the admission authority: a
-     configuration can be valid without being admitted. Model-native
-     correspondences from features to the governed scope decide admission.
-3. **Evaluation.** DE4SDV evaluates configurations in a repository module that
-   reads serializer and API objects only
-   ([ADR 0011](0011-import-reviewed-sysml-baseline-into-api.md)). It checks:
-   - multiplicities;
-   - requires, XOR and implies, as the library defines them;
-   - completeness and Development binding time;
-   - that a configuration owns only features.
-
-   It refuses unknown shapes and never reports native expression execution.
+     configuration can be valid without being admitted.
+3. **Evaluation and identity.**
+   - **Module.** DE4SDV evaluates configurations in a repository module that
+     reads serializer and API objects only
+     ([ADR 0011](0011-import-reviewed-sysml-baseline-into-api.md)). It checks:
+     - multiplicities;
+     - requires and XOR constraints, and implies once one is modeled, as the
+       library defines them;
+     - completeness and Development binding time;
+     - that a configuration owns only features;
+     - the integrity of the bindings.
+   - **Identity.** The module recognises PLEML and kernel definitions only by
+     validated bindings or by the serializer-recorded source document, never by
+     a name.
+   - **After S6.** Variation and variant identity come from the evaluation
+     receipt.
+   - **Limits.** It refuses unknown shapes and never reports native expression
+     execution.
 4. **Derivation and the closed world.**
    - A valid configuration derives the variants bound to its selected
      features.
-   - The adapter rule table becomes model-native DE4SDV derivation rules,
-     typed by a kernel definition. For each derived variation exactly one
-     rule must match a valid configuration; with none or several, the
-     configuration is rejected.
-   - PLEML exclusions state the unsupported application-middleware pairs, and
-     a CI check proves that the allowed pairs equal the pairs the rules cover.
-   - The adapter remains a derived realization: never a feature, never a
-     manual product choice.
-   - No helper features and no implies pattern are introduced for adapters,
-     because the derivation rules own them.
-5. **Generation.** A licensed job writes a content-addressed evaluation receipt
-   for each feature model. `tools/configure_variant.py` generates the
-   product-model projections from the receipts, keeping its writer and
-   mapping checks, and keeps the existing part-definition names.
-6. **Migration and rollback.**
-   - YAML parity gates every migration step. Every bill of features, the
-     fixture and the probes must give the same verdict, reason class, derived
-     variants and projection body.
-   - The authority switches only once parity is complete.
-   - The YAML path stays runnable as a shadow during the rollback window, and
-     YAML is retired only after full parity has held through that window.
-   - An annotated tag marks the last commit under YAML authority.
-7. **Upstream releases.** DE4SDV takes a new PLEML release only through a
-   reviewed re-pin and a re-qualification at an exact revision.
-   - A release whose content is unchanged takes a fast path.
+   - **Rules.** The adapter rule table becomes model-native DE4SDV derivation
+     rules, typed by a kernel definition. For each derived variation exactly one
+     rule must match a valid configuration. A configuration that matches none,
+     or several, is rejected.
+   - **Exclusions.** PLEML exclusions state the unsupported
+     application-middleware pairs.
+   - **Agreement check.** A CI check covers all pairs. It requires exactly one
+     rule for each allowed pair and exactly one exclusion for each unsupported
+     one. Each rule must have exactly one application premise and one
+     middleware premise.
+   - **Allowed lists.** Constraints the catalogue states as allowed lists keep
+     that list as their reviewed source, and a CI check proves each exclusion
+     equals the list's complement.
+   - **Adapters.** The adapter remains a derived realization: never a feature,
+     never a manual product choice. No helper features and no implies pattern
+     are introduced for adapters now, because the derivation rules own them.
+5. **Generation and receipts.**
+   - A licensed job writes an evaluation receipt for each feature model,
+     together with the serialized elements it evaluated.
+   - Unlicensed CI re-runs the evaluator on those elements and refuses a stale
+     receipt by digest.
+   - `tools/configure_variant.py` generates the product-model projections from
+     the receipts with its existing writer, and keeps the existing
+     part-definition names.
+6. **Migration, rollback and phase 9.**
+   - **Parity.** From step S4 on, YAML parity gates every step. Every bill of
+     features, the fixture and the probes must give the same verdict, reason
+     class, derived variants and normalised projection body, or carry a
+     reviewed `not-expressible` class. The steps before S4 change no YAML
+     input, configurator path or projection.
+   - **Switch.** The authority switches only once parity is complete. An
+     annotated tag marks the last commit under YAML authority.
+   - **Shadow.** After the switch, the YAML path stays as a non-authoritative
+     shadow for 30 days.
+   - **Retiring YAML.** It is retired only when three conditions hold:
+     - the 30 days have passed;
+     - at least one full-parity run on main after the switch is green;
+     - no rollback trigger is open.
+   - **Phase 9.** INC-MW-011 phase 9 waits for the switch and may start right
+     after it. On a rollback, phase-9 content the YAML cannot express must be
+     re-expressed or withdrawn.
+7. **Upstream releases and contact.**
+   - DE4SDV takes a new PLEML release only through a reviewed re-pin with
+     bounded re-verification at an exact revision.
+   - A release that changes only its version line or line endings takes a fast
+     path; any other release takes the full path.
    - No new frozen-experiment commits are made.
-   - Any of these blocks an upgrade: a parity or receipt regression, an
-     unadapted constraint form, an unreviewed change to the configuration or
-     constraint definitions, a package that differs from its tag, or a licence
-     change.
+   - Any of these blocks an upgrade:
+     - a parity or receipt regression;
+     - an unadapted constraint form;
+     - an unreviewed change to the configuration or constraint definitions;
+     - a package that differs from its tag;
+     - a licence change.
+   - The maintainers are informed after the switch, in a note that explains
+     the derivation-rule approach, with text the owner approves.
+8. **Ontology and evidence status.**
+   - **Ontology PR.** An ontology pull request before the switch decides the
+     post-switch classification of `FeatureConfiguration`, the four selection
+     relations and `variesAt`. It needs the owner's yes and is part of the
+     switch gate.
+   - **Evidence status.** The kernel gets no evidence-status type.
+     Configuration evidence status stays an external typed reference until
+     the ontology review's `decision-4` (the EvidenceStatus split) is decided.
 
-### Superseded, amended and retained clauses
+### Clause changes
 
-Superseded:
+Clauses are quoted. The step that rewrites a text is named in brackets.
 
-- ADR 0014:111 ("PLEML remains exact-pinned and experimental"), at the
-  switch. PLEML stays exact-pinned.
-- ADR 0014:114-115, the open XOR defect, which upstream fixed in 1.0.0.
-- ADR 0014:140-142, the YAML authority, at the switch.
-- ADR 0014:143-144, the admitted-variability starting point, by the owner's
-  decision to migrate the full catalogue.
-- ADR 0006:104-109, the YAML decision layer as the bridge.
+**Superseded:**
 
-Amended:
+- ADR 0014: "PLEML remains exact-pinned and experimental." [S6] PLEML stays
+  exact-pinned.
+- ADR 0014: "No interpretation is upstream-confirmed." and "The suspected
+  `xorFeatures` / `XORConstraint` defect remains unresolved." [S0] Both are
+  overtaken: upstream answered the questions and fixed XOR in 1.0.0.
+- ADR 0014: "The current YAML catalogue, feature configurations, and
+  configurator remain operationally authoritative and unchanged until a
+  separate migration decision." [S6]
+- ADR 0014: "A future PLEML feature model must begin with the one admitted
+  product variability rather than reproducing the current catalogue
+  node-for-node." [S0, by the owner's decision on scope]
+- ADR 0006 decision 5, the YAML decision layer that "bridges that boundary".
+  [S6]
+- ADR 0006 consequences on "the external configuration decision layer", and
+  "A derived technical variation is reviewable in the feature catalogue".
+  [S6] The derivation rules carry it instead.
+- ADR 0021 link: "external selection authority, which the kernel guard
+  keeps". [S6]
+- Wave-A decision 9: "Keep the external catalogue authority (ADR 0006) …
+  Revisit after the PLE migration." [S6]
 
-- ADR 0014:91. The adapter is a DE4SDV-owned derivation outcome, and the word
-  "experimental" goes. "It is not a manual product choice" (:91-92) stays.
-- ADR 0006:90-95. Projections are generated from evaluation receipts instead
-  of bills of features.
-- ADR 0006:110-116. The adapter rules move from the YAML catalogue to
-  model-native derivation rules, under the same exactly-one rule.
+**Amended:**
 
-Decided here, though left open earlier:
+- ADR 0014: "The adapter remains a DE4SDV-defined experimental derivation
+  outcome." The word "experimental" goes. "It is not a manual product
+  choice." stays.
+- ADR 0014: "The following are derived from Vehicle Platform Integration Mode
+  and are not independently selectable product features". This stays as an
+  admission rule. The catalogue configures operating system, hypervisor and
+  middleware, as it does today, and admission classifies them as derived
+  realizations. The adapter stays non-selectable.
+- ADR 0014: "They become selectable only after a future reviewed scope
+  decision admits a planned member". This stays, read as "admitted".
+  Reference-only options are configurable, as today, and the non-decision
+  "make Apollo or another reference alternative selectable" keeps that
+  reading.
+- ADR 0006 decision 3. Projections are generated from evaluation receipts, not
+  from bill-of-features YAML. [S6]
+- ADR 0006 decision 6. `derived_asset_selections` becomes model-native
+  derivation rules under the same exactly-one rule. [S3a, effective at S6]
+- ADR 0011 import scope ("the pinned SysML library sources required to resolve
+  those documents"). The PLEML library and the feature models join it. [S6]
 
-- ADR 0014:152-155;
-- ADR 0006:144;
-- wave-A decision 9 on configurator authority, which said "Revisit after
-  the PLE migration".
+**Decided here, though left open earlier:**
 
-Retained:
+- ADR 0014 non-decisions on a production PLEML feature tree, on production
+  migration, on retargeting the configurator and on retiring the YAML
+  authority.
+- ADR 0014 non-decisions "contact PLEML maintainers" (decision 7) and "resolve
+  the suspected PLEML XOR defect" (resolved upstream).
+- ADR 0006 non-decision "choose a production PLE tool", for the
+  feature-model representation.
+- ADR 0006 non-decision "define a full SysML v2 configuration-resolution
+  metamodel", in part: kernel definitions for derivation rules and
+  configuration metadata only. [S2k]
 
-- ADR 0014:41-44, the governed scope as portfolio authority;
-- ADR 0014:94-99. Reference-only options are configurable, as they are in
-  the YAML catalogue today, and admitted only by a scope decision.
-- ADR 0014:101-103. Engineering environments get their own feature model and
-  remain outside System 1 product variability.
-- ADR 0014:78-80 and :115-116;
+**Retained:**
+
+- ADR 0014: the governed scope model as the portfolio authority.
+- ADR 0014: "Driving Stack becomes genuine product variability" once a
+  governed Apollo member is accepted.
+- ADR 0014: "System 2 engineering environments … remain outside System 1
+  product variability"; their feature model is not product variability.
+- ADR 0014: "Future upstream clarification or a new PLEML pin triggers
+  bounded re-verification before an affected claim is used."
 - ADR 0006 decisions 1, 2 and 4.
+- ADR 0021 decision 1 (S2k is its method pull request) and decision 4 (the
+  feature model covers variability only).
+- Ontology rule R001 and the kernel rule that common capabilities are not
+  features unless they distinguish member products.
 
-Rewritten at the switch:
+**Rewritten:**
 
-- `model-based-product-line-engineering/README.md:3-11, :27-36, :51-66`;
-- the feature-model namespace note in `docs/naming/naming-conventions.md`,
-  updated the same day the YAML is retired;
-- the kernel texts in `de4sdv_product_line.sysml:86-125` and
-  `de4sdv_method_concerns_and_viewpoints.sysml:150-174`, by separate method
-  pull requests.
+- [S3a] The feature-model namespace note in
+  `docs/naming/naming-conventions.md`, once `F-`, `C-`, `D-` and `PL-` IDs
+  become SysML short names.
+- [Ontology pull request before S6]
+  - The register rows of `FeatureConfiguration`, `appliesToMemberProduct`,
+    `selectsFeature`, `includesCommonCapability` and `selectsVariant`, all
+    "external-reference: Bill-of-Features YAML", and the review decision
+    `decision-9`.
+  - The `native-grounding-admission.yaml` exclusions for those five and
+    `variesAt`.
+  - The guard test `tests/test_vocabulary_roles.py`.
+  - The kernel vocabulary-role comments that say "selection authority stays
+    with the external catalogue (ADR 0006)" or "no PLEML dependency".
+  - These change the served-model `sai-` identity, so the switch needs a
+    fresh privileged binding.
+- [S6k] The method concern and viewpoints that name "the feature catalogue
+  and bill-of-features" or the YAML as the "source of truth".
+- [S6]
+  - The governed scope model's "does not replace the current YAML
+    configuration authority", and `scoping/README.md`.
+  - The product-line, product-model, feature-model and feature-configuration
+    READMEs.
+  - `docs/repository-tree.md`.
+  - The validation scope in `AGENTS.md`.
+  - The "three external Sysand dependency sources" check in
+    `.github/workflows/deploy-public-sysml-api.yml`.
+  - At S6 ADR 0014 gets a marked partial-supersession note and stays
+    `Accepted`, and ADR 0006 gets a note.
+- [S7] Remaining YAML references.
 
 ## Consequences
 
@@ -168,8 +282,7 @@ Benefits:
   decision layer can be retired.
 - **Phase 9.** INC-MW-011 phase 9 restructures the platform choices per
   domain once, in PLEML.
-- **Reuse.** The configurator's tested projection writer and mapping checks
-  are kept.
+- **Reuse.** The configurator's tested projection writer is kept.
 
 Costs and risks:
 
@@ -177,18 +290,21 @@ Costs and risks:
   so a defect there is DE4SDV's. Conformance cases are restated from the
   library's documented test verdicts.
 - **Licensed loop.** A feature-model change needs licensed serialization.
-  The committed receipts keep every other pull request unlicensed, but
-  contributors can't regenerate them locally.
+  The committed receipts and elements keep every other pull request
+  unlicensed, but contributors can't serialize a new configuration locally.
 - **Young upstream.** There were three releases in three days, one of them
-  breaking, from one active contributor. Exact pins and the release gate
-  contain this.
+  breaking, from one active contributor. Exact pins, confinement and the
+  release gate contain this.
 - **Gaps.** Serializer identity is closed only for the concepts the authority
-  consumes; the other qualification gaps stay recorded.
+  consumes; the other PLE-Q gaps stay recorded.
 - **Kernel work.** The derivation rules and the configuration metadata need
-  kernel definitions, delivered as method pull requests.
-- **Two representations.** The YAML shadow and PLEML coexist until the rollback
-  window ends. Rollback is one revert of the switch while the shadow exists.
-  After that, rollback means restoring from the tag.
+  kernel definitions, delivered as method pull requests. The ontology
+  classification needs its own pull request.
+- **Production change.** The switch changes the served-model identity, so it
+  needs a privileged ingestion and a deploy.
+- **Two representations.** The YAML shadow and PLEML coexist for 30 days
+  after the switch. Rollback is one revert of the switch while the shadow
+  exists. After that, rollback means restoring from the tag.
 
 ## Non-decisions
 
@@ -198,7 +314,10 @@ This ADR does not:
 - make engineering execution environments product variability;
 - merge the governed scope's native variation with any PLEML feature model;
 - use PLEML for the method, evidence or ontology vocabulary;
-- ground further kernel identities on PLEML;
+- decide the post-switch ontology classification or grounding of
+  `FeatureConfiguration`, the selection relations or `variesAt` (an ontology
+  pull request before the switch does);
+- decide the ontology review's `decision-4` on evidence status;
 - claim native execution of PLEML constraint expressions;
 - modify the frozen PLEML experiments or their tags; or
 - make any safety, compliance, certification or homologation claim.
@@ -210,10 +329,11 @@ This ADR does not:
 - [ADR 0007: Pin SYSMOD as a Sysand dependency](0007-pin-sysmod-sysand-dependency.md)
 - [ADR 0011: Import the reviewed SysML baseline into the API](0011-import-reviewed-sysml-baseline-into-api.md)
 - [ADR 0014: Ratify the initial AEBS product-line scope](0014-ratify-initial-aebs-product-line-scope.md)
+- [ADR 0021: Model elements earn their place](0021-make-model-elements-earn-their-place.md)
 - [PLE-S scope alignment](../product-line-engineering/ple-s-scope-alignment.md)
 - [Governed product-line scope](../../model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml)
-- Wave-A decision 9: tag `release-2026-10-11`,
-  `docs/method-conformance/o4/owner-decisions-2026-10.md`
+- Wave-A decision 9, archived at the release tag:
+  <https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/docs/method-conformance/o4/owner-decisions-2026-10.md>
 
 Upstream references:
 
