@@ -12,6 +12,8 @@
       "AssuranceClaim",
       "Baseline",
       "CommonCapability",
+      "DerivationRule",
+      "DerivedVariation",
       "DerivesFromNeed",
       "EvidenceArtifact",
       "EvidenceContract",
@@ -26,11 +28,14 @@
       "MethodEvaluationScope",
       "PhysicalAllocationElement",
       "PhysicalElement",
+      "ProductModelProjection",
+      "ProductModelProjectionName",
       "RegulatorySource",
       "RegulatorySourceAssociation",
       "RequiredTraceChain",
       "Stakeholder",
       "TraceLink",
+      "UnassignedBindingTime",
       "ValidationPlanningAssociation",
       "ValidationPlanningScenario",
       "ValidationScenario",
@@ -325,6 +330,72 @@
           ]
         },
         "contract_source": "kernel mapping kind and ontology relations: reviewed admission-manifest fields (manifest-held: the model does not carry them structurally, so the reviewed manifest is their authority); file mappings are resolved in the model by this generator; authored-ontology parity proven before its deletion: https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/docs/method-conformance/o4/closure/contract-equivalence.json"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "DerivationRule",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": null,
+      "accounting": "method-admitted",
+      "boundary": "none",
+      "definition": {
+        "documentation": "A rule that derives one variant of a derived variation. Applied to a dependency with exactly one client, that variant, whose suppliers are the premises: one premise per source feature of the variation, each a direct sub-feature of a distinct source feature, that is, a feature of the feature model with an authored subsetting of it. Supplier order carries no meaning. The client is a variant of a variation that exactly one derived variation names; a rule without one is invalid. The rule matches a valid configuration that selects every premise; derivation applies to valid configurations only.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
+          "owner": "metadata def DerivationRule",
+          "form": "owned-doc",
+          "documentation_name": null,
+          "documentation_index": 0
+        },
+        "documentation_observation": "model-owned-documentation"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
+          "declaration": "metadata def DerivationRule"
+        },
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed admission-manifest fields (manifest-held: the model does not carry them structurally, so the reviewed manifest is their authority); file mappings are resolved in the model by this generator; admitted by a method pull request after the authored ontology's deletion: no authored-ontology comparison exists"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "DerivedVariation",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": null,
+      "accounting": "method-admitted",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Declares that a shared-asset variation is derived: no configuration selects its variant, and its derivation rules derive the variant from the selected features of the feature model. Applied to a dependency with exactly one client, the variation, whose suppliers are its source features: the features of the feature model whose selected alternative the rules condition on. Supplier order carries no meaning. A valid configuration derives exactly one variant of the variation: exactly one of its rules must match, and a configuration that matches no rule or several is rejected. A derived variant is never a feature and never a manual product choice, so a feature binding or configuration entry that targets one is refused. The short name of the dependency is the stable identity of the derivation. Feature here means a feature of a PLEML feature model, not the ontology class Feature.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
+          "owner": "metadata def DerivedVariation",
+          "form": "owned-doc",
+          "documentation_name": null,
+          "documentation_index": 0
+        },
+        "documentation_observation": "model-owned-documentation"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
+          "declaration": "metadata def DerivedVariation"
+        },
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed admission-manifest fields (manifest-held: the model does not carry them structurally, so the reviewed manifest is their authority); file mappings are resolved in the model by this generator; admitted by a method pull request after the authored ontology's deletion: no authored-ontology comparison exists"
       },
       "support": "vocabulary-only",
       "traversal": false,
@@ -774,6 +845,72 @@
       "api_identity": "unclaimed"
     },
     {
+      "identity": "ProductModelProjection",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": null,
+      "accounting": "method-admitted",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Feature-model metadata naming the product-model projection that each configuration of the annotated feature model generates. ownerName is the shared-asset part definition that owns the variations the feature bindings and derived variations resolve, and packageName is the package that owns it; every generated product model specializes that part definition. label names the projection in the generated text. The names identify nothing: they must agree with the owner of the bound and derived variants.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
+          "owner": "metadata def ProductModelProjection",
+          "form": "owned-doc",
+          "documentation_name": null,
+          "documentation_index": 0
+        },
+        "documentation_observation": "model-owned-documentation"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
+          "declaration": "metadata def ProductModelProjection"
+        },
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed admission-manifest fields (manifest-held: the model does not carry them structurally, so the reviewed manifest is their authority); file mappings are resolved in the model by this generator; admitted by a method pull request after the authored ontology's deletion: no authored-ontology comparison exists"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "ProductModelProjectionName",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": null,
+      "accounting": "method-admitted",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Configuration metadata: the name of the part definition that the product-model projection of the annotated configuration declares. It annotates the configuration and is not one of its features.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
+          "owner": "metadata def ProductModelProjectionName",
+          "form": "owned-doc",
+          "documentation_name": null,
+          "documentation_index": 0
+        },
+        "documentation_observation": "model-owned-documentation"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
+          "declaration": "metadata def ProductModelProjectionName"
+        },
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed admission-manifest fields (manifest-held: the model does not carry them structurally, so the reviewed manifest is their authority); file mappings are resolved in the model by this generator; admitted by a method pull request after the authored ontology's deletion: no authored-ontology comparison exists"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
       "identity": "RegulatorySource",
       "semantic_kind": "class",
       "admission_class": "definition",
@@ -927,6 +1064,39 @@
           "disjoint_with": []
         },
         "contract_source": "kernel mapping kind and ontology relations: reviewed admission-manifest fields (manifest-held: the model does not carry them structurally, so the reviewed manifest is their authority); file mappings are resolved in the model by this generator; authored-ontology parity proven before its deletion: https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/docs/method-conformance/o4/closure/contract-equivalence.json"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "UnassignedBindingTime",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": null,
+      "accounting": "method-admitted",
+      "boundary": "none",
+      "definition": {
+        "documentation": "Feature metadata: the binding time of the annotated feature of the feature model is not yet decided. The feature keeps its default binding time, and no configuration verdict depends on the annotation. An annotated feature does not redefine bindingTime; a feature that does both is refused. A feature that a feature binding, a derived variation or a derivation rule names has a decided binding time, so it never carries this annotation. Feature here means a feature of a PLEML feature model, not the ontology class Feature.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
+          "owner": "metadata def UnassignedBindingTime",
+          "form": "owned-doc",
+          "documentation_name": null,
+          "documentation_index": 0
+        },
+        "documentation_observation": "model-owned-documentation"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
+          "declaration": "metadata def UnassignedBindingTime"
+        },
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed admission-manifest fields (manifest-held: the model does not carry them structurally, so the reviewed manifest is their authority); file mappings are resolved in the model by this generator; admitted by a method pull request after the authored ontology's deletion: no authored-ontology comparison exists"
       },
       "support": "vocabulary-only",
       "traversal": false,

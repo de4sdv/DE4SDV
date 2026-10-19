@@ -100,6 +100,32 @@
       ]
     },
     {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#DerivationRule",
+      "for_concept": "DerivationRule",
+      "representation_class": "metadata-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
+        "owner": "metadata def DerivationRule",
+        "api_metaclass": "MetadataDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#DerivedVariation",
+      "for_concept": "DerivedVariation",
+      "representation_class": "metadata-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
+        "owner": "metadata def DerivedVariation",
+        "api_metaclass": "MetadataDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
+      ]
+    },
+    {
       "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#DerivesFromNeed",
       "for_concept": "DerivesFromNeed",
       "representation_class": "connection-definition",
@@ -288,6 +314,32 @@
       ]
     },
     {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#ProductModelProjection",
+      "for_concept": "ProductModelProjection",
+      "representation_class": "metadata-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
+        "owner": "metadata def ProductModelProjection",
+        "api_metaclass": "MetadataDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#ProductModelProjectionName",
+      "for_concept": "ProductModelProjectionName",
+      "representation_class": "metadata-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
+        "owner": "metadata def ProductModelProjectionName",
+        "api_metaclass": "MetadataDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
+      ]
+    },
+    {
       "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#RegulatorySource",
       "for_concept": "RegulatorySource",
       "representation_class": "part-definition",
@@ -350,6 +402,19 @@
       },
       "witness_forms": [
         "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#UnassignedBindingTime",
+      "for_concept": "UnassignedBindingTime",
+      "representation_class": "metadata-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
+        "owner": "metadata def UnassignedBindingTime",
+        "api_metaclass": "MetadataDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
       ]
     },
     {

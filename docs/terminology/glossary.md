@@ -20,6 +20,8 @@
 | Feature configuration | A selected set of features and variation choices defining a product variant; in DE4SDV recorded as a Bill-of-Features under `model-based-product-line-engineering/feature-configurations/`. |
 | Shared asset | Reusable engineering artifact used across product variants. |
 | Product model | Variant-specific system model assembled from shared assets and configuration decisions. |
+| Derived variation | A shared-asset variation whose variant no configuration selects: its derivation rules derive the variant from the selected features, and exactly one rule must match each valid configuration. A derived realization, such as the application-middleware adapter, is never a feature; kernel `metadata def DerivedVariation`. |
+| Derivation rule | A rule of a derived variation: a valid configuration that selects every premise feature derives the rule's variant; kernel `metadata def DerivationRule`. |
 | Digital thread | Traceability chain across lifecycle artifacts and decisions, including System 1 product-line artifacts, System 2 engineering and evidence artifacts, and System 3 governance decisions. |
 | Digital twin | Digital representation synchronized with real-world system data and assumptions; in DE4SDV, a System 2 capability when used to observe, simulate, assess, or predict aspects of System 1. |
 | Digital twin boundary | The declared scope of what a digital twin represents, synchronizes with, and provides credible evidence about. |

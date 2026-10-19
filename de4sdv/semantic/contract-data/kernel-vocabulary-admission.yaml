@@ -1,7 +1,8 @@
 # O4 definition-admission batch 2 - governed admission document.
 #
-# ADMITTED (engineering evidence). The admitted family is DERIVED, not
-# hand-picked (tests, fail-closed, both directions):
+# ADMITTED (engineering evidence). The admitted family is derived (tests,
+# fail-closed, both directions); the exception is the method-admitted rows,
+# which a reviewed method pull request admits and a test pins:
 #   * every retained O4 register row (not O3-complete) that no other generated
 #     layer projects (O2 chain, definition batch 1, O2+);
 #   * every former authored-ontology class that is not an O4 register row
@@ -9,7 +10,15 @@
 #   * the owner-approved W6 successor predicates hasValidationScenario and
 #     hasRegulatorySource (allocatedTo is a register row), and the retired
 #     name validatesFitnessForUse (merged register row with a model retirement
-#     record).
+#     record);
+#   * the method-admitted classes (accounting method-admitted): kernel classes
+#     that a reviewed method pull request admitted after the authored
+#     ontology's deletion, with no register row and no authored-ontology
+#     comparison; their manifest fields are their reviewed contract. ADR 0022
+#     (step S2k, pull request #402) admitted the five product-line derivation
+#     classes DerivationRule, DerivedVariation, ProductModelProjection,
+#     ProductModelProjectionName and UnassignedBindingTime;
+#     tests/test_kernel_vocabulary_projection.py pins that set.
 # Rows whose register entry is gated name, per gate, the governance record that
 # resolved it (approved semantic decisions, ADR 0020, the October 2026 owner
 # record, the W6 transition plan). Gates resolved here unblock ADMISSION
@@ -259,6 +268,46 @@ admitted:
     - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#decision-7
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: DerivationRule
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: null
+    accounting: method-admitted
+  boundary: none
+  home:
+    form: owned-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml
+    owner: metadata def DerivationRule
+    index: 0
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml
+      declaration: metadata def DerivationRule
+    sub_class_of: null
+    disjoint_with: []
+  gates: []
+  forward_obligations: []
+- identity: DerivedVariation
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: null
+    accounting: method-admitted
+  boundary: none
+  home:
+    form: owned-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml
+    owner: metadata def DerivedVariation
+    index: 0
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml
+      declaration: metadata def DerivedVariation
+    sub_class_of: null
+    disjoint_with: []
+  gates: []
+  forward_obligations: []
 - identity: DerivesFromNeed
   semantic_kind: class
   admission_class: definition
@@ -574,6 +623,46 @@ admitted:
     - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#d1
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: ProductModelProjection
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: null
+    accounting: method-admitted
+  boundary: none
+  home:
+    form: owned-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml
+    owner: metadata def ProductModelProjection
+    index: 0
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml
+      declaration: metadata def ProductModelProjection
+    sub_class_of: null
+    disjoint_with: []
+  gates: []
+  forward_obligations: []
+- identity: ProductModelProjectionName
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: null
+    accounting: method-admitted
+  boundary: none
+  home:
+    form: owned-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml
+    owner: metadata def ProductModelProjectionName
+    index: 0
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml
+      declaration: metadata def ProductModelProjectionName
+    sub_class_of: null
+    disjoint_with: []
+  gates: []
+  forward_obligations: []
 - identity: RegulatorySource
   semantic_kind: class
   admission_class: definition
@@ -695,6 +784,26 @@ admitted:
     - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic5
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: UnassignedBindingTime
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: null
+    accounting: method-admitted
+  boundary: none
+  home:
+    form: owned-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml
+    owner: metadata def UnassignedBindingTime
+    index: 0
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml
+      declaration: metadata def UnassignedBindingTime
+    sub_class_of: null
+    disjoint_with: []
+  gates: []
+  forward_obligations: []
 - identity: ValidationPlanningAssociation
   semantic_kind: class
   admission_class: definition

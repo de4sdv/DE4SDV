@@ -8,8 +8,10 @@ identity register that no other source provides (the frozen records and the
 class-definition and native-grounding pairs), the ontology-mapped classes that
 are not register rows (the successor classes and the trace-obligation
 declaration), the new successor predicates
-(``hasValidationScenario``, ``hasRegulatorySource``) and the merged retired name
-``validatesFitnessForUse``. It is a separate pair from
+(``hasValidationScenario``, ``hasRegulatorySource``), the merged retired name
+``validatesFitnessForUse`` and the classes a method pull request admitted after
+the authored ontology's deletion (accounting ``method-admitted``; their rows
+say that no authored-ontology comparison exists for them). It is a separate pair from
 ``class-definition-projection.json`` / ``class-definition-profile.json``,
 written by the same generator, ``scripts/generate_definition_projection.py``.
 
@@ -113,7 +115,10 @@ BOUNDARIES = frozenset(
     }
 )
 HOME_FORMS = frozenset({"owned-doc", "named-doc", "vocabulary-role", "retirement-record"})
-ACCOUNTING = frozenset({"retained", "unregistered", "merged", "w6-successor"})
+ACCOUNTING = frozenset({"retained", "unregistered", "merged", "w6-successor", "method-admitted"})
+#: A class admitted by a method pull request after the authored ontology was
+#: deleted: no register row and no authored-ontology comparison exist for it.
+METHOD_ADMITTED = "method-admitted"
 SUPPORT = {
     "definition": "vocabulary-only",
     "relationship-vocabulary": "vocabulary-only",
@@ -132,6 +137,7 @@ REPRESENTATION_CLASSES = {
     "enum": "enumeration-definition",
     "action": "action-definition",
     "connection": "connection-definition",
+    "metadata": "metadata-definition",
 }
 API_METACLASSES = {
     "part": "PartDefinition",
@@ -141,6 +147,7 @@ API_METACLASSES = {
     "enum": "EnumerationDefinition",
     "action": "ActionDefinition",
     "connection": "ConnectionDefinition",
+    "metadata": "MetadataDefinition",
 }
 FORM_REPRESENTATION = {
     "package-doc": ("package-owned-definition-documentation", "Documentation"),
@@ -513,6 +520,8 @@ def _validate_row(row: Any) -> str:
              f"{identity}: register must carry wave and accounting")
     _require((register["wave"] is None) == (register["accounting"] != "retained"),
              f"{identity}: only retained rows carry a register wave")
+    _require(register["accounting"] != METHOD_ADMITTED or (kind == "class" and admission == "definition"),
+             f"{identity}: a method-admitted row is a class definition")
     _require(row["boundary"] in BOUNDARIES, f"{identity}: unknown boundary")
     _validate_home(identity, row["home"])
     form = row["home"]["form"]
@@ -815,8 +824,11 @@ def _row_outputs(root: Path, model: _Model, row: dict[str, Any], successors: dic
             "kernel mapping kind and ontology relations: reviewed admission-manifest "
             "fields (manifest-held: the model does not carry them structurally, so the "
             "reviewed manifest is their authority); file mappings are resolved in the "
-            "model by this generator; authored-ontology parity proven before its "
-            "deletion: " + PARITY_EVIDENCE
+            "model by this generator; "
+            + ("admitted by a method pull request after the authored ontology's "
+               "deletion: no authored-ontology comparison exists"
+               if row["register"]["accounting"] == METHOD_ADMITTED else
+               "authored-ontology parity proven before its deletion: " + PARITY_EVIDENCE)
         )
         projection["grounding"] = ground
     if admission == "successor":
