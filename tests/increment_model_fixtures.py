@@ -349,6 +349,45 @@ class ModelBuilder:
         connection["target"] = [ref(ends[-1][1])]
         return connection
 
+    def chain_end(self, end: dict[str, Any], features: Sequence[dict[str, Any]]) -> dict[str, Any]:
+        """``a.b`` as a connector end references it: a feature owned by the end's ReferenceSubsetting,
+        whose FeatureChaining relationships name ``features`` in order (the export's shape)."""
+        chain = self.new("Feature", source=self.sources[end["@id"]])
+        subsetting = self.relationship("ReferenceSubsetting", end, general=ref(chain), specific=ref(end),
+                                       subsettedFeature=ref(chain), subsettingFeature=ref(end),
+                                       referencedFeature=ref(chain), ownedRelatedElement=[ref(chain)])
+        chain["owningRelationship"] = ref(subsetting)
+        for feature in features:
+            self.relationship("FeatureChaining", chain, chainingFeature=ref(feature))
+        return chain
+
+    def allocation(self, name: str, owner: dict[str, Any], source: Any, target: Any,
+                   typed_by: dict[str, Any] | None = None) -> dict[str, Any]:
+        """``allocation <name> [: <def>] allocate <source> to <target>;`` in the export's shape: two end
+        features, each referencing its element (a list of features is a feature chain ``a.b``), and a
+        ``target`` but no ``source`` key on the allocation."""
+        allocation = self.usage("AllocationUsage", name, owner, typed_by=[typed_by] if typed_by else [])
+        for end_name, end_target in (("source", source), ("target", target)):
+            end = self.new("Feature", name=end_name, declared=False, source=self.sources[owner["@id"]])
+            self.own(allocation, end, kind="EndFeatureMembership", member_name=end_name)
+            if isinstance(end_target, (list, tuple)):
+                chain = self.chain_end(end, end_target)
+                if end_name == "target":
+                    allocation["target"] = [ref(chain)]
+            else:
+                self.reference_subsetting(end, end_target)
+                if end_name == "target":
+                    allocation["target"] = [ref(end_target)]
+        return allocation
+
+    def dependency(self, name: str, owner: dict[str, Any], client: dict[str, Any],
+                   supplier: dict[str, Any]) -> dict[str, Any]:
+        """``dependency <name> from <client> to <supplier>;`` (the export's Dependency shape)."""
+        dependency = self.usage("Dependency", name, owner)
+        dependency.update(client=[ref(client)], supplier=[ref(supplier)], source=[ref(client)],
+                          target=[ref(supplier)])
+        return dependency
+
     def references(self, package: dict[str, Any], target: dict[str, Any]) -> dict[str, Any]:
         holder = self.new("ReferenceUsage", source=self.sources[package["@id"]])
         self.own(package, holder)

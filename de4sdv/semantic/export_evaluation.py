@@ -35,12 +35,12 @@ from de4sdv.sysml_api.revisions import KernelElementBinding, RevisionBinding
 
 from .increment_evaluation import IncrementEvaluation, evaluate_increment
 from .increment_scope import ModelView
+from .increment_workflow import EXPORT_SNAPSHOT_SCOPE
 from .method_evaluator import RevisionIdentity
 from .method_pilot import establish_candidate_identity
 from .validation import cross_check_model_provider, validate_ontology_bindings
 
 ROOT = Path(__file__).resolve().parents[2]
-EXPORT_SNAPSHOT_SCOPE = "export-snapshot"
 
 
 class ExportEvaluationRefused(RuntimeError):

@@ -35,7 +35,12 @@ Contract, one obligation per check:
   ``out verification cases[1..*]``, of its usage kind) in the framing step's
   scope, the increment's own package (the mandatory step: framing always
   applies), or in a later step's scope, the packages the charter names in
-  ``expectedArtifacts``;
+  ``expectedArtifacts``. A parameter typed by a class that an end pair of a
+  native-allocation relation reaches (a function, logical or physical
+  element) counts those packages at any depth, and the elements of that
+  type that the allocations owned there name (one hop): the increment's
+  architecture elements include what it reuses through its own
+  allocations;
 - population: within the parameter's multiplicity (no multiplicity: exactly
   one); a lower bound of 0 permits an empty population;
 - cardinality: ``minimum`` distinct targets, bounded above where the check
@@ -60,7 +65,9 @@ it never enters the contract or its digest.
 
 from __future__ import annotations
 
+import functools
 from dataclasses import dataclass, field, replace
+from pathlib import Path
 from typing import Any, Mapping
 
 from de4sdv.sysml_api.errors import IdentityNotFoundError
@@ -76,8 +83,11 @@ from .increment_scope import (
     SCOPE_PROBLEM,
     IncrementScope,
     ModelView,
+    ordered,
+    scope_closure,
 )
-from .method_checks import CHECK_MAXIMUM, default_claim, method_checks
+from .method_checks import ALLOCATION_CHECKS, CHECK_MAXIMUM, default_claim, method_checks
+from .relation_checks import MethodSideInput, allocation_ends, allocation_pairs, native_allocation_rows
 from .revision_index import MultiplicityError
 
 #: The governed ``MethodPhase`` literals of the method kernel, by phase number.
@@ -112,6 +122,11 @@ OWN_PACKAGE_SELECTOR = "workflow-framing-parameter"
 KIND_PREFIX = "kind:"
 APPLICABILITY_ALWAYS = "unconditional"
 APPLICABILITY_DECLARED = "increment declares the step phase"
+#: Where the subjects of a later step's parameter come from.
+SCOPE_LABEL = "packages named in the charter's expectedArtifacts"
+#: ... and of a parameter typed by a class an allocation end pair reaches.
+ARCHITECTURE_SCOPE_LABEL = ("packages named in the charter's expectedArtifacts, at any depth, and the elements "
+                            "their allocations name")
 DEFAULT_MINIMUM = 1
 _DIRECTIONS = {"in", "out", "inout"}
 _SUCCESSION_TYPES = ("SuccessionAsUsage", "Succession")
@@ -176,9 +191,105 @@ def _scoped_subjects(spec: me.ObligationSpec, ctx: me.EvaluationContext, *,
     return [element for element in elements if view.index.typed_by(element) & types], []
 
 
+def allocation_rows_entering(view: ModelView, definition: str) -> list[tuple[str, Mapping[str, Any]]]:
+    """The native-allocation end pairs whose target class lineage holds ``definition`` (validated kernel
+    bindings): the end pairs that reach an element typed by it. A target class without a validated
+    binding reaches nothing (an export whose bindings fail validation is refused before evaluation)."""
+    entering = []
+    for relation, row in native_allocation_rows(view):
+        try:
+            kernel = view.kernel_element(str(row["targetClass"]))
+        except IdentityNotFoundError:
+            continue
+        if definition in view.index.specializations(kernel):
+            entering.append((relation, row))
+    return entering
+
+
+def _architecture_subjects(view: ModelView, increment: IncrementScope, definition: str,
+                           rows: list[tuple[str, Mapping[str, Any]]]) -> list[str]:
+    """The increment's elements typed by ``definition`` (or a specialization): owned at any depth by the
+    charter's packages, plus the targets of the allocations owned there that ground one of ``rows``."""
+    lineage = view.index.specializations(definition)
+    closure = scope_closure(view, increment)
+    inside = set(closure)
+    found = [element for element in closure if view.index.typed_by(element) & lineage]
+    wanted = [row for _relation, row in rows]
+    relations = sorted({relation for relation, _row in rows})
+    for allocation, (ends, problem) in sorted(allocation_ends(view).items()):
+        if problem or len(ends) != 2 or allocation not in inside:
+            continue
+        source, target = ends
+        if target in found or not view.index.typed_by(target) & lineage:
+            continue
+        grounded = [row for relation in relations for row in allocation_pairs(view, relation, source, target)]
+        if any(row in wanted for row in grounded):
+            found.append(target)
+    return list(ordered(view, found))
+
+
+#: The revision scope of an export evaluated alone, such as a pull-request head (the Method Check).
+EXPORT_SNAPSHOT_SCOPE = "export-snapshot"
+ROOT = Path(__file__).resolve().parents[2]
+
+
+#: The kernel-vocabulary admission: a governed contract input, deployed with the code (read, never generated).
+ADMISSION_PATH = "de4sdv/semantic/contract-data/kernel-vocabulary-admission.yaml"
+
+
+@functools.lru_cache(maxsize=None)
+def open_forward_obligations(relation: str) -> tuple[str, ...]:
+    """The forward obligations this checkout's kernel-vocabulary admission lists for ``relation``. An
+    admission that cannot be read, or has no row for it, counts as one open obligation (fail closed)."""
+    import yaml
+
+    try:
+        document = yaml.safe_load((ROOT / ADMISSION_PATH).read_text(encoding="utf-8"))
+        rows = [row for row in document["admitted"] if row.get("identity") == relation]
+    except Exception as error:  # noqa: BLE001 - an unreadable admission leaves the obligations open
+        return (f"the kernel-vocabulary admission cannot be read: {error}",)
+    if not rows:
+        return (f"the kernel-vocabulary admission has no row for {relation}",)
+    return tuple(str(item) for row in rows for item in row.get("forward_obligations") or ())
+
+
+def allocations_withheld(ctx: me.EvaluationContext, view: ModelView) -> str:
+    """Why the checks that read native allocations are withheld ('' when they are evaluated): on any
+    revision but an export snapshot (an API revision binding), while a relation the allocations carry
+    has open forward obligations. The guard lifts once the admission lists none."""
+    if getattr(getattr(ctx, "revision", None), "scope", None) == EXPORT_SNAPSHOT_SCOPE:
+        return ""
+    found = [f"{relation}: {item}" for relation in sorted({name for name, _row in native_allocation_rows(view)})
+             for item in open_forward_obligations(relation)]
+    if not found:
+        return ""
+    return ("method side: an API revision binding withholds the checks that read native allocations while "
+            f"forward obligations are open ({'; '.join(found)}); the pull-request Method Check evaluates them "
+            "on the export")
+
+
 def _parameter_subjects(spec: me.ObligationSpec, ctx: me.EvaluationContext) -> tuple[list[str], list[str]]:
-    """Subjects of a later step's check: the charter-declared scope."""
-    return _scoped_subjects(spec, ctx, own_package=False)
+    """Subjects of a later step's check: the charter-declared scope; for a parameter typed by a class an
+    allocation end pair reaches, that scope at any depth plus what its allocations name (one hop). A
+    check that reads native allocations, or counts such a parameter, is method side while
+    :func:`allocations_withheld` holds."""
+    subjects, diagnostics = _scoped_subjects(spec, ctx, own_package=False)
+    view, increment = ctx.model, ctx.increment  # type: ignore[attr-defined]  # checked by _scoped_subjects
+    kind = spec.subject_selector.startswith(KIND_PREFIX)
+    rows = [] if kind else allocation_rows_entering(view, spec.subject_selector)
+    allocated = {name for name, _row in native_allocation_rows(view)}
+    if rows or spec.predicate in allocated | ALLOCATION_CHECKS:
+        withheld = allocations_withheld(ctx, view)
+        if withheld:
+            raise me.SubjectResolutionError(me.INPUT_UNAVAILABLE, diagnostics=(withheld,),
+                                            missing=tuple(f"governed-relation:{name}" for name in sorted(allocated)))
+    if not rows:
+        return subjects, diagnostics
+    try:
+        return _architecture_subjects(view, increment, spec.subject_selector, rows), diagnostics
+    except MethodSideInput as missing:
+        raise me.SubjectResolutionError(me.INPUT_UNAVAILABLE, diagnostics=(missing.detail,),
+                                        missing=(missing.marker,))
 
 
 def _framing_subjects(spec: me.ObligationSpec, ctx: me.EvaluationContext) -> tuple[list[str], list[str]]:
@@ -454,8 +565,10 @@ def _check(view: ModelView, metadata: str, step_name: str, phase: str, parameter
         maximum_population=upper,
     )
     keyword = USAGE_KEYWORDS.get(kind, "")
+    architecture = bool(types) and optional and bool(allocation_rows_entering(view, types[0]))
+    scope = (ARCHITECTURE_SCOPE_LABEL if architecture else SCOPE_LABEL) if optional else "increment package"
     label = {"step": step_name, "parameter": parameters[parameter],
-             "scope": "packages named in the charter's expectedArtifacts" if optional else "increment package",
+             "scope": scope,
              "direction": str(index.element(parameter).get("direction") or ""),
              "subject_type": view.label(types[0]) if types else kind, "check": check_id,
              "check_definition": view.label(sorted(index.typed_by(metadata))[0]),

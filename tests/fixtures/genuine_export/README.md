@@ -4,8 +4,8 @@
 cut of the licensed full-model export of one revision, made by
 `cut_increment_export.py` beside it. The cut keeps every element unchanged:
 
-- INC-AEBS-010's framing and needs packages, and the package elements of its
-  other declared packages;
+- INC-AEBS-010's framing, needs, functional, logical and physical packages,
+  and the package elements of its other declared packages;
 - the increment workflow;
 - every kernel declaration the contract binds;
 - the library attribute bases its content redefines;
@@ -39,12 +39,17 @@ does not carry: the export evaluation refuses such an export, by design. And
 re-cut it when the Method Check retires a check that the cut's workflow still
 declares: an unknown check id makes the method invalid. Retire the check in
 the model first, keeping its code, and remove the code with the re-cut made
-from that revision's export.
+from that revision's export. Re-cut it when the workflow gains checks that the
+tests evaluate on genuine shapes, such as the allocation checks of phases 6
+to 8: cut from the export of the pull request that adds them, so the cut's
+workflow declares them.
 A re-cut must re-read the expected values in `tests/test_inspect_definitions.py` from the new cut's source files and update its `SOURCES` digests.
 Re-cutting needs a licensed export:
 
 ```bash
 python tests/fixtures/genuine_export/cut_increment_export.py <export.json> INC-AEBS-010 \
   tests/fixtures/genuine_export/inc-aebs-010.json.gz \
-  DE4SDV_AEBSVisualizationFraming DE4SDV_AEBSVisualizationNeedsRequirements
+  DE4SDV_AEBSVisualizationFraming DE4SDV_AEBSVisualizationNeedsRequirements \
+  DE4SDV_AEBSVisualizationFunctionalArchitecture DE4SDV_AEBSVisualizationLogicalArchitecture \
+  DE4SDV_AEBSVisualizationPhysicalSoftwareRealization
 ```

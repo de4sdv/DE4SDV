@@ -32,6 +32,9 @@ from test_revision_index import _traversal
 
 REVISION = me.RevisionIdentity("a" * 40, "project", "commit", "full-model")
 P0, P4, P5, P10 = ("phase0_incrementFraming", "phase4_needs", "phase5_requirements", "phase10_vvEvidence")
+#: The phases the workflow of the frozen cut gives executable checks.
+CHECKED = [P0, P4, P5, "phase6_functionalArchitecture", "phase7_logicalArchitecture",
+           "phase8_physicalRealization", P10]
 
 
 def _scenario(applicable_phases=(P0, P4, P5, P10)):
@@ -270,7 +273,7 @@ def test_phase_contract_lists_checks_with_increment_applicability_and_no_verdict
                            "verificationCaseHasEvidenceRecordOrStatus"}
     assert checks["verificationCaseVerifiesRequirement"]["applicability_resolution"] == "not_applicable"
     assert "conformance_verdict" not in contract
-    assert evaluation.phase_contract()["phases"] == [P0, P4, P5, P10]
+    assert evaluation.phase_contract()["phases"] == CHECKED
 
 
 
@@ -317,7 +320,7 @@ def test_a_phase_without_checks_still_lists_what_its_step_declares() -> None:
     assert contract["phases_without_executable_checks"] == ["phase1_concernFraming"]
     whole = evaluation.phase_contract()
     assert len(whole["steps"]) == 13
-    assert whole["phases"] == [P0, P4, P5, P10]
+    assert whole["phases"] == CHECKED
 
 
 

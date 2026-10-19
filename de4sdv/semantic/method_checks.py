@@ -14,12 +14,19 @@ maps the id to the implementation that decides it for one subject:
   ``oneVerificationMethodKind`` (one standard verification method kind is
   recorded), ``ownedByIncrementPackage``, ``subjectIsSystemOfInterest``
   (the subject is the system of interest the charter declares, never the
-  increment) or ``charterExpectedArtifactsCoverContent`` (no package
+  increment), ``charterExpectedArtifactsCoverContent`` (no package
   holding increment content is missing from the charter's
-  ``expectedArtifacts``, the scope the checks evaluate);
+  ``expectedArtifacts``, the scope the checks evaluate),
+  ``receivesAllocation`` (the subject is the target end of an allocation
+  that grounds an end pair of the relation native allocations carry),
+  ``carriedByArchitecture`` (a requirement is allocated to a function or
+  named as relevant by an architecture element) or ``populationMember``
+  (every subject the step parameter counts satisfies it, so its gate states
+  only the parameter's multiplicity, such as at least one function);
 - **relation names**, for example ``derivesRequirementFromNeed``,
-  ``hasValidationScenario`` or ``verifiedBy``: the subject reaches targets
-  through that relation (see :mod:`de4sdv.semantic.relation_checks`).
+  ``hasValidationScenario``, ``verifiedBy`` or ``allocatedTo``: the subject
+  reaches targets through that relation (see
+  :mod:`de4sdv.semantic.relation_checks`).
 
 An implementation takes the model view, the increment and one subject; it
 reads no method-representation field (no selector, filter or phase text). How
@@ -53,13 +60,21 @@ from .increment_scope import (
     own_increment_definitions,
 )
 from .relation_checks import (
+    MODEL_WITNESS_PREFIX,
     MethodSideInput,
+    allocation_classes,
+    allocation_ends,
+    allocation_hops,
     check_relation,
+    class_declaration,
     connection_ends,
     element_name,
     in_class,
     membership_members,
+    native_allocation_rows,
     relation_checks,
+    ungrounded_allocations,
+    unreadable_allocations,
 )
 
 #: Standard verification method kinds: the SysML Systems Library
@@ -428,8 +443,9 @@ def increment_content_outside_scope(view: ModelView, increment: IncrementScope) 
     Increment content is the increment usage itself, a requirement or need
     connected by DerivesFromNeed to an element in scope, a verification case
     verifying a requirement in scope, a requirement verified by a
-    verification case in scope, and an element referencing the increment
-    usage (only the usage: a reference to another increment element is not
+    verification case in scope, an allocation from an element of the scope
+    packages (at any depth), and an element referencing the increment usage
+    (only the usage: a reference to another increment element is not
     content). Such content in a package the charter does not name is never
     evaluated by the checks, so it is reported here. Raises
     :class:`MethodSideInput` when the DerivesFromNeed lineage is unbound.
@@ -467,6 +483,9 @@ def increment_content_outside_scope(view: ModelView, increment: IncrementScope) 
         inside = [target for target in verified if target in scope]
         if inside:
             note(case, f"verifies {_name(view, inside[0])}")
+    for allocation, (ends, problem) in sorted(allocation_ends(view).items()):
+        if not problem and len(ends) == 2 and view.top_package(ends[0]) in packages:
+            note(allocation, f"allocates {_name(view, ends[0])}")
     if increment.usage_id:
         for relationship in index.elements_of_type("ReferenceSubsetting"):
             element = index.element(relationship)
@@ -518,6 +537,85 @@ def _evidence_record_or_status(view: ModelView, increment: IncrementScope, subje
     return satisfied([t for t, _w in result.hops], [w for _t, w in result.hops])
 
 
+def allocation_relation(view: ModelView) -> str | None:
+    """The one relation of the served contract that native allocations carry (None: none or several)."""
+    relations = sorted({name for name, _row in native_allocation_rows(view)})
+    return relations[0] if len(relations) == 1 else None
+
+
+def _receives_allocation(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """The subject is the target end of an allocation that grounds an end pair of the relation native
+    allocations carry (``allocatedTo``): a function from a requirement, a logical element from a
+    function, a physical element from a logical element."""
+    relation = allocation_relation(view)
+    if relation is None:
+        return indeterminate("governed-relation:native-allocation",
+                             "method side: the served contract has not exactly one relation carried by native "
+                             "allocations")
+    hops, problems = allocation_hops(view, relation, subject_id, incoming=True)
+    if not hops:
+        if problems:
+            return indeterminate(MODEL_WITNESS_PREFIX + relation, unreadable_allocations(problems))
+        sources = " or ".join(class_declaration(view, c)
+                              for c in allocation_classes(view, relation, subject_id, incoming=True))
+        sources = sources or "source class of its end pairs"
+        return violated(f"{_name(view, subject_id)} receives no {relation} allocation from "
+                        f"{'an' if sources[:1] in 'AEIOUaeiou' else 'a'} {sources}")
+    return satisfied([s for s, _a in hops], [a for _s, a in hops])
+
+
+#: The relevance relation through which an architecture element names a requirement it carries.
+RELEVANT_ARCHITECTURE = "hasRelevantArchitecture"
+#: The relation phase 10 checks every in-scope requirement against.
+VERIFIED_BY = "verifiedBy"
+#: The named checks that read native allocations (besides the relation they carry).
+ALLOCATION_CHECKS = frozenset({"receivesAllocation", "carriedByArchitecture"})
+
+
+def _carried_by_architecture(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """The requirement is allocated to a function (the relation native allocations carry), or an
+    architecture element names it as relevant (``hasRelevantArchitecture``: an incoming dependency
+    from a part or action usage or definition, member-product lineage excluded). A requirement that is
+    neither is reported with what else holds it: an allocation that grounds in no end pair, or else its
+    verification (``verifiedBy``, as phase 10 reads it), which then alone covers it."""
+    relation = allocation_relation(view)
+    allocated, problems = allocation_hops(view, relation, subject_id) if relation else ([], [])
+    if allocated:
+        return satisfied([t for t, _a in allocated], [a for _t, a in allocated])
+    relevant = check_relation(view, RELEVANT_ARCHITECTURE, subject_id)
+    if relevant.hops:
+        return satisfied(relevant.targets, relevant.witnesses)
+    if relation is None:
+        return indeterminate("governed-relation:native-allocation",
+                             "method side: the served contract has not exactly one relation carried by native "
+                             "allocations")
+    if problems:
+        return indeterminate(MODEL_WITNESS_PREFIX + relation, unreadable_allocations(problems))
+    if relevant.problem:
+        return indeterminate(relevant.problem, relevant.detail)
+    name = _name(view, subject_id)
+    others = [_name(view, other) for other in ungrounded_allocations(view, relation, subject_id)]
+    if others:
+        return violated(f"{name} is allocated to no function and named as relevant by no architecture element "
+                        f"({RELEVANT_ARCHITECTURE}); its allocation(s) with {', '.join(others[:3])} ground in no "
+                        f"{relation} end pair")
+    verify = relation_checks(view).get(VERIFIED_BY)
+    verified = verify(view, subject_id) if verify is not None else None
+    if verified is not None and verified.hops:
+        return violated(f"{name} is carried by no architecture element and is covered by verification only")
+    if verified is None or verified.problem:
+        detail = verified.detail if verified is not None else f"no {VERIFIED_BY} relation in the served contract"
+        return violated(f"{name} is carried by no architecture element; whether a verification case verifies it "
+                        f"cannot be read ({detail})")
+    return violated(f"{name} is carried by no architecture element and has no verification case yet")
+
+
+def _population_member(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """Every subject the step parameter counts satisfies this check, so a gate with it states only the
+    parameter's multiplicity: an empty population below its lower bound fails, as for any gate."""
+    return satisfied([subject_id])
+
+
 #: The member each of these checks reads, which a remedy sets (de4sdv.semantic.remedies).
 _charter_references_increment.member = INCREMENT_ATTRIBUTE  # type: ignore[attr-defined]
 _charter_applicable_phases.member = PHASES_ATTRIBUTE  # type: ignore[attr-defined]
@@ -548,6 +646,9 @@ NAMED_CHECKS: Mapping[str, CheckFunction] = MappingProxyType({
     "successCriteriaAttribute": _library_attribute("successCriteria"),
     "verifiesIncrementRequirement": _verifies_increment_requirement,
     "evidenceRecordOrStatus": _evidence_record_or_status,
+    "receivesAllocation": _receives_allocation,
+    "carriedByArchitecture": _carried_by_architecture,
+    "populationMember": _population_member,
 })
 
 #: Check id -> the most distinct targets the check accepts (absent: unbounded).

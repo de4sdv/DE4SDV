@@ -875,6 +875,9 @@ _NAMED: Mapping[str, Callable[[_Request], Remedy]] = {
     "successCriteriaAttribute": _library_value,
     "verifiesIncrementRequirement": _verifies(REQUIREMENT_CLASS, "requirement of the increment"),
     "evidenceRecordOrStatus": _evidence_record_or_status,
+    "receivesAllocation": lambda request: _receives_allocation(request),
+    "carriedByArchitecture": lambda request: _carried_by_architecture(request),
+    "populationMember": lambda request: _population_member(request),
 }
 
 
@@ -984,7 +987,7 @@ def _successor(request: _Request, mapping: Any) -> Remedy:
         inverse = bool(rows)
     if not rows:
         return _unsupported(request, mapping.strategy)
-    row = rows[0]
+    row = _end_pair(request, rows, inverse=inverse)
     lines = _lines(request)
     source_class, target_class = str(row.get("sourceClass") or ""), str(row.get("targetClass") or "")
     subject_class, other_class = (target_class, source_class) if inverse else (source_class, target_class)
@@ -1011,10 +1014,87 @@ def _successor(request: _Request, mapping: Any) -> Remedy:
         instruction = f"declare {other} and connect {subject} to it"
     elif mechanism == "native-allocation":
         lines.declarations.append(f"allocation <name> allocate {source} to {target};")
+        lines.notes.append(_ALLOCATION_NOTE.format(other=other))
         instruction = f"allocate {source} to {target}"
     else:
         return _unsupported(request, f"{mapping.strategy}/{mechanism}")
     return lines.remedy(f"{instruction}, {_where(request) or 'in a package of the increment'}")
+
+
+#: How the other end of an allocation remedy may be given.
+_ALLOCATION_NOTE = ("{other} may also be an existing element, of this increment or a baseline; an end written as a "
+                    "feature chain (a.b) is read as its last feature, and the allocation needs no type.")
+
+
+def _end_pair(request: _Request, rows: Sequence[Mapping[str, Any]], *, inverse: bool) -> Mapping[str, Any]:
+    """The end pair a remedy writes: the one whose subject-side class the subject (else the parameter's
+    type) grounds in, through the validated kernel bindings; the first when none does."""
+    key = "targetClass" if inverse else "sourceClass"
+    types = _subject_types(request)
+    return next((row for row in rows if _in_lineage(request.view, types, str(row.get(key) or ""))), rows[0])
+
+
+def _receives_allocation(request: _Request) -> Remedy:
+    """An allocation to the subject from an existing element of the end pair's source class. The check
+    is advisory: an element without one is allowed, and no source is declared just to close the note."""
+    from .method_checks import allocation_relation
+
+    view = request.view
+    relation = allocation_relation(view)
+    profile = getattr(view.contract, "profile", None) or {}
+    rows = list((profile.get("relations") or {}).get(relation or "") or ())
+    if relation is None or not rows:
+        return _method_side("the served contract has not exactly one relation carried by native allocations")(request)
+    row = _end_pair(request, rows, inverse=True)
+    lines = _lines(request)
+    other = _placeholder(str(row.get("sourceClass") or ""))
+    subject = _subject_ref(lines, _placeholder(str(row.get("targetClass") or "")))
+    other_kernel = _kernel(view, str(row.get("sourceClass") or ""))
+    lines.declarations.append(f"allocation <name> allocate {other} to {subject};")
+    if other_kernel is not None:
+        lines.notes.append(f"{other} is an existing usage of {lines.type(other_kernel, _SPECIALIZING)} or a "
+                           "definition specializing it, of this increment or a baseline; an end written as a feature "
+                           "chain (a.b) is read as its last feature, and the allocation needs no type.")
+    lines.notes.append(f"Leaving {subject} without one is allowed: the check is advisory and only reports it for "
+                       f"review; declare no new {other} just to close the note.")
+    return lines.remedy(f"allocate {other} to {subject}, {_where(request) or 'in a package of the increment'}")
+
+
+def _carried_by_architecture(request: _Request) -> Remedy:
+    """An allocation of the requirement to a function; the alternative, a dependency to it from an
+    architecture element relevant to it (``hasRelevantArchitecture``, relevance only), is a note. The
+    check is advisory: a requirement neither carries is allowed."""
+    from .method_checks import allocation_relation
+
+    view = request.view
+    relation = allocation_relation(view)
+    profile = getattr(view.contract, "profile", None) or {}
+    rows = list((profile.get("relations") or {}).get(relation or "") or ())
+    if relation is None or not rows:
+        return _method_side("the served contract has not exactly one relation carried by native allocations")(request)
+    row = _end_pair(request, rows, inverse=False)
+    lines = _lines(request)
+    subject = _subject_ref(lines, _placeholder(str(row.get("sourceClass") or "")))
+    function = _placeholder(str(row.get("targetClass") or ""))
+    kernel = _kernel(view, str(row.get("targetClass") or ""))
+    lines.declarations.append(f"allocation <name> allocate {subject} to {function};")
+    if kernel is not None:
+        lines.notes.append(f"{function} is a usage of {lines.type(kernel, _SPECIALIZING)} or a definition "
+                           "specializing it, of this increment or a baseline.")
+    lines.notes.append(f"Instead of the allocation, when a part or action usage or definition is relevant to {subject} "
+                       "without being a function that carries it, a dependency from that element to it records the "
+                       f"relevance (hasRelevantArchitecture, relevance only): dependency <name> from <element> to "
+                       f"{subject};")
+    lines.notes.append(f"Leaving {subject} carried by neither is allowed: the check is advisory, and only its "
+                       "verification (phase 10) covers it then.")
+    return lines.remedy(f"allocate {subject} to {function}, {_where(request) or 'in a package of the increment'}")
+
+
+def _population_member(request: _Request) -> Remedy:
+    """One more element the step parameter counts: its gate states only the parameter's multiplicity."""
+    lines = _lines(request)
+    lines.declarations.append(_declaration(lines, name=_subject_name(request)))
+    return lines.remedy(f"declare {_parameter_phrase(request)} {_where(request)}".rstrip())
 
 
 def _verification_membership(request: _Request, mapping: Any) -> Remedy:

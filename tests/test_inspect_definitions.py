@@ -39,7 +39,7 @@ METHODS = "textual-notation-of-model/packages/methods/de4sdv/"
 #: the cut records for them.
 SOURCES = {
     METHODS + "de4sdv_increment_workflow.sysml":
-        "0cbeedf7df15706d176324d95db52af81e9bba09934d5efdf2de73055344a09e",
+        "84243687e948b7bf83d2b5de401daf638b2838cc6f96998340512237dc9a87b3",
     METHODS + "de4sdv_trace_vocabulary.sysml":
         "58ba8ea33ef950e1abcdda19efaa6757e33cad06902e70605ffdc3eaf1a6fbea",
     METHODS + "de4sdv_method_process.sysml":

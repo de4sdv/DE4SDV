@@ -44,6 +44,14 @@ CHECKS_BY_STEP = {
         "requirementSubjectIsSystemOfInterest", "requirementHasVerificationMethod",
         "requirementStatesSuccessCriteria",
     },
+    "DefineFunctionalArchitecture": {
+        "functionalRequirementAllocatedToFunction", "incrementHasFunction", "requirementCarriedByArchitecture",
+        "functionCarriesRequirement",
+    },
+    "DefineLogicalArchitecture": {"functionAllocatedToLogicalElement", "logicalElementCarriesFunction"},
+    "DefinePhysicalRealization": {
+        "logicalElementAllocatedToPhysicalElement", "physicalElementCarriesLogicalElement",
+    },
     "PlanVerificationAndEvidence": {
         "verificationCaseVerifiesRequirement", "requirementVerifiedByVerificationCase",
         "verificationCaseHasEvidenceRecordOrStatus",
@@ -54,6 +62,10 @@ ADVISORY = {
     "needSubjectIsSystemOfInterest",
     "requirementSubjectIsSystemOfInterest",
     "requirementStatesSuccessCriteria",
+    "requirementCarriedByArchitecture",
+    "functionCarriesRequirement",
+    "logicalElementCarriesFunction",
+    "physicalElementCarriesLogicalElement",
     "verificationCaseHasEvidenceRecordOrStatus",
 }
 # Registry contract for the evaluation engine: every check identifier the model
@@ -66,6 +78,7 @@ CHECK_REGISTRY = {
     "derivesRequirementFromNeed", "oneNativeSubject",
     "subjectIsSystemOfInterest", "charterExpectedArtifactsCoverContent",
     "oneVerificationMethodKind", "successCriteriaAttribute",
+    "allocatedTo", "populationMember", "carriedByArchitecture", "receivesAllocation",
     "verifiesIncrementRequirement", "verifiedBy", "evidenceRecordOrStatus",
 }
 
@@ -143,6 +156,33 @@ def test_structural_checks_block_and_the_named_trace_checks_are_advisory() -> No
                 for name, fields in _checks(definition).items()
                 if fields.get("advisory") == "true"}
     assert advisory == ADVISORY
+
+
+#: The architecture steps' parameters (direction, keyword, name, multiplicity, type): the trace profile
+#: classes the allocation end pairs reach, the functional requirements the blocking phase-6 check reads.
+ARCHITECTURE_PARAMETERS = {
+    "DefineFunctionalArchitecture": [
+        ("in", "requirement", "requirements", "[0..*]", "RequirementCandidate"),
+        ("in", "requirement", "functionalRequirements", "[0..*]", "FunctionalRequirementCandidate"),
+        ("out", "action", "functions", "[1..*]", "AllocatableFunction")],
+    "DefineLogicalArchitecture": [
+        ("in", "action", "functions", "[1..*]", "AllocatableFunction"),
+        ("out", "part", "logicalElements", "[1..*]", "LogicalAllocationElement")],
+    "DefinePhysicalRealization": [
+        ("in", "part", "logicalElements", "[1..*]", "LogicalAllocationElement"),
+        ("out", "part", "physicalElements", "[1..*]", "PhysicalAllocationElement")],
+}
+
+
+def test_architecture_steps_type_their_parameters_by_the_trace_profile_classes() -> None:
+    """Typed parameters select the increment's functions, logical and physical elements; a declared but
+    unauthored phase 7 or 8 finds no subjects and blocks (lower bound 1), never passes vacuously."""
+    for definition, expected in ARCHITECTURE_PARAMETERS.items():
+        found = re.findall(r"\b(in|out)\s+(\w+)\s+(\w+)(\[[^\]]*\])\s*:\s*(\w+)\s*;", _step_body(definition))
+        assert found == expected, definition
+    code = _code(WORKFLOW_FILE)
+    for name in ("AllocatableFunction", "LogicalAllocationElement", "PhysicalAllocationElement"):
+        assert code.count(f"private import DE4SDV_TraceVocabulary::{name};") == 1, name
 
 
 def test_method_check_is_a_light_metadata_definition() -> None:

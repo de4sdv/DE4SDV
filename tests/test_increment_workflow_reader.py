@@ -46,11 +46,17 @@ WORKFLOW_FILE = (Path(__file__).resolve().parents[1]
                  / "textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml")
 REVISION = me.RevisionIdentity("a" * 40, "project", "commit", "full-model")
 P0, P4, P5, P10 = ("phase0_incrementFraming", "phase4_needs", "phase5_requirements", "phase10_vvEvidence")
+P6, P7, P8 = ("phase6_functionalArchitecture", "phase7_logicalArchitecture", "phase8_physicalRealization")
 P = WorkflowParameter
 C = WorkflowCheck
 ADVISORY = {"expectedArtifactsCoverIncrementContent", "needSubjectIsSystemOfInterest",
             "requirementSubjectIsSystemOfInterest", "requirementStatesSuccessCriteria",
-            "verificationCaseHasEvidenceRecordOrStatus"}
+            "requirementCarriedByArchitecture", "functionCarriesRequirement", "logicalElementCarriesFunction",
+            "physicalElementCarriesLogicalElement", "verificationCaseHasEvidenceRecordOrStatus"}
+#: The checks of the architecture steps, which the fixture's charter does not declare applicable.
+ARCHITECTURE = {"functionalRequirementAllocatedToFunction", "incrementHasFunction", "requirementCarriedByArchitecture",
+                "functionCarriesRequirement", "functionAllocatedToLogicalElement", "logicalElementCarriesFunction",
+                "logicalElementAllocatedToPhysicalElement", "physicalElementCarriesLogicalElement"}
 
 
 def _named(scenario, name: str) -> dict:
@@ -99,7 +105,7 @@ def test_the_charter_declares_the_workflow_read_into_one_contract() -> None:
     assert method.available, method.problems or method.reason
     assert not any(b["ontology_class"] in {"IncrementWorkflow", "MethodCheck"} for b in scenario.builder.bindings)
     obligations = method.contract.obligations
-    assert len(obligations) == 30
+    assert len(obligations) == 38
     assert [o.obligation_id for o in obligations][:2] == ["incrementHasIdentifier", "incrementHasCharter"]
     by_id = {o.obligation_id: o for o in obligations}
     assert by_id["needHasValidationScenario"].predicate == "hasValidationScenario"
@@ -113,16 +119,16 @@ def test_the_charter_declares_the_workflow_read_into_one_contract() -> None:
     assert by_id["requirementHasVerificationMethod"].cardinality == (1, 1)
     assert by_id["needHasValidationScenario"].cardinality == (1, UNBOUNDED)
     assert by_id["requirementVerifiedByVerificationCase"].permitted_empty
-    assert method.phases == (P0, P4, P5, P10)
+    assert method.phases == (P0, P4, P5, P6, P7, P8, P10)
     assert method.labels["needHasValidationScenario"]["check_definition"].endswith("MethodCheck")
 
 
 def test_the_method_lists_every_step_with_its_parameters_whether_or_not_it_has_checks() -> None:
-    """The frozen cut's workflow declares checks in 4 of its 13 steps; the other 9 are listed too."""
+    """The frozen cut's workflow declares checks in 7 of its 13 steps; the other 6 are listed too."""
     method = _method(_scenario())
     steps = method.steps
     assert [step["phase"] for step in steps] == list(PHASE_LITERALS)
-    assert [step["phase"] for step in steps if step["checks"]] == [P0, P4, P5, P10]
+    assert [step["phase"] for step in steps if step["checks"]] == [P0, P4, P5, P6, P7, P8, P10]
     assert steps[0]["checks"][:2] == ["incrementHasIdentifier", "incrementHasCharter"]
     assert len([check for step in steps for check in step["checks"]]) == len(method.contract.obligations)
     concerns = steps[1]
@@ -167,6 +173,9 @@ def test_a_metadata_usage_without_a_check_attribute_is_not_a_check() -> None:
 def test_a_complete_increment_passes_every_blocking_check() -> None:
     evaluation = _evaluate(_scenario())
     for unit in evaluation.canonical.units:
+        if unit.unit_id in ARCHITECTURE:  # phases 6 to 8: the charter does not declare them
+            assert unit.verdict == me.VERDICT_NOT_APPLICABLE, unit.unit_id
+            continue
         if unit.unit_id in ADVISORY:
             continue
         assert (unit.coverage, unit.state, unit.verdict) == (
@@ -178,7 +187,8 @@ def test_a_complete_increment_passes_every_blocking_check() -> None:
     assert _unit(evaluation, "verificationCaseHasEvidenceRecordOrStatus").state == me.STATE_INDETERMINATE
     status = evaluation.status()
     assert [(block["phase"], block["phase_exit"]) for block in status["phases"]] == [
-        (P0, "READY"), (P4, "READY"), (P5, "READY"), (P10, "READY")]
+        (P0, "READY"), (P4, "READY"), (P5, "READY"), (P6, "READY"), (P7, "READY"), (P8, "READY"),
+        (P10, "READY")]  # phases 6 to 8: not declared, so every check is not applicable
     assert evaluation.next_obligation()["next"] is None
     assert evaluation.next_obligation()["method_side_blockers"] == []
 
