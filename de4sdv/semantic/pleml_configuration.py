@@ -10,6 +10,9 @@ Identity. A PLEML library element is recognised by its metatype, its declared
 name and the serializer-recorded source document of the library; a kernel
 definition by its metatype, declared name and the reviewed kernel document, or
 by a validated binding. Never by a name alone or by a name in another document.
+The production export's options and its element order change nothing: implied
+relationships carry nothing authored, and document order comes from the ordered
+ownership properties.
 
 What one evaluation decides, per feature tree:
 
@@ -26,7 +29,10 @@ What one evaluation decides, per feature tree:
   binding time, the projection owner, and no binding to a derived variant;
 * the DE4SDV derivation rules: well-formedness, a total agreement of rules and
   pair exclusions over every source pair, and, for a valid configuration,
-  exactly one matching rule per derived variation.
+  exactly one matching rule per derived variation;
+* with the governed scope, the admission authority (ADR 0014): whether each
+  configuration is admitted, read from the correspondences of its features
+  and decided apart from its validity.
 
 Nothing here executes a PLEML expression natively, qualifies anything or
 grants authority: every report says ``native_expression_executed: false``.
@@ -38,21 +44,22 @@ from dataclasses import dataclass, field
 from itertools import product
 from typing import Any, Iterable, Mapping, Sequence
 
+from de4sdv.semantic import pleml_package
 from de4sdv.sysml_api.repository import element_id, reference_ids
 
 SCHEMA = "de4sdv.pleml-configuration-evaluation/v1"
 
-# -- dependencies on parallel steps (one place) ------------------------------------------
+# -- dependencies on the other steps (one place) ------------------------------------------
 #
-# The library path is the fenced Sysand project of step S1 (#404,
-# ``pleml_package.LIBRARY_PATH``). The kernel metadata definitions come from
-# the method pull request of step S2k (#402): five plain metadata definitions
-# of DE4SDV_ProductLineDerivation, each an ontology class of the same name that
-# ``validate_ontology_bindings`` binds by metatype, declared name and the
-# source file below. Only this block names them.
+# The library is the fenced Sysand project of step S1: ``pleml_package``
+# owns its path. The kernel metadata definitions come from step S2k: five
+# plain metadata definitions of DE4SDV_ProductLineDerivation, each an
+# ontology class of the same name that ``validate_ontology_bindings`` binds by
+# metatype, declared name and the source file below. Only this block names
+# them.
 
 #: Serializer source label of the pinned PLEML library (Sysand ``=1.1.1``).
-LIBRARY_SOURCE = "model-based-product-line-engineering/libraries/pleml/.sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml"
+LIBRARY_SOURCE = pleml_package.LIBRARY_PATH.as_posix()
 #: The reviewed kernel document declaring the derivation and projection metadata.
 KERNEL_SOURCE = "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml"
 

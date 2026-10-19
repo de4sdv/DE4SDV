@@ -89,16 +89,31 @@ def read_elements(path: Path) -> dict[str, Any]:
     return payload
 
 
+def _carries_uri(value: Any) -> bool:
+    if isinstance(value, dict):
+        return "@uri" in value or any(_carries_uri(item) for item in value.values())
+    if isinstance(value, list):
+        return any(_carries_uri(item) for item in value)
+    return False
+
+
 def payload_from_bundle(bundle: BaselineExportBundle | Mapping[str, Any], *, serializer: Mapping[str, Any],
                         model_sources: Iterable[str] | None = None) -> dict[str, Any]:
     """The elements payload of a licensed authority bundle, read by the production bundle reader.
 
     The model documents are those the bundle's source manifest marks with a
     PLEML role, unless ``model_sources`` names them. The pinned library must
-    carry the label of the fenced package, ``LIBRARY_SOURCE``.
+    carry the label of the fenced package, ``LIBRARY_SOURCE``. References are
+    element identities only: the resource path of a serializer URI depends on
+    the checkout and on where the library is provisioned, so a receipt keeps
+    none, and a bundle element that carries one is refused.
     """
     if not isinstance(bundle, BaselineExportBundle):
         bundle = BaselineExportBundle.from_dict(dict(bundle))
+    for element in bundle.elements.values():
+        if _carries_uri(element):
+            raise ValueError(f"bundle element {element['@id']} carries a resource URI, which depends on the checkout; "
+                             "the production bundle builder keeps element identities only")
     manifest = [dict(item) for item in bundle.source_manifest]
     labels = [str(item.get("path")) for item in manifest]
     present = set(bundle.element_sources.values())

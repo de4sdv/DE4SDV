@@ -33,6 +33,41 @@ only (ADR 0011). For each feature tree it decides:
   exactly one rule or exactly one pair exclusion. A valid configuration derives
   exactly one variant per derived variation; no matching rule, or several,
   rejects it.
+- **admission.** The governed scope of ADR 0014 stays the admission authority,
+  so a valid configuration may still not be admitted. Admission is decided for
+  every configuration, apart from its validity, from the correspondences of
+  its features (see below).
+
+## Admission
+
+A correspondence is a dependency of the tree that carries no binding,
+derivation or configuration role. Its one client is a feature, or the tree
+definition for the whole family, and each supplier is an element the governed
+scope classifies: an admitted alternative of Vehicle Platform Integration
+Mode, common content, or a reference-only, deferred or excluded element. The
+production scope validator reads that classification. A correspondence is
+refused when a grouping feature is its client, or when it names an element the
+scope does not classify or a derived realization, which corresponds to its
+alternative instead.
+
+A configuration is admitted when all of these hold:
+
+- grouping features carry no admission, and a group feature's correspondence
+  only classifies its variation point;
+- every selected choice or leaf has a correspondence that is an admitted
+  alternative or common content. One without a correspondence is not in the
+  governed scope. A family correspondence counts for every configuration of
+  its tree;
+- the selection realizes exactly one admitted alternative, and in every group
+  where a member corresponds to that alternative, it selects such a member;
+- every choice or leaf that corresponds to a common element is selected. A
+  choice is exempt where the alternative's derived realization selects another
+  member of its group, because the feature model has one slot there. Common
+  content no feature corresponds to is outside the selection surface.
+
+On the fenced models this admits the standalone and the AAOS-integrated
+members. It admits neither the reference examples nor the two execution
+environment families.
 
 Identity follows ADR 0011:
 
@@ -79,20 +114,32 @@ The evaluator refuses anything outside these shapes:
 - **derivation.** A `DerivedVariation` or `DerivationRule` dependency has exactly
   one client. Each premise of a rule is a direct sub-feature of a distinct source
   feature, and supplier order carries no meaning. A rule whose variant no single
-  derived variation names is refused.
+  derived variation names is refused;
+- **exports.** The production export's options are the accepted ones. Implied
+  relationships carry nothing authored, so they are neither refused nor read.
+  Document order comes from the ordered ownership properties, never from the
+  order of the element list.
 
 ## Receipts
 
-`scripts/run_pleml_configuration_evaluation.py` keeps one receipt per feature
-model:
+The licensed authority job serializes the fenced models once, with the
+production export's options, into one export bundle. Its source manifest names
+every document, and marks the model documents with the roles
+`pleml-feature-model`, `pleml-feature-configuration` and `pleml-fixture`. The
+PLEML library carries the fenced package's path,
+`pleml_package.LIBRARY_PATH`. The job then hands the bundle to one entry
+point, the function `write_receipts` or the `receipts` command. It writes one
+compressed elements file and one receipt per feature model. A receipt covers
+its model's documents, and records the verdicts, the derived variants, the
+admission and the input digests:
 
 ```bash
-# Licensed x86_64 runner: serialize, evaluate, write <name>.receipt.json and
-# <name>.elements.json.xz to a new directory outside the repository.
-python scripts/run_pleml_configuration_evaluation.py licensed \
-  --model <fenced feature model .sysml> --name <name> \
-  --catalogue model-based-product-line-engineering/feature-models/sdv_product_line.yaml \
-  --expected-executor "$(git rev-parse HEAD)" --out "$RUNNER_TEMP/pleml"
+# The authority job, after its licensed serialization: write
+# pleml-feature-models.elements.json.xz and <feature-model file stem>.receipt.json.
+python scripts/run_pleml_configuration_evaluation.py receipts \
+  --bundle "$RUNNER_TEMP/authority-elements.json" \
+  --serializer-version 0.10.3 --executor-revision "$(git rev-parse HEAD)" \
+  --out "$RUNNER_TEMP/pleml-receipts"
 
 # Any machine: re-run the evaluator on the committed elements.
 python scripts/run_pleml_configuration_evaluation.py replay <receipt>...
@@ -101,6 +148,12 @@ python scripts/run_pleml_configuration_evaluation.py replay <receipt>...
 python scripts/run_pleml_configuration_evaluation.py refresh <receipt>...
 ```
 
+A receipt never depends on where it was cut. References are element
+identities: the resource path of a serializer URI depends on the checkout and
+on where the library is provisioned, so the elements file keeps none, and a
+bundle element that carries one is refused. A receipt cut on the licensed
+runner replays the same in unlicensed CI and locally.
+
 `replay` refuses a receipt in any of these cases:
 
 - its elements differ from the recorded digest;
@@ -108,10 +161,11 @@ python scripts/run_pleml_configuration_evaluation.py refresh <receipt>...
 - another evaluator revision produced it;
 - its verdicts or derived variants do not reproduce.
 
-`licensed --compare <receipt>` refuses when fresh elements differ from the
-committed ones.
+`receipts --compare <directory>` refuses when the fresh elements differ from
+the committed receipts' elements.
 
-Until the YAML is retired, a receipt also carries these shadow checks:
+Until the YAML is retired, a receipt also carries these shadow checks, against
+the catalogue with the feature model's file stem:
 
 - each feature's catalogue path, taken from its short name;
 - the allowed-list complement check of C001, C002 and C003;

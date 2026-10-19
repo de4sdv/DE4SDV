@@ -48,9 +48,11 @@ def test_the_kernel_constants_match_the_model_built_contract():
         assert (mapping.file, mapping.declaration) == (evaluator.KERNEL_SOURCE, f"metadata def {name}")
 
 
-def test_the_library_constant_is_the_fenced_sysand_path():
-    package = pytest.importorskip("de4sdv.semantic.pleml_package", reason="the S1 package is not on this base yet (#404)")
-    assert evaluator.LIBRARY_SOURCE == package.LIBRARY_PATH.as_posix()
+def test_the_library_label_is_the_installed_library_of_the_fenced_project():
+    from de4sdv.semantic import pleml_package
+
+    assert evaluator.LIBRARY_SOURCE == pleml_package.LIBRARY_PATH.as_posix()
+    assert Path(evaluator.LIBRARY_SOURCE).is_relative_to(pleml_package.PROJECT / ".sysand")
 
 
 def payload_of(graph: PlemlGraph) -> dict:
@@ -197,12 +199,36 @@ def two_family_graph(*, governed: bool = False, environment_document: str = ENVI
     return graph
 
 
-def bundle_of(graph: PlemlGraph, root: Path) -> BaselineExportBundle:
+def with_resource_uris(documents: dict[str, list], prefix: str) -> dict[str, list]:
+    """The documents as the serializer writes them: a cross-document reference carries ``@uri``.
+
+    The resource path of the URI depends on the runner's checkout and on where
+    the library is provisioned; ``prefix`` stands for that environment.
+    """
+    where = {element["@id"]: label for label, values in documents.items() for element in values}
+    outside = "_syside/sysml.library/Kernel%20Libraries/Kernel%20Semantic%20Library/Base.kerml"
+
+    def visit(value, document):
+        if isinstance(value, dict):
+            if "@id" in value and "@type" not in value:
+                target = where.get(value["@id"], outside)
+                return value if target == document else {**value, "@uri": f"{prefix}{target}#{value['@id']}"}
+            return {key: visit(item, document) for key, item in value.items()}
+        if isinstance(value, list):
+            return [visit(item, document) for item in value]
+        return value
+
+    return {label: [visit(element, label) for element in values] for label, values in documents.items()}
+
+
+def bundle_of(graph: PlemlGraph, root: Path, *, uri_prefix: str | None = None) -> BaselineExportBundle:
     """The graph as the authority job's export bundle, its documents written under ``root``."""
     elements, sources = graph.build()
     documents: dict[str, list] = {}
     for element in elements:
         documents.setdefault(sources[element["@id"]], []).append(element)
+    if uri_prefix is not None:
+        documents = with_resource_uris(documents, uri_prefix)
     bundle = build_export_bundle(git_commit="a" * 40, source_documents=documents)
     manifest = []
     for label in sorted(documents):
@@ -232,6 +258,35 @@ def test_a_licensed_bundle_becomes_one_receipt_per_feature_model(tmp_path):
         assert model == expected[model["feature_model"]]
         assert replayed["serializer"] == {**SERIALIZER, "bundle_git_commit": "a" * 40}
         assert replayed["qualified"] is False and replayed["native_expression_executed"] is False
+
+
+def test_receipts_do_not_depend_on_the_checkout_or_the_library_location(tmp_path):
+    """Two bundles that differ only in the resource paths of their URIs give the same receipts, byte for byte."""
+    graph = two_family_graph(governed=True)
+    root = tmp_path / "tree"
+    runner = bundle_of(graph, root, uri_prefix="../../DE4SDV/DE4SDV/")
+    local = bundle_of(graph, root, uri_prefix="../_ple-experiment/")
+    assert runner.external_references != local.external_references
+    assert {item["uri"].split("#")[0] for item in runner.external_references} != {
+        item["uri"].split("#")[0] for item in local.external_references}
+    first = cli.write_receipts(runner, tmp_path / "runner", serializer=SERIALIZER, root=root)
+    second = cli.write_receipts(local, tmp_path / "local", serializer=SERIALIZER, root=root)
+    assert first["elements"].read_bytes() == second["elements"].read_bytes()
+    for one, other in zip(first["receipts"], second["receipts"], strict=True):
+        assert one.name == other.name and one.read_bytes() == other.read_bytes()
+        assert receipts.replay(one, root)["evaluation"] == receipts.replay(other, root)["evaluation"]
+    payload = receipts.read_elements(first["elements"])
+    assert all("@uri" not in json.dumps(element) for element in payload["elements"])
+    assert payload["external_references"] and all(
+        set(item) == {"source_element_id", "property_path", "target_id"} for item in payload["external_references"])
+
+
+def test_a_bundle_element_with_a_resource_uri_is_refused(tmp_path):
+    bundle = bundle_of(two_family_graph(), tmp_path)
+    element = next(iter(bundle.elements.values()))
+    elements = {**bundle.elements, element["@id"]: {**element, "owner": {"@id": element["@id"], "@uri": "../x#y"}}}
+    with pytest.raises(ValueError, match="carries a resource URI"):
+        receipts.payload_from_bundle(dataclasses.replace(bundle, elements=elements), serializer=SERIALIZER)
 
 
 def test_the_receipts_command_writes_and_compares(tmp_path, monkeypatch, capsys):
