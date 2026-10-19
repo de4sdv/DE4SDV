@@ -176,7 +176,7 @@ attribute changing. Interfaces are checkable by tools and humans alike.
 Product-line slices assemble **configured members** from shared assets:
 
 ```sysml
-part def MiddlewareAutowareAAOSSDVConfiguredMember :> ProductLineMemberProduct {
+part def MiddlewareAutowareAAOSSDVConfiguredMember :> DE4SDV_AEBSProductLineScope::AAOSIntegratedAutowareAEBSReferenceMember {
   part platformStack : MiddlewareAutowareAAOSSDVReference;
   part middlewareBoundary : MiddlewarePhysicalSoftwareBoundary;
 }
@@ -186,10 +186,12 @@ part configuredMember : MiddlewareAutowareAAOSSDVConfiguredMember {
 }
 ```
 
-- `ProductLineMemberProduct`, `variation`/`variant` memberships, and
-  `:>>` selections express *which* member product is configured and *what
-  varies* — see `de4sdv_product_line.sysml` and
-  `model-based-product-line-engineering/`.
+- A configured member specializes its member decision in the governed
+  product-line scope (here `AAOSIntegratedAutowareAEBSReferenceMember`, a
+  `ProductLineMemberProduct`) and types its platform stack by the projection
+  generated from its configuration. `variation`/`variant` memberships and
+  `:>>` selections express *what varies* — see `de4sdv_product_line.sysml`
+  and `model-based-product-line-engineering/`.
 - A characteristic is a **feature** only when it distinguishes one member
   product from another; otherwise it is common. Phase 3 records only the
   feature candidates (`ProductLineFeatureCandidate`) an increment adds, the
