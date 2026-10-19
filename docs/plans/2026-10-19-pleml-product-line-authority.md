@@ -22,7 +22,7 @@ line references are at that commit.
 | OQ4 | Features distinguish member products, so common capabilities are not features (the owner's standing rule) |
 | Speed | Finish the PLEML work as fast as possible: the consolidated PR set and the parallel lanes of §6 |
 
-**Coordinator defaults, which the owner confirms at merge:**
+**Proposed during review and confirmed by the owner on 2026-10-19:**
 
 - **OQ2**, which refines O3. After the switch, the YAML stays a non-authoritative shadow for at least 30 days. S7 needs all three of:
   - the 30 days have passed;
