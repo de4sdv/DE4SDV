@@ -1,10 +1,16 @@
 # PLE-S: scope alignment of the admitted AEBS product line in PLEML
 
 **Status:** experiment, not an authority. Draft evidence of the third PLEML
-gate; every receipt says `qualified: false`.
+gate; every receipt says `qualified: false`. **Retired** at step S3 of
+[ADR 0022](../architecture-decisions/0022-adopt-pleml-as-product-line-authority.md):
+the fenced [PLEML feature models](pleml-feature-models.md) supersede the
+experiment, and its model, workflow and runner were removed. This record
+stays as history: the files below are cited at the revision of the
+retained run.
 **Decision authority for anything beyond this record:** Orkun Yilmaz, DE4SDV
 technical lead and maintainer.
-**Model:** [`aebs_product_line_scope_alignment.sysml`](../../model-based-product-line-engineering/pleml-scope-alignment/aebs_product_line_scope_alignment.sysml)
+**Model:** [`aebs_product_line_scope_alignment.sysml`](https://github.com/de4sdv/DE4SDV/blob/f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb/model-based-product-line-engineering/pleml-scope-alignment/aebs_product_line_scope_alignment.sysml)
+(at the retained run's revision `f967a519`)
 **Governed inputs:** [ADR 0014](../architecture-decisions/0014-ratify-initial-aebs-product-line-scope.md),
 the [governed scope model](../../model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml)
 and the [platform-stack superset](../../textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml).
@@ -206,7 +212,7 @@ independent fields:
   otherwise classified by the governed-scope validation set (common,
   reference-only, deferred, excluded) of the element that the declared
   correspondence
-  [`catalogue-correspondence.yaml`](../../model-based-product-line-engineering/pleml-scope-alignment/catalogue-correspondence.yaml)
+  [`catalogue-correspondence.yaml`](https://github.com/de4sdv/DE4SDV/blob/f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb/model-based-product-line-engineering/pleml-scope-alignment/catalogue-correspondence.yaml)
   names for it. The correspondence carries no classification and is validated
   against the catalogue and the serialization; a node without any
   classification is unclassified and fails the run. A configuration is
@@ -376,6 +382,11 @@ head only, and the oracle refuses a receipt whose digests differ from the
 tree it is compared with. Both carry `qualified: false`.
 
 ## Evidence and how to rerun
+
+Since the retirement, the workflow, the model and the runner below exist
+only in history, up to `cdb20aa0`, the last revision of main before the
+retirement. A replay runs at such a revision; the retained record itself is
+still verified at its own revision by CI.
 
 - **Workflow:** `.github/workflows/privileged-ple-scope-alignment.yml` runs on
   pull requests that touch the scope-alignment paths (same-repository,

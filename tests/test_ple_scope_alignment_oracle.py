@@ -39,7 +39,6 @@ from scripts import compare_ple_scope_alignment as oracle
 ROOT = Path(__file__).resolve().parents[1]
 RECORD_DIR = Path("docs/product-line-engineering/ple-s-scope-alignment-evidence")
 DOC = ROOT / "docs/product-line-engineering/ple-s-scope-alignment.md"
-CORRESPONDENCE = ROOT / oracle.CORRESPONDENCE
 EXECUTOR = "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb"
 MERGE = "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb"
 RUN_ID = "39169049300"
@@ -67,7 +66,7 @@ def _git(*args: str, cwd: Path = ROOT) -> str:
 
 @pytest.mark.parametrize("path", [RECORD_DIR / "receipt.json", RECORD_DIR / "governed-scope-validation.json",
                                   RECORD_DIR / "comparison.json", RECORD_DIR / "manifest.json",
-                                  RECORD_DIR / "README.md", DOC.relative_to(ROOT), oracle.CORRESPONDENCE,
+                                  RECORD_DIR / "README.md", DOC.relative_to(ROOT),
                                   oracle.CATALOGUE, oracle.CONFIGURATOR, oracle.SHARED_ASSETS])
 def test_every_retained_and_operational_input_is_present(path: Path) -> None:
     assert (ROOT / path).is_file(), f"missing input: {path}"
@@ -558,8 +557,9 @@ def test_the_correspondence_is_validated_against_both_sides(record, evidence, tm
         _run(record, evidence, correspondence_path=path)
 
 
-def test_the_correspondence_carries_no_classification() -> None:
-    data = yaml.safe_load(CORRESPONDENCE.read_text(encoding="utf-8"))
+def test_the_correspondence_carries_no_classification(record) -> None:
+    # Retired with PLE-S (ADR 0022, step S3): the file is read at the record's own revision.
+    data = yaml.safe_load((record.root / oracle.CORRESPONDENCE).read_text(encoding="utf-8"))
     assert data["schema"] == oracle.CORRESPONDENCE_SCHEMA
     assert {key for entry in data["correspondence"] for key in entry} <= {"node", "governed", "note"}
     for word in ("reference-only", "deferred", "excluded", "admitted"):

@@ -34,6 +34,23 @@ unknown statuses, and unsafe or missing evidence artifacts. Evidence-bearing
 statuses may reference only direct, Git-tracked regular files inside the
 repository; symbolic-link paths and repository metadata are rejected.
 
+## PLEML configurations (fenced)
+
+Each Bill-of-Features has a PLEML feature configuration with the same file
+stem (`aebs-autoware-linux-lidar-camera.yaml` restates as
+`aebs_autoware_linux_lidar_camera.sysml`), and the fixture has one under
+`fixtures/`, outside the authority roots. They are fenced until the switch
+of [ADR 0022](../../docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md);
+until then the Bills-of-Features remain the selection authority, and their
+`evidence` blocks stay here.
+
+**Evidence records.** When the Bills-of-Features retire, the evidence of a
+configuration moves to an external evidence record
+`evidence/<file stem>.yaml`, for example `evidence/inc-aebs-009a-jetson.yaml`.
+It keeps today's schema (`status`, plus `artifacts` with `id` and `path`) and
+today's integrity rules. No record exists yet: a YAML file in this directory
+is a Bill-of-Features until then.
+
 ## Creating a configuration
 
 1. Choose the catalogue matching the correct family and System 1/System 2 role.

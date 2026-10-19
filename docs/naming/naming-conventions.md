@@ -317,10 +317,22 @@ never mistaken for a project ID.
 Feature-model namespace note (`F`/`C`/`D`/`PL`): these codes are parsed by
 the product-line tooling (`tools/configure_variant.py`, feature-model
 YAML) and are bound into committed feature configurations and generated
-product models. They are short, but they are the established feature-model
-namespace — renaming them is a PLE model-and-tooling change, not a naming
-migration. If the PLE workstream later revises the feature-model grammar,
-that revision owns the rename; this registry is updated the same day.
+product models. In the PLEML feature models of ADR 0022 they are SysML short
+names: each `F-` and `PL-` ID names the feature or feature tree that restates
+its node (`#feature occurrence <'F-PLATFORM-STACK'> platformStack[1]`), and
+the `D-` ID names the derived-variation dependency. The catalogue's
+constraint IDs keep their spelling as the short names of the exclusions and
+requires constraints: `C001`, `C003`, `C004` and `C005`, and the execution-environment
+`C-ENG-` and `C-VEHICLE-` IDs, which share the `C` letter but are not
+common-capability nodes. A `C-` common-capability node has no element in a
+PLEML feature model; until the YAML retires (ADR 0022, step S7) the parity
+check maps it to the governed common element, and then its ID retires. The
+registry update of that step keeps the constraint IDs or renames them in the
+same reviewed change. The codes are short, but they are the established
+feature-model namespace — renaming them is a PLE model-and-tooling change,
+not a naming migration. If the PLE workstream later revises the
+feature-model grammar, that revision owns the rename; this registry is
+updated the same day.
 
 ### Subject-first configuration identities
 

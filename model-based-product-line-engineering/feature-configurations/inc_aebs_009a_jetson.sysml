@@ -1,0 +1,34 @@
+/*
+ * PLEML feature configuration restating the bill of features
+ * inc-aebs-009a-jetson.yaml, the System 2 environment record of
+ * INC-AEBS-009A. Fenced until the authority switch (ADR 0022, step S6): the
+ * bill of features stays the selection authority until then, and its
+ * evidence block stays there. The doc is the bill of features' description.
+ */
+
+package DE4SDV_INCAEBS009AJetsonExecutionEnvironmentConfiguration {
+    private import PLEML::*;
+    private import DE4SDV_EngineeringExecutionEnvironmentFeatureModel::EngineeringExecutionEnvironmentFeatureTree;
+    private import DE4SDV_ProductLineDerivation::ProductModelProjectionName;
+
+    #featureConfiguration occurrence incAEBS009AJetsonExecutionEnvironment : EngineeringExecutionEnvironmentFeatureTree :> featureConfigurations {
+        doc /* Inspected exact System 2 environment currently maintained for
+             * INC-AEBS-009A: NVIDIA Jetson Orin Nano Developer Kit Super, Ubuntu
+             * 22.04 Tegra Linux, and native linux/arm64 OCI-container execution.
+             * Historical 009A runtime evidence proves a Jetson 8 GiB context but
+             * does not identify the exact SKU; this configuration therefore does
+             * not claim exact-SKU execution continuity. */
+
+        #feature occurrence :>> environment[1] {
+            #feature occurrence :>> computeNode[1] = (jetsonOrinNano);
+            #feature occurrence :>> jetsonOrinNano[1];
+            #feature occurrence :>> operatingSystem[1] = (ubuntu2204Tegra);
+            #feature occurrence :>> ubuntu2204Tegra[1];
+            #feature occurrence :>> executionRuntime[1] = (nativeLinuxArm64OCI);
+            #feature occurrence :>> nativeLinuxArm64OCI[1];
+        }
+    }
+    @ProductModelProjectionName about incAEBS009AJetsonExecutionEnvironment {
+        partDefinitionName = "INCAEBS009AJetsonExecutionEnvironment";
+    }
+}
