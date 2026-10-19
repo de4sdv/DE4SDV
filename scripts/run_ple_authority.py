@@ -11,7 +11,9 @@ options, validates the governed product-line scope exactly as production
 does, builds the authority bundle (the PLEML documents, the shared-asset
 supersets, the governed scope and the library), imports it into an ephemeral
 SysML v2 API and verifies the full-payload readback. It then hands the bundle
-to the DE4SDV evaluator (ADR 0022, step S2), which writes the receipts.
+to the entry point of the DE4SDV evaluator (ADR 0022, step S2), which writes
+the compressed elements and one receipt per feature model, and requires the
+fresh elements to equal the committed ones.
 
 The models are fenced until the authority switch (step S6). Nothing here
 executes a PLEML constraint body natively, qualifies anything or claims
@@ -23,7 +25,6 @@ import argparse
 import importlib
 import importlib.metadata
 import json
-import lzma
 import platform
 import re
 import sys
@@ -124,7 +125,18 @@ EXECUTOR_INPUTS = (
     *FIXTURES,
 )
 RUN_SCHEMA = "de4sdv.ple-authority-run/v1"
+#: The export bundle, as the evaluator's entry point reads it.
 ELEMENTS = "authority-elements.json"
+#: The evaluator of ADR 0022 step S2: its entry point owns the receipt format and layout.
+EVALUATION_CLI = "scripts/run_pleml_configuration_evaluation.py"
+#: The committed receipts and their compressed elements (the owner's yes of 2026-10-19).
+RECEIPTS_DIR = f"{PLE}/feature-models/receipts"
+#: The file stem of the compressed elements: ``<name>.elements.json.xz``.
+RECEIPTS_NAME = "pleml-feature-models"
+#: Serialization provenance that differs between runs of the same sources.
+PROVENANCE = ("executor_revision", "bundle_git_commit")
+#: The evaluator's code: executor inputs too, once it is on the revision.
+EVALUATOR_INPUTS = (EVALUATION_CLI, "de4sdv/semantic/pleml_configuration.py", "de4sdv/semantic/pleml_receipts.py")
 API_PROJECT = "DE4SDV isolated PLE authority round trip"
 #: The production import's request timeout (scripts/import_sysml_api_baseline.py).
 #: The API commits the authority bundle in one request, which outlasts the
@@ -286,26 +298,93 @@ def round_trip(bundle: BaselineExportBundle, api_url: str) -> dict[str, Any]:
     }
 
 
-def evaluate(bundle: BaselineExportBundle, scope: dict[str, Any], out: Path) -> dict[str, Any]:
-    """Hand the authority bundle to the DE4SDV evaluator, which writes the receipts.
+def receipt_writer():
+    """The evaluator's entry point, ``write_receipts`` (ADR 0022, step S2).
 
-    The runner's only coupling to the evaluator and derivation module of
-    ADR 0022 step S2. That module is not on this revision yet, so the
-    licensed run stops here, after the validation, the serialization and the
-    round trip, and writes no receipt.
+    The runner's only coupling to the evaluator. Until its module is on this
+    revision the licensed run stops after the validation, the serialization
+    and the round trip, and writes no receipt; once it is, any import error
+    fails the run.
     """
-    raise EvaluatorPending(
-        "the evaluator of ADR 0022 step S2 is not on this revision: the serialization and the API "
-        "round trip passed, and the receipts are pending"
-    )
+    if not (ROOT / EVALUATION_CLI).is_file():
+        raise EvaluatorPending(
+            "the evaluator of ADR 0022 step S2 is not on this revision: the serialization and the API "
+            "round trip passed, and the receipts are pending"
+        )
+    from scripts.run_pleml_configuration_evaluation import write_receipts
+
+    return write_receipts
+
+
+def _elements_identity(payload: dict[str, Any]) -> bytes:
+    """The elements as the serializer produced them, without the provenance of one run."""
+    serializer = {key: value for key, value in payload["serializer"].items() if key not in PROVENANCE}
+    return json.dumps({**payload, "serializer": serializer}, sort_keys=True, separators=(",", ":"),
+                      ensure_ascii=False).encode("utf-8")
+
+
+def _identity_of(elements: Path) -> bytes:
+    """The identity of an elements file, read by the evaluator's own reader."""
+    from de4sdv.semantic import pleml_receipts
+
+    return _elements_identity(pleml_receipts.read_elements(elements))
+
+
+def compare_with_committed(result: dict[str, Any], committed: Path) -> list[str]:
+    """Why the committed receipts are not this run's: their elements must equal the fresh ones.
+
+    Only the provenance of the run (its executor revision) may differ. A
+    receipt that is fresh but not committed, or committed but not fresh, fails
+    too: the fresh receipts in the evidence are then the ones to commit.
+    """
+    failures = []
+    fresh = {path.name for path in result["receipts"]}
+    present = {path.name for path in committed.glob("*.receipt.json")} if committed.is_dir() else set()
+    for name in sorted(present - fresh):
+        failures.append(f"{name}: committed, but this run writes no such receipt")
+    identity = _identity_of(result["elements"])
+    for name in sorted(fresh):
+        if name not in present:
+            failures.append(f"{name}: not committed; commit the receipts and elements of this run")
+            continue
+        receipt = json.loads((committed / name).read_text(encoding="utf-8"))
+        try:
+            same = _identity_of(committed / str((receipt.get("elements") or {}).get("path"))) == identity
+        except ValueError as exc:
+            failures.append(f"{name}: {exc}")
+            continue
+        if not same:
+            failures.append(f"{name}: the committed elements are not this serialization's; commit the fresh receipts")
+    return failures
+
+
+def evaluate(bundle: BaselineExportBundle, executor: str, out: Path) -> dict[str, Any]:
+    """Write the receipts through the evaluator's entry point and compare them with the committed ones.
+
+    The entry point writes ``<name>.elements.json.xz`` and one receipt per
+    feature model to ``out/receipts``. Its failures (integrity, complement and
+    rule-table errors) and any difference from the committed elements fail
+    the run.
+    """
+    write_receipts = receipt_writer()
+    result = write_receipts(bundle, out / "receipts", serializer={
+        "name": "syside", "version": SERIALIZER_VERSION, "options": "production export",
+        "executor_revision": executor}, name=RECEIPTS_NAME)
+    failures = [*result["failures"], *compare_with_committed(result, ROOT / RECEIPTS_DIR)]
+    return {
+        "status": "failed" if failures else "evaluated",
+        "elements": result["elements"].name,
+        "receipts": sorted(path.name for path in result["receipts"]),
+        "committed": RECEIPTS_DIR,
+        "failures": failures,
+    }
 
 
 def _write_elements(bundle: BaselineExportBundle, out: Path) -> dict[str, str]:
+    """The export bundle, the input of the evaluator's entry point; it compresses the elements itself."""
     text = json.dumps(bundle.to_dict(), indent=2, sort_keys=True) + "\n"
     (out / ELEMENTS).write_text(text, encoding="utf-8")
-    compressed = lzma.compress(text.encode("utf-8"), preset=9)
-    (out / f"{ELEMENTS}.xz").write_bytes(compressed)
-    return {"json_sha256": digest(text.encode("utf-8")), "xz_sha256": digest(compressed)}
+    return {"json_sha256": digest(text.encode("utf-8"))}
 
 
 def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
@@ -322,7 +401,8 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
     if git(ROOT, "status", "--porcelain"):
         raise ValueError("the executor checkout is not clean")
     library_bytes = verify_library()
-    executor_inputs = {relative: verified_file(ROOT, executor, relative) for relative in EXECUTOR_INPUTS}
+    inputs = EXECUTOR_INPUTS + (EVALUATOR_INPUTS if (ROOT / EVALUATION_CLI).is_file() else ())
+    executor_inputs = {relative: verified_file(ROOT, executor, relative) for relative in inputs}
 
     out.mkdir(parents=True)
     record: dict[str, Any] = {
@@ -349,9 +429,9 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
                   element_count=len(bundle.elements), external_reference_count=len(bundle.external_references))
     record["api_round_trip"] = round_trip(bundle, args.api_url)
 
-    code = 0
     try:
-        record["evaluation"] = evaluate(bundle, scope, out)
+        record["evaluation"] = evaluate(bundle, executor, out)
+        code = 1 if record["evaluation"]["failures"] else 0
     except EvaluatorPending as exc:
         record["evaluation"] = {"status": "pending", "reason": str(exc)}
         code = 3
@@ -375,15 +455,19 @@ def main() -> int:
     except (ValueError, RuntimeError, OSError, ImportError, KeyError) as exc:
         print(f"refused: {exc}", file=sys.stderr)
         return 2
+    evaluation = record["evaluation"]
     print(json.dumps({
         "run": str(args.out / "authority-run.json"),
         "elements": record["element_count"],
         "api_round_trip_verified": record["api_round_trip"]["verified"],
-        "evaluation": record["evaluation"].get("status", "evaluated"),
+        "evaluation": evaluation["status"],
+        "receipts": evaluation.get("receipts", []),
         "qualified": False,
     }))
-    if code:
-        print(f"refused: {record['evaluation']['reason']}", file=sys.stderr)
+    if code == 3:
+        print(f"refused: {evaluation['reason']}", file=sys.stderr)
+    for failure in evaluation.get("failures", []):
+        print(f"failed: {failure}", file=sys.stderr)
     return code
 
 

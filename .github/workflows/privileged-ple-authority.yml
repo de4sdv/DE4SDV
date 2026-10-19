@@ -4,10 +4,11 @@ name: Privileged PLE Authority
 # workflow: licensed validation, serialization and API round trip of the PLEML
 # feature models and configurations (the .sysml files of
 # model-based-product-line-engineering/feature-models/ and
-# feature-configurations/), then their evaluation into receipts. It runs on
-# pull requests that touch these paths and on demand; never on a change to
-# the production model roots, which keep their own gates. The models stay
-# fenced until the authority switch (ADR 0022, step S6).
+# feature-configurations/), then their evaluation into receipts through the
+# evaluator's entry point (ADR 0022, step S2), compared with the committed
+# receipts. It runs on pull requests that touch these paths, the PLEML pin,
+# the committed receipts or the documents they bind, and on demand. The
+# models stay fenced until the authority switch (ADR 0022, step S6).
 #
 # The executor is the exact commit under evaluation: the pull-request head, or
 # the dispatched `ref`. The exact-pinned PLEML library (1.1.1) comes from the
@@ -37,6 +38,14 @@ on:
       - "de4sdv/semantic/pleml_package.py"
       - "scripts/check_pleml_package.py"
       - "scripts/run_ple_qualification.py"
+      # The committed receipts and what they bind: the referenced documents of
+      # the bundle and the catalogues of their shadow checks.
+      - "model-based-product-line-engineering/feature-models/receipts/**"
+      - "model-based-product-line-engineering/feature-models/*.yaml"
+      - "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml"
+      - "textual-notation-of-model/packages/architecture/execution_environments.sysml"
+      - "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml"
+      - "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml"
   workflow_dispatch:
     inputs:
       ref:

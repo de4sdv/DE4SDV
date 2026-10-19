@@ -4,15 +4,15 @@ The serializer, the API service and the evaluator are test doubles here:
 nothing in this file is serializer output or licensed evidence. The tests pin
 what the runner refuses before it touches an input, how it labels and
 serializes the documents, what the authority bundle holds, the loopback-only
-API round trip, the library byte check, and that a run without the evaluator
-of ADR 0022 step S2 stops after the round trip, writes no receipt and exits
-non-zero.
+API round trip, the library byte check, the receipts written through the
+evaluator's entry point (ADR 0022, step S2) and compared with the committed
+ones, and that a run without the evaluator stops after the round trip, writes
+no receipt and exits 3.
 """
 
 from __future__ import annotations
 
 import json
-import lzma
 import platform
 import subprocess
 import sys
@@ -255,15 +255,16 @@ def test_the_round_trip_timeout_is_the_production_imports() -> None:
     assert runner.API_TIMEOUT_SECONDS == float(timeout) == 600.0
 
 
-def test_the_elements_are_written_plain_and_compressed_with_their_digests(tmp_path) -> None:
+def test_the_bundle_is_written_plain_as_the_entry_points_input(tmp_path) -> None:
+    """The evaluator's entry point compresses the elements itself: the runner keeps no second format."""
     from de4sdv.sysml_api.baseline import build_export_bundle
 
     bundle = build_export_bundle(git_commit="a" * 40, source_documents={"x.sysml": [{"@id": "e", "@type": "Package"}]})
     digests = runner._write_elements(bundle, tmp_path)
     text = (tmp_path / runner.ELEMENTS).read_bytes()
-    assert lzma.decompress((tmp_path / f"{runner.ELEMENTS}.xz").read_bytes()) == text
-    assert digests == {"json_sha256": runner.digest(text),
-                       "xz_sha256": runner.digest((tmp_path / f"{runner.ELEMENTS}.xz").read_bytes())}
+    assert json.loads(text) == bundle.to_dict()
+    assert digests == {"json_sha256": runner.digest(text)}
+    assert sorted(path.name for path in tmp_path.iterdir()) == [runner.ELEMENTS]
 
 
 # -- the run ------------------------------------------------------------------------------------------
@@ -295,13 +296,15 @@ def test_an_existing_output_directory_is_refused(tmp_path) -> None:
     assert result.returncode == 2 and "existing output directory" in result.stderr
 
 
-def test_the_evaluation_is_pending_until_the_evaluator_exists() -> None:
+def test_the_evaluation_is_pending_until_the_evaluator_exists(monkeypatch) -> None:
+    monkeypatch.setattr(runner, "EVALUATION_CLI", "scripts/no_such_evaluator.py")
     with pytest.raises(runner.EvaluatorPending, match="step S2"):
-        runner.evaluate(SimpleNamespace(), {}, Path("/nonexistent"))
+        runner.receipt_writer()
+    with pytest.raises(runner.EvaluatorPending, match="step S2"):
+        runner.evaluate(SimpleNamespace(), "a" * 40, Path("/nonexistent"))
 
 
-def test_a_run_without_the_evaluator_stops_after_the_round_trip_and_exits_three(monkeypatch, tmp_path) -> None:
-    executor = "b" * 40
+def _stub_run(monkeypatch, tmp_path, executor: str = "b" * 40) -> tuple[dict, object]:
     monkeypatch.setattr(runner, "verify_library", lambda root=None: b"library")
     monkeypatch.setattr(runner, "git", lambda root, *args: executor if args[0] == "rev-parse" else "")
     monkeypatch.setattr(runner, "verified_file", lambda root, revision, relative: "0" * 64)
@@ -318,16 +321,98 @@ def test_a_run_without_the_evaluator_stops_after_the_round_trip_and_exits_three(
     monkeypatch.setattr(runner, "round_trip", lambda bundle, url: {"verified": True})
     args = runner.build_parser().parse_args(["--licensed", "--expected-executor", executor,
                                              "--api-url", "http://127.0.0.1:9000", "--out", str(tmp_path / "out")])
+    return scoped, args
+
+
+def test_a_run_without_the_evaluator_stops_after_the_round_trip_and_exits_three(monkeypatch, tmp_path) -> None:
+    monkeypatch.setattr(runner, "EVALUATION_CLI", "scripts/no_such_evaluator.py")
+    scoped, args = _stub_run(monkeypatch, tmp_path)
     record, code = runner.run(args)
     assert code == 3
     assert record["evaluation"]["status"] == "pending" and "step S2" in record["evaluation"]["reason"]
     assert record["api_round_trip"] == {"verified": True}
     assert record["qualified"] is False and record["native_expression_executed"] is False
-    assert record["authority_effective"] is False and record["executor_revision"] == executor
+    assert record["authority_effective"] is False and record["executor_revision"] == "b" * 40
     # The governed scope is validated on the production documents only.
     assert scoped["sources"] == {*runner.REFERENCED_SOURCES, "textual-notation-of-model/x.sysml"}
     written = sorted(path.name for path in (tmp_path / "out").iterdir())
-    assert written == sorted(["authority-run.json", "governed-scope-validation.json", runner.ELEMENTS,
-                              f"{runner.ELEMENTS}.xz"])
+    assert written == sorted(["authority-run.json", "governed-scope-validation.json", runner.ELEMENTS])
     assert not any("receipt" in name for name in written), "no receipt without the evaluator"
     assert json.loads((tmp_path / "out/authority-run.json").read_text()) == record
+
+
+def _fake_writer(calls: list, failures: list[str]):
+    def write_receipts(bundle, out, *, serializer, name):
+        calls.append({"serializer": serializer, "name": name, "out": out})
+        out.mkdir(parents=True)
+        (out / f"{name}.elements.json.xz").write_bytes(b"elements")
+        (out / "sdv_product_line.receipt.json").write_text("{}")
+        return {"elements": out / f"{name}.elements.json.xz", "receipts": [out / "sdv_product_line.receipt.json"],
+                "failures": list(failures)}
+    return lambda: write_receipts
+
+
+@pytest.mark.parametrize("failures, compared, status, expected_code", [
+    ([], [], "evaluated", 0),
+    (["SDVProductLineFeatureModel: an integrity error"], [], "failed", 1),
+    ([], ["sdv_product_line.receipt.json: the committed elements are not this serialization's"], "failed", 1),
+])
+def test_a_run_writes_the_receipts_through_the_entry_point_and_compares_them(
+        monkeypatch, tmp_path, failures, compared, status, expected_code) -> None:
+    calls: list = []
+    monkeypatch.setattr(runner, "receipt_writer", _fake_writer(calls, failures))
+    monkeypatch.setattr(runner, "compare_with_committed", lambda result, committed: list(compared))
+    _scoped, args = _stub_run(monkeypatch, tmp_path)
+    record, code = runner.run(args)
+    assert code == expected_code
+    assert [call["serializer"] for call in calls] == [{"name": "syside", "version": runner.SERIALIZER_VERSION,
+                                                       "options": "production export", "executor_revision": "b" * 40}]
+    assert calls[0]["name"] == runner.RECEIPTS_NAME and calls[0]["out"] == tmp_path / "out/receipts"
+    assert record["evaluation"] == {"status": status, "elements": f"{runner.RECEIPTS_NAME}.elements.json.xz",
+                                    "receipts": ["sdv_product_line.receipt.json"], "committed": runner.RECEIPTS_DIR,
+                                    "failures": failures + compared}
+
+
+def _fresh(tmp_path: Path, names: list[str]) -> dict:
+    out = tmp_path / "fresh"
+    out.mkdir()
+    (out / "e.elements.json.xz").write_bytes(b"fresh")
+    for name in names:
+        (out / name).write_text("{}")
+    return {"elements": out / "e.elements.json.xz", "receipts": [out / name for name in names]}
+
+
+def _committed(tmp_path: Path, names: list[str], content: bytes = b"committed") -> Path:
+    committed = tmp_path / "committed"
+    committed.mkdir()
+    (committed / "e.elements.json.xz").write_bytes(content)
+    for name in names:
+        (committed / name).write_text(json.dumps({"elements": {"path": "e.elements.json.xz"}}))
+    return committed
+
+
+def test_the_committed_receipts_must_hold_this_serializations_elements(monkeypatch, tmp_path) -> None:
+    identity = {"fresh": b"same", "committed": b"same"}
+    monkeypatch.setattr(runner, "_identity_of", lambda path: identity[path.parent.name])
+    fresh = _fresh(tmp_path, ["a.receipt.json", "b.receipt.json"])
+    assert runner.compare_with_committed(fresh, tmp_path / "missing") == [
+        "a.receipt.json: not committed; commit the receipts and elements of this run",
+        "b.receipt.json: not committed; commit the receipts and elements of this run"]
+    committed = _committed(tmp_path, ["a.receipt.json", "b.receipt.json", "c.receipt.json"])
+    assert runner.compare_with_committed(fresh, committed) == [
+        "c.receipt.json: committed, but this run writes no such receipt"]
+    identity["committed"] = b"other"
+    assert runner.compare_with_committed(fresh, committed)[1:] == [
+        "a.receipt.json: the committed elements are not this serialization's; commit the fresh receipts",
+        "b.receipt.json: the committed elements are not this serialization's; commit the fresh receipts"]
+
+
+def test_the_elements_identity_ignores_only_the_runs_provenance() -> None:
+    payload = {"schema": "s", "elements": [{"@id": "e"}], "serializer": {
+        "name": "syside", "version": "0.10.3", "options": "production export",
+        "executor_revision": "a" * 40, "bundle_git_commit": "a" * 40}}
+    later = {**payload, "serializer": {**payload["serializer"], "executor_revision": "b" * 40,
+                                       "bundle_git_commit": "b" * 40}}
+    assert runner._elements_identity(later) == runner._elements_identity(payload)
+    for change in ({"elements": [{"@id": "f"}]}, {"serializer": {**payload["serializer"], "version": "0.10.4"}}):
+        assert runner._elements_identity({**payload, **change}) != runner._elements_identity(payload)

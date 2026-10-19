@@ -22,6 +22,7 @@ from typing import Any, Iterator
 import pytest
 import yaml
 
+import test_ple_authority_model as model_test
 import test_ple_qualification_clean_checkout as clean
 from de4sdv.semantic import pleml_package
 from scripts import run_ple_authority as runner
@@ -55,6 +56,13 @@ PIN_PATHS = {
     "de4sdv/semantic/pleml_package.py",
     "scripts/check_pleml_package.py",
     "scripts/run_ple_qualification.py",
+}
+#: The committed receipts and what they bind (review R14): the referenced documents of the
+#: bundle and the catalogues of the shadow checks, so that a change to either reruns the job.
+BOUND_PATHS = {
+    f"{runner.RECEIPTS_DIR}/**",
+    "model-based-product-line-engineering/feature-models/*.yaml",
+    *runner.REFERENCED_SOURCES,
 }
 
 
@@ -100,20 +108,26 @@ def test_triggers_are_the_authority_paths_and_maintainer_dispatch() -> None:
     triggers = _workflow()[True]
     assert set(triggers) == {"pull_request", "workflow_dispatch"}
     paths = triggers["pull_request"]["paths"]
-    assert len(paths) == len(set(paths)) and set(paths) == OWN_PATHS | PIN_PATHS
-    for path in OWN_PATHS | PIN_PATHS:
+    assert len(paths) == len(set(paths)) and set(paths) == OWN_PATHS | PIN_PATHS | BOUND_PATHS
+    for path in OWN_PATHS | PIN_PATHS | BOUND_PATHS:
         if path.endswith("/**"):
-            assert (ROOT / path[:-3]).is_dir(), path
-        elif "*" in path:
+            assert (ROOT / path[:-3]).is_dir() or path == f"{runner.RECEIPTS_DIR}/**", path
+        elif "/**/" in path:
             base, pattern = path.split("/**/")
             assert any((ROOT / base).rglob(pattern)), path
+        elif "*" in path:
+            assert sorted((ROOT / path).parent.glob(Path(path).name)), path
         else:
             assert (ROOT / path).is_file(), path
+    catalogues = {family.catalogue.as_posix() for family in model_test.FAMILIES.values()}
+    assert {p.relative_to(ROOT).as_posix() for p in (ROOT / "model-based-product-line-engineering/feature-models")
+            .glob("*.yaml")} == catalogues, "the catalogues are exactly the three families'"
     # The runner reads the pin from the package record and its inputs from the qualification runner.
     assert {"de4sdv/semantic/pleml_package.py", f"{PROJECT}/sysand-lock.toml"} <= set(runner.EXECUTOR_INPUTS)
-    # No production model path: the production selectors stay untouched until the switch.
+    # The job reads production documents but changes no production selector: none of its own,
+    # pin or receipt paths is a trigger of the production validation.
     validation = set(_load(VALIDATION)[True]["pull_request"]["paths"])
-    assert not (set(paths) & validation)
+    assert not ((OWN_PATHS | PIN_PATHS | {f"{runner.RECEIPTS_DIR}/**"}) & validation)
     assert triggers["workflow_dispatch"]["inputs"]["ref"]["required"] is True
 
 
