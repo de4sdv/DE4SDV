@@ -159,7 +159,7 @@ runner replays the same in unlicensed CI and locally.
 - its elements differ from the recorded digest;
 - a source document changed after the serialization;
 - another evaluator revision produced it;
-- its verdicts or derived variants do not reproduce.
+- its verdicts, derived variants or admission do not reproduce.
 
 `receipts --compare <directory>` refuses when the fresh elements differ from
 the committed receipts' elements.
