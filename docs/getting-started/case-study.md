@@ -207,8 +207,10 @@ In the repository today:
 
 In progress, or not there yet:
 
-- `INC-MW-011`, Eclipse S-CORE as the middleware layer: phases 0 to 7 are
-  merged, phase 8 is in review, and phases 9 to 12 are still to come
+- `INC-MW-011`, Eclipse S-CORE as the middleware layer: phases 0 to 8 are
+  merged, and verification and evidence (phase 10) is next. Variability
+  (phase 9) waits for the planned switch of the product-line authority to
+  PLEML, and phases 11 and 12 are still to come
   ([framing model](../../textual-notation-of-model/packages/features/middleware/middleware_score_framing.sysml));
 - a fenced experiment that restates the governed scope in the PLEML
   product-line library, pinned to an exact upstream revision
@@ -249,7 +251,7 @@ needs (4), requirements (5), architecture (6 to 8), variability (9), and
 verification and validation (V&V) and evidence (10) to publication (11) and the
 baseline decision (12).
 
-![Concept illustration, not a model view: three lanes. Agent: read the next obligation, author model content, open a pull request. Deterministic evaluation: on each push the Method Check evaluates the model (same revision, same verdict) and returns gaps and the next obligation to the agent; executable checks today cover phases 0, 4, 5 and 10. People: the report goes to independent review and owner decisions, and only then to a merge to main.](concept-agentic-engineering.drawio.svg)
+![Concept illustration, not a model view: three lanes. Agent: read the next obligation, author model content, open a pull request. Deterministic evaluation: on each push the Method Check evaluates the model (same revision, same verdict) and returns gaps and the next obligation to the agent; executable checks today cover phases 0, 4 to 8 and 10. People: the report goes to independent review and owner decisions, and only then to a merge to main.](concept-agentic-engineering.drawio.svg)
 
 *Concept illustration, not a model view: deterministic agentic engineering.*
 An agent authors model content and a deterministic evaluation judges it: on
@@ -273,14 +275,21 @@ INC-AEBS-010 was walked this way, push by push
 ([#349](https://github.com/de4sdv/DE4SDV/pull/349)), and INC-MW-011 is being
 authored the same way ([#374](https://github.com/de4sdv/DE4SDV/pull/374)).
 
-The scope is deliberately narrow. Today only the steps for framing, needs,
-requirements, and V&V and evidence declare executable checks; the other phases
-are reported as unchecked, never as passed, and rely on review. The evaluation
-checks model content against the method's checks: it does not judge
-engineering correctness, and its results are no acceptance, compliance, or
-certification claim. The Method Check is advisory, so gaps never fail it.
-Independent review and owner decisions stay with people, and maintainers
-decide what merges.
+The scope is deliberately narrow. Today the steps for framing, needs,
+requirements, architecture, and V&V and evidence declare executable checks
+(phases 0, 4 to 8, and 10); the other phases are reported as unchecked, never
+as passed, and rely on review. The architecture phases 6 to 8 check the
+allocation chain from requirement to function, logical element, and physical
+element. A missing allocation to the next layer blocks the phase exit; among
+requirements only the functional ones block, and the others get an advisory
+note. The backward checks, whether an element receives an allocation from the
+layer before it, are advisory. The Method Check of a pull request evaluates
+these checks on the export of its head; the public method tools give no
+verdict for phases 6 to 8 yet. The evaluation checks model content against
+the method's checks: it does not judge engineering correctness, and its
+results are no acceptance, compliance, or certification claim. The Method
+Check is advisory, so gaps never fail it. Independent review and owner
+decisions stay with people, and maintainers decide what merges.
 
 A change travels like this:
 
