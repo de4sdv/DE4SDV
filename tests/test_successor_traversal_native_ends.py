@@ -468,6 +468,8 @@ def test_the_export_side_closure_holds_on_the_cut_and_refuses_an_allocation_with
     assert not report["allocation_end_closure"]["checks"]["every allocation is readable and binary"]
     assert report["allocation_end_closure"]["unreadable"] == ["endless"]
     assert report["allocation_end_closure"]["unreadable_reasons"] == [
-        f"{export_side.label('endless')}: 0 ends, a binary allocation has 2"]
+        f"{export_side.label('endless')}: it has no ends of its own; " + sp.ACCEPTED_ALLOCATION_FORM]
+    assert sp.ACCEPTED_ALLOCATION_FORM == ("author the allocation as `allocate <source> to <target>`; "
+                                           "allocations without their own ends are not an accepted form")
     privileged = sp.parity_report(export_side, api_side)["allocation_end_closure"]
     assert not privileged["checks"]["every served allocation is readable and binary"]

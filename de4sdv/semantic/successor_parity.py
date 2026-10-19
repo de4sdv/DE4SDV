@@ -46,6 +46,12 @@ PARITY_RELATIONS = (ALLOCATED_TO, "hasValidationScenario")
 
 Fact = tuple[str, str, str, str]
 
+#: DE4SDV's accepted form of a native allocation, which every governed allocation uses: its own two
+#: ends. An allocation usage without its own ends (an allocation slot that would inherit its
+#: definition's) is no fact for the traversal and is refused by the allocation-end closure.
+ACCEPTED_ALLOCATION_FORM = ("author the allocation as `allocate <source> to <target>`; "
+                            "allocations without their own ends are not an accepted form")
+
 
 def connectors(view: ModelView, relation: str) -> dict[str, tuple[tuple[str, ...], str]]:
     """The connectors the method reads for ``relation``: every native allocation for
@@ -233,13 +239,14 @@ def allocation_end_closure(export_view: ModelView, api_view: ModelView, *,
 def _unreadable_allocations(view: ModelView, allocations: Mapping[str, tuple[tuple[str, ...], str]]
                             ) -> dict[str, str]:
     """The closure's rule, allocation -> reason: an allocation is readable and binary when the traversal
-    can read its ends (:func:`~de4sdv.semantic.trace_vocabulary_traversal.unreadable_ends`) and it has
-    exactly two; an allocation without its own ends is no fact for the traversal, and not binary here."""
+    can read its ends (:func:`~de4sdv.semantic.trace_vocabulary_traversal.unreadable_ends`), which
+    refuses any count but two once an allocation owns an end. An allocation without its own ends is no
+    fact for the traversal, and not an accepted form here (:data:`ACCEPTED_ALLOCATION_FORM`)."""
     found = {}
     for allocation, (ends, problem) in sorted(allocations.items()):
         reason = unreadable_ends(view, allocation, ends, problem, kind="allocation")
-        if not reason and len(ends) != 2:
-            reason = f"{view.label(allocation)}: {len(ends)} ends, a binary allocation has 2"
+        if not reason and not ends:
+            reason = f"{view.label(allocation)}: it has no ends of its own; {ACCEPTED_ALLOCATION_FORM}"
         if reason:
             found[allocation] = reason
     return found
@@ -332,6 +339,6 @@ def parity_report(export_view: ModelView, api_view: ModelView) -> dict[str, Any]
     }
 
 
-__all__ = ["ALLOCATED_TO", "EXPORT_PARITY_SCHEMA", "Fact", "PARITY_RELATIONS", "PARITY_SCHEMA",
-           "allocation_end_closure", "connectors", "end_pair", "export_allocation_closure", "export_parity",
-           "method_facts", "parity_report", "relation_parity", "traversal_facts"]
+__all__ = ["ACCEPTED_ALLOCATION_FORM", "ALLOCATED_TO", "EXPORT_PARITY_SCHEMA", "Fact", "PARITY_RELATIONS",
+           "PARITY_SCHEMA", "allocation_end_closure", "connectors", "end_pair", "export_allocation_closure",
+           "export_parity", "method_facts", "parity_report", "relation_parity", "traversal_facts"]

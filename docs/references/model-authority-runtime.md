@@ -164,17 +164,20 @@ An answer is `incomplete`, never an absence, in these cases:
 
 - `allocatedTo`, from any subject: an allocation of the revision cannot be
   read. The reader refuses its ends, one of its ends or owned relationships is
-  not in the revision, or it has a number of ends other than two.
+  not in the revision, or it owns ends but not two. An allocation without
+  ends of its own is no fact here; the parity refuses it (see below).
 - `allocatedTo`, from a subject: an end of one of the subject's allocations
   grounds in two layer classes.
 - `hasValidationScenario`, from any subject: a connection that may carry it
   cannot be read as two ends. That is a connection typed by the planning
   carrier, one whose typing cannot be decided, or an untyped one whose ends
   cannot be read.
-- `hasValidationScenario`, from a subject: an untyped connection's ends ground
-  in the planning end pair, so it could be a planning connection without its
-  typing. An untyped connection between other elements carries no planning
-  fact, and neither does one with readable ends other than two.
+- `hasValidationScenario` or its inverse, from either end of an untyped
+  connection written need first, need to validation scenario (its ends ground
+  in the planning end pair in that order): it could be a planning connection
+  without its typing. An untyped connection written the other way or between
+  other elements carries no planning fact, and neither does one with readable
+  ends other than two.
 - Any successor relation, from a subject: a witness's owning context cannot be
   decided (its owning relationship must be in the revision and name one
   owner), or its typing evidence cannot be decided.
@@ -202,10 +205,12 @@ with the imported export's, read as the PR Method Check and the method read
 them. It also checks the API closure of the typed allocation ends: one
 validated kernel binding per end-pair class, equal to the profile pin and
 served, and every served allocation readable and binary, with the export's
-ends (`de4sdv/semantic/successor_parity.py`). A failure fails the run, and the
-release evidence requires the passing report. This is the evidence the
-`allocatedTo` forward obligations ask for; the admission records them until a
-run at the exact SHA produces it.
+ends (`de4sdv/semantic/successor_parity.py`). An allocation without ends of
+its own fails it: DE4SDV allocations are authored
+`allocate <source> to <target>`, and the diagnostic says so. A failure fails
+the run, and the release evidence requires the passing report. This is the
+evidence the `allocatedTo` forward obligations ask for; the admission records
+them until a run at the exact SHA produces it.
 
 The parity is a consistency check, not independent corroboration. Both
 readings use one reader over two corpora of one revision, and the served-model

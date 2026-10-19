@@ -97,6 +97,13 @@ def _untyped_planning_connection(builder: ModelBuilder) -> None:
         builder.reference_subsetting(end, target)
 
 
+def _allocation_without_ends(builder: ModelBuilder) -> None:
+    """After _gappy: ``allocation slot;`` in First's needs package, an allocation usage with no ends of
+    its own (it would inherit its definition's)."""
+    package = next(e for e in builder.elements if e.get("declaredName") == "DE4SDV_FirstNeedsRequirements")
+    builder.usage("AllocationUsage", "slot", package)
+
+
 def _export(tmp_path: Path, *parts, git_commit: str = GIT, kernel: str = "cut") -> Path:
     builder = cut_method_builder("method-check") if kernel == "cut" else ModelBuilder(label="method-check")
     for part in parts:
@@ -205,6 +212,24 @@ def test_a_successor_parity_failure_is_a_technical_error(tmp_path: Path, real_re
     assert "hasValidationScenario: the export-snapshot traversal answers completely" in error
     assert "from DE4SDV_FirstNeedsRequirements::need0: carrier typing evidence is missing or unresolved" in error
     assert "Successor parity on the export: failed" in summary
+
+
+def test_an_allocation_without_its_own_ends_fails_the_check_and_names_the_accepted_form(
+        tmp_path: Path, real_reports) -> None:
+    """An allocation usage without its own ends is not an accepted form (DE4SDV allocations are
+    authored ``allocate <source> to <target>``): the export closure refuses it, and the error and the
+    summary tell the author which form to write."""
+    export = _export(tmp_path, _gappy, _allocation_without_ends)
+    code, result, summary = _run(tmp_path, export, EntryPointSpy(real_reports))
+    assert code == 1
+    closure = result["successor_parity"]["allocation_end_closure"]
+    assert not closure["checks"]["every allocation is readable and binary"]
+    expected = ("DE4SDV_FirstNeedsRequirements::slot: it has no ends of its own; author the allocation as "
+                "`allocate <source> to <target>`; allocations without their own ends are not an accepted form")
+    assert closure["unreadable_reasons"] == [expected]
+    (error,) = [e for e in result["errors"] if e.startswith("the successor parity fails on this export")]
+    assert f"allocation-end closure: {expected}" in error
+    assert expected in summary
 
 
 def test_gaps_never_fail_the_check(tmp_path: Path, real_reports) -> None:

@@ -306,11 +306,18 @@ equal the facts the semantic service returns, one per connector. Neither side
 may report a problem or an `incomplete` answer, and every allocation must be
 readable and have two ends. The privileged ingestion repeats the comparison
 over the imported API revision, so the check runs it here first: a failure is
-a technical error, and the summary names the elements. Typical causes are an
-allocation without its own ends, a planning connection written scenario first,
-or an untyped connection between a need and a validation scenario. That last
-one could be a planning connection without its typing: type it, or connect
-other elements.
+a technical error, and the summary names the elements. Typical causes:
+
+- An allocation without its own ends. Author every allocation as
+  `allocate <source> to <target>`; an allocation usage without ends of its own
+  is not an accepted form.
+- A planning connection written scenario first. Write it need first.
+- An untyped connection from a need to a validation scenario, when that need
+  already has a typed planning connection. It could be a planning connection
+  without its typing: type it, or connect other elements. The check finds an
+  untyped connection only in that case. One from a need without a typed
+  planning connection, or one written scenario first, is not flagged yet;
+  closing that gap is method work.
 
 Read the result for your head commit:
 
