@@ -91,14 +91,28 @@ def test_the_receipts_bind_the_documents_of_this_tree_by_digest() -> None:
             assert _sha256(path) == source["sha256"], f"{source['path']} changed after the receipt {name}"
 
 
-def test_the_receipts_record_one_licensed_serialization() -> None:
-    serializers = [receipt["serializer"] for receipt in _receipts().values()]
-    assert all(serializer == serializers[0] for serializer in serializers)
-    [serializer] = serializers[:1]
-    assert {key: serializer[key] for key in ("name", "version", "options")} == {
-        "name": "syside", "version": runner.SERIALIZER_VERSION, "options": "production export"}
-    assert re.fullmatch(r"[0-9a-f]{40}", serializer["executor_revision"])
-    assert serializer["bundle_git_commit"] == serializer["executor_revision"]
+def test_the_receipts_record_one_licensed_serialization_and_its_provenance_apart() -> None:
+    """The serializer travels with the elements; the run's provenance sits beside them, in the receipt,
+    so the same serialization on another commit gives the same elements file."""
+    receipts = list(_receipts().values())
+    assert all(receipt["serializer"] == {"name": "syside", "version": runner.SERIALIZER_VERSION,
+                                         "options": "production export"} for receipt in receipts)
+    provenance = [receipt["provenance"] for receipt in receipts]
+    assert all(item == provenance[0] for item in provenance)
+    assert set(provenance[0]) == {"executor_revision", "bundle_git_commit"}
+    assert re.fullmatch(r"[0-9a-f]{40}", provenance[0]["executor_revision"])
+    assert provenance[0]["bundle_git_commit"] == provenance[0]["executor_revision"]
+
+
+def test_the_receipts_bind_the_pinned_pleml_release() -> None:
+    """Every receipt binds the release the fenced package pins (S1); a re-pin makes them stale."""
+    from de4sdv.semantic import pleml_package
+
+    pinned = {"package": pleml_package.PACKAGE, "version": pleml_package.RELEASE.version,
+              "tag_commit": pleml_package.RELEASE.tag_commit, "path": pleml_package.LIBRARY_PATH.as_posix(),
+              "sha256": pleml_package.RELEASE.library.sha256}
+    assert all(receipt["library"] == pinned for receipt in _receipts().values())
+    assert pinned["path"] == runner.LIBRARY["label"] and pinned["sha256"] == runner.LIBRARY["sha256"]
 
 
 def test_the_receipts_hold_the_reviewed_verdicts() -> None:

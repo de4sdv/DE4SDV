@@ -1,8 +1,8 @@
 {
   "elements": {
-    "content_sha256": "8347aea3e03526bb8f61dc82d80b7b2179ca0060f2a91266035bb6e3b284de09",
+    "content_sha256": "c7af4d9589d0d9e61dfe98a58523d2180d2ae83ed50958b531135c9c88728288",
     "path": "pleml-feature-models.elements.json.xz",
-    "sha256": "36ac1069df6fa244f40a82298aa3a29bc1911a44589e1f035e5176b1fbfb4681"
+    "sha256": "524e4d7acc1a92be4863949bd230e8bba92c50c3b0082f6cd0096992b2499bc8"
   },
   "evaluation": {
     "admission_authority": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
@@ -1896,12 +1896,29 @@
     "schema": "de4sdv.pleml-configuration-evaluation/v1"
   },
   "evaluator": {
-    "path": "de4sdv/semantic/pleml_configuration.py",
-    "sha256": "d77280b70c52eea5c9184046a3b262e786a9506f2261717c0c9d297b9d006840"
+    "modules": {
+      "de4sdv/semantic/kernel_contract.py": "28a5bc82d86d54de7f7d776fb97657878ba40fd9962a3d015ddebd74a09a8777",
+      "de4sdv/semantic/pleml_configuration.py": "343cd13a4ddb42297f213810eb0a3ce8d3c8541d4de62cbefc433b0c7b66456d",
+      "de4sdv/semantic/pleml_package.py": "5a58b768031c68359f04ebdf88cf3ea694dbe8b781116c5223b8b7c40e39ca6b",
+      "de4sdv/semantic/pleml_receipts.py": "1367904e79fd0beec3b68a491093773ef85e40ec076daa0a3876da0b3082ce35",
+      "de4sdv/semantic/validation.py": "eebe0b1adb2a81a89e41552f60ce42d03d23d0fb204131d7b4d3c6d541866997",
+      "de4sdv/sysml_api/baseline.py": "a0978aa3907200c87da7b1e64d8e3896d62d6b85e5572fa6945be470ecc07500",
+      "de4sdv/sysml_api/product_line_scope.py": "5490f4af3ced45b9e28b3697f2c0d351e04b43a7c9a448cbb381678248d27d95",
+      "de4sdv/sysml_api/repository.py": "569a050472634b57a92a56439042e9c34a004aeea5eb9ee0318a834fcb9ceb64",
+      "de4sdv/sysml_api/revisions.py": "b1e1d1d587bbbe7ec78d05e02c8abf428786dda4cd7bb55334a5cf30d83e88fd"
+    },
+    "sha256": "1409f59f16dcc17040e1844d09b37946146240b58b1890aa713fe325b71b69d0"
   },
   "feature_models": [
     "SDVProductLineFeatureModel"
   ],
+  "library": {
+    "package": "pkg:sysand/mbse4u/pleml",
+    "path": "model-based-product-line-engineering/libraries/pleml/.sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml",
+    "sha256": "a3f23c2531272b4cab684f0f1d1a982a443f0a2cdca824cc893f4004980ae02c",
+    "tag_commit": "b694648cce4b96126eda2de3eb881c54397ae035",
+    "version": "1.1.1"
+  },
   "model_sources": [
     "model-based-product-line-engineering/feature-configurations/aebs_autoware_linux_lidar_camera.sysml",
     "model-based-product-line-engineering/feature-configurations/apollo_qnx_qvm.sysml",
@@ -1911,11 +1928,13 @@
     "model-based-product-line-engineering/feature-models/sdv_product_line.sysml"
   ],
   "native_expression_executed": false,
+  "provenance": {
+    "bundle_git_commit": "6f3f3304b5a6289449bdb9fcce28905b7f3f8dfc",
+    "executor_revision": "6f3f3304b5a6289449bdb9fcce28905b7f3f8dfc"
+  },
   "qualified": false,
   "schema": "de4sdv.pleml-configuration-receipt/v1",
   "serializer": {
-    "bundle_git_commit": "6f3f3304b5a6289449bdb9fcce28905b7f3f8dfc",
-    "executor_revision": "6f3f3304b5a6289449bdb9fcce28905b7f3f8dfc",
     "name": "syside",
     "options": "production export",
     "version": "0.10.3"
