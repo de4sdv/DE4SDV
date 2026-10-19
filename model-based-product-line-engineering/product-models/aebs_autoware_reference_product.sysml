@@ -2,8 +2,8 @@
  * DE4SDV AEBS Autoware reference member product — composite projection.
  *
  * This is a hand-authored composite product model that ties together the
- * platform-stack shared asset, the vehicle sensing boundary, and the AEBS
- * physical software realization into a single AEBS-equipped member product.
+ * projection of the platform-stack shared asset, the vehicle sensing boundary,
+ * and the AEBS physical software realization into one AEBS-equipped member.
  *
  * The platform-stack variant selections for this product are documented in
  * the bill-of-features (aebs-autoware-linux-lidar-camera.yaml) and resolved
@@ -183,6 +183,7 @@ package DE4SDV_AEBSAutowareReferenceProduct {
     expose VehicleSensingAssembly;
     expose VehicleTargetAEBSPhysicalSoftwareBoundary;
     expose VehicleTargetAEBSSystem;
+    expose AEBSAutowareLinuxLidarCamera;
     render asTreeDiagram;
   }
 

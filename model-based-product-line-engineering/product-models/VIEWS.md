@@ -19,7 +19,7 @@ Reviewers need the product-level composition visible: platform stack, sensing bo
 - **Source:** `aebs_autoware_reference_product.sysml`
 - **Viewpoint:** `selectedPhysicalStructureViewpoint` (`PhysicalStructureDefinitionViewpoint`)
 - **Concern:** `productStructureConcern`
-- **Exposes:** `AEBSAutowareReferenceProduct`, `SDVPlatformStack`, `VehicleSensingAssembly`, `VehicleTargetAEBSPhysicalSoftwareBoundary`, `VehicleTargetAEBSSystem`
+- **Exposes:** `AEBSAutowareReferenceProduct`, `SDVPlatformStack`, `VehicleSensingAssembly`, `VehicleTargetAEBSPhysicalSoftwareBoundary`, `VehicleTargetAEBSSystem`, `AEBSAutowareLinuxLidarCamera`
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
