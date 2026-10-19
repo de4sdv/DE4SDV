@@ -566,8 +566,9 @@ class _Identity:
                 continue
             name = graph.label(definitions[0])
             owner = graph.owner(usage)  # the element itself, or the annotated owner of a prefix annotation
-            about = graph.relationships(usage, "Annotation")
-            if about or graph.kind(owner or "") in {"Package", "LibraryPackage", "Namespace"}:
+            annotated = {graph.target(graph.by_id[relationship], "annotatedElement")
+                         for relationship in graph.relationships(usage, "Annotation")}
+            if annotated - {owner} or graph.kind(owner or "") in {"Package", "LibraryPackage", "Namespace"}:
                 raise PlemlShapeError(f"{name} metadata is applied through an `about` annotation in "
                                       f"{graph.label(owner)}; apply it inside the body of the element it annotates")
 

@@ -673,6 +673,18 @@ def test_kernel_metadata_placed_with_about_is_refused():
         line.graph.evaluate()
 
 
+def test_owned_metadata_that_names_its_owner_as_annotated_element_is_read():
+    """``@M { ... }`` in the body: the serializer may also emit the annotation of its owner."""
+    line = PlatformLine()
+    member = line.configure("member", "autoware", "noMiddleware", "linux", "noHypervisor")
+    usage = line.graph.kernel_record(member, "projection_name", {evaluator.KERNEL.projection_name_field: "Member"})
+    annotation = line.graph.element("Annotation", line.graph.sources[usage], owningRelatedElement={"@id": usage},
+                                    annotatedElement={"@id": member})
+    line.graph.by_id[usage].setdefault("ownedRelationship", []).append({"@id": annotation})
+    (model,) = line.graph.evaluate()["feature_models"]
+    assert model["configurations"][0]["projection_name"] == "Member"
+
+
 def test_a_projection_name_placed_with_about_is_refused():
     line = PlatformLine()
     member = line.configure("member", "autoware", "noMiddleware", "linux", "noHypervisor")
