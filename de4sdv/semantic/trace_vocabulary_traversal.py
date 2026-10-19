@@ -6,19 +6,39 @@ generated trace-vocabulary contract (:func:`model_contract.load_trace_contract`)
 the model-authority runtime composes these classes with the model-built kernel
 contract. Endpoint and carrier identity comes from ingestion-validated kernel
 bindings, never from names or SysML text.
+
+The ends of a native connector are read with the method's reader
+(:mod:`de4sdv.semantic.relation_checks`), so the services and the method checks
+follow one reading rule: an allocation's ends through
+:func:`~de4sdv.semantic.relation_checks.allocation_ends` (EndFeatureMembership,
+then the authored ReferenceSubsetting; an end written as a feature chain reads
+as its last chaining feature), a typed connection's through
+:func:`~de4sdv.semantic.relation_checks.connection_ends`. Derived ``source`` and
+``target`` keys are not read: the licensed export has no ``source``, and its
+``target`` names a chained end's chain, not the feature it ends in. Which end
+pair an allocation grounds in is decided by the method's reader too
+(:func:`~de4sdv.semantic.relation_checks.allocation_hops`); the traversal adds
+its witness checks (identity, owning context, decidable typing evidence) and
+reports a witness it cannot decide as incomplete.
 """
 from __future__ import annotations
 from typing import Any
 from de4sdv.sysml_api.errors import IdentityNotFoundError
 from de4sdv.sysml_api.repository import element_id, reference_ids
+from .increment_scope import ModelView
 from .kernel_binding_index import KernelBindingIndex
 from .query import SemanticQueryService
+from .relation_checks import (MethodSideInput, allocation_ends, allocation_hops, allocation_pairs,
+                              connection_ends)
 from .traversal import SemanticTraversal, TraversalHop
-from .model_edges import (is_reference_subsetting_hop, is_subsumption_hop, is_typing_hop,
+from .model_edges import (is_subsumption_hop, is_typing_hop,
                           SUBSUMPTION_FAMILIES, SUBSUMPTION_INLINE_KEYS,
                           TYPING_FAMILIES, TYPING_INLINE_KEYS,
                           REFERENCE_SUBSETTING_FAMILIES)
 from .relationships import build_relationship_graph, is_family
+
+#: What an allocatedTo or planning hop never claims.
+CLAIM_BOUNDARY = "no satisfaction, execution, result, fulfillment, deployment or compliance"
 
 
 class SuccessorTraversal(SemanticTraversal):
@@ -157,8 +177,10 @@ class SuccessorTraversal(SemanticTraversal):
             targets = [ref for key in cls._RAW_TARGETS + extra_target_keys
                        for ref in cls._checked_references(item, key)]
             targets = [ref for ref in targets if element_id(ref) != identifier]
-            if not targets:
-                raise IdentityNotFoundError("raw typing/specialization target is absent")
+            # A relationship that names no target is a reference the export leaves out: the
+            # licensed serializer omits every reference to an element outside the export (the
+            # standard library), implied or authored. No such element is in a governed lineage,
+            # so it supplies no meaning; a target that is named but missing stays undecided.
             references.extend(targets)
         return references
 
@@ -188,64 +210,6 @@ class SuccessorTraversal(SemanticTraversal):
                     "isImplied": item.get("isImplied") is True} for target in targets)
         return build_relationship_graph(elements + projections)
 
-
-    @staticmethod
-    def _normalize_references(references):
-        """Collapse equivalent graph/flat shapes, never a competing target.
-
-        One native reference can appear both as a relationship-graph hop and as
-        a flat ``ReferenceSubsetting`` object. Equivalent source/target pairs
-        are the same fact; a disagreement survives normalization so the caller
-        refuses it structurally instead of dropping one shape.
-        """
-        unique = {}
-        for reference in references:
-            unique.setdefault((reference["source"], reference["target"]), reference)
-        return list(unique.values())
-
-    def _endpoints(self, relationship, key, by_id, graph, raw_index):
-        resolved, witnesses = [], []
-        identifiers = self._checked_reference_ids(relationship, key)
-        if not identifiers:
-            raise IdentityNotFoundError("native connection endpoint is absent")
-        for identifier in identifiers:
-            seen = set()
-            while True:
-                if identifier in seen or identifier not in by_id:
-                    raise IdentityNotFoundError("dangling or cyclic connection endpoint")
-                seen.add(identifier)
-                # Validate all raw shapes before equivalent witnesses coalesce.
-                self._raw_targets(identifier, by_id[identifier], raw_index,
-                    REFERENCE_SUBSETTING_FAMILIES, ("referencedFeature",), ("referencedFeature",))
-                # Graph hops expose the native witness identity as ``witness_id``
-                # (the removed ``relationship_id`` never existed on Hop).
-                graph_references = [
-                    dict(source=hop.source, target=hop.target, kind=hop.kind,
-                         api_object_id=hop.witness_id)
-                    for hop in graph.outgoing(identifier) if is_reference_subsetting_hop(hop)]
-                # The frozen graph can omit flat/owned/list-valued references.
-                # Normalize only the validated raw native serializer shapes.
-                flat_references = [
-                    dict(source=identifier, target=target, kind=item["@type"],
-                         api_object_id=element_id(item))
-                    for item in raw_index.get(identifier, [])
-                    if is_family(str(item.get("@type") or ""), REFERENCE_SUBSETTING_FAMILIES)
-                    for target_key in self._RAW_TARGETS + ("referencedFeature",)
-                    for target in self._checked_reference_ids(item, target_key)
-                    if target != identifier]
-                inline_references = [
-                    dict(source=identifier, target=target, kind="referencedFeature", api_object_id=identifier)
-                    for target in self._checked_reference_ids(by_id[identifier], "referencedFeature")]
-                references = self._normalize_references(graph_references + flat_references + inline_references)
-                if not references:
-                    resolved.append(identifier)
-                    break
-                targets = {reference["target"] for reference in references}
-                if len(targets) != 1:
-                    raise IdentityNotFoundError("ambiguous connection reference endpoint")
-                witnesses.extend(references)
-                identifier = next(iter(targets))
-        return list(dict.fromkeys(resolved)), self._normalize_references(witnesses)
 
     @classmethod
     def _typing_is_unresolved(cls, endpoint, graph, by_id, raw_index, *, require_typing=True):
@@ -325,13 +289,50 @@ class SuccessorTraversal(SemanticTraversal):
                 break
         return meanings
 
+    @staticmethod
+    def _context(relationship, index):
+        """The connector's owning namespace: the owner of its owning relationship (the export's
+        shape), else a derived owner key. An absent or dangling context refuses."""
+        owner = index.owner_of(element_id(relationship) or "")
+        contexts = [owner] if owner else (reference_ids(relationship.get("owningNamespace"))
+                                          or reference_ids(relationship.get("owner"))
+                                          or reference_ids(relationship.get("owningRelatedElement")))
+        if len(contexts) != 1 or contexts[0] not in index.by_id:
+            raise IdentityNotFoundError("native connection context is absent or dangling")
+        return contexts[0]
+
     def _successor_hops(self, predicate, canonical, rows, source, elements):
+        """The hops of one successor relation from ``source``.
+
+        A connector's ends are the method's reading of its native ends (``allocation_ends`` or
+        ``connection_ends``): the first end is the source, the second the target. For native
+        allocations the method's reader also decides the end pair (``allocation_hops``: the one end
+        pair both ends ground in through the validated kernel bindings; an end grounding in two
+        endpoint classes, or an allocation it cannot read, leaves the relation incomplete). For typed
+        connections the profile rows decide (carrier typing, usage kinds, endpoint lineage). A
+        witness whose identity, owning context or typing evidence cannot be decided is incomplete,
+        never a hop and never an absence.
+        """
         index = self.revision_index(elements)
         by_id = index.by_id
         raw_index = index.memo("successor-raw-index", lambda: self._raw_relationship_index(elements))
         graph = index.memo("successor-graph", lambda: self._successor_graph(elements, raw_index))
+        view = ModelView(elements, self)
+        source_id = element_id(source)
         inverse = predicate != canonical
-        mechanical_type = "AllocationUsage" if rows[0]["mechanism"] == "native-allocation" else "ConnectionUsage"
+        allocation = rows[0]["mechanism"] == "native-allocation"
+        mechanical_type = "AllocationUsage" if allocation else "ConnectionUsage"
+        reached = set()
+        if allocation:
+            try:
+                counted, problems = allocation_hops(view, canonical, source_id, incoming=inverse)
+            except MethodSideInput as missing:
+                self.unavailable(predicate, missing)
+                return []
+            for problem in problems:
+                self.unavailable(predicate, problem)
+            reached = {other for other, _allocation in counted}
+        native_ends = allocation_ends(view) if allocation else connection_ends(view)
         resolvers = {}
 
         def resolver_for(class_name):
@@ -345,19 +346,40 @@ class SuccessorTraversal(SemanticTraversal):
                 continue
             try:
                 self._checked_references({"witness": rel}, "witness")
-                sources, sw = self._endpoints(rel, "source", by_id, graph, raw_index)
-                targets, tw = self._endpoints(rel, "target", by_id, graph, raw_index)
-                if element_id(source) not in (targets if inverse else sources):
+                ends, problem = native_ends.get(element_id(rel), ((), ""))
+                if allocation and (problem or len(ends) != 2):
+                    continue  # reported by the method's reader above
+                if problem:
+                    raise IdentityNotFoundError(problem)
+                sources, targets = list(ends[:1]), list(ends[1:])
+                if source_id not in (targets if inverse else sources):
                     continue
                 if len(sources) != 1 or len(targets) != 1:
                     raise IdentityNotFoundError("native binary connection endpoints are incomplete or ambiguous")
-                contexts = reference_ids(rel.get("owningNamespace")) or reference_ids(rel.get("owner")) or reference_ids(rel.get("owningRelatedElement"))
-                if len(contexts) != 1 or contexts[0] not in by_id:
-                    raise IdentityNotFoundError("native connection context is absent or dangling")
+                context = self._context(rel, index)
                 left, right = by_id[sources[0]], by_id[targets[0]]
-                if self._typing_is_unresolved(rel, graph, by_id, raw_index,
-                                              require_typing=mechanical_type == "ConnectionUsage"):
+                if self._typing_is_unresolved(rel, graph, by_id, raw_index, require_typing=not allocation):
                     raise IdentityNotFoundError("carrier typing evidence is missing or unresolved")
+                if allocation:
+                    for endpoint in (left, right):
+                        if self._typing_is_unresolved(endpoint, graph, by_id, raw_index, require_typing=False):
+                            raise IdentityNotFoundError("usage endpoint typing evidence is missing or unresolved")
+                    if (sources[0] if inverse else targets[0]) not in reached:
+                        continue  # the ends ground in no end pair: supported absence
+                    pairs = allocation_pairs(view, canonical, sources[0], targets[0])
+                    if len(pairs) != 1:
+                        raise IdentityNotFoundError("overlapping endpoint identity routing")
+                    row = pairs[0]
+                    result.append(TraversalHop(predicate, "allocation", row["strength"],
+                        right if inverse else left, left if inverse else right, rel,
+                        dict(source_lineage=view.grounding(sources[0], str(row["sourceClass"])),
+                             target_lineage=view.grounding(targets[0], str(row["targetClass"])),
+                             source_root=view.kernel_element(str(row["sourceClass"])),
+                             target_root=view.kernel_element(str(row["targetClass"])),
+                             native_source=sources[0], native_target=targets[0], context_id=context,
+                             carrier=row["carrier"], canonical_predicate=canonical,
+                             claim_boundary=CLAIM_BOUNDARY)))
+                    continue
                 if len(self._governed_meanings(rel, left, right, resolver_for)) > 1:
                     raise IdentityNotFoundError("carrier grounds under overlapping governed endpoint meanings")
                 for row in rows:
@@ -379,16 +401,14 @@ class SuccessorTraversal(SemanticTraversal):
                         continue
                     if len([r for r in rows if r["sourceClass"] == row["sourceClass"] and r["targetClass"] == row["targetClass"]]) != 1:
                         raise IdentityNotFoundError("overlapping endpoint identity routing")
-                    result.append(TraversalHop(predicate,
-                        "allocation" if row["mechanism"] == "native-allocation" else "typed-connection",
+                    result.append(TraversalHop(predicate, "typed-connection",
                         row["strength"], right if inverse else left, left if inverse else right, rel,
                         dict(source_lineage=lg, target_lineage=rg,
                              source_root=lr["root_id"], target_root=rr["root_id"],
                              native_source=sources[0], native_target=targets[0],
-                             context_id=contexts[0], reference_witnesses=sw + tw,
-                             canonical_predicate=canonical,
-                             claim_boundary="no satisfaction, execution, result, fulfillment, deployment or compliance")))
-            except IdentityNotFoundError as exc:
+                             context_id=context, carrier=row["carrier"],
+                             canonical_predicate=canonical, claim_boundary=CLAIM_BOUNDARY)))
+            except (IdentityNotFoundError, MethodSideInput) as exc:
                 self.unavailable(predicate, exc)
         # One API object cannot acquire two governed endpoint meanings.
         keys = [(element_id(h.api_object), element_id(h.source), element_id(h.target)) for h in result]

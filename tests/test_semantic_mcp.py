@@ -78,15 +78,10 @@ def semantic_api_server(semantic_service):
 #: discriminator fails closed without a validated EvidenceContract kernel root
 #: (the fixture has none): zero edges, an explicit ``incomplete`` record with
 #: this reason, never an ordinary absence. The successor relations are
-#: incomplete over this fixture (its ConnectionUsages carry no successor
-#: carrier endpoints).
+#: decided over this fixture: its one ConnectionUsage (the derivation) is read
+#: from its native ends and grounds in no planning or provenance end pair.
 EVIDENCE_CLOSURE_REASON = "EvidenceContract type closure is not established"
-FIXTURE_UNSUPPORTED = {
-    "hasRegulatorySource",
-    "hasRelevantEvidenceContract",
-    "hasValidationScenario",
-    "validationScenarioFor",
-}
+FIXTURE_UNSUPPORTED = {"hasRelevantEvidenceContract"}
 
 
 def _evidence_record(records):
@@ -194,12 +189,14 @@ def semantic_service():
             "@id": "derivation-conn",
             "@type": "ConnectionUsage",
             "declaredName": "reqCommandEmergencyBrakingDerivation",
+            "owningNamespace": ref("needs-package"),
             "ownedRelationship": [
                 ref("derivation-end-need"),
                 ref("derivation-end-req"),
                 ref("derivation-conn-typing"),
             ],
         },
+        {"@id": "needs-package", "@type": "Package"},
         {
             "@id": "derivation-end-need",
             "@type": "EndFeatureMembership",
@@ -325,10 +322,10 @@ def test_model_status_reports_exact_validated_full_model_binding(semantic_servic
     result = semantic_service.model_status()
 
     assert result["current_baseline"] is True
-    # 20 fixture elements: the c3 subject-membership fixture carries the
+    # 21 fixture elements: the c3 subject-membership fixture carries the
     # authored FeatureTyping for the member product in addition to the
-    # membership shape.
-    assert result["element_count"] == 20
+    # membership shape, and the derivation connection has an owning package.
+    assert result["element_count"] == 21
     assert result["gaps"] == []
 
 

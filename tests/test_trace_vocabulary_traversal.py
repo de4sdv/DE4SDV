@@ -1,4 +1,10 @@
-"""Synthetic API fixtures: executable slice, not privileged model closure."""
+"""Synthetic API fixtures: executable slice, not privileged model closure.
+
+Connectors take the licensed export's end shape: each end is an
+EndFeatureMembership owning an end Feature whose authored ReferenceSubsetting
+names the connected usage. They carry no derived ``source``/``target`` keys,
+which the export does not provide and the traversal does not read.
+"""
 from pathlib import Path
 import pytest
 import mcp.client.stdio  # keep session-global stderr for later MCP tests
@@ -33,10 +39,7 @@ def fixture_service():
         elements.append({"@id": "use-" + name, "@type": kind,
                          "type": [{"@id": "root-" + name}]})
     elements.append({"@id": "context", "@type": "Package"})
-    elements.append({"@id": "allocation", "@type": "AllocationUsage",
-                     "owningNamespace": {"@id": "context"},
-                     "source": [{"@id": "use-Requirement"}],
-                     "target": [{"@id": "use-Function"}]})
+    elements.extend(edge("AllocationUsage", "use-Requirement", "use-Function", name="allocation"))
     binding = RevisionBinding.from_dict(binding_dict(git_commit=REVISION, scope="fixture",
         kernel_bindings=bindings))
     class Repository:
@@ -69,15 +72,35 @@ def rebuild(elements, binding, contract=None):
     return model_service(binding, Repository(), expected_git_revision=REVISION)
 
 
+def native_end(connector, role, usage):
+    """One connector end in the export's shape: the EndFeatureMembership, its end Feature and the end
+    Feature's authored ReferenceSubsetting naming the connected usage."""
+    membership, end, subsetting = f"{connector}-{role}-end", f"{connector}-{role}", f"{connector}-{role}-reference"
+    return [
+        {"@id": membership, "@type": "EndFeatureMembership", "memberName": role,
+         "memberElement": {"@id": end}, "ownedRelatedElement": [{"@id": end}],
+         "owningRelatedElement": {"@id": connector}},
+        {"@id": end, "@type": "Feature", "name": role, "isEnd": True,
+         "owningRelationship": {"@id": membership}, "ownedRelationship": [{"@id": subsetting}]},
+        {"@id": subsetting, "@type": "ReferenceSubsetting", "owningRelatedElement": {"@id": end},
+         "specific": {"@id": end}, "subsettingFeature": {"@id": end}, "general": {"@id": usage},
+         "subsettedFeature": {"@id": usage}, "referencedFeature": {"@id": usage}},
+    ]
+
+
 def edge(kind, source, target, name="extra", **kwargs):
-    return {"@id": name, "@type": kind, "source": [{"@id": source}],
-            "target": [{"@id": target}], "owningNamespace": {"@id": "context"}, **kwargs}
+    """A binary connector from ``source`` to ``target`` in the export's shape, followed by its end
+    elements: extend the corpus with the list."""
+    ends = native_end(name, "source", source) + native_end(name, "target", target)
+    connector = {"@id": name, "@type": kind, "owningNamespace": {"@id": "context"},
+                 "ownedRelationship": [{"@id": ends[0]["@id"]}, {"@id": ends[3]["@id"]}], **kwargs}
+    return [connector, *ends]
 
 
 @pytest.mark.parametrize("source,target", [("Function", "LogicalElement"), ("LogicalElement", "PhysicalElement")])
 def test_other_approved_native_pairs(source, target):
     service, elements, _, _ = fixture_service()
-    elements.append(edge("AllocationUsage", "use-" + source, "use-" + target))
+    elements.extend(edge("AllocationUsage", "use-" + source, "use-" + target))
     result = service.semantic_neighbors("use-" + source, predicates=["allocatedTo"])
     assert [(e["target"], e["api_object_id"]) for e in result["edges"]] == [("use-" + target, "extra")]
 
@@ -85,8 +108,8 @@ def test_other_approved_native_pairs(source, target):
 @pytest.mark.parametrize("source,target", [("Requirement", "LogicalElement"), ("PhysicalElement", "LogicalElement"), ("Need", "Function")])
 def test_unapproved_pairs_and_need_cannot_masquerade_as_requirement(source, target):
     service, elements, _, _ = fixture_service()
-    elements[:] = [e for e in elements if e["@id"] != "allocation"]
-    elements.append(edge("AllocationUsage", "use-" + source, "use-" + target))
+    elements[:] = [e for e in elements if e["@id"] != "allocation" and not e["@id"].startswith("allocation-")]
+    elements.extend(edge("AllocationUsage", "use-" + source, "use-" + target))
     result = service.semantic_neighbors("use-" + source, predicates=["allocatedTo"])
     assert result["edges"] == []
     assert result["semantic_status"] == "complete"
@@ -96,7 +119,7 @@ def test_unapproved_pairs_and_need_cannot_masquerade_as_requirement(source, targ
 def test_typed_planning_and_source_provenance_through_public_binder(predicate):
     service, elements, _, contract = fixture_service()
     row = contract["relations"][predicate][0]
-    elements.append(edge("ConnectionUsage", "use-" + row["sourceClass"], "use-" + row["targetClass"],
+    elements.extend(edge("ConnectionUsage", "use-" + row["sourceClass"], "use-" + row["targetClass"],
         type=[{"@id": "root-" + predicate}]))
     report = service.semantic_neighbors("use-" + row["sourceClass"], predicates=[predicate])
     assert len(report["edges"]) == 1
@@ -159,7 +182,7 @@ def test_retired_stronger_claims_are_refused_not_aliases():
 
 def test_public_impact_reports_allocation_without_mandatory_chain_or_duplicate_dependency():
     service, elements, _, _ = fixture_service()
-    elements.append(edge("AllocationUsage", "use-Function", "use-LogicalElement", name="logical"))
+    elements.extend(edge("AllocationUsage", "use-Function", "use-LogicalElement", name="logical"))
     report = service.impact("use-Requirement")
     assert {(e["source"], e["target"]) for e in report["edges"] if e["predicate"] == "allocatedTo"} == {
         ("use-Requirement", "use-Function"), ("use-Function", "use-LogicalElement")}
@@ -218,56 +241,142 @@ def _spec_query(mutate, predicate="allocatedTo", source="use-Requirement"):
     return rebuild(elements, binding, contract).semantic_neighbors(source, predicates=[predicate])
 
 
-def test_supported_graph_reference_preserves_exact_witness():
-    def mutate(elements, binding, contract):
-        elements.extend([
-            {"@id": "shadow", "@type": "ReferenceUsage"},
-            {"@id": "ref", "@type": "ReferenceSubsetting", "subsettingFeature": {"@id": "shadow"},
-             "subsettedFeature": {"@id": "use-Function"}}])
-        next(e for e in elements if e["@id"] == "allocation")["target"] = [{"@id": "shadow"}]
-    report = _spec_query(mutate)
+def _with_method(mutate, predicate="allocatedTo", source="use-Requirement"):
+    """The traversal's answer and the method check's result over the same mutated corpus."""
+    from de4sdv.semantic.increment_scope import ModelView
+    from de4sdv.semantic.relation_checks import check_relation
+    _, elements, binding, contract = fixture_service()
+    mutate(elements)
+    service = rebuild(elements, binding, contract)
+    report = service.semantic_neighbors(source, predicates=[predicate])
+    return report, check_relation(ModelView(service._elements(), service.traversal), predicate, source)
+
+
+def _element(elements, identifier):
+    return next(e for e in elements if e["@id"] == identifier)
+
+
+def test_the_witness_is_the_connector_and_its_read_ends():
+    report, method = _with_method(lambda elements: None)
     assert report["semantic_status"] == "complete"
-    assert report["edges"][0]["target"] == "use-Function"
-    assert report["edges"][0]["witness"]["native_target"] == "use-Function"
-    assert report["edges"][0]["witness"]["reference_witnesses"][0]["api_object_id"] == "ref"
+    (edge_record,) = report["edges"]
+    assert (edge_record["target"], edge_record["api_object_id"]) == ("use-Function", "allocation")
+    assert {key: edge_record["witness"][key] for key in ("native_source", "native_target", "context_id", "carrier")} == {
+        "native_source": "use-Requirement", "native_target": "use-Function", "context_id": "context",
+        "carrier": "RequirementFunctionAssignment"}
+    assert method.hops == (("use-Function", "allocation"),)
 
 
-@pytest.mark.parametrize("shape", ["inlined", "conflicting-flat", "equivalent-graph"])
-def test_inline_reference_is_normalized_with_other_witness_shapes(shape):
-    def mutate(elements, binding, contract):
-        elements.append({"@id": "shadow", "@type": "ReferenceUsage",
-                         "referencedFeature": {"@id": "use-Function"}})
-        if shape == "conflicting-flat":
-            elements.append({"@id": "ref", "@type": "ReferenceSubsetting",
-                "owningRelatedElement": {"@id": "shadow"}, "referencedFeature": {"@id": "use-LogicalElement"}})
-        elif shape == "equivalent-graph":
-            elements.append({"@id": "ref", "@type": "ReferenceSubsetting",
-                "subsettingFeature": {"@id": "shadow"}, "subsettedFeature": {"@id": "use-Function"}})
-        next(e for e in elements if e["@id"] == "allocation")["target"] = [{"@id": "shadow"}]
-    report = _spec_query(mutate)
-    if shape == "conflicting-flat":
-        assert report["semantic_status"] == "incomplete"
-        assert report["edges"] == []
-    else:
-        assert report["semantic_status"] == "complete"
-        assert report["edges"][0]["target"] == "use-Function"
-        witnesses = report["edges"][0]["witness"]["reference_witnesses"]
-        assert witnesses
-        if shape == "inlined":
-            assert witnesses == [{"source": "shadow", "target": "use-Function",
-                                  "kind": "referencedFeature", "api_object_id": "shadow"}]
-
-
-def test_conflicting_flat_and_graph_reference_refuses_structurally():
-    def mutate(elements, binding, contract):
+def test_a_feature_chain_end_reads_as_its_last_chaining_feature():
+    """``allocate requirement to holder.function``: the end names a chain whose last chaining feature
+    is the function, for the traversal as for the method."""
+    def mutate(elements):
         elements.extend([
-            {"@id": "shadow", "@type": "ReferenceUsage"},
-            {"@id": "ref", "@type": "ReferenceSubsetting", "owningRelatedElement": {"@id": "shadow"},
-             "referencedFeature": {"@id": "use-Function"}, "target": {"@id": "use-LogicalElement"}}])
-        next(e for e in elements if e["@id"] == "allocation")["target"] = [{"@id": "shadow"}]
-    report = _spec_query(mutate)
-    assert report["edges"] == []
-    assert report["semantic_status"] == "incomplete"
+            {"@id": "holder", "@type": "PartUsage"},
+            {"@id": "chain", "@type": "Feature", "ownedRelationship": [{"@id": "chaining-1"}, {"@id": "chaining-2"}]},
+            {"@id": "chaining-1", "@type": "FeatureChaining", "owningRelatedElement": {"@id": "chain"},
+             "chainingFeature": {"@id": "holder"}},
+            {"@id": "chaining-2", "@type": "FeatureChaining", "owningRelatedElement": {"@id": "chain"},
+             "chainingFeature": {"@id": "use-Function"}}])
+        _element(elements, "allocation-target-reference").update(
+            general={"@id": "chain"}, subsettedFeature={"@id": "chain"}, referencedFeature={"@id": "chain"})
+    report, method = _with_method(mutate)
+    assert report["semantic_status"] == "complete"
+    assert [(e["target"], e["witness"]["native_target"]) for e in report["edges"]] == [("use-Function", "use-Function")]
+    assert method.hops == (("use-Function", "allocation"),)
+
+
+def _unreadable(mode, end):
+    """An end the shared reader refuses: two authored references, an implied one only, a missing
+    referenced feature, or a chain that ends in a feature not in the revision."""
+    def mutate(elements):
+        reference = _element(elements, end + "-reference")
+        if mode == "ambiguous":
+            elements.append({**reference, "@id": end + "-second", "general": {"@id": "use-LogicalElement"},
+                             "subsettedFeature": {"@id": "use-LogicalElement"},
+                             "referencedFeature": {"@id": "use-LogicalElement"}})
+            _element(elements, end)["ownedRelationship"].append({"@id": end + "-second"})
+        elif mode == "implied-only":
+            reference["isImplied"] = True
+        elif mode == "dangling":
+            reference.update(general={"@id": "missing"}, subsettedFeature={"@id": "missing"},
+                             referencedFeature={"@id": "missing"})
+        else:
+            elements.extend([
+                {"@id": "chain", "@type": "Feature", "ownedRelationship": [{"@id": "chaining"}]},
+                {"@id": "chaining", "@type": "FeatureChaining", "owningRelatedElement": {"@id": "chain"},
+                 "chainingFeature": {"@id": "missing"}}])
+            reference.update(general={"@id": "chain"}, subsettedFeature={"@id": "chain"},
+                             referencedFeature={"@id": "chain"})
+    return mutate
+
+
+@pytest.mark.parametrize("mode", ["ambiguous", "implied-only", "dangling", "dangling-chain"])
+def test_an_allocation_end_the_reader_refuses_is_incomplete_for_the_traversal_and_the_method(mode):
+    report, method = _with_method(_unreadable(mode, "allocation-target"))
+    assert report["edges"] == [] and report["semantic_status"] == "incomplete"
+    (record,) = [r for r in report["unsupported_predicates"] if r["predicate"] == "allocatedTo"]
+    assert record["reason"].startswith("allocation: ")
+    assert method.hops == () and method.problem == "model-witness:allocatedTo"
+    assert record["reason"] in method.reason
+
+
+@pytest.mark.parametrize("mode", ["ambiguous", "implied-only", "dangling"])
+def test_a_planning_end_the_reader_refuses_is_incomplete_for_the_traversal_and_the_method(mode):
+    def mutate(elements):
+        elements.extend(edge("ConnectionUsage", "use-Need", "use-ValidationScenario", name="plan",
+                             type=[{"@id": "root-hasValidationScenario"}]))
+        _unreadable(mode, "plan-target")(elements)
+    report, method = _with_method(mutate, "hasValidationScenario", "use-Need")
+    assert report["edges"] == [] and report["semantic_status"] == "incomplete"
+    (record,) = [r for r in report["unsupported_predicates"] if r["predicate"] == "hasValidationScenario"]
+    assert method.hops == () and method.problem == "model-witness:ValidationPlanningAssociation"
+    assert record["reason"] in method.reason
+
+
+def test_an_end_grounding_in_two_layer_classes_is_incomplete_for_the_traversal_and_the_method():
+    def mutate(elements):
+        _element(elements, "use-LogicalElement")["type"].append({"@id": "root-PhysicalElement"})
+        elements.extend(edge("AllocationUsage", "use-Function", "use-LogicalElement", name="layered"))
+    report, method = _with_method(mutate, source="use-Function")
+    assert report["edges"] == [] and report["semantic_status"] == "incomplete"
+    (record,) = [r for r in report["unsupported_predicates"] if r["predicate"] == "allocatedTo"]
+    assert "grounds in more than one of" in record["reason"]
+    assert method.problem == "model-witness:allocatedTo" and record["reason"] in method.reason
+
+
+def test_derived_source_and_target_keys_are_not_read():
+    """A connector with derived keys and no native ends is no fact; with native ends, the ends decide."""
+    def mutate(elements):
+        elements.append({"@id": "derived-only", "@type": "AllocationUsage", "owningNamespace": {"@id": "context"},
+                         "source": [{"@id": "use-Function"}], "target": [{"@id": "use-LogicalElement"}]})
+        _element(elements, "allocation").update(source=[{"@id": "use-Need"}], target=[{"@id": "use-PhysicalElement"}])
+    report, method = _with_method(mutate)
+    assert [(e["target"], e["api_object_id"]) for e in report["edges"]] == [("use-Function", "allocation")]
+    assert method.hops == (("use-Function", "allocation"),)
+    from_function, method_from_function = _with_method(mutate, source="use-Function")
+    assert from_function["edges"] == [] and from_function["semantic_status"] == "complete"
+    assert method_from_function.hops == ()
+
+
+def test_a_relationship_naming_no_target_is_an_omitted_library_reference():
+    """The export leaves out references to elements outside it: an implied or authored specialization
+    without a target supplies no meaning, while a target that is named but missing stays undecided."""
+    def omitted(elements):
+        elements.extend([
+            {"@id": "omitted-implied", "@type": "Subclassification", "isImplied": True,
+             "owningRelatedElement": {"@id": "root-Function"}, "specific": {"@id": "root-Function"}},
+            {"@id": "omitted-authored", "@type": "FeatureTyping", "owningRelatedElement": {"@id": "use-Function"},
+             "typedFeature": {"@id": "use-Function"}}])
+    report, _method = _with_method(omitted)
+    assert report["semantic_status"] == "complete"
+    assert [e["target"] for e in report["edges"]] == ["use-Function"]
+
+    def named_but_missing(elements):
+        omitted(elements)
+        _element(elements, "omitted-implied")["general"] = {"@id": "missing-general"}
+    report, _method = _with_method(named_but_missing)
+    assert report["edges"] == [] and report["semantic_status"] == "incomplete"
 
 
 def test_dangling_endpoint_typing_is_incomplete_not_complete_absence():
@@ -281,7 +390,7 @@ def test_dangling_endpoint_typing_is_incomplete_not_complete_absence():
 
 def test_dangling_carrier_typing_is_incomplete_not_complete_absence():
     def mutate(elements, binding, contract):
-        elements.append(edge("ConnectionUsage", "use-Need", "use-ValidationScenario", name="plan",
+        elements.extend(edge("ConnectionUsage", "use-Need", "use-ValidationScenario", name="plan",
                              type=[{"@id": "absent-carrier"}]))
     report = _spec_query(mutate, "hasValidationScenario", "use-Need")
     assert report["edges"] == []
@@ -290,7 +399,7 @@ def test_dangling_carrier_typing_is_incomplete_not_complete_absence():
 
 def test_untyped_carrier_candidate_is_incomplete_not_silent_absence():
     def mutate(elements, binding, contract):
-        elements.append(edge("ConnectionUsage", "use-Need", "use-ValidationScenario", name="plan"))
+        elements.extend(edge("ConnectionUsage", "use-Need", "use-ValidationScenario", name="plan"))
     report = _spec_query(mutate, "hasValidationScenario", "use-Need")
     assert report["edges"] == []
     assert report["semantic_status"] == "incomplete"
@@ -300,7 +409,7 @@ def test_untyped_carrier_candidate_is_incomplete_not_silent_absence():
 def test_every_discrimination_branch_must_be_resolved(mode):
     def mutate(elements, binding, contract):
         if mode == "mixed-carrier":
-            elements.append(edge("ConnectionUsage", "use-Need", "use-ValidationScenario", name="plan",
+            elements.extend(edge("ConnectionUsage", "use-Need", "use-ValidationScenario", name="plan",
                 type=[{"@id": "root-hasValidationScenario"}, {"@id": "missing-other-meaning"}]))
         else:
             endpoint = next(e for e in elements if e["@id"] == "use-Function")
@@ -348,7 +457,7 @@ def test_one_carrier_cannot_acquire_two_governed_meanings():
     service, elements, _, _ = fixture_service()
     next(e for e in elements if e["@id"] == "use-Need")["type"].append({"@id": "root-Requirement"})
     next(e for e in elements if e["@id"] == "use-ValidationScenario")["type"].append({"@id": "root-RegulatorySource"})
-    elements.append(edge("ConnectionUsage", "use-Need", "use-ValidationScenario", name="both-carriers",
+    elements.extend(edge("ConnectionUsage", "use-Need", "use-ValidationScenario", name="both-carriers",
                          type=[{"@id": "root-hasValidationScenario"}, {"@id": "root-hasRegulatorySource"}]))
     combined = service.semantic_neighbors("use-Need", predicates=["hasValidationScenario", "hasRegulatorySource"])
     assert combined["edges"] == []

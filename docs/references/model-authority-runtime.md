@@ -152,6 +152,20 @@ The impact surface's requirement-to-architecture hop traverses
 `allocatedTo` (from a Requirement source only the Requirement → Function
 end pair applies, exactly what the `realizedBy` alias served).
 
+The successor traversal reads a connector's ends as the method checks do
+(`de4sdv/semantic/relation_checks.py`): each end's EndFeatureMembership, then
+the end's authored ReferenceSubsetting, and an allocation end written as a
+feature chain as its last chaining feature. It never reads derived `source`
+or `target` keys; the licensed export has no `source`. The end pair of an
+allocation is the method's too: the one pair both ends ground in through the
+validated kernel bindings. An `allocatedTo` answer is `incomplete`, never an
+absence, while any allocation of the revision cannot be read or an end grounds
+in two layer classes; any successor answer is `incomplete` when a witness's
+end, owning context or typing evidence cannot be decided. A typing or
+specialization relationship that names no target is a reference the export
+leaves out (to the standard library) and carries no meaning; a named target
+that is not in the revision leaves the answer `incomplete`.
+
 ## `hasRelevantEvidenceContract` discriminator
 
 The range is the authored type closure of the validated `EvidenceContract`

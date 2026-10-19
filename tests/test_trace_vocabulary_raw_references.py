@@ -1,4 +1,12 @@
-"""Synthetic raw-reference regressions, not licensed model closure."""
+"""Synthetic raw-reference regressions, not licensed model closure.
+
+Connectors take the export's end shape (``edge`` in test_trace_vocabulary_traversal):
+their ends are read with the method's reader, never from derived ``source``/``target``
+keys, so the member checks below concern the witness itself and the typing and
+specialization lineage of its ends. What the reader refuses at an end (an ambiguous,
+implied-only or dangling reference, an unreadable chain) is pinned in
+test_trace_vocabulary_traversal for the traversal and the method checks alike.
+"""
 from typing import Any
 
 import pytest
@@ -26,9 +34,9 @@ def candidate(predicate="allocatedTo"):
         relationship = next(e for e in elements if e["@id"] == "allocation")
         source = "use-Requirement"
     else:
-        relationship = edge("ConnectionUsage", "use-Need", "use-ValidationScenario",
-                            name="planning", type=[{"@id": "root-hasValidationScenario"}])
-        elements.append(relationship)
+        relationship, *ends = edge("ConnectionUsage", "use-Need", "use-ValidationScenario",
+                                   name="planning", type=[{"@id": "root-hasValidationScenario"}])
+        elements.extend([relationship, *ends])
         source = "use-Need"
     return service, elements, binding, contract, relationship, source
 
@@ -40,18 +48,16 @@ def assert_incomplete(report, predicate):
                for r in report["unsupported_predicates"]), report
 
 
-@pytest.mark.parametrize("predicate", ["allocatedTo", "hasValidationScenario"])
-@pytest.mark.parametrize("key", ["source", "target"])
-@pytest.mark.parametrize("member", MALFORMED_REFERENCES)
-def test_every_native_endpoint_member_requires_identity(predicate, key, member):
-    service, _, _, _, relationship, source = candidate(predicate)
-    relationship[key].append(member)
-    assert_incomplete(service.semantic_neighbors(source, predicates=[predicate]), predicate)
-
-
-def test_supplied_api_read_refuses_unidentified_planning_target():
+def test_supplied_api_read_refuses_an_unreadable_planning_end():
+    """Over the supplied HTTP API, a planning connection whose target end carries two authored
+    references to different usages cannot be read: incomplete, never a hop or an absence."""
     _, elements, binding, _, relationship, source = candidate("hasValidationScenario")
-    relationship["target"].append({"@type": "ReferenceUsage"})
+    reference = next(e for e in elements if e["@id"] == "planning-target-reference")
+    elements.append({**reference, "@id": "planning-target-second", "general": {"@id": "use-PhysicalElement"},
+                     "subsettedFeature": {"@id": "use-PhysicalElement"},
+                     "referencedFeature": {"@id": "use-PhysicalElement"}})
+    next(e for e in elements if e["@id"] == "planning-target")["ownedRelationship"].append(
+        {"@id": "planning-target-second"})
     with supplied_synthetic_api(elements) as (url, reads):
         report = http_service(extension_binding(binding), url).semantic_neighbors(
             source, predicates=["hasValidationScenario"])
@@ -105,42 +111,10 @@ def test_identified_dangling_native_allocation_carrier_is_incomplete():
     assert_incomplete(service.semantic_neighbors(source, predicates=["allocatedTo"]), "allocatedTo")
 
 
-@pytest.mark.parametrize("member", MALFORMED_REFERENCES)
-@pytest.mark.parametrize("shape", ["inline", "flat", "graph", "owned"])
-def test_reference_witness_members_are_validated_before_equivalence(shape, member):
-    service, elements, _, _, relationship, source = candidate()
-    shadow = {"@id": "shadow", "@type": "ReferenceUsage",
-              "referencedFeature": {"@id": "use-Function"}}
-    elements.append(shadow)
-    relationship["target"] = [{"@id": "shadow"}]
-    if shape == "inline":
-        shadow["referencedFeature"] = [{"@id": "use-Function"}, member]
-    else:
-        reference: dict[str, Any] = {"@id": "reference", "@type": "ReferenceSubsetting"}
-        if shape == "graph":
-            reference.update(subsettingFeature={"@id": "shadow"},
-                             subsettedFeature=[{"@id": "use-Function"}, member])
-        else:
-            reference["referencedFeature"] = [{"@id": "use-Function"}, member]
-            if shape == "flat":
-                reference["owningRelatedElement"] = {"@id": "shadow"}
-        if shape == "owned":
-            shadow["ownedRelationship"] = [reference]
-        else:
-            elements.append(reference)
-    assert_incomplete(service.semantic_neighbors(source, predicates=["allocatedTo"]), "allocatedTo")
-
-
-@pytest.mark.parametrize("shape", ["reference", "typing", "specialization"])
+@pytest.mark.parametrize("shape", ["typing", "specialization"])
 def test_unidentified_raw_relationship_witness_cannot_disappear_from_index(shape):
     service, elements, _, _, relationship, source = candidate()
-    if shape == "reference":
-        elements.append({"@id": "shadow", "@type": "ReferenceUsage",
-                         "referencedFeature": {"@id": "use-Function"}})
-        relationship["target"] = [{"@id": "shadow"}]
-        witness = {"@type": "ReferenceSubsetting", "owningRelatedElement": {"@id": "shadow"},
-                   "referencedFeature": {"@id": "use-Function"}}
-    elif shape == "typing":
+    if shape == "typing":
         witness = {"@type": "FeatureTyping", "typedFeature": {"@id": "use-Function"},
                    "type": {"@id": "root-Function"}}
     else:
@@ -184,10 +158,14 @@ def test_native_carrier_witness_requires_a_nonblank_identity(identifier):
     assert_incomplete(service.semantic_neighbors(source, predicates=["allocatedTo"]), "allocatedTo")
 
 
-def test_equivalent_native_endpoint_members_normalize_after_validation():
-    service, _, _, _, relationship, source = candidate()
-    relationship["source"] *= 2
-    relationship["target"] *= 2
+def test_equivalent_native_end_references_are_one_reference():
+    """Two authored references of one end that name the same usage are one end, not an ambiguity."""
+    service, elements, _, _, relationship, source = candidate()
+    for role in ("source", "target"):
+        reference = next(e for e in elements if e["@id"] == f"allocation-{role}-reference")
+        elements.append({**reference, "@id": f"allocation-{role}-again"})
+        next(e for e in elements if e["@id"] == f"allocation-{role}")["ownedRelationship"].append(
+            {"@id": f"allocation-{role}-again"})
     report = service.semantic_neighbors(source, predicates=["allocatedTo"])
     assert report["semantic_status"] == "complete", report
     assert report["edges"][0]["api_object_id"] == "allocation"
