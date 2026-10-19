@@ -85,16 +85,16 @@
   <text x="410" y="846" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">make the binding path explicit, they do not make this composite a</tspan></text>
   <text x="410" y="858" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">resolved configured product.</tspan></text>
   <text x="620" y="876.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">parts</tspan></text>
-  <text x="410" y="892" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">platformStack : SDVPlatformStack</tspan></text>
+  <text x="410" y="892" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">platformStack : AEBSAutowareLinuxLidarCamera</tspan></text>
   <text x="410" y="904" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">sensingAssembly : VehicleSensingAssembly</tspan></text>
   <text x="410" y="916" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">aebsSoftware : VehicleTargetAEBSPhysicalSoftwareBoundary</tspan></text>
   <text x="410" y="928" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">aebsLogicalSystem : VehicleTargetAEBSSystem</tspan></text>
   <text x="410" y="940" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^system</tspan></text>
   <text x="410" y="952" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^physicalSoftware</tspan></text>
   <text x="620" y="970.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">features</tspan></text>
-  <text x="410" y="986" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Platform stack — shared-asset superset. Variant selections are</tspan></text>
-  <text x="410" y="998" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">resolved in the generated projection</tspan></text>
-  <text x="410" y="1010" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">(aebs_autoware_linux_lidar_camera.sysml).</tspan></text>
+  <text x="410" y="986" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Platform stack — typed by the generated projection</tspan></text>
+  <text x="410" y="998" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">(aebs_autoware_linux_lidar_camera.sysml), which resolves the</tspan></text>
+  <text x="410" y="1010" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">variant selections of the shared-asset superset.</tspan></text>
   <text x="410" y="1022" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Sensing boundary — common motion sensors + selected perception sensors.</tspan></text>
   <text x="410" y="1034" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">AEBS physical software — the Autoware AEB node and its required boundaries.</tspan></text>
   <text x="410" y="1046" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">AEBS logical system — the technology-neutral logical architecture.</tspan></text>
