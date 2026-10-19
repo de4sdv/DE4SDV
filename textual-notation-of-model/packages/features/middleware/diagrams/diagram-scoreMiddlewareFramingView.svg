@@ -46,7 +46,7 @@
   <path d="M 637,88 L 637,100 L 649,100 Z" fill="#FFFDE7" fill-opacity="1.000" stroke="none"/>
   <path d="M 34,813 H 401 A 6,6 0 0 1 407,819 V 1110 A 6,6 0 0 1 401,1116 H 34 A 6,6 0 0 1 28,1110 V 819 A 6,6 0 0 1 34,813 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 1154,476 H 1479 A 6,6 0 0 1 1485,482 V 725 A 6,6 0 0 1 1479,731 H 1154 A 6,6 0 0 1 1148,725 V 482 A 6,6 0 0 1 1154,476 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 1511,476 H 1872 A 6,6 0 0 1 1878,482 V 725 A 6,6 0 0 1 1872,731 H 1511 A 6,6 0 0 1 1505,725 V 482 A 6,6 0 0 1 1511,476 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 1511,476 H 1872 A 6,6 0 0 1 1878,482 V 737 A 6,6 0 0 1 1872,743 H 1511 A 6,6 0 0 1 1505,737 V 482 A 6,6 0 0 1 1511,476 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 893,872 H 1201 V 908 H 893 V 872 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 432,813 H 868 A 6,6 0 0 1 874,819 V 849 H 426 V 819 A 6,6 0 0 1 432,813 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 1904,476 H 2235 A 6,6 0 0 1 2241,482 V 512 H 1898 V 482 A 6,6 0 0 1 1904,476 Z" fill="#C8DCE6" fill-opacity="1.000"/>
@@ -153,7 +153,7 @@
   <polyline points="1505,582 1878,582" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1505,616 1878,616" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1505,674 1878,674" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 1511,476 H 1872 A 6,6 0 0 1 1878,482 V 725 A 6,6 0 0 1 1872,731 H 1511 A 6,6 0 0 1 1505,725 V 482 A 6,6 0 0 1 1511,476 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 1511,476 H 1872 A 6,6 0 0 1 1878,482 V 737 A 6,6 0 0 1 1872,743 H 1511 A 6,6 0 0 1 1505,737 V 482 A 6,6 0 0 1 1511,476 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1560,908.4 1571.688,908.4" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="874,890.4 885.688,890.4" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <g transform="translate(1579,908.4) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
@@ -492,5 +492,6 @@
   <text x="1691.5" y="684.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
   <text x="1513" y="700" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">^doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">Reviewers need the native SysML v2 variation and variant structure</tspan></text>
   <text x="1513" y="712" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">in the model to be visible for review, so that configured choices</tspan></text>
-  <text x="1513" y="724" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">can be checked against the feature catalogue and bill-of-features.</tspan></text>
+  <text x="1513" y="724" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">can be checked against the feature models and feature</tspan></text>
+  <text x="1513" y="736" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">configurations under the authority of ADR 0022.</tspan></text>
 </svg>
