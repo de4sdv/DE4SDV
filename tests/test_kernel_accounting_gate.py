@@ -241,7 +241,8 @@ def test_refused_and_retired_identities_are_ratcheted():
     report = coverage.build_report(ROOT)
     assert report["refused"] == sorted(["IncrementTraceabilityShell", "derivesNeedFromConcern",
                                         "addressesConcern", "producesView", "recordsAssumption",
-                                        "recordsGap", "selectedViewpoint", "hasStakeholder"])
+                                        "recordsGap", "selectedViewpoint", "hasStakeholder",
+                                        "includesCommonCapability"])
     assert report["retired"] == sorted(["realizedBy", "deployedTo", "validatedBy",
                                         "constrainedBy", "validatesFitnessForUse"])
     baseline = coverage.load_baseline(ROOT)

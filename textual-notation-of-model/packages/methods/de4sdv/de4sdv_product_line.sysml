@@ -30,11 +30,13 @@ package DE4SDV_ProductLine {
    * this package. */
 
 
-  doc FeatureConfigurationOntologyDefinition /* A selection of features, common capabilities, and variation choices for a member
-   * product or scenario. */
-  comment about FeatureConfigurationOntologyDefinition /* Definition text is model-resident; Bill-of-Features contents and catalogue/configurator
-   * authority remain external. No PLEML adoption, selection algebra or consumer wiring
-   * changes. */
+  doc FeatureConfigurationOntologyDefinition /* A selection of features that describes a member
+   * product or scenario. Its variation choices are derived from the selected features. It
+   * does not select common capabilities, because every member product has them. */
+  comment about FeatureConfigurationOntologyDefinition /* Definition text is model-resident.
+   * Configurations are recorded where the configuration authority of ADR 0022 puts them: as
+   * Bill-of-Features records until the switch, and as PLEML feature configurations from the
+   * switch. This package adds no selection algebra and no consumer wiring. */
 
 
   doc VariantOntologyDefinition /* A native SysML v2 variant usage owned by a variation point and representing one allowed
@@ -81,51 +83,52 @@ package DE4SDV_ProductLine {
    * membership, and its evidence gate is a feature usage that participates in a
    * variation's variant membership. Until such a usage exists, variesAt stays
    * vocabulary-only: no runtime traversal, no sysml_mapping, no variation-point part
-   * taxonomy, no YAML edge mapping and no PLEML dependency. */
+   * taxonomy, no YAML edge mapping and no PLEML dependency. The switch of ADR 0022 does
+   * not change this grounding: a PLEML feature binding of a variant is not that evidence
+   * gate. */
 
   comment FeatureConfigurationVocabularyRole about FeatureConfigurationOntologyDefinition /* Vocabulary
-   * only: the ADR 0006 external configurator authority is kept. No configurator
-   * authority; selection authority stays with the external catalogue (ADR 0006):
-   * the YAML Feature Catalogue and
-   * Bill-of-Features configuration decision layer, evaluated by the configurator,
-   * selects features, common capabilities and variants. This package declares no
-   * FeatureConfiguration definition, no selection algebra, no model relationship
-   * and no PLEML adoption. */
+   * only. No configurator authority; configuration authority follows ADR 0022. Until the
+   * switch, the YAML Feature Catalogue and Bill-of-Features configuration decision layer,
+   * evaluated by the configurator, selects the features. From the switch, the PLEML
+   * feature configurations, evaluated by the DE4SDV evaluator, select them, and the class
+   * grounds on the pinned PLEML library definition FeatureConfiguration, which owns only
+   * features. This package declares no FeatureConfiguration definition, no selection
+   * algebra and no model relationship. */
 
   comment appliesToMemberProductVocabularyRole about FeatureConfigurationOntologyDefinition /* Vocabulary
    * role of the reviewed relationship appliesToMemberProduct: domain
    * FeatureConfiguration, range MemberProduct (kernel ProductLineMemberProduct).
-   * Vocabulary only. No configurator authority; selection authority stays with the
-   * external catalogue (ADR 0006): the Bill-of-Features configuration layer owns
-   * the binding. No model relationship, no sysml_mapping, no runtime traversal and
-   * no PLEML commitment; existing runtime exclusions are preserved verbatim and are
-   * not collapsed into hasSubject. */
+   * Vocabulary only, with no sysml_mapping and no runtime traversal. No configurator
+   * authority; configuration authority follows ADR 0022. Until the switch, the
+   * Bill-of-Features configuration layer owns the binding. From the switch, the
+   * relationship grounds on the PLEML FeatureConfigurationBinding, which binds a member
+   * product's model element to its configuration, and the governed scope stays the
+   * admission authority. Existing runtime exclusions are preserved verbatim and are not
+   * collapsed into hasSubject. */
 
   comment selectsFeatureVocabularyRole about FeatureConfigurationOntologyDefinition /* Vocabulary
    * role of the reviewed relationship selectsFeature: domain FeatureConfiguration,
-   * range Feature (kernel ProductLineFeatureCandidate). Vocabulary only. No
-   * configurator authority; selection authority stays with the external catalogue
-   * (ADR 0006): Bill-of-Features selections evaluated by the configurator, whose
-   * behavior and tests remain the operational evidence. No model relationship, no
-   * sysml_mapping, no runtime traversal and no PLEML commitment. */
-
-  comment includesCommonCapabilityVocabularyRole about FeatureConfigurationOntologyDefinition /* Vocabulary
-   * role of the reviewed relationship includesCommonCapability: domain
-   * FeatureConfiguration, range CommonCapability (kernel
-   * CommonProductLineCapability). Vocabulary only. No configurator authority;
-   * selection authority stays with the external catalogue (ADR 0006): the
-   * Bill-of-Features configuration layer. No model relationship, no sysml_mapping,
-   * no runtime traversal and no PLEML commitment. */
+   * range Feature (kernel ProductLineFeatureCandidate). Vocabulary only, with no
+   * sysml_mapping and no runtime traversal. No configurator authority; configuration
+   * authority follows ADR 0022. Until the switch, Bill-of-Features selections, evaluated
+   * by the configurator, are the operational selection. From the switch, the relationship
+   * grounds on the PLEML feature configuration, which selects a feature by redefining it
+   * with multiplicity 1. A realization needs a reviewed carrier, because a PLEML
+   * configuration selects PLEML features and the range is the kernel
+   * ProductLineFeatureCandidate: the correspondence that links a PLEML feature to the
+   * governed Feature it restates is the candidate bridge. */
 
   comment selectsVariantVocabularyRole about FeatureConfigurationOntologyDefinition /* Vocabulary
    * role of the reviewed relationship selectsVariant: domain FeatureConfiguration,
    * range Variant (native SysML v2 variant usage; see VariantOntologyDefinition).
-   * Vocabulary only. No configurator authority; selection authority stays with the
-   * external catalogue (ADR 0006): the operational selection lives in the
-   * Bill-of-Features and the generated projection, while native variant usages own
-   * the choice space. No new model relationship kind, no sysml_mapping, no runtime
-   * traversal and no PLEML commitment; model-native configured products use the
-   * native variant-selection construct of ADR 0006. */
+   * Vocabulary only. No configurator authority; configuration authority follows ADR 0022.
+   * A configuration selects no variant directly: its variants are derived from its
+   * selected features, through the Bill-of-Features mappings and the configurator until
+   * the switch, and through the PLEML feature bindings and the DE4SDV derivation rules
+   * from the switch. Native variant usages own the choice space. No new model
+   * relationship kind, no sysml_mapping and no runtime traversal; model-native configured
+   * products use the native variant-selection construct of ADR 0006. */
 
 
   part def ProductLine {
@@ -164,6 +167,12 @@ package DE4SDV_ProductLine {
      * kernel a feature is a candidate until member-product variability is shown; it must
      * not be accepted as a feature before that. */
     doc /* Candidate distinguishing characteristic; must not be accepted as a feature until member-product variability is shown. */
+    comment /* The ontology Feature stays this kernel definition before and after the switch
+             * of ADR 0022, and R001 governs it. A feature of a PLEML feature model is a
+             * distinct element: an option that the configuration authority makes
+             * configurable. Reference-only options and derived realizations are PLEML
+             * features without being Features. Where a PLEML feature restates a governed
+             * Feature, a correspondence in the feature models links the two. */
     assert constraint notACommonCapability { not (that istype CommonProductLineCapability) }
   }
 

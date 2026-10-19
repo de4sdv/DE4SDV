@@ -110,7 +110,8 @@
       },
       "witness_forms": [
         "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
-      ]
+      ],
+      "configurator_authority": "none (configuration authority follows ADR 0022)"
     },
     {
       "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#DerivedVariation",
@@ -123,7 +124,8 @@
       },
       "witness_forms": [
         "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
-      ]
+      ],
+      "configurator_authority": "none (configuration authority follows ADR 0022)"
     },
     {
       "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#DerivesFromNeed",
@@ -207,7 +209,7 @@
       "witness_forms": [
         "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
       ],
-      "configurator_authority": "none (external catalogue, ADR 0006; decision-9)"
+      "configurator_authority": "none (configuration authority follows ADR 0022)"
     },
     {
       "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#Function",
@@ -324,7 +326,8 @@
       },
       "witness_forms": [
         "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
-      ]
+      ],
+      "configurator_authority": "none (configuration authority follows ADR 0022)"
     },
     {
       "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#ProductModelProjectionName",
@@ -337,7 +340,8 @@
       },
       "witness_forms": [
         "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
-      ]
+      ],
+      "configurator_authority": "none (configuration authority follows ADR 0022)"
     },
     {
       "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#RegulatorySource",
@@ -415,7 +419,8 @@
       },
       "witness_forms": [
         "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
-      ]
+      ],
+      "configurator_authority": "none (configuration authority follows ADR 0022)"
     },
     {
       "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#ValidationPlanningAssociation",
@@ -504,7 +509,7 @@
       "witness_forms": [
         "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)"
       ],
-      "configurator_authority": "none (external catalogue, ADR 0006; decision-9)"
+      "configurator_authority": "none (configuration authority follows ADR 0022)"
     },
     {
       "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#capturedInBaseline",
@@ -679,20 +684,6 @@
       ]
     },
     {
-      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#includesCommonCapability",
-      "for_concept": "includesCommonCapability",
-      "representation_class": "vocabulary-role-comment",
-      "binding_contract_echo": {
-        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
-        "owner": "package DE4SDV_ProductLine",
-        "api_metaclass": "Comment"
-      },
-      "witness_forms": [
-        "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)"
-      ],
-      "configurator_authority": "none (external catalogue, ADR 0006; decision-9)"
-    },
-    {
       "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#instantiatesCanonicalArchitecture",
       "for_concept": "instantiatesCanonicalArchitecture",
       "representation_class": "package-owned-definition-documentation",
@@ -735,7 +726,7 @@
       "witness_forms": [
         "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)"
       ],
-      "configurator_authority": "none (external catalogue, ADR 0006; decision-9)"
+      "configurator_authority": "none (configuration authority follows ADR 0022)"
     },
     {
       "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#selectsVariant",
@@ -749,7 +740,7 @@
       "witness_forms": [
         "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)"
       ],
-      "configurator_authority": "none (external catalogue, ADR 0006; decision-9)"
+      "configurator_authority": "none (configuration authority follows ADR 0022)"
     },
     {
       "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#specifiesCommonCapability",

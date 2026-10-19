@@ -45,10 +45,12 @@
 #     specialize the kernel EvidenceContract.
 #
 # Boundaries: admission is NOT production activation and NOT a traversal
-# proof. PLE configuration rows carry no configurator authority (decision-9,
-# ADR 0006). External-content rows carry no content. Retired names (owner
-# decision D4) answer no fact: the runtime refuses them with "retired; use
-# <successor>"; their model retirement records are kept.
+# proof. The PLE configuration rows (decision-9) and the method-admitted
+# derivation classes carry no configurator authority: the configuration
+# authority follows ADR 0022. External-content rows carry no content.
+# Retired names (owner decision D4) answer no fact: the runtime refuses
+# them with "retired; use <successor>"; their model retirement records are
+# kept.
 
 schema: de4sdv.o4-definition-admission-batch2/v1
 status: admitted
@@ -117,6 +119,16 @@ exceptions:
     connection definition, its vocabulary-role comment and its generated
     projection were deleted from the model, so it has no model home. The
     runtime refuses the name with its register disposition.
+- identity: includesCommonCapability
+  accounting: removed
+  reason: >-
+    Removed register row: no configuration chooses a common capability,
+    because every member product of the line has it. A PLEML feature
+    configuration owns only features, and common capabilities are not
+    features (ADR 0022), so the relation has no carrier after the switch.
+    Its vocabulary-role comment and its generated projection were deleted
+    from the method kernel, so it has no model home. The runtime refuses
+    the name with its register disposition.
 
 admitted:
 - identity: AcceptanceCriterion
@@ -274,7 +286,7 @@ admitted:
   register:
     wave: null
     accounting: method-admitted
-  boundary: none
+  boundary: ple-no-configurator-authority
   home:
     form: owned-doc
     file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml
@@ -294,7 +306,7 @@ admitted:
   register:
     wave: null
     accounting: method-admitted
-  boundary: none
+  boundary: ple-no-configurator-authority
   home:
     form: owned-doc
     file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml
@@ -430,11 +442,16 @@ admitted:
   - gate: decision-9
     resolved_by:
     - release-2026-10-11:docs/method-conformance/o4/owner-decisions-2026-10.md#wave-a-decision-9
+    - docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md#decision-1
+    - docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md#decision-8
   - gate: row-blocker
     resolved_by:
-    - release-2026-10-11:docs/method-conformance/o4/owner-decisions-2026-10.md#wave-a-decision-9
+    - docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md#decision-1
   forward_obligations:
-  - any accepted-library-grounded target stays behind the PLE-R, PLE-Q, PLE-S and PLE-A adoption gates
+  - at the switch (ADR 0022, step S6) the kernel mapping becomes the file mapping of the pinned PLEML
+    library declaration occurrence def FeatureConfiguration; it resolves only once the switch adds the
+    library to the API baseline (ADR 0011), so the switch makes this edit
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
 - identity: Function
   semantic_kind: class
   admission_class: definition
@@ -629,7 +646,7 @@ admitted:
   register:
     wave: null
     accounting: method-admitted
-  boundary: none
+  boundary: ple-no-configurator-authority
   home:
     form: owned-doc
     file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml
@@ -649,7 +666,7 @@ admitted:
   register:
     wave: null
     accounting: method-admitted
-  boundary: none
+  boundary: ple-no-configurator-authority
   home:
     form: owned-doc
     file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml
@@ -790,7 +807,7 @@ admitted:
   register:
     wave: null
     accounting: method-admitted
-  boundary: none
+  boundary: ple-no-configurator-authority
   home:
     form: owned-doc
     file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml
@@ -982,7 +999,11 @@ admitted:
   - gate: decision-9
     resolved_by:
     - release-2026-10-11:docs/method-conformance/o4/owner-decisions-2026-10.md#wave-a-decision-9
-  forward_obligations: []
+    - docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md#decision-1
+    - docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md#decision-8
+  forward_obligations:
+  - a reviewed realization over the PLEML FeatureConfigurationBinding before any runtime claim
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
 - identity: hasAcceptanceCriterion
   semantic_kind: relationship
   admission_class: relationship-vocabulary
@@ -1040,30 +1061,6 @@ admitted:
     - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic4
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
-- identity: includesCommonCapability
-  semantic_kind: relationship
-  admission_class: relationship-vocabulary
-  register:
-    wave: W5
-    accounting: retained
-  boundary: ple-no-configurator-authority
-  home:
-    form: vocabulary-role
-    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
-    owner: package DE4SDV_ProductLine
-    name: includesCommonCapabilityVocabularyRole
-    about:
-    - FeatureConfigurationOntologyDefinition
-    about_imports: {}
-  relation:
-    domain: FeatureConfiguration
-    range: CommonCapability
-    semantic_strength: null
-  gates:
-  - gate: decision-9
-    resolved_by:
-    - release-2026-10-11:docs/method-conformance/o4/owner-decisions-2026-10.md#wave-a-decision-9
-  forward_obligations: []
 - identity: instantiatesCanonicalArchitecture
   semantic_kind: relationship
   admission_class: relationship-vocabulary
@@ -1115,7 +1112,12 @@ admitted:
   - gate: decision-9
     resolved_by:
     - release-2026-10-11:docs/method-conformance/o4/owner-decisions-2026-10.md#wave-a-decision-9
-  forward_obligations: []
+    - docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md#decision-1
+    - docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md#decision-8
+  forward_obligations:
+  - a reviewed carrier that resolves the range (PLEML features against the kernel
+    ProductLineFeatureCandidate) before any runtime claim
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
 - identity: selectsVariant
   semantic_kind: relationship
   admission_class: relationship-vocabulary
@@ -1139,7 +1141,12 @@ admitted:
   - gate: decision-9
     resolved_by:
     - release-2026-10-11:docs/method-conformance/o4/owner-decisions-2026-10.md#wave-a-decision-9
-  forward_obligations: []
+    - docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md#decision-1
+    - docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md#decision-8
+  forward_obligations:
+  - a reviewed derived realization over the selected features, their feature bindings and the
+    derivation rules (ADR 0022 decision 4) before any runtime claim
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
 - identity: specifiesCommonCapability
   semantic_kind: relationship
   admission_class: relationship-vocabulary

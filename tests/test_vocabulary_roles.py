@@ -6,6 +6,7 @@ These are lexical source checks, not licensed Syside evidence.
 from pathlib import Path
 import re
 
+import pytest
 import yaml
 
 from de4sdv.semantic.authority_inventory import normalize_text
@@ -20,7 +21,10 @@ VIEWPOINTS = KERNEL + "de4sdv_method_concerns_and_viewpoints.sysml"
 RULES = KERNEL + "de4sdv_ontology_validation_rules.sysml"
 PILOT_FIXTURE = "tests/fixtures/ontology/pilot_queries.yaml"
 
-ADR_0006_BOUNDARY = "No configurator authority; selection authority stays with the external catalogue (ADR 0006)"
+#: The boundary every PLE configuration role states. It holds before and after the
+#: switch of ADR 0022: the YAML catalogue is the configuration authority until the
+#: switch, and the PLEML feature models are from it.
+ADR_0022_BOUNDARY = "No configurator authority; configuration authority follows ADR 0022"
 
 # identity -> (file, annotated element, kernel names of domain and range)
 VOCABULARY_ROLES = {
@@ -29,11 +33,13 @@ VOCABULARY_ROLES = {
     "variesAt": (PRODUCT_LINE, "ProductLineFeatureCandidate", ("ProductLineFeatureCandidate", "VariationPointOntologyDefinition")),
     "appliesToMemberProduct": (PRODUCT_LINE, "FeatureConfigurationOntologyDefinition", ("FeatureConfiguration", "ProductLineMemberProduct")),
     "selectsFeature": (PRODUCT_LINE, "FeatureConfigurationOntologyDefinition", ("FeatureConfiguration", "ProductLineFeatureCandidate")),
-    "includesCommonCapability": (PRODUCT_LINE, "FeatureConfigurationOntologyDefinition", ("FeatureConfiguration", "CommonProductLineCapability")),
     "selectsVariant": (PRODUCT_LINE, "FeatureConfigurationOntologyDefinition", ("FeatureConfiguration", "VariantOntologyDefinition")),
     "usesVerificationMethod": (CONTEXT, "VerificationMethodOntologyDefinition", ("VerificationCase", "VerificationMethod")),
 }
-PLE_CONFIGURATION_ROLES = {"appliesToMemberProduct", "selectsFeature", "includesCommonCapability", "selectsVariant"}
+PLE_CONFIGURATION_ROLES = {"appliesToMemberProduct", "selectsFeature", "selectsVariant"}
+#: Removed at the switch of ADR 0022 (register interp-10): no configuration chooses a
+#: common capability, and a PLEML feature configuration owns only features.
+REMOVED_PLE_ROLES = {"includesCommonCapability"}
 #: Reviewed domain/range of the native-grounding row whose relation ends are not
 #: projected, as recorded before the authored ontology was deleted.
 UNPROJECTED_DOMAIN_RANGE = {"usesVerificationMethod": ("VerificationCase", "VerificationMethod")}
@@ -93,22 +99,50 @@ def test_relationship_vocabulary_roles_are_anchored_and_claim_no_traversal():
         assert "sysml_mapping" not in model_contract().relationships[identity], identity
 
 
-def test_ple_configuration_rows_keep_adr_0006_external_selection_authority():
+def test_ple_configuration_rows_carry_no_configurator_authority_under_adr_0022():
+    """S5o (ADR 0022 decision 8): the PLE configuration roles state the boundary that
+    holds before and after the switch, name the PLEML construct that carries each
+    fact from the switch, and keep no catalogue authority of ADR 0006."""
     text = _text(PRODUCT_LINE)
     comments = _named_comments(text)
     for identity in PLE_CONFIGURATION_ROLES | {"FeatureConfiguration"}:
         targets, body = comments[identity + "VocabularyRole"]
         assert targets.strip() == "FeatureConfigurationOntologyDefinition", identity
         body = _flat(body)
-        assert ADR_0006_BOUNDARY in body and "Vocabulary only" in body, identity
-        assert "PLEML" in body, identity
-    assert "the ADR 0006 external configurator authority is kept" in _flat(
-        comments["FeatureConfigurationVocabularyRole"][1])
+        assert ADR_0022_BOUNDARY in body and "Vocabulary only" in body, identity
+        # True in both states: each role names the YAML side until the switch and
+        # the PLEML side from it.
+        assert "until the switch" in body.lower() and "from the switch" in body.lower(), identity
+        assert "Bill-of-Features" in body and "PLEML" in body, identity
+        assert "selection authority stays with the external catalogue" not in body, identity
+    carriers = {
+        "FeatureConfiguration": "pinned PLEML library definition FeatureConfiguration",
+        "appliesToMemberProduct": "PLEML FeatureConfigurationBinding",
+        "selectsFeature": "redefining it with multiplicity 1",
+        "selectsVariant": "DE4SDV derivation rules",
+    }
+    for identity, carrier in carriers.items():
+        assert carrier in _flat(comments[identity + "VocabularyRole"][1]), identity
+    definition = _flat(re.search(r"\bdoc\s+FeatureConfigurationOntologyDefinition\s*/\*(.*?)\*/", text, re.S)[1])
+    assert definition.startswith("A selection of features that describes a member product or scenario."), definition
+    assert "does not select common capabilities" in definition
+    # Feature stays the kernel candidate (S5o): a PLEML feature is a distinct element.
+    candidate = braced_body(text, "part def ProductLineFeatureCandidate")
+    notes = [_flat(body) for body in re.findall(r"\bcomment\s*/\*(.*?)\*/", candidate, re.S)]
+    assert len(notes) == 1, notes
+    for phrase in ("The ontology Feature stays this kernel definition before and after the switch of ADR 0022",
+                   "R001 governs it", "A feature of a PLEML feature model is a distinct element",
+                   "Reference-only options and derived realizations are PLEML features without being Features"):
+        assert phrase in notes[0], phrase
+    assert model_contract().classes["Feature"]["kernel"] == {
+        "file": PRODUCT_LINE, "declaration": "part def ProductLineFeatureCandidate"}
     # No model-side configuration authority: no FeatureConfiguration, variation-point
     # or variant definition anywhere in the governed kernel directory.
     for path in sorted((ROOT / KERNEL).glob("*.sysml")):
         active = _active(path.read_text())
         assert not re.search(r"\bdef\s+(FeatureConfiguration|VariationPoint|Variant)\b", active), path.name
+    # Until the switch the class stays external (ADR 0011): the PLEML library is not
+    # in the API baseline yet. The switch (S6) maps it to the pinned PLEML declaration.
     assert "external" in model_contract().classes["FeatureConfiguration"]["kernel"]
 
 
@@ -210,10 +244,31 @@ def test_vocabulary_role_names_are_unique_and_kernel_resident():
     for path in _model_files():
         for name in re.findall(r"\bcomment\s+(?!about\b)(\w+VocabularyRole)\b", _blank_comment_bodies(path.read_text())):
             homes.setdefault(name, []).append(path.relative_to(ROOT).as_posix())
-    assert len(homes) >= 22, "the scan must see the kernel's vocabulary roles"
+    assert len(homes) >= 21, "the scan must see the kernel's vocabulary roles"
     duplicated = {name: files for name, files in homes.items() if len(files) != 1}
     assert not duplicated, duplicated
     assert all(files[0].startswith(KERNEL) for files in homes.values()), homes
+
+
+def test_removed_ple_configuration_relation_is_refused_and_unused():
+    """includesCommonCapability is removed (register interp-10): no configuration
+    chooses a common capability, and a PLEML feature configuration owns only
+    features. Its vocabulary role is gone from every model file, no model code
+    names it, and the contract refuses the name with its register disposition."""
+    from de4sdv.semantic.kernel_contract import RetiredIdentityError
+
+    contract = model_contract()
+    for identity in REMOVED_PLE_ROLES:
+        assert identity not in contract.relationships, identity
+        assert "register disposition REMOVE" in contract.refused[identity], identity
+        with pytest.raises(RetiredIdentityError, match="register disposition REMOVE"):
+            contract.relationship_mapping(identity)
+    files = list(_model_files())
+    assert len(files) > 50, "the scan must see the model files"
+    for path in files:
+        code = _blank_comment_bodies(path.read_text())
+        for identity in REMOVED_PLE_ROLES:
+            assert not re.search(r"\b" + identity + r"(?:VocabularyRole)?\b", code, re.IGNORECASE), path
 
 
 def test_rule_homes_are_declared_once_and_never_asserted_anywhere():
@@ -251,7 +306,9 @@ STEP_OUTPUT_EXEMPTION = ("de4sdv_increment_workflow.sysml", "action def Classify
 
 
 def test_kernel_holds_no_configuration_selection_under_any_name():
-    """ADR 0006: selection authority is external. The kernel product-line
+    """The kernel holds no configuration selection: the configuration authority
+    follows ADR 0022 (the YAML catalogue until the switch, the PLEML feature models
+    from it), never the kernel. The kernel product-line
     definitions are pinned, and no kernel feature is typed by a selectable
     product-line class (a selection record under another name): not with ``:``,
     ``defined by`` or ``typed by``, and not through an alias. The one exception
@@ -260,7 +317,7 @@ def test_kernel_holds_no_configuration_selection_under_any_name():
     scanned."""
     active = _active(_text(PRODUCT_LINE))
     assert set(re.findall(r"\bdef\s+(\w+)", active)) == PRODUCT_LINE_DEFINITIONS
-    # No reference feature at all in the product-line kernel: selections are external.
+    # No reference feature at all in the product-line kernel: selections live outside it.
     assert not re.search(r"\bref\b", active), "reference feature in the product-line kernel"
     imports = re.compile(r"^\s*(?:(?:private|public)\s+)?import\s+[^;]*;", re.MULTILINE)
     texts = {path: imports.sub(" ", _active(path.read_text()))

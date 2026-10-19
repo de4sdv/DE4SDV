@@ -183,17 +183,17 @@ excluded:
   - identity: allocatedTo
     reason: W7-held (typed allocation-end profile / exact-revision closure not accepted)
   - identity: variesAt
-    reason: PLE-Q/S qualification + authorized PLE-A adoption not satisfied
+    reason: kernel-vocabulary navigation row; a derived fact over native variant membership that no reviewed traversal realizes yet (ADR 0022 leaves its native grounding unchanged)
   - identity: FeatureConfiguration
-    reason: decision-9 (PLE configurator authority) unresolved
+    reason: decision-9 decided by ADR 0022; from the switch the class grounds on the pinned PLEML library, which is not a native construct of this layer; a kernel-vocabulary row
   - identity: selectsFeature
-    reason: decision-9 (PLE configurator authority) unresolved
+    reason: decision-9 decided by ADR 0022; from the switch a PLEML feature configuration carries the selection, not a native construct of this layer; a kernel-vocabulary row
   - identity: appliesToMemberProduct
-    reason: decision-9 (PLE configurator authority) unresolved
+    reason: decision-9 decided by ADR 0022; from the switch the PLEML FeatureConfigurationBinding carries it, not a native construct of this layer; a kernel-vocabulary row
   - identity: includesCommonCapability
-    reason: decision-9 (PLE configurator authority) unresolved
+    reason: removed register row (no configuration chooses a common capability; a PLEML feature configuration owns only features, ADR 0022); not an O2+ row
   - identity: selectsVariant
-    reason: decision-9 (PLE configurator authority) unresolved
+    reason: decision-9 decided by ADR 0022; a DE4SDV derived fact (ADR 0022 decision 4), not a native construct of this layer; a kernel-vocabulary row
   - identity: instantiatesCanonicalArchitecture
     reason: W7-held; decision-10 (canonical architecture source) unresolved
   - identity: Interface

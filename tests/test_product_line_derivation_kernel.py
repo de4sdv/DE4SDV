@@ -196,7 +196,9 @@ def test_every_definition_is_an_ontology_class_bound_like_the_kernel(name):
     contract = model_contract()
     assert contract.classes[name]["kernel"] == {"file": DERIVATION, "declaration": f"metadata def {name}"}
     row = {r["identity"]: r for r in json.loads((ROOT / PROJECTION).read_text())["rows"]}[name]
-    assert (row["accounting"], row["admission_class"], row["boundary"]) == ("method-admitted", "definition", "none")
+    # S5o: these rows share the PLE boundary; none of them carries configurator authority.
+    assert (row["accounting"], row["admission_class"], row["boundary"]) == (
+        "method-admitted", "definition", "ple-no-configurator-authority")
     assert (row["support"], row["traversal"], row["api_identity"]) == ("vocabulary-only", False, "unclaimed")
     assert row["definition"]["documentation"] == _first_doc(name)
 
