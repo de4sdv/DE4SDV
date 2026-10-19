@@ -53,7 +53,7 @@ def test_the_library_constant_is_the_fenced_sysand_path():
 def payload_of(graph: PlemlGraph) -> dict:
     elements, sources = graph.build()
     return receipts.elements_payload(
-        elements=elements, element_sources=sources, model_sources=(MODEL,), library_source=LIBRARY,
+        elements=elements, element_sources=sources, model_sources=sorted(graph.model_documents), library_source=LIBRARY,
         kernel_source=graph.kernel, serializer={"name": "syside", "version": "0.10.3", "options": "minimal"},
         source_manifest=[{"path": MODEL, "sha256": "0" * 64, "size": 0}])
 
@@ -185,12 +185,13 @@ def test_the_evaluation_keeps_the_documents_the_model_references(tmp_path):
         documents.setdefault(sources[element["@id"]], []).append(element)
     documents["textual-notation-of-model/packages/unrelated.sysml"] = [
         {"@id": "aaaaaaaa-0000-5000-8000-000000000000", "@type": "Package", "declaredName": "Unrelated"}]
-    chosen = cli.evaluation_documents(documents, [MODEL], LIBRARY)
-    assert chosen == sorted({MODEL, LIBRARY, graph.kernel, graph.assets})
+    models = sorted(graph.model_documents)
+    chosen = cli.evaluation_documents(documents, models, LIBRARY)
+    assert chosen == sorted({*models, LIBRARY, graph.kernel, graph.assets})
     for label in chosen:
         (tmp_path / label).parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / label).write_text(label)
-    payload = cli.payload_from_documents(documents, chosen, [MODEL], LIBRARY, tmp_path / LIBRARY, tmp_path, "0.10.3")
+    payload = cli.payload_from_documents(documents, chosen, models, LIBRARY, tmp_path / LIBRARY, tmp_path, "0.10.3")
     assert all("@uri" not in json.dumps(element) for element in payload["elements"])
     assert receipts.evaluate_payload(payload)["feature_models"] == graph.evaluate()["feature_models"]
 

@@ -48,24 +48,38 @@ Identity follows ADR 0011:
 
 The evaluator refuses anything outside these shapes:
 
-- every tree feature carries `#feature` and an explicit multiplicity;
-- group members are `[0..1]` siblings of their group; a member that is itself a
-  group is refused;
-- the only value a tree feature may carry is `default null`;
-- configuration settings state their multiplicity and may nest inside the
-  setting of their owning feature. A group setting may list its selected members
-  as its value, and the list must agree with the member settings;
-- constraints are `requiresFeatures`, `xorFeatures` and `impliesFeatures`
-  redefinitions with `new FeatureOperand(A, B)`. Operand A of a requires or XOR
-  constraint is its owner, either `that` or the owner itself;
-- a feature model carries `ProductModelProjection`, a configuration may carry
+- **trees.** A `#featureTree occurrence def` owns the features. The feature model
+  names the definition through `#featureTree occurrence name : Definition :>
+  featureTrees;`, a typed usage without a body. A tree usage that owns its
+  features, the library's own form, is accepted too;
+- **features.** Every tree feature carries `#feature` and an explicit
+  multiplicity. Group members are `[0..1]` siblings of their group, and a member
+  that is itself a group is refused. The only value a tree feature may carry is
+  `default null`;
+- **configurations.** A configuration is `#featureConfiguration occurrence name :
+  Definition :> featureConfigurations`, typed by its tree definition and
+  usually in its own file. One that subsets a tree usage with a body is accepted
+  too, and one typed by no tree is refused. Settings state their multiplicity and
+  may nest inside the setting of their owning feature. A group setting may list
+  its selected members as its value, and the list must agree with the member
+  settings;
+- **constraints.** A constraint subsets or redefines exactly one of
+  `requiresFeatures`, `xorFeatures` and `impliesFeatures`; the library declares
+  each base with multiplicity `[*]`. Each named constraint is a constraint of its
+  own and keeps its own short name. Its operands are `new FeatureOperand(A, B)`,
+  and operand A of a requires or XOR constraint is its owner, either `that` or
+  the owner itself;
+- **metadata.** Metadata is read only where the annotated element owns it, as
+  `#M` or `@M` inside its body. Consumed metadata placed with a package-level
+  `about` annotation is refused, never ignored. A feature model carries
+  `ProductModelProjection`, a configuration may carry
   `ProductModelProjectionName`, and a feature may carry `UnassignedBindingTime`,
   unless a binding, derived variation or rule names it. A feature that carries
   `UnassignedBindingTime` never redefines `bindingTime`;
-- a `DerivedVariation` or `DerivationRule` dependency has exactly one client.
-  Each premise of a rule is a direct sub-feature of a distinct source feature,
-  and supplier order carries no meaning. A rule whose variant no single derived
-  variation names is refused.
+- **derivation.** A `DerivedVariation` or `DerivationRule` dependency has exactly
+  one client. Each premise of a rule is a direct sub-feature of a distinct source
+  feature, and supplier order carries no meaning. A rule whose variant no single
+  derived variation names is refused.
 
 ## Receipts
 

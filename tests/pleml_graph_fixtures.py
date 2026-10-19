@@ -20,6 +20,7 @@ from de4sdv.semantic import pleml_configuration as evaluator
 NAMESPACE = uuid.UUID("3f1c4f9e-7a55-4b49-9a3c-8f1f6d0d2a11")
 LIBRARY = "external/pleml/PLEML.sysml"
 MODEL = "model-based-product-line-engineering/feature-models/synthetic_feature_model.sysml"
+CONFIGURATIONS = "model-based-product-line-engineering/feature-configurations/synthetic_configurations.sysml"
 ASSETS = "textual-notation-of-model/packages/architecture/synthetic_shared_assets.sysml"
 #: The kernel ``that`` feature lives in the standard library, outside every bundle.
 THAT = "dbd75b49-0e57-5cf9-ba35-9f8843b1e657"
@@ -46,6 +47,8 @@ class PlemlGraph:
         self._build_library()
         self._build_kernel()
         self.package = self.element("Package", model, declaredName="SyntheticProductLine")
+        self.model_documents = {model}
+        self.configuration_package: str | None = None
 
     # -- element plumbing --------------------------------------------------------------
 
@@ -205,6 +208,14 @@ class PlemlGraph:
                 self.kernel_features[(role, field)] = self.own(definition, "FeatureMembership", field_kind,
                                                                member_name=field, declaredName=field)
 
+    def about(self, target: str, role: str, values: dict[str, Any]) -> str:
+        """``@Metadata about target { ... }`` at package level: the form the evaluator refuses."""
+        usage = self.kernel_record(self.package, role, values)
+        annotation = self.element("Annotation", self.sources[usage], owningRelatedElement=ref(usage),
+                                  annotatedElement=ref(target))
+        self.by_id[usage].setdefault("ownedRelationship", []).append(ref(annotation))
+        return usage
+
     def kernel_record(self, owner: str, role: str, values: dict[str, Any], *, via: str = "membership",
                       name: str | None = None, short: str | None = None) -> str:
         """A usage typed by a kernel definition with its field values (metadata or occurrence)."""
@@ -238,14 +249,36 @@ class PlemlGraph:
 
     # -- feature models ------------------------------------------------------------------
 
-    def feature_model(self, name: str, *, projection: dict[str, str] | None = None) -> str:
+    def feature_model(self, name: str, *, projection: dict[str, str] | None = None,
+                      tree_definition: str | None = None) -> str:
         model = self.own(self.package, "OwningMembership", "OccurrenceDefinition", member_name=name,
                          declaredName=name, isVariation=False)
         self.keyword(model, "FeatureModelMetadata")
+        if tree_definition is not None:
+            tree_name = self.by_id[tree_definition]["declaredName"]
+            self.tree_usage(model, tree_name[0].lower() + tree_name[1:], tree_definition)
         if projection is not None:
             self.kernel_record(model, "projection", {attribute: projection[key]
                                                      for attribute, key in self.names.projection_fields})
         return model
+
+    def tree_definition(self, name: str, *, short: str | None = None) -> str:
+        """``#featureTree occurrence def <short> Name { ... }``: the definition owns the features."""
+        props = {"declaredName": name, "isVariation": False}
+        if short:
+            props["declaredShortName"] = short
+        definition = self.own(self.package, "OwningMembership", "OccurrenceDefinition", member_name=name, **props)
+        self.keyword(definition, "FeatureTreeMetadata")
+        return definition
+
+    def tree_usage(self, model: str, name: str, definition: str) -> str:
+        """``#featureTree occurrence name : Definition :> featureTrees;`` with no body."""
+        usage = self.own(model, "FeatureMembership", "OccurrenceUsage", member_name=name, declaredName=name,
+                         isComposite=True, isVariable=True, isVariation=False)
+        self.keyword(usage, "FeatureTreeMetadata")
+        self.typed(usage, definition)
+        self.subsets(usage, self.lib["FeatureModel::featureTrees"])
+        return usage
 
     def tree(self, model: str, name: str, *, short: str | None = None, keyword: bool = True,
              subsets_library: bool = True) -> str:
@@ -287,14 +320,18 @@ class PlemlGraph:
         self.reference_value(attribute, [self.lib[literal]])
 
     def constraint(self, owner: str, kind: str, operand_a: Sequence[str | None], operand_b: Sequence[str | None], *,
-                   short: str | None = None) -> str:
-        """``assert constraint <short> :>> <kind>Features { in occurrence constrainedFeatures = new FeatureOperand(A, B); }``."""
+                   short: str | None = None, name: str | None = None) -> str:
+        """``assert constraint <short> :>> <kind>Features { ... }``, or ``<short> name :> <kind>Features`` when named.
+
+        Either form sets ``in occurrence constrainedFeatures = new FeatureOperand(A, B);``.
+        """
         base = {"requires": "requiresFeatures", "xor": "xorFeatures", "implies": "impliesFeatures"}[kind]
-        props: dict[str, Any] = {"name": base, "isComposite": True, "isVariable": True, "isVariation": False}
+        props: dict[str, Any] = {"isComposite": True, "isVariable": True, "isVariation": False}
+        props.update({"declaredName": name} if name else {"name": base})
         if short:
             props["declaredShortName"] = short
-        usage = self.own(owner, "FeatureMembership", "AssertConstraintUsage", member_name=base, **props)
-        self.redefines(usage, self.lib[f"Feature::{base}"])
+        usage = self.own(owner, "FeatureMembership", "AssertConstraintUsage", member_name=name or base, **props)
+        (self.subsets if name else self.redefines)(usage, self.lib[f"Feature::{base}"])
         parameter = self.own(usage, "FeatureMembership", "OccurrenceUsage", member_name="constrainedFeatures",
                              declaredName="constrainedFeatures", direction="in", isVariable=True, isVariation=False)
         constructor = self.own(parameter, "FeatureValue", "ConstructorExpression")
@@ -309,12 +346,12 @@ class PlemlGraph:
         return usage
 
     def requires(self, owner: str, required: Sequence[str], *, short: str | None = None,
-                 operand_a: Sequence[str | None] = (None,)) -> str:
-        return self.constraint(owner, "requires", operand_a, required, short=short)
+                 operand_a: Sequence[str | None] = (None,), name: str | None = None) -> str:
+        return self.constraint(owner, "requires", operand_a, required, short=short, name=name)
 
     def xor(self, owner: str, excluded: Sequence[str], *, short: str | None = None,
-            operand_a: Sequence[str | None] = (None,)) -> str:
-        return self.constraint(owner, "xor", operand_a, excluded, short=short)
+            operand_a: Sequence[str | None] = (None,), name: str | None = None) -> str:
+        return self.constraint(owner, "xor", operand_a, excluded, short=short, name=name)
 
     def implies(self, owner: str, premises: Sequence[str | None], conclusions: Sequence[str], *,
                 short: str | None = None) -> str:
@@ -322,12 +359,26 @@ class PlemlGraph:
 
     def configuration(self, owner: str, name: str, tree: str, *, keyword: bool = True,
                       projection_name: str | None = None, description: str | None = None) -> str:
+        """In a feature model, ``... :> tree, featureConfigurations``; for a tree definition, in the configurations
+        document, ``#featureConfiguration occurrence name : TreeDefinition :> featureConfigurations``."""
         props = {"declaredName": name, "isComposite": True, "isVariable": True, "isVariation": False}
-        configuration = self.own(owner, "FeatureMembership", "OccurrenceUsage", member_name=name, **props)
+        typed = self.by_id[tree]["@type"] == "OccurrenceDefinition"
+        if typed:
+            if self.configuration_package is None:
+                self.configuration_package = self.element("Package", CONFIGURATIONS,
+                                                          declaredName="SyntheticConfigurations")
+                self.model_documents.add(CONFIGURATIONS)
+            owner = self.configuration_package
+        relationship = "OwningMembership" if typed else "FeatureMembership"
+        configuration = self.own(owner, relationship, "OccurrenceUsage", member_name=name, **props)
         if keyword:
             self.keyword(configuration, "FeatureConfigurationMetadata")
-        self.subsets(configuration, tree)
-        self.subsets(configuration, self.lib["FeatureModel::featureConfigurations"])
+        if typed:
+            self.typed(configuration, tree)
+            self.subsets(configuration, self.lib["package::featureConfigurations"])
+        else:
+            self.subsets(configuration, tree)
+            self.subsets(configuration, self.lib["FeatureModel::featureConfigurations"])
         if description is not None:
             self.documentation(configuration, description)
         if projection_name is not None:
@@ -424,7 +475,7 @@ class PlemlGraph:
 
     def evaluate(self, **options: Any) -> dict[str, Any]:
         elements, sources = self.build()
-        options.setdefault("model_sources", (self.model,))
+        options.setdefault("model_sources", tuple(sorted(self.model_documents)))
         options.setdefault("library_source", self.library)
         options.setdefault("kernel_bindings", self.kernel_bindings())
         return evaluator.evaluate(elements, sources, **options)
@@ -499,9 +550,9 @@ class PlatformLine:
                 "autowareToSCORE", "autowareToAAOSSDV", "autowareToAUTOSAR", "openpilotToSCORE", "apolloToSCORE",
                 "none")),
         }
-        self.model = graph.feature_model("SDVProductLineFeatureModel", projection={
-            "package": "DE4SDV_SDVPlatformStack", "owner": "SDVPlatformStack", "label": "platform-stack"})
-        self.tree = tree = graph.tree(self.model, "sdvProductLine", short="PL-DE4SDV")
+        # The shapes of the fenced feature models: a tree definition that owns the features, a feature
+        # model naming it through a typed usage without a body, and configurations typed by it.
+        self.tree = tree = graph.tree_definition("SDVProductLineFeatureTree", short="PL-DE4SDV")
         f = self.features = {}
         f["platformStack"] = stack = graph.feature(tree, "platformStack", (1, 1), short=SHORT["platformStack"])
         self.groups = {}
@@ -523,13 +574,17 @@ class PlatformLine:
             f[capability] = graph.feature(capabilities, capability, (0, 1), short=SHORT[capability])
             graph.kernel_record(f[capability], "unassigned_binding_time", {})
         self.constraints = {
-            "C001": graph.xor(f["eclipseSCORE"], [f["android"]], short="C001"),
-            "C003": graph.xor(f["autosarAdaptive"], [f["android"]], short="C003"),
-            "C004": graph.xor(f["acrn"], [f["qnx"]], short="C004"),
-            "C005": graph.xor(f["kvm"], [f["qnx"]], short="C005"),
+            "C001": graph.xor(f["eclipseSCORE"], [f["android"]], short="C001", name="eclipseSCOREExcludesAndroid"),
+            "C003": graph.xor(f["autosarAdaptive"], [f["android"]], short="C003",
+                              name="autosarAdaptiveExcludesAndroid"),
+            "C004": graph.xor(f["acrn"], [f["qnx"]], short="C004", name="acrnExcludesQNX"),
+            "C005": graph.xor(f["kvm"], [f["qnx"]], short="C005", name="kvmExcludesQNX"),
         }
         for application, excluded in (UNSUPPORTED if unsupported is None else unsupported).items():
-            self.constraints[f"pair-{application}"] = graph.xor(f[application], [f[item] for item in excluded])
+            self.constraints[f"pair-{application}"] = graph.xor(
+                f[application], [f[item] for item in excluded], name=f"{application}ExcludesUnsupportedMiddleware")
+        self.model = graph.feature_model("SDVProductLineFeatureModel", tree_definition=tree, projection={
+            "package": "DE4SDV_SDVPlatformStack", "owner": "SDVPlatformStack", "label": "platform-stack"})
         if bind:
             for group, (members, variation) in self.groups.items():
                 for member in members:
@@ -562,6 +617,10 @@ class PlatformLine:
         for capability in enabled:
             graph.setting(capabilities, f[capability], (1, 1))
         return configuration
+
+    def new_configuration(self, name: str, **options: Any) -> str:
+        """An empty configuration typed by the tree definition, in the configurations document."""
+        return self.graph.configuration(self.model, name, self.tree, **options)
 
     def choose(self, scope: str, group: str, choices: Sequence[str], *,
                multiplicity: tuple[int, int | None] = (1, 1)) -> str:

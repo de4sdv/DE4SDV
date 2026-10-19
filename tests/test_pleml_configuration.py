@@ -155,7 +155,7 @@ def test_two_alternatives_in_exactly_one_groups_violate_the_upper_bound():
 def test_groups_without_a_choice_violate_the_lower_bound_whether_set_or_left_out():
     line = PlatformLine()
     line.configure("none", "autoware", (), (), ())
-    configuration_id = line.graph.configuration(line.model, "bare", line.tree)
+    configuration_id = line.new_configuration("bare")
     line.graph.select(configuration_id)  # nothing set: every mandatory group is implied
     report = line.graph.evaluate()
     assert classes(configuration(report, "none")) == {("lower-bound", None)}
@@ -207,7 +207,7 @@ def test_a_configuration_owns_only_features():
 
 def test_a_mandatory_grouping_set_to_zero_violates_the_lower_bound():
     line = PlatformLine()
-    probe = line.graph.configuration(line.model, "noCapabilities", line.tree)
+    probe = line.new_configuration("noCapabilities")
     stack = line.graph.setting(probe, line.features["platformStack"], (1, 1))
     for group, choice in (("vehicleApplication", "autoware"), ("middleware", "noMiddleware"), ("os", "linux"),
                           ("hypervisor", "noHypervisor")):
@@ -485,7 +485,7 @@ def test_a_setting_states_its_multiplicity():
 
 def test_a_group_value_that_disagrees_with_its_member_settings_is_refused():
     line = PlatformLine()
-    probe = line.graph.configuration(line.model, "mismatch", line.tree)
+    probe = line.new_configuration("mismatch")
     stack = line.graph.setting(probe, line.features["platformStack"], (1, 1))
     setting = line.graph.setting(stack, line.features["vehicleApplication"], (1, 1))
     line.graph.setting(stack, line.features["autoware"], (1, 1))
@@ -635,3 +635,76 @@ def test_each_premise_is_a_direct_sub_feature_of_a_distinct_source_feature():
     errors = feature_model(line.graph.evaluate())["integrity_errors"]
     assert any("rule sameSourceTwice: its premises are no sub-features of distinct source features" in error
                for error in errors), errors
+
+
+# -- the accepted forms of the fenced feature models ----------------------------------------
+
+
+def constraint_test_definition_model() -> PlemlGraph:
+    """The documented constraint cases in the fenced models' form: a tree definition and typed configurations."""
+    graph = PlemlGraph()
+    tree = graph.tree_definition("ConstraintTestTree")
+    features = {name: graph.feature(tree, name, (0, 1)) for name in "abcdefg"}
+    graph.xor(features["a"], [features["b"]], name="aExcludesB")
+    graph.requires(features["c"], [features["d"]], name="cRequiresD")
+    graph.constraint(features["e"], "implies", [features["e"], features["f"]], [features["g"]], name="efImplyG")
+    model = graph.feature_model("ConstraintTestFeatureModel", tree_definition=tree)
+    for name, selected in (("xorValid", "a"), ("xorViolated", "ab"), ("requiresValid", "cd"),
+                           ("requiresViolated", "c"), ("impliesValid1", "efg"), ("impliesValid2", "e"),
+                           ("impliesViolated", "ef")):
+        graph.select(graph.configuration(model, name, tree), *(features[item] for item in selected))
+    return graph
+
+
+def test_the_documented_verdicts_hold_in_the_tree_definition_form():
+    report = constraint_test_definition_model().evaluate()
+    assert verdicts(report) == verdicts(constraint_test_model().evaluate())
+    (model,) = report["feature_models"]
+    assert model["feature_model"] == "ConstraintTestFeatureModel" and model["tree"]["name"] == "ConstraintTestTree"
+    assert {item["source"] for item in model["configurations"]} == {
+        "model-based-product-line-engineering/feature-configurations/synthetic_configurations.sysml"}
+
+
+def test_kernel_metadata_placed_with_about_is_refused():
+    line = PlatformLine()
+    line.graph.about(line.model, "projection", {"packageName": "P", "ownerName": "O", "label": "l"})
+    with pytest.raises(PlemlShapeError, match="ProductModelProjection metadata is applied through an `about` annotation"):
+        line.graph.evaluate()
+
+
+def test_a_projection_name_placed_with_about_is_refused():
+    line = PlatformLine()
+    member = line.configure("member", "autoware", "noMiddleware", "linux", "noHypervisor")
+    line.graph.about(member, "projection_name", {evaluator.KERNEL.projection_name_field: "Member"})
+    with pytest.raises(PlemlShapeError, match="ProductModelProjectionName metadata is applied through an `about`"):
+        line.graph.evaluate()
+
+
+def test_a_configuration_typed_by_no_tree_is_refused():
+    line = PlatformLine()
+    stray = line.graph.own(line.graph.package, "OwningMembership", "OccurrenceUsage", member_name="stray",
+                           declaredName="stray")
+    line.graph.keyword(stray, "FeatureConfigurationMetadata")
+    line.graph.subsets(stray, line.graph.lib["package::featureConfigurations"])
+    with pytest.raises(PlemlShapeError, match="configuration stray is typed by no feature tree"):
+        line.graph.evaluate()
+
+
+def test_a_typed_tree_usage_with_a_body_is_refused():
+    graph = PlemlGraph()
+    tree = graph.tree_definition("T")
+    graph.feature(tree, "a", (0, 1))
+    model = graph.feature_model("M", tree_definition=tree)
+    usage = next(member for member in graph.by_id if graph.by_id[member].get("declaredName") == "t")
+    graph.feature(usage, "extra", (0, 1))
+    del model
+    with pytest.raises(PlemlShapeError, match="must be typed by one tree definition and have no body"):
+        graph.evaluate()
+
+
+def test_a_constraint_subsets_or_redefines_exactly_one_base():
+    line = PlatformLine()
+    constraint = line.constraints["C004"]
+    line.graph.redefines(constraint, line.graph.lib["Feature::requiresFeatures"])
+    with pytest.raises(PlemlShapeError, match="exactly one of the requiresFeatures, xorFeatures and impliesFeatures"):
+        line.graph.evaluate()

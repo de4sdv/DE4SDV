@@ -120,6 +120,7 @@ LIFE_CYCLE = {"Development": 1, "Production": 2, "Operation": 3}
 IDENTIFIER = re.compile(r"[A-Za-z_]\w*")
 
 _SPECIALIZATIONS = {"Subsetting", "Redefinition", "ReferenceSubsetting", "FeatureTyping"}
+_SKIPPED = _SPECIALIZATIONS | {"Subclassification", "Import", "NamespaceImport", "MembershipImport"}
 _LITERALS = {"LiteralString": str, "LiteralBoolean": bool, "LiteralInteger": int}
 _STRUCTURE = {"MultiplicityRange", "Documentation", "Comment"}
 
@@ -389,7 +390,10 @@ class _Identity:
         "FeatureModel": "OccurrenceDefinition", "FeatureConfiguration": "OccurrenceDefinition",
         "FeatureTree": "OccurrenceDefinition", "Feature": "OccurrenceDefinition",
         "FeatureOperand": "OccurrenceDefinition", "LifeCycleKind": "EnumerationDefinition",
+        "RequiresConstraint": "ConstraintDefinition", "XORConstraint": "ConstraintDefinition",
+        "ImpliesConstraint": "ConstraintDefinition",
     }
+    CONSTRAINT_DEFINITIONS = {"requires": "RequiresConstraint", "xor": "XORConstraint", "implies": "ImpliesConstraint"}
 
     def __init__(self, graph: _Graph, library_source: str, kernel_source: str, vocabulary: KernelVocabulary,
                  kernel_bindings: Mapping[str, str] | None) -> None:
@@ -462,6 +466,23 @@ class _Identity:
                     owner = "kernel" if name in kernel_names else "PLEML library"
                     raise PlemlShapeError(f"{graph.label(usage)} is typed by a homonym of the {owner} definition "
                                           f"{name} ({graph.sources.get(definition, 'outside the set')})")
+
+    def refuse_about_metadata(self, model_sources: Sequence[str]) -> None:
+        """Consumed metadata is read only where its annotated element owns it; ``about`` placement is refused."""
+        graph = self.graph
+        consumed = set(self.metadata_names)
+        for usage, element in graph.by_id.items():
+            if element["@type"] != "MetadataUsage" or graph.sources[usage] not in model_sources:
+                continue
+            definitions = [item for item in self.typings(usage) if item in consumed]
+            if not definitions:
+                continue
+            name = graph.label(definitions[0])
+            owner = graph.owner(usage)  # the element itself, or the annotated owner of a prefix annotation
+            about = graph.relationships(usage, "Annotation")
+            if about or graph.kind(owner or "") in {"Package", "LibraryPackage", "Namespace"}:
+                raise PlemlShapeError(f"{name} metadata is applied through an `about` annotation in "
+                                      f"{graph.label(owner)}; apply it inside the body of the element it annotates")
 
     def _library_member(self, owner: str, name: str, kind: str) -> str:
         found = [member for member in self.graph.members(self.lib[owner], "FeatureMembership")
@@ -596,7 +617,7 @@ class _FeatureModel:
         graph, identity = self.graph, self.identity
         for relationship in graph.relationships(owner):
             kind = graph.kind(relationship)
-            if kind in _SPECIALIZATIONS:
+            if kind in _SKIPPED:
                 continue
             if kind == "Annotation":
                 if owner != self.tree:
@@ -688,10 +709,15 @@ class _FeatureModel:
 
     def _constraint(self, usage: str, owner: str | None) -> _Constraint:
         graph, identity = self.graph, self.identity
-        kinds = [kind for kind, base in identity.constraint_bases.items() if base in graph.generals(usage, "Redefinition")]
-        if len(kinds) != 1:
-            raise PlemlShapeError(f"constraint {graph.label(usage)} redefines no single requires, xor or implies feature")
+        generals = graph.generals(usage, "Redefinition", "Subsetting")
+        kinds = [kind for kind, base in identity.constraint_bases.items() if base in generals]
+        if len(kinds) != 1 or len(generals) != 1:
+            raise PlemlShapeError(f"constraint {graph.label(usage)} must subset or redefine exactly one of the "
+                                  "requiresFeatures, xorFeatures and impliesFeatures bases")
         kind = kinds[0]
+        allowed_types = {identity.lib[identity.CONSTRAINT_DEFINITIONS[kind]]}
+        if not set(identity.typings(usage)) <= allowed_types:
+            raise PlemlShapeError(f"constraint {graph.label(usage)} is typed other than by its library definition")
         parameter = graph.one_member(usage, "FeatureMembership", member_name="constrainedFeatures",
                                      what=f"constrainedFeatures of constraint {graph.label(usage)}")
         value = graph.value_expression(parameter)
@@ -1056,7 +1082,7 @@ class _Configuration:
         top = scope is None
         for relationship in graph.relationships(owner):
             kind = graph.kind(relationship)
-            if kind in _SPECIALIZATIONS:
+            if kind in _SKIPPED:
                 continue
             if kind == "Annotation":
                 for metadata in reference_ids(graph.by_id[relationship].get("ownedRelatedElement")):
@@ -1266,6 +1292,67 @@ class _Configuration:
 # -- entry point -------------------------------------------------------------------------
 
 
+def _trees_and_configurations(graph: _Graph, identity: _Identity,
+                              model_sources: Sequence[str]) -> tuple[dict[str, str | None], dict[str, str]]:
+    """The feature trees, each with the feature model that names it, and the tree of each configuration.
+
+    A tree is a ``#featureTree`` definition, whose features the definition
+    owns, or a tree usage with a body. A tree usage typed by a tree
+    definition and without a body names that definition, and its owner is
+    the tree's feature model. A configuration is typed by its tree
+    definition, or subsets its tree usage.
+    """
+    definitions, usages, configurations = [], [], []
+    for identifier, element in graph.by_id.items():
+        if graph.sources[identifier] not in model_sources:
+            continue
+        kind = element["@type"]
+        if kind not in {"OccurrenceUsage", "PartUsage", "OccurrenceDefinition", "PartDefinition"}:
+            continue
+        kinds = identity.metadata_kinds(identifier)
+        if kind.endswith("Definition"):
+            if "FeatureTreeMetadata" in kinds:
+                definitions.append(identifier)
+            continue
+        generals = set(graph.generals(identifier, "Subsetting"))
+        if "FeatureConfigurationMetadata" in kinds or generals & identity.library_usages["featureConfigurations"]:
+            configurations.append(identifier)
+        elif "FeatureTreeMetadata" in kinds or generals & identity.library_usages["featureTrees"]:
+            usages.append(identifier)
+    roots: dict[str, str | None] = {definition: None for definition in definitions}
+    usage_root: dict[str, str] = {}
+    for usage in usages:
+        typed = [item for item in identity.typings(usage) if item in roots]
+        body = [member for member in graph.members(usage, "FeatureMembership")
+                if graph.kind(member) in {"OccurrenceUsage", "PartUsage", "AssertConstraintUsage"}]
+        if typed and (len(typed) != 1 or body):
+            raise PlemlShapeError(f"tree usage {graph.label(usage)} must be typed by one tree definition and have "
+                                  "no body")
+        root = typed[0] if typed else usage
+        roots.setdefault(root, None)
+        usage_root[usage] = root
+        owner = graph.owner(usage)
+        if owner is not None and graph.kind(owner) in {"OccurrenceDefinition", "OccurrenceUsage"}:
+            if "FeatureModelMetadata" not in identity.metadata_kinds(owner):
+                raise PlemlShapeError(f"{graph.label(owner)} owns a feature tree but is no #featureModel")
+            if roots[root] not in (None, owner):
+                raise PlemlShapeError(f"tree {graph.label(root)} is named by two feature models")
+            roots[root] = owner
+    if not roots:
+        raise PlemlShapeError("the model documents declare no feature tree")
+    tree_of = {}
+    for configuration in configurations:
+        candidates = {item for item in identity.typings(configuration) if item in definitions}
+        candidates |= {usage_root[item] for item in graph.generals(configuration, "Subsetting") if item in usage_root}
+        if len(candidates) != 1:
+            raise PlemlShapeError(f"configuration {graph.label(configuration)} is typed by "
+                                  f"{'no' if not candidates else len(candidates)} feature tree"
+                                  f"{'s' if len(candidates) > 1 else ''}")
+        tree_of[configuration] = candidates.pop()
+    ordered = dict(sorted(roots.items(), key=lambda item: graph.order[item[0]]))
+    return ordered, tree_of
+
+
 def kernel_bindings(contract: Any, elements: Iterable[dict[str, Any]], element_sources: Mapping[str, str], *,
                     vocabulary: KernelVocabulary = KERNEL) -> dict[str, str]:
     """The vocabulary's kernel classes as ingestion binds them (``validate_ontology_bindings``, ADR 0011).
@@ -1314,36 +1401,15 @@ def evaluate(
         raise PlemlShapeError(f"model documents absent from the element set: {absent}")
     identity = _Identity(graph, library_source, kernel_source, kernel, kernel_bindings)
     identity.refuse_homonyms(model_sources)
-    trees, configurations = [], []
-    for identifier, element in graph.by_id.items():
-        if graph.sources[identifier] not in model_sources or element["@type"] not in {"OccurrenceUsage", "PartUsage"}:
-            continue
-        kinds = identity.metadata_kinds(identifier)
-        generals = set(graph.generals(identifier, "Subsetting"))
-        if "FeatureConfigurationMetadata" in kinds or generals & identity.library_usages["featureConfigurations"]:
-            configurations.append(identifier)
-        elif "FeatureTreeMetadata" in kinds or generals & identity.library_usages["featureTrees"]:
-            trees.append(identifier)
-    if not trees:
-        raise PlemlShapeError("the model documents declare no feature tree")
-    tree_of = {}
-    for configuration in configurations:
-        subsetted = [general for general in graph.generals(configuration, "Subsetting") if general in trees]
-        if len(subsetted) != 1:
-            raise PlemlShapeError(f"configuration {graph.label(configuration)} subsets {len(subsetted)} feature trees")
-        tree_of[configuration] = subsetted[0]
+    identity.refuse_about_metadata(model_sources)
+    roots, tree_of = _trees_and_configurations(graph, identity, model_sources)
     feature_models = []
-    for tree in sorted(trees, key=graph.order.__getitem__):
-        definition = graph.owner(tree)
-        if definition is not None and graph.kind(definition) not in {"OccurrenceDefinition", "OccurrenceUsage"}:
-            definition = None
-        if definition is not None and "FeatureModelMetadata" not in identity.metadata_kinds(definition):
-            raise PlemlShapeError(f"{graph.label(definition)} owns a feature tree but is no #featureModel")
-        model = _FeatureModel(identity, model_sources, tree, definition)
+    for root, owner in roots.items():
+        model = _FeatureModel(identity, model_sources, root, owner)
         decided = [_Configuration(model, item).decide()
-                   for item in sorted((item for item, owner in tree_of.items() if owner == tree),
+                   for item in sorted((item for item, tree in tree_of.items() if tree == root),
                                       key=graph.order.__getitem__)]
-        feature_models.append({"feature_model": graph.name(definition), "element_id": definition,
+        feature_models.append({"feature_model": graph.name(owner), "element_id": owner,
                                **model.to_dict(), "configurations": decided})
     return {
         "schema": SCHEMA,
