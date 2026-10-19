@@ -55,7 +55,7 @@ line references are at that commit.
 | **Production surface** | Unchanged until S6. Until then the models are fenced, as PLE-S was, and licensed-validated together with the reviewed roots and the pinned library (`ple-s-scope-alignment.md:367-378`). S6 changes the selectors and `PINNED_DEPENDENCIES`. |
 | **Oracle** | Becomes the S4 parity check, then the rollback guard. Removed at S7. |
 | **PLE-S** | Retired at S3, superseded by the fenced full-catalogue model. Its record stays as history. |
-| **PLE-Q** | The frozen experiments stay as history. The `adapter-realization` gap is answered by the S3 derivation-rule round trip. |
+| **PLE-Q** | The frozen experiments stay as history. From S1, PLEML comes from the fenced Sysand lock. The current arm reads the interpreter and fixture of the experiment at PLEML 1.1.0 (`69bbe093`) until the S2 evaluator replaces them, at S4 at the latest. The `adapter-realization` gap is answered by the S3 derivation-rule round trip. |
 | **Governed scope** | Stays the admission authority. Admission follows from model-native correspondences of each feature, which replace `catalogue-correspondence.yaml`. |
 
 ## 2. Catalogue mapping

@@ -27,7 +27,6 @@ import uuid
 from pathlib import Path
 from typing import Any, Iterable
 
-from de4sdv.semantic import pleml_package
 from de4sdv.sysml_api.product_line_scope import SCOPE_SOURCE, validate_scope_elements
 from de4sdv.sysml_api.repository import element_id, reference_ids
 
@@ -41,8 +40,8 @@ FROZEN_TAG = "pleml-1.1.0-frozen"
 FROZEN_INTERPRETER = "tools/pleml_gate_a.py"
 FROZEN_INTERPRETER_SHA256 = "552b91798e8c2498e28e0042fadfc7349c2d130c685e80fe9312353545eafb67"
 #: The PLEML release the library comes from: the tag commit of the release the
-#: fenced Sysand lock pins, byte-checked by ``pleml_package``.
-PLEML_PIN = pleml_package.RELEASE.tag_commit
+#: fenced Sysand lock pins, byte-checked by ``pleml_package`` (a test binds them).
+PLEML_PIN = "b694648cce4b96126eda2de3eb881c54397ae035"
 
 #: Source labels of the documents the evaluation reads. The library's label is
 #: the frozen interpreter's, whatever file the pinned package is installed as.

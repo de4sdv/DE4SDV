@@ -595,6 +595,26 @@ def test_the_current_identity_is_pleml_1_1_1_from_the_fenced_lock_and_the_scope_
             (pleml_package.PROJECT / ".project.json").as_posix()} <= set(r.EXECUTOR_INPUTS)
 
 
+def test_the_current_identity_reuses_another_interpreter_only_on_the_fast_path_of_its_record():
+    """The identity is literal and bound to the record: a re-pin changes both, or this fails.
+
+    A ``sysand`` identity that reuses the interpreter and fixture of an experiment
+    made for another release stands only on the fast path: the library differs
+    from that release's only in the version line or the line endings.
+    """
+    from de4sdv.semantic import pleml_package
+
+    r = runner()
+    assert (r.CURRENT.pleml_pin, r.CURRENT.library_sha256) == (
+        pleml_package.RELEASE.tag_commit, pleml_package.RELEASE.library.sha256)
+    reused = [identity for identity in (r.GATE_A, r.PLEML_1_0_0, r.PLEML_1_1_0)
+              if identity.interpreter_sha256 == r.CURRENT.interpreter_sha256]
+    assert reused == [r.PLEML_1_1_0]
+    assert (reused[0].pleml_pin, reused[0].library_sha256) == (
+        pleml_package.PREVIOUS.tag_commit, pleml_package.PREVIOUS.library.sha256)
+    assert pleml_package.REPIN.path == "fast"
+
+
 def test_the_gate_a_identity_is_the_retained_baseline_identity(tmp_path):
     gate_a = runner().GATE_A
     manifest = json.loads((BASELINE / "manifest.json").read_text())
@@ -893,7 +913,7 @@ def test_load_experiment_reads_a_sysand_library_from_outside_the_checkout(tmp_pa
     # The manifest the interpreter's own source check would build, the library under its label.
     assert manifest == [
         {"path": FIXTURE, "authority": "fixture", "sha256": identity.fixture_sha256,
-         "size": len(_git_object("show", f"{identity.revision}:{FIXTURE}"))},
+         "size": len((experiment / FIXTURE).read_bytes())},
         {"path": identity.library, "authority": "pinned-dependency", "sha256": identity.library_sha256,
          "size": len(data)}]
     assert module.PLEML_SOURCE.as_posix() == identity.library

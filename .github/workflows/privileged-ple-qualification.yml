@@ -109,6 +109,9 @@ jobs:
       # interpreter and fixture of the scoped probes and the fresh
       # serialization. Its PLEML submodule is not checked out: PLEML 1.1.1
       # comes from the fenced Sysand lock, byte-checked against its tag.
+      # Retirement: the current arm reads this interpreter and fixture until
+      # the S2 evaluator replaces them, at S4 at the latest; the experiment
+      # then stays history, like Gate A below.
       - name: Checkout frozen experiment read-only as a separate input
         uses: actions/checkout@v4
         with:
@@ -177,11 +180,12 @@ jobs:
           "$HOME/.local/bin/sysand" --version > "$RUNNER_TEMP/ple-evidence/sysand-version.txt"
 
       # PLEML 1.1.1 from the fenced Sysand lock: the byte check against the
-      # committed record of its release tag runs before any step reads it.
+      # committed record of its release tag, the offline re-pin proof and the
+      # upstream tag's commit and blobs, before any step reads it.
       - name: Install and byte-check the fenced PLEML package
         run: |
           (cd model-based-product-line-engineering/libraries/pleml && "$HOME/.local/bin/sysand" sync)
-          python scripts/check_pleml_package.py --out "$RUNNER_TEMP/ple-evidence/pleml-package.json"
+          python scripts/check_pleml_package.py --release-diff --verify-tag --out "$RUNNER_TEMP/ple-evidence/pleml-package.json"
 
       # The qualification scripts record executor_source_dirty from this
       # checkout's `git status --porcelain`. These guards run the same check

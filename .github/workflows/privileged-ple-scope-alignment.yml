@@ -167,12 +167,14 @@ jobs:
           sysand sync
 
       # PLEML 1.1.1 from the fenced Sysand lock: the byte check against the
-      # committed record of its release tag runs before any step reads it.
+      # committed record of its release tag, the re-pin re-derived from the
+      # Sysand index (this workflow runs on re-pin PRs) and the upstream tag's
+      # commit and blobs, before any step reads it.
       - name: Install and byte-check the fenced PLEML package
         if: steps.licence.outputs.available == 'true'
         run: |
           (cd model-based-product-line-engineering/libraries/pleml && sysand sync)
-          python scripts/check_pleml_package.py --out "$RUNNER_TEMP/ple-evidence/pleml-package.json"
+          python scripts/check_pleml_package.py --release-diff --from-index --verify-tag --out "$RUNNER_TEMP/ple-evidence/pleml-package.json"
 
       - name: Refuse a dirty checkout before the unlicensed checks
         if: steps.licence.outputs.available == 'true'

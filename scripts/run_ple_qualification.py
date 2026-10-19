@@ -100,10 +100,14 @@ PLEML_1_1_0 = ExperimentIdentity(
 #: line (the fast path of the upstream release policy), so the interpreter, the
 #: fixture and the library label stay those of the experiment at 1.1.0, and no
 #: frozen-experiment commit is made for it. The scoped probes, the fresh
-#: serialization and the scope alignment run on it.
+#: serialization and the scope alignment run on it. Its values are literal: a
+#: re-pin changes the record and this identity together (a test binds them, and
+#: reuses another experiment's interpreter only on the fast path). Retirement:
+#: the current arm reads the interpreter and fixture of the experiment at 1.1.0
+#: until the S2 evaluator replaces them, at S4 at the latest.
 PLEML_1_1_1 = PLEML_1_1_0._replace(
-    pleml_pin=pleml_package.RELEASE.tag_commit,
-    library_sha256=pleml_package.RELEASE.library.sha256,
+    pleml_pin="b694648cce4b96126eda2de3eb881c54397ae035",
+    library_sha256="a3f23c2531272b4cab684f0f1d1a982a443f0a2cdca824cc893f4004980ae02c",
     provision="sysand",
 )
 CURRENT = PLEML_1_1_1

@@ -28,21 +28,40 @@ record, never with the tag name:
 python scripts/check_pleml_package.py --release-diff
 ```
 
-The public CI runs both. The PLE workflows run the byte check before any step
-reads the library, and keep its receipt (`pleml-package.json`) with their
-evidence.
+The public CI runs both, offline. The PLE workflows run the byte check before
+any step reads the library, and keep its receipt (`pleml-package.json`) with
+their evidence. They also run the network checks:
+
+- `--verify-tag` fetches the release tag and requires the recorded commit and
+  file blobs;
+- `--from-index` (PLE scope alignment, which runs on re-pin pull requests)
+  downloads the previous release from the Sysand index and requires the
+  recorded diff.
 
 ## Re-pinning
 
 A new release is assessed from its library diff and its changelog, as
 [ADR 0022](../../../docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md)
-and the plan's release policy require. `--release-diff` downloads the previous
-release from the Sysand index, checks it against its record, and classifies
-the diff:
+and the plan's release policy require. The release diff classifies it:
 
-- **fast path:** only the version line or the line endings change;
-- **full path:** anything else changes.
+- **fast path:** only the version line of the library's header comment, or the
+  line endings, change, and the new version line names the pinned version;
+- **full path:** anything else changes, including the license files or the set
+  of model files.
 
-The path must be the one the record states. The re-pin from 1.1.0 to 1.1.1
-took the fast path: the 1.1.0 package carried CRLF line endings, and the two
-libraries differ only in the version line.
+A re-pin records what the diff found (`REPIN`): the path, and the previous text
+and line endings of each differing line. `--release-diff` then proves it
+offline: the record must rebuild the previous release's tag and package bytes
+from the installed library. The re-pin from 1.1.0 to 1.1.1 took the fast path:
+the 1.1.0 package carried CRLF line endings, and the two libraries differ only
+in line 25, the version line. `scripts/compare_ple_qualification_artifacts.py`
+compares a PLE qualification run on the new pin with the last run on the
+previous one.
+
+## At the switch
+
+When PLEML moves to the production lock (S6), these change together: the
+project and library paths and the usage, lock and other-package rules in
+`de4sdv/semantic/pleml_package.py`, the `sysand sync` lines and the PLE scope
+alignment's `syside check` path in the reader workflows, and the tests that
+name the fenced path.

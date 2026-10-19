@@ -29,10 +29,13 @@ from tools.sysml_html_viewer.generate import DEFAULT_ROOTS
 ROOT = Path(__file__).resolve().parents[1]
 PROJECT = package.PROJECT
 WORKFLOWS = ROOT / ".github/workflows"
-#: The workflows that sync and byte-check the fenced package before they read it.
+#: The privileged workflows that sync and byte-check the fenced package before they read it.
 FENCED_WORKFLOWS = ("privileged-ple-qualification.yml", "privileged-ple-scope-alignment.yml")
 #: Production workflows: none of them may install, read or trigger on the fenced package.
-PRODUCTION_WORKFLOWS = ("privileged-syside-validation.yml", "method-check.yml")
+PRODUCTION_WORKFLOWS = ("privileged-syside-validation.yml", "method-check.yml",
+                        "privileged-full-model-api-ingestion.yml", "deploy-public-sysml-api.yml")
+#: The Gate A experiment: the only checkout that may fetch a PLEML submodule (the historical replay).
+GATE_A_REVISION = "6a99626b4af7cd01108f27dac88bf5b55bba207a"
 
 
 def _blob(data: bytes) -> str:
@@ -78,9 +81,13 @@ def test_the_record_is_the_release_tag() -> None:
     previous = package.PREVIOUS
     assert (previous.version, previous.tag_commit) == ("1.1.0", "76e2be934453d77c4094141400b8ad8eb90a54a2")
     assert previous.package_sha256 != previous.library.sha256
-    assert package.RELEASE_PATH == "fast"
+    # The re-pin: the fast path, recorded so the public CI proves it without the network.
+    assert package.REPIN == package.Repin(path="fast", previous_line_endings="CRLF",
+                                          previous_lines=((25, "     * Version: v1.1"),))
+    assert package.RELEASE_PATH == package.REPIN.path == "fast"
+    assert previous.licenses == release.licenses == {"LICENSES/MIT.txt": "cb71f2bdde4cf2bd85e961678081df132fbefe38"}
     assert package.LIBRARY_PATH == PROJECT / ".sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml"
-    for record in release.files:
+    for record in (*release.files, *previous.files):
         assert re.fullmatch(r"[0-9a-f]{40}", record.blob) and re.fullmatch(r"[0-9a-f]{64}", record.sha256)
 
 
@@ -124,9 +131,38 @@ def test_production_workflows_neither_trigger_on_nor_install_the_fenced_package(
     for name in PRODUCTION_WORKFLOWS:
         text = (WORKFLOWS / name).read_text(encoding="utf-8")
         assert PROJECT.as_posix() not in text, name
-        filters = yaml.safe_load(text)[True]["pull_request"]["paths"]
+        triggers = yaml.safe_load(text)[True]
+        filters = [pattern for event in ("pull_request", "push") if isinstance(triggers.get(event), dict)
+                   for pattern in triggers[event].get("paths", [])]
         for path in files:
             assert not any(_glob(pattern).match(path.as_posix()) for pattern in filters), (name, path)
+
+
+def _workflow_files() -> list[Path]:
+    return sorted([*WORKFLOWS.glob("*.yml"), *WORKFLOWS.glob("*.yaml")])
+
+
+def test_workflows_read_pleml_only_from_the_fenced_package_and_only_the_named_readers_do() -> None:
+    """By content, over every workflow, so a new workflow is fenced too.
+
+    No workflow names a frozen experiment's PLEML submodule path, the only
+    checkout that fetches submodules is the Gate A experiment of the
+    historical replay, and the fenced package is read by the named readers only.
+    """
+    readers = set()
+    for path in _workflow_files():
+        text = path.read_text(encoding="utf-8")
+        assert "external/pleml" not in text, f"{path.name} reads PLEML from a frozen experiment's submodule"
+        if PROJECT.as_posix() in text:
+            readers.add(path.name)
+        for job in (yaml.safe_load(text).get("jobs") or {}).values():
+            for step in job.get("steps") or []:
+                options = step.get("with") or {}
+                if str(step.get("uses", "")).startswith("actions/checkout@") and options.get("submodules"):
+                    assert options.get("ref") == GATE_A_REVISION, (path.name, step.get("name"))
+    assert readers == set(package.READER_WORKFLOWS)
+    assert set(FENCED_WORKFLOWS) | {"ci.yml"} == set(package.READER_WORKFLOWS)
+    assert not set(package.READER_WORKFLOWS) & set(PRODUCTION_WORKFLOWS)
 
 
 def _glob(pattern: str) -> re.Pattern[str]:
@@ -150,8 +186,10 @@ def _glob(pattern: str) -> re.Pattern[str]:
 # -- confinement: only the feature-model packages and their fixtures import PLEML ---------
 
 
-#: SysML syntax: a name qualified by PLEML (imports included), or an import of the whole namespace.
-_PLEML_USE = re.compile(r"\bPLEML\s*::|\bimport\s+PLEML\s*;")
+#: SysML syntax, with the name plain or quoted: a name qualified by PLEML (imports
+#: of its members included), an import of the whole namespace, or an alias of it.
+_NAME = r"(?:\bPLEML\b|'PLEML')"
+_PLEML_USE = re.compile(rf"{_NAME}\s*::|\bimport\s+(?:all\s+)?{_NAME}\s*;|\balias\s+\S+\s+for\s+{_NAME}")
 
 
 def _importers() -> set[str]:
@@ -194,11 +232,16 @@ def test_every_import_exemption_is_named_with_its_end_and_still_needed() -> None
 
 
 def test_the_guard_pattern_finds_imports_and_qualified_names_only() -> None:
-    """SysML syntax only: prose that says "import PLEML" is no import."""
+    """SysML syntax only, in both spellings of the name: prose that says "import PLEML" is no import."""
     assert _PLEML_USE.search("    private import PLEML::*;")
     assert _PLEML_USE.search("constraint probe : PLEML::XORConstraint {")
     assert _PLEML_USE.search("public import PLEML;")
     assert _PLEML_USE.search("private import PLEML :: FeatureOperand;")
+    assert _PLEML_USE.search("private import 'PLEML'::*;")
+    assert _PLEML_USE.search("part f : 'PLEML'::Feature;")
+    assert _PLEML_USE.search("import all PLEML;")
+    assert _PLEML_USE.search("alias P for PLEML;")
+    assert _PLEML_USE.search("private alias Lib for 'PLEML';")
     for text in ("// PLEML pin abc", "package PLEMLExperiment {", "import PLEMLExtras::*;", "doc /* PLEML 1.1.1 */",
                  "only the feature-model packages and their fixtures import PLEML, and the tests fail",
                  "#: their fixtures import PLEML. These are the roots"):
@@ -349,7 +392,89 @@ def test_any_other_change_takes_the_full_path(current) -> None:
     assert package.release_diff(PREVIOUS_TEXT, current)["path"] == "full"
 
 
-# -- the check script: the release diff against the previous archive ----------------------
+def test_a_version_line_outside_the_header_comment_takes_the_full_path() -> None:
+    previous = PREVIOUS_TEXT.replace(b"}\n", b"    doc /* Version: v1 */\n}\n")
+    current = previous.replace(b"/* Version: v1 */", b"/* Version: v2 */")
+    assert package.release_diff(previous, current)["path"] == "full"
+    # Inside the header it is the fast path.
+    assert package.release_diff(previous, previous.replace(b" * Version: v1.1\n", b" * Version: v2\n"))["path"] == "fast"
+
+
+def test_with_a_version_the_new_version_line_must_name_it() -> None:
+    current = PREVIOUS_TEXT.replace(b"v1.1\n", b"v1.1.1\n")
+    assert package.release_diff(PREVIOUS_TEXT, current, version="1.1.1")["path"] == "fast"
+    result = package.release_diff(PREVIOUS_TEXT, PREVIOUS_TEXT.replace(b"v1.1\n", b"v0.0.1\n"), version="1.1.1")
+    assert result["path"] == "full" and "naming v1.1.1" in result["reason"]
+
+
+# -- the recorded re-pin, re-proven offline -------------------------------------------------
+
+
+def _previous(package_bytes: bytes, tag_bytes: bytes, archive: bytes = b"", *, license_text: bytes = LICENSE_TEXT,
+              models: tuple[str, ...] = ("Synthetic.sysml",)) -> package.Release:
+    files = tuple(package.LibraryFile(path, _blob(tag_bytes), _sha256(tag_bytes), len(tag_bytes)) for path in models)
+    files += (package.LibraryFile("LICENSES/MIT.txt", _blob(license_text), _sha256(license_text), len(license_text)),)
+    return package.Release(version="9.9.0", tag="v9.9.0", tag_commit="4" * 40, license="MIT",
+                           kpar_sha256=_sha256(archive), kpar_size=len(archive), files=files,
+                           package_sha256=_sha256(package_bytes))
+
+
+PREVIOUS_TAG = LIBRARY_TEXT.replace(b"v9.9.1", b"v9.9.0")
+FAST = package.Repin(path="fast", previous_line_endings="CRLF", previous_lines=((2, " * Version: v9.9.0"),))
+
+
+def test_the_recorded_re_pin_rebuilds_the_previous_tag_and_package_offline() -> None:
+    """The shape of the re-pin from 1.1.0 to 1.1.1: CRLF package to LF package, one version line."""
+    previous = _previous(PREVIOUS_TAG.replace(b"\n", b"\r\n"), PREVIOUS_TAG)
+    assert package.rebuild_previous(LIBRARY_TEXT, FAST) == PREVIOUS_TAG.replace(b"\n", b"\r\n")
+    receipt = package.verify_repin(LIBRARY_TEXT, release=_release(), previous=previous, repin=FAST)
+    assert (receipt["path"], receipt["claimed_path"], receipt["line_endings_changed"]) == ("fast", "fast", True)
+    assert receipt["differing_lines"] == [{"line": 2, "previous": " * Version: v9.9.0", "current": " * Version: v9.9.1"}]
+    assert receipt["rebuilt_previous_tag_sha256"] == _sha256(PREVIOUS_TAG)
+
+
+@pytest.mark.parametrize("repin, previous, message", [
+    (FAST._replace(previous_lines=((2, " * Version: v9.8.0"),)), None, "do not rebuild the v9.9.0 library"),
+    (FAST._replace(previous_line_endings="LF"), None, "line endings do not rebuild"),
+    (FAST._replace(previous_lines=()), None, "do not rebuild the v9.9.0 library"),
+    (FAST, _previous(PREVIOUS_TAG.replace(b"\n", b"\r\n"), PREVIOUS_TAG, license_text=b"Another license\n"),
+     "the license files change"),
+    (FAST, _previous(PREVIOUS_TAG.replace(b"\n", b"\r\n"), PREVIOUS_TAG, models=("Old.sysml",)),
+     "the set of model files changes"),
+    (FAST._replace(previous_lines=((4, "library package Elsewhere;"),)),
+     _previous(LIBRARY_TEXT.replace(b"Synthetic;", b"Elsewhere;").replace(b"\n", b"\r\n"),
+               LIBRARY_TEXT.replace(b"Synthetic;", b"Elsewhere;")), "takes the full path"),
+], ids=["wrong-previous-line", "wrong-line-endings", "unrecorded-line", "license", "model-files", "not-a-version"])
+def test_the_recorded_re_pin_refuses_what_it_does_not_rebuild(repin, previous, message) -> None:
+    previous = previous or _previous(PREVIOUS_TAG.replace(b"\n", b"\r\n"), PREVIOUS_TAG)
+    with pytest.raises(package.PackageError, match=message):
+        package.verify_repin(LIBRARY_TEXT, release=_release(), previous=previous, repin=repin)
+
+
+def test_a_full_re_pin_is_recorded_without_an_offline_proof() -> None:
+    previous = _previous(PREVIOUS_TAG, PREVIOUS_TAG, license_text=b"Another license\n")
+    receipt = package.verify_repin(LIBRARY_TEXT, release=_release(), previous=previous,
+                                   repin=package.Repin("full", "LF", ()))
+    assert receipt["path"] == "full" and "license" in receipt["reason"]
+
+
+def test_the_re_pin_is_checked_against_the_byte_checked_library_only() -> None:
+    previous = _previous(PREVIOUS_TAG.replace(b"\n", b"\r\n"), PREVIOUS_TAG)
+    with pytest.raises(package.PackageError, match="not the byte-checked"):
+        package.verify_repin(LIBRARY_TEXT + b"\n", release=_release(), previous=previous, repin=FAST)
+
+
+def test_the_recorded_re_pin_rebuilds_pleml_1_1_0_from_the_installed_library() -> None:
+    """The real record, offline: line 25 and CRLF turn the installed 1.1.1 into the 1.1.0 tag and package."""
+    if not (ROOT / package.LIBRARY_PATH).exists():
+        pytest.skip(f"the fenced PLEML package is not installed: run `sysand sync` in {PROJECT}")
+    receipt = package.verify_repin((ROOT / package.LIBRARY_PATH).read_bytes())
+    assert receipt["path"] == "fast" and [item["line"] for item in receipt["differing_lines"]] == [25]
+    assert receipt["rebuilt_previous_tag_sha256"] == package.PREVIOUS.library.sha256
+    assert receipt["rebuilt_previous_package_sha256"] == package.PREVIOUS.package_sha256
+
+
+# -- the check script: the index diff and the tag, as the privileged jobs run them ---------
 
 
 class _Response(io.BytesIO):
@@ -368,66 +493,90 @@ def _kpar(files: dict[str, bytes]) -> bytes:
     return buffer.getvalue()
 
 
-def _previous(package_bytes: bytes, tag_bytes: bytes, archive: bytes) -> package.Release:
-    return package.Release(version="9.9.0", tag="v9.9.0", tag_commit="4" * 40, license="MIT",
-                           kpar_sha256=_sha256(archive), kpar_size=len(archive),
-                           files=(package.LibraryFile("Synthetic.sysml", _blob(tag_bytes), _sha256(tag_bytes),
-                                                      len(tag_bytes)),),
-                           package_sha256=_sha256(package_bytes))
-
-
-def _check(tmp_path, previous_package: bytes, previous_tag: bytes, *, archive: bytes | None = None,
-           record: package.Release | None = None, claimed_path: str = "fast"):
+def _check(tmp_path, previous_package: bytes, *, archive: bytes | None = None,
+           record: package.Release | None = None, repin: package.Repin = FAST, network: bool = True):
     from scripts import check_pleml_package
 
     release = _release()
     _install(tmp_path, release)
     archive = _kpar({"Synthetic.sysml": previous_package}) if archive is None else archive
-    previous = record or _previous(previous_package, previous_tag, archive)
+    previous = record or _previous(previous_package, PREVIOUS_TAG, archive)
     seen = []
 
     def opener(url, timeout):
         seen.append(url)
         return _Response(archive)
 
-    receipt = check_pleml_package.run(tmp_path, release_diff=True, release=release, previous=previous,
-                                      claimed_path=claimed_path, opener=opener)
-    assert seen == [previous.index_kpar]
+    receipt = check_pleml_package.run(tmp_path, release_diff=True, from_index=network, release=release,
+                                      previous=previous, repin=repin, opener=opener)
+    assert seen == ([previous.index_kpar] if network else [])
     return receipt
 
 
-def test_the_release_diff_takes_the_recorded_fast_path_from_a_crlf_package(tmp_path) -> None:
-    """The shape of the re-pin from 1.1.0 to 1.1.1: CRLF package to LF package, one version line."""
-    tag = LIBRARY_TEXT.replace(b"v9.9.1", b"v9.9.0")
-    diff = _check(tmp_path, tag.replace(b"\n", b"\r\n"), tag)["release_diff"]
-    assert (diff["path"], diff["claimed_path"], diff["line_endings_changed"]) == ("fast", "fast", True)
+def test_the_offline_release_diff_reads_no_archive(tmp_path) -> None:
+    receipt = _check(tmp_path, PREVIOUS_TAG.replace(b"\n", b"\r\n"), network=False)
+    assert receipt["release_diff"]["path"] == "fast" and "index_diff" not in receipt
+
+
+def test_the_index_diff_is_the_recorded_re_pin(tmp_path) -> None:
+    diff = _check(tmp_path, PREVIOUS_TAG.replace(b"\n", b"\r\n"))["index_diff"]
+    assert (diff["path"], diff["line_endings_changed"]) == ("fast", True)
     assert diff["differing_lines"] == [{"line": 2, "previous": " * Version: v9.9.0", "current": " * Version: v9.9.1"}]
-    assert (diff["previous_version"], diff["current_version"]) == ("9.9.0", "9.9.1")
-
-
-def test_the_release_diff_refuses_a_path_other_than_the_recorded_one(tmp_path) -> None:
-    from de4sdv.semantic.pleml_package import PackageError
-
-    tag = LIBRARY_TEXT.replace(b"Synthetic;", b"Renamed;")
-    with pytest.raises(PackageError, match="takes the full path, not the recorded fast path"):
-        _check(tmp_path, tag, tag)
 
 
 @pytest.mark.parametrize("tamper", ["archive", "package", "tag"])
-def test_the_release_diff_refuses_a_previous_archive_off_its_record(tmp_path, tamper) -> None:
-    from de4sdv.semantic.pleml_package import PackageError
-
-    tag = LIBRARY_TEXT.replace(b"v9.9.1", b"v9.9.0")
-    archive = _kpar({"Synthetic.sysml": tag})
-    record = _previous(tag, tag, archive)
+def test_the_index_diff_refuses_a_previous_archive_off_its_record(tmp_path, tamper) -> None:
+    archive = _kpar({"Synthetic.sysml": PREVIOUS_TAG})
+    record = _previous(PREVIOUS_TAG, PREVIOUS_TAG, archive)
+    repin = package.Repin("fast", "LF", ((2, " * Version: v9.9.0"),))
     if tamper == "archive":
         record = record._replace(kpar_sha256="5" * 64)
     elif tamper == "package":
-        record = record._replace(package_sha256="5" * 64)
+        # The offline proof passes on its own record; the downloaded library is another one.
+        archive = _kpar({"Synthetic.sysml": PREVIOUS_TAG + b"\n"})
+        record = record._replace(kpar_sha256=_sha256(archive), kpar_size=len(archive))
     else:
-        record = record._replace(files=(record.library._replace(blob="6" * 40),))
-    with pytest.raises(PackageError, match="9.9.0"):
-        _check(tmp_path, tag, tag, archive=archive, record=record)
+        tag = PREVIOUS_TAG.replace(b"v9.9.0", b"v9.8.0")
+        archive = _kpar({"Synthetic.sysml": tag})
+        record = record._replace(kpar_sha256=_sha256(archive), kpar_size=len(archive))
+    with pytest.raises(package.PackageError, match="9.9.0"):
+        _check(tmp_path, PREVIOUS_TAG, archive=archive, record=record, repin=repin)
+
+
+def _upstream(tmp_path, files: dict[str, bytes], tag: str) -> tuple[str, str]:
+    """A local upstream repository with ``files`` committed and tagged; returns its URL and the commit."""
+    import subprocess
+
+    def git(*args):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid",
+                               "-c", "commit.gpgsign=false", *args], cwd=repository, check=True,
+                              capture_output=True, text=True).stdout.strip()
+
+    repository = tmp_path / "upstream"
+    for path, data in files.items():
+        (repository / path).parent.mkdir(parents=True, exist_ok=True)
+        (repository / path).write_bytes(data)
+    git("init", "-q")
+    git("add", ".")
+    git("commit", "-q", "-m", "release")
+    git("tag", tag)
+    return repository.as_uri(), git("rev-parse", "HEAD")
+
+
+def test_the_tag_check_compares_the_fetched_tag_with_the_record(tmp_path) -> None:
+    from scripts import check_pleml_package
+
+    url, commit = _upstream(tmp_path, {"Synthetic.sysml": LIBRARY_TEXT, "LICENSES/MIT.txt": LICENSE_TEXT}, "v9.9.1")
+    release = _release(tag_commit=commit)
+    checked = check_pleml_package.verify_tag(release, url)
+    assert checked["tag_commit"] == commit and checked["blobs"]["Synthetic.sysml"] == _blob(LIBRARY_TEXT)
+    with pytest.raises(package.PackageError, match="not the recorded"):
+        check_pleml_package.verify_tag(release._replace(tag_commit="7" * 40), url)
+    other = release._replace(files=(release.files[0]._replace(blob="8" * 40), release.files[1]))
+    with pytest.raises(package.PackageError, match="not the recorded"):
+        check_pleml_package.verify_tag(other, url)
+    with pytest.raises(package.PackageError, match="failed"):
+        check_pleml_package.verify_tag(release._replace(tag="v0.0.0"), url)
 
 
 # -- the real package, where Sysand installed it ------------------------------------------
@@ -457,26 +606,35 @@ def _index(steps: list[dict], needle: str) -> int:
 
 
 def test_public_ci_byte_checks_the_package_and_its_release_diff_before_the_suite() -> None:
+    """The required check works offline: the previous release need not stay on the index."""
     steps = _steps("ci.yml")
     check = _index(steps, "scripts/check_pleml_package.py")
     run = steps[check]["run"]
     assert f'(cd {PROJECT.as_posix()} && sysand sync)' in run
     assert "--release-diff" in run
+    assert "--from-index" not in run and "--verify-tag" not in run
     assert check < _index(steps, "python -m pytest tests -q")
+
+
+#: The network checks each privileged workflow adds: the tag in both, the index on re-pin PRs (PLE-S).
+NETWORK_CHECKS = {"privileged-ple-qualification.yml": ("--verify-tag",),
+                  "privileged-ple-scope-alignment.yml": ("--from-index", "--verify-tag")}
 
 
 @pytest.mark.parametrize("name", FENCED_WORKFLOWS)
 def test_the_fenced_workflows_byte_check_the_package_before_reading_it(name) -> None:
     steps = _steps(name)
     check = _index(steps, "scripts/check_pleml_package.py")
-    assert f"cd {PROJECT.as_posix()}" in steps[check]["run"] and "sysand" in steps[check]["run"]
-    assert '--out "$RUNNER_TEMP/ple-evidence/pleml-package.json"' in steps[check]["run"]
+    run = steps[check]["run"]
+    assert f"cd {PROJECT.as_posix()}" in run and "sysand" in run
+    assert '--out "$RUNNER_TEMP/ple-evidence/pleml-package.json"' in run
+    assert "--release-diff" in run
+    for flag in ("--from-index", "--verify-tag"):
+        assert (flag in run) == (flag in NETWORK_CHECKS[name]), (name, flag)
     readers = [index for index, step in enumerate(steps)
                if any(reader in step.get("run", "") for reader in
                       ("scripts/run_ple_", "syside check", "tests/test_ple_"))]
     assert readers and min(readers) > check
-    text = (WORKFLOWS / name).read_text(encoding="utf-8")
-    assert "external/pleml" not in text, "no workflow reads PLEML from a frozen experiment's submodule"
 
 
 SYSAND_VERSION = "0.2.1"
