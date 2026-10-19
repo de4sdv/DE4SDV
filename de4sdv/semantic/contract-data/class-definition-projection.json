@@ -220,7 +220,7 @@
       "semantic_kind": "class",
       "wave": "W2",
       "definition": {
-        "documentation": "\n     * Reusable control-record shape for an interface-bearing logical or\n     * semantic information item crossing into a software, service, topic, API,\n     * or physical boundary. Exact .proto/.vsidl fields and runtime observations\n     * remain in their authoritative external artifacts; this record preserves\n     * the stable trace and review obligations.\n     ",
+        "documentation": "\n     * Reusable control-record shape for an interface-bearing logical or\n     * semantic information item crossing into a software, service, topic, API,\n     * or physical boundary. Exact .proto/.vsidl fields and runtime observations\n     * remain in their authoritative external artifacts; this record preserves\n     * the stable trace and review obligations. The record's short name is its\n     * mapping ID.\n     ",
         "documentation_witness": {
           "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_process.sysml",
           "declaration": "item def LogicalToSoftwareSignalMappingRecord",

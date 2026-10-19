@@ -207,24 +207,27 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   evaluates them on the export of the head.
 - **Signal mappings and VSS (phase 8, advisory).** `signalMappingRecorded`
   reads the crossings: a physical element of the increment that realizes a
-  logical element and has a port with a directed feature, its own or its
-  definition's. Each logical element it realizes needs an allocation typed
-  `SystemToSoftwareSignalMappingCandidate` from it to a physical element of
-  the increment that realizes it (or to a port of one), owning a
-  `LogicalToSoftwareSignalMappingRecord` with `disposition`, `owner` and
-  `nextAction`; one mapping can cover the processes of a chain. A physical
-  element without such a port, or realizing nothing, is not applicable.
-  `semanticSourceNamed` reads each signal mapping of the increment (the
-  `signalMappings` parameter: the allocations of that type the named
-  packages own): the item at its target is VSS-typed (a feature typed by a
-  definition that `@VssSignalMetadata` annotates; the paths are reported), or
-  the record's `semanticSource` states what the item is and why no VSS signal
-  applies. A `notApplicable` record maps no item. So, for a crossing:
+  logical element and has a port with a directed feature (its own, its
+  definition's, a redefined feature's, or a connected port's). Each logical
+  element it realizes needs an allocation typed
+  `SystemToSoftwareSignalMappingCandidate` in a package of the increment, from
+  it to a physical element of the increment that realizes it (or to a port of
+  one), whose `LogicalToSoftwareSignalMappingRecord` records each state
+  `disposition`, `owner` and `nextAction`, and a `notApplicable` record its
+  `evidenceOrGap`. One mapping can cover the processes of a chain; whether
+  every item has its record is for review. A physical element without such a
+  port, or realizing nothing, is not applicable. `semanticSourceNamed` reads
+  each signal mapping of the increment (the `signalMappings` parameter: the
+  allocations of that type the named packages own): each record states the
+  item's `semanticSource`, or the item at the mapping's port is VSS-typed (a
+  feature typed by a definition that COVESA_VSS's `@VssSignalMetadata`
+  annotates; the paths are reported). A value still holding a placeholder,
+  or only TBD, states nothing. So, for a crossing:
 
   ```sysml
   private import DE4SDV_MethodProcess::*;
   allocation <name> : SystemToSoftwareSignalMappingCandidate
-    allocate <logical element> to <physical element>::<port> {
+    allocate <logical element> to <physical element>.<port> {
     item <'MAP-<ID>'> <record> : LogicalToSoftwareSignalMappingRecord {
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "<owner>";
@@ -234,10 +237,14 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   }
   ```
 
-  Leave `semanticSource` out when the port's item is VSS-typed (a vehicle
-  signal: `private import COVESA_VSS::**;` and, for example,
-  `attribute speed_kmh : Vehicle_Speed;` in the payload); text naming a VSS
-  path is no VSS typing.
+  The target is a chain through the physical element, so it names this
+  element's port even when the port comes from its definition; a port the
+  element owns can also be named by its qualified name. Leave
+  `semanticSource` out when the port's item is VSS-typed (a vehicle signal:
+  `private import COVESA_VSS::**;` and, for example,
+  `attribute speed_kmh : Vehicle_Speed;` in the payload); VSS typing is read
+  at a port, never at an element, and text naming a VSS path is no VSS
+  typing.
 - **Method side versus model.** Some inputs only a method or kernel change can
   supply, for example a declaration without a validated kernel identity or a
   relation without a SysML mapping. Those checks are listed under

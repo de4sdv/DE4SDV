@@ -215,29 +215,61 @@ These method rules apply to every increment:
     revision), the method tools report these phases as method side on an API
     revision binding; the pull-request Method Check evaluates them on the
     export.
-13. **Signal mapping and VSS (phase 8, advisory).** A crossing is a physical
-    element of the increment that realizes a logical element (`allocatedTo`)
-    and has a port with a directed feature, its own or its definition's (an
-    information item at the realization boundary). Each logical element it
-    realizes has a system-to-software signal mapping: an allocation typed
-    `SystemToSoftwareSignalMappingCandidate` from the logical element to a
-    physical element of the increment that realizes it, or to a port of one,
-    owning a `LogicalToSoftwareSignalMappingRecord` with a disposition, an
-    owner and a next action. One mapping may cover the processes of a
-    logical element's chain; its contract fields name the further contracts.
-    A physical element without such a port, or realizing no logical
-    element, is no crossing and needs no record; a crossing whose item
-    crosses no software contract gets a record with the `notApplicable`
-    disposition, and its `evidenceOrGap` says why. The item of each signal
-    mapping is VSS-typed: the port, item or attribute at the mapping's target
-    is typed by a signal of COVESA VSS or of `DE4SDV_VSS_Extensions`, whose
-    `@VssSignalMetadata` names its path. Otherwise the record's
-    `semanticSource` states what the item is and why no VSS signal applies.
-    A VSS path in a doc or a string is no VSS typing, a signal the pinned VSS
-    snapshot lacks goes into `DE4SDV_VSS_Extensions` as a candidate, and
-    whether an item is a vehicle signal stays the reviewer's judgment. Both
-    checks are advisory; on an API revision binding they are method side
-    while rule 12's are.
+13. **Signal mapping and VSS (phase 8, advisory).** Two advisory checks read
+    the system-to-software signal-mapping control below. On an API revision
+    binding they are method side while rule 12's are.
+    - **Crossings.** A crossing is a physical element of the increment that
+      realizes a logical element (`allocatedTo`) and has an information
+      port: a port with a directed feature of its own, of its definition (a
+      conjugated port `~P` reads `P`), of a feature it redefines or subsets,
+      or of a port a connector connects it to. Any directed feature counts.
+      The check reads structure, never names, so it cannot tell an
+      information item from power or another physical flow; such a crossing
+      gets a record with the `notApplicable` disposition. A physical element
+      without an information port, or realizing no logical element, is no
+      crossing and needs no record. A port whose definition is not in the
+      revision, or that has no type, no feature, nothing it narrows and no
+      connected port, cannot be read: the result is indeterminate, not "no
+      crossing".
+    - **Mappings.** Each logical element a crossing realizes has a
+      system-to-software signal mapping: an allocation typed
+      `SystemToSoftwareSignalMappingCandidate` from the logical element to a
+      physical element of the increment that realizes it, or to a port of
+      one. A port the element has from its definition is written as a chain
+      through the element (`<element>.<port>`): the definition's own port is
+      every usage's, so an allocation to it covers no crossing. The mapping
+      counts when a package of the increment owns it, as the
+      `signalMappings` parameter counts it; a mapping in another package, or
+      nested in a definition, is reported and does not count. Every
+      `LogicalToSoftwareSignalMappingRecord` it owns states a disposition, an
+      owner and a next action, and a `notApplicable` record states why in
+      `evidenceOrGap`.
+    - **Unit.** The check counts one mapping
+      per realized logical element, and one mapping may cover the processes
+      of that element's chain; its contract fields name the further
+      contracts. Whether each interface-bearing information item that enters
+      a software contract has its record stays with review (see the review
+      checklist).
+    - **Semantic source.** Each record of a signal mapping states the item's
+      `semanticSource`, what the item is and why no VSS signal applies,
+      unless the item at the mapping's port is VSS-typed: the port, or an
+      item or attribute in it, is typed by a signal of COVESA VSS or of
+      `DE4SDV_VSS_Extensions`, whose `@VssSignalMetadata` names its path. The
+      check reads that metadata definition by identity: the loader of an
+      export binds it by the file-mapped rule of the kernel bindings (its
+      metatype, declared name and source document), and no other metadata
+      counts. VSS typing is read at a port, never at an element: a mapping
+      to an element states the source in its records.
+    - **Stated values.** A record member that still holds a remedy's
+      placeholder (`<…>`), or only TBD, TBC or TODO, states nothing. Any
+      other text counts as stated, and what it says is not judged.
+    - **Left to review.** The checks don't find an item without a record of
+      its own when its logical element's mapping has a record for another
+      item, read an untyped port only through its connections, and don't
+      judge what a stated value says. A
+      VSS path in a doc or a string is no VSS typing, a signal the pinned VSS
+      snapshot lacks goes into `DE4SDV_VSS_Extensions` as a candidate, and
+      whether an item is a vehicle signal stays the reviewer's judgment.
 
 [`DE4SDV_IncrementWorkflow`](../../textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml)
 models this workflow in the style of the SYSMOD default process. The
@@ -334,9 +366,11 @@ The physical/software realization exit rule asks that every applicable crossing
 has a `mapped`, `candidate`, `deferred`, or `notApplicable` disposition with an
 owner and next action. A generic dependency, same-name element, or port
 allocation cannot substitute for the mapping. The Method Check checks rule 13
-as advisory: it reports a crossing without a complete record, and a mapping
-whose item is neither VSS-typed nor stated, but never closes or blocks a phase
-exit, and the review judges whether the records are right.
+as advisory: it reports a crossing without a mapping whose records are
+complete, and a mapping with a record that neither states its source nor maps
+a VSS-typed item, but never closes or blocks a phase exit. It counts one
+mapping per realized logical element; whether every item has its record, and
+whether the records are right, stays with the review.
 
 ## Realization-readiness control
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, Mapping
 
 from de4sdv.sysml_api.repository import element_id
 
@@ -52,6 +52,52 @@ class OntologyBindingReport:
         }
 
 
+def _file_mapped(mapping: KernelFileMapping, elements: list[dict[str, Any]],
+                 element_sources: dict[str, str]) -> tuple[tuple[str, ...], int, str]:
+    """ADR 0011's file-mapped resolution: the elements of the expected metatype and declared name whose
+    serializer-recorded source document is the mapping's file (sorted ids), how many name/type matches
+    had another provenance, and the expected metatype. A name in the wrong document never matches."""
+    name, expected_type = declaration_identity(mapping.declaration)
+    matching_identity = [
+        candidate
+        for candidate in elements
+        if candidate.get("@type") == expected_type
+        and (candidate.get("declaredName") or candidate.get("name")) == name
+    ]
+    ids = tuple(
+        sorted(
+            candidate_id
+            for candidate in matching_identity
+            if (candidate_id := element_id(candidate)) is not None
+            and element_sources.get(candidate_id) == mapping.file
+        )
+    )
+    return ids, len(matching_identity) - len(ids), expected_type
+
+
+def resolve_library_pins(
+    pins: Mapping[str, KernelFileMapping],
+    elements: list[dict[str, Any]],
+    element_sources: dict[str, str],
+) -> tuple[dict[str, str], dict[str, str]]:
+    """Bind library declarations a check reads by identity, by the same file-mapped rule as the kernel
+    bindings: pin -> its one element, and pin -> why it is unbound (no or several matches). An unbound pin
+    refuses nothing; a check that needs it reports it as method side."""
+    bound: dict[str, str] = {}
+    unbound: dict[str, str] = {}
+    for pin, mapping in sorted(pins.items()):
+        ids, wrong_source_count, expected_type = _file_mapped(mapping, elements, element_sources)
+        if len(ids) == 1:
+            bound[pin] = ids[0]
+            continue
+        detail = (f"{mapping.declaration!r} in {mapping.file} resolved to {len(ids)} {expected_type} elements"
+                  if ids else f"{mapping.declaration!r} in {mapping.file} did not resolve")
+        if wrong_source_count:
+            detail += f"; {wrong_source_count} name/type matches had different provenance"
+        unbound[pin] = detail
+    return bound, unbound
+
+
 def validate_ontology_bindings(
     contract: KernelContract,
     elements: list[dict[str, Any]],
@@ -96,44 +142,24 @@ def validate_ontology_bindings(
             continue
         if not isinstance(mapping, KernelFileMapping):
             raise TypeError(f"unsupported kernel mapping: {mapping!r}")
-        name, expected_type = declaration_identity(mapping.declaration)
-        matching_identity = [
-            candidate
-            for candidate in elements
-            if candidate.get("@type") == expected_type
-            and (candidate.get("declaredName") or candidate.get("name")) == name
-        ]
-        candidates = [
-            candidate
-            for candidate in matching_identity
-            if (candidate_id := element_id(candidate)) is not None
-            and element_sources.get(candidate_id) == mapping.file
-        ]
-        ids = tuple(
-            sorted(
-                candidate_id
-                for candidate in candidates
-                if (candidate_id := element_id(candidate)) is not None
-            )
-        )
+        ids, wrong_source_count, expected_type = _file_mapped(mapping, elements, element_sources)
         common = {
             "ontology_class": ontology_class,
             "mapping": {"file": mapping.file, "declaration": mapping.declaration},
             "element_ids": ids,
             "api_type": expected_type,
         }
-        if len(candidates) == 1:
+        if len(ids) == 1:
             entries.append(OntologyBindingValidation(status="mapped", **common))
-        elif len(candidates) > 1:
+        elif len(ids) > 1:
             entries.append(
                 OntologyBindingValidation(
                     status="ambiguous",
-                    detail=f"exact file/declaration mapping resolved to {len(candidates)} UUIDs",
+                    detail=f"exact file/declaration mapping resolved to {len(ids)} UUIDs",
                     **common,
                 )
             )
         else:
-            wrong_source_count = len(matching_identity)
             detail = "exact file/declaration mapping did not resolve"
             if wrong_source_count:
                 detail += f"; {wrong_source_count} name/type matches had different provenance"

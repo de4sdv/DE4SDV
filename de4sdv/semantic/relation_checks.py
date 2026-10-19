@@ -38,21 +38,26 @@ Two kinds of names:
   verified by the own or inherited objectives).
 
 A result records a problem with a marker: ``kernel-binding:``,
-``governed-relation:`` or ``external-relation:`` for method-side inputs, and
-``model-witness:`` for engineering witnesses that cannot be read, which the
-author can fix.
+``library-binding:``, ``governed-relation:`` or ``external-relation:`` for
+method-side inputs, and ``model-witness:`` for engineering witnesses that
+cannot be read, which the author can fix.
 
 The module also reads the phase-8 signal-mapping control for the named checks
 that judge it: the ports of an element that exchange an information item (a
-directed feature of the port or its definition), the allocations typed by the
-kernel's ``SystemToSoftwareSignalMappingCandidate`` with their records, and the
-VSS signals an endpoint carries (definitions a metadata usage with a ``path``
-annotates, the form of ``@VssSignalMetadata`` in COVESA_VSS and
-DE4SDV_VSS_Extensions; a path in a doc or a string is no typing).
+directed feature of the port, of its definition or a conjugated definition's
+original, of a feature it narrows, or of a port a connector connects it to),
+the allocations typed by the kernel's ``SystemToSoftwareSignalMappingCandidate``
+with their records and their ends' feature chains, and the VSS signals an
+endpoint carries: the definitions that a metadata usage typed by COVESA_VSS's
+``VssSignalMetadata`` annotates, the form of each signal in COVESA_VSS and
+DE4SDV_VSS_Extensions. That metadata definition is a library pin, bound by
+identity when an export is loaded (:data:`LIBRARY_PINS`); other metadata, or a
+path in a doc or a string, is no VSS typing.
 """
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any, Callable, Mapping
@@ -64,7 +69,7 @@ from .increment_scope import ModelView
 from .kernel_contract import KernelFileMapping
 
 #: Problem markers of inputs that only a method or kernel change can supply.
-METHOD_SIDE_PREFIXES = ("kernel-binding:", "governed-relation:", "external-relation:")
+METHOD_SIDE_PREFIXES = ("kernel-binding:", "library-binding:", "governed-relation:", "external-relation:")
 #: Problem marker of engineering witnesses that exist but cannot be read.
 MODEL_WITNESS_PREFIX = "model-witness:"
 
@@ -451,9 +456,27 @@ SIGNAL_MAPPING = "SystemToSoftwareSignalMappingCandidate"
 SIGNAL_MAPPING_RECORD = "LogicalToSoftwareSignalMappingRecord"
 #: The kernel's disposition of a mapping record.
 SIGNAL_MAPPING_DISPOSITION = "SignalMappingDisposition"
-#: The member of a VSS signal's metadata that names the signal (``@VssSignalMetadata``, ``path``).
+#: The VSS signal metadata of COVESA_VSS, read by identity: the loader of an export binds it by ADR 0011's
+#: file-mapped rule (metatype, declared name, serializer-recorded source document), never a check by name.
+VSS_SIGNAL_METADATA = "COVESA_VSS::MetadataDefinitions::VssSignalMetadata"
+#: The library declarations the checks read by identity, by the name a result reports them under.
+LIBRARY_PINS: Mapping[str, KernelFileMapping] = MappingProxyType({
+    VSS_SIGNAL_METADATA: KernelFileMapping(
+        file="textual-notation-of-model/libraries/covesa-vss-sysmlv2/COVESA_VSS.sysml",
+        declaration="metadata def VssSignalMetadata"),
+})
+#: The member of a VSS signal's metadata that names the signal (a feature of the bound definition).
 VSS_PATH = "path"
 _VSS_DEPTH = 4
+#: The remedies' placeholders (de4sdv.semantic.remedies): a record member still holding one states nothing.
+OWNER_PLACEHOLDER = "<owner>"
+NEXT_ACTION_PLACEHOLDER = "<next action>"
+SEMANTIC_SOURCE_PLACEHOLDER = "<what the item is, and why it is no VSS signal>"
+REASON_PLACEHOLDER = "<why no information item crosses a software contract>"
+REMEDY_PLACEHOLDERS = (OWNER_PLACEHOLDER, NEXT_ACTION_PLACEHOLDER, SEMANTIC_SOURCE_PLACEHOLDER, REASON_PLACEHOLDER)
+#: A value that only marks the statement as still to come.
+_TO_BE_DETERMINED = re.compile(r"(?:tbd|tbc|tba|todo|to do|fixme|to be (?:determined|defined|decided|confirmed)"
+                               r"|\?+|\.{3}|\u2026|-+|\u2014)[.!]*", re.IGNORECASE)
 
 
 def kernel_lineage(view: ModelView, ontology_class: str) -> frozenset[str]:
@@ -466,32 +489,171 @@ def kernel_lineage(view: ModelView, ontology_class: str) -> frozenset[str]:
                               f"method side: no validated kernel binding for {ontology_class}: {error}")
 
 
+def library_lineage(view: ModelView, pin: str) -> frozenset[str]:
+    """The bound library declaration of a pin and its specializations. Raises :class:`MethodSideInput`
+    when the pin is unbound (no export bound it, or its file-mapped rule found no or several elements)."""
+    try:
+        return view.index.specializations(view.library_element(pin))
+    except IdentityNotFoundError as error:
+        raise MethodSideInput(f"library-binding:{pin}", f"method side: {error}")
+
+
+def stated_texts(view: ModelView, owner: str, member: str) -> list[str]:
+    """The String values of ``owner``'s member that state something: not empty, not a remedy placeholder
+    left unfilled, and not only a to-be-determined marker (TBD, TBC, TODO). What a stated value says is
+    not judged."""
+    return [text for leaf in view.index.feature_values(owner, member)
+            if leaf.kind == "string" and (text := str(leaf.value or "")).strip()
+            and not any(placeholder in text for placeholder in REMEDY_PLACEHOLDERS)
+            and not _TO_BE_DETERMINED.fullmatch(text.strip())]
+
+
+#: Declared (never implied) relations from a feature to the features it narrows.
+_NARROWING = (("Subsetting", "subsettedFeature"), ("Redefinition", "redefinedFeature"),
+              ("ReferenceSubsetting", "referencedFeature"))
+
+
+def narrowed_features(view: ModelView, feature: str) -> list[str]:
+    """``feature`` and every feature it subsets, redefines or references, transitively (declared
+    relationships only)."""
+    found: list[str] = []
+    frontier = [feature]
+    while frontier:
+        current = frontier.pop(0)
+        if current in found:
+            continue
+        found.append(current)
+        for relationship_type, key in _NARROWING:
+            for relationship in view.index.owned_relationships(current, relationship_type):
+                if relationship.get("isImplied"):
+                    continue
+                frontier.extend(reference_ids(relationship.get(key)))
+    return found
+
+
+def _conjugated_originals(view: ModelView, definition: str) -> list[str]:
+    """The original port definition of a conjugated one (``~P``, its PortConjugation)."""
+    return [original for relationship in view.index.owned_relationships(definition, "PortConjugation")
+            for original in reference_ids(relationship.get("originalPortDefinition"))]
+
+
 def type_lineage(view: ModelView, element: str) -> list[str]:
-    """The definitions that type ``element`` and those they specialize, nearest first."""
+    """The definitions that type ``element`` and those they specialize, nearest first; a conjugated port
+    definition brings its original's."""
     found: list[str] = []
     for definition in sorted(view.index.typed_by(element)):
-        for general in view.index.generals(definition):
-            if general not in found:
-                found.append(general)
+        for typed in (definition, *_conjugated_originals(view, definition)):
+            for general in view.index.generals(typed):
+                if general not in found:
+                    found.append(general)
     return found
 
 
 def member_features(view: ModelView, element: str) -> list[str]:
-    """What ``element`` owns and what its definitions own, in that order."""
+    """What ``element`` owns and what its definitions own, then the same for each feature it narrows
+    (redefines, subsets or references), in that order."""
     index = view.index
-    found = list(index.owned_members(element))
-    for definition in type_lineage(view, element):
-        found.extend(member for member in index.owned_members(definition) if member not in found)
+    found: list[str] = []
+    for feature in narrowed_features(view, element):
+        for holder in (feature, *type_lineage(view, feature)):
+            found.extend(member for member in index.owned_members(holder) if member not in found)
     return found
 
 
-def information_ports(view: ModelView, element: str) -> list[str]:
-    """The ports of ``element``, own or inherited, that exchange an information item: a port with a
-    directed feature of its own or of its definition (``in item speedSample : Payload;``)."""
+#: The connectors whose ends exchange what their features carry.
+_CONNECTORS = ("ConnectionUsage", "InterfaceUsage", "FlowUsage", "SuccessionFlowUsage", "FlowConnectionUsage",
+               "SuccessionFlowConnectionUsage", "BindingConnectorAsUsage")
+
+
+def connected_peers(view: ModelView) -> tuple[Mapping[str, tuple[str, ...]], tuple[str, ...]]:
+    """(feature -> the features a connector connects it to, each end read as its last chaining feature;
+    the connectors that cannot be read), once per corpus."""
+
+    def build() -> tuple[Mapping[str, tuple[str, ...]], tuple[str, ...]]:
+        traversal, index = view.traversal, view.index
+        peers: dict[str, list[str]] = {}
+        problems: list[str] = []
+        for connector in index.elements_of_type(*_CONNECTORS):
+            try:
+                records = traversal._connection_end_records(index.by_id[connector], index.by_id, index.graph)
+                ends = [chained_feature(view, traversal._connected_usage_id(
+                    record["end_element_id"], index.graph, index.by_id)[0]) for record in records]
+            except IdentityNotFoundError as error:
+                problems.append(f"{element_name(view, connector)}: {error}")
+                continue
+            for end in ends:
+                bucket = peers.setdefault(end, [])
+                bucket.extend(other for other in ends if other != end and other not in bucket)
+        return MappingProxyType({end: tuple(found) for end, found in peers.items()}), tuple(problems)
+
+    return view.index.memo("connected-peers", build)
+
+
+def port_reading(view: ModelView, element: str) -> tuple[list[str], list[str]]:
+    """(the information ports of ``element``, why its other ports cannot be read). An information port
+    is a port of ``element``, own or inherited, with a directed feature: of its own or of its definitions
+    (a conjugated port definition's original included), of a feature it narrows, or of a port a connector
+    connects it to (``in item speedSample : Payload;``). A port cannot be read when a definition typing it
+    is not in the bound revision, or when it has no type, no feature, nothing it narrows and no connected
+    port; and while a connector of the revision cannot be read, no port's peers are known."""
     index = view.index
-    return [port for port in member_features(view, element)
-            if str(index.element(port).get("@type")) == "PortUsage"
-            and any(index.element(feature).get("direction") for feature in member_features(view, port))]
+    peers, problems = connected_peers(view)
+    information: list[str] = []
+    unreadable: list[str] = []
+    for port in member_features(view, element):
+        if str(index.element(port).get("@type")) != "PortUsage":
+            continue
+        narrowed = narrowed_features(view, port)
+        connected = [peer for feature in narrowed for peer in peers.get(feature, ())]
+        content = [*member_features(view, port), *(f for peer in connected for f in member_features(view, peer))]
+        if any(index.element(feature).get("direction") for feature in content):
+            information.append(port)
+            continue
+        types = [definition for feature in narrowed for definition in type_lineage(view, feature)]
+        missing = [definition for definition in types if definition not in index.by_id]
+        if missing:
+            unreadable.append(f"{element_name(view, port)} is typed by an element that is not in the bound revision")
+        elif not (types or content or connected or len(narrowed) > 1):
+            unreadable.append(f"{element_name(view, port)} has no type, no feature and no connected port")
+    if not information and problems:
+        unreadable.append(f"{len(problems)} connector(s) cannot be read: {'; '.join(problems[:3])}")
+    return information, unreadable
+
+
+def information_ports(view: ModelView, element: str) -> list[str]:
+    """The information ports of ``element`` (see :func:`port_reading`)."""
+    return port_reading(view, element)[0]
+
+
+def feature_chain(view: ModelView, feature: str) -> tuple[str, ...]:
+    """The chaining features of a feature chain (``a.b``), in order; any other feature as itself. Raises
+    :class:`IdentityNotFoundError` when the chain ends in a feature that is not in the bound revision."""
+    chainings = view.index.owned_relationships(feature, "FeatureChaining")
+    if not chainings:
+        return (feature,)
+    chain = tuple(found for chaining in chainings for found in reference_ids(chaining.get("chainingFeature")))
+    if not chain or chain[-1] not in view.index.by_id:
+        raise IdentityNotFoundError(f"feature chain {feature!r} ends in a feature that is not in the bound revision")
+    return chain
+
+
+def allocation_end_chains(view: ModelView) -> Mapping[str, tuple[tuple[tuple[str, ...], ...], str]]:
+    """Allocation usage -> (each end's chaining features, or its feature alone; problem), once per corpus.
+    The last feature of each end is the end :func:`allocation_ends` reads."""
+
+    def build() -> Mapping[str, tuple[tuple[tuple[str, ...], ...], str]]:
+        traversal, index = view.traversal, view.index
+        found: dict[str, tuple[tuple[tuple[str, ...], ...], str]] = {}
+        for allocation in index.elements_of_type("AllocationUsage"):
+            try:
+                records = traversal._connection_end_records(index.by_id[allocation], index.by_id, index.graph)
+                found[allocation] = (tuple(feature_chain(view, traversal._connected_usage_id(
+                    record["end_element_id"], index.graph, index.by_id)[0]) for record in records), "")
+            except IdentityNotFoundError as error:
+                found[allocation] = ((), str(error))
+        return MappingProxyType(found)
+
+    return view.index.memo("allocation-end-chains", build)
 
 
 def signal_mappings(view: ModelView) -> Mapping[str, tuple[tuple[str, ...], str]]:
@@ -515,33 +677,39 @@ def mapping_records(view: ModelView, mapping: str) -> list[str]:
 
 
 def vss_signal_paths(view: ModelView) -> Mapping[str, tuple[str, ...]]:
-    """Element -> the VSS paths its signal metadata names: every element a metadata usage with a
-    ``path`` value annotates (``@VssSignalMetadata about Vehicle_Speed { path = "Vehicle.Speed"; }``,
-    as COVESA_VSS and DE4SDV_VSS_Extensions declare each signal), once per corpus."""
+    """Element -> the VSS paths its signal metadata names: every element that a metadata usage typed by
+    the bound VSS signal metadata annotates, read from the usage's Annotation relationships, or, with
+    none, its owner (KerML's annotated element; ``@VssSignalMetadata about Vehicle_Speed { path =
+    "Vehicle.Speed"; }``, as COVESA_VSS and DE4SDV_VSS_Extensions declare each signal), once per corpus.
+    Metadata of another definition, a ``path`` included, is no VSS typing. Raises
+    :class:`MethodSideInput` when the VSS signal metadata is unbound."""
+    lineage = library_lineage(view, VSS_SIGNAL_METADATA)
 
     def build() -> Mapping[str, tuple[str, ...]]:
         index = view.index
         found: dict[str, list[str]] = {}
         for metadata in index.elements_of_type("MetadataUsage"):
+            if not index.typed_by(metadata) & lineage:
+                continue
             paths = [str(leaf.value) for leaf in index.feature_values(metadata, VSS_PATH)
                      if leaf.kind == "string" and str(leaf.value or "").strip()]
             if not paths:
                 continue
-            annotated = list(reference_ids(index.element(metadata).get("annotatedElement")))
-            for relationship in index.owned_relationships(metadata, "Annotation"):
-                annotated.extend(reference_ids(relationship.get("annotatedElement")))
-            for element in dict.fromkeys(annotated):
+            annotated = [element for relationship in index.owned_relationships(metadata, "Annotation")
+                         for element in reference_ids(relationship.get("annotatedElement"))]
+            owner = index.owner_of(metadata)
+            for element in dict.fromkeys(annotated or ([owner] if owner else [])):
                 bucket = found.setdefault(element, [])
                 bucket.extend(path for path in paths if path not in bucket)
         return MappingProxyType({element: tuple(paths) for element, paths in found.items()})
 
-    return view.index.memo("vss-signal-paths", build)
+    return view.index.memo(("vss-signal-paths", lineage), build)
 
 
 def carried_vss_paths(view: ModelView, element: str) -> list[str]:
     """The VSS paths of the signals ``element`` carries: of its definitions, and of the features it and
     they own (a port's items, an item's attributes), to a bounded depth. A path in a doc or a string is
-    no VSS typing."""
+    no VSS typing. Raises :class:`MethodSideInput` when the VSS signal metadata is unbound."""
     signals = vss_signal_paths(view)
     found: list[str] = []
     seen: set[str] = set()
@@ -555,12 +723,13 @@ def carried_vss_paths(view: ModelView, element: str) -> list[str]:
             found.extend(path for path in signals.get(definition, ()) if path not in found)
         if depth < _VSS_DEPTH:
             frontier.extend((feature, depth + 1) for feature in member_features(view, current)
-                            if str(view.index.element(feature).get("@type")) in _SIGNAL_CARRIERS)
+                            if str(view.index.element(feature).get("@type")) in SIGNAL_CARRIERS)
     return found
 
 
-#: The usages through which an endpoint carries a signal (a port's items, an item's attributes).
-_SIGNAL_CARRIERS = frozenset({"PortUsage", "ItemUsage", "AttributeUsage", "ReferenceUsage"})
+#: The usages through which an endpoint carries a signal (a port's items, an item's attributes); a signal
+#: mapping's VSS typing is read only at a target of these kinds, never at an element.
+SIGNAL_CARRIERS = frozenset({"PortUsage", "ItemUsage", "AttributeUsage", "ReferenceUsage"})
 
 
 # ---------------------------------------------------------------------------

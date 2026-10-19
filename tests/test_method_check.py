@@ -375,7 +375,7 @@ def test_the_summary_names_next_and_the_blocking_gaps_per_increment(tmp_path: Pa
     assert ("**Phase exits:** phase0_incrementFraming READY (15/15 pass), phase4_needs BLOCKED (4/6 pass), "
             "phase5_requirements READY (4/6 pass), phase6_functionalArchitecture READY (0/4 pass, 4 not applicable), "
             "phase7_logicalArchitecture READY (0/2 pass, 2 not applicable), phase8_physicalRealization READY "
-            "(0/2 pass, 2 not applicable), phase10_vvEvidence READY (2/3 pass)") in lines
+            "(0/4 pass, 4 not applicable), phase10_vvEvidence READY (2/3 pass)") in lines
     assert "<details><summary>Advisory notes: 4</summary>" in lines
     assert "| `verificationCaseHasEvidenceRecordOrStatus` | phase10_vvEvidence | method-side | 1 | `firstVerification` |" in lines
     assert f"gh run download 4242 -R de4sdv/DE4SDV -n method-check-{GIT}" in text

@@ -400,14 +400,16 @@ package DE4SDV_IncrementWorkflow {
          * the ones its own allocations name. Advisory: each physical element carries a
          * logical element. Advisory, the system-to-software signal-mapping control: a
          * physical element that realizes a logical element and has a port with a
-         * directed feature is a crossing, and each logical element it realizes has a
-         * SystemToSoftwareSignalMappingCandidate allocation to a physical element of
-         * the increment that realizes it, owning a LogicalToSoftwareSignalMappingRecord
-         * with a disposition, an owner and a next action; the item of each signal
-         * mapping is VSS-typed, or its record states the semantic source. An
-         * allocation is no deployment, execution or runtime claim, and a mapping no
-         * runtime-interoperability claim; the realization-readiness control stays
-         * with review. */
+         * directed feature, of its own, of its definition, of a feature it narrows or
+         * of a connected port, is a crossing, and each logical element it realizes has a
+         * SystemToSoftwareSignalMappingCandidate allocation, owned by a package of the
+         * increment, to a physical element of the increment that realizes it or a port
+         * of one, whose LogicalToSoftwareSignalMappingRecords each state a disposition,
+         * an owner and a next action, and when notApplicable why; each record of a
+         * signal mapping states the semantic source, or the item at its port is
+         * VSS-typed. An allocation is no deployment, execution or runtime claim, and a
+         * mapping no runtime-interoperability claim; the realization-readiness control
+         * stays with review. */
     attribute :>> phase = MethodPhase::phase8_physicalRealization;
     in part logicalElements[1..*] : LogicalAllocationElement;
     out part physicalElements[1..*] : PhysicalAllocationElement;
@@ -428,7 +430,7 @@ package DE4SDV_IncrementWorkflow {
       :>> advisory = true;
     }
     metadata signalMappingNamesSemanticSource : MethodCheck about signalMappings {
-      doc /* Advisory: the item of each signal mapping is typed by a VSS signal (COVESA VSS or the DE4SDV extensions), or its record states the semantic source; no claim that the item is or is not a vehicle signal. */
+      doc /* Advisory: each record of a signal mapping states the semantic source, or the item at the mapping's port is typed by a VSS signal (COVESA VSS or the DE4SDV extensions); no claim that the item is or is not a vehicle signal. */
       :>> check = "semanticSourceNamed";
       :>> advisory = true;
     }

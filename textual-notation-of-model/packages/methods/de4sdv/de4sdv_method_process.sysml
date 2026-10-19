@@ -99,10 +99,11 @@ package DE4SDV_MethodProcess {
      * semantic information item crossing into a software, service, topic, API,
      * or physical boundary. Exact .proto/.vsidl fields and runtime observations
      * remain in their authoritative external artifacts; this record preserves
-     * the stable trace and review obligations.
+     * the stable trace and review obligations. The record's short name is its
+     * mapping ID.
      */
     attribute semanticSource : ScalarValues::String {
-      doc /* For an item that is no VSS-typed vehicle signal: what it is, and why no VSS signal applies. A vehicle signal names its source by its VSS typing instead; the record's short name is its mapping ID, and the owning mapping's ends give the endpoints and the direction. */
+      doc /* For an item that is no VSS-typed vehicle signal: what it is, and why no VSS signal applies. A vehicle signal names its source by its VSS typing instead; the owning mapping's target, the typed ports and the connections give the endpoints and the direction. */
     }
     attribute softwareContractArtifact : ScalarValues::String;
     attribute softwareContractMessage : ScalarValues::String;
