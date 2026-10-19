@@ -602,3 +602,36 @@ def test_an_out_of_set_operand_other_than_that_is_refused():
     graph.requires(a, [b], operand_a=["0c0c0c0c-0000-5000-8000-00000000abcd"])
     with pytest.raises(PlemlShapeError, match="outside the set"):
         graph.evaluate()
+
+
+# -- the S2k definition rules (review R1 and R3 of #402) -------------------------------------
+
+
+def test_an_unassigned_feature_never_redefines_its_binding_time():
+    line = PlatformLine()
+    line.graph.binding_time(line.features["laneKeepAssist"], "Development")  # it carries UnassignedBindingTime
+    with pytest.raises(PlemlShapeError, match="laneKeepAssist carries UnassignedBindingTime and redefines bindingTime"):
+        line.graph.evaluate()
+
+
+@pytest.mark.parametrize("kind", ["derived_variation", "derivation_rule"])
+def test_a_derivation_dependency_has_exactly_one_client(kind):
+    line = PlatformLine()
+    adapter = line.variations["applicationMiddlewareAdapter"]
+    clients = ([adapter["@variation"], line.variations["middleware"]["@variation"]] if kind == "derived_variation"
+               else [adapter["autowareToSCORE"], adapter["none"]])
+    line.graph.dependency(clients, [line.features["vehicleApplication"], line.features["middleware"]]
+                          if kind == "derived_variation" else [line.features["apollo"], line.features["androidSDV"]],
+                          line.graph.kernel_defs[kind], name="twoClients")
+    with pytest.raises(PlemlShapeError, match="exactly one client"):
+        line.graph.evaluate()
+
+
+def test_each_premise_is_a_direct_sub_feature_of_a_distinct_source_feature():
+    line = PlatformLine()
+    adapter = line.variations["applicationMiddlewareAdapter"]
+    line.graph.rule(adapter["autowareToSCORE"], [line.features["autoware"], line.features["openpilot"]],
+                    name="sameSourceTwice")
+    errors = feature_model(line.graph.evaluate())["integrity_errors"]
+    assert any("rule sameSourceTwice: its premises are no sub-features of distinct source features" in error
+               for error in errors), errors

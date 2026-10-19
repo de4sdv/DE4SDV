@@ -414,3 +414,20 @@ def test_the_evidence_record_check_refuses_symbolic_links(tmp_path):
     errors = receipts.evidence_record_errors({"status": "inspected", "artifacts": [{"id": "EVID-X", "path": "link/real.md"}]},
                                              tmp_path)
     assert errors == ["evidence artifact path 'link/real.md' must not traverse symbolic links"]
+
+
+def test_the_kernel_classes_bind_on_a_genuine_export_through_the_model_built_contract():
+    """Real serializer output of the S2k kernel binds as ingestion binds it; no name is matched."""
+    import gzip
+
+    export = json.loads(gzip.decompress((ROOT / "tests/fixtures/genuine_export/inc-aebs-010.json.gz").read_bytes()))
+    contract = KernelContract.from_layers(ROOT)
+    names = [name for _, name, _ in evaluator.KERNEL.definitions().values()]
+    if not all(name in contract.classes for name in names):
+        pytest.skip("the S2k kernel classes are not on this base yet (#402)")
+    bindings = evaluator.kernel_bindings(contract, export["elements"], export["element_sources"])
+    assert sorted(bindings) == sorted(names)
+    by_id = {element["@id"]: element for element in export["elements"]}
+    for name, identifier in bindings.items():
+        assert by_id[identifier]["@type"] == "MetadataDefinition" and by_id[identifier]["declaredName"] == name
+        assert export["element_sources"][identifier] == evaluator.KERNEL_SOURCE

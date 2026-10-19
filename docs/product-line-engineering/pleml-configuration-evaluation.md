@@ -60,7 +60,12 @@ The evaluator refuses anything outside these shapes:
   constraint is its owner, either `that` or the owner itself;
 - a feature model carries `ProductModelProjection`, a configuration may carry
   `ProductModelProjectionName`, and a feature may carry `UnassignedBindingTime`,
-  unless a binding, derived variation or rule names it.
+  unless a binding, derived variation or rule names it. A feature that carries
+  `UnassignedBindingTime` never redefines `bindingTime`;
+- a `DerivedVariation` or `DerivationRule` dependency has exactly one client.
+  Each premise of a rule is a direct sub-feature of a distinct source feature,
+  and supplier order carries no meaning. A rule whose variant no single derived
+  variation names is refused.
 
 ## Receipts
 

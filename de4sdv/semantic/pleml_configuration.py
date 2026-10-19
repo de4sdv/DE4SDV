@@ -519,6 +519,7 @@ class _Feature:
     group: str | None = None
     members: tuple[str, ...] = ()
     binding_time: str = "Development"
+    binding_time_redefined: bool = False
     unassigned: bool = False
 
     @property
@@ -566,6 +567,9 @@ class _FeatureModel:
             if kind != "FeatureTreeMetadata":
                 raise PlemlShapeError(f"unsupported metadata on the feature tree: {kind}")
         self._walk(tree, "")
+        for feature in self.features.values():
+            if feature.unassigned and feature.binding_time_redefined:
+                raise PlemlShapeError(f"feature {feature.path} carries UnassignedBindingTime and redefines bindingTime")
         self._groups()
         for constraint in self.constraints:
             for feature in (*constraint.operand_a, *constraint.operand_b):
@@ -620,6 +624,7 @@ class _FeatureModel:
                 if owner == self.tree:
                     raise PlemlShapeError("the feature tree redefines its binding time")
                 self.features[owner].binding_time = self._life_cycle(member)
+                self.features[owner].binding_time_redefined = True
                 continue
             if kind != "FeatureMembership" or member_kind not in {"OccurrenceUsage", "PartUsage"}:
                 raise PlemlShapeError(f"unsupported {member_kind} {graph.label(member)} in the feature tree")
@@ -815,8 +820,11 @@ class _FeatureModel:
         for dependency, clients, suppliers in derived:
             if not self._here(suppliers, f"derived variation {graph.label(dependency)}"):
                 continue
-            if len(clients) != 1 or graph.by_id.get(clients[0], {}).get("isVariation") is not True:
-                raise PlemlShapeError(f"derived variation {graph.label(dependency)} names no single variation")
+            if len(clients) != 1:
+                raise PlemlShapeError(f"derived variation {graph.label(dependency)} must have exactly one client, "
+                                      f"not {len(clients)}")
+            if graph.by_id.get(clients[0], {}).get("isVariation") is not True:
+                raise PlemlShapeError(f"derived variation {graph.label(dependency)} names no variation")
             if clients[0] in derivations:
                 raise PlemlShapeError(f"variation {graph.label(clients[0])} is declared derived more than once")
             derivations[clients[0]] = _Derivation(
@@ -825,7 +833,10 @@ class _FeatureModel:
         for dependency, clients, suppliers in rules:
             if not self._here(suppliers, f"derivation rule {graph.label(dependency)}"):
                 continue
-            variation = self.variation_of(clients[0]) if len(clients) == 1 else None
+            if len(clients) != 1:
+                raise PlemlShapeError(f"derivation rule {graph.label(dependency)} must have exactly one client, "
+                                      f"not {len(clients)}")
+            variation = self.variation_of(clients[0])
             if variation is None or variation not in derivations:
                 raise PlemlShapeError(f"derivation rule {graph.label(dependency)} does not yield one variant of a "
                                       "derived variation")
@@ -841,6 +852,10 @@ class _FeatureModel:
                     if self.features[premise].group not in derivation.source_groups:
                         self.errors.append(f"rule {rule['rule']}: premise {self.path(premise)} is no alternative of "
                                            f"a source feature of {derivation.label}")
+                groups = [self.features[premise].group for premise in rule["premises"]]
+                if len(set(groups)) != len(groups):
+                    self.errors.append(f"rule {rule['rule']}: its premises are no sub-features of distinct source "
+                                       f"features of {derivation.label}")
         return sorted(derivations.values(), key=lambda item: graph.order[item.identifier])
 
     def _classify_pair_exclusions(self) -> None:
