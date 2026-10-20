@@ -5380,7 +5380,7 @@
       "o3_complete": false,
       "open_decisions": [
         "Classified by S5o (ADR 0022 decision 8; it merges only with the owner's yes): a DE4SDV derived fact over the configuration's owned ProductModelProjectionName annotation and the member product that types a usage by the generated part definition; no PLEML construct carries it",
-        "Each configuration owns exactly one ProductModelProjectionName annotation (S2 and S3). Each member product types its product model by the part definition of its configuration's projection and specializes its governed member: the separate model pull request types the standalone composite's platform stack by its projection and places MiddlewareAutowareAAOSSDVConfiguredMember under the governed AAOS-integrated member",
+        "Each configuration owns exactly one ProductModelProjectionName annotation (S2 and S3). Each member product types its product model by the part definition of its configuration's projection and specializes its governed member: since #410, AEBSAutowareReferenceProduct and MiddlewareAutowareAAOSSDVConfiguredMember type their platform stacks by AEBSAutowareLinuxLidarCamera and MiddlewareAutowareAAOSSDVReference, and specialize the governed standalone and AAOS-integrated members",
         "Preserve runtime exclusions verbatim (no collapse into hasSubject)",
         "Vocabulary-only until a reviewed derived realization with exact-revision evidence"
       ],
