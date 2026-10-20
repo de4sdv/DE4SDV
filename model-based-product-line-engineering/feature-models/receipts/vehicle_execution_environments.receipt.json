@@ -1,8 +1,8 @@
 {
   "elements": {
-    "content_sha256": "66a78b209901022c7a50bd868ec27ae13ab10c15ebe903d439b1c04ea0c68ee0",
+    "content_sha256": "d6ee27e0a05c017c5e30c9324fe7370a977324e679b75e25c855134f711af122",
     "path": "pleml-feature-models.elements.json.xz",
-    "sha256": "28dadd5c0b0ea323b458761ec39c610dbc7f04944e16b4aafda93153d0ef1b3e"
+    "sha256": "6f19947ff586d7436322ea8220a09e277bcf04cc686edad50ac34a847e6ed1a4"
   },
   "evaluation": {
     "admission_authority": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
@@ -472,7 +472,6 @@
       "scripts/run_pleml_configuration_evaluation.py": "8eb38109e3b8b44d79c74a3d3a45067f8d2e62c82139e7ac4f66ba5690218dd0",
       "tools/configure_variant.py": "3cde523e4d5281254c217a2d222c638f83174543e6f220c4e1de16ea6f8f58bd"
     },
-    "refreshed_from": "62486784d53a742a730dd7f41776e7985a204abe888bcaf34bb38d38d17477d0",
     "sha256": "e4e06ad1621b2c26f30a9ffa746083a7186b74d160c65894210610d4b41f4a7a"
   },
   "feature_models": [
@@ -491,8 +490,8 @@
   ],
   "native_expression_executed": false,
   "provenance": {
-    "bundle_git_commit": "c6be01f50c626ed922e29b5855ba1ccb0464e90b",
-    "executor_revision": "c6be01f50c626ed922e29b5855ba1ccb0464e90b"
+    "bundle_git_commit": "f03d9f43628a76cea08b40f389b32a2eb826ad14",
+    "executor_revision": "f03d9f43628a76cea08b40f389b32a2eb826ad14"
   },
   "qualified": false,
   "schema": "de4sdv.pleml-configuration-receipt/v1",
@@ -718,14 +717,14 @@
     {
       "authority": "reviewed",
       "path": "textual-notation-of-model/packages/architecture/execution_environments.sysml",
-      "sha256": "0c1781ff83fdb8dcef36cd070b578eef04793e9554e815e9876477ecb6475328",
-      "size": 8707
+      "sha256": "950a1066b948a7fd88fe30c538932645d63a97c614f5e755cb4197233a6e2e9d",
+      "size": 8709
     },
     {
       "authority": "reviewed",
       "path": "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml",
-      "sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
-      "size": 26877
+      "sha256": "77c5cdd22035e028e1dd5cae0d7e5b69ec69eb1a6e14df4cf649ad70ce346b37",
+      "size": 26944
     },
     {
       "authority": "reviewed",
