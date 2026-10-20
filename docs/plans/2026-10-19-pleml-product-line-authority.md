@@ -130,9 +130,9 @@ Today the configurator rejects any pair without a rule (`sdv_product_line.yaml:3
 
 | YAML | PLEML |
 |---|---|
-| Invalid XOR choice, or a list for an alternative | Upper bound |
+| A list for an alternative | Upper bound |
 | Mandatory group or or-group without a selection | Lower bound |
-| Unknown feature path | Unknown feature (validation) |
+| An unknown choice for an alternative, or an unknown feature path | Unknown feature (validation) |
 | Unknown path for the adapter | Derived variant not selectable |
 | C001, C003, C004, C005 | Exclusion with the same ID |
 | No rule matching | Pair exclusion |
