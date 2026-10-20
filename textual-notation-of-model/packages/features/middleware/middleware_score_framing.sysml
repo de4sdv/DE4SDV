@@ -308,8 +308,8 @@ package DE4SDV_MiddlewareSCOREFraming {
      * platform stack mirrors this with one osPlatform, one middleware and
      * one hypervisor variation per stack. The two-domain member needs Linux
      * with S-CORE on the host and Android with the AAOS SDV middleware in
-     * the guest; the example bill of features "Autoware on S-CORE on Linux"
-     * describes only the Linux domain. The same limit affects the
+     * the guest; the example feature configuration "Autoware on S-CORE on
+     * Linux" describes only the Linux domain. The same limit affects the
      * AAOS-integrated reference member: its Autoware runs on a Linux ROS 2
      * runtime while its single operating-system selection says Android.
      * Phases 8 and 9 of this increment close the gap with

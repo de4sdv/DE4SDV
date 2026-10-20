@@ -8,7 +8,9 @@ shared asset supersets live under `textual-notation-of-model/packages/architectu
 | `sdv_platform_stack.sysml` | `SDVPlatformStack` |
 | `execution_environments.sysml` | `EngineeringExecutionEnvironment`, `VehicleTargetExecutionEnvironment` |
 
-Feature Catalogue mappings resolve native `variation`/`variant` declarations in
-these owners. Engineering and vehicle-target execution environments remain
+The PLEML feature bindings and the DE4SDV derivation rules resolve native
+`variation`/`variant` declarations in these owners (ADR 0022); the Feature
+Catalogue mappings are their non-authoritative shadow until the YAML retires.
+Engineering and vehicle-target execution environments remain
 separate configurable families even though they reuse common execution-node,
 operating-system, runtime, and evidence vocabulary.

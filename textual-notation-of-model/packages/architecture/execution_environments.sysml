@@ -13,7 +13,7 @@ package DE4SDV_ExecutionEnvironments {
    * family appearing in one role does not imply qualification for the other.
    *
    * Native SysML v2 variation/variant notation carries structural choices.
-   * The companion Feature Catalogues carry cross-tree compatibility algebra.
+   * The companion PLEML feature models carry cross-tree compatibility algebra.
    * Bill-of-Features evidence metadata is validated by configure_variant.py.
    */
 

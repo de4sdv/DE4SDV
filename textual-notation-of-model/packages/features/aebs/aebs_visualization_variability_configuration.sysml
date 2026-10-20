@@ -4,10 +4,10 @@
  * INC-AEBS-010 Phase 9: the configured test article for the AEBS
  * visualization chain. The accepted MW-CONFIG-001 product projection
  * (MiddlewareAutowareAAOSSDVReference) is reused by qualified reference; no
- * duplicate Bill-of-Features and no new selectable product feature are
- * created. The visualization stays System 2 engineering/evidence
- * instrumentation deployed into an instrumented specialization of the
- * accepted reference member.
+ * duplicate feature configuration, no duplicate Bill-of-Features and no new
+ * selectable product feature are created. The visualization stays System 2
+ * engineering/evidence instrumentation deployed into an instrumented
+ * specialization of the accepted reference member.
  *
  * This slice records planned configuration only. Runtime pins are recorded
  * as configuration obligations; actual pin values, execution, and evidence
@@ -30,7 +30,8 @@ package DE4SDV_AEBSVisualizationVariabilityConfiguration {
      * member. All platform-stack variant selections are inherited unchanged;
      * this specialization adds only System 2 visualization instrumentation
      * and its deployment parts. No member-product behavior, capability
-     * selection, or BoF entry is added or modified.
+     * selection, feature-configuration entry or BoF entry is added or
+     * modified.
      */
 
     part visualizationChain : AEBSVisualizationPhysicalSystem {
@@ -134,10 +135,11 @@ package DE4SDV_AEBSVisualizationVariabilityConfiguration {
   /* Reused accepted configuration artifacts (index only; SysML owns semantics). */
   part reusedBoFSource : SourceContributionRecord {
     doc /*
-     * The accepted Bill-of-Features
+     * The accepted feature configuration
      * model-based-product-line-engineering/feature-configurations/
-     * middleware-autoware-aaos-sdv-reference.yaml is reused unchanged. No duplicate
-     * BoF is created for the visualization.
+     * middleware_autoware_aaos_sdv_reference.sysml and its Bill-of-Features
+     * shadow middleware-autoware-aaos-sdv-reference.yaml are reused unchanged.
+     * No duplicate configuration or BoF is created for the visualization.
      */
   }
   part reusedProductProjection : SourceContributionRecord {
