@@ -36,7 +36,8 @@ REVISION = me.RevisionIdentity("c" * 40, "project", "commit", "full-model")
 NO_CHECKS = "no executable checks at this revision"
 #: SysML v2 textual keyword of a step parameter -> the usage metaclass the serializer records.
 METACLASS = {"part": "PartUsage", "requirement": "RequirementUsage", "concern": "ConcernUsage",
-             "action": "ActionUsage", "view": "ViewUsage", "verification": "VerificationCaseUsage"}
+             "action": "ActionUsage", "view": "ViewUsage", "verification": "VerificationCaseUsage",
+             "allocation": "AllocationUsage"}
 #: The phases INC-AEBS-010's charter declares: 0 to 10, so phases 11 and 12 stay undeclared.
 DECLARED = PHASE_LITERALS[:11]
 

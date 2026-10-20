@@ -66,17 +66,18 @@ FRAMING_DEFINITIONS: dict[str, str] = {
     "Gap": "part def IncrementGap",
 }
 
-#: The signal-mapping record's attribute surface pinned unchanged (endpoint
-#: fields remain string-typed; the string-vs-reference question stays
-#: unresolved).
+#: The signal-mapping record's attribute surface. The phase-8 signal-mapping
+#: checks resolved the string-vs-reference question for the identity fields:
+#: the record's short name is the mapping ID, and the owning mapping's ends,
+#: the typed ports and the connections give the endpoints and the direction,
+#: so mappingId, adapterEndpoints and direction are retired. semanticSource
+#: stays, for an item that is no VSS-typed signal; the contract fields stay
+#: strings, the external artifacts being authoritative.
 SIGNAL_MAPPING_RECORD_ATTRIBUTES = (
-    "mappingId",
     "semanticSource",
     "softwareContractArtifact",
     "softwareContractMessage",
     "softwareContractField",
-    "adapterEndpoints",
-    "direction",
     "dataTypeAndUnit",
     "timingQualityAndState",
     "transformationRule",
@@ -559,9 +560,10 @@ def test_signal_mapping_record_boundaries_hold() -> None:
     assert len(attribute_lines) == len(SIGNAL_MAPPING_RECORD_ATTRIBUTES)
     for name, line in zip(SIGNAL_MAPPING_RECORD_ATTRIBUTES, attribute_lines):
         assert line.startswith(f"attribute {name} :"), name
-    # Endpoint-field representation stays unresolved: string-typed, unchanged.
-    assert "attribute adapterEndpoints : ScalarValues::String;" in attribute_lines
+    # The contract fields stay string-typed; the identity fields are native references, not strings.
     assert "attribute softwareContractArtifact : ScalarValues::String;" in attribute_lines
+    assert not any(line.startswith(("attribute mappingId", "attribute adapterEndpoints", "attribute direction"))
+                   for line in attribute_lines)
     # Not a second authority for external contract facts.
     joined = _flat(" ".join(block))
     assert "authoritative external artifacts" in joined

@@ -52,11 +52,13 @@ C = WorkflowCheck
 ADVISORY = {"expectedArtifactsCoverIncrementContent", "needSubjectIsSystemOfInterest",
             "requirementSubjectIsSystemOfInterest", "requirementStatesSuccessCriteria",
             "requirementCarriedByArchitecture", "functionCarriesRequirement", "logicalElementCarriesFunction",
-            "physicalElementCarriesLogicalElement", "verificationCaseHasEvidenceRecordOrStatus"}
+            "physicalElementCarriesLogicalElement", "crossingHasSignalMapping", "signalMappingNamesSemanticSource",
+            "verificationCaseHasEvidenceRecordOrStatus"}
 #: The checks of the architecture steps, which the fixture's charter does not declare applicable.
 ARCHITECTURE = {"functionalRequirementAllocatedToFunction", "incrementHasFunction", "requirementCarriedByArchitecture",
                 "functionCarriesRequirement", "functionAllocatedToLogicalElement", "logicalElementCarriesFunction",
-                "logicalElementAllocatedToPhysicalElement", "physicalElementCarriesLogicalElement"}
+                "logicalElementAllocatedToPhysicalElement", "physicalElementCarriesLogicalElement",
+                "crossingHasSignalMapping", "signalMappingNamesSemanticSource"}
 
 
 def _named(scenario, name: str) -> dict:
@@ -105,7 +107,7 @@ def test_the_charter_declares_the_workflow_read_into_one_contract() -> None:
     assert method.available, method.problems or method.reason
     assert not any(b["ontology_class"] in {"IncrementWorkflow", "MethodCheck"} for b in scenario.builder.bindings)
     obligations = method.contract.obligations
-    assert len(obligations) == 38
+    assert len(obligations) == 40
     assert [o.obligation_id for o in obligations][:2] == ["incrementHasIdentifier", "incrementHasCharter"]
     by_id = {o.obligation_id: o for o in obligations}
     assert by_id["needHasValidationScenario"].predicate == "hasValidationScenario"

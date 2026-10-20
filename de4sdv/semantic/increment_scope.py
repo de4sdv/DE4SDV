@@ -107,10 +107,15 @@ class ModelView:
         traversal: Any,
         *,
         sources: Mapping[str, str] | None = None,
+        library_bindings: Mapping[str, str] | None = None,
+        library_problems: Mapping[str, str] | None = None,
     ) -> None:
         self.elements = elements
         self.traversal = traversal
         self.sources: Mapping[str, str] = sources or {}
+        #: Library pin -> element, bound by the loader's file-mapped rule (an export only).
+        self.library_bindings: Mapping[str, str] = library_bindings or {}
+        self.library_problems: Mapping[str, str] = library_problems or {}
         self.index: RevisionIndex = traversal.revision_index(elements)
 
     @property
@@ -138,6 +143,16 @@ class ModelView:
                 f"no validated kernel binding index; {ontology_class!r} cannot be resolved"
             )
         return bindings.element_id_for(ontology_class, self.index.by_id)
+
+    def library_element(self, pin: str) -> str:
+        """The element a library pin is bound to: by the loader of an export, with ADR 0011's file-mapped
+        rule (metatype, declared name, serializer-recorded source document). Raises when it is unbound,
+        for example over the API, where no pin is bound."""
+        element = self.library_bindings.get(pin)
+        if element is None or element not in self.index.by_id:
+            why = self.library_problems.get(pin) or "no library binding in this evaluation"
+            raise IdentityNotFoundError(f"library pin {pin!r} is unbound: {why}")
+        return element
 
     def source_of(self, identifier: str | None) -> str:
         return str(self.sources.get(identifier or "", ""))

@@ -228,6 +228,20 @@ def _architecture_subjects(view: ModelView, increment: IncrementScope, definitio
     return list(ordered(view, found))
 
 
+def increment_architecture_elements(view: ModelView, increment: IncrementScope, ontology_class: str) -> list[str]:
+    """The increment's elements of an architecture class (``PhysicalElement``), as a step parameter typed
+    by the class's pinned definition counts them: at any depth in the charter's packages, plus what the
+    increment's allocations name. Raises :class:`MethodSideInput` when the class has no validated kernel
+    binding."""
+    try:
+        definition = view.kernel_element(ontology_class)
+    except IdentityNotFoundError as error:
+        raise MethodSideInput(f"kernel-binding:{ontology_class}",
+                              f"method side: no validated kernel binding for {ontology_class}: {error}")
+    rows = allocation_rows_entering(view, definition)
+    return _architecture_subjects(view, increment, definition, rows) if rows else []
+
+
 #: The revision scope of an export evaluated alone, such as a pull-request head (the Method Check).
 EXPORT_SNAPSHOT_SCOPE = "export-snapshot"
 ROOT = Path(__file__).resolve().parents[2]

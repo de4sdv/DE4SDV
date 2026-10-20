@@ -286,11 +286,13 @@ def test_every_native_allocation_grounds_one_governed_end_pair(path):
 
 def test_every_model_allocation_file_is_governed():
     """Derive the allocation file set from every model root; a new native
-    allocation in an unlisted file (or a listed file losing all) fails."""
+    allocation in an unlisted file (or a listed file losing all) fails. A step
+    parameter typed by an allocation definition (``out allocation x : T;``, the
+    workflow's signal mappings) declares no allocation."""
     found = set()
     for path in model_files():
         code = no_strings(code_of(path))
-        if re.search(r"\ballocate\b|\ballocation\b(?!\s+def\b)", code):
+        if re.search(r"\ballocate\b|(?<!\bin )(?<!\bout )(?<!\binout )\ballocation\b(?!\s+def\b)", code):
             found.add(path)
     assert found == set(ALLOCATION_FILES), sorted(str(p.relative_to(ROOT)) for p in found ^ set(ALLOCATION_FILES))
 

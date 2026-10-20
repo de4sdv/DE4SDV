@@ -236,6 +236,8 @@ _SEGMENT = r"(?:[A-Za-z_]\w*|'[^'\\]*(?:\\.[^'\\]*)*')"
 _QN = rf"{_SEGMENT}(?:::{_SEGMENT})+"
 _PACKAGE = rf"{_SEGMENT}(?:::{_SEGMENT})*"
 _REF = rf"(?:{_QN}|<[^<>]+>)"
+#: A feature chain through an element (``<element>.<port>``): a qualified name, then member names.
+_CHAIN = rf"{_QN}(?:\.{_SEGMENT})+"
 _TEXT = r'"[^"]*"'
 _ITEM = rf"(?:{_REF}|{_TEXT})"
 _VALUE = rf"(?:{_ITEM}|\({_ITEM}(?:, {_ITEM})*\))"
@@ -252,6 +254,8 @@ _MEMBER_FORMS = {
     "frame": rf"frame {_REF};",
     "viewpoint": rf"viewpoint {_NAME} : {_REF} \{{ frame {_REF}; \}}",  # INC-TEST-001's view
 }
+#: A signal-mapping record, a member of its mapping: the INC-MW-011 phase-8 form (#389), short name first.
+_MEMBER_FORMS["record"] = rf"item <'[^']*'> {_NAME} : {_REF} \{{(?: {_MEMBER_FORMS['redefinition']})+ \}}"
 #: The members each container's body may hold. A subject, stakeholder, statement or framed concern is a
 #: member of a requirement (a concern is one; a case has a subject); a verify sits in a case's objective;
 #: a viewpoint in a view; a redefinition in the part or requirement that inherits the feature.
@@ -278,6 +282,9 @@ TOP_LEVEL_FORMS = [
     rf"(?:part|viewpoint) def {_NAME}(?: :> {_REF})?(?:;| \{{ {_DOC} \}})",
     rf"connection {_NAME} : {_REF} connect {_REF} to {_REF};",  # DerivesFromNeed, ValidationPlanningAssociation
     rf"allocation {_NAME} allocate {_REF} to {_REF};",  # the AEBS requirement allocations
+    # a system-to-software signal mapping owning its record (INC-MW-011's phase-8 slice); its target a port,
+    # by qualified name or as a chain through the element (the AEBS allocations' chained ends)
+    rf"allocation {_NAME} : {_REF} allocate {_REF} to (?:{_CHAIN}|{_REF}) \{{ {_MEMBER_FORMS['record']} \}}",
     rf"dependency {_NAME} from {_REF} to {_REF};",  # the AEBS evidence dependencies
 ]
 #: A member on its own line: only in a remedy for an existing element, the container its instruction names.
@@ -326,6 +333,50 @@ def _declared_placeholders(lines: list[str]) -> set[str]:
     return found
 
 
+#: Relationships through which a feature or type has members it does not own (authored ones), and the keys
+#: that may name the general element.
+_INHERITING = {"FeatureTyping": ("type",), "ConjugatedPortTyping": ("type",),
+               "Subclassification": ("superclassifier", "general"), "PortConjugation": ("originalPortDefinition",),
+               "Redefinition": ("redefinedFeature",), "Subsetting": ("subsettedFeature",)}
+
+
+def _members_named(by_id: dict, element: str, name: str) -> list[str]:
+    """The members named ``name`` that ``element`` owns or has through typing, specialization, conjugation,
+    redefinition or subsetting (written here from the KerML membership rules, not from the code under test)."""
+    found, frontier, seen = [], [element], set()
+    while frontier:
+        current = frontier.pop(0)
+        if current in seen or current not in by_id:
+            continue
+        seen.add(current)
+        for reference in by_id[current].get("ownedRelationship") or []:
+            relationship = by_id.get(reference["@id"], {})
+            kind = str(relationship.get("@type") or "")
+            if kind.endswith("Membership"):
+                member = (relationship.get("memberElement") or {}).get("@id")
+                if member in by_id and name in (relationship.get("memberName"), by_id[member].get("declaredName"),
+                                                by_id[member].get("name")) and member not in found:
+                    found.append(member)
+            elif kind in _INHERITING and not relationship.get("isImplied"):
+                general = next((relationship[key] for key in _INHERITING[kind] if relationship.get(key)), None)
+                if isinstance(general, dict) and general.get("@id"):
+                    frontier.append(general["@id"])
+    return found
+
+
+def _chain_problems(line: str, names: QualifiedNameIndex) -> list[str]:
+    """Why a feature chain a line names (``<qualified name>.<member>``) does not reach one feature."""
+    found = []
+    for chain in re.findall(_CHAIN, line):
+        head, *members = chain.split(".")
+        current = [element["@id"] for element in names.resolve(head)]
+        for member in members:
+            current = _members_named(names._by_id, current[0], member.strip("'")) if len(current) == 1 else []
+        if len(current) != 1:
+            found.append(f"the chain {chain} does not reach one feature")
+    return found
+
+
 def _problems(record: dict, names: QualifiedNameIndex, own_package: str | None = None) -> list[str]:
     """Why one answer record's remedy is not authorable SysML (empty: it is)."""
     text = record.get("what_to_author") or record.get("what_satisfies") or ""
@@ -356,6 +407,7 @@ def _problems(record: dict, names: QualifiedNameIndex, own_package: str | None =
         for name in re.findall(_QN, line):
             if len(names.resolve(name)) != 1:
                 found.append(f"{name} does not resolve to one element")
+        found.extend(_chain_problems(line, names))
     for existing in re.findall(_PLACEMENT, text):
         if len(names.resolve(existing)) != 1:
             found.append(f"the existing {existing} does not resolve to one element")

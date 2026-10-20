@@ -192,7 +192,13 @@ system-to-software signal mapping: qualified source item, software contract
 message/field, physical adapter endpoints and direction, unit/type/timing and
 quality semantics, transformation rule, realization status, and evidence or
 gap. A candidate or deferred mapping is acceptable for a draft increment when
-the exact service contract is not pinned; an unrecorded mapping is not.
+the exact service contract is not pinned; an unrecorded mapping is not. In
+SysML the mapping is an allocation typed `SystemToSoftwareSignalMappingCandidate`
+owning a `LogicalToSoftwareSignalMappingRecord`: the record's short name is the
+mapping ID, the allocation's ends, the typed ports and the connections give the
+source, the endpoints and the direction, and the record's members carry the
+rest (the shape and the advisory checks are rule 13 of the
+[increment workflow](increment-workflow.md)).
 
 ### Phase 9 — Variability and configuration
 

@@ -17,6 +17,11 @@ predicates. Two input modes, both read-only and offline:
   same failures (ADR 0011); the revision identity is the Git commit with
   scope ``export-snapshot`` and no SysML API identity.
 
+In both modes the library declarations a check reads by identity (the VSS
+signal metadata, :data:`~de4sdv.semantic.relation_checks.LIBRARY_PINS`) are
+bound from the export by the same file-mapped rule. An unbound pin refuses
+nothing: a check that needs it reports it as method side.
+
 Any identity mismatch refuses the evaluation; nothing falls back to another
 revision or to names.
 """
@@ -25,9 +30,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from types import SimpleNamespace
+from types import MappingProxyType, SimpleNamespace
 from typing import Any, Mapping
 
 from de4sdv.sysml_api.baseline import BaselineExportBundle
@@ -38,7 +43,8 @@ from .increment_scope import ModelView
 from .increment_workflow import EXPORT_SNAPSHOT_SCOPE
 from .method_evaluator import RevisionIdentity
 from .method_pilot import establish_candidate_identity
-from .validation import cross_check_model_provider, validate_ontology_bindings
+from .relation_checks import LIBRARY_PINS
+from .validation import cross_check_model_provider, resolve_library_pins, validate_ontology_bindings
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -60,6 +66,10 @@ class ExportSnapshot:
     #: Semantic authority of the checkout whose model-built contract judged
     #: the export (in both modes; the binding mode requires them equal).
     semantic_authority_id: str = ""
+    #: Library pin -> its element, bound from the export by the file-mapped rule.
+    library_bindings: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
+    #: Library pin -> why it is unbound.
+    library_problems: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
 
 
 def _contract(root: Path) -> Any:
@@ -82,6 +92,8 @@ def load_export_snapshot(
     sources = dict(bundle.element_sources)
     digest = hashlib.sha256(raw).hexdigest()
     contract = _contract(root)
+    bound, unbound = resolve_library_pins(LIBRARY_PINS, elements, sources)
+    library = {"library_bindings": MappingProxyType(bound), "library_problems": MappingProxyType(unbound)}
     if binding_path is not None:
         document = json.loads(Path(binding_path).read_text(encoding="utf-8"))
         try:
@@ -103,6 +115,7 @@ def load_export_snapshot(
             kernel_bindings=tuple(binding.kernel_bindings),
             identity_mode="validated-revision-binding",
             semantic_authority_id=contract.identity.id,
+            **library,
         )
     report = validate_ontology_bindings(contract, elements, sources)
     if not report.passed:
@@ -133,6 +146,7 @@ def load_export_snapshot(
         kernel_bindings=kernel,
         identity_mode="export-validated-kernel-bindings",
         semantic_authority_id=contract.identity.id,
+        **library,
     )
 
 
@@ -146,7 +160,8 @@ def export_view(snapshot: ExportSnapshot, *, root: Path = ROOT) -> ModelView:
         facade.profile, SimpleNamespace(kernel_bindings=snapshot.kernel_bindings)
     )
     traversal = ModelAuthorityTraversal(facade, kernel_bindings=index)
-    return ModelView(snapshot.elements, traversal, sources=snapshot.sources)
+    return ModelView(snapshot.elements, traversal, sources=snapshot.sources,
+                     library_bindings=snapshot.library_bindings, library_problems=snapshot.library_problems)
 
 
 def evaluate_export(

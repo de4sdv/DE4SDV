@@ -20,9 +20,15 @@ maps the id to the implementation that decides it for one subject:
   ``receivesAllocation`` (the subject is the target end of an allocation
   that grounds an end pair of the relation native allocations carry),
   ``carriedByArchitecture`` (a requirement is allocated to a function or
-  named as relevant by an architecture element) or ``populationMember``
+  named as relevant by an architecture element), ``populationMember``
   (every subject the step parameter counts satisfies it, so its gate states
-  only the parameter's multiplicity, such as at least one function);
+  only the parameter's multiplicity, such as at least one function),
+  ``signalMappingRecorded`` (a physical element that realizes a logical
+  element and exchanges information items through a port has a
+  system-to-software signal mapping the increment owns, with complete
+  records) or ``semanticSourceNamed`` (a signal mapping's records state the
+  semantic source, or its port's item is VSS-typed by the bound VSS signal
+  metadata);
 - **relation names**, for example ``derivesRequirementFromNeed``,
   ``hasValidationScenario``, ``verifiedBy`` or ``allocatedTo``: the subject
   reaches targets through that relation (see
@@ -61,18 +67,30 @@ from .increment_scope import (
 )
 from .relation_checks import (
     MODEL_WITNESS_PREFIX,
+    SIGNAL_CARRIERS,
+    SIGNAL_MAPPING,
+    SIGNAL_MAPPING_DISPOSITION,
+    SIGNAL_MAPPING_RECORD,
     MethodSideInput,
     allocation_classes,
+    allocation_end_chains,
     allocation_ends,
     allocation_hops,
+    carried_vss_paths,
     check_relation,
     class_declaration,
     connection_ends,
     element_name,
     in_class,
+    kernel_lineage,
+    mapping_records,
     membership_members,
+    narrowed_features,
     native_allocation_rows,
+    port_reading,
     relation_checks,
+    signal_mappings,
+    stated_texts,
     ungrounded_allocations,
     unreadable_allocations,
 )
@@ -345,32 +363,10 @@ def _one_native_subject(view: ModelView, increment: IncrementScope, subject_id: 
     return satisfied(found)
 
 
-#: Declared (never implied) relations from a usage to the usages it narrows.
-_NARROWING = (("Subsetting", "subsettedFeature"), ("Redefinition", "redefinedFeature"),
-              ("ReferenceSubsetting", "referencedFeature"))
-
-
-def _narrowed_usages(view: ModelView, usage: str) -> list[str]:
-    """``usage`` and every usage it subsets, redefines or references, transitively."""
-    found: list[str] = []
-    frontier = [usage]
-    while frontier:
-        current = frontier.pop(0)
-        if current in found:
-            continue
-        found.append(current)
-        for relationship_type, key in _NARROWING:
-            for relationship in view.index.owned_relationships(current, relationship_type):
-                if relationship.get("isImplied"):
-                    continue
-                frontier.extend(reference_ids(relationship.get(key)))
-    return found
-
-
 def _usage_reaches(view: ModelView, usage: str, usages: set[str], types: set[str]) -> bool:
-    """The usage is, or narrows, one of ``usages``, or is typed (itself or through what it
-    narrows) by one of ``types``."""
-    narrowed = _narrowed_usages(view, usage)
+    """The usage is, or narrows (subsets, redefines or references, transitively), one of ``usages``, or
+    is typed (itself or through what it narrows) by one of ``types``."""
+    narrowed = narrowed_features(view, usage)
     if usages & set(narrowed):
         return True
     return any(view.index.typed_by(candidate) & types for candidate in narrowed)
@@ -569,7 +565,8 @@ RELEVANT_ARCHITECTURE = "hasRelevantArchitecture"
 #: The relation phase 10 checks every in-scope requirement against.
 VERIFIED_BY = "verifiedBy"
 #: The named checks that read native allocations (besides the relation they carry).
-ALLOCATION_CHECKS = frozenset({"receivesAllocation", "carriedByArchitecture"})
+ALLOCATION_CHECKS = frozenset({"receivesAllocation", "carriedByArchitecture", "signalMappingRecorded",
+                               "semanticSourceNamed"})
 
 
 def _carried_by_architecture(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
@@ -608,6 +605,202 @@ def _carried_by_architecture(view: ModelView, increment: IncrementScope, subject
         return violated(f"{name} is carried by no architecture element; whether a verification case verifies it "
                         f"cannot be read ({detail})")
     return violated(f"{name} is carried by no architecture element and has no verification case yet")
+
+
+#: What a mapping record must state for its crossing: the members of the kernel record.
+RECORD_STATEMENTS = ("owner", "nextAction")
+#: The disposition of a record whose item crosses no software contract, and the member that says why.
+NOT_APPLICABLE = "notApplicable"
+REASON = "evidenceOrGap"
+#: The record member that states the semantic source of an item that is no VSS-typed vehicle signal.
+SEMANTIC_SOURCE = "semanticSource"
+
+
+def record_gaps(view: ModelView, record: str) -> list[str]:
+    """What a mapping record does not state among its disposition, owner and next action, and, when it is
+    notApplicable, the reason (``evidenceOrGap``). A value still holding a remedy placeholder or only a
+    to-be-determined marker states nothing (:func:`~de4sdv.semantic.relation_checks.stated_texts`)."""
+    disposition = _disposition(view, record)
+    missing = [] if disposition else ["disposition"]
+    missing += [member for member in RECORD_STATEMENTS if not stated_texts(view, record, member)]
+    if disposition == NOT_APPLICABLE and not stated_texts(view, record, REASON):
+        missing.append(REASON)
+    return missing
+
+
+def _disposition(view: ModelView, record: str) -> str:
+    """The record's disposition: the name of a literal of the kernel's mapping disposition ('' when unset).
+    Raises :class:`MethodSideInput` when the disposition has no validated kernel binding."""
+    enums = kernel_lineage(view, SIGNAL_MAPPING_DISPOSITION)
+    literals = [leaf.value for leaf in view.index.feature_values(record, "disposition")
+                if leaf.kind == "reference" and view.index.owner_of(leaf.value) in enums]
+    return view.index.name_of(literals[0]) if literals else ""
+
+
+def _within(view: ModelView, element: str, roots: set[str]) -> bool:
+    """Whether ``element`` is one of ``roots`` or owned by one of them, at any depth."""
+    current, seen = element, set()
+    while current and current not in seen:
+        if current in roots:
+            return True
+        seen.add(current)
+        current = view.index.owner_of(current)
+    return False
+
+
+@dataclass(frozen=True)
+class CrossingCoverage:
+    """What ``signalMappingRecorded`` reads for one physical element."""
+
+    #: (logical element, allocation): the logical elements it realizes (allocatedTo).
+    realized: list[tuple[str, str]]
+    #: Its information ports, and why its other ports cannot be read.
+    ports: list[str]
+    unreadable: list[str]
+    #: Logical element -> (mapping, its records) that cover it.
+    coverage: dict[str, list[tuple[str, tuple[str, ...]]]]
+    #: Logical element -> (mapping, record or None, gaps) of the increment's mappings to a realizing element
+    #: whose records are missing or incomplete.
+    incomplete: dict[str, list[tuple[str, str | None, tuple[str, ...]]]]
+    #: Why the other mappings from a realized logical element do not count.
+    notes: list[str]
+    #: The allocations that cannot be read.
+    problems: list[str]
+
+
+def crossing_coverage(view: ModelView, increment: IncrementScope, subject_id: str) -> CrossingCoverage:
+    """For a physical element: the logical elements it realizes (allocatedTo), its information ports, and
+    per realized logical element the mappings that cover it, with the notes on the mappings that do not
+    count. A mapping covers a logical element when a package of the increment owns it (as the
+    ``signalMappings`` parameter counts it), it is allocated from the logical element to a physical element
+    of the increment that realizes it, or to a feature of one (a port, written directly or as a chain
+    through the element), and each record it owns states a disposition, an owner and a next action (and,
+    when notApplicable, why)."""
+    from .increment_workflow import increment_architecture_elements  # the workflow reader imports this module
+
+    relation = allocation_relation(view)
+    if relation is None:
+        raise MethodSideInput("governed-relation:native-allocation",
+                              "method side: the served contract has not exactly one relation carried by native "
+                              "allocations")
+    realized, problems = allocation_hops(view, relation, subject_id, incoming=True)
+    ports, unreadable = port_reading(view, subject_id)
+    physical = set(increment_architecture_elements(view, increment, "PhysicalElement"))
+    in_scope = set(increment.scope_elements)
+    mappings, chains = signal_mappings(view), allocation_end_chains(view)
+    coverage: dict[str, list[tuple[str, tuple[str, ...]]]] = {}
+    incomplete: dict[str, list[tuple[str, str | None, tuple[str, ...]]]] = {}
+    notes: list[str] = []
+    for logical, _allocation in realized:
+        realizing = {target for target, _a in allocation_hops(view, relation, logical)[0] if target in physical}
+        found: list[tuple[str, tuple[str, ...]]] = []
+        pending: list[tuple[str, str | None, tuple[str, ...]]] = []
+        for mapping, (ends, problem) in mappings.items():
+            if problem or len(ends) != 2 or ends[0] != logical:
+                continue
+            target_chain = chains[mapping][0][1]
+            if not any(_within(view, feature, realizing) for feature in target_chain):
+                notes.append(f"{_name(view, mapping)} is allocated to {_name(view, ends[1])}, in no physical element "
+                             f"of the increment that realizes {_name(view, logical)}")
+                continue
+            if mapping not in in_scope:
+                notes.append(f"{_name(view, mapping)} is owned by no package of the increment (or is nested in a "
+                             "definition), so it does not count for this increment")
+                continue
+            records = mapping_records(view, mapping)
+            if not records:
+                notes.append(f"{_name(view, mapping)} owns no {class_declaration(view, SIGNAL_MAPPING_RECORD)}")
+                pending.append((mapping, None, ()))
+                continue
+            gaps = [(record, tuple(record_gaps(view, record))) for record in records]
+            if any(missing for _record, missing in gaps):
+                for record, missing in gaps:
+                    if missing:
+                        notes.append(f"{_name(view, record)} states no {', '.join(missing)}")
+                        pending.append((mapping, record, missing))
+                continue
+            found.append((mapping, tuple(records)))
+        coverage[logical] = found
+        incomplete[logical] = pending
+    return CrossingCoverage(realized, ports, unreadable, coverage, incomplete, notes, problems)
+
+
+def _signal_mapping_recorded(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """A crossing has a system-to-software signal mapping. The crossing: the subject, a physical element
+    of the increment, realizes a logical element (allocatedTo) and has an information port (see
+    :func:`~de4sdv.semantic.relation_checks.port_reading`). Each logical element it realizes is covered by
+    a SystemToSoftwareSignalMappingCandidate allocation that a package of the increment owns, from it to a
+    physical element of the increment that realizes it (or a port of one, directly or as a chain through
+    it), whose LogicalToSoftwareSignalMappingRecords each state a disposition, an owner and a next action,
+    and when notApplicable why; one mapping may cover the processes of a chain. A physical element without
+    an information port, or realizing no logical element, is no crossing. Absence is not established while
+    any allocation, a port of the subject or a connector cannot be read."""
+    name = _name(view, subject_id)
+    found = crossing_coverage(view, increment, subject_id)
+    if not found.ports and not found.unreadable:
+        return outcome("not-applicable", diagnostics=(f"{name} declares no port with a directed feature: no "
+                                                       "crossing",))
+    if not found.realized:
+        if found.problems:
+            return indeterminate(MODEL_WITNESS_PREFIX + "allocatedTo", unreadable_allocations(found.problems))
+        return outcome("not-applicable", diagnostics=(f"{name} realizes no logical element: no crossing",))
+    if not found.ports:
+        return indeterminate(MODEL_WITNESS_PREFIX + "port",
+                             f"{len(found.unreadable)} port reading(s) of {name} fail, so whether it exchanges an "
+                             f"information item cannot be established: {'; '.join(found.unreadable[:3])}")
+    uncovered = [logical for logical, covering in found.coverage.items() if not covering]
+    if uncovered and found.problems:
+        return indeterminate(MODEL_WITNESS_PREFIX + "allocatedTo", unreadable_allocations(found.problems))
+    if uncovered:
+        names = ", ".join(_name(view, logical) for logical in uncovered)
+        return violated(f"{name} realizes {names} and exchanges information items through {len(found.ports)} "
+                        f"port(s), but the increment owns no {class_declaration(view, SIGNAL_MAPPING)} from {names} "
+                        "to a physical element of the increment that realizes it whose mapping records each state "
+                        "a disposition, an owner and a next action", tuple(found.notes))
+    covered = [pair for covering in found.coverage.values() for pair in covering]
+    return satisfied([record for _mapping, records in covered for record in records],
+                     [mapping for mapping, _records in covered])
+
+
+def _semantic_source_named(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """A signal mapping names its semantic source: each record that maps an item (any disposition but
+    notApplicable) states it (``semanticSource``: what the item is and why no VSS signal applies), or the
+    item at the mapping's target is VSS-typed: the target is a port, or an item or attribute in one
+    (written directly or as a chain), typed by a definition the bound VSS signal metadata of COVESA_VSS
+    annotates (DE4SDV_VSS_Extensions declares its signals the same way; the VSS paths are reported). A
+    mapping to an element states the source in its records. Whether the item is a vehicle signal is the
+    author's judgment; the check reads what is declared."""
+    name = _name(view, subject_id)
+    ends, problem = signal_mappings(view).get(subject_id, ((), "not a signal mapping"))
+    if problem or len(ends) != 2:
+        return indeterminate(MODEL_WITNESS_PREFIX + SIGNAL_MAPPING,
+                             f"the ends of {name} cannot be read: {problem or f'{len(ends)} ends'}")
+    records = mapping_records(view, subject_id)
+    mapping_items = [record for record in records if _disposition(view, record) != NOT_APPLICABLE]
+    if records and not mapping_items:
+        return outcome("not-applicable", diagnostics=(
+            f"{', '.join(_name(view, record) for record in records)} is notApplicable: no item crosses",))
+    stated = {record: stated_texts(view, record, SEMANTIC_SOURCE) for record in mapping_items}
+    lacking = [record for record, texts in stated.items() if not texts]
+    if mapping_items and not lacking:
+        return satisfied(mapping_items, [subject_id], diagnostics=tuple(
+            f"semantic source stated: {texts[0]}" for texts in stated.values()))
+    target = ends[1]
+    if str(view.element(target).get("@type")) not in SIGNAL_CARRIERS:
+        where = (f"{name} is allocated to the element {_name(view, target)}: VSS typing is read only at a port, or "
+                 "an item or attribute in one")
+        if not mapping_items:
+            return violated(f"{where}, and it owns no mapping record that states its semantic source")
+        return violated(f"{where}, and {', '.join(_name(view, record) for record in lacking)} states no semantic "
+                        "source")
+    paths = carried_vss_paths(view, target)
+    if paths:
+        return satisfied([target], [subject_id], diagnostics=(f"VSS-typed: {', '.join(paths)}",))
+    if not mapping_items:
+        return violated(f"{name} carries no VSS-typed item at {_name(view, target)} and owns no mapping record "
+                        "that states its semantic source")
+    return violated(f"{name} carries no VSS-typed item at {_name(view, target)}, and "
+                    f"{', '.join(_name(view, record) for record in lacking)} states no semantic source")
 
 
 def _population_member(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
@@ -649,6 +842,8 @@ NAMED_CHECKS: Mapping[str, CheckFunction] = MappingProxyType({
     "receivesAllocation": _receives_allocation,
     "carriedByArchitecture": _carried_by_architecture,
     "populationMember": _population_member,
+    "signalMappingRecorded": _signal_mapping_recorded,
+    "semanticSourceNamed": _semantic_source_named,
 })
 
 #: Check id -> the most distinct targets the check accepts (absent: unbounded).

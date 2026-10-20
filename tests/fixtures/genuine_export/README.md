@@ -7,7 +7,13 @@ cut of the licensed full-model export of one revision, made by
 - INC-AEBS-010's framing, needs, functional, logical and physical packages,
   and the package elements of its other declared packages;
 - the increment workflow;
-- every kernel declaration the contract binds;
+- every kernel declaration the contract binds, a kernel enumeration with its
+  literals;
+- every library declaration a check binds by identity (the COVESA_VSS
+  `VssSignalMetadata` definition);
+- INC-MW-011's speed and frame signal mappings (`--keep-mapping`), with what
+  their targets' signals are read through: the port, item and attribute
+  definitions, and the COVESA_VSS signal with its `@VssSignalMetadata`;
 - the library attribute bases its content redefines;
 - what those elements reference.
 
@@ -44,6 +50,9 @@ tests evaluate on genuine shapes, such as the allocation checks of phases 6
 to 8: cut from the export of the pull request that adds them, so the cut's
 workflow declares them.
 A re-cut must re-read the expected values in `tests/test_inspect_definitions.py` from the new cut's source files and update its `SOURCES` digests.
+When another pull request re-cuts the fixture first, re-cut again from the
+export of your own pull request's head, after rebasing onto it: never merge
+two cuts by hand.
 Re-cutting needs a licensed export:
 
 ```bash
@@ -51,5 +60,7 @@ python tests/fixtures/genuine_export/cut_increment_export.py <export.json> INC-A
   tests/fixtures/genuine_export/inc-aebs-010.json.gz \
   DE4SDV_AEBSVisualizationFraming DE4SDV_AEBSVisualizationNeedsRequirements \
   DE4SDV_AEBSVisualizationFunctionalArchitecture DE4SDV_AEBSVisualizationLogicalArchitecture \
-  DE4SDV_AEBSVisualizationPhysicalSoftwareRealization
+  DE4SDV_AEBSVisualizationPhysicalSoftwareRealization \
+  --keep-mapping=DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization::vehicleSpeedSignalMapping \
+  --keep-mapping=DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization::aebsSignalFrameSignalMapping
 ```
