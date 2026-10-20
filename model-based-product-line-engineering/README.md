@@ -28,11 +28,17 @@ The current YAML catalogues remain the operational configuration authority.
 Changing that authority or migrating to another feature-model implementation
 requires a separate reviewed decision.
 
-The [`pleml-scope-alignment/`](pleml-scope-alignment/) directory is an
-experiment, not an authority: it restates the governed scope with the
-exact-pinned PLEML library and is validated only by the privileged
-scope-alignment workflow. It sits outside every production selector and
-changes nothing above. See
+The `.sysml` files of [`feature-models/`](feature-models/) and
+[`feature-configurations/`](feature-configurations/) restate the three
+catalogues and every Bill-of-Features as PLEML feature models and
+configurations, under
+[ADR 0022](../docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md).
+They are fenced until its switch: outside every production selector,
+validated only by the privileged PLE authority workflow, and they change
+nothing above. See
+[`docs/product-line-engineering/pleml-feature-models.md`](../docs/product-line-engineering/pleml-feature-models.md).
+They supersede the PLE-S scope-alignment experiment, whose record stays as
+history in
 [`docs/product-line-engineering/ple-s-scope-alignment.md`](../docs/product-line-engineering/ple-s-scope-alignment.md).
 
 The [`libraries/pleml/`](libraries/pleml/README.md) directory is the fenced

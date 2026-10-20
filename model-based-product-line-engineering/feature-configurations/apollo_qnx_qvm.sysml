@@ -1,0 +1,45 @@
+/*
+ * PLEML feature configuration restating the bill of features
+ * apollo-qnx-qvm.yaml, a reference example. Fenced until the authority
+ * switch (ADR 0022, step S6): the bill of features stays the selection
+ * authority until then. The doc is the bill of features' description; a
+ * false selection is a [0] redefinition, and an unlisted feature is left
+ * unset.
+ */
+
+package DE4SDV_ApolloQNXQVMVariantConfiguration {
+    private import PLEML::*;
+    private import DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree;
+    private import DE4SDV_ProductLineDerivation::ProductModelProjectionName;
+
+    #featureConfiguration occurrence apolloQNXQVMVariant : SDVProductLineFeatureTree :> featureConfigurations {
+        doc /* Mixed-criticality reference configuration.
+             * Apollo (ADAS) on Eclipse S-CORE on QNX with QNX QVM hypervisor.
+             * Vehicle-target AEBS only. */
+        @ProductModelProjectionName {
+            partDefinitionName = "ApolloQNXQVMVariant";
+        }
+
+        #feature occurrence :>> platformStack[1] {
+            #feature occurrence :>> vehicleApplication[1] = (apollo);
+            #feature occurrence :>> apollo[1];
+            #feature occurrence :>> middleware[1] = (eclipseSCORE);
+            #feature occurrence :>> eclipseSCORE[1];
+            #feature occurrence :>> operatingSystem[1] = (qnx);
+            #feature occurrence :>> qnx[1];
+            #feature occurrence :>> hypervisor[1] = (qvm);
+            #feature occurrence :>> qvm[1];
+        }
+        #feature occurrence :>> sensingBoundary[1] {
+            #feature occurrence :>> perceptionSensors[1..*] = (lidar, radar);
+            #feature occurrence :>> lidar[1];
+            #feature occurrence :>> radar[1];
+        }
+        #feature occurrence :>> capabilities[1] {
+            #feature occurrence :>> pedestrianDetection[0];
+            #feature occurrence :>> bicycleDetection[0];
+            #feature occurrence :>> adaptiveCruiseControl[0];
+            #feature occurrence :>> laneKeepAssist[0];
+        }
+    }
+}

@@ -1,0 +1,297 @@
+name: Privileged PLE Authority
+
+# The PLE authority job of ADR 0022, the former PLE-S scope-alignment
+# workflow: licensed validation, serialization and API round trip of the PLEML
+# feature models and configurations (the .sysml files of
+# model-based-product-line-engineering/feature-models/ and
+# feature-configurations/), then their evaluation into receipts through the
+# evaluator's entry point (ADR 0022, step S2), compared with the committed
+# receipts. It runs on pull requests that touch these paths, the PLEML pin,
+# the committed receipts or the documents they bind, and on demand. The
+# models stay fenced until the authority switch (ADR 0022, step S6).
+#
+# The executor is the exact commit under evaluation: the pull-request head, or
+# the dispatched `ref`. The exact-pinned PLEML library (1.1.1) comes from the
+# fenced Sysand lock (model-based-product-line-engineering/libraries/pleml/)
+# and is byte-checked against the committed record of its release tag before
+# any step reads it. The licence reaches exactly two steps: the `syside check`
+# and the runner, which serializes, round-trips the authority bundle through
+# an ephemeral SysML v2 API and hands it to the evaluator. Every recording
+# step is preceded by a refusal of a dirty checkout, and one follows the
+# runner.
+#
+# Every record says `qualified: false`. This workflow switches no authority and
+# makes no claim.
+
+on:
+  pull_request:
+    paths:
+      - "model-based-product-line-engineering/feature-models/**/*.sysml"
+      - "model-based-product-line-engineering/feature-configurations/**/*.sysml"
+      - "scripts/run_ple_authority.py"
+      - "tests/test_ple_authority_model.py"
+      - "tests/test_ple_authority_runner.py"
+      - "tests/test_ple_authority_workflow.py"
+      - "tests/test_ple_authority_receipts.py"
+      - ".github/workflows/privileged-ple-authority.yml"
+      # The evaluator of step S2, which writes and replays the receipts.
+      - "scripts/run_pleml_configuration_evaluation.py"
+      - "de4sdv/semantic/pleml_configuration.py"
+      - "de4sdv/semantic/pleml_receipts.py"
+      - "de4sdv/semantic/pleml_shadow.py"
+      # The PLEML pin: a re-pin gets this licensed validation (release policy).
+      - "model-based-product-line-engineering/libraries/pleml/**"
+      - "de4sdv/semantic/pleml_package.py"
+      - "scripts/check_pleml_package.py"
+      - "scripts/run_ple_qualification.py"
+      # The committed receipts and what they bind: the referenced documents of
+      # the bundle and the catalogues of their shadow checks.
+      - "model-based-product-line-engineering/feature-models/receipts/**"
+      - "model-based-product-line-engineering/feature-models/*.yaml"
+      - "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml"
+      - "textual-notation-of-model/packages/architecture/execution_environments.sysml"
+      - "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml"
+      - "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch, tag, or commit SHA to evaluate after maintainer review"
+        required: true
+        default: "main"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ple-authority-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  authority:
+    name: PLEML feature models (licensed, fenced)
+    if: >-
+      github.event_name != 'pull_request' ||
+      (
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        contains(fromJSON('["orkunyilmaz", "de4sdv"]'), github.event.pull_request.user.login)
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: sysml2
+          POSTGRES_PASSWORD: mysecretpassword
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sysml2"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout the executor commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || inputs.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve the exact revision
+        id: revision
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          sha="$(git rev-parse HEAD)"
+          case "$sha" in
+            (*[!0-9a-f]*|"")
+              echo "not a lowercase full commit id: $sha" >&2
+              exit 1 ;;
+          esac
+          if [ "${#sha}" != "40" ]; then
+            echo "not a 40-character commit id: $sha" >&2
+            exit 1
+          fi
+          if [ -n "$EXPECTED_HEAD" ] && [ "$sha" != "$EXPECTED_HEAD" ]; then
+            echo "checked out $sha, not the pull-request head $EXPECTED_HEAD" >&2
+            exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "PLE authority run of $sha"
+
+      - name: Check the licensed Syside secret is configured
+        id: licence
+        env:
+          LICENCE_CONFIGURED: ${{ secrets.SYSIDE_LICENSE_KEY != '' }}
+        run: |
+          if [ "$LICENCE_CONFIGURED" != "true" ]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "SYSIDE_LICENSE_KEY is not configured; the authority run needs the licensed serializer." >&2
+            if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+              exit 1
+            fi
+            echo "Skipping the authority run for $GITHUB_EVENT_NAME until the secret is configured."
+            exit 0
+          fi
+          echo "available=true" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Python
+        if: steps.licence.outputs.available == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Java 11 builds and runs the pinned API service; Java 21, the default,
+      # runs the Modeler CLI.
+      - name: Set up Java (API service and Modeler CLI runtimes)
+        if: steps.licence.outputs.available == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: |
+            11
+            21
+
+      - name: Install the pinned serializer, the Modeler CLI and the SysML library dependencies
+        if: steps.licence.outputs.available == 'true'
+        run: |
+          python -m pip install --disable-pip-version-check \
+            "syside==0.10.3" "PyYAML==6.0.2" "pytest==8.4.2" "sysand==0.1.0"
+          SYSIDE_VERSION="0.10.3"
+          SYSIDE_FILE="syside-${SYSIDE_VERSION}-x86_64-linux-glibc.tar.xz"
+          SYSIDE_URL="https://gitlab.com/api/v4/projects/sensmetry%2Fpublic%2Fsyside/packages/generic/syside-modeler-cli/${SYSIDE_VERSION}/${SYSIDE_FILE}"
+          curl -fL -o "/tmp/${SYSIDE_FILE}" "${SYSIDE_URL}"
+          mkdir -p "$HOME/.local"
+          tar -xJf "/tmp/${SYSIDE_FILE}" --directory "$HOME/.local"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/syside" --version
+          sysand sync
+
+      # PLEML 1.1.1 from the fenced Sysand lock: the byte check against the
+      # committed record of its release tag, the re-pin re-derived from the
+      # Sysand index (this workflow runs on re-pin PRs) and the upstream tag's
+      # commit and blobs, before any step reads it.
+      - name: Install and byte-check the fenced PLEML package
+        if: steps.licence.outputs.available == 'true'
+        run: |
+          mkdir "$RUNNER_TEMP/ple-evidence"
+          (cd model-based-product-line-engineering/libraries/pleml && sysand sync)
+          python scripts/check_pleml_package.py --release-diff --from-index --verify-tag --out "$RUNNER_TEMP/ple-evidence/pleml-package.json"
+
+      - name: Refuse a dirty checkout before the unlicensed checks
+        if: steps.licence.outputs.available == 'true'
+        run: |
+          dirty="$(git status --porcelain)"
+          if [ -n "$dirty" ]; then
+            printf 'the checkout is not clean:\n%s\n' "$dirty" >&2
+            exit 1
+          fi
+
+      - name: Run the unlicensed authority tests
+        if: steps.licence.outputs.available == 'true'
+        run: |
+          python -B -m pytest -p no:cacheprovider \
+            tests/test_ple_authority_model.py \
+            tests/test_ple_authority_runner.py \
+            tests/test_ple_authority_workflow.py \
+            tests/test_ple_authority_receipts.py -q
+
+      - name: Build the pinned ephemeral Systems Modeling API
+        if: steps.licence.outputs.available == 'true'
+        run: |
+          git clone --filter=blob:none \
+            https://github.com/Systems-Modeling/SysML-v2-API-Services.git /tmp/sysmlv2-api-services
+          git -C /tmp/sysmlv2-api-services checkout 0af711b14bbcea7b240bb0a3a65817ae68302092
+          curl -fsSL -o /tmp/sbt-launch.jar \
+            https://repo1.maven.org/maven2/org/scala-sbt/sbt-launch/1.2.8/sbt-launch-1.2.8.jar
+          (cd /tmp/sysmlv2-api-services && JAVA_HOME="$JAVA_HOME_11_X64" PATH="$JAVA_HOME_11_X64/bin:$PATH" "$JAVA_HOME_11_X64/bin/java" -Xmx4g -jar /tmp/sbt-launch.jar stage)
+
+      - name: Start the isolated API and verify readiness
+        if: steps.licence.outputs.available == 'true'
+        # Outside the checkout: the service writes logs/application.log
+        # relative to its working directory (#369), and the runner refuses a
+        # dirty checkout after it.
+        working-directory: /tmp/sysmlv2-api-services
+        run: |
+          JAVA_HOME="$JAVA_HOME_11_X64" PATH="$JAVA_HOME_11_X64/bin:$PATH" /tmp/sysmlv2-api-services/target/universal/stage/bin/sysml-v2-api-services \
+            -J-Xmx4g -Dplay.server.http.port=9000 \
+            -Dplay.evolutions.db.default.autoApply=true \
+            -Dplay.http.secret.key=de4sdv-ci-ple-authority-round-trip \
+            > "$RUNNER_TEMP/ple-evidence/sysml-api.log" 2>&1 &
+          python - <<'PY'
+          import time, urllib.request
+          deadline = time.monotonic() + 300
+          while time.monotonic() < deadline:
+              try:
+                  with urllib.request.urlopen('http://127.0.0.1:9000/projects', timeout=2) as response:
+                      if response.status == 200:
+                          break
+              except OSError:
+                  time.sleep(2)
+          else:
+              raise SystemExit('ephemeral API failed readiness')
+          PY
+
+      - name: Refuse a dirty checkout before the licensed validation
+        if: steps.licence.outputs.available == 'true'
+        run: |
+          dirty="$(git status --porcelain)"
+          if [ -n "$dirty" ]; then
+            printf 'the checkout is not clean:\n%s\n' "$dirty" >&2
+            exit 1
+          fi
+
+      - name: Validate the reviewed roots, the pinned PLEML library and the PLEML documents (licensed)
+        if: steps.licence.outputs.available == 'true'
+        env:
+          SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
+        run: |
+          set -eo pipefail
+          syside check \
+            textual-notation-of-model \
+            model-based-product-line-engineering/product-models \
+            model-based-product-line-engineering/scoping \
+            model-based-product-line-engineering/libraries/pleml/.sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml \
+            model-based-product-line-engineering/feature-models \
+            model-based-product-line-engineering/feature-configurations \
+            2>&1 | tee "$RUNNER_TEMP/ple-evidence/syside-check.txt"
+
+      - name: Refuse a dirty checkout before the serialization
+        if: steps.licence.outputs.available == 'true'
+        run: |
+          dirty="$(git status --porcelain)"
+          if [ -n "$dirty" ]; then
+            printf 'the checkout is not clean:\n%s\n' "$dirty" >&2
+            exit 1
+          fi
+
+      - name: Serialize the exact head, round-trip it through the API and evaluate it (licensed)
+        if: steps.licence.outputs.available == 'true'
+        env:
+          SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
+          HEAD_SHA: ${{ steps.revision.outputs.sha }}
+        run: |
+          python scripts/run_ple_authority.py \
+            --licensed \
+            --expected-executor "$HEAD_SHA" \
+            --api-url http://127.0.0.1:9000 \
+            --out "$RUNNER_TEMP/ple-evidence/authority"
+
+      - name: Refuse a dirty checkout after the runner
+        if: always() && steps.licence.outputs.available == 'true'
+        run: |
+          dirty="$(git status --porcelain)"
+          if [ -n "$dirty" ]; then
+            printf 'the checkout is not clean:\n%s\n' "$dirty" >&2
+            exit 1
+          fi
+
+      - name: Retain the evidence including failed execution
+        if: always() && steps.licence.outputs.available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ple-authority-${{ steps.revision.outputs.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/ple-evidence/
+          if-no-files-found: warn
+          retention-days: 30

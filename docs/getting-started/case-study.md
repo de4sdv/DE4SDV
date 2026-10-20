@@ -212,11 +212,12 @@ In progress, or not there yet:
   (phase 9) waits for the planned switch of the product-line authority to
   PLEML, and phases 11 and 12 are still to come
   ([framing model](../../textual-notation-of-model/packages/features/middleware/middleware_score_framing.sysml));
-- a fenced experiment that restates the governed scope in the PLEML
-  product-line library, pinned to an exact upstream revision
-  ([experiment](../../model-based-product-line-engineering/pleml-scope-alignment/README.md)).
-  It is not adopted: the catalogue and the configurator remain the selection
-  authority;
+- the PLEML feature models and configurations that restate the catalogues
+  and every Bill-of-Features for the planned switch of the product-line
+  authority
+  ([feature models](../product-line-engineering/pleml-feature-models.md)).
+  They are fenced until the switch: the catalogue and the configurator
+  remain the selection authority;
 - executable method checks for the phases that have none yet;
 - verification of the candidate requirements; `REQ-AEBS-003` is still
   `NotStarted`;

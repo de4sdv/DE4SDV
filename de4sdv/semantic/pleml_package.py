@@ -30,8 +30,9 @@ these values, never with the tag name:
 At the switch (S6), when PLEML moves to the production lock, these change
 together: ``PROJECT`` and ``LIBRARY_PATH``; the usage, lock and
 other-package rules of ``verify_installed`` (the production project uses
-three more packages); the ``sysand sync`` lines and the PLE-S ``syside check``
-path in the ``READER_WORKFLOWS``; and the tests that name the fenced path.
+three more packages); the ``sysand sync`` lines and the authority job's
+``syside check`` path in the ``READER_WORKFLOWS``; and the tests that name the
+fenced path.
 
 Nothing here evaluates PLEML, and nothing here is a qualification.
 """
@@ -179,22 +180,22 @@ def check_provision_paths(release: Release = RELEASE, previous: Release = PREVIO
         raise PackageError("the previous and the pinned release name the same provision path")
 
 #: Confinement (ADR 0022, decision 1): only the feature-model packages and
-#: their fixtures import PLEML. These are the roots the feature models and
-#: configurations of step S3 are written under; S3 adds its fixture location.
+#: their fixtures import PLEML. These are the roots the feature models, the
+#: configurations and the invalid fixture (``feature-configurations/fixtures/``)
+#: of step S3 are written under.
 IMPORT_ROOTS = (
     Path("model-based-product-line-engineering/feature-models"),
     Path("model-based-product-line-engineering/feature-configurations"),
 )
 #: The only other files that may import PLEML, each until the step that ends it.
 IMPORT_EXEMPTIONS = {
-    "model-based-product-line-engineering/pleml-scope-alignment/aebs_product_line_scope_alignment.sysml":
-        "the PLE-S model, until step S3 retires it",
     "scripts/run_ple_scoped_execution.py":
         "the PLE-Q probe text the scoped execution writes outside the repository",
 }
-#: The only workflows that read this project. Step S3 adds its authority job
-#: and retires the PLE-S workflow; no production workflow reads it before S6.
-READER_WORKFLOWS = ("ci.yml", "privileged-ple-qualification.yml", "privileged-ple-scope-alignment.yml")
+#: The only workflows that read this project: public CI, the PLE qualification
+#: and the authority job of step S3, which retired the PLE-S workflow. No
+#: production workflow reads it before S6.
+READER_WORKFLOWS = ("ci.yml", "privileged-ple-qualification.yml", "privileged-ple-authority.yml")
 
 
 def sha256(data: bytes) -> str:

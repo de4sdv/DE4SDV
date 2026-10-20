@@ -10,6 +10,22 @@ package and owner that its mapped variation groups resolve.
 | `engineering_execution_environments.yaml` | System 2 engineering/verification host family | `DE4SDV_ExecutionEnvironments::EngineeringExecutionEnvironment` |
 | `vehicle_execution_environments.yaml` | System 1 vehicle-target compute family | `DE4SDV_ExecutionEnvironments::VehicleTargetExecutionEnvironment` |
 
+## PLEML feature models (fenced)
+
+`sdv_product_line.sysml`, `engineering_execution_environments.sysml` and
+`vehicle_execution_environments.sysml` restate the three catalogues as PLEML
+feature models under
+[ADR 0022](../../docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md),
+node for node by ID; common-capability nodes have no feature. They are
+fenced until its switch: outside every production selector and validated
+only by the privileged PLE authority workflow. Until the switch the
+catalogues above remain the selection authority. See
+[`docs/product-line-engineering/pleml-feature-models.md`](../../docs/product-line-engineering/pleml-feature-models.md).
+
+`receipts/` holds their receipts: one per feature model, with the
+compressed serialized elements of the licensed run they were evaluated from.
+The evaluator of ADR 0022 step S2 writes them and replays them offline.
+
 ## Relationship to SysML v2
 
 SysML v2 `variation`/`variant` provides structural variability in a shared asset.

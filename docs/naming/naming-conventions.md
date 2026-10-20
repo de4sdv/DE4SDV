@@ -293,7 +293,7 @@ never mistaken for a project ID.
 | `REAL` | Realization record | pilot index | `REAL-MW-DIRECT-001` | CANONICAL |
 | `SCN` | Bench scenario identity | bench tooling / pilots | `SCN-AEBS-009D-STALE` | CANONICAL |
 | `SET` | Needs/requirements set | pilot index | `SET-AEBS-S1-NEEDS` | CANONICAL |
-| `C` | Common capability node | feature model | `C-CAPABILITY-AEBS-VEHICLE-TARGET` | CANONICAL (feature-model namespace — see note) |
+| `C` | Common capability node, or catalogue constraint | feature model | `C-CAPABILITY-AEBS-VEHICLE-TARGET`; constraints `C001`, `C-ENG-JETSON-REQUIRES-TEGRA-LINUX` | CANONICAL (feature-model namespace — see note) |
 | `D` | Derived asset | feature model | `D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER` | CANONICAL (feature-model namespace — see note) |
 | `F` | Feature node | feature model | `F-PLATFORM-STACK` | CANONICAL (feature-model namespace — see note) |
 | `PL` | Product line | feature-model root | `PL-DE4SDV` | CANONICAL (feature-model namespace — see note) |
@@ -317,10 +317,23 @@ never mistaken for a project ID.
 Feature-model namespace note (`F`/`C`/`D`/`PL`): these codes are parsed by
 the product-line tooling (`tools/configure_variant.py`, feature-model
 YAML) and are bound into committed feature configurations and generated
-product models. They are short, but they are the established feature-model
-namespace — renaming them is a PLE model-and-tooling change, not a naming
-migration. If the PLE workstream later revises the feature-model grammar,
-that revision owns the rename; this registry is updated the same day.
+product models. In the PLEML feature models of ADR 0022 they are SysML short
+names: each `F-` and `PL-` ID names the feature or feature tree that restates
+its node (`#feature occurrence <'F-PLATFORM-STACK'> platformStack[1]`), and
+the `D-` ID names the derived-variation dependency. The catalogue's
+constraint IDs keep their spelling as the short names of the exclusions and
+requires constraints: `C001`, `C003`, `C004` and `C005`, and the execution-environment
+`C-ENG-` and `C-VEHICLE-` IDs, which share the `C` letter but are not
+common-capability nodes. A `C-` common-capability node has no element in a
+PLEML feature model; until the YAML retires (ADR 0022, step S7) the parity
+check maps it to the governed common element, and then the `C-`
+common-capability node IDs retire. The constraint IDs do not retire with them:
+the registry update of that step keeps them or renames them in the same
+reviewed change. The codes are short, but they are the established
+feature-model namespace — renaming them is a PLE model-and-tooling change,
+not a naming migration. If the PLE workstream later revises the
+feature-model grammar, that revision owns the rename; this registry is
+updated the same day.
 
 ### Subject-first configuration identities
 

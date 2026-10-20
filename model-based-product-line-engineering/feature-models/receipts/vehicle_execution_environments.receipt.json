@@ -1,0 +1,635 @@
+{
+  "elements": {
+    "content_sha256": "c7af4d9589d0d9e61dfe98a58523d2180d2ae83ed50958b531135c9c88728288",
+    "path": "pleml-feature-models.elements.json.xz",
+    "sha256": "524e4d7acc1a92be4863949bd230e8bba92c50c3b0082f6cd0096992b2499bc8"
+  },
+  "evaluation": {
+    "admission_authority": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
+    "binding_time_scope": "Development-only",
+    "feature_models": [
+      {
+        "agreement": [],
+        "bindings": [
+          {
+            "binding": "computeNodeNXPVehicleComputeBinding",
+            "element_id": "f7dea2b4-2c80-56b9-8603-5106059544dc",
+            "feature": "environment.nxpVehicleCompute",
+            "feature_id": "98ee8e6c-a452-51d6-a8b4-ce2206e9b627",
+            "feature_short_name": "F-VEHICLE-COMPUTE-NXP-CANDIDATE",
+            "variant": "nxpVehicleCompute",
+            "variant_id": "32924f9e-e5fb-5d4f-8d3d-7007ba6485ea",
+            "variation": "computeNode",
+            "variation_id": "6b27d9e2-c1b4-5196-bfa8-3973cb2ba4d6"
+          },
+          {
+            "binding": "computeNodeNoConcreteComputeNodeBinding",
+            "element_id": "0695e77a-4f83-5bdc-90ab-151b18cd40d2",
+            "feature": "environment.noConcreteComputeNode",
+            "feature_id": "14b7daf9-3552-534d-b7a5-ea5d7390b247",
+            "feature_short_name": "F-VEHICLE-COMPUTE-NONE",
+            "variant": "noConcreteComputeNode",
+            "variant_id": "3cdc4600-351a-5d23-984b-04c7ab60cf19",
+            "variation": "computeNode",
+            "variation_id": "6b27d9e2-c1b4-5196-bfa8-3973cb2ba4d6"
+          },
+          {
+            "binding": "operatingSystemZephyrBinding",
+            "element_id": "a0ef5dd6-8ea8-59f7-89e3-d856576dd038",
+            "feature": "environment.zephyr",
+            "feature_id": "11b99b81-2c11-57ed-96cf-f6eb8bda9fac",
+            "feature_short_name": "F-VEHICLE-OS-ZEPHYR-CANDIDATE",
+            "variant": "zephyr",
+            "variant_id": "0626ca5e-527e-52e4-9143-c10bc1f2c282",
+            "variation": "operatingSystem",
+            "variation_id": "2a654591-7aee-5c4d-ac96-b857468aa818"
+          },
+          {
+            "binding": "operatingSystemNoConcreteOperatingSystemBinding",
+            "element_id": "35d17c1e-d61a-51c5-b636-dc2398d3f8dc",
+            "feature": "environment.noConcreteOperatingSystem",
+            "feature_id": "0f83ee4f-16a3-5767-a88e-b3187495c12a",
+            "feature_short_name": "F-VEHICLE-OS-NONE",
+            "variant": "noConcreteOperatingSystem",
+            "variant_id": "b6d429fe-dc34-5efa-ac5c-2b2122351705",
+            "variation": "operatingSystem",
+            "variation_id": "2a654591-7aee-5c4d-ac96-b857468aa818"
+          },
+          {
+            "binding": "executionRuntimeNativeZephyrBinding",
+            "element_id": "a8db9eaf-c804-5609-b729-3cbe4bd342c1",
+            "feature": "environment.nativeZephyr",
+            "feature_id": "0e8c19d4-e7ce-578d-ae3d-d0100ff021d1",
+            "feature_short_name": "F-VEHICLE-RUNTIME-NATIVE-ZEPHYR-CANDIDATE",
+            "variant": "nativeZephyr",
+            "variant_id": "c5524f94-293d-5561-9125-ce626e6c9d70",
+            "variation": "executionRuntime",
+            "variation_id": "e7eb2557-8dc7-5199-9dc3-cb84aedffefb"
+          },
+          {
+            "binding": "executionRuntimeNoConcreteExecutionRuntimeBinding",
+            "element_id": "d07912f6-75e3-53b7-a153-376b8520f840",
+            "feature": "environment.noConcreteExecutionRuntime",
+            "feature_id": "a9781eca-8c68-53b2-9bff-5b6493ccd988",
+            "feature_short_name": "F-VEHICLE-RUNTIME-NONE",
+            "variant": "noConcreteExecutionRuntime",
+            "variant_id": "051bf34b-ee13-50ce-b86f-da03b53cbc48",
+            "variation": "executionRuntime",
+            "variation_id": "e7eb2557-8dc7-5199-9dc3-cb84aedffefb"
+          }
+        ],
+        "configurations": [
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": null,
+              "alternatives_realized": {},
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [],
+              "reasons": [
+                "selects content the governed scope does not admit: the feature family: deferred vehicleRuntimeVariability | environment.nxpVehicleCompute: not in the governed scope | environment.zephyr: not in the governed scope | environment.nativeZephyr: not in the governed scope",
+                "realizes no admitted alternative"
+              ]
+            },
+            "configuration": "nxpZephyrVehicleTargetCandidate",
+            "derived_variants": [
+              {
+                "binding": "computeNodeNXPVehicleComputeBinding",
+                "variant": "nxpVehicleCompute",
+                "variant_id": "32924f9e-e5fb-5d4f-8d3d-7007ba6485ea",
+                "variation": "computeNode"
+              },
+              {
+                "binding": "executionRuntimeNativeZephyrBinding",
+                "variant": "nativeZephyr",
+                "variant_id": "c5524f94-293d-5561-9125-ce626e6c9d70",
+                "variation": "executionRuntime"
+              },
+              {
+                "binding": "operatingSystemZephyrBinding",
+                "variant": "zephyr",
+                "variant_id": "0626ca5e-527e-52e4-9143-c10bc1f2c282",
+                "variation": "operatingSystem"
+              }
+            ],
+            "description": "Planned and unverified System 1 vehicle-target candidate\ncombining an unresolved NXP board/SoC with native Zephyr\nexecution. This does not claim that the Autoware ROS 2 application\ncomposition executes on Zephyr; software allocation and\nvehicle-platform interfaces remain unresolved.",
+            "element_id": "5aeaf745-a397-5abd-ae2a-5786dca27d35",
+            "projection_name": "NXPZephyrVehicleTargetCandidate",
+            "reasons": [],
+            "selected": [
+              "environment",
+              "environment.computeNode",
+              "environment.executionRuntime",
+              "environment.nativeZephyr",
+              "environment.nxpVehicleCompute",
+              "environment.operatingSystem",
+              "environment.zephyr"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/nxp_zephyr_vehicle_target_candidate.sysml",
+            "states": {
+              "environment": "enabled",
+              "environment.computeNode": "enabled",
+              "environment.executionRuntime": "enabled",
+              "environment.nativeZephyr": "enabled",
+              "environment.noConcreteComputeNode": "omitted",
+              "environment.noConcreteExecutionRuntime": "omitted",
+              "environment.noConcreteOperatingSystem": "omitted",
+              "environment.nxpVehicleCompute": "enabled",
+              "environment.operatingSystem": "enabled",
+              "environment.zephyr": "enabled"
+            },
+            "valid": true
+          }
+        ],
+        "constraints": [
+          {
+            "element_id": "262b1471-fa66-5705-848d-e97322a87828",
+            "kind": "requires",
+            "operand_a": [
+              "environment.nxpVehicleCompute"
+            ],
+            "operand_b": [
+              "environment.zephyr"
+            ],
+            "owner": "environment.nxpVehicleCompute",
+            "pair_exclusion": false,
+            "short_name": "C-VEHICLE-NXP-REQUIRES-ZEPHYR"
+          },
+          {
+            "element_id": "bf1d3629-ca11-5a7b-afbc-9733d0da8cc6",
+            "kind": "requires",
+            "operand_a": [
+              "environment.nxpVehicleCompute"
+            ],
+            "operand_b": [
+              "environment.nativeZephyr"
+            ],
+            "owner": "environment.nxpVehicleCompute",
+            "pair_exclusion": false,
+            "short_name": "C-VEHICLE-NXP-REQUIRES-NATIVE-ZEPHYR"
+          },
+          {
+            "element_id": "1496ec5d-755f-54b8-a68e-47e614321d0c",
+            "kind": "requires",
+            "operand_a": [
+              "environment.noConcreteComputeNode"
+            ],
+            "operand_b": [
+              "environment.noConcreteOperatingSystem"
+            ],
+            "owner": "environment.noConcreteComputeNode",
+            "pair_exclusion": false,
+            "short_name": "C-VEHICLE-NO-COMPUTE-REQUIRES-NO-OS"
+          },
+          {
+            "element_id": "05102b4a-2b40-5981-8275-c99fcefe2051",
+            "kind": "requires",
+            "operand_a": [
+              "environment.noConcreteComputeNode"
+            ],
+            "operand_b": [
+              "environment.noConcreteExecutionRuntime"
+            ],
+            "owner": "environment.noConcreteComputeNode",
+            "pair_exclusion": false,
+            "short_name": "C-VEHICLE-NO-COMPUTE-REQUIRES-NO-RUNTIME"
+          },
+          {
+            "element_id": "e95056ff-b8d4-51e7-a310-6242728d8d55",
+            "kind": "requires",
+            "operand_a": [
+              "environment.zephyr"
+            ],
+            "operand_b": [
+              "environment.nxpVehicleCompute"
+            ],
+            "owner": "environment.zephyr",
+            "pair_exclusion": false,
+            "short_name": "C-VEHICLE-ZEPHYR-REQUIRES-NXP"
+          },
+          {
+            "element_id": "4265b1cd-0ad3-537c-a749-e19882aa74e0",
+            "kind": "requires",
+            "operand_a": [
+              "environment.nativeZephyr"
+            ],
+            "operand_b": [
+              "environment.nxpVehicleCompute"
+            ],
+            "owner": "environment.nativeZephyr",
+            "pair_exclusion": false,
+            "short_name": "C-VEHICLE-NATIVE-ZEPHYR-REQUIRES-NXP"
+          }
+        ],
+        "correspondences": [
+          {
+            "classification": "deferred",
+            "correspondence": "vehicleTargetExecutionEnvironmentsCorrespondToVehicleRuntimeVariability",
+            "element_id": "dce51aa7-0dff-5a26-9c3a-4a1deffef7d6",
+            "feature": null,
+            "governed": "vehicleRuntimeVariability",
+            "governed_id": "9ca13c2f-d773-5787-bd52-483c0a04ed21"
+          }
+        ],
+        "derivations": [],
+        "element_id": "40e47078-54cd-5621-a409-2d246f84b2a8",
+        "feature_model": "VehicleTargetExecutionEnvironmentFeatureModel",
+        "features": [
+          {
+            "binding_time": "Development",
+            "element_id": "17ef809a-8679-5312-881e-26062d19acaa",
+            "group": null,
+            "members": [],
+            "multiplicity": {
+              "lower": 1,
+              "upper": 1
+            },
+            "name": "environment",
+            "owner": null,
+            "path": "environment",
+            "short_name": "F-VEHICLE-ENVIRONMENT",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "49a6c740-6cfb-507d-b9e5-d32132341be5",
+            "group": null,
+            "members": [
+              "environment.nxpVehicleCompute",
+              "environment.noConcreteComputeNode"
+            ],
+            "multiplicity": {
+              "lower": 1,
+              "upper": 1
+            },
+            "name": "computeNode",
+            "owner": "environment",
+            "path": "environment.computeNode",
+            "short_name": "F-VEHICLE-COMPUTE",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "98ee8e6c-a452-51d6-a8b4-ce2206e9b627",
+            "group": "environment.computeNode",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "nxpVehicleCompute",
+            "owner": "environment",
+            "path": "environment.nxpVehicleCompute",
+            "short_name": "F-VEHICLE-COMPUTE-NXP-CANDIDATE",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "14b7daf9-3552-534d-b7a5-ea5d7390b247",
+            "group": "environment.computeNode",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "noConcreteComputeNode",
+            "owner": "environment",
+            "path": "environment.noConcreteComputeNode",
+            "short_name": "F-VEHICLE-COMPUTE-NONE",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "20a47117-e817-507d-9c09-cbfa4c092fd5",
+            "group": null,
+            "members": [
+              "environment.zephyr",
+              "environment.noConcreteOperatingSystem"
+            ],
+            "multiplicity": {
+              "lower": 1,
+              "upper": 1
+            },
+            "name": "operatingSystem",
+            "owner": "environment",
+            "path": "environment.operatingSystem",
+            "short_name": "F-VEHICLE-OS",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "11b99b81-2c11-57ed-96cf-f6eb8bda9fac",
+            "group": "environment.operatingSystem",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "zephyr",
+            "owner": "environment",
+            "path": "environment.zephyr",
+            "short_name": "F-VEHICLE-OS-ZEPHYR-CANDIDATE",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "0f83ee4f-16a3-5767-a88e-b3187495c12a",
+            "group": "environment.operatingSystem",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "noConcreteOperatingSystem",
+            "owner": "environment",
+            "path": "environment.noConcreteOperatingSystem",
+            "short_name": "F-VEHICLE-OS-NONE",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "d0ec2d53-5796-509a-b6ca-768151be0f90",
+            "group": null,
+            "members": [
+              "environment.nativeZephyr",
+              "environment.noConcreteExecutionRuntime"
+            ],
+            "multiplicity": {
+              "lower": 1,
+              "upper": 1
+            },
+            "name": "executionRuntime",
+            "owner": "environment",
+            "path": "environment.executionRuntime",
+            "short_name": "F-VEHICLE-RUNTIME",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "0e8c19d4-e7ce-578d-ae3d-d0100ff021d1",
+            "group": "environment.executionRuntime",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "nativeZephyr",
+            "owner": "environment",
+            "path": "environment.nativeZephyr",
+            "short_name": "F-VEHICLE-RUNTIME-NATIVE-ZEPHYR-CANDIDATE",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "a9781eca-8c68-53b2-9bff-5b6493ccd988",
+            "group": "environment.executionRuntime",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "noConcreteExecutionRuntime",
+            "owner": "environment",
+            "path": "environment.noConcreteExecutionRuntime",
+            "short_name": "F-VEHICLE-RUNTIME-NONE",
+            "unassigned": false
+          }
+        ],
+        "integrity_errors": [],
+        "projection": {
+          "label": "vehicle-target execution-environment",
+          "owner": "VehicleTargetExecutionEnvironment",
+          "package": "DE4SDV_ExecutionEnvironments"
+        },
+        "tree": {
+          "element_id": "fcba2664-496f-50be-b92d-3be9a8a5627f",
+          "name": "VehicleTargetExecutionEnvironmentFeatureTree",
+          "short_name": "PL-VEHICLE-TARGET-EXECUTION-ENVIRONMENT",
+          "source": "model-based-product-line-engineering/feature-models/vehicle_execution_environments.sysml"
+        }
+      }
+    ],
+    "kernel_bindings": {
+      "DerivationRule": "b96ac9b3-70eb-54df-aa05-761bd369e4f2",
+      "DerivedVariation": "dcd0afa7-3827-57d4-9974-cf92e7c86eab",
+      "ProductModelProjection": "d64e7d12-b679-58b0-bcb6-4cbcccc2ea78",
+      "ProductModelProjectionName": "494c25ff-5daf-56c3-8d3f-0abb285028c3",
+      "UnassignedBindingTime": "ecb8f0b3-977d-58de-b6a1-3462907cf574"
+    },
+    "kernel_source": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
+    "library_source": "model-based-product-line-engineering/libraries/pleml/.sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml",
+    "model_sources": [
+      "model-based-product-line-engineering/feature-configurations/nxp_zephyr_vehicle_target_candidate.sysml",
+      "model-based-product-line-engineering/feature-models/vehicle_execution_environments.sysml"
+    ],
+    "native_expression_executed": false,
+    "qualified": false,
+    "schema": "de4sdv.pleml-configuration-evaluation/v1"
+  },
+  "evaluator": {
+    "modules": {
+      "de4sdv/semantic/pleml_configuration.py": "343cd13a4ddb42297f213810eb0a3ce8d3c8541d4de62cbefc433b0c7b66456d",
+      "de4sdv/semantic/pleml_package.py": "da17a6aae4c8f2b8f0159dadbd5d88619c11633823d65a237f3b90e36c2b7b95",
+      "de4sdv/semantic/pleml_receipts.py": "739681a02a5b9308e5ba0f54a6e4d6f05e1164b972fed4336979b9d2b377f77a",
+      "de4sdv/semantic/pleml_shadow.py": "f42bbbdf054f71908ba20ec55e3c4cac978a0826fa896373f803b283840ecaff",
+      "scripts/run_pleml_configuration_evaluation.py": "88dae6636f9d263078d3c52bae04b969d7416acafd9d4a482816bbeb4bc38893",
+      "tools/configure_variant.py": "8cfcd4d9ba37f5fff43bfd653d0dbd17285a90a1da2a265232045fe5c6314623"
+    },
+    "refreshed_from": "1409f59f16dcc17040e1844d09b37946146240b58b1890aa713fe325b71b69d0",
+    "sha256": "27869a5545495203537ee0c8931be840b565a233a701e17d5e6a578e75deaf78"
+  },
+  "feature_models": [
+    "VehicleTargetExecutionEnvironmentFeatureModel"
+  ],
+  "library": {
+    "package": "pkg:sysand/mbse4u/pleml",
+    "path": "model-based-product-line-engineering/libraries/pleml/.sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml",
+    "sha256": "a3f23c2531272b4cab684f0f1d1a982a443f0a2cdca824cc893f4004980ae02c",
+    "tag_commit": "b694648cce4b96126eda2de3eb881c54397ae035",
+    "version": "1.1.1"
+  },
+  "model_sources": [
+    "model-based-product-line-engineering/feature-configurations/nxp_zephyr_vehicle_target_candidate.sysml",
+    "model-based-product-line-engineering/feature-models/vehicle_execution_environments.sysml"
+  ],
+  "native_expression_executed": false,
+  "provenance": {
+    "bundle_git_commit": "6f3f3304b5a6289449bdb9fcce28905b7f3f8dfc",
+    "executor_revision": "6f3f3304b5a6289449bdb9fcce28905b7f3f8dfc"
+  },
+  "qualified": false,
+  "schema": "de4sdv.pleml-configuration-receipt/v1",
+  "serializer": {
+    "name": "syside",
+    "options": "production export",
+    "version": "0.10.3"
+  },
+  "shadow": {
+    "allowed_lists": [],
+    "catalogue": {
+      "path": "model-based-product-line-engineering/feature-models/vehicle_execution_environments.yaml",
+      "sha256": "98b39e416c1318fc4d61e1072e9663735e34c95faa2c2a68b03d2d8f9f116a45"
+    },
+    "feature_models": [
+      {
+        "complement_errors": [],
+        "rule_table_errors": [],
+        "tree": "VehicleTargetExecutionEnvironmentFeatureTree",
+        "writer_inputs": {
+          "nxpZephyrVehicleTargetCandidate": {
+            "catalogue_paths": {
+              "environment": "Environment",
+              "environment.computeNode": "Environment.ComputeNode",
+              "environment.executionRuntime": "Environment.ExecutionRuntime",
+              "environment.nativeZephyr": "Environment.ExecutionRuntime.NativeZephyr",
+              "environment.noConcreteComputeNode": "Environment.ComputeNode.NoConcreteComputeNode",
+              "environment.noConcreteExecutionRuntime": "Environment.ExecutionRuntime.NoConcreteExecutionRuntime",
+              "environment.noConcreteOperatingSystem": "Environment.OperatingSystem.NoConcreteOperatingSystem",
+              "environment.nxpVehicleCompute": "Environment.ComputeNode.NXPVehicleCompute",
+              "environment.operatingSystem": "Environment.OperatingSystem",
+              "environment.zephyr": "Environment.OperatingSystem.Zephyr"
+            },
+            "description": "Planned and unverified System 1 vehicle-target candidate combining an unresolved NXP board/SoC with native Zephyr execution. This does not claim that the Autoware ROS 2 application composition executes on Zephyr; software allocation and vehicle-platform interfaces remain unresolved.",
+            "explicit_optional_states": {},
+            "projection_name": "NXPZephyrVehicleTargetCandidate"
+          }
+        }
+      }
+    ]
+  },
+  "sources": [
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/aebs_autoware_linux_lidar_camera.sysml",
+      "sha256": "670c8b09d1dee84790ee7209c3dc322fc1587abdea62cf35c443a35fa65e666d",
+      "size": 2195
+    },
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/apollo_qnx_qvm.sysml",
+      "sha256": "e96011f9b56f06fc65527de4f5b2453156c5f2f1193e56b83a6a3fea725a5a7c",
+      "size": 2052
+    },
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/apple_silicon_macos_candidate.sysml",
+      "sha256": "3422a9440abc590e61775c09b3e1df62efd80e60be77312d5c244f975d4bfd93",
+      "size": 1667
+    },
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/example_linux_score_autoware.sysml",
+      "sha256": "7f49e536de4f0d038bb2da6894cd116c2b7ae767aa7d9aecc05437af2dc3bc36",
+      "size": 2134
+    },
+    {
+      "authority": "pleml-fixture",
+      "path": "model-based-product-line-engineering/feature-configurations/fixtures/invalid_score_android.sysml",
+      "sha256": "302b160dcd9c2e863db89619c40d3aa90167bd978e65d20187c9c885e590e598",
+      "size": 2048
+    },
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/inc_aebs_009a_jetson.sysml",
+      "sha256": "f907461aa2bb0ffb3a03da11ab16788b58231bca4de1170e1d0ed6d93343cd5d",
+      "size": 1850
+    },
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml",
+      "sha256": "df58bbc4da84a3bbdec30b160a7de306c4cfb520161e4dd36a2e0569e7038541",
+      "size": 2554
+    },
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/nxp_zephyr_vehicle_target_candidate.sysml",
+      "sha256": "0d333866326fe00177c64b0cdfad0fcfdb8a8a3f3320a16c22f2333df7b24517",
+      "size": 1737
+    },
+    {
+      "authority": "pleml-feature-model",
+      "path": "model-based-product-line-engineering/feature-models/engineering_execution_environments.sysml",
+      "sha256": "8c82c6ac5008c0277ff2c7b19325ba2748eb3b47dee762964a1497b59572e280",
+      "size": 9072
+    },
+    {
+      "authority": "pleml-feature-model",
+      "path": "model-based-product-line-engineering/feature-models/sdv_product_line.sysml",
+      "sha256": "c53abbba2e4a3b254091074225ef5fdf3e7c2a8cb2babdaa533b5f701d801141",
+      "size": 23346
+    },
+    {
+      "authority": "pleml-feature-model",
+      "path": "model-based-product-line-engineering/feature-models/vehicle_execution_environments.sysml",
+      "sha256": "02a6fb00f3a48e94c8e47dd7ea59741e1edf7416c6dd1280bdc4c7018126db3b",
+      "size": 7728
+    },
+    {
+      "authority": "pinned-pleml-library",
+      "path": "model-based-product-line-engineering/libraries/pleml/.sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml",
+      "sha256": "a3f23c2531272b4cab684f0f1d1a982a443f0a2cdca824cc893f4004980ae02c",
+      "size": 18112
+    },
+    {
+      "authority": "reviewed",
+      "path": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
+      "sha256": "bf282c410e3c9ea1718304e3aa2c20c047f75886ee68c947a62c450e7899297a",
+      "size": 9850
+    },
+    {
+      "authority": "reviewed",
+      "path": "textual-notation-of-model/packages/architecture/execution_environments.sysml",
+      "sha256": "0c1781ff83fdb8dcef36cd070b578eef04793e9554e815e9876477ecb6475328",
+      "size": 8707
+    },
+    {
+      "authority": "reviewed",
+      "path": "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml",
+      "sha256": "70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342",
+      "size": 26877
+    },
+    {
+      "authority": "reviewed",
+      "path": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
+      "sha256": "975e1663f871803b67481c8ebe54c83285a06e4f025ac9c27626278e9e96295b",
+      "size": 5681
+    }
+  ]
+}

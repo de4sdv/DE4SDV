@@ -1,0 +1,43 @@
+/*
+ * DELIBERATELY INVALID PLEML feature configuration, a fixture restating
+ * fixtures/invalid-score-android.yaml. It lies outside the authority roots,
+ * as its bill of features does, and is never a member configuration: it
+ * selects Eclipse S-CORE with Android HLOS, so it violates the exclusion
+ * C001. The doc is the bill of features' description; a false selection is a
+ * [0] redefinition, and an unlisted feature is left unset.
+ */
+
+package DE4SDV_InvalidSCOREAndroidVariantConfiguration {
+    private import PLEML::*;
+    private import DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree;
+    private import DE4SDV_ProductLineDerivation::ProductModelProjectionName;
+
+    #featureConfiguration occurrence invalidSCOREAndroidVariant : SDVProductLineFeatureTree :> featureConfigurations {
+        doc /* Deliberately invalid: S-CORE + Android HLOS.
+             * Should fail constraint C001. */
+        @ProductModelProjectionName {
+            partDefinitionName = "InvalidSCOREAndroidVariant";
+        }
+
+        #feature occurrence :>> platformStack[1] {
+            #feature occurrence :>> vehicleApplication[1] = (autoware);
+            #feature occurrence :>> autoware[1];
+            #feature occurrence :>> middleware[1] = (eclipseSCORE);
+            #feature occurrence :>> eclipseSCORE[1];
+            #feature occurrence :>> operatingSystem[1] = (android);
+            #feature occurrence :>> android[1];
+            #feature occurrence :>> hypervisor[1] = (noHypervisor);
+            #feature occurrence :>> noHypervisor[1];
+        }
+        #feature occurrence :>> sensingBoundary[1] {
+            #feature occurrence :>> perceptionSensors[1..*] = (lidar);
+            #feature occurrence :>> lidar[1];
+        }
+        #feature occurrence :>> capabilities[1] {
+            #feature occurrence :>> pedestrianDetection[0];
+            #feature occurrence :>> bicycleDetection[0];
+            #feature occurrence :>> adaptiveCruiseControl[0];
+            #feature occurrence :>> laneKeepAssist[0];
+        }
+    }
+}

@@ -39,7 +39,6 @@ from scripts import compare_ple_scope_alignment as oracle
 ROOT = Path(__file__).resolve().parents[1]
 RECORD_DIR = Path("docs/product-line-engineering/ple-s-scope-alignment-evidence")
 DOC = ROOT / "docs/product-line-engineering/ple-s-scope-alignment.md"
-CORRESPONDENCE = ROOT / oracle.CORRESPONDENCE
 EXECUTOR = "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb"
 MERGE = "f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb"
 RUN_ID = "39169049300"
@@ -67,23 +66,24 @@ def _git(*args: str, cwd: Path = ROOT) -> str:
 
 @pytest.mark.parametrize("path", [RECORD_DIR / "receipt.json", RECORD_DIR / "governed-scope-validation.json",
                                   RECORD_DIR / "comparison.json", RECORD_DIR / "manifest.json",
-                                  RECORD_DIR / "README.md", DOC.relative_to(ROOT), oracle.CORRESPONDENCE,
+                                  RECORD_DIR / "README.md", DOC.relative_to(ROOT),
                                   oracle.CATALOGUE, oracle.CONFIGURATOR, oracle.SHARED_ASSETS])
 def test_every_retained_and_operational_input_is_present(path: Path) -> None:
     assert (ROOT / path).is_file(), f"missing input: {path}"
 
 
+#: The revision that retained the record (#396). PLE-S is retired (ADR 0022, step S3), so the record is
+#: frozen: it is verified at this revision, and the record directory at the head must equal it.
+RECORD_REVISION = "f6d6f980e8e7dd59b7929d4b0f3ad6735f8a166a"
+
+
 def _record_revision() -> str:
-    """The commit that last changed the retained record: the record is verified at that revision."""
+    """The pinned revision that retained the record: the record is verified there."""
     assert _git("rev-parse", "--is-shallow-repository") == "false", (
         "the retained record is verified from history; this checkout is shallow (fetch-depth 0 is needed)")
-    # Along first parents: on CI's merge ref of a pull request that changes the record, this is the merge commit
-    # itself, so the record is verified in the tree main gets from the squash merge. Without it, a branch brought
-    # up to date with a merge commit resolves to its own older record commit and hides a bound input that main
-    # changed in the meantime.
-    revision = _git("log", "-1", "--first-parent", "--format=%H", "--", RECORD_DIR.as_posix())
-    assert re.fullmatch(r"[0-9a-f]{40}", revision), "the retained record has no commit in this history"
-    return revision
+    assert subprocess.run(["git", "cat-file", "-e", f"{RECORD_REVISION}^{{commit}}"], cwd=ROOT,
+                          capture_output=True).returncode == 0, "the record revision is not in this history"
+    return RECORD_REVISION
 
 
 @pytest.fixture(scope="module")
@@ -97,10 +97,12 @@ def record(tmp_path_factory):
         tar.extractall(root, filter="data")
     for name in ("receipt.json", "governed-scope-validation.json", "comparison.json", "manifest.json"):
         assert (root / RECORD_DIR / name).is_file(), f"{name} is not part of the record at {revision}"
-    for extracted in sorted((root / RECORD_DIR).iterdir()):
-        current = ROOT / RECORD_DIR / extracted.name
-        assert current.is_file() and current.read_bytes() == extracted.read_bytes(), (
-            f"{extracted.name} in this checkout differs from the record at {revision}: commit it or restore it")
+    names = sorted(path.name for path in (root / RECORD_DIR).iterdir())
+    assert sorted(path.name for path in (ROOT / RECORD_DIR).iterdir()) == names, (
+        f"the record directory is frozen at {revision}: it holds exactly {names}")
+    for name in names:
+        assert (ROOT / RECORD_DIR / name).read_bytes() == (root / RECORD_DIR / name).read_bytes(), (
+            f"{name} differs from the record at {revision}: the record directory is frozen, restore it")
     return SimpleNamespace(revision=revision, root=root, evidence=root / RECORD_DIR,
                            work=tmp_path_factory.mktemp("oracle-work"))
 
@@ -558,8 +560,9 @@ def test_the_correspondence_is_validated_against_both_sides(record, evidence, tm
         _run(record, evidence, correspondence_path=path)
 
 
-def test_the_correspondence_carries_no_classification() -> None:
-    data = yaml.safe_load(CORRESPONDENCE.read_text(encoding="utf-8"))
+def test_the_correspondence_carries_no_classification(record) -> None:
+    # Retired with PLE-S (ADR 0022, step S3): the file is read at the record's own revision.
+    data = yaml.safe_load((record.root / oracle.CORRESPONDENCE).read_text(encoding="utf-8"))
     assert data["schema"] == oracle.CORRESPONDENCE_SCHEMA
     assert {key for entry in data["correspondence"] for key in entry} <= {"node", "governed", "note"}
     for word in ("reference-only", "deferred", "excluded", "admitted"):
@@ -735,3 +738,14 @@ def test_the_record_distinguishes_retained_from_fresh_evidence_and_keeps_the_non
                      "--root", "--revision"):
         assert required in readme, required
     assert "candidate model increment" not in doc
+
+
+def test_the_oracle_has_no_default_tree(tmp_path) -> None:
+    """PLE-S is retired, so the repository's own tree holds no scope-alignment model: the oracle
+    needs the extracted tree of a revision that does, and names it (review R6)."""
+    result = subprocess.run([sys.executable, "-B", str(ROOT / "scripts/compare_ple_scope_alignment.py"),
+                             "--receipt", "receipt.json", "--governed-scope", "governed.json", "--evidence", "retained",
+                             "--run-id", RUN_ID, "--artifact", ARTIFACT, "--out", str(tmp_path / "out")],
+                            cwd=ROOT, capture_output=True, text=True)
+    assert result.returncode == 2 and "--root, --revision" in result.stderr
+    assert "rerun the licensed scope alignment" not in (ROOT / "scripts/compare_ple_scope_alignment.py").read_text()

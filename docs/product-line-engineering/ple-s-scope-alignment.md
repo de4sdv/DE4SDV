@@ -1,10 +1,16 @@
 # PLE-S: scope alignment of the admitted AEBS product line in PLEML
 
 **Status:** experiment, not an authority. Draft evidence of the third PLEML
-gate; every receipt says `qualified: false`.
+gate; every receipt says `qualified: false`. **Retired** at step S3 of
+[ADR 0022](../architecture-decisions/0022-adopt-pleml-as-product-line-authority.md):
+the fenced [PLEML feature models](pleml-feature-models.md) supersede the
+experiment, and its model, workflow and runner were removed. This record
+stays as history: the files below are cited at the revision of the
+retained run.
 **Decision authority for anything beyond this record:** Orkun Yilmaz, DE4SDV
 technical lead and maintainer.
-**Model:** [`aebs_product_line_scope_alignment.sysml`](../../model-based-product-line-engineering/pleml-scope-alignment/aebs_product_line_scope_alignment.sysml)
+**Model:** [`aebs_product_line_scope_alignment.sysml`](https://github.com/de4sdv/DE4SDV/blob/f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb/model-based-product-line-engineering/pleml-scope-alignment/aebs_product_line_scope_alignment.sysml)
+(at the retained run's revision `f967a519`)
 **Governed inputs:** [ADR 0014](../architecture-decisions/0014-ratify-initial-aebs-product-line-scope.md),
 the [governed scope model](../../model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml)
 and the [platform-stack superset](../../textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml).
@@ -206,7 +212,7 @@ independent fields:
   otherwise classified by the governed-scope validation set (common,
   reference-only, deferred, excluded) of the element that the declared
   correspondence
-  [`catalogue-correspondence.yaml`](../../model-based-product-line-engineering/pleml-scope-alignment/catalogue-correspondence.yaml)
+  [`catalogue-correspondence.yaml`](https://github.com/de4sdv/DE4SDV/blob/f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb/model-based-product-line-engineering/pleml-scope-alignment/catalogue-correspondence.yaml)
   names for it. The correspondence carries no classification and is validated
   against the catalogue and the serialization; a node without any
   classification is unclassified and fails the run. A configuration is
@@ -377,6 +383,14 @@ tree it is compared with. Both carry `qualified: false`.
 
 ## Evidence and how to rerun
 
+Since the retirement, the workflow, the model and the runner below exist
+only in history. The workflow is described as it was last, at the parent of
+the retirement merge, where it read PLEML 1.1.1; at `f6d6f980`, the revision
+that retained the record, it read 1.1.0. A replay runs at a revision that
+pins the experiment of its element file (below). CI still verifies the
+retained record at its pinned revision `f6d6f980`, and the record directory
+is frozen: its files at the head must equal those at `f6d6f980`.
+
 - **Workflow:** `.github/workflows/privileged-ple-scope-alignment.yml` runs on
   pull requests that touch the scope-alignment paths (same-repository,
   allowlisted authors, as the licensed validation) and on maintainer
@@ -428,22 +442,20 @@ tree it is compared with. Both carry `qualified: false`.
   file's executor revision. Replay it at a revision that pins its experiment:
   the element file of the retained run `39169049300` records the PLEML 1.1.0
   experiment and replays on main from `f967a519` until the PLEML 1.1.1
-  re-pin, such as `cdb20aa0`; the element file of the
-  previous run `39115737098` records the PLEML 1.0.0 experiment and replays on
-  main from `f1da5c0c` until the PLEML 1.1.0 re-pin, such as `2a9a1c81`; the
-  element file of the earlier run `38788579272` records the Gate A experiment
-  and replays on main before PLEML 1.0.0, such as `099d33e6`. Replay evidence
-  is not fresh serialization and says so.
-- **Unlicensed checks (public CI):** `tests/test_ple_scope_alignment_model.py`
-  (boundary fence, textual shape, every qualified reference resolvable in
-  its source), `tests/test_ple_scope_alignment_evaluator.py` (the evaluator on
-  synthetic API-shaped graphs with the real frozen interpreter),
-  `tests/test_ple_scope_alignment_workflow.py` (workflow wiring and secret
-  scoping) and `tests/test_ple_scope_alignment_oracle.py` (the oracle on the
-  retained receipt: UG-09, UG-10 and UG-14 as sets, admission moving with a
-  reclassified governed element, a changed derivation and a missing
-  correspondence exiting non-zero, the refusals, and the retained record
-  reproduced from the retained receipt).
+  re-pin, such as `f6d6f980`; the element file of the previous run
+  `39115737098` records the PLEML 1.0.0 experiment and replays on main from
+  `f1da5c0c` until the PLEML 1.1.0 re-pin, such as `2a9a1c81`; the element
+  file of the earlier run `38788579272` records the Gate A experiment and
+  replays on main before PLEML 1.0.0, such as `099d33e6`. Replay evidence is
+  not fresh serialization and says so.
+- **Unlicensed checks (public CI):** `tests/test_ple_scope_alignment_evaluator.py`
+  (the evaluator on synthetic API-shaped graphs with the real frozen
+  interpreter) and `tests/test_ple_scope_alignment_oracle.py` (the oracle on
+  the retained receipt at the record's revision: UG-09, UG-10 and UG-14 as
+  sets, admission moving with a reclassified governed element, a changed
+  derivation and a missing correspondence exiting non-zero, the refusals, and
+  the retained record reproduced from the retained receipt). The model and
+  workflow tests retired with the model and the workflow.
 
 Evidence is valid for its exact head only. A move of main rebinds nothing;
 the next run on the new head is the next evidence.

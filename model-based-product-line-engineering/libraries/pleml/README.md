@@ -9,12 +9,12 @@ installs `pkg:sysand/mbse4u/pleml` `=1.1.1` (MIT license) into the untracked
 
 Until the switch to PLEML as the product-line authority (step S6 of the
 [migration plan](../../../docs/plans/2026-10-19-pleml-product-line-authority.md)),
-only the PLE qualification, the PLE scope alignment and their scripts read
-this lock. The production lock (`sysand-lock.toml` at the repository root),
+only the PLE qualification, the PLE authority job of the fenced feature
+models and their scripts read this lock. The production lock (`sysand-lock.toml` at the repository root),
 `PINNED_DEPENDENCIES`, the reviewed export roots and the production selectors
 do not use PLEML. `tests/test_pleml_package.py` holds the fence. It also
 checks that only the feature-model packages and their fixtures import PLEML,
-apart from two named exemptions.
+apart from one named exemption.
 
 ## The byte check
 
@@ -34,7 +34,7 @@ their evidence. They also run the network checks:
 
 - `--verify-tag` fetches the release tag and requires the recorded commit and
   file blobs;
-- `--from-index` (PLE scope alignment, which runs on re-pin pull requests)
+- `--from-index` (the PLE authority job, which runs on re-pin pull requests)
   downloads the previous release from the Sysand index and requires the
   recorded diff.
 
@@ -63,6 +63,6 @@ where its run reads the library; a test fails until it does.
 
 When PLEML moves to the production lock (S6), these change together: the
 project and library paths and the usage, lock and other-package rules in
-`de4sdv/semantic/pleml_package.py`, the `sysand sync` lines and the PLE scope
-alignment's `syside check` path in the reader workflows, and the tests that
-name the fenced path.
+`de4sdv/semantic/pleml_package.py`, the `sysand sync` lines and the PLE
+authority job's `syside check` path in the reader workflows, and the tests
+that name the fenced path.
