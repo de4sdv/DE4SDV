@@ -11762,5 +11762,55 @@
    "implicit_detail": null,
    "o3_amendment": null
   }
+ ],
+ "superseding_reviews": [
+  {
+   "id": "signal-mapping-usage",
+   "date": "2026-10-19",
+   "reviewed_revision": "32e904ea167b4bbef75fea2eea36d054e2428dd7",
+   "trigger": "finding R9 of the independent review of #400: the rows below still record no slice usage of the signal-mapping concepts",
+   "basis": "a lexical sweep of the model roots, the runtime package and the tests at the reviewed revision; no API read-back",
+   "reviewer": "Ontology Steward (AI-assisted); the owner accepts it by merging the pull request that adds it",
+   "rule": "Each finding supersedes the named statements of its row. The integrated rows above stay as the record of the review at their source revision. Dispositions, definitions, targets, migration classes and the identity register are unchanged.",
+   "findings": [
+    {
+     "identity": "SystemToSoftwareSignalMappingCandidate",
+     "supersedes": [
+      "classification.semantic_fit_rationale",
+      "classification.separate_identity_justification",
+      "assessment.needed",
+      "assessment.witness_sufficiency",
+      "assessment.usage"
+     ],
+     "statement": "No longer the only used member of the cluster. Model usages: INC-MW-008 has one allocation, marked AdapterExchangeExcluded (textual-notation-of-model/packages/features/middleware/middleware_physical_software_realization.sysml:625); INC-MW-011 phase 8 has three, each owning a mapping record (textual-notation-of-model/packages/features/middleware/middleware_score_physical_software_realization.sysml:384-456). The allocation-completeness tests count them and keep them out of the logical-to-physical allocation chain (tests/test_trace_allocation_completeness.py:89-106)."
+    },
+    {
+     "identity": "LogicalToSoftwareSignalMappingRecord",
+     "supersedes": [
+      "current.semantic_consumers",
+      "classification.semantic_fit_rationale",
+      "classification.separate_identity_justification",
+      "classification.de4sdv_semantic_delta",
+      "assessment.needed",
+      "assessment.witness_sufficiency",
+      "assessment.usage",
+      "assessment.overclaim",
+      "target.definition",
+      "open_decisions[0]"
+     ],
+     "statement": "Used by model roots: INC-MW-011 phase 8 has three records, MAP-MW-SCORE-VEHICLE-SPEED, MAP-MW-SCORE-VELOCITY-STATUS-HEALTH and MAP-MW-SCORE-AEBS-SIGNAL-FRAME, each owned by its allocation (textual-notation-of-model/packages/features/middleware/middleware_score_physical_software_realization.sysml:384-456). That first real usage answers the string-versus-reference question for the identity fields: the record's short name is the mapping ID, and the owning mapping's target, the typed ports and the connections give the endpoints and the direction. The records therefore set no mappingId, adapterEndpoints or direction, which the kernel definition still declares at the reviewed revision. The semantic source is a reference where a VSS signal exists: a vehicle signal names its source by the VSS typing of the item at the mapping's target, so the vehicle-speed record, whose payload is typed by VSS Vehicle_Speed, sets no semanticSource. The string stays only for an item that is no VSS-typed vehicle signal, saying what it is and why no VSS signal applies, as the health and AEBS-frame records do (middleware_score_physical_software_realization.sysml:387-394, 421, 449). The contract fields stay strings, because the external artifacts are authoritative. The record stays bounded: it is not a second authority for the facts the allocations and the external contract artifacts carry."
+    },
+    {
+     "identity": "SignalMappingDisposition",
+     "supersedes": [
+      "classification.semantic_fit_rationale",
+      "classification.separate_identity_justification",
+      "assessment.needed",
+      "assessment.witness_sufficiency"
+     ],
+     "statement": "Used by model roots: each INC-MW-011 phase-8 record sets its disposition to candidate (textual-notation-of-model/packages/features/middleware/middleware_score_physical_software_realization.sysml:384-456). The first slice usage keeps the disposition on the record, next to its owner, next action and evidence or gap; no native relationship or gap record carries it instead."
+    }
+   ]
+  }
  ]
 }

@@ -22,7 +22,7 @@ as described in
 | `ontology-identity-register.json` | One row per ontology identity with its disposition; the runtime refuses merged and removed identities with it | a reviewed edit |
 | `kernel-internal-declarations.yaml` | Kernel declarations that are deliberately not projected, each with a reason | a reviewed edit |
 | `external-reference-profile.yaml` | Typed references for the evidence identities whose content stays in external systems. Its reviewed payload still names the paths it was accepted with; the [acceptance record](../../../docs/method-conformance/o4/external-reference-acceptance-review.md) pins it by digest | a reviewed edit that updates both digest records |
-| `ontology-review.json` | The integrated ontology review; the external-reference check reads its reviewed definitions | a new review |
+| `ontology-review.json` | The integrated ontology review; the external-reference check reads its reviewed definitions. Its rows stay as reviewed; a later review is a `superseding_reviews` entry that names the row statements it supersedes and the revision it reviewed | a new review entry |
 | `model-authority-coverage-baseline.yaml` | Coverage ratchet for provider routing, refusals and retirements | `scripts/check_model_projection_coverage.py --write-baseline` |
 | `pilot-obligations.yaml` | Obligation table of the declared method evaluation pilot ([pilot-scope.md](../../../docs/method-evaluation/pilot-scope.md)) | a reviewed edit |
 
