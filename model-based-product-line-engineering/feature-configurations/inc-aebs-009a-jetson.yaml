@@ -1,6 +1,6 @@
 # Non-authoritative shadow (ADR 0022) of the PLEML feature configuration
-# inc_aebs_009a_jetson.sysml beside this file, until the YAML retires (step S7).
-# Until then it also carries the configuration's evidence record.
+# inc_aebs_009a_jetson.sysml beside this file, until the YAML retires (step S7), at least 30 days
+# after the switch. Until then it also carries the configuration's evidence record.
 
 name: INCAEBS009AJetsonExecutionEnvironment
 description: >-

@@ -1,5 +1,6 @@
 # Non-authoritative shadow (ADR 0022) of the PLEML fixture
-# invalid_score_android.sysml beside this file, until the YAML retires (step S7).
+# invalid_score_android.sysml beside this file, until the YAML retires (step S7), at least 30 days
+# after the switch.
 #
 # DELIBERATELY INVALID configuration for testing.
 #
