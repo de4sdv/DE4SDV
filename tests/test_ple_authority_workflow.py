@@ -48,7 +48,15 @@ OWN_PATHS = {
     "tests/test_ple_authority_model.py",
     "tests/test_ple_authority_runner.py",
     "tests/test_ple_authority_workflow.py",
+    "tests/test_ple_authority_receipts.py",
     ".github/workflows/privileged-ple-authority.yml",
+}
+#: The evaluator of step S2: a change to it reruns the fresh evaluation of a licensed bundle.
+EVALUATOR_PATHS = {
+    "scripts/run_pleml_configuration_evaluation.py",
+    "de4sdv/semantic/pleml_configuration.py",
+    "de4sdv/semantic/pleml_receipts.py",
+    "de4sdv/semantic/pleml_shadow.py",
 }
 #: The PLEML pin: a re-pin gets this licensed validation (the upstream release policy).
 PIN_PATHS = {
@@ -108,8 +116,8 @@ def test_triggers_are_the_authority_paths_and_maintainer_dispatch() -> None:
     triggers = _workflow()[True]
     assert set(triggers) == {"pull_request", "workflow_dispatch"}
     paths = triggers["pull_request"]["paths"]
-    assert len(paths) == len(set(paths)) and set(paths) == OWN_PATHS | PIN_PATHS | BOUND_PATHS
-    for path in OWN_PATHS | PIN_PATHS | BOUND_PATHS:
+    assert len(paths) == len(set(paths)) and set(paths) == OWN_PATHS | PIN_PATHS | BOUND_PATHS | EVALUATOR_PATHS
+    for path in OWN_PATHS | PIN_PATHS | BOUND_PATHS | EVALUATOR_PATHS:
         if path.endswith("/**"):
             assert (ROOT / path[:-3]).is_dir(), path
         elif "/**/" in path:
@@ -127,7 +135,7 @@ def test_triggers_are_the_authority_paths_and_maintainer_dispatch() -> None:
     # The job reads production documents but changes no production selector: none of its own,
     # pin or receipt paths is a trigger of the production validation.
     validation = set(_load(VALIDATION)[True]["pull_request"]["paths"])
-    assert not ((OWN_PATHS | PIN_PATHS | {f"{runner.RECEIPTS_DIR}/**"}) & validation)
+    assert not ((OWN_PATHS | PIN_PATHS | EVALUATOR_PATHS | {f"{runner.RECEIPTS_DIR}/**"}) & validation)
     assert triggers["workflow_dispatch"]["inputs"]["ref"]["required"] is True
 
 
@@ -328,7 +336,7 @@ def test_the_unlicensed_tests_are_the_authority_tests() -> None:
     _index, step = _step("tests/test_ple_authority_model.py")
     assert "env" not in step
     for test in ("tests/test_ple_authority_model.py", "tests/test_ple_authority_runner.py",
-                 "tests/test_ple_authority_workflow.py"):
+                 "tests/test_ple_authority_workflow.py", "tests/test_ple_authority_receipts.py"):
         assert test in step["run"] and (ROOT / test).is_file(), test
 
 

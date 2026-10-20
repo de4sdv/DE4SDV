@@ -4,10 +4,9 @@ The serializer, the API service and the evaluator are test doubles here:
 nothing in this file is serializer output or licensed evidence. The tests pin
 what the runner refuses before it touches an input, how it labels and
 serializes the documents, what the authority bundle holds, the loopback-only
-API round trip, the library byte check, the receipts written through the
-evaluator's entry point (ADR 0022, step S2) and compared with the committed
-ones, and that a run without the evaluator stops after the round trip, writes
-no receipt and exits 3.
+API round trip, the library byte check, and the receipts written through the
+evaluator's entry point (ADR 0022, step S2) with both checks of the committed
+ones: the comparison of their elements and their offline replay.
 """
 
 from __future__ import annotations
@@ -296,14 +295,6 @@ def test_an_existing_output_directory_is_refused(tmp_path) -> None:
     assert result.returncode == 2 and "existing output directory" in result.stderr
 
 
-def test_the_evaluation_is_pending_until_the_evaluator_exists(monkeypatch) -> None:
-    monkeypatch.setattr(runner, "EVALUATION_CLI", "scripts/no_such_evaluator.py")
-    with pytest.raises(runner.EvaluatorPending, match="step S2"):
-        runner.receipt_writer()
-    with pytest.raises(runner.EvaluatorPending, match="step S2"):
-        runner.evaluate(SimpleNamespace(), "a" * 40, Path("/nonexistent"))
-
-
 def _stub_run(monkeypatch, tmp_path, executor: str = "b" * 40) -> tuple[dict, object]:
     monkeypatch.setattr(runner, "verify_library", lambda root=None: b"library")
     monkeypatch.setattr(runner, "git", lambda root, *args: executor if args[0] == "rev-parse" else "")
@@ -324,63 +315,86 @@ def _stub_run(monkeypatch, tmp_path, executor: str = "b" * 40) -> tuple[dict, ob
     return scoped, args
 
 
-def test_a_run_without_the_evaluator_stops_after_the_round_trip_and_exits_three(monkeypatch, tmp_path) -> None:
-    monkeypatch.setattr(runner, "EVALUATION_CLI", "scripts/no_such_evaluator.py")
-    scoped, args = _stub_run(monkeypatch, tmp_path)
-    record, code = runner.run(args)
-    assert code == 3
-    assert record["evaluation"]["status"] == "pending" and "step S2" in record["evaluation"]["reason"]
-    assert record["api_round_trip"] == {"verified": True}
-    assert record["qualified"] is False and record["native_expression_executed"] is False
-    assert record["authority_effective"] is False and record["executor_revision"] == "b" * 40
-    # The governed scope is validated on the production documents only.
-    assert scoped["sources"] == {*runner.REFERENCED_SOURCES, "textual-notation-of-model/x.sysml"}
-    written = sorted(path.name for path in (tmp_path / "out").iterdir())
-    assert written == sorted(["authority-run.json", "governed-scope-validation.json", runner.ELEMENTS])
-    assert not any("receipt" in name for name in written), "no receipt without the evaluator"
-    assert json.loads((tmp_path / "out/authority-run.json").read_text()) == record
-
-
-def _fake_writer(calls: list, failures: list[str]):
+def _stub_evaluator(monkeypatch, calls: dict, failures: list[str], comparison: list[str], replay: list[str]) -> None:
     def write_receipts(bundle, out, *, serializer, name):
-        calls.append({"serializer": serializer, "name": name, "out": out})
+        calls["write"] = {"serializer": serializer, "name": name, "out": out}
         out.mkdir(parents=True)
         (out / f"{name}.elements.json.xz").write_bytes(b"elements")
         (out / "sdv_product_line.receipt.json").write_text("{}")
         return {"elements": out / f"{name}.elements.json.xz", "receipts": [out / "sdv_product_line.receipt.json"],
                 "failures": list(failures)}
-    return lambda: write_receipts
+
+    monkeypatch.setattr(runner, "write_receipts", write_receipts)
+    monkeypatch.setattr(runner.pleml_receipts, "compare_with_committed",
+                        lambda fresh, committed: calls.update(compare=(list(fresh), committed)) or list(comparison))
+    monkeypatch.setattr(runner.pleml_receipts, "replay_committed",
+                        lambda committed, root: calls.update(replay=(committed, root)) or list(replay))
 
 
-@pytest.mark.parametrize("failures, compared, status, expected_code", [
-    ([], [], "evaluated", 0),
-    (["SDVProductLineFeatureModel: an integrity error"], [], "failed", 1),
-    ([], ["sdv_product_line.receipt.json: the committed elements are not this serialization's"], "failed", 1),
+@pytest.mark.parametrize("failures, comparison, replay, status, expected_code", [
+    ([], [], [], "evaluated", 0),
+    (["SDVProductLineFeatureModel: an integrity error"], [], [], "failed", 1),
+    ([], ["sdv_product_line.receipt.json: the committed elements differ from the fresh serialization"], [],
+     "failed", 1),
+    ([], [], ["sdv_product_line.receipt.json: the committed evaluation does not reproduce"], "failed", 1),
 ])
-def test_a_run_writes_the_receipts_through_the_entry_point_and_compares_them(
-        monkeypatch, tmp_path, failures, compared, status, expected_code) -> None:
-    calls: list = []
-    monkeypatch.setattr(runner, "receipt_writer", _fake_writer(calls, failures))
-    monkeypatch.setattr(runner, "committed_receipt_failures", lambda fresh: list(compared))
-    _scoped, args = _stub_run(monkeypatch, tmp_path)
+def test_a_run_writes_the_receipts_and_runs_both_checks_of_the_committed_ones(
+        monkeypatch, tmp_path, failures, comparison, replay, status, expected_code) -> None:
+    """The comparison catches elements that are not this serialization's; the replay catches a receipt
+    whose evaluation does not reproduce from genuine elements. Either fails the run."""
+    calls: dict = {}
+    _stub_evaluator(monkeypatch, calls, failures, comparison, replay)
+    scoped, args = _stub_run(monkeypatch, tmp_path)
     record, code = runner.run(args)
     assert code == expected_code
-    assert [call["serializer"] for call in calls] == [{"name": "syside", "version": runner.SERIALIZER_VERSION,
-                                                       "options": "production export", "executor_revision": "b" * 40}]
-    assert calls[0]["name"] == runner.RECEIPTS_NAME and calls[0]["out"] == tmp_path / "out/receipts"
-    assert record["evaluation"] == {"status": status, "elements": f"{runner.RECEIPTS_NAME}.elements.json.xz",
-                                    "receipts": ["sdv_product_line.receipt.json"], "committed": runner.RECEIPTS_DIR,
-                                    "failures": failures + compared}
+    assert calls["write"] == {"serializer": {"name": "syside", "version": runner.SERIALIZER_VERSION,
+                                             "options": "production export", "executor_revision": "b" * 40},
+                              "name": runner.RECEIPTS_NAME, "out": tmp_path / "out/receipts"}
+    committed = ROOT / runner.RECEIPTS_DIR
+    assert calls["compare"] == ([tmp_path / "out/receipts/sdv_product_line.receipt.json"], committed)
+    assert calls["replay"] == (committed, ROOT)
+    evaluation = record["evaluation"]
+    assert {key: evaluation[key] for key in ("status", "elements", "receipts", "committed", "comparison", "replay",
+                                             "failures")} == {
+        "status": status, "elements": f"{runner.RECEIPTS_NAME}.elements.json.xz",
+        "receipts": ["sdv_product_line.receipt.json"], "committed": runner.RECEIPTS_DIR,
+        "comparison": comparison, "replay": replay, "failures": failures + comparison + replay}
+    assert record["api_round_trip"] == {"verified": True}
+    assert record["qualified"] is False and record["native_expression_executed"] is False
+    assert record["authority_effective"] is False and record["executor_revision"] == "b" * 40
+    # The governed scope is validated on the production documents only.
+    assert scoped["sources"] == {*runner.REFERENCED_SOURCES, "textual-notation-of-model/x.sysml"}
+    assert json.loads((tmp_path / "out/authority-run.json").read_text()) == record
 
 
-def test_the_committed_receipts_are_compared_by_the_evaluators_own_function(monkeypatch) -> None:
-    """One comparison, the evaluator's: the runner passes the fresh receipts and the committed directory."""
-    import de4sdv.semantic as semantic
+def test_a_code_identity_difference_is_recorded_as_an_advisory_and_never_fails_the_run(monkeypatch, tmp_path) -> None:
+    calls: dict = {}
+    _stub_evaluator(monkeypatch, calls, [], [], [])
+    monkeypatch.setattr(runner.pleml_receipts, "evaluator_advisories",
+                        lambda receipt: ["evaluated by another revision of de4sdv/semantic/validation.py"])
+    _scoped, args = _stub_run(monkeypatch, tmp_path)
+    record, code = runner.run(args)
+    assert code == 0 and record["evaluation"]["status"] == "evaluated"
+    assert record["evaluation"]["advisories"] == ["evaluated by another revision of de4sdv/semantic/validation.py"]
 
-    calls = []
-    fake = SimpleNamespace(compare_with_committed=lambda fresh, committed: calls.append((fresh, committed)) or ["x"])
-    monkeypatch.setitem(sys.modules, "de4sdv.semantic.pleml_receipts", fake)
-    monkeypatch.setattr(semantic, "pleml_receipts", fake, raising=False)
-    fresh = [Path("/tmp/fresh/sdv_product_line.receipt.json")]
-    assert runner.committed_receipt_failures(fresh) == ["x"]
-    assert calls == [(fresh, ROOT / runner.RECEIPTS_DIR)]
+
+def test_the_code_that_decides_the_receipts_is_pinned_like_the_runners_inputs() -> None:
+    """The code that decides the receipts must not move during a run either: the PLEML-owned modules
+    the evaluator records, and the production modules of the kernel binding it reads."""
+    assert set(runner.RUN_INPUTS) == (set(runner.EXECUTOR_INPUTS) | set(runner.pleml_receipts.EVALUATOR_MODULES)
+                                      | set(runner.EVALUATION_DEPENDENCIES))
+    assert len(runner.RUN_INPUTS) == len(set(runner.RUN_INPUTS))
+    for path in runner.RUN_INPUTS:
+        assert (ROOT / path).is_file(), path
+    assert "scripts/run_pleml_configuration_evaluation.py" in runner.RUN_INPUTS
+    # The evaluator's direct imports of shared code are pinned: none is left outside the run inputs.
+    import re
+
+    imported = set()
+    for module in runner.pleml_receipts.EVALUATOR_MODULES:
+        for name in re.findall(r"^\s*from (de4sdv(?:\.\w+)+) import", (ROOT / module).read_text(encoding="utf-8"),
+                               re.MULTILINE):
+            imported.add(name.replace(".", "/") + ".py")
+    imported |= {"de4sdv/semantic/validation.py", "de4sdv/semantic/model_contract.py"}  # imported by relative name
+    shared = {path for path in imported if (ROOT / path).is_file()}
+    assert shared <= set(runner.RUN_INPUTS), sorted(shared - set(runner.RUN_INPUTS))

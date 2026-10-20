@@ -5,9 +5,9 @@ the S2 evaluator from the bundle of a licensed authority run; the owner said
 yes to committing them on 2026-10-19. These checks read the committed files
 only: the layout, the digests of the elements and of every source the
 receipts bind, the recorded serialization, and the reviewed verdicts. The
-offline replay re-runs the evaluator on the committed elements; it runs where
-the evaluator is on the revision. Nothing here is serializer output, a
-licensed run or a qualification.
+offline replay re-runs the evaluator on the committed elements, after the
+fenced PLEML package is synced and byte-checked. Nothing here is serializer
+output, a licensed run or a qualification.
 """
 
 from __future__ import annotations
@@ -137,13 +137,18 @@ def test_the_receipts_hold_the_reviewed_verdicts() -> None:
                for model in shadow["feature_models"])
 
 
-@pytest.mark.skipif(not (ROOT / runner.EVALUATION_CLI).is_file(),
-                    reason="the evaluator of ADR 0022 step S2 (#406) is not on this revision yet")
 def test_the_committed_receipts_replay_offline() -> None:
-    """The unlicensed check: the evaluator reproduces every receipt from the committed elements,
-    and none is stale by the digest of a source, the elements or the evaluator."""
-    from scripts import run_pleml_configuration_evaluation as evaluation
+    """The unlicensed check: the evaluator reproduces every receipt from the committed elements, its
+    evaluation and its shadow checks byte for byte, against this tree's sources and the pinned library.
 
-    receipts = sorted(str(path) for path in RECEIPTS.glob("*.receipt.json"))
-    assert len(receipts) == len(FEATURE_MODELS)
-    assert evaluation.main(["replay", *receipts]) == 0
+    The fenced package is synced and byte-checked first: the replay reads the installed library.
+    """
+    from de4sdv.semantic import pleml_package, pleml_receipts
+
+    try:
+        pleml_package.verify_installed(ROOT)
+    except pleml_package.PackageError as exc:
+        pytest.fail(f"sync the fenced PLEML project before the replay "
+                    f"(sysand sync in {pleml_package.PROJECT.as_posix()}): {exc}")
+    assert len(list(RECEIPTS.glob("*.receipt.json"))) == len(FEATURE_MODELS)
+    assert pleml_receipts.replay_committed(RECEIPTS, ROOT) == []

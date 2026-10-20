@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
-"""Licensed validation, serialization and API round trip of the PLEML feature models.
+"""Licensed validation, serialization, API round trip and receipts of the PLEML feature models.
 
 This is the runner of the PLE authority job (ADR 0022, the former PLE-S
 workflow). Licensed mode loads the reviewed model roots, the exact-pinned
 PLEML library (PLEML 1.1.1 as the fenced Sysand project installs it,
 byte-checked against its release tag), the three PLEML feature models, their
 configurations and the invalid fixture in one model with the pinned
-serializer and refuses any error diagnostic. It serializes every document once with the production export's
-options, validates the governed product-line scope exactly as production
-does, builds the authority bundle (the PLEML documents, the shared-asset
-supersets, the governed scope and the library), imports it into an ephemeral
-SysML v2 API and verifies the full-payload readback. It then hands the bundle
-to the entry point of the DE4SDV evaluator (ADR 0022, step S2), which writes
-the compressed elements and one receipt per feature model, and requires the
-fresh elements to equal the committed ones.
+serializer and refuses any error diagnostic. It serializes every document
+once with the production export's options, validates the governed
+product-line scope exactly as production does, builds the authority bundle
+(the PLEML documents, the shared-asset supersets, the governed scope and the
+library), imports it into an ephemeral SysML v2 API and verifies the
+full-payload readback. It then hands the bundle to the entry point of the
+DE4SDV evaluator (ADR 0022, step S2), which writes the compressed elements
+and one receipt per feature model, and runs both checks of the committed
+receipts: their elements must equal the fresh ones, and their evaluations
+must reproduce offline.
 
 The models are fenced until the authority switch (step S6). Nothing here
 executes a PLEML constraint body natively, qualifies anything or claims
@@ -37,13 +39,14 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 sys.dont_write_bytecode = True
 
-from de4sdv.semantic import pleml_package
+from de4sdv.semantic import pleml_package, pleml_receipts
 from de4sdv.sysml_api.baseline import BaselineExportBundle, BaselineManifest, build_export_bundle
 from de4sdv.sysml_api.client import ApiClient
 from de4sdv.sysml_api.ingestion import import_baseline
 from de4sdv.sysml_api.product_line_scope import validate_scope_elements
 from de4sdv.sysml_api.repository import element_id
 from scripts.run_ple_qualification import PLEML_INPUTS, SERIALIZER_VERSION, digest, git, verified_file
+from scripts.run_pleml_configuration_evaluation import write_receipts
 
 PLE = "model-based-product-line-engineering"
 #: The PLEML feature models: one per family (ADR 0022, decision 2).
@@ -124,17 +127,24 @@ EXECUTOR_INPUTS = (
     *AUTHORITY_SOURCES,
     *FIXTURES,
 )
+#: The production modules the evaluation reads beyond the runner's inputs: the kernel binding of
+#: ADR 0011 (contract, model contract, binding validation, revision identity). The evaluator's own
+#: record of the code it ran, ``EVALUATOR_MODULES``, names the PLEML-owned files only.
+EVALUATION_DEPENDENCIES = (
+    "de4sdv/semantic/kernel_contract.py",
+    "de4sdv/semantic/model_contract.py",
+    "de4sdv/semantic/validation.py",
+    "de4sdv/sysml_api/revisions.py",
+)
+#: What a run pins by digest: the runner's inputs and every module that decides the receipts.
+RUN_INPUTS = tuple(dict.fromkeys((*EXECUTOR_INPUTS, *pleml_receipts.EVALUATOR_MODULES, *EVALUATION_DEPENDENCIES)))
 RUN_SCHEMA = "de4sdv.ple-authority-run/v1"
 #: The export bundle, as the evaluator's entry point reads it.
 ELEMENTS = "authority-elements.json"
-#: The evaluator of ADR 0022 step S2: its entry point owns the receipt format and layout.
-EVALUATION_CLI = "scripts/run_pleml_configuration_evaluation.py"
 #: The committed receipts and their compressed elements (the owner's yes of 2026-10-19).
 RECEIPTS_DIR = f"{PLE}/feature-models/receipts"
 #: The file stem of the compressed elements: ``<name>.elements.json.xz``.
 RECEIPTS_NAME = "pleml-feature-models"
-#: The evaluator's code: executor inputs too, once it is on the revision.
-EVALUATOR_INPUTS = (EVALUATION_CLI, "de4sdv/semantic/pleml_configuration.py", "de4sdv/semantic/pleml_receipts.py")
 API_PROJECT = "DE4SDV isolated PLE authority round trip"
 #: The production import's request timeout (scripts/import_sysml_api_baseline.py).
 #: The API commits the authority bundle in one request, which outlasts the
@@ -142,10 +152,6 @@ API_PROJECT = "DE4SDV isolated PLE authority round trip"
 API_TIMEOUT_SECONDS = 600.0
 
 Documents = dict[str, list[dict[str, Any]]]
-
-
-class EvaluatorPending(RuntimeError):
-    """The evaluator of ADR 0022 step S2 is not on this revision yet."""
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -296,53 +302,36 @@ def round_trip(bundle: BaselineExportBundle, api_url: str) -> dict[str, Any]:
     }
 
 
-def receipt_writer():
-    """The evaluator's entry point, ``write_receipts`` (ADR 0022, step S2).
-
-    The runner's only coupling to the evaluator. Until its module is on this
-    revision the licensed run stops after the validation, the serialization
-    and the round trip, and writes no receipt; once it is, any import error
-    fails the run.
-    """
-    if not (ROOT / EVALUATION_CLI).is_file():
-        raise EvaluatorPending(
-            "the evaluator of ADR 0022 step S2 is not on this revision: the serialization and the API "
-            "round trip passed, and the receipts are pending"
-        )
-    from scripts.run_pleml_configuration_evaluation import write_receipts
-
-    return write_receipts
-
-
-def committed_receipt_failures(fresh: list[Path]) -> list[str]:
-    """Why the committed receipts are not this run's, by the evaluator's own comparison.
-
-    Their elements must equal the fresh ones; the run's provenance may differ.
-    A receipt that only one side has fails too.
-    """
-    from de4sdv.semantic import pleml_receipts
-
-    return pleml_receipts.compare_with_committed(fresh, ROOT / RECEIPTS_DIR)
-
-
 def evaluate(bundle: BaselineExportBundle, executor: str, out: Path) -> dict[str, Any]:
-    """Write the receipts through the evaluator's entry point and compare them with the committed ones.
+    """Write the receipts through the evaluator's entry point and run both checks of the committed ones.
 
-    The entry point writes ``<name>.elements.json.xz`` and one receipt per
-    feature model to ``out/receipts``, with the run's provenance beside the
-    elements. Its failures (integrity, complement and rule-table errors) and
-    any difference from the committed elements fail the run.
+    The entry point of the S2 evaluator writes ``<name>.elements.json.xz`` and
+    one receipt per feature model to ``out/receipts``, with the run's
+    provenance beside the elements. The committed receipts must then hold
+    twice: their elements equal the fresh ones (``compare_with_committed``, the
+    authenticity of the committed elements), and their evaluations and shadow
+    checks reproduce from those elements (``replay_committed``). A failure of
+    the entry point or of either check fails the run. A code-identity
+    difference is an advisory, never a failure.
     """
-    write_receipts = receipt_writer()
     result = write_receipts(bundle, out / "receipts", serializer={
         "name": "syside", "version": SERIALIZER_VERSION, "options": "production export",
         "executor_revision": executor}, name=RECEIPTS_NAME)
-    failures = [*result["failures"], *committed_receipt_failures(result["receipts"])]
+    committed = ROOT / RECEIPTS_DIR
+    comparison = pleml_receipts.compare_with_committed(result["receipts"], committed)
+    replay = pleml_receipts.replay_committed(committed, ROOT)
+    advisories = sorted({advisory for path in committed.glob("*.receipt.json")
+                         for advisory in pleml_receipts.evaluator_advisories(
+                             json.loads(path.read_text(encoding="utf-8")))})
+    failures = [*result["failures"], *comparison, *replay]
     return {
         "status": "failed" if failures else "evaluated",
         "elements": result["elements"].name,
         "receipts": sorted(path.name for path in result["receipts"]),
         "committed": RECEIPTS_DIR,
+        "comparison": comparison,
+        "replay": replay,
+        "advisories": advisories,
         "failures": failures,
     }
 
@@ -368,8 +357,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
     if git(ROOT, "status", "--porcelain"):
         raise ValueError("the executor checkout is not clean")
     library_bytes = verify_library()
-    inputs = EXECUTOR_INPUTS + (EVALUATOR_INPUTS if (ROOT / EVALUATION_CLI).is_file() else ())
-    executor_inputs = {relative: verified_file(ROOT, executor, relative) for relative in inputs}
+    executor_inputs = {relative: verified_file(ROOT, executor, relative) for relative in RUN_INPUTS}
 
     out.mkdir(parents=True)
     record: dict[str, Any] = {
@@ -396,12 +384,8 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
                   element_count=len(bundle.elements), external_reference_count=len(bundle.external_references))
     record["api_round_trip"] = round_trip(bundle, args.api_url)
 
-    try:
-        record["evaluation"] = evaluate(bundle, executor, out)
-        code = 1 if record["evaluation"]["failures"] else 0
-    except EvaluatorPending as exc:
-        record["evaluation"] = {"status": "pending", "reason": str(exc)}
-        code = 3
+    record["evaluation"] = evaluate(bundle, executor, out)
+    code = 1 if record["evaluation"]["failures"] else 0
 
     # The executor checkout, its inputs and the library did not move mid-run.
     if git(ROOT, "rev-parse", "HEAD") != executor or git(ROOT, "status", "--porcelain"):
@@ -428,12 +412,10 @@ def main() -> int:
         "elements": record["element_count"],
         "api_round_trip_verified": record["api_round_trip"]["verified"],
         "evaluation": evaluation["status"],
-        "receipts": evaluation.get("receipts", []),
+        "receipts": evaluation["receipts"],
         "qualified": False,
     }))
-    if code == 3:
-        print(f"refused: {evaluation['reason']}", file=sys.stderr)
-    for failure in evaluation.get("failures", []):
+    for failure in evaluation["failures"]:
         print(f"failed: {failure}", file=sys.stderr)
     return code
 

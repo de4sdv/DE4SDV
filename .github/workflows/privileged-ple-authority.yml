@@ -32,7 +32,13 @@ on:
       - "tests/test_ple_authority_model.py"
       - "tests/test_ple_authority_runner.py"
       - "tests/test_ple_authority_workflow.py"
+      - "tests/test_ple_authority_receipts.py"
       - ".github/workflows/privileged-ple-authority.yml"
+      # The evaluator of step S2, which writes and replays the receipts.
+      - "scripts/run_pleml_configuration_evaluation.py"
+      - "de4sdv/semantic/pleml_configuration.py"
+      - "de4sdv/semantic/pleml_receipts.py"
+      - "de4sdv/semantic/pleml_shadow.py"
       # The PLEML pin: a re-pin gets this licensed validation (release policy).
       - "model-based-product-line-engineering/libraries/pleml/**"
       - "de4sdv/semantic/pleml_package.py"
@@ -188,7 +194,8 @@ jobs:
           python -B -m pytest -p no:cacheprovider \
             tests/test_ple_authority_model.py \
             tests/test_ple_authority_runner.py \
-            tests/test_ple_authority_workflow.py -q
+            tests/test_ple_authority_workflow.py \
+            tests/test_ple_authority_receipts.py -q
 
       - name: Build the pinned ephemeral Systems Modeling API
         if: steps.licence.outputs.available == 'true'

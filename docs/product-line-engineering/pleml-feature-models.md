@@ -165,10 +165,15 @@ dispatch. On the exact head it:
    full-payload readback (the API round trip);
 6. hands the bundle to the entry point of the evaluator (ADR 0022, step S2),
    `write_receipts` of `scripts/run_pleml_configuration_evaluation.py`, which
-   writes the compressed elements and one receipt per feature model, and
-   compares them with the committed receipts by the evaluator's
-   `compare_with_committed`: the elements must be identical. Only the run's
-   provenance, which the receipts record beside the elements, may differ.
+   writes the compressed elements and one receipt per feature model;
+7. runs both checks of the committed receipts with the evaluator's own
+   functions, and fails when either fails. `compare_with_committed` requires
+   their elements to equal the fresh ones; only the run's provenance, which
+   the receipts record beside the elements, may differ. `replay_committed`
+   re-evaluates them from those elements and requires the evaluation and the
+   shadow checks to reproduce byte for byte, which catches an edited verdict
+   over genuine elements. A code-identity difference is recorded as an
+   advisory, not a failure.
 
 The library document of the bundle is labelled by its repository path,
 `LIBRARY_PATH` of `de4sdv/semantic/pleml_package.py`.
@@ -188,11 +193,16 @@ the library or a catalogue makes it stale:
 
 - when a document changes, the authority job writes fresh receipts into
   `authority/receipts/` of its evidence; commit those;
-- when only the evaluator changes, refresh the receipts offline with
+- when only the evaluator changes what it reports, the replay fails; refresh
+  the receipts offline with
   `python scripts/run_pleml_configuration_evaluation.py refresh <receipt>...`.
+  A refresh that would change a verdict, a derived variant or an admission
+  writes nothing unless `--accept-verdict-changes` says so: such a change is
+  a rollback trigger and needs a reviewed decision, never a silent rewrite.
+  A code change that still reproduces every receipt only adds an advisory.
 
-The licensed job runs only where the evaluator is on the revision: until
-then it stops after the round trip, as the evaluation is pending.
+Both the job and the public CI sync and byte-check the fenced PLEML package
+before the replay, which reads the installed library.
 
 The unlicensed checks are
 [`test_ple_authority_model.py`](../../tests/test_ple_authority_model.py)
