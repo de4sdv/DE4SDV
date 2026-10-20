@@ -214,15 +214,23 @@ def yaml_outcome(bill: Path, selections: Mapping[str, Any], evaluated: Evaluated
                  root: Path = ROOT) -> dict[str, Any]:
     """The configurator's verdict on one bill of features, as parity reason keys, with its projection body."""
     output = workspace / f"{label}.sysml"
-    result = subprocess.run(
-        [sys.executable, str(root / CONFIGURATOR), "--feature-model", str(root / evaluated.catalogue),
-         "--bof", str(bill), "--shared-assets-model", str(root / evaluated.shared_assets), "--output", str(output)],
-        capture_output=True, text=True, cwd=root, check=False, timeout=120)
+    try:
+        result = subprocess.run(
+            [sys.executable, str(root / CONFIGURATOR), "--feature-model", str(root / evaluated.catalogue),
+             "--bof", str(bill), "--shared-assets-model", str(root / evaluated.shared_assets), "--output",
+             str(output)],
+            capture_output=True, text=True, cwd=root, check=False, timeout=120)
+    except subprocess.TimeoutExpired as exc:
+        raise ParityRefused(f"{label}: the configurator did not finish within {exc.timeout} s") from exc
     if result.returncode not in (0, 1):
         raise ParityRefused(f"{label}: the configurator refused the input (exit {result.returncode}): "
                             f"{result.stderr.strip()[-400:]}")
     messages = [match.group(1).strip() for match in map(_BULLET.match, result.stderr.splitlines()) if match]
-    keys, counted = yaml_reason_keys(messages, selections, pleml_shadow.Catalogue(root / evaluated.catalogue, root))
+    try:
+        keys, counted = yaml_reason_keys(messages, selections,
+                                         pleml_shadow.Catalogue(root / evaluated.catalogue, root))
+    except ValueError as exc:
+        raise ParityRefused(f"{label}: {exc}; the reason map of the parity needs it (R11)") from exc
     text = output.read_text(encoding="utf-8") if result.returncode == 0 else None
     return {"valid": result.returncode == 0, "keys": keys, "violations": counted,
             "derived_variants": dict(_VARIANT.findall(text or "")),
@@ -271,7 +279,8 @@ def restatement_errors(selections: Mapping[str, Any], evaluated: Evaluated) -> l
                 errors.append(f"{key}: the selection {value!r} is no choice")
                 continue
             want = sorted(f"{key}.{choice}" for choice in chosen)
-            have = sorted(paths[member] for member in feature["members"] if states.get(member) in SELECTED)
+            have = sorted(paths.get(member) or f"{member} (no catalogue path)" for member in feature["members"]
+                          if states.get(member) in SELECTED)
             if want != have:
                 errors.append(f"{key}: the selection chooses {want}, the configuration {have}")
         elif isinstance(value, bool):
@@ -439,26 +448,42 @@ def run(root: Path = ROOT) -> dict[str, Any]:
             if row.document not in evaluated:
                 raise ParityRefused(f"{row.row}: no committed receipt evaluates {row.document}")
             results.append(compare(row, evaluated[row.document], configurator, record, workspace, root))
+    bodies = projection_bodies(results, root)
+    histogram, failures = gate(results, bodies, set(evaluated) - {row.document for row in planned})
+    return {"schema": SCHEMA, "rows": results, "histogram": histogram, "expected": EXPECTED, "bodies": bodies,
+            "failures": failures, "native_expression_executed": False, "qualified": False}
+
+
+#: The committed projections, one per valid configuration file, whose bodies the step compares.
+PROJECTIONS = 7
+
+
+def gate(results: Iterable[Mapping[str, Any]], bodies: Iterable[Mapping[str, Any]],
+         uncovered: Iterable[str] = ()) -> tuple[dict[str, int], list[str]]:
+    """The histogram of the rows and every reason the parity fails.
+
+    It fails on a defect, on any histogram but the plan's, on a configuration
+    without a parity row, and unless each valid configuration file has one
+    committed projection whose body is equal on all three sides.
+    """
+    results, bodies = list(results), list(bodies)
     counts = Counter(result["class"] for result in results)
     histogram = {name: counts.get(name, 0) for name in EXPECTED}
-    unknown = sorted(set(counts) - set(EXPECTED))
-    bodies = projection_bodies(results, root)
     failures = [f"{result['row']}: defect: {result['detail']}" for result in results if result["class"] == "defect"]
-    uncovered = sorted(set(evaluated) - {row.document for row in planned})
+    uncovered = sorted(uncovered)
     if uncovered:
         failures.append(f"configurations without a parity row: {uncovered}; parity gates every step, so each "
                         "PLEML configuration restates a bill of features or is a probe row")
-    if histogram != EXPECTED or unknown:
+    if histogram != EXPECTED or set(counts) - set(EXPECTED):
         failures.append(f"the histogram is {dict(counts)}, the plan expects {EXPECTED}")
     expected_bills = sorted((CONFIGURATIONS / result["row"]).as_posix() for result in results
                             if result["kind"] == "file" and result["pleml"]["valid"])
-    if sorted(item["bill"] for item in bodies) != expected_bills or len(bodies) != 7:
+    if sorted(item["bill"] for item in bodies) != expected_bills or len(bodies) != PROJECTIONS:
         failures.append(f"the committed projections are {[item['projection'] for item in bodies]}, one per valid "
                         f"bill of features expected: {expected_bills}")
     failures += [f"{item['projection']}: the normalised bodies differ (YAML path equal: {item['yaml_equal']}, "
                  f"receipt equal: {item['pleml_equal']})" for item in bodies if not item["equal"]]
-    return {"schema": SCHEMA, "rows": results, "histogram": histogram, "expected": EXPECTED, "bodies": bodies,
-            "failures": failures, "native_expression_executed": False, "qualified": False}
+    return histogram, failures
 
 
 def main(argv: list[str] | None = None) -> int:

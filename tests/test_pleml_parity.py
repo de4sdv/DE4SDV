@@ -206,6 +206,58 @@ def test_the_restatement_names_every_difference() -> None:
         "Stack.Extra: the selection is False, the configuration enabled"]
 
 
+def test_a_selected_feature_without_a_catalogue_path_is_a_restatement_error() -> None:
+    """A feature the catalogue does not restate cannot be selected on the YAML side, so it is a difference."""
+    evaluated = _synthetic({"stack": "enabled", "stack.os": "enabled", "stack.linux": "enabled",
+                            "stack.qnx": "omitted", "stack.extra": "omitted"})
+    del evaluated.writer["catalogue_paths"]["stack.linux"]
+    assert parity.restatement_errors({"Stack.OS": "Linux"}, evaluated) == [
+        "Stack.OS: the selection chooses ['Stack.OS.Linux'], the configuration ['stack.linux (no catalogue path)']"]
+
+
+def test_an_unclassified_configurator_message_refuses_the_parity(monkeypatch, tmp_path) -> None:
+    """A rejection outside the reason map is a gap in the parity, never a guessed class (R11)."""
+    configurator = parity.pleml_shadow.load_configurator(ROOT)
+    fixture = parity.CONFIGURATIONS / "fixtures/invalid-score-android.yaml"
+    evaluated = parity.load_receipts(configurator, ROOT)[parity.configuration_of(fixture)]
+
+    def unclassified(messages, selections, catalogue):
+        raise ValueError(f"unclassified configurator message: {messages[0]}")
+
+    monkeypatch.setattr(parity, "yaml_reason_keys", unclassified)
+    with pytest.raises(parity.ParityRefused, match="the reason map of the parity needs it"):
+        parity.yaml_outcome(ROOT / fixture, {}, evaluated, tmp_path, "fixture")
+
+
+def _result(row: str, kind: str, cls: str, valid: bool = True) -> dict:
+    return {"row": row, "kind": kind, "class": cls, "detail": "x" if cls == "defect" else "",
+            "pleml": {"valid": valid}}
+
+
+def _gate_inputs(report: dict) -> tuple[list[dict], list[dict]]:
+    return ([_result(row["row"], row["kind"], row["class"], row["pleml"]["valid"]) for row in report["rows"]],
+            [dict(item) for item in report["bodies"]])
+
+
+def test_the_gate_holds_only_with_the_plans_histogram_and_seven_equal_bodies(report) -> None:
+    results, bodies = _gate_inputs(report)
+    assert parity.gate(results, bodies) == (parity.EXPECTED, [])
+    # A row that turns into a defect fails twice: as a defect and as the histogram.
+    broken = [dict(item, **{"class": "defect", "detail": "x"}) if item["row"] == "ug-10-radar-only" else item
+              for item in results]
+    histogram, failures = parity.gate(broken, bodies)
+    assert histogram["defect"] == 1 and histogram["equal"] == 15
+    assert failures[0] == "ug-10-radar-only: defect: x" and "the plan expects" in failures[1]
+    # A body that differs fails, and so does a configuration without a parity row.
+    differing = [dict(bodies[0], equal=False, pleml_equal=False)] + bodies[1:]
+    assert parity.gate(results, differing)[1] == [
+        f"{bodies[0]['projection']}: the normalised bodies differ (YAML path equal: True, receipt equal: False)"]
+    assert parity.gate(results, bodies, ["new_member.sysml"])[1][0].startswith(
+        "configurations without a parity row: ['new_member.sysml']")
+    # A committed projection that goes missing fails.
+    assert "one per valid bill of features" in parity.gate(results, bodies[1:])[1][0]
+
+
 def test_the_remainder_drops_only_a_common_capability_set_to_false() -> None:
     catalogue = parity.pleml_shadow.Catalogue(ROOT / "model-based-product-line-engineering/feature-models/"
                                               "sdv_product_line.yaml", ROOT)
