@@ -37,6 +37,7 @@ OWN_PATHS = {
     "scripts/method_check.py",
     "scripts/evaluate_increment.py",
     "scripts/export_sysml_api_baseline.py",
+    "scripts/check_member_product_applications.py",
     "de4sdv/__init__.py",
     "de4sdv/semantic/**",
     "de4sdv/sysml_api/**",
@@ -45,6 +46,8 @@ LICENCE_VALUE = "${{ secrets.SYSIDE_LICENSE_KEY }}"
 LICENCE_PRESENCE = "${{ secrets.SYSIDE_LICENSE_KEY != '' }}"
 EXPORT_SCRIPT = "scripts/export_sysml_api_baseline.py"
 CHECK_SCRIPT = "scripts/method_check.py"
+#: The appliesToMemberProduct gate over the same export (#412 R3): a refusal fails the job.
+GATE_SCRIPT = "scripts/check_member_product_applications.py"
 HEAD = "${{ needs.export.outputs.head-sha }}"
 #: The job that reports a failed export (the evaluation job never runs then).
 REPORT_JOB = "export-failure-report"
@@ -173,7 +176,7 @@ def test_every_module_the_check_runs_triggers_it() -> None:
     """A change to any repository module the Method Check imports must run it."""
     filters = _triggers(_workflow())["pull_request"]["paths"]
     seen: set[Path] = set()
-    for script in (CHECK_SCRIPT, "scripts/evaluate_increment.py"):
+    for script in (CHECK_SCRIPT, "scripts/evaluate_increment.py", GATE_SCRIPT):
         _repository_imports(ROOT / script, seen)
     modules = sorted(path.relative_to(ROOT).as_posix() for path in seen)
     assert any(module.startswith("de4sdv/semantic/") for module in modules)
@@ -443,8 +446,30 @@ class _Parsed(Exception):
 
 
 def test_both_scripts_appear_on_the_command_lines() -> None:
-    # The export once; the method check for an evaluation and for a failed export.
-    assert sorted(argv[1] for _name, argv in _commands()) == [EXPORT_SCRIPT, CHECK_SCRIPT, CHECK_SCRIPT]
+    # The export once; the method check for an evaluation and for a failed export; the gate once.
+    assert sorted(argv[1] for _name, argv in _commands()) == sorted(
+        [EXPORT_SCRIPT, CHECK_SCRIPT, CHECK_SCRIPT, GATE_SCRIPT])
+
+
+def test_the_member_product_gate_runs_over_the_export_after_the_method_check_and_fails_the_job() -> None:
+    """#412 R3: the evaluate job derives appliesToMemberProduct over the exported head. The step
+    holds no credential, reads the downloaded export of the exact revision, writes its record
+    into the uploaded result, and no step masks its exit code, so a refusal fails the job."""
+    check_index, _check = _step_running("evaluate", CHECK_SCRIPT)
+    gate_index, gate = _step_running("evaluate", GATE_SCRIPT)
+    upload_index = next(index for index, step in enumerate(_steps("evaluate"))
+                        if str(step.get("uses", "")).startswith("actions/upload-artifact"))
+    assert check_index < gate_index < upload_index
+    assert gate["env"] == {"HEAD_SHA": HEAD} and "if" not in gate
+    guard = gate["run"].split(f"python {GATE_SCRIPT}")[0]
+    for name in CREDENTIALS:
+        assert name in guard, name
+    assert "exit 1" in guard
+    command = " ".join(re.sub(r"\\\n\s*", " ", gate["run"]).split())
+    assert '--export "$RUNNER_TEMP/method-check/model-export.json"' in command
+    assert '--revision "$HEAD_SHA"' in command
+    assert '--output "$RUNNER_TEMP/method-check/result/member-products.json"' in command
+    assert '--summary "$GITHUB_STEP_SUMMARY"' in command
 
 
 @pytest.mark.parametrize("name, argv", _commands(), ids=[c[0] for c in _commands()])

@@ -13,6 +13,14 @@ name: Method Check
 # delivery gate stays advisory); only a technical error does, such as an
 # export failure or a method that cannot be read.
 #
+# The evaluate job then derives the appliesToMemberProduct fact of ADR 0022
+# over the same export (scripts/check_member_product_applications.py), as
+# the scope battery of the privileged ingestion does on the served model. A
+# refusal of the derivation is a technical error and fails the job: a
+# configuration that applies to more than one member product, or a
+# projection name that two part definitions of product-models/ declare. Its
+# record goes into the method-check artifact.
+#
 # A failed export still leaves a report. The export records why it failed
 # (its refusal text with Syside's model diagnostics, or only the type of any
 # other error) and the export job uploads that file. The report job then
@@ -70,6 +78,7 @@ on:
       - "scripts/method_check.py"
       - "scripts/evaluate_increment.py"
       - "scripts/export_sysml_api_baseline.py"
+      - "scripts/check_member_product_applications.py"
       # What the evaluation imports: these two packages and their parent
       # package's __init__.py. The data files it reads, the generated
       # trace-vocabulary contract among them
@@ -248,6 +257,24 @@ jobs:
             --revision "$HEAD_SHA" \
             --output-dir "$RUNNER_TEMP/method-check/result" \
             --artifact "method-check-$HEAD_SHA" \
+            --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Derive appliesToMemberProduct over the export (a refusal fails)
+        env:
+          HEAD_SHA: ${{ needs.export.outputs.head-sha }}
+        run: |
+          # This step runs repository Python: it must hold no credential.
+          for name in SYSIDE_LICENSE_KEY GITHUB_TOKEN GH_TOKEN ACTIONS_RUNTIME_TOKEN ACTIONS_ID_TOKEN_REQUEST_TOKEN; do
+            if [ -n "${!name:-}" ]; then
+              echo "::error::$name is set in the gate environment" >&2
+              exit 1
+            fi
+          done
+          echo "No credential in the gate environment."
+          python scripts/check_member_product_applications.py \
+            --export "$RUNNER_TEMP/method-check/model-export.json" \
+            --revision "$HEAD_SHA" \
+            --output "$RUNNER_TEMP/method-check/result/member-products.json" \
             --summary "$GITHUB_STEP_SUMMARY"
 
       - name: Upload the method check
