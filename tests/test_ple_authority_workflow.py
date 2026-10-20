@@ -333,11 +333,21 @@ def test_the_runner_command_parses_against_the_real_parser() -> None:
 
 
 def test_the_unlicensed_tests_are_the_authority_tests() -> None:
+    """The model, runner and workflow tests run before the licence, the receipts test after the runner.
+
+    A document change leaves the committed receipts stale until the fresh receipts of the run are
+    committed, so the receipts test never gates the serialization that writes them.
+    """
     _index, step = _step("tests/test_ple_authority_model.py")
     assert "env" not in step
     for test in ("tests/test_ple_authority_model.py", "tests/test_ple_authority_runner.py",
-                 "tests/test_ple_authority_workflow.py", "tests/test_ple_authority_receipts.py"):
+                 "tests/test_ple_authority_workflow.py"):
         assert test in step["run"] and (ROOT / test).is_file(), test
+    receipts_index, receipts = _step("tests/test_ple_authority_receipts.py")
+    runner_index, _ = _step(RUNNER)
+    assert "env" not in receipts and receipts_index > runner_index
+    assert not receipts["if"].startswith("always()"), "it runs only after a runner that passed"
+    assert (ROOT / "tests/test_ple_authority_receipts.py").is_file()
 
 
 def test_the_artifact_is_named_by_head_and_run_and_retained_under_runner_temp() -> None:
