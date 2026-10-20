@@ -17,7 +17,9 @@ Commands:
   evaluated a receipt is reported as an advisory. ``replay_receipts`` and
   ``replay_committed`` of ``pleml_receipts`` are the same check as functions.
 * ``refresh``: unlicensed. Rewrite receipts from their intact committed
-  elements when the evaluation no longer reproduces.
+  elements when the evaluation no longer reproduces. It lists every change of
+  a verdict, a derived variant or an admission, and writes nothing when there
+  is one, unless ``--accept-verdict-changes``.
 
 Until S7 the YAML catalogue with the feature model's file stem is the reviewed
 source of three shadow checks the receipt records: each feature's catalogue
@@ -199,18 +201,28 @@ def run_replay(args: argparse.Namespace) -> int:
 
 
 def run_refresh(args: argparse.Namespace) -> int:
-    """Refresh every receipt before writing any of them, so a refusal leaves all of them as they were."""
-    fresh = []
+    """Refresh every receipt before writing any of them, so a refusal leaves all of them as they were.
+
+    Every change of a verdict, a derived variant or an admission is listed. With
+    any such change nothing is written, unless ``--accept-verdict-changes``.
+    """
+    fresh, changes = [], []
     for path in args.receipt:
         receipt = json.loads(path.read_text(encoding="utf-8"))
         catalogue = (receipt.get("shadow") or {}).get("catalogue")
         payload = receipts.read_elements(path.parent / receipt["elements"]["path"])
         evaluation = receipts.evaluate_payload(payload, model_sources=receipt.get("model_sources"))
         shadow = shadow_checks(evaluation, Path(catalogue["path"]), ROOT) if catalogue else {}
-        fresh.append((path, receipts.refreshed(path, ROOT, shadow=shadow)))
-    for path, receipt in fresh:
-        receipts.write_receipt(path, receipt)
-    return 0
+        refreshed = receipts.refreshed(path, ROOT, shadow=shadow)
+        changes += [f"{path.name}: {change}" for change in receipts.verdict_changes(receipt, refreshed)]
+        fresh.append((path, refreshed))
+    write = not changes or args.accept_verdict_changes
+    if write:
+        for path, receipt in fresh:
+            receipts.write_receipt(path, receipt)
+    print(json.dumps({"receipts": [str(path) for path in args.receipt], "verdict_changes": changes,
+                      "written": write}, indent=2))
+    return 0 if write else 1
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -227,6 +239,9 @@ def build_parser() -> argparse.ArgumentParser:
                             ("refresh", "rewrite receipts from their committed elements (unlicensed)")):
         command = commands.add_parser(name, help=help_text)
         command.add_argument("receipt", type=Path, nargs="+")
+        if name == "refresh":
+            command.add_argument("--accept-verdict-changes", action="store_true",
+                                 help="write the receipts although verdicts, derived variants or admission change")
     return parser
 
 

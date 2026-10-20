@@ -153,7 +153,8 @@ python scripts/run_pleml_configuration_evaluation.py receipts \
 # Any machine: re-run the evaluator on the committed elements.
 python scripts/run_pleml_configuration_evaluation.py replay <receipt>...
 
-# Any machine: rewrite receipts from their intact elements when they no longer reproduce.
+# Any machine: rewrite receipts from their intact elements when they no longer reproduce;
+# a verdict, derived-variant or admission change needs --accept-verdict-changes.
 python scripts/run_pleml_configuration_evaluation.py refresh <receipt>...
 ```
 
@@ -183,12 +184,16 @@ runner replays the same in unlicensed CI and locally.
 - its evaluation (verdicts, derived variants, admission) or its shadow does
   not reproduce byte for byte from the committed elements.
 
-Reproduction is the only code check. A receipt records the digests of the code
-it was evaluated with (the evaluator, the receipts, the shadow, the modules
-they import, the CLI and the configurator) as provenance. When other code still
-reproduces the receipt, the receipt holds and `replay` reports the difference
-as an advisory. When it does not, `refresh` rewrites the receipt from its
-intact elements and records the new code. `pleml_receipts.replay_committed`
+Reproduction is the only code check. A receipt records the digests of the
+PLEML-owned code it was evaluated with (the evaluator, the receipts, the shadow,
+the package record, the CLI and the configurator) as provenance. Shared
+production modules stay outside that record. When other code still reproduces
+the receipt, the receipt holds and `replay` reports the difference as an
+advisory. When it does not, `refresh` rewrites the receipt from its intact
+elements and records the new code. It lists every change of a configuration's
+validity, reason classes, derived variants or admission, and writes nothing
+when there is one unless `--accept-verdict-changes` says so: a verdict change
+is a rollback trigger, never a silent rewrite. `pleml_receipts.replay_committed`
 and `replay_receipts` return the failures as a list, empty when every receipt
 holds, and the `replay` command calls them.
 

@@ -342,8 +342,12 @@ def test_the_replay_function_reports_failures_as_a_list(tmp_path, monkeypatch):
     assert failure.startswith(f"{path}: the receipt binds PLEML 1.1.1") and "the fenced package pins 1.1.2" in failure
 
 
-def test_the_code_identity_covers_what_an_evaluation_imports():
-    """The provenance record lists every module of the tree an evaluation, its CLI and the shadow import."""
+def test_the_code_identity_records_the_pleml_code_an_evaluation_imports():
+    """The provenance record lists the PLEML-owned modules an evaluation, its CLI and the shadow import.
+
+    Shared production modules stay outside it, so an unrelated change to one of them, even a new import,
+    never touches the record or this test (R16).
+    """
     probe = (
         "import sys\n"
         "from pathlib import Path\n"
@@ -358,8 +362,77 @@ def test_the_code_identity_covers_what_an_evaluation_imports():
         "    and Path(module.__file__).resolve().is_relative_to(ROOT)})))\n")
     result = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True, check=True, cwd=ROOT)
     imported = set(result.stdout.split())
-    assert imported and imported <= set(receipts.EVALUATOR_MODULES), sorted(imported - set(receipts.EVALUATOR_MODULES))
+    owned = {path for path in imported if re.fullmatch(r"de4sdv/semantic/pleml_\w+\.py", path)
+             or path in {"scripts/run_pleml_configuration_evaluation.py", "tools/configure_variant.py"}}
+    assert "de4sdv/semantic/validation.py" in imported  # a shared module the evaluation imports, never recorded
+    assert owned == set(receipts.EVALUATOR_MODULES)
     assert list(receipts.evaluator_identity()["modules"]) == list(receipts.EVALUATOR_MODULES)
+
+
+# -- refresh announces and guards verdict changes (R15) ----------------------------------------
+
+
+def without_xor(monkeypatch) -> None:
+    """The review's plant: the configuration no longer applies XOR constraints; the agreement still sees them."""
+    original = evaluator._Configuration.decide
+
+    def decide(self):
+        saved = self.model.constraints
+        self.model.constraints = [item for item in saved if item.kind != "xor"]
+        try:
+            return original(self)
+        finally:
+            self.model.constraints = saved
+
+    monkeypatch.setattr(evaluator._Configuration, "decide", decide)
+
+
+def flip_fixture(tmp_path: Path) -> Path:
+    """A receipt with the standalone member and an S-CORE-on-Android fixture, invalid on C001 alone."""
+    line = platform_line()
+    line.configure("invalidScoreAndroid", "autoware", "eclipseSCORE", "android", "noHypervisor")
+    return write_receipt(tmp_path, line.graph)
+
+
+def test_a_refresh_that_flips_a_verdict_is_refused_unless_accepted(tmp_path, monkeypatch, capsys):
+    path = flip_fixture(tmp_path)
+    committed = path.read_bytes()
+    decided = {item["configuration"]: item["valid"]
+               for item in json.loads(committed)["evaluation"]["feature_models"][0]["configurations"]}
+    assert decided["invalidScoreAndroid"] is False
+    without_xor(monkeypatch)
+    assert receipts.replay_committed(path.parent, tmp_path) == [
+        f"{path}: the committed evaluation does not reproduce from the committed elements"]
+    monkeypatch.setattr(cli, "ROOT", tmp_path)
+    capsys.readouterr()
+    assert cli.main(["refresh", str(path)]) == 1
+    refused = json.loads(capsys.readouterr().out)
+    expected = [
+        f"{PLATFORM_RECEIPT}: SDVProductLineFeatureModel/invalidScoreAndroid: valid False -> True",
+        f"{PLATFORM_RECEIPT}: SDVProductLineFeatureModel/invalidScoreAndroid: reasons ['constraint C001'] -> []",
+        f"{PLATFORM_RECEIPT}: SDVProductLineFeatureModel/invalidScoreAndroid: derived variants {{}} -> "
+        "{'applicationMiddlewareAdapter': 'autowareToSCORE', 'hypervisor': 'none', 'middleware': 'eclipseSCORE', "
+        "'osPlatform': 'android', 'vehicleApplication': 'autoware'}",
+        f"{PLATFORM_RECEIPT}: SDVProductLineFeatureModel/pair: reasons ['pair-exclusion'] -> ['derivation-no-rule']"]
+    assert refused == {"receipts": [str(path)], "verdict_changes": expected, "written": False}
+    assert path.read_bytes() == committed
+    with pytest.raises(receipts.VerdictChanges, match="valid False -> True"):
+        receipts.refresh(path, tmp_path)
+    assert path.read_bytes() == committed
+    assert cli.main(["refresh", "--accept-verdict-changes", str(path)]) == 0
+    accepted = json.loads(capsys.readouterr().out)
+    assert accepted == {"receipts": [str(path)], "verdict_changes": expected, "written": True}
+    assert receipts.replay_committed(path.parent, tmp_path) == []
+
+
+def test_a_neutral_refresh_writes_without_the_flag(tmp_path, monkeypatch, capsys):
+    path = flip_fixture(tmp_path)
+    changed_evaluation(monkeypatch)  # the output changes, no decision does
+    monkeypatch.setattr(cli, "ROOT", tmp_path)
+    capsys.readouterr()
+    assert cli.main(["refresh", str(path)]) == 0
+    assert json.loads(capsys.readouterr().out) == {"receipts": [str(path)], "verdict_changes": [], "written": True}
+    assert receipts.replay_committed(path.parent, tmp_path) == []
 
 
 def test_a_refresh_never_hides_stale_elements(tmp_path):

@@ -40,27 +40,16 @@ MODEL_ROLES = ("pleml-feature-model", "pleml-feature-configuration", "pleml-fixt
 #: The provenance of one licensed run. A receipt records it beside the elements, never inside them, so the
 #: same serialization on another commit gives the same elements file and the same digests.
 PROVENANCE = ("executor_revision", "bundle_git_commit")
-#: The code an evaluation and its shadow run, relative to the tree of the running evaluator: the import
-#: closure of the evaluation, the CLI and the configurator. Its digests are provenance, recorded for audit
-#: and reported as an advisory; reproduction, not this record, decides whether a receipt still holds.
+#: The PLEML-owned code an evaluation and its shadow run, relative to the tree of the running evaluator:
+#: the evaluator, the receipts, the shadow, the package record, the CLI and the configurator. Its digests
+#: are provenance, recorded for audit and reported as an advisory; reproduction, not this record, decides
+#: whether a receipt still holds. Shared production modules stay outside the record, so that unrelated
+#: work never touches it.
 EVALUATOR_MODULES = (
-    "de4sdv/__init__.py",
-    "de4sdv/semantic/__init__.py",
-    "de4sdv/semantic/kernel_contract.py",
-    "de4sdv/semantic/model_contract.py",
     "de4sdv/semantic/pleml_configuration.py",
     "de4sdv/semantic/pleml_package.py",
     "de4sdv/semantic/pleml_receipts.py",
     "de4sdv/semantic/pleml_shadow.py",
-    "de4sdv/semantic/validation.py",
-    "de4sdv/sysml_api/__init__.py",
-    "de4sdv/sysml_api/baseline.py",
-    "de4sdv/sysml_api/client.py",
-    "de4sdv/sysml_api/errors.py",
-    "de4sdv/sysml_api/product_line_scope.py",
-    "de4sdv/sysml_api/repository.py",
-    "de4sdv/sysml_api/revisions.py",
-    "de4sdv/sysml_api/served_model.py",
     "scripts/run_pleml_configuration_evaluation.py",
     "tools/configure_variant.py",
 )
@@ -347,14 +336,59 @@ def refreshed(receipt_path: Path, root: Path = ROOT, *, shadow: Mapping[str, Any
     return fresh
 
 
+def _decisions(receipt: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
+    """Each configuration's decision: validity, reason classes, derived variants and admission."""
+    decisions = {}
+    for model in (receipt.get("evaluation") or {}).get("feature_models") or []:
+        for item in model["configurations"]:
+            admission = item.get("admission") or {}
+            decisions[f"{model['feature_model']}/{item['configuration']}"] = {
+                "valid": item["valid"],
+                "reasons": sorted(f"{reason['class']} {reason['constraint']}" if reason.get("constraint")
+                                  else reason["class"] for reason in item["reasons"]),
+                "derived variants": {variant["variation"]: variant["variant"] for variant in item["derived_variants"]},
+                "admitted": admission.get("admitted"),
+                "admitted alternative": admission.get("alternative"),
+            }
+    return decisions
+
+
+def verdict_changes(committed: Mapping[str, Any], fresh: Mapping[str, Any]) -> list[str]:
+    """Every change of a configuration's validity, reasons, derived variants or admission, one line each."""
+    before, after = _decisions(committed), _decisions(fresh)
+    changes = [f"{name}: {'only in the refreshed receipt' if name in after else 'only in the committed receipt'}"
+               for name in sorted(set(before) ^ set(after))]
+    for name in sorted(set(before) & set(after)):
+        for key, value in before[name].items():
+            if after[name][key] != value:
+                changes.append(f"{name}: {key} {value} -> {after[name][key]}")
+    return changes
+
+
 def write_receipt(receipt_path: Path, receipt: Mapping[str, Any]) -> None:
     receipt_path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+class VerdictChanges(ValueError):
+    """A refresh that would change verdicts, derived variants or admission without being told to."""
+
+    def __init__(self, changes: list[str]) -> None:
+        super().__init__("the refresh changes verdicts: " + "; ".join(changes))
+        self.changes = changes
+
+
 def refresh(receipt_path: Path, root: Path = ROOT, *, shadow: Mapping[str, Any] | None = None,
-            contract: Any = None) -> dict[str, Any]:
-    """Rewrite one receipt from its committed elements when only the evaluator changed."""
+            contract: Any = None, accept_verdict_changes: bool = False) -> dict[str, Any]:
+    """Rewrite one receipt from its intact committed elements when it no longer reproduces.
+
+    A refresh that changes a verdict, a derived variant or an admission is
+    refused unless ``accept_verdict_changes`` says so: such a change is a
+    rollback trigger of the plan, never a silent rewrite.
+    """
     fresh = refreshed(receipt_path, root, shadow=shadow, contract=contract)
+    changes = verdict_changes(json.loads(receipt_path.read_text(encoding="utf-8")), fresh)
+    if changes and not accept_verdict_changes:
+        raise VerdictChanges(changes)
     write_receipt(receipt_path, fresh)
     return fresh
 
