@@ -1,3 +1,7 @@
+# Non-authoritative shadow (ADR 0022) of the PLEML feature configuration
+# nxp_zephyr_vehicle_target_candidate.sysml beside this file, until the YAML retires (step S7).
+# Until then it also carries the configuration's evidence record.
+
 name: NXPZephyrVehicleTargetCandidate
 description: >-
   Planned and unverified System 1 vehicle-target candidate combining an

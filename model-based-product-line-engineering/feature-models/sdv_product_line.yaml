@@ -1,9 +1,15 @@
-# DE4SDV SDV Product Line Feature Model
+# Non-authoritative shadow (ADR 0022). Since the switch, the PLEML feature
+# model sdv_product_line.sysml beside this file is the product-line
+# authority. This catalogue stays until the YAML retires (ADR 0022, step
+# S7), at least 30 days after the switch: the parity check
+# (scripts/check_pleml_parity.py) compares the two paths on every pull
+# request, so change both together.
+#
+# DE4SDV SDV Product Line Feature Catalogue
 #
 # This is the Feature Catalogue (ISO/IEC 26580 terminology).
 # It defines what features exist, their hierarchical relationships,
-# and cross-tree constraints. It is the single source of truth for
-# what distinguishes member products in the DE4SDV product line.
+# and cross-tree constraints, as the PLEML feature model restates them.
 #
 # Relationship semantics:
 #   mandatory   — parent selected → child must be selected
@@ -19,9 +25,9 @@
 #   maps_to_variant — SysML v2 variant name within that variation part
 #                     (e.g. "autoware" matches "variant part autoware")
 #
-# This feature model is the decision layer. The SysML v2 base model
-# (sdv_platform_stack.sysml) is the shared asset superset (150% model)
-# whose platform-stack structural variation points the feature selections resolve.
+# The SysML v2 base model (sdv_platform_stack.sysml) is the shared asset
+# superset (150% model) whose platform-stack structural variation points the
+# feature selections resolve.
 # Capability selections remain catalogue/configuration information until they are
 # linked to corresponding variable shared assets; they are not resolved by the
 # current platform-stack generator.

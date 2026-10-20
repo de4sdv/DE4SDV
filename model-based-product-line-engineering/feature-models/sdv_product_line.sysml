@@ -9,12 +9,15 @@
  * and the unassigned binding times use the kernel definitions of
  * DE4SDV_ProductLineDerivation.
  *
- * Boundary until the authority switch (ADR 0022, step S6):
- *   - fenced: not exported, not served, not in the method check, not a
- *     production validation root and not a viewer root; the privileged PLE
- *     authority workflow validates it with the pinned library;
- *   - the YAML catalogue, the bills of features and the configurator remain
- *     the selection authority;
+ * Authority since the switch of ADR 0022:
+ *   - this model, its configurations and their bindings are the
+ *     configuration-validity authority of the product line; they are
+ *     exported, served and validated with the other model roots;
+ *   - the DE4SDV evaluation decides validity and derives the variants that
+ *     no configuration selects, and its receipts are the record that the
+ *     configurator generates the product-model projections from;
+ *   - the YAML catalogue and the bills of features are a non-authoritative
+ *     shadow until the YAML retires, compared by the parity check;
  *   - the governed product-line scope remains the admission authority: a
  *     configuration can be valid without being admitted;
  *   - no native evaluation of a PLEML constraint body is claimed, and no

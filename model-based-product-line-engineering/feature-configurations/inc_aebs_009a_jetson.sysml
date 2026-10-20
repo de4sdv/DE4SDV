@@ -1,9 +1,9 @@
 /*
- * PLEML feature configuration restating the bill of features
- * inc-aebs-009a-jetson.yaml, the System 2 environment record of
- * INC-AEBS-009A. Fenced until the authority switch (ADR 0022, step S6): the
- * bill of features stays the selection authority until then, and its
- * evidence block stays there. The doc is the bill of features' description.
+ * PLEML feature configuration of the System 2 environment record of
+ * INC-AEBS-009A, the configuration authority since the switch of ADR 0022.
+ * The bill of features inc-aebs-009a-jetson.yaml beside it is its
+ * non-authoritative shadow until the YAML retires, and holds its evidence
+ * block until then. The doc is the configuration's description.
  */
 
 package DE4SDV_INCAEBS009AJetsonExecutionEnvironmentConfiguration {

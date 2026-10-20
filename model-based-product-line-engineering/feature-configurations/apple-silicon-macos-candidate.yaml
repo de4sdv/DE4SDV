@@ -1,3 +1,7 @@
+# Non-authoritative shadow (ADR 0022) of the PLEML feature configuration
+# apple_silicon_macos_candidate.sysml beside this file, until the YAML retires (step S7).
+# Until then it also carries the configuration's evidence record.
+
 name: AppleSiliconMacOSCandidate
 description: >-
   Planned and unverified System 2 candidate for an Apple Silicon M-series Mac

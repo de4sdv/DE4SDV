@@ -1,3 +1,12 @@
+# Non-authoritative shadow (ADR 0022). Since the switch, the PLEML feature
+# model engineering_execution_environments.sysml beside this file is the product-line
+# authority. This catalogue stays until the YAML retires (ADR 0022, step
+# S7), at least 30 days after the switch: the parity check
+# (scripts/check_pleml_parity.py) compares the two paths on every pull
+# request, so change both together.
+#
+# The catalogue of the engineering execution environments.
+
 schema_version: 1
 projection:
   package: DE4SDV_ExecutionEnvironments
