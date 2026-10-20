@@ -160,8 +160,13 @@ syside check \
   model-based-product-line-engineering/product-models \
   model-based-product-line-engineering/scoping \
   model-based-product-line-engineering/feature-models \
-  model-based-product-line-engineering/feature-configurations
+  model-based-product-line-engineering/feature-configurations \
+  --exclude "**/fixtures/**"
 ```
+
+The fixtures under `feature-configurations/fixtures/` (the invalid
+configuration and the parity probes) are not production model files. The
+privileged PLE authority workflow validates them with the model roots.
 
 Run `sysand sync` first: the pinned libraries, PLEML among them, come from the
 committed `sysand-lock.toml`.

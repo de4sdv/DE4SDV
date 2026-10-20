@@ -42,8 +42,10 @@ part definition its product-model projection declares.
 
 The fixtures under `fixtures/` (the invalid configuration and the parity
 probes) are never configurations of the product line: the authority job
-validates and serializes them into the receipts, and the export, the API
-baseline and the served model leave them out.
+validates and serializes them into the receipts, and no production selector
+reads them. The export, the API baseline, the served model and its drift
+gate, the licensed validation, the repository and naming checks and the
+viewer leave them out, and receipt mode never projects them.
 
 ## Selection semantics of the Bills-of-Features (shadow)
 

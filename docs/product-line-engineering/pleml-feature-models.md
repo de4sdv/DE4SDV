@@ -148,9 +148,11 @@ viewer roots and roots of the served model's drift gate, and the method check
 and the licensed validation run on them. The PLEML library is a pinned
 dependency of the API baseline ([provisioning](pleml-provisioning.md)). The
 fixtures under `feature-configurations/fixtures/` (the invalid configuration
-and the parity probes) stay out of the export and the served model; the
-authority job validates and serializes them. Only the feature models, their
-configurations, the fixture and the parity probes import PLEML.
+and the parity probes) are read by no production selector: the export, the
+served model and its drift gate, the licensed validation, the repository and
+naming checks and the viewer leave them out, and the authority job validates
+and serializes them. Only the feature models, their configurations, the
+fixture and the parity probes import PLEML.
 
 ## The authority job
 
@@ -285,7 +287,10 @@ plan, 16 `equal`, 8 `both-reject`, 1 `not-expressible` and 0 `defect`.
 
 The configurator reads the receipts with its existing writer:
 `python tools/configure_variant.py --receipt <receipt> --configuration <name>`
-replays the receipt and generates the projection of one valid configuration.
+replays the receipt and generates the projection of one valid configuration
+of the served model. It refuses to project a fixture (exit 2); `--check-only`
+reports a fixture's verdict, and the parity renders the probes' projections
+in memory.
 The parity requires each of the seven committed projections to have one
 normalised body on all three sides: the committed file, the YAML path and the
 receipt. Since the switch the committed projections are the receipt path's,

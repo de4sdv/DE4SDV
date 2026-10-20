@@ -428,6 +428,32 @@ def test_r003_qualified_invalid_target_does_not_borrow_homonym(tmp_path: Path):
     assert _sp6_flagged(errors, "reqDesignInput"), errors
 
 
+_SP6_ORIGIN_PACKAGE = """package Good {
+  private import K::*;
+  requirement origin : ConcreteNeed { doc /* a valid Need origin */ }
+}
+"""
+_SP6_SLICE_TO_GOOD_ORIGIN = """package S {
+  private import K::*;
+  requirement reqDesignInput : FunctionalRequirementCandidate { doc /* under test */ }
+  dependency d1 from reqDesignInput to Good::origin;
+}
+"""
+
+
+@pytest.mark.parametrize("location, resolves", [("origin.sysml", True), ("fixtures/origin.sysml", False)])
+def test_r003_never_resolves_an_origin_declared_in_a_fixture(tmp_path: Path, location: str, resolves: bool):
+    """The synthetic fixtures of the model roots (the invalid configuration and the
+    parity probes) are no production model files: a derivation to an origin only a
+    fixture declares stays unresolved, while the same origin in a model file passes."""
+    origin = tmp_path / location
+    origin.parent.mkdir(parents=True, exist_ok=True)
+    origin.write_text(_SP6_ORIGIN_PACKAGE, encoding="utf-8")
+    errors = _sp6_scenario(_SP6_SLICE_TO_GOOD_ORIGIN, _SP6_KERNEL, tmp_path)
+    assert (errors == []) is resolves, errors
+    assert _sp6_flagged(errors, "reqDesignInput") is not resolves, errors
+
+
 def test_r003_qualified_valid_adr_target_passes(tmp_path: Path):
     """A qualified valid origin usage (K::ArchitectureDecisionRecord typed)
     satisfies R003 — the reverse failure of the homonym case."""

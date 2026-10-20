@@ -186,10 +186,11 @@ def _usages_typed_by(type_name, *texts):
 
 
 def _model_texts():
-    """Every .sysml file in the roots that licensed validation checks."""
+    """Every .sysml file in the roots that licensed validation checks, without their fixtures."""
     texts = []
     for root in MODEL_ROOTS:
-        files = sorted((ROOT / root).rglob("*.sysml"))
+        files = [path for path in sorted((ROOT / root).rglob("*.sysml"))
+                 if "fixtures" not in path.relative_to(ROOT / root).parts]
         assert files, f"no .sysml files under {root}"
         texts.extend(path.read_text(encoding="utf-8") for path in files)
     return texts

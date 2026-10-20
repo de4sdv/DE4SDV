@@ -174,6 +174,11 @@ jobs:
                   sys.exit(1)
           PY
 
+      # The synthetic fixtures of the model roots (the invalid configuration
+      # and the parity probes under feature-configurations/fixtures/) are no
+      # production model files: the export never reads them, and the
+      # privileged PLE authority workflow validates them with the model roots.
+      # The check, the diagrams and the grid views exclude them.
       - name: Run Syside validation
         if: steps.syside-secret.outputs.available == 'true'
         env:
@@ -181,7 +186,7 @@ jobs:
         run: |
           echo "Running licensed Syside validation for: ${MODEL_PATHS}"
           read -r -a model_paths <<< "${MODEL_PATHS}"
-          syside check "${model_paths[@]}"
+          syside check "${model_paths[@]}" --exclude "**/fixtures/**"
 
       - name: Generate view diagrams (Labs)
         if: steps.syside-secret.outputs.available == 'true'
@@ -205,7 +210,8 @@ jobs:
             --include "${PLEML_SOURCE}" \
             --format svg \
             --output-dir diagrams \
-            --exclude "textual-notation-of-model/snapshots/**"
+            --exclude "textual-notation-of-model/snapshots/**" \
+            --exclude "**/fixtures/**"
 
       - name: Check critical view materialization
         if: steps.syside-secret.outputs.available == 'true'
@@ -265,6 +271,7 @@ jobs:
             --include "${SYSMOD_SOURCE}" \
             --include "${REQMGMT_SOURCE}" \
             --include "${PLEML_SOURCE}" \
+            --exclude "**/fixtures/**" \
             --output-dir grid-csv
           python scripts/render_grid_csv.py grid-csv diagrams
           for csv in grid-csv/*.csv; do

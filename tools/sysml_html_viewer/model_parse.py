@@ -409,16 +409,27 @@ def parse_file(path: Path, repo_root: Path) -> ModelFile:
     return mf
 
 
-def load_model(repo_root: Path, roots: list[str]) -> list[ModelFile]:
-    """Load all .sysml files under the given repo-relative roots."""
-    files: list[ModelFile] = []
+#: Never loaded: the synthetic fixtures of the model roots (the invalid
+#: configuration and the parity probes under feature-configurations/fixtures/),
+#: which the export and the served model leave out too.
+EXCLUDED_PART = "fixtures"
+
+
+def model_paths(repo_root: Path, roots: list[str]) -> list[Path]:
+    """The .sysml files under the given repo-relative roots, without their fixtures."""
+    paths: list[Path] = []
     for root in roots:
         base = repo_root / root
         if not base.is_dir():
             continue
-        for path in sorted(base.rglob("*.sysml")):
-            files.append(parse_file(path, repo_root))
-    return files
+        paths.extend(path for path in sorted(base.rglob("*.sysml"))
+                     if EXCLUDED_PART not in path.relative_to(base).parts)
+    return paths
+
+
+def load_model(repo_root: Path, roots: list[str]) -> list[ModelFile]:
+    """Load the .sysml files under the given repo-relative roots, without their fixtures."""
+    return [parse_file(path, repo_root) for path in model_paths(repo_root, roots)]
 
 
 # ---------------------------------------------------------------------------

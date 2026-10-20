@@ -50,6 +50,20 @@ def fixture_sysml():
     return FIXTURE / "textual-notation-of-model/packages/features/fixture/fixture_feature.sysml"
 
 
+def test_load_model_leaves_out_the_fixtures_of_a_model_root(tmp_path):
+    """The synthetic fixtures under a model root's fixtures/ (the invalid
+    configuration and the parity probes) are no model files of the viewer, as they
+    are none of the export; a model area named in the singular stays a model area."""
+    root = "model-based-product-line-engineering/feature-configurations"
+    for index, relative in enumerate(("member.sysml", "fixtures/invalid.sysml",
+                                      "fixtures/parity-probes/probe.sysml", "fixture/area.sysml")):
+        path = tmp_path / root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"package P{index} {{\n}}\n", encoding="utf-8")
+    assert [model.rel_path for model in load_model(tmp_path, [root])] == [
+        f"{root}/fixture/area.sysml", f"{root}/member.sysml"]
+
+
 def test_parse_members(fixture_sysml):
     mf = parse_file(fixture_sysml, FIXTURE)
     kinds = {m.kind for m in mf.members}

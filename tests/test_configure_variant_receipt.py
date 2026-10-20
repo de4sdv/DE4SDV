@@ -98,6 +98,39 @@ def test_the_receipt_mode_refuses_an_invalid_configuration() -> None:
     assert "1 violation(s) in the receipt" in result.stderr and "Traceback" not in result.stderr
 
 
+def test_the_receipt_mode_projects_exactly_the_member_configurations() -> None:
+    """The receipts evaluate the member configurations, the invalid fixture and the
+    parity probes; receipt mode projects only a configuration of the served model,
+    one per committed projection, and never a fixture (#411 R5)."""
+    from scripts import run_ple_authority as runner
+
+    sources = {configuration["source"]
+               for path in sorted(RECEIPTS.glob("*.receipt.json"))
+               for model in json.loads(path.read_text(encoding="utf-8"))["evaluation"]["feature_models"]
+               for configuration in model["configurations"]}
+    served = {source for source in sources if configurator.served_configuration({"source": source})}
+    assert served == set(runner.CONFIGURATIONS) == {_configuration_of(bill) for bill in PROJECTIONS}
+    assert sources - served == set(runner.FIXTURES)
+    assert len(served) == 7 and len(runner.FIXTURES) == 18
+
+
+@pytest.mark.parametrize("name", ["radarOnlySensingProbe", "invalidSCOREAndroidVariant"])
+def test_the_receipt_mode_never_projects_a_fixture(name: str, tmp_path: Path) -> None:
+    output = tmp_path / "projection.sysml"
+    result = _run("--receipt", str(RECEIPTS / "sdv_product_line.receipt.json"), "--configuration", name,
+                  "--output", str(output))
+    assert result.returncode == 2, result.stderr
+    assert f"'{name}' is a fixture of the receipt" in result.stderr and "Traceback" not in result.stderr
+    assert not output.exists()
+
+
+def test_the_receipt_mode_checks_a_fixture_without_projecting_it() -> None:
+    result = _run("--receipt", str(RECEIPTS / "sdv_product_line.receipt.json"), "--configuration",
+                  "radarOnlySensingProbe", "--check-only")
+    assert result.returncode == 0 and "the receipt replays" in result.stderr
+    assert result.stdout == ""
+
+
 def test_the_receipt_mode_checks_without_writing(tmp_path: Path) -> None:
     output = tmp_path / "projection.sysml"
     result = _run("--receipt", str(RECEIPTS / "vehicle_execution_environments.receipt.json"), "--configuration",

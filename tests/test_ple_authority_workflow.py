@@ -322,6 +322,8 @@ def test_syside_check_covers_the_model_roots_with_the_pleml_files_and_their_fixt
     for directory in ("model-based-product-line-engineering/feature-models",
                       "model-based-product-line-engineering/feature-configurations"):
         assert f" {directory} " in command, directory
+    # The production validation excludes the fixtures; this job is where they are checked.
+    assert "--exclude" not in command
     assert '"$RUNNER_TEMP/ple-evidence/syside-check.txt"' in command
 
 

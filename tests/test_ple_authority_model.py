@@ -339,24 +339,84 @@ def _governed_deploy_paths() -> tuple[str, ...]:
     return _GOVERNED_MODEL_PATHS
 
 
-@pytest.mark.parametrize("path", PLEML_FILES)
-def test_every_pleml_file_is_read_by_every_production_selector_and_only_the_authority_sources_are_exported(
-        path: str) -> None:
-    """Since the switch the PLEML documents are model files of every production
-    selector (validation, repository checks, naming, the viewers and the drift
-    gate of the served model). The export reads the authority sources only: the
-    invalid fixture and the parity probes never reach the API baseline or the
-    served model (#405 R14)."""
+@pytest.fixture(scope="module")
+def production_selection() -> dict[str, frozenset[str]]:
+    """The repository-relative model files each production selector reads.
+
+    The repository check and the R003 check of the model sync read the same
+    roots; their fixture exclusion is tested on synthetic trees
+    (``tests/test_check_repo.py``, ``tests/test_check_model_sync.py``).
+    """
+    from tools.sysml_html_viewer.model_parse import model_paths
+
+    governed = subprocess.run(["git", "ls-files", "-z", "--", *_governed_deploy_paths()], cwd=ROOT,
+                              capture_output=True, text=True, check=True).stdout.split("\0")
+    return {
+        "export (API baseline)": frozenset(source.path for source in BaselineManifest.discover(ROOT).sources
+                                           if source.authority == "reviewed"),
+        "licensed validation (validate_sysml)": frozenset(
+            path.relative_to(ROOT).as_posix() for model_path in validate_sysml.MODEL_PATHS
+            for path in validate_sysml.model_files(ROOT, model_path)),
+        "naming (declarations)": frozenset(path.relative_to(ROOT).as_posix()
+                                           for path in check_naming.iter_declaration_model_files()),
+        "viewer": frozenset(path.relative_to(ROOT).as_posix() for path in model_paths(ROOT, DEFAULT_ROOTS)),
+        "drift gate of the served model": frozenset(path for path in governed if path),
+    }
+
+
+@pytest.mark.parametrize("path", runner.AUTHORITY_SOURCES)
+def test_every_authority_source_is_a_model_file_of_every_production_selector(
+        path: str, production_selection: dict[str, frozenset[str]]) -> None:
+    """Since the switch the feature models and the member configurations are model
+    files of every production selector: the export, the licensed validation, the
+    naming checks, the viewer and the drift gate of the served model."""
     model = Path(path)
     assert (ROOT / model).is_file(), path
     for roots in (REVIEWED_ROOTS, validate_sysml.MODEL_PATHS, check_repo.SYSML_MODEL_PATHS):
         assert any(model.is_relative_to(root) for root in roots), roots
-    assert any(model.is_relative_to(Path(root)) for root in DEFAULT_ROOTS)
-    assert any(model.is_relative_to(Path(governed)) for governed in _governed_deploy_paths()
-               if not governed.startswith(":("))
     assert any((ROOT / model).is_relative_to(root) for root in check_naming.SYSML_MODEL_ROOTS)
-    exported = model.as_posix() in {source.path for source in BaselineManifest.discover(ROOT).sources}
-    assert exported == (path in runner.AUTHORITY_SOURCES), path
+    for selector, files in production_selection.items():
+        assert path in files, selector
+    assert not check_naming._is_exempt_sysml(ROOT / model)
+
+
+@pytest.mark.parametrize("path", runner.FIXTURES)
+def test_no_fixture_is_a_model_file_of_a_production_selector(
+        path: str, production_selection: dict[str, frozenset[str]]) -> None:
+    """The invalid configuration and the parity probes are fixtures: the PLE
+    authority job validates, serializes and evaluates them, and no production
+    selector reads them; the export (#405 R14), the licensed validation, the
+    repository and naming checks, the viewer and the drift gate leave them out
+    (#411 R5)."""
+    from scripts import list_view_folders
+
+    assert (ROOT / path).is_file(), path
+    for selector, files in production_selection.items():
+        assert path not in files, selector
+    assert check_naming._is_exempt_sysml(ROOT / path)
+    assert not any(path.startswith(folder + "/") for folder in list_view_folders.view_folders())
+    assert not configurator.served_configuration({"source": path})
+
+
+@pytest.mark.parametrize("path", runner.CONFIGURATIONS)
+def test_the_configurator_projects_every_member_configuration(path: str) -> None:
+    assert configurator.served_configuration({"source": path})
+
+
+def test_the_licensed_validation_leaves_out_the_fixtures() -> None:
+    """The check, the diagrams and the grid views of the licensed validation exclude
+    the fixtures, as the wrapper does; the PLE authority job validates them."""
+    steps = yaml.safe_load(_raw(".github/workflows/privileged-syside-validation.yml"))["jobs"]["syside-validation"]["steps"]
+    commands = {}
+    for step in steps:
+        run = " ".join(re.sub(r"\\\n\s*", " ", step.get("run") or "").split())
+        for command in ("syside check", "syside viz view", "syside table export"):
+            if command in run:
+                commands[command] = run
+    assert sorted(commands) == ["syside check", "syside table export", "syside viz view"]
+    for command, run in commands.items():
+        assert '--exclude "**/fixtures/**"' in run, command
+    assert validate_sysml.check_command("syside")[-2:] == ["--exclude", "**/fixtures/**"]
 
 
 def test_the_pinned_library_is_the_one_pleml_dependency_of_the_api_baseline() -> None:
