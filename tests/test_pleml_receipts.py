@@ -671,7 +671,10 @@ def test_the_normalisation_touches_only_the_writers_derivation_source_line():
                         for member in ("Autoware", "Apollo"))
     assert receipts.normalised_body(autoware) != receipts.normalised_body(apollo)
     assert "   * Derived platform-stack projection from the Autoware member." in receipts.normalised_body(autoware)
-    moved = projection.replace("   * Derived platform-stack projection from Bill-of-Features.\n", "")
+    # The committed projection's own derivation-source line, whichever path wrote it (the receipt since S6).
+    moved, removed = re.subn(r"^   \* Derived platform-stack projection from .+\.\n", "", projection, count=1,
+                             flags=re.MULTILINE)
+    assert removed == 1
     with pytest.raises(ValueError, match="derivation-source line"):
         receipts.normalised_body(moved)
 
