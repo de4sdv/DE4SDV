@@ -1,8 +1,8 @@
 {
   "elements": {
-    "content_sha256": "f79831abf7103788586f89795f1380f95a67eb6afaac95d4fa13333f3e504567",
+    "content_sha256": "66a78b209901022c7a50bd868ec27ae13ab10c15ebe903d439b1c04ea0c68ee0",
     "path": "pleml-feature-models.elements.json.xz",
-    "sha256": "e27746d0dffce4adb03dfacc77bfe0a2b7682fb1997972117b282f22c4806dce"
+    "sha256": "28dadd5c0b0ea323b458761ec39c610dbc7f04944e16b4aafda93153d0ef1b3e"
   },
   "evaluation": {
     "admission_authority": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
@@ -823,7 +823,6 @@
                 "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
               ],
               "reasons": [
-                "invalid configuration: constraint",
                 "selects content the governed scope does not admit: platformStack.eclipseSCORE: reference-only eclipseSCORE",
                 "realizes more than one admitted alternative: aaosIntegrated, standalone",
                 "does not represent the common content: currentSensingBaseline (missing sensingBoundary.camera); linuxROS2AutowareRuntime (missing platformStack.linux)"
@@ -840,10 +839,6 @@
                 "code": "constraint",
                 "constraint": "C001",
                 "detail": "platformStack.eclipseSCORE excludes ['platformStack.android']",
-                "features": [
-                  "platformStack.android",
-                  "platformStack.eclipseSCORE"
-                ],
                 "kind": "xor"
               }
             ],
@@ -1114,7 +1109,6 @@
                 "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
               ],
               "reasons": [
-                "invalid configuration: pair-exclusion",
                 "selects content the governed scope does not admit: platformStack.apollo: reference-only apollo",
                 "realizes more than one admitted alternative: aaosIntegrated, standalone",
                 "does not represent the common content: autowareApplication (missing platformStack.autoware)"
@@ -1131,10 +1125,6 @@
                 "code": "pair-exclusion",
                 "constraint": null,
                 "detail": "platformStack.apollo excludes ['platformStack.androidSDV']",
-                "features": [
-                  "platformStack.androidSDV",
-                  "platformStack.apollo"
-                ],
                 "kind": "xor"
               }
             ],
@@ -1250,7 +1240,6 @@
                 "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
               ],
               "reasons": [
-                "invalid configuration: pair-exclusion",
                 "selects content the governed scope does not admit: platformStack.apollo: reference-only apollo | platformStack.autosarAdaptive: reference-only autosarAdaptive",
                 "misses derived realizations of standalone: platformStack.middleware = platformStack.noMiddleware",
                 "does not represent the common content: autowareApplication (missing platformStack.autoware)"
@@ -1267,10 +1256,6 @@
                 "code": "pair-exclusion",
                 "constraint": null,
                 "detail": "platformStack.apollo excludes ['platformStack.autosarAdaptive']",
-                "features": [
-                  "platformStack.apollo",
-                  "platformStack.autosarAdaptive"
-                ],
                 "kind": "xor"
               }
             ],
@@ -1696,7 +1681,6 @@
                 "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
               ],
               "reasons": [
-                "invalid configuration: upper-bound",
                 "realizes more than one admitted alternative: aaosIntegrated, standalone"
               ]
             },
@@ -1709,26 +1693,17 @@
               {
                 "class": "upper-bound",
                 "code": "upper-bound",
-                "detail": "group platformStack.hypervisor selects 2 of [1..1]",
-                "features": [
-                  "platformStack.hypervisor"
-                ]
+                "detail": "group platformStack.hypervisor selects 2 of [1..1]"
               },
               {
                 "class": "upper-bound",
                 "code": "upper-bound",
-                "detail": "group platformStack.middleware selects 2 of [1..1]",
-                "features": [
-                  "platformStack.middleware"
-                ]
+                "detail": "group platformStack.middleware selects 2 of [1..1]"
               },
               {
                 "class": "upper-bound",
                 "code": "upper-bound",
-                "detail": "group platformStack.operatingSystem selects 2 of [1..1]",
-                "features": [
-                  "platformStack.operatingSystem"
-                ]
+                "detail": "group platformStack.operatingSystem selects 2 of [1..1]"
               }
             ],
             "selected": [
@@ -1939,7 +1914,7 @@
           },
           {
             "admission": {
-              "admitted": false,
+              "admitted": true,
               "alternative": "standalone",
               "alternatives_realized": {
                 "standalone": [
@@ -1997,9 +1972,7 @@
                 "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
                 "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
               ],
-              "reasons": [
-                "invalid configuration: derived-variant-not-selectable"
-              ]
+              "reasons": []
             },
             "configuration": "handPickedAdapterProbe",
             "derived_variants": [],
@@ -2010,11 +1983,7 @@
               {
                 "class": "derived-variant-not-selectable",
                 "code": "derived-variant-not-selectable",
-                "detail": "adapter chooses a derived variant; derived variants are never configured",
-                "features": [],
-                "variations": [
-                  "applicationMiddlewareAdapter"
-                ]
+                "detail": "adapter chooses a derived variant; derived variants are never configured"
               }
             ],
             "selected": [
@@ -2431,7 +2400,6 @@
                 "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
               ],
               "reasons": [
-                "invalid configuration: lower-bound",
                 "realizes no admitted alternative",
                 "does not represent the common content: linuxROS2AutowareRuntime (missing platformStack.linux)"
               ]
@@ -2445,26 +2413,17 @@
               {
                 "class": "lower-bound",
                 "code": "lower-bound",
-                "detail": "group platformStack.hypervisor selects 0 of [1..1]",
-                "features": [
-                  "platformStack.hypervisor"
-                ]
+                "detail": "group platformStack.hypervisor selects 0 of [1..1]"
               },
               {
                 "class": "lower-bound",
                 "code": "lower-bound",
-                "detail": "group platformStack.middleware selects 0 of [1..1]",
-                "features": [
-                  "platformStack.middleware"
-                ]
+                "detail": "group platformStack.middleware selects 0 of [1..1]"
               },
               {
                 "class": "lower-bound",
                 "code": "lower-bound",
-                "detail": "group platformStack.operatingSystem selects 0 of [1..1]",
-                "features": [
-                  "platformStack.operatingSystem"
-                ]
+                "detail": "group platformStack.operatingSystem selects 0 of [1..1]"
               }
             ],
             "selected": [
@@ -2579,7 +2538,6 @@
                 "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
               ],
               "reasons": [
-                "invalid configuration: pair-exclusion",
                 "selects content the governed scope does not admit: platformStack.openpilot: reference-only openpilot",
                 "realizes more than one admitted alternative: aaosIntegrated, standalone",
                 "does not represent the common content: autowareApplication (missing platformStack.autoware)"
@@ -2596,10 +2554,6 @@
                 "code": "pair-exclusion",
                 "constraint": null,
                 "detail": "platformStack.openpilot excludes ['platformStack.androidSDV']",
-                "features": [
-                  "platformStack.androidSDV",
-                  "platformStack.openpilot"
-                ],
                 "kind": "xor"
               }
             ],
@@ -2715,7 +2669,6 @@
                 "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
               ],
               "reasons": [
-                "invalid configuration: pair-exclusion",
                 "selects content the governed scope does not admit: platformStack.openpilot: reference-only openpilot | platformStack.autosarAdaptive: reference-only autosarAdaptive",
                 "misses derived realizations of standalone: platformStack.middleware = platformStack.noMiddleware",
                 "does not represent the common content: autowareApplication (missing platformStack.autoware)"
@@ -2732,10 +2685,6 @@
                 "code": "pair-exclusion",
                 "constraint": null,
                 "detail": "platformStack.openpilot excludes ['platformStack.autosarAdaptive']",
-                "features": [
-                  "platformStack.autosarAdaptive",
-                  "platformStack.openpilot"
-                ],
                 "kind": "xor"
               }
             ],
@@ -4395,7 +4344,7 @@
       "UnassignedBindingTime": "ecb8f0b3-977d-58de-b6a1-3462907cf574"
     },
     "kernel_source": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
-    "library_source": "model-based-product-line-engineering/libraries/pleml/.sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml",
+    "library_source": ".sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml",
     "model_sources": [
       "model-based-product-line-engineering/feature-configurations/aebs_autoware_linux_lidar_camera.sysml",
       "model-based-product-line-engineering/feature-configurations/apollo_qnx_qvm.sysml",
@@ -4427,22 +4376,21 @@
   },
   "evaluator": {
     "modules": {
-      "de4sdv/semantic/pleml_configuration.py": "21dd4fae68c096850d34df16da62f0298749f3a690cd61e787e2350d63b01b62",
-      "de4sdv/semantic/pleml_package.py": "da17a6aae4c8f2b8f0159dadbd5d88619c11633823d65a237f3b90e36c2b7b95",
-      "de4sdv/semantic/pleml_receipts.py": "12ed0ea44ed890cb617114bc857b6ca545ad830a75fa9bc0870b19964ca9bd28",
+      "de4sdv/semantic/pleml_configuration.py": "357d4611fbd71dfbf88c156bc58169336f87a3528ccd6e395067d3276d49d532",
+      "de4sdv/semantic/pleml_package.py": "bd9dfb79358988c4453918097cd3259575864e1bbd489fed67eca64a7e801e2d",
+      "de4sdv/semantic/pleml_receipts.py": "963f1a7ac659cbd9a474f8060af474acb271bbcad9c3903ddf252ecdf8b56d27",
       "de4sdv/semantic/pleml_shadow.py": "f42bbbdf054f71908ba20ec55e3c4cac978a0826fa896373f803b283840ecaff",
-      "scripts/run_pleml_configuration_evaluation.py": "caedab3a5e3ff25d259a267ac76142567b371d244e450f563c149c1beffd4a67",
-      "tools/configure_variant.py": "8a15e436cdf376ab03c6cf0e584e06ca90a18626fca193c4dcc87079b595f8c4"
+      "scripts/run_pleml_configuration_evaluation.py": "beebd0aa61cc493c2b5b26a7e2e1020adc1e58824b1a0253db979d53889ed43a",
+      "tools/configure_variant.py": "3b92fff8eed3901cc877732aea3fa5f0c1939a9237d779473cfd23e3dba1b38f"
     },
-    "refreshed_from": "f99574ec400010ce8e6f7137be48f855743afe6b3fd1788cce2b193660849074",
-    "sha256": "7038b001e40e5b33bb9b592187be3461b5c8197e3088692b89c6b3f403c188da"
+    "sha256": "81e7a7e46dd4e66267575c7743b9b08b0d91f6ecbd4cbd2b1dc2e500dd8e102b"
   },
   "feature_models": [
     "SDVProductLineFeatureModel"
   ],
   "library": {
     "package": "pkg:sysand/mbse4u/pleml",
-    "path": "model-based-product-line-engineering/libraries/pleml/.sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml",
+    "path": ".sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml",
     "sha256": "a3f23c2531272b4cab684f0f1d1a982a443f0a2cdca824cc893f4004980ae02c",
     "tag_commit": "b694648cce4b96126eda2de3eb881c54397ae035",
     "version": "1.1.1"
@@ -4474,8 +4422,8 @@
   ],
   "native_expression_executed": false,
   "provenance": {
-    "bundle_git_commit": "8ce62248a50e0334c86dde8f14922ba49dfabdb1",
-    "executor_revision": "8ce62248a50e0334c86dde8f14922ba49dfabdb1"
+    "bundle_git_commit": "c6be01f50c626ed922e29b5855ba1ccb0464e90b",
+    "executor_revision": "c6be01f50c626ed922e29b5855ba1ccb0464e90b"
   },
   "qualified": false,
   "schema": "de4sdv.pleml-configuration-receipt/v1",
@@ -4517,7 +4465,7 @@
     ],
     "catalogue": {
       "path": "model-based-product-line-engineering/feature-models/sdv_product_line.yaml",
-      "sha256": "57b4f7eda267d4766adf7f1a96129d410ec7fce02bdb3c5df12a2d86ec7e591c"
+      "sha256": "b9fcb4448b54fe87c26595d1860286d1e688fe56f009d3861622e8c39010db85"
     },
     "feature_models": [
       {
@@ -5433,28 +5381,34 @@
   },
   "sources": [
     {
+      "authority": "pinned-pleml-library",
+      "path": ".sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml",
+      "sha256": "a3f23c2531272b4cab684f0f1d1a982a443f0a2cdca824cc893f4004980ae02c",
+      "size": 18112
+    },
+    {
       "authority": "pleml-feature-configuration",
       "path": "model-based-product-line-engineering/feature-configurations/aebs_autoware_linux_lidar_camera.sysml",
-      "sha256": "670c8b09d1dee84790ee7209c3dc322fc1587abdea62cf35c443a35fa65e666d",
-      "size": 2195
+      "sha256": "77d73972cab6e0718916b43d0e1edcd8dcf9b9c354651c9eec91064d39c46f83",
+      "size": 2189
     },
     {
       "authority": "pleml-feature-configuration",
       "path": "model-based-product-line-engineering/feature-configurations/apollo_qnx_qvm.sysml",
-      "sha256": "e96011f9b56f06fc65527de4f5b2453156c5f2f1193e56b83a6a3fea725a5a7c",
-      "size": 2052
+      "sha256": "1dd1e79e0defa1fd41e9b7ff7a5eb6793115dce43d0f08b7d4a37892070f4fdc",
+      "size": 2045
     },
     {
       "authority": "pleml-feature-configuration",
       "path": "model-based-product-line-engineering/feature-configurations/apple_silicon_macos_candidate.sysml",
-      "sha256": "3422a9440abc590e61775c09b3e1df62efd80e60be77312d5c244f975d4bfd93",
-      "size": 1667
+      "sha256": "cc46d4201d7f9f1e8d6aaf5e050a75e1defd8e7a44f8bdf177a34ecc4ca7fbe0",
+      "size": 1668
     },
     {
       "authority": "pleml-feature-configuration",
       "path": "model-based-product-line-engineering/feature-configurations/example_linux_score_autoware.sysml",
-      "sha256": "7f49e536de4f0d038bb2da6894cd116c2b7ae767aa7d9aecc05437af2dc3bc36",
-      "size": 2134
+      "sha256": "89259ecd31b94a94a0f8e8c8d50216aa08cc0a7993f5342db6869c279f8e949f",
+      "size": 2130
     },
     {
       "authority": "pleml-fixture",
@@ -5567,50 +5521,44 @@
     {
       "authority": "pleml-feature-configuration",
       "path": "model-based-product-line-engineering/feature-configurations/inc_aebs_009a_jetson.sysml",
-      "sha256": "f907461aa2bb0ffb3a03da11ab16788b58231bca4de1170e1d0ed6d93343cd5d",
-      "size": 1850
+      "sha256": "a4426b02d4b806b2bb4f01311e5a63fa9b96e5f8626de3fcd8465e369bec805c",
+      "size": 1851
     },
     {
       "authority": "pleml-feature-configuration",
       "path": "model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml",
-      "sha256": "df58bbc4da84a3bbdec30b160a7de306c4cfb520161e4dd36a2e0569e7038541",
-      "size": 2554
+      "sha256": "9c571b0f1e486c181d4769aa31e7f23c058477b46254c2ec22a3e429fc5f677f",
+      "size": 2548
     },
     {
       "authority": "pleml-feature-configuration",
       "path": "model-based-product-line-engineering/feature-configurations/nxp_zephyr_vehicle_target_candidate.sysml",
-      "sha256": "0d333866326fe00177c64b0cdfad0fcfdb8a8a3f3320a16c22f2333df7b24517",
-      "size": 1737
+      "sha256": "936f6669288268a56cc0175151180d8b2b5c4f0f4e9616c3055f62065bde1c68",
+      "size": 1738
     },
     {
       "authority": "pleml-feature-model",
       "path": "model-based-product-line-engineering/feature-models/engineering_execution_environments.sysml",
-      "sha256": "8c82c6ac5008c0277ff2c7b19325ba2748eb3b47dee762964a1497b59572e280",
-      "size": 9072
+      "sha256": "1a5978cecce03b2f0c694577e20d9d190a9eb802554ae4fc111084112e56fffd",
+      "size": 9197
     },
     {
       "authority": "pleml-feature-model",
       "path": "model-based-product-line-engineering/feature-models/sdv_product_line.sysml",
-      "sha256": "c53abbba2e4a3b254091074225ef5fdf3e7c2a8cb2babdaa533b5f701d801141",
-      "size": 23346
+      "sha256": "7446df36348078da9fb8ec7b56c12de6cf4dbafc4276753dce366132d2bf9f69",
+      "size": 23569
     },
     {
       "authority": "pleml-feature-model",
       "path": "model-based-product-line-engineering/feature-models/vehicle_execution_environments.sysml",
-      "sha256": "02a6fb00f3a48e94c8e47dd7ea59741e1edf7416c6dd1280bdc4c7018126db3b",
-      "size": 7728
-    },
-    {
-      "authority": "pinned-pleml-library",
-      "path": "model-based-product-line-engineering/libraries/pleml/.sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml",
-      "sha256": "a3f23c2531272b4cab684f0f1d1a982a443f0a2cdca824cc893f4004980ae02c",
-      "size": 18112
+      "sha256": "30db8188dfa11a1028f3834188a5145467282a5f7bef3f18551acded09d71400",
+      "size": 7849
     },
     {
       "authority": "reviewed",
       "path": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
-      "sha256": "bf282c410e3c9ea1718304e3aa2c20c047f75886ee68c947a62c450e7899297a",
-      "size": 9850
+      "sha256": "dd1218cbe2b8e942b9c10179d9c0737f9dcc18bc81c8642636383c655a46ec11",
+      "size": 10094
     },
     {
       "authority": "reviewed",
@@ -5627,8 +5575,8 @@
     {
       "authority": "reviewed",
       "path": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
-      "sha256": "975e1663f871803b67481c8ebe54c83285a06e4f025ac9c27626278e9e96295b",
-      "size": 5681
+      "sha256": "120c308e48d5fbb5b222673dad72c5ae88479813ae7ee59badf5446a60109b91",
+      "size": 5854
     }
   ]
 }
