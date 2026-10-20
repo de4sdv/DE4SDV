@@ -981,8 +981,10 @@ def _configuration_of(bill: Path) -> Path:
 
 
 def test_every_bill_of_features_has_exactly_one_pleml_configuration() -> None:
+    """The parity probes of step S4 restate frozen probe selections, not bills of features."""
     assert len(BILLS) == 8
-    assert {_configuration_of(bill).as_posix() for bill in BILLS} == set(PLEML_FILES) - set(runner.FEATURE_MODELS)
+    assert {_configuration_of(bill).as_posix() for bill in BILLS} == (
+        set(PLEML_FILES) - set(runner.FEATURE_MODELS) - set(runner.PARITY_PROBES))
 
 
 @pytest.mark.parametrize("bill", BILLS, ids=lambda path: path.stem)
@@ -1011,8 +1013,12 @@ def test_the_configuration_doc_is_the_folded_description(bill: Path) -> None:
     assert " ".join(doc.split()) == " ".join(data["description"].split())
 
 
-def test_the_fixture_is_the_only_configuration_outside_the_authority_roots() -> None:
-    assert runner.FIXTURES == (f"{CONFIGURATIONS_DIR.as_posix()}/fixtures/invalid_score_android.sysml",)
+def test_the_fixture_and_the_parity_probes_are_the_only_configurations_outside_the_authority_roots() -> None:
+    assert runner.FIXTURES == (f"{CONFIGURATIONS_DIR.as_posix()}/fixtures/invalid_score_android.sysml",
+                               *runner.PARITY_PROBES)
+    assert len(runner.PARITY_PROBES) == len(set(runner.PARITY_PROBES)) == 17
+    assert all(path.startswith(f"{CONFIGURATIONS_DIR.as_posix()}/fixtures/parity-probes/")
+               for path in runner.PARITY_PROBES)
     fixture = _bill(CONFIGURATIONS_DIR / "fixtures/invalid-score-android.yaml")
     assert (fixture["selections"]["PlatformStack.Middleware"], fixture["selections"]["PlatformStack.OS"]) == (
         "EclipseSCORE", "Android")
