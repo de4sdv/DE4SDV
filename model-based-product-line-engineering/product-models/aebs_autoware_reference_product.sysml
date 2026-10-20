@@ -2,14 +2,14 @@
  * DE4SDV AEBS Autoware reference member product — composite projection.
  *
  * This is a hand-authored composite product model that ties together the
- * platform-stack shared asset, the vehicle sensing boundary, and the AEBS
- * physical software realization into a single AEBS-equipped member product.
+ * projection of the platform-stack shared asset, the vehicle sensing boundary,
+ * and the AEBS physical software realization into one AEBS-equipped member.
  *
  * The platform-stack variant selections for this product are documented in
  * the bill-of-features (aebs-autoware-linux-lidar-camera.yaml) and resolved
  * in the generated projection (aebs_autoware_linux_lidar_camera.sysml).
- * This composite model references the shared-asset definitions directly and
- * composes them with the sensing boundary and AEBS physical software to make
+ * This composite model types its platform stack by that projection and
+ * composes it with the sensing boundary and AEBS physical software to make
  * the full product-level traceability visible:
  *
  *   platform stack (Autoware on Linux)
@@ -70,10 +70,10 @@ package DE4SDV_AEBSAutowareReferenceProduct {
      * in a single product-level view.
      */
 
-    /* Platform stack — shared-asset superset. Variant selections are
-     * resolved in the generated projection
-     * (aebs_autoware_linux_lidar_camera.sysml). */
-    part platformStack : SDVPlatformStack;
+    /* Platform stack — typed by the generated projection
+     * (aebs_autoware_linux_lidar_camera.sysml), which resolves the
+     * variant selections of the shared-asset superset. */
+    part platformStack : AEBSAutowareLinuxLidarCamera;
 
     /* Sensing boundary — common motion sensors + selected perception sensors. */
     part sensingAssembly : VehicleSensingAssembly;
@@ -183,6 +183,7 @@ package DE4SDV_AEBSAutowareReferenceProduct {
     expose VehicleSensingAssembly;
     expose VehicleTargetAEBSPhysicalSoftwareBoundary;
     expose VehicleTargetAEBSSystem;
+    expose AEBSAutowareLinuxLidarCamera;
     render asTreeDiagram;
   }
 

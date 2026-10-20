@@ -26,7 +26,7 @@ package DE4SDV_MiddlewareVariabilityConfiguration {
     doc /* INC-MW-009: middleware variability and configured AAOS SDV member. */
   }
 
-  part def MiddlewareAutowareAAOSSDVConfiguredMember :> ProductLineMemberProduct {
+  part def MiddlewareAutowareAAOSSDVConfiguredMember :> DE4SDV_AEBSProductLineScope::AAOSIntegratedAutowareAEBSReferenceMember {
     doc /*
      * Product-level assembly controlled by the Phase 9 BoF and deterministic
      * generated platform-stack projection. The local parts compose accepted
