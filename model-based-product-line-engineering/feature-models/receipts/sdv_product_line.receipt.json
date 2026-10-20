@@ -1897,17 +1897,15 @@
   },
   "evaluator": {
     "modules": {
-      "de4sdv/semantic/kernel_contract.py": "28a5bc82d86d54de7f7d776fb97657878ba40fd9962a3d015ddebd74a09a8777",
       "de4sdv/semantic/pleml_configuration.py": "343cd13a4ddb42297f213810eb0a3ce8d3c8541d4de62cbefc433b0c7b66456d",
-      "de4sdv/semantic/pleml_package.py": "5a58b768031c68359f04ebdf88cf3ea694dbe8b781116c5223b8b7c40e39ca6b",
-      "de4sdv/semantic/pleml_receipts.py": "1367904e79fd0beec3b68a491093773ef85e40ec076daa0a3876da0b3082ce35",
-      "de4sdv/semantic/validation.py": "eebe0b1adb2a81a89e41552f60ce42d03d23d0fb204131d7b4d3c6d541866997",
-      "de4sdv/sysml_api/baseline.py": "a0978aa3907200c87da7b1e64d8e3896d62d6b85e5572fa6945be470ecc07500",
-      "de4sdv/sysml_api/product_line_scope.py": "5490f4af3ced45b9e28b3697f2c0d351e04b43a7c9a448cbb381678248d27d95",
-      "de4sdv/sysml_api/repository.py": "569a050472634b57a92a56439042e9c34a004aeea5eb9ee0318a834fcb9ceb64",
-      "de4sdv/sysml_api/revisions.py": "b1e1d1d587bbbe7ec78d05e02c8abf428786dda4cd7bb55334a5cf30d83e88fd"
+      "de4sdv/semantic/pleml_package.py": "da17a6aae4c8f2b8f0159dadbd5d88619c11633823d65a237f3b90e36c2b7b95",
+      "de4sdv/semantic/pleml_receipts.py": "739681a02a5b9308e5ba0f54a6e4d6f05e1164b972fed4336979b9d2b377f77a",
+      "de4sdv/semantic/pleml_shadow.py": "f42bbbdf054f71908ba20ec55e3c4cac978a0826fa896373f803b283840ecaff",
+      "scripts/run_pleml_configuration_evaluation.py": "88dae6636f9d263078d3c52bae04b969d7416acafd9d4a482816bbeb4bc38893",
+      "tools/configure_variant.py": "8cfcd4d9ba37f5fff43bfd653d0dbd17285a90a1da2a265232045fe5c6314623"
     },
-    "sha256": "1409f59f16dcc17040e1844d09b37946146240b58b1890aa713fe325b71b69d0"
+    "refreshed_from": "1409f59f16dcc17040e1844d09b37946146240b58b1890aa713fe325b71b69d0",
+    "sha256": "27869a5545495203537ee0c8931be840b565a233a701e17d5e6a578e75deaf78"
   },
   "feature_models": [
     "SDVProductLineFeatureModel"
