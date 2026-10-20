@@ -127,9 +127,11 @@ LIBRARY_PATH = ROOT / pleml_package.LIBRARY_PATH
 def authority_effective() -> bool:
     """Whether the PLEML authority is in effect on this revision: the switch (ADR 0022, step S6).
 
-    It is in effect when the API baseline pins the library and the export reads
-    every authority source. A run record states it beside ``qualified: false``;
-    it is never a qualification.
+    The value is structural: this revision's selectors read the authority
+    sources. The API baseline pins the library, and the export reads every
+    authority source. A pull-request head therefore reads true before the
+    switch takes governance or deployment effect. A run record states it beside
+    ``qualified: false``; it is never a qualification.
     """
     return (pleml_package.LIBRARY_PATH in baseline.PINNED_DEPENDENCIES
             and all(baseline.reviewed_source(source) for source in AUTHORITY_SOURCES))
