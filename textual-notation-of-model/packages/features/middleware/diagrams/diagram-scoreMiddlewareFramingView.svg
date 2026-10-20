@@ -429,8 +429,8 @@
   <text x="777" y="610" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">platform stack mirrors this with one osPlatform, one middleware and</tspan></text>
   <text x="777" y="622" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">one hypervisor variation per stack. The two-domain member needs Linux</tspan></text>
   <text x="777" y="634" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">with S-CORE on the host and Android with the AAOS SDV middleware in</tspan></text>
-  <text x="777" y="646" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the guest; the example bill of features "Autoware on S-CORE on Linux"</tspan></text>
-  <text x="777" y="658" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">describes only the Linux domain. The same limit affects the</tspan></text>
+  <text x="777" y="646" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the guest; the example feature configuration "Autoware on S-CORE on</tspan></text>
+  <text x="777" y="658" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Linux" describes only the Linux domain. The same limit affects the</tspan></text>
   <text x="777" y="670" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">AAOS-integrated reference member: its Autoware runs on a Linux ROS 2</tspan></text>
   <text x="777" y="682" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">runtime while its single operating-system selection says Android.</tspan></text>
   <text x="777" y="694" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Phases 8 and 9 of this increment close the gap with</tspan></text>

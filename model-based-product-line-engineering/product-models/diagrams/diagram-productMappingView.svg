@@ -52,7 +52,7 @@
   <text x="36" y="438" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">level. Platform-stack variant selections are resolved only in the</tspan></text>
   <text x="36" y="450" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">generated projection (aebs_autoware_linux_lidar_camera.sysml), and</tspan></text>
   <text x="36" y="462" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">sensing-boundary perception-sensor selections live in the</tspan></text>
-  <text x="36" y="474" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">bill-of-features, not in this composite. Product-level trace claims</tspan></text>
+  <text x="36" y="474" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">feature configuration, not in this composite. Product-level trace claims</tspan></text>
   <text x="36" y="486" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">must still cite the canonical allocation records; these dependencies</tspan></text>
   <text x="36" y="498" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">make the binding path explicit, they do not make this composite a</tspan></text>
   <text x="36" y="510" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">resolved configured product.</tspan></text>
