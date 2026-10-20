@@ -22,9 +22,15 @@ The generator parses the authoritative `.sysml` textual notation under
 the same roots `scripts/validate_sysml.py` validates — the whole
 `textual-notation-of-model` tree (packages, imported libraries such as
 `libraries/covesa-vss-sysmlv2`, snapshots) plus
-`model-based-product-line-engineering/product-models` and the governed
-product-line scope in `model-based-product-line-engineering/scoping` (stdlib
-only, deterministic output). The generated site is self-contained except that it
+`model-based-product-line-engineering/product-models`, the governed
+product-line scope in `model-based-product-line-engineering/scoping`, and the
+PLEML feature models and configurations in
+`model-based-product-line-engineering/feature-models` and
+`model-based-product-line-engineering/feature-configurations` (ADR 0022)
+(stdlib only, deterministic output). Like the validation and the export, it
+skips every `fixtures` directory of a root: the invalid configuration and the
+parity probes under `feature-configurations/fixtures/` are not model files of
+the viewer. The generated site is self-contained except that it
 *references* the committed diagram SVGs in the model tree — no SVG copies,
 so it can never drift from the rendered artifacts.
 
