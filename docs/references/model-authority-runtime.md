@@ -209,8 +209,8 @@ served, and every served allocation readable and binary, with the export's
 ends (`de4sdv/semantic/successor_parity.py`). An allocation without ends of
 its own fails it: DE4SDV allocations are authored
 `allocate <source> to <target>`, and the diagnostic says so. A directed
-feature typed as an allocation is a parameter of a behavior, not an
-allocation between two elements, and passes; the method workflow's
+feature typed as an allocation and without ends of its own is a parameter of
+a behavior, not an allocation between two elements, and passes; the method workflow's
 `out allocation signalMappings` is one. A failure fails the run, and the
 release evidence requires the passing report. This is the evidence the
 `allocatedTo` forward obligations ask for; the admission records them until
