@@ -12,10 +12,12 @@ Commands:
   from the committed receipts' (they are stale or are not the serializer's
   output). :func:`write_receipts` is the same entry point as a function.
 * ``replay``: unlicensed. Re-run the evaluator on the committed elements of
-  each receipt; exit 1 when a receipt is stale by digest or does not
-  reproduce, including its shadow checks.
-* ``refresh``: unlicensed. Rewrite a receipt from its committed elements when
-  only the evaluator changed.
+  each receipt; exit 1 when its inputs changed or its evaluation or shadow
+  does not reproduce byte for byte. Code that differs from the code that
+  evaluated a receipt is reported as an advisory. ``replay_receipts`` and
+  ``replay_committed`` of ``pleml_receipts`` are the same check as functions.
+* ``refresh``: unlicensed. Rewrite receipts from their intact committed
+  elements when the evaluation no longer reproduces.
 
 Until S7 the YAML catalogue with the feature model's file stem is the reviewed
 source of three shadow checks the receipt records: each feature's catalogue
@@ -27,7 +29,6 @@ expression natively.
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import json
 import re
 import sys
@@ -39,154 +40,11 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 sys.dont_write_bytecode = True
 
-from de4sdv.semantic import pleml_configuration as evaluator  # noqa: E402
 from de4sdv.semantic import pleml_receipts as receipts  # noqa: E402
+from de4sdv.semantic.pleml_shadow import (  # noqa: E402,F401  (the shadow's names, for the CLI and its tests)
+    CONFIGURATOR, Catalogue, catalogue_for, complement_errors, load_configurator, receipt_shadow, rule_table_errors,
+    shadow_checks, shadow_failures)
 from de4sdv.sysml_api.baseline import BaselineExportBundle  # noqa: E402
-
-CONFIGURATOR = Path("tools/configure_variant.py")
-
-# -- the YAML shadow (until S7) --------------------------------------------------------------
-
-
-def load_configurator(root: Path = ROOT):
-    """The configurator of the tree, imported for its own catalogue parser (never re-implemented)."""
-    path = (root / CONFIGURATOR).resolve()
-    name = f"_de4sdv_pleml_shadow_configurator_{abs(hash(str(path)))}"
-    if name in sys.modules:
-        return sys.modules[name]
-    spec = importlib.util.spec_from_file_location(name, path)
-    if spec is None or spec.loader is None:
-        raise ValueError(f"cannot import the configurator at {path}")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[name] = module
-    spec.loader.exec_module(module)
-    return module
-
-
-class Catalogue:
-    """The YAML catalogue read with the configurator's functions."""
-
-    def __init__(self, path: Path, root: Path = ROOT) -> None:
-        self.path = path
-        self.module = module = load_configurator(root)
-        with path.open(encoding="utf-8") as handle:
-            self.data = module.load_yaml_unique(handle)
-        self.root, self.constraints = module.build_feature_tree(self.data)
-        self.nodes = module.collect_all_nodes(self.root)
-        self.by_id = {node.feature_id: node for node in module.iter_feature_nodes(self.root) if node.feature_id}
-
-    def child(self, group_path: str, name: str):
-        group = self.nodes.get(group_path)
-        matches = [child for child in (group.children if group else []) if child.name == name]
-        return matches[0] if len(matches) == 1 else None
-
-    def paths(self) -> dict[str, str]:
-        return {identifier: node.path for identifier, node in self.by_id.items() if node.path}
-
-    def allowed_lists(self) -> list[dict[str, Any]]:
-        """``requires`` constraints of the form ``G == V`` then ``P in [..]``: allowed lists by node id."""
-        lists = []
-        for constraint in self.constraints:
-            condition = re.fullmatch(r"\s*([\w.]+)\s*==\s*(\w+)\s*", constraint.get("if", ""))
-            target = re.fullmatch(r"\s*([\w.]+)\s+in\s+\[([^\]]*)\]\s*", constraint.get("then", ""))
-            if constraint.get("type") != "requires" or not condition or not target:
-                continue
-            owner = self.child(condition.group(1), condition.group(2))
-            group = self.nodes.get(target.group(1))
-            allowed = [self.child(target.group(1), name.strip()) for name in target.group(2).split(",")]
-            if owner is None or group is None or None in allowed:
-                raise ValueError(f"allowed list {constraint.get('id')} names unknown catalogue nodes")
-            lists.append({"id": constraint["id"], "owner": owner.feature_id, "group": group.feature_id,
-                          "allowed": sorted(node.feature_id for node in allowed)})
-        return lists
-
-
-def _features_by_short_name(feature_model: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
-    return {feature["short_name"]: feature for feature in feature_model["features"] if feature["short_name"]}
-
-
-def complement_errors(feature_model: Mapping[str, Any], allowed_lists: Iterable[Mapping[str, Any]]) -> list[str]:
-    """Each allowed list's exclusions equal its complement over the model's current options (R9)."""
-    features = _features_by_short_name(feature_model)
-    by_path = {feature["path"]: feature for feature in feature_model["features"]}
-    errors = []
-    for item in allowed_lists:
-        owner, group = features.get(item["owner"]), features.get(item["group"])
-        if owner is None or group is None:
-            errors.append(f"{item['id']}: the model has no feature {item['owner'] if owner is None else item['group']}")
-            continue
-        options = {by_path[path]["short_name"] or path for path in group["members"]}
-        missing = sorted(set(item["allowed"]) - options)
-        if missing:
-            errors.append(f"{item['id']}: the allowed options {missing} are no members of {group['path']}")
-        complement = sorted(options - set(item["allowed"]))
-        excluded = sorted({by_path[path]["short_name"] or path
-                           for constraint in feature_model["constraints"]
-                           if constraint["kind"] == "xor" and constraint["short_name"] == item["id"]
-                           and constraint["owner"] == owner["path"] for path in constraint["operand_b"]})
-        stray = [constraint["owner"] for constraint in feature_model["constraints"]
-                 if constraint["short_name"] == item["id"] and (constraint["kind"] != "xor"
-                                                                or constraint["owner"] != owner["path"])]
-        if excluded != complement or stray:
-            errors.append(f"{item['id']}: the exclusions of {owner['path']} are {excluded}, the complement of the "
-                          f"allowed list {item['allowed']} is {complement}" + (f"; stray {stray}" if stray else ""))
-    return errors
-
-
-def rule_table_errors(feature_model: Mapping[str, Any], catalogue: Catalogue) -> list[str]:
-    """The model's derivation rules equal the catalogue's rule table row by row (R10, until S7)."""
-    features = {feature["path"]: feature for feature in feature_model["features"]}
-    derivations = {item["short_name"]: item for item in feature_model["derivations"]}
-    errors = []
-    declarations = catalogue.data.get("derived_asset_selections") or []
-    for declaration in declarations:
-        identifier = declaration.get("id")
-        derivation = derivations.get(identifier)
-        if derivation is None:
-            errors.append(f"{identifier}: the model has no rule set with this short name")
-            continue
-        if derivation["derived_variation"] != str(declaration.get("maps_to", "")).rsplit(".", 1)[-1]:
-            errors.append(f"{identifier}: the rule set derives {derivation['derived_variation']}")
-        sources = sorted(catalogue.nodes[path].feature_id for path in declaration.get("source_selections") or [])
-        model_sources = sorted(features[path]["short_name"] or path for path in derivation["source_groups"])
-        if sources != model_sources:
-            errors.append(f"{identifier}: source groups {model_sources}, the catalogue has {sources}")
-        expected = {}
-        for rule in declaration.get("rules") or []:
-            premises = frozenset(catalogue.child(path, value).feature_id for path, value in rule["when"].items())
-            expected[premises] = rule["maps_to_variant"]
-        actual = {frozenset(features[path]["short_name"] or path for path in rule["premises"]): rule["result"]
-                  for rule in derivation["rules"]}
-        for premises in sorted(set(expected) | set(actual), key=sorted):
-            if expected.get(premises) != actual.get(premises):
-                errors.append(f"{identifier}: rule {sorted(premises)} yields {actual.get(premises)} in the model "
-                              f"and {expected.get(premises)} in the catalogue")
-    extra = sorted(set(derivations) - {item.get("id") for item in declarations})
-    if extra:
-        errors.append(f"rule sets without a catalogue declaration: {extra}")
-    return errors
-
-
-def shadow_checks(report: Mapping[str, Any], catalogue_path: Path | None, root: Path = ROOT) -> dict[str, Any]:
-    """The shadow section of a receipt: catalogue paths and the two static comparisons."""
-    if catalogue_path is None:
-        return {}
-    catalogue = Catalogue(root / catalogue_path, root)
-    lists = catalogue.allowed_lists()
-    shadow: dict[str, Any] = {"catalogue": {"path": catalogue_path.as_posix(),
-                                            "sha256": receipts.sha256((root / catalogue_path).read_bytes())},
-                              "allowed_lists": lists, "feature_models": []}
-    paths = catalogue.paths()
-    for model in report["feature_models"]:
-        shadow["feature_models"].append({
-            "tree": model["tree"]["name"],
-            "writer_inputs": {item["configuration"]: receipts.writer_inputs(item, model["features"], paths)
-                              for item in model["configurations"]},
-            "complement_errors": complement_errors(model, lists),
-            "rule_table_errors": rule_table_errors(model, catalogue),
-        })
-    return shadow
-
 
 # -- the configurator's rejections, as parity reason keys -------------------------------------
 
@@ -264,12 +122,6 @@ def yaml_reason_keys(messages: Sequence[str], selections: Mapping[str, Any],
 # -- the entry point of the licensed authority job ----------------------------------------------
 
 
-def catalogue_for(model_document: str, root: Path = ROOT) -> Path | None:
-    """The YAML catalogue a feature model restates until S7: the same path, with the ``.yaml`` suffix."""
-    candidate = Path(model_document).with_suffix(".yaml")
-    return candidate if (root / candidate).is_file() else None
-
-
 def write_receipts(bundle: BaselineExportBundle | Mapping[str, Any], out: Path, *, serializer: Mapping[str, Any],
                    name: str = "pleml-feature-models", model_sources: Iterable[str] | None = None,
                    root: Path = ROOT) -> dict[str, Any]:
@@ -317,7 +169,7 @@ def write_receipts(bundle: BaselineExportBundle | Mapping[str, Any], out: Path, 
         path = out / f"{Path(document).stem}.receipt.json"
         path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         written.append(path)
-        failures += _shadow_failures(receipt)
+        failures += shadow_failures(receipt)
     return {"elements": out / elements_file, "receipts": written, "failures": failures}
 
 
@@ -336,34 +188,13 @@ def run_receipts(args: argparse.Namespace) -> int:
     return 1 if failures else 0
 
 
-def _shadow_failures(receipt: Mapping[str, Any]) -> list[str]:
-    failures = []
-    for model in receipt["evaluation"]["feature_models"]:
-        failures += [f"{model['tree']['name']}: {error}" for error in model["integrity_errors"]]
-    for model in (receipt.get("shadow") or {}).get("feature_models", []):
-        failures += [f"{model['tree']}: {error}" for error in model["complement_errors"] + model["rule_table_errors"]]
-    return failures
-
-
-def _receipt_shadow(receipt_path: Path) -> dict[str, Any] | None:
-    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
-    catalogue = (receipt.get("shadow") or {}).get("catalogue")
-    if not catalogue:
-        return None
-    if receipts.sha256((ROOT / catalogue["path"]).read_bytes()) != catalogue["sha256"]:
-        raise receipts.StaleReceipt(f"{catalogue['path']} changed after the receipt; refresh it")
-    return shadow_checks(receipt["evaluation"], Path(catalogue["path"]), ROOT)
-
-
 def run_replay(args: argparse.Namespace) -> int:
-    failures = []
-    for path in args.receipt:
-        try:
-            receipt = receipts.replay(path, ROOT, shadow=_receipt_shadow(path))
-            failures += [f"{path}: {failure}" for failure in _shadow_failures(receipt)]
-        except (receipts.StaleReceipt, evaluator.PlemlShapeError) as exc:
-            failures.append(f"{path}: {exc}")
-    print(json.dumps({"receipts": [str(path) for path in args.receipt], "failures": failures}, indent=2))
+    failures = receipts.replay_receipts(args.receipt, ROOT)
+    advisories = [] if failures else [
+        f"{path}: {line}" for path in args.receipt
+        for line in receipts.evaluator_advisories(json.loads(path.read_text(encoding="utf-8")))]
+    print(json.dumps({"receipts": [str(path) for path in args.receipt], "failures": failures,
+                      "advisories": advisories}, indent=2))
     return 1 if failures else 0
 
 

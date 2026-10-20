@@ -153,7 +153,7 @@ python scripts/run_pleml_configuration_evaluation.py receipts \
 # Any machine: re-run the evaluator on the committed elements.
 python scripts/run_pleml_configuration_evaluation.py replay <receipt>...
 
-# Any machine: rewrite a receipt when only the evaluator changed.
+# Any machine: rewrite receipts from their intact elements when they no longer reproduce.
 python scripts/run_pleml_configuration_evaluation.py refresh <receipt>...
 ```
 
@@ -180,11 +180,17 @@ runner replays the same in unlicensed CI and locally.
 - a source document changed after the serialization. The receipts of one
   bundle bind all of its sources, so one edited document makes them all stale;
 - the pinned library is missing, or the package pins another release;
-- another revision of an evaluator module produced it: of the evaluator, the
-  receipts, the package record, the kernel contract, the binding validation,
-  the bundle reader, the scope validator, the repository helpers or the
-  revision identities;
-- its verdicts, derived variants or admission do not reproduce.
+- its evaluation (verdicts, derived variants, admission) or its shadow does
+  not reproduce byte for byte from the committed elements.
+
+Reproduction is the only code check. A receipt records the digests of the code
+it was evaluated with (the evaluator, the receipts, the shadow, the modules
+they import, the CLI and the configurator) as provenance. When other code still
+reproduces the receipt, the receipt holds and `replay` reports the difference
+as an advisory. When it does not, `refresh` rewrites the receipt from its
+intact elements and records the new code. `pleml_receipts.replay_committed`
+and `replay_receipts` return the failures as a list, empty when every receipt
+holds, and the `replay` command calls them.
 
 Replay works offline, so it cannot tell an edit that rewrites an elements file
 and the digests of its receipts. The licensed comparison on every head that
@@ -195,7 +201,8 @@ diff.
 the committed receipts' elements.
 
 Until the YAML is retired, a receipt also carries these shadow checks, against
-the catalogue with the feature model's file stem:
+the catalogue with the feature model's file stem. `de4sdv/semantic/pleml_shadow.py`
+computes them with the configurator's own parser:
 
 - each feature's catalogue path, taken from its short name;
 - the allowed-list complement check of C001, C002 and C003;

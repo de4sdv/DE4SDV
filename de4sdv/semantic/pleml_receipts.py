@@ -5,9 +5,12 @@ production export's options into one export bundle. From that bundle, one
 elements file holds the serialized elements, compressed, and each feature
 model gets a receipt: its verdicts, derived variants and admission, with the
 input digests. Every other run is unlicensed: it re-runs the evaluator on the
-committed elements and refuses a receipt that is stale by digest or does not
-reproduce. A receipt whose only difference is the evaluator revision can be
-refreshed offline from the same elements.
+committed elements and refuses a receipt whose inputs changed (the elements,
+a source, the pinned library) or whose evaluation or shadow does not
+reproduce byte for byte. The evaluator's code identity is provenance: a
+receipt that still reproduces under other code holds, and replay reports the
+difference as an advisory. A receipt that no longer reproduces from intact
+inputs is refreshed offline from the same elements.
 
 The parity primitives serve the comparison with the configurator until S7:
 the normalised projection body, the writer inputs a receipt carries, the
@@ -37,18 +40,29 @@ MODEL_ROLES = ("pleml-feature-model", "pleml-feature-configuration", "pleml-fixt
 #: The provenance of one licensed run. A receipt records it beside the elements, never inside them, so the
 #: same serialization on another commit gives the same elements file and the same digests.
 PROVENANCE = ("executor_revision", "bundle_git_commit")
-#: The modules whose code decides an evaluation, relative to the tree of the running evaluator. A change
-#: to any of them makes every receipt stale until it is refreshed.
+#: The code an evaluation and its shadow run, relative to the tree of the running evaluator: the import
+#: closure of the evaluation, the CLI and the configurator. Its digests are provenance, recorded for audit
+#: and reported as an advisory; reproduction, not this record, decides whether a receipt still holds.
 EVALUATOR_MODULES = (
-    "de4sdv/semantic/pleml_configuration.py",
-    "de4sdv/semantic/pleml_receipts.py",
-    "de4sdv/semantic/pleml_package.py",
+    "de4sdv/__init__.py",
+    "de4sdv/semantic/__init__.py",
     "de4sdv/semantic/kernel_contract.py",
+    "de4sdv/semantic/model_contract.py",
+    "de4sdv/semantic/pleml_configuration.py",
+    "de4sdv/semantic/pleml_package.py",
+    "de4sdv/semantic/pleml_receipts.py",
+    "de4sdv/semantic/pleml_shadow.py",
     "de4sdv/semantic/validation.py",
+    "de4sdv/sysml_api/__init__.py",
     "de4sdv/sysml_api/baseline.py",
+    "de4sdv/sysml_api/client.py",
+    "de4sdv/sysml_api/errors.py",
     "de4sdv/sysml_api/product_line_scope.py",
     "de4sdv/sysml_api/repository.py",
     "de4sdv/sysml_api/revisions.py",
+    "de4sdv/sysml_api/served_model.py",
+    "scripts/run_pleml_configuration_evaluation.py",
+    "tools/configure_variant.py",
 )
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -209,7 +223,7 @@ def evaluate_payload(payload: Mapping[str, Any], *, model_sources: Iterable[str]
 
 
 def evaluator_identity() -> dict[str, Any]:
-    """The digest of every module that decides an evaluation, in the tree of the evaluator that runs."""
+    """The digest of the code an evaluation runs, in the tree of the evaluator that runs (provenance only)."""
     base = Path(evaluator.__file__).resolve().parents[2]
     modules = {module: sha256((base / module).read_bytes()) for module in EVALUATOR_MODULES}
     return {"modules": modules, "sha256": sha256(canonical(modules))}
@@ -285,9 +299,18 @@ def stale_reasons(receipt: Mapping[str, Any], receipt_path: Path, root: Path = R
                            f"{pleml_package.PROJECT.as_posix()}")
         else:
             reasons.append(f"{source['path']} is missing; rerun the licensed evaluation")
-    if (receipt.get("evaluator") or {}).get("sha256") != evaluator_digest():
-        reasons.append("the receipt was evaluated by another evaluator revision; refresh it offline")
     return reasons
+
+
+def evaluator_advisories(receipt: Mapping[str, Any]) -> list[str]:
+    """The code that differs from the code that evaluated a receipt: provenance, never a failure."""
+    recorded = (receipt.get("evaluator") or {}).get("modules") or {}
+    current = evaluator_identity()["modules"]
+    changed = sorted(module for module in set(recorded) | set(current) if recorded.get(module) != current.get(module))
+    if not changed:
+        return []
+    return [f"evaluated by another revision of {', '.join(changed)}; the evaluation and the shadow reproduce, so "
+            "the receipt holds"]
 
 
 def replay(receipt_path: Path, root: Path = ROOT, *, shadow: Mapping[str, Any] | None = None,
@@ -310,7 +333,7 @@ def refreshed(receipt_path: Path, root: Path = ROOT, *, shadow: Mapping[str, Any
               contract: Any = None) -> dict[str, Any]:
     """A receipt re-evaluated offline when only the evaluator changed; elements and sources must still match."""
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
-    reasons = [reason for reason in stale_reasons(receipt, receipt_path, root) if "evaluator revision" not in reason]
+    reasons = stale_reasons(receipt, receipt_path, root)
     if reasons:
         raise StaleReceipt("; ".join(reasons))
     payload = read_elements(receipt_path.parent / receipt["elements"]["path"])
@@ -334,6 +357,34 @@ def refresh(receipt_path: Path, root: Path = ROOT, *, shadow: Mapping[str, Any] 
     fresh = refreshed(receipt_path, root, shadow=shadow, contract=contract)
     write_receipt(receipt_path, fresh)
     return fresh
+
+
+def replay_receipts(paths: Iterable[Path], root: Path = ROOT, *, contract: Any = None) -> list[str]:
+    """Replay receipts offline; every failure, as text, and an empty list when all of them hold.
+
+    A receipt fails when its inputs changed, when its evaluation or shadow does
+    not reproduce byte for byte, or when the evaluation it records has
+    integrity errors or the shadow records complement or rule-table errors.
+    """
+    from de4sdv.semantic import pleml_shadow
+
+    failures = []
+    for path in paths:
+        try:
+            receipt = replay(path, root, shadow=pleml_shadow.receipt_shadow(path, root), contract=contract)
+        except (StaleReceipt, evaluator.PlemlShapeError, ValueError, KeyError, OSError) as exc:
+            failures.append(f"{path}: {exc}")
+            continue
+        failures += [f"{path}: {failure}" for failure in pleml_shadow.shadow_failures(receipt)]
+    return failures
+
+
+def replay_committed(committed: Path, root: Path = ROOT, *, contract: Any = None) -> list[str]:
+    """Replay every receipt of a committed directory; an empty list when all of them hold."""
+    paths = sorted(committed.glob("*.receipt.json")) if committed.is_dir() else []
+    if not paths:
+        return [f"{committed}: no committed receipt"]
+    return replay_receipts(paths, root, contract=contract)
 
 
 def _elements_identity(receipt_path: Path) -> str:

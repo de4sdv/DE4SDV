@@ -269,32 +269,97 @@ def test_a_bundle_with_another_library_than_the_pinned_one_is_refused(tmp_path, 
         receipts.payload_from_bundle(bundle_of(platform_line().graph, tmp_path), serializer=SERIALIZER)
 
 
-def test_another_evaluator_revision_is_refused_and_refreshed_offline(tmp_path, monkeypatch):
+def neutral_change(module: str) -> dict:
+    """The code identity after a comment-only change to ``module``: other bytes, the same behaviour."""
+    modules = dict(receipts.evaluator_identity()["modules"])
+    modules[module] = receipts.sha256((ROOT / module).read_bytes() + b"\n# a comment-only change\n")
+    return {"modules": modules, "sha256": receipts.sha256(receipts.canonical(modules))}
+
+
+def changed_evaluation(monkeypatch) -> None:
+    """An evaluator change that changes the output: every evaluation reports another binding-time scope."""
+    original = evaluator.evaluate
+
+    def changed(*arguments, **options):
+        return {**original(*arguments, **options), "binding_time_scope": "Production"}
+
+    monkeypatch.setattr(evaluator, "evaluate", changed)
+
+
+def test_a_neutral_code_change_replays_green_with_an_advisory(tmp_path, monkeypatch, capsys):
+    """Reproduction decides; the code identity is provenance (R14)."""
     path = write_receipt(tmp_path)
-    receipt = json.loads(path.read_text())
-    receipt["evaluator"]["sha256"] = "f" * 64
-    path.write_text(json.dumps(receipt))
-    with pytest.raises(receipts.StaleReceipt, match="another evaluator revision"):
-        receipts.replay(path, tmp_path)
+    identity = neutral_change("de4sdv/sysml_api/baseline.py")
+    monkeypatch.setattr(receipts, "evaluator_identity", lambda: identity)
+    assert receipts.replay_committed(path.parent, tmp_path) == []
     monkeypatch.setattr(cli, "ROOT", tmp_path)
-    assert cli.main(["refresh", str(path)]) == 0
-    refreshed = receipts.replay(path, tmp_path)
-    assert refreshed["evaluator"]["sha256"] == receipts.evaluator_digest()
-    assert refreshed["evaluator"]["refreshed_from"] == "f" * 64
+    capsys.readouterr()
+    assert cli.main(["replay", str(path)]) == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["failures"] == [] and len(output["advisories"]) == 1
+    assert "evaluated by another revision of de4sdv/sysml_api/baseline.py" in output["advisories"][0]
+
+
+def test_an_evaluation_change_fails_the_replay_until_a_refresh(tmp_path, monkeypatch):
+    path = write_receipt(tmp_path)
+    changed_evaluation(monkeypatch)
+    assert receipts.replay_committed(path.parent, tmp_path) == [
+        f"{path}: the committed evaluation does not reproduce from the committed elements"]
+    monkeypatch.setattr(cli, "ROOT", tmp_path)
+    assert cli.main(["refresh", *(str(item) for item in sorted(path.parent.glob("*.receipt.json")))]) == 0
+    assert receipts.replay_committed(path.parent, tmp_path) == []
+    refreshed = json.loads(path.read_text())
+    assert refreshed["evaluation"]["binding_time_scope"] == "Production"
     assert refreshed["provenance"] == {"executor_revision": "e" * 40, "bundle_git_commit": "a" * 40}
 
 
-def test_the_evaluator_identity_covers_every_module_that_decides_an_evaluation(tmp_path):
-    identity = receipts.evaluator_identity()
-    assert list(identity["modules"]) == list(receipts.EVALUATOR_MODULES)
-    assert all((ROOT / module).is_file() for module in identity["modules"])
+def test_a_shadow_change_fails_the_replay(tmp_path, monkeypatch):
+    """A configurator change that changes the shadow fails as the shadow not reproducing."""
+    root = tmp_path / "tree"
+    with_catalogue(root)
+    result = cli.write_receipts(bundle_of(two_family_graph(), root), tmp_path / "out", serializer=SERIALIZER,
+                                root=root)
+    assert receipts.replay_committed(tmp_path / "out", root) == []
+    monkeypatch.setattr(cli.Catalogue, "paths", lambda self: {})
+    failures = receipts.replay_committed(tmp_path / "out", root)
+    assert failures == [f"{tmp_path / 'out' / PLATFORM_RECEIPT}: the shadow checks of the receipt do not reproduce"]
+    assert result["failures"] == []
+
+
+def test_the_replay_function_reports_failures_as_a_list(tmp_path, monkeypatch):
+    """``replay_committed`` is the authority job's replay: an empty list when every receipt holds."""
     path = write_receipt(tmp_path)
+    assert receipts.replay_committed(path.parent, tmp_path) == []
+    assert receipts.replay_committed(tmp_path / "missing", tmp_path) == [f"{tmp_path / 'missing'}: no committed receipt"]
     receipt = json.loads(path.read_text())
-    receipt["evaluator"]["modules"]["de4sdv/semantic/validation.py"] = "0" * 64
-    receipt["evaluator"]["sha256"] = receipts.sha256(receipts.canonical(receipt["evaluator"]["modules"]))
+    receipt["evaluation"]["feature_models"][0]["configurations"][0]["valid"] = False
     path.write_text(json.dumps(receipt))
-    with pytest.raises(receipts.StaleReceipt, match="another evaluator revision"):
-        receipts.replay(path, tmp_path)
+    assert receipts.replay_committed(path.parent, tmp_path) == [
+        f"{path}: the committed evaluation does not reproduce from the committed elements"]
+    monkeypatch.setattr(receipts, "pinned_library", lambda: {**SYNTHETIC_LIBRARY, "version": "1.1.2",
+                                                             "sha256": "c" * 64})
+    (failure,) = receipts.replay_committed(path.parent, tmp_path)
+    assert failure.startswith(f"{path}: the receipt binds PLEML 1.1.1") and "the fenced package pins 1.1.2" in failure
+
+
+def test_the_code_identity_covers_what_an_evaluation_imports():
+    """The provenance record lists every module of the tree an evaluation, its CLI and the shadow import."""
+    probe = (
+        "import sys\n"
+        "from pathlib import Path\n"
+        f"ROOT = Path({str(ROOT)!r})\n"
+        "sys.path.insert(0, str(ROOT))\n"
+        "from scripts import run_pleml_configuration_evaluation as cli\n"
+        "from de4sdv.semantic import pleml_configuration as evaluator, pleml_receipts as receipts\n"
+        "evaluator.kernel_bindings(receipts.model_contract(ROOT), [], {})\n"
+        "cli.load_configurator(ROOT)\n"
+        "print('\\n'.join(sorted({Path(module.__file__).resolve().relative_to(ROOT).as_posix()\n"
+        "    for module in list(sys.modules.values()) if getattr(module, '__file__', None)\n"
+        "    and Path(module.__file__).resolve().is_relative_to(ROOT)})))\n")
+    result = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True, check=True, cwd=ROOT)
+    imported = set(result.stdout.split())
+    assert imported and imported <= set(receipts.EVALUATOR_MODULES), sorted(imported - set(receipts.EVALUATOR_MODULES))
+    assert list(receipts.evaluator_identity()["modules"]) == list(receipts.EVALUATOR_MODULES)
 
 
 def test_a_refresh_never_hides_stale_elements(tmp_path):
@@ -417,7 +482,7 @@ def test_the_receipts_command_writes_and_compares(tmp_path, monkeypatch, capsys)
 
 
 def test_refreshed_receipts_replay_with_their_own_shadow(tmp_path, monkeypatch):
-    """After an evaluator change, refresh then replay passes; each shadow covers its own tree only (R2)."""
+    """After an output-changing evaluator change, refresh then replay passes; each shadow covers its own tree (R2)."""
     root = tmp_path / "tree"
     with_catalogue(root)
     monkeypatch.setattr(cli, "ROOT", root)
@@ -426,10 +491,7 @@ def test_refreshed_receipts_replay_with_their_own_shadow(tmp_path, monkeypatch):
     shadows = {path.name: json.loads(path.read_text())["shadow"] for path in result["receipts"]}
     assert [item["tree"] for item in shadows[PLATFORM_RECEIPT]["feature_models"]] == ["SDVProductLineFeatureTree"]
     assert shadows["synthetic_environments.receipt.json"] == {}
-    for path in result["receipts"]:
-        receipt = json.loads(path.read_text())
-        receipt["evaluator"]["sha256"] = "f" * 64
-        path.write_text(json.dumps(receipt))
+    changed_evaluation(monkeypatch)
     paths = [str(path) for path in result["receipts"]]
     assert cli.main(["replay", *paths]) == 1
     assert cli.main(["refresh", *paths]) == 0
