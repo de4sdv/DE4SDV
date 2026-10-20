@@ -2,9 +2,16 @@
 """
 DE4SDV variant configurator.
 
-Reads a Bill-of-Features (YAML), validates it against the feature model (YAML),
-then generates a SysML v2 product-model projection of the catalogue's declared
-shared-asset owner.
+Since the switch of ADR 0022 (step S6) the PLEML feature models and
+configurations are the product-line authority, and the configurator
+generates every committed product-model projection from the evaluation
+receipt of its configuration (receipt mode, below). Its YAML path is the
+non-authoritative shadow until the YAML retires (step S7): the parity check
+(scripts/check_pleml_parity.py) compares the two paths.
+
+The YAML path reads a Bill-of-Features (YAML), validates it against the
+feature catalogue (YAML), then generates a SysML v2 product-model projection
+of the catalogue's declared shared-asset owner.
 Selections without mapped variable shared assets are validated but not derived.
 Assets declared under ``derived_asset_selections`` are resolved from their
 source feature choices and cannot be selected independently in the BoF.
@@ -43,9 +50,10 @@ Usage:
   python tools/configure_variant.py \\
     --feature-model ... --bof ... --check-only
 
-Receipt mode (ADR 0022, plan step S4): the same writer generates the
-projection of one evaluated configuration of a committed PLEML receipt, after
-replaying the receipt offline, instead of deciding a Bill-of-Features:
+Receipt mode (ADR 0022, plan steps S4 and S6), the authority path: the same
+writer generates the projection of one evaluated configuration of a committed
+PLEML receipt, after replaying the receipt offline, instead of deciding a
+Bill-of-Features:
 
   python tools/configure_variant.py \\
     --receipt model-based-product-line-engineering/feature-models/receipts/sdv_product_line.receipt.json \\
@@ -54,9 +62,9 @@ replaying the receipt offline, instead of deciding a Bill-of-Features:
 The configuration is named by its declared name, its projection name or its
 source document. Variation and variant identity come from the receipt; the
 lexical mapping checks stay with the YAML path, which remains the oracle and
-the shadow until S7. Until the switch (S6) the committed projections are the
-YAML path's, and the parity check (scripts/check_pleml_parity.py) requires the
-receipt's normalised bodies to equal them.
+the shadow until S7. The committed projections are receipt mode's output
+since the switch, and the parity check requires the YAML path's normalised
+bodies to equal them.
 
 Exit codes:
   0 — configuration valid (and optionally generated)

@@ -32,12 +32,15 @@ _SPEC.loader.exec_module(configurator)
 
 
 def _committed_projections() -> dict[str, Path]:
-    """Each committed projection by the bill of features its header names."""
+    """Each committed projection by its bill of features: the one the YAML path's header names, or,
+    since the switch (S6), the shadow beside the configuration that a receipt projection names."""
+    from scripts.check_pleml_parity import projection_bill
+
     found = {}
     for projection in sorted((PLE / "product-models").glob("*.sysml")):
-        match = re.search(r"^ \* Regenerate from: (.+)$", projection.read_text(encoding="utf-8"), re.MULTILINE)
-        if match:
-            found[match.group(1).strip()] = projection
+        bill = projection_bill(projection.read_text(encoding="utf-8"))
+        if bill:
+            found[bill] = projection
     return found
 
 
@@ -60,7 +63,7 @@ def _run(*arguments: str) -> subprocess.CompletedProcess:
                           check=False, timeout=120)
 
 
-def test_seven_committed_projections_are_generated_by_the_yaml_path() -> None:
+def test_seven_committed_projections_name_their_configuration() -> None:
     assert len(PROJECTIONS) == 7
 
 

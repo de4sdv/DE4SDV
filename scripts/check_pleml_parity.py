@@ -142,6 +142,25 @@ PROBE_ROWS = (
 _BULLET = re.compile(r"^\s+[•-] (.+)$")
 _VARIANT = re.compile(r"^\s*part :>> (\w+) = \w+::(\w+);\s*$", re.MULTILINE)
 _REGENERATE = re.compile(r"^ \* Regenerate from: (.+)$", re.MULTILINE)
+#: The configuration a projection names when the configurator wrote it from a receipt (since the switch, S6).
+_CONFIGURATION = re.compile(r"^ \* Feature configuration: (\S+) \(", re.MULTILINE)
+
+
+def projection_bill(text: str) -> str | None:
+    """The bill of features of a committed projection, or ``None`` for a file that is no configured projection.
+
+    A projection of the YAML path names its bill; one written from a receipt
+    names its PLEML configuration, whose shadow is the bill beside it with the
+    same stem in kebab case (ADR 0022, step S6).
+    """
+    source = _REGENERATE.search(text)
+    if source is not None:
+        return source.group(1).strip()
+    configuration = _CONFIGURATION.search(text)
+    if configuration is None:
+        return None
+    path = Path(configuration.group(1).strip())
+    return path.with_name(path.stem.replace("_", "-") + ".yaml").as_posix()
 
 
 class ParityRefused(ValueError):
@@ -482,14 +501,14 @@ def projection_bodies(results: Iterable[Mapping[str, Any]], root: Path = ROOT) -
     checked = []
     for projection in sorted((root / PRODUCT_MODELS).glob("*.sysml")):
         text = projection.read_text(encoding="utf-8")
-        source = _REGENERATE.search(text)
-        if source is None:
+        bill = projection_bill(text)
+        if bill is None:
             continue  # not a configured projection
-        result = by_bill.get(source.group(1).strip())
+        result = by_bill.get(bill)
         committed = receipts.normalised_body(text)
         yaml_body = result["bodies"]["yaml"] if result else None
         pleml_body = result["bodies"]["pleml"] if result else None
-        checked.append({"projection": projection.relative_to(root).as_posix(), "bill": source.group(1).strip(),
+        checked.append({"projection": projection.relative_to(root).as_posix(), "bill": bill,
                         "yaml_equal": yaml_body == committed, "pleml_equal": pleml_body == committed,
                         "equal": yaml_body == committed == pleml_body})
     return checked
