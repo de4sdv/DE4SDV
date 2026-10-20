@@ -152,6 +152,31 @@ RELEASE_PATH = REPIN.path
 
 #: Where ``sysand sync`` in ``PROJECT`` installs the library, relative to the repository.
 LIBRARY_PATH = PROJECT / ".sysand/lib" / f"mbse4u-pleml_{RELEASE.version}" / RELEASE.library.path
+#: Where a run read each release's library, relative to the checkout that held it:
+#: 1.1.0 from the frozen experiment's PLEML submodule, 1.1.1 from this project. A
+#: re-pin moves the library's serialized references from the previous release's
+#: path to the pinned one's, and nothing else. Each re-pin adds the new release's
+#: entry; ``check_provision_paths`` refuses a record without it.
+PROVISION_PATHS = {
+    "1.1.0": Path("external/pleml/PLEML.sysml"),
+    "1.1.1": PROJECT / ".sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml",
+}
+
+
+def check_provision_paths(release: Release = RELEASE, previous: Release = PREVIOUS,
+                          paths: dict[str, Path] | None = None) -> None:
+    """Refuse a record whose previous or pinned release lacks its provision path, or names a stale one."""
+    paths = PROVISION_PATHS if paths is None else paths
+    missing = [item.version for item in (previous, release) if item.version not in paths]
+    if missing:
+        raise PackageError(f"PROVISION_PATHS has no entry for PLEML {missing}: a re-pin adds where its run "
+                           "reads the library")
+    installed = PROJECT / ".sysand/lib" / f"mbse4u-pleml_{release.version}" / release.library.path
+    if paths[release.version] != installed:
+        raise PackageError(f"the provision path {paths[release.version]} of PLEML {release.version} is not where "
+                           f"the fenced lock installs it ({installed})")
+    if paths[previous.version] == paths[release.version]:
+        raise PackageError("the previous and the pinned release name the same provision path")
 
 #: Confinement (ADR 0022, decision 1): only the feature-model packages and
 #: their fixtures import PLEML. These are the roots the feature models and
