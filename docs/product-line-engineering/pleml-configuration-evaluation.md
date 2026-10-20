@@ -36,9 +36,10 @@ only (ADR 0011). For each feature tree it decides:
   exactly one variant per derived variation; no matching rule, or several,
   rejects it.
 - **admission.** The governed scope of ADR 0014 stays the admission authority,
-  so a valid configuration may still not be admitted. Admission is decided for
-  every configuration, apart from its validity, from the correspondences of
-  its features (see below).
+  so a valid configuration may still not be admitted. Admission requires
+  validity: an invalid configuration is never admitted. Its admission record
+  says why, and keeps what the correspondences of its features decide (see
+  below).
 
 ## Admission
 
@@ -54,6 +55,9 @@ alternative instead.
 
 A configuration is admitted when all of these hold:
 
+- it is valid. An invalid configuration is not admitted, and the first reason
+  of its admission record names its reason classes ("invalid configuration:
+  ...");
 - grouping features carry no admission, and a group feature's correspondence
   only classifies its variation point;
 - every selected choice or leaf has a correspondence that is an admitted

@@ -31,8 +31,8 @@ What one evaluation decides, per feature tree:
   pair exclusions over every source pair, and, for a valid configuration,
   exactly one matching rule per derived variation;
 * with the governed scope, the admission authority (ADR 0014): whether each
-  configuration is admitted, read from the correspondences of its features
-  and decided apart from its validity.
+  configuration is admitted, read from the correspondences of its features.
+  Admission requires validity: an invalid configuration is never admitted.
 
 Nothing here executes a PLEML expression natively, qualifies anything or
 grants authority: every report says ``native_expression_executed: false``.
@@ -1182,9 +1182,10 @@ class _FeatureModel:
                    for item in self.correspondences.get(feature, []))
 
     def admission(self, selected: set[str]) -> dict[str, Any]:
-        """Whether the governed scope admits a selection, decided apart from its validity.
+        """Whether the governed scope admits a selection, by the correspondences of its features.
 
-        Grouping features carry no admission. A group feature's correspondence
+        A configuration is admitted only when it is also valid, which its
+        decision adds. Grouping features carry no admission. A group feature's correspondence
         classifies its variation point and never blocks. Each selected choice
         or leaf blocks unless one of its correspondences is admissible, and
         one without a correspondence is not in the governed scope; a family
@@ -1567,6 +1568,13 @@ class _Configuration:
                                              "derivation": derivation.label})
             if self.reasons:
                 derived_variants = []
+        # Admission requires validity: the governed members are valid configurations, as a derivation applies
+        # to a valid configuration only. An invalid one keeps the rest of its admission record.
+        admission = model.admission(selected)
+        if self.reasons:
+            classes = ", ".join(sorted({reason["class"] for reason in self.reasons}))
+            admission = {**admission, "admitted": False,
+                         "reasons": [f"invalid configuration: {classes}", *admission["reasons"]]}
         return {
             "configuration": graph.name(self.identifier),
             "element_id": self.identifier,
@@ -1576,7 +1584,7 @@ class _Configuration:
             "valid": not self.reasons,
             "reasons": sorted(self.reasons, key=lambda item: (item["class"], item.get("constraint") or "",
                                                               item["detail"])),
-            "admission": model.admission(selected),
+            "admission": admission,
             "selected": sorted(str(model.path(item)) for item in selected),
             "states": states,
             "derived_variants": sorted(derived_variants, key=lambda item: item["variation"]),

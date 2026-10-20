@@ -229,6 +229,43 @@ def test_an_unclassified_configurator_message_refuses_the_parity(monkeypatch, tm
         parity.yaml_outcome(ROOT / fixture, {}, evaluated, tmp_path, "fixture")
 
 
+def _configurations() -> list[dict]:
+    return [configuration for path in sorted((ROOT / parity.RECEIPTS).glob("*.receipt.json"))
+            for model in json.loads(path.read_text(encoding="utf-8"))["evaluation"]["feature_models"]
+            for configuration in model["configurations"]]
+
+
+def test_no_invalid_configuration_of_the_committed_receipts_is_admitted() -> None:
+    """Admission requires validity (decision of 2026-10-20). The receipts before the fix admitted the
+    invalid hand-picked-adapter probe, whose features alone realize the standalone member."""
+    configurations = _configurations()
+    invalid = [item for item in configurations if not item["valid"]]
+    assert len(invalid) == 8
+    assert [item["configuration"] for item in invalid if item["admission"]["admitted"] is not False] == []
+    for item in invalid:
+        classes = ", ".join(sorted({reason["class"] for reason in item["reasons"]}))
+        assert item["admission"]["reasons"][0] == f"invalid configuration: {classes}", item["configuration"]
+    [probe] = [item for item in configurations if item["configuration"] == "handPickedAdapterProbe"]
+    assert probe["admission"]["reasons"][0] == "invalid configuration: derived-variant-not-selectable"
+    assert probe["admission"]["alternative"] == "standalone", "the rest of its admission record is kept"
+
+
+def test_the_parity_refuses_an_invalid_configuration_that_is_admitted() -> None:
+    admitted = {"valid": False, "admission": {"admitted": True, "alternative": "standalone"}}
+    assert parity.admission_problems(admitted, None) == [
+        "an invalid configuration is admitted (True); admission requires validity"]
+    undecided = {"valid": False, "admission": {"admitted": None}}
+    assert parity.admission_problems(undecided, None) == [
+        "an invalid configuration is admitted (None); admission requires validity"]
+    refused = {"valid": False, "admission": {"admitted": False, "alternative": "standalone"}}
+    assert parity.admission_problems(refused, {"admitted": False, "alternative": None}) == []
+    member = {"valid": True, "admission": {"admitted": True, "alternative": "standalone"}}
+    assert parity.admission_problems(member, {"admitted": True, "alternative": "standalone"}) == []
+    assert parity.admission_problems(member, {"admitted": False, "alternative": None}) == [
+        "admission {'admitted': True, 'alternative': 'standalone'} differs from the retained YAML-era verdict "
+        "{'admitted': False, 'alternative': None}"]
+
+
 def _result(row: str, kind: str, cls: str, valid: bool = True) -> dict:
     return {"row": row, "kind": kind, "class": cls, "detail": "x" if cls == "defect" else "",
             "pleml": {"valid": valid}}

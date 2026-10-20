@@ -86,9 +86,11 @@ an exclusion presumes the exactly-one structure of its group.
 ## Admission
 
 The governed scope is the admission authority, so a configuration can be
-valid without being admitted. The correspondences are read as the PLE-S
-record read its catalogue correspondence, the reading that reproduced its
-retained verdicts. A valid configuration is admitted when all of these hold:
+valid without being admitted. Admission requires validity: an invalid
+configuration is never admitted, however its features correspond. The
+correspondences are read as the PLE-S record read its catalogue
+correspondence, the reading that reproduced its retained verdicts. A valid
+configuration is admitted when all of these hold:
 
 - Every selected choice and leaf corresponds to an admitted alternative or to
   common content. One that corresponds only to reference-only, deferred or
@@ -258,8 +260,9 @@ selection, with the probe's description, outside the repository.
 
 Each row compares the validity, the reason class, the derived variants, the
 normalised projection body of a valid row and, where the retained record
-holds the YAML-era verdict, admission. The receipt must also restate the
-row's selection feature by feature, through the catalogue paths it records.
+holds the YAML-era verdict, admission. No invalid configuration may be
+admitted, on any row. The receipt must also restate the row's selection
+feature by feature, through the catalogue paths it records.
 A row is `equal`, `both-reject`, `not-expressible` or `defect`.
 `not-expressible` is only a construct on the pinned list that is the sole
 YAML violation, with the remainder still compared. The list holds one

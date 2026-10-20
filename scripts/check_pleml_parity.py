@@ -22,8 +22,10 @@ probe, so that a valid row's bodies can be compared.
 
 Each row compares validity, the reason classes (R11), the derived variants,
 the normalised projection body of a valid row (R19), and admission where the
-retained record holds the YAML-era verdict. The receipt must restate the
-row's selection, feature by feature through the catalogue paths it records.
+retained record holds the YAML-era verdict. No invalid configuration may be
+admitted, on any row: admission requires validity. The receipt must restate
+the row's selection, feature by feature through the catalogue paths it
+records.
 ``not-expressible`` needs a construct on the pinned list as the sole YAML
 violation, and the remainder is still compared (N3). Every run asserts the
 plan's histogram: 16 ``equal``, 8 ``both-reject``, 1 ``not-expressible`` and
@@ -317,6 +319,22 @@ def admission_of(configuration: Mapping[str, Any]) -> dict[str, Any]:
             "alternative": admission.get("alternative") if admission.get("admitted") else None}
 
 
+def admission_problems(configuration: Mapping[str, Any], expected: Mapping[str, Any] | None) -> list[str]:
+    """Where a configuration's admission breaks a rule: validity first, then the retained verdict.
+
+    Admission requires validity: an invalid configuration is never admitted,
+    on any row and whatever the retained record says.
+    """
+    problems = []
+    admission = admission_of(configuration)
+    if not configuration["valid"] and admission["admitted"] is not False:
+        problems.append(f"an invalid configuration is admitted ({admission['admitted']}); admission requires "
+                        "validity")
+    if expected is not None and admission != dict(expected):
+        problems.append(f"admission {admission} differs from the retained YAML-era verdict {dict(expected)}")
+    return problems
+
+
 def remainder(selections: Mapping[str, Any], catalogue: pleml_shadow.Catalogue) -> tuple[dict[str, Any], list[str]]:
     """The selection without the pinned construct (a common capability set to false), and the paths it drops."""
     dropped = [key for key, value in selections.items() if value is False and catalogue.nodes.get(key) is not None
@@ -395,9 +413,8 @@ def compare(row: Row, evaluated: Evaluated, configurator: Any, record: Mapping[s
     if evaluated.configuration["projection_name"] != row.name:
         problems.append(f"the configuration projects {evaluated.configuration['projection_name']}, the row {row.name}")
     problems += [f"restatement: {error}" for error in restatement_errors(row.selections, evaluated)]
+    problems += admission_problems(evaluated.configuration, expected_admission)
     admission = admission_of(evaluated.configuration)
-    if expected_admission is not None and admission != expected_admission:
-        problems.append(f"admission {admission} differs from the retained YAML-era verdict {expected_admission}")
     return {
         "row": row.row, "kind": row.kind, "class": "defect" if problems else result["class"],
         "detail": "; ".join(problems) if problems else result["detail"],
