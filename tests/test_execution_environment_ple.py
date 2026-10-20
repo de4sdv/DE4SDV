@@ -89,17 +89,30 @@ class TestExecutionEnvironmentPle(unittest.TestCase):
         self.assertNotIn("appleSiliconMac", vehicle)
 
     def test_committed_projections_are_reproducible_and_statuses_are_explicit(self):
+        """Since the switch (ADR 0022, step S6) each committed projection regenerates
+        from its receipt byte for byte, and the Bill-of-Features, the shadow that still
+        carries the evidence status, gives the same normalised body."""
+        import projection_sources as sources
+
         for config_name, (feature_model, output_name, expected_status) in CONFIGURATIONS.items():
-            bof = PLE_ROOT / "feature-configurations" / config_name
-            output = PLE_ROOT / "product-models" / output_name
-            data = yaml.safe_load(bof.read_text())
-            self.assertEqual(data["evidence"]["status"], expected_status)
-            with tempfile.NamedTemporaryFile(suffix=".sysml") as generated:
-                result = self.run_config(feature_model, bof, generated.name)
-                self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertEqual(Path(generated.name).read_text(), output.read_text())
+            with self.subTest(configuration=config_name):
+                bof = PLE_ROOT / "feature-configurations" / config_name
+                committed = (PLE_ROOT / "product-models" / output_name).read_text()
+                data = yaml.safe_load(bof.read_text())
+                self.assertEqual(data["evidence"]["status"], expected_status)
+                relative = bof.relative_to(REPO_ROOT)
+                self.assertEqual(
+                    sources.receipt_projection(sources.configuration_of(relative)), committed
+                )
+                shadow = sources.shadow_projection(
+                    relative, feature_model.relative_to(REPO_ROOT), SHARED_MODEL.relative_to(REPO_ROOT)
+                )
+                self.assertEqual(sources.normalised_body(shadow), sources.normalised_body(committed))
 
     def test_existing_sdv_projections_remain_reproducible(self):
+        """From the receipts byte for byte, and from the shadow by normalised body (S6)."""
+        import projection_sources as sources
+
         legacy = {
             "example-linux-score-autoware.yaml": "example_linux_score.sysml",
             "apollo-qnx-qvm.yaml": "apollo_qnx_qvm.sysml",
@@ -107,29 +120,13 @@ class TestExecutionEnvironmentPle(unittest.TestCase):
         }
         for config_name, output_name in legacy.items():
             with self.subTest(configuration=config_name):
-                with tempfile.NamedTemporaryFile(suffix=".sysml") as generated:
-                    result = subprocess.run(
-                        [
-                            sys.executable,
-                            str(SCRIPT),
-                            "--feature-model",
-                            str(SDV_FM),
-                            "--bof",
-                            str(PLE_ROOT / "feature-configurations" / config_name),
-                            "--shared-assets-model",
-                            str(SDV_SHARED_MODEL),
-                            "--output",
-                            generated.name,
-                        ],
-                        cwd=REPO_ROOT,
-                        capture_output=True,
-                        text=True,
-                    )
-                    self.assertEqual(result.returncode, 0, result.stderr)
-                    self.assertEqual(
-                        Path(generated.name).read_text(),
-                        (PLE_ROOT / "product-models" / output_name).read_text(),
-                    )
+                bof = (PLE_ROOT / "feature-configurations" / config_name).relative_to(REPO_ROOT)
+                committed = (PLE_ROOT / "product-models" / output_name).read_text()
+                self.assertEqual(sources.receipt_projection(sources.configuration_of(bof)), committed)
+                shadow = sources.shadow_projection(
+                    bof, SDV_FM.relative_to(REPO_ROOT), SDV_SHARED_MODEL.relative_to(REPO_ROOT)
+                )
+                self.assertEqual(sources.normalised_body(shadow), sources.normalised_body(committed))
 
     def test_engineering_compatibility_rules_reject_cross_platform_mix(self):
         configs = PLE_ROOT / "feature-configurations"

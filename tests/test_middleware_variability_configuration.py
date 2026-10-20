@@ -1,6 +1,3 @@
-import subprocess
-import sys
-import tempfile
 import unittest
 from pathlib import Path
 
@@ -34,8 +31,6 @@ PILOT = (
     / "pilots"
     / "middleware-variability-configuration.yaml"
 )
-CONFIGURATOR = REPO_ROOT / "tools" / "configure_variant.py"
-
 
 class TestMWVariabilityConfiguration(unittest.TestCase):
     def test_bof_selects_member_features_but_not_the_derived_adapter(self):
@@ -91,26 +86,17 @@ class TestMWVariabilityConfiguration(unittest.TestCase):
         )
 
     def test_committed_product_projection_is_reproducible(self):
-        with tempfile.NamedTemporaryFile(suffix=".sysml") as generated:
-            result = subprocess.run(
-                [
-                    sys.executable,
-                    str(CONFIGURATOR),
-                    "--feature-model",
-                    str(FEATURE_MODEL),
-                    "--bof",
-                    str(BOF),
-                    "--shared-assets-model",
-                    str(SHARED_MODEL),
-                    "--output",
-                    generated.name,
-                ],
-                cwd=REPO_ROOT,
-                capture_output=True,
-                text=True,
-            )
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(Path(generated.name).read_text(), PRODUCT_MODEL.read_text())
+        """Since the switch (ADR 0022, step S6): from the receipt byte for byte, and from
+        the Bill-of-Features, the shadow, by normalised body."""
+        import projection_sources as sources
+
+        bof = BOF.relative_to(REPO_ROOT)
+        committed = PRODUCT_MODEL.read_text()
+        self.assertEqual(sources.receipt_projection(sources.configuration_of(bof)), committed)
+        shadow = sources.shadow_projection(
+            bof, FEATURE_MODEL.relative_to(REPO_ROOT), SHARED_MODEL.relative_to(REPO_ROOT)
+        )
+        self.assertEqual(sources.normalised_body(shadow), sources.normalised_body(committed))
 
         product = PRODUCT_MODEL.read_text()
         self.assertIn(
