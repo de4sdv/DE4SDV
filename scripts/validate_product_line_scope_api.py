@@ -85,7 +85,7 @@ def validate_api_scope(
     applications = member_product_applications(
         elements, bundle.element_sources,
         kernel_bindings={item.ontology_class: item.element_id for item in binding.kernel_bindings},
-        external_references=bundle.external_references)
+        external_references=bundle.external_references, governed_scope=scope)
     return {
         **scope,
         "configuration_member_products": applications,

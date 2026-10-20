@@ -166,15 +166,20 @@ def member_product_applications(
     kernel_bindings: Mapping[str, str],
     external_references: Iterable[Mapping[str, Any]] = (),
     library_source: str = pleml_configuration.LIBRARY_SOURCE,
+    governed_scope: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Derive ``appliesToMemberProduct`` for every PLEML feature configuration of an export.
 
     ``elements`` and ``element_sources`` are an export or the served model's
     API objects with their source documents; ``kernel_bindings`` maps the
     ontology classes to their validated element identities (ADR 0011), as
-    ``pleml_configuration.kernel_bindings`` computes them. Raises
-    :class:`MemberProductError` on an ambiguous identity or on a
-    configuration that applies to more than one member product.
+    ``pleml_configuration.kernel_bindings`` computes them. ``governed_scope``
+    is the record of the production scope validator
+    (``product_line_scope.validate_scope_elements``): the evaluator reads the
+    feature models' correspondences to the governed scope only with it, as
+    the receipts do. Raises :class:`MemberProductError` on an ambiguous
+    identity or on a configuration that applies to more than one member
+    product.
     """
     elements = list(elements)
     graph = _Graph(elements, element_sources)
@@ -184,7 +189,8 @@ def member_product_applications(
     model_sources = sorted({source for source in element_sources.values() if source.startswith(PLEML_ROOTS)})
     evaluation = pleml_configuration.evaluate(
         elements, element_sources, model_sources=model_sources, library_source=library_source,
-        external_references=external_references, kernel_bindings=kernel_bindings)
+        external_references=external_references, kernel_bindings=kernel_bindings,
+        governed_scope=governed_scope)
     members = [identifier for identifier, element in graph.by_id.items()
                if element.get("@type") == "PartDefinition" and identifier != member_root
                and graph.specializes(identifier, member_root)]

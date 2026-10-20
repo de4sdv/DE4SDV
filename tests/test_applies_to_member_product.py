@@ -178,4 +178,32 @@ def test_the_ingestion_scope_battery_records_the_derived_fact() -> None:
 
     source = inspect.getsource(battery.validate_api_scope)
     assert "member_product_applications(" in source and "binding.kernel_bindings" in source
+    assert "governed_scope=scope" in source
     assert '"configuration_member_products": applications' in source
+
+
+def test_a_line_with_correspondences_is_derived_with_the_governed_scope_record() -> None:
+    """Genuine feature models carry correspondences to the governed scope, and the evaluator
+    reads them only with the production scope validator's record (found on the genuine export
+    of the switch's head): the realization takes that record, as the scope battery passes it."""
+    line = Line.__new__(Line)
+    line.line = PlatformLine(governed=True)
+    line.graph = line.line.graph
+    line.integrated = line.line.configure("integratedMember", "autoware", "androidSDV", "android", "kvm",
+                                          projection_name="IntegratedProjection")
+    kernel = line.graph.element("Package", KERNEL, declaredName="DE4SDV_ProductLine")
+    line.member_root = line.graph.own(kernel, "OwningMembership", "PartDefinition",
+                                      member_name="ProductLineMemberProduct", declaredName="ProductLineMemberProduct")
+    line.slice = line.graph.element("Package", SLICE, declaredName="SyntheticVariabilityConfiguration")
+    projection = line.projection("IntegratedProjection")
+    member = line.definition("IntegratedConfiguredMember", line.member_root)
+    line.usage(member, "platformStack", projection)
+    elements, sources = line.graph.build()
+    bindings = {**line.graph.kernel_bindings(), applies.MEMBER_PRODUCT: line.member_root}
+    with pytest.raises(Exception, match="governed scope"):
+        applies.member_product_applications(elements, sources, kernel_bindings=bindings,
+                                            library_source=line.graph.library)
+    result = applies.member_product_applications(elements, sources, kernel_bindings=bindings,
+                                                 library_source=line.graph.library,
+                                                 governed_scope=line.graph.scope_record)
+    assert _rows(result)["integratedMember"]["member_product"]["element_id"] == member
