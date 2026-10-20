@@ -127,16 +127,17 @@ EXECUTOR_INPUTS = (
     *AUTHORITY_SOURCES,
     *FIXTURES,
 )
-#: The production modules the evaluation reads beyond the runner's inputs: the kernel binding of
-#: ADR 0011 (contract, model contract, binding validation, revision identity). The evaluator's own
-#: record of the code it ran, ``EVALUATOR_MODULES``, names the PLEML-owned files only.
+#: The shared modules the evaluator imports directly for the kernel binding of ADR 0011 (contract,
+#: model contract, binding validation, revision identity). The evaluator's own record of the code it
+#: ran, ``EVALUATOR_MODULES``, names the PLEML-owned files only.
 EVALUATION_DEPENDENCIES = (
     "de4sdv/semantic/kernel_contract.py",
     "de4sdv/semantic/model_contract.py",
     "de4sdv/semantic/validation.py",
     "de4sdv/sysml_api/revisions.py",
 )
-#: What a run pins by digest: the runner's inputs and every module that decides the receipts.
+#: What a run pins by digest and records: the code the runner and the evaluator import directly.
+#: Semantic drift in other shared code is caught by the unlicensed replay, not by this list.
 RUN_INPUTS = tuple(dict.fromkeys((*EXECUTOR_INPUTS, *pleml_receipts.EVALUATOR_MODULES, *EVALUATION_DEPENDENCIES)))
 RUN_SCHEMA = "de4sdv.ple-authority-run/v1"
 #: The export bundle, as the evaluator's entry point reads it.

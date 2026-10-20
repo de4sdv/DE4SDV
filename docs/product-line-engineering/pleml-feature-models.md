@@ -204,6 +204,19 @@ the library or a catalogue makes it stale:
 Both the job and the public CI sync and byte-check the fenced PLEML package
 before the replay, which reads the installed library.
 
+A receipt binds by content, never by a commit:
+
+- the digest of every document of the bundle;
+- the digest of the elements file and of its content;
+- the pinned PLEML release;
+- the evaluator's code record.
+
+Its `provenance` names the commit of the licensed run whose bundle it was
+written from. That record is informational only, because a rebase or a squash
+merge may leave the commit unreachable. Authenticity does not rest on it:
+every licensed run at a later head serializes afresh and requires the
+committed elements to equal its own (`compare_with_committed`).
+
 The unlicensed checks are
 [`test_ple_authority_model.py`](../../tests/test_ple_authority_model.py)
 (the fence, the catalogue restatement, the agreement and complement checks,
