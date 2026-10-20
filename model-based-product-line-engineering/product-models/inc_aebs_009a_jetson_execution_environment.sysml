@@ -6,7 +6,7 @@
  * Shared-assets model: textual-notation-of-model/packages/architecture/execution_environments.sysml
  * Shared-assets model SHA-256: 0c1781ff83fdb8dcef36cd070b578eef04793e9554e815e9876477ecb6475328
  * Receipt: model-based-product-line-engineering/feature-models/receipts/engineering_execution_environments.receipt.json
- * Receipt SHA-256: b61ac2b9cdc57c84f9ffe1a3264a2c47e7fb41219228331b1fab16f8cc63bffc
+ * Receipt SHA-256: 6ea5e3c06dbe387ee5d937c7611ceedaf16790c6617543d228397eb88147ceee
  * Elements SHA-256: 28dadd5c0b0ea323b458761ec39c610dbc7f04944e16b4aafda93153d0ef1b3e
  * Feature configuration: model-based-product-line-engineering/feature-configurations/inc_aebs_009a_jetson.sysml (incAEBS009AJetsonExecutionEnvironment)
  * Feature configuration SHA-256: a4426b02d4b806b2bb4f01311e5a63fa9b96e5f8626de3fcd8465e369bec805c
