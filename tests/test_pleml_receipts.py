@@ -661,6 +661,21 @@ def test_the_normalised_body_drops_the_header_and_the_derivation_source():
     assert receipts.normalised_body(other) == body
 
 
+def test_the_normalisation_touches_only_the_writers_derivation_source_line():
+    """Review round 1 of S4, R6: a description line of the same shape stays part of the body, and a
+    projection without the derivation-source line where the writer puts it is refused."""
+    projection = (ROOT / "model-based-product-line-engineering/product-models/aebs_autoware_linux_lidar_camera.sysml"
+                  ).read_text()
+    autoware, apollo = (projection.replace("AEBS reference member product.",
+                                           f"Derived platform-stack projection from the {member} member.")
+                        for member in ("Autoware", "Apollo"))
+    assert receipts.normalised_body(autoware) != receipts.normalised_body(apollo)
+    assert "   * Derived platform-stack projection from the Autoware member." in receipts.normalised_body(autoware)
+    moved = projection.replace("   * Derived platform-stack projection from Bill-of-Features.\n", "")
+    with pytest.raises(ValueError, match="derivation-source line"):
+        receipts.normalised_body(moved)
+
+
 def test_the_description_is_folded_as_the_yaml_writer_receives_it():
     bof = yaml.safe_load((CONFIGURATIONS / "aebs-autoware-linux-lidar-camera.yaml").read_text())
     doc_body = ("AEBS reference member product.\nAutoware on Linux, single-domain (no middleware, no hypervisor).\n"
@@ -755,6 +770,37 @@ def test_every_configurator_rejection_has_a_reason_class():
     for message in templates:
         keys, counted = cli.yaml_reason_keys([message], {}, catalogue)
         assert counted == 1 and len(keys) <= 1, message
+        assert len(cli.yaml_reasons([message], {}, catalogue)) == 1, message
+
+
+def test_a_configurator_rejection_names_its_location():
+    """Review round 1 of S4, R2: each counted rejection keeps the group, the pair of choices or the derived
+    variation it names, so the parity compares the reasons as a multiset with their locations."""
+    catalogue = cli.Catalogue(ROOT / CATALOGUE)
+    selections = {"PlatformStack.VehicleApplication": "Openpilot", "PlatformStack.Middleware": "AndroidSDV"}
+    messages = [
+        "'PlatformStack.OS': '['Android', 'Linux']' is not a valid XOR choice. Valid: ['Linux', 'Android', 'QNX']",
+        "Mandatory alternative group 'PlatformStack.Hypervisor' has no selection",
+        "[C001] requires: 'PlatformStack.OS in [Linux, QNX]' is not satisfied when 'PlatformStack.Middleware == "
+        "EclipseSCORE' holds.",
+        "Derived asset 'D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER' for 'SDVPlatformStack.applicationMiddlewareAdapter' "
+        "has no rule matching PlatformStack.VehicleApplication='Openpilot', PlatformStack.Middleware='AndroidSDV'",
+        "Unknown feature path in selections: 'PlatformStack.ApplicationMiddlewareAdapter'",
+        "Mandatory feature not selected: 'Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS'",
+    ]
+    assert cli.yaml_reasons(messages, selections, catalogue) == [
+        {"class": "upper-bound", "constraint": None, "location": ["PlatformStack.OS"]},
+        {"class": "lower-bound", "constraint": None, "location": ["PlatformStack.Hypervisor"]},
+        {"class": "constraint", "constraint": "C001", "location": None},
+        {"class": "pair-exclusion", "constraint": None,
+         "location": ["PlatformStack.Middleware.AndroidSDV", "PlatformStack.VehicleApplication.Openpilot"]},
+        {"class": "derived-variant-not-selectable", "constraint": None, "location": ["applicationmiddlewareadapter"]},
+        {"class": "common-capability-false", "constraint": None,
+         "location": ["Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS"]},
+    ]
+    assert cli.yaml_reason_keys(messages, selections, catalogue) == ({
+        ("upper-bound", None), ("lower-bound", None), ("constraint", "C001"), ("pair-exclusion", None),
+        ("derived-variant-not-selectable", None), ("common-capability-false", None)}, 6)
 
 
 def run_configurator(tmp_path: Path, name: str, selections: dict) -> dict:
@@ -833,6 +879,33 @@ def test_a_parity_row_classifies_as_the_plan_expects(tmp_path, row, choices, ext
                           hand_picked="PlatformStack.ApplicationMiddlewareAdapter" in extra)
     result = receipts.classify_row(row, yaml_side, pleml, yaml_remainder=remainder_yaml)
     assert result["class"] == expected, (result, yaml_side, pleml)
+
+
+def _rejected(*reasons: tuple) -> dict:
+    return {"valid": False, "keys": {(item[0], item[1]) for item in reasons}, "derived_variants": {},
+            "reasons": list(reasons)}
+
+
+def test_a_both_reject_row_compares_the_reasons_in_count_and_location():
+    """Review round 1 of S4, R2: the same classes are not enough. With the reasons of both sides given, a
+    count or a location that differs is a defect."""
+    groups = ("PlatformStack.Hypervisor", "PlatformStack.Middleware", "PlatformStack.OS")
+    three = _rejected(*(("upper-bound", None, (group,)) for group in groups))
+    assert receipts.classify_row("both-alternatives", three, three) == {"class": "both-reject", "detail": ""}
+    # A count mismatch: three upper bounds on one side, one on the other.
+    one = _rejected(("upper-bound", None, ("PlatformStack.OS",)))
+    count = receipts.classify_row("both-alternatives", three, one)
+    assert count["class"] == "defect" and count["detail"].startswith("the reasons differ in count or location")
+    # A location mismatch: a pair exclusion of another pair.
+    openpilot = _rejected(("pair-exclusion", None,
+                           ("PlatformStack.Middleware.AndroidSDV", "PlatformStack.VehicleApplication.Openpilot")))
+    apollo = _rejected(("pair-exclusion", None,
+                        ("PlatformStack.Middleware.AndroidSDV", "PlatformStack.VehicleApplication.Apollo")))
+    location = receipts.classify_row("unsupported-openpilot-android-sdv", openpilot, apollo)
+    assert location["class"] == "defect" and "VehicleApplication.Apollo" in location["detail"]
+    # Without the reasons, the classes alone decide, as before.
+    bare = [{key: value for key, value in side.items() if key != "reasons"} for side in (openpilot, apollo)]
+    assert receipts.classify_row("unsupported-openpilot-android-sdv", *bare)["class"] == "both-reject"
 
 
 # -- evidence records (plan section 4) --------------------------------------------------------------

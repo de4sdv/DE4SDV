@@ -50,6 +50,14 @@ jobs:
           (cd model-based-product-line-engineering/libraries/pleml && sysand sync)
           python scripts/check_pleml_package.py --release-diff
 
+      # The parity of the PLEML receipts with the YAML path (ADR 0022, plan
+      # step S4), which gates every step until S7: every parity row, the
+      # plan's histogram and the seven normalised projection bodies, from the
+      # committed receipts and the YAML, unlicensed. It replays the receipts,
+      # so it runs after the fenced package is installed.
+      - name: Check the PLEML parity with the YAML path
+        run: python scripts/check_pleml_parity.py
+
       - name: Run repository checks
         run: python scripts/check_repo.py
 

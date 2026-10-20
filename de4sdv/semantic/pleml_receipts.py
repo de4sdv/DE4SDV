@@ -24,6 +24,7 @@ import json
 import lzma
 import re
 import subprocess
+from collections import Counter
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable, Mapping
@@ -489,15 +490,25 @@ def writer_inputs(configuration: Mapping[str, Any], features: Iterable[Mapping[s
 
 
 _HEADER_END = re.compile(r"\A/\*.*?\n \*/\n\n?", re.DOTALL)
-_DERIVATION_SOURCE = re.compile(r"^(\s*\* Derived .+ projection) from .+\.$", re.MULTILINE)
+#: The derivation-source line where the writer puts it: the first line of the part definition's doc.
+_DERIVATION_SOURCE = re.compile(r"^(part def \w+ :> \w+ \{\n  doc /\*\n   \* Derived .+ projection) from .+\.$",
+                                re.MULTILINE)
 
 
 def normalised_body(projection: str) -> str:
-    """The projection below its provenance header, with the derivation-source line normalised."""
+    """The projection below its provenance header, with the derivation-source line normalised.
+
+    Only the writer's derivation-source line is normalised, never a description
+    line of the same shape; a projection without it is refused.
+    """
     match = _HEADER_END.match(projection)
     if match is None:
         raise ValueError("the projection has no provenance header")
-    return _DERIVATION_SOURCE.sub(r"\1 from <configuration source>.", projection[match.end():])
+    body, count = _DERIVATION_SOURCE.subn(r"\1 from <configuration source>.", projection[match.end():], count=1)
+    if count != 1:
+        raise ValueError("the projection has no derivation-source line where the writer puts it, the first line "
+                         "of the part definition's doc")
+    return body
 
 
 # -- reason keys and parity rows -------------------------------------------------------------
@@ -518,10 +529,14 @@ def classify_row(row: str, yaml: Mapping[str, Any], pleml: Mapping[str, Any], *,
     """``equal``, ``both-reject``, ``not-expressible`` or ``defect`` for one parity row.
 
     Each outcome has ``valid``, ``keys`` (reason keys), ``derived_variants``
-    ({variation: variant}) and, when valid, ``body`` (normalised). A
-    ``not-expressible`` row needs a pinned construct for this row as the sole
-    YAML violation, and the YAML evaluation of the remainder must equal the
-    PLEML outcome; anything else that differs is a defect.
+    ({variation: variant}) and, when valid, ``body`` (normalised). Two
+    rejections need the same reason keys; when both outcomes also give
+    ``reasons``, the hashable (class, constraint, location) of each reason,
+    they need the same multiset of them, so a reason counted twice or placed
+    on another group or pair is a defect too. A ``not-expressible`` row needs
+    a pinned construct for this row as the sole YAML violation, and the YAML
+    evaluation of the remainder must equal the PLEML outcome; anything else
+    that differs is a defect.
     """
     if yaml["valid"] and pleml["valid"]:
         if yaml["derived_variants"] != pleml["derived_variants"]:
@@ -530,10 +545,16 @@ def classify_row(row: str, yaml: Mapping[str, Any], pleml: Mapping[str, Any], *,
             return {"class": "defect", "detail": "the normalised bodies differ"}
         return {"class": "equal", "detail": ""}
     if not yaml["valid"] and not pleml["valid"]:
-        if set(yaml["keys"]) == set(pleml["keys"]):
-            return {"class": "both-reject", "detail": ""}
-        return {"class": "defect", "detail": f"reason classes differ: {sorted(map(str, yaml['keys']))} and "
-                                             f"{sorted(map(str, pleml['keys']))}"}
+        if set(yaml["keys"]) != set(pleml["keys"]):
+            return {"class": "defect", "detail": f"reason classes differ: {sorted(map(str, yaml['keys']))} and "
+                                                 f"{sorted(map(str, pleml['keys']))}"}
+        if yaml.get("reasons") is not None and pleml.get("reasons") is not None:
+            ours, theirs = Counter(yaml["reasons"]), Counter(pleml["reasons"])
+            if ours != theirs:
+                return {"class": "defect", "detail": "the reasons differ in count or location: YAML only "
+                                                     f"{sorted(map(str, (ours - theirs).elements()))}, PLEML only "
+                                                     f"{sorted(map(str, (theirs - ours).elements()))}"}
+        return {"class": "both-reject", "detail": ""}
     pinned = {item["construct"] for item in NOT_EXPRESSIBLE if item["row"] == row}
     keys = list(yaml["keys"])
     if (not yaml["valid"] and pleml["valid"] and len(keys) == 1 and keys[0][0] in pinned

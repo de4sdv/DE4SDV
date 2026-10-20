@@ -67,8 +67,31 @@ CONFIGURATIONS = (
 )
 #: The authority roots: the feature models and the member configurations.
 AUTHORITY_SOURCES = FEATURE_MODELS + CONFIGURATIONS
-#: The invalid fixture: validated and serialized, never an authority root.
-FIXTURES = (f"{PLE}/feature-configurations/fixtures/invalid_score_android.sysml",)
+#: The parity probes of step S4 (plan section 5): one PLEML configuration per
+#: probe row of the parity check, which compares its receipt with the
+#: configurator's verdict on the same frozen selection.
+PARITY_PROBES = tuple(f"{PLE}/feature-configurations/fixtures/parity-probes/{name}.sysml" for name in (
+    "both_integration_modes_probe",
+    "no_integration_mode_probe",
+    "autosar_adaptive_acrn_probe",
+    "openpilot_no_middleware_probe",
+    "radar_only_sensing_probe",
+    "lidar_only_sensing_probe",
+    "camera_only_sensing_probe",
+    "vehicle_target_aebs_off_probe",
+    "adaptive_cruise_control_probe",
+    "mixed_derived_set_probe",
+    "openpilot_android_sdv_pair_probe",
+    "openpilot_autosar_adaptive_pair_probe",
+    "apollo_android_sdv_pair_probe",
+    "apollo_autosar_adaptive_pair_probe",
+    "hand_picked_adapter_probe",
+    "openpilot_eclipse_score_pair_probe",
+    "apollo_no_middleware_pair_probe",
+))
+#: The fixtures: the invalid fixture and the parity probes, validated and
+#: serialized, never an authority root.
+FIXTURES = (f"{PLE}/feature-configurations/fixtures/invalid_score_android.sysml", *PARITY_PROBES)
 #: Reviewed documents the PLEML models reference: the shared-asset supersets
 #: their bindings and derivations target, the governed scope their
 #: correspondences target, and the kernel definitions of their derivation

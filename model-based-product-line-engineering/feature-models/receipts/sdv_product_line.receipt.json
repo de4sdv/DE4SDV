@@ -1,8 +1,8 @@
 {
   "elements": {
-    "content_sha256": "c7af4d9589d0d9e61dfe98a58523d2180d2ae83ed50958b531135c9c88728288",
+    "content_sha256": "f79831abf7103788586f89795f1380f95a67eb6afaac95d4fa13333f3e504567",
     "path": "pleml-feature-models.elements.json.xz",
-    "sha256": "524e4d7acc1a92be4863949bd230e8bba92c50c3b0082f6cd0096992b2499bc8"
+    "sha256": "e27746d0dffce4adb03dfacc77bfe0a2b7682fb1997972117b282f22c4806dce"
   },
   "evaluation": {
     "admission_authority": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
@@ -823,6 +823,7 @@
                 "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
               ],
               "reasons": [
+                "invalid configuration: constraint",
                 "selects content the governed scope does not admit: platformStack.eclipseSCORE: reference-only eclipseSCORE",
                 "realizes more than one admitted alternative: aaosIntegrated, standalone",
                 "does not represent the common content: currentSensingBaseline (missing sensingBoundary.camera); linuxROS2AutowareRuntime (missing platformStack.linux)"
@@ -839,6 +840,10 @@
                 "code": "constraint",
                 "constraint": "C001",
                 "detail": "platformStack.eclipseSCORE excludes ['platformStack.android']",
+                "features": [
+                  "platformStack.android",
+                  "platformStack.eclipseSCORE"
+                ],
                 "kind": "xor"
               }
             ],
@@ -890,6 +895,2514 @@
               "sensingBoundary.radar": "omitted"
             },
             "valid": false
+          },
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": "standalone",
+              "alternatives_realized": {
+                "standalone": [
+                  "platformStack.noMiddleware",
+                  "platformStack.linux",
+                  "platformStack.noHypervisor"
+                ]
+              },
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": [
+                "selects content the governed scope does not admit: capabilities.adaptiveCruiseControl: not in the governed scope"
+              ]
+            },
+            "configuration": "adaptiveCruiseControlProbe",
+            "derived_variants": [
+              {
+                "derivation": "D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER",
+                "rule": "autowareNoMiddlewareRule",
+                "variant": "none",
+                "variant_id": "4d5d88d4-d00e-576d-8c5f-1d39c0963350",
+                "variation": "applicationMiddlewareAdapter"
+              },
+              {
+                "binding": "hypervisorNoneBinding",
+                "variant": "none",
+                "variant_id": "f605a4bc-33da-5a7a-a414-764a041406f8",
+                "variation": "hypervisor"
+              },
+              {
+                "binding": "middlewareNoneBinding",
+                "variant": "none",
+                "variant_id": "b9825418-9bb9-57a7-8e57-67c9078d47a5",
+                "variation": "middleware"
+              },
+              {
+                "binding": "osPlatformLinuxBinding",
+                "variant": "linux",
+                "variant_id": "a6fea382-a4e0-55ec-b42f-736e915fcd02",
+                "variation": "osPlatform"
+              },
+              {
+                "binding": "vehicleApplicationAutowareBinding",
+                "variant": "autoware",
+                "variant_id": "c18b4ccc-8f57-5241-8f90-3ce459469a32",
+                "variation": "vehicleApplication"
+              }
+            ],
+            "description": "Parity probe catalogue-only-adaptive-cruise-control. Adaptive\ncruise control enabled, a catalogue option without a governed\nelement.",
+            "element_id": "78e84e25-4e3a-5583-a288-160fbadb2ea3",
+            "projection_name": "AdaptiveCruiseControlProbe",
+            "reasons": [],
+            "selected": [
+              "capabilities",
+              "capabilities.adaptiveCruiseControl",
+              "platformStack",
+              "platformStack.autoware",
+              "platformStack.hypervisor",
+              "platformStack.linux",
+              "platformStack.middleware",
+              "platformStack.noHypervisor",
+              "platformStack.noMiddleware",
+              "platformStack.operatingSystem",
+              "platformStack.vehicleApplication",
+              "sensingBoundary",
+              "sensingBoundary.camera",
+              "sensingBoundary.lidar",
+              "sensingBoundary.perceptionSensors"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/adaptive_cruise_control_probe.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "enabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "omitted",
+              "platformStack.android": "omitted",
+              "platformStack.androidSDV": "omitted",
+              "platformStack.apollo": "omitted",
+              "platformStack.autosarAdaptive": "omitted",
+              "platformStack.autoware": "enabled",
+              "platformStack.eclipseSCORE": "omitted",
+              "platformStack.hypervisor": "enabled",
+              "platformStack.kvm": "omitted",
+              "platformStack.linux": "enabled",
+              "platformStack.middleware": "enabled",
+              "platformStack.noHypervisor": "enabled",
+              "platformStack.noMiddleware": "enabled",
+              "platformStack.openpilot": "omitted",
+              "platformStack.operatingSystem": "enabled",
+              "platformStack.qnx": "omitted",
+              "platformStack.qvm": "omitted",
+              "platformStack.vehicleApplication": "enabled",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "enabled",
+              "sensingBoundary.lidar": "enabled",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "omitted"
+            },
+            "valid": true
+          },
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": null,
+              "alternatives_realized": {
+                "aaosIntegrated": [
+                  "platformStack.androidSDV"
+                ],
+                "standalone": [
+                  "platformStack.linux",
+                  "platformStack.noHypervisor"
+                ]
+              },
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "platformStack.autoware"
+                  ],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": [
+                "invalid configuration: pair-exclusion",
+                "selects content the governed scope does not admit: platformStack.apollo: reference-only apollo",
+                "realizes more than one admitted alternative: aaosIntegrated, standalone",
+                "does not represent the common content: autowareApplication (missing platformStack.autoware)"
+              ]
+            },
+            "configuration": "apolloAndroidSDVPairProbe",
+            "derived_variants": [],
+            "description": "Parity probe unsupported-apollo-android-sdv. Apollo with\nAndroid SDV, a pair without a derivation rule.",
+            "element_id": "5a96f3dc-939f-5790-9dda-26bc49885d30",
+            "projection_name": "ApolloAndroidSDVPairProbe",
+            "reasons": [
+              {
+                "class": "pair-exclusion",
+                "code": "pair-exclusion",
+                "constraint": null,
+                "detail": "platformStack.apollo excludes ['platformStack.androidSDV']",
+                "features": [
+                  "platformStack.androidSDV",
+                  "platformStack.apollo"
+                ],
+                "kind": "xor"
+              }
+            ],
+            "selected": [
+              "capabilities",
+              "platformStack",
+              "platformStack.androidSDV",
+              "platformStack.apollo",
+              "platformStack.hypervisor",
+              "platformStack.linux",
+              "platformStack.middleware",
+              "platformStack.noHypervisor",
+              "platformStack.operatingSystem",
+              "platformStack.vehicleApplication",
+              "sensingBoundary",
+              "sensingBoundary.camera",
+              "sensingBoundary.lidar",
+              "sensingBoundary.perceptionSensors"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_android_sdv_pair_probe.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "omitted",
+              "platformStack.android": "omitted",
+              "platformStack.androidSDV": "enabled",
+              "platformStack.apollo": "enabled",
+              "platformStack.autosarAdaptive": "omitted",
+              "platformStack.autoware": "omitted",
+              "platformStack.eclipseSCORE": "omitted",
+              "platformStack.hypervisor": "enabled",
+              "platformStack.kvm": "omitted",
+              "platformStack.linux": "enabled",
+              "platformStack.middleware": "enabled",
+              "platformStack.noHypervisor": "enabled",
+              "platformStack.noMiddleware": "omitted",
+              "platformStack.openpilot": "omitted",
+              "platformStack.operatingSystem": "enabled",
+              "platformStack.qnx": "omitted",
+              "platformStack.qvm": "omitted",
+              "platformStack.vehicleApplication": "enabled",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "enabled",
+              "sensingBoundary.lidar": "enabled",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "omitted"
+            },
+            "valid": false
+          },
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": "standalone",
+              "alternatives_realized": {
+                "standalone": [
+                  "platformStack.linux",
+                  "platformStack.noHypervisor"
+                ]
+              },
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "platformStack.autoware"
+                  ],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": [
+                "invalid configuration: pair-exclusion",
+                "selects content the governed scope does not admit: platformStack.apollo: reference-only apollo | platformStack.autosarAdaptive: reference-only autosarAdaptive",
+                "misses derived realizations of standalone: platformStack.middleware = platformStack.noMiddleware",
+                "does not represent the common content: autowareApplication (missing platformStack.autoware)"
+              ]
+            },
+            "configuration": "apolloAUTOSARAdaptivePairProbe",
+            "derived_variants": [],
+            "description": "Parity probe unsupported-apollo-autosar-adaptive. Apollo with\nAUTOSAR Adaptive, a pair without a derivation rule.",
+            "element_id": "c944220d-d91a-5274-951f-17b079d8d519",
+            "projection_name": "ApolloAUTOSARAdaptivePairProbe",
+            "reasons": [
+              {
+                "class": "pair-exclusion",
+                "code": "pair-exclusion",
+                "constraint": null,
+                "detail": "platformStack.apollo excludes ['platformStack.autosarAdaptive']",
+                "features": [
+                  "platformStack.apollo",
+                  "platformStack.autosarAdaptive"
+                ],
+                "kind": "xor"
+              }
+            ],
+            "selected": [
+              "capabilities",
+              "platformStack",
+              "platformStack.apollo",
+              "platformStack.autosarAdaptive",
+              "platformStack.hypervisor",
+              "platformStack.linux",
+              "platformStack.middleware",
+              "platformStack.noHypervisor",
+              "platformStack.operatingSystem",
+              "platformStack.vehicleApplication",
+              "sensingBoundary",
+              "sensingBoundary.camera",
+              "sensingBoundary.lidar",
+              "sensingBoundary.perceptionSensors"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_autosar_adaptive_pair_probe.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "omitted",
+              "platformStack.android": "omitted",
+              "platformStack.androidSDV": "omitted",
+              "platformStack.apollo": "enabled",
+              "platformStack.autosarAdaptive": "enabled",
+              "platformStack.autoware": "omitted",
+              "platformStack.eclipseSCORE": "omitted",
+              "platformStack.hypervisor": "enabled",
+              "platformStack.kvm": "omitted",
+              "platformStack.linux": "enabled",
+              "platformStack.middleware": "enabled",
+              "platformStack.noHypervisor": "enabled",
+              "platformStack.noMiddleware": "omitted",
+              "platformStack.openpilot": "omitted",
+              "platformStack.operatingSystem": "enabled",
+              "platformStack.qnx": "omitted",
+              "platformStack.qvm": "omitted",
+              "platformStack.vehicleApplication": "enabled",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "enabled",
+              "sensingBoundary.lidar": "enabled",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "omitted"
+            },
+            "valid": false
+          },
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": "standalone",
+              "alternatives_realized": {
+                "standalone": [
+                  "platformStack.noMiddleware",
+                  "platformStack.linux",
+                  "platformStack.noHypervisor"
+                ]
+              },
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "platformStack.autoware"
+                  ],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": [
+                "selects content the governed scope does not admit: platformStack.apollo: reference-only apollo",
+                "does not represent the common content: autowareApplication (missing platformStack.autoware)"
+              ]
+            },
+            "configuration": "apolloNoMiddlewarePairProbe",
+            "derived_variants": [
+              {
+                "derivation": "D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER",
+                "rule": "apolloNoMiddlewareRule",
+                "variant": "none",
+                "variant_id": "4d5d88d4-d00e-576d-8c5f-1d39c0963350",
+                "variation": "applicationMiddlewareAdapter"
+              },
+              {
+                "binding": "hypervisorNoneBinding",
+                "variant": "none",
+                "variant_id": "f605a4bc-33da-5a7a-a414-764a041406f8",
+                "variation": "hypervisor"
+              },
+              {
+                "binding": "middlewareNoneBinding",
+                "variant": "none",
+                "variant_id": "b9825418-9bb9-57a7-8e57-67c9078d47a5",
+                "variation": "middleware"
+              },
+              {
+                "binding": "osPlatformLinuxBinding",
+                "variant": "linux",
+                "variant_id": "a6fea382-a4e0-55ec-b42f-736e915fcd02",
+                "variation": "osPlatform"
+              },
+              {
+                "binding": "vehicleApplicationApolloBinding",
+                "variant": "apollo",
+                "variant_id": "70a07927-c9df-5415-87a9-aefbdf14ab59",
+                "variation": "vehicleApplication"
+              }
+            ],
+            "description": "Parity probe pair-apollo-no-middleware. Apollo without\nmiddleware, an allowed pair that no other row exercises.",
+            "element_id": "9a3fb85e-9957-5ba1-90f8-a5d2a7ee8582",
+            "projection_name": "ApolloNoMiddlewarePairProbe",
+            "reasons": [],
+            "selected": [
+              "capabilities",
+              "platformStack",
+              "platformStack.apollo",
+              "platformStack.hypervisor",
+              "platformStack.linux",
+              "platformStack.middleware",
+              "platformStack.noHypervisor",
+              "platformStack.noMiddleware",
+              "platformStack.operatingSystem",
+              "platformStack.vehicleApplication",
+              "sensingBoundary",
+              "sensingBoundary.camera",
+              "sensingBoundary.lidar",
+              "sensingBoundary.perceptionSensors"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_no_middleware_pair_probe.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "omitted",
+              "platformStack.android": "omitted",
+              "platformStack.androidSDV": "omitted",
+              "platformStack.apollo": "enabled",
+              "platformStack.autosarAdaptive": "omitted",
+              "platformStack.autoware": "omitted",
+              "platformStack.eclipseSCORE": "omitted",
+              "platformStack.hypervisor": "enabled",
+              "platformStack.kvm": "omitted",
+              "platformStack.linux": "enabled",
+              "platformStack.middleware": "enabled",
+              "platformStack.noHypervisor": "enabled",
+              "platformStack.noMiddleware": "enabled",
+              "platformStack.openpilot": "omitted",
+              "platformStack.operatingSystem": "enabled",
+              "platformStack.qnx": "omitted",
+              "platformStack.qvm": "omitted",
+              "platformStack.vehicleApplication": "enabled",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "enabled",
+              "sensingBoundary.lidar": "enabled",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "omitted"
+            },
+            "valid": true
+          },
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": "standalone",
+              "alternatives_realized": {
+                "standalone": [
+                  "platformStack.linux"
+                ]
+              },
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": [
+                "selects content the governed scope does not admit: platformStack.autosarAdaptive: reference-only autosarAdaptive | platformStack.acrn: reference-only acrn",
+                "misses derived realizations of standalone: platformStack.middleware = platformStack.noMiddleware, platformStack.hypervisor = platformStack.noHypervisor"
+              ]
+            },
+            "configuration": "autosarAdaptiveACRNProbe",
+            "derived_variants": [
+              {
+                "derivation": "D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER",
+                "rule": "autowareAUTOSARAdaptiveRule",
+                "variant": "autowareToAUTOSAR",
+                "variant_id": "c0e51cce-a97b-507a-bbd1-80559bfd53c1",
+                "variation": "applicationMiddlewareAdapter"
+              },
+              {
+                "binding": "hypervisorACRNBinding",
+                "variant": "acrn",
+                "variant_id": "21f11945-cb18-5a6d-a5f1-5d20a5447188",
+                "variation": "hypervisor"
+              },
+              {
+                "binding": "middlewareAUTOSARAdaptiveBinding",
+                "variant": "autosarAdaptive",
+                "variant_id": "100f7e51-a30b-5951-828e-2b520b9e1147",
+                "variation": "middleware"
+              },
+              {
+                "binding": "osPlatformLinuxBinding",
+                "variant": "linux",
+                "variant_id": "a6fea382-a4e0-55ec-b42f-736e915fcd02",
+                "variation": "osPlatform"
+              },
+              {
+                "binding": "vehicleApplicationAutowareBinding",
+                "variant": "autoware",
+                "variant_id": "c18b4ccc-8f57-5241-8f90-3ce459469a32",
+                "variation": "vehicleApplication"
+              }
+            ],
+            "description": "Parity probe ug-09-autosar-acrn. AUTOSAR Adaptive with the ACRN\nhypervisor, on Linux.",
+            "element_id": "f14629b3-347d-5b78-92d0-e4986e314f64",
+            "projection_name": "AUTOSARAdaptiveACRNProbe",
+            "reasons": [],
+            "selected": [
+              "capabilities",
+              "platformStack",
+              "platformStack.acrn",
+              "platformStack.autosarAdaptive",
+              "platformStack.autoware",
+              "platformStack.hypervisor",
+              "platformStack.linux",
+              "platformStack.middleware",
+              "platformStack.operatingSystem",
+              "platformStack.vehicleApplication",
+              "sensingBoundary",
+              "sensingBoundary.camera",
+              "sensingBoundary.lidar",
+              "sensingBoundary.perceptionSensors"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/autosar_adaptive_acrn_probe.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "enabled",
+              "platformStack.android": "omitted",
+              "platformStack.androidSDV": "omitted",
+              "platformStack.apollo": "omitted",
+              "platformStack.autosarAdaptive": "enabled",
+              "platformStack.autoware": "enabled",
+              "platformStack.eclipseSCORE": "omitted",
+              "platformStack.hypervisor": "enabled",
+              "platformStack.kvm": "omitted",
+              "platformStack.linux": "enabled",
+              "platformStack.middleware": "enabled",
+              "platformStack.noHypervisor": "omitted",
+              "platformStack.noMiddleware": "omitted",
+              "platformStack.openpilot": "omitted",
+              "platformStack.operatingSystem": "enabled",
+              "platformStack.qnx": "omitted",
+              "platformStack.qvm": "omitted",
+              "platformStack.vehicleApplication": "enabled",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "enabled",
+              "sensingBoundary.lidar": "enabled",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "omitted"
+            },
+            "valid": true
+          },
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": null,
+              "alternatives_realized": {
+                "aaosIntegrated": [
+                  "platformStack.androidSDV",
+                  "platformStack.android",
+                  "platformStack.kvm"
+                ],
+                "standalone": [
+                  "platformStack.noMiddleware",
+                  "platformStack.linux",
+                  "platformStack.noHypervisor"
+                ]
+              },
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": [
+                "invalid configuration: upper-bound",
+                "realizes more than one admitted alternative: aaosIntegrated, standalone"
+              ]
+            },
+            "configuration": "bothIntegrationModesProbe",
+            "derived_variants": [],
+            "description": "Parity probe both-alternatives. Both integration modes at once,\nwith two choices each for the middleware, the operating system\nand the hypervisor.",
+            "element_id": "b8cdf549-f370-549e-8145-7de1713b1631",
+            "projection_name": "BothIntegrationModesProbe",
+            "reasons": [
+              {
+                "class": "upper-bound",
+                "code": "upper-bound",
+                "detail": "group platformStack.hypervisor selects 2 of [1..1]",
+                "features": [
+                  "platformStack.hypervisor"
+                ]
+              },
+              {
+                "class": "upper-bound",
+                "code": "upper-bound",
+                "detail": "group platformStack.middleware selects 2 of [1..1]",
+                "features": [
+                  "platformStack.middleware"
+                ]
+              },
+              {
+                "class": "upper-bound",
+                "code": "upper-bound",
+                "detail": "group platformStack.operatingSystem selects 2 of [1..1]",
+                "features": [
+                  "platformStack.operatingSystem"
+                ]
+              }
+            ],
+            "selected": [
+              "capabilities",
+              "platformStack",
+              "platformStack.android",
+              "platformStack.androidSDV",
+              "platformStack.autoware",
+              "platformStack.hypervisor",
+              "platformStack.kvm",
+              "platformStack.linux",
+              "platformStack.middleware",
+              "platformStack.noHypervisor",
+              "platformStack.noMiddleware",
+              "platformStack.operatingSystem",
+              "platformStack.vehicleApplication",
+              "sensingBoundary",
+              "sensingBoundary.camera",
+              "sensingBoundary.lidar",
+              "sensingBoundary.perceptionSensors"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/both_integration_modes_probe.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "omitted",
+              "platformStack.android": "enabled",
+              "platformStack.androidSDV": "enabled",
+              "platformStack.apollo": "omitted",
+              "platformStack.autosarAdaptive": "omitted",
+              "platformStack.autoware": "enabled",
+              "platformStack.eclipseSCORE": "omitted",
+              "platformStack.hypervisor": "enabled",
+              "platformStack.kvm": "enabled",
+              "platformStack.linux": "enabled",
+              "platformStack.middleware": "enabled",
+              "platformStack.noHypervisor": "enabled",
+              "platformStack.noMiddleware": "enabled",
+              "platformStack.openpilot": "omitted",
+              "platformStack.operatingSystem": "enabled",
+              "platformStack.qnx": "omitted",
+              "platformStack.qvm": "omitted",
+              "platformStack.vehicleApplication": "enabled",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "enabled",
+              "sensingBoundary.lidar": "enabled",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "omitted"
+            },
+            "valid": false
+          },
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": "standalone",
+              "alternatives_realized": {
+                "standalone": [
+                  "platformStack.noMiddleware",
+                  "platformStack.linux",
+                  "platformStack.noHypervisor"
+                ]
+              },
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "sensingBoundary.lidar"
+                  ],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": [
+                "does not represent the common content: currentSensingBaseline (missing sensingBoundary.lidar)"
+              ]
+            },
+            "configuration": "cameraOnlySensingProbe",
+            "derived_variants": [
+              {
+                "derivation": "D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER",
+                "rule": "autowareNoMiddlewareRule",
+                "variant": "none",
+                "variant_id": "4d5d88d4-d00e-576d-8c5f-1d39c0963350",
+                "variation": "applicationMiddlewareAdapter"
+              },
+              {
+                "binding": "hypervisorNoneBinding",
+                "variant": "none",
+                "variant_id": "f605a4bc-33da-5a7a-a414-764a041406f8",
+                "variation": "hypervisor"
+              },
+              {
+                "binding": "middlewareNoneBinding",
+                "variant": "none",
+                "variant_id": "b9825418-9bb9-57a7-8e57-67c9078d47a5",
+                "variation": "middleware"
+              },
+              {
+                "binding": "osPlatformLinuxBinding",
+                "variant": "linux",
+                "variant_id": "a6fea382-a4e0-55ec-b42f-736e915fcd02",
+                "variation": "osPlatform"
+              },
+              {
+                "binding": "vehicleApplicationAutowareBinding",
+                "variant": "autoware",
+                "variant_id": "c18b4ccc-8f57-5241-8f90-3ce459469a32",
+                "variation": "vehicleApplication"
+              }
+            ],
+            "description": "Parity probe ug-10-camera-only. The camera as the only\nperception sensor.",
+            "element_id": "f1512a2e-d407-539d-a072-f2cfd8480c8b",
+            "projection_name": "CameraOnlySensingProbe",
+            "reasons": [],
+            "selected": [
+              "capabilities",
+              "platformStack",
+              "platformStack.autoware",
+              "platformStack.hypervisor",
+              "platformStack.linux",
+              "platformStack.middleware",
+              "platformStack.noHypervisor",
+              "platformStack.noMiddleware",
+              "platformStack.operatingSystem",
+              "platformStack.vehicleApplication",
+              "sensingBoundary",
+              "sensingBoundary.camera",
+              "sensingBoundary.perceptionSensors"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/camera_only_sensing_probe.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "omitted",
+              "platformStack.android": "omitted",
+              "platformStack.androidSDV": "omitted",
+              "platformStack.apollo": "omitted",
+              "platformStack.autosarAdaptive": "omitted",
+              "platformStack.autoware": "enabled",
+              "platformStack.eclipseSCORE": "omitted",
+              "platformStack.hypervisor": "enabled",
+              "platformStack.kvm": "omitted",
+              "platformStack.linux": "enabled",
+              "platformStack.middleware": "enabled",
+              "platformStack.noHypervisor": "enabled",
+              "platformStack.noMiddleware": "enabled",
+              "platformStack.openpilot": "omitted",
+              "platformStack.operatingSystem": "enabled",
+              "platformStack.qnx": "omitted",
+              "platformStack.qvm": "omitted",
+              "platformStack.vehicleApplication": "enabled",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "enabled",
+              "sensingBoundary.lidar": "omitted",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "omitted"
+            },
+            "valid": true
+          },
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": "standalone",
+              "alternatives_realized": {
+                "standalone": [
+                  "platformStack.noMiddleware",
+                  "platformStack.linux",
+                  "platformStack.noHypervisor"
+                ]
+              },
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": [
+                "invalid configuration: derived-variant-not-selectable"
+              ]
+            },
+            "configuration": "handPickedAdapterProbe",
+            "derived_variants": [],
+            "description": "Parity probe hand-picked-adapter. The application-middleware\nadapter chosen by hand, although only its derivation may choose\nit.",
+            "element_id": "a6926f29-009c-55b9-aded-d2e51b3ead9d",
+            "projection_name": "HandPickedAdapterProbe",
+            "reasons": [
+              {
+                "class": "derived-variant-not-selectable",
+                "code": "derived-variant-not-selectable",
+                "detail": "adapter chooses a derived variant; derived variants are never configured",
+                "features": [],
+                "variations": [
+                  "applicationMiddlewareAdapter"
+                ]
+              }
+            ],
+            "selected": [
+              "capabilities",
+              "platformStack",
+              "platformStack.autoware",
+              "platformStack.hypervisor",
+              "platformStack.linux",
+              "platformStack.middleware",
+              "platformStack.noHypervisor",
+              "platformStack.noMiddleware",
+              "platformStack.operatingSystem",
+              "platformStack.vehicleApplication",
+              "sensingBoundary",
+              "sensingBoundary.camera",
+              "sensingBoundary.lidar",
+              "sensingBoundary.perceptionSensors"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/hand_picked_adapter_probe.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "omitted",
+              "platformStack.android": "omitted",
+              "platformStack.androidSDV": "omitted",
+              "platformStack.apollo": "omitted",
+              "platformStack.autosarAdaptive": "omitted",
+              "platformStack.autoware": "enabled",
+              "platformStack.eclipseSCORE": "omitted",
+              "platformStack.hypervisor": "enabled",
+              "platformStack.kvm": "omitted",
+              "platformStack.linux": "enabled",
+              "platformStack.middleware": "enabled",
+              "platformStack.noHypervisor": "enabled",
+              "platformStack.noMiddleware": "enabled",
+              "platformStack.openpilot": "omitted",
+              "platformStack.operatingSystem": "enabled",
+              "platformStack.qnx": "omitted",
+              "platformStack.qvm": "omitted",
+              "platformStack.vehicleApplication": "enabled",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "enabled",
+              "sensingBoundary.lidar": "enabled",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "omitted"
+            },
+            "valid": false
+          },
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": "standalone",
+              "alternatives_realized": {
+                "standalone": [
+                  "platformStack.noMiddleware",
+                  "platformStack.linux",
+                  "platformStack.noHypervisor"
+                ]
+              },
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "sensingBoundary.camera"
+                  ],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": [
+                "does not represent the common content: currentSensingBaseline (missing sensingBoundary.camera)"
+              ]
+            },
+            "configuration": "lidarOnlySensingProbe",
+            "derived_variants": [
+              {
+                "derivation": "D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER",
+                "rule": "autowareNoMiddlewareRule",
+                "variant": "none",
+                "variant_id": "4d5d88d4-d00e-576d-8c5f-1d39c0963350",
+                "variation": "applicationMiddlewareAdapter"
+              },
+              {
+                "binding": "hypervisorNoneBinding",
+                "variant": "none",
+                "variant_id": "f605a4bc-33da-5a7a-a414-764a041406f8",
+                "variation": "hypervisor"
+              },
+              {
+                "binding": "middlewareNoneBinding",
+                "variant": "none",
+                "variant_id": "b9825418-9bb9-57a7-8e57-67c9078d47a5",
+                "variation": "middleware"
+              },
+              {
+                "binding": "osPlatformLinuxBinding",
+                "variant": "linux",
+                "variant_id": "a6fea382-a4e0-55ec-b42f-736e915fcd02",
+                "variation": "osPlatform"
+              },
+              {
+                "binding": "vehicleApplicationAutowareBinding",
+                "variant": "autoware",
+                "variant_id": "c18b4ccc-8f57-5241-8f90-3ce459469a32",
+                "variation": "vehicleApplication"
+              }
+            ],
+            "description": "Parity probe ug-10-lidar-only. LiDAR as the only perception\nsensor.",
+            "element_id": "666d406c-c331-5cd2-8e04-a5feaf3b13c2",
+            "projection_name": "LidarOnlySensingProbe",
+            "reasons": [],
+            "selected": [
+              "capabilities",
+              "platformStack",
+              "platformStack.autoware",
+              "platformStack.hypervisor",
+              "platformStack.linux",
+              "platformStack.middleware",
+              "platformStack.noHypervisor",
+              "platformStack.noMiddleware",
+              "platformStack.operatingSystem",
+              "platformStack.vehicleApplication",
+              "sensingBoundary",
+              "sensingBoundary.lidar",
+              "sensingBoundary.perceptionSensors"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/lidar_only_sensing_probe.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "omitted",
+              "platformStack.android": "omitted",
+              "platformStack.androidSDV": "omitted",
+              "platformStack.apollo": "omitted",
+              "platformStack.autosarAdaptive": "omitted",
+              "platformStack.autoware": "enabled",
+              "platformStack.eclipseSCORE": "omitted",
+              "platformStack.hypervisor": "enabled",
+              "platformStack.kvm": "omitted",
+              "platformStack.linux": "enabled",
+              "platformStack.middleware": "enabled",
+              "platformStack.noHypervisor": "enabled",
+              "platformStack.noMiddleware": "enabled",
+              "platformStack.openpilot": "omitted",
+              "platformStack.operatingSystem": "enabled",
+              "platformStack.qnx": "omitted",
+              "platformStack.qvm": "omitted",
+              "platformStack.vehicleApplication": "enabled",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "omitted",
+              "sensingBoundary.lidar": "enabled",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "omitted"
+            },
+            "valid": true
+          },
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": null,
+              "alternatives_realized": {
+                "aaosIntegrated": [
+                  "platformStack.androidSDV"
+                ],
+                "standalone": [
+                  "platformStack.linux",
+                  "platformStack.noHypervisor"
+                ]
+              },
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": [
+                "realizes more than one admitted alternative: aaosIntegrated, standalone"
+              ]
+            },
+            "configuration": "mixedDerivedSetProbe",
+            "derived_variants": [
+              {
+                "derivation": "D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER",
+                "rule": "autowareAndroidSDVRule",
+                "variant": "autowareToAAOSSDV",
+                "variant_id": "7aa95899-b3cf-5377-9676-a282a9cfc561",
+                "variation": "applicationMiddlewareAdapter"
+              },
+              {
+                "binding": "hypervisorNoneBinding",
+                "variant": "none",
+                "variant_id": "f605a4bc-33da-5a7a-a414-764a041406f8",
+                "variation": "hypervisor"
+              },
+              {
+                "binding": "middlewareAndroidSDVBinding",
+                "variant": "androidSDV",
+                "variant_id": "7249f096-905b-5aa7-8cbf-eb3f11935803",
+                "variation": "middleware"
+              },
+              {
+                "binding": "osPlatformLinuxBinding",
+                "variant": "linux",
+                "variant_id": "a6fea382-a4e0-55ec-b42f-736e915fcd02",
+                "variation": "osPlatform"
+              },
+              {
+                "binding": "vehicleApplicationAutowareBinding",
+                "variant": "autoware",
+                "variant_id": "c18b4ccc-8f57-5241-8f90-3ce459469a32",
+                "variation": "vehicleApplication"
+              }
+            ],
+            "description": "Parity probe derived-set-mixed. Android SDV middleware on Linux\nwithout a hypervisor, which mixes the realizations of both\nintegration modes.",
+            "element_id": "35e9d0a3-a1fa-50a2-8ab0-adf3a250f0b7",
+            "projection_name": "MixedDerivedSetProbe",
+            "reasons": [],
+            "selected": [
+              "capabilities",
+              "platformStack",
+              "platformStack.androidSDV",
+              "platformStack.autoware",
+              "platformStack.hypervisor",
+              "platformStack.linux",
+              "platformStack.middleware",
+              "platformStack.noHypervisor",
+              "platformStack.operatingSystem",
+              "platformStack.vehicleApplication",
+              "sensingBoundary",
+              "sensingBoundary.camera",
+              "sensingBoundary.lidar",
+              "sensingBoundary.perceptionSensors"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/mixed_derived_set_probe.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "omitted",
+              "platformStack.android": "omitted",
+              "platformStack.androidSDV": "enabled",
+              "platformStack.apollo": "omitted",
+              "platformStack.autosarAdaptive": "omitted",
+              "platformStack.autoware": "enabled",
+              "platformStack.eclipseSCORE": "omitted",
+              "platformStack.hypervisor": "enabled",
+              "platformStack.kvm": "omitted",
+              "platformStack.linux": "enabled",
+              "platformStack.middleware": "enabled",
+              "platformStack.noHypervisor": "enabled",
+              "platformStack.noMiddleware": "omitted",
+              "platformStack.openpilot": "omitted",
+              "platformStack.operatingSystem": "enabled",
+              "platformStack.qnx": "omitted",
+              "platformStack.qvm": "omitted",
+              "platformStack.vehicleApplication": "enabled",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "enabled",
+              "sensingBoundary.lidar": "enabled",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "omitted"
+            },
+            "valid": true
+          },
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": null,
+              "alternatives_realized": {},
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "platformStack.linux"
+                  ],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": [
+                "invalid configuration: lower-bound",
+                "realizes no admitted alternative",
+                "does not represent the common content: linuxROS2AutowareRuntime (missing platformStack.linux)"
+              ]
+            },
+            "configuration": "noIntegrationModeProbe",
+            "derived_variants": [],
+            "description": "Parity probe no-alternative. No integration mode: no\nmiddleware, operating system or hypervisor is chosen.",
+            "element_id": "0a0ce0c9-6a14-5d67-a38e-ec2fb73210ef",
+            "projection_name": "NoIntegrationModeProbe",
+            "reasons": [
+              {
+                "class": "lower-bound",
+                "code": "lower-bound",
+                "detail": "group platformStack.hypervisor selects 0 of [1..1]",
+                "features": [
+                  "platformStack.hypervisor"
+                ]
+              },
+              {
+                "class": "lower-bound",
+                "code": "lower-bound",
+                "detail": "group platformStack.middleware selects 0 of [1..1]",
+                "features": [
+                  "platformStack.middleware"
+                ]
+              },
+              {
+                "class": "lower-bound",
+                "code": "lower-bound",
+                "detail": "group platformStack.operatingSystem selects 0 of [1..1]",
+                "features": [
+                  "platformStack.operatingSystem"
+                ]
+              }
+            ],
+            "selected": [
+              "capabilities",
+              "platformStack",
+              "platformStack.autoware",
+              "platformStack.hypervisor",
+              "platformStack.middleware",
+              "platformStack.operatingSystem",
+              "platformStack.vehicleApplication",
+              "sensingBoundary",
+              "sensingBoundary.camera",
+              "sensingBoundary.lidar",
+              "sensingBoundary.perceptionSensors"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/no_integration_mode_probe.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "omitted",
+              "platformStack.android": "omitted",
+              "platformStack.androidSDV": "omitted",
+              "platformStack.apollo": "omitted",
+              "platformStack.autosarAdaptive": "omitted",
+              "platformStack.autoware": "enabled",
+              "platformStack.eclipseSCORE": "omitted",
+              "platformStack.hypervisor": "implied",
+              "platformStack.kvm": "omitted",
+              "platformStack.linux": "omitted",
+              "platformStack.middleware": "implied",
+              "platformStack.noHypervisor": "omitted",
+              "platformStack.noMiddleware": "omitted",
+              "platformStack.openpilot": "omitted",
+              "platformStack.operatingSystem": "implied",
+              "platformStack.qnx": "omitted",
+              "platformStack.qvm": "omitted",
+              "platformStack.vehicleApplication": "enabled",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "enabled",
+              "sensingBoundary.lidar": "enabled",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "omitted"
+            },
+            "valid": false
+          },
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": null,
+              "alternatives_realized": {
+                "aaosIntegrated": [
+                  "platformStack.androidSDV"
+                ],
+                "standalone": [
+                  "platformStack.linux",
+                  "platformStack.noHypervisor"
+                ]
+              },
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "platformStack.autoware"
+                  ],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": [
+                "invalid configuration: pair-exclusion",
+                "selects content the governed scope does not admit: platformStack.openpilot: reference-only openpilot",
+                "realizes more than one admitted alternative: aaosIntegrated, standalone",
+                "does not represent the common content: autowareApplication (missing platformStack.autoware)"
+              ]
+            },
+            "configuration": "openpilotAndroidSDVPairProbe",
+            "derived_variants": [],
+            "description": "Parity probe unsupported-openpilot-android-sdv. Openpilot with\nAndroid SDV, a pair without a derivation rule.",
+            "element_id": "0bc6cd05-8f74-5bf6-8f32-a504e7f35ee6",
+            "projection_name": "OpenpilotAndroidSDVPairProbe",
+            "reasons": [
+              {
+                "class": "pair-exclusion",
+                "code": "pair-exclusion",
+                "constraint": null,
+                "detail": "platformStack.openpilot excludes ['platformStack.androidSDV']",
+                "features": [
+                  "platformStack.androidSDV",
+                  "platformStack.openpilot"
+                ],
+                "kind": "xor"
+              }
+            ],
+            "selected": [
+              "capabilities",
+              "platformStack",
+              "platformStack.androidSDV",
+              "platformStack.hypervisor",
+              "platformStack.linux",
+              "platformStack.middleware",
+              "platformStack.noHypervisor",
+              "platformStack.openpilot",
+              "platformStack.operatingSystem",
+              "platformStack.vehicleApplication",
+              "sensingBoundary",
+              "sensingBoundary.camera",
+              "sensingBoundary.lidar",
+              "sensingBoundary.perceptionSensors"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_android_sdv_pair_probe.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "omitted",
+              "platformStack.android": "omitted",
+              "platformStack.androidSDV": "enabled",
+              "platformStack.apollo": "omitted",
+              "platformStack.autosarAdaptive": "omitted",
+              "platformStack.autoware": "omitted",
+              "platformStack.eclipseSCORE": "omitted",
+              "platformStack.hypervisor": "enabled",
+              "platformStack.kvm": "omitted",
+              "platformStack.linux": "enabled",
+              "platformStack.middleware": "enabled",
+              "platformStack.noHypervisor": "enabled",
+              "platformStack.noMiddleware": "omitted",
+              "platformStack.openpilot": "enabled",
+              "platformStack.operatingSystem": "enabled",
+              "platformStack.qnx": "omitted",
+              "platformStack.qvm": "omitted",
+              "platformStack.vehicleApplication": "enabled",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "enabled",
+              "sensingBoundary.lidar": "enabled",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "omitted"
+            },
+            "valid": false
+          },
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": "standalone",
+              "alternatives_realized": {
+                "standalone": [
+                  "platformStack.linux",
+                  "platformStack.noHypervisor"
+                ]
+              },
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "platformStack.autoware"
+                  ],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": [
+                "invalid configuration: pair-exclusion",
+                "selects content the governed scope does not admit: platformStack.openpilot: reference-only openpilot | platformStack.autosarAdaptive: reference-only autosarAdaptive",
+                "misses derived realizations of standalone: platformStack.middleware = platformStack.noMiddleware",
+                "does not represent the common content: autowareApplication (missing platformStack.autoware)"
+              ]
+            },
+            "configuration": "openpilotAUTOSARAdaptivePairProbe",
+            "derived_variants": [],
+            "description": "Parity probe unsupported-openpilot-autosar-adaptive. Openpilot\nwith AUTOSAR Adaptive, a pair without a derivation rule.",
+            "element_id": "903d3f46-0623-57d1-aa2c-97c9dcc358a7",
+            "projection_name": "OpenpilotAUTOSARAdaptivePairProbe",
+            "reasons": [
+              {
+                "class": "pair-exclusion",
+                "code": "pair-exclusion",
+                "constraint": null,
+                "detail": "platformStack.openpilot excludes ['platformStack.autosarAdaptive']",
+                "features": [
+                  "platformStack.autosarAdaptive",
+                  "platformStack.openpilot"
+                ],
+                "kind": "xor"
+              }
+            ],
+            "selected": [
+              "capabilities",
+              "platformStack",
+              "platformStack.autosarAdaptive",
+              "platformStack.hypervisor",
+              "platformStack.linux",
+              "platformStack.middleware",
+              "platformStack.noHypervisor",
+              "platformStack.openpilot",
+              "platformStack.operatingSystem",
+              "platformStack.vehicleApplication",
+              "sensingBoundary",
+              "sensingBoundary.camera",
+              "sensingBoundary.lidar",
+              "sensingBoundary.perceptionSensors"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_autosar_adaptive_pair_probe.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "omitted",
+              "platformStack.android": "omitted",
+              "platformStack.androidSDV": "omitted",
+              "platformStack.apollo": "omitted",
+              "platformStack.autosarAdaptive": "enabled",
+              "platformStack.autoware": "omitted",
+              "platformStack.eclipseSCORE": "omitted",
+              "platformStack.hypervisor": "enabled",
+              "platformStack.kvm": "omitted",
+              "platformStack.linux": "enabled",
+              "platformStack.middleware": "enabled",
+              "platformStack.noHypervisor": "enabled",
+              "platformStack.noMiddleware": "omitted",
+              "platformStack.openpilot": "enabled",
+              "platformStack.operatingSystem": "enabled",
+              "platformStack.qnx": "omitted",
+              "platformStack.qvm": "omitted",
+              "platformStack.vehicleApplication": "enabled",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "enabled",
+              "sensingBoundary.lidar": "enabled",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "omitted"
+            },
+            "valid": false
+          },
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": "standalone",
+              "alternatives_realized": {
+                "standalone": [
+                  "platformStack.linux",
+                  "platformStack.noHypervisor"
+                ]
+              },
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "platformStack.autoware"
+                  ],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": [
+                "selects content the governed scope does not admit: platformStack.openpilot: reference-only openpilot | platformStack.eclipseSCORE: reference-only eclipseSCORE",
+                "misses derived realizations of standalone: platformStack.middleware = platformStack.noMiddleware",
+                "does not represent the common content: autowareApplication (missing platformStack.autoware)"
+              ]
+            },
+            "configuration": "openpilotEclipseSCOREPairProbe",
+            "derived_variants": [
+              {
+                "derivation": "D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER",
+                "rule": "openpilotEclipseSCORERule",
+                "variant": "openpilotToSCORE",
+                "variant_id": "b6410af7-3eb6-5856-977e-036a276bc71f",
+                "variation": "applicationMiddlewareAdapter"
+              },
+              {
+                "binding": "hypervisorNoneBinding",
+                "variant": "none",
+                "variant_id": "f605a4bc-33da-5a7a-a414-764a041406f8",
+                "variation": "hypervisor"
+              },
+              {
+                "binding": "middlewareEclipseSCOREBinding",
+                "variant": "eclipseSCORE",
+                "variant_id": "db135c9e-c653-5275-8a88-409a0fa4afea",
+                "variation": "middleware"
+              },
+              {
+                "binding": "osPlatformLinuxBinding",
+                "variant": "linux",
+                "variant_id": "a6fea382-a4e0-55ec-b42f-736e915fcd02",
+                "variation": "osPlatform"
+              },
+              {
+                "binding": "vehicleApplicationOpenpilotBinding",
+                "variant": "openpilot",
+                "variant_id": "38794787-572a-5580-a43f-eff38e74390a",
+                "variation": "vehicleApplication"
+              }
+            ],
+            "description": "Parity probe pair-openpilot-eclipse-score. Openpilot with\nEclipse S-CORE, an allowed pair that no other row exercises.",
+            "element_id": "c0d7ffe8-db7a-5494-b29c-baeb95019c1a",
+            "projection_name": "OpenpilotEclipseSCOREPairProbe",
+            "reasons": [],
+            "selected": [
+              "capabilities",
+              "platformStack",
+              "platformStack.eclipseSCORE",
+              "platformStack.hypervisor",
+              "platformStack.linux",
+              "platformStack.middleware",
+              "platformStack.noHypervisor",
+              "platformStack.openpilot",
+              "platformStack.operatingSystem",
+              "platformStack.vehicleApplication",
+              "sensingBoundary",
+              "sensingBoundary.camera",
+              "sensingBoundary.lidar",
+              "sensingBoundary.perceptionSensors"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_eclipse_score_pair_probe.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "omitted",
+              "platformStack.android": "omitted",
+              "platformStack.androidSDV": "omitted",
+              "platformStack.apollo": "omitted",
+              "platformStack.autosarAdaptive": "omitted",
+              "platformStack.autoware": "omitted",
+              "platformStack.eclipseSCORE": "enabled",
+              "platformStack.hypervisor": "enabled",
+              "platformStack.kvm": "omitted",
+              "platformStack.linux": "enabled",
+              "platformStack.middleware": "enabled",
+              "platformStack.noHypervisor": "enabled",
+              "platformStack.noMiddleware": "omitted",
+              "platformStack.openpilot": "enabled",
+              "platformStack.operatingSystem": "enabled",
+              "platformStack.qnx": "omitted",
+              "platformStack.qvm": "omitted",
+              "platformStack.vehicleApplication": "enabled",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "enabled",
+              "sensingBoundary.lidar": "enabled",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "omitted"
+            },
+            "valid": true
+          },
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": "standalone",
+              "alternatives_realized": {
+                "standalone": [
+                  "platformStack.noMiddleware",
+                  "platformStack.linux",
+                  "platformStack.noHypervisor"
+                ]
+              },
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "platformStack.autoware"
+                  ],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": [
+                "selects content the governed scope does not admit: platformStack.openpilot: reference-only openpilot",
+                "does not represent the common content: autowareApplication (missing platformStack.autoware)"
+              ]
+            },
+            "configuration": "openpilotNoMiddlewareProbe",
+            "derived_variants": [
+              {
+                "derivation": "D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER",
+                "rule": "openpilotNoMiddlewareRule",
+                "variant": "none",
+                "variant_id": "4d5d88d4-d00e-576d-8c5f-1d39c0963350",
+                "variation": "applicationMiddlewareAdapter"
+              },
+              {
+                "binding": "hypervisorNoneBinding",
+                "variant": "none",
+                "variant_id": "f605a4bc-33da-5a7a-a414-764a041406f8",
+                "variation": "hypervisor"
+              },
+              {
+                "binding": "middlewareNoneBinding",
+                "variant": "none",
+                "variant_id": "b9825418-9bb9-57a7-8e57-67c9078d47a5",
+                "variation": "middleware"
+              },
+              {
+                "binding": "osPlatformLinuxBinding",
+                "variant": "linux",
+                "variant_id": "a6fea382-a4e0-55ec-b42f-736e915fcd02",
+                "variation": "osPlatform"
+              },
+              {
+                "binding": "vehicleApplicationOpenpilotBinding",
+                "variant": "openpilot",
+                "variant_id": "38794787-572a-5580-a43f-eff38e74390a",
+                "variation": "vehicleApplication"
+              }
+            ],
+            "description": "Parity probe ug-10-openpilot-no-middleware. Openpilot without\nmiddleware.",
+            "element_id": "5ee232af-4baf-5fcd-94e0-c8da8ebadbf4",
+            "projection_name": "OpenpilotNoMiddlewareProbe",
+            "reasons": [],
+            "selected": [
+              "capabilities",
+              "platformStack",
+              "platformStack.hypervisor",
+              "platformStack.linux",
+              "platformStack.middleware",
+              "platformStack.noHypervisor",
+              "platformStack.noMiddleware",
+              "platformStack.openpilot",
+              "platformStack.operatingSystem",
+              "platformStack.vehicleApplication",
+              "sensingBoundary",
+              "sensingBoundary.camera",
+              "sensingBoundary.lidar",
+              "sensingBoundary.perceptionSensors"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_no_middleware_probe.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "omitted",
+              "platformStack.android": "omitted",
+              "platformStack.androidSDV": "omitted",
+              "platformStack.apollo": "omitted",
+              "platformStack.autosarAdaptive": "omitted",
+              "platformStack.autoware": "omitted",
+              "platformStack.eclipseSCORE": "omitted",
+              "platformStack.hypervisor": "enabled",
+              "platformStack.kvm": "omitted",
+              "platformStack.linux": "enabled",
+              "platformStack.middleware": "enabled",
+              "platformStack.noHypervisor": "enabled",
+              "platformStack.noMiddleware": "enabled",
+              "platformStack.openpilot": "enabled",
+              "platformStack.operatingSystem": "enabled",
+              "platformStack.qnx": "omitted",
+              "platformStack.qvm": "omitted",
+              "platformStack.vehicleApplication": "enabled",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "enabled",
+              "sensingBoundary.lidar": "enabled",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "omitted"
+            },
+            "valid": true
+          },
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": "standalone",
+              "alternatives_realized": {
+                "standalone": [
+                  "platformStack.noMiddleware",
+                  "platformStack.linux",
+                  "platformStack.noHypervisor"
+                ]
+              },
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": [
+                "selects content the governed scope does not admit: sensingBoundary.radar: deferred sensingVariability",
+                "does not represent the common content: currentSensingBaseline (missing sensingBoundary.lidar, sensingBoundary.camera)"
+              ]
+            },
+            "configuration": "radarOnlySensingProbe",
+            "derived_variants": [
+              {
+                "derivation": "D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER",
+                "rule": "autowareNoMiddlewareRule",
+                "variant": "none",
+                "variant_id": "4d5d88d4-d00e-576d-8c5f-1d39c0963350",
+                "variation": "applicationMiddlewareAdapter"
+              },
+              {
+                "binding": "hypervisorNoneBinding",
+                "variant": "none",
+                "variant_id": "f605a4bc-33da-5a7a-a414-764a041406f8",
+                "variation": "hypervisor"
+              },
+              {
+                "binding": "middlewareNoneBinding",
+                "variant": "none",
+                "variant_id": "b9825418-9bb9-57a7-8e57-67c9078d47a5",
+                "variation": "middleware"
+              },
+              {
+                "binding": "osPlatformLinuxBinding",
+                "variant": "linux",
+                "variant_id": "a6fea382-a4e0-55ec-b42f-736e915fcd02",
+                "variation": "osPlatform"
+              },
+              {
+                "binding": "vehicleApplicationAutowareBinding",
+                "variant": "autoware",
+                "variant_id": "c18b4ccc-8f57-5241-8f90-3ce459469a32",
+                "variation": "vehicleApplication"
+              }
+            ],
+            "description": "Parity probe ug-10-radar-only. Radar as the only perception\nsensor.",
+            "element_id": "3709ca4b-c011-5789-9d37-7d194617837d",
+            "projection_name": "RadarOnlySensingProbe",
+            "reasons": [],
+            "selected": [
+              "capabilities",
+              "platformStack",
+              "platformStack.autoware",
+              "platformStack.hypervisor",
+              "platformStack.linux",
+              "platformStack.middleware",
+              "platformStack.noHypervisor",
+              "platformStack.noMiddleware",
+              "platformStack.operatingSystem",
+              "platformStack.vehicleApplication",
+              "sensingBoundary",
+              "sensingBoundary.perceptionSensors",
+              "sensingBoundary.radar"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/radar_only_sensing_probe.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "omitted",
+              "platformStack.android": "omitted",
+              "platformStack.androidSDV": "omitted",
+              "platformStack.apollo": "omitted",
+              "platformStack.autosarAdaptive": "omitted",
+              "platformStack.autoware": "enabled",
+              "platformStack.eclipseSCORE": "omitted",
+              "platformStack.hypervisor": "enabled",
+              "platformStack.kvm": "omitted",
+              "platformStack.linux": "enabled",
+              "platformStack.middleware": "enabled",
+              "platformStack.noHypervisor": "enabled",
+              "platformStack.noMiddleware": "enabled",
+              "platformStack.openpilot": "omitted",
+              "platformStack.operatingSystem": "enabled",
+              "platformStack.qnx": "omitted",
+              "platformStack.qvm": "omitted",
+              "platformStack.vehicleApplication": "enabled",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "omitted",
+              "sensingBoundary.lidar": "omitted",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "enabled"
+            },
+            "valid": true
+          },
+          {
+            "admission": {
+              "admitted": true,
+              "alternative": "standalone",
+              "alternatives_realized": {
+                "standalone": [
+                  "platformStack.noMiddleware",
+                  "platformStack.linux",
+                  "platformStack.noHypervisor"
+                ]
+              },
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": []
+            },
+            "configuration": "vehicleTargetAEBSOffProbe",
+            "derived_variants": [
+              {
+                "derivation": "D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER",
+                "rule": "autowareNoMiddlewareRule",
+                "variant": "none",
+                "variant_id": "4d5d88d4-d00e-576d-8c5f-1d39c0963350",
+                "variation": "applicationMiddlewareAdapter"
+              },
+              {
+                "binding": "hypervisorNoneBinding",
+                "variant": "none",
+                "variant_id": "f605a4bc-33da-5a7a-a414-764a041406f8",
+                "variation": "hypervisor"
+              },
+              {
+                "binding": "middlewareNoneBinding",
+                "variant": "none",
+                "variant_id": "b9825418-9bb9-57a7-8e57-67c9078d47a5",
+                "variation": "middleware"
+              },
+              {
+                "binding": "osPlatformLinuxBinding",
+                "variant": "linux",
+                "variant_id": "a6fea382-a4e0-55ec-b42f-736e915fcd02",
+                "variation": "osPlatform"
+              },
+              {
+                "binding": "vehicleApplicationAutowareBinding",
+                "variant": "autoware",
+                "variant_id": "c18b4ccc-8f57-5241-8f90-3ce459469a32",
+                "variation": "vehicleApplication"
+              }
+            ],
+            "description": "Parity probe ug-10-vehicle-target-aebs-false. The common\nvehicle-target AEBS capability switched off, which a bill of\nfeatures can state and a PLEML configuration cannot, because\ncommon content has no feature.",
+            "element_id": "0cf0519e-2863-54a5-9b96-b7c6df5bb524",
+            "projection_name": "VehicleTargetAEBSOffProbe",
+            "reasons": [],
+            "selected": [
+              "capabilities",
+              "platformStack",
+              "platformStack.autoware",
+              "platformStack.hypervisor",
+              "platformStack.linux",
+              "platformStack.middleware",
+              "platformStack.noHypervisor",
+              "platformStack.noMiddleware",
+              "platformStack.operatingSystem",
+              "platformStack.vehicleApplication",
+              "sensingBoundary",
+              "sensingBoundary.camera",
+              "sensingBoundary.lidar",
+              "sensingBoundary.perceptionSensors"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/vehicle_target_aebs_off_probe.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "omitted",
+              "platformStack.android": "omitted",
+              "platformStack.androidSDV": "omitted",
+              "platformStack.apollo": "omitted",
+              "platformStack.autosarAdaptive": "omitted",
+              "platformStack.autoware": "enabled",
+              "platformStack.eclipseSCORE": "omitted",
+              "platformStack.hypervisor": "enabled",
+              "platformStack.kvm": "omitted",
+              "platformStack.linux": "enabled",
+              "platformStack.middleware": "enabled",
+              "platformStack.noHypervisor": "enabled",
+              "platformStack.noMiddleware": "enabled",
+              "platformStack.openpilot": "omitted",
+              "platformStack.operatingSystem": "enabled",
+              "platformStack.qnx": "omitted",
+              "platformStack.qvm": "omitted",
+              "platformStack.vehicleApplication": "enabled",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "enabled",
+              "sensingBoundary.lidar": "enabled",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "omitted"
+            },
+            "valid": true
           },
           {
             "admission": {
@@ -1888,6 +4401,23 @@
       "model-based-product-line-engineering/feature-configurations/apollo_qnx_qvm.sysml",
       "model-based-product-line-engineering/feature-configurations/example_linux_score_autoware.sysml",
       "model-based-product-line-engineering/feature-configurations/fixtures/invalid_score_android.sysml",
+      "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/adaptive_cruise_control_probe.sysml",
+      "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_android_sdv_pair_probe.sysml",
+      "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_autosar_adaptive_pair_probe.sysml",
+      "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_no_middleware_pair_probe.sysml",
+      "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/autosar_adaptive_acrn_probe.sysml",
+      "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/both_integration_modes_probe.sysml",
+      "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/camera_only_sensing_probe.sysml",
+      "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/hand_picked_adapter_probe.sysml",
+      "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/lidar_only_sensing_probe.sysml",
+      "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/mixed_derived_set_probe.sysml",
+      "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/no_integration_mode_probe.sysml",
+      "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_android_sdv_pair_probe.sysml",
+      "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_autosar_adaptive_pair_probe.sysml",
+      "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_eclipse_score_pair_probe.sysml",
+      "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_no_middleware_probe.sysml",
+      "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/radar_only_sensing_probe.sysml",
+      "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/vehicle_target_aebs_off_probe.sysml",
       "model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml",
       "model-based-product-line-engineering/feature-models/sdv_product_line.sysml"
     ],
@@ -1897,15 +4427,15 @@
   },
   "evaluator": {
     "modules": {
-      "de4sdv/semantic/pleml_configuration.py": "343cd13a4ddb42297f213810eb0a3ce8d3c8541d4de62cbefc433b0c7b66456d",
+      "de4sdv/semantic/pleml_configuration.py": "21dd4fae68c096850d34df16da62f0298749f3a690cd61e787e2350d63b01b62",
       "de4sdv/semantic/pleml_package.py": "da17a6aae4c8f2b8f0159dadbd5d88619c11633823d65a237f3b90e36c2b7b95",
-      "de4sdv/semantic/pleml_receipts.py": "739681a02a5b9308e5ba0f54a6e4d6f05e1164b972fed4336979b9d2b377f77a",
+      "de4sdv/semantic/pleml_receipts.py": "12ed0ea44ed890cb617114bc857b6ca545ad830a75fa9bc0870b19964ca9bd28",
       "de4sdv/semantic/pleml_shadow.py": "f42bbbdf054f71908ba20ec55e3c4cac978a0826fa896373f803b283840ecaff",
-      "scripts/run_pleml_configuration_evaluation.py": "88dae6636f9d263078d3c52bae04b969d7416acafd9d4a482816bbeb4bc38893",
-      "tools/configure_variant.py": "8cfcd4d9ba37f5fff43bfd653d0dbd17285a90a1da2a265232045fe5c6314623"
+      "scripts/run_pleml_configuration_evaluation.py": "caedab3a5e3ff25d259a267ac76142567b371d244e450f563c149c1beffd4a67",
+      "tools/configure_variant.py": "8a15e436cdf376ab03c6cf0e584e06ca90a18626fca193c4dcc87079b595f8c4"
     },
-    "refreshed_from": "1409f59f16dcc17040e1844d09b37946146240b58b1890aa713fe325b71b69d0",
-    "sha256": "27869a5545495203537ee0c8931be840b565a233a701e17d5e6a578e75deaf78"
+    "refreshed_from": "f99574ec400010ce8e6f7137be48f855743afe6b3fd1788cce2b193660849074",
+    "sha256": "7038b001e40e5b33bb9b592187be3461b5c8197e3088692b89c6b3f403c188da"
   },
   "feature_models": [
     "SDVProductLineFeatureModel"
@@ -1922,13 +4452,30 @@
     "model-based-product-line-engineering/feature-configurations/apollo_qnx_qvm.sysml",
     "model-based-product-line-engineering/feature-configurations/example_linux_score_autoware.sysml",
     "model-based-product-line-engineering/feature-configurations/fixtures/invalid_score_android.sysml",
+    "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/adaptive_cruise_control_probe.sysml",
+    "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_android_sdv_pair_probe.sysml",
+    "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_autosar_adaptive_pair_probe.sysml",
+    "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_no_middleware_pair_probe.sysml",
+    "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/autosar_adaptive_acrn_probe.sysml",
+    "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/both_integration_modes_probe.sysml",
+    "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/camera_only_sensing_probe.sysml",
+    "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/hand_picked_adapter_probe.sysml",
+    "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/lidar_only_sensing_probe.sysml",
+    "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/mixed_derived_set_probe.sysml",
+    "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/no_integration_mode_probe.sysml",
+    "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_android_sdv_pair_probe.sysml",
+    "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_autosar_adaptive_pair_probe.sysml",
+    "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_eclipse_score_pair_probe.sysml",
+    "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_no_middleware_probe.sysml",
+    "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/radar_only_sensing_probe.sysml",
+    "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/vehicle_target_aebs_off_probe.sysml",
     "model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml",
     "model-based-product-line-engineering/feature-models/sdv_product_line.sysml"
   ],
   "native_expression_executed": false,
   "provenance": {
-    "bundle_git_commit": "6f3f3304b5a6289449bdb9fcce28905b7f3f8dfc",
-    "executor_revision": "6f3f3304b5a6289449bdb9fcce28905b7f3f8dfc"
+    "bundle_git_commit": "8ce62248a50e0334c86dde8f14922ba49dfabdb1",
+    "executor_revision": "8ce62248a50e0334c86dde8f14922ba49dfabdb1"
   },
   "qualified": false,
   "schema": "de4sdv.pleml-configuration-receipt/v1",
@@ -1978,6 +4525,47 @@
         "rule_table_errors": [],
         "tree": "SDVProductLineFeatureTree",
         "writer_inputs": {
+          "adaptiveCruiseControlProbe": {
+            "catalogue_paths": {
+              "capabilities": "Capabilities",
+              "capabilities.adaptiveCruiseControl": "Capabilities.AdaptiveCruiseControl",
+              "capabilities.bicycleDetection": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+              "capabilities.laneKeepAssist": "Capabilities.LaneKeepAssist",
+              "capabilities.pedestrianDetection": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+              "platformStack": "PlatformStack",
+              "platformStack.acrn": "PlatformStack.Hypervisor.ACRN",
+              "platformStack.android": "PlatformStack.OS.Android",
+              "platformStack.androidSDV": "PlatformStack.Middleware.AndroidSDV",
+              "platformStack.apollo": "PlatformStack.VehicleApplication.Apollo",
+              "platformStack.autosarAdaptive": "PlatformStack.Middleware.AUTOSARAdaptive",
+              "platformStack.autoware": "PlatformStack.VehicleApplication.Autoware",
+              "platformStack.eclipseSCORE": "PlatformStack.Middleware.EclipseSCORE",
+              "platformStack.hypervisor": "PlatformStack.Hypervisor",
+              "platformStack.kvm": "PlatformStack.Hypervisor.KVM",
+              "platformStack.linux": "PlatformStack.OS.Linux",
+              "platformStack.middleware": "PlatformStack.Middleware",
+              "platformStack.noHypervisor": "PlatformStack.Hypervisor.None",
+              "platformStack.noMiddleware": "PlatformStack.Middleware.None",
+              "platformStack.openpilot": "PlatformStack.VehicleApplication.Openpilot",
+              "platformStack.operatingSystem": "PlatformStack.OS",
+              "platformStack.qnx": "PlatformStack.OS.QNX",
+              "platformStack.qvm": "PlatformStack.Hypervisor.QVM",
+              "platformStack.vehicleApplication": "PlatformStack.VehicleApplication",
+              "sensingBoundary": "SensingBoundary",
+              "sensingBoundary.camera": "SensingBoundary.PerceptionSensors.Camera",
+              "sensingBoundary.lidar": "SensingBoundary.PerceptionSensors.LiDAR",
+              "sensingBoundary.perceptionSensors": "SensingBoundary.PerceptionSensors",
+              "sensingBoundary.radar": "SensingBoundary.PerceptionSensors.Radar"
+            },
+            "description": "Parity probe catalogue-only-adaptive-cruise-control. Adaptive cruise control enabled, a catalogue option without a governed element.",
+            "explicit_optional_states": {
+              "capabilities.adaptiveCruiseControl": "enabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled"
+            },
+            "projection_name": "AdaptiveCruiseControlProbe"
+          },
           "aebsAutowareLinuxLidarCamera": {
             "catalogue_paths": {
               "capabilities": "Capabilities",
@@ -2018,6 +4606,129 @@
               "capabilities.pedestrianDetection": "disabled"
             },
             "projection_name": "AEBSAutowareLinuxLidarCamera"
+          },
+          "apolloAUTOSARAdaptivePairProbe": {
+            "catalogue_paths": {
+              "capabilities": "Capabilities",
+              "capabilities.adaptiveCruiseControl": "Capabilities.AdaptiveCruiseControl",
+              "capabilities.bicycleDetection": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+              "capabilities.laneKeepAssist": "Capabilities.LaneKeepAssist",
+              "capabilities.pedestrianDetection": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+              "platformStack": "PlatformStack",
+              "platformStack.acrn": "PlatformStack.Hypervisor.ACRN",
+              "platformStack.android": "PlatformStack.OS.Android",
+              "platformStack.androidSDV": "PlatformStack.Middleware.AndroidSDV",
+              "platformStack.apollo": "PlatformStack.VehicleApplication.Apollo",
+              "platformStack.autosarAdaptive": "PlatformStack.Middleware.AUTOSARAdaptive",
+              "platformStack.autoware": "PlatformStack.VehicleApplication.Autoware",
+              "platformStack.eclipseSCORE": "PlatformStack.Middleware.EclipseSCORE",
+              "platformStack.hypervisor": "PlatformStack.Hypervisor",
+              "platformStack.kvm": "PlatformStack.Hypervisor.KVM",
+              "platformStack.linux": "PlatformStack.OS.Linux",
+              "platformStack.middleware": "PlatformStack.Middleware",
+              "platformStack.noHypervisor": "PlatformStack.Hypervisor.None",
+              "platformStack.noMiddleware": "PlatformStack.Middleware.None",
+              "platformStack.openpilot": "PlatformStack.VehicleApplication.Openpilot",
+              "platformStack.operatingSystem": "PlatformStack.OS",
+              "platformStack.qnx": "PlatformStack.OS.QNX",
+              "platformStack.qvm": "PlatformStack.Hypervisor.QVM",
+              "platformStack.vehicleApplication": "PlatformStack.VehicleApplication",
+              "sensingBoundary": "SensingBoundary",
+              "sensingBoundary.camera": "SensingBoundary.PerceptionSensors.Camera",
+              "sensingBoundary.lidar": "SensingBoundary.PerceptionSensors.LiDAR",
+              "sensingBoundary.perceptionSensors": "SensingBoundary.PerceptionSensors",
+              "sensingBoundary.radar": "SensingBoundary.PerceptionSensors.Radar"
+            },
+            "description": "Parity probe unsupported-apollo-autosar-adaptive. Apollo with AUTOSAR Adaptive, a pair without a derivation rule.",
+            "explicit_optional_states": {
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled"
+            },
+            "projection_name": "ApolloAUTOSARAdaptivePairProbe"
+          },
+          "apolloAndroidSDVPairProbe": {
+            "catalogue_paths": {
+              "capabilities": "Capabilities",
+              "capabilities.adaptiveCruiseControl": "Capabilities.AdaptiveCruiseControl",
+              "capabilities.bicycleDetection": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+              "capabilities.laneKeepAssist": "Capabilities.LaneKeepAssist",
+              "capabilities.pedestrianDetection": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+              "platformStack": "PlatformStack",
+              "platformStack.acrn": "PlatformStack.Hypervisor.ACRN",
+              "platformStack.android": "PlatformStack.OS.Android",
+              "platformStack.androidSDV": "PlatformStack.Middleware.AndroidSDV",
+              "platformStack.apollo": "PlatformStack.VehicleApplication.Apollo",
+              "platformStack.autosarAdaptive": "PlatformStack.Middleware.AUTOSARAdaptive",
+              "platformStack.autoware": "PlatformStack.VehicleApplication.Autoware",
+              "platformStack.eclipseSCORE": "PlatformStack.Middleware.EclipseSCORE",
+              "platformStack.hypervisor": "PlatformStack.Hypervisor",
+              "platformStack.kvm": "PlatformStack.Hypervisor.KVM",
+              "platformStack.linux": "PlatformStack.OS.Linux",
+              "platformStack.middleware": "PlatformStack.Middleware",
+              "platformStack.noHypervisor": "PlatformStack.Hypervisor.None",
+              "platformStack.noMiddleware": "PlatformStack.Middleware.None",
+              "platformStack.openpilot": "PlatformStack.VehicleApplication.Openpilot",
+              "platformStack.operatingSystem": "PlatformStack.OS",
+              "platformStack.qnx": "PlatformStack.OS.QNX",
+              "platformStack.qvm": "PlatformStack.Hypervisor.QVM",
+              "platformStack.vehicleApplication": "PlatformStack.VehicleApplication",
+              "sensingBoundary": "SensingBoundary",
+              "sensingBoundary.camera": "SensingBoundary.PerceptionSensors.Camera",
+              "sensingBoundary.lidar": "SensingBoundary.PerceptionSensors.LiDAR",
+              "sensingBoundary.perceptionSensors": "SensingBoundary.PerceptionSensors",
+              "sensingBoundary.radar": "SensingBoundary.PerceptionSensors.Radar"
+            },
+            "description": "Parity probe unsupported-apollo-android-sdv. Apollo with Android SDV, a pair without a derivation rule.",
+            "explicit_optional_states": {
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled"
+            },
+            "projection_name": "ApolloAndroidSDVPairProbe"
+          },
+          "apolloNoMiddlewarePairProbe": {
+            "catalogue_paths": {
+              "capabilities": "Capabilities",
+              "capabilities.adaptiveCruiseControl": "Capabilities.AdaptiveCruiseControl",
+              "capabilities.bicycleDetection": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+              "capabilities.laneKeepAssist": "Capabilities.LaneKeepAssist",
+              "capabilities.pedestrianDetection": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+              "platformStack": "PlatformStack",
+              "platformStack.acrn": "PlatformStack.Hypervisor.ACRN",
+              "platformStack.android": "PlatformStack.OS.Android",
+              "platformStack.androidSDV": "PlatformStack.Middleware.AndroidSDV",
+              "platformStack.apollo": "PlatformStack.VehicleApplication.Apollo",
+              "platformStack.autosarAdaptive": "PlatformStack.Middleware.AUTOSARAdaptive",
+              "platformStack.autoware": "PlatformStack.VehicleApplication.Autoware",
+              "platformStack.eclipseSCORE": "PlatformStack.Middleware.EclipseSCORE",
+              "platformStack.hypervisor": "PlatformStack.Hypervisor",
+              "platformStack.kvm": "PlatformStack.Hypervisor.KVM",
+              "platformStack.linux": "PlatformStack.OS.Linux",
+              "platformStack.middleware": "PlatformStack.Middleware",
+              "platformStack.noHypervisor": "PlatformStack.Hypervisor.None",
+              "platformStack.noMiddleware": "PlatformStack.Middleware.None",
+              "platformStack.openpilot": "PlatformStack.VehicleApplication.Openpilot",
+              "platformStack.operatingSystem": "PlatformStack.OS",
+              "platformStack.qnx": "PlatformStack.OS.QNX",
+              "platformStack.qvm": "PlatformStack.Hypervisor.QVM",
+              "platformStack.vehicleApplication": "PlatformStack.VehicleApplication",
+              "sensingBoundary": "SensingBoundary",
+              "sensingBoundary.camera": "SensingBoundary.PerceptionSensors.Camera",
+              "sensingBoundary.lidar": "SensingBoundary.PerceptionSensors.LiDAR",
+              "sensingBoundary.perceptionSensors": "SensingBoundary.PerceptionSensors",
+              "sensingBoundary.radar": "SensingBoundary.PerceptionSensors.Radar"
+            },
+            "description": "Parity probe pair-apollo-no-middleware. Apollo without middleware, an allowed pair that no other row exercises.",
+            "explicit_optional_states": {
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled"
+            },
+            "projection_name": "ApolloNoMiddlewarePairProbe"
           },
           "apolloQNXQVMVariant": {
             "catalogue_paths": {
@@ -2060,6 +4771,129 @@
             },
             "projection_name": "ApolloQNXQVMVariant"
           },
+          "autosarAdaptiveACRNProbe": {
+            "catalogue_paths": {
+              "capabilities": "Capabilities",
+              "capabilities.adaptiveCruiseControl": "Capabilities.AdaptiveCruiseControl",
+              "capabilities.bicycleDetection": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+              "capabilities.laneKeepAssist": "Capabilities.LaneKeepAssist",
+              "capabilities.pedestrianDetection": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+              "platformStack": "PlatformStack",
+              "platformStack.acrn": "PlatformStack.Hypervisor.ACRN",
+              "platformStack.android": "PlatformStack.OS.Android",
+              "platformStack.androidSDV": "PlatformStack.Middleware.AndroidSDV",
+              "platformStack.apollo": "PlatformStack.VehicleApplication.Apollo",
+              "platformStack.autosarAdaptive": "PlatformStack.Middleware.AUTOSARAdaptive",
+              "platformStack.autoware": "PlatformStack.VehicleApplication.Autoware",
+              "platformStack.eclipseSCORE": "PlatformStack.Middleware.EclipseSCORE",
+              "platformStack.hypervisor": "PlatformStack.Hypervisor",
+              "platformStack.kvm": "PlatformStack.Hypervisor.KVM",
+              "platformStack.linux": "PlatformStack.OS.Linux",
+              "platformStack.middleware": "PlatformStack.Middleware",
+              "platformStack.noHypervisor": "PlatformStack.Hypervisor.None",
+              "platformStack.noMiddleware": "PlatformStack.Middleware.None",
+              "platformStack.openpilot": "PlatformStack.VehicleApplication.Openpilot",
+              "platformStack.operatingSystem": "PlatformStack.OS",
+              "platformStack.qnx": "PlatformStack.OS.QNX",
+              "platformStack.qvm": "PlatformStack.Hypervisor.QVM",
+              "platformStack.vehicleApplication": "PlatformStack.VehicleApplication",
+              "sensingBoundary": "SensingBoundary",
+              "sensingBoundary.camera": "SensingBoundary.PerceptionSensors.Camera",
+              "sensingBoundary.lidar": "SensingBoundary.PerceptionSensors.LiDAR",
+              "sensingBoundary.perceptionSensors": "SensingBoundary.PerceptionSensors",
+              "sensingBoundary.radar": "SensingBoundary.PerceptionSensors.Radar"
+            },
+            "description": "Parity probe ug-09-autosar-acrn. AUTOSAR Adaptive with the ACRN hypervisor, on Linux.",
+            "explicit_optional_states": {
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled"
+            },
+            "projection_name": "AUTOSARAdaptiveACRNProbe"
+          },
+          "bothIntegrationModesProbe": {
+            "catalogue_paths": {
+              "capabilities": "Capabilities",
+              "capabilities.adaptiveCruiseControl": "Capabilities.AdaptiveCruiseControl",
+              "capabilities.bicycleDetection": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+              "capabilities.laneKeepAssist": "Capabilities.LaneKeepAssist",
+              "capabilities.pedestrianDetection": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+              "platformStack": "PlatformStack",
+              "platformStack.acrn": "PlatformStack.Hypervisor.ACRN",
+              "platformStack.android": "PlatformStack.OS.Android",
+              "platformStack.androidSDV": "PlatformStack.Middleware.AndroidSDV",
+              "platformStack.apollo": "PlatformStack.VehicleApplication.Apollo",
+              "platformStack.autosarAdaptive": "PlatformStack.Middleware.AUTOSARAdaptive",
+              "platformStack.autoware": "PlatformStack.VehicleApplication.Autoware",
+              "platformStack.eclipseSCORE": "PlatformStack.Middleware.EclipseSCORE",
+              "platformStack.hypervisor": "PlatformStack.Hypervisor",
+              "platformStack.kvm": "PlatformStack.Hypervisor.KVM",
+              "platformStack.linux": "PlatformStack.OS.Linux",
+              "platformStack.middleware": "PlatformStack.Middleware",
+              "platformStack.noHypervisor": "PlatformStack.Hypervisor.None",
+              "platformStack.noMiddleware": "PlatformStack.Middleware.None",
+              "platformStack.openpilot": "PlatformStack.VehicleApplication.Openpilot",
+              "platformStack.operatingSystem": "PlatformStack.OS",
+              "platformStack.qnx": "PlatformStack.OS.QNX",
+              "platformStack.qvm": "PlatformStack.Hypervisor.QVM",
+              "platformStack.vehicleApplication": "PlatformStack.VehicleApplication",
+              "sensingBoundary": "SensingBoundary",
+              "sensingBoundary.camera": "SensingBoundary.PerceptionSensors.Camera",
+              "sensingBoundary.lidar": "SensingBoundary.PerceptionSensors.LiDAR",
+              "sensingBoundary.perceptionSensors": "SensingBoundary.PerceptionSensors",
+              "sensingBoundary.radar": "SensingBoundary.PerceptionSensors.Radar"
+            },
+            "description": "Parity probe both-alternatives. Both integration modes at once, with two choices each for the middleware, the operating system and the hypervisor.",
+            "explicit_optional_states": {
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled"
+            },
+            "projection_name": "BothIntegrationModesProbe"
+          },
+          "cameraOnlySensingProbe": {
+            "catalogue_paths": {
+              "capabilities": "Capabilities",
+              "capabilities.adaptiveCruiseControl": "Capabilities.AdaptiveCruiseControl",
+              "capabilities.bicycleDetection": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+              "capabilities.laneKeepAssist": "Capabilities.LaneKeepAssist",
+              "capabilities.pedestrianDetection": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+              "platformStack": "PlatformStack",
+              "platformStack.acrn": "PlatformStack.Hypervisor.ACRN",
+              "platformStack.android": "PlatformStack.OS.Android",
+              "platformStack.androidSDV": "PlatformStack.Middleware.AndroidSDV",
+              "platformStack.apollo": "PlatformStack.VehicleApplication.Apollo",
+              "platformStack.autosarAdaptive": "PlatformStack.Middleware.AUTOSARAdaptive",
+              "platformStack.autoware": "PlatformStack.VehicleApplication.Autoware",
+              "platformStack.eclipseSCORE": "PlatformStack.Middleware.EclipseSCORE",
+              "platformStack.hypervisor": "PlatformStack.Hypervisor",
+              "platformStack.kvm": "PlatformStack.Hypervisor.KVM",
+              "platformStack.linux": "PlatformStack.OS.Linux",
+              "platformStack.middleware": "PlatformStack.Middleware",
+              "platformStack.noHypervisor": "PlatformStack.Hypervisor.None",
+              "platformStack.noMiddleware": "PlatformStack.Middleware.None",
+              "platformStack.openpilot": "PlatformStack.VehicleApplication.Openpilot",
+              "platformStack.operatingSystem": "PlatformStack.OS",
+              "platformStack.qnx": "PlatformStack.OS.QNX",
+              "platformStack.qvm": "PlatformStack.Hypervisor.QVM",
+              "platformStack.vehicleApplication": "PlatformStack.VehicleApplication",
+              "sensingBoundary": "SensingBoundary",
+              "sensingBoundary.camera": "SensingBoundary.PerceptionSensors.Camera",
+              "sensingBoundary.lidar": "SensingBoundary.PerceptionSensors.LiDAR",
+              "sensingBoundary.perceptionSensors": "SensingBoundary.PerceptionSensors",
+              "sensingBoundary.radar": "SensingBoundary.PerceptionSensors.Radar"
+            },
+            "description": "Parity probe ug-10-camera-only. The camera as the only perception sensor.",
+            "explicit_optional_states": {
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled"
+            },
+            "projection_name": "CameraOnlySensingProbe"
+          },
           "exampleLinuxSCOREVariant": {
             "catalogue_paths": {
               "capabilities": "Capabilities",
@@ -2100,6 +4934,47 @@
               "capabilities.pedestrianDetection": "disabled"
             },
             "projection_name": "ExampleLinuxSCOREVariant"
+          },
+          "handPickedAdapterProbe": {
+            "catalogue_paths": {
+              "capabilities": "Capabilities",
+              "capabilities.adaptiveCruiseControl": "Capabilities.AdaptiveCruiseControl",
+              "capabilities.bicycleDetection": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+              "capabilities.laneKeepAssist": "Capabilities.LaneKeepAssist",
+              "capabilities.pedestrianDetection": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+              "platformStack": "PlatformStack",
+              "platformStack.acrn": "PlatformStack.Hypervisor.ACRN",
+              "platformStack.android": "PlatformStack.OS.Android",
+              "platformStack.androidSDV": "PlatformStack.Middleware.AndroidSDV",
+              "platformStack.apollo": "PlatformStack.VehicleApplication.Apollo",
+              "platformStack.autosarAdaptive": "PlatformStack.Middleware.AUTOSARAdaptive",
+              "platformStack.autoware": "PlatformStack.VehicleApplication.Autoware",
+              "platformStack.eclipseSCORE": "PlatformStack.Middleware.EclipseSCORE",
+              "platformStack.hypervisor": "PlatformStack.Hypervisor",
+              "platformStack.kvm": "PlatformStack.Hypervisor.KVM",
+              "platformStack.linux": "PlatformStack.OS.Linux",
+              "platformStack.middleware": "PlatformStack.Middleware",
+              "platformStack.noHypervisor": "PlatformStack.Hypervisor.None",
+              "platformStack.noMiddleware": "PlatformStack.Middleware.None",
+              "platformStack.openpilot": "PlatformStack.VehicleApplication.Openpilot",
+              "platformStack.operatingSystem": "PlatformStack.OS",
+              "platformStack.qnx": "PlatformStack.OS.QNX",
+              "platformStack.qvm": "PlatformStack.Hypervisor.QVM",
+              "platformStack.vehicleApplication": "PlatformStack.VehicleApplication",
+              "sensingBoundary": "SensingBoundary",
+              "sensingBoundary.camera": "SensingBoundary.PerceptionSensors.Camera",
+              "sensingBoundary.lidar": "SensingBoundary.PerceptionSensors.LiDAR",
+              "sensingBoundary.perceptionSensors": "SensingBoundary.PerceptionSensors",
+              "sensingBoundary.radar": "SensingBoundary.PerceptionSensors.Radar"
+            },
+            "description": "Parity probe hand-picked-adapter. The application-middleware adapter chosen by hand, although only its derivation may choose it.",
+            "explicit_optional_states": {
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled"
+            },
+            "projection_name": "HandPickedAdapterProbe"
           },
           "invalidSCOREAndroidVariant": {
             "catalogue_paths": {
@@ -2142,6 +5017,47 @@
             },
             "projection_name": "InvalidSCOREAndroidVariant"
           },
+          "lidarOnlySensingProbe": {
+            "catalogue_paths": {
+              "capabilities": "Capabilities",
+              "capabilities.adaptiveCruiseControl": "Capabilities.AdaptiveCruiseControl",
+              "capabilities.bicycleDetection": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+              "capabilities.laneKeepAssist": "Capabilities.LaneKeepAssist",
+              "capabilities.pedestrianDetection": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+              "platformStack": "PlatformStack",
+              "platformStack.acrn": "PlatformStack.Hypervisor.ACRN",
+              "platformStack.android": "PlatformStack.OS.Android",
+              "platformStack.androidSDV": "PlatformStack.Middleware.AndroidSDV",
+              "platformStack.apollo": "PlatformStack.VehicleApplication.Apollo",
+              "platformStack.autosarAdaptive": "PlatformStack.Middleware.AUTOSARAdaptive",
+              "platformStack.autoware": "PlatformStack.VehicleApplication.Autoware",
+              "platformStack.eclipseSCORE": "PlatformStack.Middleware.EclipseSCORE",
+              "platformStack.hypervisor": "PlatformStack.Hypervisor",
+              "platformStack.kvm": "PlatformStack.Hypervisor.KVM",
+              "platformStack.linux": "PlatformStack.OS.Linux",
+              "platformStack.middleware": "PlatformStack.Middleware",
+              "platformStack.noHypervisor": "PlatformStack.Hypervisor.None",
+              "platformStack.noMiddleware": "PlatformStack.Middleware.None",
+              "platformStack.openpilot": "PlatformStack.VehicleApplication.Openpilot",
+              "platformStack.operatingSystem": "PlatformStack.OS",
+              "platformStack.qnx": "PlatformStack.OS.QNX",
+              "platformStack.qvm": "PlatformStack.Hypervisor.QVM",
+              "platformStack.vehicleApplication": "PlatformStack.VehicleApplication",
+              "sensingBoundary": "SensingBoundary",
+              "sensingBoundary.camera": "SensingBoundary.PerceptionSensors.Camera",
+              "sensingBoundary.lidar": "SensingBoundary.PerceptionSensors.LiDAR",
+              "sensingBoundary.perceptionSensors": "SensingBoundary.PerceptionSensors",
+              "sensingBoundary.radar": "SensingBoundary.PerceptionSensors.Radar"
+            },
+            "description": "Parity probe ug-10-lidar-only. LiDAR as the only perception sensor.",
+            "explicit_optional_states": {
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled"
+            },
+            "projection_name": "LidarOnlySensingProbe"
+          },
           "middlewareAutowareAAOSSDVReference": {
             "catalogue_paths": {
               "capabilities": "Capabilities",
@@ -2182,6 +5098,334 @@
               "capabilities.pedestrianDetection": "disabled"
             },
             "projection_name": "MiddlewareAutowareAAOSSDVReference"
+          },
+          "mixedDerivedSetProbe": {
+            "catalogue_paths": {
+              "capabilities": "Capabilities",
+              "capabilities.adaptiveCruiseControl": "Capabilities.AdaptiveCruiseControl",
+              "capabilities.bicycleDetection": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+              "capabilities.laneKeepAssist": "Capabilities.LaneKeepAssist",
+              "capabilities.pedestrianDetection": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+              "platformStack": "PlatformStack",
+              "platformStack.acrn": "PlatformStack.Hypervisor.ACRN",
+              "platformStack.android": "PlatformStack.OS.Android",
+              "platformStack.androidSDV": "PlatformStack.Middleware.AndroidSDV",
+              "platformStack.apollo": "PlatformStack.VehicleApplication.Apollo",
+              "platformStack.autosarAdaptive": "PlatformStack.Middleware.AUTOSARAdaptive",
+              "platformStack.autoware": "PlatformStack.VehicleApplication.Autoware",
+              "platformStack.eclipseSCORE": "PlatformStack.Middleware.EclipseSCORE",
+              "platformStack.hypervisor": "PlatformStack.Hypervisor",
+              "platformStack.kvm": "PlatformStack.Hypervisor.KVM",
+              "platformStack.linux": "PlatformStack.OS.Linux",
+              "platformStack.middleware": "PlatformStack.Middleware",
+              "platformStack.noHypervisor": "PlatformStack.Hypervisor.None",
+              "platformStack.noMiddleware": "PlatformStack.Middleware.None",
+              "platformStack.openpilot": "PlatformStack.VehicleApplication.Openpilot",
+              "platformStack.operatingSystem": "PlatformStack.OS",
+              "platformStack.qnx": "PlatformStack.OS.QNX",
+              "platformStack.qvm": "PlatformStack.Hypervisor.QVM",
+              "platformStack.vehicleApplication": "PlatformStack.VehicleApplication",
+              "sensingBoundary": "SensingBoundary",
+              "sensingBoundary.camera": "SensingBoundary.PerceptionSensors.Camera",
+              "sensingBoundary.lidar": "SensingBoundary.PerceptionSensors.LiDAR",
+              "sensingBoundary.perceptionSensors": "SensingBoundary.PerceptionSensors",
+              "sensingBoundary.radar": "SensingBoundary.PerceptionSensors.Radar"
+            },
+            "description": "Parity probe derived-set-mixed. Android SDV middleware on Linux without a hypervisor, which mixes the realizations of both integration modes.",
+            "explicit_optional_states": {
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled"
+            },
+            "projection_name": "MixedDerivedSetProbe"
+          },
+          "noIntegrationModeProbe": {
+            "catalogue_paths": {
+              "capabilities": "Capabilities",
+              "capabilities.adaptiveCruiseControl": "Capabilities.AdaptiveCruiseControl",
+              "capabilities.bicycleDetection": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+              "capabilities.laneKeepAssist": "Capabilities.LaneKeepAssist",
+              "capabilities.pedestrianDetection": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+              "platformStack": "PlatformStack",
+              "platformStack.acrn": "PlatformStack.Hypervisor.ACRN",
+              "platformStack.android": "PlatformStack.OS.Android",
+              "platformStack.androidSDV": "PlatformStack.Middleware.AndroidSDV",
+              "platformStack.apollo": "PlatformStack.VehicleApplication.Apollo",
+              "platformStack.autosarAdaptive": "PlatformStack.Middleware.AUTOSARAdaptive",
+              "platformStack.autoware": "PlatformStack.VehicleApplication.Autoware",
+              "platformStack.eclipseSCORE": "PlatformStack.Middleware.EclipseSCORE",
+              "platformStack.hypervisor": "PlatformStack.Hypervisor",
+              "platformStack.kvm": "PlatformStack.Hypervisor.KVM",
+              "platformStack.linux": "PlatformStack.OS.Linux",
+              "platformStack.middleware": "PlatformStack.Middleware",
+              "platformStack.noHypervisor": "PlatformStack.Hypervisor.None",
+              "platformStack.noMiddleware": "PlatformStack.Middleware.None",
+              "platformStack.openpilot": "PlatformStack.VehicleApplication.Openpilot",
+              "platformStack.operatingSystem": "PlatformStack.OS",
+              "platformStack.qnx": "PlatformStack.OS.QNX",
+              "platformStack.qvm": "PlatformStack.Hypervisor.QVM",
+              "platformStack.vehicleApplication": "PlatformStack.VehicleApplication",
+              "sensingBoundary": "SensingBoundary",
+              "sensingBoundary.camera": "SensingBoundary.PerceptionSensors.Camera",
+              "sensingBoundary.lidar": "SensingBoundary.PerceptionSensors.LiDAR",
+              "sensingBoundary.perceptionSensors": "SensingBoundary.PerceptionSensors",
+              "sensingBoundary.radar": "SensingBoundary.PerceptionSensors.Radar"
+            },
+            "description": "Parity probe no-alternative. No integration mode: no middleware, operating system or hypervisor is chosen.",
+            "explicit_optional_states": {
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled"
+            },
+            "projection_name": "NoIntegrationModeProbe"
+          },
+          "openpilotAUTOSARAdaptivePairProbe": {
+            "catalogue_paths": {
+              "capabilities": "Capabilities",
+              "capabilities.adaptiveCruiseControl": "Capabilities.AdaptiveCruiseControl",
+              "capabilities.bicycleDetection": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+              "capabilities.laneKeepAssist": "Capabilities.LaneKeepAssist",
+              "capabilities.pedestrianDetection": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+              "platformStack": "PlatformStack",
+              "platformStack.acrn": "PlatformStack.Hypervisor.ACRN",
+              "platformStack.android": "PlatformStack.OS.Android",
+              "platformStack.androidSDV": "PlatformStack.Middleware.AndroidSDV",
+              "platformStack.apollo": "PlatformStack.VehicleApplication.Apollo",
+              "platformStack.autosarAdaptive": "PlatformStack.Middleware.AUTOSARAdaptive",
+              "platformStack.autoware": "PlatformStack.VehicleApplication.Autoware",
+              "platformStack.eclipseSCORE": "PlatformStack.Middleware.EclipseSCORE",
+              "platformStack.hypervisor": "PlatformStack.Hypervisor",
+              "platformStack.kvm": "PlatformStack.Hypervisor.KVM",
+              "platformStack.linux": "PlatformStack.OS.Linux",
+              "platformStack.middleware": "PlatformStack.Middleware",
+              "platformStack.noHypervisor": "PlatformStack.Hypervisor.None",
+              "platformStack.noMiddleware": "PlatformStack.Middleware.None",
+              "platformStack.openpilot": "PlatformStack.VehicleApplication.Openpilot",
+              "platformStack.operatingSystem": "PlatformStack.OS",
+              "platformStack.qnx": "PlatformStack.OS.QNX",
+              "platformStack.qvm": "PlatformStack.Hypervisor.QVM",
+              "platformStack.vehicleApplication": "PlatformStack.VehicleApplication",
+              "sensingBoundary": "SensingBoundary",
+              "sensingBoundary.camera": "SensingBoundary.PerceptionSensors.Camera",
+              "sensingBoundary.lidar": "SensingBoundary.PerceptionSensors.LiDAR",
+              "sensingBoundary.perceptionSensors": "SensingBoundary.PerceptionSensors",
+              "sensingBoundary.radar": "SensingBoundary.PerceptionSensors.Radar"
+            },
+            "description": "Parity probe unsupported-openpilot-autosar-adaptive. Openpilot with AUTOSAR Adaptive, a pair without a derivation rule.",
+            "explicit_optional_states": {
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled"
+            },
+            "projection_name": "OpenpilotAUTOSARAdaptivePairProbe"
+          },
+          "openpilotAndroidSDVPairProbe": {
+            "catalogue_paths": {
+              "capabilities": "Capabilities",
+              "capabilities.adaptiveCruiseControl": "Capabilities.AdaptiveCruiseControl",
+              "capabilities.bicycleDetection": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+              "capabilities.laneKeepAssist": "Capabilities.LaneKeepAssist",
+              "capabilities.pedestrianDetection": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+              "platformStack": "PlatformStack",
+              "platformStack.acrn": "PlatformStack.Hypervisor.ACRN",
+              "platformStack.android": "PlatformStack.OS.Android",
+              "platformStack.androidSDV": "PlatformStack.Middleware.AndroidSDV",
+              "platformStack.apollo": "PlatformStack.VehicleApplication.Apollo",
+              "platformStack.autosarAdaptive": "PlatformStack.Middleware.AUTOSARAdaptive",
+              "platformStack.autoware": "PlatformStack.VehicleApplication.Autoware",
+              "platformStack.eclipseSCORE": "PlatformStack.Middleware.EclipseSCORE",
+              "platformStack.hypervisor": "PlatformStack.Hypervisor",
+              "platformStack.kvm": "PlatformStack.Hypervisor.KVM",
+              "platformStack.linux": "PlatformStack.OS.Linux",
+              "platformStack.middleware": "PlatformStack.Middleware",
+              "platformStack.noHypervisor": "PlatformStack.Hypervisor.None",
+              "platformStack.noMiddleware": "PlatformStack.Middleware.None",
+              "platformStack.openpilot": "PlatformStack.VehicleApplication.Openpilot",
+              "platformStack.operatingSystem": "PlatformStack.OS",
+              "platformStack.qnx": "PlatformStack.OS.QNX",
+              "platformStack.qvm": "PlatformStack.Hypervisor.QVM",
+              "platformStack.vehicleApplication": "PlatformStack.VehicleApplication",
+              "sensingBoundary": "SensingBoundary",
+              "sensingBoundary.camera": "SensingBoundary.PerceptionSensors.Camera",
+              "sensingBoundary.lidar": "SensingBoundary.PerceptionSensors.LiDAR",
+              "sensingBoundary.perceptionSensors": "SensingBoundary.PerceptionSensors",
+              "sensingBoundary.radar": "SensingBoundary.PerceptionSensors.Radar"
+            },
+            "description": "Parity probe unsupported-openpilot-android-sdv. Openpilot with Android SDV, a pair without a derivation rule.",
+            "explicit_optional_states": {
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled"
+            },
+            "projection_name": "OpenpilotAndroidSDVPairProbe"
+          },
+          "openpilotEclipseSCOREPairProbe": {
+            "catalogue_paths": {
+              "capabilities": "Capabilities",
+              "capabilities.adaptiveCruiseControl": "Capabilities.AdaptiveCruiseControl",
+              "capabilities.bicycleDetection": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+              "capabilities.laneKeepAssist": "Capabilities.LaneKeepAssist",
+              "capabilities.pedestrianDetection": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+              "platformStack": "PlatformStack",
+              "platformStack.acrn": "PlatformStack.Hypervisor.ACRN",
+              "platformStack.android": "PlatformStack.OS.Android",
+              "platformStack.androidSDV": "PlatformStack.Middleware.AndroidSDV",
+              "platformStack.apollo": "PlatformStack.VehicleApplication.Apollo",
+              "platformStack.autosarAdaptive": "PlatformStack.Middleware.AUTOSARAdaptive",
+              "platformStack.autoware": "PlatformStack.VehicleApplication.Autoware",
+              "platformStack.eclipseSCORE": "PlatformStack.Middleware.EclipseSCORE",
+              "platformStack.hypervisor": "PlatformStack.Hypervisor",
+              "platformStack.kvm": "PlatformStack.Hypervisor.KVM",
+              "platformStack.linux": "PlatformStack.OS.Linux",
+              "platformStack.middleware": "PlatformStack.Middleware",
+              "platformStack.noHypervisor": "PlatformStack.Hypervisor.None",
+              "platformStack.noMiddleware": "PlatformStack.Middleware.None",
+              "platformStack.openpilot": "PlatformStack.VehicleApplication.Openpilot",
+              "platformStack.operatingSystem": "PlatformStack.OS",
+              "platformStack.qnx": "PlatformStack.OS.QNX",
+              "platformStack.qvm": "PlatformStack.Hypervisor.QVM",
+              "platformStack.vehicleApplication": "PlatformStack.VehicleApplication",
+              "sensingBoundary": "SensingBoundary",
+              "sensingBoundary.camera": "SensingBoundary.PerceptionSensors.Camera",
+              "sensingBoundary.lidar": "SensingBoundary.PerceptionSensors.LiDAR",
+              "sensingBoundary.perceptionSensors": "SensingBoundary.PerceptionSensors",
+              "sensingBoundary.radar": "SensingBoundary.PerceptionSensors.Radar"
+            },
+            "description": "Parity probe pair-openpilot-eclipse-score. Openpilot with Eclipse S-CORE, an allowed pair that no other row exercises.",
+            "explicit_optional_states": {
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled"
+            },
+            "projection_name": "OpenpilotEclipseSCOREPairProbe"
+          },
+          "openpilotNoMiddlewareProbe": {
+            "catalogue_paths": {
+              "capabilities": "Capabilities",
+              "capabilities.adaptiveCruiseControl": "Capabilities.AdaptiveCruiseControl",
+              "capabilities.bicycleDetection": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+              "capabilities.laneKeepAssist": "Capabilities.LaneKeepAssist",
+              "capabilities.pedestrianDetection": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+              "platformStack": "PlatformStack",
+              "platformStack.acrn": "PlatformStack.Hypervisor.ACRN",
+              "platformStack.android": "PlatformStack.OS.Android",
+              "platformStack.androidSDV": "PlatformStack.Middleware.AndroidSDV",
+              "platformStack.apollo": "PlatformStack.VehicleApplication.Apollo",
+              "platformStack.autosarAdaptive": "PlatformStack.Middleware.AUTOSARAdaptive",
+              "platformStack.autoware": "PlatformStack.VehicleApplication.Autoware",
+              "platformStack.eclipseSCORE": "PlatformStack.Middleware.EclipseSCORE",
+              "platformStack.hypervisor": "PlatformStack.Hypervisor",
+              "platformStack.kvm": "PlatformStack.Hypervisor.KVM",
+              "platformStack.linux": "PlatformStack.OS.Linux",
+              "platformStack.middleware": "PlatformStack.Middleware",
+              "platformStack.noHypervisor": "PlatformStack.Hypervisor.None",
+              "platformStack.noMiddleware": "PlatformStack.Middleware.None",
+              "platformStack.openpilot": "PlatformStack.VehicleApplication.Openpilot",
+              "platformStack.operatingSystem": "PlatformStack.OS",
+              "platformStack.qnx": "PlatformStack.OS.QNX",
+              "platformStack.qvm": "PlatformStack.Hypervisor.QVM",
+              "platformStack.vehicleApplication": "PlatformStack.VehicleApplication",
+              "sensingBoundary": "SensingBoundary",
+              "sensingBoundary.camera": "SensingBoundary.PerceptionSensors.Camera",
+              "sensingBoundary.lidar": "SensingBoundary.PerceptionSensors.LiDAR",
+              "sensingBoundary.perceptionSensors": "SensingBoundary.PerceptionSensors",
+              "sensingBoundary.radar": "SensingBoundary.PerceptionSensors.Radar"
+            },
+            "description": "Parity probe ug-10-openpilot-no-middleware. Openpilot without middleware.",
+            "explicit_optional_states": {
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled"
+            },
+            "projection_name": "OpenpilotNoMiddlewareProbe"
+          },
+          "radarOnlySensingProbe": {
+            "catalogue_paths": {
+              "capabilities": "Capabilities",
+              "capabilities.adaptiveCruiseControl": "Capabilities.AdaptiveCruiseControl",
+              "capabilities.bicycleDetection": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+              "capabilities.laneKeepAssist": "Capabilities.LaneKeepAssist",
+              "capabilities.pedestrianDetection": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+              "platformStack": "PlatformStack",
+              "platformStack.acrn": "PlatformStack.Hypervisor.ACRN",
+              "platformStack.android": "PlatformStack.OS.Android",
+              "platformStack.androidSDV": "PlatformStack.Middleware.AndroidSDV",
+              "platformStack.apollo": "PlatformStack.VehicleApplication.Apollo",
+              "platformStack.autosarAdaptive": "PlatformStack.Middleware.AUTOSARAdaptive",
+              "platformStack.autoware": "PlatformStack.VehicleApplication.Autoware",
+              "platformStack.eclipseSCORE": "PlatformStack.Middleware.EclipseSCORE",
+              "platformStack.hypervisor": "PlatformStack.Hypervisor",
+              "platformStack.kvm": "PlatformStack.Hypervisor.KVM",
+              "platformStack.linux": "PlatformStack.OS.Linux",
+              "platformStack.middleware": "PlatformStack.Middleware",
+              "platformStack.noHypervisor": "PlatformStack.Hypervisor.None",
+              "platformStack.noMiddleware": "PlatformStack.Middleware.None",
+              "platformStack.openpilot": "PlatformStack.VehicleApplication.Openpilot",
+              "platformStack.operatingSystem": "PlatformStack.OS",
+              "platformStack.qnx": "PlatformStack.OS.QNX",
+              "platformStack.qvm": "PlatformStack.Hypervisor.QVM",
+              "platformStack.vehicleApplication": "PlatformStack.VehicleApplication",
+              "sensingBoundary": "SensingBoundary",
+              "sensingBoundary.camera": "SensingBoundary.PerceptionSensors.Camera",
+              "sensingBoundary.lidar": "SensingBoundary.PerceptionSensors.LiDAR",
+              "sensingBoundary.perceptionSensors": "SensingBoundary.PerceptionSensors",
+              "sensingBoundary.radar": "SensingBoundary.PerceptionSensors.Radar"
+            },
+            "description": "Parity probe ug-10-radar-only. Radar as the only perception sensor.",
+            "explicit_optional_states": {
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled"
+            },
+            "projection_name": "RadarOnlySensingProbe"
+          },
+          "vehicleTargetAEBSOffProbe": {
+            "catalogue_paths": {
+              "capabilities": "Capabilities",
+              "capabilities.adaptiveCruiseControl": "Capabilities.AdaptiveCruiseControl",
+              "capabilities.bicycleDetection": "Capabilities.ForwardCollisionMitigation.BicycleDetection",
+              "capabilities.laneKeepAssist": "Capabilities.LaneKeepAssist",
+              "capabilities.pedestrianDetection": "Capabilities.ForwardCollisionMitigation.PedestrianDetection",
+              "platformStack": "PlatformStack",
+              "platformStack.acrn": "PlatformStack.Hypervisor.ACRN",
+              "platformStack.android": "PlatformStack.OS.Android",
+              "platformStack.androidSDV": "PlatformStack.Middleware.AndroidSDV",
+              "platformStack.apollo": "PlatformStack.VehicleApplication.Apollo",
+              "platformStack.autosarAdaptive": "PlatformStack.Middleware.AUTOSARAdaptive",
+              "platformStack.autoware": "PlatformStack.VehicleApplication.Autoware",
+              "platformStack.eclipseSCORE": "PlatformStack.Middleware.EclipseSCORE",
+              "platformStack.hypervisor": "PlatformStack.Hypervisor",
+              "platformStack.kvm": "PlatformStack.Hypervisor.KVM",
+              "platformStack.linux": "PlatformStack.OS.Linux",
+              "platformStack.middleware": "PlatformStack.Middleware",
+              "platformStack.noHypervisor": "PlatformStack.Hypervisor.None",
+              "platformStack.noMiddleware": "PlatformStack.Middleware.None",
+              "platformStack.openpilot": "PlatformStack.VehicleApplication.Openpilot",
+              "platformStack.operatingSystem": "PlatformStack.OS",
+              "platformStack.qnx": "PlatformStack.OS.QNX",
+              "platformStack.qvm": "PlatformStack.Hypervisor.QVM",
+              "platformStack.vehicleApplication": "PlatformStack.VehicleApplication",
+              "sensingBoundary": "SensingBoundary",
+              "sensingBoundary.camera": "SensingBoundary.PerceptionSensors.Camera",
+              "sensingBoundary.lidar": "SensingBoundary.PerceptionSensors.LiDAR",
+              "sensingBoundary.perceptionSensors": "SensingBoundary.PerceptionSensors",
+              "sensingBoundary.radar": "SensingBoundary.PerceptionSensors.Radar"
+            },
+            "description": "Parity probe ug-10-vehicle-target-aebs-false. The common vehicle-target AEBS capability switched off, which a bill of features can state and a PLEML configuration cannot, because common content has no feature.",
+            "explicit_optional_states": {
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled"
+            },
+            "projection_name": "VehicleTargetAEBSOffProbe"
           }
         }
       }
@@ -2217,6 +5461,108 @@
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/invalid_score_android.sysml",
       "sha256": "302b160dcd9c2e863db89619c40d3aa90167bd978e65d20187c9c885e590e598",
       "size": 2048
+    },
+    {
+      "authority": "pleml-fixture",
+      "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/adaptive_cruise_control_probe.sysml",
+      "sha256": "03efcc3806de1db1e0d54c0119fc4856997172c39ddfd55aabf1c68b3f2a798f",
+      "size": 2134
+    },
+    {
+      "authority": "pleml-fixture",
+      "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_android_sdv_pair_probe.sysml",
+      "sha256": "88aa61fd7416d8394ace0a6f996541715d08e179b092a270251a1292597b314a",
+      "size": 2071
+    },
+    {
+      "authority": "pleml-fixture",
+      "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_autosar_adaptive_pair_probe.sysml",
+      "sha256": "875ef6a8a782746640edde8d105e7b34d6eff427ec51fdaa5a7150eee859740e",
+      "size": 2111
+    },
+    {
+      "authority": "pleml-fixture",
+      "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_no_middleware_pair_probe.sysml",
+      "sha256": "20f405de1517713541cbd1104edeb4bd6b162867e4f3e2899e3eeffb0ebe9897",
+      "size": 2084
+    },
+    {
+      "authority": "pleml-fixture",
+      "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/autosar_adaptive_acrn_probe.sysml",
+      "sha256": "5fed5cf0c8ebd39f6260e8d7331f19f063d35a768e7cd0f8cf236bbae6889638",
+      "size": 2033
+    },
+    {
+      "authority": "pleml-fixture",
+      "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/both_integration_modes_probe.sysml",
+      "sha256": "333de3e01aa273723276ace25e8532d578cfb3ab7af379b947983bcc6c9a3b2b",
+      "size": 2290
+    },
+    {
+      "authority": "pleml-fixture",
+      "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/camera_only_sensing_probe.sysml",
+      "sha256": "bb47347d422d6d9a371ba7d1a265926ea5d164beb5c6015db6300d88695cae67",
+      "size": 1971
+    },
+    {
+      "authority": "pleml-fixture",
+      "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/hand_picked_adapter_probe.sysml",
+      "sha256": "6b07c212c1fe68b83f9b807764601899e773ef9bd01705126d61ce13dae8ac55",
+      "size": 2418
+    },
+    {
+      "authority": "pleml-fixture",
+      "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/lidar_only_sensing_probe.sysml",
+      "sha256": "37911c2aa136a51659cd7e16eb0f9055d84d7594ede6b8109d2401867a993c94",
+      "size": 1959
+    },
+    {
+      "authority": "pleml-fixture",
+      "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/mixed_derived_set_probe.sysml",
+      "sha256": "c0fbe557cea2eb5e34620740a95e9913d57fba764edf6eebdde8579860feee22",
+      "size": 2097
+    },
+    {
+      "authority": "pleml-fixture",
+      "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/no_integration_mode_probe.sysml",
+      "sha256": "1002b053a929c1fee5248e619b530c5d7326e7923ef495e52316f84c1ba61611",
+      "size": 1700
+    },
+    {
+      "authority": "pleml-fixture",
+      "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_android_sdv_pair_probe.sysml",
+      "sha256": "f90c08fb0b130aaa76564a3345b8c4224d0ba12e3503a9b99db09f29c005cb99",
+      "size": 2095
+    },
+    {
+      "authority": "pleml-fixture",
+      "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_autosar_adaptive_pair_probe.sysml",
+      "sha256": "30e0cda0e53814f9fa33461df94b310fc7a7875bf70302111520ffcd7e138a24",
+      "size": 2135
+    },
+    {
+      "authority": "pleml-fixture",
+      "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_eclipse_score_pair_probe.sysml",
+      "sha256": "3138b4b2ed2270151e09a332baab9075bc2383129c1440a5c50708df6e5ca599",
+      "size": 2109
+    },
+    {
+      "authority": "pleml-fixture",
+      "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_no_middleware_probe.sysml",
+      "sha256": "4c44f0b237c6063c013e28b256cd0aa8770b4bdf4cdad4e9fcd501c566b83e07",
+      "size": 2053
+    },
+    {
+      "authority": "pleml-fixture",
+      "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/radar_only_sensing_probe.sysml",
+      "sha256": "e670c43ddf45541122461dfa4cdf135005da8a012f04d940ef3973e5938be440",
+      "size": 1959
+    },
+    {
+      "authority": "pleml-fixture",
+      "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/vehicle_target_aebs_off_probe.sysml",
+      "sha256": "789a61de4878807f272e31025c58bb8ce3bdfa03a1667d54b09e1e425db9916b",
+      "size": 2476
     },
     {
       "authority": "pleml-feature-configuration",

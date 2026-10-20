@@ -36,9 +36,10 @@ only (ADR 0011). For each feature tree it decides:
   exactly one variant per derived variation; no matching rule, or several,
   rejects it.
 - **admission.** The governed scope of ADR 0014 stays the admission authority,
-  so a valid configuration may still not be admitted. Admission is decided for
-  every configuration, apart from its validity, from the correspondences of
-  its features (see below).
+  so a valid configuration may still not be admitted. Admission requires
+  validity: an invalid configuration is never admitted. Its admission record
+  says why, and keeps what the correspondences of its features decide (see
+  below).
 
 ## Admission
 
@@ -54,6 +55,9 @@ alternative instead.
 
 A configuration is admitted when all of these hold:
 
+- it is valid. An invalid configuration is not admitted, and the first reason
+  of its admission record names its reason classes ("invalid configuration:
+  ...");
 - grouping features carry no admission, and a group feature's correspondence
   only classifies its variation point;
 - every selected choice or leaf has a correspondence that is an admitted
@@ -215,10 +219,17 @@ computes them with the configurator's own parser:
 
 `de4sdv/semantic/pleml_receipts.py` holds the parity primitives:
 
-- the normalised projection body;
+- the normalised projection body, below the header and with only the
+  writer's derivation-source line normalised;
 - the writer inputs;
 - the reason keys;
-- the row classes `equal`, `both-reject`, `not-expressible` and `defect`.
+- the row classes `equal`, `both-reject`, `not-expressible` and `defect`. Two
+  rejections are `both-reject` only with the same reason keys and, where both
+  sides give them, the same multiset of located reasons.
+
+Each reason of an evaluated configuration records where it applies, as data
+beside its prose: `features`, the tree features it names, and for a
+hand-picked derived variant `variations`, the derived variation it chooses.
 
 `not-expressible` is limited to the pinned construct of row
 `ug-10-vehicle-target-aebs-false`.

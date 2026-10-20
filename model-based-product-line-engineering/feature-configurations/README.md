@@ -46,6 +46,12 @@ of [ADR 0022](../../docs/architecture-decisions/0022-adopt-pleml-as-product-line
 until then the Bills-of-Features remain the selection authority, and their
 `evidence` blocks stay here.
 
+**Parity probes.** `fixtures/parity-probes/` holds one PLEML configuration
+per probe row of the parity check of step S4
+([`check_pleml_parity.py`](../../scripts/check_pleml_parity.py)). They have
+no Bill-of-Features: the check generates each probe's bill from its frozen
+selection outside the repository.
+
 **Evidence records.** When the Bills-of-Features retire, the evidence of a
 configuration moves to an external evidence record
 `evidence/<file stem>.yaml`, for example `evidence/inc-aebs-009a-jetson.yaml`.

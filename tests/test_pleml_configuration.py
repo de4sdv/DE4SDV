@@ -844,10 +844,43 @@ def test_common_content_must_be_represented():
         "does not represent the common content: currentSensingBaseline (missing sensingBoundary.camera)"]
 
 
-def test_admission_is_decided_apart_from_validity():
+def test_a_rejection_records_where_it_applies():
+    """Review round 1 of S4, R2: a reason records the features it applies to, or the derived variation it
+    chooses, as data and not only in its prose, so the parity compares reasons with their locations."""
+    line = PlatformLine()
+    line.configure("both", "autoware", ["androidSDV", "noMiddleware"], ["android", "linux"], ["kvm", "noHypervisor"])
+    line.configure("noMode", "autoware", [], [], [])
+    line.configure("pair", "openpilot", "androidSDV", "linux", "noHypervisor")
+    line.configure("fixture", "autoware", "eclipseSCORE", "android", "noHypervisor")
+    hand_picked = line.configure("handPicked", "autoware", "noMiddleware", "linux", "noHypervisor")
+    adapter = line.graph.own(hand_picked, "FeatureMembership", "ReferenceUsage", member_name="adapter",
+                             declaredName="adapter")
+    line.graph.reference_value(adapter, [line.variations["applicationMiddlewareAdapter"]["none"]])
+    (model,) = line.graph.evaluate()["feature_models"]
+    decided = {item["configuration"]: item["reasons"] for item in model["configurations"]}
+    assert [(reason["class"], reason["features"]) for reason in decided["both"]] == [
+        ("upper-bound", ["platformStack.hypervisor"]), ("upper-bound", ["platformStack.middleware"]),
+        ("upper-bound", ["platformStack.os"])]
+    assert [(reason["class"], reason["features"]) for reason in decided["noMode"]] == [
+        ("lower-bound", ["platformStack.hypervisor"]), ("lower-bound", ["platformStack.middleware"]),
+        ("lower-bound", ["platformStack.os"])]
+    assert [(reason["class"], reason["features"]) for reason in decided["pair"]] == [
+        ("pair-exclusion", ["platformStack.androidSDV", "platformStack.openpilot"])]
+    assert [(reason["class"], reason["constraint"], reason["features"]) for reason in decided["fixture"]] == [
+        ("constraint", "C001", ["platformStack.android", "platformStack.eclipseSCORE"])]
+    assert [(reason["class"], reason["variations"]) for reason in decided["handPicked"]] == [
+        ("derived-variant-not-selectable", ["applicationMiddlewareAdapter"])]
+
+
+def test_admission_requires_validity():
+    """An invalid configuration is never admitted, even where its features would realize a member.
+
+    The governed members of ADR 0014 are valid configurations, as a derivation applies to a valid
+    configuration only (decision of 2026-10-20, step S4). The rest of the admission record is kept.
+    """
     line = PlatformLine(governed=True)
     graph, f = line.graph, line.features
-    configuration = line.new_configuration("invalidButAdmitted")
+    configuration = line.new_configuration("invalidMemberSelection")
     stack = graph.setting(configuration, f["platformStack"], (1, 1))
     for group, choice in (("vehicleApplication", "autoware"), ("middleware", "noMiddleware"), ("os", "linux"),
                           ("hypervisor", "noHypervisor")):
@@ -858,11 +891,25 @@ def test_admission_is_decided_apart_from_validity():
     line.configure("invalidAndNotAdmitted", "autoware", "eclipseSCORE", "android", "kvm")
     model = graph.evaluate()["feature_models"][0]
     decided = {item["configuration"]: item for item in model["configurations"]}
-    assert [reason["code"] for reason in decided["invalidButAdmitted"]["reasons"]] == ["lower-bound"]
-    assert decided["invalidButAdmitted"]["admission"]["admitted"] is True
-    assert [reason["constraint"] for reason in decided["invalidAndNotAdmitted"]["reasons"]] == ["C001"]
-    assert decided["invalidAndNotAdmitted"]["admission"]["reasons"][0] == (
-        "selects content the governed scope does not admit: platformStack.eclipseSCORE: reference-only eclipseSCORE")
+    member = decided["invalidMemberSelection"]
+    assert [reason["code"] for reason in member["reasons"]] == ["lower-bound"]
+    assert member["admission"]["admitted"] is False
+    assert member["admission"]["reasons"] == ["invalid configuration: lower-bound"]
+    assert member["admission"]["alternative"] == "standalone", "the rest of the record is kept"
+    other = decided["invalidAndNotAdmitted"]
+    assert [reason["constraint"] for reason in other["reasons"]] == ["C001"]
+    assert other["admission"]["admitted"] is False
+    assert other["admission"]["reasons"][:2] == [
+        "invalid configuration: constraint",
+        "selects content the governed scope does not admit: platformStack.eclipseSCORE: reference-only eclipseSCORE"]
+
+
+def test_without_a_governed_scope_an_invalid_configuration_is_not_admitted_either():
+    line = PlatformLine()
+    line.configure("pair", "openpilot", "androidSDV", "linux", "noHypervisor")
+    assert admission(line, "pair") == {"evaluated": False, "admitted": False,
+                                       "reasons": ["invalid configuration: pair-exclusion",
+                                                   "no governed scope among the evaluated elements"]}
 
 
 def test_a_family_correspondence_applies_to_every_configuration():

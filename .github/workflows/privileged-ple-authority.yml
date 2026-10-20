@@ -194,8 +194,7 @@ jobs:
           python -B -m pytest -p no:cacheprovider \
             tests/test_ple_authority_model.py \
             tests/test_ple_authority_runner.py \
-            tests/test_ple_authority_workflow.py \
-            tests/test_ple_authority_receipts.py -q
+            tests/test_ple_authority_workflow.py -q
 
       - name: Build the pinned ephemeral Systems Modeling API
         if: steps.licence.outputs.available == 'true'
@@ -286,6 +285,15 @@ jobs:
             printf 'the checkout is not clean:\n%s\n' "$dirty" >&2
             exit 1
           fi
+
+      # The receipts test runs after the serialization, never before it: a
+      # document change leaves the committed receipts stale until the fresh
+      # receipts this run writes are committed, so it must not stop the run
+      # that writes them. The runner has already compared and replayed them.
+      - name: Check the committed receipts against the exact head
+        if: steps.licence.outputs.available == 'true'
+        run: |
+          python -B -m pytest -p no:cacheprovider tests/test_ple_authority_receipts.py -q
 
       - name: Retain the evidence including failed execution
         if: always() && steps.licence.outputs.available == 'true'

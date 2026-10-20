@@ -488,7 +488,11 @@ def test_probes_are_generated_outside_the_repository_and_never_committed(compari
                          "OpenpilotNoMiddlewareProbe", "RadarOnlySensingProbe", "LidarOnlySensingProbe",
                          "CameraOnlySensingProbe", "VehicleTargetAEBSOffProbe", "AdaptiveCruiseControlProbe",
                          "MixedDerivedSetProbe"}
-    for path in tracked:
+    # The oracle's probes are bills of features. The parity probes of step S4 are PLEML configurations,
+    # committed because a configuration needs licensed serialization; their bills are generated too.
+    bills = [path for path in tracked if path.endswith(".yaml")]
+    assert len(bills) == 8
+    for path in bills:
         assert "Probe" not in path and "probe" not in Path(path).stem
     status = subprocess.run(["git", "status", "--porcelain", "--", oracle.CONFIGURATIONS.as_posix()], cwd=ROOT,
                             capture_output=True, text=True, check=True).stdout

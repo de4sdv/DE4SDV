@@ -116,13 +116,18 @@ def test_the_receipts_bind_the_pinned_pleml_release() -> None:
 
 
 def test_the_receipts_hold_the_reviewed_verdicts() -> None:
+    """The parity probes of step S4 are pinned by the parity check, row by row against the configurator."""
     receipts = _receipts()
     assert set(receipts) == set(VERDICTS)
+    probes = set(runner.PARITY_PROBES)
     for name, expected in VERDICTS.items():
         [model] = receipts[name]["evaluation"]["feature_models"]
         assert model["integrity_errors"] == [], name
         found = {}
         for configuration in model["configurations"]:
+            if configuration["source"] in probes:
+                probes.discard(configuration["source"])
+                continue
             admission = configuration["admission"]
             adapters = [item["variant"] for item in configuration["derived_variants"]
                         if item.get("derivation") == DERIVATION]
@@ -132,6 +137,7 @@ def test_the_receipts_hold_the_reviewed_verdicts() -> None:
                 configuration["valid"], admission["alternative"] if admission["admitted"] else None,
                 adapters[0] if adapters else None, constraints)
         assert found == expected, name
+    assert probes == set(), f"parity probes without a receipt entry: {sorted(probes)}"
     shadow = receipts["sdv_product_line.receipt.json"]["shadow"]
     assert all(model["complement_errors"] == [] and model["rule_table_errors"] == []
                for model in shadow["feature_models"])
