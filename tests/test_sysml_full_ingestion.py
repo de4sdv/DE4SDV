@@ -432,3 +432,55 @@ def test_importer_records_the_served_model_in_binding_and_report(tmp_path, monke
     report = json.loads((tmp_path / "report.json").read_text())
     assert report["served_model"] == expected
     assert report["source_export_sha256"] == expected["source_export_sha256"]
+
+
+def test_the_importer_fails_closed_on_a_targetless_relationship_outside_the_standard_library(
+        tmp_path, monkeypatch) -> None:
+    """The successor traversal skips a typing that names no target as an omitted standard-library
+    reference. The import asserts that every such skip is one (an external-reference row with a
+    standard-library URI), records the check in its report and writes no binding otherwise."""
+    import json
+    from types import SimpleNamespace
+
+    from scripts import import_sysml_api_baseline as importer
+    from de4sdv.sysml_api.ingestion import BaselineImportResult
+
+    head = "b" * 40
+    export_path = tmp_path / "export.json"
+    export_path.write_bytes(b'{"synthetic": "export bytes"}')
+    elements = [{"@id": "part", "@type": "PartUsage", "ownedRelationship": [{"@id": "typing"}]},
+                {"@id": "typing", "@type": "FeatureTyping", "typedFeature": {"@id": "part"},
+                 "owningRelatedElement": {"@id": "part"}}]
+    library = "file:///opt/site-packages/_syside/sysml.library/Systems%20Library/Parts.sysml"
+    passing = SimpleNamespace(passed=True, summary={"unresolved": 0}, entries=[],
+                              to_dict=lambda: {"passed": True})
+
+    def run(external_references):
+        bundle = SimpleNamespace(git_commit=head, elements={}, element_sources={"part": "m.sysml", "typing": "m.sysml"},
+                                 source_manifest=[], external_references=external_references,
+                                 require_current_sources=lambda manifest: None)
+        monkeypatch.setattr(importer.BaselineExportBundle, "load", staticmethod(lambda path: bundle))
+        importer.run_import(api_url="http://api.invalid", export_path=export_path,
+                            binding_path=tmp_path / "binding.json", report_path=tmp_path / "report.json",
+                            project_name="t", git_repository="de4sdv/DE4SDV")
+
+    monkeypatch.setattr(importer, "_git_head", lambda: head)
+    monkeypatch.setattr(importer.BaselineManifest, "discover", staticmethod(lambda root: None))
+    monkeypatch.setattr(importer, "import_baseline", lambda client, b, project_name: BaselineImportResult(
+        project_id="p-1", commit_id="c-1", element_count=2, internal_reference_count=1,
+        content_sha256="sha256:" + "c" * 64))
+    monkeypatch.setattr(importer.SysMLRepository, "list_elements", lambda self, p, c: elements)
+    monkeypatch.setattr(importer, "validate_ontology_bindings", lambda *a, **k: passing)
+    monkeypatch.setattr(importer, "cross_check_model_provider",
+                        lambda *a, **k: {"classification": "EQUIVALENT"})
+
+    with pytest.raises(RuntimeError, match="target-less relationship check failed closed: 1 of 1"):
+        run([])
+    assert not (tmp_path / "binding.json").exists()
+    recorded = json.loads((tmp_path / "report.json").read_text())["targetless_relationship_check"]
+    assert recorded["passed"] is False and recorded["violations"][0]["relationship"] == "typing"
+
+    run([{"source_element_id": "typing", "property_path": "type", "target_id": "lib", "uri": library}])
+    assert (tmp_path / "binding.json").exists()
+    recorded = json.loads((tmp_path / "report.json").read_text())["targetless_relationship_check"]
+    assert recorded["passed"] is True and (recorded["targetless"], recorded["standard_library"]) == (1, 1)

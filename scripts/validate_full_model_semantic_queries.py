@@ -1,5 +1,17 @@
 #!/usr/bin/env python3
-"""Exercise production API semantic queries across distinct model concerns."""
+"""Exercise production API semantic queries across distinct model concerns, and the successor parity.
+
+The successor parity (with ``--export``, as the privileged run passes it) is the
+exact-revision evidence the ``allocatedTo`` forward obligations of
+``de4sdv/semantic/contract-data/kernel-vocabulary-admission.yaml`` ask for:
+over the API revision this run imported, the production runtime must serve
+exactly the ``allocatedTo`` and ``hasValidationScenario`` facts that the
+export it imported holds, read as the PR Method Check reads them (the export
+snapshot, kernel identity re-validated from the export) and as the method
+reads them; and the typed allocation ends must close
+(:mod:`de4sdv.semantic.successor_parity`). A failed parity writes the report
+and exits 1, so the privileged run fails and no deploy takes its evidence.
+"""
 
 from __future__ import annotations
 
@@ -73,8 +85,30 @@ def _git_head() -> str:
     ).strip()
 
 
+def successor_parity(runtime: Any, export_path: Path, git_commit: str) -> dict[str, Any]:
+    """The successor parity of the imported API revision against the imported export.
+
+    The export is read as the export snapshot the PR Method Check evaluates
+    (kernel identity validated from the export alone, ADR 0011; a refused
+    export raises); the API side is the production runtime's own traversal
+    over the corpus it serves (served-model check passed). An export of
+    another revision raises.
+    """
+    from de4sdv.semantic.export_evaluation import export_view, load_export_snapshot
+    from de4sdv.semantic.increment_scope import ModelView
+    from de4sdv.semantic.successor_parity import parity_report
+
+    snapshot = load_export_snapshot(Path(export_path), root=ROOT)
+    if snapshot.revision.git_commit != git_commit:
+        raise RuntimeError(
+            f"the export names revision {snapshot.revision.git_commit!r}, not the checkout {git_commit}")
+    api = ModelView(runtime._elements(), runtime.traversal)
+    return parity_report(export_view(snapshot, root=ROOT), api)
+
+
 def run_queries(
     *, api_url: str, binding_path: Path, semantic_report_path: Path,
+    export_path: Path | None = None,
 ) -> dict[str, Any]:
     from de4sdv.semantic.deployment_runtime import build_deployment_runtime
 
@@ -185,7 +219,7 @@ def run_queries(
     if len(root_ids) != len(results):
         raise RuntimeError("semantic query cases did not resolve to distinct API UUIDs")
     report = {
-        "schema": "de4sdv-full-model-semantic-query-coverage/v1",
+        "schema": "de4sdv-full-model-semantic-query-coverage/v2",
         "git_commit": git_commit,
         "sysml_project_id": binding.sysml_project_id,
         "sysml_commit_id": binding.sysml_commit_id,
@@ -194,6 +228,8 @@ def run_queries(
         "semantic_authority": runtime.authority_status(),
         "evidence_contract_state": evidence_state,
     }
+    if export_path is not None:
+        report["successor_parity"] = successor_parity(runtime, Path(export_path), git_commit)
     return report
 
 
@@ -202,27 +238,42 @@ def main() -> int:
     parser.add_argument("--api-url", required=True)
     parser.add_argument("--binding", type=Path, required=True)
     parser.add_argument("--semantic-report", type=Path, required=True)
+    parser.add_argument("--export", type=Path, required=True,
+                        help="the export this run imported (the successor parity reads it)")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     result = run_queries(
         api_url=args.api_url,
         binding_path=args.binding,
         semantic_report_path=args.semantic_report,
+        export_path=args.export,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
         json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
+    parity = result.get("successor_parity") or {}
     print(
         json.dumps(
             {
                 "concern_count": result["concern_count"],
+                "successor_parity": bool(parity.get("passed")),
                 "output": str(args.output),
             },
             indent=2,
             sort_keys=True,
         )
     )
+    if parity.get("passed") is not True:
+        sections = {**(parity.get("relations") or {}),
+                    "allocation_end_closure": parity.get("allocation_end_closure") or {}}
+        for name, section in sections.items():
+            for check, ok in (section.get("checks") or {}).items():
+                if not ok:
+                    print(f"FAIL successor parity {name}: {check}", file=sys.stderr)
+        print("successor parity failed: the imported API revision does not serve the export's facts",
+              file=sys.stderr)
+        return 1
     return 0
 
 

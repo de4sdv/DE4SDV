@@ -79,13 +79,15 @@ def _elements_and_bindings(ec_defs=EC_DEFS):
 
 
 def _edge(kind, source, target, name, **kwargs):
-    return {"@id": name, "@type": kind, "source": [{"@id": source}], "target": [{"@id": target}],
-            "owningNamespace": {"@id": "context"}, **kwargs}
+    """A binary connector in the export's end shape, followed by its end elements."""
+    from test_trace_vocabulary_traversal import edge
+
+    return edge(kind, source, target, name, **kwargs)
 
 
 def _fixture(tmp_path, *, ec_defs=EC_DEFS):
     elements, bindings = _elements_and_bindings(ec_defs)
-    elements += [
+    for connector in (
         _edge("AllocationUsage", "use-Requirement", "use-Function", "alloc-rf"),
         _edge("AllocationUsage", "use-Function", "use-LogicalElement", "alloc-fl"),
         _edge("AllocationUsage", "use-LogicalElement", "use-PhysicalElement", "alloc-lp"),
@@ -93,7 +95,8 @@ def _fixture(tmp_path, *, ec_defs=EC_DEFS):
               type=[{"@id": "root-hasValidationScenario"}]),
         _edge("ConnectionUsage", "use-Requirement", "use-RegulatorySource", "source",
               type=[{"@id": "root-hasRegulatorySource"}]),
-    ]
+    ):
+        elements += connector
     document = binding_dict(git_repository="de4sdv/DE4SDV", git_commit=REVISION,
                             import_timestamp="2026-10-07T00:00:00Z",
                             import_tool_version="fixture", kernel_bindings=bindings)

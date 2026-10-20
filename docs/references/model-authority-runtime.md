@@ -152,6 +152,81 @@ The impact surface's requirement-to-architecture hop traverses
 `allocatedTo` (from a Requirement source only the Requirement → Function
 end pair applies, exactly what the `realizedBy` alias served).
 
+The successor traversal reads a connector's ends as the method checks do
+(`de4sdv/semantic/relation_checks.py`): each end's EndFeatureMembership, then
+the end's authored ReferenceSubsetting, and an allocation end written as a
+feature chain as its last chaining feature. It never reads derived `source`
+or `target` keys; the licensed export has no `source`. The end pair of an
+allocation is the method's too: the one pair both ends ground in through the
+validated kernel bindings. The viewer's Ask reads `allocatedTo` the same way.
+
+An answer is `incomplete`, never an absence, in these cases:
+
+- `allocatedTo`, from any subject: an allocation of the revision cannot be
+  read. The reader refuses its ends, one of its ends or owned relationships is
+  not in the revision, or it owns ends but not two. An allocation without
+  ends of its own is no fact here; the parity refuses it unless it is a
+  directed parameter (see below).
+- `allocatedTo`, from a subject: an end of one of the subject's allocations
+  grounds in two layer classes.
+- `hasValidationScenario`, from any subject: a connection that may carry it
+  cannot be read as two ends. That is a connection typed by the planning
+  carrier, one whose typing cannot be decided, or an untyped one whose ends
+  cannot be read.
+- `hasValidationScenario` or its inverse, from either end of an untyped
+  connection written need first, need to validation scenario (its ends ground
+  in the planning end pair in that order): it could be a planning connection
+  without its typing. An untyped connection written the other way or between
+  other elements carries no planning fact, and neither does one with readable
+  ends other than two.
+- Any successor relation, from a subject: a witness's owning context cannot be
+  decided (its owning relationship must be in the revision and name one
+  owner), or its typing evidence cannot be decided.
+
+The reader still accepts some malformed end shapes that a validated binding
+does not produce: an unidentified member, a ReferenceSubsetting that names
+its feature only as `referencedFeature`, and a chained end of a typed
+connection. The method's checks, and with them the Ask, also still answer an
+absence for a subject whose own end membership an allocation lost, where the
+traversal answers `incomplete`. Hardening the reader is method work, outside
+the traversal.
+
+A typing or specialization relationship that names no target is a reference
+the export leaves out, to the standard library, and carries no meaning. The
+import asserts this for every such relationship: an external-reference row
+must record its target with a standard-library URI, or the import fails
+closed (`targetless_check` in `de4sdv/semantic/trace_vocabulary_traversal.py`,
+recorded as `targetless_relationship_check` in the import report). A named
+target that is not in the revision leaves the answer `incomplete`.
+
+The privileged run checks this reading on the API revision it imported. With
+`--export`, `scripts/validate_full_model_semantic_queries.py` compares the
+`allocatedTo` and `hasValidationScenario` facts the production runtime serves
+with the imported export's, read as the PR Method Check and the method read
+them. It also checks the API closure of the typed allocation ends: one
+validated kernel binding per end-pair class, equal to the profile pin and
+served, and every served allocation readable and binary, with the export's
+ends (`de4sdv/semantic/successor_parity.py`). An allocation without ends of
+its own fails it: DE4SDV allocations are authored
+`allocate <source> to <target>`, and the diagnostic says so. A directed
+feature typed as an allocation and without ends of its own is a parameter of
+a behavior, not an allocation between two elements, and passes; the method workflow's
+`out allocation signalMappings` is one. A failure fails the run, and the
+release evidence requires the passing report. This is the evidence the
+`allocatedTo` forward obligations ask for; the admission records them until
+a run at the exact SHA produces it.
+
+The parity is a consistency check, not independent corroboration. Both
+readings use one reader over two corpora of one revision, and the served-model
+digest already makes the corpora equal. What it adds is the independent
+kernel identity: the export side re-validates it from the export, the API side
+routes it from the binding. A fact is one witness: two allocations of one pair
+are two facts. The subjects are the ends of the connectors the method reads:
+every allocation, and the connections typed by the planning carrier. The PR
+Method Check runs the checks that need no API revision over the head's export
+(`export_parity`), with the same functions. So a model the privileged parity
+would refuse for its content fails on the pull request first.
+
 ## `hasRelevantEvidenceContract` discriminator
 
 The range is the authored type closure of the validated `EvidenceContract`

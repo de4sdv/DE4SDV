@@ -29,7 +29,11 @@ growth cannot trip it and a count-preserving swap cannot pass it.
 - **Coverage.** The model-projection coverage residual is empty.
 - **Batteries** (when given). Each report names this revision, the binding's
   SysML project/commit and semantic authority, and a served model that passed;
-  the MCP proof is read-only with seven exercised tools.
+  the MCP proof is read-only with seven exercised tools; the query-coverage
+  battery carries a passing successor parity: over the imported API revision
+  the ``allocatedTo`` and ``hasValidationScenario`` facts equal the export's
+  and the method's, and the typed allocation ends close (the evidence the
+  ``allocatedTo`` forward obligations ask of an exact-SHA privileged run).
 
 Usage (paths as in the privileged workflow):
 
@@ -61,13 +65,14 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from de4sdv.semantic.successor_parity import PARITY_RELATIONS, PARITY_SCHEMA  # noqa: E402
 from de4sdv.sysml_api.repository import SysMLRepository  # noqa: E402
 from de4sdv.sysml_api.revisions import RevisionBinding  # noqa: E402
 from de4sdv.sysml_api.served_model import served_model_digest  # noqa: E402
 
 REPORT_SCHEMA = "de4sdv.release-evidence/v1"
 BATTERY_SCHEMAS = {
-    "query_coverage": "de4sdv-full-model-semantic-query-coverage/v1",
+    "query_coverage": "de4sdv-full-model-semantic-query-coverage/v2",
     "scope_validation": "de4sdv-aebs-product-line-scope-validation/v1",
     "mcp_validation": "de4sdv-semantic-mcp-validation/v2",
 }
@@ -223,6 +228,19 @@ def evaluate(evidence: Evidence) -> list[dict[str, Any]]:
                {"schema": document.get("schema"), "revision": revision,
                 "project": list(served_project), "semantic_authority": authority.get("semantic_authority"),
                 "served_model": authority.get("served_model")})
+    queries = evidence.batteries.get("query_coverage")
+    if queries is not None:
+        parity = queries.get("successor_parity") or {}
+        relations = parity.get("relations") or {}
+        closure = parity.get("allocation_end_closure") or {}
+        _check(results, "battery query_coverage: successor parity and allocation-end closure over the "
+                        "imported API revision",
+               parity.get("schema") == PARITY_SCHEMA and parity.get("passed") is True
+               and all((relations.get(name) or {}).get("passed") is True for name in PARITY_RELATIONS)
+               and closure.get("passed") is True,
+               {"schema": parity.get("schema"), "passed": parity.get("passed"),
+                "relations": {name: (relations.get(name) or {}).get("passed") for name in PARITY_RELATIONS},
+                "allocation_end_closure": closure.get("passed")})
     mcp = evidence.batteries.get("mcp_validation")
     if mcp is not None:
         _check(results, "battery mcp_validation: read-only, seven exercised tools",

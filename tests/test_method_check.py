@@ -85,6 +85,34 @@ def _legacy_increment(builder: ModelBuilder) -> None:
     builder.attribute(charter, "increment", legacy, kind="PartUsage")
 
 
+def _untyped_planning_connection(builder: ModelBuilder) -> None:
+    """After _gappy: an untyped connection from First's need to its scenario, in the export's end
+    shape: a planning connection that lacks its carrier typing."""
+    package = next(e for e in builder.elements if e.get("declaredName") == "DE4SDV_FirstNeedsRequirements")
+    members = builder.members(package)
+    connection = builder.usage("ConnectionUsage", "untypedPlanning", package)
+    for end_name, target in (("source", members["need0"]), ("target", members["scenario0"])):
+        end = builder.new("Feature", name=end_name, declared=False, source=builder.sources[package["@id"]])
+        builder.own(connection, end, kind="EndFeatureMembership", member_name=end_name)
+        builder.reference_subsetting(end, target)
+
+
+def _allocation_without_ends(builder: ModelBuilder) -> None:
+    """After _gappy: ``allocation slot;`` in First's needs package, an allocation usage with no ends of
+    its own (it would inherit its definition's)."""
+    package = next(e for e in builder.elements if e.get("declaredName") == "DE4SDV_FirstNeedsRequirements")
+    builder.usage("AllocationUsage", "slot", package)
+
+
+def _directed_allocation_parameter(builder: ModelBuilder) -> None:
+    """After _gappy: ``action def Produce { out allocation outputs[0..*]; }`` in First's needs package.
+    A directed feature (a parameter of a behavior, typed as an allocation) without ends of its own: it
+    declares what the behavior produces and allocates nothing between two elements."""
+    package = next(e for e in builder.elements if e.get("declaredName") == "DE4SDV_FirstNeedsRequirements")
+    produce = builder.definition("ActionDefinition", "Produce", package)
+    builder.usage("AllocationUsage", "outputs", produce, membership="FeatureMembership", direction="out")
+
+
 def _export(tmp_path: Path, *parts, git_commit: str = GIT, kernel: str = "cut") -> Path:
     builder = cut_method_builder("method-check") if kernel == "cut" else ModelBuilder(label="method-check")
     for part in parts:
@@ -164,6 +192,67 @@ def test_each_declared_increment_runs_the_entry_point_once(tmp_path: Path, real_
     assert [entry["id"] for entry in result["increments"]] == [FIRST, SECOND]
     assert result["revision"] == GIT
     assert result["errors"] == []
+
+
+def test_the_export_side_successor_parity_runs_on_every_export(tmp_path: Path, real_reports) -> None:
+    """The PR Method Check also compares the method's reading of the successor relations with the
+    export-snapshot traversal (successor_parity.export_parity), so a model the privileged parity would
+    refuse shows on the pull request. Here both planning connections of First agree."""
+    export = _export(tmp_path, _gappy)
+    code, result, summary = _run(tmp_path, export, EntryPointSpy(real_reports))
+    assert code == 0 and result["errors"] == []
+    parity = result["successor_parity"]
+    assert parity["passed"]
+    assert {name: record["facts"] for name, record in parity["relations"].items()} == {
+        "allocatedTo": 0, "hasValidationScenario": 2}
+    assert "Successor parity on the export: passed (allocatedTo 0 facts, hasValidationScenario 2 facts)." in summary
+    assert parity["notes"] == ["allocatedTo has no fact on this export; the privileged parity requires at least one"]
+    assert "allocatedTo has no fact on this export; the privileged parity requires at least one" in summary
+
+
+def test_a_successor_parity_failure_is_a_technical_error(tmp_path: Path, real_reports) -> None:
+    """An untyped planning-shaped connection leaves the planning answers incomplete: the parity fails,
+    and the check fails with the reason, before any privileged run."""
+    export = _export(tmp_path, _gappy, _untyped_planning_connection)
+    code, result, summary = _run(tmp_path, export, EntryPointSpy(real_reports))
+    assert code == 1
+    assert not result["successor_parity"]["passed"]
+    (error,) = [e for e in result["errors"] if e.startswith("the successor parity fails on this export")]
+    assert "hasValidationScenario: the export-snapshot traversal answers completely" in error
+    assert "from DE4SDV_FirstNeedsRequirements::need0: carrier typing evidence is missing or unresolved" in error
+    assert "Successor parity on the export: failed" in summary
+
+
+def test_an_allocation_without_its_own_ends_fails_the_check_and_names_the_accepted_form(
+        tmp_path: Path, real_reports) -> None:
+    """An allocation usage without its own ends is not an accepted form (DE4SDV allocations are
+    authored ``allocate <source> to <target>``): the export closure refuses it, and the error and the
+    summary tell the author which form to write."""
+    export = _export(tmp_path, _gappy, _allocation_without_ends)
+    code, result, summary = _run(tmp_path, export, EntryPointSpy(real_reports))
+    assert code == 1
+    closure = result["successor_parity"]["allocation_end_closure"]
+    assert not closure["checks"]["every allocation is readable and binary"]
+    expected = ("DE4SDV_FirstNeedsRequirements::slot: it has no ends of its own; author the allocation as "
+                "`allocate <source> to <target>`; allocations without their own ends are not an accepted form")
+    assert closure["unreadable_reasons"] == [expected]
+    (error,) = [e for e in result["errors"] if e.startswith("the successor parity fails on this export")]
+    assert f"allocation-end closure: {expected}" in error
+    assert expected in summary
+
+
+def test_a_directed_allocation_parameter_without_ends_is_no_allocation_and_passes(
+        tmp_path: Path, real_reports) -> None:
+    """A behavior's ``out allocation`` parameter (the method workflow's own form, for example
+    ``DefinePhysicalRealization::signalMappings``) has no ends of its own and is no allocation between
+    two elements: no fact for either reader, and no closure failure. A non-directed allocation without
+    ends still fails (the previous test)."""
+    export = _export(tmp_path, _gappy, _directed_allocation_parameter)
+    code, result, _summary = _run(tmp_path, export, EntryPointSpy(real_reports))
+    assert code == 0 and result["errors"] == []
+    closure = result["successor_parity"]["allocation_end_closure"]
+    assert closure["passed"] and closure["unreadable"] == []
+    assert result["successor_parity"]["relations"]["allocatedTo"]["facts"] == 0
 
 
 def test_gaps_never_fail_the_check(tmp_path: Path, real_reports) -> None:

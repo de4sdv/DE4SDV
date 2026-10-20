@@ -130,7 +130,10 @@ jobs:
       # after the release-ceremony retirement (owner decision 2026-10-11),
       # then dropped. The deploy repeats the same import with the same
       # full-payload read-back; after the drop the batteries move to the
-      # export like scripts/check_release_evidence.py.
+      # export like scripts/check_release_evidence.py. The successor parity's
+      # API half (the allocatedTo forward obligations) needs this import: keep
+      # the rehearsal while they depend on it, or move the parity and the
+      # allocation-end closure to the deploy when it is dropped.
       - name: Build pinned Systems Modeling API service
         run: |
           git clone --filter=blob:none https://github.com/Systems-Modeling/SysML-v2-API-Services.git /tmp/sysmlv2-api-services
@@ -182,12 +185,20 @@ jobs:
             --binding /tmp/de4sdv-full-model-binding.json \
             --report /tmp/de4sdv-full-model-semantic-validation.json
 
-      - name: Exercise three production semantic concerns
+      - name: Exercise production semantic concerns and the successor parity
+        # Three impact concerns, then the successor parity: over the API
+        # revision this run imported, the production runtime must serve the
+        # allocatedTo and hasValidationScenario facts the imported export holds
+        # (read as the PR Method Check and the method read them), and the typed
+        # allocation ends must close. That is the exact-SHA evidence the
+        # allocatedTo forward obligations of kernel-vocabulary-admission.yaml
+        # ask for; a failure fails the run, so no deploy takes its evidence.
         run: |
           python scripts/validate_full_model_semantic_queries.py \
             --api-url http://127.0.0.1:9000 \
             --binding /tmp/de4sdv-full-model-binding.json \
             --semantic-report /tmp/de4sdv-full-model-semantic-validation.json \
+            --export /tmp/de4sdv-full-model-export.json \
             --output /tmp/de4sdv-full-model-semantic-query-coverage.json
 
       - name: Validate governed product-line scope through API identity

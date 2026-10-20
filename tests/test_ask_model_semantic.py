@@ -410,35 +410,95 @@ def test_api_incoming_dependencies_with_dependency_name(
     ams._SEMANTIC_CTX_CACHE.clear()
 
 
-def test_api_allocated_to_outgoing_allocations(fixture_repo, monkeypatch):
-    """AllocationUsage edges from the element list their allocation targets."""
+def _native_service(*, names=None, extra=()):
+    """The production service assembly over export-shaped synthetic connectors (``edge`` and
+    ``fixture_service`` in test_trace_vocabulary_traversal): its traversal reads allocations with the
+    method's reader. ``names`` gives usages a declared name; ``extra`` adds elements. Warm: the corpus
+    is loaded, and nothing has been read from it yet."""
+    from test_trace_vocabulary_traversal import fixture_service
+
+    service, elements, _binding, _contract = fixture_service()
+    for identifier, name in (names or {}).items():
+        next(e for e in elements if e["@id"] == identifier)["declaredName"] = name
+    elements.extend(extra)
+    service._elements()
+    return service, elements
+
+
+def test_api_allocated_to_reads_native_allocations_as_the_method_does(fixture_repo, monkeypatch):
+    """The allocated_to family lists the native allocations from the element, read with the
+    method's reader from the export's end shape, and the second hop follows the next layer's
+    allocation. A connector with derived source/target keys and no ends is no fact."""
+    from test_trace_vocabulary_traversal import edge
+
     monkeypatch.setenv("NOUS_ASK_SEMANTIC", "1")
-
-    class _Service(_FakeService):
-        @staticmethod
-        def _build_elements():
-            return [
-                {"@type": "RequirementUsage", "@id": "req-a",
-                 "declaredName": "memberProduct"},
-                {"@type": "PartUsage", "@id": "arch-1",
-                 "declaredName": "signalTranslator"},
-                {"@type": "AllocationUsage", "@id": "alloc-1",
-                 "source": [{"@id": "req-a"}],
-                 "target": [{"@id": "arch-1"}]},
-            ]
-
-    monkeypatch.setattr(ams, "_runtime", lambda: _Service())
+    service, _elements = _native_service(
+        names={"use-Requirement": "memberProduct", "use-Function": "signalTranslator",
+               "use-LogicalElement": "signalRelay"},
+        extra=[*edge("AllocationUsage", "use-Function", "use-LogicalElement", name="logical"),
+               {"@id": "derived-only", "@type": "AllocationUsage", "owningNamespace": {"@id": "context"},
+                "source": [{"@id": "use-Requirement"}], "target": [{"@id": "use-PhysicalElement"}]}])
+    monkeypatch.setattr(ams, "_runtime", lambda: service)
     ams._SEMANTIC_CTX_CACHE.clear()
     ref, files = _resolve(fixture_repo)
     ctx, path = ams.build_method_context_api(ref, files)
     assert path == "api"
-    assert ctx["allocated_to"] == [{
-        "allocation_target": "signalTranslator",
-        "sysml_type": "PartUsage",
-        "element_id": "arch-1",
-        "hops": 1,
-    }]
+    assert ctx["allocated_to"] == [
+        {"allocation_target": "signalRelay", "sysml_type": "PartUsage",
+         "element_id": "use-LogicalElement", "hops": 2},
+        {"allocation_target": "signalTranslator", "sysml_type": "ActionUsage",
+         "element_id": "use-Function", "hops": 1},
+    ]
+    assert "allocated_to_unreadable" not in ctx
     ams._SEMANTIC_CTX_CACHE.clear()
+
+
+def test_api_allocated_to_matches_the_method_and_the_traversal_on_native_shapes():
+    """For every source of the three layers, the Ask's direct allocated_to targets are the method
+    check's targets and the semantic service's allocatedTo neighbors."""
+    from de4sdv.semantic.increment_scope import ModelView
+    from de4sdv.semantic.relation_checks import check_relation
+    from test_trace_vocabulary_traversal import edge
+
+    service, elements = _native_service(extra=[
+        *edge("AllocationUsage", "use-Function", "use-LogicalElement", name="logical"),
+        *edge("AllocationUsage", "use-LogicalElement", "use-PhysicalElement", name="physical"),
+        *edge("AllocationUsage", "use-Need", "use-Function", name="no-end-pair")])
+    view = ModelView(elements, service.traversal)
+    by_id = {e["@id"]: e for e in elements}
+    ams._SEMANTIC_CTX_CACHE.clear()
+    try:
+        for subject in ("use-Requirement", "use-Function", "use-LogicalElement", "use-Need"):
+            context = ams.api_method_context(service, [by_id[subject]], elements, max_hops=1)
+            asked = {entry["element_id"] for entry in context.get("allocated_to", ())}
+            method = set(check_relation(view, "allocatedTo", subject).targets)
+            served = {e["target"] for e in service.semantic_neighbors(subject, predicates=["allocatedTo"])["edges"]}
+            assert asked == method == served, subject
+    finally:
+        ams._SEMANTIC_CTX_CACHE.clear()
+    assert method == set()  # use-Need grounds in no end pair
+
+
+def test_api_allocated_to_says_why_when_the_allocations_cannot_be_read():
+    """An allocation the reader refuses (its end names a feature not in the revision) leaves the
+    element without targets and with the method's reason, never with an empty list."""
+    from de4sdv.semantic.increment_scope import ModelView
+    from de4sdv.semantic.relation_checks import check_relation
+
+    service, elements = _native_service()
+    next(e for e in elements if e["@id"] == "allocation-target-reference").update(
+        general={"@id": "missing"}, subsettedFeature={"@id": "missing"}, referencedFeature={"@id": "missing"})
+    by_id = {e["@id"]: e for e in elements}
+    ams._SEMANTIC_CTX_CACHE.clear()
+    try:
+        context = ams.api_method_context(service, [by_id["use-Requirement"]], elements, max_hops=1)
+    finally:
+        ams._SEMANTIC_CTX_CACHE.clear()
+    method = check_relation(ModelView(elements, service.traversal), "allocatedTo", "use-Requirement")
+    assert "allocated_to" not in context
+    assert context["allocated_to_unreadable"] == [
+        {"reason": method.detail, "element_id": "use-Requirement", "hops": 1}]
+    assert method.detail.startswith("1 allocation cannot be read, so absence cannot be established")
 
 
 def test_api_derivation_names_all_predicates(fixture_repo, monkeypatch):
@@ -748,24 +808,19 @@ def test_real_model_contract_serves_api_method_context(fixture_repo, monkeypatch
     that asks the contract for a retired name (``realizedBy``) raises
     ``RetiredIdentityError`` here and fails this test."""
     from model_contract_fixtures import model_contract
+    from test_trace_vocabulary_traversal import edge
 
     monkeypatch.setenv("NOUS_ASK_SEMANTIC", "1")
+    subject_elements = _FakeService._build_elements()
+    next(e for e in subject_elements if e["@id"] == "subj-1")["type"] = [{"@id": "root-LogicalElement"}]
+    service, _elements = _native_service(extra=[
+        *subject_elements,
+        {"@type": "PartUsage", "@id": "fn-1", "declaredName": "signalTranslator",
+         "type": [{"@id": "root-PhysicalElement"}]},
+        *edge("AllocationUsage", "subj-1", "fn-1", name="alloc-1")])
+    assert service.contract.relationships == model_contract().relationships
 
-    class _RealContractService(_FakeService):
-        contract = model_contract()
-
-        @staticmethod
-        def _build_elements():
-            return [
-                *_FakeService._build_elements(),
-                {"@type": "PartUsage", "@id": "fn-1",
-                 "declaredName": "signalTranslator"},
-                {"@type": "AllocationUsage", "@id": "alloc-1",
-                 "source": [{"@id": "subj-1"}],
-                 "target": [{"@id": "fn-1"}]},
-            ]
-
-    monkeypatch.setattr(ams, "_runtime", lambda: _RealContractService())
+    monkeypatch.setattr(ams, "_runtime", lambda: service)
     ams._SEMANTIC_CTX_CACHE.clear()
     ref, files = _resolve(fixture_repo)
     ctx, path = ams.build_method_context_api(ref, files)

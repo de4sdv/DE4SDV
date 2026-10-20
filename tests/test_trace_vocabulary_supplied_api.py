@@ -126,7 +126,9 @@ def test_authored_slice_wires_existing_occurrence_not_duplicate_model():
     assert 'action def AllocatableFunction' not in functional
 
 
-def test_native_reference_shadow_and_specialized_function_lineage():
+def test_native_end_reference_and_specialized_function_lineage():
+    """The target end's authored reference names a function typed by a specialization of the
+    validated Function root: the end grounds through that lineage."""
     service, elements, _, _ = fixture_service()
     function = next(e for e in elements if e['@id'] == 'use-Function')
     function['type'] = [{'@id':'derived-function'}]
@@ -134,15 +136,10 @@ def test_native_reference_shadow_and_specialized_function_lineage():
         {'@id':'derived-function', '@type':'ActionDefinition'},
         {'@id':'specialization', '@type':'Subclassification',
          'subclassifier':{'@id':'derived-function'}, 'superclassifier':{'@id':'root-Function'}},
-        {'@id':'target-shadow', '@type':'ReferenceUsage'},
-        {'@id':'reference', '@type':'ReferenceSubsetting',
-         'owningRelatedElement':{'@id':'target-shadow'}, 'referencedFeature':{'@id':'use-Function'}},
     ])
-    allocation = next(e for e in elements if e['@id'] == 'allocation')
-    allocation['target'] = [{'@id':'target-shadow'}]
     report = service.semantic_neighbors('use-Requirement', predicates=['allocatedTo'])
     assert report['semantic_status'] == 'complete'
     witness = report['edges'][0]['witness']
     assert witness['native_target'] == 'use-Function'
-    assert witness['reference_witnesses'][0]['api_object_id'] == 'reference'
     assert witness['target_root'] == 'root-Function'
+    assert witness['carrier'] == 'RequirementFunctionAssignment'
