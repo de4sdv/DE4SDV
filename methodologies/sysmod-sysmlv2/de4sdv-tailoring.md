@@ -50,7 +50,7 @@ textual-notation-of-model/packages/methods/de4sdv/
 | `DE4SDV_MethodViewpoints` | Defines DE4SDV-specific governance concerns and viewpoints with no SAF equivalent. | DE4SDV-owned; SAF definitions remain in `SAF_Viewpoints`. |
 | `DE4SDV_MethodProcess` | Models the 13-phase increment sequence, SAF domain assignment, trace chain, and recurring controls. | DE4SDV-owned process; not replaced or reordered by the package. |
 | `DE4SDV_ProductLine` | Defines product-line, feature/common-capability and configuration semantics. | DE4SDV-owned extension outside the first adapter scope. |
-| `DE4SDV_ProductLineDerivation` | Defines the derivation metadata that feature models and their configurations apply: derived variations, derivation rules, product-model projection metadata and the unassigned binding-time annotation ([ADR 0022](../../docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md)). | DE4SDV-owned; until the switch only the fenced feature models apply it. |
+| `DE4SDV_ProductLineDerivation` | Defines the derivation metadata that feature models and their configurations apply: derived variations, derivation rules, product-model projection metadata and the unassigned binding-time annotation ([ADR 0022](../../docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md)). | DE4SDV-owned; only the PLEML feature models and their configurations apply it. |
 | `DE4SDV_OperationalContext` | Defines reusable operational actors and context semantics. | DE4SDV-owned; operational artifacts provide rationale for later functional architecture. |
 
 ## Adoption rule

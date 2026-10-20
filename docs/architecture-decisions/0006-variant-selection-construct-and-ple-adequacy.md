@@ -4,6 +4,18 @@
 
 Proposed
 
+> Note (2026-10-20): from the switch of [ADR 0022](0022-adopt-pleml-as-product-line-authority.md) (step S6) the
+> PLEML feature models and configurations replace the YAML decision layer of
+> decision 5 as the product-line authority. Projections are generated from
+> the evaluation receipts, not from Bill-of-Features YAML (decision 3,
+> amended), and the derivation rules of the feature models carry the
+> `derived_asset_selections` of decision 6 under the same exactly-one rule.
+> The derived technical variation is reviewable in the feature model and its
+> derivation rules rather than in the feature catalogue. Decisions 1, 2 and 4
+> still hold. The YAML catalogues and Bills-of-Features stay a
+> non-authoritative shadow until they retire (ADR 0022, step S7). The
+> decision text below is unchanged.
+
 ## Context
 
 DE4SDV models the SDV platform stack as a SysML v2 variability model (the

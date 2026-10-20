@@ -71,7 +71,7 @@ A configuration is admitted when all of these hold:
   member of its group, because the feature model has one slot there. Common
   content no feature corresponds to is outside the selection surface.
 
-On the fenced models this admits the standalone and the AAOS-integrated
+On the feature models this admits the standalone and the AAOS-integrated
 members. It admits neither the reference examples nor the two execution
 environment families.
 
@@ -135,11 +135,11 @@ The evaluator refuses anything outside these shapes:
 
 ## Receipts
 
-The licensed authority job serializes the fenced models once, with the
+The licensed authority job serializes the PLEML models once, with the
 production export's options, into one export bundle. Its source manifest names
 every document, and marks the model documents with the roles
 `pleml-feature-model`, `pleml-feature-configuration` and `pleml-fixture`. The
-PLEML library carries the fenced package's path,
+PLEML library carries the pinned package's path,
 `pleml_package.LIBRARY_PATH`. The job then hands the bundle to one entry
 point, the function `write_receipts` or the `receipts` command. It writes one
 compressed elements file and one receipt per feature model. A receipt covers
@@ -162,7 +162,7 @@ python scripts/run_pleml_configuration_evaluation.py replay <receipt>...
 python scripts/run_pleml_configuration_evaluation.py refresh <receipt>...
 ```
 
-Every receipt binds the PLEML release the fenced package pins: its version,
+Every receipt binds the PLEML release the production lock pins: its version,
 tag commit, path and digest. A bundle with another library is refused, and a
 receipt refuses to replay when the library is missing or the package is
 re-pinned. A bundle without the governed scope is refused too, because every

@@ -1,25 +1,51 @@
 # Feature Configurations
 
-This directory contains Bills-of-Features (BoFs): validated selections for one
-configured family member or candidate projection.
+This directory holds the PLEML feature configurations of the product line,
+the configuration authority since the switch of
+[ADR 0022](../../docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md):
+each is a selection of features that describes one configured family member
+or candidate projection. Beside each one, its Bill-of-Features (BoF) is the
+**non-authoritative shadow** until the YAML retires (ADR 0022, step S7), and
+it carries the configuration's evidence record until then.
 
 ## Current configurations
 
-| File | Family | Evidence status | Meaning |
-|---|---|---|---|
-| `aebs-autoware-linux-lidar-camera.yaml` | SDV product line | not declared | Standalone AEBS reference member (ADR 0014) |
-| `middleware-autoware-aaos-sdv-reference.yaml` | SDV product line | `planned` | Planned AAOS-integrated middleware reference member (ADR 0014) |
-| `example-linux-score-autoware.yaml` | SDV product line | not declared | Example platform projection |
-| `apollo-qnx-qvm.yaml` | SDV product line | not declared | Example mixed-criticality platform projection |
-| `fixtures/invalid-score-android.yaml` | SDV product line | invalid fixture | Deliberate C001 violation |
-| `inc-aebs-009a-jetson.yaml` | Engineering environment | `inspected` | Exact maintained Jetson target; historical 009A run proved only Jetson 8 GiB identity |
-| `apple-silicon-macos-candidate.yaml` | Engineering environment | `planned` | Unverified M-series/macOS candidate |
-| `nxp-zephyr-vehicle-target-candidate.yaml` | Vehicle target | `planned` | Unverified unresolved NXP/Zephyr candidate |
+| Configuration | Bill-of-Features (shadow) | Family | Evidence status | Meaning |
+|---|---|---|---|---|
+| `aebs_autoware_linux_lidar_camera.sysml` | `aebs-autoware-linux-lidar-camera.yaml` | SDV product line | not declared | Standalone AEBS reference member (ADR 0014) |
+| `middleware_autoware_aaos_sdv_reference.sysml` | `middleware-autoware-aaos-sdv-reference.yaml` | SDV product line | `planned` | Planned AAOS-integrated middleware reference member (ADR 0014) |
+| `example_linux_score_autoware.sysml` | `example-linux-score-autoware.yaml` | SDV product line | not declared | Example platform projection |
+| `apollo_qnx_qvm.sysml` | `apollo-qnx-qvm.yaml` | SDV product line | not declared | Example mixed-criticality platform projection |
+| `fixtures/invalid_score_android.sysml` | `fixtures/invalid-score-android.yaml` | SDV product line | invalid fixture | Deliberate C001 violation |
+| `inc_aebs_009a_jetson.sysml` | `inc-aebs-009a-jetson.yaml` | Engineering environment | `inspected` | Exact maintained Jetson target; historical 009A run proved only Jetson 8 GiB identity |
+| `apple_silicon_macos_candidate.sysml` | `apple-silicon-macos-candidate.yaml` | Engineering environment | `planned` | Unverified M-series/macOS candidate |
+| `nxp_zephyr_vehicle_target_candidate.sysml` | `nxp-zephyr-vehicle-target-candidate.yaml` | Vehicle target | `planned` | Unverified unresolved NXP/Zephyr candidate |
 
 `tested` requires retained repository evidence. `planned` means no execution
 claim. Evidence status is metadata about the configuration, not a feature.
 
-## Selection semantics
+The receipts of the feature models record each configuration's verdict, its
+derived variants and its admission by the governed scope. A configuration can
+be valid without being admitted: of the seven configurations above, the
+fixture aside, the two reference members are admitted.
+
+## PLEML configurations
+
+Each configuration is a `#featureConfiguration` typed by the feature tree of
+its feature model, in a file of its own with the stem of its Bill-of-Features
+in snake case. A selected feature is a `[1]` redefinition, a deselected one a
+`[0]` redefinition, and an unset feature is not selected; the value of a group
+names its chosen member. The configuration owns only features: a derived
+variant, such as the application-middleware adapter, is never selected here.
+Its doc is the description, and it owns its projection name, the name of the
+part definition its product-model projection declares.
+
+The fixtures under `fixtures/` (the invalid configuration and the parity
+probes) are never configurations of the product line: the authority job
+validates and serializes them into the receipts, and the export, the API
+baseline and the served model leave them out.
+
+## Selection semantics of the Bills-of-Features (shadow)
 
 - Alternative groups select one child name as a scalar.
 - OR groups select a non-empty YAML list.
@@ -36,15 +62,7 @@ unknown statuses, and unsafe or missing evidence artifacts. Evidence-bearing
 statuses may reference only direct, Git-tracked regular files inside the
 repository; symbolic-link paths and repository metadata are rejected.
 
-## PLEML configurations (fenced)
-
-Each Bill-of-Features has a PLEML feature configuration with the same stem
-in snake case (`aebs-autoware-linux-lidar-camera.yaml` restates as
-`aebs_autoware_linux_lidar_camera.sysml`), and the fixture has one under
-`fixtures/`, outside the authority roots. They are fenced until the switch
-of [ADR 0022](../../docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md);
-until then the Bills-of-Features remain the selection authority, and their
-`evidence` blocks stay here.
+## Fixtures and evidence records
 
 **Parity probes.** `fixtures/parity-probes/` holds one PLEML configuration
 per probe row of the parity check of step S4
@@ -61,9 +79,16 @@ is a Bill-of-Features until then.
 
 ## Creating a configuration
 
-1. Choose the catalogue matching the correct family and System 1/System 2 role.
-2. Copy a BoF from that family.
-3. Select every mandatory decision.
-4. Declare evidence honestly: use `planned` until retained evidence exists.
-5. Validate and generate with `tools/configure_variant.py` and the catalogue's
-   shared SysML asset.
+1. Choose the feature model of the correct family and System 1/System 2 role.
+2. Copy a configuration of that family, and its Bill-of-Features until the
+   YAML retires.
+3. Select every mandatory feature, in both.
+4. Declare evidence honestly in the Bill-of-Features: use `planned` until
+   retained evidence exists.
+5. Open a pull request. The privileged PLE authority workflow validates and
+   serializes the configuration and writes fresh receipts; commit them from
+   its artifact. A new configuration needs that licensed serialization: it
+   cannot be serialized locally.
+6. Generate the projection from the receipt:
+   `python tools/configure_variant.py --receipt <receipt> --configuration <name> --output <file>`.
+   The parity check compares it with the shadow's projection.

@@ -1,7 +1,8 @@
 # Governed product-line scope
 
 This directory contains authoritative SysML v2 decisions about which planned
-reference members define a product line before feature-model authoring begins.
+reference members define a product line. The PLEML feature models are
+authored against them.
 
 The current governed scope is
 [`de4sdv_aebs_product_line_scope.sysml`](de4sdv_aebs_product_line_scope.sysml).
@@ -18,7 +19,10 @@ It records:
 Portfolio membership is not an implementation maturity claim. Local increment,
 configuration, implementation, and evidence statuses retain their own meanings.
 
-This scope model is not a PLEML feature tree or configuration. Current YAML
-configuration authority and `tools/configure_variant.py` remain unchanged.
+This scope model is not a PLEML feature tree or configuration. It is the
+admission authority (ADR 0014): the features of the PLEML feature models
+correspond to its elements, and the evaluation receipts decide each
+configuration's admission against it, apart from its validity
+([ADR 0022](../../docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md)).
 Future portfolio changes require a reviewed scope decision and a corresponding
 update to this model.

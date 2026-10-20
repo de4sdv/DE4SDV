@@ -4,6 +4,12 @@
 
 Proposed
 
+> Note (2026-10-20): from the switch of [ADR 0022](0022-adopt-pleml-as-product-line-authority.md) (step S6) the
+> selection authority is no longer the external catalogue of ADR 0006, as the
+> link below says: it is the PLEML feature models with the DE4SDV evaluation
+> and derivation rules. The kernel guard still keeps configuration algebra out
+> of the method kernel. The decision text below is unchanged.
+
 ## Context
 
 The INC-MW-011 element audit and the cross-increment review of #382 found the

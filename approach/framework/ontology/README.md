@@ -108,7 +108,7 @@ The derivation classes (`DerivedVariation`, `DerivationRule`,
 `UnassignedBindingTime`) map to `DE4SDV_ProductLineDerivation`, metadata that
 feature models and their configurations apply
 ([ADR 0022](../../../docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md)).
-`FeatureConfiguration` stays an external reference until the switch of ADR
-0022, which maps it to the pinned PLEML declaration. The ontology `Feature`
+Since the switch of ADR 0022 `FeatureConfiguration` maps to the pinned PLEML
+declaration, `occurrence def FeatureConfiguration` of the pinned library. The ontology `Feature`
 stays `ProductLineFeatureCandidate`: a feature of a PLEML feature model is a
 distinct element, a configurable option of the catalogue.

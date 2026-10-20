@@ -209,15 +209,13 @@ In progress, or not there yet:
 
 - `INC-MW-011`, Eclipse S-CORE as the middleware layer: phases 0 to 8 are
   merged, and verification and evidence (phase 10) is next. Variability
-  (phase 9) waits for the planned switch of the product-line authority to
+  (phase 9) can start now that the product-line authority has switched to
   PLEML, and phases 11 and 12 are still to come
   ([framing model](../../textual-notation-of-model/packages/features/middleware/middleware_score_framing.sysml));
-- the PLEML feature models and configurations that restate the catalogues
-  and every Bill-of-Features for the planned switch of the product-line
-  authority
-  ([feature models](../product-line-engineering/pleml-feature-models.md)).
-  They are fenced until the switch: the catalogue and the configurator
-  remain the selection authority;
+- the retirement of the YAML catalogues and Bills-of-Features, which stay a
+  non-authoritative shadow of the PLEML
+  [feature models and configurations](../product-line-engineering/pleml-feature-models.md)
+  for at least 30 days after the switch;
 - executable method checks for the phases that have none yet;
 - verification of the candidate requirements; `REQ-AEBS-003` is still
   `NotStarted`;
