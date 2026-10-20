@@ -656,9 +656,10 @@
       "de4sdv/semantic/pleml_receipts.py": "739681a02a5b9308e5ba0f54a6e4d6f05e1164b972fed4336979b9d2b377f77a",
       "de4sdv/semantic/pleml_shadow.py": "f42bbbdf054f71908ba20ec55e3c4cac978a0826fa896373f803b283840ecaff",
       "scripts/run_pleml_configuration_evaluation.py": "88dae6636f9d263078d3c52bae04b969d7416acafd9d4a482816bbeb4bc38893",
-      "tools/configure_variant.py": "8cfcd4d9ba37f5fff43bfd653d0dbd17285a90a1da2a265232045fe5c6314623"
+      "tools/configure_variant.py": "8a15e436cdf376ab03c6cf0e584e06ca90a18626fca193c4dcc87079b595f8c4"
     },
-    "sha256": "27869a5545495203537ee0c8931be840b565a233a701e17d5e6a578e75deaf78"
+    "refreshed_from": "27869a5545495203537ee0c8931be840b565a233a701e17d5e6a578e75deaf78",
+    "sha256": "b63d374857b3fb6f2547306d93bb2fcb7f8d270a18fe1f3f96bbfa4fc8ee5513"
   },
   "feature_models": [
     "EngineeringExecutionEnvironmentFeatureModel"
