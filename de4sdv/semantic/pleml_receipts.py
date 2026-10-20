@@ -295,11 +295,14 @@ def evaluator_advisories(receipt: Mapping[str, Any]) -> list[str]:
     """The code that differs from the code that evaluated a receipt: provenance, never a failure."""
     recorded = (receipt.get("evaluator") or {}).get("modules") or {}
     current = evaluator_identity()["modules"]
-    changed = sorted(module for module in set(recorded) | set(current) if recorded.get(module) != current.get(module))
-    if not changed:
+    parts = [(label, sorted(modules)) for label, modules in (
+        ("changed", {module for module in set(recorded) & set(current) if recorded[module] != current[module]}),
+        ("now recorded", set(current) - set(recorded)), ("no longer recorded", set(recorded) - set(current)))
+        if modules]
+    if not parts:
         return []
-    return [f"evaluated by another revision of {', '.join(changed)}; the evaluation and the shadow reproduce, so "
-            "the receipt holds"]
+    return ["evaluated by other code (" + "; ".join(f"{label}: {', '.join(modules)}" for label, modules in parts)
+            + "); the evaluation and the shadow reproduce, so the receipt holds"]
 
 
 def replay(receipt_path: Path, root: Path = ROOT, *, shadow: Mapping[str, Any] | None = None,

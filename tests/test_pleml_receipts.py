@@ -286,18 +286,21 @@ def changed_evaluation(monkeypatch) -> None:
     monkeypatch.setattr(evaluator, "evaluate", changed)
 
 
-def test_a_neutral_code_change_replays_green_with_an_advisory(tmp_path, monkeypatch, capsys):
-    """Reproduction decides; the code identity is provenance (R14)."""
+def test_a_neutral_code_change_replays_green(tmp_path, monkeypatch, capsys):
+    """Reproduction decides; the code record is provenance (R14), and it holds the PLEML-owned code only (R16)."""
     path = write_receipt(tmp_path)
-    identity = neutral_change("de4sdv/sysml_api/baseline.py")
+    assert "de4sdv/sysml_api/baseline.py" not in receipts.EVALUATOR_MODULES  # a comment there changes nothing
+    assert receipts.replay_committed(path.parent, tmp_path) == []
+    identity = neutral_change("de4sdv/semantic/pleml_configuration.py")
     monkeypatch.setattr(receipts, "evaluator_identity", lambda: identity)
     assert receipts.replay_committed(path.parent, tmp_path) == []
     monkeypatch.setattr(cli, "ROOT", tmp_path)
     capsys.readouterr()
     assert cli.main(["replay", str(path)]) == 0
     output = json.loads(capsys.readouterr().out)
-    assert output["failures"] == [] and len(output["advisories"]) == 1
-    assert "evaluated by another revision of de4sdv/sysml_api/baseline.py" in output["advisories"][0]
+    assert output["failures"] == [] and output["advisories"] == [
+        f"{path}: evaluated by other code (changed: de4sdv/semantic/pleml_configuration.py); the evaluation and "
+        "the shadow reproduce, so the receipt holds"]
 
 
 def test_an_evaluation_change_fails_the_replay_until_a_refresh(tmp_path, monkeypatch):
