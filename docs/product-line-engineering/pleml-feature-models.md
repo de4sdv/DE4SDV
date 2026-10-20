@@ -258,11 +258,17 @@ authority job serializes the probes into the receipts like the invalid
 fixture. The YAML side of a probe is generated from the same frozen
 selection, with the probe's description, outside the repository.
 
-Each row compares the validity, the reason class, the derived variants, the
-normalised projection body of a valid row and, where the retained record
-holds the YAML-era verdict, admission. No invalid configuration may be
-admitted, on any row. The receipt must also restate the row's selection
-feature by feature, through the catalogue paths it records.
+Each row compares the validity, the reasons, the derived variants and the
+normalised projection body of a valid row. Two rejections need the same
+multiset of reasons: class, constraint ID and location, in count. A location
+is the group or feature of a bound, the pair of choices of a pair exclusion
+and the derived variation of a hand-picked variant. Where the retained record
+holds the YAML-era verdict, each row also compares admission. The
+not-expressible row compares the verdict of its remainder's record row
+(`standalone-member`): its own verdict counts the construct PLEML cannot
+state. No invalid configuration may be admitted, on any row. The receipt must
+also restate the row's selection feature by feature, through the catalogue
+paths it records.
 A row is `equal`, `both-reject`, `not-expressible` or `defect`.
 `not-expressible` is only a construct on the pinned list that is the sole
 YAML violation, with the remainder still compared. The list holds one

@@ -6,6 +6,7 @@ records.
 """
 from __future__ import annotations
 
+import dataclasses
 import json
 import shutil
 from pathlib import Path
@@ -82,6 +83,33 @@ def test_a_rejected_row_shares_its_reason_class(report) -> None:
         assert rows[row]["yaml"]["reasons"] == rows[row]["pleml"]["reasons"] == reasons, row
 
 
+#: Review round 1 of S4, R2: the reasons of each rejected row as a multiset, with count and location.
+LOCATED = {
+    "fixtures/invalid-score-android.yaml": ["constraint C001"],
+    "both-alternatives": ["upper-bound @PlatformStack.Hypervisor", "upper-bound @PlatformStack.Middleware",
+                          "upper-bound @PlatformStack.OS"],
+    "no-alternative": ["lower-bound @PlatformStack.Hypervisor", "lower-bound @PlatformStack.Middleware",
+                       "lower-bound @PlatformStack.OS"],
+    "unsupported-openpilot-android-sdv": [
+        "pair-exclusion @PlatformStack.Middleware.AndroidSDV, PlatformStack.VehicleApplication.Openpilot"],
+    "unsupported-openpilot-autosar-adaptive": [
+        "pair-exclusion @PlatformStack.Middleware.AUTOSARAdaptive, PlatformStack.VehicleApplication.Openpilot"],
+    "unsupported-apollo-android-sdv": [
+        "pair-exclusion @PlatformStack.Middleware.AndroidSDV, PlatformStack.VehicleApplication.Apollo"],
+    "unsupported-apollo-autosar-adaptive": [
+        "pair-exclusion @PlatformStack.Middleware.AUTOSARAdaptive, PlatformStack.VehicleApplication.Apollo"],
+    "hand-picked-adapter": ["derived-variant-not-selectable @applicationmiddlewareadapter"],
+}
+
+
+def test_a_rejected_row_shares_its_reasons_in_count_and_location(report) -> None:
+    rows = _rows(report)
+    assert set(LOCATED) == {row for row, item in rows.items() if item["class"] == "both-reject"}
+    for row, located in LOCATED.items():
+        assert rows[row]["yaml"]["located"] == rows[row]["pleml"]["located"] == located, row
+        assert rows[row]["yaml"]["violations"] == len(located), row
+
+
 def test_the_seven_projections_have_one_body_on_all_three_sides(report) -> None:
     """Plan section 5 (R19): the committed file, the YAML path and the receipt."""
     assert len(report["bodies"]) == 7
@@ -103,15 +131,31 @@ def test_the_not_expressible_row_compares_its_remainder(report) -> None:
     assert row["yaml"]["reasons"] == ["common-capability-false"] and row["yaml"]["violations"] == 1
     assert row["pleml"]["valid"] is True
     assert row["detail"] == "pinned construct common-capability-false"
-    # The remainder restates the standalone member's selection, whose retained admission it compares.
+    # Review round 1 of S4, R3: its own retained verdict counts the construct PLEML cannot state, so the
+    # remainder, the standalone member's selection, is compared with that row's verdict (N3).
     assert row["admission"]["compared"] is True and row["admission"]["retained"]["admitted"] is True
+    assert row["admission"]["retained_case"] == "standalone-member"
+    own = parity.load_record(ROOT)["ug-10-vehicle-target-aebs-false"]["admitted_by_governed_scope"]
+    assert own["admitted"] is False, "the row's own verdict, which the construct decides, is not the one compared"
+
+
+#: The retained row whose admission verdict each compared row is compared with (R3).
+RETAINED_CASES = {
+    "aebs-autoware-linux-lidar-camera.yaml": "standalone-member",
+    "middleware-autoware-aaos-sdv-reference.yaml": "aaos-integrated-member",
+    "example-linux-score-autoware.yaml": "ug-09-eclipse-score",
+    "apollo-qnx-qvm.yaml": "ug-09-apollo-qnx-qvm",
+    "fixtures/invalid-score-android.yaml": "both-axes-negative",
+    **{probe.row: probe.row for probe in parity.PROBE_ROWS if probe.kind == "frozen"},
+    "ug-10-vehicle-target-aebs-false": "standalone-member",
+}
 
 
 def test_admission_is_compared_wherever_the_retained_record_holds_a_verdict(report) -> None:
-    compared = {row["row"] for row in report["rows"] if row["admission"]["compared"]}
-    files = {"aebs-autoware-linux-lidar-camera.yaml", "apollo-qnx-qvm.yaml", "example-linux-score-autoware.yaml",
-             "middleware-autoware-aaos-sdv-reference.yaml", "fixtures/invalid-score-android.yaml"}
-    assert compared == files | {probe.row for probe in parity.PROBE_ROWS if probe.kind == "frozen"}
+    """14 rows against their own retained verdict, the not-expressible row against its remainder's (R3)."""
+    compared = {row["row"]: row["admission"]["retained_case"] for row in report["rows"] if row["admission"]["compared"]}
+    assert compared == RETAINED_CASES
+    assert sum(row == case for row, case in compared.items() if not row.endswith(".yaml")) == 9
     for row in report["rows"]:
         if row["admission"]["compared"]:
             assert row["admission"]["pleml"] == row["admission"]["retained"], row["row"]
@@ -264,6 +308,41 @@ def test_the_parity_refuses_an_invalid_configuration_that_is_admitted() -> None:
     assert parity.admission_problems(member, {"admitted": False, "alternative": None}) == [
         "admission {'admitted': True, 'alternative': 'standalone'} differs from the retained YAML-era verdict "
         "{'admitted': False, 'alternative': None}"]
+
+
+@pytest.fixture(scope="module")
+def committed(tmp_path_factory) -> tuple:
+    """The rows of the committed receipts, for driving one row's checks red through ``compare``."""
+    configurator = parity.pleml_shadow.load_configurator(ROOT)
+    record = parity.load_record(ROOT)
+    evaluated = parity.load_receipts(configurator, ROOT)
+    workspace = tmp_path_factory.mktemp("parity-rows")
+    return configurator, record, evaluated, workspace, {row.row: row for row in parity.rows(record, evaluated,
+                                                                                          workspace, ROOT)}
+
+
+def test_a_row_whose_configuration_projects_another_name_is_a_defect(committed) -> None:
+    """Review round 1 of S4, R4: the projection-name check of ``compare`` turns a row into a defect."""
+    configurator, record, evaluated, workspace, rows = committed
+    row = rows["hand-picked-adapter"]
+    assert parity.compare(row, evaluated[row.document], configurator, record, workspace, ROOT)["class"] == (
+        "both-reject")
+    renamed = dataclasses.replace(row, name="HandPickedAdapter")
+    result = parity.compare(renamed, evaluated[row.document], configurator, record, workspace, ROOT)
+    assert result["class"] == "defect"
+    assert result["detail"] == "the configuration projects HandPickedAdapterProbe, the row HandPickedAdapter"
+
+
+def test_a_row_whose_configuration_does_not_restate_its_selection_is_a_defect(committed) -> None:
+    """The restatement inside ``compare``, end to end: a frozen selection that drifts from its probe."""
+    configurator, record, evaluated, workspace, rows = committed
+    row = rows["ug-10-radar-only"]
+    drifted = dataclasses.replace(row, selections={**row.selections, "SensingBoundary.PerceptionSensors": ["LiDAR"]})
+    result = parity.compare(drifted, evaluated[row.document], configurator, record, workspace, ROOT)
+    assert result["class"] == "defect"
+    assert ("restatement: SensingBoundary.PerceptionSensors: the selection chooses "
+            "['SensingBoundary.PerceptionSensors.LiDAR'], the configuration "
+            "['SensingBoundary.PerceptionSensors.Radar']") in result["detail"]
 
 
 def _result(row: str, kind: str, cls: str, valid: bool = True) -> dict:

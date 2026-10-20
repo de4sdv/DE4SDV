@@ -1360,8 +1360,14 @@ class _Configuration:
         self.derived = model.derived_targets()
         self._read(identifier, None)
 
-    def reason(self, code: str, detail: str, **extra: Any) -> None:
-        self.reasons.append({"code": code, "class": REASON_CLASSES[code], "detail": detail, **extra})
+    def reason(self, code: str, detail: str, *, features: Iterable[str] = (), **extra: Any) -> None:
+        """Record a rejection with the tree features it applies to (their paths), as data beside its prose."""
+        self.reasons.append({"code": code, "class": REASON_CLASSES[code], "detail": detail,
+                             "features": sorted(features), **extra})
+
+    def _variations(self, elements: Iterable[str]) -> list[str]:
+        """The derived variations that ``elements`` (derived variations or their variants) belong to, by name."""
+        return sorted({str(self.graph.name(self.model.variation_of(item) or item)) for item in elements})
 
     def _read(self, owner: str, scope: str | None) -> None:
         """The members of the configuration (``scope`` None) or of the setting of tree feature ``scope``."""
@@ -1411,7 +1417,8 @@ class _Configuration:
             if not is_feature:
                 if references & self.derived:
                     self.reason("derived-variant-not-selectable", f"{graph.label(member)} chooses a derived variant; "
-                                "derived variants are never configured")
+                                "derived variants are never configured",
+                                variations=self._variations(references & self.derived))
                 else:
                     self.reason("not-a-feature", f"{graph.label(member)} is no feature: a feature configuration owns "
                                 "only features")
@@ -1428,7 +1435,8 @@ class _Configuration:
             expected_owner = model.tree if top else scope
             if feature not in model.features or model.features[feature].owner != expected_owner:
                 if feature in self.derived:
-                    self.reason("derived-variant-not-selectable", f"{graph.label(member)} redefines a derived variant")
+                    self.reason("derived-variant-not-selectable", f"{graph.label(member)} redefines a derived variant",
+                                variations=self._variations([feature]))
                 else:
                     self.reason("unknown-feature", f"{graph.label(member)} redefines {graph.label(feature)}, which is "
                                 "no feature of the tree at this place")
@@ -1488,11 +1496,11 @@ class _Configuration:
                 state = "enabled" if on else "disabled"
                 if on and not parent_on:
                     self.reason("orphan-selection", f"{feature.path} is selected, its owner "
-                                                    f"{model.path(feature.owner)} is not")
+                                                    f"{model.path(feature.owner)} is not", features=[feature.path])
                 elif not on and feature.multiplicity.lower >= 1 and parent_on:
-                    self.reason("lower-bound", f"mandatory {feature.path} is deselected")
+                    self.reason("lower-bound", f"mandatory {feature.path} is deselected", features=[feature.path])
                 if on and feature.multiplicity.upper == 0:
-                    self.reason("upper-bound", f"{feature.path} admits no selection")
+                    self.reason("upper-bound", f"{feature.path} admits no selection", features=[feature.path])
             elif not parent_on:
                 on, state = False, "absent"
             elif feature.multiplicity.lower >= 1:
@@ -1513,14 +1521,17 @@ class _Configuration:
                                       f" but selects {sorted(str(model.path(item)) for item in members)}")
             if feature.identifier not in selected:
                 if members:
-                    self.reason("upper-bound", f"group {feature.path} is not selected but selects members")
+                    self.reason("upper-bound", f"group {feature.path} is not selected but selects members",
+                                features=[feature.path])
                 continue
             for bound in [feature.multiplicity] + ([setting.multiplicity] if setting else []):
                 if len(members) < bound.lower:
-                    self.reason("lower-bound", f"group {feature.path} selects {len(members)} of {bound.text()}")
+                    self.reason("lower-bound", f"group {feature.path} selects {len(members)} of {bound.text()}",
+                                features=[feature.path])
                     break
                 if bound.upper is not None and len(members) > bound.upper:
-                    self.reason("upper-bound", f"group {feature.path} selects {len(members)} of {bound.text()}")
+                    self.reason("upper-bound", f"group {feature.path} selects {len(members)} of {bound.text()}",
+                                features=[feature.path])
                     break
 
         # PLEML's nodeFeaturesAreSet compares the binding time of each suboccurrence of the configuration,
@@ -1528,22 +1539,28 @@ class _Configuration:
         for feature in model.features.values():
             if feature.identifier in selected and LIFE_CYCLE[feature.binding_time] > LIFE_CYCLE["Development"]:
                 self.reason("binding-time", f"{feature.path} binds at {feature.binding_time}, later than the "
-                                            "Development configuration")
+                                            "Development configuration", features=[feature.path])
 
         for constraint in model.constraints:
             label = {"constraint": constraint.short_name, "kind": constraint.kind}
             operand_b = set(constraint.operand_b)
             if constraint.kind == "requires" and constraint.owner in selected and not operand_b <= selected:
                 self.reason("constraint", f"{model.path(constraint.owner)} requires "
-                            f"{sorted(str(model.path(item)) for item in operand_b - selected)}", **label)
+                            f"{sorted(str(model.path(item)) for item in operand_b - selected)}",
+                            features=[str(model.path(item)) for item in {constraint.owner} | (operand_b - selected)],
+                            **label)
             elif constraint.kind == "xor" and constraint.owner in selected and operand_b & selected:
                 code = "pair-exclusion" if constraint.pair_exclusion else "constraint"
                 self.reason(code, f"{model.path(constraint.owner)} excludes "
-                            f"{sorted(str(model.path(item)) for item in operand_b & selected)}", **label)
+                            f"{sorted(str(model.path(item)) for item in operand_b & selected)}",
+                            features=[str(model.path(item)) for item in {constraint.owner} | (operand_b & selected)],
+                            **label)
             elif (constraint.kind == "implies" and set(constraint.operand_a) <= selected
                   and not operand_b <= selected):
                 self.reason("constraint", f"{sorted(str(model.path(item)) for item in constraint.operand_a)} implies "
-                            f"{sorted(str(model.path(item)) for item in operand_b - selected)}", **label)
+                            f"{sorted(str(model.path(item)) for item in operand_b - selected)}",
+                            features=[str(model.path(item))
+                                      for item in set(constraint.operand_a) | (operand_b - selected)], **label)
 
         if model.errors:
             self.reason("model-integrity", f"the feature model fails {len(model.errors)} integrity checks")
@@ -1557,10 +1574,11 @@ class _Configuration:
             for derivation in model.derivations:
                 matches = [rule for rule in derivation.rules if set(rule["premises"]) <= selected]
                 if not matches:
-                    self.reason("derivation-no-rule", f"{derivation.label} has no rule for the selected features")
+                    self.reason("derivation-no-rule", f"{derivation.label} has no rule for the selected features",
+                                derivation=derivation.label)
                 elif len(matches) > 1:
                     self.reason("derivation-ambiguous", f"{derivation.label} has {len(matches)} matching rules: "
-                                f"{sorted(rule['rule'] for rule in matches)}")
+                                f"{sorted(rule['rule'] for rule in matches)}", derivation=derivation.label)
                 else:
                     derived_variants.append({"variation": graph.name(derivation.variation),
                                              "variant": graph.name(matches[0]["result"]),

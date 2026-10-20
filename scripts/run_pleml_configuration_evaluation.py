@@ -76,10 +76,13 @@ _YAML_CLASSES: tuple[tuple[str, str], ...] = (
 )
 
 
-def yaml_reason_keys(messages: Sequence[str], selections: Mapping[str, Any],
-                     catalogue: Catalogue) -> tuple[set[tuple[str, str | None]], int]:
-    """(reason keys, counted violations) of one configurator run, comparable with ``reason_keys``.
+def yaml_reasons(messages: Sequence[str], selections: Mapping[str, Any],
+                 catalogue: Catalogue) -> list[dict[str, Any]]:
+    """Each counted rejection of one configurator run: its parity class, constraint ID and location.
 
+    The location is what the message names: the catalogue path of a group or
+    feature, the choices of a pair without a rule, or the derived variation
+    of a hand-picked variant, in lower case. A constraint is located by its ID.
     A ``no rule matching`` whose source selection is not one valid choice is
     a consequence of a structural error and is dropped, as the evaluator
     derives nothing for an invalid configuration. An unknown path naming a
@@ -88,37 +91,46 @@ def yaml_reason_keys(messages: Sequence[str], selections: Mapping[str, Any],
     """
     derived_targets = {str(item.get("maps_to", "")).rsplit(".", 1)[-1].lower(): item
                        for item in catalogue.data.get("derived_asset_selections") or []}
-    keys: set[tuple[str, str | None]] = set()
-    counted = 0
+    found: list[dict[str, Any]] = []
     for message in messages:
         for pattern, reason in _YAML_CLASSES:
             match = re.search(pattern, message)
             if not match:
                 continue
             groups = match.groupdict()
+            path = groups.get("path")
             if reason == "constraint":
-                keys.add((reason, groups["id"]))
+                found.append({"class": reason, "constraint": groups["id"], "location": None})
             elif reason == "pair-exclusion":
                 declaration = next((item for item in derived_targets.values() if item.get("id") == groups["id"]), {})
                 sources = declaration.get("source_selections") or []
-                if all(isinstance(selections.get(path), str) and catalogue.child(path, selections[path])
-                       for path in sources):
-                    keys.add((reason, None))
-                else:
+                if not all(isinstance(selections.get(source), str) and catalogue.child(source, selections[source])
+                           for source in sources):
                     break  # consequential: the structural error is already counted
-            elif reason == "unknown-feature" and groups.get("path", "").rsplit(".", 1)[-1].lower() in derived_targets:
-                keys.add(("derived-variant-not-selectable", None))
+                found.append({"class": reason, "constraint": None,
+                              "location": sorted(f"{source}.{selections[source]}" for source in sources)})
+            elif reason == "unknown-feature" and (path or "").rsplit(".", 1)[-1].lower() in derived_targets:
+                found.append({"class": "derived-variant-not-selectable", "constraint": None,
+                              "location": [str(path).rsplit(".", 1)[-1].lower()]})
             elif reason == "lower-bound" and message.startswith("Mandatory feature not selected"):
-                node = catalogue.nodes.get(groups["path"])
-                keys.add(("common-capability-false" if node and str(node.feature_id).startswith("C-")
-                          else "lower-bound", None))
+                node = catalogue.nodes.get(str(path))
+                common = bool(node and str(node.feature_id).startswith("C-"))
+                found.append({"class": "common-capability-false" if common else "lower-bound", "constraint": None,
+                              "location": [path]})
             else:
-                keys.add((reason, None))
-            counted += 1
+                found.append({"class": reason, "constraint": None,
+                              "location": [path] if reason in {"lower-bound", "upper-bound"} and path else None})
             break
         else:
             raise ValueError(f"unclassified configurator message: {message}")
-    return keys, counted
+    return found
+
+
+def yaml_reason_keys(messages: Sequence[str], selections: Mapping[str, Any],
+                     catalogue: Catalogue) -> tuple[set[tuple[str, str | None]], int]:
+    """(reason keys, counted violations) of one configurator run, comparable with ``reason_keys``."""
+    reasons = yaml_reasons(messages, selections, catalogue)
+    return {(item["class"], item["constraint"]) for item in reasons}, len(reasons)
 
 
 # -- the entry point of the licensed authority job ----------------------------------------------

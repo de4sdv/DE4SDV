@@ -20,14 +20,18 @@ fixture. Its YAML side is generated from the same frozen selection in a
 temporary directory and never committed; it takes its description from the
 probe, so that a valid row's bodies can be compared.
 
-Each row compares validity, the reason classes (R11), the derived variants,
-the normalised projection body of a valid row (R19), and admission where the
-retained record holds the YAML-era verdict. No invalid configuration may be
+Each row compares validity, the reasons (R11), the derived variants, the
+normalised projection body of a valid row (R19), and admission where the
+retained record holds the YAML-era verdict. Two rejections need the same
+multiset of (class, constraint, location) reasons, in count: a bound is
+located by its group or feature, a pair exclusion by its pair of choices and a
+hand-picked variant by its derived variation. No invalid configuration may be
 admitted, on any row: admission requires validity. The receipt must restate
 the row's selection, feature by feature through the catalogue paths it
 records.
 ``not-expressible`` needs a construct on the pinned list as the sole YAML
-violation, and the remainder is still compared (N3). Every run asserts the
+violation, and the remainder is still compared (N3), its admission with the
+verdict of the retained row that states the remainder. Every run asserts the
 plan's histogram: 16 ``equal``, 8 ``both-reject``, 1 ``not-expressible`` and
 0 ``defect``. Each of the seven committed projections must have one
 normalised body on all three sides: the committed file, the YAML path and the
@@ -62,7 +66,7 @@ sys.dont_write_bytecode = True
 
 from de4sdv.semantic import pleml_receipts as receipts  # noqa: E402
 from de4sdv.semantic import pleml_shadow  # noqa: E402
-from scripts.run_pleml_configuration_evaluation import yaml_reason_keys  # noqa: E402
+from scripts.run_pleml_configuration_evaluation import yaml_reason_keys, yaml_reasons  # noqa: E402
 
 SCHEMA = "de4sdv.pleml-parity/v1"
 PLE = Path("model-based-product-line-engineering")
@@ -228,15 +232,39 @@ def yaml_outcome(bill: Path, selections: Mapping[str, Any], evaluated: Evaluated
         raise ParityRefused(f"{label}: the configurator refused the input (exit {result.returncode}): "
                             f"{result.stderr.strip()[-400:]}")
     messages = [match.group(1).strip() for match in map(_BULLET.match, result.stderr.splitlines()) if match]
+    catalogue = pleml_shadow.Catalogue(root / evaluated.catalogue, root)
     try:
-        keys, counted = yaml_reason_keys(messages, selections,
-                                         pleml_shadow.Catalogue(root / evaluated.catalogue, root))
+        keys, counted = yaml_reason_keys(messages, selections, catalogue)
+        located = yaml_reasons(messages, selections, catalogue)
     except ValueError as exc:
         raise ParityRefused(f"{label}: {exc}; the reason map of the parity needs it (R11)") from exc
     text = output.read_text(encoding="utf-8") if result.returncode == 0 else None
     return {"valid": result.returncode == 0, "keys": keys, "violations": counted,
+            "reasons": [(item["class"], item["constraint"], tuple(item["location"]) if item["location"] else None)
+                        for item in located],
             "derived_variants": dict(_VARIANT.findall(text or "")),
             "body": receipts.normalised_body(text) if text is not None else None, "messages": messages}
+
+
+#: The classes whose reasons are compared by location: a bound by its group or feature, a pair exclusion by its
+#: pair of choices (catalogue paths, until S7) and a hand-picked variant by its derived variation. A constraint
+#: is located by its ID; the other classes are compared by class.
+LOCATED_BY_FEATURES = {"lower-bound", "upper-bound", "pair-exclusion"}
+
+
+def pleml_reasons(configuration: Mapping[str, Any], paths: Mapping[str, str | None]) -> list[tuple[Any, ...]]:
+    """The receipt's reasons of a configuration as (class, constraint, location), comparable with the YAML's."""
+    found = []
+    for reason in configuration["reasons"]:
+        kind = reason["class"]
+        location = None
+        if kind in LOCATED_BY_FEATURES:
+            location = tuple(sorted(paths.get(feature) or f"{feature} (no catalogue path)"
+                                    for feature in reason.get("features") or []))
+        elif kind == "derived-variant-not-selectable":
+            location = tuple(sorted(name.lower() for name in reason.get("variations") or []))
+        found.append((kind, reason.get("constraint") if kind == "constraint" else None, location))
+    return found
 
 
 def pleml_outcome(evaluated: Evaluated, configurator: Any, root: Path = ROOT) -> dict[str, Any]:
@@ -248,6 +276,7 @@ def pleml_outcome(evaluated: Evaluated, configurator: Any, root: Path = ROOT) ->
             evaluated.receipt_path, evaluated.receipt, evaluated.model, configuration, evaluated.writer,
             evaluated.shared_assets, root)))
     return {"valid": configuration["valid"], "keys": receipts.reason_keys(configuration),
+            "reasons": pleml_reasons(configuration, evaluated.writer["catalogue_paths"]),
             "derived_variants": {item["variation"]: item["variant"] for item in configuration["derived_variants"]},
             "rules": {item["variation"]: item["rule"] for item in configuration["derived_variants"] if "rule" in item},
             "body": body}
@@ -359,6 +388,8 @@ class Row:
     name: str
     document: str
     expected_admission: dict[str, Any] | None
+    #: The case of the retained record row whose admission verdict the row is compared with.
+    admission_case: str | None = None
 
 
 def rows(record: Mapping[str, Mapping[str, Any]], evaluated: Mapping[str, Evaluated], workspace: Path,
@@ -370,8 +401,10 @@ def rows(record: Mapping[str, Mapping[str, Any]], evaluated: Mapping[str, Evalua
     for bill in sorted((root / CONFIGURATIONS).rglob("*.yaml")):
         relative = bill.relative_to(root)
         data = pleml_shadow.load_configurator(root).load_yaml_unique(bill.read_text(encoding="utf-8"))
+        retained = by_path.get(relative.as_posix())
         result.append(Row(relative.relative_to(CONFIGURATIONS).as_posix(), "file", bill, dict(data["selections"]),
-                          data["name"], configuration_of(relative), _admission(by_path.get(relative.as_posix()))))
+                          data["name"], configuration_of(relative), _admission(retained),
+                          retained["case"] if retained else None))
     template = record[TEMPLATE]["operational_input"]["selections"]
     for probe in PROBE_ROWS:
         evaluated_probe = evaluated.get(probe.document)
@@ -381,13 +414,13 @@ def rows(record: Mapping[str, Mapping[str, Any]], evaluated: Mapping[str, Evalua
             source = record[probe.row]
             if source["operational_input"]["name"] != probe.name:
                 raise ParityRefused(f"{probe.row}: the retained record names it {source['operational_input']['name']}")
-            selections, expected = dict(source["operational_input"]["selections"]), _admission(source)
+            selections, expected, case = dict(source["operational_input"]["selections"]), _admission(source), probe.row
         else:
-            selections, expected = {**template, **dict(probe.overrides)}, None
+            selections, expected, case = {**template, **dict(probe.overrides)}, None, None
         bill = workspace / f"{probe.stem}.yaml"
         bill.write_text(yaml.safe_dump({"name": probe.name, "description": evaluated_probe.writer["description"],
                                         "selections": selections}, sort_keys=False), encoding="utf-8")
-        result.append(Row(probe.row, probe.kind, bill, selections, probe.name, probe.document, expected))
+        result.append(Row(probe.row, probe.kind, bill, selections, probe.name, probe.document, expected, case))
     return result
 
 
@@ -398,7 +431,7 @@ def compare(row: Row, evaluated: Evaluated, configurator: Any, record: Mapping[s
     yaml_side = yaml_outcome(row.bill, row.selections, evaluated, workspace, label, root)
     pleml_side = pleml_outcome(evaluated, configurator, root)
     yaml_remainder = None
-    expected_admission = row.expected_admission
+    expected_admission, admission_case = row.expected_admission, row.admission_case
     if any(item["row"] == row.row for item in receipts.NOT_EXPRESSIBLE):
         catalogue = pleml_shadow.Catalogue(root / evaluated.catalogue, root)
         kept, dropped = remainder(row.selections, catalogue)
@@ -406,8 +439,11 @@ def compare(row: Row, evaluated: Evaluated, configurator: Any, record: Mapping[s
         bill.write_text(yaml.safe_dump({"name": row.name, "description": evaluated.writer["description"],
                                         "selections": kept}, sort_keys=False), encoding="utf-8")
         yaml_remainder = yaml_outcome(bill, kept, evaluated, workspace, f"{label}-remainder", root)
+        # The row's own retained verdict counts the construct PLEML cannot state; its remainder is compared
+        # with the verdict of the retained row that states the remainder's selection (N3).
         restored = {**kept, **{key: True for key in dropped}}
-        expected_admission = _admission(_record_row_with(record, restored))
+        retained = _record_row_with(record, restored)
+        expected_admission, admission_case = _admission(retained), retained["case"] if retained else None
     result = receipts.classify_row(row.row, yaml_side, pleml_side, yaml_remainder=yaml_remainder)
     problems = [] if result["class"] != "defect" else [result["detail"]]
     if evaluated.configuration["projection_name"] != row.name:
@@ -420,10 +456,12 @@ def compare(row: Row, evaluated: Evaluated, configurator: Any, record: Mapping[s
         "detail": "; ".join(problems) if problems else result["detail"],
         "configuration": row.document,
         "yaml": {"valid": yaml_side["valid"], "reasons": sorted(_key(key) for key in yaml_side["keys"]),
-                 "violations": yaml_side["violations"], "derived_variants": yaml_side["derived_variants"]},
+                 "located": sorted(map(_located, yaml_side["reasons"])), "violations": yaml_side["violations"],
+                 "derived_variants": yaml_side["derived_variants"]},
         "pleml": {"valid": pleml_side["valid"], "reasons": sorted(_key(key) for key in pleml_side["keys"]),
+                  "located": sorted(map(_located, pleml_side["reasons"])),
                   "derived_variants": pleml_side["derived_variants"], "rules": pleml_side["rules"]},
-        "admission": {"pleml": admission, "retained": expected_admission,
+        "admission": {"pleml": admission, "retained": expected_admission, "retained_case": admission_case,
                       "compared": expected_admission is not None},
         "bodies": {"yaml": yaml_side["body"], "pleml": pleml_side["body"]},
     }
@@ -431,6 +469,11 @@ def compare(row: Row, evaluated: Evaluated, configurator: Any, record: Mapping[s
 
 def _key(key: tuple[str, str | None]) -> str:
     return key[0] if key[1] is None else f"{key[0]} {key[1]}"
+
+
+def _located(reason: tuple[Any, ...]) -> str:
+    kind, constraint, location = reason
+    return " ".join([kind] + ([constraint] if constraint else []) + ([f"@{', '.join(location)}"] if location else []))
 
 
 def projection_bodies(results: Iterable[Mapping[str, Any]], root: Path = ROOT) -> list[dict[str, Any]]:

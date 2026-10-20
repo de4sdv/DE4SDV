@@ -840,6 +840,10 @@
                 "code": "constraint",
                 "constraint": "C001",
                 "detail": "platformStack.eclipseSCORE excludes ['platformStack.android']",
+                "features": [
+                  "platformStack.android",
+                  "platformStack.eclipseSCORE"
+                ],
                 "kind": "xor"
               }
             ],
@@ -1127,6 +1131,10 @@
                 "code": "pair-exclusion",
                 "constraint": null,
                 "detail": "platformStack.apollo excludes ['platformStack.androidSDV']",
+                "features": [
+                  "platformStack.androidSDV",
+                  "platformStack.apollo"
+                ],
                 "kind": "xor"
               }
             ],
@@ -1259,6 +1267,10 @@
                 "code": "pair-exclusion",
                 "constraint": null,
                 "detail": "platformStack.apollo excludes ['platformStack.autosarAdaptive']",
+                "features": [
+                  "platformStack.apollo",
+                  "platformStack.autosarAdaptive"
+                ],
                 "kind": "xor"
               }
             ],
@@ -1697,17 +1709,26 @@
               {
                 "class": "upper-bound",
                 "code": "upper-bound",
-                "detail": "group platformStack.hypervisor selects 2 of [1..1]"
+                "detail": "group platformStack.hypervisor selects 2 of [1..1]",
+                "features": [
+                  "platformStack.hypervisor"
+                ]
               },
               {
                 "class": "upper-bound",
                 "code": "upper-bound",
-                "detail": "group platformStack.middleware selects 2 of [1..1]"
+                "detail": "group platformStack.middleware selects 2 of [1..1]",
+                "features": [
+                  "platformStack.middleware"
+                ]
               },
               {
                 "class": "upper-bound",
                 "code": "upper-bound",
-                "detail": "group platformStack.operatingSystem selects 2 of [1..1]"
+                "detail": "group platformStack.operatingSystem selects 2 of [1..1]",
+                "features": [
+                  "platformStack.operatingSystem"
+                ]
               }
             ],
             "selected": [
@@ -1989,7 +2010,11 @@
               {
                 "class": "derived-variant-not-selectable",
                 "code": "derived-variant-not-selectable",
-                "detail": "adapter chooses a derived variant; derived variants are never configured"
+                "detail": "adapter chooses a derived variant; derived variants are never configured",
+                "features": [],
+                "variations": [
+                  "applicationMiddlewareAdapter"
+                ]
               }
             ],
             "selected": [
@@ -2420,17 +2445,26 @@
               {
                 "class": "lower-bound",
                 "code": "lower-bound",
-                "detail": "group platformStack.hypervisor selects 0 of [1..1]"
+                "detail": "group platformStack.hypervisor selects 0 of [1..1]",
+                "features": [
+                  "platformStack.hypervisor"
+                ]
               },
               {
                 "class": "lower-bound",
                 "code": "lower-bound",
-                "detail": "group platformStack.middleware selects 0 of [1..1]"
+                "detail": "group platformStack.middleware selects 0 of [1..1]",
+                "features": [
+                  "platformStack.middleware"
+                ]
               },
               {
                 "class": "lower-bound",
                 "code": "lower-bound",
-                "detail": "group platformStack.operatingSystem selects 0 of [1..1]"
+                "detail": "group platformStack.operatingSystem selects 0 of [1..1]",
+                "features": [
+                  "platformStack.operatingSystem"
+                ]
               }
             ],
             "selected": [
@@ -2562,6 +2596,10 @@
                 "code": "pair-exclusion",
                 "constraint": null,
                 "detail": "platformStack.openpilot excludes ['platformStack.androidSDV']",
+                "features": [
+                  "platformStack.androidSDV",
+                  "platformStack.openpilot"
+                ],
                 "kind": "xor"
               }
             ],
@@ -2694,6 +2732,10 @@
                 "code": "pair-exclusion",
                 "constraint": null,
                 "detail": "platformStack.openpilot excludes ['platformStack.autosarAdaptive']",
+                "features": [
+                  "platformStack.autosarAdaptive",
+                  "platformStack.openpilot"
+                ],
                 "kind": "xor"
               }
             ],
@@ -4385,15 +4427,15 @@
   },
   "evaluator": {
     "modules": {
-      "de4sdv/semantic/pleml_configuration.py": "54f44dbaae37697ce58c0361a3faf63732eeb7d5bdf6815687f7fa65c738ebce",
+      "de4sdv/semantic/pleml_configuration.py": "21dd4fae68c096850d34df16da62f0298749f3a690cd61e787e2350d63b01b62",
       "de4sdv/semantic/pleml_package.py": "da17a6aae4c8f2b8f0159dadbd5d88619c11633823d65a237f3b90e36c2b7b95",
-      "de4sdv/semantic/pleml_receipts.py": "739681a02a5b9308e5ba0f54a6e4d6f05e1164b972fed4336979b9d2b377f77a",
+      "de4sdv/semantic/pleml_receipts.py": "12ed0ea44ed890cb617114bc857b6ca545ad830a75fa9bc0870b19964ca9bd28",
       "de4sdv/semantic/pleml_shadow.py": "f42bbbdf054f71908ba20ec55e3c4cac978a0826fa896373f803b283840ecaff",
-      "scripts/run_pleml_configuration_evaluation.py": "88dae6636f9d263078d3c52bae04b969d7416acafd9d4a482816bbeb4bc38893",
+      "scripts/run_pleml_configuration_evaluation.py": "caedab3a5e3ff25d259a267ac76142567b371d244e450f563c149c1beffd4a67",
       "tools/configure_variant.py": "8a15e436cdf376ab03c6cf0e584e06ca90a18626fca193c4dcc87079b595f8c4"
     },
-    "refreshed_from": "b63d374857b3fb6f2547306d93bb2fcb7f8d270a18fe1f3f96bbfa4fc8ee5513",
-    "sha256": "f99574ec400010ce8e6f7137be48f855743afe6b3fd1788cce2b193660849074"
+    "refreshed_from": "f99574ec400010ce8e6f7137be48f855743afe6b3fd1788cce2b193660849074",
+    "sha256": "7038b001e40e5b33bb9b592187be3461b5c8197e3088692b89c6b3f403c188da"
   },
   "feature_models": [
     "SDVProductLineFeatureModel"

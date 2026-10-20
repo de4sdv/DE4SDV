@@ -844,6 +844,34 @@ def test_common_content_must_be_represented():
         "does not represent the common content: currentSensingBaseline (missing sensingBoundary.camera)"]
 
 
+def test_a_rejection_records_where_it_applies():
+    """Review round 1 of S4, R2: a reason records the features it applies to, or the derived variation it
+    chooses, as data and not only in its prose, so the parity compares reasons with their locations."""
+    line = PlatformLine()
+    line.configure("both", "autoware", ["androidSDV", "noMiddleware"], ["android", "linux"], ["kvm", "noHypervisor"])
+    line.configure("noMode", "autoware", [], [], [])
+    line.configure("pair", "openpilot", "androidSDV", "linux", "noHypervisor")
+    line.configure("fixture", "autoware", "eclipseSCORE", "android", "noHypervisor")
+    hand_picked = line.configure("handPicked", "autoware", "noMiddleware", "linux", "noHypervisor")
+    adapter = line.graph.own(hand_picked, "FeatureMembership", "ReferenceUsage", member_name="adapter",
+                             declaredName="adapter")
+    line.graph.reference_value(adapter, [line.variations["applicationMiddlewareAdapter"]["none"]])
+    (model,) = line.graph.evaluate()["feature_models"]
+    decided = {item["configuration"]: item["reasons"] for item in model["configurations"]}
+    assert [(reason["class"], reason["features"]) for reason in decided["both"]] == [
+        ("upper-bound", ["platformStack.hypervisor"]), ("upper-bound", ["platformStack.middleware"]),
+        ("upper-bound", ["platformStack.os"])]
+    assert [(reason["class"], reason["features"]) for reason in decided["noMode"]] == [
+        ("lower-bound", ["platformStack.hypervisor"]), ("lower-bound", ["platformStack.middleware"]),
+        ("lower-bound", ["platformStack.os"])]
+    assert [(reason["class"], reason["features"]) for reason in decided["pair"]] == [
+        ("pair-exclusion", ["platformStack.androidSDV", "platformStack.openpilot"])]
+    assert [(reason["class"], reason["constraint"], reason["features"]) for reason in decided["fixture"]] == [
+        ("constraint", "C001", ["platformStack.android", "platformStack.eclipseSCORE"])]
+    assert [(reason["class"], reason["variations"]) for reason in decided["handPicked"]] == [
+        ("derived-variant-not-selectable", ["applicationMiddlewareAdapter"])]
+
+
 def test_admission_requires_validity():
     """An invalid configuration is never admitted, even where its features would realize a member.
 
