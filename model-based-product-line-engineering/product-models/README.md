@@ -17,6 +17,18 @@ validation path.
 Each generated file records content hashes for its shared asset, catalogue, and
 BoF. Regeneration must reproduce committed bytes.
 
+## Receipt mode
+
+The configurator also generates a projection from a committed PLEML receipt
+([ADR 0022](../../docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md)),
+with the same writer:
+`python tools/configure_variant.py --receipt <receipt> --configuration <name>`.
+It replays the receipt first and refuses one that does not hold. Its header
+names the receipt and the configuration instead of the BoF. Until the switch
+(step S6) the committed projections stay those of the YAML path, and the
+parity check (`scripts/check_pleml_parity.py`) requires the receipt's
+projection of each to have the same normalised body.
+
 ## Validation boundary
 
 The configurator validates BoF structure, evidence metadata, compatibility
