@@ -13,14 +13,15 @@ compliance claim; every record says `qualified: false`.
 
 | Family | Feature model | Configurations |
 |---|---|---|
-| SDV product line | [`sdv_product_line.sysml`](../../model-based-product-line-engineering/feature-models/sdv_product_line.sysml) | the four SDV Bills-of-Features, plus the invalid fixture under `fixtures/` |
+| SDV product line | [`sdv_product_line.sysml`](../../model-based-product-line-engineering/feature-models/sdv_product_line.sysml) | the four SDV Bills-of-Features, plus the invalid fixture and the 17 parity probes under `fixtures/` |
 | Engineering execution environments (System 2) | [`engineering_execution_environments.sysml`](../../model-based-product-line-engineering/feature-models/engineering_execution_environments.sysml) | `inc_aebs_009a_jetson.sysml`, `apple_silicon_macos_candidate.sysml` |
 | Vehicle-target execution environments (System 1) | [`vehicle_execution_environments.sysml`](../../model-based-product-line-engineering/feature-models/vehicle_execution_environments.sysml) | `nxp_zephyr_vehicle_target_candidate.sysml` |
 
 Each feature model is a `#featureModel` definition whose feature tree is a
 `#featureTree` definition. Each configuration is a `#featureConfiguration`
 typed by that tree, in its own file with the stem of its Bill-of-Features in
-snake case, so the fixture can stay outside the authority roots.
+snake case, so the fixture can stay outside the authority roots. The parity
+probes have no Bill-of-Features (see [Parity](#parity-with-the-yaml-path)).
 
 How the catalogue is restated:
 
@@ -138,8 +139,8 @@ distinctions.
 The files are outside every production selector: not in the reviewed export
 roots or the pinned dependencies, not a validation root, not a viewer root,
 not served and not in the method check. No production workflow triggers on
-them. Only the feature models, their configurations and the fixture import
-PLEML.
+them. Only the feature models, their configurations, the fixture and the
+parity probes import PLEML.
 
 ## The authority job
 
@@ -153,7 +154,7 @@ dispatch. On the exact head it:
    ([`libraries/pleml/`](../../model-based-product-line-engineering/libraries/pleml/README.md))
    and byte-checks it against the committed record of its release tag before
    any step reads it;
-2. runs the unlicensed checks;
+2. runs the unlicensed model, runner and workflow tests;
 3. validates the reviewed roots, the pinned library and the PLEML files with
    the licensed `syside check`;
 4. serializes them once with the production export options
@@ -173,7 +174,11 @@ dispatch. On the exact head it:
    re-evaluates them from those elements and requires the evaluation and the
    shadow checks to reproduce byte for byte, which catches an edited verdict
    over genuine elements. A code-identity difference is recorded as an
-   advisory, not a failure.
+   advisory, not a failure;
+8. runs the receipt test on the exact head. It runs after the runner, never
+   before the serialization: a document change leaves the committed receipts
+   stale until the fresh receipts of a run are committed, so the test must
+   not stop the run that writes them.
 
 The library document of the bundle is labelled by its repository path,
 `LIBRARY_PATH` of `de4sdv/semantic/pleml_package.py`.
@@ -230,6 +235,45 @@ their offline replay).
 They read the model text: the closed-world and admission checks evaluate the
 stated semantics on it, and the other checks pin its shape. Licensed
 validation is the validator, and the evaluator owns the semantics.
+
+## Parity with the YAML path
+
+From step S4 on, [`check_pleml_parity.py`](../../scripts/check_pleml_parity.py)
+gates every step until the YAML retires at S7. The required public CI runs it
+on the committed receipts and the YAML catalogues, without a licence. It
+compares the two paths on the 25 rows of the plan:
+
+- the 8 files of `feature-configurations/` with their PLEML configurations;
+- the 10 probes of the retained PLE-S comparison, whose selections and names
+  it freezes from `comparison.json`, pinned by digest;
+- 7 closed-world probes: the four unsupported application-middleware pairs,
+  one hand-picked adapter, and the two allowed pairs that no other row
+  exercises, Openpilot with Eclipse S-CORE and Apollo without middleware.
+
+A probe is a PLEML configuration in `fixtures/parity-probes/`, outside the
+authority roots. A new configuration needs licensed serialization, so the
+authority job serializes the probes into the receipts like the invalid
+fixture. The YAML side of a probe is generated from the same frozen
+selection, with the probe's description, outside the repository.
+
+Each row compares the validity, the reason class, the derived variants, the
+normalised projection body of a valid row and, where the retained record
+holds the YAML-era verdict, admission. The receipt must also restate the
+row's selection feature by feature, through the catalogue paths it records.
+A row is `equal`, `both-reject`, `not-expressible` or `defect`.
+`not-expressible` is only a construct on the pinned list that is the sole
+YAML violation, with the remainder still compared. The list holds one
+construct: the common vehicle-target AEBS capability switched off, in row
+`ug-10-vehicle-target-aebs-false`. Every run requires the histogram of the
+plan, 16 `equal`, 8 `both-reject`, 1 `not-expressible` and 0 `defect`.
+
+The configurator reads the receipts with its existing writer:
+`python tools/configure_variant.py --receipt <receipt> --configuration <name>`
+replays the receipt and generates the projection of one valid configuration.
+The parity requires each of the seven committed projections to have one
+normalised body on all three sides: the committed file, the YAML path and the
+receipt. Until the switch, the committed projections stay those of the YAML
+path.
 
 ## Evidence records
 
