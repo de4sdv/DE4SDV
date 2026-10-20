@@ -498,6 +498,8 @@ _R003_MODEL_ROOTS = (
     ROOT / "textual-notation-of-model/packages",
     ROOT / "model-based-product-line-engineering/product-models",
     ROOT / "model-based-product-line-engineering/scoping",
+    ROOT / "model-based-product-line-engineering/feature-models",
+    ROOT / "model-based-product-line-engineering/feature-configurations",
 )
 
 # Matches ``<kind> def <Name> :> Parent1, Parent2 {`` — the specialization

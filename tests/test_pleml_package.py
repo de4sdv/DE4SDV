@@ -1,11 +1,14 @@
-"""The fenced PLEML package: exact pin, byte check against the release tag, release diff.
+"""The pinned PLEML package: exact pin, byte check against the release tag, release diff.
 
-PLEML reaches the repository only through the fenced Sysand project. These tests
-pin the committed record against the committed project and lock, prove the
-fence (no production selector, export root, pinned dependency or production
-trigger reads the project), and exercise the byte check and the release diff
-on synthetic packages. Upstream bytes are never committed: the one check of the
-real package runs where Sysand has installed it (the public CI syncs it first).
+PLEML reaches the repository only through Sysand. Since the authority switch
+(ADR 0022, step S6) the production lock pins it, as ADR 0007 pins SYSMOD, and
+the API baseline reads the installed library as a pinned dependency. These
+tests pin the committed record against the committed project and lock, prove
+the production surface (one PLEML pin of the API baseline, read through the
+production lock and nowhere else, byte-checked before the reading workflows
+read it) and exercise the byte check and the release diff on synthetic
+packages. Upstream bytes are never committed: the one check of the real
+package runs where Sysand has installed it (the public CI syncs it first).
 """
 
 from __future__ import annotations
@@ -29,9 +32,9 @@ from tools.sysml_html_viewer.generate import DEFAULT_ROOTS
 ROOT = Path(__file__).resolve().parents[1]
 PROJECT = package.PROJECT
 WORKFLOWS = ROOT / ".github/workflows"
-#: The privileged workflows that sync and byte-check the fenced package before they read it.
-FENCED_WORKFLOWS = ("privileged-ple-qualification.yml", "privileged-ple-authority.yml")
-#: Production workflows: none of them may install, read or trigger on the fenced package.
+#: The privileged PLE workflows that byte-check the package, and record the check, before they read it.
+PLE_WORKFLOWS = ("privileged-ple-qualification.yml", "privileged-ple-authority.yml")
+#: Production workflows: since the switch they install the package with the production lock.
 PRODUCTION_WORKFLOWS = ("privileged-syside-validation.yml", "method-check.yml",
                         "privileged-full-model-api-ingestion.yml", "deploy-public-sysml-api.yml")
 #: The Gate A experiment: the only checkout that may fetch a PLEML submodule (the historical replay).
@@ -49,22 +52,28 @@ def _sha256(data: bytes) -> str:
 # -- the committed record is the committed pin and lock -------------------------------
 
 
-def test_the_project_pins_exactly_one_release_with_an_exact_constraint() -> None:
+def test_the_production_project_pins_exactly_one_release_with_an_exact_constraint() -> None:
+    assert PROJECT == Path(".")
     project = json.loads((ROOT / PROJECT / ".project.json").read_text(encoding="utf-8"))
-    assert project["usage"] == [{"resource": package.PACKAGE, "versionConstraint": "=" + package.RELEASE.version}]
+    pleml = [usage for usage in project["usage"] if usage["resource"] == package.PACKAGE]
+    assert pleml == [{"resource": package.PACKAGE, "versionConstraint": "=" + package.RELEASE.version}]
     assert package.RELEASE.version == "1.1.1"
+    # Every pin of the production project is exact (ADR 0007).
+    assert all(usage["versionConstraint"].startswith("=") for usage in project["usage"])
 
 
-def test_the_lock_resolves_the_recorded_archive_and_nothing_else() -> None:
+def test_the_production_lock_resolves_the_recorded_archive_and_the_project_uses_it() -> None:
     lock = tomllib.loads((ROOT / PROJECT / "sysand-lock.toml").read_text(encoding="utf-8"))
     pleml = [entry for entry in lock["project"] if package.PACKAGE in entry.get("identifiers", [])]
     assert len(pleml) == 1
     assert (pleml[0]["publisher"], pleml[0]["name"], pleml[0]["version"]) == ("mbse4u", "PLEML", "1.1.1")
     assert pleml[0]["sources"] == [{"index_kpar": package.RELEASE.index_kpar, "kpar_size": package.RELEASE.kpar_size,
                                     "kpar_digest": package.RELEASE.kpar_sha256}]
-    others = [entry for entry in lock["project"] if entry is not pleml[0]]
-    assert [(entry["publisher"], entry["name"]) for entry in others] == [("de4sdv", "de4sdv-fenced-pleml")]
-    assert others[0]["usages"] == [package.PACKAGE] and others[0]["sources"] == [{"editable": "."}]
+    [production] = [entry for entry in lock["project"] if entry.get("sources") == [{"editable": "."}]]
+    assert (production["publisher"], production["name"]) == ("de4sdv", "de4sdv-model")
+    assert package.PACKAGE in production["usages"]
+    assert not any("pleml" in str(entry.get("name", "")).lower() for entry in lock["project"]
+                   if entry is not pleml[0]), "one PLEML entry, and no fenced project"
 
 
 def test_the_record_is_the_release_tag() -> None:
@@ -109,7 +118,7 @@ def test_a_re_pin_without_its_provision_path_fails(release, previous, message) -
 
 def test_a_stale_provision_path_for_the_pinned_release_fails() -> None:
     stale = dict(package.PROVISION_PATHS, **{package.RELEASE.version: Path("external/pleml/PLEML.sysml")})
-    with pytest.raises(package.PackageError, match="not where the fenced lock installs it"):
+    with pytest.raises(package.PackageError, match="not where the production lock installs it"):
         package.check_provision_paths(paths=stale)
 
 
@@ -122,69 +131,69 @@ def _governed_deploy_paths() -> tuple[str, ...]:
     return _GOVERNED_MODEL_PATHS
 
 
-def test_the_project_is_outside_every_production_selector() -> None:
+def test_the_api_baseline_pins_the_installed_library_and_nothing_else_of_pleml() -> None:
+    """The switch (ADR 0022, step S6): the library is the one PLEML pin of the API
+    baseline, at the path the production lock installs, and the export reads it."""
     library = package.LIBRARY_PATH
+    assert library == Path(".sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml") == package.PROVISION_PATHS["1.1.1"]
+    assert [dependency for dependency in PINNED_DEPENDENCIES if "pleml" in dependency.as_posix().lower()] == [library]
     for root in (*REVIEWED_ROOTS, *validate_sysml.MODEL_PATHS, *check_repo.SYSML_MODEL_PATHS):
-        assert not PROJECT.is_relative_to(root) and not library.is_relative_to(root), root
+        assert not library.is_relative_to(root), root
+    # The downloaded package is upstream material outside the governed text surface.
+    assert check_naming.GOVERNED_TEXT_AREAS and not any(
+        library.is_relative_to(Path(area)) for area in check_naming.GOVERNED_TEXT_AREAS)
+    if (ROOT / library).is_file():
+        manifest = {source.path: source.authority for source in BaselineManifest.discover(ROOT).sources}
+        assert manifest[library.as_posix()] == "pinned-dependency"
+        assert [path for path in manifest if "pleml" in path.lower()] == [library.as_posix()]
+
+
+def test_the_fenced_project_is_retired_and_named_by_no_selector() -> None:
+    """The fenced Sysand project of step S1 held the pin until the switch."""
+    fenced = package.FENCED_PROJECT
+    assert not (ROOT / fenced).exists()
+    assert package.PROJECT != fenced
+    for root in (*REVIEWED_ROOTS, *validate_sysml.MODEL_PATHS, *check_repo.SYSML_MODEL_PATHS):
+        assert not fenced.is_relative_to(root), root
     for root in DEFAULT_ROOTS:
-        assert not PROJECT.is_relative_to(Path(root)), root
+        assert not fenced.is_relative_to(Path(root)), root
     for governed in _governed_deploy_paths():
-        assert not governed.startswith(PROJECT.as_posix()), governed
-        assert "pleml" not in governed.lower(), governed
-    for root in check_naming.SYSML_MODEL_ROOTS:
-        assert not (ROOT / PROJECT).is_relative_to(root), root
-    # The downloaded package is upstream material: the governed text surface skips it.
-    assert check_naming._is_exempt_from_id_scan(ROOT / library)
-    assert not any("pleml" in dependency.as_posix().lower() for dependency in PINNED_DEPENDENCIES)
-    manifest = {source.path for source in BaselineManifest.discover(ROOT).sources}
-    assert not any(path.startswith(PROJECT.as_posix()) or "pleml" in path.lower() for path in manifest)
+        assert not governed.startswith(fenced.as_posix()), governed
 
 
-def test_the_production_project_lock_and_deploy_do_not_use_pleml() -> None:
-    production = json.loads((ROOT / ".project.json").read_text(encoding="utf-8"))
-    assert package.PACKAGE not in {usage["resource"] for usage in production["usage"]}
-    assert "pleml" not in (ROOT / "sysand-lock.toml").read_text(encoding="utf-8").lower()
+def test_the_deploy_host_materializes_the_library_with_the_production_lock() -> None:
     deploy = (WORKFLOWS / "deploy-public-sysml-api.yml").read_text(encoding="utf-8")
-    assert "pleml" not in deploy.lower()
-
-
-def test_production_workflows_neither_trigger_on_nor_install_the_fenced_package() -> None:
-    files = [PROJECT / name for name in (".project.json", ".meta.json", "sysand-lock.toml", "README.md")]
-    for name in PRODUCTION_WORKFLOWS:
-        text = (WORKFLOWS / name).read_text(encoding="utf-8")
-        assert PROJECT.as_posix() not in text, name
-        triggers = yaml.safe_load(text)[True]
-        filters = [pattern for event in ("pull_request", "push") if isinstance(triggers.get(event), dict)
-                   for pattern in triggers[event].get("paths", [])]
-        for path in files:
-            assert not any(_glob(pattern).match(path.as_posix()) for pattern in filters), (name, path)
+    assert f"test -f {package.LIBRARY_PATH.as_posix()}" in deploy
+    for dependency in PINNED_DEPENDENCIES:
+        assert f"test -f {dependency.as_posix()}" in deploy, dependency
+    assert "four external Sysand dependency sources" in deploy
 
 
 def _workflow_files() -> list[Path]:
     return sorted([*WORKFLOWS.glob("*.yml"), *WORKFLOWS.glob("*.yaml")])
 
 
-def test_workflows_read_pleml_only_from_the_fenced_package_and_only_the_named_readers_do() -> None:
-    """By content, over every workflow, so a new workflow is fenced too.
+def test_workflows_read_pleml_only_through_the_production_lock() -> None:
+    """By content, over every workflow, so a new workflow is covered too.
 
-    No workflow names a frozen experiment's PLEML submodule path, the only
-    checkout that fetches submodules is the Gate A experiment of the
-    historical replay, and the fenced package is read by the named readers only.
+    No workflow names a frozen experiment's PLEML submodule path or the retired
+    fenced project, the only checkout that fetches submodules is the Gate A
+    experiment of the historical replay, and every workflow that syncs the
+    production lock installs PLEML with it.
     """
-    readers = set()
     for path in _workflow_files():
         text = path.read_text(encoding="utf-8")
         assert "external/pleml" not in text, f"{path.name} reads PLEML from a frozen experiment's submodule"
-        if PROJECT.as_posix() in text:
-            readers.add(path.name)
+        assert package.FENCED_PROJECT.as_posix() not in text, f"{path.name} names the retired fenced project"
         for job in (yaml.safe_load(text).get("jobs") or {}).values():
             for step in job.get("steps") or []:
                 options = step.get("with") or {}
                 if str(step.get("uses", "")).startswith("actions/checkout@") and options.get("submodules"):
                     assert options.get("ref") == GATE_A_REVISION, (path.name, step.get("name"))
-    assert readers == set(package.READER_WORKFLOWS)
-    assert set(FENCED_WORKFLOWS) | {"ci.yml"} == set(package.READER_WORKFLOWS)
-    assert not set(package.READER_WORKFLOWS) & set(PRODUCTION_WORKFLOWS)
+    for name in package.BYTE_CHECKING_WORKFLOWS:
+        assert "scripts/check_pleml_package.py" in (WORKFLOWS / name).read_text(encoding="utf-8"), name
+    assert set(PLE_WORKFLOWS) | {"ci.yml", "privileged-full-model-api-ingestion.yml"} == set(
+        package.BYTE_CHECKING_WORKFLOWS)
 
 
 def _glob(pattern: str) -> re.Pattern[str]:
@@ -248,7 +257,7 @@ def test_every_import_exemption_is_named_with_its_end_and_still_needed() -> None
         assert reason.strip(), path
         assert path in importers, f"{path} no longer imports PLEML: drop its exemption"
     for root in package.IMPORT_ROOTS:
-        assert not root.is_absolute() and not root.is_relative_to(PROJECT), root
+        assert not root.is_absolute() and not root.is_relative_to(package.FENCED_PROJECT), root
 
 
 def test_the_guard_pattern_finds_imports_and_qualified_names_only() -> None:
@@ -286,7 +295,8 @@ def _release(**changes) -> package.Release:
 
 def _install(root: Path, release: package.Release, *, library: bytes = LIBRARY_TEXT,
              constraint: str | None = None) -> Path:
-    """A synthetic fenced project with an installed package, laid out as Sysand lays it out."""
+    """A synthetic production project with the installed package next to another pinned
+    library, laid out as Sysand lays it out."""
     project = root / PROJECT
     installed = project / ".sysand/lib" / f"mbse4u-pleml_{release.version}"
     (installed / "LICENSES").mkdir(parents=True)
@@ -294,15 +304,19 @@ def _install(root: Path, release: package.Release, *, library: bytes = LIBRARY_T
     (installed / "LICENSES/MIT.txt").write_bytes(LICENSE_TEXT)
     (installed / ".project.json").write_text(json.dumps(
         {"name": "PLEML", "publisher": "mbse4u", "version": release.version, "license": release.license}))
-    (project / ".project.json").write_text(json.dumps({"name": "de4sdv-fenced-pleml", "publisher": "de4sdv",
-        "usage": [{"resource": package.PACKAGE, "versionConstraint": constraint or "=" + release.version}]}))
+    (project / ".sysand/lib/mbse4u-sysmod_5.1.1").mkdir()
+    (project / ".project.json").write_text(json.dumps({"name": "de4sdv-model", "publisher": "de4sdv", "usage": [
+        {"resource": "pkg:sysand/mbse4u/sysmod", "versionConstraint": "=5.1.1"},
+        {"resource": package.PACKAGE, "versionConstraint": constraint or "=" + release.version}]}))
     (project / "sysand-lock.toml").write_text(
         'lock_version = "0.5"\n\n[[project]]\npublisher = "mbse4u"\nname = "PLEML"\n'
         f'version = "{release.version}"\nidentifiers = ["{package.PACKAGE}"]\n'
         f'sources = [{{ index_kpar = "{release.index_kpar}", kpar_size = {release.kpar_size}, '
         f'kpar_digest = "{release.kpar_sha256}" }}]\n\n'
-        '[[project]]\npublisher = "de4sdv"\nname = "de4sdv-fenced-pleml"\nversion = "0.1.0"\n'
-        f'usages = ["{package.PACKAGE}"]\nsources = [{{ editable = "." }}]\n')
+        '[[project]]\npublisher = "mbse4u"\nname = "sysmod"\nversion = "5.1.1"\n'
+        'identifiers = ["pkg:sysand/mbse4u/sysmod"]\n\n'
+        '[[project]]\npublisher = "de4sdv"\nname = "de4sdv-model"\nversion = "0.1.1"\n'
+        f'usages = ["{package.PACKAGE}", "pkg:sysand/mbse4u/sysmod"]\nsources = [{{ editable = "." }}]\n')
     return installed
 
 
@@ -326,8 +340,8 @@ def test_the_byte_check_accepts_a_package_byte_identical_to_its_record(tmp_path)
     (lambda installed: (installed / "LICENSES/MIT.txt").write_bytes(b"Another license\n"), "LICENSES/MIT.txt"),
     (lambda installed: (installed / ".project.json").write_text(json.dumps(
         {"name": "PLEML", "publisher": "mbse4u", "version": "9.9.1", "license": "GPL-3.0"})), "license"),
-    (lambda installed: (installed.parent / "other-package_1.0.0").mkdir(), "installs other packages"),
-], ids=["crlf", "appended", "extra-sysml", "extra-kerml", "license-text", "license-field", "other-package"])
+    (lambda installed: (installed.parent / "mbse4u-pleml_9.9.0").mkdir(), "another PLEML release"),
+], ids=["crlf", "appended", "extra-sysml", "extra-kerml", "license-text", "license-field", "another-pleml-release"])
 def test_the_byte_check_refuses_any_other_package(tmp_path, mutate, message) -> None:
     release = _release()
     mutate(_install(tmp_path, release))
@@ -604,7 +618,7 @@ def test_the_tag_check_compares_the_fetched_tag_with_the_record(tmp_path) -> Non
 
 def test_the_installed_package_is_byte_identical_to_its_release_tag() -> None:
     if not (ROOT / package.LIBRARY_PATH).exists():
-        pytest.skip(f"the fenced PLEML package is not installed: run `sysand sync` in {PROJECT}")
+        pytest.skip("the PLEML package is not installed: run `sysand sync` at the repository root")
     receipt = package.verify_installed()
     assert receipt["byte_identical_to_tag"] is True and receipt["tag_commit"] == package.RELEASE.tag_commit
     data = (ROOT / package.LIBRARY_PATH).read_bytes()
@@ -630,10 +644,19 @@ def test_public_ci_byte_checks_the_package_and_its_release_diff_before_the_suite
     steps = _steps("ci.yml")
     check = _index(steps, "scripts/check_pleml_package.py")
     run = steps[check]["run"]
-    assert f'(cd {PROJECT.as_posix()} && sysand sync)' in run
+    assert _index(steps, "sysand sync") < check and "cd " not in run
     assert "--release-diff" in run
     assert "--from-index" not in run and "--verify-tag" not in run
     assert check < _index(steps, "python -m pytest tests -q")
+
+
+def test_the_privileged_ingestion_byte_checks_the_package_before_the_export_reads_it() -> None:
+    """The served model's PLEML is the release tag's: the release's only privileged run
+    byte-checks the installed package between the sync and the export."""
+    steps = _steps("privileged-full-model-api-ingestion.yml")
+    check = _index(steps, "scripts/check_pleml_package.py")
+    assert _index(steps, '"$HOME/.local/bin/sysand" sync') < check < _index(steps, "export_sysml_api_baseline.py")
+    assert "--release-diff" in steps[check]["run"]
 
 
 #: The network checks each privileged workflow adds: the tag in both, the index on re-pin PRs (the authority job).
@@ -641,12 +664,12 @@ NETWORK_CHECKS = {"privileged-ple-qualification.yml": ("--verify-tag",),
                   "privileged-ple-authority.yml": ("--from-index", "--verify-tag")}
 
 
-@pytest.mark.parametrize("name", FENCED_WORKFLOWS)
-def test_the_fenced_workflows_byte_check_the_package_before_reading_it(name) -> None:
+@pytest.mark.parametrize("name", PLE_WORKFLOWS)
+def test_the_ple_workflows_byte_check_the_package_before_reading_it(name) -> None:
     steps = _steps(name)
     check = _index(steps, "scripts/check_pleml_package.py")
     run = steps[check]["run"]
-    assert f"cd {PROJECT.as_posix()}" in run and "sysand" in run
+    assert _index(steps, "sysand") < check and "cd " not in run and "sysand sync" not in run
     assert '--out "$RUNNER_TEMP/ple-evidence/pleml-package.json"' in run
     assert "--release-diff" in run
     for flag in ("--from-index", "--verify-tag"):

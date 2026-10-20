@@ -2,24 +2,27 @@
 """Licensed validation, serialization, API round trip and receipts of the PLEML feature models.
 
 This is the runner of the PLE authority job (ADR 0022, the former PLE-S
-workflow). Licensed mode loads the reviewed model roots, the exact-pinned
-PLEML library (PLEML 1.1.1 as the fenced Sysand project installs it,
-byte-checked against its release tag), the three PLEML feature models, their
-configurations and the invalid fixture in one model with the pinned
-serializer and refuses any error diagnostic. It serializes every document
-once with the production export's options, validates the governed
-product-line scope exactly as production does, builds the authority bundle
-(the PLEML documents, the shared-asset supersets, the governed scope and the
-library), imports it into an ephemeral SysML v2 API and verifies the
-full-payload readback. It then hands the bundle to the entry point of the
-DE4SDV evaluator (ADR 0022, step S2), which writes the compressed elements
-and one receipt per feature model, and runs both checks of the committed
-receipts: their elements must equal the fresh ones, and their evaluations
-must reproduce offline.
+workflow). Licensed mode loads the reviewed model roots and the pinned
+dependencies of the API baseline, among them the exact-pinned PLEML library
+(PLEML 1.1.1 as the production Sysand lock installs it, byte-checked against
+its release tag), the three PLEML feature models and their configurations,
+together with the fixtures (the invalid configuration and the parity probes),
+in one model with the pinned serializer and refuses any error diagnostic. It
+serializes every document once with the production export's options,
+validates the governed product-line scope exactly as production does, builds
+the authority bundle (the PLEML documents, the shared-asset supersets, the
+governed scope and the library), imports it into an ephemeral SysML v2 API
+and verifies the full-payload readback. It then hands the bundle to the entry
+point of the DE4SDV evaluator (ADR 0022, step S2), which writes the
+compressed elements and one receipt per feature model, and runs both checks
+of the committed receipts: their elements must equal the fresh ones, and
+their evaluations must reproduce offline.
 
-The models are fenced until the authority switch (step S6). Nothing here
-executes a PLEML constraint body natively, qualifies anything or claims
-compliance; every record says ``qualified: false``.
+Since the authority switch (step S6) the feature models and configurations
+are model roots of the export, and the receipts are the configuration
+authority's record (ADR 0022, decision 5). Nothing here executes a PLEML
+constraint body natively, qualifies anything or claims compliance; every
+record says ``qualified: false``.
 """
 from __future__ import annotations
 
@@ -103,8 +106,8 @@ REFERENCED_SOURCES = (
     "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
 )
 
-#: The pinned PLEML library: PLEML 1.1.1 as the fenced Sysand project installs it
-#: (ADR 0022, step S1), byte-checked against the committed record of its release
+#: The pinned PLEML library: PLEML 1.1.1 as the production Sysand lock installs it
+#: (ADR 0022, decision 1), byte-checked against the committed record of its release
 #: tag. ``pleml_package`` is the one place that names it, and the label of the
 #: library document in the bundle is its repository path, ``LIBRARY_PATH``.
 LIBRARY = {
@@ -121,7 +124,7 @@ LIBRARY_PATH = ROOT / pleml_package.LIBRARY_PATH
 
 
 def verify_library(root: Path = ROOT) -> bytes:
-    """The installed library's bytes, refused unless the fenced package is the recorded release.
+    """The installed library's bytes, refused unless the pinned package is the recorded release.
 
     The byte check of ``pleml_package`` runs first: the exact pin, the locked
     archive and every file byte-identical to the release tag.
@@ -136,7 +139,9 @@ def verify_library(root: Path = ROOT) -> bytes:
     return data
 
 
-EXECUTOR_INPUTS = (
+#: The runner's inputs, each once: since the switch the PLEML pin is in the production
+#: lock, which is also one of the qualification runner's PLEML inputs.
+EXECUTOR_INPUTS = tuple(dict.fromkeys((
     "scripts/run_ple_authority.py",
     "scripts/run_ple_qualification.py",
     "scripts/export_sysml_api_baseline.py",
@@ -149,7 +154,7 @@ EXECUTOR_INPUTS = (
     *PLEML_INPUTS,
     *AUTHORITY_SOURCES,
     *FIXTURES,
-)
+)))
 #: The shared modules the evaluator imports directly for the kernel binding of ADR 0011 (contract,
 #: model contract, binding validation, revision identity). The evaluator's own record of the code it
 #: ran, ``EVALUATOR_MODULES``, names the PLEML-owned files only.
@@ -227,7 +232,14 @@ def serialize(out: Path, library_path: Path = LIBRARY_PATH) -> tuple[Documents, 
 
     manifest = BaselineManifest.discover(ROOT)
     pleml = (*AUTHORITY_SOURCES, *FIXTURES)
-    paths = [ROOT / source.path for source in manifest.sources] + [library_path] + [ROOT / p for p in pleml]
+    # Since the switch the export reads the library and the authority sources
+    # itself (PINNED_DEPENDENCIES, REVIEWED_ROOTS): each document is loaded
+    # once, and the runner adds what the export leaves out, the fixtures.
+    production = [source.path for source in manifest.sources]
+    paths = [library_path if path == LIBRARY["label"] else ROOT / path for path in production]
+    if LIBRARY["label"] not in production:
+        paths.append(library_path)
+    paths += [ROOT / path for path in pleml if path not in production]
     model, diagnostics = syside.try_load_model(paths)
     (out / "serializer-diagnostics.txt").write_text(str(diagnostics) + "\n")
     if diagnostics.contains_errors(warnings_as_errors=False):

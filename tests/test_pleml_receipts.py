@@ -77,14 +77,14 @@ def test_the_kernel_constants_match_the_model_built_contract():
         assert (mapping.file, mapping.declaration) == (evaluator.KERNEL_SOURCE, f"metadata def {name}")
 
 
-def test_the_library_label_is_the_installed_library_of_the_fenced_project():
+def test_the_library_label_is_the_installed_library_of_the_production_lock():
     from de4sdv.semantic import pleml_package
 
     assert evaluator.LIBRARY_SOURCE == pleml_package.LIBRARY_PATH.as_posix()
     assert Path(evaluator.LIBRARY_SOURCE).is_relative_to(pleml_package.PROJECT / ".sysand")
 
 
-def test_a_receipt_binds_the_pinned_release_of_the_fenced_package(monkeypatch):
+def test_a_receipt_binds_the_pinned_release_of_the_production_lock(monkeypatch):
     from de4sdv.semantic import pleml_package
 
     monkeypatch.undo()
@@ -249,16 +249,16 @@ def test_a_receipt_without_its_pinned_library_is_stale(tmp_path):
     path = write_receipt(tmp_path)
     (tmp_path / evaluator.LIBRARY_SOURCE).unlink()
     with pytest.raises(receipts.StaleReceipt, match=r"the pinned PLEML library .*PLEML.sysml is missing; run sysand "
-                                                    "sync in model-based-product-line-engineering/libraries/pleml"):
+                                                    "sync at the repository root"):
         receipts.replay(path, tmp_path)
 
 
 def test_a_receipt_of_another_pin_is_stale(tmp_path, monkeypatch):
-    """A re-pin of the fenced package makes every receipt stale, whatever the installed files hold (R4)."""
+    """A re-pin of the pinned package makes every receipt stale, whatever the installed files hold (R4)."""
     path = write_receipt(tmp_path)
     monkeypatch.setattr(receipts, "pinned_library", lambda: {**SYNTHETIC_LIBRARY, "version": "1.1.2",
                                                              "sha256": "c" * 64})
-    with pytest.raises(receipts.StaleReceipt, match="the receipt binds PLEML 1.1.1 at .*, and the fenced package "
+    with pytest.raises(receipts.StaleReceipt, match="the receipt binds PLEML 1.1.1 at .*, and the production lock "
                                                     "pins 1.1.2"):
         receipts.replay(path, tmp_path)
 
@@ -342,7 +342,7 @@ def test_the_replay_function_reports_failures_as_a_list(tmp_path, monkeypatch):
     monkeypatch.setattr(receipts, "pinned_library", lambda: {**SYNTHETIC_LIBRARY, "version": "1.1.2",
                                                              "sha256": "c" * 64})
     (failure,) = receipts.replay_committed(path.parent, tmp_path)
-    assert failure.startswith(f"{path}: the receipt binds PLEML 1.1.1") and "the fenced package pins 1.1.2" in failure
+    assert failure.startswith(f"{path}: the receipt binds PLEML 1.1.1") and "the production lock pins 1.1.2" in failure
 
 
 def test_the_code_identity_records_the_pleml_code_an_evaluation_imports():
@@ -593,7 +593,7 @@ def test_a_refresh_refused_for_one_receipt_writes_none(tmp_path, monkeypatch):
     assert {path: path.read_bytes() for path in result["receipts"]} == edited != before
 
 
-def test_a_bundle_whose_library_is_not_the_fenced_package_is_refused(tmp_path):
+def test_a_bundle_whose_library_is_not_the_pinned_package_is_refused(tmp_path):
     graph = PlemlGraph()
     PlatformLine(graph).configure("member", "autoware", "noMiddleware", "linux", "noHypervisor")
     with pytest.raises(ValueError, match="carries no PLEML library at .*mbse4u-pleml_1.1.1/PLEML.sysml.*"

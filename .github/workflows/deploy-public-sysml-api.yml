@@ -300,9 +300,11 @@ jobs:
           SSH_HOST="${{ secrets.DEPLOY_SSH_HOST }}"
           SSH_USER="${{ secrets.DEPLOY_SSH_USER }}"
           # The reviewed baseline manifest (de4sdv/sysml_api/baseline.py) pins
-          # three external Sysand dependency sources that live under the
-          # gitignored .sysand/ directory. The privileged workflow materializes
-          # them with `sysand sync` from the committed sysand-lock.toml; the
+          # four external Sysand dependency sources that live under the
+          # gitignored .sysand/ directory: SYSMOD, Requirements Management,
+          # Syside Views and, since the PLEML authority switch (ADR 0022),
+          # PLEML. The privileged workflow materializes them with
+          # `sysand sync` from the committed sysand-lock.toml; the
           # deploy host must reproduce that exact state at the exact SHA or the
           # importer correctly fails closed on a stale/incomplete source
           # manifest. Same lockfile + same kpar checksum verification => same
@@ -357,6 +359,7 @@ jobs:
           test -f .sysand/lib/mbse4u-sysmod_5.1.1/SYSMOD.sysml
           test -f .sysand/lib/ode4hera-requirements-management_2.0.1/RequirementsManagement.sysml
           test -f .sysand/lib/sensmetry-syside-views_0.10.3/SysideViews.sysml
+          test -f .sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml
           echo "pinned Sysand dependencies materialized at $(git rev-parse HEAD)"
           REMOTE
 

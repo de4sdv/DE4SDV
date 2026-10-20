@@ -42,6 +42,8 @@ on:
       - "textual-notation-of-model/**/*.sysml"
       - "model-based-product-line-engineering/product-models/**/*.sysml"
       - "model-based-product-line-engineering/scoping/**/*.sysml"
+      - "model-based-product-line-engineering/feature-models/**/*.sysml"
+      - "model-based-product-line-engineering/feature-configurations/**/*.sysml"
       - "model-based-product-line-engineering/feature-models/**/*.yaml"
       - "model-based-product-line-engineering/feature-configurations/**/*.yaml"
       - "tools/configure_variant.py"

@@ -40,7 +40,7 @@ FROZEN_TAG = "pleml-1.1.0-frozen"
 FROZEN_INTERPRETER = "tools/pleml_gate_a.py"
 FROZEN_INTERPRETER_SHA256 = "552b91798e8c2498e28e0042fadfc7349c2d130c685e80fe9312353545eafb67"
 #: The PLEML release the library comes from: the tag commit of the release the
-#: fenced Sysand lock pins, byte-checked by ``pleml_package`` (a test binds them).
+#: production Sysand lock pins, byte-checked by ``pleml_package`` (a test binds them).
 PLEML_PIN = "b694648cce4b96126eda2de3eb881c54397ae035"
 
 #: Source labels of the documents the evaluation reads. The library's label is

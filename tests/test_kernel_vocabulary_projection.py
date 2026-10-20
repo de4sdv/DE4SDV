@@ -60,6 +60,8 @@ MODEL_ROOTS = (
     "textual-notation-of-model",
     "model-based-product-line-engineering/product-models",
     "model-based-product-line-engineering/scoping",
+    "model-based-product-line-engineering/feature-models",
+    "model-based-product-line-engineering/feature-configurations",
 )
 INVENTORY_GOVERNANCE_FIELDS = (
     "authority_current", "authority_target", "evidence_state", "adoption_status",

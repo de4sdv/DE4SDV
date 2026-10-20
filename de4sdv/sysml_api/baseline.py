@@ -14,7 +14,15 @@ REVIEWED_ROOTS = (
     Path("textual-notation-of-model"),
     Path("model-based-product-line-engineering/product-models"),
     Path("model-based-product-line-engineering/scoping"),
+    # The PLEML feature models and their configurations, the product-line
+    # authority since the switch (ADR 0022, step S6).
+    Path("model-based-product-line-engineering/feature-models"),
+    Path("model-based-product-line-engineering/feature-configurations"),
 )
+#: Directories of a reviewed root that the export never reads: historical
+#: snapshots, and the synthetic fixtures (the invalid configuration and the
+#: parity probes), which the PLE authority job validates and serializes apart.
+EXCLUDED_PARTS = frozenset({"snapshots", "fixtures"})
 PINNED_DEPENDENCIES = (
     Path(".sysand/lib/mbse4u-sysmod_5.1.1/SYSMOD.sysml"),
     Path(
@@ -22,6 +30,8 @@ PINNED_DEPENDENCIES = (
         "RequirementsManagement.sysml"
     ),
     Path(".sysand/lib/sensmetry-syside-views_0.10.3/SysideViews.sysml"),
+    # PLEML 1.1.1, byte-checked against its release tag (de4sdv/semantic/pleml_package.py).
+    Path(".sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml"),
 )
 
 
@@ -43,7 +53,7 @@ class BaselineManifest:
         for root in REVIEWED_ROOTS:
             for path in sorted((repository_root / root).rglob("*.sysml")):
                 relative = path.relative_to(repository_root)
-                if "snapshots" in relative.parts:
+                if EXCLUDED_PARTS & set(relative.parts):
                     continue
                 entries.append(_source(repository_root, relative, "reviewed"))
         for relative in PINNED_DEPENDENCIES:

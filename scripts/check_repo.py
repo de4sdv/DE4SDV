@@ -52,6 +52,8 @@ SYSML_MODEL_PATHS = (
     Path("textual-notation-of-model"),
     Path("model-based-product-line-engineering/product-models"),
     Path("model-based-product-line-engineering/scoping"),
+    Path("model-based-product-line-engineering/feature-models"),
+    Path("model-based-product-line-engineering/feature-configurations"),
 )
 
 IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")

@@ -732,8 +732,9 @@ def test_workflow_transfers_a_verified_git_bundle_from_the_runner() -> None:
 def test_workflow_materializes_pinned_sysand_dependencies() -> None:
     """The deploy host must reproduce the privileged source manifest exactly.
 
-    The reviewed baseline manifest pins three external Sysand dependency
-    sources under the gitignored .sysand/ directory; the privileged workflow
+    The reviewed baseline manifest pins four external Sysand dependency
+    sources under the gitignored .sysand/ directory (PLEML among them since
+    the switch of ADR 0022); the privileged workflow
     materializes them with ``sysand sync`` from the committed lockfile. The
     deploy host does a pure Git checkout, so it must run the same
     materialization step or the importer correctly fails closed with a
@@ -781,12 +782,13 @@ def test_workflow_materializes_pinned_sysand_dependencies() -> None:
     # It operates inside the exact Git checkout and requires the lockfile.
     assert "cd \"$REPO_DIR\"" in wf
     assert 'sysand-lock.toml missing at the deployed SHA' in wf
-    # All three pinned dependency sources are asserted present afterwards.
+    # All four pinned dependency sources are asserted present afterwards.
     for pinned in (
         ".sysand/lib/mbse4u-sysmod_5.1.1/SYSMOD.sysml",
         ".sysand/lib/ode4hera-requirements-management_2.0.1/"
         "RequirementsManagement.sysml",
         ".sysand/lib/sensmetry-syside-views_0.10.3/SysideViews.sysml",
+        ".sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml",
     ):
         assert f"test -f {pinned}" in wf
     # The step runs before the fail-closed deploy step.

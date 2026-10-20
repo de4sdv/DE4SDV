@@ -61,6 +61,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SYSML_MODEL_ROOTS = (
     ROOT / "textual-notation-of-model/packages",
     ROOT / "model-based-product-line-engineering/product-models",
+    ROOT / "model-based-product-line-engineering/feature-models",
+    ROOT / "model-based-product-line-engineering/feature-configurations",
 )
 
 # Directories whose SysML/asset names follow external or historical rules.

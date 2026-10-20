@@ -8,8 +8,8 @@
  * configuration, and the features whose binding time is not yet decided.
  *
  * In these definitions a feature is a feature of a PLEML feature model, not
- * the ontology class Feature (kernel ProductLineFeatureCandidate); the ontology
- * pull request before the switch (S5o) decides that boundary.
+ * the ontology class Feature (kernel ProductLineFeatureCandidate), as the
+ * ontology classification of ADR 0022 decision 8 states.
  *
  * The definitions annotate native SysML v2 variations, dependencies and the
  * occurrences of a feature model. They declare no variation-point part
@@ -18,11 +18,13 @@
  * follows ADR 0011: each definition is an ontology class that ingestion binds
  * by metatype, declared name and this source file.
  *
- * Authority: until the switch of ADR 0022, the YAML catalogue and the
- * configurator remain the derivation authority (ADR 0006 decision 6), and
- * only the fenced feature models apply these definitions: a repository test
- * refuses any file of the model roots that imports this package or applies
- * them.
+ * Authority: since the switch of ADR 0022 the PLEML feature models and the
+ * derivation rules that apply these definitions are the derivation authority
+ * (ADR 0022 decision 4). The YAML catalogue and the configurator's
+ * derived_asset_selections stay a non-authoritative shadow until the YAML
+ * retires. Only the feature models and their configurations apply these
+ * definitions: a repository test refuses any other file of the model roots
+ * that imports this package or applies them.
  */
 
 package DE4SDV_ProductLineDerivation {

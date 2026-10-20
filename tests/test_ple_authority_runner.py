@@ -163,6 +163,23 @@ def test_serialize_loads_everything_together_and_serializes_once_with_the_produc
     assert (tmp_path / "serializer-diagnostics.txt").read_text() == "diagnostics\n"
 
 
+def test_serialize_loads_each_document_once_when_the_export_reads_the_library_and_the_authority_sources(
+        monkeypatch, tmp_path) -> None:
+    """Since the switch the manifest of the export holds the pinned library and the authority
+    sources (PINNED_DEPENDENCIES, REVIEWED_ROOTS): the runner loads each document once and adds
+    what the export leaves out, the fixtures."""
+    production = [*runner.REFERENCED_SOURCES, *runner.AUTHORITY_SOURCES, runner.LIBRARY["label"]]
+    urls = [f"file://{ROOT / path}" for path in production + list(runner.FIXTURES)]
+    loaded: list = []
+    calls = _fake_serializer(monkeypatch, urls, loaded=loaded)
+    _manifest(monkeypatch, production)
+    documents, _manifest_returned, _version = runner.serialize(tmp_path)
+    assert loaded == [ROOT / path for path in production] + [ROOT / path for path in runner.FIXTURES]
+    assert len(loaded) == len(set(loaded)), "no document is loaded twice"
+    assert set(documents) == set(production) | set(runner.FIXTURES)
+    assert len(calls) == len(urls)
+
+
 def test_serialize_refuses_errors_a_missing_document_and_a_repeated_one(monkeypatch, tmp_path) -> None:
     library = tmp_path / "PLEML.sysml"
     production = list(runner.REFERENCED_SOURCES)

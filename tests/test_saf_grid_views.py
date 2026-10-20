@@ -69,6 +69,11 @@ def test_syside_views_dependency_is_exactly_pinned() -> None:
             "resource": "pkg:sysand/ode4hera/requirements-management",
             "versionConstraint": "=2.0.1",
         },
+        # The product-line authority since the switch (ADR 0022, step S6).
+        {
+            "resource": "pkg:sysand/mbse4u/pleml",
+            "versionConstraint": "=1.1.1",
+        },
     ]
     lock = (ROOT / "sysand-lock.toml").read_text(encoding="utf-8")
     assert 'name = "Syside Views"' in lock

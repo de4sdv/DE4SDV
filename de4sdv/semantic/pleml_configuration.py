@@ -51,8 +51,8 @@ SCHEMA = "de4sdv.pleml-configuration-evaluation/v1"
 
 # -- dependencies on the other steps (one place) ------------------------------------------
 #
-# The library is the fenced Sysand project of step S1: ``pleml_package``
-# owns its path. The kernel metadata definitions come from step S2k: five
+# The library is the pinned PLEML package of the production Sysand lock:
+# ``pleml_package`` owns its path. The kernel metadata definitions come from step S2k: five
 # plain metadata definitions of DE4SDV_ProductLineDerivation, each an
 # ontology class of the same name that ``validate_ontology_bindings`` binds by
 # metatype, declared name and the source file below. Only this block names

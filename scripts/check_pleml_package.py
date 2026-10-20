@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Byte-check the fenced PLEML package and re-verify the re-pin of its release.
+"""Byte-check the pinned PLEML package and re-verify the re-pin of its release.
 
-Run ``sysand sync`` in the fenced project first. The default is the byte check:
+Run ``sysand sync`` at the repository root first: the production lock installs
+PLEML with the other pinned libraries. The default is the byte check:
 the installed package against the committed record of its release tag
 (``de4sdv.semantic.pleml_package``), offline.
 

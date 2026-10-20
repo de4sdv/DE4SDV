@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Evaluate fenced PLEML feature models and keep their receipts (ADR 0022, plan step S2).
+"""Evaluate the PLEML feature models and keep their receipts (ADR 0022, plan step S2).
 
 Commands:
 
 * ``receipts``: the entry point of the licensed authority job. It takes the
   job's export bundle (serialized with the production export's options, the
-  PLEML library labelled with the fenced package's ``LIBRARY_PATH``), writes
+  PLEML library labelled with the pinned package's ``LIBRARY_PATH``), writes
   ``<name>.elements.json.xz`` and one ``<feature-model file stem>.receipt.json``
   per feature model to ``--out``, and exits 1 on an integrity, complement or
   rule-table failure. ``--compare`` refuses when the fresh elements differ

@@ -108,6 +108,12 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           "$HOME/.local/bin/sysand" sync
 
+      # PLEML from the production lock, byte-checked against the committed
+      # record of its release tag before the export reads it (ADR 0022,
+      # decision 1): the served model's PLEML is the tag's.
+      - name: Byte-check the pinned PLEML package
+        run: python scripts/check_pleml_package.py --release-diff
+
       - name: Install official Syside Automator serializer
         env:
           SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}

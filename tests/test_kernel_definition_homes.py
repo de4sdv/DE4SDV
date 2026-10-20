@@ -108,6 +108,8 @@ MODEL_ROOTS = (
     "textual-notation-of-model",
     "model-based-product-line-engineering/product-models",
     "model-based-product-line-engineering/scoping",
+    "model-based-product-line-engineering/feature-models",
+    "model-based-product-line-engineering/feature-configurations",
 )
 _TYPING_END = re.compile(r":>>?|::>|\bsubsets\b|\bredefines\b|\breferences\b|\bdefault\b|:=")
 _PART_USAGE = re.compile(

@@ -42,10 +42,22 @@ def test_default_baseline_manifest_covers_reviewed_roots_and_pinned_dependencies
         "aebs_autoware_reference_product.sysml"
     ) in reviewed
     assert not any("/snapshots/" in path for path in reviewed)
+    # Since the switch (ADR 0022, step S6) the PLEML feature models and the
+    # member configurations are reviewed sources; the fixtures (the invalid
+    # configuration and the parity probes) never reach the export (#405 R14).
+    ple = "model-based-product-line-engineering/"
+    assert ple + "feature-models/sdv_product_line.sysml" in reviewed
+    assert ple + "feature-configurations/middleware_autoware_aaos_sdv_reference.sysml" in reviewed
+    assert not any("/fixtures/" in path for path in reviewed)
+    assert {path for path in reviewed if path.startswith(ple + "feature-")} == {
+        path.relative_to(ROOT).as_posix()
+        for directory in ("feature-models", "feature-configurations")
+        for path in (ROOT / ple / directory).rglob("*.sysml") if "fixtures" not in path.parts}
     assert dependencies == {
         ".sysand/lib/mbse4u-sysmod_5.1.1/SYSMOD.sysml",
         ".sysand/lib/ode4hera-requirements-management_2.0.1/RequirementsManagement.sysml",
         ".sysand/lib/sensmetry-syside-views_0.10.3/SysideViews.sysml",
+        ".sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml",
     }
     assert all(entry.sha256 and len(entry.sha256) == 64 for entry in manifest.sources)
 
@@ -371,7 +383,10 @@ def test_kernel_binding_validation_reports_all_binding_categories_explicitly() -
     assert by_class["Requirement"].status == "mapped"
     assert by_class["Requirement"].element_ids == (requirement_id,)
     assert by_class["VariationPoint"].status == "native"
-    assert by_class["FeatureConfiguration"].status == "external"
+    assert by_class["EvidenceStatus"].status == "external"
+    # Since the switch (ADR 0022, step S6) FeatureConfiguration is file-mapped to
+    # the pinned PLEML declaration; this export holds no PLEML library.
+    assert by_class["FeatureConfiguration"].status == "unresolved"
     assert by_class["AcceptanceCriterion"].status == "ambiguous"
     assert by_class["EngineeringIncrement"].status == "unresolved"
     assert sum(report.summary.values()) == len(contract.classes)

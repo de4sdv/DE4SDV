@@ -130,19 +130,32 @@ def test_the_definitions_state_the_closed_world_the_evaluator_implements():
         assert clause in unassigned, clause
 
 
-def test_the_header_keeps_the_pre_switch_authority_fence():
+def test_the_header_states_the_authority_of_the_switch():
     header = " ".join(_source().split("package DE4SDV_ProductLineDerivation", 1)[0].replace("*", " ").split())
-    assert "until the switch of ADR 0022, the YAML catalogue and the configurator remain the derivation authority" in header
-    assert "(ADR 0006 decision 6)" in header and "only the fenced feature models apply these definitions" in header
-    assert "a repository test refuses any file of the model roots that imports this package or applies them" in header
+    assert ("since the switch of ADR 0022 the PLEML feature models and the derivation rules that apply these "
+            "definitions are the derivation authority (ADR 0022 decision 4)") in header
+    assert "derived_asset_selections stay a non-authoritative shadow until the YAML retires" in header
+    assert "Only the feature models and their configurations apply these definitions" in header
+    assert ("a repository test refuses any other file of the model roots that imports this package or applies "
+            "them") in header
     assert ("In these definitions a feature is a feature of a PLEML feature model, not the ontology class Feature "
-            "(kernel ProductLineFeatureCandidate); the ontology pull request before the switch (S5o) decides "
-            "that boundary") in header
+            "(kernel ProductLineFeatureCandidate), as the ontology classification of ADR 0022 decision 8 "
+            "states") in header
+    assert "until the switch" not in header and "fenced" not in header
 
 
-#: The model roots that ingestion exports and serves (the production selectors).
-MODEL_ROOTS = ("textual-notation-of-model", "model-based-product-line-engineering/product-models",
-               "model-based-product-line-engineering/scoping")
+def _model_roots() -> tuple[str, ...]:
+    """The model roots that ingestion exports and serves (the production selectors)."""
+    from de4sdv.sysml_api.baseline import REVIEWED_ROOTS
+
+    return tuple(root.as_posix() for root in REVIEWED_ROOTS)
+
+
+def _pleml_roots() -> tuple[str, ...]:
+    """The PLEML documents' roots: the feature models and their configurations."""
+    from de4sdv.semantic.pleml_package import IMPORT_ROOTS
+
+    return tuple(root.as_posix() + "/" for root in IMPORT_ROOTS)
 #: An import or qualified use of the package, or an application of one of its
 #: definitions: prefix or body metadata (#Name, @Name) or a named metadata usage.
 _APPLIES = re.compile(
@@ -153,20 +166,27 @@ _APPLIES = re.compile(
 
 def _model_root_files_applying_the_kernel(root: Path) -> list[str]:
     found = []
-    for model_root in MODEL_ROOTS:
+    for model_root in _model_roots():
         for path in sorted((root / model_root).rglob("*.sysml")):
             relative = path.relative_to(root).as_posix()
-            if relative != DERIVATION and _APPLIES.search(strip_comments(path.read_text(encoding="utf-8"))):
+            if relative != DERIVATION and not relative.startswith(_pleml_roots()) and _APPLIES.search(
+                    strip_comments(path.read_text(encoding="utf-8"))):
                 found.append(relative)
     return found
 
 
-def test_until_the_switch_no_model_root_file_applies_the_derivation_kernel():
-    """ADR 0022 fence (review R4): until the switch, only the fenced feature
-    models outside the model roots, and synthetic test fixtures, import this
-    package or apply its definitions. A file of the model roots that does is
-    refused, so the served model cannot apply the derivation kernel before
-    the switch. The switch rewrites this guard together with the header."""
+def test_only_the_pleml_documents_of_the_model_roots_apply_the_derivation_kernel():
+    """The confinement after the switch (ADR 0022 decision 4; the fence of review R4
+    before it): the PLEML feature models and their configurations, model roots
+    since the switch, import this package and apply its definitions. Any other
+    file of the model roots that does is refused."""
+    applying = {path.relative_to(ROOT).as_posix() for prefix in _pleml_roots()
+                for path in (ROOT / prefix).rglob("*.sysml")
+                if _APPLIES.search(strip_comments(path.read_text(encoding="utf-8")))}
+    assert {path for path in applying if "/feature-models/" in path} == {
+        "model-based-product-line-engineering/feature-models/sdv_product_line.sysml",
+        "model-based-product-line-engineering/feature-models/engineering_execution_environments.sysml",
+        "model-based-product-line-engineering/feature-models/vehicle_execution_environments.sysml"}
     assert _model_root_files_applying_the_kernel(ROOT) == []
 
 
@@ -178,15 +198,19 @@ def test_until_the_switch_no_model_root_file_applies_the_derivation_kernel():
     "package P { occurrence c { metadata name : ProductModelProjectionName; } }",
     "package P { #UnassignedBindingTime occurrence f; }",
 ])
-def test_the_fence_guard_refuses_a_planted_model_root_file(tmp_path, text):
+def test_the_confinement_guard_refuses_a_planted_model_root_file(tmp_path, text):
     planted = tmp_path / "textual-notation-of-model/packages/features/probe/probe.sysml"
     planted.parent.mkdir(parents=True)
     planted.write_text(text + "\n", encoding="utf-8")
-    fenced = tmp_path / "model-based-product-line-engineering/feature-models/probe.sysml"
-    fenced.parent.mkdir(parents=True)
-    fenced.write_text(text + "\n", encoding="utf-8")
+    product = tmp_path / "model-based-product-line-engineering/product-models/probe.sysml"
+    product.parent.mkdir(parents=True)
+    product.write_text(text + "\n", encoding="utf-8")
+    feature_model = tmp_path / "model-based-product-line-engineering/feature-models/probe.sysml"
+    feature_model.parent.mkdir(parents=True)
+    feature_model.write_text(text + "\n", encoding="utf-8")
     assert _model_root_files_applying_the_kernel(tmp_path) == [
-        "textual-notation-of-model/packages/features/probe/probe.sysml"]
+        "textual-notation-of-model/packages/features/probe/probe.sysml",
+        "model-based-product-line-engineering/product-models/probe.sysml"]
 
 
 @pytest.mark.parametrize("name", sorted(SHAPES))

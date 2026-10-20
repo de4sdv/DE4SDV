@@ -922,7 +922,7 @@ def test_load_experiment_reads_a_sysand_library_from_outside_the_checkout(tmp_pa
                       "pleml_pin": identity.pleml_pin,
                       "library_provision": {"provision": "sysand", "package": "pkg:sysand/mbse4u/pleml",
                                             "version": "1.1.1", "tag": "v1.1.1",
-                                            "lock": "model-based-product-line-engineering/libraries/pleml/sysand-lock.toml"}}
+                                            "lock": "sysand-lock.toml"}}
     for field, value, message in (
             ("revision", "0" * 40, "not the frozen reviewed revision"),
             ("interpreter_sha256", "0" * 64, "differ from the reviewed identity"),
@@ -935,7 +935,7 @@ def test_load_experiment_reads_a_sysand_library_from_outside_the_checkout(tmp_pa
 def test_load_experiment_refuses_a_sysand_library_that_is_missing_or_a_symlink(tmp_path):
     r = runner()
     experiment, identity, library = _scratch_sysand_experiment(tmp_path, r.PLEML_1_1_1)
-    with pytest.raises(ValueError, match="run `sysand sync` in model-based-product-line-engineering/libraries/pleml"):
+    with pytest.raises(ValueError, match="run `sysand sync` at the repository root"):
         r.load_experiment(experiment, identity, tmp_path / "missing/PLEML.sysml")
     link = tmp_path / "link.sysml"
     link.symlink_to(library)
