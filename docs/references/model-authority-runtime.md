@@ -165,7 +165,8 @@ An answer is `incomplete`, never an absence, in these cases:
 - `allocatedTo`, from any subject: an allocation of the revision cannot be
   read. The reader refuses its ends, one of its ends or owned relationships is
   not in the revision, or it owns ends but not two. An allocation without
-  ends of its own is no fact here; the parity refuses it (see below).
+  ends of its own is no fact here; the parity refuses it unless it is a
+  directed parameter (see below).
 - `allocatedTo`, from a subject: an end of one of the subject's allocations
   grounds in two layer classes.
 - `hasValidationScenario`, from any subject: a connection that may carry it
@@ -207,10 +208,13 @@ validated kernel binding per end-pair class, equal to the profile pin and
 served, and every served allocation readable and binary, with the export's
 ends (`de4sdv/semantic/successor_parity.py`). An allocation without ends of
 its own fails it: DE4SDV allocations are authored
-`allocate <source> to <target>`, and the diagnostic says so. A failure fails
-the run, and the release evidence requires the passing report. This is the
-evidence the `allocatedTo` forward obligations ask for; the admission records
-them until a run at the exact SHA produces it.
+`allocate <source> to <target>`, and the diagnostic says so. A directed
+feature typed as an allocation is a parameter of a behavior, not an
+allocation between two elements, and passes; the method workflow's
+`out allocation signalMappings` is one. A failure fails the run, and the
+release evidence requires the passing report. This is the evidence the
+`allocatedTo` forward obligations ask for; the admission records them until
+a run at the exact SHA produces it.
 
 The parity is a consistency check, not independent corroboration. Both
 readings use one reader over two corpora of one revision, and the served-model

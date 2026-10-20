@@ -91,12 +91,26 @@ def _connectors(view: ModelView, relation: str) -> dict[str, tuple[tuple[str, ..
     return sp.connectors(view, relation)
 
 
+#: The method workflow's own allocation parameter: ``out allocation signalMappings[0..*] :
+#: SystemToSoftwareSignalMappingCandidate;`` of the action definition DefinePhysicalRealization.
+SIGNAL_MAPPINGS_PARAMETER = "DE4SDV_IncrementWorkflow::DefinePhysicalRealization::signalMappings"
+#: The INC-MW-011 signal mappings: allocations with two ends that ground in no allocatedTo end pair.
+SIGNAL_MAPPINGS = {"DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization::vehicleSpeedSignalMapping",
+                   "DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization::aebsSignalFrameSignalMapping"}
+
+
 def test_the_cut_holds_the_native_shapes_the_traversal_must_read(view) -> None:
-    """No exported allocation carries a top-level source or an owner key, 17 of the 27 have an end
-    written as a feature chain, and the validation planning connections carry no source either."""
+    """No exported allocation carries a top-level source or an owner key. Of the 30 allocation usages,
+    29 own two ends (17 have an end written as a feature chain), and one is the method workflow's
+    directed ``out`` parameter, with no ends of its own. The validation planning connections carry no
+    source either."""
     allocations = [view.element(a) for a in rc.allocation_ends(view)]
-    assert len(allocations) == 27
+    assert len(allocations) == 30
     assert not any(a.get(key) for a in allocations for key in ("source", "owningNamespace", "owner"))
+    endless = [view.label(a) for a, (ends, problem) in rc.allocation_ends(view).items() if not ends]
+    assert endless == [SIGNAL_MAPPINGS_PARAMETER]
+    assert view.element(_resolve(view, SIGNAL_MAPPINGS_PARAMETER))["direction"] == "out"
+    assert sum(len(ends) == 2 and not problem for ends, problem in rc.allocation_ends(view).values()) == 29
     chained = [a for a, (ends, _p) in rc.allocation_ends(view).items()
                if any(view.index.owned_relationships(feature, "FeatureChaining")
                       for record in view.traversal._connection_end_records(view.element(a), view.index.by_id,
@@ -109,12 +123,15 @@ def test_the_cut_holds_the_native_shapes_the_traversal_must_read(view) -> None:
 
 def test_allocated_to_parity_between_the_method_reader_and_the_successor_traversal(view) -> None:
     """Every allocation the method finds is the fact the traversal returns, end pair included: ten
-    requirement-to-function, eight function-to-logical and nine logical-to-physical allocations."""
+    requirement-to-function, eight function-to-logical and nine logical-to-physical allocations. The
+    other three allocation usages are no fact: the two signal mappings ground in no end pair, and the
+    workflow parameter has no ends."""
     method = method_facts(view, ALLOCATED_TO)
     assert sorted(pair for _s, _t, pair, _w in method) == (
         ["FunctionLogicalAssignment"] * 8 + ["LogicalPhysicalAssignment"] * 9
         + ["RequirementFunctionAssignment"] * 10)
-    assert {witness for *_rest, witness in method} == set(rc.allocation_ends(view))
+    no_fact = set(rc.allocation_ends(view)) - {witness for *_rest, witness in method}
+    assert {view.label(a) for a in no_fact} == SIGNAL_MAPPINGS | {SIGNAL_MAPPINGS_PARAMETER}
     assert traversal_facts(view.traversal, view, ALLOCATED_TO) == method
 
 
@@ -266,7 +283,7 @@ def test_the_parity_report_holds_over_a_revision_binding_on_the_genuine_cut(snap
     assert {name: len(record["facts"]) for name, record in report["relations"].items()} == {
         ALLOCATED_TO: 27, VALIDATION: 5}
     closure = report["allocation_end_closure"]
-    assert closure["passed"] and closure["allocations"] == 27
+    assert closure["passed"] and closure["allocations"] == 30
     assert sorted(closure["end_pair_classes"]) == ["Function", "LogicalElement", "PhysicalElement", "Requirement"]
     assert all(record["closed"] for record in closure["end_pair_classes"].values())
 
@@ -448,7 +465,7 @@ def test_the_export_side_closure_holds_on_the_cut_and_refuses_an_allocation_with
     (the privileged closure's rule, so an allocation without its own ends fails on the pull request
     first, not in the privileged run)."""
     closure = sp.export_parity(view)["allocation_end_closure"]
-    assert closure["passed"] and closure["allocations"] == 27
+    assert closure["passed"] and closure["allocations"] == 30  # the directed workflow parameter passes
     assert sorted(closure["end_pair_classes"]) == ["Function", "LogicalElement", "PhysicalElement", "Requirement"]
 
     def change(export, view_):

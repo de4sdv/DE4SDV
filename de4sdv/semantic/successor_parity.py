@@ -48,7 +48,10 @@ Fact = tuple[str, str, str, str]
 
 #: DE4SDV's accepted form of a native allocation, which every governed allocation uses: its own two
 #: ends. An allocation usage without its own ends (an allocation slot that would inherit its
-#: definition's) is no fact for the traversal and is refused by the allocation-end closure.
+#: definition's) is no fact for the traversal and is refused by the allocation-end closure. A directed
+#: feature typed as an allocation (a behavior's ``out allocation`` parameter, such as the method
+#: workflow's ``DefinePhysicalRealization::signalMappings``) is no allocation between two elements and
+#: is exempt.
 ACCEPTED_ALLOCATION_FORM = ("author the allocation as `allocate <source> to <target>`; "
                             "allocations without their own ends are not an accepted form")
 
@@ -236,16 +239,23 @@ def allocation_end_closure(export_view: ModelView, api_view: ModelView, *,
     }
 
 
+def _directed(view: ModelView, feature: str) -> bool:
+    """A directed feature (``in``, ``out`` or ``inout``): a parameter of a behavior, which declares what
+    the behavior takes or produces and allocates nothing between two elements."""
+    return str(view.element(feature).get("direction") or "") in ("in", "out", "inout")
+
+
 def _unreadable_allocations(view: ModelView, allocations: Mapping[str, tuple[tuple[str, ...], str]]
                             ) -> dict[str, str]:
     """The closure's rule, allocation -> reason: an allocation is readable and binary when the traversal
     can read its ends (:func:`~de4sdv.semantic.trace_vocabulary_traversal.unreadable_ends`), which
-    refuses any count but two once an allocation owns an end. An allocation without its own ends is no
-    fact for the traversal, and not an accepted form here (:data:`ACCEPTED_ALLOCATION_FORM`)."""
+    refuses any count but two once an allocation owns an end. An allocation usage without its own ends
+    is no fact for the traversal, and not an accepted form here (:data:`ACCEPTED_ALLOCATION_FORM`),
+    unless it is a directed parameter (:func:`_directed`)."""
     found = {}
     for allocation, (ends, problem) in sorted(allocations.items()):
         reason = unreadable_ends(view, allocation, ends, problem, kind="allocation")
-        if not reason and not ends:
+        if not reason and not ends and not _directed(view, allocation):
             reason = f"{view.label(allocation)}: it has no ends of its own; {ACCEPTED_ALLOCATION_FORM}"
         if reason:
             found[allocation] = reason

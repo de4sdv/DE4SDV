@@ -104,6 +104,15 @@ def _allocation_without_ends(builder: ModelBuilder) -> None:
     builder.usage("AllocationUsage", "slot", package)
 
 
+def _directed_allocation_parameter(builder: ModelBuilder) -> None:
+    """After _gappy: ``action def Produce { out allocation outputs[0..*]; }`` in First's needs package.
+    A directed feature (a parameter of a behavior, typed as an allocation) without ends of its own: it
+    declares what the behavior produces and allocates nothing between two elements."""
+    package = next(e for e in builder.elements if e.get("declaredName") == "DE4SDV_FirstNeedsRequirements")
+    produce = builder.definition("ActionDefinition", "Produce", package)
+    builder.usage("AllocationUsage", "outputs", produce, membership="FeatureMembership", direction="out")
+
+
 def _export(tmp_path: Path, *parts, git_commit: str = GIT, kernel: str = "cut") -> Path:
     builder = cut_method_builder("method-check") if kernel == "cut" else ModelBuilder(label="method-check")
     for part in parts:
@@ -230,6 +239,20 @@ def test_an_allocation_without_its_own_ends_fails_the_check_and_names_the_accept
     (error,) = [e for e in result["errors"] if e.startswith("the successor parity fails on this export")]
     assert f"allocation-end closure: {expected}" in error
     assert expected in summary
+
+
+def test_a_directed_allocation_parameter_without_ends_is_no_allocation_and_passes(
+        tmp_path: Path, real_reports) -> None:
+    """A behavior's ``out allocation`` parameter (the method workflow's own form, for example
+    ``DefinePhysicalRealization::signalMappings``) has no ends of its own and is no allocation between
+    two elements: no fact for either reader, and no closure failure. A non-directed allocation without
+    ends still fails (the previous test)."""
+    export = _export(tmp_path, _gappy, _directed_allocation_parameter)
+    code, result, _summary = _run(tmp_path, export, EntryPointSpy(real_reports))
+    assert code == 0 and result["errors"] == []
+    closure = result["successor_parity"]["allocation_end_closure"]
+    assert closure["passed"] and closure["unreadable"] == []
+    assert result["successor_parity"]["relations"]["allocatedTo"]["facts"] == 0
 
 
 def test_gaps_never_fail_the_check(tmp_path: Path, real_reports) -> None:

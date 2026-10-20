@@ -310,7 +310,9 @@ a technical error, and the summary names the elements. Typical causes:
 
 - An allocation without its own ends. Author every allocation as
   `allocate <source> to <target>`; an allocation usage without ends of its own
-  is not an accepted form.
+  is not an accepted form. A behavior's directed parameter typed as an
+  allocation, such as the workflow's `out allocation signalMappings`, is not
+  an allocation between two elements and passes.
 - A planning connection written scenario first. Write it need first.
 - An untyped connection from a need to a validation scenario, when that need
   already has a typed planning connection. It could be a planning connection
