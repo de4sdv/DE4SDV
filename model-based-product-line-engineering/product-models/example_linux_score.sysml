@@ -6,7 +6,7 @@
  * Shared-assets model: textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml
  * Shared-assets model SHA-256: 70cbc35d95830a17c6128bb1dc99d570b6973c892488d82ed506d16347a8e342
  * Receipt: model-based-product-line-engineering/feature-models/receipts/sdv_product_line.receipt.json
- * Receipt SHA-256: 5bdc3eaf0e8d0c41b71a90ffe471d90584c7be34aac5032e8f52551e6a4ca6d6
+ * Receipt SHA-256: 0830b2af4ca4d678eb14fc4744465d26a5b2fc67484a7642fc0aa1f28bc8865f
  * Elements SHA-256: 28dadd5c0b0ea323b458761ec39c610dbc7f04944e16b4aafda93153d0ef1b3e
  * Feature configuration: model-based-product-line-engineering/feature-configurations/example_linux_score_autoware.sysml (exampleLinuxSCOREVariant)
  * Feature configuration SHA-256: 89259ecd31b94a94a0f8e8c8d50216aa08cc0a7993f5342db6869c279f8e949f

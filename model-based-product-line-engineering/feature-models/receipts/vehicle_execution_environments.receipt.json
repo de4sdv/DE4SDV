@@ -465,14 +465,15 @@
   },
   "evaluator": {
     "modules": {
-      "de4sdv/semantic/pleml_configuration.py": "357d4611fbd71dfbf88c156bc58169336f87a3528ccd6e395067d3276d49d532",
+      "de4sdv/semantic/pleml_configuration.py": "c0a1033a96b8395eabd7faefa47781f094d9ed689bac2c655554eb83735e6171",
       "de4sdv/semantic/pleml_package.py": "bd9dfb79358988c4453918097cd3259575864e1bbd489fed67eca64a7e801e2d",
       "de4sdv/semantic/pleml_receipts.py": "963f1a7ac659cbd9a474f8060af474acb271bbcad9c3903ddf252ecdf8b56d27",
       "de4sdv/semantic/pleml_shadow.py": "f42bbbdf054f71908ba20ec55e3c4cac978a0826fa896373f803b283840ecaff",
       "scripts/run_pleml_configuration_evaluation.py": "beebd0aa61cc493c2b5b26a7e2e1020adc1e58824b1a0253db979d53889ed43a",
       "tools/configure_variant.py": "3b92fff8eed3901cc877732aea3fa5f0c1939a9237d779473cfd23e3dba1b38f"
     },
-    "sha256": "81e7a7e46dd4e66267575c7743b9b08b0d91f6ecbd4cbd2b1dc2e500dd8e102b"
+    "refreshed_from": "81e7a7e46dd4e66267575c7743b9b08b0d91f6ecbd4cbd2b1dc2e500dd8e102b",
+    "sha256": "b79b82f7d074458ad4d86e25d450149c128339c8bcb6daea623af764fda19b7d"
   },
   "feature_models": [
     "VehicleTargetExecutionEnvironmentFeatureModel"
