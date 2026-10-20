@@ -43,6 +43,7 @@ if str(ROOT) not in sys.path:
 sys.dont_write_bytecode = True
 
 from de4sdv.semantic import pleml_package, pleml_receipts
+from de4sdv.sysml_api import baseline
 from de4sdv.sysml_api.baseline import BaselineExportBundle, BaselineManifest, build_export_bundle
 from de4sdv.sysml_api.client import ApiClient
 from de4sdv.sysml_api.ingestion import import_baseline
@@ -121,6 +122,17 @@ LIBRARY = {
     "lock": (pleml_package.PROJECT / "sysand-lock.toml").as_posix(),
 }
 LIBRARY_PATH = ROOT / pleml_package.LIBRARY_PATH
+
+
+def authority_effective() -> bool:
+    """Whether the PLEML authority is in effect on this revision: the switch (ADR 0022, step S6).
+
+    It is in effect when the API baseline pins the library and the export reads
+    every authority source. A run record states it beside ``qualified: false``;
+    it is never a qualification.
+    """
+    return (pleml_package.LIBRARY_PATH in baseline.PINNED_DEPENDENCIES
+            and all(baseline.reviewed_source(source) for source in AUTHORITY_SOURCES))
 
 
 def verify_library(root: Path = ROOT) -> bytes:
@@ -408,7 +420,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         "referenced_sources": list(REFERENCED_SOURCES),
         "qualified": False,
         "native_expression_executed": False,
-        "authority_effective": False,
+        "authority_effective": authority_effective(),
     }
     documents, manifest, version = serialize(out)
     production = {label: values for label, values in documents.items()
