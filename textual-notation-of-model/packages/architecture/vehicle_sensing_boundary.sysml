@@ -184,10 +184,11 @@ package DE4SDV_VehicleSensingBoundary {
    * exclude variation point using the [0]/[1] multiplicity pattern (same
    * pattern as the SDV platform stack's hypervisor "none" variant).
    *
-   * The PLE feature model (sdv_product_line.yaml) uses or_group for perception
-   * sensors, which expresses multi-select at the feature level. The
-   * configurator resolves the YAML selections and annotates which sensors
-   * are enabled in the generated product-model projection.
+   * The PLEML feature model (sdv_product_line.sysml) groups the perception
+   * sensors as optional features of perceptionSensors[1..*], which expresses
+   * multi-select at the feature level (its YAML shadow uses an or_group). The
+   * configurator writes the selected sensors, from the configuration's
+   * receipt, into the doc comment of the generated product-model projection.
    * ────────────────────────────────────────── */
 
   part def SensorSuite {
