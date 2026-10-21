@@ -10,24 +10,27 @@ These models restate the YAML catalogues and every Bill-of-Features with the
 exact-pinned PLEML library. PLEML is the configuration-validity authority of
 the feature models, the configurations and their bindings, and DE4SDV
 evaluates the configurations and derives their variants. The YAML catalogues,
-the Bills-of-Features and the YAML path of `tools/configure_variant.py` stay a
-non-authoritative shadow until they retire (step S7).
+the Bills-of-Features and the YAML path of `tools/configure_variant.py` were a
+non-authoritative shadow from the switch until they retired at step S7. The
+rollback tag `pleml-yaml-authority-final` keeps them as they were before the
+switch, and the Git history keeps the versions that S7 deleted.
 
 ## What the models contain
 
 | Family | Feature model | Configurations |
 |---|---|---|
-| SDV product line | [`sdv_product_line.sysml`](../../model-based-product-line-engineering/feature-models/sdv_product_line.sysml) | the four SDV Bills-of-Features, plus the invalid fixture and the 17 parity probes under `fixtures/` |
+| SDV product line | [`sdv_product_line.sysml`](../../model-based-product-line-engineering/feature-models/sdv_product_line.sysml) | the four SDV configurations, plus the invalid fixture and the 17 parity probes under `fixtures/` |
 | Engineering execution environments (System 2) | [`engineering_execution_environments.sysml`](../../model-based-product-line-engineering/feature-models/engineering_execution_environments.sysml) | `inc_aebs_009a_jetson.sysml`, `apple_silicon_macos_candidate.sysml` |
 | Vehicle-target execution environments (System 1) | [`vehicle_execution_environments.sysml`](../../model-based-product-line-engineering/feature-models/vehicle_execution_environments.sysml) | `nxp_zephyr_vehicle_target_candidate.sysml` |
 
 Each feature model is a `#featureModel` definition whose feature tree is a
 `#featureTree` definition. Each configuration is a `#featureConfiguration`
-typed by that tree, in its own file with the stem of its Bill-of-Features in
-snake case, so the fixture can stay outside the authority roots. The parity
-probes have no Bill-of-Features (see [Parity](#parity-with-the-yaml-path)).
+typed by that tree, in its own file with the stem of its retired
+Bill-of-Features in snake case, so the fixture can stay outside the authority
+roots. The parity probes never had a Bill-of-Features (see
+[The parity probes](#the-parity-probes)).
 
-How the catalogue is restated:
+How the catalogue was restated:
 
 - **IDs.** Every `F-` and `PL-` ID is the SysML short name of its feature or
   tree, and every constraint ID that of its constraint.
@@ -69,9 +72,9 @@ How the catalogue is restated:
 The eight derivation rules and the exclusions of Openpilot and Apollo cover
 all twelve application-middleware pairs, each exactly once: a rule for each
 allowed pair and an exclusion for each unsupported one. Each rule has one
-application and one middleware premise, and the rule table equals the
-catalogue's row by row. A configuration that matches no rule or several is
-rejected.
+application and one middleware premise. Until S7 the rule table was also
+compared with the catalogue's row by row. A configuration that matches no
+rule or several is rejected.
 
 The allowed lists of C001 and C003 stay the reviewed source in the rationale
 of their exclusions, and C002's list in its rationale comment. The complement
@@ -80,12 +83,13 @@ the current operating-system options, so a new option fails CI until the
 rules are re-assessed.
 
 A test also evaluates the closed world: for every structurally valid
-selection of each catalogue (16,128 for the SDV product line), the model's
-groups, exclusions, requires constraints and derivation rules give the same
-verdict, the same constraint IDs and the same derived adapter as the
-configurator. Structurally invalid selections are outside that equality:
-both sides reject them, but not always for the same constraint IDs, because
-an exclusion presumes the exactly-one structure of its group.
+selection of each feature model (16,128 for the SDV product line), it pins
+the verdicts that the model's groups, exclusions, requires constraints and
+derivation rules give: validity, the constraint IDs and the derived adapter.
+Until S7 the test required them to equal the configurator's verdicts on the
+YAML catalogue, selection by selection; the pinned counts are what both gave.
+Structurally invalid selections are outside the enumeration, because an
+exclusion presumes the exactly-one structure of its group.
 
 ## Admission
 
@@ -159,9 +163,9 @@ fixture and the parity probes import PLEML.
 
 [`privileged-ple-authority.yml`](../../.github/workflows/privileged-ple-authority.yml)
 runs on pull requests that touch these models, their runner, their tests,
-the PLEML pin, the committed receipts or the documents and catalogues the
-receipts bind (same-repository, allowlisted authors), and on maintainer
-dispatch. On the exact head it:
+the PLEML pin, the committed receipts or the documents the receipts bind
+(same-repository, allowlisted authors), and on maintainer dispatch. On the
+exact head it:
 
 1. installs PLEML 1.1.1 with the production Sysand lock
    ([provisioning](pleml-provisioning.md)) and byte-checks it against the
@@ -183,10 +187,10 @@ dispatch. On the exact head it:
    functions, and fails when either fails. `compare_with_committed` requires
    their elements to equal the fresh ones; only the run's provenance, which
    the receipts record beside the elements, may differ. `replay_committed`
-   re-evaluates them from those elements and requires the evaluation and the
-   shadow checks to reproduce byte for byte, which catches an edited verdict
-   over genuine elements. A code-identity difference is recorded as an
-   advisory, not a failure;
+   re-evaluates them from those elements and requires the evaluation to
+   reproduce byte for byte, which catches an edited verdict over genuine
+   elements. A code-identity difference is recorded as an advisory, not a
+   failure;
 8. runs the receipt test on the exact head. It runs after the runner, never
    before the serialization: a document change leaves the committed receipts
    stale until the fresh receipts of a run are committed, so the test must
@@ -205,8 +209,8 @@ stem>.receipt.json` per feature model. The owner said yes to committing them
 on 2026-10-19. Unlicensed CI re-runs the evaluator on the committed elements
 and refuses a receipt that is stale by digest or does not reproduce. Each
 receipt binds the documents of the bundle by digest, so a change to a
-feature model, a configuration, a superset, the governed scope, the kernel,
-the library or a catalogue makes it stale:
+feature model, a configuration, a superset, the governed scope, the kernel or
+the library makes it stale:
 
 - when a document changes, the authority job writes fresh receipts into
   `authority/receipts/` of its evidence; commit those;
@@ -236,9 +240,9 @@ committed elements to equal its own (`compare_with_committed`).
 
 The unlicensed checks are
 [`test_ple_authority_model.py`](../../tests/test_ple_authority_model.py)
-(the production surface, the catalogue restatement, the agreement and complement checks,
-the closed world, admission, the bindings, correspondences and
-configurations),
+(the production surface, the shape of the feature models, the agreement and
+complement checks, the closed world, admission, the bindings, correspondences
+and configurations),
 [`test_ple_authority_runner.py`](../../tests/test_ple_authority_runner.py),
 [`test_ple_authority_workflow.py`](../../tests/test_ple_authority_workflow.py)
 and [`test_ple_authority_receipts.py`](../../tests/test_ple_authority_receipts.py)
@@ -248,62 +252,52 @@ They read the model text: the closed-world and admission checks evaluate the
 stated semantics on it, and the other checks pin its shape. Licensed
 validation is the validator, and the evaluator owns the semantics.
 
-## Parity with the YAML path
+## The configurator
 
-From step S4 on, [`check_pleml_parity.py`](../../scripts/check_pleml_parity.py)
-gates every step until the YAML retires at S7. The required public CI runs it
-on the committed receipts and the YAML catalogues, without a licence. It
-compares the two paths on the 25 rows of the plan:
-
-- the 8 files of `feature-configurations/` with their PLEML configurations;
-- the 10 probes of the retained PLE-S comparison, whose selections and names
-  it freezes from `comparison.json`, pinned by digest;
-- 7 closed-world probes: the four unsupported application-middleware pairs,
-  one hand-picked adapter, and the two allowed pairs that no other row
-  exercises, Openpilot with Eclipse S-CORE and Apollo without middleware.
-
-A probe is a PLEML configuration in `fixtures/parity-probes/`, outside the
-authority roots. A new configuration needs licensed serialization, so the
-authority job serializes the probes into the receipts like the invalid
-fixture. The YAML side of a probe is generated from the same frozen
-selection, with the probe's description, outside the repository.
-
-Each row compares the validity, the reasons, the derived variants and the
-normalised projection body of a valid row. Two rejections need the same
-multiset of reasons: class, constraint ID and location, in count. A location
-is the group or feature of a bound, the pair of choices of a pair exclusion
-and the derived variation of a hand-picked variant. Where the retained record
-holds the YAML-era verdict, each row also compares admission. The
-not-expressible row compares the verdict of its remainder's record row
-(`standalone-member`): its own verdict counts the construct PLEML cannot
-state. No invalid configuration may be admitted, on any row. The receipt must
-also restate the row's selection feature by feature, through the catalogue
-paths it records.
-A row is `equal`, `both-reject`, `not-expressible` or `defect`.
-`not-expressible` is only a construct on the pinned list that is the sole
-YAML violation, with the remainder still compared. The list holds one
-construct: the common vehicle-target AEBS capability switched off, in row
-`ug-10-vehicle-target-aebs-false`. Every run requires the histogram of the
-plan, 16 `equal`, 8 `both-reject`, 1 `not-expressible` and 0 `defect`.
-
-The configurator reads the receipts with its existing writer:
+The configurator writes the projections from the receipts:
 `python tools/configure_variant.py --receipt <receipt> --configuration <name>`
 replays the receipt and generates the projection of one valid configuration
-of the served model. It refuses to project a fixture (exit 2); `--check-only`
-reports a fixture's verdict, and the parity renders the probes' projections
-in memory.
-The parity requires each of the seven committed projections to have one
-normalised body on all three sides: the committed file, the YAML path and the
-receipt. Since the switch the committed projections are the receipt path's,
-and the YAML path is the shadow the parity compares with them.
+of the served model. It labels each selection outside the projection by its
+PLEML feature path, and the members of a group by their feature names. It
+refuses to project a fixture (exit 2); `--check-only` reports a fixture's
+verdict. Each of the seven committed projections regenerates from its
+receipt byte for byte. The public CI replays every committed receipt
+(`python scripts/run_pleml_configuration_evaluation.py replay ...`).
+
+## The parity probes
+
+`fixtures/parity-probes/` holds 17 PLEML configurations, outside the
+authority roots. Ten restate the probe selections of the retired PLE-S
+record, and seven probe the closed world: the four unsupported
+application-middleware pairs, one hand-picked adapter, and the two allowed
+pairs that no other configuration exercises, Openpilot with Eclipse S-CORE
+and Apollo without middleware. A new configuration needs licensed
+serialization, so the authority job serializes the probes into the receipts
+like the invalid fixture, and
+[`test_ple_authority_receipts.py`](../../tests/test_ple_authority_receipts.py)
+pins the verdict of each.
+
+From step S4 to step S7 the parity check (`scripts/check_pleml_parity.py`)
+compared the receipts with the YAML path on 25 rows: the 8 files of
+`feature-configurations/` and the 17 probes. Each row compared the validity,
+the reasons, the derived variants and the normalised projection body, and
+every run required the histogram of the plan: 16 `equal`, 8 `both-reject`,
+1 `not-expressible` and 0 `defect`. The check, the YAML path it ran and the
+retained PLE-S record whose probe selections it froze retired at S7. The
+rollback tag `pleml-yaml-authority-final` keeps them as they were before the
+switch, and the Git history keeps the versions that S7 deleted.
 
 ## Evidence records
 
-The `evidence` block of a Bill-of-Features is not a feature selection. When
-the Bills-of-Features retire, it moves to an external evidence record per
-configuration, `feature-configurations/evidence/<file stem>.yaml`, with
-today's schema and integrity rules. Until then it stays in the
-Bill-of-Features.
+The `evidence` block of a Bill-of-Features was not a feature selection.
+Since the Bills-of-Features retired at S7, it is an evidence record per
+configuration, `feature-configurations/evidence/<file stem>.yaml`, with the
+configuration's file stem in kebab case. The records keep the schema of the
+block (a status, plus artifacts with an id and a path) and its integrity
+rules, which
+[`test_configuration_evidence_records.py`](../../tests/test_configuration_evidence_records.py)
+applies. Four configurations have one: the AAOS-integrated member and the
+three execution-environment configurations.
 
 ## History
 

@@ -1,28 +1,31 @@
-"""Production surface, catalogue restatement and closed-world checks of the PLEML feature models (ADR 0022).
+"""Production surface, shape and closed-world checks of the PLEML feature models (ADR 0022).
 
 The PLEML feature models (``feature-models/*.sysml``) and their configurations
 (``feature-configurations/**/*.sysml``) are the product-line authority since
-the switch (ADR 0022, step S6). These checks read the model text: they pin the reviewed
-shape so that a rename or a drift fails here before the licensed run, and the
-closed-world and admission checks evaluate the stated semantics on that text.
-The privileged PLE authority workflow (licensed validation, serialization, API
-round trip) is the validator, and the evaluator of step S2 owns the
-semantics. They pin:
+the switch (ADR 0022, step S6), and since step S7 the only product-line
+source: the YAML catalogues and Bills-of-Features they restated retired. These
+checks read the model text: they pin the reviewed shape so that a rename or a
+drift fails here before the licensed run, and the closed-world and admission
+checks evaluate the stated semantics on that text. The privileged PLE
+authority workflow (licensed validation, serialization, API round trip) is the
+validator, and the evaluator of step S2 owns the semantics. They pin:
 
 - the production surface: every production selector reads the PLEML
   documents, and the fixtures stay out of the export and the served model;
-- each feature model restating its YAML catalogue node for node, by ID, except
-  the ``C-`` common-capability nodes, which have no element (decision 2);
+- the shape of each feature model: one feature ID per feature, no element for
+  common content (decision 2), the groups and their multiplicities, the
+  Development binding time and the unassigned binding times;
 - the agreement check over the twelve application-middleware pairs: exactly
-  one derivation rule for each allowed pair, exactly one exclusion for each
-  unsupported one, and the rule table equal to the catalogue's row by row;
+  one derivation rule for each allowed pair and exactly one exclusion for each
+  unsupported one;
 - the complement check of the allowed lists of C001 and C003, and of C002's;
-- the closed world: on every structurally valid selection, the model's groups,
-  constraints and rules decide as the configurator does;
+- the closed world: on every structurally valid selection, the model's
+  groups, constraints and rules give the verdicts that the configurator gave
+  on the YAML catalogue until S7;
 - one feature binding per shared-asset variant, the correspondences, the
-  projection metadata and the unassigned binding times;
-- each configuration against its bill of features, and its admission by the
-  stated reading of the correspondences.
+  projection metadata and the configurations' shape;
+- the admission of each configuration by the stated reading of the
+  correspondences.
 """
 
 from __future__ import annotations
@@ -31,6 +34,7 @@ import importlib.util
 import itertools
 import re
 import subprocess
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -59,14 +63,12 @@ PRODUCTION_WORKFLOWS = (
     ".github/workflows/privileged-full-model-api-ingestion.yml",
     ".github/workflows/deploy-public-sysml-api.yml",
 )
-GROUPS = ("alternative", "or_group")
 SUPERSETS = {"DE4SDV_SDVPlatformStack": Path("textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml"),
              "DE4SDV_ExecutionEnvironments": Path("textual-notation-of-model/packages/architecture/execution_environments.sysml")}
 
 
 @dataclass(frozen=True)
 class Family:
-    catalogue: Path
     model: Path
     package: str
     tree: str
@@ -76,18 +78,40 @@ class Family:
 
 
 FAMILIES = {
-    "sdv": Family(FEATURE_MODELS_DIR / "sdv_product_line.yaml", FEATURE_MODELS_DIR / "sdv_product_line.sysml",
-                  "DE4SDV_SDVProductLineFeatureModel", "SDVProductLineFeatureTree", "SDVProductLineFeatureModel", None),
+    "sdv": Family(FEATURE_MODELS_DIR / "sdv_product_line.sysml", "DE4SDV_SDVProductLineFeatureModel",
+                  "SDVProductLineFeatureTree", "SDVProductLineFeatureModel", None),
     "engineering": Family(
-        FEATURE_MODELS_DIR / "engineering_execution_environments.yaml",
         FEATURE_MODELS_DIR / "engineering_execution_environments.sysml",
         "DE4SDV_EngineeringExecutionEnvironmentFeatureModel", "EngineeringExecutionEnvironmentFeatureTree",
         "EngineeringExecutionEnvironmentFeatureModel", "ExcludedSystem2ConcernSet::engineeringExecutionEnvironments"),
     "vehicle": Family(
-        FEATURE_MODELS_DIR / "vehicle_execution_environments.yaml",
         FEATURE_MODELS_DIR / "vehicle_execution_environments.sysml",
         "DE4SDV_VehicleTargetExecutionEnvironmentFeatureModel", "VehicleTargetExecutionEnvironmentFeatureTree",
         "VehicleTargetExecutionEnvironmentFeatureModel", "DeferredVariabilitySet::vehicleRuntimeVariability"),
+}
+#: The projection metadata of each feature model: the package, owner and label of the projections that
+#: its configurations generate.
+PROJECTIONS = {
+    "sdv": ("DE4SDV_SDVPlatformStack", "SDVPlatformStack", "platform-stack"),
+    "engineering": ("DE4SDV_ExecutionEnvironments", "EngineeringExecutionEnvironment",
+                    "engineering execution-environment"),
+    "vehicle": ("DE4SDV_ExecutionEnvironments", "VehicleTargetExecutionEnvironment",
+                "vehicle-target execution-environment"),
+}
+#: The features whose binding time is not decided: the four capabilities of the SDV product line.
+UNASSIGNED = {
+    "sdv": {"F-CAPABILITY-AEBS-PEDESTRIAN-DETECTION", "F-CAPABILITY-AEBS-BICYCLE-DETECTION",
+            "F-CAPABILITY-ADAPTIVE-CRUISE-CONTROL", "F-CAPABILITY-LANE-KEEP-ASSIST"},
+    "engineering": set(),
+    "vehicle": set(),
+}
+#: The SDV exclusions with a constraint ID: (owner, excluded features). The pair exclusions of Openpilot
+#: and Apollo carry no ID; the agreement check covers them.
+SDV_EXCLUSIONS = {
+    "C001": ("eclipseSCORE", {"android"}),
+    "C003": ("autosarAdaptive", {"android"}),
+    "C004": ("acrn", {"qnx"}),
+    "C005": ("kvm", {"qnx"}),
 }
 
 #: The correspondences of the SDV features to the governed scope, by feature ID: the
@@ -237,12 +261,6 @@ def _dependencies(path: Path | str) -> list[Dependency]:
     return found
 
 
-def _catalogue(family: Family):
-    data = configurator.load_yaml_unique(_raw(family.catalogue))
-    root, constraints = configurator.build_feature_tree(data)
-    return data, root, constraints
-
-
 def _by_id(features: list[Feature]) -> dict[str, Feature]:
     index = {feature.id: feature for feature in features}
     assert len(index) == len(features), "a catalogue ID is the short name of more than one feature"
@@ -257,28 +275,6 @@ def _by_name(features: list[Feature]) -> dict[str, Feature]:
 
 def _qualified(family: Family, feature: Feature) -> str:
     return "::".join((family.tree, *feature.path))
-
-
-def _is_common(node) -> bool:
-    return bool(node.feature_id) and node.feature_id.startswith("C-")
-
-
-def _enclosing(node):
-    """The catalogue node whose PLEML feature encloses the feature of ``node``.
-
-    A choice of an alternative or OR group is a sibling of its group feature;
-    a C- node has no feature, so its children move to its nearest feature.
-    """
-    parent = node.parent
-    if parent.parent is not None and parent.type in GROUPS:
-        return _enclosing(parent)
-    while parent.parent is not None and _is_common(parent):
-        parent = parent.parent
-    return parent
-
-
-def _choice(nodes: dict, group: str, choice: str):
-    return next(child for child in nodes[group].children if child.name == choice)
 
 
 def _variants(superset: Path, owner: str, variation: str) -> set[str]:
@@ -492,43 +488,54 @@ def test_the_pleml_files_follow_the_naming_rules(path: str) -> None:
     assert check_naming.check_identifier_tokens_in_text(text, path, ".sysml") == []
 
 
-# -- the catalogue restated node for node ----------------------------------------------------------
+
+
+# -- the shape of the feature models ---------------------------------------------------------------
+
+
+def test_the_yaml_product_line_layer_is_retired() -> None:
+    """Since S7 no YAML catalogue and no Bill-of-Features exists; the evidence records are YAML."""
+    assert not list((ROOT / FEATURE_MODELS_DIR).rglob("*.yaml"))
+    assert {path.parent.relative_to(ROOT).as_posix() for path in (ROOT / CONFIGURATIONS_DIR).rglob("*.yaml")} <= {
+        (CONFIGURATIONS_DIR / "evidence").as_posix()}
 
 
 @pytest.mark.parametrize("name", FAMILIES)
-def test_every_catalogue_node_but_common_content_is_one_feature_by_id(name: str) -> None:
+def test_every_feature_has_one_feature_id_and_common_content_has_no_element(name: str) -> None:
+    """Each feature carries one F- ID and the tree a PL- ID. A C- ID names a constraint only: common
+    capabilities have no feature and no element (ADR 0022, decision 2)."""
     family = FAMILIES[name]
-    _data, root, _constraints = _catalogue(family)
     tree_id, features = _tree(family)
-    assert tree_id == root.feature_id
+    assert tree_id.startswith("PL-")
     _by_name(features)
     index = _by_id(features)
-    nodes = [node for node in configurator.iter_feature_nodes(root) if node.parent is not None]
-    assert set(index) == {node.feature_id for node in nodes if not _is_common(node)}
-    common = {node.feature_id for node in nodes if _is_common(node)}
-    assert not (set(re.findall(r"<'([^']+)'>", _code(family.model))) & common), "a common-capability node has an element"
+    assert all(identifier.startswith("F-") for identifier in index), sorted(index)
+    constraint_ids = {constraint["id"] for feature in features for constraint in feature.constraints
+                      if constraint["id"]}
+    derivations = {dependency.short for dependency in _dependencies(family.model)
+                   if dependency.metadata == "DerivedVariation"}
+    assert all(identifier.startswith("D-") for identifier in derivations)
+    assert set(re.findall(r"<'([^']+)'>", _code(family.model))) == {tree_id, *index, *constraint_ids, *derivations}
+    assert all(identifier.startswith("C") for identifier in constraint_ids)
 
 
 @pytest.mark.parametrize("name", FAMILIES)
-def test_the_hierarchy_and_multiplicities_restate_the_catalogue(name: str) -> None:
-    family = FAMILIES[name]
-    _data, root, _constraints = _catalogue(family)
-    _tree_id, features = _tree(family)
-    index, by_name = _by_id(features), _by_name(features)
-    for node in configurator.iter_feature_nodes(root):
-        if node.parent is None or _is_common(node):
-            continue
-        feature = index[node.feature_id]
-        enclosing = _enclosing(node)
-        assert feature.path[:-1] == (() if enclosing.parent is None else index[enclosing.feature_id].path), node.feature_id
-        if node.parent.parent is not None and node.parent.type in GROUPS:
-            assert (feature.multiplicity, feature.default_null) == ("0..1", True), node.feature_id
-            assert feature.parent is not None and by_name[feature.parent].id == node.parent.feature_id
+def test_the_groups_and_multiplicities_keep_the_reviewed_shape(name: str) -> None:
+    """A group member is a [0..1] feature with default null that subsets its group and is its sibling.
+    A group is [1] (exactly one member) or [1..*] (at least one). Any other feature is a [1] grouping
+    feature or a [0..1] optional feature with default null."""
+    features = _tree(FAMILIES[name])[1]
+    by_name = _by_name(features)
+    groups = {feature.parent for feature in features if feature.parent}
+    for feature in features:
+        if feature.parent is not None:
+            assert (feature.multiplicity, feature.default_null) == ("0..1", True), feature.id
+            assert feature.path[:-1] == by_name[feature.parent].path[:-1], feature.id
+        elif feature.name in groups:
+            assert (feature.multiplicity, feature.default_null) in {("1", False), ("1..*", False)}, feature.id
         else:
-            assert feature.parent is None, node.feature_id
-            expected = {"mandatory": ("1", False), "alternative": ("1", False), "or_group": ("1..*", False),
-                        "optional": ("0..1", True)}[node.type]
-            assert (feature.multiplicity, feature.default_null) == expected, node.feature_id
+            assert (feature.multiplicity, feature.default_null) in {("1", False), ("0..1", True)}, feature.id
+    assert all(by_name[group].parent is None for group in groups), "a group member is no group"
 
 
 def test_pedestrian_and_bicycle_detection_move_under_capabilities() -> None:
@@ -545,12 +552,10 @@ def test_every_feature_keeps_the_development_binding_time_and_no_implies_exists(
 
 
 @pytest.mark.parametrize("name", FAMILIES)
-def test_unassigned_binding_time_marks_exactly_the_unassigned_catalogue_features(name: str) -> None:
+def test_unassigned_binding_time_marks_exactly_the_reviewed_features(name: str) -> None:
     family = FAMILIES[name]
-    _data, root, _constraints = _catalogue(family)
     features = _tree(family)[1]
-    unassigned = {node.feature_id for node in configurator.iter_feature_nodes(root) if node.binding_time == "unassigned"}
-    assert {feature.id for feature in features if feature.unassigned} == unassigned
+    assert {feature.id for feature in features if feature.unassigned} == UNASSIGNED[name]
     # A feature that a binding, a derived variation or a rule names has a decided binding time.
     named = {supplier for dependency in _dependencies(family.model) if dependency.metadata
              for supplier in dependency.suppliers}
@@ -560,91 +565,49 @@ def test_unassigned_binding_time_marks_exactly_the_unassigned_catalogue_features
 # -- constraints, the agreement check and the complement check ---------------------------------------
 
 
-def _expression(text: str) -> tuple[str, str, tuple[str, ...]]:
-    """``Group == Choice`` or ``Group in [A, B]`` as (operator, group path, choice names)."""
-    if (match := re.fullmatch(r"([\w.]+) == (\w+)", text)) is not None:
-        return "==", match[1], (match[2],)
-    if (match := re.fullmatch(r"([\w.]+) in \[([\w, ]+)\]", text)) is not None:
-        return "in", match[1], tuple(part.strip() for part in match[2].split(","))
-    raise AssertionError(f"an unreviewed constraint expression: {text!r}")
-
-
-def _sdv():
-    data, root, constraints = _catalogue(FAMILIES["sdv"])
-    features = _tree(FAMILIES["sdv"])[1]
-    return data, constraints, _by_id(features), _by_name(features), configurator.collect_all_nodes(root)
-
-
 def _exclusions(by_name: dict[str, Feature]) -> list[tuple[Feature, dict]]:
     return [(feature, constraint) for feature in by_name.values() for constraint in feature.constraints
             if constraint["kind"] == "xorFeatures"]
 
 
-def test_the_sdv_catalogue_constraints_become_exclusions_or_dropped_rules() -> None:
-    _data, constraints, _index, by_name, nodes = _sdv()
-    by_constraint = {constraint["id"]: (feature, constraint) for feature, constraint in _exclusions(by_name)
-                     if constraint["id"]}
-    assert set(by_constraint) == {"C001", "C003", "C004", "C005"}
-    for item in constraints:
-        if item["id"] == "C006":
-            assert _is_common(nodes[item["then"]]), "C006 targets common content, which has no feature"
-            continue
-        _op, group, (choice,) = _expression(item["if"])
-        premise = _choice(nodes, group, choice)
-        operator, target_group, targets = _expression(item["then"])
-        if item["type"] == "excludes":
-            excluded = {_choice(nodes, target_group, target).feature_id for target in targets}
-        else:
-            assert operator == "in"
-            excluded = {child.feature_id for child in nodes[target_group].children if child.name not in targets}
-        if not excluded:
-            assert item["id"] == "C002" and item["id"] not in by_constraint
-            continue
-        owner, constraint = by_constraint[item["id"]]
-        assert owner.id == premise.feature_id, item["id"]
-        assert {by_name[name].id for name in constraint["operands"]} == excluded, item["id"]
+
+def test_the_sdv_exclusions_are_the_reviewed_constraints() -> None:
+    """C001, C003, C004 and C005 are exclusions, each owned by one choice and excluding choices of another
+    group; C002 and C006 are dropped rules with no constraint (below). Every SDV constraint is an exclusion."""
+    by_name = _by_name(_tree(FAMILIES["sdv"])[1])
+    identified = {constraint["id"]: (owner.name, set(constraint["operands"]))
+                  for owner, constraint in _exclusions(by_name) if constraint["id"]}
+    assert identified == SDV_EXCLUSIONS
+    for identifier, (owner, excluded) in identified.items():
+        group = by_name[owner].parent
+        assert group and all(by_name[name].parent not in (None, group) for name in excluded), identifier
     assert all(constraint["kind"] == "xorFeatures" for feature in by_name.values() for constraint in feature.constraints)
 
 
-def _derivation(data: dict, nodes: dict, index: dict[str, Feature]):
-    [derived] = data["derived_asset_selections"]
-    projection = configurator.projection_metadata(data)
-    owner, variation = derived["maps_to"].split(".")
-    client = f"{projection['package']}::{owner}::{variation}"
+def test_the_derived_variation_and_its_rules_target_the_superset_and_no_binding() -> None:
     family = FAMILIES["sdv"]
-    sources = tuple(_qualified(family, index[nodes[path].feature_id]) for path in derived["source_selections"])
-    rows = set()
-    for rule in derived["rules"]:
-        premises = tuple(_qualified(family, index[_choice(nodes, path, rule["when"][path]).feature_id])
-                         for path in derived["source_selections"])
-        rows.add((f"{client}::{rule['maps_to_variant']}", premises))
-    assert len(rows) == len(derived["rules"]), "the catalogue repeats a rule"
-    return derived["id"], client, sources, rows, (owner, variation)
-
-
-def test_the_derived_variation_and_its_rules_restate_the_catalogue_rule_table() -> None:
-    data, _constraints, index, _by_name_, nodes = _sdv()
-    identity, client, sources, rows, (owner, variation) = _derivation(data, nodes, index)
-    dependencies = _dependencies(FAMILIES["sdv"].model)
-    [derived] = [d for d in dependencies if d.metadata == "DerivedVariation"]
-    assert (derived.short, derived.client, derived.suppliers) == (identity, client, sources)
-    rules = [d for d in dependencies if d.metadata == "DerivationRule"]
-    assert {(rule.client, rule.suppliers) for rule in rules} == rows and len(rules) == len(rows)
-    assert not any(rule.short for rule in rules)
-    variants = _variants(SUPERSETS["DE4SDV_SDVPlatformStack"], owner, variation)
+    dependencies = _dependencies(family.model)
+    [derived] = [dependency for dependency in dependencies if dependency.metadata == "DerivedVariation"]
+    client = "DE4SDV_SDVPlatformStack::SDVPlatformStack::applicationMiddlewareAdapter"
+    assert (derived.short, derived.client, derived.suppliers) == (
+        "D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER", client,
+        (f"{family.tree}::platformStack::vehicleApplication", f"{family.tree}::platformStack::middleware"))
+    rules = [dependency for dependency in dependencies if dependency.metadata == "DerivationRule"]
+    assert rules and not any(rule.short for rule in rules)
+    assert all(rule.client.rsplit("::", 1)[0] == client for rule in rules)
+    variants = _variants(SUPERSETS["DE4SDV_SDVPlatformStack"], "SDVPlatformStack", "applicationMiddlewareAdapter")
     assert {rule.client.rsplit("::", 1)[1] for rule in rules} <= variants
     # A derived variant is never a feature: no binding targets the derived variation.
-    assert not any(d.client.startswith(client) for d in dependencies if d.metadata == "FeatureBinding")
+    assert not any(dependency.client.startswith(client) for dependency in dependencies
+                   if dependency.metadata == "FeatureBinding")
 
 
 def test_the_agreement_check_covers_all_twelve_pairs_exactly_once() -> None:
-    data, _constraints, index, by_name, nodes = _sdv()
-    _identity, _client, _sources, rows, _variation = _derivation(data, nodes, index)
-    applications = {_qualified(FAMILIES["sdv"], index[child.feature_id])
-                    for child in nodes["PlatformStack.VehicleApplication"].children}
-    middlewares = {_qualified(FAMILIES["sdv"], index[child.feature_id])
-                   for child in nodes["PlatformStack.Middleware"].children}
-    rules = [d for d in _dependencies(FAMILIES["sdv"].model) if d.metadata == "DerivationRule"]
+    family = FAMILIES["sdv"]
+    by_name = _by_name(_tree(family)[1])
+    applications = {_qualified(family, feature) for feature in by_name.values() if feature.parent == "vehicleApplication"}
+    middlewares = {_qualified(family, feature) for feature in by_name.values() if feature.parent == "middleware"}
+    rules = [dependency for dependency in _dependencies(family.model) if dependency.metadata == "DerivationRule"]
     covered: dict[tuple[str, str], list[str]] = {}
     for rule in rules:
         assert len(rule.suppliers) == 2, rule.name
@@ -653,18 +616,18 @@ def test_the_agreement_check_covers_all_twelve_pairs_exactly_once() -> None:
         covered.setdefault((application, middleware), []).append(f"rule {rule.name}")
     exclusion_owners = 0
     for owner, constraint in _exclusions(by_name):
-        if _qualified(FAMILIES["sdv"], owner) not in applications:
+        if _qualified(family, owner) not in applications:
             continue
         exclusion_owners += 1
         assert constraint["id"] is None, constraint["name"]
         for name in constraint["operands"]:
-            assert _qualified(FAMILIES["sdv"], by_name[name]) in middlewares, name
-            covered.setdefault((_qualified(FAMILIES["sdv"], owner), _qualified(FAMILIES["sdv"], by_name[name])),
+            assert _qualified(family, by_name[name]) in middlewares, name
+            covered.setdefault((_qualified(family, owner), _qualified(family, by_name[name])),
                                []).append(f"exclusion {constraint['name']}")
     every = {(application, middleware) for application in applications for middleware in middlewares}
     assert len(every) == 12 and set(covered) == every
     assert all(len(statements) == 1 for statements in covered.values()), covered
-    assert sum(1 for statements in covered.values() if statements[0].startswith("rule")) == len(rows) == 8
+    assert sum(1 for statements in covered.values() if statements[0].startswith("rule")) == len(rules) == 8
     assert exclusion_owners == 2
 
 
@@ -694,108 +657,89 @@ def complement_violations(options: set[str], allowed: dict[str, set[str]], exclu
     return violations
 
 
+
+
 def _complement_inputs():
-    _data, constraints, index, by_name, nodes = _sdv()
+    """The operating-system options, the reviewed allowed list of each rule as its rationale records it,
+    and the operating systems the rule's premise excludes."""
+    by_name = _by_name(_tree(FAMILIES["sdv"])[1])
     raw = _raw(FAMILIES["sdv"].model)
     options = {feature.name for feature in by_name.values() if feature.parent == "operatingSystem"}
     allowed: dict[str, set[str]] = {}
-    for rule, owner in ALLOWED_LIST_RULES.items():
-        lists = ALLOWED_LIST.findall(_rationale(raw, owner))
+    exclusions: dict[str, set[str]] = {}
+    for rule, where in ALLOWED_LIST_RULES.items():
+        lists = ALLOWED_LIST.findall(_rationale(raw, where))
         assert len(lists) == 1, rule
         allowed[rule] = {name.strip() for name in lists[0].split(",")}
-    exclusions, catalogue_lists = {}, {}
-    for item in constraints:
-        if item["id"] not in ALLOWED_LIST_RULES:
-            continue
-        _op, group, (choice,) = _expression(item["if"])
-        premise = index[_choice(nodes, group, choice).feature_id]
-        exclusions[item["id"]] = {name for constraint in premise.constraints if constraint["kind"] == "xorFeatures"
-                                  for name in constraint["operands"] if name in options}
-        _op, target_group, choices = _expression(item["then"])
-        catalogue_lists[item["id"]] = {index[_choice(nodes, target_group, name).feature_id].name for name in choices}
-    return options, allowed, exclusions, catalogue_lists
+        if where == rule:
+            [premise] = [owner for owner, constraint in _exclusions(by_name) if constraint["id"] == rule]
+        else:
+            premise = by_name[where]
+        exclusions[rule] = {name for constraint in premise.constraints if constraint["kind"] == "xorFeatures"
+                            for name in constraint["operands"] if name in options}
+    return options, allowed, exclusions
 
 
-def test_the_allowed_lists_are_the_catalogue_lists_and_each_exclusion_set_their_complement() -> None:
-    options, allowed, exclusions, catalogue_lists = _complement_inputs()
+def test_each_exclusion_set_is_the_complement_of_its_reviewed_allowed_list() -> None:
+    options, allowed, exclusions = _complement_inputs()
     assert options == {"linux", "android", "qnx"}
-    assert allowed == catalogue_lists, "until S7 the recorded lists are the catalogue's"
+    assert sorted(allowed) == ["C001", "C002", "C003"]
     assert complement_violations(options, allowed, exclusions) == []
     assert exclusions["C002"] == set(), "the dropped rule owns no exclusion"
 
 
 def test_the_complement_check_fails_when_an_operating_system_option_is_added() -> None:
-    options, allowed, exclusions, _lists = _complement_inputs()
+    options, allowed, exclusions = _complement_inputs()
     violations = complement_violations(options | {"automotiveGradeLinux"}, allowed, exclusions)
     assert [violation.split(":")[0] for violation in violations] == ["C001", "C002", "C003"]
-
-
 def test_the_dropped_rules_keep_their_rationale_in_the_model() -> None:
     raw = _raw(FAMILIES["sdv"].model)
     assert "Dropped rule C002" in _rationale(raw, "androidSDV")
     assert "Dropped rule C006" in _rationale(raw, "pedestrianDetection")
 
 
+
 @pytest.mark.parametrize("name", ["engineering", "vehicle"])
-def test_the_environment_catalogue_constraints_become_requires_constraints(name: str) -> None:
-    family = FAMILIES[name]
-    _data, root, constraints = _catalogue(family)
-    features = _tree(family)[1]
+def test_the_environment_constraints_are_requires_constraints_between_choices(name: str) -> None:
+    """Each constraint of an execution-environment family is a requires constraint with the family's
+    C-ENG- or C-VEHICLE- ID, owned by a choice and requiring one choice of another group."""
+    features = _tree(FAMILIES[name])[1]
     by_name = _by_name(features)
-    nodes = configurator.collect_all_nodes(root)
-    found = {constraint["id"]: (feature, constraint) for feature in features for constraint in feature.constraints}
-    assert set(found) == {item["id"] for item in constraints}
-    for item in constraints:
-        assert item["type"] == "requires"
-        _op, group, (choice,) = _expression(item["if"])
-        operator, target_group, (target,) = _expression(item["then"])
-        assert operator == "=="
-        owner, constraint = found[item["id"]]
-        assert constraint["kind"] == "requiresFeatures"
-        assert owner.id == _choice(nodes, group, choice).feature_id
-        assert [by_name[operand].id for operand in constraint["operands"]] == [_choice(nodes, target_group, target).feature_id]
+    prefix = {"engineering": "C-ENG-", "vehicle": "C-VEHICLE-"}[name]
+    constraints = [(feature, constraint) for feature in features for constraint in feature.constraints]
+    assert constraints and len({constraint["id"] for _owner, constraint in constraints}) == len(constraints)
+    for owner, constraint in constraints:
+        assert constraint["kind"] == "requiresFeatures" and constraint["id"].startswith(prefix), constraint
+        [operand] = constraint["operands"]
+        assert owner.parent and by_name[operand].parent not in (None, owner.parent), constraint["id"]
 
 
 # -- the closed world, evaluated ------------------------------------------------------------------
 
 
-def _valid_selections(root) -> list[dict]:
-    """Every structurally valid selection of a catalogue, as Bill-of-Features selections.
+def _structural_selections(features: list[Feature]) -> list[set[str]]:
+    """Every structurally valid selection of a feature model, as the names of the selected features.
 
-    One choice per alternative group, a non-empty subset per OR group, and both
-    values of each optional leaf; a mandatory leaf stays implied. Structurally
-    invalid selections are outside the equality: an exclusion presumes the
-    exactly-one structure of its group, so both sides reject them, but not
-    always for the same constraint IDs.
+    One member per [1] group, a non-empty subset of the members of a [1..*] group, and both states of
+    each optional feature outside a group; every feature with a lower bound of one is selected.
+    Structurally invalid selections are outside the enumeration: an exclusion presumes the
+    exactly-one structure of its group.
     """
+    groups: dict[str, list[str]] = {}
+    for feature in features:
+        if feature.parent:
+            groups.setdefault(feature.parent, []).append(feature.name)
     axes = []
-    for node in configurator.collect_all_nodes(root).values():
-        if node.is_selection_group():
-            names = [child.name for child in node.children]
-            axes.append((node.path, names if node.type == "alternative" else
-                         [list(subset) for size in range(1, len(names) + 1)
-                          for subset in itertools.combinations(names, size)]))
-        elif node.is_leaf() and node.type == "optional" and node.parent.type not in GROUPS:
-            axes.append((node.path, [False, True]))
-    return [dict(zip((path for path, _values in axes), combination))
-            for combination in itertools.product(*(values for _path, values in axes))]
-
-
-def _configurator_verdict(data: dict, root, constraints: list, selection: dict) -> tuple[bool, frozenset, bool, str | None]:
-    """(valid, constraint IDs, no matching rule, derived variant) as the configurator decides.
-
-    The derived variant counts for a valid selection only: derivation applies
-    to valid configurations (the kernel's derivation rule).
-    """
-    nodes = configurator.collect_all_nodes(root)
-    assert configurator.validate_structure(root, nodes, selection) == [], selection
-    implied = {leaf.path: True for leaf in configurator.find_mandatory_leaves(root) if leaf.path not in selection}
-    errors = configurator.validate_constraints(constraints, {**selection, **implied})
-    ids = frozenset(re.match(r"\[([^\]]+)\]", error)[1] for error in errors)
-    resolved, unresolved = configurator.resolve_derived_asset_selections(data, selection)
-    no_rule = any("has no rule" in error for error in unresolved)
-    valid = not errors and not unresolved
-    return valid, ids, no_rule, resolved[0][1] if valid and resolved else None
+    for feature in features:
+        if feature.name in groups:
+            names = groups[feature.name]
+            axes.append([{name} for name in names] if feature.multiplicity == "1" else
+                        [set(subset) for size in range(1, len(names) + 1)
+                         for subset in itertools.combinations(names, size)])
+        elif feature.parent is None and feature.multiplicity == "0..1":
+            axes.append([set(), {feature.name}])
+    selected = {feature.name for feature in features if not feature.multiplicity.startswith("0")}
+    return [selected.union(*choice) for choice in itertools.product(*axes)]
 
 
 def _model_verdict(features: list[Feature], rules: list[Dependency], selected: set[str]) -> tuple[bool, frozenset, bool, str | None]:
@@ -833,53 +777,106 @@ def _model_verdict(features: list[Feature], rules: list[Dependency], selected: s
     return not reasons, ids, any(reason.startswith("pair ") for reason in reasons), variant
 
 
-def _selected_features(selection: dict, root, features: list[Feature]) -> set[str]:
-    """The features a selection selects: its choices and set leaves, plus every mandatory feature."""
-    index, nodes = _by_id(features), configurator.collect_all_nodes(root)
-    selected = {feature.name for feature in features if not feature.multiplicity.startswith("0")}
-    for path, value in selection.items():
-        if value is False:
-            continue
-        names = [value] if isinstance(value, str) else value if isinstance(value, list) else []
-        targets = [_choice(nodes, path, name) for name in names] if names else [nodes[path]]
-        selected.update(index[node.feature_id].name for node in targets if not _is_common(node))
-    return selected
+
+#: The verdicts of the closed world on every structurally valid selection, (valid, constraint IDs, pair
+#: exclusion, derived adapter) -> count. Until S7 a test compared each selection with the configurator's
+#: verdict on the YAML catalogue; these counts are what both gave.
+CLOSED_WORLD = {
+    "sdv": {
+        (False, ('C001',), False, None): 1344,
+        (False, ('C003',), False, None): 448,
+        (False, ('C003',), True, None): 896,
+        (False, ('C004',), False, None): 896,
+        (False, ('C004',), True, None): 448,
+        (False, ('C005',), False, None): 896,
+        (False, ('C005',), True, None): 448,
+        (False, (), True, None): 3584,
+        (True, (), False, 'apolloToSCORE'): 672,
+        (True, (), False, 'autowareToAAOSSDV'): 1120,
+        (True, (), False, 'autowareToAUTOSAR'): 672,
+        (True, (), False, 'autowareToSCORE'): 672,
+        (True, (), False, 'none'): 3360,
+        (True, (), False, 'openpilotToSCORE'): 672,
+    },
+    "engineering": {
+        (False, ('C-ENG-AOSP-HOST-REQUIRES-LINUX-X86-64', 'C-ENG-AOSP-HOST-REQUIRES-NESTED-KVM'), False, None): 4,
+        (False, ('C-ENG-AOSP-HOST-REQUIRES-LINUX-X86-64',), False, None): 2,
+        (False, ('C-ENG-AOSP-HOST-REQUIRES-NESTED-KVM',), False, None): 2,
+        (False, ('C-ENG-APPLE-REQUIRES-MACOS', 'C-ENG-APPLE-REQUIRES-VIRTUAL-LINUX-OCI'), False, None): 4,
+        (False, ('C-ENG-APPLE-REQUIRES-MACOS',), False, None): 2,
+        (False, ('C-ENG-APPLE-REQUIRES-VIRTUAL-LINUX-OCI',), False, None): 2,
+        (False, ('C-ENG-JETSON-REQUIRES-NATIVE-OCI', 'C-ENG-JETSON-REQUIRES-TEGRA-LINUX'), False, None): 4,
+        (False, ('C-ENG-JETSON-REQUIRES-NATIVE-OCI',), False, None): 2,
+        (False, ('C-ENG-JETSON-REQUIRES-TEGRA-LINUX',), False, None): 2,
+        (True, (), False, None): 3,
+    },
+    "vehicle": {
+        (False, ('C-VEHICLE-NATIVE-ZEPHYR-REQUIRES-NXP', 'C-VEHICLE-NO-COMPUTE-REQUIRES-NO-OS', 'C-VEHICLE-NO-COMPUTE-REQUIRES-NO-RUNTIME', 'C-VEHICLE-ZEPHYR-REQUIRES-NXP'), False, None): 1,
+        (False, ('C-VEHICLE-NATIVE-ZEPHYR-REQUIRES-NXP', 'C-VEHICLE-NO-COMPUTE-REQUIRES-NO-RUNTIME'), False, None): 1,
+        (False, ('C-VEHICLE-NO-COMPUTE-REQUIRES-NO-OS', 'C-VEHICLE-ZEPHYR-REQUIRES-NXP'), False, None): 1,
+        (False, ('C-VEHICLE-NXP-REQUIRES-NATIVE-ZEPHYR', 'C-VEHICLE-NXP-REQUIRES-ZEPHYR'), False, None): 1,
+        (False, ('C-VEHICLE-NXP-REQUIRES-NATIVE-ZEPHYR',), False, None): 1,
+        (False, ('C-VEHICLE-NXP-REQUIRES-ZEPHYR',), False, None): 1,
+        (True, (), False, None): 2,
+    },
+}
+#: Cross-platform mixes and partial resolutions of the environment configurations: (configuration,
+#: replaced choice, replacing choice, the requires constraints that reject the mix).
+ENVIRONMENT_MIXES = [
+    ("apple_silicon_macos_candidate", "macOSAppleSilicon", "ubuntu2204Tegra", {"C-ENG-APPLE-REQUIRES-MACOS"}),
+    ("apple_silicon_macos_candidate", "virtualizedLinuxArm64OCIOnMacOS", "nativeLinuxArm64OCI",
+     {"C-ENG-APPLE-REQUIRES-VIRTUAL-LINUX-OCI"}),
+    ("inc_aebs_009a_jetson", "ubuntu2204Tegra", "macOSAppleSilicon", {"C-ENG-JETSON-REQUIRES-TEGRA-LINUX"}),
+    ("inc_aebs_009a_jetson", "nativeLinuxArm64OCI", "virtualizedLinuxArm64OCIOnMacOS",
+     {"C-ENG-JETSON-REQUIRES-NATIVE-OCI"}),
+    ("nxp_zephyr_vehicle_target_candidate", "zephyr", "noConcreteOperatingSystem", {"C-VEHICLE-NXP-REQUIRES-ZEPHYR"}),
+    ("nxp_zephyr_vehicle_target_candidate", "nativeZephyr", "noConcreteExecutionRuntime",
+     {"C-VEHICLE-NXP-REQUIRES-NATIVE-ZEPHYR"}),
+    ("nxp_zephyr_vehicle_target_candidate", "nxpVehicleCompute", "noConcreteComputeNode",
+     {"C-VEHICLE-NATIVE-ZEPHYR-REQUIRES-NXP", "C-VEHICLE-NO-COMPUTE-REQUIRES-NO-OS",
+      "C-VEHICLE-NO-COMPUTE-REQUIRES-NO-RUNTIME", "C-VEHICLE-ZEPHYR-REQUIRES-NXP"}),
+]
+
+
+def _rules(family: Family) -> list[Dependency]:
+    return [dependency for dependency in _dependencies(family.model) if dependency.metadata == "DerivationRule"]
 
 
 @pytest.mark.parametrize("name", FAMILIES)
-def test_the_closed_world_decides_as_the_catalogue_on_every_structurally_valid_selection(name: str) -> None:
-    """The agreement and complement checks, evaluated: on every structurally valid
-    selection the model and the configurator give the same verdict, the same
-    constraint IDs and the same derived variant, and an unsupported pair is
-    rejected by a pair exclusion exactly where the configurator finds no rule."""
+def test_the_closed_world_keeps_its_verdicts_on_every_structurally_valid_selection(name: str) -> None:
+    """The agreement and complement checks, evaluated: the model's groups, constraints and rules decide
+    every structurally valid selection as the configurator decided it on the YAML catalogue until S7."""
     family = FAMILIES[name]
-    data, root, constraints = _catalogue(family)
     features = _tree(family)[1]
-    rules = [d for d in _dependencies(family.model) if d.metadata == "DerivationRule"]
-    selections = _valid_selections(root)
-    assert len(selections) == {"sdv": 16128, "engineering": 27, "vehicle": 8}[name]
-    verdicts = {True: 0, False: 0}
-    for selection in selections:
-        expected = _configurator_verdict(data, root, constraints, selection)
-        assert _model_verdict(features, rules, _selected_features(selection, root, features)) == expected, selection
-        verdicts[expected[0]] += 1
-    assert verdicts[True] and verdicts[False], verdicts
+    rules = _rules(family)
+    histogram: Counter = Counter()
+    for selected in _structural_selections(features):
+        valid, ids, pair, variant = _model_verdict(features, rules, selected)
+        histogram[(valid, tuple(sorted(ids)), pair, variant)] += 1
+    assert sum(histogram.values()) == {"sdv": 16128, "engineering": 27, "vehicle": 8}[name]
+    assert dict(histogram) == CLOSED_WORLD[name]
 
 
 def test_the_closed_world_check_catches_a_dropped_exclusion() -> None:
     family = FAMILIES["sdv"]
-    data, root, constraints = _catalogue(family)
     features = _tree(family)[1]
-    rules = [d for d in _dependencies(family.model) if d.metadata == "DerivationRule"]
     weakened = [Feature(**{**feature.__dict__, "constraints": [c for c in feature.constraints if c["id"] != "C001"]})
                 for feature in features]
-    selection = {**_valid_selections(root)[0], "PlatformStack.VehicleApplication": "Autoware",
-                 "PlatformStack.Middleware": "EclipseSCORE", "PlatformStack.OS": "Android",
-                 "PlatformStack.Hypervisor": "None"}
-    expected = _configurator_verdict(data, root, constraints, selection)
-    assert expected == (False, frozenset({"C001"}), False, None)
-    assert _model_verdict(features, rules, _selected_features(selection, root, features)) == expected
-    assert _model_verdict(weakened, rules, _selected_features(selection, root, weakened)) != expected
+    _family, selected = _configuration_selection(runner.FIXTURES[0])
+    assert _model_verdict(features, _rules(family), selected) == (False, frozenset({"C001"}), False, None)
+    assert _model_verdict(weakened, _rules(family), selected) != (False, frozenset({"C001"}), False, None)
+
+
+@pytest.mark.parametrize("stem, replaced, replacing, rejecting", ENVIRONMENT_MIXES,
+                         ids=[f"{stem}-{replacing}" for stem, _old, replacing, _ids in ENVIRONMENT_MIXES])
+def test_the_requires_constraints_reject_a_cross_platform_mix(stem: str, replaced: str, replacing: str,
+                                                              rejecting: set[str]) -> None:
+    family, selected = _configuration_selection(f"{CONFIGURATIONS_DIR.as_posix()}/{stem}.sysml")
+    features = _tree(family)[1]
+    assert _model_verdict(features, [], selected) == (True, frozenset(), False, None)
+    assert replaced in selected
+    assert _model_verdict(features, [], selected - {replaced} | {replacing}) == (
+        False, frozenset(rejecting), False, None)
 
 
 # -- bindings, correspondences and projection metadata -------------------------------------------------
@@ -887,40 +884,42 @@ def test_the_closed_world_check_catches_a_dropped_exclusion() -> None:
 
 @pytest.mark.parametrize("name", FAMILIES)
 def test_one_binding_per_shared_asset_variant_with_the_asset_as_client(name: str) -> None:
+    """Every variant of a bound variation is bound exactly once, by a choice of one group, and the
+    choices of a group are bound to one variation or none."""
     family = FAMILIES[name]
-    data, root, _constraints = _catalogue(family)
-    index = _by_id(_tree(family)[1])
-    projection = configurator.projection_metadata(data)
-    expected = set()
-    for group in configurator.find_alternative_groups(root):
-        if not group.maps_to:
-            continue
-        owner, variation = group.maps_to.split(".")
-        assert owner == projection["owner"]
-        for child in group.children:
-            expected.add((f"{projection['package']}::{owner}::{variation}::{child.maps_to_variant}",
-                          _qualified(family, index[child.feature_id])))
-        assert {child.maps_to_variant for child in group.children} == _variants(
-            SUPERSETS[projection["package"]], owner, variation), variation
-    bindings = [d for d in _dependencies(family.model) if d.metadata == "FeatureBinding"]
-    assert all(len(binding.suppliers) == 1 and binding.short is None for binding in bindings)
-    assert {(binding.client, binding.suppliers[0]) for binding in bindings} == expected
-    assert len(bindings) == len(expected), "a variant is bound more than once"
+    package, owner, _label = PROJECTIONS[name]
+    features = _tree(family)[1]
+    bindings = [dependency for dependency in _dependencies(family.model) if dependency.metadata == "FeatureBinding"]
+    assert bindings and all(len(binding.suppliers) == 1 and binding.short is None for binding in bindings)
+    assert len({binding.client for binding in bindings}) == len(bindings), "a variant is bound more than once"
+    assert len({binding.suppliers[0] for binding in bindings}) == len(bindings), "a feature binds two variants"
+    variation_of: dict[str, str] = {}
+    bound: dict[str, set[str]] = {}
+    for binding in bindings:
+        assert binding.client.startswith(f"{package}::{owner}::"), binding.name
+        variation, variant = binding.client.removeprefix(f"{package}::{owner}::").split("::")
+        bound.setdefault(variation, set()).add(variant)
+        variation_of[binding.suppliers[0]] = variation
+    for variation, variants in bound.items():
+        assert variants == _variants(SUPERSETS[package], owner, variation), variation
+    choices = {_qualified(family, feature): feature.parent for feature in features if feature.parent}
+    assert set(variation_of) <= set(choices), "a binding names a feature that is no group member"
+    for group in set(choices.values()):
+        members = [path for path, parent in choices.items() if parent == group]
+        assert len({variation_of.get(path) for path in members}) == 1, group
 
 
 @pytest.mark.parametrize("name", FAMILIES)
-def test_the_feature_model_carries_the_catalogue_projection_block(name: str) -> None:
+def test_the_feature_model_carries_its_projection_block(name: str) -> None:
     family = FAMILIES[name]
-    data, _root, _constraints = _catalogue(family)
-    projection = configurator.projection_metadata(data)
+    package, owner, label = PROJECTIONS[name]
     code = _code(family.model)
     [match] = re.finditer(rf"#featureModel occurrence def {family.feature_model}\s*\{{", code)
     body, _end = _braced(code, match.end() - 1)
-    assert _owned_metadata(body, "ProductModelProjection") == [{
-        "packageName": projection["package"], "ownerName": projection["owner"], "label": projection["label"]}]
+    assert _owned_metadata(body, "ProductModelProjection") == [{"packageName": package, "ownerName": owner,
+                                                                "label": label}]
     assert len(re.findall(r"@ProductModelProjection\b", code)) == 1, "the projection is owned by the feature model only"
-
-
+    assert re.search(rf"\bpart def {owner}\b", _code(SUPERSETS[package])), owner
 @pytest.mark.parametrize("path", PLEML_FILES)
 def test_kernel_metadata_sits_in_the_body_of_the_element_it_annotates(path: str) -> None:
     """The evaluator reads only the metadata an element owns, the prefix ``#M`` or a body ``@M``,
@@ -989,7 +988,8 @@ def test_an_environment_family_corresponds_as_a_whole(name: str) -> None:
     assert family.root_correspondence in _governed_elements()
 
 
-# -- each configuration against its bill of features ---------------------------------------------------
+
+# -- the configurations ---------------------------------------------------------------------------
 
 
 _CONFIGURATION = re.compile(r"#featureConfiguration occurrence (\w+) : (\w+) :> featureConfigurations\s*\{")
@@ -1007,90 +1007,63 @@ def _redefinitions(body: str, path: tuple[str, ...] = ()) -> dict[tuple[str, ...
     return found
 
 
-def _bill(path: Path) -> dict:
-    return configurator.load_yaml_unique(_raw(path))
+
+def _configuration_family(path: str | Path) -> Family:
+    """The family whose tree the configuration of ``path`` is typed by."""
+    [match] = list(_CONFIGURATION.finditer(_code(path)))
+    [family] = [family for family in FAMILIES.values() if family.tree == match[2]]
+    return family
 
 
-def _family_of(bill: dict) -> str:
-    if any(key.startswith("PlatformStack.") for key in bill["selections"]):
-        return "sdv"
-    _data, root, _constraints = _catalogue(FAMILIES["engineering"])
-    choices = {child.name for child in configurator.collect_all_nodes(root)["Environment.ComputeNode"].children}
-    return "engineering" if bill["selections"]["Environment.ComputeNode"] in choices else "vehicle"
-
-
-def _expected_redefinitions(family: Family, bill: dict) -> dict[tuple[str, ...], tuple[str, tuple[str, ...]]]:
-    _data, root, _constraints = _catalogue(family)
-    index = _by_id(_tree(family)[1])
-    nodes = configurator.collect_all_nodes(root)
-    expected: dict[tuple[str, ...], tuple[str, tuple[str, ...]]] = {}
-    for path, value in bill["selections"].items():
-        node = nodes[path]
-        if _is_common(node):
-            continue  # common content has no feature; the catalogue's mandatory leaf is implied
-        feature = index[node.feature_id]
-        for depth in range(1, len(feature.path)):
-            expected.setdefault(feature.path[:depth], ("1", ()))
-        if node.type in GROUPS:
-            chosen = [index[_choice(nodes, path, choice).feature_id]
-                      for choice in ([value] if isinstance(value, str) else list(value))]
-            expected[feature.path] = (feature.multiplicity, tuple(item.name for item in chosen))
-            for item in chosen:
-                expected[item.path] = ("1", ())
-        else:
-            expected[feature.path] = ("1" if value else "0", ())
-    return expected
-
-
-BILLS = sorted(path.relative_to(ROOT) for path in (ROOT / CONFIGURATIONS_DIR).rglob("*.yaml"))
-
-
-def _configuration_of(bill: Path) -> Path:
-    return bill.with_name(bill.stem.replace("-", "_") + ".sysml")
-
-
-def test_every_bill_of_features_has_exactly_one_pleml_configuration() -> None:
-    """The parity probes of step S4 restate frozen probe selections, not bills of features."""
-    assert len(BILLS) == 8
-    assert {_configuration_of(bill).as_posix() for bill in BILLS} == (
-        set(PLEML_FILES) - set(runner.FEATURE_MODELS) - set(runner.PARITY_PROBES))
-
-
-@pytest.mark.parametrize("bill", BILLS, ids=lambda path: path.stem)
-def test_the_configuration_restates_its_bill_of_features(bill: Path) -> None:
-    data = _bill(bill)
-    family = FAMILIES[_family_of(data)]
-    configuration = _configuration_of(bill)
-    code = _code(configuration)
+def _configuration_body(path: str | Path) -> str:
+    code = _code(path)
     [match] = list(_CONFIGURATION.finditer(code))
-    tree = match[2]
-    assert tree == family.tree
+    return _braced(code, match.end() - 1)[0]
+
+
+def _configuration_selection(path: str | Path) -> tuple[Family, set[str]]:
+    """The family and the names of the features a configuration redefines with multiplicity other than 0."""
+    return _configuration_family(path), {key[-1] for key, (multiplicity, _operands)
+                                         in _redefinitions(_configuration_body(path)).items() if multiplicity != "0"}
+
+
+CONFIGURATION_FILES = (*runner.CONFIGURATIONS, *runner.FIXTURES)
+
+
+@pytest.mark.parametrize("path", CONFIGURATION_FILES, ids=lambda path: Path(path).stem)
+def test_each_configuration_specializes_its_family_tree_and_names_its_projection(path: str) -> None:
+    family = _configuration_family(path)
+    code = _code(path)
     assert f"private import {family.package}::{family.tree};" in code
-    body, _end = _braced(code, match.end() - 1)
-    assert _redefinitions(body) == _expected_redefinitions(family, data)
-    assert _owned_metadata(body, "ProductModelProjectionName") == [{"partDefinitionName": data["name"]}]
+    [name] = _owned_metadata(_configuration_body(path), "ProductModelProjectionName")
+    assert set(name) == {"partDefinitionName"} and re.fullmatch(r"[A-Z]\w*", name["partDefinitionName"])
     assert len(re.findall(r"@ProductModelProjectionName\b", code)) == 1, "the name is owned by the configuration only"
 
 
-@pytest.mark.parametrize("bill", BILLS, ids=lambda path: path.stem)
-def test_the_configuration_doc_is_the_folded_description(bill: Path) -> None:
-    data = _bill(bill)
-    match = re.search(r"#featureConfiguration occurrence \w+ : \w+ :> featureConfigurations\s*\{\s*doc /\*(.*?)\*/",
-                      _raw(_configuration_of(bill)), re.DOTALL)
-    assert match, bill
-    doc = " ".join(line.strip().lstrip("*").strip() for line in match[1].splitlines()).strip()
-    assert " ".join(doc.split()) == " ".join(data["description"].split())
+@pytest.mark.parametrize("path", CONFIGURATION_FILES, ids=lambda path: Path(path).stem)
+def test_each_configuration_redefines_features_of_its_tree_only(path: str) -> None:
+    """A redefinition names a feature at its own path in the tree. A group redefinition lists members
+    of that group only, and each listed member is redefined [1]."""
+    features = _tree(_configuration_family(path))[1]
+    by_path = {feature.path: feature for feature in features}
+    by_name = _by_name(features)
+    redefinitions = _redefinitions(_configuration_body(path))
+    assert redefinitions, path
+    for key, (_multiplicity, operands) in redefinitions.items():
+        assert key in by_path, (path, key)
+        for operand in operands:
+            assert by_name[operand].parent == key[-1], (path, key, operand)
+            assert redefinitions.get((*key[:-1], operand)) == ("1", ()), (path, operand)
 
 
-def test_the_fixture_and_the_parity_probes_are_the_only_configurations_outside_the_authority_roots() -> None:
+def test_the_fixture_and_the_probes_are_the_only_configurations_outside_the_authority_roots() -> None:
     assert runner.FIXTURES == (f"{CONFIGURATIONS_DIR.as_posix()}/fixtures/invalid_score_android.sysml",
                                *runner.PARITY_PROBES)
     assert len(runner.PARITY_PROBES) == len(set(runner.PARITY_PROBES)) == 17
     assert all(path.startswith(f"{CONFIGURATIONS_DIR.as_posix()}/fixtures/parity-probes/")
                for path in runner.PARITY_PROBES)
-    fixture = _bill(CONFIGURATIONS_DIR / "fixtures/invalid-score-android.yaml")
-    assert (fixture["selections"]["PlatformStack.Middleware"], fixture["selections"]["PlatformStack.OS"]) == (
-        "EclipseSCORE", "Android")
+    _family, selected = _configuration_selection(runner.FIXTURES[0])
+    assert {"eclipseSCORE", "android"} <= selected
 
 
 # -- admission by the stated reading of the correspondences ----------------------------------------------
@@ -1170,23 +1143,16 @@ def _correspondences(family: Family) -> tuple[dict[str, set[str]], set[str]]:
     return features, family_elements
 
 
-def _configuration_selection(bill: Path) -> tuple[Family, set[str]]:
-    family = FAMILIES[_family_of(_bill(bill))]
-    code = _code(_configuration_of(bill))
-    [match] = list(_CONFIGURATION.finditer(code))
-    body, _end = _braced(code, match.end() - 1)
-    return family, {key[-1] for key, (multiplicity, _operands) in _redefinitions(body).items() if multiplicity != "0"}
 
-
-@pytest.mark.parametrize("bill", [bill for bill in BILLS if "fixtures" not in bill.parts], ids=lambda path: path.stem)
-def test_admission_admits_exactly_the_governed_members(bill: Path) -> None:
+@pytest.mark.parametrize("path", runner.CONFIGURATIONS, ids=lambda path: Path(path).stem)
+def test_admission_admits_exactly_the_governed_members(path: str) -> None:
     """Review R2: read as PLE-S read it, admission admits the standalone and the
     AAOS-integrated member of ADR 0014 and nothing else: the reference examples
     and both execution-environment families are not admitted."""
-    family, selected = _configuration_selection(bill)
+    family, selected = _configuration_selection(path)
     correspondences, family_elements = _correspondences(family)
     alternative, blocking = admission(_tree(family)[1], correspondences, family_elements, selected)
-    stem = _configuration_of(bill).stem
+    stem = Path(path).stem
     if stem in GOVERNED_MEMBERS:
         assert (alternative, blocking) == (GOVERNED_MEMBERS[stem], [])
     else:
@@ -1197,7 +1163,7 @@ def test_admission_blocks_only_on_selected_choices_and_leaves() -> None:
     family = FAMILIES["sdv"]
     features = _tree(family)[1]
     correspondences, family_elements = _correspondences(family)
-    _family, standalone = _configuration_selection(CONFIGURATIONS_DIR / "aebs-autoware-linux-lidar-camera.yaml")
+    _family, standalone = _configuration_selection(CONFIGURATIONS_DIR / "aebs_autoware_linux_lidar_camera.sysml")
     # A deferred group correspondence and the uncorresponded grouping features never block.
     assert _classes(correspondences["vehicleApplication"]) == {"deferred"} and "vehicleApplication" in standalone
     assert {"platformStack", "middleware"} <= standalone - set(correspondences)

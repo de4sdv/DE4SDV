@@ -1,21 +1,20 @@
 /*
  * PLEML feature model of the vehicle-target execution-environment family.
  *
- * It restates the YAML catalogue vehicle_execution_environments.yaml with the
- * exact-pinned PLEML library, under the decision of ADR 0022. The family
+ * It holds the family's catalogue with the exact-pinned PLEML library, under
+ * the decision of ADR 0022. It restates the YAML catalogue
+ * vehicle_execution_environments.yaml, which retired at step S7. The family
  * configures System 1 compute targets deployed into SDV member products; the
  * "no concrete" alternatives keep the honest state in which no target is
  * selected. Its configurations are in ../feature-configurations/.
  *
  * Authority since the switch of ADR 0022, as for the SDV product-line
  * feature model: this model and its configurations are the
- * configuration-validity authority of the family, and the YAML catalogue
- * vehicle_execution_environments.yaml and its bills of features are their non-authoritative
- * shadow until the YAML retires. No native evaluation of a PLEML constraint
- * body and no compliance claim.
+ * configuration-validity authority of the family. No native evaluation of a
+ * PLEML constraint body and no compliance claim.
  *
- * Identity: every catalogue ID is the SysML short name of the element that
- * restates its node.
+ * Identity: every ID is the SysML short name of its element, the one the
+ * retired YAML catalogue gave the node that the element restates.
  */
 
 package DE4SDV_VehicleTargetExecutionEnvironmentFeatureModel {
@@ -81,7 +80,7 @@ package DE4SDV_VehicleTargetExecutionEnvironmentFeatureModel {
         doc /* The vehicle-target execution-environment feature model: the
              * feature tree, and the product-model projection that its
              * configurations generate. Each configuration specializes the tree
-             * in its own file, one per bill of features. */
+             * in its own file. */
         @ProductModelProjection {
             packageName = "DE4SDV_ExecutionEnvironments";
             ownerName = "VehicleTargetExecutionEnvironment";

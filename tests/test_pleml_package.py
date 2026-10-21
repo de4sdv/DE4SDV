@@ -197,9 +197,10 @@ def test_workflows_read_pleml_only_through_the_production_lock() -> None:
 
 
 #: The gates that read the pinned SysML dependencies, PLEML among them since the switch: the repository and
-#: model checks, the PLEML parity and package checks, the suite and the licensed validation.
-GATE_SCRIPTS = ("scripts/check_repo.py", "scripts/validate_sysml.py", "scripts/check_pleml_parity.py",
-                "scripts/check_pleml_package.py", "-m pytest", "syside check")
+#: model checks, the PLEML receipt replay and package checks, the suite and the licensed validation.
+GATE_SCRIPTS = ("scripts/check_repo.py", "scripts/validate_sysml.py",
+                "scripts/run_pleml_configuration_evaluation.py", "scripts/check_pleml_package.py",
+                "-m pytest", "syside check")
 SYNC = re.compile(r'sysand"? sync\b')
 
 

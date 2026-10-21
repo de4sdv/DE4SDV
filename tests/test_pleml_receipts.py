@@ -1,13 +1,11 @@
-"""Receipts, offline replay and the parity primitives of the PLEML evaluation (plan step S2).
+"""Receipts and offline replay of the PLEML evaluation (ADR 0022).
 
-The parity rows run the unchanged configurator on probes generated in a
-temporary directory (never committed) and set each beside the evaluation of
-the same statement in the synthetic platform line, so the reason map and the
-row classes are shown against today's configurator.
+The receipts are written by the evaluator's entry point from synthetic
+bundles of the platform line in ``tests/pleml_graph_fixtures.py``, then
+replayed, refreshed and compared as the authority job and the public CI do.
 """
 from __future__ import annotations
 
-import ast
 import copy
 import dataclasses
 import json
@@ -17,7 +15,6 @@ import sys
 from pathlib import Path
 
 import pytest
-import yaml
 
 from de4sdv.semantic import pleml_configuration as evaluator
 from de4sdv.semantic import pleml_receipts as receipts
@@ -28,9 +25,6 @@ from tests.pleml_graph_fixtures import (CONFIGURATIONS as CONFIGURATION_DIRECTOR
                                         SCOPE, PlatformLine, PlemlGraph, synthetic_contract)
 
 ROOT = Path(__file__).resolve().parents[1]
-CATALOGUE = Path("model-based-product-line-engineering/feature-models/sdv_product_line.yaml")
-CONFIGURATIONS = ROOT / "model-based-product-line-engineering/feature-configurations"
-
 
 ENVIRONMENTS = "model-based-product-line-engineering/feature-models/synthetic_environments.sysml"
 ENVIRONMENT_CONFIGURATION = f"{CONFIGURATION_DIRECTORY}/synthetic_candidate.sysml"
@@ -169,18 +163,8 @@ def bundle_of(graph: PlemlGraph, root: Path, *, uri_prefix: str | None = None,
 def write_receipt(tmp_path: Path, graph: PlemlGraph | None = None) -> Path:
     """The platform line's receipt, written by the entry point from a synthetic bundle; sources under tmp_path."""
     graph = graph or platform_line().graph
-    result = cli.write_receipts(bundle_of(graph, tmp_path), tmp_path / "receipts", serializer=SERIALIZER,
-                                root=tmp_path)
+    result = cli.write_receipts(bundle_of(graph, tmp_path), tmp_path / "receipts", serializer=SERIALIZER)
     return next(path for path in result["receipts"] if path.name == PLATFORM_RECEIPT)
-
-
-def with_catalogue(root: Path) -> None:
-    """Today's catalogue and configurator under ``root``, the YAML with the platform model's file stem."""
-    for relative in (Path("tools/configure_variant.py"),):
-        (root / relative).parent.mkdir(parents=True, exist_ok=True)
-        (root / relative).write_bytes((ROOT / relative).read_bytes())
-    (root / MODEL).parent.mkdir(parents=True, exist_ok=True)
-    (root / MODEL).with_suffix(".yaml").write_bytes((ROOT / CATALOGUE).read_bytes())
 
 
 # -- committed elements and receipts (R13) ------------------------------------------------------
@@ -299,8 +283,8 @@ def test_a_neutral_code_change_replays_green(tmp_path, monkeypatch, capsys):
     assert cli.main(["replay", str(path)]) == 0
     output = json.loads(capsys.readouterr().out)
     assert output["failures"] == [] and output["advisories"] == [
-        f"{path}: evaluated by other code (changed: de4sdv/semantic/pleml_configuration.py); the evaluation and "
-        "the shadow reproduce, so the receipt holds"]
+        f"{path}: evaluated by other code (changed: de4sdv/semantic/pleml_configuration.py); the evaluation "
+        "reproduces, so the receipt holds"]
 
 
 def test_an_evaluation_change_fails_the_replay_until_a_refresh(tmp_path, monkeypatch):
@@ -314,19 +298,6 @@ def test_an_evaluation_change_fails_the_replay_until_a_refresh(tmp_path, monkeyp
     refreshed = json.loads(path.read_text())
     assert refreshed["evaluation"]["binding_time_scope"] == "Production"
     assert refreshed["provenance"] == {"executor_revision": "e" * 40, "bundle_git_commit": "a" * 40}
-
-
-def test_a_shadow_change_fails_the_replay(tmp_path, monkeypatch):
-    """A configurator change that changes the shadow fails as the shadow not reproducing."""
-    root = tmp_path / "tree"
-    with_catalogue(root)
-    result = cli.write_receipts(bundle_of(two_family_graph(), root), tmp_path / "out", serializer=SERIALIZER,
-                                root=root)
-    assert receipts.replay_committed(tmp_path / "out", root) == []
-    monkeypatch.setattr(cli.Catalogue, "paths", lambda self: {})
-    failures = receipts.replay_committed(tmp_path / "out", root)
-    assert failures == [f"{tmp_path / 'out' / PLATFORM_RECEIPT}: the shadow checks of the receipt do not reproduce"]
-    assert result["failures"] == []
 
 
 def test_the_replay_function_reports_failures_as_a_list(tmp_path, monkeypatch):
@@ -346,7 +317,7 @@ def test_the_replay_function_reports_failures_as_a_list(tmp_path, monkeypatch):
 
 
 def test_the_code_identity_records_the_pleml_code_an_evaluation_imports():
-    """The provenance record lists the PLEML-owned modules an evaluation, its CLI and the shadow import.
+    """The provenance record lists the PLEML-owned modules an evaluation and its CLI import.
 
     Shared production modules stay outside it, so an unrelated change to one of them, even a new import,
     never touches the record or this test (R16).
@@ -359,14 +330,13 @@ def test_the_code_identity_records_the_pleml_code_an_evaluation_imports():
         "from scripts import run_pleml_configuration_evaluation as cli\n"
         "from de4sdv.semantic import pleml_configuration as evaluator, pleml_receipts as receipts\n"
         "evaluator.kernel_bindings(receipts.model_contract(ROOT), [], {})\n"
-        "cli.load_configurator(ROOT)\n"
         "print('\\n'.join(sorted({Path(module.__file__).resolve().relative_to(ROOT).as_posix()\n"
         "    for module in list(sys.modules.values()) if getattr(module, '__file__', None)\n"
         "    and Path(module.__file__).resolve().is_relative_to(ROOT)})))\n")
     result = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True, check=True, cwd=ROOT)
     imported = set(result.stdout.split())
     owned = {path for path in imported if re.fullmatch(r"de4sdv/semantic/pleml_\w+\.py", path)
-             or path in {"scripts/run_pleml_configuration_evaluation.py", "tools/configure_variant.py"}}
+             or path == "scripts/run_pleml_configuration_evaluation.py"}
     assert "de4sdv/semantic/validation.py" in imported  # a shared module the evaluation imports, never recorded
     assert owned == set(receipts.EVALUATOR_MODULES)
     assert list(receipts.evaluator_identity()["modules"]) == list(receipts.EVALUATOR_MODULES)
@@ -469,7 +439,7 @@ def test_a_receipt_with_integrity_errors_fails_the_replay(tmp_path, monkeypatch,
 def test_a_licensed_bundle_becomes_one_receipt_per_feature_model(tmp_path):
     graph = two_family_graph()
     root = tmp_path / "tree"
-    result = cli.write_receipts(bundle_of(graph, root), tmp_path / "out", serializer=SERIALIZER, root=root)
+    result = cli.write_receipts(bundle_of(graph, root), tmp_path / "out", serializer=SERIALIZER)
     assert result["failures"] == []
     assert result["elements"].name == ELEMENTS
     assert [path.name for path in result["receipts"]] == ["synthetic_environments.receipt.json", PLATFORM_RECEIPT]
@@ -495,8 +465,8 @@ def test_receipts_do_not_depend_on_the_checkout_or_the_library_location(tmp_path
     assert runner.external_references != local.external_references
     assert {item["uri"].split("#")[0] for item in runner.external_references} != {
         item["uri"].split("#")[0] for item in local.external_references}
-    first = cli.write_receipts(runner, tmp_path / "runner", serializer=SERIALIZER, root=root)
-    second = cli.write_receipts(local, tmp_path / "local", serializer=SERIALIZER, root=root)
+    first = cli.write_receipts(runner, tmp_path / "runner", serializer=SERIALIZER)
+    second = cli.write_receipts(local, tmp_path / "local", serializer=SERIALIZER)
     assert first["elements"].read_bytes() == second["elements"].read_bytes()
     for one, other in zip(first["receipts"], second["receipts"], strict=True):
         assert one.name == other.name and one.read_bytes() == other.read_bytes()
@@ -519,9 +489,9 @@ def test_the_receipts_compare_equal_across_commits_and_runs(tmp_path):
     """Run provenance stays out of the elements: another executor revision and bundle commit compare equal (R3)."""
     graph = two_family_graph()
     root = tmp_path / "tree"
-    first = cli.write_receipts(bundle_of(graph, root), tmp_path / "first", serializer=SERIALIZER, root=root)
+    first = cli.write_receipts(bundle_of(graph, root), tmp_path / "first", serializer=SERIALIZER)
     second = cli.write_receipts(bundle_of(graph, root, git_commit="b" * 40), tmp_path / "second",
-                                serializer={**SERIALIZER, "executor_revision": "f" * 40}, root=root)
+                                serializer={**SERIALIZER, "executor_revision": "f" * 40})
     assert first["elements"].read_bytes() == second["elements"].read_bytes()
     assert receipts.compare_with_committed(second["receipts"], tmp_path / "first") == []
     assert json.loads(second["receipts"][1].read_text())["provenance"] == {"executor_revision": "f" * 40,
@@ -529,7 +499,7 @@ def test_the_receipts_compare_equal_across_commits_and_runs(tmp_path):
     other = two_family_graph()
     other.documentation(other.model_documents and next(
         item["@id"] for item in other.elements if item.get("declaredName") == "EnvironmentTree"), "Edited.")
-    third = cli.write_receipts(bundle_of(other, root), tmp_path / "third", serializer=SERIALIZER, root=root)
+    third = cli.write_receipts(bundle_of(other, root), tmp_path / "third", serializer=SERIALIZER)
     assert receipts.compare_with_committed(third["receipts"], tmp_path / "first") == [
         f"{name}: the committed elements differ from the fresh serialization"
         for name in ("synthetic_environments.receipt.json", PLATFORM_RECEIPT)]
@@ -557,29 +527,37 @@ def test_the_receipts_command_writes_and_compares(tmp_path, monkeypatch, capsys)
     assert cli.main([*arguments, "--executor-revision", "e" * 40, "--out", str(root / "inside")]) == 2
 
 
-def test_refreshed_receipts_replay_with_their_own_shadow(tmp_path, monkeypatch):
-    """After an output-changing evaluator change, refresh then replay passes; each shadow covers its own tree (R2)."""
+def test_refreshed_receipts_replay_and_carry_no_shadow(tmp_path, monkeypatch):
+    """After an output-changing evaluator change, refresh then replay passes (R2); since S7 a receipt
+    carries no YAML shadow section."""
     root = tmp_path / "tree"
-    with_catalogue(root)
     monkeypatch.setattr(cli, "ROOT", root)
-    result = cli.write_receipts(bundle_of(two_family_graph(), root), tmp_path / "out", serializer=SERIALIZER,
-                                root=root)
-    shadows = {path.name: json.loads(path.read_text())["shadow"] for path in result["receipts"]}
-    assert [item["tree"] for item in shadows[PLATFORM_RECEIPT]["feature_models"]] == ["SDVProductLineFeatureTree"]
-    assert shadows["synthetic_environments.receipt.json"] == {}
+    result = cli.write_receipts(bundle_of(two_family_graph(), root), tmp_path / "out", serializer=SERIALIZER)
+    assert not any("shadow" in json.loads(path.read_text()) for path in result["receipts"])
+    assert all(json.loads(path.read_text())["schema"] == receipts.RECEIPT_SCHEMA for path in result["receipts"])
     changed_evaluation(monkeypatch)
     paths = [str(path) for path in result["receipts"]]
     assert cli.main(["replay", *paths]) == 1
     assert cli.main(["refresh", *paths]) == 0
     assert cli.main(["replay", *paths]) == 0
-    assert {path.name: json.loads(path.read_text())["shadow"] for path in result["receipts"]} == shadows
+    assert not any("shadow" in json.loads(path.read_text()) for path in result["receipts"])
+
+
+def test_a_pre_s7_receipt_with_a_shadow_section_is_refused(tmp_path):
+    """A receipt of the format before S7 names another schema; it is refreshed by a licensed run only."""
+    path = write_receipt(tmp_path)
+    receipt = json.loads(path.read_text())
+    receipt["schema"], receipt["shadow"] = "de4sdv.pleml-configuration-receipt/v1", {}
+    path.write_text(json.dumps(receipt))
+    assert receipts.replay_committed(path.parent, tmp_path) == [f"{path}: not a PLEML configuration receipt"]
+    with pytest.raises(receipts.StaleReceipt, match="not a PLEML configuration receipt"):
+        receipts.refresh(path, tmp_path)
 
 
 def test_a_refresh_refused_for_one_receipt_writes_none(tmp_path, monkeypatch):
     root = tmp_path / "tree"
     monkeypatch.setattr(cli, "ROOT", root)
-    result = cli.write_receipts(bundle_of(two_family_graph(), root), tmp_path / "out", serializer=SERIALIZER,
-                                root=root)
+    result = cli.write_receipts(bundle_of(two_family_graph(), root), tmp_path / "out", serializer=SERIALIZER)
     before = {path: path.read_bytes() for path in result["receipts"]}
     for path in result["receipts"]:
         receipt = json.loads(path.read_text())
@@ -613,8 +591,7 @@ def test_a_document_shared_by_two_feature_models_is_refused(tmp_path):
     graph = two_family_graph(environment_document=MEMBER)
     with pytest.raises(evaluator.PlemlShapeError, match="holds 2 configurations; a configuration typed by its tree "
                                                         "definition has a file of its own"):
-        cli.write_receipts(bundle_of(graph, tmp_path / "tree"), tmp_path / "out", serializer=SERIALIZER,
-                           root=tmp_path / "tree")
+        cli.write_receipts(bundle_of(graph, tmp_path / "tree"), tmp_path / "out", serializer=SERIALIZER)
 
 
 def test_the_receipt_decides_admission_with_the_production_scope_reader(tmp_path, monkeypatch):
@@ -627,7 +604,7 @@ def test_the_receipt_decides_admission_with_the_production_scope_reader(tmp_path
 
     monkeypatch.setattr(receipts, "validate_scope_elements", validator)
     root = tmp_path / "tree"
-    result = cli.write_receipts(bundle_of(graph, root), tmp_path / "out", serializer=SERIALIZER, root=root)
+    result = cli.write_receipts(bundle_of(graph, root), tmp_path / "out", serializer=SERIALIZER)
     platform = receipts.replay(result["receipts"][1], root)
     admitted = {item["configuration"]: item["admission"]["admitted"]
                 for item in platform["evaluation"]["feature_models"][0]["configurations"]}
@@ -642,298 +619,56 @@ def test_a_bundle_without_the_governed_scope_is_refused(tmp_path):
     assert receipts.governed_scope(payload) is None
     with pytest.raises(ValueError, match="the bundle carries no governed scope; every receipt records the "
                                          "admission"):
-        cli.write_receipts(bundle_of(graph, tmp_path / "tree"), tmp_path / "out", serializer=SERIALIZER,
-                           root=tmp_path / "tree")
+        cli.write_receipts(bundle_of(graph, tmp_path / "tree"), tmp_path / "out", serializer=SERIALIZER)
     assert not (tmp_path / "out").exists()
 
 
-# -- writer inputs and the normalised body (R19) -------------------------------------------------
+# -- writer inputs -------------------------------------------------------------------------------
 
 
-def test_the_normalised_body_drops_the_header_and_the_derivation_source():
-    projection = (ROOT / "model-based-product-line-engineering/product-models/aebs_autoware_linux_lidar_camera.sysml").read_text()
-    body = receipts.normalised_body(projection)
-    assert not body.startswith("/*") and "SHA-256" not in body
-    assert "   * Derived platform-stack projection from <configuration source>." in body
-    assert "part :>> applicationMiddlewareAdapter = applicationMiddlewareAdapter::none;" in body
-    other = projection.replace("Feature model SHA-256: ", "Feature model SHA-256: 0").replace(
-        "projection from Bill-of-Features.", "projection from a receipt.")
-    assert receipts.normalised_body(other) == body
-
-
-def test_the_normalisation_touches_only_the_writers_derivation_source_line():
-    """Review round 1 of S4, R6: a description line of the same shape stays part of the body, and a
-    projection without the derivation-source line where the writer puts it is refused."""
-    projection = (ROOT / "model-based-product-line-engineering/product-models/aebs_autoware_linux_lidar_camera.sysml"
-                  ).read_text()
-    autoware, apollo = (projection.replace("AEBS reference member product.",
-                                           f"Derived platform-stack projection from the {member} member.")
-                        for member in ("Autoware", "Apollo"))
-    assert receipts.normalised_body(autoware) != receipts.normalised_body(apollo)
-    assert "   * Derived platform-stack projection from the Autoware member." in receipts.normalised_body(autoware)
-    # The committed projection's own derivation-source line, whichever path wrote it (the receipt since S6).
-    moved, removed = re.subn(r"^   \* Derived platform-stack projection from .+\.\n", "", projection, count=1,
-                             flags=re.MULTILINE)
-    assert removed == 1
-    with pytest.raises(ValueError, match="derivation-source line"):
-        receipts.normalised_body(moved)
-
-
-def test_the_description_is_folded_as_the_yaml_writer_receives_it():
-    bof = yaml.safe_load((CONFIGURATIONS / "aebs-autoware-linux-lidar-camera.yaml").read_text())
+def test_the_description_is_folded_as_the_writer_prints_it():
     doc_body = ("AEBS reference member product.\nAutoware on Linux, single-domain (no middleware, no hypervisor).\n"
                 "LiDAR + camera perception, IMU + wheel odometry common.\n"
                 "Vehicle-target AEBS only (no pedestrian/bicycle detection).")
-    assert receipts.fold_description(doc_body) == bof["description"].strip()
+    assert receipts.fold_description(doc_body) == (
+        "AEBS reference member product. Autoware on Linux, single-domain (no middleware, no hypervisor). "
+        "LiDAR + camera perception, IMU + wheel odometry common. Vehicle-target AEBS only (no pedestrian/bicycle "
+        "detection).")
     assert receipts.fold_description("First.\n\nSecond paragraph\ncontinues.") == "First.\nSecond paragraph continues."
+    assert receipts.fold_description(None) == ""
 
 
-def test_the_writer_inputs_carry_explicit_states_and_catalogue_paths():
+def test_the_writer_inputs_carry_the_projection_name_and_the_explicit_states():
     line = PlatformLine()
     line.configure("member", "autoware", "noMiddleware", "linux", "noHypervisor", disabled=("pedestrianDetection",),
                    projection_name="Member", description="One\nline.")
     model = line.graph.evaluate()["feature_models"][0]
-    catalogue = cli.Catalogue(ROOT / CATALOGUE)
-    inputs = receipts.writer_inputs(model["configurations"][0], model["features"], catalogue.paths())
-    assert inputs["projection_name"] == "Member" and inputs["description"] == "One line."
-    assert inputs["explicit_optional_states"] == {"capabilities.pedestrianDetection": "disabled"}
-    assert inputs["catalogue_paths"]["capabilities.pedestrianDetection"] == \
-        "Capabilities.ForwardCollisionMitigation.PedestrianDetection"
-    assert inputs["catalogue_paths"]["platformStack.noMiddleware"] == "PlatformStack.Middleware.None"
-
-
-# -- the shadow checks against today's catalogue (R9, R10) --------------------------------------
-
-
-def test_the_catalogue_allowed_lists_include_the_dropped_c002():
-    lists = {item["id"]: item for item in cli.Catalogue(ROOT / CATALOGUE).allowed_lists()}
-    assert sorted(lists) == ["C001", "C002", "C003"]
-    assert lists["C001"]["allowed"] == ["F-PLATFORM-OS-LINUX", "F-PLATFORM-OS-QNX"]
-    assert len(lists["C002"]["allowed"]) == 3
-
-
-def test_the_exclusions_equal_the_complements_and_drift_fails():
-    catalogue = cli.Catalogue(ROOT / CATALOGUE)
-    model = PlatformLine().graph.evaluate()["feature_models"][0]
-    assert cli.complement_errors(model, catalogue.allowed_lists()) == []
-    drifted = PlatformLine()
-    f = drifted.features
-    f["zephyr"] = drifted.graph.feature(f["platformStack"], "zephyr", (0, 1), subsets=f["os"], short="F-PLATFORM-OS-ZEPHYR")
-    errors = cli.complement_errors(drifted.graph.evaluate()["feature_models"][0], catalogue.allowed_lists())
-    assert {error.split(":")[0] for error in errors} == {"C001", "C002", "C003"}
-
-
-def test_the_rule_table_equals_the_catalogue_row_by_row():
-    catalogue = cli.Catalogue(ROOT / CATALOGUE)
-    assert cli.rule_table_errors(PlatformLine().graph.evaluate()["feature_models"][0], catalogue) == []
-    from tests.pleml_graph_fixtures import ADAPTER_RULES
-    wrong = dict(ADAPTER_RULES)
-    wrong[("apollo", "eclipseSCORE")] = "openpilotToSCORE"
-    errors = cli.rule_table_errors(PlatformLine(rules=wrong).graph.evaluate()["feature_models"][0], catalogue)
-    assert errors == ["D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER: rule ['F-PLATFORM-MIDDLEWARE-ECLIPSE-SCORE', "
-                      "'F-PLATFORM-VEHICLE-APPLICATION-APOLLO'] yields openpilotToSCORE in the model and "
-                      "apolloToSCORE in the catalogue"]
-
-
-# -- the reason map against the configurator (R11) -------------------------------------------------
-
-
-def _templates() -> list[str]:
-    """Every rejection the configurator can print, rendered with placeholder values."""
-    source = (ROOT / "tools/configure_variant.py").read_text()
-    values = {"label": "derived_asset_selections[0]", "rule_label": "derived_asset_selections[0].rules[0]",
-              "status": "inspected", "cid": "C001", "variation_error": "Mapped SysML variation 'x' was not found",
-              "package_error": "SysML package 'x' was not found", "stack_error": "SysML part def 'x' was not found",
-              "len(matches)": "2"}
-
-    def render(node: ast.AST) -> str:
-        if isinstance(node, ast.Constant):
-            return str(node.value)
-        if isinstance(node, ast.JoinedStr):
-            return "".join(str(part.value) if isinstance(part, ast.Constant)
-                           else values.get(ast.unparse(part.value), "x") for part in node.values)
-        if isinstance(node, ast.BinOp):
-            return render(node.left) + "x"
-        raise AssertionError(ast.unparse(node))
-
-    messages = []
-    for node in ast.walk(ast.parse(source)):
-        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "append"
-                and isinstance(node.func.value, ast.Name) and node.func.value.id == "errors"):
-            messages.append(render(node.args[0]))
-        if isinstance(node, ast.Return) and isinstance(node.value, ast.List):
-            messages += [render(item) for item in node.value.elts if isinstance(item, ast.JoinedStr)]
-    return messages + ["Error reading input: x", "Error parsing YAML: x"]
-
-
-def test_every_configurator_rejection_has_a_reason_class():
-    catalogue = cli.Catalogue(ROOT / CATALOGUE)
-    templates = _templates()
-    assert len(templates) >= 100
-    for message in templates:
-        keys, counted = cli.yaml_reason_keys([message], {}, catalogue)
-        assert counted == 1 and len(keys) <= 1, message
-        assert len(cli.yaml_reasons([message], {}, catalogue)) == 1, message
-
-
-def test_a_configurator_rejection_names_its_location():
-    """Review round 1 of S4, R2: each counted rejection keeps the group, the pair of choices or the derived
-    variation it names, so the parity compares the reasons as a multiset with their locations."""
-    catalogue = cli.Catalogue(ROOT / CATALOGUE)
-    selections = {"PlatformStack.VehicleApplication": "Openpilot", "PlatformStack.Middleware": "AndroidSDV"}
-    messages = [
-        "'PlatformStack.OS': '['Android', 'Linux']' is not a valid XOR choice. Valid: ['Linux', 'Android', 'QNX']",
-        "Mandatory alternative group 'PlatformStack.Hypervisor' has no selection",
-        "[C001] requires: 'PlatformStack.OS in [Linux, QNX]' is not satisfied when 'PlatformStack.Middleware == "
-        "EclipseSCORE' holds.",
-        "Derived asset 'D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER' for 'SDVPlatformStack.applicationMiddlewareAdapter' "
-        "has no rule matching PlatformStack.VehicleApplication='Openpilot', PlatformStack.Middleware='AndroidSDV'",
-        "Unknown feature path in selections: 'PlatformStack.ApplicationMiddlewareAdapter'",
-        "Mandatory feature not selected: 'Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS'",
-    ]
-    assert cli.yaml_reasons(messages, selections, catalogue) == [
-        {"class": "upper-bound", "constraint": None, "location": ["PlatformStack.OS"]},
-        {"class": "lower-bound", "constraint": None, "location": ["PlatformStack.Hypervisor"]},
-        {"class": "constraint", "constraint": "C001", "location": None},
-        {"class": "pair-exclusion", "constraint": None,
-         "location": ["PlatformStack.Middleware.AndroidSDV", "PlatformStack.VehicleApplication.Openpilot"]},
-        {"class": "derived-variant-not-selectable", "constraint": None, "location": ["applicationmiddlewareadapter"]},
-        {"class": "common-capability-false", "constraint": None,
-         "location": ["Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS"]},
-    ]
-    assert cli.yaml_reason_keys(messages, selections, catalogue) == ({
-        ("upper-bound", None), ("lower-bound", None), ("constraint", "C001"), ("pair-exclusion", None),
-        ("derived-variant-not-selectable", None), ("common-capability-false", None)}, 6)
-
-
-def run_configurator(tmp_path: Path, name: str, selections: dict) -> dict:
-    template = yaml.safe_load((CONFIGURATIONS / "aebs-autoware-linux-lidar-camera.yaml").read_text())
-    data = {"name": "ParityProbe", "description": template["description"], "selections": selections}
-    bof, output = tmp_path / f"{name}.yaml", tmp_path / f"{name}.sysml"
-    bof.write_text(yaml.safe_dump(data, sort_keys=False))
-    result = subprocess.run([sys.executable, str(ROOT / "tools/configure_variant.py"), "--feature-model",
-                             str(ROOT / CATALOGUE), "--bof", str(bof), "--output", str(output)],
-                            capture_output=True, text=True, cwd=ROOT, check=False, timeout=60)
-    messages = [match.group(1).strip() for match in map(re.compile(r"^\s+[•-] (.+)$").match,
-                                                         result.stderr.splitlines()) if match]
-    keys, counted = cli.yaml_reason_keys(messages, selections, cli.Catalogue(ROOT / CATALOGUE))
-    derived = dict(re.findall(r"^\s*part :>> (\w+) = \w+::(\w+);", output.read_text(), re.M)) if output.exists() else {}
-    return {"valid": result.returncode == 0, "keys": keys, "violations": counted, "derived_variants": derived}
-
-
-NAMES = {"Autoware": "autoware", "Openpilot": "openpilot", "Apollo": "apollo", "EclipseSCORE": "eclipseSCORE",
-         "AndroidSDV": "androidSDV", "AUTOSARAdaptive": "autosarAdaptive", "None": None, "Linux": "linux",
-         "Android": "android", "QNX": "qnx", "QVM": "qvm", "ACRN": "acrn", "KVM": "kvm"}
-
-
-def pleml_outcome(application, middleware, os, hypervisor, sensors, *, hand_picked=False) -> dict:
-    line = PlatformLine()
-
-    def name(value, none):
-        return [NAMES[item] or none for item in value] if isinstance(value, list) else (
-            () if value is None else NAMES[value] or none)
-
-    probe = line.configure("probe", name(application, None), name(middleware, "noMiddleware"), name(os, None),
-                           name(hypervisor, "noHypervisor"), [item.lower() if item != "LiDAR" else "lidar"
-                                                              for item in sensors])
-    if hand_picked:
-        adapter = line.graph.own(probe, "FeatureMembership", "ReferenceUsage", member_name="adapter",
-                                 declaredName="adapter")
-        line.graph.reference_value(adapter, [line.variations["applicationMiddlewareAdapter"]["none"]])
-    (item,) = line.graph.evaluate()["feature_models"][0]["configurations"]
-    return {"valid": item["valid"], "keys": receipts.reason_keys(item),
-            "derived_variants": {variant["variation"]: variant["variant"] for variant in item["derived_variants"]}}
-
-
-ROWS = [
-    ("member", ("Autoware", "None", "Linux", "None"), {}, "equal"),
-    ("aaos-member", ("Autoware", "AndroidSDV", "Android", "KVM"), {}, "equal"),
-    ("score-example", ("Autoware", "EclipseSCORE", "Linux", "None"), {}, "equal"),
-    ("apollo-qnx-qvm", ("Apollo", "EclipseSCORE", "QNX", "QVM"), {}, "equal"),
-    ("openpilot-score", ("Openpilot", "EclipseSCORE", "Linux", "None"), {}, "equal"),
-    ("apollo-none", ("Apollo", "None", "Linux", "None"), {}, "equal"),
-    ("fixture-c001", ("Autoware", "EclipseSCORE", "Android", "None"), {}, "both-reject"),
-    ("both-alternatives", ("Autoware", ["AndroidSDV", "None"], ["Android", "Linux"], ["KVM", "None"]), {}, "both-reject"),
-    ("no-alternative", ("Autoware", None, None, None), {}, "both-reject"),
-    ("pair-openpilot-android", ("Openpilot", "AndroidSDV", "Linux", "None"), {}, "both-reject"),
-    ("pair-openpilot-autosar", ("Openpilot", "AUTOSARAdaptive", "Linux", "None"), {}, "both-reject"),
-    ("pair-apollo-android", ("Apollo", "AndroidSDV", "Linux", "None"), {}, "both-reject"),
-    ("pair-apollo-autosar", ("Apollo", "AUTOSARAdaptive", "Linux", "None"), {}, "both-reject"),
-    ("hand-picked-adapter", ("Autoware", "None", "Linux", "None"),
-     {"PlatformStack.ApplicationMiddlewareAdapter": "none"}, "both-reject"),
-    ("ug-10-vehicle-target-aebs-false", ("Autoware", "None", "Linux", "None"),
-     {"Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS": False}, "not-expressible"),
-    ("vehicle-target-aebs-false-elsewhere", ("Autoware", "None", "Linux", "None"),
-     {"Capabilities.ForwardCollisionMitigation.VehicleTargetAEBS": False}, "defect"),
-]
-
-
-@pytest.mark.parametrize(("row", "choices", "extra", "expected"), ROWS, ids=[row[0] for row in ROWS])
-def test_a_parity_row_classifies_as_the_plan_expects(tmp_path, row, choices, extra, expected):
-    application, middleware, os, hypervisor = choices
-    selections = {"PlatformStack.VehicleApplication": application, "PlatformStack.Middleware": middleware,
-                  "PlatformStack.OS": os, "PlatformStack.Hypervisor": hypervisor,
-                  "SensingBoundary.PerceptionSensors": ["LiDAR", "Camera"]}
-    selections = {key: value for key, value in selections.items() if value is not None}
-    remainder_yaml = run_configurator(tmp_path, f"{row}-remainder", dict(selections))
-    selections.update(extra)
-    yaml_side = run_configurator(tmp_path, row, selections)
-    pleml = pleml_outcome(application, middleware, os, hypervisor, ["LiDAR", "Camera"],
-                          hand_picked="PlatformStack.ApplicationMiddlewareAdapter" in extra)
-    result = receipts.classify_row(row, yaml_side, pleml, yaml_remainder=remainder_yaml)
-    assert result["class"] == expected, (result, yaml_side, pleml)
-
-
-def _rejected(*reasons: tuple) -> dict:
-    return {"valid": False, "keys": {(item[0], item[1]) for item in reasons}, "derived_variants": {},
-            "reasons": list(reasons)}
-
-
-def test_a_both_reject_row_compares_the_reasons_in_count_and_location():
-    """Review round 1 of S4, R2: the same classes are not enough. With the reasons of both sides given, a
-    count or a location that differs is a defect."""
-    groups = ("PlatformStack.Hypervisor", "PlatformStack.Middleware", "PlatformStack.OS")
-    three = _rejected(*(("upper-bound", None, (group,)) for group in groups))
-    assert receipts.classify_row("both-alternatives", three, three) == {"class": "both-reject", "detail": ""}
-    # A count mismatch: three upper bounds on one side, one on the other.
-    one = _rejected(("upper-bound", None, ("PlatformStack.OS",)))
-    count = receipts.classify_row("both-alternatives", three, one)
-    assert count["class"] == "defect" and count["detail"].startswith("the reasons differ in count or location")
-    # A location mismatch: a pair exclusion of another pair.
-    openpilot = _rejected(("pair-exclusion", None,
-                           ("PlatformStack.Middleware.AndroidSDV", "PlatformStack.VehicleApplication.Openpilot")))
-    apollo = _rejected(("pair-exclusion", None,
-                        ("PlatformStack.Middleware.AndroidSDV", "PlatformStack.VehicleApplication.Apollo")))
-    location = receipts.classify_row("unsupported-openpilot-android-sdv", openpilot, apollo)
-    assert location["class"] == "defect" and "VehicleApplication.Apollo" in location["detail"]
-    # Without the reasons, the classes alone decide, as before.
-    bare = [{key: value for key, value in side.items() if key != "reasons"} for side in (openpilot, apollo)]
-    assert receipts.classify_row("unsupported-openpilot-android-sdv", *bare)["class"] == "both-reject"
+    inputs = receipts.writer_inputs(model["configurations"][0], model["features"])
+    assert inputs == {"projection_name": "Member", "description": "One line.",
+                      "explicit_optional_states": {"capabilities.pedestrianDetection": "disabled"}}
 
 
 # -- evidence records (plan section 4) --------------------------------------------------------------
 
 
-@pytest.mark.parametrize("record", [
-    {"status": "planned", "artifacts": []},
-    {"status": "inspected", "artifacts": []},
-    {"status": "inspected", "artifacts": [{"id": "EVID-X-1", "path": "README.md"}]},
-    {"status": "inspected", "artifacts": [{"id": "evid-x", "path": "README.md"}]},
-    {"status": "inspected", "artifacts": [{"id": "EVID-X", "path": "README.md"}, {"id": "EVID-X", "path": "README.md"}]},
-    {"status": "inspected", "artifacts": [{"id": "EVID-X", "path": "/etc/hostname"}]},
-    {"status": "inspected", "artifacts": [{"id": "EVID-X", "path": "../outside.md"}]},
-    {"status": "inspected", "artifacts": [{"id": "EVID-X", "path": ".git/config"}]},
-    {"status": "inspected", "artifacts": [{"id": "EVID-X", "path": "docs/does-not-exist.md"}]},
-    {"status": "unknown", "artifacts": []},
-    {"status": "planned", "artifacts": [{"id": "EVID-X"}]},
-    {"status": "planned", "extra": 1},
+@pytest.mark.parametrize(("record", "refused"), [
+    ({"status": "planned", "artifacts": []}, False),
+    ({"status": "inspected", "artifacts": []}, True),
+    ({"status": "inspected", "artifacts": [{"id": "EVID-X-1", "path": "README.md"}]}, False),
+    ({"status": "inspected", "artifacts": [{"id": "evid-x", "path": "README.md"}]}, True),
+    ({"status": "inspected", "artifacts": [{"id": "EVID-X", "path": "README.md"},
+                                           {"id": "EVID-X", "path": "README.md"}]}, True),
+    ({"status": "inspected", "artifacts": [{"id": "EVID-X", "path": "/etc/hostname"}]}, True),
+    ({"status": "inspected", "artifacts": [{"id": "EVID-X", "path": "../outside.md"}]}, True),
+    ({"status": "inspected", "artifacts": [{"id": "EVID-X", "path": ".git/config"}]}, True),
+    ({"status": "inspected", "artifacts": [{"id": "EVID-X", "path": "docs/does-not-exist.md"}]}, True),
+    ({"status": "unknown", "artifacts": []}, True),
+    ({"status": "planned", "artifacts": [{"id": "EVID-X"}]}, True),
+    ({"status": "planned", "extra": 1}, True),
 ])
-def test_the_evidence_record_check_keeps_the_configurator_rules(record):
-    configurator = cli.load_configurator()
-    bof = {"name": "Probe", "selections": {}, "evidence": record}
-    shape = [error for error in configurator.validate_document_shapes({"root": {"name": "r"}}, bof) if "evidence" in error]
-    expected = bool(shape or configurator.validate_bof_evidence(bof))
-    assert bool(receipts.evidence_record_errors(record)) == expected
+def test_the_evidence_record_check_keeps_the_bill_of_features_rules(record, refused):
+    """The rules the configurator applied to the evidence block of a Bill-of-Features until S7."""
+    assert bool(receipts.evidence_record_errors(record)) == refused
 
 
 def test_the_evidence_record_check_refuses_symbolic_links(tmp_path):

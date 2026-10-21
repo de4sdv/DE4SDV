@@ -21,8 +21,11 @@ configuration_decision:
     deployed Phase 8 visualization chain instead of creating a new member
     or BoF. All platform-stack and capability selections are inherited
     unchanged.
+  # Until step S7 of ADR 0022 the first source was the Bill-of-Features
+  # middleware-autoware-aaos-sdv-reference.yaml, which the PLEML feature
+  # configuration restates.
   reused_sources:
-    - model-based-product-line-engineering/feature-configurations/middleware-autoware-aaos-sdv-reference.yaml
+    - model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml
     - model-based-product-line-engineering/product-models/middleware_autoware_aaos_sdv_reference.sysml
   no_duplicate_bof: true
   no_new_product_feature: true

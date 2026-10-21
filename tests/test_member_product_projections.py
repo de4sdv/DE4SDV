@@ -25,7 +25,6 @@ import sys
 from pathlib import Path
 
 import pytest
-import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 PLE = Path("model-based-product-line-engineering")
@@ -38,19 +37,19 @@ TEST_ARTICLE = Path("textual-notation-of-model/packages/features/aebs/aebs_visua
 MODEL_ROOTS = (Path("textual-notation-of-model"), PLE / "product-models", PLE / "scoping")
 
 #: Governed member decision -> (its product-level model, the product definition,
-#: the supertype as the model writes it, the member's bill of features).
+#: the supertype as the model writes it, the member's PLEML feature configuration).
 MEMBERS = {
     "StandaloneAutowareAEBSReferenceMember": (
         PROJECTIONS / "aebs_autoware_reference_product.sysml",
         "AEBSAutowareReferenceProduct",
         "StandaloneAutowareAEBSReferenceMember",
-        "aebs-autoware-linux-lidar-camera.yaml",
+        "aebs_autoware_linux_lidar_camera.sysml",
     ),
     "AAOSIntegratedAutowareAEBSReferenceMember": (
         Path("textual-notation-of-model/packages/features/middleware/middleware_variability_configuration.sysml"),
         "MiddlewareAutowareAAOSSDVConfiguredMember",
         "DE4SDV_AEBSProductLineScope::AAOSIntegratedAutowareAEBSReferenceMember",
-        "middleware-autoware-aaos-sdv-reference.yaml",
+        "middleware_autoware_aaos_sdv_reference.sysml",
     ),
 }
 
@@ -97,7 +96,11 @@ def _names(names: str | None) -> list[str]:
 
 
 def _projection_name(configuration: str) -> str:
-    return yaml.safe_load((ROOT / CONFIGURATIONS / configuration).read_text(encoding="utf-8"))["name"]
+    """The part definition name the configuration's owned ProductModelProjectionName annotation states."""
+    names = re.findall(r'\bpartDefinitionName\s*=\s*"(\w+)"\s*;',
+                       (ROOT / CONFIGURATIONS / configuration).read_text(encoding="utf-8"))
+    assert len(names) == 1, f"{configuration} states {len(names)} projection names"
+    return names[0]
 
 
 def _definitions(code: str) -> list[tuple[str, list[str], int, int]]:
@@ -165,7 +168,7 @@ def _member_lineage(definitions: list[tuple[str, list[str], int, int]]) -> set[s
 
 
 def _configuration_projections() -> set[str]:
-    return {_projection_name(path.name) for path in sorted((ROOT / CONFIGURATIONS).glob("*.yaml"))}
+    return {_projection_name(path.name) for path in sorted((ROOT / CONFIGURATIONS).glob("*.sysml"))}
 
 
 @pytest.mark.parametrize("member", sorted(MEMBERS))
@@ -185,7 +188,7 @@ def test_member_types_its_platform_stack_by_its_configuration_projection(member:
 def test_only_the_governed_members_use_a_configuration_projection() -> None:
     """No other member product owns a usage typed by a configuration's projection."""
     projections = _configuration_projections()
-    assert len(projections) >= 7, "the scan must see the bills of features"
+    assert len(projections) >= 7, "the scan must see the feature configurations"
     code = _model_code()
     definitions = {path: _definitions(text) for path, text in code.items()}
     lineage = _member_lineage([definition for found in definitions.values() for definition in found])

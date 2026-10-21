@@ -1,0 +1,16 @@
+# Evidence record of the PLEML feature configuration
+# inc_aebs_009a_jetson.sysml (ADR 0022): the evidence status of the
+# configuration and the retained artifacts behind that status. It selects no
+# feature. Until step S7 the Bill-of-Features inc-aebs-009a-jetson.yaml
+# carried it.
+
+status: inspected
+artifacts:
+  - id: EVID-AEBS-009A-RUNTIME-LOCK
+    path: implementation/aebs-autoware-executable-bench/runtime-lock.yaml
+  - id: EVID-AEBS-009A-CONTAINER-IDENTITY
+    path: implementation/aebs-autoware-executable-bench/evidence/container-identity.json
+  - id: EVID-AEBS-009A-READINESS
+    path: implementation/aebs-autoware-executable-bench/evidence/readiness.json
+  - id: EVID-AEBS-009A-ENVIRONMENT-SNAPSHOT
+    path: implementation/aebs-autoware-executable-bench/evidence/execution-environment-snapshot.json

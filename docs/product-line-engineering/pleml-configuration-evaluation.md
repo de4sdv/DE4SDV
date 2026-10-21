@@ -185,13 +185,15 @@ runner replays the same in unlicensed CI and locally.
 - a source document changed after the serialization. The receipts of one
   bundle bind all of its sources, so one edited document makes them all stale;
 - the pinned library is missing, or the package pins another release;
-- its evaluation (verdicts, derived variants, admission) or its shadow does
-  not reproduce byte for byte from the committed elements.
+- its evaluation (verdicts, derived variants, admission) does not reproduce
+  byte for byte from the committed elements;
+- its evaluation records integrity errors.
 
 Reproduction is the only code check. A receipt records the digests of the
-PLEML-owned code it was evaluated with (the evaluator, the receipts, the shadow,
-the package record, the CLI and the configurator) as provenance. Shared
-production modules stay outside that record. When other code still reproduces
+PLEML-owned code it was evaluated with (the evaluator, the receipts, the
+package record and the CLI) as provenance. Shared production modules stay
+outside that record, and so does the configurator, which only reads the
+receipts. When other code still reproduces
 the receipt, the receipt holds and `replay` reports the difference as an
 advisory. When it does not, `refresh` rewrites the receipt from its intact
 elements and records the new code. It lists every change of a configuration's
@@ -209,27 +211,18 @@ diff.
 `receipts --compare <directory>` refuses when the fresh elements differ from
 the committed receipts' elements.
 
-Until the YAML is retired, a receipt also carries these shadow checks, against
-the catalogue with the feature model's file stem. `de4sdv/semantic/pleml_shadow.py`
-computes them with the configurator's own parser:
-
-- each feature's catalogue path, taken from its short name;
-- the allowed-list complement check of C001, C002 and C003;
-- the row-by-row comparison of the rules with the catalogue's rule table.
-
-`de4sdv/semantic/pleml_receipts.py` holds the parity primitives:
-
-- the normalised projection body, below the header and with only the
-  writer's derivation-source line normalised;
-- the writer inputs;
-- the reason keys;
-- the row classes `equal`, `both-reject`, `not-expressible` and `defect`. Two
-  rejections are `both-reject` only with the same reason keys and, where both
-  sides give them, the same multiset of located reasons.
+Until step S7 the receipt format (`de4sdv.pleml-configuration-receipt/v1`)
+also carried a shadow section, computed against the YAML catalogue with the
+configurator's own parser: each feature's catalogue path, the allowed-list
+complement check and the row-by-row comparison with the catalogue's rule
+table. The parity check compared the receipts with the YAML path through
+primitives of `de4sdv/semantic/pleml_receipts.py`. Both retired with the YAML
+at S7. The receipt format since S7 (`/v2`) has no shadow section. The
+complement check reads the reviewed allowed lists from the rationale in the
+SDV feature model (`tests/test_ple_authority_model.py`), and the writer reads
+its inputs from the evaluated configuration (`writer_inputs`): the projection
+name, the folded description and the explicit optional states.
 
 Each reason of an evaluated configuration records where it applies, as data
 beside its prose: `features`, the tree features it names, and for a
 hand-picked derived variant `variations`, the derived variation it chooses.
-
-`not-expressible` is limited to the pinned construct of row
-`ug-10-vehicle-target-aebs-false`.

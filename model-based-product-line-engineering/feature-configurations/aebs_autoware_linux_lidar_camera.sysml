@@ -1,7 +1,7 @@
 /*
  * PLEML feature configuration, the configuration authority since the switch
- * of ADR 0022. The bill of features aebs-autoware-linux-lidar-camera.yaml
- * beside it is its non-authoritative shadow until the YAML retires. The doc
+ * of ADR 0022. It restates the Bill-of-Features
+ * aebs-autoware-linux-lidar-camera.yaml, which retired at step S7. The doc
  * is the configuration's description; a false selection is a [0]
  * redefinition, and an unlisted feature is left unset.
  */

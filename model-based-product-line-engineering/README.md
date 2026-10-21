@@ -23,11 +23,13 @@ their configurations and derives the variants that no configuration selects.
 PLEML is the configuration-validity authority; nothing executes a PLEML
 constraint body natively.
 
-The YAML catalogues and Bills-of-Features stay as a **non-authoritative
-shadow** for at least 30 days after the switch. The parity check
-(`scripts/check_pleml_parity.py`) compares the two paths on every pull request
-until the YAML retires (ADR 0022, step S7). Until then the Bills-of-Features
-also carry the evidence records of their configurations.
+The PLEML models restate the YAML catalogues and Bills-of-Features of the
+YAML authority. Those files retired at step S7 of ADR 0022, together with the
+YAML path of the configurator and the parity check that compared the two paths
+from step S4 on. The rollback tag `pleml-yaml-authority-final` keeps them as
+they were before the switch, and the Git history keeps the versions that S7
+deleted. Since S7 the evidence status of a configuration lives in its
+evidence record (see [Evidence records](#evidence-records)).
 
 ## Governed product-line scope
 
@@ -42,10 +44,11 @@ status.
 ## PLEML feature models and configurations
 
 The `.sysml` files of [`feature-models/`](feature-models/) and
-[`feature-configurations/`](feature-configurations/) restate the three
-catalogues and every Bill-of-Features as PLEML feature models and
-configurations. They are model roots of the export, the API baseline and the
-served model, like the product models. The fixtures under
+[`feature-configurations/`](feature-configurations/) are the three PLEML
+feature models and their configurations. They restate the three YAML
+catalogues and every Bill-of-Features, which retired at step S7. They are
+model roots of the export, the API baseline and the served model, like the
+product models. The fixtures under
 `feature-configurations/fixtures/` stay out of the export: the privileged PLE
 authority workflow validates and serializes them. See
 [`docs/product-line-engineering/pleml-feature-models.md`](../docs/product-line-engineering/pleml-feature-models.md).
@@ -59,16 +62,16 @@ PLEML 1.1.1 comes from the production Sysand lock (`sysand-lock.toml`),
 
 ## Configurable families
 
-| Family | System role | Feature model | YAML shadow | Shared SysML owner |
-|---|---|---|---|---|
-| SDV product line | System 1 product | `sdv_product_line.sysml` | `sdv_product_line.yaml` | `SDVPlatformStack` |
-| Engineering execution environments | System 2 build/simulation/verification | `engineering_execution_environments.sysml` | `engineering_execution_environments.yaml` | `EngineeringExecutionEnvironment` |
-| Vehicle-target execution environments | System 1 deployed compute | `vehicle_execution_environments.sysml` | `vehicle_execution_environments.yaml` | `VehicleTargetExecutionEnvironment` |
+| Family | System role | Feature model | Shared SysML owner |
+|---|---|---|---|
+| SDV product line | System 1 product | `sdv_product_line.sysml` | `SDVPlatformStack` |
+| Engineering execution environments | System 2 build/simulation/verification | `engineering_execution_environments.sysml` | `EngineeringExecutionEnvironment` |
+| Vehicle-target execution environments | System 1 deployed compute | `vehicle_execution_environments.sysml` | `VehicleTargetExecutionEnvironment` |
 
 Engineering hosts are **not SDV product features**. A Jetson or Apple Silicon
 machine used to execute verification is an evidence context. A vehicle compute
-node running Zephyr is product architecture. The separate owners and catalogues
-prevent evidence portability from being inferred across those roles.
+node running Zephyr is product architecture. The separate owners and feature
+models prevent evidence portability from being inferred across those roles.
 
 ## Derived technical variations
 
@@ -84,29 +87,29 @@ configuration: one that matches none, or several, is rejected, and PLEML
 exclusions state the unsupported pairs. The generated projection annotates
 the adapter as derived.
 
-For example, selecting `Autoware` and `AndroidSDV` derives
-`autowareToAAOSSDV`. Selecting middleware `None` derives the absent `none`
-variant. Neither adapter value belongs in a configuration. Until the YAML
-retires, the catalogue's `derived_asset_selections` state the same rules for
-the shadow, and the parity check compares the two.
+For example, selecting `autoware` and `androidSDV` derives
+`autowareToAAOSSDV`. Selecting `noMiddleware` derives the absent `none`
+variant. Neither adapter value belongs in a configuration.
 
-## Evidence contract
+## Evidence records
 
-Until the Bills-of-Features retire, a Bill-of-Features may declare the
-evidence of its configuration:
+A configuration may have an evidence record in
+[`feature-configurations/evidence/`](feature-configurations/evidence/). Its
+file name is the configuration's file stem in kebab case, and it keeps the
+schema of the evidence block that the Bills-of-Features carried until S7:
 
 ```yaml
-evidence:
-  status: tested
-  artifacts:
-    - id: EVID-EXAMPLE
-      path: repository/relative/path.json
+status: tested
+artifacts:
+  - id: EVID-EXAMPLE
+    path: repository/relative/path.json
 ```
 
 Evidence-bearing states require retained, existing repository artifacts.
 `planned` configurations may have no artifacts and remain explicitly
 unverified. Status metadata is not a feature selection and does not alter the
-configured structure.
+configured structure. A CI check applies these rules to every record
+(`tests/test_configuration_evidence_records.py`).
 
 ## Scope boundary
 

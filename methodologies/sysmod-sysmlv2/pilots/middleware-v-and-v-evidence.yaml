@@ -69,7 +69,10 @@ scope:
 system_boundary:
   system_1_member_product:
     status: configured_bounded_runtime_observed
-    configuration_artifact: model-based-product-line-engineering/feature-configurations/middleware-autoware-aaos-sdv-reference.yaml
+    # Until step S7 of ADR 0022: the Bill-of-Features
+    # middleware-autoware-aaos-sdv-reference.yaml, which this PLEML feature
+    # configuration restates.
+    configuration_artifact: model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml
     product_projection: model-based-product-line-engineering/product-models/middleware_autoware_aaos_sdv_reference.sysml
     selected_path: >-
       COVESA VSS Vehicle.Speed [km/h] -> reference/selected VSIDL provider
@@ -249,7 +252,7 @@ trace_ids:
 - verificationSignalMappingTrace
 model_artifacts:
   sysml: textual-notation-of-model/packages/features/middleware/middleware_verification_evidence.sysml
-  configured_member: model-based-product-line-engineering/feature-configurations/middleware-autoware-aaos-sdv-reference.yaml
+  configured_member: model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml
   product_projection: model-based-product-line-engineering/product-models/middleware_autoware_aaos_sdv_reference.sysml
   evidence_baseline: implementation/aaos-sdv-reference-interop-bench/evidence/aaos-cuttlefish-cloud-proof.yaml
 

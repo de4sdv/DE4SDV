@@ -9,6 +9,21 @@ step S6 of the
 [migration plan](../plans/2026-10-19-pleml-product-line-authority.md). Until
 then, the YAML authority of ADR 0014 stays in force.
 
+> Note (2026-10-21): on 2026-10-21 the owner dropped the minimum of 30 days
+> between the switch and the retirement of the YAML (OQ2 of the plan). The
+> YAML retires at step S7 once all of these hold: the privileged ingestion and
+> the deploy of S6 are green, the PLE-Q-style dispatch is green, one parity
+> run on main is green, and no rollback trigger is open. Decision 6 and the
+> consequence "Two representations" are read with this change. Their "at
+> least 30 days" for the shadow and for the retirement no longer applies, and
+> the other conditions of decision 6 stay. S7 retires the YAML catalogues,
+> the Bills-of-Features, the YAML path of `tools/configure_variant.py`, the
+> parity check and its shadow, and the comparison oracle with its retained
+> record. The evidence status of the
+> configurations moves to evidence records, and the `C-` common-capability
+> node IDs retire. After S7 a rollback restores the YAML layer from the tag
+> `pleml-yaml-authority-final`. The decision itself is unchanged.
+
 ## Context
 
 [ADR 0014](0014-ratify-initial-aebs-product-line-scope.md) ratified the

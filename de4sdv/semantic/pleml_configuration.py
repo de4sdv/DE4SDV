@@ -106,7 +106,7 @@ KERNEL = KernelVocabulary(
 
 # -- reasons -----------------------------------------------------------------------------
 
-#: Every rejection reason this module reports and its parity reason class (plan section 5).
+#: Every rejection reason this module reports and its reason class, which a receipt records.
 REASON_CLASSES: dict[str, str] = {
     "upper-bound": "upper-bound",
     "lower-bound": "lower-bound",

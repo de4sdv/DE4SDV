@@ -28,7 +28,7 @@ trace_ids:
 selected_viewpoints:
   - id: product-line-configuration
     viewpoint: ProductLineConfigurationViewpoint
-    purpose: Review native variations and the generated selection against the catalogue and BoF.
+    purpose: Review native variations and the generated selection against the feature model and the feature configuration.
   - id: product-model-assembly
     viewpoint: ProductModelAssemblyViewpoint
     purpose: Review configured-member composition and cross-increment traceability.
@@ -46,8 +46,12 @@ element_ids:
     - GAP-MW-024
 model_artifacts:
   sysml: textual-notation-of-model/packages/features/middleware/middleware_variability_configuration.sysml
-  feature_model: model-based-product-line-engineering/feature-models/sdv_product_line.yaml
-  bill_of_features: model-based-product-line-engineering/feature-configurations/middleware-autoware-aaos-sdv-reference.yaml
+  # The PLEML feature model and configuration of ADR 0022. Until step S7 the
+  # YAML catalogue sdv_product_line.yaml and the Bill-of-Features
+  # middleware-autoware-aaos-sdv-reference.yaml stood here.
+  feature_model: model-based-product-line-engineering/feature-models/sdv_product_line.sysml
+  feature_configuration: model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml
+  evidence_record: model-based-product-line-engineering/feature-configurations/evidence/middleware-autoware-aaos-sdv-reference.yaml
   generated_projection: model-based-product-line-engineering/product-models/middleware_autoware_aaos_sdv_reference.sysml
 out_of_scope:
   - IFEX toolchain or generated-contract adoption

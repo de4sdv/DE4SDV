@@ -6,7 +6,7 @@ workflow). Licensed mode loads the reviewed model roots and the pinned
 dependencies of the API baseline, among them the exact-pinned PLEML library
 (PLEML 1.1.1 as the production Sysand lock installs it, byte-checked against
 its release tag), the three PLEML feature models and their configurations,
-together with the fixtures (the invalid configuration and the parity probes),
+together with the fixtures (the invalid configuration and the probes),
 in one model with the pinned serializer and refuses any error diagnostic. It
 serializes every document once with the production export's options,
 validates the governed product-line scope exactly as production does, builds
@@ -59,7 +59,7 @@ FEATURE_MODELS = (
     f"{PLE}/feature-models/engineering_execution_environments.sysml",
     f"{PLE}/feature-models/vehicle_execution_environments.sysml",
 )
-#: One PLEML configuration per committed bill of features.
+#: The PLEML feature configurations of the served model, one per committed product-model projection.
 CONFIGURATIONS = (
     f"{PLE}/feature-configurations/aebs_autoware_linux_lidar_camera.sysml",
     f"{PLE}/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml",
@@ -71,9 +71,12 @@ CONFIGURATIONS = (
 )
 #: The authority roots: the feature models and the member configurations.
 AUTHORITY_SOURCES = FEATURE_MODELS + CONFIGURATIONS
-#: The parity probes of step S4 (plan section 5): one PLEML configuration per
-#: probe row of the parity check, which compares its receipt with the
-#: configurator's verdict on the same frozen selection.
+#: The probes of step S4 (plan section 5), fixture configurations that the
+#: receipts evaluate. Ten restate probe selections of the retired PLE-S record,
+#: and seven probe the closed world: the four unsupported application-middleware
+#: pairs, one hand-picked adapter and the two allowed pairs that no other
+#: configuration exercises. Until S7 the parity check compared each with the
+#: configurator's verdict on the same selection.
 PARITY_PROBES = tuple(f"{PLE}/feature-configurations/fixtures/parity-probes/{name}.sysml" for name in (
     "both_integration_modes_probe",
     "no_integration_mode_probe",
@@ -93,7 +96,7 @@ PARITY_PROBES = tuple(f"{PLE}/feature-configurations/fixtures/parity-probes/{nam
     "openpilot_eclipse_score_pair_probe",
     "apollo_no_middleware_pair_probe",
 ))
-#: The fixtures: the invalid fixture and the parity probes, validated and
+#: The fixtures: the invalid fixture and the probes, validated and
 #: serialized, never an authority root.
 FIXTURES = (f"{PLE}/feature-configurations/fixtures/invalid_score_android.sysml", *PARITY_PROBES)
 #: Reviewed documents the PLEML models reference: the shared-asset supersets
@@ -359,8 +362,8 @@ def evaluate(bundle: BaselineExportBundle, executor: str, out: Path) -> dict[str
     one receipt per feature model to ``out/receipts``, with the run's
     provenance beside the elements. The committed receipts must then hold
     twice: their elements equal the fresh ones (``compare_with_committed``, the
-    authenticity of the committed elements), and their evaluations and shadow
-    checks reproduce from those elements (``replay_committed``). A failure of
+    authenticity of the committed elements), and their evaluations reproduce
+    from those elements (``replay_committed``). A failure of
     the entry point or of either check fails the run. A code-identity
     difference is an advisory, never a failure.
     """

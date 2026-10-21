@@ -1,9 +1,9 @@
 /*
  * PLEML feature configuration of a reference example, the configuration
- * authority since the switch of ADR 0022. The bill of features
- * apollo-qnx-qvm.yaml beside it is its non-authoritative shadow until the
- * YAML retires. The doc is the configuration's description; a false
- * selection is a [0] redefinition, and an unlisted feature is left unset.
+ * authority since the switch of ADR 0022. It restates the Bill-of-Features
+ * apollo-qnx-qvm.yaml, which retired at step S7. The doc is the
+ * configuration's description; a false selection is a [0] redefinition, and
+ * an unlisted feature is left unset.
  */
 
 package DE4SDV_ApolloQNXQVMVariantConfiguration {

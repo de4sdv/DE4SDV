@@ -1,10 +1,10 @@
 /*
- * DELIBERATELY INVALID PLEML feature configuration, a fixture restating
- * fixtures/invalid-score-android.yaml. It lies outside the authority roots,
- * as its bill of features does, and is never a member configuration: it
- * selects Eclipse S-CORE with Android HLOS, so it violates the exclusion
- * C001. The doc is the bill of features' description; a false selection is a
- * [0] redefinition, and an unlisted feature is left unset.
+ * DELIBERATELY INVALID PLEML feature configuration, a fixture. It restates
+ * the bill of features fixtures/invalid-score-android.yaml, which retired at
+ * step S7. It lies outside the authority roots and is never a member
+ * configuration: it selects Eclipse S-CORE with Android HLOS, so it violates
+ * the exclusion C001. The doc is the bill of features' description; a false
+ * selection is a [0] redefinition, and an unlisted feature is left unset.
  */
 
 package DE4SDV_InvalidSCOREAndroidVariantConfiguration {

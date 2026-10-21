@@ -215,11 +215,11 @@
   <text x="491" y="640" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">  hypervisor = none</tspan></text>
   <text x="491" y="652" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">  applicationMiddlewareAdapter = none (derived by D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER)</tspan></text>
   <text x="491" y="664" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Feature selections outside this projection (not resolved in SysML):</tspan></text>
-  <text x="491" y="676" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">  SensingBoundary.PerceptionSensors = LiDAR, Camera</tspan></text>
-  <text x="491" y="688" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">  Capabilities.ForwardCollisionMitigation.PedestrianDetection = disabled</tspan></text>
-  <text x="491" y="700" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">  Capabilities.ForwardCollisionMitigation.BicycleDetection = disabled</tspan></text>
-  <text x="491" y="712" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">  Capabilities.AdaptiveCruiseControl = disabled</tspan></text>
-  <text x="491" y="724" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">  Capabilities.LaneKeepAssist = disabled</tspan></text>
+  <text x="491" y="676" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">  sensingBoundary.perceptionSensors = lidar, camera</tspan></text>
+  <text x="491" y="688" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">  capabilities.pedestrianDetection = disabled</tspan></text>
+  <text x="491" y="700" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">  capabilities.bicycleDetection = disabled</tspan></text>
+  <text x="491" y="712" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">  capabilities.adaptiveCruiseControl = disabled</tspan></text>
+  <text x="491" y="724" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">  capabilities.laneKeepAssist = disabled</tspan></text>
   <text x="980.5" y="742.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">parts</tspan></text>
   <text x="491" y="758" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">vehicleApplication :&gt;&gt; vehicleApplication = vehicleApplication::autoware</tspan></text>
   <text x="491" y="770" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">middleware :&gt;&gt; middleware = middleware::none</tspan></text>

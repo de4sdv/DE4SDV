@@ -11,8 +11,9 @@ evaluator; the outcomes it reproduces are the table the licensed run must
 match, and every refusal is a shape the evaluator must never accept silently.
 
 The runner that serialized and replayed PLE-S is retired with the experiment
-(ADR 0022, step S3). The evaluator stays: the retained record and its
-comparison oracle read its schema and constants.
+(ADR 0022, step S3), and its retained record and comparison oracle with the
+YAML at step S7. The evaluator stays: the current identity of the PLE
+qualification reads its constants (``tests/test_ple_qualification.py``).
 """
 
 from __future__ import annotations

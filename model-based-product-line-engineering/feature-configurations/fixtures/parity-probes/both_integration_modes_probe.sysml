@@ -1,9 +1,10 @@
 /*
  * PLEML parity probe both-alternatives (ADR 0022, plan step S4). A fixture
  * outside the authority roots, never a member configuration: it restates the
- * frozen selection of its parity row, and the parity check compares its
- * receipt with the configurator's verdict on that selection. A false
- * selection is a [0] redefinition, and an unlisted feature is left unset.
+ * frozen selection of its parity row. Until S7 the parity check compared its
+ * receipt with the configurator's verdict on that selection; the receipts
+ * still record its verdict. A false selection is a [0] redefinition, and an
+ * unlisted feature is left unset.
  */
 
 package DE4SDV_BothIntegrationModesProbeConfiguration {

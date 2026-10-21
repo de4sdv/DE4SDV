@@ -309,7 +309,7 @@ FREE_FORM_PREFIXES = {
     "ACT",  # actor (pilot index)
     "ALT",  # realization alternative (pilot index)
     "BLK",  # physical element block (pilot index)
-    "C",  # common capability node or catalogue constraint (feature model)
+    "C",  # catalogue constraint (feature model); the C- common-capability node IDs retired at S7
     "CAP",  # capability (pilot index)
     "CC",  # common capability (pilot index)
     "CCM",  # counter-claim (assurance argumentation)

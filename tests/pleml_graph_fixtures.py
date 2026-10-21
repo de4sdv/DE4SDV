@@ -7,8 +7,8 @@ reference and sequence expressions, the ``new FeatureOperand(A, B)``
 constructor, annotated binding dependencies and variant memberships). It
 writes a small stand-in for the pinned PLEML library and for the reviewed
 kernel definitions, so the evaluator's identity rules apply to the fixture
-exactly as they apply to a real export. No model, catalogue or library file
-is copied: every element is generated here.
+exactly as they apply to a real export. No model or library file is copied:
+every element is generated here.
 """
 from __future__ import annotations
 
@@ -548,10 +548,10 @@ def synthetic_contract(kernel_file: str = evaluator.KERNEL_SOURCE, names: Any = 
 
 # -- a synthetic platform product line ----------------------------------------------------
 #
-# Generated here, never copied from the catalogue: four exactly-one platform
-# groups bound to shared-asset variations, a multi-select sensing group,
-# optional capabilities, the adapter variation derived by rules, the pair
-# exclusions of the closed world and the catalogue's allowed-list exclusions.
+# Generated here, never copied from the feature model: four exactly-one
+# platform groups bound to shared-asset variations, a multi-select sensing
+# group, optional capabilities, the adapter variation derived by rules, the
+# pair exclusions of the closed world and the allowed-list exclusions.
 
 #: A governed scope in the shape of the ratified one: two admitted alternatives, the common core, and the
 #: reference-only, deferred, excluded and derived sets.
@@ -563,7 +563,7 @@ GOVERNED_SETS = {
     "excluded_system2": ("engineeringExecutionEnvironments",),
     "derived_realization": ("adapterRealization",),
 }
-#: Feature -> the governed elements it corresponds to, as the fenced SDV feature model states them.
+#: Feature -> the governed elements it corresponds to, as the SDV feature model states them.
 CORRESPONDENCES = {
     "vehicleApplication": ("drivingStackVariability",), "autoware": ("autowareApplication",),
     "openpilot": ("openpilot",), "apollo": ("apollo",), "eclipseSCORE": ("eclipseSCORE",),
@@ -590,7 +590,7 @@ ADAPTER_RULES = {
 }
 UNSUPPORTED = {"openpilot": ("androidSDV", "autosarAdaptive"), "apollo": ("androidSDV", "autosarAdaptive")}
 VARIANT = {"noMiddleware": "none", "noHypervisor": "none"}
-#: Short names: the stable catalogue identifiers, so the shadow checks compare with the real catalogue.
+#: Short names: the stable feature IDs of the SDV feature model.
 SHORT = {
     "platformStack": "F-PLATFORM-STACK", "vehicleApplication": "F-PLATFORM-VEHICLE-APPLICATION",
     "autoware": "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE", "openpilot": "F-PLATFORM-VEHICLE-APPLICATION-OPENPILOT",

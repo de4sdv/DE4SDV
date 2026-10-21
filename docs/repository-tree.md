@@ -20,7 +20,7 @@ This is a maintained orientation map, not a hand-copied file inventory. Run
 | Path | Purpose |
 |---|---|
 | `textual-notation-of-model/` | Governed SysML v2 method, architecture, feature, evidence, and view assets |
-| `model-based-product-line-engineering/` | Feature configurations, shared assets, configured product models, the governed product-line scope (`scoping/`), the PLEML feature models and configurations of ADR 0022, the product-line authority (the `.sysml` files of `feature-models/` and `feature-configurations/`, with the YAML catalogues and Bills-of-Features beside them as a non-authoritative shadow until they retire) |
+| `model-based-product-line-engineering/` | Feature configurations, shared assets, configured product models, the governed product-line scope (`scoping/`), and the PLEML feature models and configurations of ADR 0022, the product-line authority (the `.sysml` files of `feature-models/` and `feature-configurations/`, with their receipts and the configurations' evidence records) |
 | `approach/` | Process set, ontology, and framework material |
 | `methodologies/` | Reusable engineering methods and increment guidance |
 | `implementation/` | Reference implementations and bounded execution evidence |

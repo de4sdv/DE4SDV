@@ -349,8 +349,8 @@ def verify_repin(current: bytes, *, release: Release = RELEASE, previous: Releas
     line endings must rebuild exactly the previous release's tag bytes and
     package bytes, and the diff of the rebuilt package against ``current``
     must take the fast path on exactly the recorded lines. A full re-pin is
-    recorded; its gates are licensed validation, refreshed receipts, parity
-    and an independent review.
+    recorded; its gates are licensed validation, refreshed receipts, the
+    bounded re-verification checks and an independent review.
     """
     if sha256(current) != release.library.sha256:
         raise PackageError(f"the library is not the byte-checked PLEML {release.version}")

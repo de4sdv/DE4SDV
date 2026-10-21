@@ -13,14 +13,7 @@ CONFIG_SYSML = MODEL_DIR / "aebs_visualization_variability_configuration.sysml"
 TEST_ARTICLE = Path(
     "implementation/aebs-aaos-sdv-visualization-bench/config/test-article.yaml"
 )
-REFERENCE_BOF = Path(
-    "model-based-product-line-engineering/feature-configurations/"
-    "middleware-autoware-aaos-sdv-reference.yaml"
-)
-PRODUCT_LINE_BOF = Path(
-    "model-based-product-line-engineering/feature-models/sdv_product_line.yaml"
-)
-#: The PLEML authority beside the two shadows above (ADR 0022).
+#: The PLEML authority (ADR 0022).
 PRODUCT_LINE_FEATURE_MODEL = Path(
     "model-based-product-line-engineering/feature-models/sdv_product_line.sysml"
 )
@@ -46,22 +39,16 @@ def test_test_article_specializes_accepted_configured_member() -> None:
     assert "to DE4SDV_MiddlewareVariabilityConfiguration::configuredMember;" in config
 
 
-def test_no_new_product_feature_in_product_line_bof() -> None:
-    """CLS-AEBS-010-001: neither the PLEML feature model nor its catalogue shadow
-    carries the visualization as a product-line feature."""
-    for path in (PRODUCT_LINE_BOF, PRODUCT_LINE_FEATURE_MODEL):
-        text = _read(path)
-        assert "AEBS" in text, path  # existing capability entries remain
-        assert "visualization" not in text.lower(), (
-            f"the visualization must not appear as a product-line feature: {path}"
-        )
+def test_no_new_product_feature_in_the_product_line_feature_model() -> None:
+    """CLS-AEBS-010-001: the PLEML feature model carries no visualization feature."""
+    text = _read(PRODUCT_LINE_FEATURE_MODEL)
+    assert "AEBS" in text  # existing capability entries remain
+    assert "visualization" not in text.lower(), "the visualization must not appear as a product-line feature"
 
 
-def test_reference_bof_untouched_by_visualization() -> None:
-    """Neither the reference feature configuration nor its Bill-of-Features shadow
-    selects anything for the visualization."""
-    for path in (REFERENCE_BOF, REFERENCE_CONFIGURATION):
-        assert "visualization" not in _read(path).lower(), path
+def test_reference_configuration_untouched_by_visualization() -> None:
+    """The reference feature configuration selects nothing for the visualization."""
+    assert "visualization" not in _read(REFERENCE_CONFIGURATION).lower()
 
 
 def test_configuration_reuses_projection_without_regeneration() -> None:
@@ -140,10 +127,8 @@ def test_product_selections_inherited_unchanged() -> None:
     yaml_data = yaml.safe_load(_read(TEST_ARTICLE))
     inherited = yaml_data["inherits_product_configuration"]
     assert inherited["reused_unchanged"] is True
-    assert inherited["source"] == (
-        "model-based-product-line-engineering/feature-configurations/"
-        "middleware-autoware-aaos-sdv-reference.yaml"
-    )
+    assert inherited["source"] == REFERENCE_CONFIGURATION.as_posix()
+    assert REFERENCE_CONFIGURATION.is_file()
     # The test article must not add its own product-level selections.
     assert "selections:" not in _read(TEST_ARTICLE)
 

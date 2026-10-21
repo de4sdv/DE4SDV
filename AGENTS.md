@@ -141,7 +141,11 @@ All generated or modified `.sysml` files under `textual-notation-of-model/`,
 `model-based-product-line-engineering/feature-configurations/` must be
 validated before the modeling step is treated as complete. The feature models
 and configurations are the PLEML product-line authority (ADR 0022); a change
-to them also needs fresh receipts from the privileged PLE authority workflow.
+to them also needs fresh receipts from the privileged PLE authority workflow,
+and the product-model projections regenerated from those receipts with
+`tools/configure_variant.py --receipt`. The evidence status of a configuration
+lives in its evidence record under `feature-configurations/evidence/`, not in
+the model.
 
 Use one of the two validation paths:
 

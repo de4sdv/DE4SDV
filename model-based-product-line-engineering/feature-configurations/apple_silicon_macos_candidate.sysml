@@ -1,9 +1,10 @@
 /*
  * PLEML feature configuration of a planned and unverified System 2
- * candidate, the configuration authority since the switch of ADR 0022. The
- * bill of features apple-silicon-macos-candidate.yaml beside it is its
- * non-authoritative shadow until the YAML retires, and holds its evidence
- * block until then. The doc is the configuration's description.
+ * candidate, the configuration authority since the switch of ADR 0022. It
+ * restates the Bill-of-Features apple-silicon-macos-candidate.yaml, which
+ * retired at step S7. Its evidence record is
+ * evidence/apple-silicon-macos-candidate.yaml. The doc is the
+ * configuration's description.
  */
 
 package DE4SDV_AppleSiliconMacOSCandidateConfiguration {

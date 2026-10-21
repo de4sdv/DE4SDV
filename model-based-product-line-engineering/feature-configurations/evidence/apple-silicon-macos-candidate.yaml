@@ -1,0 +1,8 @@
+# Evidence record of the PLEML feature configuration
+# apple_silicon_macos_candidate.sysml (ADR 0022): the evidence status of the
+# configuration and the retained artifacts behind that status. It selects no
+# feature. Until step S7 the Bill-of-Features
+# apple-silicon-macos-candidate.yaml carried it.
+
+status: planned
+artifacts: []

@@ -186,9 +186,10 @@ package DE4SDV_VehicleSensingBoundary {
    *
    * The PLEML feature model (sdv_product_line.sysml) groups the perception
    * sensors as optional features of perceptionSensors[1..*], which expresses
-   * multi-select at the feature level (its YAML shadow uses an or_group). The
-   * configurator writes the selected sensors, from the configuration's
-   * receipt, into the doc comment of the generated product-model projection.
+   * multi-select at the feature level (the retired YAML catalogue used an
+   * or_group). The configurator writes the selected sensors, from the
+   * configuration's receipt, into the doc comment of the generated
+   * product-model projection.
    * ────────────────────────────────────────── */
 
   part def SensorSuite {
