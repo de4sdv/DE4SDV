@@ -161,7 +161,7 @@ class Scenario:
     def alive(self, name: str) -> bool:
         return name in self.procs and self.procs[name][0].poll() is None
 
-    def signal(self, name: str, sig: int) -> int:
+    def send_signal(self, name: str, sig: int) -> int:
         process = self.procs[name][0]
         stamp = self.note(f"SIGNAL {name} {signal.Signals(sig).name}")
         if process.poll() is None:
@@ -173,7 +173,7 @@ class Scenario:
             return
         process, log = self.procs[name]
         if process.poll() is None:
-            self.signal(name, sig)
+            self.send_signal(name, sig)
             try:
                 process.wait(timeout=timeout)
             except subprocess.TimeoutExpired:
@@ -254,8 +254,12 @@ class Scenario:
         return {"LD_LIBRARY_PATH": self.paths["host_ld_library_path"]}
 
     def start_tcpdump(self) -> None:
-        self.start("tcpdump", GUEST_NS, ["tcpdump", "-i", GUEST_IF, "-U", "-s", "0", "-Z", "root",
-                                         "--time-stamp-precision=nano", "-w", str(self.out / "guest_wire.pcap")])
+        pcap = str(self.out / "guest_wire.pcap")
+        argv = ["tcpdump", "-i", GUEST_IF, "-U", "-s", "0", "-Z", "root", "--time-stamp-precision=nano", "-w", pcap]
+        override = os.environ.get("SPIKE_CAPTURE_CMD")  # the local dry run only
+        if override:
+            argv = [part.replace("{pcap}", pcap).replace("{if}", GUEST_IF) for part in json.loads(override)]
+        self.start("tcpdump", GUEST_NS, argv)
         self.wait_log("tcpdump", r"listening on", 10)
 
     def start_someipd(self, name: str = "someipd") -> None:
@@ -396,7 +400,7 @@ def s4_gatewayd_crash_restart(sc: Scenario) -> None:
     sc.touch(sc.out / "go")
     sc.wait_file(sc.out / "publisher.paused-50", 30)
     time.sleep(1.0)
-    sc.meta["gatewayd_killed_ns"] = sc.signal("gatewayd", signal.SIGKILL)
+    sc.meta["gatewayd_killed_ns"] = sc.send_signal("gatewayd", signal.SIGKILL)
     sc.wait_exit("gatewayd", 10)
     sc.stop("gatewayd")
     time.sleep(1.0)
@@ -461,13 +465,13 @@ def s7_host_stop_sequence(sc: Scenario) -> None:
     sc.wait_subscribed()
     sc.touch(sc.out / "go")
     time.sleep(3.0)
-    sc.meta["stop_publisher_ns"] = sc.signal("publisher", signal.SIGTERM)
+    sc.meta["stop_publisher_ns"] = sc.send_signal("publisher", signal.SIGTERM)
     sc.wait_exit("publisher", 10)
     time.sleep(7.0)
-    sc.meta["stop_gatewayd_ns"] = sc.signal("gatewayd", signal.SIGTERM)
+    sc.meta["stop_gatewayd_ns"] = sc.send_signal("gatewayd", signal.SIGTERM)
     sc.wait_exit("gatewayd", 10)
     time.sleep(7.0)
-    sc.meta["stop_someipd_ns"] = sc.signal("someipd", signal.SIGTERM)
+    sc.meta["stop_someipd_ns"] = sc.send_signal("someipd", signal.SIGTERM)
     sc.wait_exit("someipd", 10)
     time.sleep(7.0)
 
@@ -483,7 +487,7 @@ def s8_someipd_kill(sc: Scenario) -> None:
     sc.wait_subscribed()
     sc.touch(sc.out / "go")
     time.sleep(3.0)
-    sc.meta["kill_someipd_ns"] = sc.signal("someipd", signal.SIGKILL)
+    sc.meta["kill_someipd_ns"] = sc.send_signal("someipd", signal.SIGKILL)
     sc.wait_exit("someipd", 10)
     time.sleep(10.0)
 
@@ -500,16 +504,16 @@ def s9_stalled_guest(sc: Scenario) -> None:
     sc.touch(sc.out / "go")
     time.sleep(3.0)
     rss = [{"phase": "before", "someipd_kib": sc.rss_kib("someipd"), "gatewayd_kib": sc.rss_kib("gatewayd")}]
-    sc.meta["stall_start_ns"] = sc.signal("client", signal.SIGSTOP)
+    sc.meta["stall_start_ns"] = sc.send_signal("client", signal.SIGSTOP)
     for i in range(6):
         time.sleep(5.0)
         rss.append({"phase": f"stalled+{5 * (i + 1)}s", "someipd_kib": sc.rss_kib("someipd"),
                     "gatewayd_kib": sc.rss_kib("gatewayd")})
-    sc.meta["stall_end_ns"] = sc.signal("client", signal.SIGCONT)
+    sc.meta["stall_end_ns"] = sc.send_signal("client", signal.SIGCONT)
     time.sleep(5.0)
     rss.append({"phase": "after", "someipd_kib": sc.rss_kib("someipd"), "gatewayd_kib": sc.rss_kib("gatewayd")})
     sc.meta["rss"] = rss
-    sc.meta["stop_publisher_ns"] = sc.signal("publisher", signal.SIGTERM)
+    sc.meta["stop_publisher_ns"] = sc.send_signal("publisher", signal.SIGTERM)
     sc.wait_exit("publisher", 10)
     time.sleep(2.0)
 

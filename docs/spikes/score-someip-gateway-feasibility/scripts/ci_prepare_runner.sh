@@ -31,6 +31,16 @@ sudo docker image prune -af >/dev/null 2>&1 || true
   df -h / /mnt 2>/dev/null || df -h /
 } | tee -a "$out/runner.txt"
 
+# The ubuntu-24.04 image (20261012.334.1) has no bazel or bazelisk on PATH:
+# install bazelisk v1.29.0, checked by digest. It runs the Bazel version of the
+# checkout's .bazelversion; BAZELISK_VERIFY_SHA256 (workflow env) pins that
+# binary's digest too.
+bazelisk_sha=5a408715e932c0250d28bd84555f12edbf70117de42f9181691c736eacc4a992
+curl -fsSL -o /tmp/bazelisk https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-linux-amd64
+echo "$bazelisk_sha  /tmp/bazelisk" | sha256sum -c - | tee -a "$out/runner.txt"
+sudo install -m 0755 /tmp/bazelisk /usr/local/bin/bazelisk
+sudo ln -sf /usr/local/bin/bazelisk /usr/local/bin/bazel
+
 # Bazel's linux-sandbox needs unprivileged user namespaces for the tests.
 sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 | tee -a "$out/runner.txt" || true
 

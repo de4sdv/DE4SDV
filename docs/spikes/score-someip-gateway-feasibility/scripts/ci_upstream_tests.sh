@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # DE4SDV throwaway spike (INC-MW-011 gateway feasibility), never merged.
 # Runs the gateway's own tests on an untouched checkout, the way its CI does,
-# and records per-target results. Never fails the job: the report states
-# pass, fail or skip per target.
+# and records per-target results. Runs every command, keeps all logs, and
+# exits with the worst exit code so a failure shows in the run.
 # Usage: ci_upstream_tests.sh <gateway-checkout> <facts-dir> unit|qemu
 set -uo pipefail
 
@@ -15,6 +15,7 @@ cd "$gw" || exit 1
 
 bazel --version | tee "$out/bazel_version.txt"
 
+worst=0
 run() {
   local name=$1
   shift
@@ -25,6 +26,9 @@ run() {
   end=$(date +%s)
   echo "{\"name\": \"$name\", \"command\": \"bazel $*\", \"exit_code\": $status, \"wall_s\": $((end - start))}" \
     > "$out/$name.status.json"
+  if [ "$status" -gt "$worst" ]; then
+    worst=$status
+  fi
   return 0
 }
 
@@ -53,4 +57,4 @@ if [ -n "$logs" ] && [ -d "$logs" ]; then
 fi
 python3 "$spike_dir/scripts/summarize_tests.py" "$out" > "$out/tests_summary.md" || true
 cat "$out/tests_summary.md" || true
-exit 0
+exit "$worst"

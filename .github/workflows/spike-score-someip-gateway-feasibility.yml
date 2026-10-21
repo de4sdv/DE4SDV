@@ -26,6 +26,8 @@ env:
   GATEWAY_SHA: 951fbc09bfbe9011eb81471cd31e1379700669b8
   VSOMEIP_SHA: 4187431d2815bd351845a09d01aa85b2a3163cab
   SPIKE_DIR: docs/spikes/score-someip-gateway-feasibility
+  # bazel-8.6.0-linux-x86_64, the version of the gateway's .bazelversion
+  BAZELISK_VERIFY_SHA256: 9860da9c9386bbc023feed8f43af3105d338727d77b644fa6aeca45a4a11957c
 
 jobs:
   upstream-tests:
