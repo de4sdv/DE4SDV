@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # DE4SDV throwaway spike (INC-MW-011 gateway feasibility), never merged.
-# Prepares a GitHub-hosted ubuntu runner: frees disk (the gateway's Bazel build
-# downloads an LLVM toolchain and Boost), lets Bazel's linux-sandbox create user
-# namespaces (Ubuntu 24.04 AppArmor restriction, as the gateway's own CI does
-# with its unblock-user-namespace action), and writes ~/.bazelrc with an output
-# base on the larger disk. Prints the runner facts the report needs.
+# Prepares a GitHub-hosted ubuntu runner: installs bazelisk, lets Bazel's
+# linux-sandbox create user namespaces (Ubuntu 24.04 AppArmor restriction, as
+# the gateway's own CI does with its unblock-user-namespace action), and writes
+# ~/.bazelrc with an output base on the larger disk. Prints the runner facts
+# the report needs.
 set -euo pipefail
 
 out=${1:?usage: ci_prepare_runner.sh <facts-dir> [--disk-cache]}
@@ -21,15 +21,11 @@ mkdir -p "$out"
   df -h / /mnt 2>/dev/null || df -h /
 } | tee "$out/runner.txt"
 
-sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup \
-  /opt/hostedtoolcache/CodeQL /usr/share/swift /usr/local/share/powershell \
-  /usr/local/share/chromium /usr/local/lib/node_modules /opt/microsoft || true
-sudo docker image prune -af >/dev/null 2>&1 || true
-
-{
-  echo "== disk after cleanup"
-  df -h / /mnt 2>/dev/null || df -h /
-} | tee -a "$out/runner.txt"
+# No disk cleanup: the ubuntu-24.04 runner (image 20261012.334.1) has a 145G
+# root disk with 86G free. Run 39678067776 showed that deleting the preinstalled
+# Android SDK breaks the gateway's Bazel analysis: ANDROID_HOME stays set and
+# the rules_android SDK repository rule fails on the missing SDK.
+echo "ANDROID_HOME=${ANDROID_HOME:-} ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-}" | tee -a "$out/runner.txt"
 
 # The ubuntu-24.04 image (20261012.334.1) has no bazel or bazelisk on PATH:
 # install bazelisk v1.29.0, checked by digest. It runs the Bazel version of the
