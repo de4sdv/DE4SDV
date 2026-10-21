@@ -1,5 +1,5 @@
 {
-  "description": "Contract fields the kernel-vocabulary admission manifest holds itself instead of the model (owner decision D9): kernel mapping, subclass and disjointness pins, relation domain/range/direction/strength and mechanics. Extracted once from the comparison that proved them equal to the authored ontology before its deletion; definition text is excluded (the model owns it). Changing a value needs a reviewed update of this file. The kernel_mapping file of DerivesFromNeed and the trace-relation classes follows their move to de4sdv_trace_vocabulary.sysml, and that of the trace-obligation class IncrementTraceObligations its move to de4sdv_increment_workflow.sysml. The rows of the removed classes ApprovedTraceMethod, EvidenceSupportCitation, ScopedEvidenceAdequacyAssessment and ScopedVVActivityRecord, and of the removed relation hasStakeholder, were dropped with them; no other value changed. The rows of the five method-admitted product-line derivation classes (DerivationRule, DerivedVariation, ProductModelProjection, ProductModelProjectionName and UnassignedBindingTime) were added after the deletion: they record the reviewed values of their admission, not an authored-ontology comparison.",
+  "description": "Contract fields the kernel-vocabulary admission manifest holds itself instead of the model (owner decision D9): kernel mapping, subclass and disjointness pins, relation domain/range/direction/strength and mechanics. Extracted once from the comparison that proved them equal to the authored ontology before its deletion; definition text is excluded (the model owns it). Changing a value needs a reviewed update of this file. The kernel_mapping file of DerivesFromNeed and the trace-relation classes follows their move to de4sdv_trace_vocabulary.sysml, and that of the trace-obligation class IncrementTraceObligations its move to de4sdv_increment_workflow.sysml. The rows of the removed classes ApprovedTraceMethod, EvidenceSupportCitation, ScopedEvidenceAdequacyAssessment and ScopedVVActivityRecord, and of the removed relations hasStakeholder and includesCommonCapability, were dropped with them; no other value changed. The rows of the five method-admitted product-line derivation classes (DerivationRule, DerivedVariation, ProductModelProjection, ProductModelProjectionName and UnassignedBindingTime) were added after the deletion: they record the reviewed values of their admission, not an authored-ontology comparison.",
   "source": {
     "tag": "release-2026-10-11",
     "commit": "063c4fb1f2763a366874118f3b78d9841e0d11b4",
@@ -8,9 +8,9 @@
     "sha256": "2d24c4b1c642738c3857f33552042fe2189cf9b255cd19d5bc71e717cc8058ee",
     "section": "manifest_held_fields"
   },
-  "rows": 57,
-  "rows_with_manifest_held_contract_fields": 54,
-  "relation_rows": 20,
+  "rows": 56,
+  "rows_with_manifest_held_contract_fields": 53,
+  "relation_rows": 19,
   "kernel_mapping_rows": 34,
   "entries": {
     "AcceptanceCriterion": {
@@ -485,16 +485,6 @@
     "hasValidationScenario": {
       "admission_class": "successor",
       "manifest": {}
-    },
-    "includesCommonCapability": {
-      "admission_class": "relationship-vocabulary",
-      "manifest": {
-        "relation": {
-          "domain": "FeatureConfiguration",
-          "range": "CommonCapability",
-          "semantic_strength": null
-        }
-      }
     },
     "instantiatesCanonicalArchitecture": {
       "admission_class": "relationship-vocabulary",

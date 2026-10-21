@@ -43,7 +43,7 @@ MERGED_ALIASES = {"validatesFitnessForUse"}
 METHOD_ADMITTED_CLASSES = {"DerivationRule", "DerivedVariation", "ProductModelProjection",
                            "ProductModelProjectionName", "UnassignedBindingTime"}
 #: Rows whose manifest-held fields were proven equal to the authored ontology.
-ONTOLOGY_COMPARED_HELD_ROWS = 49
+ONTOLOGY_COMPARED_HELD_ROWS = 48
 #: Owner decision 2026-10-06 (ADR 0020 D4 follow-up): the closure is exactly these.
 AEBS = "textual-notation-of-model/packages/features/aebs/"
 EC_CLOSURE = {
@@ -158,7 +158,7 @@ def test_every_retained_row_and_ontology_identity_has_exactly_one_provider():
         assert register[identity]["accounting_status"] == entry["accounting"]
     assert set(exceptions) == {"IncrementTraceabilityShell", "derivesNeedFromConcern", "addressesConcern",
                                "producesView", "recordsAssumption", "recordsGap", "selectedViewpoint",
-                               "hasStakeholder"}
+                               "hasStakeholder", "includesCommonCapability"}
     retained = {i for i, r in register.items() if r["accounting_status"] == "retained"}
     assert retained <= set().union(*layers.values())
 
@@ -179,7 +179,7 @@ def test_projection_scope_echoes_the_owner_visible_exceptions():
 
 
 def test_manifest_held_contract_fields_equal_the_recorded_values():
-    """The manifest holds 50 rows' contract fields itself instead of the model
+    """The manifest holds 53 rows' contract fields itself instead of the model
     (the model does not carry them structurally): kernel mapping, subclass and
     disjointness pins, and
     relation domain/range/direction/strength with mechanics. They feed the served
@@ -344,8 +344,10 @@ def test_generated_rows_carry_no_governance_fields_or_executable_claims():
         boundary = rows[entry["for_concept"]]["boundary"]
         assert ("configurator_authority" in entry) == (boundary == "ple-no-configurator-authority")
     ple = {r["identity"] for r in rows.values() if r["boundary"] == "ple-no-configurator-authority"}
+    # S5o: the PLE configuration rows and the method-admitted derivation classes share
+    # the boundary; none of them carries configurator authority (ADR 0022).
     assert ple == {"FeatureConfiguration", "appliesToMemberProduct", "selectsFeature",
-                   "includesCommonCapability", "selectsVariant"}
+                   "selectsVariant"} | METHOD_ADMITTED_CLASSES
     assert all(rows[i]["admission_class"] in ("definition", "relationship-vocabulary") for i in ple)
 
 
@@ -612,7 +614,8 @@ def _record_keys(path, text):
     owner-decisions-2026-10.md ``#2026-10-05-7`` is row 7 of the 2026-10-05
     table and ``#wave-a-decision-9`` the Decision 9 row of the Wave A table;
     ADR 0020 ``#d1`` to ``#d4``, ``#d4-follow-up``, ``#decision-7`` and
-    ``#decision-8`` name its numbered decision items.
+    ``#decision-8`` name its numbered decision items, and ADR 0022
+    ``#decision-1`` to ``#decision-8`` name its numbered decisions.
     """
     if not path.endswith(".yaml"):
         return None

@@ -6,12 +6,13 @@ note: Reviewed ratchet for the model-authority coverage gate. Not revision-bound
   routing or disposition change. Layer byte digests are diagnostic provenance only. Any residual identity
   or declaration and any kernel-accounting error block regardless of this baseline (O4 Wave C2); refused
   and retired list the identities answered only with their disposition.
-routing_digest: sha256:048baf20fbf7e9ed2a1755f7e673468a2f2298e10d585d3391086ba67575a63f
+routing_digest: sha256:c9d471b3814d94fa163c85816045a88bd90c91b55fc1396a8e8a88feb6817bc0
 refused:
 - IncrementTraceabilityShell
 - addressesConcern
 - derivesNeedFromConcern
 - hasStakeholder
+- includesCommonCapability
 - producesView
 - recordsAssumption
 - recordsGap

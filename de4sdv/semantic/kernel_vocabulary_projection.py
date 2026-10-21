@@ -939,7 +939,9 @@ def _row_outputs(root: Path, model: _Model, row: dict[str, Any], successors: dic
             "representation_class": entry.get("representation_class"),
         }
     if row["boundary"] == "ple-no-configurator-authority":
-        profile["configurator_authority"] = "none (external catalogue, ADR 0006; decision-9)"
+        # True before and after the switch of ADR 0022: the YAML catalogue is the
+        # configuration authority until the switch, the PLEML feature models from it.
+        profile["configurator_authority"] = "none (configuration authority follows ADR 0022)"
     projection["support"] = SUPPORT[admission]
     projection["traversal"] = False
     projection["api_identity"] = "unclaimed"
