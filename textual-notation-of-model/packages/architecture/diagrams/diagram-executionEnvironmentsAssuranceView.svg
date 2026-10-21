@@ -14,8 +14,8 @@
   <path d="M 18,52 H 235 V 66 A 6,6 0 0 1 229,72 H 12 V 58 A 6,6 0 0 1 18,52 Z" fill="#BDDCFF" fill-opacity="1.000" stroke="#1045A0" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 1685,1588 H 1885 V 1602 A 6,6 0 0 1 1879,1608 H 1679 V 1594 A 6,6 0 0 1 1685,1588 Z" fill="#BDDCFF" fill-opacity="1.000" stroke="#1045A0" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 18,52 H 1879 A 6,6 0 0 1 1885,58 V 1602 A 6,6 0 0 1 1879,1608 H 18 A 6,6 0 0 1 12,1602 V 58 A 6,6 0 0 1 18,52 Z" fill="none" stroke="#1045A0" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 751,88 H 1122 L 1134,100 V 240 H 751 V 88 Z" fill="#FFFDE7" fill-opacity="1.000"/>
-  <path d="M 1122,88 L 1122,100 L 1134,100 Z" fill="#FFFDE7" fill-opacity="1.000" stroke="none"/>
+  <path d="M 1485,88 H 1856 L 1868,100 V 256 H 1485 V 88 Z" fill="#FFFDE7" fill-opacity="1.000"/>
+  <path d="M 1856,88 L 1856,100 L 1868,100 Z" fill="#FFFDE7" fill-opacity="1.000" stroke="none"/>
   <path d="M 196,88 H 383 V 254 H 196 V 88 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 783,705 H 901 V 741 H 783 V 705 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 995,1070 H 1076 V 1106 H 995 V 1070 Z" fill="#FFFFFF" fill-opacity="1.000"/>
@@ -27,7 +27,7 @@
   <path d="M 1581,670 H 1679 V 706 H 1581 V 670 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 1315,861 H 1562 V 897 H 1315 V 861 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 1325,664 H 1552 V 700 H 1325 V 664 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 1154,88 H 1498 V 264 H 1154 V 88 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 751,88 H 1095 V 264 H 751 V 88 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 396,1444 H 727 V 1572 H 396 V 1444 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 28,1460 H 360 V 1554 H 28 V 1460 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 746,552 H 1093 V 622 H 746 V 552 Z" fill="#FFFFFF" fill-opacity="1.000"/>
@@ -49,7 +49,7 @@
   <path d="M 440,653 H 753 V 781 H 440 V 653 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 28,641 H 411 V 793 H 28 V 641 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 430,800 H 763 V 952 H 430 V 800 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 1523,88 H 1862 A 6,6 0 0 1 1868,94 V 255 A 6,6 0 0 1 1862,261 H 1523 A 6,6 0 0 1 1517,255 V 94 A 6,6 0 0 1 1523,88 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 1120,88 H 1459 A 6,6 0 0 1 1465,94 V 255 A 6,6 0 0 1 1459,261 H 1120 A 6,6 0 0 1 1114,255 V 94 A 6,6 0 0 1 1120,88 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 409,88 H 726 A 6,6 0 0 1 732,94 V 198 A 6,6 0 0 1 726,204 H 409 A 6,6 0 0 1 403,198 V 94 A 6,6 0 0 1 409,88 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 196,88 H 383 V 124 H 196 V 88 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 783,705 H 901 V 741 H 783 V 705 Z" fill="#C8DCE6" fill-opacity="1.000"/>
@@ -62,7 +62,7 @@
   <path d="M 1581,670 H 1679 V 706 H 1581 V 670 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 1315,861 H 1562 V 897 H 1315 V 861 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 1325,664 H 1552 V 700 H 1325 V 664 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 1154,88 H 1498 V 124 H 1154 V 88 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 751,88 H 1095 V 124 H 751 V 88 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 396,1444 H 727 V 1480 H 396 V 1444 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 28,1460 H 360 V 1496 H 28 V 1460 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 746,552 H 1093 V 588 H 746 V 552 Z" fill="#C8DCE6" fill-opacity="1.000"/>
@@ -84,11 +84,11 @@
   <path d="M 440,653 H 753 V 689 H 440 V 653 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 28,641 H 411 V 677 H 28 V 641 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 430,800 H 763 V 836 H 430 V 800 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 1523,88 H 1862 A 6,6 0 0 1 1868,94 V 124 H 1517 V 94 A 6,6 0 0 1 1523,88 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 1120,88 H 1459 A 6,6 0 0 1 1465,94 V 124 H 1114 V 94 A 6,6 0 0 1 1120,88 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 409,88 H 726 A 6,6 0 0 1 732,94 V 124 H 403 V 94 A 6,6 0 0 1 409,88 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 751,88 H 1122 L 1134,100 V 240 H 751 V 88 Z" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 1122,88 L 1122,100 L 1134,100 Z" fill="none" stroke="none"/>
-  <path d="M 1122,88 L 1122,100 L 1134,100" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 1485,88 H 1856 L 1868,100 V 256 H 1485 V 88 Z" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 1856,88 L 1856,100 L 1868,100 Z" fill="none" stroke="none"/>
+  <path d="M 1856,88 L 1856,100 L 1868,100" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="196,124 383,124" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 196,88 H 383 V 254 H 196 V 88 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 783,705 H 901 V 741 H 783 V 705 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -101,9 +101,9 @@
   <path d="M 1581,670 H 1679 V 706 H 1581 V 670 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 1315,861 H 1562 V 897 H 1315 V 861 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 1325,664 H 1552 V 700 H 1325 V 664 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1154,124 1498,124" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1154,182 1498,182" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 1154,88 H 1498 V 264 H 1154 V 88 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="751,124 1095,124" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="751,182 1095,182" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 751,88 H 1095 V 264 H 751 V 88 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="396,1480 727,1480" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="396,1538 727,1538" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 396,1444 H 727 V 1572 H 396 V 1444 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -148,10 +148,10 @@
   <polyline points="430,836 763,836" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="430,894 763,894" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 430,800 H 763 V 952 H 430 V 800 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1517,124 1868,124" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1517,158 1868,158" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1517,204 1868,204" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 1523,88 H 1862 A 6,6 0 0 1 1868,94 V 255 A 6,6 0 0 1 1862,261 H 1523 A 6,6 0 0 1 1517,255 V 94 A 6,6 0 0 1 1523,88 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1114,124 1465,124" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1114,158 1465,158" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1114,204 1465,204" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 1120,88 H 1459 A 6,6 0 0 1 1465,94 V 255 A 6,6 0 0 1 1459,261 H 1120 A 6,6 0 0 1 1114,255 V 94 A 6,6 0 0 1 1120,88 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="403,124 732,124" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="403,158 732,158" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 409,88 H 726 A 6,6 0 0 1 732,94 V 198 A 6,6 0 0 1 726,204 H 409 A 6,6 0 0 1 403,198 V 94 A 6,6 0 0 1 409,88 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -257,15 +257,16 @@
   </g>
   <text x="20" y="64" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«view»</tspan><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700"> executionEnvironmentsAssuranceView</tspan></text>
   <text x="1687" y="1600" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">expose DE4SDV_ExecutionEnvironments::*</tspan></text>
-  <text x="942.5" y="100" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#F9A825" fill-opacity="1.000" font-style="italic">«doc»</tspan></text>
-  <text x="759" y="120" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Reusable execution-environment shared asset for DE4SDV model-based PLE.</tspan></text>
-  <text x="759" y="136" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">EngineeringExecutionEnvironment describes System 2 build, simulation,</tspan></text>
-  <text x="759" y="152" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">verification, and evidence hosts. VehicleTargetExecutionEnvironment</tspan></text>
-  <text x="759" y="168" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">describes System 1 compute deployed into an SDV member product. A board</tspan></text>
-  <text x="759" y="184" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">family appearing in one role does not imply qualification for the other.</tspan></text>
-  <text x="759" y="200" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Native SysML v2 variation/variant notation carries structural choices.</tspan></text>
-  <text x="759" y="216" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">The companion PLEML feature models carry cross-tree compatibility algebra.</tspan></text>
-  <text x="759" y="232" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Bill-of-Features evidence metadata is validated by configure_variant.py.</tspan></text>
+  <text x="1676.5" y="100" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#F9A825" fill-opacity="1.000" font-style="italic">«doc»</tspan></text>
+  <text x="1493" y="120" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Reusable execution-environment shared asset for DE4SDV model-based PLE.</tspan></text>
+  <text x="1493" y="136" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">EngineeringExecutionEnvironment describes System 2 build, simulation,</tspan></text>
+  <text x="1493" y="152" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">verification, and evidence hosts. VehicleTargetExecutionEnvironment</tspan></text>
+  <text x="1493" y="168" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">describes System 1 compute deployed into an SDV member product. A board</tspan></text>
+  <text x="1493" y="184" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">family appearing in one role does not imply qualification for the other.</tspan></text>
+  <text x="1493" y="200" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Native SysML v2 variation/variant notation carries structural choices.</tspan></text>
+  <text x="1493" y="216" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">The companion PLEML feature models carry cross-tree compatibility algebra.</tspan></text>
+  <text x="1493" y="232" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">The evidence metadata of each configuration lives in its evidence record</tspan></text>
+  <text x="1493" y="248" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">under feature-configurations/evidence/, which a CI check validates.</tspan></text>
   <text x="289.5" y="100" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«enum def»</tspan></text>
   <text x="289.5" y="116" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">ExecutionEnvironmentEvidenceStatus</tspan></text>
   <text x="289.5" y="134.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">enums</tspan></text>
@@ -298,18 +299,18 @@
   <text x="1438.5" y="889" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">EngineeringExecutionRuntime :&gt; ExecutionRuntime</tspan></text>
   <text x="1438.5" y="676" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
   <text x="1438.5" y="692" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">VehicleExecutionRuntime :&gt; ExecutionRuntime</tspan></text>
-  <text x="1326" y="100" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
-  <text x="1326" y="116" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">AOSPAAOSBuildResourceEnvelope</tspan></text>
-  <text x="1326" y="134.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="1162" y="150" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Minimum engineering-system capability envelope for a pinned AAOS build</tspan></text>
-  <text x="1162" y="162" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">and a Cuttlefish execution attempt. These values describe a readiness</tspan></text>
-  <text x="1162" y="174" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">requirement, not evidence that a candidate host currently provides it.</tspan></text>
-  <text x="1326" y="192.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">attributes</tspan></text>
-  <text x="1162" y="208" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">targetArchitecture : ScalarValues::String = "x86_64"</tspan></text>
-  <text x="1162" y="220" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">minimumMemoryGiB : ScalarValues::Integer = 64</tspan></text>
-  <text x="1162" y="232" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">minimumFreeStorageGiB : ScalarValues::Integer = 400</tspan></text>
-  <text x="1162" y="244" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">nestedVirtualizationRequired : ScalarValues::Boolean = true</tspan></text>
-  <text x="1162" y="256" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">targetRuntime : ScalarValues::String = "AAOS Cuttlefish"</tspan></text>
+  <text x="923" y="100" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
+  <text x="923" y="116" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">AOSPAAOSBuildResourceEnvelope</tspan></text>
+  <text x="923" y="134.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="759" y="150" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Minimum engineering-system capability envelope for a pinned AAOS build</tspan></text>
+  <text x="759" y="162" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">and a Cuttlefish execution attempt. These values describe a readiness</tspan></text>
+  <text x="759" y="174" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">requirement, not evidence that a candidate host currently provides it.</tspan></text>
+  <text x="923" y="192.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">attributes</tspan></text>
+  <text x="759" y="208" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">targetArchitecture : ScalarValues::String = "x86_64"</tspan></text>
+  <text x="759" y="220" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">minimumMemoryGiB : ScalarValues::Integer = 64</tspan></text>
+  <text x="759" y="232" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">minimumFreeStorageGiB : ScalarValues::Integer = 400</tspan></text>
+  <text x="759" y="244" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">nestedVirtualizationRequired : ScalarValues::Boolean = true</tspan></text>
+  <text x="759" y="256" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">targetRuntime : ScalarValues::String = "AAOS Cuttlefish"</tspan></text>
   <text x="561.5" y="1456" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
   <text x="561.5" y="1472" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">AOSPAAOSBuildRuntimeHost :&gt; EngineeringComputeNode</tspan></text>
   <text x="561.5" y="1490.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
@@ -421,17 +422,17 @@
   <text x="438" y="920" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">computeNode : VehicleComputeNode [0..1]</tspan></text>
   <text x="438" y="932" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">operatingSystem : VehicleOperatingSystem [0..1]</tspan></text>
   <text x="438" y="944" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">executionRuntime : VehicleExecutionRuntime [0..1]</tspan></text>
-  <text x="1692.5" y="100" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«concern»</tspan></text>
-  <text x="1692.5" y="116" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">physicalStructureConcern : PhysicalStructureConcern</tspan></text>
-  <text x="1692.5" y="134.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
-  <text x="1525" y="150" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">ref</tspan></text>
-  <text x="1692.5" y="168.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">stakeholders</tspan></text>
-  <text x="1525" y="184" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">systemsEngineer : SystemsEngineer</tspan></text>
-  <text x="1525" y="196" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">reviewer : OpenSourceReviewer</tspan></text>
-  <text x="1692.5" y="214.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
-  <text x="1525" y="230" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">^doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">Reviewer question: What physical hardware, software, and mechanical</tspan></text>
-  <text x="1525" y="242" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">elements make up the candidate system, and in which internal roles</tspan></text>
-  <text x="1525" y="254" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">are they used?</tspan></text>
+  <text x="1289.5" y="100" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«concern»</tspan></text>
+  <text x="1289.5" y="116" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">physicalStructureConcern : PhysicalStructureConcern</tspan></text>
+  <text x="1289.5" y="134.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
+  <text x="1122" y="150" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">ref</tspan></text>
+  <text x="1289.5" y="168.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">stakeholders</tspan></text>
+  <text x="1122" y="184" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">systemsEngineer : SystemsEngineer</tspan></text>
+  <text x="1122" y="196" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">reviewer : OpenSourceReviewer</tspan></text>
+  <text x="1289.5" y="214.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
+  <text x="1122" y="230" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">^doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">Reviewer question: What physical hardware, software, and mechanical</tspan></text>
+  <text x="1122" y="242" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">elements make up the candidate system, and in which internal roles</tspan></text>
+  <text x="1122" y="254" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">are they used?</tspan></text>
   <text x="567.5" y="100" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«concern»</tspan></text>
   <text x="567.5" y="116" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">argumentationAssuranceConcern : ArgumentationAssuranceConcern</tspan></text>
   <text x="567.5" y="134.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>

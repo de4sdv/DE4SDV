@@ -6,12 +6,12 @@
  * Shared-assets model: textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml
  * Shared-assets model SHA-256: 77c5cdd22035e028e1dd5cae0d7e5b69ec69eb1a6e14df4cf649ad70ce346b37
  * Receipt: model-based-product-line-engineering/feature-models/receipts/sdv_product_line.receipt.json
- * Receipt SHA-256: 8375f996fa4c25a34b9c2757226e550a171e682a1bdb82948715f5c850405fbd
- * Elements SHA-256: 6f19947ff586d7436322ea8220a09e277bcf04cc686edad50ac34a847e6ed1a4
+ * Receipt SHA-256: 6717b906f50c36a422511e1a9eb0005e85bc132a9d57cb65bf4978ba47a24677
+ * Elements SHA-256: f8d162110e8dbb3086523184ccd5f86e264d810f1c616ff41624d22621e5e875
  * Feature configuration: model-based-product-line-engineering/feature-configurations/aebs_autoware_linux_lidar_camera.sysml (aebsAutowareLinuxLidarCamera)
- * Feature configuration SHA-256: 77d73972cab6e0718916b43d0e1edcd8dcf9b9c354651c9eec91064d39c46f83
+ * Feature configuration SHA-256: 10d41e45e3253e10f7ee56edef10b411b73f42260091d40d973e7cd442f189cd
  * PLEML feature model: model-based-product-line-engineering/feature-models/sdv_product_line.sysml
- * PLEML feature model SHA-256: 7446df36348078da9fb8ec7b56c12de6cf4dbafc4276753dce366132d2bf9f69
+ * PLEML feature model SHA-256: 844409c296bb51ab539c39af9719274dc92b8c4219a04be12aee8596d94d6669
  */
 
 private import DE4SDV_SDVPlatformStack::SDVPlatformStack;
