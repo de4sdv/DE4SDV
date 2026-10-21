@@ -116,8 +116,8 @@ last two rows are common to both members:
 the AAOS domain is added beside it. In the AAOS member's
 [configuration](../../model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml),
 cross-domain deployment and transport remain unresolved. Its
-[Bill-of-Features](../../model-based-product-line-engineering/feature-configurations/middleware-autoware-aaos-sdv-reference.yaml)
-still carries the evidence status `planned` until the YAML retires (step S7).
+[evidence record](../../model-based-product-line-engineering/feature-configurations/evidence/middleware-autoware-aaos-sdv-reference.yaml)
+states the evidence status `planned`.
 
 This is what the right-hand column looks like in the model itself:
 
@@ -201,9 +201,9 @@ In the repository today:
   bounded baseline recorded in the
   [baseline register](../../configuration-management/baseline-register.md);
 - the PLEML feature model and the feature configurations of the two planned
-  members, with the feature catalogue and the bills of features as their
-  non-authoritative shadow, the configurator, and the product models it
-  generates from the configurations' receipts;
+  members, the configurator, and the product models it generates from the
+  configurations' receipts. The YAML feature catalogue and bills of features
+  that they restate retired at step S7 of ADR 0022;
 - reference implementations with retained evidence and stated limits:
   Autoware benches on the standalone path, each with its own stated evidence
   boundary, and an AEBS status display in an AAOS SDV guest that was observed
@@ -220,10 +220,6 @@ In progress, or not there yet:
   (phase 9) can start now that the product-line authority has switched to
   PLEML, and phases 11 and 12 are still to come
   ([framing model](../../textual-notation-of-model/packages/features/middleware/middleware_score_framing.sysml));
-- the retirement of the YAML catalogues and Bills-of-Features, which stay a
-  non-authoritative shadow of the PLEML
-  [feature models and configurations](../product-line-engineering/pleml-feature-models.md)
-  for at least 30 days after the switch;
 - executable method checks for the phases that have none yet;
 - verification of the candidate requirements; `REQ-AEBS-003` is still
   `NotStarted`;
@@ -234,8 +230,8 @@ No example shows more than its own evidence. The moving-target bench supports
 a narrow simulation claim; its evidence boundary excludes conscious driver
 override, false-reaction and degraded-operation matrices, pedestrian and
 bicycle behavior, and real-vehicle brake performance. A valid configuration
-proves only that the selected options satisfy the catalogue's rules, not that
-the configured stack has been built or run.
+proves only that the selected options satisfy the feature model's rules, not
+that the configured stack has been built or run.
 
 No example establishes vehicle safety, regulatory compliance, certification,
 homologation, or type approval. Check the owning artifact's status and
@@ -347,18 +343,6 @@ Without `--check-only`, the configurator
 prints the generated product model; its doc comment lists the derived adapter
 (`none` for the standalone member, `autowareToAAOSSDV` for the AAOS-integrated
 one). It never projects a fixture.
-
-Until the YAML retires (step S7), the Bill-of-Features beside each
-configuration is its non-authoritative shadow. The parity check runs the YAML
-path of the configurator on it and compares the result with the receipt. This
-is the shadow's check:
-
-```bash
-python tools/configure_variant.py \
-  --feature-model model-based-product-line-engineering/feature-models/sdv_product_line.yaml \
-  --bof model-based-product-line-engineering/feature-configurations/aebs-autoware-linux-lidar-camera.yaml \
-  --check-only
-```
 
 See the
 [product-line engineering guide](../../model-based-product-line-engineering/README.md)

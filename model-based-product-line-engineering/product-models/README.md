@@ -30,20 +30,17 @@ python tools/configure_variant.py \
   --output model-based-product-line-engineering/product-models/<file>.sysml
 ```
 
-Receipt mode replays the receipt first and refuses one that does not hold.
-Variation and variant identity come from the receipt. The YAML path of the
-configurator, the Bill-of-Features beside each configuration, is the
-non-authoritative shadow until the YAML retires: the parity check
-(`scripts/check_pleml_parity.py`) requires its projection of each committed
-file to have the same normalised body.
+The configurator replays the receipt first and refuses one that does not
+hold. Variation and variant identity come from the receipt, and each
+selection outside the projection is labelled by its PLEML feature path. Until
+step S7 of ADR 0022 the YAML path of the configurator was a non-authoritative
+shadow, and the parity check required its projection of each committed file
+to have the same normalised body.
 
 ## Validation boundary
 
-In receipt mode the configurator writes what the receipt records: the DE4SDV
-evaluation of the serialized configuration. In the YAML shadow it validates
-BoF structure, evidence metadata, compatibility constraints, generated
-identifiers, and lexical ownership of mapped package, variation, and variant
-declarations. It is deliberately not a SysML v2 parser and does not prove
-subtype conformance or full semantic validity. Treat a
-projection as draft until the privileged SysML validation workflow passes on the
-reviewed commit.
+The configurator writes what the receipt records: the DE4SDV evaluation of
+the serialized configuration. It decides nothing itself, and it does not
+prove subtype conformance or full semantic validity. Treat a projection as
+draft until the privileged SysML validation workflow passes on the reviewed
+commit.

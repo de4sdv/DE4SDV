@@ -1,9 +1,11 @@
-# Bill-of-Features: AEBS visualization test article
+# Test-article configuration: AEBS visualization test article
 #
-# NOT a product Bill-of-Features. This file records the planned execution
-# configuration of the INC-AEBS-010 System 2 test article. The product-level
-# feature selections are inherited unchanged from the accepted
-# middleware-autoware-aaos-sdv-reference.yaml BoF; no feature selection is added or
+# NOT a product feature configuration. This file records the planned
+# execution configuration of the INC-AEBS-010 System 2 test article. The
+# product-level feature selections are inherited unchanged from the accepted
+# PLEML feature configuration middleware_autoware_aaos_sdv_reference.sysml,
+# which restates the Bill-of-Features middleware-autoware-aaos-sdv-reference.yaml
+# that retired at step S7 of ADR 0022. No feature selection is added or
 # modified, and the visualization is not a product feature.
 
 name: AEBSAutowareAAOSSDVVisualizationTestArticle
@@ -19,11 +21,12 @@ evidence:
   status: planned
   artifacts: []
 
-# Product selections are inherited from the accepted reference member BoF
-# (reused by qualified reference in SysML). Reproduced here for execution
-# reproducibility only; the authoritative source remains the reference file.
+# Product selections are inherited from the accepted reference member's
+# feature configuration (reused by qualified reference in SysML). Reproduced
+# here for execution reproducibility only; the authoritative source remains
+# the reference file.
 inherits_product_configuration:
-  source: model-based-product-line-engineering/feature-configurations/middleware-autoware-aaos-sdv-reference.yaml
+  source: model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml
   reused_unchanged: true
 
 system2_instrumentation:

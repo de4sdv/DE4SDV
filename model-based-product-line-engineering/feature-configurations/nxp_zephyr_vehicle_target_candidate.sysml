@@ -1,10 +1,10 @@
 /*
  * PLEML feature configuration of a planned and unverified System 1
  * vehicle-target candidate, the configuration authority since the switch of
- * ADR 0022. The bill of features nxp-zephyr-vehicle-target-candidate.yaml
- * beside it is its non-authoritative shadow until the YAML retires, and holds
- * its evidence block until then. The doc is the configuration's
- * description.
+ * ADR 0022. It restates the Bill-of-Features
+ * nxp-zephyr-vehicle-target-candidate.yaml, which retired at step S7. Its
+ * evidence record is evidence/nxp-zephyr-vehicle-target-candidate.yaml. The
+ * doc is the configuration's description.
  */
 
 package DE4SDV_NXPZephyrVehicleTargetCandidateConfiguration {

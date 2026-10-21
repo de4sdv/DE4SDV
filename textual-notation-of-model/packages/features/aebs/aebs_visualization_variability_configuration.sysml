@@ -137,9 +137,8 @@ package DE4SDV_AEBSVisualizationVariabilityConfiguration {
     doc /*
      * The accepted feature configuration
      * model-based-product-line-engineering/feature-configurations/
-     * middleware_autoware_aaos_sdv_reference.sysml and its Bill-of-Features
-     * shadow middleware-autoware-aaos-sdv-reference.yaml are reused unchanged.
-     * No duplicate configuration or BoF is created for the visualization.
+     * middleware_autoware_aaos_sdv_reference.sysml is reused unchanged. No
+     * duplicate configuration is created for the visualization.
      */
   }
   part reusedProductProjection : SourceContributionRecord {

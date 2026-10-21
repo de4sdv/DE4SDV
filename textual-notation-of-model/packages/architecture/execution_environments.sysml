@@ -14,7 +14,8 @@ package DE4SDV_ExecutionEnvironments {
    *
    * Native SysML v2 variation/variant notation carries structural choices.
    * The companion PLEML feature models carry cross-tree compatibility algebra.
-   * Bill-of-Features evidence metadata is validated by configure_variant.py.
+   * The evidence metadata of each configuration lives in its evidence record
+   * under feature-configurations/evidence/, which a CI check validates.
    */
 
   enum def ExecutionEnvironmentEvidenceStatus {

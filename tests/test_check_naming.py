@@ -228,12 +228,12 @@ def test_repository_governed_surface_passes():
 
 
 def test_broadened_surface_actually_scans_ple_and_implementation():
-    """Feature-model and implementation text files are inside the surface."""
+    """Product-line records and implementation text files are inside the surface."""
     scanned = [str(p) for p in check_naming._iter_governed_text_files()]
     joined = "\n".join(scanned)
     assert (
-        "model-based-product-line-engineering/feature-models/sdv_product_line.yaml"
-        in joined
+        "model-based-product-line-engineering/feature-configurations/evidence/"
+        "inc-aebs-009a-jetson.yaml" in joined
     )
     assert "implementation/aaos-sdv-reference-interop-bench/README.md" in joined
     assert "approach/framework/ontology/README.md" in joined

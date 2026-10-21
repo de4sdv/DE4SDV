@@ -1,3 +1,10 @@
+"""INC-MW-009: the configured Autoware + AAOS SDV member (ADR 0022).
+
+The member's PLEML feature configuration selects the application and the
+middleware; the receipt derives the adapter, which no configuration selects;
+the committed projection regenerates from the receipt byte for byte.
+"""
+import json
 import unittest
 from pathlib import Path
 
@@ -6,16 +13,11 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PLE_ROOT = REPO_ROOT / "model-based-product-line-engineering"
-FEATURE_MODEL = PLE_ROOT / "feature-models" / "sdv_product_line.yaml"
-BOF = PLE_ROOT / "feature-configurations" / "middleware-autoware-aaos-sdv-reference.yaml"
+FEATURE_MODEL = PLE_ROOT / "feature-models" / "sdv_product_line.sysml"
+CONFIGURATION = PLE_ROOT / "feature-configurations" / "middleware_autoware_aaos_sdv_reference.sysml"
+EVIDENCE_RECORD = PLE_ROOT / "feature-configurations" / "evidence" / "middleware-autoware-aaos-sdv-reference.yaml"
+RECEIPT = PLE_ROOT / "feature-models" / "receipts" / "sdv_product_line.receipt.json"
 PRODUCT_MODEL = PLE_ROOT / "product-models" / "middleware_autoware_aaos_sdv_reference.sysml"
-SHARED_MODEL = (
-    REPO_ROOT
-    / "textual-notation-of-model"
-    / "packages"
-    / "architecture"
-    / "sdv_platform_stack.sysml"
-)
 PHASE9_MODEL = (
     REPO_ROOT
     / "textual-notation-of-model"
@@ -32,71 +34,58 @@ PILOT = (
     / "middleware-variability-configuration.yaml"
 )
 
+
+def _receipt_model():
+    receipt = json.loads(RECEIPT.read_text())
+    [model] = receipt["evaluation"]["feature_models"]
+    return model
+
+
 class TestMWVariabilityConfiguration(unittest.TestCase):
-    def test_bof_selects_member_features_but_not_the_derived_adapter(self):
-        data = yaml.safe_load(BOF.read_text())
-        selections = data["selections"]
-        self.assertEqual(selections["PlatformStack.VehicleApplication"], "Autoware")
-        self.assertEqual(selections["PlatformStack.Middleware"], "AndroidSDV")
-        self.assertEqual(selections["PlatformStack.OS"], "Android")
-        self.assertEqual(selections["PlatformStack.Hypervisor"], "KVM")
+    def test_configuration_selects_member_features_but_not_the_derived_adapter(self):
+        model = _receipt_model()
+        [configuration] = [item for item in model["configurations"]
+                           if item["source"] == CONFIGURATION.relative_to(REPO_ROOT).as_posix()]
+        self.assertTrue(configuration["valid"])
         self.assertEqual(
-            selections["SensingBoundary.PerceptionSensors"],
-            ["LiDAR", "Camera"],
+            {"platformStack.autoware", "platformStack.androidSDV", "platformStack.android", "platformStack.kvm",
+             "sensingBoundary.lidar", "sensingBoundary.camera"} - set(configuration["selected"]),
+            set(),
         )
-        self.assertFalse(any("Adapter" in path for path in selections))
-        self.assertEqual(data["evidence"]["status"], "planned")
-        self.assertEqual(data["evidence"]["artifacts"], [])
+        self.assertFalse({"platformStack.noMiddleware", "platformStack.linux", "sensingBoundary.radar"}
+                         & set(configuration["selected"]))
+        self.assertFalse(any("adapter" in path.lower() for path in configuration["selected"]))
+        derived = {item["variation"]: item for item in configuration["derived_variants"]}
+        self.assertEqual(derived["applicationMiddlewareAdapter"]["variant"], "autowareToAAOSSDV")
+        self.assertNotIn("binding", derived["applicationMiddlewareAdapter"])
+        self.assertEqual(configuration["admission"]["alternative"], "aaosIntegrated")
+        evidence = yaml.safe_load(EVIDENCE_RECORD.read_text())
+        self.assertEqual(evidence, {"status": "planned", "artifacts": []})
 
     def test_feature_model_derives_the_complete_supported_pair_table(self):
-        data = yaml.safe_load(FEATURE_MODEL.read_text())
-        derivations = data["derived_asset_selections"]
-        self.assertEqual(len(derivations), 1)
-        derivation = derivations[0]
-        self.assertEqual(
-            derivation["maps_to"],
-            "SDVPlatformStack.applicationMiddlewareAdapter",
-        )
-        self.assertEqual(
-            derivation["source_selections"],
-            [
-                "PlatformStack.VehicleApplication",
-                "PlatformStack.Middleware",
-            ],
-        )
-        resolved = {
-            (
-                rule["when"]["PlatformStack.VehicleApplication"],
-                rule["when"]["PlatformStack.Middleware"],
-            ): rule["maps_to_variant"]
-            for rule in derivation["rules"]
-        }
+        [derivation] = _receipt_model()["derivations"]
+        self.assertEqual(derivation["derived_variation"], "applicationMiddlewareAdapter")
+        resolved = {tuple(rule["premises"]): rule["result"] for rule in derivation["rules"]}
         self.assertEqual(
             resolved,
             {
-                ("Autoware", "EclipseSCORE"): "autowareToSCORE",
-                ("Autoware", "AndroidSDV"): "autowareToAAOSSDV",
-                ("Autoware", "AUTOSARAdaptive"): "autowareToAUTOSAR",
-                ("Openpilot", "EclipseSCORE"): "openpilotToSCORE",
-                ("Apollo", "EclipseSCORE"): "apolloToSCORE",
-                ("Autoware", "None"): "none",
-                ("Openpilot", "None"): "none",
-                ("Apollo", "None"): "none",
+                ("platformStack.autoware", "platformStack.eclipseSCORE"): "autowareToSCORE",
+                ("platformStack.autoware", "platformStack.androidSDV"): "autowareToAAOSSDV",
+                ("platformStack.autoware", "platformStack.autosarAdaptive"): "autowareToAUTOSAR",
+                ("platformStack.openpilot", "platformStack.eclipseSCORE"): "openpilotToSCORE",
+                ("platformStack.apollo", "platformStack.eclipseSCORE"): "apolloToSCORE",
+                ("platformStack.autoware", "platformStack.noMiddleware"): "none",
+                ("platformStack.openpilot", "platformStack.noMiddleware"): "none",
+                ("platformStack.apollo", "platformStack.noMiddleware"): "none",
             },
         )
 
     def test_committed_product_projection_is_reproducible(self):
-        """Since the switch (ADR 0022, step S6): from the receipt byte for byte, and from
-        the Bill-of-Features, the shadow, by normalised body."""
+        """From the receipt, byte for byte."""
         import projection_sources as sources
 
-        bof = BOF.relative_to(REPO_ROOT)
         committed = PRODUCT_MODEL.read_text()
-        self.assertEqual(sources.receipt_projection(sources.configuration_of(bof)), committed)
-        shadow = sources.shadow_projection(
-            bof, FEATURE_MODEL.relative_to(REPO_ROOT), SHARED_MODEL.relative_to(REPO_ROOT)
-        )
-        self.assertEqual(sources.normalised_body(shadow), sources.normalised_body(committed))
+        self.assertEqual(sources.receipt_projection(CONFIGURATION.relative_to(REPO_ROOT).as_posix()), committed)
 
         product = PRODUCT_MODEL.read_text()
         self.assertIn(
@@ -140,11 +129,12 @@ class TestMWVariabilityConfiguration(unittest.TestCase):
         data = yaml.safe_load(PILOT.read_text())
         self.assertEqual(data["id"], "INC-MW-009")
         self.assertEqual(data["parent_increment"], "INC-MW-008")
-        self.assertEqual(
-            data["model_artifacts"]["bill_of_features"],
-            "model-based-product-line-engineering/feature-configurations/"
-            "middleware-autoware-aaos-sdv-reference.yaml",
-        )
+        artifacts = data["model_artifacts"]
+        self.assertEqual(artifacts["feature_model"], FEATURE_MODEL.relative_to(REPO_ROOT).as_posix())
+        self.assertEqual(artifacts["feature_configuration"], CONFIGURATION.relative_to(REPO_ROOT).as_posix())
+        self.assertEqual(artifacts["evidence_record"], EVIDENCE_RECORD.relative_to(REPO_ROOT).as_posix())
+        for key in ("sysml", "feature_model", "feature_configuration", "evidence_record", "generated_projection"):
+            self.assertTrue((REPO_ROOT / artifacts[key]).is_file(), key)
         self.assertNotIn("selections", data)
         self.assertNotIn("derived_adapter", data)
         self.assertIn("INC-MW-010", data["next_increments"])

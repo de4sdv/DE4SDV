@@ -6,7 +6,10 @@ gate; every receipt says `qualified: false`. **Retired** at step S3 of
 the [PLEML feature models](pleml-feature-models.md) supersede the
 experiment, and its model, workflow and runner were removed. This record
 stays as history: the files below are cited at the revision of the
-retained run.
+retained run. At step S7 the retained evidence directory, the comparison
+oracle and its test retired with the YAML catalogue that the oracle ran; the
+rollback tag `pleml-yaml-authority-final` keeps them, and the links below
+point to it.
 **Decision authority for anything beyond this record:** Orkun Yilmaz, DE4SDV
 technical lead and maintainer.
 **Model:** [`aebs_product_line_scope_alignment.sysml`](https://github.com/de4sdv/DE4SDV/blob/f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb/model-based-product-line-engineering/pleml-scope-alignment/aebs_product_line_scope_alignment.sysml)
@@ -192,7 +195,8 @@ realization.
 
 ## The comparison oracle
 
-The operational path stays a comparison oracle, not a second selection
+This section describes the oracle as it ran until it retired at step S7.
+The operational path stayed a comparison oracle, not a second selection
 authority (plan cases UG-09, UG-10 and UG-14).
 `scripts/compare_ple_scope_alignment.py` runs the unchanged
 `tools/configure_variant.py` once per case, records its exit code (0 valid,
@@ -366,11 +370,12 @@ The table is the **retained** comparison of run `39169049300` at
 `f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb`, the main commit the run executed
 (the merge of #391, dispatched as `ref`; no pull-request head); the retained
 files and their manifest are in
-[`ple-s-scope-alignment-evidence/`](ple-s-scope-alignment-evidence/README.md).
-The record is **retained, bound to its own revision**: the commit that last
-changed that directory. `tests/test_ple_scope_alignment_oracle.py` extracts
-that revision's files from Git history and reproduces the comparison there at
-every CI run, never against the working tree, so a later change to the
+[`ple-s-scope-alignment-evidence/`](https://github.com/de4sdv/DE4SDV/tree/pleml-yaml-authority-final/docs/product-line-engineering/ple-s-scope-alignment-evidence)
+at the rollback tag. The record is **retained, bound to its own revision**:
+the commit that last changed that directory. Until S7,
+`tests/test_ple_scope_alignment_oracle.py` extracted that revision's files
+from Git history and reproduced the comparison there at every CI run, never
+against the working tree, so a later change to the
 governed scope, the superset, the scope validator, the catalogue or the
 configurator makes the record **historical**, not failing (owner decision,
 2026-10-16); a pull request that changes the record must make it consistent
@@ -386,9 +391,10 @@ Since the retirement, the workflow, the model and the runner below exist
 only in history. The workflow is described as it was last, at the parent of
 the retirement merge, where it read PLEML 1.1.1; at `f6d6f980`, the revision
 that retained the record, it read 1.1.0. A replay runs at a revision that
-pins the experiment of its element file (below). CI still verifies the
+pins the experiment of its element file (below). Until S7, CI verified the
 retained record at its pinned revision `f6d6f980`, and the record directory
-is frozen: its files at the head must equal those at `f6d6f980`.
+was frozen: its files at the head had to equal those at `f6d6f980`. At S7 the
+record retired with its verifier.
 
 - **Workflow:** `.github/workflows/privileged-ple-scope-alignment.yml` runs on
   pull requests that touch the scope-alignment paths (same-repository,
@@ -415,10 +421,11 @@ is frozen: its files at the head must equal those at `f6d6f980`.
   `syside-check.txt`, and `comparison/comparison.json` with
   `comparison/comparison.md` (the fresh comparison).
 - **Retained record:**
-  [`ple-s-scope-alignment-evidence/`](ple-s-scope-alignment-evidence/README.md)
-  keeps the receipt, the governed-scope validation and the comparison of run
-  `39169049300` with a manifest of digests. It is retained evidence of that
-  run, bound to the record's own revision and verified there by CI;
+  [`ple-s-scope-alignment-evidence/`](https://github.com/de4sdv/DE4SDV/tree/pleml-yaml-authority-final/docs/product-line-engineering/ple-s-scope-alignment-evidence),
+  at the rollback tag since S7, keeps the receipt, the governed-scope
+  validation and the comparison of run `39169049300` with a manifest of
+  digests. It is retained evidence of that run, bound to the record's own
+  revision and verified there by CI until S7;
   historical, not failing, once the files it was produced from move; fresh
   evidence of a later head needs a licensed run, and the oracle refuses a
   receipt whose digests differ from the tree it is compared with.
@@ -449,8 +456,8 @@ is frozen: its files at the head must equal those at `f6d6f980`.
   not fresh serialization and says so.
 - **Unlicensed checks (public CI):** `tests/test_ple_scope_alignment_evaluator.py`
   (the evaluator on synthetic API-shaped graphs with the real frozen
-  interpreter) and `tests/test_ple_scope_alignment_oracle.py` (the oracle on
-  the retained receipt at the record's revision: UG-09, UG-10 and UG-14 as
+  interpreter) and, until S7, `tests/test_ple_scope_alignment_oracle.py`
+  (the oracle on the retained receipt at the record's revision: UG-09, UG-10 and UG-14 as
   sets, admission moving with a reclassified governed element, a changed
   derivation and a missing correspondence exiting non-zero, the refusals, and
   the retained record reproduced from the retained receipt). The model and

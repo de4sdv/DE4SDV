@@ -22,7 +22,6 @@ from typing import Any, Iterator
 import pytest
 import yaml
 
-import test_ple_authority_model as model_test
 import test_ple_qualification_clean_checkout as clean
 from de4sdv.semantic import pleml_package
 from scripts import run_ple_authority as runner
@@ -55,7 +54,6 @@ EVALUATOR_PATHS = {
     "scripts/run_pleml_configuration_evaluation.py",
     "de4sdv/semantic/pleml_configuration.py",
     "de4sdv/semantic/pleml_receipts.py",
-    "de4sdv/semantic/pleml_shadow.py",
 }
 #: The PLEML pin in the production lock: a re-pin gets this licensed validation (the upstream
 #: release policy).
@@ -67,10 +65,9 @@ PIN_PATHS = {
     "scripts/run_ple_qualification.py",
 }
 #: The committed receipts and what they bind (review R14): the referenced documents of the
-#: bundle and the catalogues of the shadow checks, so that a change to either reruns the job.
+#: bundle, so that a change to one reruns the job.
 BOUND_PATHS = {
     f"{runner.RECEIPTS_DIR}/**",
-    "model-based-product-line-engineering/feature-models/*.yaml",
     *runner.REFERENCED_SOURCES,
 }
 
@@ -128,9 +125,8 @@ def test_triggers_are_the_authority_paths_and_maintainer_dispatch() -> None:
             assert sorted((ROOT / path).parent.glob(Path(path).name)), path
         else:
             assert (ROOT / path).is_file(), path
-    catalogues = {family.catalogue.as_posix() for family in model_test.FAMILIES.values()}
-    assert {p.relative_to(ROOT).as_posix() for p in (ROOT / "model-based-product-line-engineering/feature-models")
-            .glob("*.yaml")} == catalogues, "the catalogues are exactly the three families'"
+    assert not list((ROOT / "model-based-product-line-engineering/feature-models").glob("*.yaml")), (
+        "the YAML catalogues retired at S7")
     # The runner reads the pin from the package record and its inputs from the qualification runner.
     assert {"de4sdv/semantic/pleml_package.py", ".project.json", "sysand-lock.toml"} <= set(runner.EXECUTOR_INPUTS)
     # Since the switch the PLEML documents and the production lock are production inputs, so they

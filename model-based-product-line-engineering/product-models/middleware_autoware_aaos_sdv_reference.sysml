@@ -29,11 +29,11 @@ part def MiddlewareAutowareAAOSSDVReference :> SDVPlatformStack {
    *   applicationMiddlewareAdapter = autowareToAAOSSDV (derived by D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER)
    *
    * Feature selections outside this projection (not resolved in SysML):
-   *   SensingBoundary.PerceptionSensors = LiDAR, Camera
-   *   Capabilities.ForwardCollisionMitigation.PedestrianDetection = disabled
-   *   Capabilities.ForwardCollisionMitigation.BicycleDetection = disabled
-   *   Capabilities.AdaptiveCruiseControl = disabled
-   *   Capabilities.LaneKeepAssist = disabled
+   *   sensingBoundary.perceptionSensors = lidar, camera
+   *   capabilities.pedestrianDetection = disabled
+   *   capabilities.bicycleDetection = disabled
+   *   capabilities.adaptiveCruiseControl = disabled
+   *   capabilities.laneKeepAssist = disabled
    */
 
   part :>> vehicleApplication = vehicleApplication::autoware;

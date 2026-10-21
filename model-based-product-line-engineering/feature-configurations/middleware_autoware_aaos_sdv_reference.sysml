@@ -1,8 +1,9 @@
 /*
  * PLEML feature configuration, the configuration authority since the switch
- * of ADR 0022. The bill of features middleware-autoware-aaos-sdv-reference.yaml
- * beside it is its non-authoritative shadow until the YAML retires. The doc
- * is the configuration's description; a false selection is a [0]
+ * of ADR 0022. It restates the Bill-of-Features
+ * middleware-autoware-aaos-sdv-reference.yaml, which retired at step S7. Its
+ * evidence record is evidence/middleware-autoware-aaos-sdv-reference.yaml.
+ * The doc is the configuration's description; a false selection is a [0]
  * redefinition, and an unlisted feature is left unset. The adapter is
  * derived, never selected here.
  */

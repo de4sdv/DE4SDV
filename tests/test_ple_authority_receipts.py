@@ -1,13 +1,14 @@
-"""The committed receipts of the fenced PLEML feature models (ADR 0022, step S3).
+"""The committed receipts of the PLEML feature models (ADR 0022).
 
 The receipts and their compressed elements are written by the entry point of
 the S2 evaluator from the bundle of a licensed authority run; the owner said
 yes to committing them on 2026-10-19. These checks read the committed files
 only: the layout, the digests of the elements and of every source the
-receipts bind, the recorded serialization, and the reviewed verdicts. The
-offline replay re-runs the evaluator on the committed elements, after the
-fenced PLEML package is synced and byte-checked. Nothing here is serializer
-output, a licensed run or a qualification.
+receipts bind, the recorded serialization, and the reviewed verdicts of the
+member configurations, the invalid fixture and the probes. The offline replay
+re-runs the evaluator on the committed elements, after the pinned PLEML
+package is synced and byte-checked. Nothing here is serializer output, a
+licensed run or a qualification.
 """
 
 from __future__ import annotations
@@ -45,6 +46,28 @@ VERDICTS = {
         "nxpZephyrVehicleTargetCandidate": (True, None, None, []),
     },
 }
+#: The reviewed outcome of each probe of step S4: valid, admitted alternative (None: not admitted),
+#: derived adapter and the classes of its reasons. Until S7 the parity check compared each with the
+#: configurator's verdict on the same selection; these are the verdicts it confirmed.
+PROBE_VERDICTS = {
+    "adaptiveCruiseControlProbe": (True, None, "none", []),
+    "apolloAndroidSDVPairProbe": (False, None, None, ["pair-exclusion"]),
+    "apolloAUTOSARAdaptivePairProbe": (False, None, None, ["pair-exclusion"]),
+    "apolloNoMiddlewarePairProbe": (True, None, "none", []),
+    "autosarAdaptiveACRNProbe": (True, None, "autowareToAUTOSAR", []),
+    "bothIntegrationModesProbe": (False, None, None, ["upper-bound", "upper-bound", "upper-bound"]),
+    "cameraOnlySensingProbe": (True, None, "none", []),
+    "handPickedAdapterProbe": (False, None, None, ["derived-variant-not-selectable"]),
+    "lidarOnlySensingProbe": (True, None, "none", []),
+    "mixedDerivedSetProbe": (True, None, "autowareToAAOSSDV", []),
+    "noIntegrationModeProbe": (False, None, None, ["lower-bound", "lower-bound", "lower-bound"]),
+    "openpilotAndroidSDVPairProbe": (False, None, None, ["pair-exclusion"]),
+    "openpilotAUTOSARAdaptivePairProbe": (False, None, None, ["pair-exclusion"]),
+    "openpilotEclipseSCOREPairProbe": (True, None, "openpilotToSCORE", []),
+    "openpilotNoMiddlewareProbe": (True, None, "none", []),
+    "radarOnlySensingProbe": (True, None, "none", []),
+    "vehicleTargetAEBSOffProbe": (True, "standalone", "none", []),
+}
 
 
 def _sha256(path: Path) -> str:
@@ -58,7 +81,8 @@ def _receipts() -> dict[str, dict]:
 def test_the_receipts_directory_holds_one_receipt_per_feature_model_and_the_elements() -> None:
     assert sorted(path.name for path in RECEIPTS.iterdir()) == sorted([*FEATURE_MODELS, ELEMENTS])
     for name, receipt in _receipts().items():
-        assert receipt["schema"] == "de4sdv.pleml-configuration-receipt/v1"
+        assert receipt["schema"] == "de4sdv.pleml-configuration-receipt/v2"
+        assert "shadow" not in receipt, "the YAML shadow retired at S7"
         assert receipt["qualified"] is False and receipt["native_expression_executed"] is False
         assert receipt["elements"]["path"] == ELEMENTS
         assert receipt["elements"]["sha256"] == _sha256(RECEIPTS / ELEMENTS), name
@@ -75,7 +99,7 @@ def test_the_receipts_together_cover_every_pleml_file_once() -> None:
 def test_the_receipts_bind_the_documents_of_this_tree_by_digest() -> None:
     """A receipt names every document of its bundle by digest; each is this tree's file.
 
-    The library is the installed fenced package, which the public CI syncs
+    The library is the installed pinned package, which the public CI syncs
     before the suite; elsewhere it may be absent.
     """
     for name, receipt in _receipts().items():
@@ -105,7 +129,7 @@ def test_the_receipts_record_one_licensed_serialization_and_its_provenance_apart
 
 
 def test_the_receipts_bind_the_pinned_pleml_release() -> None:
-    """Every receipt binds the release the fenced package pins (S1); a re-pin makes them stale."""
+    """Every receipt binds the release the production lock pins; a re-pin makes them stale."""
     from de4sdv.semantic import pleml_package
 
     pinned = {"package": pleml_package.PACKAGE, "version": pleml_package.RELEASE.version,
@@ -115,11 +139,20 @@ def test_the_receipts_bind_the_pinned_pleml_release() -> None:
     assert pinned["path"] == runner.LIBRARY["label"] and pinned["sha256"] == runner.LIBRARY["sha256"]
 
 
+def _outcome(configuration: dict) -> tuple:
+    admission = configuration["admission"]
+    adapters = [item["variant"] for item in configuration["derived_variants"]
+                if item.get("derivation") == DERIVATION]
+    return (configuration["valid"], admission["alternative"] if admission["admitted"] else None,
+            adapters[0] if adapters else None)
+
+
 def test_the_receipts_hold_the_reviewed_verdicts() -> None:
-    """The parity probes of step S4 are pinned by the parity check, row by row against the configurator."""
+    """The member configurations, the invalid fixture and every probe of step S4 keep their verdicts."""
     receipts = _receipts()
     assert set(receipts) == set(VERDICTS)
     probes = set(runner.PARITY_PROBES)
+    found_probes = {}
     for name, expected in VERDICTS.items():
         [model] = receipts[name]["evaluation"]["feature_models"]
         assert model["integrity_errors"] == [], name
@@ -127,34 +160,45 @@ def test_the_receipts_hold_the_reviewed_verdicts() -> None:
         for configuration in model["configurations"]:
             if configuration["source"] in probes:
                 probes.discard(configuration["source"])
+                found_probes[configuration["configuration"]] = (
+                    *_outcome(configuration), sorted(reason["class"] for reason in configuration["reasons"]))
                 continue
-            admission = configuration["admission"]
-            adapters = [item["variant"] for item in configuration["derived_variants"]
-                        if item.get("derivation") == DERIVATION]
             constraints = sorted(reason["constraint"] for reason in configuration["reasons"]
                                  if reason["class"] == "constraint")
-            found[configuration["configuration"]] = (
-                configuration["valid"], admission["alternative"] if admission["admitted"] else None,
-                adapters[0] if adapters else None, constraints)
+            found[configuration["configuration"]] = (*_outcome(configuration), constraints)
         assert found == expected, name
-    assert probes == set(), f"parity probes without a receipt entry: {sorted(probes)}"
-    shadow = receipts["sdv_product_line.receipt.json"]["shadow"]
-    assert all(model["complement_errors"] == [] and model["rule_table_errors"] == []
-               for model in shadow["feature_models"])
+    assert probes == set(), f"probes without a receipt entry: {sorted(probes)}"
+    assert found_probes == PROBE_VERDICTS
 
 
 def test_the_committed_receipts_replay_offline() -> None:
-    """The unlicensed check: the evaluator reproduces every receipt from the committed elements, its
-    evaluation and its shadow checks byte for byte, against this tree's sources and the pinned library.
+    """The unlicensed check: the evaluator reproduces the evaluation of every receipt from the committed
+    elements byte for byte, against this tree's sources and the pinned library.
 
-    The fenced package is synced and byte-checked first: the replay reads the installed library.
+    The pinned package is synced and byte-checked first: the replay reads the installed library.
     """
     from de4sdv.semantic import pleml_package, pleml_receipts
 
     try:
         pleml_package.verify_installed(ROOT)
     except pleml_package.PackageError as exc:
-        pytest.fail(f"sync the fenced PLEML project before the replay "
+        pytest.fail(f"sync the pinned PLEML package before the replay "
                     f"(sysand sync in {pleml_package.PROJECT.as_posix()}): {exc}")
     assert len(list(RECEIPTS.glob("*.receipt.json"))) == len(FEATURE_MODELS)
     assert pleml_receipts.replay_committed(RECEIPTS, ROOT) == []
+
+
+def test_the_public_ci_replays_the_committed_receipts_after_the_byte_check() -> None:
+    """The required ``checks`` job replays every committed receipt, unlicensed, after the pinned
+    package is byte-checked: the replay reads the installed library."""
+    import yaml
+
+    steps = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8"))["jobs"]["checks"]["steps"]
+    runs = [step.get("run", "") for step in steps]
+    [replay] = [index for index, run in enumerate(runs) if "run_pleml_configuration_evaluation.py replay" in run]
+    [package] = [index for index, run in enumerate(runs) if "scripts/check_pleml_package.py" in run]
+    assert package < replay
+    assert runs[replay].split() == ["python", "scripts/run_pleml_configuration_evaluation.py", "replay",
+                                    f"{runner.RECEIPTS_DIR}/*.receipt.json"]
+    assert "env" not in steps[replay], "the replay needs no licence and no secret"
+    assert not any("check_pleml_parity" in run for run in runs), "the parity check retired at S7"

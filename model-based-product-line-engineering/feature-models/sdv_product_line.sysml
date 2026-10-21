@@ -1,13 +1,13 @@
 /*
  * PLEML feature model of the DE4SDV SDV product line.
  *
- * It restates the full YAML catalogue (sdv_product_line.yaml), reference-only
- * options included, with the exact-pinned PLEML library, under the decision
- * of ADR 0022. Its configurations are the PLEML restatements of the bills of
- * features in ../feature-configurations/; the invalid fixture lies outside
- * the authority roots. The DE4SDV derivation rules, the projection metadata
- * and the unassigned binding times use the kernel definitions of
- * DE4SDV_ProductLineDerivation.
+ * It holds the full product-line catalogue, reference-only options included,
+ * with the exact-pinned PLEML library, under the decision of ADR 0022. It
+ * restates the YAML catalogue sdv_product_line.yaml, which retired at step
+ * S7. Its configurations are in ../feature-configurations/; the invalid
+ * fixture and the probes lie outside the authority roots. The DE4SDV
+ * derivation rules, the projection metadata and the unassigned binding times
+ * use the kernel definitions of DE4SDV_ProductLineDerivation.
  *
  * Authority since the switch of ADR 0022:
  *   - this model, its configurations and their bindings are the
@@ -16,17 +16,16 @@
  *   - the DE4SDV evaluation decides validity and derives the variants that
  *     no configuration selects, and its receipts are the record that the
  *     configurator generates the product-model projections from;
- *   - the YAML catalogue and the bills of features are a non-authoritative
- *     shadow until the YAML retires, compared by the parity check;
  *   - the governed product-line scope remains the admission authority: a
  *     configuration can be valid without being admitted;
  *   - no native evaluation of a PLEML constraint body is claimed, and no
  *     adoption-evidence, qualification or compliance claim is made.
  *
- * Identity: each F- and PL- ID of the catalogue is the SysML short name of
- * the feature that restates its node, and each constraint ID that of its
- * exclusion. The catalogue's C- common-capability nodes have no feature and
- * no element here (ADR 0022, decision 2).
+ * Identity: each F- and PL- ID is the SysML short name of its feature or
+ * feature tree, and each constraint ID that of its exclusion; the IDs are the
+ * ones the retired YAML catalogue gave its nodes. Common capabilities have no
+ * feature and no element here (ADR 0022, decision 2), and their C- node IDs
+ * retired with the catalogue.
  */
 
 package DE4SDV_SDVProductLineFeatureModel {
@@ -118,9 +117,10 @@ package DE4SDV_SDVProductLineFeatureModel {
         #feature occurrence <'F-CAPABILITIES'> capabilities[1] {
             doc /* Vehicle-domain capabilities: a mandatory grouping feature
                  * that holds the optional capability features. Pedestrian and
-                 * bicycle detection sit here directly: the catalogue's common
-                 * forward-collision-mitigation node above them, and the common
-                 * vehicle-target AEBS, have no feature. */
+                 * bicycle detection sit here directly: the common
+                 * forward-collision-mitigation capability, which the retired
+                 * YAML catalogue placed above them, and the common
+                 * vehicle-target AEBS have no feature. */
 
             #feature #UnassignedBindingTime occurrence <'F-CAPABILITY-AEBS-PEDESTRIAN-DETECTION'> pedestrianDetection[0..1] default null;
             #feature #UnassignedBindingTime occurrence <'F-CAPABILITY-AEBS-BICYCLE-DETECTION'> bicycleDetection[0..1] default null;
@@ -132,9 +132,9 @@ package DE4SDV_SDVProductLineFeatureModel {
     #featureModel occurrence def SDVProductLineFeatureModel {
         doc /* The SDV product-line feature model: the feature tree, and the
              * product-model projection that its configurations generate. Each
-             * configuration specializes the tree in its own file, one per
-             * bill of features, so the invalid fixture can stay outside the
-             * authority roots. */
+             * configuration specializes the tree in its own file, so the
+             * invalid fixture and the probes can stay outside the authority
+             * roots. */
         @ProductModelProjection {
             packageName = "DE4SDV_SDVPlatformStack";
             ownerName = "SDVPlatformStack";

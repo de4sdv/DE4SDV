@@ -24,8 +24,9 @@ line references are at that commit.
 
 **Proposed during review and confirmed by the owner on 2026-10-19:**
 
-- **OQ2**, which refines O3. After the switch, the YAML stays a non-authoritative shadow for at least 30 days. S7 needs all three of:
-  - the 30 days have passed;
+- **OQ2**, which refines O3. After the switch, the YAML stays a non-authoritative shadow until S7. On 2026-10-21 the owner dropped the minimum of 30 days that OQ2 first set. S7 needs all of these:
+  - the privileged ingestion and the deploy of S6 are green;
+  - the PLE-Q-style dispatch on the S6 merge commit is green;
   - one full-parity run on main after S6 is green;
   - no rollback trigger is open (§8).
 
@@ -54,7 +55,7 @@ line references are at that commit.
 | **Product models** | 7 projections with unchanged part-def names, compared on the normalised body (§5). One slice types a part by `MiddlewareAutowareAAOSSDVReference` (`middleware_variability_configuration.sysml:35`); another aliases and exposes it (`aebs_visualization_variability_configuration.sysml:174-181`). |
 | **Production surface** | Unchanged until S6. Until then the models are fenced, as PLE-S was, and licensed-validated together with the reviewed roots and the pinned library (`ple-s-scope-alignment.md:367-378`). S6 changes the selectors and `PINNED_DEPENDENCIES`. |
 | **Oracle** | Becomes the S4 parity check, then the rollback guard. Removed at S7. |
-| **PLE-S** | Retired at S3, superseded by the fenced full-catalogue model. Its record stays as history. |
+| **PLE-S** | Retired at S3, superseded by the fenced full-catalogue model. Its record stays as history; its retained evidence directory retired with the oracle at S7, and the rollback tag keeps it. |
 | **PLE-Q** | The frozen experiments stay as history. From S1, PLEML comes from the fenced Sysand lock. The current arm reads the interpreter and fixture of the experiment at PLEML 1.1.0 (`69bbe093`) until the S2 evaluator replaces them, at S4 at the latest. The `adapter-realization` gap is answered by the S3 derivation-rule round trip. |
 | **Governed scope** | Stays the admission authority. Admission follows from model-native correspondences of each feature, which replace `catalogue-correspondence.yaml`. |
 
@@ -167,7 +168,7 @@ Any other `not-expressible` row is a `defect`.
 | S4 | **Parity check and retargeted configurator** (§5) | 0 `defect` and the expected histogram, **and** all 7 normalised bodies equal | ~14 files, ~1,600 lines |
 | S5o | **Method and ontology PR** (owner's yes). Classifies `FeatureConfiguration`, the selection relations, `variesAt` and `Feature`, and removes `includesCommonCapability`; rewrites the register rows, admission exclusions and guard test, the kernel comment of `de4sdv_product_line.sysml:35-37`, the vocabulary-role comments, and the concern and viewpoint texts. A guard test ties `FeatureConfiguration`'s served kernel mapping to this switch. | `check_repo`; Method Check; **one gate with S6**: merged directly before S6, with no ingestion or deploy between them | ~9 files, ~420 lines |
 | S6 | **Switch.** Selectors, `PINNED_DEPENDENCIES` and the `AGENTS.md` validation scope; the deploy workflow's dependency comment and a fourth `test -f` (`deploy-public-sysml-api.yml:302-309, :357-359`); `FeatureConfiguration`'s kernel mapping flipped to the pinned PLEML declaration at the path the export records, with its manifest-held field, another external class in `tests/test_sysml_full_ingestion.py:374` and the kernel-vocabulary pair regenerated (S5o's guard test refuses the switch without the flip, and the flip without the switch); a genuine-export re-cut from the S6 head's licensed Method Check export; projections regenerated from receipts; docs and the scope-model header rewritten; YAML labelled a non-authoritative shadow; notes on ADR 0014 and ADR 0006; rollback tag first. | S5o merged directly before; full parity; licensed validation; Method Check (the `sai-` identity changes); a fresh privileged binding (full-model ingestion) and a deploy; a PLE-Q-style dispatch on the merge commit; owner merge. A failed post-merge check is a rollback trigger. | ~20 files, ~900 lines |
-| S7 | **Retire YAML**: the catalogues, the YAML bills of features, the YAML path and lexical checks, the oracle, and the `C-` IDs (registry updated the same day). The reference-only examples stay as PLEML configurations. S6 already changed the derivation-source line of the projections to "from PLEML configuration receipt". The wording left changes in a reviewed regeneration: the catalogue-path labels of the selections outside a projection, which the receipt takes from the YAML shadow until then. The texts that name the shadow move with it: the shadow labels and the references to Bill-of-Features files in the model, the docs and the records (the bench test-article configuration and the method pilots). The evidence metadata moves from the Bills-of-Features to the evidence records. | The three OQ2 conditions; owner yes | ~30 files, about −4,000 lines |
+| S7 | **Retire YAML** (done): the catalogues, the YAML bills of features, the YAML path of the configurator and its lexical checks, the parity check and the YAML shadow, the oracle with its retained PLE-S record, and the `C-` common-capability IDs, with the registry updated in the same change. The reference-only examples, the invalid fixture and the 17 parity probes stay as PLEML configurations. The receipt format loses its shadow section (`de4sdv.pleml-configuration-receipt/v2`), and the public CI replays the receipts in place of the parity. A reviewed regeneration changed the wording left from S6: the selections outside a projection are labelled by their PLEML feature paths, no longer by the catalogue paths that the receipt took from the YAML shadow. The texts that named the shadow are reworded: the shadow labels and the references to Bill-of-Features files in the model, the docs and the records (the bench test-article configuration and the method pilots). The evidence metadata moved from the Bills-of-Features to evidence records, which a CI check applies the evidence rules to. | The owner's conditions of 2026-10-21 (OQ2); owner yes | S7_SIZE |
 
 **Order.**
 
@@ -213,7 +214,7 @@ The frozen experiments keep their pinned submodules as history.
 - **A rollback** reverts S6 together with S5o, and re-runs the privileged ingestion and the deploy, because the served-model identity changes back. There is no runtime toggle.
 - **Phase-9 content** that YAML cannot express (per-domain platforms) must be re-expressed in YAML or withdrawn on a rollback. That cost grows with phase 9 and is accepted.
 - **The rollback tag** is `pleml-yaml-authority-final`, an annotated tag on the main commit directly before the #407 merge (S5o): the last commit under YAML authority. It is pushed before #407 and S6 merge, and only with the owner's yes.
-- **After S7,** rollback means restoring from the tag.
+- **After S7,** rollback means restoring from the tag: the YAML catalogues, the Bills-of-Features, the YAML path of the configurator and the parity check exist only at `pleml-yaml-authority-final`. A rollback restores them from it, reverts S7 together with S6 and S5o, and needs its own privileged ingestion and deploy.
 
 ## 9. Upstream release policy (O4)
 
@@ -294,4 +295,4 @@ After S6, one comment on MBSE4U/PLEML#4 (the repository has no discussions). The
 | Calendar to S6 | About 5–8 working days: six sequential merge points at about one working day each, including one review round |
 | Measured cadence | Open-to-merge took 12.2 h (#384), 5.8 h (#387), 14.7 h (#388) and 13.7 h (#389) |
 | Assumptions | The owner merges within a day; one review round per big PR |
-| S7 | At least 30 days after S6 |
+| S7 | Once the conditions of OQ2 hold; the minimum of 30 days after S6 was dropped on 2026-10-21 |

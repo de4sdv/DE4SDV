@@ -1,0 +1,8 @@
+# Evidence record of the PLEML feature configuration
+# middleware_autoware_aaos_sdv_reference.sysml (ADR 0022): the evidence status
+# of the configuration and the retained artifacts behind that status. It
+# selects no feature. Until step S7 the Bill-of-Features
+# middleware-autoware-aaos-sdv-reference.yaml carried it.
+
+status: planned
+artifacts: []

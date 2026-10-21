@@ -1,4 +1,4 @@
-"""Receipts of the PLEML configuration evaluation and the parity primitives (ADR 0022).
+"""Receipts of the PLEML configuration evaluation (ADR 0022).
 
 The licensed authority job serializes the PLEML feature models with the
 production export's options into one export bundle. From that bundle, one
@@ -6,16 +6,16 @@ elements file holds the serialized elements, compressed, and each feature
 model gets a receipt: its verdicts, derived variants and admission, with the
 input digests. Every other run is unlicensed: it re-runs the evaluator on the
 committed elements and refuses a receipt whose inputs changed (the elements,
-a source, the pinned library) or whose evaluation or shadow does not
-reproduce byte for byte. The evaluator's code identity is provenance: a
-receipt that still reproduces under other code holds, and replay reports the
-difference as an advisory. A receipt that no longer reproduces from intact
-inputs is refreshed offline from the same elements.
+a source, the pinned library), whose evaluation does not reproduce byte for
+byte, or whose evaluation records integrity errors. The evaluator's code
+identity is provenance: a receipt that still reproduces under other code
+holds, and replay reports the difference as an advisory. A receipt that no
+longer reproduces from intact inputs is refreshed offline from the same
+elements.
 
-The parity primitives serve the comparison with the configurator until S7:
-the normalised projection body, the writer inputs a receipt carries, the
-reason keys of an evaluated configuration and the classification of one
-parity row, with ``not-expressible`` limited to a pinned, reviewed list.
+The configurator's writer reads its inputs from an evaluated configuration
+(``writer_inputs``). The evidence records of the configurations keep the
+evidence rules (``evidence_record_errors``).
 """
 from __future__ import annotations
 
@@ -24,7 +24,6 @@ import json
 import lzma
 import re
 import subprocess
-from collections import Counter
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable, Mapping
@@ -34,25 +33,23 @@ from de4sdv.semantic import pleml_package
 from de4sdv.sysml_api.baseline import BaselineExportBundle
 from de4sdv.sysml_api.product_line_scope import SCOPE_SOURCE, ScopeSemanticError, validate_scope_elements
 
-RECEIPT_SCHEMA = "de4sdv.pleml-configuration-receipt/v1"
+RECEIPT_SCHEMA = "de4sdv.pleml-configuration-receipt/v2"
 ELEMENTS_SCHEMA = "de4sdv.pleml-configuration-elements/v1"
 #: The source-manifest roles of the authority bundle that mark the PLEML model documents.
 MODEL_ROLES = ("pleml-feature-model", "pleml-feature-configuration", "pleml-fixture")
 #: The provenance of one licensed run. A receipt records it beside the elements, never inside them, so the
 #: same serialization on another commit gives the same elements file and the same digests.
 PROVENANCE = ("executor_revision", "bundle_git_commit")
-#: The PLEML-owned code an evaluation and its shadow run, relative to the tree of the running evaluator:
-#: the evaluator, the receipts, the shadow, the package record, the CLI and the configurator. Its digests
-#: are provenance, recorded for audit and reported as an advisory; reproduction, not this record, decides
-#: whether a receipt still holds. Shared production modules stay outside the record, so that unrelated
-#: work never touches it.
+#: The PLEML-owned code an evaluation runs, relative to the tree of the running evaluator: the evaluator,
+#: the receipts, the package record and the CLI. Its digests are provenance, recorded for audit and
+#: reported as an advisory; reproduction, not this record, decides whether a receipt still holds. Shared
+#: production modules stay outside the record, so that unrelated work never touches it. The configurator
+#: reads the receipts and runs no evaluation, so it is outside the record too.
 EVALUATOR_MODULES = (
     "de4sdv/semantic/pleml_configuration.py",
     "de4sdv/semantic/pleml_package.py",
     "de4sdv/semantic/pleml_receipts.py",
-    "de4sdv/semantic/pleml_shadow.py",
     "scripts/run_pleml_configuration_evaluation.py",
-    "tools/configure_variant.py",
 )
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -224,9 +221,9 @@ def evaluator_digest() -> str:
 
 
 def build_receipt(payload: Mapping[str, Any], *, elements_file: str, elements_sha256: str,
-                  model_sources: Iterable[str] | None = None, shadow: Mapping[str, Any] | None = None,
-                  provenance: Mapping[str, Any] | None = None, contract: Any = None) -> dict[str, Any]:
-    """The receipt of the feature models in ``model_sources``: inputs by digest, the evaluation, the shadow."""
+                  model_sources: Iterable[str] | None = None, provenance: Mapping[str, Any] | None = None,
+                  contract: Any = None) -> dict[str, Any]:
+    """The receipt of the feature models in ``model_sources``: inputs by digest and the evaluation."""
     models = sorted(payload["model_sources"] if model_sources is None else model_sources)
     evaluation = evaluate_payload(payload, model_sources=models, contract=contract)
     return {
@@ -240,7 +237,6 @@ def build_receipt(payload: Mapping[str, Any], *, elements_file: str, elements_sh
         "sources": payload["source_manifest"],
         "evaluator": evaluator_identity(),
         "evaluation": evaluation,
-        "shadow": dict(shadow or {}),
         "native_expression_executed": False,
         "qualified": False,
     }
@@ -303,11 +299,10 @@ def evaluator_advisories(receipt: Mapping[str, Any]) -> list[str]:
     if not parts:
         return []
     return ["evaluated by other code (" + "; ".join(f"{label}: {', '.join(modules)}" for label, modules in parts)
-            + "); the evaluation and the shadow reproduce, so the receipt holds"]
+            + "); the evaluation reproduces, so the receipt holds"]
 
 
-def replay(receipt_path: Path, root: Path = ROOT, *, shadow: Mapping[str, Any] | None = None,
-           contract: Any = None) -> dict[str, Any]:
+def replay(receipt_path: Path, root: Path = ROOT, *, contract: Any = None) -> dict[str, Any]:
     """Re-run the evaluator on the committed elements; refuse a stale or non-reproducing receipt."""
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     reasons = stale_reasons(receipt, receipt_path, root)
@@ -317,13 +312,10 @@ def replay(receipt_path: Path, root: Path = ROOT, *, shadow: Mapping[str, Any] |
     evaluation = evaluate_payload(payload, model_sources=receipt.get("model_sources"), contract=contract)
     if canonical(evaluation) != canonical(receipt["evaluation"]):
         raise StaleReceipt("the committed evaluation does not reproduce from the committed elements")
-    if shadow is not None and canonical(dict(shadow)) != canonical(receipt.get("shadow") or {}):
-        raise StaleReceipt("the shadow checks of the receipt do not reproduce")
     return receipt
 
 
-def refreshed(receipt_path: Path, root: Path = ROOT, *, shadow: Mapping[str, Any] | None = None,
-              contract: Any = None) -> dict[str, Any]:
+def refreshed(receipt_path: Path, root: Path = ROOT, *, contract: Any = None) -> dict[str, Any]:
     """A receipt re-evaluated offline when only the evaluator changed; elements and sources must still match."""
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     reasons = stale_reasons(receipt, receipt_path, root)
@@ -332,7 +324,6 @@ def refreshed(receipt_path: Path, root: Path = ROOT, *, shadow: Mapping[str, Any
     payload = read_elements(receipt_path.parent / receipt["elements"]["path"])
     fresh = build_receipt(payload, elements_file=receipt["elements"]["path"],
                           elements_sha256=receipt["elements"]["sha256"], model_sources=receipt.get("model_sources"),
-                          shadow=receipt.get("shadow") if shadow is None else shadow,
                           provenance=receipt.get("provenance"), contract=contract)
     previous = (receipt.get("evaluator") or {}).get("sha256")
     if previous != fresh["evaluator"]["sha256"]:
@@ -381,15 +372,15 @@ class VerdictChanges(ValueError):
         self.changes = changes
 
 
-def refresh(receipt_path: Path, root: Path = ROOT, *, shadow: Mapping[str, Any] | None = None,
-            contract: Any = None, accept_verdict_changes: bool = False) -> dict[str, Any]:
+def refresh(receipt_path: Path, root: Path = ROOT, *, contract: Any = None,
+            accept_verdict_changes: bool = False) -> dict[str, Any]:
     """Rewrite one receipt from its intact committed elements when it no longer reproduces.
 
     A refresh that changes a verdict, a derived variant or an admission is
     refused unless ``accept_verdict_changes`` says so: such a change is a
     rollback trigger of the plan, never a silent rewrite.
     """
-    fresh = refreshed(receipt_path, root, shadow=shadow, contract=contract)
+    fresh = refreshed(receipt_path, root, contract=contract)
     changes = verdict_changes(json.loads(receipt_path.read_text(encoding="utf-8")), fresh)
     if changes and not accept_verdict_changes:
         raise VerdictChanges(changes)
@@ -397,23 +388,27 @@ def refresh(receipt_path: Path, root: Path = ROOT, *, shadow: Mapping[str, Any] 
     return fresh
 
 
+def integrity_failures(receipt: Mapping[str, Any]) -> list[str]:
+    """The integrity errors the evaluation of a receipt records, one line each, by feature tree."""
+    return [f"{model['tree']['name']}: {error}" for model in receipt["evaluation"]["feature_models"]
+            for error in model["integrity_errors"]]
+
+
 def replay_receipts(paths: Iterable[Path], root: Path = ROOT, *, contract: Any = None) -> list[str]:
     """Replay receipts offline; every failure, as text, and an empty list when all of them hold.
 
-    A receipt fails when its inputs changed, when its evaluation or shadow does
-    not reproduce byte for byte, or when the evaluation it records has
-    integrity errors or the shadow records complement or rule-table errors.
+    A receipt fails when its inputs changed, when its evaluation does not
+    reproduce byte for byte, or when the evaluation it records has integrity
+    errors.
     """
-    from de4sdv.semantic import pleml_shadow
-
     failures = []
     for path in paths:
         try:
-            receipt = replay(path, root, shadow=pleml_shadow.receipt_shadow(path, root), contract=contract)
+            receipt = replay(path, root, contract=contract)
         except (StaleReceipt, evaluator.PlemlShapeError, ValueError, KeyError, OSError) as exc:
             failures.append(f"{path}: {exc}")
             continue
-        failures += [f"{path}: {failure}" for failure in pleml_shadow.shadow_failures(receipt)]
+        failures += [f"{path}: {failure}" for failure in integrity_failures(receipt)]
     return failures
 
 
@@ -457,11 +452,11 @@ def compare_with_committed(fresh: Iterable[Path], committed: Path) -> list[str]:
     return failures
 
 
-# -- writer inputs and the normalised body (plan section 5) ---------------------------------
+# -- writer inputs ---------------------------------------------------------------------------
 
 
 def fold_description(body: str | None) -> str:
-    """The description as the writer receives a folded YAML scalar: lines joined, paragraphs kept."""
+    """The description as the writer prints it: the lines of each paragraph joined, paragraphs kept."""
     if not body:
         return ""
     paragraphs = re.split(r"\n[ \t]*\n", body.strip())
@@ -469,9 +464,12 @@ def fold_description(body: str | None) -> str:
                      for paragraph in paragraphs)
 
 
-def writer_inputs(configuration: Mapping[str, Any], features: Iterable[Mapping[str, Any]],
-                  catalogue_paths: Mapping[str, str] | None = None) -> dict[str, Any]:
-    """What the projection writer needs from one evaluated configuration."""
+def writer_inputs(configuration: Mapping[str, Any], features: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
+    """What the projection writer needs from one evaluated configuration.
+
+    The projection name, the folded description, and the explicit enabled or
+    disabled state of each plain optional feature, by its PLEML feature path.
+    """
     by_path = {feature["path"]: feature for feature in features}
     optional = {}
     for path, state in configuration["states"].items():
@@ -480,100 +478,19 @@ def writer_inputs(configuration: Mapping[str, Any], features: Iterable[Mapping[s
                                                                                     or feature["members"])
         if plain_optional and state in {"enabled", "disabled"}:
             optional[path] = state
-    result: dict[str, Any] = {"projection_name": configuration["projection_name"],
-                              "description": fold_description(configuration["description"]),
-                              "explicit_optional_states": optional}
-    if catalogue_paths is not None:
-        result["catalogue_paths"] = {feature["path"]: catalogue_paths.get(feature["short_name"] or "")
-                                     for feature in features}
-    return result
+    return {"projection_name": configuration["projection_name"],
+            "description": fold_description(configuration["description"]),
+            "explicit_optional_states": optional}
 
 
-_HEADER_END = re.compile(r"\A/\*.*?\n \*/\n\n?", re.DOTALL)
-#: The derivation-source line where the writer puts it: the first line of the part definition's doc.
-_DERIVATION_SOURCE = re.compile(r"^(part def \w+ :> \w+ \{\n  doc /\*\n   \* Derived .+ projection) from .+\.$",
-                                re.MULTILINE)
-
-
-def normalised_body(projection: str) -> str:
-    """The projection below its provenance header, with the derivation-source line normalised.
-
-    Only the writer's derivation-source line is normalised, never a description
-    line of the same shape; a projection without it is refused.
-    """
-    match = _HEADER_END.match(projection)
-    if match is None:
-        raise ValueError("the projection has no provenance header")
-    body, count = _DERIVATION_SOURCE.subn(r"\1 from <configuration source>.", projection[match.end():], count=1)
-    if count != 1:
-        raise ValueError("the projection has no derivation-source line where the writer puts it, the first line "
-                         "of the part definition's doc")
-    return body
-
-
-# -- reason keys and parity rows -------------------------------------------------------------
-
-#: Reviewed constructs that PLEML cannot express, each pinned to its parity row (plan section 5).
-NOT_EXPRESSIBLE = ({"row": "ug-10-vehicle-target-aebs-false", "construct": "common-capability-false",
-                    "reason": "common content has no feature (OQ4)"},)
-
-
-def reason_keys(configuration: Mapping[str, Any]) -> set[tuple[str, str | None]]:
-    """Comparable reason keys: the class, and the constraint identifier for constraint violations."""
-    return {(reason["class"], reason.get("constraint") if reason["class"] == "constraint" else None)
-            for reason in configuration["reasons"]}
-
-
-def classify_row(row: str, yaml: Mapping[str, Any], pleml: Mapping[str, Any], *,
-                 yaml_remainder: Mapping[str, Any] | None = None) -> dict[str, str]:
-    """``equal``, ``both-reject``, ``not-expressible`` or ``defect`` for one parity row.
-
-    Each outcome has ``valid``, ``keys`` (reason keys), ``derived_variants``
-    ({variation: variant}) and, when valid, ``body`` (normalised). Two
-    rejections need the same reason keys; when both outcomes also give
-    ``reasons``, the hashable (class, constraint, location) of each reason,
-    they need the same multiset of them, so a reason counted twice or placed
-    on another group or pair is a defect too. A ``not-expressible`` row needs
-    a pinned construct for this row as the sole YAML violation, and the YAML
-    evaluation of the remainder must equal the PLEML outcome; anything else
-    that differs is a defect.
-    """
-    if yaml["valid"] and pleml["valid"]:
-        if yaml["derived_variants"] != pleml["derived_variants"]:
-            return {"class": "defect", "detail": "the derived variants differ"}
-        if yaml.get("body") != pleml.get("body"):
-            return {"class": "defect", "detail": "the normalised bodies differ"}
-        return {"class": "equal", "detail": ""}
-    if not yaml["valid"] and not pleml["valid"]:
-        if set(yaml["keys"]) != set(pleml["keys"]):
-            return {"class": "defect", "detail": f"reason classes differ: {sorted(map(str, yaml['keys']))} and "
-                                                 f"{sorted(map(str, pleml['keys']))}"}
-        if yaml.get("reasons") is not None and pleml.get("reasons") is not None:
-            ours, theirs = Counter(yaml["reasons"]), Counter(pleml["reasons"])
-            if ours != theirs:
-                return {"class": "defect", "detail": "the reasons differ in count or location: YAML only "
-                                                     f"{sorted(map(str, (ours - theirs).elements()))}, PLEML only "
-                                                     f"{sorted(map(str, (theirs - ours).elements()))}"}
-        return {"class": "both-reject", "detail": ""}
-    pinned = {item["construct"] for item in NOT_EXPRESSIBLE if item["row"] == row}
-    keys = list(yaml["keys"])
-    if (not yaml["valid"] and pleml["valid"] and len(keys) == 1 and keys[0][0] in pinned
-            and yaml.get("violations", 1) == 1 and yaml_remainder is not None):
-        remainder = classify_row(row, yaml_remainder, pleml)
-        if remainder["class"] == "equal":
-            return {"class": "not-expressible", "detail": f"pinned construct {keys[0][0]}"}
-        return {"class": "defect", "detail": f"the remainder is not equal: {remainder['detail']}"}
-    return {"class": "defect", "detail": "one side accepts what the other rejects"}
-
-
-# -- evidence records (plan section 4) ---------------------------------------------------------
+# -- evidence records ------------------------------------------------------------------------
 
 EVIDENCE_STATUSES = {"draft", "planned", "inspected", "simulated", "analyzed", "tested", "accepted", "rejected", "gap"}
 EVIDENCE_BEARING = {"inspected", "simulated", "analyzed", "tested", "accepted", "rejected"}
 
 
 def evidence_record_errors(record: Any, root: Path = ROOT) -> list[str]:
-    """The configurator's evidence rules over one external evidence record (status and artifacts)."""
+    """The evidence rules over one evidence record of a configuration: its status and its artifacts."""
     if not isinstance(record, dict):
         return ["the evidence record must be a mapping"]
     errors = [f"unknown evidence field: '{field}'" for field in sorted(set(record) - {"status", "artifacts"})]

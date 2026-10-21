@@ -38,7 +38,6 @@ on:
       - "scripts/run_pleml_configuration_evaluation.py"
       - "de4sdv/semantic/pleml_configuration.py"
       - "de4sdv/semantic/pleml_receipts.py"
-      - "de4sdv/semantic/pleml_shadow.py"
       # The PLEML pin in the production lock: a re-pin gets this licensed
       # validation (release policy).
       - ".project.json"
@@ -47,9 +46,8 @@ on:
       - "scripts/check_pleml_package.py"
       - "scripts/run_ple_qualification.py"
       # The committed receipts and what they bind: the referenced documents of
-      # the bundle and the catalogues of their shadow checks.
+      # the bundle.
       - "model-based-product-line-engineering/feature-models/receipts/**"
-      - "model-based-product-line-engineering/feature-models/*.yaml"
       - "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml"
       - "textual-notation-of-model/packages/architecture/execution_environments.sysml"
       - "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml"

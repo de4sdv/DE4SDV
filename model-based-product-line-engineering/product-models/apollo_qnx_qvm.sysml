@@ -29,11 +29,11 @@ part def ApolloQNXQVMVariant :> SDVPlatformStack {
    *   applicationMiddlewareAdapter = apolloToSCORE (derived by D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER)
    *
    * Feature selections outside this projection (not resolved in SysML):
-   *   SensingBoundary.PerceptionSensors = LiDAR, Radar
-   *   Capabilities.ForwardCollisionMitigation.PedestrianDetection = disabled
-   *   Capabilities.ForwardCollisionMitigation.BicycleDetection = disabled
-   *   Capabilities.AdaptiveCruiseControl = disabled
-   *   Capabilities.LaneKeepAssist = disabled
+   *   sensingBoundary.perceptionSensors = lidar, radar
+   *   capabilities.pedestrianDetection = disabled
+   *   capabilities.bicycleDetection = disabled
+   *   capabilities.adaptiveCruiseControl = disabled
+   *   capabilities.laneKeepAssist = disabled
    */
 
   part :>> vehicleApplication = vehicleApplication::apollo;

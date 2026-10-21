@@ -49,13 +49,12 @@ jobs:
       - name: Byte-check the pinned PLEML package
         run: python scripts/check_pleml_package.py --release-diff
 
-      # The parity of the PLEML receipts with the YAML path (ADR 0022, plan
-      # step S4), which gates every step until S7: every parity row, the
-      # plan's histogram and the seven normalised projection bodies, from the
-      # committed receipts and the YAML, unlicensed. It replays the receipts,
-      # so it runs after the pinned package is byte-checked.
-      - name: Check the PLEML parity with the YAML path
-        run: python scripts/check_pleml_parity.py
+      # The committed PLEML receipts (ADR 0022): the evaluator re-runs on the
+      # committed elements, unlicensed, and refuses a stale or non-reproducing
+      # receipt. The replay reads the installed library, so it runs after the
+      # pinned package is byte-checked.
+      - name: Replay the committed PLEML receipts
+        run: python scripts/run_pleml_configuration_evaluation.py replay model-based-product-line-engineering/feature-models/receipts/*.receipt.json
 
       - name: Run repository checks
         run: python scripts/check_repo.py
