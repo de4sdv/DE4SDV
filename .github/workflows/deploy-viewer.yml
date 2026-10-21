@@ -52,7 +52,13 @@ jobs:
             --repo . --out site --refs auto --public
 
       - name: Install gate dependencies
-        run: python -m pip install --disable-pip-version-check PyYAML==6.0.2
+        run: python -m pip install --disable-pip-version-check PyYAML==6.0.2 sysand==0.1.0
+
+      # The repository gates read the pinned SysML dependencies, PLEML among
+      # them since the switch (ADR 0022): sync the lock first, as the public
+      # CI does.
+      - name: Sync pinned SysML dependencies
+        run: sysand sync
 
       - name: Repository gates
         run: |
