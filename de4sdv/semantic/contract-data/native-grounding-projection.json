@@ -77,7 +77,7 @@
         "traversal": false
       },
       "support": "vocabulary-only",
-      "claim_boundary": "Variants are usages owned by a variation; no reusable class duplication; concrete selections remain in the configuration/BoF layer.",
+      "claim_boundary": "Variants are usages owned by a variation; no reusable class duplication; concrete selections remain in the feature configurations.",
       "review_ref": {
         "wave": "W3",
         "evidence": "exact-fit + standard-construct grounding record from current model inputs"

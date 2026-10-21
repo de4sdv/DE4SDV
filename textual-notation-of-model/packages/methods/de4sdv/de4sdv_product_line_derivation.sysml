@@ -21,8 +21,8 @@
  * Authority: since the switch of ADR 0022 the PLEML feature models and the
  * derivation rules that apply these definitions are the derivation authority
  * (ADR 0022 decision 4). The YAML catalogue and the configurator's
- * derived_asset_selections stay a non-authoritative shadow until the YAML
- * retires. Only the feature models and their configurations apply these
+ * derived_asset_selections were a non-authoritative shadow until step S7
+ * retired them. Only the feature models and their configurations apply these
  * definitions: a repository test refuses any other file of the model roots
  * that imports this package or applies them.
  */

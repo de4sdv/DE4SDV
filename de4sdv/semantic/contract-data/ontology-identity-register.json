@@ -1559,7 +1559,7 @@
       "open_decisions": [
         "Keep as native pointer; variants stay usages",
         "Record standard-construct grounding evidence at a bound revision",
-        "Concrete selections remain in the configuration/BoF layer (no model duplication)"
+        "Concrete selections remain in the feature configurations (no duplication in the shared assets)"
       ],
       "required_api_representation_profile_change": true,
       "required_model_or_library_change": {
@@ -1594,7 +1594,7 @@
       "dependencies": [
         "the switch of ADR 0022 (S6) and the PLEML pin and byte check (S1)",
         "Gate C scope review / ADR 0014 (admitted product scope)",
-        "configurator regression tests (tests/test_configure_variant.py), for the YAML shadow until S7"
+        "configurator regression tests (tests/test_configure_variant.py), for the YAML shadow until it retired at S7"
       ],
       "dependency_flags": {
         "canonical_architecture": false,
@@ -5560,7 +5560,7 @@
       "o3_complete": false,
       "open_decisions": [
         "Classified by S5o (ADR 0022 decision 8; it merges only with the owner's yes): a DE4SDV derived fact over the selected options and their correspondences to the governed scope; the range Feature stays the kernel ProductLineFeatureCandidate",
-        "Preserve configurator behavior and tests as operational evidence for the YAML shadow until S7",
+        "Discharged at S7: the configurator behavior and tests were the operational evidence for the YAML shadow until it retired",
         "Vocabulary-only until a reviewed derived realization with exact-revision evidence"
       ],
       "required_api_representation_profile_change": false,
@@ -5779,7 +5779,7 @@
       "dependencies": [
         "Variant and VariationPoint rows",
         "FeatureConfiguration row",
-        "configure_variant.py regression tests"
+        "configure_variant.py regression tests (its YAML-path tests retired at S7; its receipt-mode tests remain)"
       ],
       "dependency_flags": {
         "canonical_architecture": false,
