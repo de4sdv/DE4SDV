@@ -246,6 +246,21 @@ class Scenario:
         path.write_text("")
         return self.note(f"TOUCH {path.name}")
 
+    def snapshot(self, label: str) -> None:
+        """Host shared memory, LoLa discovery files and TCP socket state, for the record."""
+        commands = {
+            "dev_shm": ["ls", "-la", "--time-style=+%H:%M:%S", "/dev/shm"],
+            "mw_com_lola": ["find", "/tmp/mw_com_lola", "-maxdepth", "4"],
+            "host_tcp": ["ip", "netns", "exec", HOST_NS, "ss", "-tmin"],
+            "guest_tcp": ["ip", "netns", "exec", GUEST_NS, "ss", "-tmin"],
+        }
+        with (self.out / "snapshots.txt").open("a") as out:
+            out.write(f"===== {time.monotonic_ns()} {label}\n")
+            for name, command in commands.items():
+                result = subprocess.run(command, capture_output=True, text=True, check=False)
+                out.write(f"--- {name}\n{result.stdout}{result.stderr}")
+        self.note(f"SNAPSHOT {label}")
+
     def rss_kib(self, name: str) -> int | None:
         try:
             for line in Path(f"/proc/{self.procs[name][0].pid}/status").read_text().splitlines():
@@ -418,13 +433,16 @@ def s4_gatewayd_crash_restart(sc: Scenario) -> None:
     sc.touch(sc.out / "go")
     sc.wait_file(sc.out / "publisher.paused-50", 30)
     time.sleep(1.0)
+    sc.snapshot("before gatewayd kill")
     sc.meta["gatewayd_killed_ns"] = sc.send_signal("gatewayd", signal.SIGKILL)
     sc.wait_exit("gatewayd", 10)
     sc.stop("gatewayd")
     time.sleep(1.0)
+    sc.snapshot("after gatewayd kill")
     sc.start_gatewayd("gatewayd-2")
     sc.wait_log("gatewayd-2", GATEWAYD_FOUND, 20)
     time.sleep(2.0)
+    sc.snapshot("after gatewayd restart")
     sc.meta["resumed_ns"] = sc.touch(sc.out / "resume-50")
     sc.wait_file(sc.out / "publisher.done", 30)
     time.sleep(3.0)
@@ -522,11 +540,14 @@ def s9_stalled_guest(sc: Scenario) -> None:
     sc.touch(sc.out / "go")
     time.sleep(3.0)
     rss = [{"phase": "before", "someipd_kib": sc.rss_kib("someipd"), "gatewayd_kib": sc.rss_kib("gatewayd")}]
+    sc.snapshot("before stall")
     sc.meta["stall_start_ns"] = sc.send_signal("client", signal.SIGSTOP)
     for i in range(6):
         time.sleep(5.0)
         rss.append({"phase": f"stalled+{5 * (i + 1)}s", "someipd_kib": sc.rss_kib("someipd"),
                     "gatewayd_kib": sc.rss_kib("gatewayd")})
+        if i in (0, 5):
+            sc.snapshot(f"stalled+{5 * (i + 1)}s")
     sc.meta["stall_end_ns"] = sc.send_signal("client", signal.SIGCONT)
     time.sleep(5.0)
     rss.append({"phase": "after", "someipd_kib": sc.rss_kib("someipd"), "gatewayd_kib": sc.rss_kib("gatewayd")})
@@ -625,6 +646,38 @@ def s15_gatewayd_crash_then_publisher_restart(sc: Scenario) -> None:
     time.sleep(3.0)
 
 
+def s17_gateway_pair_restart(sc: Scenario) -> None:
+    """Diagnosis: gatewayd killed, then someipd and gatewayd both restarted, publisher kept: recovery and replay."""
+    sc.debug_logs = True
+    sc.start_tcpdump()
+    sc.start_someipd()
+    sc.start_gatewayd()
+    sc.start_publisher(extra=["--frames", "100", "--period-ms", "50", "--pause-at", "50",
+                              "--go-file", str(sc.out / "go")])
+    sc.wait_log("gatewayd", GATEWAYD_FOUND, 20)
+    sc.start_client()
+    sc.wait_subscribed()
+    time.sleep(1.0)
+    sc.touch(sc.out / "go")
+    sc.wait_file(sc.out / "publisher.paused-50", 30)
+    time.sleep(1.0)
+    sc.meta["gatewayd_killed_ns"] = sc.send_signal("gatewayd", signal.SIGKILL)
+    sc.wait_exit("gatewayd", 10)
+    sc.stop("gatewayd")
+    sc.stop("someipd")
+    sc.snapshot("after gatewayd kill and someipd stop")
+    time.sleep(1.0)
+    sc.start_someipd("someipd-2")
+    sc.start_gatewayd("gatewayd-2")
+    sc.wait_log("gatewayd-2", GATEWAYD_FOUND, 20)
+    sc.wait_subscribed(count=2, timeout=20)
+    time.sleep(2.0)
+    sc.snapshot("after gateway pair restart")
+    sc.meta["resumed_ns"] = sc.touch(sc.out / "resume-50")
+    sc.wait_file(sc.out / "publisher.done", 30)
+    time.sleep(3.0)
+
+
 def s16_main_1000_frames_100hz(sc: Scenario) -> None:
     """1000 frames at 100 Hz, ten times the HMI rate: identity, order and gaps under load."""
     sc.start_tcpdump()
@@ -658,6 +711,7 @@ SCENARIOS = {
     "s14-gatewayd-crash-restart-2subs": s14_gatewayd_crash_restart_2subs,
     "s15-gatewayd-crash-then-publisher-restart": s15_gatewayd_crash_then_publisher_restart,
     "s16-main-1000-frames-100hz": s16_main_1000_frames_100hz,
+    "s17-gateway-pair-restart": s17_gateway_pair_restart,
 }
 
 

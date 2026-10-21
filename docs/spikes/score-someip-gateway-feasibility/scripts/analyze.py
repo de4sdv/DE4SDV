@@ -440,6 +440,7 @@ EVALUATORS = {
     "s11-gatewayd-sigterm-publisher-alive": s11, "s12-gatewayd-sigterm-without-publisher": s11,
     "s13-gatewayd-crash-restart-debug": s13, "s14-gatewayd-crash-restart-2subs": s13,
     "s15-gatewayd-crash-then-publisher-restart": s15, "s16-main-1000-frames-100hz": s16,
+    "s17-gateway-pair-restart": s13,
 }
 
 
