@@ -362,10 +362,84 @@ def s10(data: Data) -> dict:
                        f"still byte-identical: {facts['byte_identical']}/{facts['received']}"}
 
 
+DIAGNOSTIC_PATTERN = (r"subscri|rollback|outdated|max_sample|maxsample|reject|error|warn|fatal|terminat|abort|"
+                      r"restart|stale|notif|connect")
+
+
+def debug_excerpts(data: Data, names: list[str], limit: int = 60) -> dict[str, list[str]]:
+    regex = re.compile(DIAGNOSTIC_PATTERN, re.IGNORECASE)
+    excerpts = {}
+    for name in names:
+        path = data.dir / f"{name}.stdout.log"
+        if not path.exists():
+            continue
+        lines = [line[:300] for line in path.read_text(errors="replace").splitlines()
+                 if regex.search(line) and " SENT seq=" not in line]
+        excerpts[name] = lines[:limit] + ([f"... {len(lines) - limit} more"] if len(lines) > limit else [])
+    return excerpts
+
+
+def backtrace(data: Data, process: str) -> dict:
+    """The aborting thread of a core dump of `process`, if the workflow produced one."""
+    pid = data.meta.get("processes", {}).get(process, {}).get("pid")
+    root = data.dir.parent / "backtraces"
+    files = sorted(root.glob(f"core.*.{pid}.*bt.txt")) if pid and root.exists() else []
+    if not files:
+        return {"core": None, "pid": pid}
+    text = files[0].read_text(errors="replace")
+    threads = re.split(r"\n(?=Thread \d+ )", text)
+    aborting = next((t for t in threads if re.search(r"\babort\b|raise|terminate", t)), threads[0] if threads else "")
+    frames = [line for line in aborting.splitlines() if line.startswith("#")]
+    return {"core": files[0].name, "pid": pid, "aborting_thread_frames": frames[:30],
+            "threads": len([t for t in threads if t.startswith("Thread ")])}
+
+
+def s11(data: Data) -> dict:
+    code = data.meta.get("processes", {}).get("gatewayd", {}).get("exit_code")
+    facts = {"gatewayd_exit_code": code, "backtrace": backtrace(data, "gatewayd"),
+             "gatewayd_log": debug_excerpts(data, ["gatewayd"]),
+             "frames_received_before_stop": len(data.received)}
+    return {"verdict": "INFO", "facts": facts,
+            "summary": f"gatewayd exit code {code} on SIGTERM; core {facts['backtrace'].get('core')}"}
+
+
+def s13(data: Data) -> dict:
+    result = s04(data)
+    result["facts"]["debug_log_excerpts"] = debug_excerpts(data, ["gatewayd", "gatewayd-2", "publisher", "someipd"])
+    return result
+
+
+def s15(data: Data) -> dict:
+    killed = data.meta.get("gatewayd_killed_ns")
+    b_frames = {f["seq"] for f in data.published if f["tag"] == "publisher-b"}
+    got_b = received_in(data, b_frames)
+    facts = identity(data)
+    facts.update({"publisher_b_published": len(b_frames), "publisher_b_received": len(got_b),
+                  "received_after_kill": len([r for r in data.received if killed and r["recv_ns"] >= killed]),
+                  "debug_log_excerpts": debug_excerpts(data, ["gatewayd-2", "publisher-b"])})
+    recovery = "PASS" if b_frames and len(got_b) == len(b_frames) else ("PARTIAL" if got_b else "FAIL")
+    return {"verdict": f"recovery {recovery}", "facts": facts,
+            "summary": f"after restarting gatewayd and then the publisher, the guest got {len(got_b)}/{len(b_frames)} "
+                       f"frames of the new publisher instance"}
+
+
+def s16(data: Data) -> dict:
+    facts = identity(data)
+    ok = (facts["received"] >= 100 and facts["byte_identical"] == facts["received"]
+          and facts["wire"]["digests_equal_client_in_order"])
+    return {"verdict": "PASS" if ok else "FAIL", "facts": facts,
+            "summary": f"{facts['byte_identical']}/{facts['published']} byte-identical at 100 Hz; missing "
+                       f"{len(facts['missing_expected'])}, max inter-arrival {facts['max_inter_arrival_ms']} ms, "
+                       f"latency p95 {facts['latency_ms']['p95']} ms"}
+
+
 EVALUATORS = {
     "s01-main": s01, "s02-late-subscriber": s02, "s03-resubscribe": s03, "s04-gatewayd-crash-restart": s04,
     "s05-late-gatewayd": s05, "s06-publisher-restart": s06, "s07-host-stop-sequence": s07,
     "s08-someipd-kill": s08, "s09-stalled-guest": s09, "s10-guest-request-probe": s10,
+    "s11-gatewayd-sigterm-publisher-alive": s11, "s12-gatewayd-sigterm-without-publisher": s11,
+    "s13-gatewayd-crash-restart-debug": s13, "s14-gatewayd-crash-restart-2subs": s13,
+    "s15-gatewayd-crash-then-publisher-restart": s15, "s16-main-1000-frames-100hz": s16,
 }
 
 

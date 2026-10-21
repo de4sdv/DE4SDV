@@ -95,8 +95,8 @@ jobs:
       - name: Install client build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build libboost-filesystem-dev libboost-thread-dev libboost-system-dev tcpdump
-          dpkg-query -W cmake ninja-build libboost-filesystem-dev tcpdump iproute2 > "$RUNNER_TEMP/facts/apt_packages.txt"
+          sudo apt-get install -y cmake ninja-build libboost-filesystem-dev libboost-thread-dev libboost-system-dev tcpdump gdb
+          dpkg-query -W cmake ninja-build libboost-filesystem-dev tcpdump iproute2 gdb > "$RUNNER_TEMP/facts/apt_packages.txt"
       - name: Build vsomeip 3.7.6 and the guest client
         run: bash "$SPIKE_DIR/scripts/ci_build_client.sh" "$RUNNER_TEMP/guest" "$RUNNER_TEMP/facts" "$RUNNER_TEMP/paths.json"
       - name: Restore the Bazel caches of this spike
@@ -123,8 +123,13 @@ jobs:
         run: sudo python3 "$SPIKE_DIR/scripts/xdomain.py" netns-up --out "$RUNNER_TEMP/facts"
       - name: Run the scenarios
         run: |
+          mkdir -p "$RUNNER_TEMP/cores"
+          sudo sysctl -w kernel.core_pattern="$RUNNER_TEMP/cores/core.%e.%p" | tee "$RUNNER_TEMP/facts/core_pattern.txt"
           sudo python3 "$SPIKE_DIR/scripts/xdomain.py" run --paths "$RUNNER_TEMP/paths.json" --out "$RUNNER_TEMP/results"
           sudo chown -R "$USER:$USER" "$RUNNER_TEMP/results"
+      - name: Backtraces of the core dumps
+        if: always()
+        run: bash "$SPIKE_DIR/scripts/ci_backtraces.sh" "$RUNNER_TEMP/cores" "$RUNNER_TEMP/paths.json" "$RUNNER_TEMP/results"
       - name: Remove the network domains
         if: always()
         run: sudo python3 "$SPIKE_DIR/scripts/xdomain.py" netns-down || true

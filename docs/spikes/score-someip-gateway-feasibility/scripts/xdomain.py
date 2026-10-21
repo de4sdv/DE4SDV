@@ -18,6 +18,7 @@ import argparse
 import json
 import os
 import re
+import resource
 import shlex
 import signal
 import subprocess
@@ -116,6 +117,10 @@ class Scenario:
             "processes": {},
             "waits": [],
         }
+        # Diagnostic options, set by a scenario before it starts processes.
+        self.debug_logs = False  # mw::log at kDebug on the console for the host processes
+        self.core_dumps = False  # RLIMIT_CORE unlimited for the started processes
+        self.manifest_variant = ""  # "" or "_2subs": the mw::com manifests of publisher and gatewayd
 
     # -- timeline
     def note(self, message: str) -> int:
@@ -137,11 +142,18 @@ class Scenario:
             ]
         else:
             cmd = ["ip", "netns", "exec", ns] + env_args + argv
-        process = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+        preexec = None
+        if self.core_dumps:
+            def preexec() -> None:
+                resource.setrlimit(resource.RLIMIT_CORE, (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
+        process = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT, start_new_session=True,
+                                   preexec_fn=preexec)
         self.procs[name] = (process, log)
-        stamp = self.note(f"START {name} pid={process.pid} ns={ns} private_tmp={private_tmp}")
+        stamp = self.note(f"START {name} pid={process.pid} ns={ns} private_tmp={private_tmp} "
+                          f"debug_logs={self.debug_logs} core_dumps={self.core_dumps}")
         self.meta["processes"][name] = {"pid": process.pid, "ns": ns, "argv": argv, "env": env or {},
-                                        "private_tmp": private_tmp, "started_ns": stamp}
+                                        "private_tmp": private_tmp, "started_ns": stamp,
+                                        "core_dumps": self.core_dumps}
         return process
 
     def record_maps(self, name: str, delay: float = 1.0) -> None:
@@ -251,7 +263,13 @@ class Scenario:
 
     # -- components
     def host_env(self) -> dict:
-        return {"LD_LIBRARY_PATH": self.paths["host_ld_library_path"]}
+        env = {"LD_LIBRARY_PATH": self.paths["host_ld_library_path"]}
+        if self.debug_logs and self.paths.get("mw_log_debug"):
+            env["MW_LOG_CONFIG_FILE"] = self.paths["mw_log_debug"]
+        return env
+
+    def manifest(self, role: str) -> str:
+        return self.paths[f"mw_com_{role}{self.manifest_variant}"]
 
     def start_tcpdump(self) -> None:
         pcap = str(self.out / "guest_wire.pcap")
@@ -269,14 +287,14 @@ class Scenario:
         self.record_maps(name, 0.2)
 
     def start_gatewayd(self, name: str = "gatewayd", wait_ipc: bool = True) -> None:
-        argv = [self.paths["gatewayd"], "-c", self.paths["someip_config_bin"], "-s", self.paths["mw_com_gatewayd"]]
+        argv = [self.paths["gatewayd"], "-c", self.paths["someip_config_bin"], "-s", self.manifest("gatewayd")]
         self.start(name, HOST_NS, argv, env=self.host_env())
         if wait_ipc:
             self.wait_log(name, GATEWAYD_IPC_READY, 20)
         self.record_maps(name, 0.2)
 
     def start_publisher(self, tag: str = "publisher", extra: list[str] | None = None, wait_offer: bool = True) -> None:
-        argv = [self.paths["publisher"], "--service_instance_manifest", self.paths["mw_com_publisher"],
+        argv = [self.paths["publisher"], "--service_instance_manifest", self.manifest("publisher"),
                 "--out", str(self.out), "--tag", tag] + (extra or [])
         self.start(tag, HOST_NS, argv, env=self.host_env())
         if wait_offer:
@@ -535,6 +553,94 @@ def s10_guest_request_probe(sc: Scenario) -> None:
     time.sleep(2.0)
 
 
+def s11_gatewayd_sigterm_publisher_alive(sc: Scenario) -> None:
+    """Diagnosis: gatewayd SIGTERM while the publisher keeps offering and sending (exit status, core)."""
+    sc.debug_logs = True
+    sc.core_dumps = True
+    sc.start_someipd()
+    sc.start_gatewayd()
+    sc.start_publisher(extra=["--frames", "0", "--period-ms", "100", "--go-file", str(sc.out / "go")])
+    sc.wait_log("gatewayd", GATEWAYD_FOUND, 20)
+    sc.start_client()
+    sc.wait_subscribed()
+    sc.touch(sc.out / "go")
+    time.sleep(2.0)
+    sc.meta["sigterm_gatewayd_ns"] = sc.send_signal("gatewayd", signal.SIGTERM)
+    sc.wait_exit("gatewayd", 10)
+    sc.stop("gatewayd")
+    time.sleep(1.0)
+
+
+def s12_gatewayd_sigterm_without_publisher(sc: Scenario) -> None:
+    """Diagnosis: gatewayd SIGTERM before any mw::com provider exists (exit status, core)."""
+    sc.debug_logs = True
+    sc.core_dumps = True
+    sc.start_someipd()
+    sc.start_gatewayd()
+    time.sleep(2.0)
+    sc.meta["sigterm_gatewayd_ns"] = sc.send_signal("gatewayd", signal.SIGTERM)
+    sc.wait_exit("gatewayd", 10)
+    sc.stop("gatewayd")
+    time.sleep(1.0)
+
+
+def s13_gatewayd_crash_restart_debug(sc: Scenario) -> None:
+    """Diagnosis: s04 again with mw::log at kDebug, to see where the path stops after the restart."""
+    sc.debug_logs = True
+    s4_gatewayd_crash_restart(sc)
+
+
+def s14_gatewayd_crash_restart_2subs(sc: Scenario) -> None:
+    """Diagnosis: s04 with maxSubscribers 2 and 20 sample slots in both mw::com manifests (kDebug logs)."""
+    sc.debug_logs = True
+    sc.manifest_variant = "_2subs"
+    s4_gatewayd_crash_restart(sc)
+
+
+def s15_gatewayd_crash_then_publisher_restart(sc: Scenario) -> None:
+    """Diagnosis: gatewayd killed and restarted, then the publisher restarted too: does the path come back?"""
+    sc.debug_logs = True
+    sc.start_tcpdump()
+    sc.start_someipd()
+    sc.start_gatewayd()
+    sc.start_publisher(extra=["--frames", "50", "--period-ms", "50", "--go-file", str(sc.out / "go")])
+    sc.wait_log("gatewayd", GATEWAYD_FOUND, 20)
+    sc.start_client()
+    sc.wait_subscribed()
+    sc.touch(sc.out / "go")
+    sc.wait_file(sc.out / "publisher.done", 30)
+    sc.wait_exit("publisher", 10)
+    sc.stop("publisher")
+    sc.meta["gatewayd_killed_ns"] = sc.send_signal("gatewayd", signal.SIGKILL)
+    sc.wait_exit("gatewayd", 10)
+    sc.stop("gatewayd")
+    time.sleep(1.0)
+    sc.start_gatewayd("gatewayd-2")
+    sc.start_publisher("publisher-b", extra=["--frames", "50", "--period-ms", "50", "--start-seq", "51",
+                                             "--go-file", str(sc.out / "go-b")])
+    sc.wait_log("gatewayd-2", GATEWAYD_FOUND, 20)
+    time.sleep(2.0)
+    sc.touch(sc.out / "go-b")
+    sc.wait_file(sc.out / "publisher-b.done", 30)
+    time.sleep(3.0)
+
+
+def s16_main_1000_frames_100hz(sc: Scenario) -> None:
+    """1000 frames at 100 Hz, ten times the HMI rate: identity, order and gaps under load."""
+    sc.start_tcpdump()
+    sc.start_someipd()
+    sc.start_gatewayd()
+    sc.start_publisher(extra=["--frames", "1000", "--period-ms", "10", "--go-file", str(sc.out / "go")])
+    sc.wait_log("gatewayd", GATEWAYD_FOUND, 20)
+    sc.start_client()
+    sc.wait_subscribed()
+    time.sleep(1.0)
+    sc.touch(sc.out / "go")
+    sc.wait_file(sc.out / "publisher.done", 60)
+    sc.wait_client_messages(1000, 10)
+    time.sleep(1.0)
+
+
 SCENARIOS = {
     "s01-main": s1_main,
     "s02-late-subscriber": s2_late_subscriber,
@@ -546,6 +652,12 @@ SCENARIOS = {
     "s08-someipd-kill": s8_someipd_kill,
     "s09-stalled-guest": s9_stalled_guest,
     "s10-guest-request-probe": s10_guest_request_probe,
+    "s11-gatewayd-sigterm-publisher-alive": s11_gatewayd_sigterm_publisher_alive,
+    "s12-gatewayd-sigterm-without-publisher": s12_gatewayd_sigterm_without_publisher,
+    "s13-gatewayd-crash-restart-debug": s13_gatewayd_crash_restart_debug,
+    "s14-gatewayd-crash-restart-2subs": s14_gatewayd_crash_restart_2subs,
+    "s15-gatewayd-crash-then-publisher-restart": s15_gatewayd_crash_then_publisher_restart,
+    "s16-main-1000-frames-100hz": s16_main_1000_frames_100hz,
 }
 
 

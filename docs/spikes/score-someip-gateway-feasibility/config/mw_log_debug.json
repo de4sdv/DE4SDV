@@ -1,0 +1,7 @@
+{
+    "ecuId": "SPKE",
+    "appId": "SPKE",
+    "logLevel": "kDebug",
+    "logLevelThresholdConsole": "kDebug",
+    "logMode": "kConsole"
+}
