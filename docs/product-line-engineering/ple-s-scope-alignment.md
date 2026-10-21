@@ -9,7 +9,8 @@ stays as history: the files below are cited at the revision of the
 retained run. At step S7 the retained evidence directory, the comparison
 oracle and its test retired with the YAML catalogue that the oracle ran; the
 rollback tag `pleml-yaml-authority-final` keeps them, and the links below
-point to it.
+point to it. After S7 the evaluator module and its test retired too, since
+nothing read them any more; the tag keeps them as well.
 **Decision authority for anything beyond this record:** Orkun Yilmaz, DE4SDV
 technical lead and maintainer.
 **Model:** [`aebs_product_line_scope_alignment.sysml`](https://github.com/de4sdv/DE4SDV/blob/f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb/model-based-product-line-engineering/pleml-scope-alignment/aebs_product_line_scope_alignment.sysml)
@@ -454,9 +455,10 @@ record retired with its verifier.
   file of the earlier run `38788579272` records the Gate A experiment and
   replays on main before PLEML 1.0.0, such as `099d33e6`. Replay evidence is
   not fresh serialization and says so.
-- **Unlicensed checks (public CI):** `tests/test_ple_scope_alignment_evaluator.py`
+- **Unlicensed checks (public CI), retired:** `tests/test_ple_scope_alignment_evaluator.py`
   (the evaluator on synthetic API-shaped graphs with the real frozen
-  interpreter) and, until S7, `tests/test_ple_scope_alignment_oracle.py`
+  interpreter), until it retired after S7 with `de4sdv/semantic/ple_scope_alignment.py`,
+  and, until S7, `tests/test_ple_scope_alignment_oracle.py`
   (the oracle on the retained receipt at the record's revision: UG-09, UG-10 and UG-14 as
   sets, admission moving with a reclassified governed element, a changed
   derivation and a missing correspondence exiting non-zero, the refusals, and
