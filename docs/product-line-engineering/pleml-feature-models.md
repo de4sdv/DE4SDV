@@ -12,7 +12,8 @@ the feature models, the configurations and their bindings, and DE4SDV
 evaluates the configurations and derives their variants. The YAML catalogues,
 the Bills-of-Features and the YAML path of `tools/configure_variant.py` were a
 non-authoritative shadow from the switch until they retired at step S7. The
-rollback tag `pleml-yaml-authority-final` and the Git history keep them.
+rollback tag `pleml-yaml-authority-final` keeps them as they were before the
+switch, and the Git history keeps the versions that S7 deleted.
 
 ## What the models contain
 
@@ -282,8 +283,9 @@ compared the receipts with the YAML path on 25 rows: the 8 files of
 the reasons, the derived variants and the normalised projection body, and
 every run required the histogram of the plan: 16 `equal`, 8 `both-reject`,
 1 `not-expressible` and 0 `defect`. The check, the YAML path it ran and the
-retained PLE-S record whose probe selections it froze retired at S7; the
-rollback tag `pleml-yaml-authority-final` keeps them.
+retained PLE-S record whose probe selections it froze retired at S7. The
+rollback tag `pleml-yaml-authority-final` keeps them as they were before the
+switch, and the Git history keeps the versions that S7 deleted.
 
 ## Evidence records
 

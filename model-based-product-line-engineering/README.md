@@ -26,8 +26,9 @@ constraint body natively.
 The PLEML models restate the YAML catalogues and Bills-of-Features of the
 YAML authority. Those files retired at step S7 of ADR 0022, together with the
 YAML path of the configurator and the parity check that compared the two paths
-from step S4 on. The rollback tag `pleml-yaml-authority-final` and the Git
-history keep them. Since S7 the evidence status of a configuration lives in its
+from step S4 on. The rollback tag `pleml-yaml-authority-final` keeps them as
+they were before the switch, and the Git history keeps the versions that S7
+deleted. Since S7 the evidence status of a configuration lives in its
 evidence record (see [Evidence records](#evidence-records)).
 
 ## Governed product-line scope
