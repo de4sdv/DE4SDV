@@ -196,6 +196,34 @@ def test_workflows_read_pleml_only_through_the_production_lock() -> None:
         package.BYTE_CHECKING_WORKFLOWS)
 
 
+#: The gates that read the pinned SysML dependencies, PLEML among them since the switch: the repository and
+#: model checks, the PLEML parity and package checks, the suite and the licensed validation.
+GATE_SCRIPTS = ("scripts/check_repo.py", "scripts/validate_sysml.py", "scripts/check_pleml_parity.py",
+                "scripts/check_pleml_package.py", "-m pytest", "syside check")
+SYNC = re.compile(r'sysand"? sync\b')
+
+
+def test_every_job_that_runs_a_repository_gate_syncs_the_lock_first() -> None:
+    """By content, over every job of every workflow, so a push-only or new workflow is covered too.
+
+    A pull request never runs the push-only viewer build, so a missing sync there
+    showed only on main, after the switch.
+    """
+    checked = []
+    for path in _workflow_files():
+        for name, job in (yaml.safe_load(path.read_text(encoding="utf-8")).get("jobs") or {}).items():
+            before = ""
+            for step in job.get("steps") or []:
+                run = str(step.get("run", ""))
+                gates = [run.index(gate) for gate in GATE_SCRIPTS if gate in run]
+                if gates:
+                    assert SYNC.search(before + run[:min(gates)]), (
+                        f"{path.name}, job {name}: a repository gate runs before the lock is synced")
+                    checked.append(f"{path.name}:{name}")
+                before += run + "\n"
+    assert {"ci.yml:checks", "deploy-viewer.yml:build"} <= set(checked), checked
+
+
 def _glob(pattern: str) -> re.Pattern[str]:
     parts, index = [], 0
     while index < len(pattern):
