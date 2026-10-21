@@ -75,7 +75,7 @@ admitted:
     support: vocabulary-only
     claim_boundary: >-
       Variants are usages owned by a variation; no reusable class duplication;
-      concrete selections remain in the configuration/BoF layer.
+      concrete selections remain in the feature configurations.
 
   - identity: Concern
     category: native

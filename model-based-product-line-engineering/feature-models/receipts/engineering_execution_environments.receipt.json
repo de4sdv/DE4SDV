@@ -1,8 +1,8 @@
 {
   "elements": {
-    "content_sha256": "b342c3f9f3265d5745214d30a42d02f5b33bd9caf2407da014e3da2087af8848",
+    "content_sha256": "4800f13d31d7e09af9bfba58737fa7331d6dbf172ef8ed2f3c17d0539c0fb956",
     "path": "pleml-feature-models.elements.json.xz",
-    "sha256": "f8d162110e8dbb3086523184ccd5f86e264d810f1c616ff41624d22621e5e875"
+    "sha256": "f7c8b9439483aa66a2af75a52c31910b3c939042f5323500bb3b3ccc34c03dd4"
   },
   "evaluation": {
     "admission_authority": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
@@ -675,8 +675,8 @@
   ],
   "native_expression_executed": false,
   "provenance": {
-    "bundle_git_commit": "3e63498b4d3001658f9b0b801c07638c34e6cf8a",
-    "executor_revision": "3e63498b4d3001658f9b0b801c07638c34e6cf8a"
+    "bundle_git_commit": "b76bae0a029f10567529c4fad48f7872d5d6e967",
+    "executor_revision": "b76bae0a029f10567529c4fad48f7872d5d6e967"
   },
   "qualified": false,
   "schema": "de4sdv.pleml-configuration-receipt/v2",
@@ -881,8 +881,8 @@
     {
       "authority": "reviewed",
       "path": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line_derivation.sysml",
-      "sha256": "120c308e48d5fbb5b222673dad72c5ae88479813ae7ee59badf5446a60109b91",
-      "size": 5854
+      "sha256": "6d7ce30706274624070de793f5174a81d5673ec82900b527a09ade92cc5cc854",
+      "size": 5858
     }
   ]
 }

@@ -134,7 +134,7 @@ def test_the_header_states_the_authority_of_the_switch():
     header = " ".join(_source().split("package DE4SDV_ProductLineDerivation", 1)[0].replace("*", " ").split())
     assert ("since the switch of ADR 0022 the PLEML feature models and the derivation rules that apply these "
             "definitions are the derivation authority (ADR 0022 decision 4)") in header
-    assert "derived_asset_selections stay a non-authoritative shadow until the YAML retires" in header
+    assert "derived_asset_selections were a non-authoritative shadow until step S7 retired them" in header
     assert "Only the feature models and their configurations apply these definitions" in header
     assert ("a repository test refuses any other file of the model roots that imports this package or applies "
             "them") in header
