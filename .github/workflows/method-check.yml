@@ -13,13 +13,16 @@ name: Method Check
 # delivery gate stays advisory); only a technical error does, such as an
 # export failure or a method that cannot be read.
 #
-# The evaluate job then derives the appliesToMemberProduct fact of ADR 0022
-# over the same export (scripts/check_member_product_applications.py), as
-# the scope battery of the privileged ingestion does on the served model. A
-# refusal of the derivation is a technical error and fails the job: a
-# configuration that applies to more than one member product, or a
-# projection name that two part definitions of product-models/ declare. Its
-# record goes into the method-check artifact.
+# A job of its own, member-product-gate, derives the appliesToMemberProduct
+# fact of ADR 0022 over the same export
+# (scripts/check_member_product_applications.py), as the scope battery of the
+# privileged ingestion does on the served model. A refusal of the derivation
+# fails that job, never the advisory evaluation: a configuration that applies
+# to more than one member product, or a projection name that two part
+# definitions of product-models/ declare. It uploads its record as
+# member-product-gate-<head SHA>. The gate is not a required check. Before it
+# can be, pull requests that the path filter or the author guard skip need a
+# pass-through, or the required check would never report on them.
 #
 # A failed export still leaves a report. The export records why it failed
 # (its refusal text with Syside's model diagnostics, or only the type of any
@@ -259,6 +262,52 @@ jobs:
             --artifact "method-check-$HEAD_SHA" \
             --summary "$GITHUB_STEP_SUMMARY"
 
+      - name: Upload the method check
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: method-check-${{ needs.export.outputs.head-sha }}
+          path: ${{ runner.temp }}/method-check/result/
+          if-no-files-found: warn
+          retention-days: 14
+          overwrite: true
+
+  member-product-gate:
+    name: appliesToMemberProduct gate (fails on refusal)
+    needs: export
+    if: needs.export.outputs.licensed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout the exported revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.export.outputs.head-sha }}
+          persist-credentials: false
+
+      - name: Verify the checkout is the exported revision
+        env:
+          HEAD_SHA: ${{ needs.export.outputs.head-sha }}
+        run: |
+          if [ "$(git rev-parse HEAD)" != "$HEAD_SHA" ]; then
+            echo "checked out $(git rev-parse HEAD), not the exported revision $HEAD_SHA" >&2
+            exit 1
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install gate dependencies
+        run: python -m pip install --disable-pip-version-check "PyYAML==6.0.2"
+
+      - name: Download the export
+        uses: actions/download-artifact@v4
+        with:
+          name: method-check-export-${{ needs.export.outputs.head-sha }}
+          path: ${{ runner.temp }}/method-check
+
       - name: Derive appliesToMemberProduct over the export (a refusal fails)
         env:
           HEAD_SHA: ${{ needs.export.outputs.head-sha }}
@@ -274,15 +323,15 @@ jobs:
           python scripts/check_member_product_applications.py \
             --export "$RUNNER_TEMP/method-check/model-export.json" \
             --revision "$HEAD_SHA" \
-            --output "$RUNNER_TEMP/method-check/result/member-products.json" \
+            --output "$RUNNER_TEMP/member-product-gate/member-products.json" \
             --summary "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload the method check
+      - name: Upload the gate record
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: method-check-${{ needs.export.outputs.head-sha }}
-          path: ${{ runner.temp }}/method-check/result/
+          name: member-product-gate-${{ needs.export.outputs.head-sha }}
+          path: ${{ runner.temp }}/member-product-gate/
           if-no-files-found: warn
           retention-days: 14
           overwrite: true

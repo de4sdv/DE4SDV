@@ -46,8 +46,10 @@ LICENCE_VALUE = "${{ secrets.SYSIDE_LICENSE_KEY }}"
 LICENCE_PRESENCE = "${{ secrets.SYSIDE_LICENSE_KEY != '' }}"
 EXPORT_SCRIPT = "scripts/export_sysml_api_baseline.py"
 CHECK_SCRIPT = "scripts/method_check.py"
-#: The appliesToMemberProduct gate over the same export (#412 R3): a refusal fails the job.
+#: The appliesToMemberProduct gate over the same export (#412 R3, D3): a job of its own, which a
+#: refusal fails, beside the advisory evaluation.
 GATE_SCRIPT = "scripts/check_member_product_applications.py"
+GATE_JOB = "member-product-gate"
 HEAD = "${{ needs.export.outputs.head-sha }}"
 #: The job that reports a failed export (the evaluation job never runs then).
 REPORT_JOB = "export-failure-report"
@@ -288,7 +290,7 @@ def test_no_repository_code_runs_in_the_export_job_besides_the_export() -> None:
 
 
 def test_every_checkout_keeps_no_credentials() -> None:
-    for name in ("export", "evaluate", REPORT_JOB):
+    for name in ("export", "evaluate", GATE_JOB, REPORT_JOB):
         checkouts = _step_using(name, "actions/checkout")
         assert len(checkouts) == 1, name
         assert checkouts[0]["with"]["persist-credentials"] is False, name
@@ -429,7 +431,7 @@ def test_the_serializer_is_the_pinned_privileged_toolchain() -> None:
 
 def _commands() -> list[tuple[str, list[str]]]:
     out = []
-    for job in ("export", "evaluate", REPORT_JOB):
+    for job in ("export", "evaluate", GATE_JOB, REPORT_JOB):
         for step in _steps(job):
             joined = re.sub(r"\\\n\s*", " ", step.get("run") or "")
             for line in joined.splitlines():
@@ -451,15 +453,25 @@ def test_both_scripts_appear_on_the_command_lines() -> None:
         [EXPORT_SCRIPT, CHECK_SCRIPT, CHECK_SCRIPT, GATE_SCRIPT])
 
 
-def test_the_member_product_gate_runs_over_the_export_after_the_method_check_and_fails_the_job() -> None:
-    """#412 R3: the evaluate job derives appliesToMemberProduct over the exported head. The step
-    holds no credential, reads the downloaded export of the exact revision, writes its record
-    into the uploaded result, and no step masks its exit code, so a refusal fails the job."""
-    check_index, _check = _step_running("evaluate", CHECK_SCRIPT)
-    gate_index, gate = _step_running("evaluate", GATE_SCRIPT)
-    upload_index = next(index for index, step in enumerate(_steps("evaluate"))
-                        if str(step.get("uses", "")).startswith("actions/upload-artifact"))
-    assert check_index < gate_index < upload_index
+def test_the_member_product_gate_is_a_job_of_its_own_that_a_refusal_fails() -> None:
+    """#412 R3 and D3: a job of its own derives appliesToMemberProduct over the exported head, so a
+    refusal fails the gate and never the advisory evaluation. Like the evaluation, it runs on a
+    fresh runner after a successful licensed export, on the exported revision. Its step holds no
+    credential and reads the downloaded export of the exact revision. Its record is uploaded even
+    after a refusal, and no step masks its exit code."""
+    job = _job(GATE_JOB)
+    assert job["name"] == "appliesToMemberProduct gate (fails on refusal)"
+    assert job["needs"] == "export"
+    assert job["if"] == "needs.export.outputs.licensed == 'true'"
+    text = yaml.safe_dump(job)
+    assert "secrets." not in text and "github.token" not in text
+    checkout = _step_using(GATE_JOB, "actions/checkout")[0]
+    assert checkout["with"]["ref"] == HEAD
+    verify = next(s for s in _steps(GATE_JOB) if "git rev-parse HEAD" in (s.get("run") or ""))
+    assert verify["env"] == {"HEAD_SHA": HEAD}
+    download = _step_using(GATE_JOB, "actions/download-artifact")[0]["with"]
+    assert download == {"name": f"method-check-export-{HEAD}", "path": "${{ runner.temp }}/method-check"}
+    gate_index, gate = _step_running(GATE_JOB, GATE_SCRIPT)
     assert gate["env"] == {"HEAD_SHA": HEAD} and "if" not in gate
     guard = gate["run"].split(f"python {GATE_SCRIPT}")[0]
     for name in CREDENTIALS:
@@ -468,8 +480,19 @@ def test_the_member_product_gate_runs_over_the_export_after_the_method_check_and
     command = " ".join(re.sub(r"\\\n\s*", " ", gate["run"]).split())
     assert '--export "$RUNNER_TEMP/method-check/model-export.json"' in command
     assert '--revision "$HEAD_SHA"' in command
-    assert '--output "$RUNNER_TEMP/method-check/result/member-products.json"' in command
+    assert '--output "$RUNNER_TEMP/member-product-gate/member-products.json"' in command
     assert '--summary "$GITHUB_STEP_SUMMARY"' in command
+    [upload] = _step_using(GATE_JOB, "actions/upload-artifact")
+    assert _steps(GATE_JOB).index(upload) > gate_index
+    assert upload["if"] == "${{ !cancelled() }}"
+    assert upload["with"]["name"] == f"member-product-gate-{HEAD}"
+    assert upload["with"]["path"] == "${{ runner.temp }}/member-product-gate/"
+
+
+def test_the_evaluation_stays_advisory_and_runs_no_gate() -> None:
+    """The evaluate job keeps its one script, the method check; the gate is not a step of it."""
+    assert not [s for s in _steps("evaluate") if GATE_SCRIPT in (s.get("run") or "")]
+    assert _job("evaluate")["name"] == "Method check (advisory)"
 
 
 @pytest.mark.parametrize("name, argv", _commands(), ids=[c[0] for c in _commands()])
