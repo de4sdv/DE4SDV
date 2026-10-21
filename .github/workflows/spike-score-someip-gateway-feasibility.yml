@@ -1,0 +1,144 @@
+# DE4SDV throwaway spike (INC-MW-011 gateway feasibility). Lives only on the
+# branch spike/score-someip-gateway-feasibility and never merges. It builds the
+# Eclipse S-CORE SOME/IP gateway at a pinned commit, runs its own tests, and runs
+# the cross-domain case of the phase-8 model: an mw::com publisher on the host
+# network domain, gatewayd and someipd, and a vsomeip 3.7.6 client in a separate
+# network namespace. See docs/spikes/score-someip-gateway-feasibility/README.md.
+name: Spike S-CORE SOME/IP gateway feasibility
+
+on:
+  push:
+    branches: [spike/score-someip-gateway-feasibility]
+    paths-ignore:
+      - docs/spikes/score-someip-gateway-feasibility/README.md
+      - docs/spikes/score-someip-gateway-feasibility/tests/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: spike-score-someip-gateway-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  GATEWAY_REPO: https://github.com/eclipse-score/inc_someip_gateway.git
+  GATEWAY_SHA: 951fbc09bfbe9011eb81471cd31e1379700669b8
+  VSOMEIP_SHA: 4187431d2815bd351845a09d01aa85b2a3163cab
+  SPIKE_DIR: docs/spikes/score-someip-gateway-feasibility
+
+jobs:
+  upstream-tests:
+    name: Gateway unit and component tests (upstream, untouched)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Prepare runner
+        run: bash "$SPIKE_DIR/scripts/ci_prepare_runner.sh" "$RUNNER_TEMP/facts"
+      - name: Check out the gateway at the pinned commit
+        run: bash "$SPIKE_DIR/scripts/ci_checkout_gateway.sh" "$RUNNER_TEMP/gw" "$RUNNER_TEMP/facts"
+      - name: Build and test (their CI's host-toolchain set)
+        run: bash "$SPIKE_DIR/scripts/ci_upstream_tests.sh" "$RUNNER_TEMP/gw" "$RUNNER_TEMP/facts" unit
+      - name: Summary
+        if: always()
+        run: cat "$RUNNER_TEMP/facts/tests_summary.md" >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: upstream-tests-facts
+          path: ${{ runner.temp }}/facts
+          retention-days: 30
+
+  qemu-integration:
+    name: Gateway Linux QEMU integration tests (upstream, untouched)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Prepare runner
+        run: bash "$SPIKE_DIR/scripts/ci_prepare_runner.sh" "$RUNNER_TEMP/facts"
+      - name: Install the tools their QEMU tests need
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86 iputils-ping tcpdump cloud-image-utils
+      - name: Check out the gateway at the pinned commit
+        run: bash "$SPIKE_DIR/scripts/ci_checkout_gateway.sh" "$RUNNER_TEMP/gw" "$RUNNER_TEMP/facts"
+      - name: QEMU integration and TC8 tests
+        run: bash "$SPIKE_DIR/scripts/ci_upstream_tests.sh" "$RUNNER_TEMP/gw" "$RUNNER_TEMP/facts" qemu
+      - name: Summary
+        if: always()
+        run: cat "$RUNNER_TEMP/facts/tests_summary.md" >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qemu-integration-facts
+          path: ${{ runner.temp }}/facts
+          retention-days: 30
+
+  cross-domain:
+    name: Cross-domain case (mw::com -> gatewayd -> someipd -> netns -> vsomeip 3.7.6)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Prepare runner
+        run: bash "$SPIKE_DIR/scripts/ci_prepare_runner.sh" "$RUNNER_TEMP/facts" --disk-cache
+      - name: Install client build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build libboost-filesystem-dev libboost-thread-dev libboost-system-dev tcpdump
+          dpkg-query -W cmake ninja-build libboost-filesystem-dev tcpdump iproute2 > "$RUNNER_TEMP/facts/apt_packages.txt"
+      - name: Build vsomeip 3.7.6 and the guest client
+        run: bash "$SPIKE_DIR/scripts/ci_build_client.sh" "$RUNNER_TEMP/guest" "$RUNNER_TEMP/facts" "$RUNNER_TEMP/paths.json"
+      - name: Restore the Bazel caches of this spike
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/spike-bazel
+          key: spike-bazel-xdomain-${{ env.GATEWAY_SHA }}-${{ hashFiles('docs/spikes/score-someip-gateway-feasibility/overlay/**', 'docs/spikes/score-someip-gateway-feasibility/config/**') }}
+          restore-keys: |
+            spike-bazel-xdomain-${{ env.GATEWAY_SHA }}-
+      - name: Check out the gateway at the pinned commit, add the spike package
+        run: bash "$SPIKE_DIR/scripts/ci_checkout_gateway.sh" "$RUNNER_TEMP/gw" "$RUNNER_TEMP/facts" --overlay
+      - name: Build the gateway and the spike publisher
+        env:
+          SPIKE_CACHE_HIT: ${{ steps.cache.outputs.cache-hit || 'false' }} (matched key ${{ steps.cache.outputs.cache-matched-key || 'none' }})
+        run: bash "$SPIKE_DIR/scripts/ci_build_gateway.sh" "$RUNNER_TEMP/gw" "$RUNNER_TEMP/facts" "$RUNNER_TEMP/paths.json"
+      - name: Save the Bazel caches of this spike
+        if: success() && steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/spike-bazel
+          key: spike-bazel-xdomain-${{ env.GATEWAY_SHA }}-${{ hashFiles('docs/spikes/score-someip-gateway-feasibility/overlay/**', 'docs/spikes/score-someip-gateway-feasibility/config/**') }}
+      - name: Create the two network domains
+        run: sudo python3 "$SPIKE_DIR/scripts/xdomain.py" netns-up --out "$RUNNER_TEMP/facts"
+      - name: Run the scenarios
+        run: |
+          sudo python3 "$SPIKE_DIR/scripts/xdomain.py" run --paths "$RUNNER_TEMP/paths.json" --out "$RUNNER_TEMP/results"
+          sudo chown -R "$USER:$USER" "$RUNNER_TEMP/results"
+      - name: Remove the network domains
+        if: always()
+        run: sudo python3 "$SPIKE_DIR/scripts/xdomain.py" netns-down || true
+      - name: Analyse
+        if: always()
+        run: |
+          sudo chown -R "$USER:$USER" "$RUNNER_TEMP/results" || true
+          python3 "$SPIKE_DIR/scripts/analyze.py" "$RUNNER_TEMP/results" \
+            --json "$RUNNER_TEMP/results/analysis.json" --markdown "$RUNNER_TEMP/results/analysis.md"
+          cat "$RUNNER_TEMP/results/analysis.md" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cross-domain-evidence
+          path: |
+            ${{ runner.temp }}/facts
+            ${{ runner.temp }}/results
+            ${{ runner.temp }}/paths.json
+          retention-days: 30

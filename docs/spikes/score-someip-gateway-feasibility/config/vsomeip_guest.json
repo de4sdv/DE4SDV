@@ -1,0 +1,30 @@
+{
+    "unicast": "10.250.0.2",
+    "netmask": "255.255.255.0",
+    "network": "de4sdvguest",
+    "logging": {
+        "level": "info",
+        "console": "true",
+        "dlt": "false"
+    },
+    "applications": [
+        {
+            "name": "frame_client",
+            "id": "0x0201"
+        }
+    ],
+    "routing": "frame_client",
+    "service-discovery": {
+        "enable": "true",
+        "multicast": "224.244.224.245",
+        "port": "30490",
+        "protocol": "udp",
+        "initial_delay_min": "10",
+        "initial_delay_max": "100",
+        "repetitions_base_delay": "200",
+        "repetitions_max": "3",
+        "ttl": "3",
+        "cyclic_offer_delay": "1000",
+        "request_response_delay": "500"
+    }
+}

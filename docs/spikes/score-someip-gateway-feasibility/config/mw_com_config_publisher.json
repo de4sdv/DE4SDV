@@ -1,0 +1,51 @@
+{
+    "serviceTypes": [
+        {
+            "serviceTypeName": "/de4sdv/AebsSignalFrame",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "bindings": [
+                {
+                    "binding": "SHM",
+                    "serviceId": 7310,
+                    "events": [
+                        {
+                            "eventName": "aebs_signal_frame",
+                            "eventId": 1
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "serviceInstances": [
+        {
+            "instanceSpecifier": "de4sdv/aebs_signal_frame",
+            "serviceTypeName": "/de4sdv/AebsSignalFrame",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "instances": [
+                {
+                    "instanceId": 1,
+                    "asil-level": "QM",
+                    "binding": "SHM",
+                    "events": [
+                        {
+                            "eventName": "aebs_signal_frame",
+                            "numberOfSampleSlots": 10,
+                            "maxSubscribers": 1
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "global": {
+        "asil-level": "QM",
+        "applicationID": 3101
+    }
+}

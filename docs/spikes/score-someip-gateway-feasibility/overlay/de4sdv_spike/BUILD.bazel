@@ -1,0 +1,45 @@
+# DE4SDV throwaway spike (INC-MW-011 gateway feasibility), never merged.
+#
+# Copied as the new package //de4sdv_spike into a checkout of
+# eclipse-score/inc_someip_gateway at 951fbc09bfbe9011eb81471cd31e1379700669b8.
+# It adds files only; no upstream file is changed. The configuration JSON files
+# are copied in from ../../config by scripts/prepare_gateway_checkout.sh.
+
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("//bazel/tools:json_schema_validator.bzl", "validate_json_schema_test")
+load("//bazel/tools:someip_config.bzl", "generate_someip_config_bin")
+
+cc_binary(
+    name = "frame_publisher",
+    srcs = [
+        "aebs_signal_frame_service.h",
+        "frame_publisher.cpp",
+    ],
+    deps = [
+        "//score/serializer:pre_serialized_data",
+        "@score_baselibs//score/filesystem",
+        "@score_communication//score/mw/com",
+    ],
+)
+
+# The gateway configuration (gatewayd and someipd read the same binary), with
+# the schema test the macro generates (spike_someip_config_test).
+generate_someip_config_bin(
+    name = "spike_someip_config",
+    json = "someip_gateway_config.json",
+    output = "spike_someip_config.bin",
+)
+
+validate_json_schema_test(
+    name = "mw_com_config_publisher_schema_valid",
+    size = "small",
+    json = "mw_com_config_publisher.json",
+    schema = "@score_communication//score/mw/com:config_schema",
+)
+
+validate_json_schema_test(
+    name = "mw_com_config_gatewayd_schema_valid",
+    size = "small",
+    json = "mw_com_config_gatewayd.json",
+    schema = "@score_communication//score/mw/com:config_schema",
+)

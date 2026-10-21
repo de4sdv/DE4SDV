@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# DE4SDV throwaway spike (INC-MW-011 gateway feasibility), never merged.
+# Prepares a GitHub-hosted ubuntu runner: frees disk (the gateway's Bazel build
+# downloads an LLVM toolchain and Boost), lets Bazel's linux-sandbox create user
+# namespaces (Ubuntu 24.04 AppArmor restriction, as the gateway's own CI does
+# with its unblock-user-namespace action), and writes ~/.bazelrc with an output
+# base on the larger disk. Prints the runner facts the report needs.
+set -euo pipefail
+
+out=${1:?usage: ci_prepare_runner.sh <facts-dir> [--disk-cache]}
+disk_cache=${2:-}
+mkdir -p "$out"
+
+{
+  echo "== runner"
+  echo "ImageOS=${ImageOS:-} ImageVersion=${ImageVersion:-} RUNNER_ARCH=${RUNNER_ARCH:-}"
+  uname -a
+  nproc
+  free -g
+  echo "== disk before cleanup"
+  df -h / /mnt 2>/dev/null || df -h /
+} | tee "$out/runner.txt"
+
+sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup \
+  /opt/hostedtoolcache/CodeQL /usr/share/swift /usr/local/share/powershell \
+  /usr/local/share/chromium /usr/local/lib/node_modules /opt/microsoft || true
+sudo docker image prune -af >/dev/null 2>&1 || true
+
+{
+  echo "== disk after cleanup"
+  df -h / /mnt 2>/dev/null || df -h /
+} | tee -a "$out/runner.txt"
+
+# Bazel's linux-sandbox needs unprivileged user namespaces for the tests.
+sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 | tee -a "$out/runner.txt" || true
+
+base="$HOME/spike-bazel"
+if sudo mkdir -p /mnt/spike-bazel 2>/dev/null; then
+  avail_mnt=$(df --output=avail -k /mnt | tail -1)
+  avail_root=$(df --output=avail -k / | tail -1)
+  if [ "$avail_mnt" -gt "$avail_root" ]; then
+    sudo chown -R "$USER:$USER" /mnt/spike-bazel
+    base=/mnt/spike-bazel
+  fi
+fi
+mkdir -p "$base/output_base"
+cat > "$HOME/.bazelrc" <<EOF
+startup --output_base=$base/output_base
+common --repository_cache=$HOME/.cache/spike-bazel/repo
+common --color=no --curses=no --show_progress_rate_limit=60
+EOF
+if [ "$disk_cache" = "--disk-cache" ]; then
+  echo "build --disk_cache=$HOME/.cache/spike-bazel/disk" >> "$HOME/.bazelrc"
+fi
+echo "== ~/.bazelrc" | tee -a "$out/runner.txt"
+cat "$HOME/.bazelrc" | tee -a "$out/runner.txt"
+echo "== bazel (bazelisk) on PATH: $(command -v bazel)" | tee -a "$out/runner.txt"
