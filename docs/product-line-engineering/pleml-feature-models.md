@@ -1,16 +1,17 @@
 # PLEML feature models and configurations
 
-**Status:** draft. These models restate the YAML catalogues and every
-Bill-of-Features with the exact-pinned PLEML library, under
-[ADR 0022](../architecture-decisions/0022-adopt-pleml-as-product-line-authority.md).
-Since its switch (step S6) they are the product-line authority: PLEML is the
-configuration-validity authority of the feature models, the configurations
-and their bindings, and DE4SDV evaluates the configurations and derives their
-variants. The YAML catalogues, the Bills-of-Features and the YAML path of
-`tools/configure_variant.py` stay a non-authoritative shadow until they retire
-(step S7). Nothing here is qualification, adoption evidence or a compliance
-claim; every record says `qualified: false`.
+**Status:** the product-line authority of
+[ADR 0022](../architecture-decisions/0022-adopt-pleml-as-product-line-authority.md)
+since its switch (step S6). Nothing here is qualification, adoption evidence
+or a compliance claim; every record says `qualified: false`.
 **Decision authority:** Orkun Yilmaz, DE4SDV technical lead and maintainer.
+
+These models restate the YAML catalogues and every Bill-of-Features with the
+exact-pinned PLEML library. PLEML is the configuration-validity authority of
+the feature models, the configurations and their bindings, and DE4SDV
+evaluates the configurations and derives their variants. The YAML catalogues,
+the Bills-of-Features and the YAML path of `tools/configure_variant.py` stay a
+non-authoritative shadow until they retire (step S7).
 
 ## What the models contain
 

@@ -81,21 +81,22 @@ an Android Automotive OS (AAOS) guest for the display
 ([framing model](../../textual-notation-of-model/packages/features/middleware/middleware_score_framing.sysml)).
 Admitting such a member would take a new reviewed scope decision.
 
-![Concept illustration, not a model view: a shared model holds every option. Platform stack: application Autoware, Openpilot or Apollo; middleware Eclipse S-CORE, Android SDV, AUTOSAR Adaptive or none; operating system Linux, Android or QNX; an adapter derived from application and middleware. Sensors: LiDAR, radar and camera: at least one, in any combination. Common: vehicle-target AEBS and motion sensors. Bill of features A selects Autoware, no middleware, Linux, LiDAR and camera; bill of features B selects Autoware, Android SDV, Android, LiDAR and camera. The configurator checks the rules, derives the adapter and generates the two members' product models: the standalone member with no adapter and simulation-bench evidence, and the AAOS-integrated member with the Autoware-to-AAOS SDV adapter and evidence still planned.](concept-product-line.drawio.svg)
+![Before the switch to PLEML: a concept illustration, not a model view. A shared model holds every option. Platform stack: application Autoware, Openpilot or Apollo; middleware Eclipse S-CORE, Android SDV, AUTOSAR Adaptive or none; operating system Linux, Android or QNX; an adapter derived from application and middleware. Sensors: LiDAR, radar and camera: at least one, in any combination. Common: vehicle-target AEBS and motion sensors. Bill of features A selects Autoware, no middleware, Linux, LiDAR and camera; bill of features B selects Autoware, Android SDV, Android, LiDAR and camera. The configurator checks the rules, derives the adapter and generates the two members' product models: the standalone member with no adapter and simulation-bench evidence, and the AAOS-integrated member with the Autoware-to-AAOS SDV adapter and evidence still planned.](concept-product-line.drawio.svg)
 
-*Concept illustration, not a model view: how the product line works.* One
-shared model holds every option; a bill of features picks one option per
-platform-stack layer and at least one perception sensor, and the configurator
-checks the rules, derives the adapter, and generates the member's product
-model. The generated model resolves the platform stack; sensor and capability
-selections are recorded in its comment, not yet resolved in SysML. Both planned
-members come from the same model, not from copies, share the LiDAR and camera
-sensor set, and each has its own evidence status. Hypervisor choices are left
-out of the picture. The drawing shows the path before the switch to PLEML
-([ADR 0022](../architecture-decisions/0022-adopt-pleml-as-product-line-authority.md)).
+*Concept illustration, not a model view: how the product line worked before
+the switch to PLEML
+([ADR 0022](../architecture-decisions/0022-adopt-pleml-as-product-line-authority.md)).*
 Since the switch, a PLEML feature configuration makes the selections, and the
 DE4SDV evaluator checks the rules and derives the adapter; see
-[Configuring a member](#configuring-a-member).
+[Configuring a member](#configuring-a-member). In the drawing, one shared model
+holds every option; a bill of features picks one option per platform-stack
+layer and at least one perception sensor, and the configurator checks the
+rules, derives the adapter, and generates the member's product model. The
+generated model resolves the platform stack; sensor and capability selections
+are recorded in its comment, not yet resolved in SysML. Both planned members
+come from the same model, not from copies, share the LiDAR and camera sensor
+set, and each has its own evidence status. Hypervisor choices are left out of
+the picture.
 
 The two governed members differ in one product decision, **Vehicle Platform
 Integration Mode**, and that one decision drives several layer choices. The
@@ -113,9 +114,10 @@ last two rows are common to both members:
 
 ¹ Autoware keeps its own Linux and ROS 2 (Robot Operating System 2) runtime;
 the AAOS domain is added beside it. In the AAOS member's
-[configuration](../../model-based-product-line-engineering/feature-configurations/middleware-autoware-aaos-sdv-reference.yaml),
-cross-domain deployment and transport remain unresolved and the evidence
-status is `planned`.
+[configuration](../../model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml),
+cross-domain deployment and transport remain unresolved. Its
+[Bill-of-Features](../../model-based-product-line-engineering/feature-configurations/middleware-autoware-aaos-sdv-reference.yaml)
+still carries the evidence status `planned` until the YAML retires (step S7).
 
 This is what the right-hand column looks like in the model itself:
 
@@ -339,8 +341,9 @@ python tools/configure_variant.py \
   --check-only
 ```
 
-Swap in `invalidSCOREAndroidVariant`, the invalid fixture, to watch rule C001
-reject an incompatible combination. Without `--check-only`, the configurator
+Swap in `invalidSCOREAndroidVariant`, the invalid fixture, to watch the C001
+exclusion (S-CORE excludes Android) reject an incompatible combination.
+Without `--check-only`, the configurator
 prints the generated product model; its doc comment lists the derived adapter
 (`none` for the standalone member, `autowareToAAOSSDV` for the AAOS-integrated
 one). It never projects a fixture.
