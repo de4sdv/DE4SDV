@@ -7,10 +7,12 @@
  * "no concrete" alternatives keep the honest state in which no target is
  * selected. Its configurations are in ../feature-configurations/.
  *
- * Boundary until the authority switch (ADR 0022, step S6): fenced, as the
- * SDV product-line feature model is; the YAML catalogue, its bills of
- * features and the configurator remain the selection authority. No native
- * evaluation of a PLEML constraint body and no compliance claim.
+ * Authority since the switch of ADR 0022, as for the SDV product-line
+ * feature model: this model and its configurations are the
+ * configuration-validity authority of the family, and the YAML catalogue
+ * vehicle_execution_environments.yaml and its bills of features are their non-authoritative
+ * shadow until the YAML retires. No native evaluation of a PLEML constraint
+ * body and no compliance claim.
  *
  * Identity: every catalogue ID is the SysML short name of the element that
  * restates its node.

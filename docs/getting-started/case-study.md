@@ -53,7 +53,7 @@ most layers have several candidate implementations:
 | Hardware | The compute platform the stack runs on | Kept abstract |
 
 Not every combination is valid. The
-[feature catalogue](../../model-based-product-line-engineering/feature-models/sdv_product_line.yaml)
+[feature model](../../model-based-product-line-engineering/feature-models/sdv_product_line.sysml)
 records compatibility rules. For example, rule C001 rejects Eclipse S-CORE on
 Android because S-CORE targets Linux and QNX.
 
@@ -81,17 +81,22 @@ an Android Automotive OS (AAOS) guest for the display
 ([framing model](../../textual-notation-of-model/packages/features/middleware/middleware_score_framing.sysml)).
 Admitting such a member would take a new reviewed scope decision.
 
-![Concept illustration, not a model view: a shared model holds every option. Platform stack: application Autoware, Openpilot or Apollo; middleware Eclipse S-CORE, Android SDV, AUTOSAR Adaptive or none; operating system Linux, Android or QNX; an adapter derived from application and middleware. Sensors: LiDAR, radar and camera: at least one, in any combination. Common: vehicle-target AEBS and motion sensors. Bill of features A selects Autoware, no middleware, Linux, LiDAR and camera; bill of features B selects Autoware, Android SDV, Android, LiDAR and camera. The configurator checks the rules, derives the adapter and generates the two members' product models: the standalone member with no adapter and simulation-bench evidence, and the AAOS-integrated member with the Autoware-to-AAOS SDV adapter and evidence still planned.](concept-product-line.drawio.svg)
+![Before the switch to PLEML: a concept illustration, not a model view. A shared model holds every option. Platform stack: application Autoware, Openpilot or Apollo; middleware Eclipse S-CORE, Android SDV, AUTOSAR Adaptive or none; operating system Linux, Android or QNX; an adapter derived from application and middleware. Sensors: LiDAR, radar and camera: at least one, in any combination. Common: vehicle-target AEBS and motion sensors. Bill of features A selects Autoware, no middleware, Linux, LiDAR and camera; bill of features B selects Autoware, Android SDV, Android, LiDAR and camera. The configurator checks the rules, derives the adapter and generates the two members' product models: the standalone member with no adapter and simulation-bench evidence, and the AAOS-integrated member with the Autoware-to-AAOS SDV adapter and evidence still planned.](concept-product-line.drawio.svg)
 
-*Concept illustration, not a model view: how the product line works.* One
-shared model holds every option; a bill of features picks one option per
-platform-stack layer and at least one perception sensor, and the configurator
-checks the rules, derives the adapter, and generates the member's product
-model. The generated model resolves the platform stack; sensor and capability
-selections are recorded in its comment, not yet resolved in SysML. Both planned
-members come from the same model, not from copies, share the LiDAR and camera
-sensor set, and each has its own evidence status. Hypervisor choices are left
-out of the picture.
+*Concept illustration, not a model view: how the product line worked before
+the switch to PLEML
+([ADR 0022](../architecture-decisions/0022-adopt-pleml-as-product-line-authority.md)).*
+Since the switch, a PLEML feature configuration makes the selections, and the
+DE4SDV evaluator checks the rules and derives the adapter; see
+[Configuring a member](#configuring-a-member). In the drawing, one shared model
+holds every option; a bill of features picks one option per platform-stack
+layer and at least one perception sensor, and the configurator checks the
+rules, derives the adapter, and generates the member's product model. The
+generated model resolves the platform stack; sensor and capability selections
+are recorded in its comment, not yet resolved in SysML. Both planned members
+come from the same model, not from copies, share the LiDAR and camera sensor
+set, and each has its own evidence status. Hypervisor choices are left out of
+the picture.
 
 The two governed members differ in one product decision, **Vehicle Platform
 Integration Mode**, and that one decision drives several layer choices. The
@@ -109,9 +114,10 @@ last two rows are common to both members:
 
 ¹ Autoware keeps its own Linux and ROS 2 (Robot Operating System 2) runtime;
 the AAOS domain is added beside it. In the AAOS member's
-[configuration](../../model-based-product-line-engineering/feature-configurations/middleware-autoware-aaos-sdv-reference.yaml),
-cross-domain deployment and transport remain unresolved and the evidence
-status is `planned`.
+[configuration](../../model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml),
+cross-domain deployment and transport remain unresolved. Its
+[Bill-of-Features](../../model-based-product-line-engineering/feature-configurations/middleware-autoware-aaos-sdv-reference.yaml)
+still carries the evidence status `planned` until the YAML retires (step S7).
 
 This is what the right-hand column looks like in the model itself:
 
@@ -194,8 +200,10 @@ In the repository today:
 - the middleware chain, increments `INC-MW-001` to `INC-MW-010`, closed at a
   bounded baseline recorded in the
   [baseline register](../../configuration-management/baseline-register.md);
-- the feature catalogue, the bills of features of the two planned members,
-  the configurator, and the product models it generated;
+- the PLEML feature model and the feature configurations of the two planned
+  members, with the feature catalogue and the bills of features as their
+  non-authoritative shadow, the configurator, and the product models it
+  generates from the configurations' receipts;
 - reference implementations with retained evidence and stated limits:
   Autoware benches on the standalone path, each with its own stated evidence
   boundary, and an AEBS status display in an AAOS SDV guest that was observed
@@ -209,15 +217,13 @@ In progress, or not there yet:
 
 - `INC-MW-011`, Eclipse S-CORE as the middleware layer: phases 0 to 8 are
   merged, and verification and evidence (phase 10) is next. Variability
-  (phase 9) waits for the planned switch of the product-line authority to
+  (phase 9) can start now that the product-line authority has switched to
   PLEML, and phases 11 and 12 are still to come
   ([framing model](../../textual-notation-of-model/packages/features/middleware/middleware_score_framing.sysml));
-- the PLEML feature models and configurations that restate the catalogues
-  and every Bill-of-Features for the planned switch of the product-line
-  authority
-  ([feature models](../product-line-engineering/pleml-feature-models.md)).
-  They are fenced until the switch: the catalogue and the configurator
-  remain the selection authority;
+- the retirement of the YAML catalogues and Bills-of-Features, which stay a
+  non-authoritative shadow of the PLEML
+  [feature models and configurations](../product-line-engineering/pleml-feature-models.md)
+  for at least 30 days after the switch;
 - executable method checks for the phases that have none yet;
 - verification of the candidate requirements; `REQ-AEBS-003` is still
   `NotStarted`;
@@ -312,16 +318,40 @@ A change travels like this:
 
 Choosing layer options is done with files, not by editing the model by hand:
 
-1. The **feature catalogue** lists the options and compatibility rules.
-2. A **bill of features** records one member's selections, for example the
-   [standalone member's](../../model-based-product-line-engineering/feature-configurations/aebs-autoware-linux-lidar-camera.yaml).
-3. The **configurator** checks the selections against the rules and derives
-   dependent choices such as the adapter.
-4. It generates a SysML **product model** that resolves the member's platform
-   stack; the other selections are recorded in its comment. Generated product
-   models are marked do-not-edit; change the selections instead.
+1. The PLEML **feature model** lists the options and the compatibility rules.
+2. A PLEML **feature configuration** records one member's selections, for
+   example the
+   [standalone member's](../../model-based-product-line-engineering/feature-configurations/aebs_autoware_linux_lidar_camera.sysml).
+3. The privileged PLE authority workflow serializes the configurations with
+   licensed SysIDE. The DE4SDV evaluator then checks the selections against
+   the rules, derives dependent choices such as the adapter, and writes the
+   result into a receipt. The pull request commits the receipt.
+4. The **configurator** generates a SysML **product model** from the receipt.
+   The product model resolves the member's platform stack; the other
+   selections are recorded in its comment. Generated product models are
+   marked do-not-edit; change the configuration instead.
 
-You can try the check yourself:
+After `sysand sync`, you can check a configuration against its receipt
+yourself:
+
+```bash
+python tools/configure_variant.py \
+  --receipt model-based-product-line-engineering/feature-models/receipts/sdv_product_line.receipt.json \
+  --configuration aebsAutowareLinuxLidarCamera \
+  --check-only
+```
+
+Swap in `invalidSCOREAndroidVariant`, the invalid fixture, to watch the C001
+exclusion (S-CORE excludes Android) reject an incompatible combination.
+Without `--check-only`, the configurator
+prints the generated product model; its doc comment lists the derived adapter
+(`none` for the standalone member, `autowareToAAOSSDV` for the AAOS-integrated
+one). It never projects a fixture.
+
+Until the YAML retires (step S7), the Bill-of-Features beside each
+configuration is its non-authoritative shadow. The parity check runs the YAML
+path of the configurator on it and compares the result with the receipt. This
+is the shadow's check:
 
 ```bash
 python tools/configure_variant.py \
@@ -330,12 +360,7 @@ python tools/configure_variant.py \
   --check-only
 ```
 
-Swap in
-`model-based-product-line-engineering/feature-configurations/fixtures/invalid-score-android.yaml`
-to watch rule C001 reject an incompatible combination. Without
-`--check-only`, the configurator prints the generated product model; its doc
-comment lists the derived adapter (`none` for the standalone member,
-`autowareToAAOSSDV` for the AAOS-integrated one). See the
+See the
 [product-line engineering guide](../../model-based-product-line-engineering/README.md)
 for the full chain and its validation boundary.
 

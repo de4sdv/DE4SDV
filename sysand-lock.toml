@@ -77,6 +77,20 @@ usages = [
 ]
 
 [[project]]
+publisher = "mbse4u"
+name = "PLEML"
+version = "1.1.1"
+exports = [
+    "PLEML",
+]
+identifiers = [
+    "pkg:sysand/mbse4u/pleml",
+]
+sources = [
+    { index_kpar = "https://sysand.com/index/mbse4u/pleml/1.1.1/project.kpar", kpar_size = 9112, kpar_digest = "6c37d7dba73f1fdff3c4730e0cb289641c84e97e7da2f312409bdecc4b5137f2" },
+]
+
+[[project]]
 publisher = "ode4hera"
 name = "Requirements Management"
 version = "2.0.1"
@@ -298,15 +312,23 @@ exports = [
     "AppleSiliconMacOSCandidate",
     "COVESA_VSS",
     "DE4SDV_AAOSSDVMiddlewareBoundary",
-    "DE4SDV_AEBSExecutionEnvironment",
-    "DE4SDV_AEBSNominalEvidence",
-    "DE4SDV_AEBSPartialInterventionVerification",
-    "DE4SDV_AEBSOverrideVerification",
-    "DE4SDV_AEBSNonActivationVerification",
-    "DE4SDV_AEBSDegradedInputVerification",
-    "DE4SDV_AEBSPedestrianVerification",
+    "DE4SDV_AEBSAutowareReferenceProduct",
     "DE4SDV_AEBSBicycleVerification",
+    "DE4SDV_AEBSDegradedInputVerification",
+    "DE4SDV_AEBSExecutionEnvironment",
+    "DE4SDV_AEBSFunctionalArchitecture",
+    "DE4SDV_AEBSIncrementFraming",
+    "DE4SDV_AEBSLogicalArchitecture",
+    "DE4SDV_AEBSNeedsRequirements",
+    "DE4SDV_AEBSNominalEvidence",
+    "DE4SDV_AEBSNonActivationVerification",
+    "DE4SDV_AEBSOperationalContext",
+    "DE4SDV_AEBSOverrideVerification",
+    "DE4SDV_AEBSPartialInterventionVerification",
+    "DE4SDV_AEBSPedestrianVerification",
+    "DE4SDV_AEBSPhysicalSoftwareRealization",
     "DE4SDV_AEBSRegulatoryCriterionVerification",
+    "DE4SDV_AEBSSimulationDeployment",
     "DE4SDV_AEBSVisualizationFraming",
     "DE4SDV_AEBSVisualizationFunctionalArchitecture",
     "DE4SDV_AEBSVisualizationLogicalArchitecture",
@@ -314,17 +336,11 @@ exports = [
     "DE4SDV_AEBSVisualizationOperationalContext",
     "DE4SDV_AEBSVisualizationPhysicalSoftwareRealization",
     "DE4SDV_AEBSVisualizationVariabilityConfiguration",
-    "DE4SDV_AEBSAutowareReferenceProduct",
-    "DE4SDV_AEBSFunctionalArchitecture",
-    "DE4SDV_AEBSIncrementFraming",
-    "DE4SDV_AEBSLogicalArchitecture",
-    "DE4SDV_AEBSNeedsRequirements",
-    "DE4SDV_AEBSOperationalContext",
-    "DE4SDV_AEBSPhysicalSoftwareRealization",
-    "DE4SDV_AEBSSimulationDeployment",
     "DE4SDV_ContextSpikeSnapshot",
     "DE4SDV_ExecutionEnvironments",
-    "DE4SDV_MiddlewareVerificationEvidence",
+    "DE4SDV_MethodContext",
+    "DE4SDV_MethodProcess",
+    "DE4SDV_MethodViewpoints",
     "DE4SDV_MiddlewareFeatureClassification",
     "DE4SDV_MiddlewareFunctionalArchitecture",
     "DE4SDV_MiddlewareIncrementFraming",
@@ -334,9 +350,7 @@ exports = [
     "DE4SDV_MiddlewareRequirements",
     "DE4SDV_MiddlewareStakeholderNeeds",
     "DE4SDV_MiddlewareVariabilityConfiguration",
-    "DE4SDV_MethodContext",
-    "DE4SDV_MethodProcess",
-    "DE4SDV_MethodViewpoints",
+    "DE4SDV_MiddlewareVerificationEvidence",
     "DE4SDV_OperationalContext",
     "DE4SDV_ProductLine",
     "DE4SDV_ROS2Types",
@@ -354,6 +368,7 @@ exports = [
     "SAF_Viewpoints",
 ]
 usages = [
+    "pkg:sysand/mbse4u/pleml",
     "pkg:sysand/mbse4u/sysmod",
     "pkg:sysand/ode4hera/requirements-management",
     "pkg:sysand/sensmetry/syside-views",

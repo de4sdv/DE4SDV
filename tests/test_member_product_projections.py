@@ -3,7 +3,7 @@
 ADR 0014 admits two planned reference members, Standalone and AAOS-integrated.
 The product-level model of each specializes its member decision in the
 governed product-line scope, and types its platform stack by the part
-definition that the configurator generates from its bill of features. A
+definition that the configurator generates from its configuration's receipt. A
 configuration applies to the member products whose definitions own a usage
 typed by the part definition of its projection. The S5o pull request (#407)
 records that derivation in the ``appliesToMemberProduct`` row of the ontology

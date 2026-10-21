@@ -163,6 +163,23 @@ def test_serialize_loads_everything_together_and_serializes_once_with_the_produc
     assert (tmp_path / "serializer-diagnostics.txt").read_text() == "diagnostics\n"
 
 
+def test_serialize_loads_each_document_once_when_the_export_reads_the_library_and_the_authority_sources(
+        monkeypatch, tmp_path) -> None:
+    """Since the switch the manifest of the export holds the pinned library and the authority
+    sources (PINNED_DEPENDENCIES, REVIEWED_ROOTS): the runner loads each document once and adds
+    what the export leaves out, the fixtures."""
+    production = [*runner.REFERENCED_SOURCES, *runner.AUTHORITY_SOURCES, runner.LIBRARY["label"]]
+    urls = [f"file://{ROOT / path}" for path in production + list(runner.FIXTURES)]
+    loaded: list = []
+    calls = _fake_serializer(monkeypatch, urls, loaded=loaded)
+    _manifest(monkeypatch, production)
+    documents, _manifest_returned, _version = runner.serialize(tmp_path)
+    assert loaded == [ROOT / path for path in production] + [ROOT / path for path in runner.FIXTURES]
+    assert len(loaded) == len(set(loaded)), "no document is loaded twice"
+    assert set(documents) == set(production) | set(runner.FIXTURES)
+    assert len(calls) == len(urls)
+
+
 def test_serialize_refuses_errors_a_missing_document_and_a_repeated_one(monkeypatch, tmp_path) -> None:
     library = tmp_path / "PLEML.sysml"
     production = list(runner.REFERENCED_SOURCES)
@@ -361,10 +378,25 @@ def test_a_run_writes_the_receipts_and_runs_both_checks_of_the_committed_ones(
         "comparison": comparison, "replay": replay, "failures": failures + comparison + replay}
     assert record["api_round_trip"] == {"verified": True}
     assert record["qualified"] is False and record["native_expression_executed"] is False
-    assert record["authority_effective"] is False and record["executor_revision"] == "b" * 40
+    assert record["authority_effective"] is True and record["executor_revision"] == "b" * 40
     # The governed scope is validated on the production documents only.
     assert scoped["sources"] == {*runner.REFERENCED_SOURCES, "textual-notation-of-model/x.sysml"}
     assert json.loads((tmp_path / "out/authority-run.json").read_text()) == record
+
+
+def test_the_authority_is_effective_exactly_from_the_switch(monkeypatch) -> None:
+    """The switch (ADR 0022, step S6): the API baseline pins the library and the export
+    reads every authority source. Without either, a run states the authority not in effect."""
+    from de4sdv.sysml_api import baseline
+
+    assert runner.authority_effective() is True
+    fenced = tuple(root for root in baseline.REVIEWED_ROOTS if "feature-" not in root.as_posix())
+    monkeypatch.setattr(baseline, "REVIEWED_ROOTS", fenced)
+    assert runner.authority_effective() is False
+    monkeypatch.undo()
+    unpinned = tuple(path for path in baseline.PINNED_DEPENDENCIES if "pleml" not in path.as_posix())
+    monkeypatch.setattr(baseline, "PINNED_DEPENDENCIES", unpinned)
+    assert runner.authority_effective() is False
 
 
 def test_a_code_identity_difference_is_recorded_as_an_advisory_and_never_fails_the_run(monkeypatch, tmp_path) -> None:

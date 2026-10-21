@@ -52,7 +52,13 @@ SYSML_MODEL_PATHS = (
     Path("textual-notation-of-model"),
     Path("model-based-product-line-engineering/product-models"),
     Path("model-based-product-line-engineering/scoping"),
+    Path("model-based-product-line-engineering/feature-models"),
+    Path("model-based-product-line-engineering/feature-configurations"),
 )
+#: The synthetic fixtures of the model roots (the invalid configuration and
+#: the parity probes) are no production model files; the export and the
+#: licensed validation leave them out too.
+SYSML_EXCLUDED_PART = "fixtures"
 
 IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 TOKEN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*|[{}]|[^\s]")
@@ -124,6 +130,8 @@ def find_duplicate_global_packages(root: Path) -> dict[str, list[str]]:
         if not absolute_path.exists():
             continue
         for sysml_file in sorted(absolute_path.rglob("*.sysml")):
+            if SYSML_EXCLUDED_PART in sysml_file.relative_to(absolute_path).parts:
+                continue
             scrubbed = _scrub_comments_and_strings(sysml_file.read_text())
             tokens = list(TOKEN.finditer(scrubbed))
             newlines = [

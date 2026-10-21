@@ -172,7 +172,8 @@
       "manifest": {
         "disjoint_with": [],
         "kernel_mapping": {
-          "external": "Bill-of-Features records under model-based-product-line-engineering/feature-configurations/ resolved against the feature catalogue in model-based-product-line-engineering/feature-models/"
+          "declaration": "occurrence def FeatureConfiguration",
+          "file": ".sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml"
         },
         "sub_class_of": null
       }

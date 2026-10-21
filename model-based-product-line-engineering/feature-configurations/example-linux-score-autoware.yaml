@@ -1,3 +1,7 @@
+# Non-authoritative shadow (ADR 0022) of the PLEML feature configuration
+# example_linux_score_autoware.sysml beside this file, until the YAML retires (step S7), at least 30 days
+# after the switch. Until then it also carries the configuration's evidence record.
+#
 # Bill-of-Features: Autoware on S-CORE on Linux
 # Member product of the DE4SDV SDV product line.
 #

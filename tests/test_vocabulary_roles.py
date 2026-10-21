@@ -168,10 +168,13 @@ def _pleml_switch_state(pinned, reviewed_roots, production_usage):
     signals = [f"pinned dependency {path.as_posix()}" for path in pins]
     if pleml_package.PACKAGE in production_usage:
         signals.append(f"the production Sysand project uses {pleml_package.PACKAGE}")
+    # Since the switch the pin is in the production project at the repository
+    # root, so a reviewed root signals the switch when it takes in the PLEML
+    # documents: the feature models and their configurations.
     for root in map(Path, reviewed_roots):
-        for fenced in (pleml_package.PROJECT, *pleml_package.IMPORT_ROOTS):
-            if fenced.is_relative_to(root) or root.is_relative_to(fenced):
-                signals.append(f"reviewed root {root.as_posix()} takes in {fenced.as_posix()}")
+        for documents in pleml_package.IMPORT_ROOTS:
+            if documents.is_relative_to(root) or root.is_relative_to(documents):
+                signals.append(f"reviewed root {root.as_posix()} takes in {documents.as_posix()}")
     return pins, signals
 
 

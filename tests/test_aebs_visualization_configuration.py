@@ -20,6 +20,14 @@ REFERENCE_BOF = Path(
 PRODUCT_LINE_BOF = Path(
     "model-based-product-line-engineering/feature-models/sdv_product_line.yaml"
 )
+#: The PLEML authority beside the two shadows above (ADR 0022).
+PRODUCT_LINE_FEATURE_MODEL = Path(
+    "model-based-product-line-engineering/feature-models/sdv_product_line.sysml"
+)
+REFERENCE_CONFIGURATION = Path(
+    "model-based-product-line-engineering/feature-configurations/"
+    "middleware_autoware_aaos_sdv_reference.sysml"
+)
 
 
 def _read(path: Path) -> str:
@@ -39,16 +47,21 @@ def test_test_article_specializes_accepted_configured_member() -> None:
 
 
 def test_no_new_product_feature_in_product_line_bof() -> None:
-    bof = _read(PRODUCT_LINE_BOF)
-    assert "AEBS" in bof  # existing capability entries remain
-    assert "Visualization" not in bof, (
-        "the visualization must not appear as a product-line feature"
-    )
+    """CLS-AEBS-010-001: neither the PLEML feature model nor its catalogue shadow
+    carries the visualization as a product-line feature."""
+    for path in (PRODUCT_LINE_BOF, PRODUCT_LINE_FEATURE_MODEL):
+        text = _read(path)
+        assert "AEBS" in text, path  # existing capability entries remain
+        assert "visualization" not in text.lower(), (
+            f"the visualization must not appear as a product-line feature: {path}"
+        )
 
 
 def test_reference_bof_untouched_by_visualization() -> None:
-    bof = _read(REFERENCE_BOF)
-    assert "visualization" not in bof.lower()
+    """Neither the reference feature configuration nor its Bill-of-Features shadow
+    selects anything for the visualization."""
+    for path in (REFERENCE_BOF, REFERENCE_CONFIGURATION):
+        assert "visualization" not in _read(path).lower(), path
 
 
 def test_configuration_reuses_projection_without_regeneration() -> None:

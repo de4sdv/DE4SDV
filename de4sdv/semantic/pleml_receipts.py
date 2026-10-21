@@ -1,6 +1,6 @@
 """Receipts of the PLEML configuration evaluation and the parity primitives (ADR 0022).
 
-The licensed authority job serializes the fenced feature models with the
+The licensed authority job serializes the PLEML feature models with the
 production export's options into one export bundle. From that bundle, one
 elements file holds the serialized elements, compressed, and each feature
 model gets a receipt: its verdicts, derived variants and admission, with the
@@ -118,7 +118,7 @@ def _carries_uri(value: Any) -> bool:
 
 
 def pinned_library() -> dict[str, str]:
-    """The PLEML release the fenced package pins, which every receipt binds."""
+    """The PLEML release the production lock pins, which every receipt binds."""
     release = pleml_package.RELEASE
     return {"package": pleml_package.PACKAGE, "version": release.version, "tag_commit": release.tag_commit,
             "path": pleml_package.LIBRARY_PATH.as_posix(), "sha256": release.library.sha256}
@@ -135,7 +135,7 @@ def payload_from_bundle(bundle: BaselineExportBundle | Mapping[str, Any], *, ser
 
     The model documents are those the bundle's source manifest marks with a
     PLEML role, unless ``model_sources`` names them. The PLEML library must be
-    the pinned release: the label of the fenced package and the digest of its
+    the pinned release: the label of the pinned package and the digest of its
     tag. References are element identities only: the resource path of a
     serializer URI depends on the checkout and on where the library is
     provisioned, so a receipt keeps none, and a bundle element that carries
@@ -157,7 +157,7 @@ def payload_from_bundle(bundle: BaselineExportBundle | Mapping[str, Any], *, ser
     if evaluator.LIBRARY_SOURCE not in present or library["path"] != evaluator.LIBRARY_SOURCE:
         found = sorted(label for label in present if label.endswith("PLEML.sysml"))
         raise ValueError(f"the bundle carries no PLEML library at {evaluator.LIBRARY_SOURCE}, the label of the "
-                         f"fenced package; it carries {found or 'none'}")
+                         f"pinned package; it carries {found or 'none'}")
     entry = next(item for item in manifest if item.get("path") == library["path"])
     if entry.get("sha256") != library["sha256"]:
         raise ValueError(f"the bundle's PLEML library is not the pinned {library['version']}: its sha256 is "
@@ -273,8 +273,8 @@ def stale_reasons(receipt: Mapping[str, Any], receipt_path: Path, root: Path = R
     pinned = pinned_library()
     bound = receipt.get("library") or {}
     if bound != pinned:
-        reasons.append(f"the receipt binds PLEML {bound.get('version')} at {bound.get('path')}, and the fenced "
-                       f"package pins {pinned['version']} at {pinned['path']}; rerun the licensed evaluation")
+        reasons.append(f"the receipt binds PLEML {bound.get('version')} at {bound.get('path')}, and the production "
+                       f"lock pins {pinned['version']} at {pinned['path']}; rerun the licensed evaluation")
     library = {source["path"]: source for source in receipt.get("sources") or []}.get(pinned["path"])
     if payload["library_source"] != pinned["path"] or library is None or library.get("sha256") != pinned["sha256"]:
         reasons.append("the elements were not serialized with the pinned PLEML library; rerun the licensed "
@@ -285,8 +285,8 @@ def stale_reasons(receipt: Mapping[str, Any], receipt_path: Path, root: Path = R
             if sha256(path.read_bytes()) != source.get("sha256"):
                 reasons.append(f"{source['path']} changed after the serialization; rerun the licensed evaluation")
         elif source["path"] == pinned["path"]:
-            reasons.append(f"the pinned PLEML library {source['path']} is missing; run sysand sync in "
-                           f"{pleml_package.PROJECT.as_posix()}")
+            reasons.append(f"the pinned PLEML library {source['path']} is missing; run sysand sync at the "
+                           "repository root, the production Sysand project")
         else:
             reasons.append(f"{source['path']} is missing; rerun the licensed evaluation")
     return reasons

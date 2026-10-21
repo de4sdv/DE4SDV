@@ -264,7 +264,8 @@ def _both(baseline_uri, candidate_uri):
     _both(NEW_URI, NEW_URI.replace("1.1.1", "1.1.2")),
     _both(OLD_URI + "#a", NEW_URI + "#b"),
     lambda b, c: _edit(c, SERIALIZED, lambda d: _ref(d)["general"].update(
-        {"@uri": NEW_URI.replace("model-based-product-line-engineering/", "x/../model-based-product-line-engineering/")})),
+        {"@uri": NEW_URI.replace(package.PROVISION_PATHS[NEW.version].as_posix(),
+                                 "x/../" + package.PROVISION_PATHS[NEW.version].as_posix())})),
     lambda b, c: _edit(c, SERIALIZED, lambda d: _ref(d)["general"].update(
         {"@uri": "https://example.invalid/" + package.PROVISION_PATHS[NEW.version].as_posix()})),
 ], ids=["another-target", "non-library-resource", "list-non-library", "another-standard-library-file",

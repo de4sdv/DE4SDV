@@ -1,3 +1,7 @@
+# Non-authoritative shadow (ADR 0022) of the PLEML feature configuration
+# aebs_autoware_linux_lidar_camera.sysml beside this file, until the YAML retires (step S7), at least 30 days
+# after the switch. Until then it also carries the configuration's evidence record.
+#
 # Bill-of-Features: AEBS Autoware reference member product
 # Member product of the DE4SDV SDV product line.
 #

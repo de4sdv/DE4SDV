@@ -1,3 +1,7 @@
+# Non-authoritative shadow (ADR 0022) of the PLEML feature configuration
+# middleware_autoware_aaos_sdv_reference.sysml beside this file, until the YAML retires (step S7), at least 30 days
+# after the switch. Until then it also carries the configuration's evidence record.
+#
 # Bill-of-Features: Autoware + AAOS SDV middleware reference member
 #
 # The application and middleware choices derive the adapter. The adapter is not

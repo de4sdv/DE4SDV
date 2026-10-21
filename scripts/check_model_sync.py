@@ -498,7 +498,13 @@ _R003_MODEL_ROOTS = (
     ROOT / "textual-notation-of-model/packages",
     ROOT / "model-based-product-line-engineering/product-models",
     ROOT / "model-based-product-line-engineering/scoping",
+    ROOT / "model-based-product-line-engineering/feature-models",
+    ROOT / "model-based-product-line-engineering/feature-configurations",
 )
+# The synthetic fixtures of the model roots (the invalid configuration and the
+# parity probes) are no production model files: their declarations never
+# resolve a derivation origin.
+_R003_EXCLUDED_PART = "fixtures"
 
 # Matches ``<kind> def <Name> :> Parent1, Parent2 {`` — the specialization
 # clause is optional. Only the declaration kind, name, and specialization
@@ -862,6 +868,8 @@ def check_requirement_derivation_coverage(errors: list[str]) -> None:
         if not model_root.is_dir():
             continue
         for path in sorted(model_root.rglob("*.sysml")):
+            if _R003_EXCLUDED_PART in path.relative_to(model_root).parts:
+                continue
             raw_code = _read(path)
             code = _strip_comments(raw_code)
             package_path = _r003_outermost_package(code)

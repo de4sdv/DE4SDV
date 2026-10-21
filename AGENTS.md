@@ -135,9 +135,13 @@ and (b).
 ## SysML v2 textual notation validation
 
 All generated or modified `.sysml` files under `textual-notation-of-model/`,
-`model-based-product-line-engineering/product-models/` and
-`model-based-product-line-engineering/scoping/` must be validated before the
-modeling step is treated as complete.
+`model-based-product-line-engineering/product-models/`,
+`model-based-product-line-engineering/scoping/`,
+`model-based-product-line-engineering/feature-models/` and
+`model-based-product-line-engineering/feature-configurations/` must be
+validated before the modeling step is treated as complete. The feature models
+and configurations are the PLEML product-line authority (ADR 0022); a change
+to them also needs fresh receipts from the privileged PLE authority workflow.
 
 Use one of the two validation paths:
 
@@ -148,14 +152,24 @@ Use one of the two validation paths:
 python scripts/validate_sysml.py
 ```
 
-The wrapper validates the three model roots together, equivalent to:
+The wrapper validates the five model roots together, equivalent to:
 
 ```bash
 syside check \
   textual-notation-of-model \
   model-based-product-line-engineering/product-models \
-  model-based-product-line-engineering/scoping
+  model-based-product-line-engineering/scoping \
+  model-based-product-line-engineering/feature-models \
+  model-based-product-line-engineering/feature-configurations \
+  --exclude "**/fixtures/**"
 ```
+
+The fixtures under `feature-configurations/fixtures/` (the invalid
+configuration and the parity probes) are not production model files. The
+privileged PLE authority workflow validates them with the model roots.
+
+Run `sysand sync` first: the pinned libraries, PLEML among them, come from the
+committed `sysand-lock.toml`.
 
 1. Licensed validation in CI. The `Privileged Syside Validation` workflow runs
    on pushes to `main` that change model files, and on such pull requests when

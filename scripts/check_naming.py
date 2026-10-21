@@ -61,6 +61,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SYSML_MODEL_ROOTS = (
     ROOT / "textual-notation-of-model/packages",
     ROOT / "model-based-product-line-engineering/product-models",
+    ROOT / "model-based-product-line-engineering/feature-models",
+    ROOT / "model-based-product-line-engineering/feature-configurations",
 )
 
 # Directories whose SysML/asset names follow external or historical rules.
@@ -68,6 +70,7 @@ _EXEMPT_SYSML_PATH_PARTS = {
     "libraries",  # upstream/vendored Sysand libraries
     "snapshots",  # historical spike snapshots
     "fixture",  # synthetic test fixture models
+    "fixtures",  # synthetic configurations: the invalid one and the parity probes
 }
 
 # ---------------------------------------------------------------------------
@@ -636,7 +639,7 @@ def iter_declaration_model_files():
     for root in roots:
         for path in sorted(root.rglob("*")):
             if path.is_file() and path.suffix.lower() == ".sysml":
-                if not _is_exempt_sysml(path) and "fixtures" not in path.parts:
+                if not _is_exempt_sysml(path):
                     yield path
 
 

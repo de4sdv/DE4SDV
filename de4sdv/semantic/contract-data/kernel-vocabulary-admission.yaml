@@ -438,8 +438,8 @@ admitted:
     index: 0
   grounding:
     kernel_mapping:
-      external: Bill-of-Features records under model-based-product-line-engineering/feature-configurations/
-        resolved against the feature catalogue in model-based-product-line-engineering/feature-models/
+      file: .sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml
+      declaration: occurrence def FeatureConfiguration
     sub_class_of: null
     disjoint_with: []
   gates:
@@ -452,10 +452,8 @@ admitted:
     resolved_by:
     - docs/architecture-decisions/0022-adopt-pleml-as-product-line-authority.md#decision-1
   forward_obligations:
-  - at the switch (ADR 0022, step S6) the kernel mapping becomes the file mapping of the pinned PLEML
-    library declaration occurrence def FeatureConfiguration; it resolves only once the switch adds the
-    library to the API baseline (ADR 0011), so the switch makes this edit, and
-    tests/test_vocabulary_roles.py refuses the switch without it
+  - exact-revision evidence that the privileged binding of the switch's ingestion (ADR 0022, step S6)
+    resolves the class to the pinned PLEML declaration, cited by the pull request that records it
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
 - identity: Function
   semantic_kind: class

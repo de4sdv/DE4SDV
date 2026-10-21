@@ -26,9 +26,25 @@ class TestValidateSysML(unittest.TestCase):
                 "textual-notation-of-model",
                 "model-based-product-line-engineering/product-models",
                 "model-based-product-line-engineering/scoping",
+                "model-based-product-line-engineering/feature-models",
+                "model-based-product-line-engineering/feature-configurations",
+                "--exclude",
+                "**/fixtures/**",
             ],
             cwd=Path(validate_sysml.__file__).resolve().parents[1],
         )
+
+    def test_lists_the_model_files_without_the_fixtures(self):
+        """The invalid configuration and the parity probes are no production model
+        files; the privileged PLE authority workflow validates them."""
+        root = Path(validate_sysml.__file__).resolve().parents[1]
+        configurations = Path("model-based-product-line-engineering/feature-configurations")
+        listed = [path.relative_to(root).as_posix()
+                  for path in validate_sysml.model_files(root, configurations)]
+        fixtures = sorted((root / configurations / "fixtures").rglob("*.sysml"))
+        self.assertEqual(len(fixtures), 18)
+        self.assertEqual(len(listed), 7)
+        self.assertFalse([path for path in listed if "/fixtures/" in path])
 
     def test_propagates_syside_failure(self):
         completed = mock.Mock(returncode=7)

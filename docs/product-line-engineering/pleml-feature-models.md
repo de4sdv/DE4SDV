@@ -1,13 +1,17 @@
 # PLEML feature models and configurations
 
-**Status:** draft, fenced. These models restate the YAML catalogues and every
-Bill-of-Features with the exact-pinned PLEML library, under
-[ADR 0022](../architecture-decisions/0022-adopt-pleml-as-product-line-authority.md).
-They take no authority until its switch (step S6): until then the YAML
-catalogues, the Bills-of-Features and `tools/configure_variant.py` remain the
-selection authority. Nothing here is qualification, adoption evidence or a
-compliance claim; every record says `qualified: false`.
+**Status:** the product-line authority of
+[ADR 0022](../architecture-decisions/0022-adopt-pleml-as-product-line-authority.md)
+since its switch (step S6). Nothing here is qualification, adoption evidence
+or a compliance claim; every record says `qualified: false`.
 **Decision authority:** Orkun Yilmaz, DE4SDV technical lead and maintainer.
+
+These models restate the YAML catalogues and every Bill-of-Features with the
+exact-pinned PLEML library. PLEML is the configuration-validity authority of
+the feature models, the configurations and their bindings, and DE4SDV
+evaluates the configurations and derives their variants. The YAML catalogues,
+the Bills-of-Features and the YAML path of `tools/configure_variant.py` stay a
+non-authoritative shadow until they retire (step S7).
 
 ## What the models contain
 
@@ -131,18 +135,25 @@ configuration of their family selects, or that every one selects:
 
 They stay features. The migration restates the full catalogue, reference-only
 options included (owner decision O1 of the plan), and a family with one
-configuration can distinguish nothing. The ontology pull request before the
-switch (S5o) decides whether R001 applies to the features of a PLEML feature
-model. The grouping and group features are structure, not member
-distinctions.
+configuration can distinguish nothing. The ontology classification of ADR 0022
+decision 8 keeps R001 on the ontology `Feature`, the kernel
+`ProductLineFeatureCandidate`: a feature of a PLEML feature model is a
+distinct element, a configurable option of the catalogue. The grouping and
+group features are structure, not member distinctions.
 
-## The fence
+## The production surface
 
-The files are outside every production selector: not in the reviewed export
-roots or the pinned dependencies, not a validation root, not a viewer root,
-not served and not in the method check. No production workflow triggers on
-them. Only the feature models, their configurations, the fixture and the
-parity probes import PLEML.
+Since the switch the feature models and the member configurations are model
+roots: they are reviewed export roots of the API baseline, validation roots,
+viewer roots and roots of the served model's drift gate, and the method check
+and the licensed validation run on them. The PLEML library is a pinned
+dependency of the API baseline ([provisioning](pleml-provisioning.md)). The
+fixtures under `feature-configurations/fixtures/` (the invalid configuration
+and the parity probes) are read by no production selector: the export, the
+served model and its drift gate, the licensed validation, the repository and
+naming checks and the viewer leave them out, and the authority job validates
+and serializes them. Only the feature models, their configurations, the
+fixture and the parity probes import PLEML.
 
 ## The authority job
 
@@ -152,13 +163,12 @@ the PLEML pin, the committed receipts or the documents and catalogues the
 receipts bind (same-repository, allowlisted authors), and on maintainer
 dispatch. On the exact head it:
 
-1. installs PLEML 1.1.1 from the fenced Sysand project of step S1
-   ([`libraries/pleml/`](../../model-based-product-line-engineering/libraries/pleml/README.md))
-   and byte-checks it against the committed record of its release tag before
-   any step reads it;
+1. installs PLEML 1.1.1 with the production Sysand lock
+   ([provisioning](pleml-provisioning.md)) and byte-checks it against the
+   committed record of its release tag before any step reads it;
 2. runs the unlicensed model, runner and workflow tests;
-3. validates the reviewed roots, the pinned library and the PLEML files with
-   the licensed `syside check`;
+3. validates the model roots, the PLEML files among them, and the fixtures
+   with the licensed `syside check`;
 4. serializes them once with the production export options
    ([`run_ple_authority.py`](../../scripts/run_ple_authority.py)), validates
    the governed scope as production does, and builds the authority bundle:
@@ -208,7 +218,7 @@ the library or a catalogue makes it stale:
   a rollback trigger and needs a reviewed decision, never a silent rewrite.
   A code change that still reproduces every receipt only adds an advisory.
 
-Both the job and the public CI sync and byte-check the fenced PLEML package
+Both the job and the public CI sync and byte-check the pinned PLEML package
 before the replay, which reads the installed library.
 
 A receipt binds by content, never by a commit:
@@ -226,7 +236,7 @@ committed elements to equal its own (`compare_with_committed`).
 
 The unlicensed checks are
 [`test_ple_authority_model.py`](../../tests/test_ple_authority_model.py)
-(the fence, the catalogue restatement, the agreement and complement checks,
+(the production surface, the catalogue restatement, the agreement and complement checks,
 the closed world, admission, the bindings, correspondences and
 configurations),
 [`test_ple_authority_runner.py`](../../tests/test_ple_authority_runner.py),
@@ -278,11 +288,14 @@ plan, 16 `equal`, 8 `both-reject`, 1 `not-expressible` and 0 `defect`.
 
 The configurator reads the receipts with its existing writer:
 `python tools/configure_variant.py --receipt <receipt> --configuration <name>`
-replays the receipt and generates the projection of one valid configuration.
+replays the receipt and generates the projection of one valid configuration
+of the served model. It refuses to project a fixture (exit 2); `--check-only`
+reports a fixture's verdict, and the parity renders the probes' projections
+in memory.
 The parity requires each of the seven committed projections to have one
 normalised body on all three sides: the committed file, the YAML path and the
-receipt. Until the switch, the committed projections stay those of the YAML
-path.
+receipt. Since the switch the committed projections are the receipt path's,
+and the YAML path is the shadow the parity compares with them.
 
 ## Evidence records
 

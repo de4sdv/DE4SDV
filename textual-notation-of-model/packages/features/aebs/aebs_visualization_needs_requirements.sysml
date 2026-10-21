@@ -40,7 +40,8 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       doc /*
        * CLS-AEBS-010-001: The AEBS visualization is System 2 engineering and
        * evidence instrumentation. It is not a product feature, not a common
-       * capability, and must not enter any System 1 bill of features.
+       * capability, and must not enter any System 1 feature configuration or
+       * bill of features.
        */
     }
     part aebsCapabilityRemainsCommon : CommonProductLineCapability {

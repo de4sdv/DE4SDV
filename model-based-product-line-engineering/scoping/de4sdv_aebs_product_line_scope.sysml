@@ -2,8 +2,12 @@
  * Governed DE4SDV AEBS reference product-line scope.
  *
  * This model records portfolio membership and first-scope variability. It is
- * not a PLEML feature tree, does not create feature configurations, and does
- * not replace the current YAML configuration authority.
+ * the admission authority: a configuration can be valid without being
+ * admitted. It is not a PLEML feature tree and creates no feature
+ * configurations. The PLEML feature models and configurations are the
+ * configuration-validity authority (ADR 0022); their features correspond to
+ * the elements below, and their evaluation receipts decide admission against
+ * this scope.
  *
  * Portfolio membership is independent of local increment, implementation, and
  * evidence status. Those local statuses continue to describe the maturity of

@@ -161,7 +161,7 @@ def test_admission_is_compared_wherever_the_retained_record_holds_a_verdict(repo
             assert row["admission"]["pleml"] == row["admission"]["retained"], row["row"]
 
 
-def test_the_required_ci_runs_the_parity_once_the_fenced_package_is_installed() -> None:
+def test_the_required_ci_runs_the_parity_once_the_pinned_package_is_byte_checked() -> None:
     """From S4 on, parity gates every step: the required ``checks`` job runs it on every pull request."""
     import yaml
 
@@ -172,6 +172,20 @@ def test_the_required_ci_runs_the_parity_once_the_fenced_package_is_installed() 
     assert package_step < parity_step
     assert runs[parity_step].strip() == "python scripts/check_pleml_parity.py"
     assert "env" not in steps[parity_step], "the parity needs no licence and no secret"
+
+
+@pytest.mark.parametrize("header, bill", [
+    (" * Regenerate from: model-based-product-line-engineering/feature-configurations/apollo-qnx-qvm.yaml\n",
+     "model-based-product-line-engineering/feature-configurations/apollo-qnx-qvm.yaml"),
+    (" * Feature configuration: model-based-product-line-engineering/feature-configurations/"
+     "inc_aebs_009a_jetson.sysml (incAEBS009AJetsonExecutionEnvironment)\n",
+     "model-based-product-line-engineering/feature-configurations/inc-aebs-009a-jetson.yaml"),
+    (" * Hand-authored composite.\n", None),
+], ids=["yaml-path", "receipt", "no-projection"])
+def test_a_committed_projection_names_its_bill_by_either_header(header, bill) -> None:
+    """Since the switch (S6) the committed projections come from the receipts and name their
+    configuration; its bill of features, the shadow, is the file beside it in kebab case."""
+    assert parity.projection_bill(f"/*\n{header} */\n") == bill
 
 
 def test_the_probe_rows_are_the_probes_the_authority_job_serializes() -> None:

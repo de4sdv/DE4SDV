@@ -2,9 +2,16 @@
 """
 DE4SDV variant configurator.
 
-Reads a Bill-of-Features (YAML), validates it against the feature model (YAML),
-then generates a SysML v2 product-model projection of the catalogue's declared
-shared-asset owner.
+Since the switch of ADR 0022 (step S6) the PLEML feature models and
+configurations are the product-line authority, and the configurator
+generates every committed product-model projection from the evaluation
+receipt of its configuration (receipt mode, below). Its YAML path is the
+non-authoritative shadow until the YAML retires (step S7): the parity check
+(scripts/check_pleml_parity.py) compares the two paths.
+
+The YAML path reads a Bill-of-Features (YAML), validates it against the
+feature catalogue (YAML), then generates a SysML v2 product-model projection
+of the catalogue's declared shared-asset owner.
 Selections without mapped variable shared assets are validated but not derived.
 Assets declared under ``derived_asset_selections`` are resolved from their
 source feature choices and cannot be selected independently in the BoF.
@@ -43,9 +50,10 @@ Usage:
   python tools/configure_variant.py \\
     --feature-model ... --bof ... --check-only
 
-Receipt mode (ADR 0022, plan step S4): the same writer generates the
-projection of one evaluated configuration of a committed PLEML receipt, after
-replaying the receipt offline, instead of deciding a Bill-of-Features:
+Receipt mode (ADR 0022, plan steps S4 and S6), the authority path: the same
+writer generates the projection of one evaluated configuration of a committed
+PLEML receipt, after replaying the receipt offline, instead of deciding a
+Bill-of-Features:
 
   python tools/configure_variant.py \\
     --receipt model-based-product-line-engineering/feature-models/receipts/sdv_product_line.receipt.json \\
@@ -54,9 +62,16 @@ replaying the receipt offline, instead of deciding a Bill-of-Features:
 The configuration is named by its declared name, its projection name or its
 source document. Variation and variant identity come from the receipt; the
 lexical mapping checks stay with the YAML path, which remains the oracle and
-the shadow until S7. Until the switch (S6) the committed projections are the
-YAML path's, and the parity check (scripts/check_pleml_parity.py) requires the
-receipt's normalised bodies to equal them.
+the shadow until S7. The committed projections are receipt mode's output
+since the switch, and the parity check requires the YAML path's normalised
+bodies to equal them.
+
+Receipt mode projects only a configuration of the served model, whose
+document the export reads (``de4sdv/sysml_api/baseline.py``). The receipts
+also evaluate the fixtures under ``feature-configurations/fixtures/``, the
+invalid configuration and the parity probes: receipt mode refuses to project
+one (exit 2), and ``--check-only`` reports its verdict. The parity check
+renders the probes' projections in memory and never writes them.
 
 Exit codes:
   0 — configuration valid (and optionally generated)
@@ -1668,9 +1683,28 @@ def load_receipt_configuration(receipt_path, name, root=REPO_ROOT):
     return receipt, model, configuration, writer, shared_assets
 
 
+def served_configuration(configuration, root=REPO_ROOT):
+    """Whether receipt mode may project this configuration of a receipt.
+
+    Only a configuration of the served model may be projected: its source
+    document is one the export reads. The fixtures the receipts evaluate (the
+    invalid configuration and the parity probes) are not.
+    """
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+    from de4sdv.sysml_api.baseline import reviewed_source
+
+    return reviewed_source(configuration["source"])
+
+
 def receipt_projection(receipt_path, receipt, model, configuration, writer,
                        shared_assets, root=REPO_ROOT):
-    """Render the projection of one valid configuration of a receipt that holds, with the writer."""
+    """Render the projection of one valid configuration of a receipt that holds, with the writer.
+
+    The command line writes it for a configuration of the served model only
+    (``served_configuration``); the parity check calls this for the parity
+    probes too, in memory.
+    """
     name = configuration["projection_name"]
     if not configuration["valid"]:
         raise ValueError(f"'{configuration['configuration']}' is not valid in its receipt")
@@ -1733,6 +1767,15 @@ def main_receipt(args):
         )
     except (OSError, UnicodeError, ValueError, KeyError) as exc:
         sys.stderr.write(f"Error reading input: {exc}\n")
+        sys.exit(2)
+
+    if not args.check_only and not served_configuration(configuration):
+        sys.stderr.write(
+            f"Error: '{configuration['configuration']}' is a fixture of the receipt "
+            f"({configuration['source']}), not a configuration of the served model: "
+            "receipt mode projects only a configuration whose document the export "
+            "reads; --check-only reports a fixture's verdict\n"
+        )
         sys.exit(2)
 
     if not configuration["valid"]:

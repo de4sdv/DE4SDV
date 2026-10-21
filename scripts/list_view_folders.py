@@ -37,6 +37,8 @@ MODEL_ROOTS = (
     "textual-notation-of-model",
     "model-based-product-line-engineering/product-models",
     "model-based-product-line-engineering/scoping",
+    "model-based-product-line-engineering/feature-models",
+    "model-based-product-line-engineering/feature-configurations",
 )
 
 #: Never view folders: upstream libraries (`libraries/`, the `.sysand/`

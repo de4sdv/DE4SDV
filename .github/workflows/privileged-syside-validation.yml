@@ -10,12 +10,14 @@ on:
       model_paths:
         description: "Space-separated model files or directories to validate together"
         required: true
-        default: "textual-notation-of-model model-based-product-line-engineering/product-models model-based-product-line-engineering/scoping"
+        default: "textual-notation-of-model model-based-product-line-engineering/product-models model-based-product-line-engineering/scoping model-based-product-line-engineering/feature-models model-based-product-line-engineering/feature-configurations"
   pull_request:
     paths:
       - "textual-notation-of-model/**/*.sysml"
       - "model-based-product-line-engineering/product-models/**/*.sysml"
       - "model-based-product-line-engineering/scoping/**/*.sysml"
+      - "model-based-product-line-engineering/feature-models/**/*.sysml"
+      - "model-based-product-line-engineering/feature-configurations/**/*.sysml"
       - "model-based-product-line-engineering/feature-models/**/*.yaml"
       - "model-based-product-line-engineering/feature-configurations/**/*.yaml"
       - "tools/configure_variant.py"
@@ -43,6 +45,8 @@ on:
       - "textual-notation-of-model/**/*.sysml"
       - "model-based-product-line-engineering/product-models/**/*.sysml"
       - "model-based-product-line-engineering/scoping/**/*.sysml"
+      - "model-based-product-line-engineering/feature-models/**/*.sysml"
+      - "model-based-product-line-engineering/feature-configurations/**/*.sysml"
       - "model-based-product-line-engineering/feature-models/**/*.yaml"
       - "model-based-product-line-engineering/feature-configurations/**/*.yaml"
       - "tools/configure_variant.py"
@@ -79,7 +83,7 @@ jobs:
       )
     runs-on: ubuntu-latest
     env:
-      MODEL_PATHS: ${{ inputs.model_paths || 'textual-notation-of-model model-based-product-line-engineering/product-models model-based-product-line-engineering/scoping' }}
+      MODEL_PATHS: ${{ inputs.model_paths || 'textual-notation-of-model model-based-product-line-engineering/product-models model-based-product-line-engineering/scoping model-based-product-line-engineering/feature-models model-based-product-line-engineering/feature-configurations' }}
     steps:
       - name: Checkout reviewed ref
         uses: actions/checkout@v4
@@ -170,6 +174,11 @@ jobs:
                   sys.exit(1)
           PY
 
+      # The synthetic fixtures of the model roots (the invalid configuration
+      # and the parity probes under feature-configurations/fixtures/) are no
+      # production model files: the export never reads them, and the
+      # privileged PLE authority workflow validates them with the model roots.
+      # The check, the diagrams and the grid views exclude them.
       - name: Run Syside validation
         if: steps.syside-secret.outputs.available == 'true'
         env:
@@ -177,7 +186,7 @@ jobs:
         run: |
           echo "Running licensed Syside validation for: ${MODEL_PATHS}"
           read -r -a model_paths <<< "${MODEL_PATHS}"
-          syside check "${model_paths[@]}"
+          syside check "${model_paths[@]}" --exclude "**/fixtures/**"
 
       - name: Generate view diagrams (Labs)
         if: steps.syside-secret.outputs.available == 'true'
@@ -189,16 +198,20 @@ jobs:
           SYSIDE_VIEWS_SOURCE=".sysand/lib/sensmetry-syside-views_0.10.3/SysideViews.sysml"
           SYSMOD_SOURCE=".sysand/lib/mbse4u-sysmod_5.1.1/SYSMOD.sysml"
           REQMGMT_SOURCE=".sysand/lib/ode4hera-requirements-management_2.0.1/RequirementsManagement.sysml"
+          PLEML_SOURCE=".sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml"
           test -f "${SYSIDE_VIEWS_SOURCE}"
           test -f "${SYSMOD_SOURCE}"
           test -f "${REQMGMT_SOURCE}"
+          test -f "${PLEML_SOURCE}"
           syside viz view "${model_paths[@]}" \
             --include "${SYSIDE_VIEWS_SOURCE}" \
             --include "${SYSMOD_SOURCE}" \
             --include "${REQMGMT_SOURCE}" \
+            --include "${PLEML_SOURCE}" \
             --format svg \
             --output-dir diagrams \
-            --exclude "textual-notation-of-model/snapshots/**"
+            --exclude "textual-notation-of-model/snapshots/**" \
+            --exclude "**/fixtures/**"
 
       - name: Check critical view materialization
         if: steps.syside-secret.outputs.available == 'true'
@@ -246,15 +259,19 @@ jobs:
           SYSIDE_VIEWS_SOURCE=".sysand/lib/sensmetry-syside-views_0.10.3/SysideViews.sysml"
           SYSMOD_SOURCE=".sysand/lib/mbse4u-sysmod_5.1.1/SYSMOD.sysml"
           REQMGMT_SOURCE=".sysand/lib/ode4hera-requirements-management_2.0.1/RequirementsManagement.sysml"
+          PLEML_SOURCE=".sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml"
           test -f "${SYSIDE_VIEWS_SOURCE}"
           test -f "${SYSMOD_SOURCE}"
           test -f "${REQMGMT_SOURCE}"
+          test -f "${PLEML_SOURCE}"
           export PYTHONHOME="${pythonLocation}"
           export PYTHONPATH="${pythonLocation}/lib/python3.12:${pythonLocation}/lib/python3.12/lib-dynload"
           syside table export "${model_paths[@]}" \
             --include "${SYSIDE_VIEWS_SOURCE}" \
             --include "${SYSMOD_SOURCE}" \
             --include "${REQMGMT_SOURCE}" \
+            --include "${PLEML_SOURCE}" \
+            --exclude "**/fixtures/**" \
             --output-dir grid-csv
           python scripts/render_grid_csv.py grid-csv diagrams
           for csv in grid-csv/*.csv; do

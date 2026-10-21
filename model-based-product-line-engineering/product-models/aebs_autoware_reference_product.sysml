@@ -6,7 +6,8 @@
  * and the AEBS physical software realization into one AEBS-equipped member.
  *
  * The platform-stack variant selections for this product are documented in
- * the bill-of-features (aebs-autoware-linux-lidar-camera.yaml) and resolved
+ * the PLEML feature configuration
+ * (feature-configurations/aebs_autoware_linux_lidar_camera.sysml) and resolved
  * in the generated projection (aebs_autoware_linux_lidar_camera.sysml).
  * This composite model types its platform stack by that projection and
  * composes it with the sensing boundary and AEBS physical software to make
@@ -17,7 +18,7 @@
  *       -> perception pipeline (raw sensor data to object-level output)
  *         -> AEBS physical software (AEB node consuming ROS 2 topics)
  *
- * The sensing selections (LiDAR + camera) match the bill-of-features.
+ * The sensing selections (LiDAR + camera) match the feature configuration.
  * The common motion sensors (IMU, wheel odometry) are present in all member
  * products per the feature model (mandatory, not a feature).
  *
@@ -35,7 +36,8 @@
  *   - Evidence generation (INC-AEBS-009)
  *
  * Relationship to PLE:
- *   The platform-stack projection is generated from the bill-of-features.
+ *   The platform-stack projection is generated from the receipt of the
+ *   feature configuration.
  *   The sensing boundary is a shared-asset superset (150% model) with
  *   independent include/exclude variation points per perception sensor.
  *   This composite model does not resolve those variations in SysML —
@@ -125,7 +127,7 @@ package DE4SDV_AEBSAutowareReferenceProduct {
      * level. Platform-stack variant selections are resolved only in the
      * generated projection (aebs_autoware_linux_lidar_camera.sysml), and
      * sensing-boundary perception-sensor selections live in the
-     * bill-of-features, not in this composite. Product-level trace claims
+     * feature configuration, not in this composite. Product-level trace claims
      * must still cite the canonical allocation records; these dependencies
      * make the binding path explicit, they do not make this composite a
      * resolved configured product.

@@ -24,7 +24,7 @@ The baseline is the artifact of a PLE qualification run on the previous release
 
 A difference anywhere else, a missing or extra file, or an allowed path without
 the expected value fails. ``sysml-api.log`` is not compared. The candidate adds
-``pleml-package.json``, the byte check of the fenced package. The script needs
+``pleml-package.json``, the byte check of the pinned package. The script needs
 Python 3.11+ and exits 2 on an older one, without comparing anything.
 """
 from __future__ import annotations
@@ -92,7 +92,7 @@ def _provision(release: package.Release) -> dict[str, str]:
 
 
 def expected(release: package.Release, *, provisioned: bool) -> dict[str, dict[str, Any]]:
-    """The identity paths and the values a run on ``release`` holds; ``provisioned``: through the fenced lock."""
+    """The identity paths and the values a run on ``release`` holds; ``provisioned``: through a Sysand lock."""
     pin, library = release.tag_commit, release.library.sha256
     identity = {"source_identity.pleml_pin": pin, "source_identity.library_sha256": library}
     if provisioned:

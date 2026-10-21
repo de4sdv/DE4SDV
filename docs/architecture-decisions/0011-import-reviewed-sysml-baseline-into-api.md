@@ -4,6 +4,15 @@
 
 Proposed
 
+> Note (2026-10-20): the import scope has grown since this decision. It holds
+> the governed product-line scope (`model-based-product-line-engineering/scoping/`)
+> and, from the switch of [ADR 0022](0022-adopt-pleml-as-product-line-authority.md) (step S6), the PLEML feature
+> models and configurations (`feature-models/` and `feature-configurations/`,
+> without their `fixtures/`), with the pinned PLEML library among the pinned
+> library sources. `REVIEWED_ROOTS` and `PINNED_DEPENDENCIES` in
+> `de4sdv/sysml_api/baseline.py` are the current list. The decision text below
+> is unchanged.
+
 ## Context
 
 ADR 0010 established revision-bound semantic queries and proved the path with a

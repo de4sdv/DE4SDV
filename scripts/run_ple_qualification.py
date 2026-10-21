@@ -7,8 +7,8 @@ observations never authorize adoption or semantic authority activation.
 Two frozen experiments: the historical replay and the prior of the fresh arm
 read the retained Gate A export with the Gate A experiment (``GATE_A``); the
 fresh arm serializes the current experiment (``CURRENT``): the interpreter and
-the fixture of the experiment at PLEML 1.1.0 with PLEML 1.1.1 from the fenced
-Sysand lock, byte-checked against its release tag.
+the fixture of the experiment at PLEML 1.1.0 with PLEML 1.1.1 from the
+production Sysand lock, byte-checked against its release tag.
 """
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ class ExperimentIdentity(NamedTuple):
 
     ``provision`` says where the library comes from. ``submodule``: the
     checkout's PLEML submodule at ``pleml_pin``. ``sysand``: the package the
-    fenced Sysand lock installs, the release whose tag commit is ``pleml_pin``;
+    production Sysand lock installs, the release whose tag commit is ``pleml_pin``;
     the checkout then supplies only the interpreter and the fixture. ``library``
     is the source label the interpreter reads the library by, either way.
     """
@@ -95,7 +95,7 @@ PLEML_1_1_0 = ExperimentIdentity(
     library_sha256="a89dc5c3436e3c8e5601e278f2b184e1a6d91f66a77f8616854ee0dd1abca787",
     fixture_sha256="2b858117aee7cfc4fc08d005bf2ba09c5a4dbb433d6c25dc2c013b5e8ec9f763",
 )
-#: The current experiment: PLEML 1.1.1 from the fenced Sysand lock, byte-checked
+#: The current experiment: PLEML 1.1.1 from the production Sysand lock, byte-checked
 #: against its release tag. Its library equals that of 1.1.0 but for the version
 #: line (the fast path of the upstream release policy), so the interpreter, the
 #: fixture and the library label stay those of the experiment at 1.1.0, and no
@@ -117,7 +117,7 @@ SERIALIZER_VERSION = "0.10.3"
 FIXTURE = "docs/spikes/pleml-gate-a/pleml_gate_a_fixture.sysml"
 LIBRARY = CURRENT.library
 SUBMODULE = "external/pleml"
-#: The library of a ``sysand`` experiment: where the fenced lock installs it.
+#: The library of a ``sysand`` experiment: where the production lock installs it.
 PLEML_LIBRARY = ROOT / pleml_package.LIBRARY_PATH
 #: The executor files that pin and record that library.
 PLEML_INPUTS = ("de4sdv/semantic/pleml_package.py", (pleml_package.PROJECT / ".project.json").as_posix(),
@@ -154,7 +154,7 @@ def sysand_library(library, identity: ExperimentIdentity) -> bytes:
     path = Path(library)
     if path.is_symlink() or not path.is_file():
         raise ValueError(f"the PLEML library is not installed as a regular file at {path}: "
-                         f"run `sysand sync` in {pleml_package.PROJECT}")
+                         f"run `sysand sync` at the repository root")
     data = path.read_bytes()
     if digest(data) != identity.library_sha256:
         raise ValueError("experiment digests differ from the reviewed identity: the PLEML library")
@@ -167,7 +167,7 @@ def load_experiment(root, identity: ExperimentIdentity = CURRENT,
 
     A ``submodule`` identity reads its library from the checkout's submodule
     and refuses ``library``. A ``sysand`` identity reads it from ``library``
-    (default ``PLEML_LIBRARY``, the fenced install), never from the checkout.
+    (default ``PLEML_LIBRARY``, the production install), never from the checkout.
     """
     root = root.resolve()
     if git(root, "rev-parse", "HEAD") != identity.revision:

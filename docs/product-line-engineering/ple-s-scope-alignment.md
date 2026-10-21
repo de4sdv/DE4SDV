@@ -3,7 +3,7 @@
 **Status:** experiment, not an authority. Draft evidence of the third PLEML
 gate; every receipt says `qualified: false`. **Retired** at step S3 of
 [ADR 0022](../architecture-decisions/0022-adopt-pleml-as-product-line-authority.md):
-the fenced [PLEML feature models](pleml-feature-models.md) supersede the
+the [PLEML feature models](pleml-feature-models.md) supersede the
 experiment, and its model, workflow and runner were removed. This record
 stays as history: the files below are cited at the revision of the
 retained run.
@@ -151,11 +151,10 @@ export. The run above and the run this record retains (below) read PLEML
 submodule at `071a69fd`; the run `38780181818` and the record's earlier run
 `38788579272` describe the Gate A pin `5f8ab856`.
 
-**PLEML 1.1.1.** The PLE workflows now install PLEML 1.1.1 through the fenced
-Sysand lock in
-[`libraries/pleml/`](../../model-based-product-line-engineering/libraries/pleml/README.md)
-and byte-check it against the committed record of its release tag before any
-step reads it
+**PLEML 1.1.1.** From step S1 the PLE workflows installed PLEML 1.1.1 through
+a fenced Sysand lock, and since the switch through the production lock
+([provisioning](pleml-provisioning.md)); they byte-check it against the
+committed record of its release tag before any step reads it
 ([ADR 0022](../architecture-decisions/0022-adopt-pleml-as-product-line-authority.md)).
 They no longer check out the experiment's PLEML submodule. The 1.1.1 library
 equals the 1.1.0 library except for its version line, so the interpreter, the

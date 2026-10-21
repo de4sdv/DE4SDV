@@ -2,9 +2,11 @@
  * DE4SDV middleware variability and configuration model slice.
  *
  * INC-MW-009 records the configured-member assembly and the realization
- * decision around the deterministic product projection generated from
- * middleware-autoware-aaos-sdv-reference.yaml. The BoF and generated projection own
- * the concrete variant selections; this package does not duplicate them.
+ * decision around the deterministic product projection generated from the
+ * receipt of the feature configuration
+ * middleware_autoware_aaos_sdv_reference.sysml. The feature configuration and
+ * generated projection own the concrete variant selections; this package does
+ * not duplicate them.
  *
  * The selected direct realization is planned, not implemented. IFEX informs
  * service-interface classification and COVESA VSS supplies vehicle-signal
@@ -28,8 +30,9 @@ package DE4SDV_MiddlewareVariabilityConfiguration {
 
   part def MiddlewareAutowareAAOSSDVConfiguredMember :> DE4SDV_AEBSProductLineScope::AAOSIntegratedAutowareAEBSReferenceMember {
     doc /*
-     * Product-level assembly controlled by the Phase 9 BoF and deterministic
-     * generated platform-stack projection. The local parts compose accepted
+     * Product-level assembly controlled by its feature configuration (the
+     * PLEML restatement of the Phase 9 BoF) and deterministic generated
+     * platform-stack projection. The local parts compose accepted
      * shared assets; they do not independently choose platform variants.
      */
     part platformStack : MiddlewareAutowareAAOSSDVReference;
@@ -118,10 +121,11 @@ package DE4SDV_MiddlewareVariabilityConfiguration {
 
   part configuredRuntimeEvidenceGap : DeferredProductLineScope {
     doc /*
-     * GAP-MW-024: A valid BoF and deterministic product projection prove only
-     * controlled configuration. They do not prove generated bindings, provider
-     * behavior, discovery, transport, adapter deployment, ROS 2 publication,
-     * independent Autoware observation, or retained runtime interoperability.
+     * GAP-MW-024: A valid feature configuration and deterministic product
+     * projection prove only controlled configuration. They do not prove
+     * generated bindings, provider behavior, discovery, transport, adapter
+     * deployment, ROS 2 publication, independent Autoware observation, or
+     * retained runtime interoperability.
      */
   }
 

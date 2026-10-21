@@ -4,6 +4,24 @@
 
 Accepted
 
+> Note (2026-10-20): partly superseded by [ADR 0022](0022-adopt-pleml-as-product-line-authority.md) from its switch
+> (step S6 of the [migration plan](../plans/2026-10-19-pleml-product-line-authority.md)).
+> PLEML is the configuration-validity authority of the feature models,
+> configurations and feature-to-asset bindings. It stays exact-pinned and is
+> no longer experimental. The YAML catalogue, the Bills-of-Features and the
+> configurator are no longer the operational authority: they stay a
+> non-authoritative shadow until they retire. The statements that no
+> interpretation is upstream-confirmed and that the suspected `xorFeatures` /
+> `XORConstraint` defect is unresolved are overtaken: the maintainers answered
+> the questions, and PLEML 1.0.0 fixed XOR. The adapter remains a derived
+> realization, never a manual product choice; the word "experimental" no
+> longer applies to it. The governed portfolio, the admitted variability and
+> its binding, the common and derived content, the reference-only and
+> deferred alternatives, the change control and the bounded re-verification
+> on a new pin still hold, and this scope stays the admission authority. ADR
+> 0022 lists each clause it supersedes, amends or retains. The decision text
+> below is unchanged.
+
 ## Context
 
 DE4SDV needs an explicit planned-member portfolio before it can replace or

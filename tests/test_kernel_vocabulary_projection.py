@@ -60,6 +60,8 @@ MODEL_ROOTS = (
     "textual-notation-of-model",
     "model-based-product-line-engineering/product-models",
     "model-based-product-line-engineering/scoping",
+    "model-based-product-line-engineering/feature-models",
+    "model-based-product-line-engineering/feature-configurations",
 )
 INVENTORY_GOVERNANCE_FIELDS = (
     "authority_current", "authority_target", "evidence_state", "adoption_status",
@@ -295,6 +297,8 @@ def test_evidence_contract_closure_is_every_model_specialization_repo_wide():
     found = set()
     for model_root in MODEL_ROOTS:
         for path in sorted((REPO_ROOT / model_root).rglob("*.sysml")):
+            if "fixtures" in path.relative_to(REPO_ROOT / model_root).parts:
+                continue
             relative = path.relative_to(REPO_ROOT).as_posix()
             source = _Source(relative, path.read_text(encoding="utf-8"))
             for match in re.finditer(r"\b(\w+)\s+def\s+(\w+)\s*(?::>|\bspecializes\b)\s*([^;{]+)", source.mask):

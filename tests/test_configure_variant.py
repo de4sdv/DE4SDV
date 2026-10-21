@@ -375,21 +375,26 @@ selections:
         ), violations[1])
 
     def test_committed_bills_of_features_keep_their_verdicts(self):
-        """Committed BoFs regenerate their projections; the fixture fails only C001."""
+        """Since the switch (ADR 0022, step S6) every committed projection regenerates
+        byte for byte from the receipt of its PLEML configuration; its Bill-of-Features,
+        the non-authoritative shadow, is still valid and gives the same normalised body.
+        The fixture fails only C001."""
+        import projection_sources as sources
+        from scripts.check_pleml_parity import projection_bill
+
         product_models = (
             REPO_ROOT / "model-based-product-line-engineering" / "product-models"
         )
         generated = {}
         for projection in sorted(product_models.glob("*.sysml")):
-            header = dict(re.findall(
-                r"^ \* (Regenerate from|Feature model|Shared-assets model): (.+)$",
-                projection.read_text(), re.MULTILINE,
-            ))
-            if "Regenerate from" in header:
-                generated[header["Regenerate from"]] = (
-                    header["Feature model"], header["Shared-assets model"],
-                    projection,
-                )
+            text = projection.read_text()
+            bill = projection_bill(text)
+            if bill:
+                header = dict(re.findall(
+                    r"^ \* (PLEML feature model|Shared-assets model): (.+)$",
+                    text, re.MULTILINE,
+                ))
+                generated[bill] = (header, projection)
         fixture = BOF_DIR / "fixtures" / "invalid-score-android.yaml"
         self.assertEqual(
             sorted([*generated, fixture.relative_to(REPO_ROOT).as_posix()]),
@@ -398,18 +403,20 @@ selections:
                 for path in BOF_DIR.rglob("*.yaml")
             ),
         )
-        for bof, (feature_model, shared_model, projection) in generated.items():
-            with self.subTest(bof=bof), tempfile.TemporaryDirectory() as tmp:
-                output = Path(tmp) / "projection.sysml"
-                self.run_config(
-                    REPO_ROOT / bof,
-                    extra_args=[
-                        "--shared-assets-model", str(REPO_ROOT / shared_model),
-                        "--output", str(output),
-                    ],
-                    feature_model_path=REPO_ROOT / feature_model,
+        for bof, (header, projection) in generated.items():
+            with self.subTest(bof=bof):
+                committed = projection.read_text()
+                self.assertIn("PLEML feature model", header, "a receipt projection")
+                self.assertEqual(
+                    sources.receipt_projection(sources.configuration_of(bof)), committed
                 )
-                self.assertEqual(output.read_text(), projection.read_text())
+                catalogue = Path(header["PLEML feature model"]).with_suffix(".yaml")
+                shadow = sources.shadow_projection(
+                    bof, catalogue, header["Shared-assets model"]
+                )
+                self.assertEqual(
+                    sources.normalised_body(shadow), sources.normalised_body(committed)
+                )
         rc, out, err = self.run_config(
             fixture, extra_args=["--check-only"], expect_fail=True
         )

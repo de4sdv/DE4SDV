@@ -7,14 +7,14 @@ name: Privileged PLE Authority
 # feature-configurations/), then their evaluation into receipts through the
 # evaluator's entry point (ADR 0022, step S2), compared with the committed
 # receipts. It runs on pull requests that touch these paths, the PLEML pin,
-# the committed receipts or the documents they bind, and on demand. The
-# models stay fenced until the authority switch (ADR 0022, step S6).
+# the committed receipts or the documents they bind, and on demand. Since the
+# authority switch (ADR 0022, step S6) the models are production model roots,
+# and the receipts are the configuration authority's record.
 #
 # The executor is the exact commit under evaluation: the pull-request head, or
 # the dispatched `ref`. The exact-pinned PLEML library (1.1.1) comes from the
-# fenced Sysand lock (model-based-product-line-engineering/libraries/pleml/)
-# and is byte-checked against the committed record of its release tag before
-# any step reads it. The licence reaches exactly two steps: the `syside check`
+# production Sysand lock (sysand-lock.toml) and is byte-checked against the
+# committed record of its release tag before any step reads it. The licence reaches exactly two steps: the `syside check`
 # and the runner, which serializes, round-trips the authority bundle through
 # an ephemeral SysML v2 API and hands it to the evaluator. Every recording
 # step is preceded by a refusal of a dirty checkout, and one follows the
@@ -39,8 +39,10 @@ on:
       - "de4sdv/semantic/pleml_configuration.py"
       - "de4sdv/semantic/pleml_receipts.py"
       - "de4sdv/semantic/pleml_shadow.py"
-      # The PLEML pin: a re-pin gets this licensed validation (release policy).
-      - "model-based-product-line-engineering/libraries/pleml/**"
+      # The PLEML pin in the production lock: a re-pin gets this licensed
+      # validation (release policy).
+      - ".project.json"
+      - "sysand-lock.toml"
       - "de4sdv/semantic/pleml_package.py"
       - "scripts/check_pleml_package.py"
       - "scripts/run_ple_qualification.py"
@@ -68,7 +70,7 @@ concurrency:
 
 jobs:
   authority:
-    name: PLEML feature models (licensed, fenced)
+    name: PLEML feature models (licensed)
     if: >-
       github.event_name != 'pull_request' ||
       (
@@ -168,15 +170,14 @@ jobs:
           "$HOME/.local/bin/syside" --version
           sysand sync
 
-      # PLEML 1.1.1 from the fenced Sysand lock: the byte check against the
-      # committed record of its release tag, the re-pin re-derived from the
-      # Sysand index (this workflow runs on re-pin PRs) and the upstream tag's
-      # commit and blobs, before any step reads it.
-      - name: Install and byte-check the fenced PLEML package
+      # PLEML 1.1.1 from the production lock, which the step above synced:
+      # the byte check against the committed record of its release tag, the
+      # re-pin re-derived from the Sysand index (this workflow runs on re-pin
+      # PRs) and the upstream tag's commit and blobs, before any step reads it.
+      - name: Byte-check the pinned PLEML package
         if: steps.licence.outputs.available == 'true'
         run: |
           mkdir "$RUNNER_TEMP/ple-evidence"
-          (cd model-based-product-line-engineering/libraries/pleml && sysand sync)
           python scripts/check_pleml_package.py --release-diff --from-index --verify-tag --out "$RUNNER_TEMP/ple-evidence/pleml-package.json"
 
       - name: Refuse a dirty checkout before the unlicensed checks
@@ -241,7 +242,10 @@ jobs:
             exit 1
           fi
 
-      - name: Validate the reviewed roots, the pinned PLEML library and the PLEML documents (licensed)
+      # The model roots of AGENTS.md, the fixtures of feature-configurations/
+      # included; the pinned libraries, PLEML among them, resolve from the
+      # production lock, as in the licensed validation.
+      - name: Validate the model roots, the PLEML documents and their fixtures (licensed)
         if: steps.licence.outputs.available == 'true'
         env:
           SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
@@ -251,7 +255,6 @@ jobs:
             textual-notation-of-model \
             model-based-product-line-engineering/product-models \
             model-based-product-line-engineering/scoping \
-            model-based-product-line-engineering/libraries/pleml/.sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml \
             model-based-product-line-engineering/feature-models \
             model-based-product-line-engineering/feature-configurations \
             2>&1 | tee "$RUNNER_TEMP/ple-evidence/syside-check.txt"

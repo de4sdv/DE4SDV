@@ -81,6 +81,24 @@ class TestCheckRepo(unittest.TestCase):
 
             self.assertEqual(check_repo.find_duplicate_global_packages(root), {})
 
+    def test_reads_no_fixture_of_the_model_roots(self):
+        """The invalid configuration and the parity probes are no production model
+        files; the PLE authority workflow validates them apart."""
+        configurations = Path("model-based-product-line-engineering/feature-configurations")
+        for location, duplicates in (("fixtures/parity-probes/probe.sysml", {}),
+                                     ("probe.sysml", {"Duplicate": [
+                                         f"{configurations.as_posix()}/member.sysml:1",
+                                         f"{configurations.as_posix()}/probe.sysml:1"]})):
+            with self.subTest(location=location), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                member = root / configurations / "member.sysml"
+                probe = root / configurations / location
+                probe.parent.mkdir(parents=True)
+                member.write_text("package Duplicate {\n}\n")
+                probe.write_text("package Duplicate {\n}\n")
+
+                self.assertEqual(check_repo.find_duplicate_global_packages(root), duplicates)
+
 
 if __name__ == "__main__":
     unittest.main()

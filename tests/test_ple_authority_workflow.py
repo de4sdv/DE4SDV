@@ -3,8 +3,8 @@
 Pins: the triggers (pull requests on the PLEML files, the runner and these
 tests only, plus maintainer dispatch), the fork and author guard of the
 licensed validation, read-only permissions, the exact-head resolution as the
-only checkout, the fenced PLEML package installed and byte-checked before any
-step reads it, the clean-checkout discipline of the PLE qualification
+only checkout, the pinned PLEML package of the production lock byte-checked
+before any step reads it, the clean-checkout discipline of the PLE qualification
 workflow, the API service
 started outside the checkout, the dirty-checkout refusals around every
 recording step, the secret scoping (the licence reaches only the two Syside
@@ -33,9 +33,8 @@ VALIDATION = ROOT / ".github/workflows/privileged-syside-validation.yml"
 QUALIFICATION = ROOT / ".github/workflows/privileged-ple-qualification.yml"
 INGESTION = ROOT / ".github/workflows/privileged-full-model-api-ingestion.yml"
 RUNNER = "scripts/run_ple_authority.py"
-#: PLEML 1.1.1 as the fenced Sysand project installs it (ADR 0022, step S1).
+#: PLEML 1.1.1 as the production Sysand lock installs it (ADR 0022, decision 1).
 LIBRARY = pleml_package.LIBRARY_PATH.as_posix()
-PROJECT = pleml_package.PROJECT.as_posix()
 LICENCE_VALUE = "${{ secrets.SYSIDE_LICENSE_KEY }}"
 LICENCE_PRESENCE = "${{ secrets.SYSIDE_LICENSE_KEY != '' }}"
 JOB = "authority"
@@ -58,9 +57,11 @@ EVALUATOR_PATHS = {
     "de4sdv/semantic/pleml_receipts.py",
     "de4sdv/semantic/pleml_shadow.py",
 }
-#: The PLEML pin: a re-pin gets this licensed validation (the upstream release policy).
+#: The PLEML pin in the production lock: a re-pin gets this licensed validation (the upstream
+#: release policy).
 PIN_PATHS = {
-    "model-based-product-line-engineering/libraries/pleml/**",
+    ".project.json",
+    "sysand-lock.toml",
     "de4sdv/semantic/pleml_package.py",
     "scripts/check_pleml_package.py",
     "scripts/run_ple_qualification.py",
@@ -131,11 +132,14 @@ def test_triggers_are_the_authority_paths_and_maintainer_dispatch() -> None:
     assert {p.relative_to(ROOT).as_posix() for p in (ROOT / "model-based-product-line-engineering/feature-models")
             .glob("*.yaml")} == catalogues, "the catalogues are exactly the three families'"
     # The runner reads the pin from the package record and its inputs from the qualification runner.
-    assert {"de4sdv/semantic/pleml_package.py", f"{PROJECT}/sysand-lock.toml"} <= set(runner.EXECUTOR_INPUTS)
-    # The job reads production documents but changes no production selector: none of its own,
-    # pin or receipt paths is a trigger of the production validation.
+    assert {"de4sdv/semantic/pleml_package.py", ".project.json", "sysand-lock.toml"} <= set(runner.EXECUTOR_INPUTS)
+    # Since the switch the PLEML documents and the production lock are production inputs, so they
+    # trigger the licensed validation too; the job's runner, tests, evaluator and receipts do not.
     validation = set(_load(VALIDATION)[True]["pull_request"]["paths"])
-    assert not ((OWN_PATHS | PIN_PATHS | EVALUATOR_PATHS | {f"{runner.RECEIPTS_DIR}/**"}) & validation)
+    shared = {"model-based-product-line-engineering/feature-models/**/*.sysml",
+              "model-based-product-line-engineering/feature-configurations/**/*.sysml",
+              ".project.json", "sysand-lock.toml"}
+    assert (OWN_PATHS | PIN_PATHS | EVALUATOR_PATHS | {f"{runner.RECEIPTS_DIR}/**"}) & validation == shared
     assert triggers["workflow_dispatch"]["inputs"]["ref"]["required"] is True
 
 
@@ -156,7 +160,7 @@ def test_the_job_keeps_the_privileged_validation_guard_and_read_only_permissions
 def test_the_executor_is_the_exact_head_and_the_only_checkout() -> None:
     steps = _steps()
     checkouts = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
-    assert len(checkouts) == 1, "no frozen experiment: the library comes from the fenced Sysand project"
+    assert len(checkouts) == 1, "no frozen experiment: the library comes from the production Sysand lock"
     [head] = checkouts
     assert head["name"] == "Checkout the executor commit"
     assert head["with"] == {"ref": "${{ github.event.pull_request.head.sha || inputs.ref }}",
@@ -167,15 +171,17 @@ def test_the_executor_is_the_exact_head_and_the_only_checkout() -> None:
     assert "git rev-parse HEAD" in revision["run"] and '"$EXPECTED_HEAD"' in revision["run"]
 
 
-def test_the_fenced_package_is_installed_and_byte_checked_before_any_step_reads_it() -> None:
+def test_the_pinned_package_is_synced_and_byte_checked_before_any_step_reads_it() -> None:
     steps = _steps()
-    index, step = _named("Install and byte-check the fenced PLEML package")
-    assert f"(cd {PROJECT} && sysand sync)" in step["run"]
+    sync, _ = _step("sysand sync")
+    index, step = _named("Byte-check the pinned PLEML package")
+    assert sync < index and "sysand sync" not in step["run"] and "cd " not in step["run"]
     assert ("python scripts/check_pleml_package.py --release-diff --from-index --verify-tag "
             '--out "$RUNNER_TEMP/ple-evidence/pleml-package.json"') in step["run"]
     readers = [i for i, s in enumerate(steps)
                if any(reader in (s.get("run") or "") for reader in ("tests/test_ple_", "syside check", RUNNER))]
     assert readers and min(readers) > index
+    assert pleml_package.FENCED_PROJECT.as_posix() not in WORKFLOW.read_text(encoding="utf-8")
     # The installed package is untracked and ignored, so the dirty-checkout guards never see it.
     import subprocess
 
@@ -300,7 +306,10 @@ def test_the_licence_reaches_only_the_two_syside_steps() -> None:
         assert "git push" not in run and "gh pr merge" not in run and "deploy.py" not in run
 
 
-def test_syside_check_covers_the_reviewed_roots_the_pinned_library_and_the_pleml_files() -> None:
+def test_syside_check_covers_the_model_roots_with_the_pleml_files_and_their_fixtures() -> None:
+    """The model roots of the licensed validation, the PLEML documents among them, the
+    fixtures included; the pinned libraries, PLEML among them, resolve from the
+    production lock as they do in the licensed validation."""
     from scripts.validate_sysml import MODEL_PATHS
 
     _index, check = _step("syside check")
@@ -309,10 +318,12 @@ def test_syside_check_covers_the_reviewed_roots_the_pinned_library_and_the_pleml
     command = " ".join(re.sub(r"\\\n\s*", " ", check["run"]).split()) + " "
     for root in MODEL_PATHS:
         assert f" {root.as_posix()} " in command, root
-    assert f" {LIBRARY} " in command and "external/pleml" not in command
+    assert "PLEML.sysml" not in command and "external/pleml" not in command and ".sysand" not in command
     for directory in ("model-based-product-line-engineering/feature-models",
                       "model-based-product-line-engineering/feature-configurations"):
         assert f" {directory} " in command, directory
+    # The production validation excludes the fixtures; this job is where they are checked.
+    assert "--exclude" not in command
     assert '"$RUNNER_TEMP/ple-evidence/syside-check.txt"' in command
 
 
@@ -324,7 +335,7 @@ def test_the_runner_command_parses_against_the_real_parser() -> None:
     substituted = command.replace("$HEAD_SHA", "a" * 40).replace("$RUNNER_TEMP", "/tmp/runner-temp")
     args = runner.build_parser().parse_args(shlex.split(substituted)[2:])
     assert args.licensed is True and args.expected_executor == "a" * 40
-    assert "--library" not in command, "the runner reads the library from the fenced package"
+    assert "--library" not in command, "the runner reads the library from the pinned package"
     assert args.api_url == "http://127.0.0.1:9000"
     assert args.out == Path("/tmp/runner-temp/ple-evidence/authority")
     _start_index, start = _named(API_START)

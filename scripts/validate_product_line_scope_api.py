@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
-"""Validate the governed AEBS product-line scope on an exact API revision."""
+"""Validate the governed AEBS product-line scope on an exact API revision.
+
+Since the PLEML authority switch (ADR 0022, step S6) the report also records
+the derived ``appliesToMemberProduct`` fact of every feature configuration of
+the served model, bound through the revision binding's validated kernel
+identities (``de4sdv.semantic.applies_to_member_product``). A configuration
+that applies to more than one member product, or an ambiguous generated part
+definition, fails the validation.
+"""
 
 from __future__ import annotations
 
@@ -14,6 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from de4sdv.semantic.applies_to_member_product import member_product_applications
 from de4sdv.sysml_api.baseline import BaselineExportBundle, BaselineManifest
 from de4sdv.sysml_api.product_line_scope import validate_scope_elements
 from de4sdv.sysml_api.repository import element_id
@@ -73,8 +82,13 @@ def validate_api_scope(
         )
 
     scope = validate_scope_elements(elements, bundle.element_sources)
+    applications = member_product_applications(
+        elements, bundle.element_sources,
+        kernel_bindings={item.ontology_class: item.element_id for item in binding.kernel_bindings},
+        external_references=bundle.external_references, governed_scope=scope)
     return {
         **scope,
+        "configuration_member_products": applications,
         "revision": {
             "scope": binding.scope,
             "git_commit": binding.git_commit,
@@ -112,6 +126,10 @@ def main() -> int:
                 "planned_reference_member_count": len(
                     report["planned_reference_members"]
                 ),
+                "configuration_member_products": {
+                    row["configuration"]: (row["member_product"] or {}).get("declared_name")
+                    for row in report["configuration_member_products"]["configurations"]
+                },
                 "revision": report["revision"],
                 "output": str(args.output),
             },

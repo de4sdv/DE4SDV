@@ -19,6 +19,16 @@ _GOVERNED_MODEL_PATHS = (
     "textual-notation-of-model",
     "model-based-product-line-engineering/product-models",
     "model-based-product-line-engineering/scoping",
+    "model-based-product-line-engineering/feature-models",
+    "model-based-product-line-engineering/feature-configurations",
+    # Not governed: the synthetic fixtures of the model roots (the invalid
+    # configuration and the parity probes), which the export never reads
+    # (baseline.py EXCLUDED_PARTS), so a fixture change is no model drift.
+    ":(exclude,glob)**/fixtures/**",
+    # The production Sysand project and lock: they pin the libraries the export
+    # and the served model read (PINNED_DEPENDENCIES), PLEML among them.
+    ".project.json",
+    "sysand-lock.toml",
     # Model-authority inputs: the generated projection/profile pairs and
     # trace-vocabulary contract, the frozen records, the admission manifests,
     # the identity register whose dispositions decide refusals, and the

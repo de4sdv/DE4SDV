@@ -70,10 +70,49 @@ def _env(revision):
 
 
 def test_every_governed_path_matches_a_tracked_file():
-    """A governed path that matches nothing makes the drift gate pass vacuously."""
+    """A governed path that matches nothing makes the drift gate pass vacuously, and
+    an exclusion that matches nothing under the governed roots is dead."""
+    included = [path for path in entrypoint._GOVERNED_MODEL_PATHS if not path.startswith(":(exclude")]
+    under_roots = set(_git(ROOT, "ls-files", "--", *included).splitlines())
     for pathspec in entrypoint._GOVERNED_MODEL_PATHS:
+        if pathspec.startswith(":(exclude"):
+            magic, _, pattern = pathspec[2:].partition(")")
+            words = [word for word in magic.split(",") if word != "exclude"]
+            positive = f":({','.join(words)}){pattern}" if words else pattern
+            excluded = set(_git(ROOT, "ls-files", "--", positive).splitlines()) & under_roots
+            assert excluded, f"governed exclusion matches no governed file: {pathspec}"
+            continue
         tracked = _git(ROOT, "ls-files", "--", pathspec)
         assert tracked, f"governed path matches no tracked file: {pathspec}"
+
+
+def test_the_drift_gate_governs_no_fixture_and_every_member_configuration():
+    """The synthetic fixtures (the invalid configuration and the parity probes) are
+    never exported, so they are no governed model input; the member configurations are."""
+    governed = _git(ROOT, "ls-files", "--", *entrypoint._GOVERNED_MODEL_PATHS).splitlines()
+    configurations = "model-based-product-line-engineering/feature-configurations/"
+    fixtures = _git(ROOT, "ls-files", "--", configurations + "fixtures").splitlines()
+    assert len([path for path in fixtures if path.endswith(".sysml")]) == 18
+    assert not set(fixtures) & set(governed)
+    assert not [path for path in governed if "/fixtures/" in path]
+    members = [path for path in governed if path.startswith(configurations) and path.endswith(".sysml")]
+    assert len(members) == 7
+
+
+def test_a_fixture_change_is_no_model_drift(runtime_repo):
+    """A fixture is never exported: changing one does not refuse a code-only start,
+    and the same change beside the member configurations does."""
+    repo, binding = runtime_repo
+    configurations = "model-based-product-line-engineering/feature-configurations"
+    _write(repo, f"{configurations}/fixtures/parity-probes/probe.sysml", "package Probe;\n")
+    _write(repo, f"{configurations}/fixtures/invalid.yaml", "selected: []\n")
+    revision = _commit(repo, "change the fixtures")
+    contract = validate_runtime_contract(repo, binding, _env(revision))
+    assert contract.application_revision == revision
+    _write(repo, f"{configurations}/probe.sysml", "package Probe;\n")
+    revision = _commit(repo, "a member configuration")
+    with pytest.raises(RuntimeContractError, match="drift"):
+        validate_runtime_contract(repo, binding, _env(revision))
 
 
 def test_deleted_authored_yaml_is_no_longer_a_governed_path():

@@ -43,18 +43,17 @@ jobs:
       - name: Sync pinned SysML dependencies
         run: sysand sync
 
-      # The fenced PLEML lock: the byte check against the committed record of
-      # the release tag, and the release diff of the pin (fast or full path).
-      - name: Sync and byte-check the fenced PLEML package
-        run: |
-          (cd model-based-product-line-engineering/libraries/pleml && sysand sync)
-          python scripts/check_pleml_package.py --release-diff
+      # PLEML from the production lock: the byte check against the committed
+      # record of the release tag, and the release diff of the pin (fast or
+      # full path).
+      - name: Byte-check the pinned PLEML package
+        run: python scripts/check_pleml_package.py --release-diff
 
       # The parity of the PLEML receipts with the YAML path (ADR 0022, plan
       # step S4), which gates every step until S7: every parity row, the
       # plan's histogram and the seven normalised projection bodies, from the
       # committed receipts and the YAML, unlicensed. It replays the receipts,
-      # so it runs after the fenced package is installed.
+      # so it runs after the pinned package is byte-checked.
       - name: Check the PLEML parity with the YAML path
         run: python scripts/check_pleml_parity.py
 

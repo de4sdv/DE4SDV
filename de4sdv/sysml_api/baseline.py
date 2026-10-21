@@ -14,7 +14,16 @@ REVIEWED_ROOTS = (
     Path("textual-notation-of-model"),
     Path("model-based-product-line-engineering/product-models"),
     Path("model-based-product-line-engineering/scoping"),
+    # The PLEML feature models and their configurations, the product-line
+    # authority since the switch (ADR 0022, step S6).
+    Path("model-based-product-line-engineering/feature-models"),
+    Path("model-based-product-line-engineering/feature-configurations"),
 )
+#: Directories of a reviewed root that the export never reads: historical
+#: snapshots, and the synthetic fixtures (the invalid configuration and the
+#: parity probes), which the PLE authority job validates and serializes apart.
+#: No production selector reads the fixtures either.
+EXCLUDED_PARTS = frozenset({"snapshots", "fixtures"})
 PINNED_DEPENDENCIES = (
     Path(".sysand/lib/mbse4u-sysmod_5.1.1/SYSMOD.sysml"),
     Path(
@@ -22,7 +31,24 @@ PINNED_DEPENDENCIES = (
         "RequirementsManagement.sysml"
     ),
     Path(".sysand/lib/sensmetry-syside-views_0.10.3/SysideViews.sysml"),
+    # PLEML 1.1.1, byte-checked against its release tag (de4sdv/semantic/pleml_package.py).
+    Path(".sysand/lib/mbse4u-pleml_1.1.1/PLEML.sysml"),
 )
+
+
+def reviewed_source(relative: Path | str) -> bool:
+    """Whether the export reads this repository-relative document.
+
+    A reviewed source is a ``.sysml`` file under a reviewed root and outside
+    the excluded parts. The configurator's receipt mode projects only the
+    configurations whose document it admits.
+    """
+    path = Path(relative)
+    return (
+        path.suffix == ".sysml"
+        and any(path.is_relative_to(root) for root in REVIEWED_ROOTS)
+        and not EXCLUDED_PARTS & set(path.parts)
+    )
 
 
 @dataclass(frozen=True)
@@ -43,7 +69,7 @@ class BaselineManifest:
         for root in REVIEWED_ROOTS:
             for path in sorted((repository_root / root).rglob("*.sysml")):
                 relative = path.relative_to(repository_root)
-                if "snapshots" in relative.parts:
+                if not reviewed_source(relative):
                     continue
                 entries.append(_source(repository_root, relative, "reviewed"))
         for relative in PINNED_DEPENDENCIES:

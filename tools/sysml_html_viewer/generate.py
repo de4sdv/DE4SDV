@@ -56,11 +56,15 @@ from .render import (
 
 # Same scope as scripts/validate_sysml.py MODEL_PATHS: the whole textual
 # notation root (packages, imported libraries like COVESA VSS, snapshots)
-# plus the PLE product models and governed product-line scope.
+# plus the PLE product models, the governed product-line scope and the PLEML
+# feature models and configurations (ADR 0022), without the fixtures
+# (model_parse.EXCLUDED_PART).
 DEFAULT_ROOTS = [
     "textual-notation-of-model",
     "model-based-product-line-engineering/product-models",
     "model-based-product-line-engineering/scoping",
+    "model-based-product-line-engineering/feature-models",
+    "model-based-product-line-engineering/feature-configurations",
 ]
 
 

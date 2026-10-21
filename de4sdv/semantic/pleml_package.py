@@ -1,19 +1,20 @@
-"""The exact-pinned PLEML package of the fenced PLE context.
+"""The exact-pinned PLEML package of the product-line authority (ADR 0022).
 
 PLEML (``pkg:sysand/mbse4u/pleml``, MIT) reaches this repository only through
-Sysand: the project ``PROJECT`` pins it ``=1.1.1`` and commits the lock (ADR
-0022, decision 1). The project is fenced. Until the switch (step S6 of the
-PLEML migration plan), the production lock, ``PINNED_DEPENDENCIES``, the
-reviewed roots and the production selectors do not use PLEML; only the
-``READER_WORKFLOWS`` and the PLE scripts read it.
+Sysand: the production project ``PROJECT``, the repository root, pins it
+``=1.1.1`` in the committed lock, as ADR 0007 pins SYSMOD (ADR 0022, decision
+1). ``PINNED_DEPENDENCIES`` (``de4sdv/sysml_api/baseline.py``) lists the
+installed library, so the export, the API baseline and the served model read
+it with the feature models.
 
 ``RELEASE`` is the committed record of the pinned release, taken from the
 upstream release tag: the tag commit and, for each file, the Git blob, the
 SHA-256 and the size. A tag can be moved, so the checks compare bytes with
 these values, never with the tag name:
 
-- ``verify_installed`` is the byte check. The project pins exactly the
-  release, the lock resolves exactly the recorded archive, and the installed
+- ``verify_installed`` is the byte check. The project uses the release
+  exactly once with the exact constraint, the lock resolves exactly the
+  recorded archive, no other PLEML release is installed, and the installed
   files are byte-identical to the tag.
 - ``verify_repin`` is the bounded re-verification of the re-pin from
   ``PREVIOUS`` (the upstream release policy), offline. ``REPIN`` records what
@@ -27,12 +28,10 @@ these values, never with the tag name:
   feature-model packages and their fixtures import PLEML, and the tests fail
   on any other importer.
 
-At the switch (S6), when PLEML moves to the production lock, these change
-together: ``PROJECT`` and ``LIBRARY_PATH``; the usage, lock and
-other-package rules of ``verify_installed`` (the production project uses
-three more packages); the ``sysand sync`` lines and the authority job's
-``syside check`` path in the ``READER_WORKFLOWS``; and the tests that name the
-fenced path.
+Until the switch (step S6 of the PLEML migration plan) the lock was the fenced
+project ``model-based-product-line-engineering/libraries/pleml/``
+(``FENCED_PROJECT``), which only the PLE workflows read. The switch moved the
+pin to the production lock; the release and its bytes did not change.
 
 Nothing here evaluates PLEML, and nothing here is a qualification.
 """
@@ -49,15 +48,17 @@ from typing import Any, NamedTuple
 ROOT = Path(__file__).resolve().parents[2]
 
 PACKAGE = "pkg:sysand/mbse4u/pleml"
-#: The fenced Sysand project. Its ``.sysand/`` is untracked, like the production one.
-PROJECT = Path("model-based-product-line-engineering/libraries/pleml")
+#: The production Sysand project: the repository root. Its ``.sysand/`` is untracked.
+PROJECT = Path(".")
+#: The fenced project that held the pin until the switch (S6); history only.
+FENCED_PROJECT = Path("model-based-product-line-engineering/libraries/pleml")
 SCHEMA = "de4sdv.pleml-package-check/v1"
 #: Model files a package may carry; each one must be on record.
 MODEL_SUFFIXES = (".sysml", ".kerml")
 
 
 class PackageError(ValueError):
-    """The fenced PLEML package is not the recorded release, byte for byte."""
+    """The pinned PLEML package is not the recorded release, byte for byte."""
 
 
 class LibraryFile(NamedTuple):
@@ -151,10 +152,12 @@ PREVIOUS = Release(
 REPIN = Repin(path="fast", previous_line_endings="CRLF", previous_lines=((25, "     * Version: v1.1"),))
 RELEASE_PATH = REPIN.path
 
-#: Where ``sysand sync`` in ``PROJECT`` installs the library, relative to the repository.
+#: Where ``sysand sync`` in ``PROJECT`` installs the library, relative to the repository:
+#: the path ``PINNED_DEPENDENCIES`` and the export record.
 LIBRARY_PATH = PROJECT / ".sysand/lib" / f"mbse4u-pleml_{RELEASE.version}" / RELEASE.library.path
 #: Where a run read each release's library, relative to the checkout that held it:
-#: 1.1.0 from the frozen experiment's PLEML submodule, 1.1.1 from this project. A
+#: 1.1.0 from the frozen experiment's PLEML submodule, 1.1.1 from the production
+#: lock (before the switch, from the fenced project ``FENCED_PROJECT``). A
 #: re-pin moves the library's serialized references from the previous release's
 #: path to the pinned one's, and nothing else. Each re-pin adds the new release's
 #: entry; ``check_provision_paths`` refuses a record without it.
@@ -175,7 +178,7 @@ def check_provision_paths(release: Release = RELEASE, previous: Release = PREVIO
     installed = PROJECT / ".sysand/lib" / f"mbse4u-pleml_{release.version}" / release.library.path
     if paths[release.version] != installed:
         raise PackageError(f"the provision path {paths[release.version]} of PLEML {release.version} is not where "
-                           f"the fenced lock installs it ({installed})")
+                           f"the production lock installs it ({installed})")
     if paths[previous.version] == paths[release.version]:
         raise PackageError("the previous and the pinned release name the same provision path")
 
@@ -192,10 +195,13 @@ IMPORT_EXEMPTIONS = {
     "scripts/run_ple_scoped_execution.py":
         "the PLE-Q probe text the scoped execution writes outside the repository",
 }
-#: The only workflows that read this project: public CI, the PLE qualification
-#: and the authority job of step S3, which retired the PLE-S workflow. No
-#: production workflow reads it before S6.
-READER_WORKFLOWS = ("ci.yml", "privileged-ple-qualification.yml", "privileged-ple-authority.yml")
+#: The workflows that byte-check the installed package before any step reads
+#: it: public CI, the PLE qualification, the authority job and the privileged
+#: full-model ingestion, whose export the deploy serves. Every other workflow
+#: that syncs the production lock reads the library through Sysand's archive
+#: digests only.
+BYTE_CHECKING_WORKFLOWS = ("ci.yml", "privileged-ple-qualification.yml", "privileged-ple-authority.yml",
+                           "privileged-full-model-api-ingestion.yml")
 
 
 def sha256(data: bytes) -> str:
@@ -208,16 +214,22 @@ def git_blob(data: bytes) -> str:
 
 
 def verify_installed(root: Path = ROOT, *, release: Release = RELEASE, project: Path = PROJECT) -> dict[str, Any]:
-    """The byte check of the fenced package; returns its receipt or raises ``PackageError``."""
+    """The byte check of the pinned package; returns its receipt or raises ``PackageError``.
+
+    The production project uses other packages too: the rules bind the PLEML
+    usage, its lock entry and its installation, and refuse any other installed
+    PLEML release.
+    """
     base = root / project
     try:
         usage = json.loads((base / ".project.json").read_text(encoding="utf-8")).get("usage")
         lock_bytes = (base / "sysand-lock.toml").read_bytes()
         lock = tomllib.loads(lock_bytes.decode("utf-8"))
     except (OSError, ValueError) as exc:
-        raise PackageError(f"the fenced Sysand project {project} is not readable: {exc}") from exc
-    if usage != [{"resource": PACKAGE, "versionConstraint": "=" + release.version}]:
-        raise PackageError(f"the fenced project must use exactly {PACKAGE} ={release.version}, found {usage}")
+        raise PackageError(f"the Sysand project {project.as_posix()} is not readable: {exc}") from exc
+    pleml_usage = [item for item in usage or [] if isinstance(item, dict) and item.get("resource") == PACKAGE]
+    if pleml_usage != [{"resource": PACKAGE, "versionConstraint": "=" + release.version}]:
+        raise PackageError(f"the project must use {PACKAGE} exactly once as ={release.version}, found {pleml_usage}")
     entries = [entry for entry in lock.get("project", []) if PACKAGE in entry.get("identifiers", [])]
     source = {"index_kpar": release.index_kpar, "kpar_size": release.kpar_size, "kpar_digest": release.kpar_sha256}
     if len(entries) != 1 or entries[0].get("version") != release.version or entries[0].get("sources") != [source]:
@@ -226,10 +238,12 @@ def verify_installed(root: Path = ROOT, *, release: Release = RELEASE, project: 
     environment = base / ".sysand/lib"
     installed = environment / f"mbse4u-pleml_{release.version}"
     if not installed.is_dir():
-        raise PackageError(f"{PACKAGE} {release.version} is not installed: run `sysand sync` in {project}")
-    others = sorted(path.name for path in environment.iterdir() if path != installed)
+        raise PackageError(f"{PACKAGE} {release.version} is not installed: run `sysand sync` in the project "
+                           f"({project.as_posix()})")
+    others = sorted(path.name for path in environment.iterdir()
+                    if path != installed and path.name.startswith("mbse4u-pleml_"))
     if others:
-        raise PackageError(f"the fenced project installs other packages: {others}")
+        raise PackageError(f"the project installs another PLEML release: {others}")
     models = sorted(path.relative_to(installed).as_posix() for path in installed.rglob("*")
                     if path.suffix in MODEL_SUFFIXES)
     recorded = sorted(item.path for item in release.models)
