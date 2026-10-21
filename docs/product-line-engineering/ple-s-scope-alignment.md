@@ -10,7 +10,8 @@ retained run. At step S7 the retained evidence directory, the comparison
 oracle and its test retired with the YAML catalogue that the oracle ran; the
 rollback tag `pleml-yaml-authority-final` keeps them, and the links below
 point to it. After S7 the evaluator module and its test retired too, since
-nothing read them any more; the tag keeps them as well.
+only their own test and one identity assertion of the PLE qualification
+still read the module; the tag keeps them as well.
 **Decision authority for anything beyond this record:** Orkun Yilmaz, DE4SDV
 technical lead and maintainer.
 **Model:** [`aebs_product_line_scope_alignment.sysml`](https://github.com/de4sdv/DE4SDV/blob/f967a519a9f98a2ab1b6dc8e886c3e7ad1415cdb/model-based-product-line-engineering/pleml-scope-alignment/aebs_product_line_scope_alignment.sysml)
