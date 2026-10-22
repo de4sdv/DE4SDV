@@ -25,8 +25,9 @@ needs the six items of the ADR 0014 change control.
 ADR 0022 made PLEML the configuration-validity authority. The governed scope
 stays the admission authority, so a configuration can be valid without being
 admitted. ADR 0022 keeps the derived-realization clause of ADR 0014 as an
-admission rule. The catalogue configures operating system, hypervisor and
-middleware, and admission classifies them as derived realizations.
+admission rule. At its acceptance, the catalogue configured operating
+system, hypervisor and middleware, and admission classified them as derived
+realizations.
 
 ### The question of INC-MW-011
 
@@ -68,7 +69,9 @@ ADR 0022 note on the guest side (2026-10-22) records the owner decision
 behind this reading. The ADR 0022 amendment of the derived-realization
 clause also covers `guestOperatingSystem`, `guestMiddleware` and
 `middleware` in its partner role, for every member. This record builds on
-that note.
+that note. Since phase 9, no main-side operating-system choice is a derived
+realization: Linux corresponds only to the common Linux/ROS 2 Autoware
+runtime.
 
 Two configurations matter here:
 
