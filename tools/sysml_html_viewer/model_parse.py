@@ -299,14 +299,19 @@ def _attach_docs(text: str, members: list[Member]) -> None:
                 break
 
 
+# a reference, a subsetting or a redefinition after a typing, as a keyword
+# or as a symbol (`:>` also starts `:>>`)
+_AFTER_TYPING_RE = re.compile(r"(?:references|subsets|redefines)\b|::>|:>")
+
+
 def _declared_type(raw: str, name: str) -> str:
     """Typing named in a usage declaration (`part x : T;` -> "T").
 
     Captured so hover enrichment can fall back to the type definition's doc
     when the usage itself is undocumented, even from BARE diagram labels
     (matrix row/column labels print only the usage name). Returns "" for
-    definitions, untyped usages, and specialization forms (`:>` / `:>>`),
-    which are not typing references.
+    definitions, untyped usages, and usages that only specialize
+    (`part x :> y;`), because a specialization is not a typing.
     """
     if " : " not in raw:
         return ""
@@ -315,11 +320,13 @@ def _declared_type(raw: str, name: str) -> str:
     if not m:
         return ""
     candidate = m.group(1)
-    # `:>`/`:>>` specializations land here only if written with spaces around
-    # the colon; those are not typings. A typing is followed by `;`, `{`, or
-    # end-of-line (possibly with a redefinition/assignment after).
+    # A typing is followed by `;`, `{` or the end of the line. It can also be
+    # followed by a reference, a subsetting or a redefinition, as a keyword
+    # or as a symbol (`part x : T references y;`, `part x : T :>> y;`).
     after = tail[m.end():].lstrip()
     if after.startswith((";", "{", "={", "= {")) or after == "":
+        return candidate
+    if _AFTER_TYPING_RE.match(after):
         return candidate
     return ""
 

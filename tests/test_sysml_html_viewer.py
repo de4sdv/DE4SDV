@@ -1187,8 +1187,8 @@ def test_declarations_with_several_prefix_keywords_are_indexed(tmp_path):
     assert entries("total") == [("attribute", "Refuel", 15, "Real")]
     # the variant reference and the variant that it references are two
     # declarations with the same name
-    assert [entry[:3] for entry in entries("shared")] == [
-        ("part", "hostLayer", 5), ("part", "guestLayer", 8)]
+    assert entries("shared") == [
+        ("part", "hostLayer", 5, "Shared"), ("part", "guestLayer", 8, "Shared")]
     # one prefix keyword or none
     assert entries("Stack") == [("part def", "P", 2, "")]
     assert entries("hostLayer") == [("part", "Stack", 3, "Layer")]
@@ -1197,9 +1197,9 @@ def test_declarations_with_several_prefix_keywords_are_indexed(tmp_path):
 
 
 def test_variant_reference_label_resolves_in_its_own_variation(tmp_path):
-    """Two variants can have the same name when one references the other.
-    A diagram label resolves to the variant of the variation that contains
-    the label."""
+    """Two variants in different variations can have the same name. Here,
+    one references the other. A diagram label resolves to the variant of
+    the variation that contains the label."""
     f = tmp_path / "prefixes.sysml"
     f.write_text(_PREFIXES_MODEL, encoding="utf-8")
     index = build_member_index([parse_file(f, tmp_path)])
@@ -1211,6 +1211,142 @@ def test_variant_reference_label_resolves_in_its_own_variation(tmp_path):
     )
     assert [(li.name, li.line) for li in resolved] == [
         ("hostLayer", 3), ("shared", 5), ("guestLayer", 7), ("shared", 8)]
+
+
+def test_declared_type_before_a_reference_subsetting_or_redefinition(tmp_path):
+    """A typing can come before a reference, a subsetting or a
+    redefinition, as a keyword or as a symbol. The declared type is
+    captured in each of these forms. A usage that only specializes has no
+    declared type."""
+    f = tmp_path / "typings.sysml"
+    f.write_text(
+        "package P {\n"
+        "  part def Layer {\n"
+        "    variant ref part a : A references b::a;\n"
+        "    part b : B subsets c;\n"
+        "    part d : D redefines e;\n"
+        "    part f : F ::> g;\n"
+        "    part h : H :> i;\n"
+        "    part j : J :>> k;\n"
+        "    part l :> m;\n"
+        "  }\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    types = {m.name: m.type_name for m in parse_file(f, tmp_path).members}
+    assert types == {"P": "", "Layer": "", "a": "A", "b": "B", "d": "D",
+                     "f": "F", "h": "H", "j": "J", "l": ""}
+
+
+# Synthetic model for qualified names in the source view (`Q::name`). The
+# two layers of the stack have a variant `shared` each. The rack has a
+# `guestLayer::shared` of its own. The `hostLayer` of package A owns
+# nothing.
+_QUALIFIED_MODEL = {
+    "stack/stack.sysml": (
+        "package P {\n"
+        "  part def Stack {\n"
+        "    variation part hostLayer : Layer {\n"
+        "      variant ref part shared : Shared references guestLayer::shared;\n"
+        "    }\n"
+        "    variation part guestLayer : Layer {\n"
+        "      variant part shared : Shared;\n"
+        "    }\n"
+        "  }\n"
+        "}\n"
+    ),
+    "stack/member.sysml": (
+        "package M {\n"
+        "  part member : P::Stack {\n"
+        "    part :>> hostLayer = hostLayer::shared;\n"
+        "    part :>> guestLayer = guestLayer :: shared;\n"
+        "    part other = Unknown::shared;\n"
+        "  }\n"
+        "}\n"
+    ),
+    "rack/rack.sysml": (
+        "package R {\n"
+        "  part def Rack {\n"
+        "    part guestLayer : Layer {\n"
+        "      part shared : Shared;\n"
+        "    }\n"
+        "  }\n"
+        "  part chained = P::Stack::guestLayer::shared;\n"
+        "}\n"
+    ),
+    "alias/alias.sysml": (
+        "package A {\n"
+        "  part hostLayer : Layer;\n"
+        "  part named = hostLayer::shared;\n"
+        "}\n"
+    ),
+}
+
+
+def _qualified_model_site(tmp_path):
+    root = tmp_path / "textual-notation-of-model" / "packages"
+    for rel, text in _QUALIFIED_MODEL.items():
+        path = root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    out = tmp_path / "site"
+    generate(tmp_path, out, ["textual-notation-of-model/packages"])
+    return out
+
+
+def _source_links(out, rel, line):
+    """(name, file name, line) of each source reference on one source line."""
+    page = out / "pages" / "textual-notation-of-model" / "packages" / f"{rel}.html"
+    html = page.read_text(encoding="utf-8")
+    seg = html[html.find(f'id="src-{line}"'): html.find(f'id="src-{line + 1}"')]
+    return [
+        (name, Path(file).name, int(target))
+        for name, file, target in re.findall(
+            r'<a class="src-ref"[^>]*data-tip-name="([^"]*)"[^>]*'
+            r'data-tip-file="([^"]*)" data-tip-line="(\d+)"',
+            seg,
+        )
+    ]
+
+
+def test_qualified_source_reference_resolves_in_its_qualifier(tmp_path):
+    """In `Q::name`, the source reference of name goes to the declaration of
+    name that Q owns. Each qualifier of a chain `A::B::name` is resolved
+    in this way. There can be spaces around `::`."""
+    out = _qualified_model_site(tmp_path)
+    assert _source_links(out, "stack/member.sysml", 3) == [
+        ("hostLayer", "stack.sysml", 3), ("hostLayer", "stack.sysml", 3),
+        ("shared", "stack.sysml", 4)]
+    assert _source_links(out, "stack/member.sysml", 4) == [
+        ("guestLayer", "stack.sysml", 6), ("guestLayer", "stack.sysml", 6),
+        ("shared", "stack.sysml", 7)]
+    # the rack file has a guestLayer::shared of its own
+    assert _source_links(out, "rack/rack.sysml", 7) == [
+        ("P", "stack.sysml", 1), ("Stack", "stack.sysml", 2),
+        ("guestLayer", "stack.sysml", 6), ("shared", "stack.sysml", 7)]
+
+
+def test_qualified_source_reference_on_the_declaration_line_of_its_name(tmp_path):
+    """A variant can reference a variant with the same name
+    (`variant ref part shared : Shared references guestLayer::shared;`).
+    The declared name has no source reference. The qualified name keeps its
+    source reference."""
+    out = _qualified_model_site(tmp_path)
+    assert _source_links(out, "stack/stack.sysml", 4) == [
+        ("guestLayer", "stack.sysml", 6), ("shared", "stack.sysml", 7)]
+
+
+def test_qualified_source_reference_falls_back_to_the_name_of_its_qualifier(tmp_path):
+    """If the declaration of Q owns no declaration of name, the declarations
+    of name whose parent has the name Q are used. If no parent has the
+    name Q, the rules for a name without a qualifier apply."""
+    out = _qualified_model_site(tmp_path)
+    # the hostLayer of package A owns nothing, the hostLayer of the stack
+    # owns a shared
+    assert _source_links(out, "alias/alias.sysml", 3) == [
+        ("hostLayer", "alias.sysml", 2), ("shared", "stack.sysml", 4)]
+    # no declaration has the name Unknown
+    assert _source_links(out, "stack/member.sysml", 5) == [("shared", "stack.sysml", 4)]
 
 
 def test_anonymous_usage_indexed(tmp_path):
