@@ -322,7 +322,9 @@ feature configurations, receipts and generated product models. Each `F-` and
 ID names the derived-variation dependency. The `C` code names constraints
 only: the exclusions and requires constraints keep the catalogue's constraint
 IDs as their short names (`C001`, `C003`, `C004` and `C005`, and the
-execution-environment `C-ENG-` and `C-VEHICLE-` IDs). The `C-`
+execution-environment `C-ENG-` and `C-VEHICLE-` IDs). The requires
+constraints that INC-MW-011 phase 9 added take the next free numbers,
+`C007` to `C011`; `C002` and `C006` stay with their dropped rules. The `C-`
 common-capability node IDs of the YAML catalogue, such as
 `C-CAPABILITY-AEBS-VEHICLE-TARGET`, retired with it at step S7: common content
 has no element in a PLEML feature model. The constraint IDs did not retire,

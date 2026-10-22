@@ -34,9 +34,9 @@ VERDICTS = {
     "sdv_product_line.receipt.json": {
         "aebsAutowareLinuxLidarCamera": (True, "standalone", "none", []),
         "middlewareAutowareAAOSSDVReference": (True, "aaosIntegrated", "autowareToAAOSSDV", []),
-        "exampleLinuxSCOREVariant": (True, None, "autowareToSCORE", []),
+        "middlewareAutowareSCOREReference": (True, None, "autowareToSCORE", []),
         "apolloQNXQVMVariant": (True, None, "apolloToSCORE", []),
-        "invalidSCOREAndroidVariant": (False, None, None, ["C001"]),
+        "invalidSCOREAndroidVariant": (False, None, None, ["C001", "C011"]),
     },
     "engineering_execution_environments.receipt.json": {
         "incAEBS009AJetsonExecutionEnvironment": (True, None, None, []),
@@ -48,19 +48,22 @@ VERDICTS = {
 }
 #: The reviewed outcome of each probe of step S4: valid, admitted alternative (None: not admitted),
 #: derived adapter and the classes of its reasons. Until S7 the parity check compared each with the
-#: configurator's verdict on the same selection; these are the verdicts it confirmed.
+#: configurator's verdict on the same selection; these are the verdicts it confirmed, as INC-MW-011 phase 9
+#: changed them: the guest groups add bound reasons to bothIntegrationModesProbe and
+#: noIntegrationModeProbe, C011 rejects Autoware without Linux, and mixedDerivedSetProbe mixes no
+#: middleware with an AAOS SDV guest, so it derives no adapter.
 PROBE_VERDICTS = {
     "adaptiveCruiseControlProbe": (True, None, "none", []),
     "apolloAndroidSDVPairProbe": (False, None, None, ["pair-exclusion"]),
     "apolloAUTOSARAdaptivePairProbe": (False, None, None, ["pair-exclusion"]),
     "apolloNoMiddlewarePairProbe": (True, None, "none", []),
     "autosarAdaptiveACRNProbe": (True, None, "autowareToAUTOSAR", []),
-    "bothIntegrationModesProbe": (False, None, None, ["upper-bound", "upper-bound", "upper-bound"]),
+    "bothIntegrationModesProbe": (False, None, None, ["upper-bound"] * 5),
     "cameraOnlySensingProbe": (True, None, "none", []),
     "handPickedAdapterProbe": (False, None, None, ["derived-variant-not-selectable"]),
     "lidarOnlySensingProbe": (True, None, "none", []),
-    "mixedDerivedSetProbe": (True, None, "autowareToAAOSSDV", []),
-    "noIntegrationModeProbe": (False, None, None, ["lower-bound", "lower-bound", "lower-bound"]),
+    "mixedDerivedSetProbe": (True, None, "none", []),
+    "noIntegrationModeProbe": (False, None, None, ["constraint", *["lower-bound"] * 5]),
     "openpilotAndroidSDVPairProbe": (False, None, None, ["pair-exclusion"]),
     "openpilotAUTOSARAdaptivePairProbe": (False, None, None, ["pair-exclusion"]),
     "openpilotEclipseSCOREPairProbe": (True, None, "openpilotToSCORE", []),

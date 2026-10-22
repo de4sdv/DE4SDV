@@ -86,7 +86,8 @@ def test_the_configurator_refuses_an_invalid_configuration() -> None:
     result = _run("--receipt", str(RECEIPTS / "sdv_product_line.receipt.json"), "--configuration",
                   "invalidSCOREAndroidVariant", "--check-only")
     assert result.returncode == 1
-    assert "1 violation(s) in the receipt" in result.stderr and "Traceback" not in result.stderr
+    # C001, and C011 for Autoware on main-side Android.
+    assert "2 violation(s) in the receipt" in result.stderr and "Traceback" not in result.stderr
 
 
 def test_the_configurator_projects_exactly_the_member_configurations() -> None:
