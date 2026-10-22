@@ -9,6 +9,15 @@ Proposed
 > link below says: it is the PLEML feature models with the DE4SDV evaluation
 > and derivation rules. The kernel guard still keeps configuration algebra out
 > of the method kernel. The decision text below is unchanged.
+>
+> Note (2026-10-22): one sentence of decision 5 no longer holds: "A varying
+> requirement is a variant of a variation, which phase 9 binds to its
+> feature." On 2026-10-21 the owner decided that a requirement varies with the
+> features that bring its system of interest, as existing links state. Phase 9
+> binds no requirement variant to a feature: that waits until the PLEML
+> configuration evaluator binds requirement variants. Rule 5 of the
+> [increment workflow](../../methodologies/sysmod-sysmlv2/increment-workflow.md#method-rules-and-the-increment-workflow-model)
+> states the current rule. The decision text below is unchanged.
 
 ## Context
 
