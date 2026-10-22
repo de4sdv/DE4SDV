@@ -23,6 +23,16 @@ then, the YAML authority of ADR 0014 stays in force.
 > configurations moves to evidence records, and the `C-` common-capability
 > node IDs retire. After S7 a rollback restores the YAML layer from the tag
 > `pleml-yaml-authority-final`. The decision itself is unchanged.
+>
+> Note (2026-10-22): decision 3 says that the module checks the constraints
+> "as the library defines them". The library's expressions test only the
+> direct suboccurrences of a configuration. DE4SDV evaluates the documented
+> semantics over every feature of the tree, at any depth. The binding-time
+> check and the rule that a configuration owns only features follow the same
+> reading.
+> [Nested features](../product-line-engineering/pleml-configuration-evaluation.md#nested-features)
+> gives the reason, and DE4SDV's own test cases check the reading. The
+> decision itself is unchanged.
 
 ## Context
 
