@@ -7,6 +7,8 @@ reference, not a production car or a certificate.
 
 ![Concept illustration, not a model view: four stages from left to right. One SysML v2 model, with requirements, architecture, variability and verification and validation (V&V) evidence (existing today), is configured along dimensions such as these two. Platform stack (application · middleware · OS): the member configurations Autoware · none · Linux and Autoware · Android SDV · Android exist today; not admitted yet are the candidate Autoware · Eclipse S-CORE · Linux with an AAOS SDV guest for the human-machine interface (HMI), in progress, and more stacks (deferred). Sensor set: LiDAR and camera, shared by both members, exists today; variants, for example entry, mid and premium, are deferred and not admitted. Every change is re-checked by CI and review, and model changes also by the Method Check; evidence per member is in progress. The aim is re-checkable evidence for every member and a continuously certifiable product line.](concept-vision-and-aim.drawio.svg)
 
+*Note: this figure predates INC-MW-011 phase 9. The AAOS member is now Autoware on Linux, with AAOS SDV in a KVM guest on the same chip. A redraw follows.*
+
 *Concept illustration, not a model view: the vision at a glance.* DE4SDV
 keeps one SysML v2 model for the whole product line and configures each member
 product from it, along dimensions such as the platform stack (application,
