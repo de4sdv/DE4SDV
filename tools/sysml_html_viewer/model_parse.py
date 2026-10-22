@@ -28,8 +28,10 @@ from typing import Iterable
 # scanning textual-notation-of-model/packages). "abstract"/"derived" and the
 # direction/prefix keywords are handled as separate prefixes so
 # `abstract part def`, `in item x`, `ref part x`, `variant part x` all parse;
-# `then` prefixes use-case include actions (`then include 'x' { ... }`)
-_PREFIX = r"(?:(?:abstract|derived|in|out|inout|ref|variant|variation|then)\s+)?"
+# `then` prefixes use-case include actions (`then include 'x' { ... }`).
+# A declaration can have more than one prefix keyword (`variant ref part x`,
+# `in ref item x`). Thus the prefix group repeats.
+_PREFIX = r"(?:(?:abstract|derived|in|out|inout|ref|variant|variation|then)\s+)*"
 _KIND = (
     r"part def|port def|item def|requirement def|viewpoint def|concern def|"
     r"action def|state def|interface def|flow def|attribute def|metadata def|"
