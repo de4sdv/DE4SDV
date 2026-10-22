@@ -21,8 +21,8 @@ validator, and the evaluator of step S2 owns the semantics. They pin:
 - the exclusions and the requires constraints of the SDV product line;
 - the complement check of the allowed lists of C001 and C003, and of C002's;
 - the closed world: on every structurally valid selection, the model's
-  groups, constraints and rules give the reviewed table of verdicts, which
-  the DE4SDV evaluator reproduced on the same tree (INC-MW-011 phase 9);
+  groups, constraints and rules give the reviewed table of verdicts (this
+  lexical model only; see CLOSED_WORLD);
 - one feature binding per shared-asset variant, the correspondences, the
   projection metadata and the configurations' shape;
 - the admission of each configuration by the stated reading of the
@@ -884,10 +884,12 @@ def _model_verdict(features: list[Feature], rules: list[Dependency], selected: s
 #: The verdicts of the closed world on every structurally valid selection, (valid, constraint IDs, pair
 #: exclusion, derived adapter) -> count: a reviewed table. Until S7 a test compared each selection with the
 #: configurator's verdict on the YAML catalogue. The SDV table changed with the two-sided tree of INC-MW-011
-#: phase 9. Two computations gave it and agree selection by selection: this lexical model over the model
-#: text, and the DE4SDV evaluator over a synthetic graph of the same tree. Of the 129,024 SDV selections,
-#: 16,016 are valid; they are 143 valid platform and display selections, each with the 112 choices of the
-#: sensors and the four other capabilities, which no constraint names.
+#: phase 9, and the test computes it with the lexical model above, over the model text only. On 2026-10-22,
+#: in the phase-9 review, a one-off run of the DE4SDV evaluator over a hand-built synthetic mirror of the
+#: tree (revision 1fb1250f) agreed with it selection by selection. That run is not in the repository, and CI
+#: does not repeat it. Of the 129,024 SDV selections, 16,016 are valid; they are 143 valid platform and
+#: display selections, each with the 112 choices of the sensors and the four other capabilities, which no
+#: constraint names.
 CLOSED_WORLD = {
     "sdv": {
         (False, (), True, None): 7168,

@@ -150,16 +150,18 @@ package DE4SDV_AEBSVisualizationVariabilityConfiguration {
      */
   }
 
-  comment about reusedProductProjection, testArticle
+  comment about reusedProductProjection, testArticle, reusedBoFSource,
+      AEBSAutowareAAOSSDVVisualizationTestArticle,
+      visualizationProductLineConfigurationConcern
     /* Note added by INC-MW-011 phase 9 (owner decision D5 of 2026-10-21): the
      * feature configuration MW-CONFIG-001 gained the guest side, and its
      * projection was regenerated. The test article now inherits an AAOS SDV
      * guest under KVM, and MW-CONFIG-001 selects no HMI display. The evidence
      * of this test article ran the display-capable sdv_ivi_cf guest. So the
-     * statements of this slice that the projection is reused unchanged and
-     * that the inherited selections are unchanged no longer hold. How to
-     * resolve the difference is a later owner decision. This note changes no
-     * selection, no configuration and no evidence. */
+     * statements of this slice that the configuration and the projection are
+     * reused unchanged, and that the inherited selections are unchanged, no
+     * longer hold. How to resolve the difference is a later owner decision.
+     * This note changes no selection, no configuration and no evidence. */
 
   concern visualizationProductLineConfigurationConcern : ProductLineConfigurationConcern {
     doc /*

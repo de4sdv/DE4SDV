@@ -48,10 +48,11 @@ VERDICTS = {
 }
 #: The reviewed outcome of each probe of step S4: valid, admitted alternative (None: not admitted),
 #: derived adapter and the classes of its reasons. Until S7 the parity check compared each with the
-#: configurator's verdict on the same selection; these are the verdicts it confirmed, as INC-MW-011 phase 9
-#: changed them: the guest groups add bound reasons to bothIntegrationModesProbe and
-#: noIntegrationModeProbe, C011 rejects Autoware without Linux, and mixedDerivedSetProbe mixes no
-#: middleware with an AAOS SDV guest, so it derives no adapter.
+#: configurator's verdict on the same selection; these are the verdicts it confirmed. INC-MW-011 phase 9
+#: changed three of them after S7, so no parity check saw the new ones; its licensed receipt records them:
+#: the guest groups add bound reasons to bothIntegrationModesProbe and noIntegrationModeProbe, C011 rejects
+#: Autoware without Linux in noIntegrationModeProbe, and mixedDerivedSetProbe mixes no middleware with an
+#: AAOS SDV guest, so it derives no adapter.
 PROBE_VERDICTS = {
     "adaptiveCruiseControlProbe": (True, None, "none", []),
     "apolloAndroidSDVPairProbe": (False, None, None, ["pair-exclusion"]),

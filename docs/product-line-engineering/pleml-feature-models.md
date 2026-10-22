@@ -108,9 +108,11 @@ exactly-one structure of its group.
 The pinned counts are a reviewed table. Until S7 the test required the
 verdicts to equal the configurator's on the YAML catalogue, selection by
 selection. The two-sided platform of INC-MW-011 phase 9 changed the SDV
-table. Two computations agree on it selection by selection: the lexical
-model of the test over the model text, and the DE4SDV evaluator over a
-synthetic graph of the same tree.
+table. Since then, the test computes the table with its lexical model of the
+model text only. On 2026-10-22, in the phase-9 review, a one-off run of the
+DE4SDV evaluator over a hand-built synthetic mirror of the tree (revision
+1fb1250f) agreed with the table selection by selection. That run is not in
+the repository, and CI does not repeat it.
 
 | Feature model | Structurally valid selections | Valid | Verdict classes |
 |---|---|---|---|
