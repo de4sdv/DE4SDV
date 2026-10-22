@@ -33,6 +33,16 @@ then, the YAML authority of ADR 0014 stays in force.
 > [Nested features](../product-line-engineering/pleml-configuration-evaluation.md#nested-features)
 > gives the reason, and DE4SDV's own test cases check the reading. The
 > decision itself is unchanged.
+>
+> Note (2026-10-22): decision 4 says that "a new operating system option
+> fails CI until C002 is re-assessed". Since INC-MW-011 phase 9 the SDV
+> feature model has a main side and a guest side, each with its own
+> operating-system group. The complement check reads the main-side options
+> only, for C001 and C003 as for C002. So the sentence holds for a new
+> main-side operating-system option. A new guest operating system does not
+> fail the check. On the guest side, the requires constraints C007 and C008
+> state their rules exactly and need no allowed list. The decision itself is
+> unchanged.
 
 ## Context
 
