@@ -317,9 +317,10 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
      * the selected operating system, hypervisor and hardware, or to argue
      * equivalence; phase 10 does so for the Linux host.
      * aou_req__platform__bug_report asks the integrator to report
-     * integration bugs to the supplier and to S-CORE. It is met only for the
-     * gateway integration defects that DE4SDV reported upstream on
-     * 2026-10-22 (GAP-MW-036).
+     * integration bugs to the supplier and to S-CORE. It is not met yet,
+     * because the integration happens in phase 10. On 2026-10-22, DE4SDV
+     * reported upstream the defects that its gateway feasibility run found
+     * (GAP-MW-036).
      * aou_req__platform__posix_operating_system holds only as far as the
      * Linux host of ASM-MW-026 runs a configuration that S-CORE v0.9.0
      * supports; its conformance to IEEE Std 1003.1 is not established. The
@@ -341,8 +342,8 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
      * Middleware baseline items that face this member without being acted
      * on here: N-MW-005 (engagement with upstream maintainers) holds.
      * Outside this slice, its only action for S-CORE is the defect reports
-     * of 2026-10-22 (GAP-MW-036), and deeper engagement stays out of scope
-     * (scoreUpstreamEngagementOutOfScope); REQ-MW-008 and N-MW-009
+     * of 2026-10-22 (GAP-MW-036). Deeper engagement stays out of scope
+     * (scoreUpstreamEngagementOutOfScope). REQ-MW-008 and N-MW-009
      * (authenticated service binding across a trust boundary, GAP-MW-012)
      * now face the hypervisor boundary between the Linux host and the AAOS
      * SDV guest, whose trust boundary stays undefined. No security claim is

@@ -118,9 +118,12 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * mw::com event (REQ-MW-015); a sample holds one length-prefixed frame
        * of at most 2048 bytes, the gateway slot of the reused ingress
        * (ingress/main.cpp:36 of the INC-AEBS-010 bench). The event type is
-       * the gateway's PreSerializedData<2048>, so gatewayd forwards the bytes
-       * with no serializer step (score/serializer/pre_serialized_data.h:23-35
-       * of inc_someip_gateway at 951fbc09). It links
+       * the gateway's PreSerializedData<2048>. gatewayd passes it to its null
+       * serializer, which sends the pre-serialized bytes as they are and
+       * encodes nothing (score/serializer/pre_serialized_data.h:23-35,
+       * score/serializer/BUILD.bazel:60-68 and
+       * score/config/mw_someip_config.fbs:53-58 of inc_someip_gateway at
+       * 951fbc09). It links
        * aborts_upon_exception of baselibs, so an exception thrown anywhere in
        * the process, also in the ROS 2 client library, aborts the whole
        * process (REQ-MW-018); the health topic then turns stale and the HMI
@@ -266,10 +269,9 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
          * fallback Run Target (known_limitations.rst:32-33,
          * lifecycle_config.py:559-569), which has no recovery action of its
          * own (launch_manager.schema.json:489-491). The fallback Run Target
-         * holds only the health proxy node. So a failure of someipd, gatewayd
-         * or the adapter stops all three, and nothing starts them again by
-         * itself (GAP-MW-043, accepted by owner decision of 2026-10-22). By
-         * owner decision of 2026-10-18 the Launch Manager stays:
+         * holds only the health proxy node (gatewayPairRestartGuardRail).
+         * GAP-MW-043 states what a failure of any of its components then
+         * does. By owner decision of 2026-10-18 the Launch Manager stays:
          * REQ-MW-018 needs only the abort, and the health topic of REQ-MW-012
          * and the stale overlay of the HMI make the loss visible. It realizes
          * part of the lifecycle bridge, the process lifecycle of the layer on
@@ -296,7 +298,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
          * (score/someip/constants.h:32,
          * score/gatewayd/impl/local_service_instance.cpp:141). LoLa rejects a
          * subscription that the free sample slots cannot hold
-         * (event_subscription_control.cpp:88-95 of communication 0.5.0), so
+         * (event_subscription_control.cpp:88-95 of communication 0.5.0). So
          * the frame event needs at least 10 sample slots. gatewayd passes each
          * sample unchanged to someipd over the gateway's message-passing IPC.
          * The gateway configuration gives the frame event the null serializer
@@ -343,14 +345,19 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
          * has no receiver for guest data. REQ-MW-019: someipd offers a plain
          * event, not a field (score/someipd/impl/routing.cpp:77-79, with the
          * default event type of interface/vsomeip/application.hpp:221-225 of
-         * vsomeip 3.6.1). vsomeip sends a current value to a new subscriber
-         * only for a field
-         * (implementation/routing/src/routing_manager_base.cpp:823-840). So a
-         * frame goes only to a current subscriber and is dropped at the host
-         * while the guest's subscription is absent. Its vsomeip configuration
-         * bounds the external endpoint queue, which vsomeip leaves unlimited
-         * by default (documentation/vsomeipConfiguration.md:368), so a stalled
-         * guest gets no growing backlog. It offers every configured local
+         * vsomeip 3.6.1). With these defaults, vsomeip takes the event's cycle
+         * from the vsomeip configuration
+         * (implementation/runtime/src/application_impl.cpp:1365-1367). So
+         * someipd's vsomeip configuration gives the frame event no cycle; a
+         * cyclic event would send the last frame again. To a remote
+         * subscriber, such as the guest, vsomeip sends a current value only
+         * for a field (implementation/routing/src/eventgroupinfo.cpp:400-428).
+         * So a frame goes only to a current subscriber and is dropped at the
+         * host while the guest's subscription is absent. Its vsomeip
+         * configuration also bounds the external endpoint queue, which
+         * vsomeip leaves unlimited by default
+         * (documentation/vsomeipConfiguration.md:368), so a stalled guest gets
+         * no growing backlog. It offers every configured local
          * service once its vsomeip application registers, and only its own
          * stop withdraws the offer (GAP-MW-042). It uses no lifecycle API, so
          * the Launch Manager starts it as a Native component.
@@ -549,11 +556,11 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
       attribute :>> softwareContractMessage = "host and guest loopback: the length-delimited frame stream; mw::com: the AEBS signal frame service instance with one event of the gateway type PreSerializedData<2048>; gateway IPC: the same bytes; SOME/IP: one service with one reliable event, events only, IDs not yet assigned";
       attribute :>> softwareContractField = "the whole frame, opaque";
       attribute :>> dataTypeAndUnit = "a length-prefixed frame of at most 2048 bytes; no unit";
-      attribute :>> timingQualityAndState = "source order (REQ-MW-014), not guaranteed (GAP-MW-037); discarded while the HMI application is not subscribed, at someipd while the guest's subscription is absent and at the receiver while the ingress is not connected (REQ-MW-019); a late or repeated subscription of gatewayd forwards up to 9 stored frames (GAP-MW-039), and the ingress drops those that are not newer than its last accepted frame or older than 1 s";
-      attribute :>> transformationRule = "pass-through, unread and unchanged (REQ-MW-015); no VSS signal, by owner decision";
+      attribute :>> timingQualityAndState = "source order (REQ-MW-014), not guaranteed (GAP-MW-037); discarded while the HMI application is not subscribed (REQ-MW-019): at someipd while the guest's subscription is absent, if someipd's vsomeip configuration gives the frame event no cycle, and at the receiver while the ingress is not connected; a late or repeated subscription of gatewayd forwards up to 9 stored frames (GAP-MW-039), and the ingress drops those that are not newer than its last accepted frame, and those older than 1 s if the host and guest clocks agree (guestStaleFrameDropGuardRail)";
+      attribute :>> transformationRule = "pass-through and unchanged (REQ-MW-015): no element reads the frame content, and the receiver reads only the length prefix to check the framing; no VSS signal, by owner decision";
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
-      attribute :>> nextAction = "phase 10: assign the mw::com instance and the SOME/IP service, instance and event IDs, give the frame event at least 10 sample slots, then run the sequence-gap and resubscription tests of REQ-MW-014 and REQ-MW-019 and the start, stop and restart cases of the guard rails";
+      attribute :>> nextAction = "phase 10: assign the mw::com instance and the SOME/IP service, instance and event IDs, give the frame event at least 10 sample slots and no cycle, then run the sequence-gap and resubscription tests of REQ-MW-014 and REQ-MW-019, the start, stop and restart cases of the guard rails, and a corrupted-payload case for the receiver's framing check";
       attribute :>> evidenceOrGap = "no runtime evidence yet; GAP-MW-035, GAP-MW-036, GAP-MW-037, GAP-MW-038, GAP-MW-039, GAP-MW-040, GAP-MW-041, GAP-MW-042, GAP-MW-043";
     }
   }
@@ -683,8 +690,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * the LoLa binding's Allocate fails with kBindingFailure
      * (score/mw/com/impl/bindings/lola/skeleton_event.cpp:97-107), so the
      * adapter then drops that frame. SOME/IP gives no delivery guarantee for
-     * events to the application, even over TCP (eclipse-score discussion
-     * 3240, 2026-09-04). The bounded external endpoint queue of someipd
+     * events to the application, even over TCP (an eclipse-score discussion
+     * of 2026-09-04). The bounded external endpoint queue of someipd
      * (REQ-MW-019) drops frames while a subscribed guest stalls. Reliable
      * events keep the order on one connection, and slot and queue sizes for
      * 10 Hz frames of at most 2048 bytes make a gap unlikely, but none of
@@ -731,8 +738,9 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      *   adapter's offer and gatewayd's subscription. Phase 10 tests both. A
      *   pair restart beside a running adapter, outside the Launch Manager,
      *   forwards stored frames. The ingress then drops the frames that are
-     *   not newer than its last accepted frame or older than 1 s. Younger
-     *   frames reach the display.
+     *   not newer than its last accepted frame. It also drops the frames
+     *   older than 1 s, if the host and guest clocks agree
+     *   (guestStaleFrameDropGuardRail). Younger frames reach the display.
      * - The adapter's speed subscription returns stored speed samples. A
      *   restarted adapter would then publish samples a second time, against
      *   REQ-MW-013. The first LoLa rule of the adapter prevents that; phase
@@ -762,7 +770,10 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * showing wrong values. Other corruptions are not ruled out. The open
      * rework of the gateway's IPC binding is designed for a gatewayd
      * restart, but it is not merged and DE4SDV has not tested it. DE4SDV
-     * reported the defect to the gateway project (2026-10-22).
+     * reported the defect to the gateway project (2026-10-22). Action:
+     * when that rework merges, DE4SDV repeats the gatewayd-only restart
+     * test and reports the result to the gateway project, as its report
+     * says it will.
      */
   }
 
@@ -797,12 +808,12 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * down; only its own stop withdraws it. The guest then stays subscribed
      * to a service that sends nothing. S-CORE's own feature description asks
      * for a StopOfferService entry once the service ceases to exist locally
-     * (eclipse-score/score at commit
-     * b607b216c5ba32286d60fe1cd6e40920f10c1746,
+     * (eclipse-score/score v0.7.2, commit
+     * 6d65a262c2329328cb9cbdd276bb143b417c54a4,
      * docs/features/communication/some_ip_gateway/service_discovery/index.rst:65).
-     * Effect on the layer: the pair-restart guard rail stops someipd with
-     * every failure of gatewayd or the adapter, so the guest sees the
-     * service go. What remains is the start: someipd offers before gatewayd
+     * Effect on the layer: under the Launch Manager, someipd stops with every
+     * failure of a component (GAP-MW-043), so the guest sees the service go.
+     * What remains is the start: someipd offers before gatewayd
      * and the adapter run, so the guest can subscribe before any frame
      * flows. The HMI shows its unavailable disposition until frames come. An
      * unreviewed DE4SDV feasibility run observed the kept offer. DE4SDV
@@ -812,21 +823,30 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
 
   part <'GAP-MW-043'> gapGatewayFailureStopsAdapterWithNoRestart : IncrementGap {
     doc /*
-     * Two consequences of the start-order and pair-restart guard rails under
-     * the Launch Manager of lifecycle v0.6.1. The owner accepts both (owner
-     * decision of 2026-10-22).
-     * - A gateway failure also stops the adapter. The adapter depends on
-     *   gatewayd, and the fallback Run Target holds only the health proxy
-     *   node. So a failure of someipd or gatewayd also stops the reference
+     * Consequences of the start-order and pair-restart guard rails under the
+     * Launch Manager of lifecycle v0.6.1. The owner accepts them (owner
+     * decision of 2026-10-22). This Launch Manager starts four processes of
+     * the model: someipd, gatewayd, the adapter and the health proxy node.
+     * In v0.6.1, the default recovery action of every component and every
+     * Run Target is a switch to the fallback Run Target
+     * (scripts/config_mapping/lifecycle_config.py:36-40 and 72-76;
+     * known_limitations.rst:32-33 and 43-44). The fallback holds only the
+     * health proxy node, and an activation terminates the active components
+     * that it does not hold (concepts.rst:131-134).
+     * - So a failure of any of the four processes, the health proxy node
+     *   included, stops someipd, gatewayd and the adapter. A failed health
+     *   proxy node starts again in the fallback, because the fallback holds
+     *   it and it is not active.
+     * - A gateway failure also stops the adapter, and with it the reference
      *   speed path (REQ-MW-010). The health proxy node then publishes the
      *   stale indication (REQ-MW-012), as on a provider loss (SC-MW-003).
-     * - Nothing restarts the three processes by itself. The fallback Run
-     *   Target has no recovery action of its own. Only a new activation of
-     *   the main Run Target, on a request of a Control Client, starts them
-     *   again, and no element of the layer sends that request. So after a
-     *   failure the speed path and the frame path stay down until the bench
-     *   or an operator starts the layer again. The owner accepts this for
-     *   the bench demonstration (ASM-MW-025).
+     * - Nothing restarts someipd, gatewayd and the adapter by itself. The
+     *   fallback Run Target has no recovery action of its own. Only a new
+     *   activation of the main Run Target, on a request of a Control Client,
+     *   starts them again, and no element of the layer sends that request.
+     *   So after a failure the speed path and the frame path stay down until
+     *   the bench or an operator starts the layer again. The owner accepts
+     *   this for the bench demonstration (ASM-MW-025).
      * Ways out of the coupling, each a later decision:
      * - Drop the adapter's dependency on gatewayd. Then the start order puts
      *   only someipd before gatewayd, and frames that the adapter sends
@@ -858,15 +878,18 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    * it does not wait until gatewayd has subscribed. The frames that the
    * adapter sends between its offer and gatewayd's subscription are stored,
    * and gatewayd forwards them with the next frame (GAP-MW-039). Phase 10
-   * measures that time.
+   * measures that time. The adapter's dependency on gatewayd also couples
+   * the speed path to the gateway (GAP-MW-043).
    */
 
   comment gatewayPairRestartGuardRail
     about scoreTwoDomainPhysicalSystem::integrationLayer::scoreServices::launchManager,
       DE4SDV_MiddlewareSCORENeedsRequirements::reqPreserveAEBSSignalProvenance,
       DE4SDV_MiddlewareSCORENeedsRequirements::reqDeliverAEBSSignalsInSourceOrder,
+      DE4SDV_MiddlewareSCORENeedsRequirements::reqDiscardFramesWhileHMIUnsubscribed,
       gapGatewaydOnlyRestartCorruptsPayloads,
       gapSomeipdKeepsLocalOffers,
+      gapLoLaReturnsStoredSamplesOnSubscription,
       gapGatewayFailureStopsAdapterWithNoRestart
   /*
    * Guard rail, pair restart (owner decision of 2026-10-22). gatewayd and
@@ -885,14 +908,13 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    * that held the adapter would also hold gatewayd and someipd, through the
    * start-order dependencies. After a gatewayd failure, it would then start
    * gatewayd again beside the running someipd.
-   * With this fallback, a failure of someipd, gatewayd or the adapter stops
-   * all three. someipd's stop withdraws the offer, so the guest sees the
-   * service go (GAP-MW-042). The health proxy node keeps running and
-   * publishes the stale indication (REQ-MW-012), and the HMI shows its
-   * stale overlay. Nothing starts the three again by itself (GAP-MW-043).
-   * A new activation of the main Run Target, on a request of a Control
-   * Client, starts them again in the start order, as new processes. No
-   * element of the layer sends that request.
+   * With this fallback, a failure of any component stops someipd, gatewayd
+   * and the adapter together, and nothing starts them again by itself.
+   * GAP-MW-043 states these consequences, which the owner accepts, and the
+   * ways out. someipd's stop withdraws the offer, so the guest sees the
+   * service go (GAP-MW-042), and the HMI shows its stale overlay. A new
+   * activation of the main Run Target starts the three again in the start
+   * order, as new processes.
    * What the rule achieves, by the documented behavior of the Launch
    * Manager: no gatewayd-only restart under it; phase 10 tests that too.
    * The managed restart also starts a new adapter, so gatewayd's new
@@ -900,11 +922,6 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    * tests it. What stays open: a restart of gatewayd by hand still corrupts
    * the payloads (GAP-MW-040). A pair restart beside a running adapter
    * forwards up to 9 stored frames (GAP-MW-039).
-   * Consequence: a gateway failure also stops the reference speed path
-   * (REQ-MW-010), with the same stale indication as a provider loss
-   * (SC-MW-003). The owner accepts this coupling and the missing restart
-   * (owner decision of 2026-10-22); GAP-MW-043 records both and the ways
-   * out.
    */
 
   comment guestStaleFrameDropGuardRail
