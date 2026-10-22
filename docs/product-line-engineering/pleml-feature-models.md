@@ -165,18 +165,18 @@ Ontology rule R001 asks every feature to distinguish at least one member
 product from another. These features restate catalogue options that no
 configuration of their family selects, or that every one selects:
 
-| Family | In every configuration | In no configuration |
-|---|---|---|
-| SDV product line (4 configurations) | LiDAR | Openpilot, AUTOSAR Adaptive, main-side Android, ACRN, and the four capabilities of the catalogue |
-| Engineering execution environments (2) | none | the Intel x86-64 nested-KVM host, the x86-64 Linux AOSP build, and nested-KVM Cuttlefish |
-| Vehicle-target execution environments (1) | NXP compute, Zephyr and native Zephyr | the three "no concrete" choices |
+| Family | In every configuration | In no configuration | In no governed member yet, with no governed-scope element |
+|---|---|---|---|
+| SDV product line (4 configurations) | LiDAR | Openpilot, AUTOSAR Adaptive, main-side Android, ACRN, and the four capabilities of the catalogue | the HMI display |
+| Engineering execution environments (2) | none | the Intel x86-64 nested-KVM host, the x86-64 Linux AOSP build, and nested-KVM Cuttlefish | none |
+| Vehicle-target execution environments (1) | NXP compute, Zephyr and native Zephyr | the three "no concrete" choices | none |
 
-The HMI display is an option that no governed member selects yet: of the
-four configurations, only the Eclipse S-CORE reference configuration selects
-it, and that configuration is not admitted. No shared asset implements the
-display yet, so no feature binding resolves it. Like the sensing and the
-other capability selections, each projection lists it among the selections
-that SysML does not resolve.
+The HMI display (INC-MW-011 phase 9) is an option that no governed member
+selects yet: of the four configurations, only the Eclipse S-CORE reference
+configuration selects it, and that configuration is not admitted. No shared
+asset implements the display yet, so no feature binding resolves it. Like the
+sensing and the other capability selections, each projection lists it among
+the selections that SysML does not resolve.
 
 They stay features. The migration restates the full catalogue, reference-only
 options included (owner decision O1 of the plan), and a family with one
