@@ -322,6 +322,11 @@ Benefits:
   a scope edit and a release.
 - **A recorded classification.** The guest side and the partner role get the
   classification that the derived-realization clause of ADR 0014 asks for.
+- **The requirements follow the member.** Under rule 5 of the increment
+  workflow, the INC-MW-011 requirements vary with `autoware` and
+  `eclipseSCORE`. The HMI-path requirements also vary with `hmiDisplay`,
+  through the dependencies that phase 9 adds. So they apply to the S-CORE
+  member and to no other governed member.
 
 Costs and risks:
 
@@ -387,4 +392,5 @@ This ADR does not:
 - [INC-MW-011 capability classification](../../textual-notation-of-model/packages/features/middleware/middleware_score_feature_classification.sysml)
 - [INC-MW-011 physical/software realization](../../textual-notation-of-model/packages/features/middleware/middleware_score_physical_software_realization.sysml)
 - [INC-AEBS-010 variability and configuration](../../textual-notation-of-model/packages/features/aebs/aebs_visualization_variability_configuration.sysml)
+- [Increment workflow, rule 5](../../methodologies/sysmod-sysmlv2/increment-workflow.md#method-rules-and-the-increment-workflow-model)
 - [Migration plan, INC-MW-011 phase 9](../plans/2026-10-19-pleml-product-line-authority.md#10-inc-mw-011-phase-9)
