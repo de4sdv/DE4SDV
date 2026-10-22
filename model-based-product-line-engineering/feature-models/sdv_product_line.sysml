@@ -22,10 +22,15 @@
  *     adoption-evidence, qualification or compliance claim is made.
  *
  * Identity: each F- and PL- ID is the SysML short name of its feature or
- * feature tree, and each constraint ID that of its exclusion; the IDs are the
- * ones the retired YAML catalogue gave its nodes. Common capabilities have no
- * feature and no element here (ADR 0022, decision 2), and their C- node IDs
- * retired with the catalogue.
+ * feature tree, and each constraint ID that of its constraint; the IDs of the
+ * restated nodes are the ones the retired YAML catalogue gave them. Common
+ * capabilities have no feature and no element here (ADR 0022, decision 2),
+ * and their C- node IDs retired with the catalogue.
+ *
+ * INC-MW-011 phase 9 (owner decisions of 2026-10-21 and 2026-10-22) added
+ * the guest side of the platform (the guestOS and guestMiddleware groups),
+ * the optional HMI display capability, and the requires constraints C007 to
+ * C011, with the IDs of the next free constraint numbers.
  */
 
 package DE4SDV_SDVProductLineFeatureModel {
@@ -39,12 +44,21 @@ package DE4SDV_SDVProductLineFeatureModel {
              * binding time. */
 
         #feature occurrence <'F-PLATFORM-STACK'> platformStack[1] {
-            doc /* The layered computing platform: a mandatory grouping feature
-                 * that holds one alternative group per layer. Exactly one
-                 * realization per layer, subject to the exclusions. */
+            doc /* The layered computing platform of one SoC: a mandatory
+                 * grouping feature that holds one alternative group per
+                 * layer and side. The main side is the execution domain that
+                 * runs the vehicle application. The guest side is a second
+                 * execution domain under the hypervisor, or none. Exactly one
+                 * realization per group, subject to the constraints. */
 
             #feature occurrence <'F-PLATFORM-VEHICLE-APPLICATION'> vehicleApplication[1];
-            #feature occurrence <'F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE'> autoware[0..1] :> vehicleApplication default null;
+            #feature occurrence <'F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE'> autoware[0..1] :> vehicleApplication default null {
+                assert constraint <'C011'> autowareRequiresLinux :> requiresFeatures {
+                    doc /* Autoware requires Linux on the main side (owner
+                         * decision of 2026-10-22). */
+                    in occurrence constrainedFeatures = new FeatureOperand(that, linux);
+                }
+            }
             #feature occurrence <'F-PLATFORM-VEHICLE-APPLICATION-OPENPILOT'> openpilot[0..1] :> vehicleApplication default null {
                 assert constraint openpilotExcludesUnsupportedMiddleware :> xorFeatures {
                     doc /* No derivation rule exists for Openpilot with Android SDV
@@ -60,20 +74,33 @@ package DE4SDV_SDVProductLineFeatureModel {
                 }
             }
 
-            #feature occurrence <'F-PLATFORM-MIDDLEWARE'> middleware[1];
+            #feature occurrence <'F-PLATFORM-MIDDLEWARE'> middleware[1] {
+                doc /* The middleware that the vehicle application integrates
+                     * with, through the derived adapter. Eclipse S-CORE and
+                     * AUTOSAR Adaptive run on the main side. The AAOS SDV
+                     * partner runs in the guest (C009). */
+            }
             #feature occurrence <'F-PLATFORM-MIDDLEWARE-ECLIPSE-SCORE'> eclipseSCORE[0..1] :> middleware default null {
                 assert constraint <'C001'> eclipseSCOREExcludesAndroid :> xorFeatures {
-                    doc /* Eclipse S-CORE targets Linux and QNX, not Android HLOS.
+                    doc /* Eclipse S-CORE runs on the main side, and it targets
+                         * Linux and QNX, not Android HLOS.
                          * Allowed operating systems: linux, qnx.
                          * The reviewed allowed list stays the source; this
                          * exclusion is its complement over the current options. */
                     in occurrence constrainedFeatures = new FeatureOperand(that, android);
                 }
             }
-            #feature occurrence <'F-PLATFORM-MIDDLEWARE-ANDROID-SDV'> androidSDV[0..1] :> middleware default null;
+            #feature occurrence <'F-PLATFORM-MIDDLEWARE-ANDROID-SDV'> androidSDV[0..1] :> middleware default null {
+                assert constraint <'C009'> androidSDVRequiresGuestAndroidSDV :> requiresFeatures {
+                    doc /* The AAOS SDV partner of the vehicle application runs
+                         * in the guest: the guest middleware is AAOS SDV. */
+                    in occurrence constrainedFeatures = new FeatureOperand(that, guestAndroidSDV);
+                }
+            }
             #feature occurrence <'F-PLATFORM-MIDDLEWARE-AUTOSAR-ADAPTIVE'> autosarAdaptive[0..1] :> middleware default null {
                 assert constraint <'C003'> autosarAdaptiveExcludesAndroid :> xorFeatures {
-                    doc /* AUTOSAR Adaptive runs on Linux or QNX.
+                    doc /* AUTOSAR Adaptive runs on the main side, on Linux or
+                         * QNX.
                          * Allowed operating systems: linux, qnx.
                          * The reviewed allowed list stays the source; this
                          * exclusion is its complement over the current options. */
@@ -82,7 +109,11 @@ package DE4SDV_SDVProductLineFeatureModel {
             }
             #feature occurrence <'F-PLATFORM-MIDDLEWARE-NONE'> noMiddleware[0..1] :> middleware default null;
 
-            #feature occurrence <'F-PLATFORM-OS'> operatingSystem[1];
+            #feature occurrence <'F-PLATFORM-OS'> operatingSystem[1] {
+                doc /* The operating system of the main side: the execution
+                     * domain that runs the vehicle application. With KVM, the
+                     * main side is the KVM host. */
+            }
             #feature occurrence <'F-PLATFORM-OS-LINUX'> linux[0..1] :> operatingSystem default null;
             #feature occurrence <'F-PLATFORM-OS-ANDROID'> android[0..1] :> operatingSystem default null;
             #feature occurrence <'F-PLATFORM-OS-QNX'> qnx[0..1] :> operatingSystem default null;
@@ -91,17 +122,50 @@ package DE4SDV_SDVProductLineFeatureModel {
             #feature occurrence <'F-PLATFORM-HYPERVISOR-QVM'> qvm[0..1] :> hypervisor default null;
             #feature occurrence <'F-PLATFORM-HYPERVISOR-ACRN'> acrn[0..1] :> hypervisor default null {
                 assert constraint <'C004'> acrnExcludesQNX :> xorFeatures {
-                    doc /* ACRN does not support QNX as guest. */
+                    doc /* With ACRN the main side runs as a guest of the
+                         * hypervisor, and ACRN supports no QNX guest. So the
+                         * main side cannot be QNX. */
                     in occurrence constrainedFeatures = new FeatureOperand(that, qnx);
                 }
             }
             #feature occurrence <'F-PLATFORM-HYPERVISOR-KVM'> kvm[0..1] :> hypervisor default null {
                 assert constraint <'C005'> kvmExcludesQNX :> xorFeatures {
-                    doc /* KVM QNX guest support is community-only, not production. */
+                    doc /* With KVM the main side is the KVM host, and KVM runs
+                         * in a Linux kernel. So the main side cannot be QNX.
+                         * Linux and Android HLOS, which has a Linux kernel,
+                         * stay allowed. */
                     in occurrence constrainedFeatures = new FeatureOperand(that, qnx);
                 }
             }
-            #feature occurrence <'F-PLATFORM-HYPERVISOR-NONE'> noHypervisor[0..1] :> hypervisor default null;
+            #feature occurrence <'F-PLATFORM-HYPERVISOR-NONE'> noHypervisor[0..1] :> hypervisor default null {
+                assert constraint <'C007'> noHypervisorRequiresNoGuestOS :> requiresFeatures {
+                    doc /* A guest needs a hypervisor: without one, there is no
+                         * guest operating system. The rule covers every guest
+                         * operating system, also a later one. */
+                    in occurrence constrainedFeatures = new FeatureOperand(that, noGuestOS);
+                }
+            }
+
+            #feature occurrence <'F-PLATFORM-GUEST-OS'> guestOS[1] {
+                doc /* The operating system of the guest side: a second
+                     * execution domain on the same SoC, under the hypervisor.
+                     * noGuestOS selects no guest domain. */
+            }
+            #feature occurrence <'F-PLATFORM-GUEST-OS-ANDROID'> guestAndroid[0..1] :> guestOS default null;
+            #feature occurrence <'F-PLATFORM-GUEST-OS-NONE'> noGuestOS[0..1] :> guestOS default null;
+
+            #feature occurrence <'F-PLATFORM-GUEST-MIDDLEWARE'> guestMiddleware[1] {
+                doc /* The middleware of the guest side, on the guest operating
+                     * system, or none. */
+            }
+            #feature occurrence <'F-PLATFORM-GUEST-MIDDLEWARE-ANDROID-SDV'> guestAndroidSDV[0..1] :> guestMiddleware default null {
+                assert constraint <'C008'> guestAndroidSDVRequiresGuestAndroid :> requiresFeatures {
+                    doc /* AAOS SDV requires Android: the guest middleware runs on
+                         * the Android of the guest. */
+                    in occurrence constrainedFeatures = new FeatureOperand(that, guestAndroid);
+                }
+            }
+            #feature occurrence <'F-PLATFORM-GUEST-MIDDLEWARE-NONE'> noGuestMiddleware[0..1] :> guestMiddleware default null;
         }
 
         #feature occurrence <'F-SENSING'> sensingBoundary[1] {
@@ -126,6 +190,12 @@ package DE4SDV_SDVProductLineFeatureModel {
             #feature #UnassignedBindingTime occurrence <'F-CAPABILITY-AEBS-BICYCLE-DETECTION'> bicycleDetection[0..1] default null;
             #feature #UnassignedBindingTime occurrence <'F-CAPABILITY-ADAPTIVE-CRUISE-CONTROL'> adaptiveCruiseControl[0..1] default null;
             #feature #UnassignedBindingTime occurrence <'F-CAPABILITY-LANE-KEEP-ASSIST'> laneKeepAssist[0..1] default null;
+            #feature #UnassignedBindingTime occurrence <'F-CAPABILITY-HMI-DISPLAY'> hmiDisplay[0..1] default null {
+                assert constraint <'C010'> hmiDisplayRequiresGuestAndroidSDV :> requiresFeatures {
+                    doc /* The HMI display is on the AAOS SDV guest. */
+                    in occurrence constrainedFeatures = new FeatureOperand(that, platformStack::guestAndroidSDV);
+                }
+            }
         }
     }
 
@@ -194,6 +264,20 @@ package DE4SDV_SDVProductLineFeatureModel {
     #FeatureBinding dependency hypervisorNoneBinding
         from DE4SDV_SDVPlatformStack::SDVPlatformStack::hypervisor::none
         to SDVProductLineFeatureTree::platformStack::noHypervisor;
+
+    #FeatureBinding dependency guestOSPlatformAndroidBinding
+        from DE4SDV_SDVPlatformStack::SDVPlatformStack::guestOSPlatform::android
+        to SDVProductLineFeatureTree::platformStack::guestAndroid;
+    #FeatureBinding dependency guestOSPlatformNoneBinding
+        from DE4SDV_SDVPlatformStack::SDVPlatformStack::guestOSPlatform::none
+        to SDVProductLineFeatureTree::platformStack::noGuestOS;
+
+    #FeatureBinding dependency guestMiddlewareAndroidSDVBinding
+        from DE4SDV_SDVPlatformStack::SDVPlatformStack::guestMiddleware::androidSDV
+        to SDVProductLineFeatureTree::platformStack::guestAndroidSDV;
+    #FeatureBinding dependency guestMiddlewareNoneBinding
+        from DE4SDV_SDVPlatformStack::SDVPlatformStack::guestMiddleware::none
+        to SDVProductLineFeatureTree::platformStack::noGuestMiddleware;
 
     /*
      * The derived variation: the application-middleware adapter. No
@@ -264,11 +348,10 @@ package DE4SDV_SDVProductLineFeatureModel {
      *   - The selections realize exactly one admitted alternative and select
      *     every derived realization of it.
      *   - Every common asset that features represent is represented by all
-     *     of them. The exception is the representation difference that
-     *     PLE-S recorded: the AAOS-integrated alternative takes the single
-     *     operating-system slot, so the common Linux runtime, represented
-     *     by linux, is exempt under that alternative. Common content without
-     *     a feature (decision 2) is part of every member.
+     *     of them. A choice is exempt only where the realized alternative
+     *     selects another member of its group. No member needs that
+     *     exemption: both run Autoware on Linux on the main side. Common
+     *     content without a feature (decision 2) is part of every member.
      * So the two governed members of ADR 0014, standalone and
      * AAOS-integrated, are admitted, and the reference examples are not.
      */
@@ -299,21 +382,16 @@ package DE4SDV_SDVProductLineFeatureModel {
         to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::standalone;
 
     /*
-     * Linux has two correspondences: the standalone alternative's derived
-     * operating system, and the common Linux/ROS 2 Autoware runtime it
-     * represents. The superset has a single osPlatform slot, which the
-     * AAOS-integrated alternative binds to Android; the split execution-domain
-     * representation is owned by INC-MW-011, not by this model.
+     * Linux corresponds to the common Linux/ROS 2 Autoware runtime only:
+     * both governed members run Autoware on Linux on the main side, so Linux
+     * is no derived realization of either alternative. The guest side
+     * carries the split execution-domain topology of the AAOS-integrated
+     * alternative: guestAndroid and guestAndroidSDV correspond to it, and
+     * noGuestOS and noGuestMiddleware to standalone.
      */
-    dependency linuxCorrespondsToStandalone
-        from SDVProductLineFeatureTree::platformStack::linux
-        to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::standalone;
     dependency linuxCorrespondsToCommonAutowareRuntime
         from SDVProductLineFeatureTree::platformStack::linux
         to DE4SDV_AEBSProductLineScope::InitialCommonCoreEngineeringContent::linuxROS2AutowareRuntime;
-    dependency androidCorrespondsToAAOSIntegrated
-        from SDVProductLineFeatureTree::platformStack::android
-        to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::aaosIntegrated;
     dependency qnxCorrespondsToReferenceOnlyQNXQVM
         from SDVProductLineFeatureTree::platformStack::qnx
         to DE4SDV_AEBSProductLineScope::ReferenceOnlyAlternativeSet::qnxQVM;
@@ -329,6 +407,19 @@ package DE4SDV_SDVProductLineFeatureModel {
         to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::aaosIntegrated;
     dependency noHypervisorCorrespondsToStandalone
         from SDVProductLineFeatureTree::platformStack::noHypervisor
+        to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::standalone;
+
+    dependency guestAndroidCorrespondsToAAOSIntegrated
+        from SDVProductLineFeatureTree::platformStack::guestAndroid
+        to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::aaosIntegrated;
+    dependency noGuestOSCorrespondsToStandalone
+        from SDVProductLineFeatureTree::platformStack::noGuestOS
+        to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::standalone;
+    dependency guestAndroidSDVCorrespondsToAAOSIntegrated
+        from SDVProductLineFeatureTree::platformStack::guestAndroidSDV
+        to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::aaosIntegrated;
+    dependency noGuestMiddlewareCorrespondsToStandalone
+        from SDVProductLineFeatureTree::platformStack::noGuestMiddleware
         to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::standalone;
 
     dependency perceptionSensorsCorrespondToSensingVariability
@@ -358,18 +449,37 @@ package DE4SDV_SDVProductLineFeatureModel {
          * restates yet. They get no correspondence, so admission reports them
          * as not in the governed scope. */
 
+    comment about SDVProductLineFeatureTree::platformStack::android
+        /* Android HLOS on the main side has no governed-scope element: no
+         * governed member runs its vehicle application on Android, because
+         * the AAOS-integrated alternative runs Android in the guest
+         * (guestAndroid). It gets no correspondence, so admission reports it
+         * as not in the governed scope. */
+
+    comment about SDVProductLineFeatureTree::capabilities::hmiDisplay
+        /* The HMI display distinguishes no governed member yet: of the
+         * configurations, only the Eclipse S-CORE configuration selects it,
+         * and that configuration is not admitted. It has no governed-scope
+         * element, so admission reports it as not in the governed scope.
+         * No shared asset implements the display yet, so no feature binding
+         * resolves it: like the sensing and the other capability selections,
+         * each projection lists it among the selections that SysML does not
+         * resolve. */
+
     /*
      * Dropped rules. Their rationale stays here; C002's allowed list stays
      * under the complement check with C001 and C003.
      */
     comment about SDVProductLineFeatureTree::platformStack::androidSDV
-        /* Dropped rule C002: Android SDV runs on Linux, Android HLOS, or as
-         * QVM guest.
+        /* Dropped rule C002: the AAOS SDV partner of the vehicle application
+         * runs in the guest (C009), on the Android of the guest (C008), so it
+         * puts no condition on the operating system of the main side.
          * Allowed operating systems: linux, android, qnx.
-         * The list covers every operating-system option, so the rule never
-         * fires in any structurally valid selection and Android SDV owns no
-         * exclusion. The complement check reads this list, so a new
-         * operating-system option fails CI until C002 is re-assessed. */
+         * The list covers every main-side operating-system option, so the
+         * rule never fires in any structurally valid selection, and Android
+         * SDV owns no exclusion of an operating system. The complement check
+         * reads this list, so a new main-side operating-system option fails
+         * CI until C002 is re-assessed. */
 
     comment about SDVProductLineFeatureTree::capabilities::pedestrianDetection
         /* Dropped rule C006: pedestrian detection requires the vehicle-target
