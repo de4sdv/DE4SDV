@@ -81,6 +81,118 @@ def test_the_report_never_claims_native_execution_or_qualification():
     assert report["binding_time_scope"] == "Development-only"
 
 
+# -- conformance: nested features, the transitive reading -----------------------------------
+#
+# The library's expressions test only the direct suboccurrences of a configuration
+# (``featureConfiguration.suboccurrences->includes(...)``). DE4SDV evaluates the documented
+# semantics over every feature of the tree ("Nested features" in
+# docs/product-line-engineering/pleml-configuration-evaluation.md). In this tree each
+# constraint owner sits three levels below the root, and its operand sits in the other
+# branch. A literal reading would never apply either constraint. The library's own tests
+# are flat, so these cases are DE4SDV's own, not restated upstream verdicts.
+
+REQUIRES_REASON = {"code": "constraint", "class": "constraint", "constraint": None, "kind": "requires",
+                   "detail": "left.leftStack.requirer requires ['right.rightStack.required']",
+                   "features": ["left.leftStack.requirer", "right.rightStack.required"]}
+XOR_REASON = {"code": "constraint", "class": "constraint", "constraint": None, "kind": "xor",
+              "detail": "left.leftStack.excluder excludes ['right.rightStack.excluded']",
+              "features": ["left.leftStack.excluder", "right.rightStack.excluded"]}
+#: Case -> (the settings, 1 or 0, of the features it sets; the reasons it must give). A leaf without a setting
+#: is left out. The optional ``rightStack`` holds both operands: set to 0, it leaves them absent.
+NESTED_CASES = {
+    "requiresHeld": ({"requirer": 1, "required": 1}, []),
+    "requiresViolated": ({"requirer": 1, "required": 0}, [REQUIRES_REASON]),
+    "requiresViolatedByAnAbsentOperand": ({"requirer": 1, "rightStack": 0}, [REQUIRES_REASON]),
+    "requiresOwnerDeselected": ({"requirer": 0, "required": 0}, []),
+    "requiresOwnerOmitted": ({"required": 0}, []),
+    "xorViolated": ({"excluder": 1, "excluded": 1}, [XOR_REASON]),
+    "xorHeld": ({"excluder": 1, "excluded": 0}, []),
+    "xorHeldByAnAbsentOperand": ({"excluder": 1, "rightStack": 0}, []),
+    "xorOwnerDeselected": ({"excluder": 0, "excluded": 1}, []),
+    "bothViolated": ({"requirer": 1, "required": 0, "excluder": 1, "excluded": 1}, [XOR_REASON, REQUIRES_REASON]),
+}
+
+
+def nested_constraint_model(cases: dict[str, dict[str, int]]) -> PlemlGraph:
+    """left.leftStack.requirer requires right.rightStack.required; left.leftStack.excluder excludes
+    right.rightStack.excluded. The fenced models' form: a tree definition and typed configurations whose
+    settings nest inside the settings of their owners."""
+    graph = PlemlGraph()
+    tree = graph.tree_definition("NestedConstraintTree")
+    f = {"left": graph.feature(tree, "left", (1, 1)), "right": graph.feature(tree, "right", (1, 1))}
+    f["leftStack"] = graph.feature(f["left"], "leftStack", (1, 1))
+    f["rightStack"] = graph.feature(f["right"], "rightStack", (0, 1))
+    for owner, leaves in (("leftStack", ("requirer", "excluder")), ("rightStack", ("required", "excluded"))):
+        for leaf in leaves:
+            f[leaf] = graph.feature(f[owner], leaf, (0, 1))
+    graph.requires(f["requirer"], [f["required"]], name="requirerRequiresRequired")
+    graph.xor(f["excluder"], [f["excluded"]], name="excluderExcludesExcluded")
+    model = graph.feature_model("NestedConstraintFeatureModel", tree_definition=tree)
+    for name, settings in cases.items():
+        configuration = graph.configuration(model, name, tree)
+        left_stack = graph.setting(graph.setting(configuration, f["left"], (1, 1)), f["leftStack"], (1, 1))
+        on = settings.get("rightStack", 1)
+        right_stack = graph.setting(graph.setting(configuration, f["right"], (1, 1)), f["rightStack"], (on, on))
+        for leaf, scope in (("requirer", left_stack), ("excluder", left_stack), ("required", right_stack),
+                            ("excluded", right_stack)):
+            if leaf in settings:
+                graph.setting(scope, f[leaf], (settings[leaf], settings[leaf]))
+    return graph
+
+
+def test_the_nested_constraints_sit_below_the_direct_suboccurrences_of_a_configuration():
+    """The owners and operands are three levels deep, in different branches: no constraint operand is one of
+    the configuration's direct suboccurrences, the settings of ``left`` and ``right``."""
+    (model,) = nested_constraint_model({}).evaluate()["feature_models"]
+    assert [feature["path"] for feature in model["features"] if feature["owner"] is None] == ["left", "right"]
+    assert [(item["kind"], item["owner"], item["operand_a"], item["operand_b"]) for item in model["constraints"]] == [
+        ("requires", "left.leftStack.requirer", ["left.leftStack.requirer"], ["right.rightStack.required"]),
+        ("xor", "left.leftStack.excluder", ["left.leftStack.excluder"], ["right.rightStack.excluded"]),
+    ]
+    assert model["integrity_errors"] == []
+
+
+@pytest.mark.parametrize("case", sorted(NESTED_CASES))
+def test_a_nested_constraint_applies_to_an_operand_in_another_branch(case):
+    """The verdict and the reasons as users see them: the configurator prints each ``detail``, and the receipts
+    record each reason with its feature paths."""
+    settings, expected = NESTED_CASES[case]
+    item = configuration(nested_constraint_model({case: settings}).evaluate(), case)
+    assert item["reasons"] == expected
+    assert item["valid"] is (expected == [])
+    if expected:
+        assert item["admission"]["reasons"][0] == "invalid configuration: constraint"
+        assert item["derived_variants"] == []
+    if settings.get("rightStack") == 0:
+        states = item["states"]
+        assert (states["right.rightStack"], states["right.rightStack.required"],
+                states["right.rightStack.excluded"]) == ("disabled", "absent", "absent")
+    if "requirer" not in settings:
+        assert item["states"]["left.leftStack.requirer"] == "omitted"
+
+
+@pytest.mark.parametrize("kind", ["requires", "xor"])
+@pytest.mark.parametrize(("form", "message"), [
+    ("sequence", "^{kind} constraint emptyOperandConstraint names no feature in operand B$"),
+    ("null", "^unsupported value expression NullExpression "),
+])
+def test_a_nested_constraint_with_an_empty_operand_b_is_refused(kind, form, message):
+    """The library declares operand B ``[1..*]``. An empty one is refused as a shape at any depth, as an
+    empty sequence and as ``()``, a null expression."""
+    graph = PlemlGraph()
+    tree = graph.tree_definition("NestedConstraintTree")
+    stack = graph.feature(graph.feature(tree, "left", (1, 1)), "leftStack", (1, 1))
+    owner = graph.feature(stack, "owner", (0, 1))
+    graph.constraint(owner, kind, [None], [], name="emptyOperandConstraint")
+    if form == "null":  # the empty operand B is the only sequence expression of this graph
+        (empty,) = [element for element in graph.elements if element.get("operator") == ","]
+        empty["@type"] = "NullExpression"
+        del empty["operator"]
+    graph.feature_model("NestedConstraintFeatureModel", tree_definition=tree)
+    with pytest.raises(PlemlShapeError, match=message.format(kind=kind)):
+        graph.evaluate()
+
+
 # -- the platform line: derivation and the closed world ----------------------------------
 
 from tests.pleml_graph_fixtures import ADAPTER_RULES, MIDDLEWARE, APPLICATIONS, UNSUPPORTED, PlatformLine  # noqa: E402
@@ -204,6 +316,24 @@ def test_a_configuration_owns_only_features():
     probe = line.configure("extra", "autoware", "noMiddleware", "linux", "noHypervisor")
     line.graph.own(probe, "FeatureMembership", "PartUsage", member_name="extra", declaredName="extra")
     assert classes(configuration(line.graph.evaluate(), "extra")) == {("unknown-feature", None)}
+
+
+def test_a_nested_setting_owns_only_features_too():
+    """The rule reads every setting, not only the direct suboccurrences of the configuration (the transitive
+    reading of "Nested features" in the configuration evaluation page)."""
+    line = PlatformLine()
+    graph, f = line.graph, line.features
+    probe = line.new_configuration("nestedExtra")
+    stack = graph.setting(probe, f["platformStack"], (1, 1))
+    for group, choice in (("vehicleApplication", "autoware"), ("middleware", "noMiddleware"), ("os", "linux"),
+                          ("hypervisor", "noHypervisor")):
+        line.choose(stack, group, [choice])
+    graph.own(stack, "FeatureMembership", "PartUsage", member_name="extra", declaredName="extra")
+    line.choose(graph.setting(probe, f["sensingBoundary"], (1, 1)), "perceptionSensors", ["lidar", "camera"],
+                multiplicity=(1, None))
+    item = configuration(graph.evaluate(), "nestedExtra")
+    assert item["reasons"] == [{"code": "not-a-feature", "class": "unknown-feature", "features": [],
+                                "detail": "extra is no feature: a feature configuration owns only features"}]
 
 
 def test_a_mandatory_grouping_set_to_zero_violates_the_lower_bound():
@@ -331,7 +461,11 @@ def test_a_bound_feature_stays_at_development():
 
 
 def test_a_later_bound_feature_rejects_only_the_configurations_that_select_it():
-    """PLEML compares the binding time of each feature a configuration sets (PLEML.sysml:95-104)."""
+    """Each selected feature binds no later than the configuration, here a feature two levels deep.
+
+    PLEML.sysml:95-104 compares the direct suboccurrences of the configuration; DE4SDV reads the rule over
+    every feature of the tree ("Nested features" in the configuration evaluation page).
+    """
     line = PlatformLine()
     line.graph.binding_time(line.features["radar"], "Production")
     line.configure("withoutRadar", "autoware", "noMiddleware", "linux", "noHypervisor")

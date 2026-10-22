@@ -18,13 +18,15 @@ only (ADR 0011). For each feature tree it decides:
 - **configurations.** A setting `[1]` selects a feature and `[0]` deselects it. An
   omitted optional feature is deselected, and an omitted mandatory one is
   selected. Every bound of every feature and group is checked, as is that a
-  configuration owns only features. As in the library, each selected feature
-  binds no later than the configuration, which binds at Development: a
+  configuration owns only features. As the library documents, each selected
+  feature binds no later than the configuration, which binds at Development: a
   later-bound feature rejects only the configurations that select it.
   Metadata, such as `ProductModelProjectionName`, annotates a configuration and
   is not one of its entries.
-- **constraints.** `requires`, XOR and `implies` keep the library's semantics,
-  read from the `FeatureOperand` operands.
+- **constraints.** `requires`, XOR and `implies` keep the semantics that the
+  library documents, read from the `FeatureOperand` operands. They apply
+  wherever their owner and operands sit in the tree (see
+  [Nested features](#nested-features)).
 - **feature bindings.** Each binding names one variant and one feature, and each
   variant is bound once. A bound variation has every variant bound, to the
   members of one exactly-one group. Bound features bind at Development, the
@@ -40,6 +42,34 @@ only (ADR 0011). For each feature tree it decides:
   validity: an invalid configuration is never admitted. Its admission record
   says why, and keeps what the correspondences of its features decide (see
   below).
+
+## Nested features
+
+DE4SDV evaluates the documented semantics over every feature of the tree.
+PLEML's expressions test only the direct suboccurrences of the configuration.
+
+The two readings differ for a nested feature. In SysML v2, a setting that
+nests in another setting is a suboccurrence of that setting, not of the
+configuration. So a literal reading does not count a nested feature as part of
+the configuration.
+
+In the DE4SDV feature models, every constrained feature sits under a grouping
+feature, such as `platformStack` or `environment`. A literal reading would make
+every constraint an empty check. No constraint would ever reject a
+configuration.
+
+The library's documentation says that a constraint checks whether a feature is
+part of the configuration. It also says that features nest. The evaluator
+follows that text. The library's examples and tests use flat trees, so they do
+not decide between the two readings.
+
+The same reading applies to the binding time of each selected feature and to
+the rule that a configuration owns only features. The conformance cases in
+`tests/test_pleml_configuration.py` test the reading. Their tree has a
+`requires` and an XOR constraint whose owners sit three levels below the root.
+Each operand sits in another branch. Both constraints apply when their owner is
+selected and never when it is not. An empty operand B is refused. Other cases
+check the binding time and the features-only rule below the root.
 
 ## Admission
 
