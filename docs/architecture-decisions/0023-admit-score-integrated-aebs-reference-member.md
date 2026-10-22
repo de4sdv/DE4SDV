@@ -64,8 +64,11 @@ Phase 9 gave the SDV feature model a main side and a guest side on one SoC
 The correspondences of the feature model classify the guest choices by the
 alternative they realize. `guestAndroid` and `guestAndroidSDV` correspond to
 AAOS Integrated, and `noGuestOS` and `noGuestMiddleware` to Standalone. The
-ADR 0022 amendment names operating system and middleware in general. It does
-not name the guest side or the partner role of `middleware`.
+ADR 0022 note on the guest side (2026-10-22) records the owner decision
+behind this reading. The ADR 0022 amendment of the derived-realization
+clause also covers `guestOperatingSystem`, `guestMiddleware` and
+`middleware` in its partner role, for every member. This record builds on
+that note.
 
 Two configurations matter here:
 
@@ -106,7 +109,7 @@ owner chose the two-sided tree, with the display as an optional capability.
 
 The DE4SDV AEBS product line gets a third planned member, through a third
 alternative of Vehicle Platform Integration Mode. The decision takes effect
-only when the owner accepts this record in phase 12 (decision 9).
+only when the owner accepts this record in phase 12 (decision 8).
 
 1. **A third planned member.** The **S-CORE-Integrated Autoware AEBS
    Reference Member** runs on one SoC:
@@ -118,8 +121,9 @@ only when the owner accepts this record in phase 12 (decision 9).
    - the one-way cross-domain HMI path carries the AEBS signals from the main
      side into the guest.
 
-   Its owner is the DE4SDV maintainers, the owner that the INC-MW-011
-   charter declares.
+   Its owner is the DE4SDV maintainers. The decision authority is Orkun
+   Yilmaz, DE4SDV technical lead and maintainer, as in the initial scope
+   decision record.
 2. **A third alternative.** Vehicle Platform Integration Mode gets a third
    alternative, **S-CORE Integrated**. Integration Mode stays the only
    admitted product variability. Each of its alternatives characterizes
@@ -127,20 +131,7 @@ only when the owner accepts this record in phase 12 (decision 9).
    during Development, for S-CORE Integrated too: its middleware, guest side
    and display are fixed when the member is engineered. The HMI display binds
    with the alternative. No later binding is admitted.
-3. **The platform choices are derived realizations.** ADR 0022 keeps the
-   derived-realization clause of ADR 0014 as an admission rule for operating
-   system, hypervisor and middleware. That reading also covers the groups
-   that phase 9 added or re-scoped:
-   - `guestOperatingSystem` and `guestMiddleware`, the guest side;
-   - `middleware`, in its role since phase 9: the middleware that the
-     vehicle application integrates with.
-
-   The catalogue configures them. Admission reads each of their choices that
-   corresponds to an admitted alternative as a derived realization of it.
-   None of them is an independently selectable product feature. This decision
-   governs every member: the guest side of the AAOS-integrated member
-   depends on it too.
-4. **What S-CORE Integrated derives.**
+3. **What S-CORE Integrated derives.**
    - **A new topology.** The S-CORE two-domain topology is a new derived
      realization. The Linux main side with Eclipse S-CORE is also the KVM
      host, and an AAOS SDV guest under KVM holds the HMI display. The
@@ -163,14 +154,14 @@ only when the owner accepts this record in phase 12 (decision 9).
      next to the Linux host, gets S-CORE Integrated as its counterpart, not
      AAOS Integrated. In the feature model, `hmiDisplay` carries that
      difference.
-5. **Shared realizations are read by intersection.** Decision 4 makes `kvm`,
+4. **Shared realizations are read by intersection.** Decision 3 makes `kvm`,
    `guestAndroid` and `guestAndroidSDV` realize two alternatives: AAOS
    Integrated and S-CORE Integrated. So a configuration realizes the one
    alternative that all its selected choices with an alternative
    correspondence have in common. A configuration with no such alternative,
    or with more than one, is not admitted. With one alternative per choice,
    as today, both readings admit the same configurations.
-6. **The common content stays common.** The five common contents of ADR 0014
+5. **The common content stays common.** The five common contents of ADR 0014
    stay common to the three members. They are Vehicle-Target AEBS, Autoware,
    the Linux/ROS 2 Autoware runtime, the current sensing baseline and
    protected emergency-command-path independence. The S-CORE member runs
@@ -178,7 +169,7 @@ only when the owner accepts this record in phase 12 (decision 9).
    intervention command path inside the Linux host, outside the integration
    layer (ASM-MW-028). "Common" is a scope classification, not evidence about
    that content. REQ-MW-006, GAP-MW-029 and GAP-MW-033 stay open.
-7. **The role decides, not the software identity.** In the S-CORE member, the
+6. **The role decides, not the software identity.** In the S-CORE member, the
    HMI application in the AAOS SDV guest is System 1 content. It is part of
    the member product, outside the system of interest of INC-MW-011.
    INC-AEBS-010 classifies the same visualization application as System 2
@@ -187,14 +178,15 @@ only when the owner accepts this record in phase 12 (decision 9).
    product decides its classification. Visualization instrumentation stays
    an excluded System 2 concern. The HMI is an informational display, not the
    AEBS driver warning (ASM-MW-024).
-8. **A second scope decision record, validated.** The governed scope records
+7. **A second scope decision record, validated.** The governed scope records
    this decision in a second `ProductLineScopeDecisionRecord` that governs
-   the scope, like the initial record. Today the validator checks only
-   `initialAEBSProductLineScopeDecision`, so it learns the second record. Its
-   tables learn the third member, the third alternative, the new derived
-   realization and the smaller reference-only set. The semantic tests change
-   with them, including the test that refuses a third member.
-9. **Staged acceptance.**
+   the scope, like the initial record and with its decision authority. Today
+   the validator checks only `initialAEBSProductLineScopeDecision`, so it
+   learns the second record. Its tables learn the third member, the third
+   alternative, the new derived realization and the smaller reference-only
+   set. The semantic tests change with them, including the test that refuses
+   a third member.
+8. **Staged acceptance.**
    - **Inputs.** The owner accepts or rejects this record in phase 12. The
      inputs are the realization coverage of phase 8 and the retained
      evidence of the runnable proof of phase 10. A green job is not
@@ -206,8 +198,8 @@ only when the owner accepts this record in phase 12 (decision 9).
      specializes the new member definition, as the AAOS-integrated configured
      member does.
    - **On rejection.** Eclipse S-CORE stays reference-only, and no scope
-     element has to be withdrawn. Decision 3 then moves into another record,
-     because the AAOS-integrated member depends on it.
+     element has to be withdrawn. The ADR 0022 note on the guest side stays
+     in force, because it does not depend on this record.
    - **Membership and evidence.** Staging is the owner's choice for this
      member, not a new rule. Membership stays independent of evidence status,
      as ADR 0014 says.
@@ -231,10 +223,10 @@ the names of the AAOS-integrated elements:
 | ----------------------------------------- | -------------------------------- |
 | 1. A stakeholder or mission driver        | The INC-MW-011 problem statement |
 | 2. A named planned member and owner       | Decision 1                       |
-| 3. Common, variable and derived elements  | Decisions 2 to 7                 |
+| 3. Common, variable and derived elements  | Decisions 2 to 6                 |
 | 4. A justified lifecycle binding          | Decision 2: Development          |
 | 5. A reviewed scope decision              | This record, in phase 12         |
-| 6. The scope model and semantic tests     | Decision 8, in phase 12          |
+| 6. The scope model and semantic tests     | Decision 7, in phase 12          |
 
 The problem statement names its stakeholders, among them the product-line
 engineer, the system architect and the open-source reviewer. The driver is
@@ -255,15 +247,15 @@ Clauses are quoted.
   with three alternatives (decision 2).
 - "Apollo, Openpilot, Eclipse S-CORE, AUTOSAR Adaptive, Automotive Grade
   Linux, QNX/QVM, ACRN, and similar alternatives remain reference-only or
-  deferred": Eclipse S-CORE leaves the list (decision 4).
+  deferred": Eclipse S-CORE leaves the list (decision 3).
 
 **Amended:**
 
 - ADR 0014: "The following are derived from Vehicle Platform Integration
   Mode and are not independently selectable product features", as ADR 0022
-  amends it. It also covers the guest side and the partner role of
-  `middleware` (decision 3). Its list gains the S-CORE two-domain topology
-  (decision 4).
+  amends it. The ADR 0022 note on the guest side (2026-10-22) applies it to
+  the guest groups and to the partner role of `middleware`. The list of the
+  clause gains the S-CORE two-domain topology (decision 3).
 
 **Decided here, though left open earlier:**
 
@@ -275,11 +267,11 @@ Clauses are quoted.
 - ADR 0014: membership is independent of local increment, configuration,
   implementation and evidence status.
 - ADR 0014: the Development binding, and no later product-decision binding.
-- ADR 0014: the common content (decision 6), which a future member decision
+- ADR 0014: the common content (decision 5), which a future member decision
   can still reopen.
 - ADR 0014: "System 2 engineering environments, CI runners, simulations,
   benchmarks, evidence campaigns, and visualization instrumentation remain
-  outside System 1 product variability" (decision 7).
+  outside System 1 product variability" (decision 6).
 - ADR 0014: the change control, which this record follows.
 - ADR 0022: PLEML is the configuration-validity authority, the governed
   scope is the admission authority, and the adapter is a derived
@@ -320,8 +312,6 @@ Benefits:
 - **No withdrawal on a failed proof.** The scope model does not change before
   phase 12. A failed proof costs a rejected draft, not a withdrawal record,
   a scope edit and a release.
-- **A recorded classification.** The guest side and the partner role get the
-  classification that the derived-realization clause of ADR 0014 asks for.
 - **The requirements follow the member.** Under rule 5 of the increment
   workflow, the INC-MW-011 requirements vary with `autoware` and
   `eclipseSCORE`. The HMI-path requirements also vary with `hmiDisplay`,
@@ -332,7 +322,7 @@ Costs and risks:
 
 - **Phase-12 work.**
   - An implementation pull request changes the admission rule first
-    (decision 5).
+    (decision 4).
   - One scope pull request then changes the scope model, the validator and
     its tests, the correspondences and the CLS-MW-004 trace. The receipts,
     the projection headers, the Gate C review record and the product-line
@@ -343,16 +333,14 @@ Costs and risks:
     yet.
   - ADR 0014 gets a marked note and stays `Accepted`.
   - A release follows with the INC-MW-011 baseline.
-- **The interim.** Until phase 12, decision 3 is not in force. The guest
-  side rests on the general wording of the ADR 0022 amendment and on the
-  correspondences of the feature model.
 - **A third member to keep.** Every later feature-model change must keep
   three members admitted. A change to the shared Android/KVM topology
   affects two members.
 - **A young upstream.** The member depends on a pre-1.0 S-CORE baseline
   (ASM-MW-021). The cross-domain HMI path can depend on an S-CORE component
   that has no release yet (GAP-MW-036). GAP-MW-035 and GAP-MW-038 can still
-  stop the runnable proof.
+  stop the runnable proof. Contact with the S-CORE maintainers is planned
+  before acceptance (owner decision of 2026-10-22).
 
 ## Non-decisions
 
@@ -378,11 +366,12 @@ This ADR does not:
 ## Links
 
 - [ADR 0004: Adopt ASELCM three-system framing](0004-adopt-aselcm-three-system-framing.md):
-  the System 1 and System 2 roles of decision 7.
+  the System 1 and System 2 roles of decision 6.
 - [ADR 0014: Ratify the initial AEBS product-line scope](0014-ratify-initial-aebs-product-line-scope.md):
   the governed scope and its change control.
 - [ADR 0022: Adopt PLEML as the product-line authority](0022-adopt-pleml-as-product-line-authority.md):
-  validity and admission, and the amended derived-realization clause.
+  validity and admission, the amended derived-realization clause and its
+  note on the guest side.
 - [Governed product-line scope](../../model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml)
 - [SDV feature model](../../model-based-product-line-engineering/feature-models/sdv_product_line.sysml)
 - [S-CORE reference configuration](../../model-based-product-line-engineering/feature-configurations/middleware_autoware_score_reference.sysml)
