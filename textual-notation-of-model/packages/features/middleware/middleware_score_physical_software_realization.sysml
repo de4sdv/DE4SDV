@@ -268,7 +268,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
          * own (launch_manager.schema.json:489-491). The fallback Run Target
          * holds only the health proxy node. So a failure of someipd, gatewayd
          * or the adapter stops all three, and nothing starts them again by
-         * itself. By owner decision of 2026-10-18 the Launch Manager stays:
+         * itself (GAP-MW-043, accepted by owner decision of 2026-10-22). By
+         * owner decision of 2026-10-18 the Launch Manager stays:
          * REQ-MW-018 needs only the abort, and the health topic of REQ-MW-012
          * and the stale overlay of the HMI make the loss visible. It realizes
          * part of the lifecycle bridge, the process lifecycle of the layer on
@@ -500,7 +501,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
       attribute :>> nextAction = "phase 10: author the mw::com configuration and run the REQ-MW-010 test (36 and 72 km/h to 10 and 20 m/s) with REQ-MW-011 and REQ-MW-013";
-      attribute :>> evidenceOrGap = "no runtime evidence yet; GAP-MW-035 (the adapter build), GAP-MW-033 (the publisher of /vehicle/status/velocity_status), GAP-MW-039 (the stored samples of a new LoLa subscription)";
+      attribute :>> evidenceOrGap = "no runtime evidence yet; GAP-MW-035 (the adapter build), GAP-MW-033 (the publisher of /vehicle/status/velocity_status), GAP-MW-039 (the stored samples of a new LoLa subscription), GAP-MW-043 (a gateway failure also stops the speed path, with no restart)";
     }
   }
   allocation velocityStatusHealthSignalMapping : SystemToSoftwareSignalMappingCandidate
@@ -553,7 +554,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
       attribute :>> nextAction = "phase 10: assign the mw::com instance and the SOME/IP service, instance and event IDs, give the frame event at least 10 sample slots, then run the sequence-gap and resubscription tests of REQ-MW-014 and REQ-MW-019 and the start, stop and restart cases of the guard rails";
-      attribute :>> evidenceOrGap = "no runtime evidence yet; GAP-MW-035, GAP-MW-036, GAP-MW-037, GAP-MW-038, GAP-MW-039, GAP-MW-040, GAP-MW-041, GAP-MW-042";
+      attribute :>> evidenceOrGap = "no runtime evidence yet; GAP-MW-035, GAP-MW-036, GAP-MW-037, GAP-MW-038, GAP-MW-039, GAP-MW-040, GAP-MW-041, GAP-MW-042, GAP-MW-043";
     }
   }
 
@@ -809,10 +810,38 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      */
   }
 
+  part <'GAP-MW-043'> gapGatewayFailureStopsAdapterWithNoRestart : IncrementGap {
+    doc /*
+     * Two consequences of the start-order and pair-restart guard rails under
+     * the Launch Manager of lifecycle v0.6.1. The owner accepts both (owner
+     * decision of 2026-10-22).
+     * - A gateway failure also stops the adapter. The adapter depends on
+     *   gatewayd, and the fallback Run Target holds only the health proxy
+     *   node. So a failure of someipd or gatewayd also stops the reference
+     *   speed path (REQ-MW-010). The health proxy node then publishes the
+     *   stale indication (REQ-MW-012), as on a provider loss (SC-MW-003).
+     * - Nothing restarts the three processes by itself. The fallback Run
+     *   Target has no recovery action of its own. Only a new activation of
+     *   the main Run Target, on a request of a Control Client, starts them
+     *   again, and no element of the layer sends that request. So after a
+     *   failure the speed path and the frame path stay down until the bench
+     *   or an operator starts the layer again. The owner accepts this for
+     *   the bench demonstration (ASM-MW-025).
+     * Ways out of the coupling, each a later decision:
+     * - Drop the adapter's dependency on gatewayd. Then the start order puts
+     *   only someipd before gatewayd, and frames that the adapter sends
+     *   before gatewayd subscribes are stored (GAP-MW-039).
+     * - Split the adapter's frame ingest into a process of its own. That
+     *   changes the adapter process that REQ-MW-018 names (GAP-MW-035).
+     * No way out of the missing restart is assessed.
+     */
+  }
+
   comment gatewayStartOrderGuardRail
     about scoreTwoDomainPhysicalSystem::integrationLayer::scoreServices::launchManager,
       DE4SDV_MiddlewareSCORENeedsRequirements::reqDiscardFramesWhileHMIUnsubscribed,
-      gapLoLaReturnsStoredSamplesOnSubscription
+      gapLoLaReturnsStoredSamplesOnSubscription,
+      gapGatewayFailureStopsAdapterWithNoRestart
   /*
    * Guard rail, start order (owner decision of 2026-10-22). The Launch
    * Manager starts someipd first, then gatewayd, then the adapter. gatewayd
@@ -837,7 +866,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
       DE4SDV_MiddlewareSCORENeedsRequirements::reqPreserveAEBSSignalProvenance,
       DE4SDV_MiddlewareSCORENeedsRequirements::reqDeliverAEBSSignalsInSourceOrder,
       gapGatewaydOnlyRestartCorruptsPayloads,
-      gapSomeipdKeepsLocalOffers
+      gapSomeipdKeepsLocalOffers,
+      gapGatewayFailureStopsAdapterWithNoRestart
   /*
    * Guard rail, pair restart (owner decision of 2026-10-22). gatewayd and
    * someipd stop and start only as a pair, never gatewayd alone. A
@@ -859,10 +889,10 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    * all three. someipd's stop withdraws the offer, so the guest sees the
    * service go (GAP-MW-042). The health proxy node keeps running and
    * publishes the stale indication (REQ-MW-012), and the HMI shows its
-   * stale overlay. Nothing starts the three again by itself. A new
-   * activation of the main Run Target, on a request of a Control Client,
-   * starts them again in the start order, as new processes. No element of
-   * the layer sends that request.
+   * stale overlay. Nothing starts the three again by itself (GAP-MW-043).
+   * A new activation of the main Run Target, on a request of a Control
+   * Client, starts them again in the start order, as new processes. No
+   * element of the layer sends that request.
    * What the rule achieves, by the documented behavior of the Launch
    * Manager: no gatewayd-only restart under it; phase 10 tests that too.
    * The managed restart also starts a new adapter, so gatewayd's new
@@ -872,9 +902,9 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    * forwards up to 9 stored frames (GAP-MW-039).
    * Consequence: a gateway failure also stops the reference speed path
    * (REQ-MW-010), with the same stale indication as a provider loss
-   * (SC-MW-003). An adapter split, with the frame ingest in a process of
-   * its own, would remove that coupling, but it changes the adapter process
-   * that REQ-MW-018 names (GAP-MW-035).
+   * (SC-MW-003). The owner accepts this coupling and the missing restart
+   * (owner decision of 2026-10-22); GAP-MW-043 records both and the ways
+   * out.
    */
 
   comment guestStaleFrameDropGuardRail
