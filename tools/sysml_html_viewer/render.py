@@ -455,8 +455,8 @@ def _resolve_source_ref(
     declaration of Q. The declarations of token that it owns (its
     children) come first. A declaration on this line is not a candidate.
     If no candidate remains, the rules for a name without a qualifier
-    apply. Thus a feature that a usage gets from its type (`part layer :
-    Realization;` without a body) resolves as before, and not to the child
+    apply. Thus a feature that a usage without a body gets from its type
+    (`part layer : Realization;`) resolves as before, and not to the child
     of another declaration with the name Q. This is a navigation heuristic
     over the scanned declarations, not SysML v2 name resolution.
     """
