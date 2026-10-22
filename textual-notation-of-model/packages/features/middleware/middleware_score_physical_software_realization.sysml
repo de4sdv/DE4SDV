@@ -344,7 +344,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
          * default event type of interface/vsomeip/application.hpp:221-225 of
          * vsomeip 3.6.1). vsomeip sends a current value to a new subscriber
          * only for a field
-         * (implementation/routing/src/routing_manager_base.cpp:823-836). So a
+         * (implementation/routing/src/routing_manager_base.cpp:823-840). So a
          * frame goes only to a current subscriber and is dropped at the host
          * while the guest's subscription is absent. Its vsomeip configuration
          * bounds the external endpoint queue, which vsomeip leaves unlimited
@@ -714,8 +714,9 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * GetNewSamples returns the newest samples still in the slots, up to the
      * count it asks for (slot_collector.cpp:24 and 55-82,
      * subscription_not_subscribed_states.cpp:88 of communication 0.5.0;
-     * slot_collector.cpp is the same in 0.4.0). No mw::com or gateway
-     * setting turns this off. Effects on the layer:
+     * slot_collector.cpp is the same in 0.4.0). Neither the event settings
+     * of the mw::com configuration schema nor the gateway configuration
+     * can turn this off. Effects on the layer:
      * - gatewayd asks for 10. So a late or repeated subscription of gatewayd
      *   forwards up to 9 stored frames with the next new frame. They can
      *   include frames that the AEBS stack produced while the HMI
@@ -750,11 +751,11 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * REQ-MW-014. The pair-restart guard rail avoids it, because gatewayd
      * never restarts alone under the Launch Manager. A restart of gatewayd
      * by hand would still cause it. For the payloads observed, the
-     * receiver's framing check and the sequence check of the ingress then
-     * drop every frame, so the display turns stale instead of showing wrong
-     * values. Other corruptions are not ruled out. The open rework of the
-     * gateway's IPC binding is designed for a gatewayd restart, but it is
-     * not merged and DE4SDV has not tested it.
+     * receiver's framing check and the sequence check of the ingress would
+     * then drop every frame, so the display would turn stale instead of
+     * showing wrong values. Other corruptions are not ruled out. The open
+     * rework of the gateway's IPC binding is designed for a gatewayd
+     * restart, but it is not merged and DE4SDV has not tested it.
      */
   }
 
@@ -811,11 +812,11 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    * IPC. The adapter depends on gatewayd (depends_on,
    * launch_manager.schema.json:65-72 of lifecycle v0.6.1). A dependency must
    * be ready first, and a Native component is ready once its process is
-   * spawned (concepts.rst:92-94). So gatewayd already looks for the frame
-   * service when the adapter offers it, and it subscribes right after the
-   * offer (score/gatewayd/impl/local_service_instance.cpp:141 and 264-299
-   * of inc_someip_gateway at 951fbc09). What the rule achieves: at start,
-   * gatewayd forwards no frame that the adapter sent long before the
+   * spawned (concepts.rst:92-94). So gatewayd normally looks for the frame
+   * service before the adapter offers it, and then it subscribes right
+   * after the offer (score/gatewayd/impl/local_service_instance.cpp:141 and
+   * 264-299 of inc_someip_gateway at 951fbc09). What the rule achieves: at
+   * start, gatewayd forwards no frame that the adapter sent long before the
    * subscription. What stays open: the rule orders process starts only, and
    * it does not wait until gatewayd has subscribed. The frames that the
    * adapter sends between its offer and gatewayd's subscription are stored,
@@ -854,8 +855,9 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    * activation of the main Run Target, on a request of a Control Client,
    * starts them again in the start order, as new processes. No element of
    * the layer sends that request.
-   * What the rule achieves: no gatewayd-only restart under the Launch
-   * Manager. The managed restart also starts a new adapter, so gatewayd's
+   * What the rule achieves, by the documented behavior of the Launch
+   * Manager: no gatewayd-only restart under it; phase 10 tests that too.
+   * The managed restart also starts a new adapter, so gatewayd's
    * new subscription should find no frame from before the failure; phase
    * 10 tests it. What stays open: a restart of gatewayd by hand still
    * corrupts the payloads (GAP-MW-040), and a pair restart beside a running
