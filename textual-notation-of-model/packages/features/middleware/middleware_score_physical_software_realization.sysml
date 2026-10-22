@@ -566,7 +566,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
       attribute :>> transformationRule = "pass-through and unchanged (REQ-MW-015): no element reads the frame content, and the receiver reads only the length prefix to check the framing; no VSS signal, by owner decision";
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
-      attribute :>> nextAction = "phase 10: assign the mw::com instance and the SOME/IP service, instance and event IDs, give the frame event at least 10 sample slots and no cycle, then run the sequence-gap and resubscription tests of REQ-MW-014 and REQ-MW-019, the start, stop and restart cases of the guard rails, and a corrupted-payload case for the receiver's framing check";
+      attribute :>> nextAction = "phase 10: assign the mw::com instance and the SOME/IP service, instance and event IDs, give the frame event at least 10 sample slots and no cycle, then run the sequence-gap and resubscription tests of REQ-MW-014 and REQ-MW-019, the start, stop and restart cases of the guard rails, and a corrupted-payload case for the receiver's framing check; also check that the host keeps the ROS 2 (DDS) traffic of the adapter and the health proxy node off the guest network, the condition under which someipd is the only process of the layer that the guest reaches (REQ-MW-016)";
       attribute :>> evidenceOrGap = "no runtime evidence yet; GAP-MW-035, GAP-MW-036, GAP-MW-037, GAP-MW-038, GAP-MW-039, GAP-MW-040, GAP-MW-041, GAP-MW-042, GAP-MW-043";
     }
   }
