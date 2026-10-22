@@ -1240,8 +1240,9 @@ def test_declared_type_before_a_reference_subsetting_or_redefinition(tmp_path):
 
 # Synthetic model for qualified names in the source view (`Q::name`). The
 # two layers of the stack have a variant `shared` each. The rack has a
-# `guestLayer::shared` of its own. The `hostLayer` of package A owns
-# nothing.
+# `guestLayer::shared` of its own. In the physical system, `layer` has no
+# body: its `adapter` is a feature of its type. The `layer` of the context
+# has an `adapter` of its own.
 _QUALIFIED_MODEL = {
     "stack/stack.sysml": (
         "package P {\n"
@@ -1274,10 +1275,25 @@ _QUALIFIED_MODEL = {
         "  part chained = P::Stack::guestLayer::shared;\n"
         "}\n"
     ),
-    "alias/alias.sysml": (
-        "package A {\n"
-        "  part hostLayer : Layer;\n"
-        "  part named = hostLayer::shared;\n"
+    "physical/physical.sysml": (
+        "package Phys {\n"
+        "  part def Realization {\n"
+        "    part adapter : Process;\n"
+        "  }\n"
+        "  part def PhysicalSystem {\n"
+        "    part layer : Realization;\n"
+        "  }\n"
+        "  part system : PhysicalSystem;\n"
+        "  allocation a allocate x to system::layer::adapter;\n"
+        "}\n"
+    ),
+    "context/context.sysml": (
+        "package Ctx {\n"
+        "  part def Context {\n"
+        "    part layer : Layer {\n"
+        "      part adapter : Adapter;\n"
+        "    }\n"
+        "  }\n"
         "}\n"
     ),
 }
@@ -1336,15 +1352,16 @@ def test_qualified_source_reference_on_the_declaration_line_of_its_name(tmp_path
         ("guestLayer", "stack.sysml", 6), ("shared", "stack.sysml", 7)]
 
 
-def test_qualified_source_reference_falls_back_to_the_name_of_its_qualifier(tmp_path):
-    """If the declaration of Q owns no declaration of name, the declarations
-    of name whose parent has the name Q are used. If no parent has the
-    name Q, the rules for a name without a qualifier apply."""
+def test_qualified_source_reference_without_an_owned_declaration(tmp_path):
+    """If the declaration of Q owns no declaration of name, or Q has no
+    declaration, the rules for a name without a qualifier apply. In
+    `system::layer::adapter`, the part `layer : Realization` has no body,
+    and adapter is a feature of its type. The adapter of the other part
+    with the name layer is not used."""
     out = _qualified_model_site(tmp_path)
-    # the hostLayer of package A owns nothing, the hostLayer of the stack
-    # owns a shared
-    assert _source_links(out, "alias/alias.sysml", 3) == [
-        ("hostLayer", "alias.sysml", 2), ("shared", "stack.sysml", 4)]
+    assert _source_links(out, "physical/physical.sysml", 9) == [
+        ("system", "physical.sysml", 8), ("layer", "physical.sysml", 6),
+        ("adapter", "physical.sysml", 3)]
     # no declaration has the name Unknown
     assert _source_links(out, "stack/member.sysml", 5) == [("shared", "stack.sysml", 4)]
 
