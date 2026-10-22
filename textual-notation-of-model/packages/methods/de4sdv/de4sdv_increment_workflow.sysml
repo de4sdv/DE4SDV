@@ -298,9 +298,24 @@ package DE4SDV_IncrementWorkflow {
          * subject and one primary verification method of the standard kinds. Advisory:
          * a requirement's subject is the system of interest the charter declares, never
          * the increment; a requirement states its success criteria. A requirement
-         * without a feature link is core, common to every member product; a varying
-         * requirement is a variant of a variation, which phase 9 binds to its
-         * feature. */
+         * varies with the features that bring its system of interest into a member
+         * product. These existing links name such a feature:
+         * - a dependency of the requirement or of its system of interest on the feature;
+         * - such a dependency on a variant bound to the feature, on a variant that a
+         *   derivation rule derives from it, or on that variant's definition;
+         * - the typing of the system of interest by the definition of such a variant.
+         * A definition names a feature only when it types no other bound or derived
+         * variant. Otherwise, link to the variant itself. A derived variant names
+         * every premise of the rule that derives it. When the links name more than
+         * one feature, the requirement applies to a member product that selects all
+         * of them. Declare these dependencies with the requirement or its system of
+         * interest, outside the feature-model and configuration documents. A
+         * requirement with no such link is core, common to every member product. An
+         * element that only restates such a link does not earn its place. No check
+         * reads these links. The PLEML configuration evaluator binds only the
+         * variations of a feature model's projection owner, one per feature group.
+         * Binding a requirement variant to a feature in phase 9 therefore waits until
+         * the evaluator binds requirement variants. */
     attribute :>> phase = MethodPhase::phase5_requirements;
     in requirement needs[0..*] : StakeholderNeedCandidate;
     out requirement requirements[1..*] : RequirementCandidate;
