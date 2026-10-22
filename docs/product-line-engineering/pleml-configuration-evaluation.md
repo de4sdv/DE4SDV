@@ -19,8 +19,9 @@ only (ADR 0011). For each feature tree it decides:
   omitted optional feature is deselected, and an omitted mandatory one is
   selected. Every bound of every feature and group is checked, as is that a
   configuration owns only features. As the library documents, each selected
-  feature binds no later than the configuration, which binds at Development: a
-  later-bound feature rejects only the configurations that select it.
+  feature binds no later than the configuration, which binds at Development. So
+  a later-bound feature rejects only the configurations that select it. This
+  holds at any depth (see [Nested features](#nested-features)).
   Metadata, such as `ProductModelProjectionName`, annotates a configuration and
   is not one of its entries.
 - **constraints.** `requires`, XOR and `implies` keep the semantics that the
@@ -61,15 +62,17 @@ configuration.
 The library's documentation says that a constraint checks whether a feature is
 part of the configuration. It also says that features nest. The evaluator
 follows that text. The library's examples and tests use flat trees, so they do
-not decide between the two readings.
+not decide between the two readings. The library's maintainers have not
+confirmed this reading.
 
 The same reading applies to the binding time of each selected feature and to
-the rule that a configuration owns only features. The conformance cases in
+the rule that a configuration owns only features. The test cases in
 `tests/test_pleml_configuration.py` test the reading. Their tree has a
 `requires` and an XOR constraint whose owners sit three levels below the root.
 Each operand sits in another branch. Both constraints apply when their owner is
-selected and never when it is not. An empty operand B is refused. Other cases
-check the binding time and the features-only rule below the root.
+selected. Neither applies when the owner is deselected, omitted or under a
+deselected feature. An empty operand B is refused. Other cases check the
+binding time and the features-only rule below the root.
 
 ## Admission
 

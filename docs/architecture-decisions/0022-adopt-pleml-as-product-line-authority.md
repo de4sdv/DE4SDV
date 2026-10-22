@@ -31,8 +31,8 @@ then, the YAML authority of ADR 0014 stays in force.
 > check and the rule that a configuration owns only features follow the same
 > reading.
 > [Nested features](../product-line-engineering/pleml-configuration-evaluation.md#nested-features)
-> gives the reason, and conformance tests check the reading. The decision
-> itself is unchanged.
+> gives the reason, and DE4SDV's own test cases check the reading. The
+> decision itself is unchanged.
 
 ## Context
 

@@ -81,7 +81,7 @@ def test_the_report_never_claims_native_execution_or_qualification():
     assert report["binding_time_scope"] == "Development-only"
 
 
-# -- conformance: nested features, the transitive reading -----------------------------------
+# -- DE4SDV's reading: nested features ---------------------------------------------------------
 #
 # The library's expressions test only the direct suboccurrences of a configuration
 # (``featureConfiguration.suboccurrences->includes(...)``). DE4SDV evaluates the documented
@@ -98,19 +98,25 @@ XOR_REASON = {"code": "constraint", "class": "constraint", "constraint": None, "
               "detail": "left.leftStack.excluder excludes ['right.rightStack.excluded']",
               "features": ["left.leftStack.excluder", "right.rightStack.excluded"]}
 #: Case -> (the settings, 1 or 0, of the features it sets; the reasons it must give). A leaf without a setting
-#: is left out. The optional ``rightStack`` holds both operands: set to 0, it leaves them absent.
+#: is left out. The optional ``leftStack`` holds both owners and the optional ``rightStack`` both operands:
+#: set to 0, either leaves its leaves absent.
 NESTED_CASES = {
     "requiresHeld": ({"requirer": 1, "required": 1}, []),
     "requiresViolated": ({"requirer": 1, "required": 0}, [REQUIRES_REASON]),
     "requiresViolatedByAnAbsentOperand": ({"requirer": 1, "rightStack": 0}, [REQUIRES_REASON]),
     "requiresOwnerDeselected": ({"requirer": 0, "required": 0}, []),
     "requiresOwnerOmitted": ({"required": 0}, []),
+    "requiresOwnerAbsent": ({"leftStack": 0, "required": 0}, []),
     "xorViolated": ({"excluder": 1, "excluded": 1}, [XOR_REASON]),
     "xorHeld": ({"excluder": 1, "excluded": 0}, []),
     "xorHeldByAnAbsentOperand": ({"excluder": 1, "rightStack": 0}, []),
     "xorOwnerDeselected": ({"excluder": 0, "excluded": 1}, []),
+    "xorOwnerOmitted": ({"excluded": 1}, []),
+    "xorOwnerAbsent": ({"leftStack": 0, "excluded": 1}, []),
     "bothViolated": ({"requirer": 1, "required": 0, "excluder": 1, "excluded": 1}, [XOR_REASON, REQUIRES_REASON]),
 }
+#: The two optional stacks, by path, with their leaves.
+NESTED_STACKS = {"left.leftStack": ("requirer", "excluder"), "right.rightStack": ("required", "excluded")}
 
 
 def nested_constraint_model(cases: dict[str, dict[str, int]]) -> PlemlGraph:
@@ -120,23 +126,23 @@ def nested_constraint_model(cases: dict[str, dict[str, int]]) -> PlemlGraph:
     graph = PlemlGraph()
     tree = graph.tree_definition("NestedConstraintTree")
     f = {"left": graph.feature(tree, "left", (1, 1)), "right": graph.feature(tree, "right", (1, 1))}
-    f["leftStack"] = graph.feature(f["left"], "leftStack", (1, 1))
-    f["rightStack"] = graph.feature(f["right"], "rightStack", (0, 1))
-    for owner, leaves in (("leftStack", ("requirer", "excluder")), ("rightStack", ("required", "excluded"))):
+    for path, leaves in NESTED_STACKS.items():
+        branch, stack = path.split(".")
+        f[stack] = graph.feature(f[branch], stack, (0, 1))
         for leaf in leaves:
-            f[leaf] = graph.feature(f[owner], leaf, (0, 1))
+            f[leaf] = graph.feature(f[stack], leaf, (0, 1))
     graph.requires(f["requirer"], [f["required"]], name="requirerRequiresRequired")
     graph.xor(f["excluder"], [f["excluded"]], name="excluderExcludesExcluded")
     model = graph.feature_model("NestedConstraintFeatureModel", tree_definition=tree)
     for name, settings in cases.items():
         configuration = graph.configuration(model, name, tree)
-        left_stack = graph.setting(graph.setting(configuration, f["left"], (1, 1)), f["leftStack"], (1, 1))
-        on = settings.get("rightStack", 1)
-        right_stack = graph.setting(graph.setting(configuration, f["right"], (1, 1)), f["rightStack"], (on, on))
-        for leaf, scope in (("requirer", left_stack), ("excluder", left_stack), ("required", right_stack),
-                            ("excluded", right_stack)):
-            if leaf in settings:
-                graph.setting(scope, f[leaf], (settings[leaf], settings[leaf]))
+        for path, leaves in NESTED_STACKS.items():
+            branch, stack = path.split(".")
+            on = settings.get(stack, 1)
+            scope = graph.setting(graph.setting(configuration, f[branch], (1, 1)), f[stack], (on, on))
+            for leaf in leaves:
+                if leaf in settings:
+                    graph.setting(scope, f[leaf], (settings[leaf], settings[leaf]))
     return graph
 
 
@@ -163,22 +169,23 @@ def test_a_nested_constraint_applies_to_an_operand_in_another_branch(case):
     if expected:
         assert item["admission"]["reasons"][0] == "invalid configuration: constraint"
         assert item["derived_variants"] == []
-    if settings.get("rightStack") == 0:
-        states = item["states"]
-        assert (states["right.rightStack"], states["right.rightStack.required"],
-                states["right.rightStack.excluded"]) == ("disabled", "absent", "absent")
-    if "requirer" not in settings:
-        assert item["states"]["left.leftStack.requirer"] == "omitted"
+    state_of = {1: "enabled", 0: "disabled", None: "omitted"}
+    for path, leaves in NESTED_STACKS.items():
+        on = settings.get(path.split(".")[1], 1)
+        assert item["states"][path] == state_of[on]
+        for leaf in leaves:
+            assert item["states"][f"{path}.{leaf}"] == (state_of[settings.get(leaf)] if on else "absent"), leaf
 
 
 @pytest.mark.parametrize("kind", ["requires", "xor"])
 @pytest.mark.parametrize(("form", "message"), [
     ("sequence", "^{kind} constraint emptyOperandConstraint names no feature in operand B$"),
     ("null", "^unsupported value expression NullExpression "),
-])
+], ids=["sequence", "null"])
 def test_a_nested_constraint_with_an_empty_operand_b_is_refused(kind, form, message):
-    """The library declares operand B ``[1..*]``. An empty one is refused as a shape at any depth, as an
-    empty sequence and as ``()``, a null expression."""
+    """The library declares operand B ``[1..*]``. An empty one is refused as a shape at any depth. An empty
+    sequence names no feature in operand B. ``()``, a null expression, is refused before that check: the
+    evaluator reads no null expression as an operand, so it reports an unsupported value expression."""
     graph = PlemlGraph()
     tree = graph.tree_definition("NestedConstraintTree")
     stack = graph.feature(graph.feature(tree, "left", (1, 1)), "leftStack", (1, 1))
