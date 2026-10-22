@@ -134,12 +134,13 @@ These method rules apply to every increment:
      - the typing of the system of interest by the definition of such a
        variant.
    - **Named features.** A definition names a feature only when it types no
-     other bound or derived variant. A derived variant names every premise
-     of the rule that derives it. When the links name more than one
-     feature, the requirement applies to a member product that selects all
-     of them.
+     other bound or derived variant. Otherwise, link to the variant itself.
+     A derived variant names every premise of the rule that derives it.
+     When the links name more than one feature, the requirement applies to
+     a member product that selects all of them.
    - **Placement.** Declare these dependencies with the requirement or its
-     system of interest, outside the feature models.
+     system of interest, outside the feature-model and configuration
+     documents.
    - **Core.** A requirement with no such link is core, common to every
      member product. An element that only restates such a link does not
      earn its place (rule 11). No check reads these links.

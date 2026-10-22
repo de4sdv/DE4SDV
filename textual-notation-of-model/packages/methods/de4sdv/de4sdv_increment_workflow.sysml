@@ -305,10 +305,11 @@ package DE4SDV_IncrementWorkflow {
          *   derivation rule derives from it, or on that variant's definition;
          * - the typing of the system of interest by the definition of such a variant.
          * A definition names a feature only when it types no other bound or derived
-         * variant. A derived variant names every premise of the rule that derives it.
-         * When the links name more than one feature, the requirement applies to a
-         * member product that selects all of them. Declare these dependencies with the
-         * requirement or its system of interest, outside the feature models. A
+         * variant. Otherwise, link to the variant itself. A derived variant names
+         * every premise of the rule that derives it. When the links name more than
+         * one feature, the requirement applies to a member product that selects all
+         * of them. Declare these dependencies with the requirement or its system of
+         * interest, outside the feature-model and configuration documents. A
          * requirement with no such link is core, common to every member product. An
          * element that only restates such a link does not earn its place. No check
          * reads these links. The PLEML configuration evaluator binds only the
