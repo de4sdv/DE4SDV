@@ -6,8 +6,8 @@
  * Shared-assets model: textual-notation-of-model/packages/architecture/execution_environments.sysml
  * Shared-assets model SHA-256: f35675c21dced2604c813b4a366b0cfbdd6a410ccb58539cb387188e89e538fc
  * Receipt: model-based-product-line-engineering/feature-models/receipts/engineering_execution_environments.receipt.json
- * Receipt SHA-256: a7d6f626f62dfece5c15abcf197f824cefbb9ad7fa87ca5dc32b10772bedf795
- * Elements SHA-256: f7c8b9439483aa66a2af75a52c31910b3c939042f5323500bb3b3ccc34c03dd4
+ * Receipt SHA-256: 2dbdf086ce36bd22f465727e6cb3cadd041dba1f0edd72feb4c7bc7aafc6cfef
+ * Elements SHA-256: f2337bf1e9ba0d2e07ff363b1c9c869d54a5f30bf7456778762e2efcca5ef98a
  * Feature configuration: model-based-product-line-engineering/feature-configurations/apple_silicon_macos_candidate.sysml (appleSiliconMacOSCandidate)
  * Feature configuration SHA-256: 4adceab22e25e3c4a5a21e6c54e8bc37c00ce1ed260449f01ef44abb0fd65a23
  * PLEML feature model: model-based-product-line-engineering/feature-models/engineering_execution_environments.sysml

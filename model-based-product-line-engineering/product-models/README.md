@@ -12,7 +12,7 @@ privileged validation path.
 |---|---|---|
 | `aebs_autoware_linux_lidar_camera.sysml` | `aebsAutowareLinuxLidarCamera` (`sdv_product_line.receipt.json`) | Standalone AEBS reference member platform projection |
 | `middleware_autoware_aaos_sdv_reference.sysml` | `middlewareAutowareAAOSSDVReference` (`sdv_product_line.receipt.json`) | AAOS-integrated middleware reference member platform projection |
-| `example_linux_score.sysml` | `exampleLinuxSCOREVariant` (`sdv_product_line.receipt.json`) | SDV platform projection |
+| `middleware_autoware_score_reference.sysml` | `middlewareAutowareSCOREReference` (`sdv_product_line.receipt.json`) | Eclipse S-CORE reference configuration platform projection (INC-MW-011; not admitted) |
 | `apollo_qnx_qvm.sysml` | `apolloQNXQVMVariant` (`sdv_product_line.receipt.json`) | SDV platform projection |
 | `inc_aebs_009a_jetson_execution_environment.sysml` | `incAEBS009AJetsonExecutionEnvironment` (`engineering_execution_environments.receipt.json`) | Inspected exact maintained System 2 environment projection; historical run has coarser identity |
 | `apple_silicon_macos_candidate.sysml` | `appleSiliconMacOSCandidate` (`engineering_execution_environments.receipt.json`) | Planned System 2 candidate projection |
