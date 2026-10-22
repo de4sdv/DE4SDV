@@ -23,7 +23,7 @@ What one evaluation decides, per feature tree:
   omitted optional features (deselected) and implied mandatory ones
   (selected); the bounds of every feature and group; that it owns only
   features; the Development binding time; the requires, XOR and implies
-  constraints with the library's semantics;
+  constraints with the semantics the library documents;
 * the feature bindings: one feature per shared-asset variant, every variant of
   a bound variation bound, one exactly-one group per variation, Development
   binding time, the projection owner, and no binding to a derived variant;
@@ -33,6 +33,11 @@ What one evaluation decides, per feature tree:
 * with the governed scope, the admission authority (ADR 0014): whether each
   configuration is admitted, read from the correspondences of its features.
   Admission requires validity: an invalid configuration is never admitted.
+
+Nested features. DE4SDV evaluates the documented semantics over every
+feature of the tree; PLEML's expressions test direct suboccurrences only.
+So the features-only rule, the binding time and the constraints apply at
+any depth (docs/product-line-engineering/pleml-configuration-evaluation.md).
 
 Nothing here executes a PLEML expression natively, qualifies anything or
 grants authority: every report says ``native_expression_executed: false``.
@@ -1534,8 +1539,9 @@ class _Configuration:
                                 features=[feature.path])
                     break
 
-        # PLEML's nodeFeaturesAreSet compares the binding time of each suboccurrence of the configuration,
-        # that is of each feature it selects, with the configuration's own (PLEML.sysml:95-104).
+        # PLEML's nodeFeaturesAreSet compares the binding time of each direct suboccurrence of the
+        # configuration with the configuration's own (PLEML.sysml:95-104). DE4SDV applies it to every
+        # selected feature, at any depth (the module docstring).
         for feature in model.features.values():
             if feature.identifier in selected and LIFE_CYCLE[feature.binding_time] > LIFE_CYCLE["Development"]:
                 self.reason("binding-time", f"{feature.path} binds at {feature.binding_time}, later than the "

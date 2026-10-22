@@ -260,8 +260,8 @@ package DE4SDV_MiddlewareSCOREFraming {
     doc /*
      * ASM-MW-027: The hypervisor is KVM on the Linux host, with the AAOS SDV
      * guest, as in the AAOS-integrated reference member (middleware
-     * androidSDV, hypervisor kvm, osPlatform android); the INC-AEBS-010
-     * bench ran its HMI in an AAOS SDV Cuttlefish guest. The Linux host is
+     * androidSDV in its Android guest, hypervisor kvm, osPlatform linux);
+     * the INC-AEBS-010 bench ran its HMI in an AAOS SDV Cuttlefish guest. The Linux host is
      * both the KVM host and the domain that owns the AEBS emergency
      * intervention command path (ASM-MW-028), so the hypervisor boundary
      * isolates the informational HMI guest from the host.
@@ -371,7 +371,7 @@ package DE4SDV_MiddlewareSCOREFraming {
      * Reviewers need the two-domain member product, with its own operating
      * system, middleware and hypervisor selection per execution domain, to
      * be representable in the product model's variation structure without
-     * changing the configurations of the existing members.
+     * changing what the existing members are.
      */
     subject;
     stakeholder productLineEngineer : ProductLineEngineer;
