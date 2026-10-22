@@ -456,8 +456,8 @@ def _resolve_source_ref(
     children) come first. A declaration on this line is not a candidate.
     If no candidate remains, the rules for a name without a qualifier
     apply. Thus a feature that a usage without a body gets from its type
-    (`part layer : Realization;`) resolves as before, and not to the child
-    of another declaration with the name Q. This is a navigation heuristic
+    (`part layer : Realization;`) resolves by the rules for a name without
+    a qualifier; the name of Q is not used. This is a navigation heuristic
     over the scanned declarations, not SysML v2 name resolution.
     """
     refs = member_index.get(token)

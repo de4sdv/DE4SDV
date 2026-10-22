@@ -1367,8 +1367,8 @@ def test_qualified_source_reference_without_an_owned_declaration(tmp_path):
     """If the declaration of Q owns no declaration of name, or Q has no
     declaration, the rules for a name without a qualifier apply. In
     `system::layer::adapter`, the part `layer : Realization` has no body,
-    and adapter is a feature of its type. The adapter of the other part
-    with the name layer is not used."""
+    and adapter is a feature of its type. The name layer is not used to
+    find adapter. Here, the rules pick the adapter in the same file."""
     out = _qualified_model_site(tmp_path)
     assert _source_links(out, "physical/physical.sysml", 9) == [
         ("system", "physical.sysml", 8), ("layer", "physical.sysml", 6),
