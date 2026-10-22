@@ -1,7 +1,8 @@
 # Roadmap
 
-This file names the current project outcomes and release gate. GitHub milestones
-and issues carry live work status; this file should not duplicate a ticket list.
+This file names the current project outcomes and release gate. Pull requests
+carry live work status. Issues carry proposals, questions, and decisions that
+need a durable record. This file does not duplicate a ticket list.
 
 ## Foundation milestone
 
@@ -10,8 +11,15 @@ structure, contributor guide, and initial roadmap. Its four issues and the
 milestone are closed as **Foundation setup — completed**. It is a historical
 planning milestone, not a published release.
 
-DE4SDV has not yet published a tagged release. The next release milestone is
+DE4SDV has not yet published a versioned release. The next release milestone is
 `v0.1.0 — first reviewable engineering baseline`.
+
+Since 2026-10-11, five production releases have deployed an exact `main`
+commit to the public SysML v2 API, viewer, and Ask viewer. The
+[baseline register](configuration-management/baseline-register.md#production-releases)
+records each one. A production release has no semantic-version tag and no
+release notes, so it is not a versioned release
+([release terms](configuration-management/README.md#versioning-and-releases)).
 
 ## Current outcome goals
 
@@ -59,13 +67,28 @@ The release candidate must satisfy all of the following at one exact commit:
 - no artifact claims certification, homologation, or regulatory approval that
   the evidence does not establish.
 
+### Gate status on 2026-10-22
+
+No v0.1.0 candidate commit exists yet. The table shows what the production
+releases already meet.
+
+| Criterion | Status | Evidence |
+|---|---|---|
+| Checks, smoke tests, and the pytest suite pass from a clean checkout | Met at each production release | CI `checks` passed on push at all five release commits |
+| SysML v2 validation evidence is bound to the commit | Met at each production release | One privileged run per release; the baseline register names it |
+| Open P0/P1 milestone issues are resolved or deferred | Met | The milestone has one open issue, #37. It has no P0 or P1 label |
+| Pull requests are triaged; documents describe current practice | Not met | Open pull requests have no triage record for this gate. The import rehearsal that `deployment/README.md` drops after two releases still runs |
+| The baseline register identifies the release | Partly met | The production releases are recorded. No v0.1.0 row exists |
+| Release notes exist | Not met | No release notes exist |
+| No certification, homologation, or approval claim without evidence | Not checked | No audit for this gate exists yet |
+
 ## Capability status
 
 | Area | Status | Activation or next gate |
 |---|---|---|
 | SysML v2 method kernel, product-line model, viewer, and API integration | Active | Keep model, implementation, validation, and publication evidence synchronized |
 | AEBS reference thread | Active | Close the end-to-end traceability and exact-head verification gaps |
-| Governance, contribution flow, and release management | Active | Adopt independent-review rules and publish the first release baseline |
+| Governance, contribution flow, and release management | Active | Adopt independent-review rules and close the v0.1.0 release gate |
 | Continuous homologation and compliance structure | Incubating | Add reviewed, bounded evidence cases without certification claims |
 | DevSecOps security controls | Active | Close the Dependabot, code-scanning, and private-reporting gaps listed in `devsecops/devsecops-roadmap.md` |
 | Digital continuity and digital twin | Incubating | Name a concrete decision, owner, data boundary, and verification case |

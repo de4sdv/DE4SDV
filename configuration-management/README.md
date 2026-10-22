@@ -27,6 +27,13 @@ declared baseline contract.
 A GitHub milestone is a planning boundary. It is not a release until a
 maintainer publishes a tag and release record for one exact commit.
 
+A production release is different. It deploys one exact `main` commit to the
+public services ([release steps](../deployment/README.md#release)). It has no
+semantic-version tag and no release notes, so it is not a versioned release.
+The [baseline register](baseline-register.md#production-releases) records every
+production release. A `release-YYYY-MM-DD` tag can mark a production release.
+Such a tag is not a semantic-version tag.
+
 A release candidate must include:
 
 1. a closed or release-ready milestone with unresolved work explicitly
