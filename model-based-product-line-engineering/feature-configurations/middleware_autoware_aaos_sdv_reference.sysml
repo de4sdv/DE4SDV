@@ -19,11 +19,12 @@ package DE4SDV_MiddlewareAutowareAAOSSDVReferenceConfiguration {
              * 2/Linux application runtime on the main side, which is also the
              * KVM host. The AAOS SDV middleware runs in the AAOS SDV guest under
              * KVM, the SDV Core platform domain with no HMI display (owner
-             * decision D3 of 2026-10-21). Cross-domain transport remains
-             * unresolved. This configuration and its projection do not prove
-             * provider, generated binding, discovery, transport, adapter
-             * deployment, ROS 2 publication, Autoware observation, safety,
-             * compliance, or runtime interoperability.
+             * decisions D3 of 2026-10-21 and D2 V3 of 2026-10-22).
+             * Cross-domain transport remains unresolved. This configuration
+             * and its projection do not prove provider, generated binding,
+             * discovery, transport, adapter deployment, ROS 2 publication,
+             * Autoware observation, safety, compliance, or runtime
+             * interoperability.
              *
              * Configuration management note: this is MW-CONFIG-001, and the
              * identity is not renumbered. Until INC-MW-011 phase 9 its single

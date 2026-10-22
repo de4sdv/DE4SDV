@@ -154,8 +154,11 @@ package DE4SDV_SDVPlatformStack {
       connect guestMiddleware.osPort to guestOSPlatform.middlewarePort;
 
     /*
-     * Only the guest OS is a guest of the hypervisor. The main-side OS is
-     * not connected to the guest port: with KVM it hosts the hypervisor.
+     * Only the guest OS is connected to the guest port. The main-side OS is
+     * not: with KVM it hosts the hypervisor; with ACRN it runs in a VM too
+     * (ACRNHypervisor), and with QVM its relation is left to the
+     * realization. The stack does not model these main-side relations as
+     * connections.
      */
     interface guestOSHypervisorBoundary : OSHypervisorInterface
       connect guestOSPlatform.hypervisorPort to hypervisor.guestPort;
@@ -592,6 +595,8 @@ package DE4SDV_SDVPlatformStack {
      * ACRN (Project ACRN, Linux Foundation).
      * Open-source hypervisor for automotive and IoT.
      * Supports Linux and Android guests.
+     * It runs each execution domain in a VM, the service VM included, so in
+     * the stack the main side is an ACRN guest too.
      * License: BSD-2-Clause.
      * Status: candidate realization.
      */

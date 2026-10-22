@@ -48,7 +48,7 @@ class TestMWVariabilityConfiguration(unittest.TestCase):
                            if item["source"] == CONFIGURATION.relative_to(REPO_ROOT).as_posix()]
         self.assertTrue(configuration["valid"])
         # One SoC (owner decision D3, INC-MW-011 phase 9): Autoware on Linux on the main side, the KVM host,
-        # and the AAOS SDV middleware in the Android guest; no HMI display.
+        # and the AAOS SDV middleware in the Android guest. No HMI display (owner decisions D3 and D2 V3).
         self.assertEqual(
             {"platformStack.autoware", "platformStack.androidSDV", "platformStack.linux", "platformStack.kvm",
              "platformStack.guestAndroid", "platformStack.guestAndroidSDV",

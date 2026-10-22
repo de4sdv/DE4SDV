@@ -671,7 +671,7 @@ def test_the_superset_wiring_says_where_each_layer_runs() -> None:
     assert len(wiring) == len(re.findall(r"\binterface\b", body)), "an unreviewed interface form"
     assert wiring == SUPERSET_WIRING
     ends = [end for pair in wiring.values() for end in pair]
-    assert "osPlatform.hypervisorPort" not in ends, "the main side is no guest of the hypervisor"
+    assert "osPlatform.hypervisorPort" not in ends, "the main-side OS is not connected to the guest port"
     assert not any(end.startswith("middleware.") and other.startswith("osPlatform.")
                    for end, other in wiring.values()), "the partner middleware has no unconditional main-side OS"
     middleware = re.search(r"\bvariation part middleware\b[^{;]*\{", body)
