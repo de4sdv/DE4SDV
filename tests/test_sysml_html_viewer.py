@@ -1299,6 +1299,14 @@ _QUALIFIED_MODEL = {
         "  }\n"
         "}\n"
     ),
+    "refs/refs.sysml": (
+        "package S {\n"
+        "  part def Holder {\n"
+        "    part hostLayer : Layer;\n"
+        "    ref part probe : P::Stack ::> hostLayer;\n"
+        "  }\n"
+        "}\n"
+    ),
 }
 
 
@@ -1367,6 +1375,16 @@ def test_qualified_source_reference_without_an_owned_declaration(tmp_path):
         ("adapter", "physical.sysml", 3)]
     # no declaration has the name Unknown
     assert _source_links(out, "stack/member.sysml", 5) == [("shared", "stack.sysml", 4)]
+
+
+def test_name_after_the_references_symbol_has_no_qualifier(tmp_path):
+    """The symbol `::>` means `references`. It starts with `::`, but the
+    name after it has no qualifier. Thus in `P::Stack ::> hostLayer`,
+    hostLayer is not the hostLayer that Stack owns."""
+    out = _qualified_model_site(tmp_path)
+    assert _source_links(out, "refs/refs.sysml", 4) == [
+        ("P", "stack.sysml", 1), ("Stack", "stack.sysml", 2),
+        ("hostLayer", "refs.sysml", 3)]
 
 
 def test_anonymous_usage_indexed(tmp_path):
