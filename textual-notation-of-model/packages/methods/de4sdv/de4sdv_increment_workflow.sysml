@@ -298,15 +298,23 @@ package DE4SDV_IncrementWorkflow {
          * subject and one primary verification method of the standard kinds. Advisory:
          * a requirement's subject is the system of interest the charter declares, never
          * the increment; a requirement states its success criteria. A requirement
-         * varies with the feature that brings its system of interest into a member
-         * product. Existing links name that feature. One is a dependency of the
-         * requirement or of its system of interest on the feature, on a variant bound
-         * to it or derived from it, or on that variant's definition; the other is the
-         * typing of the system of interest by that definition. A requirement with no
-         * such link is core, common to every member product. The evaluator binds only
-         * the variations of a feature model's projection owner, one per feature group,
-         * so binding a requirement variant to a feature waits until the evaluator
-         * binds requirement variants. */
+         * varies with the features that bring its system of interest into a member
+         * product. These existing links name such a feature:
+         * - a dependency of the requirement or of its system of interest on the feature;
+         * - such a dependency on a variant bound to the feature, on a variant that a
+         *   derivation rule derives from it, or on that variant's definition;
+         * - the typing of the system of interest by the definition of such a variant.
+         * A definition names a feature only when it types no other bound or derived
+         * variant. A derived variant names every premise of the rule that derives it.
+         * When the links name more than one feature, the requirement applies to a
+         * member product that selects all of them. Declare these dependencies with the
+         * requirement or its system of interest, outside the feature models. A
+         * requirement with no such link is core, common to every member product. An
+         * element that only restates such a link does not earn its place. No check
+         * reads these links. The PLEML configuration evaluator binds only the
+         * variations of a feature model's projection owner, one per feature group.
+         * Binding a requirement variant to a feature in phase 9 therefore waits until
+         * the evaluator binds requirement variants. */
     attribute :>> phase = MethodPhase::phase5_requirements;
     in requirement needs[0..*] : StakeholderNeedCandidate;
     out requirement requirements[1..*] : RequirementCandidate;

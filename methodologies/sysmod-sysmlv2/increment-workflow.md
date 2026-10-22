@@ -123,19 +123,32 @@ These method rules apply to every increment:
    standard kinds. Its
    subject is the system of interest the charter declares, never the
    increment (advisory). Requirements are shared assets. A requirement
-   varies with the feature that brings its system of interest into a member
-   product. Two kinds of existing links name that feature. One is a
-   dependency of the requirement or of its system of interest on the
-   feature, on a variant bound to the feature or derived from it, or on that
-   variant's definition. The other is the typing of the system of interest
-   by that definition. A requirement with no such link is core, common to
-   every member product. An element that only restates such a link does not
-   earn its place (rule 11). The
-   [evaluator](../../docs/product-line-engineering/pleml-configuration-evaluation.md)
-   binds only the variations of a feature model's projection owner, such as
-   `SDVPlatformStack`, one per feature group. Binding a requirement variant
-   to a feature in phase 9 therefore waits until the evaluator binds
-   requirement variants.
+   varies with the features that bring its system of interest into a member
+   product.
+   - **Links.** These existing links name such a feature:
+     - a dependency of the requirement or of its system of interest on the
+       feature;
+     - such a dependency on a variant bound to the feature, on a variant
+       that a derivation rule derives from it, or on that variant's
+       definition;
+     - the typing of the system of interest by the definition of such a
+       variant.
+   - **Named features.** A definition names a feature only when it types no
+     other bound or derived variant. A derived variant names every premise
+     of the rule that derives it. When the links name more than one
+     feature, the requirement applies to a member product that selects all
+     of them.
+   - **Placement.** Declare these dependencies with the requirement or its
+     system of interest, outside the feature models.
+   - **Core.** A requirement with no such link is core, common to every
+     member product. An element that only restates such a link does not
+     earn its place (rule 11). No check reads these links.
+   - **Requirement variants.** The
+     [PLEML configuration evaluator](../../docs/product-line-engineering/pleml-configuration-evaluation.md)
+     binds only the variations of a feature model's projection owner, such
+     as `SDVPlatformStack`, one per feature group. Binding a requirement
+     variant to a feature in phase 9 therefore waits until the evaluator
+     binds requirement variants.
 6. **Verification.** Each verification case verifies at least one requirement
    of the increment, and every in-scope requirement is verified by at least
    one verification case.

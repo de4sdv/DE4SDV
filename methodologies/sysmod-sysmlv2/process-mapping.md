@@ -245,7 +245,7 @@ domain mapping, and selection guidance.
 | 2 — Operational context | Operational Context Definition, Operational Story, Operational Capability Definition, Operational Process | Operational capabilities may vary by variant |
 | 3 — Capability/feature semantics | ProductLineClassificationViewpoint (DE4SDV method viewpoint) | Core variability decision: the feature candidates the increment adds; core elements are common by default |
 | 4 — Needs | Stakeholder Requirement Definition Viewpoint | Needs may be variant-specific |
-| 5 — Requirements | System Context Definition, System Use Case, System Capability Definition, System Process, System Requirement Definition, System Interface Definition, System Requirement Traceability | Requirements can carry variant-specific constraints and applicability |
+| 5 — Requirements | System Context Definition, System Use Case, System Capability Definition, System Process, System Requirement Definition, System Interface Definition, System Requirement Traceability | Requirements vary with the features that bring their system of interest (rule 5 of the [increment workflow](increment-workflow.md#method-rules-and-the-increment-workflow-model)) |
 | 6 — Functional architecture | System Functional Breakdown Structure | Functional structure may contain variation points |
 | 7 — Logical architecture | System Structure Definition, System Internal Exchange, System Function Mapping | Logical elements may vary by configuration (sensor suites, compute platform) |
 | 8 — Physical/software realization | Physical Context Definition, Physical Structure Definition, Physical Interface Definition, Physical Functional Mapping, Physical Logical Mapping | Physical/software realization contains explicit variation points (platform stack, middleware, sensing) |
@@ -268,8 +268,8 @@ before requirements and architecture; core elements are common by default
 and get no record. Phase 9 takes the variation points that accumulated
 through phases 6–8 (sensor suite options, middleware alternatives, platform
 stack choices) and assembles them into configured product models.
-Requirements are not among them: a requirement varies with the feature that
-brings its system of interest (rule 5 of the
+Requirements are not among them: a requirement varies with the features that
+bring its system of interest (rule 5 of the
 [increment workflow](increment-workflow.md#method-rules-and-the-increment-workflow-model)).
 A feature candidate from Phase 3 becomes a variation point in Phase 9 once
 member-product variability is shown; core elements are shared assets.
