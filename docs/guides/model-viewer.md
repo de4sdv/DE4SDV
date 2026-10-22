@@ -121,6 +121,13 @@ source view of the model file. In the source view, identifiers that resolve to
 model elements are clickable links — hover them for a tooltip, click to jump.
 Self-links on the declaration itself are omitted so the source stays quiet.
 
+In a qualified name such as `guestMiddleware::androidSDV`, the link goes to the
+`androidSDV` that `guestMiddleware` declares in its body. This is also true on
+a line that declares another `androidSDV`. If the qualifier declares no such
+element in its body, the link uses the rules for a name without a qualifier.
+An example is a feature that the qualifier gets from its type. These links
+help you navigate. They are not SysML v2 name resolution.
+
 ### Tree search and filters
 
 The search box filters the model tree live by **names, kinds, and
