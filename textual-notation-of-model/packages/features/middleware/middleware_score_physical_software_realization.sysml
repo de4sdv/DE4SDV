@@ -653,14 +653,16 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      *   library score_com_serializer.so, and deployment/run_gateway.sh passes
      *   options that the daemons reject (lines 49-51 and 66-67). Phase 10
      *   deploys gatewayd, someipd and the null serializer without them.
+     *   DE4SDV reported this to the gateway project (2026-10-22).
      * - Upstream state of the defects that the guard rails bound: GAP-MW-039
-     *   and GAP-MW-041 are LoLa defects of communication 0.4.0 and 0.5.0.
-     *   GAP-MW-040 and GAP-MW-042 are gateway defects. A LoLa skeleton that
-     *   stops its offer while a proxy is subscribed, and offers again after
-     *   that proxy is gone, can abort. None of these has a released fix, and
-     *   on 2026-10-22 no upstream issue reported the four defects. Reporting
-     *   them is engagement with the S-CORE project, which this increment
-     *   keeps out of scope (scoreUpstreamEngagementOutOfScope).
+     *   and GAP-MW-041 are LoLa defects of communication 0.4.0 and 0.5.0,
+     *   reported to the communication project (2026-10-22). GAP-MW-040 and
+     *   GAP-MW-042 are gateway defects, reported to the gateway project
+     *   (2026-10-22). A LoLa skeleton that stops its offer while a proxy is
+     *   subscribed, and offers again after that proxy is gone, can abort;
+     *   its upstream fix is open. None of these defects has a released fix.
+     *   Code contributions stay a later decision of the owner
+     *   (scoreUpstreamEngagementOutOfScope).
      * Trigger to revisit, all three of:
      * - the open rework of the gateway's IPC binding and configuration is
      *   merged;
@@ -735,8 +737,9 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      *   REQ-MW-013. The first LoLa rule of the adapter prevents that; phase
      *   10 tests it.
      * An unreviewed DE4SDV feasibility run observed the gatewayd case after a
-     * late start of gatewayd and after a pair restart. REQ-MW-019 stays open
-     * for the cases above.
+     * late start of gatewayd and after a pair restart. DE4SDV reported the
+     * defect to the communication project (2026-10-22). REQ-MW-019 stays
+     * open for the cases above.
      */
   }
 
@@ -757,7 +760,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * then drop every frame. So the display would turn stale instead of
      * showing wrong values. Other corruptions are not ruled out. The open
      * rework of the gateway's IPC binding is designed for a gatewayd
-     * restart, but it is not merged and DE4SDV has not tested it.
+     * restart, but it is not merged and DE4SDV has not tested it. DE4SDV
+     * reported the defect to the gateway project (2026-10-22).
      */
   }
 
@@ -775,7 +779,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * every orderly stop of gatewayd ends with SIGABRT. The abort guard rail
      * accepts that. The adapter avoids the abort with its second LoLa rule.
      * An unreviewed DE4SDV feasibility run saw the abort in every SIGTERM
-     * stop of a subscribed gatewayd.
+     * stop of a subscribed gatewayd. DE4SDV reported the defect to the
+     * communication project (2026-10-22).
      */
   }
 
@@ -799,7 +804,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * service go. What remains is the start: someipd offers before gatewayd
      * and the adapter run, so the guest can subscribe before any frame
      * flows. The HMI shows its unavailable disposition until frames come. An
-     * unreviewed DE4SDV feasibility run observed the kept offer.
+     * unreviewed DE4SDV feasibility run observed the kept offer. DE4SDV
+     * reported the defect to the gateway project (2026-10-22).
      */
   }
 
@@ -919,9 +925,10 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    * timeout (launch_manager.schema.json:201). Whether it treats that exit as
    * a failure during a requested stop is not known; phase 10 records it. A
    * small upstream change that calls Unsubscribe() before gatewayd destroys
-   * its proxies is a later option; it needs engagement with the S-CORE
-   * project (GAP-MW-036). The adapter avoids the same defect with its second
-   * LoLa rule.
+   * its proxies is a later option. It is a code contribution, which stays a
+   * later decision of the owner (GAP-MW-036,
+   * scoreUpstreamEngagementOutOfScope). The adapter avoids the same defect
+   * with its second LoLa rule.
    */
 
   concern scoreMiddlewarePhysicalAllocationConcern : PhysicalLogicalMappingConcern {

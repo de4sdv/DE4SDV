@@ -203,7 +203,13 @@ package DE4SDV_MiddlewareSCOREFraming {
     doc /* Reopening the closed INC-MW-010 baseline or extending its retained evidence. */
   }
   part scoreUpstreamEngagementOutOfScope : OutOfScopeItem {
-    doc /* Engagement with, or endorsement by, the Eclipse S-CORE project; the increment claims neither. */
+    doc /*
+     * Engagement with the Eclipse S-CORE project beyond defect reports, and
+     * endorsement by it; the increment claims neither. With the owner's
+     * approval, DE4SDV reported the gateway integration defects upstream on
+     * 2026-10-22 (GAP-MW-036). Code contributions, and a cross-domain
+     * integration test for the gateway, stay a later decision of the owner.
+     */
   }
 
   part asmSCOREBaselinePinned : IncrementAssumption {
