@@ -122,10 +122,20 @@ These method rules apply to every increment:
    one native subject and exactly one primary verification method from the
    standard kinds. Its
    subject is the system of interest the charter declares, never the
-   increment (advisory). Requirements are shared assets: a requirement
-   without a feature link is core, common to every member product, and a
-   varying requirement is a variant of a variation, which phase 9 binds to
-   its feature.
+   increment (advisory). Requirements are shared assets. A requirement
+   varies with the feature that brings its system of interest into a member
+   product. Two kinds of existing links name that feature. One is a
+   dependency of the requirement or of its system of interest on the
+   feature, on a variant bound to the feature or derived from it, or on that
+   variant's definition. The other is the typing of the system of interest
+   by that definition. A requirement with no such link is core, common to
+   every member product. An element that only restates such a link does not
+   earn its place (rule 11). The
+   [evaluator](../../docs/product-line-engineering/pleml-configuration-evaluation.md)
+   binds only the variations of a feature model's projection owner, such as
+   `SDVPlatformStack`, one per feature group. Binding a requirement variant
+   to a feature in phase 9 therefore waits until the evaluator binds
+   requirement variants.
 6. **Verification.** Each verification case verifies at least one requirement
    of the increment, and every in-scope requirement is verified by at least
    one verification case.

@@ -298,9 +298,15 @@ package DE4SDV_IncrementWorkflow {
          * subject and one primary verification method of the standard kinds. Advisory:
          * a requirement's subject is the system of interest the charter declares, never
          * the increment; a requirement states its success criteria. A requirement
-         * without a feature link is core, common to every member product; a varying
-         * requirement is a variant of a variation, which phase 9 binds to its
-         * feature. */
+         * varies with the feature that brings its system of interest into a member
+         * product. Existing links name that feature. One is a dependency of the
+         * requirement or of its system of interest on the feature, on a variant bound
+         * to it or derived from it, or on that variant's definition; the other is the
+         * typing of the system of interest by that definition. A requirement with no
+         * such link is core, common to every member product. The evaluator binds only
+         * the variations of a feature model's projection owner, one per feature group,
+         * so binding a requirement variant to a feature waits until the evaluator
+         * binds requirement variants. */
     attribute :>> phase = MethodPhase::phase5_requirements;
     in requirement needs[0..*] : StakeholderNeedCandidate;
     out requirement requirements[1..*] : RequirementCandidate;

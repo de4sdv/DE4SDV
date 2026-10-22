@@ -266,11 +266,13 @@ Phase 3 and Phase 9 are sequential, not redundant. Phase 3 records the
 feature candidates an increment adds — the feature-model delta, decided
 before requirements and architecture; core elements are common by default
 and get no record. Phase 9 takes the variation points that accumulated
-through phases 5–8 (variant-specific requirements, sensor suite options,
-middleware alternatives, platform stack choices) and assembles them into
-configured product models. A feature candidate from Phase 3 becomes a
-variation point in Phase 9 once member-product variability is shown; core
-elements are shared assets.
+through phases 6–8 (sensor suite options, middleware alternatives, platform
+stack choices) and assembles them into configured product models.
+Requirements are not among them: a requirement varies with the feature that
+brings its system of interest (rule 5 of the
+[increment workflow](increment-workflow.md#method-rules-and-the-increment-workflow-model)).
+A feature candidate from Phase 3 becomes a variation point in Phase 9 once
+member-product variability is shown; core elements are shared assets.
 
 Each phase consumes the viewpoints produced by earlier phases. For
 example, phase 5 (requirements) consumes the operational context views
