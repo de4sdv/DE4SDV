@@ -118,12 +118,9 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * mw::com event (REQ-MW-015); a sample holds one length-prefixed frame
        * of at most 2048 bytes, the gateway slot of the reused ingress
        * (ingress/main.cpp:36 of the INC-AEBS-010 bench). The event type is
-       * the gateway's PreSerializedData<2048>. gatewayd passes it to its null
-       * serializer, which sends the pre-serialized bytes as they are and
-       * encodes nothing (score/serializer/pre_serialized_data.h:23-35,
-       * score/serializer/BUILD.bazel:60-68 and
-       * score/config/mw_someip_config.fbs:53-58 of inc_someip_gateway at
-       * 951fbc09). It links
+       * the gateway's PreSerializedData<2048>, so gatewayd's null serializer
+       * copies the frame bytes unchanged (null_serializer.cpp:58-75;
+       * local_service_instance.cpp:207-216 at 951fbc09). It links
        * aborts_upon_exception of baselibs, so an exception thrown anywhere in
        * the process, also in the ROS 2 client library, aborts the whole
        * process (REQ-MW-018); the health topic then turns stale and the HMI
@@ -301,21 +298,27 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
          * (event_subscription_control.cpp:88-95 of communication 0.5.0). So
          * the frame event needs at least 10 sample slots. gatewayd passes each
          * sample unchanged to someipd over the gateway's message-passing IPC.
-         * The gateway configuration gives the frame event the null serializer
-         * with a message size of 2048 bytes
-         * (score/config/mw_someip_config.fbs:55-58). gatewayd sizes its slots
-         * from the serializer and falls back to 1500 bytes otherwise
-         * (score/gatewayd/main.cpp:47-86). The configuration declares one
-         * service type with one event, no method and no remote service
-         * instance (score/config/mw_someip_config.fbs:26-35). gatewayd
-         * offers mw::com services only for remote service instances
+         * It puts a 16-byte SOME/IP header in front of the frame bytes
+         * (score/gatewayd/impl/local_service_instance.cpp:166-205), and
+         * someipd removes it again
+         * (score/someipd/impl/local_network_service.cpp:124-127). The
+         * layer's gateway configuration (phase 10) gives the frame event the
+         * null serializer with a message size of 2048 bytes; the schema
+         * fields are at score/config/mw_someip_config.fbs:55-58. gatewayd
+         * sizes its slots from the serializer and falls back to 1500 bytes
+         * otherwise (score/gatewayd/main.cpp:47-86). The layer's gateway
+         * configuration (phase 10) declares one service type with one event,
+         * no method and no remote service instance; the schema fields are at
+         * score/config/mw_someip_config.fbs:26-35. gatewayd offers mw::com
+         * services only for remote service instances
          * (score/gatewayd/impl/remote_service_instance.cpp:49-50, 243-247), so
          * it offers none to the host's applications (REQ-MW-016). The guard
          * rails bound three of its known defects. A late or repeated
          * subscription forwards stored frames (GAP-MW-039). A restart beside
-         * a running someipd corrupts the payloads (GAP-MW-040). A stop while
-         * subscribed aborts the process (GAP-MW-041). It uses no lifecycle
-         * API, so the Launch Manager starts it as a Native component.
+         * a running someipd can corrupt the payloads (GAP-MW-040). A stop
+         * while subscribed aborts the process (GAP-MW-041). It uses no
+         * lifecycle API, so the Launch Manager starts it as a Native
+         * component.
          */
         port aebsSignalFrameIn : AEBSSignalFrameIn {
           doc /* mw::com proxy of the AEBS signal frame event. */
@@ -333,30 +336,33 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
          * (MPL-2.0; MODULE.bazel:303-316 at that commit). It hosts the
          * vsomeip routing of the Linux host and offers the frame event as one
          * reliable SOME/IP event on the KVM guest network. It is the only
-         * process of the layer that the guest reaches. So REQ-MW-016, and
-         * REQ-MW-019 while the guest's subscription is absent, are enforced
-         * here by the host's own configuration and do not rely on the guest.
-         * The trust boundary to the guest lies here, inside the layer
-         * (GAP-MW-012), and no robustness against malformed input from the
-         * guest is claimed. REQ-MW-016: someipd registers a message handler
-         * only for a remote service instance, and the configuration declares
-         * none (score/someipd/main.cpp:197-217,
-         * score/someipd/impl/remote_network_service.cpp:83-100). So the host
+         * process of the layer that the guest reaches, if the host also keeps
+         * the ROS 2 (DDS) traffic of the adapter and the health proxy node off
+         * the guest network, as it keeps port 4721 of the frame assembler
+         * (GAP-MW-012). So REQ-MW-016, and REQ-MW-019 while the guest's
+         * subscription is absent, are enforced here by the host's own
+         * configuration and do not rely on the guest. The trust boundary to
+         * the guest lies here, inside the layer (GAP-MW-012), and no
+         * robustness against malformed input from the guest is claimed.
+         * REQ-MW-016: someipd registers a message handler only for a remote
+         * service instance (score/someipd/main.cpp:197-217,
+         * score/someipd/impl/remote_network_service.cpp:83-100), and the
+         * layer's gateway configuration (phase 10) declares none. So the host
          * has no receiver for guest data. REQ-MW-019: someipd offers a plain
          * event, not a field (score/someipd/impl/routing.cpp:77-79, with the
          * default event type of interface/vsomeip/application.hpp:221-225 of
          * vsomeip 3.6.1). With these defaults, vsomeip takes the event's cycle
          * from the vsomeip configuration
          * (implementation/runtime/src/application_impl.cpp:1365-1367). So
-         * someipd's vsomeip configuration gives the frame event no cycle; a
-         * cyclic event would send the last frame again. To a remote
+         * someipd's vsomeip configuration (phase 10) gives the frame event no
+         * cycle; a cyclic event would send the last frame again. To a remote
          * subscriber, such as the guest, vsomeip sends a current value only
          * for a field (implementation/routing/src/eventgroupinfo.cpp:400-428).
          * So a frame goes only to a current subscriber and is dropped at the
-         * host while the guest's subscription is absent. Its vsomeip
-         * configuration also bounds the external endpoint queue, which
-         * vsomeip leaves unlimited by default
-         * (documentation/vsomeipConfiguration.md:368), so a stalled guest gets
+         * host while the guest's subscription is absent. someipd's vsomeip
+         * configuration (phase 10) also bounds the external endpoint queue,
+         * which vsomeip leaves unlimited by default; the setting is at
+         * documentation/vsomeipConfiguration.md:368. So a stalled guest gets
          * no growing backlog. It offers every configured local
          * service once its vsomeip application registers, and only its own
          * stop withdraws the offer (GAP-MW-042). It uses no lifecycle API, so
@@ -553,7 +559,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        */
       attribute :>> semanticSource = "the AEBS signal frame (AEBSSignalFrame), opaque DE4SDV content: it carries no VSS signal, by the owner decision of 2026-10-18 recorded on AEBSSignalFrame";
       attribute :>> softwareContractArtifact = "the INC-AEBS-010 frame-server stream into the adapter on the host loopback, 127.0.0.1:4721 (de4sdv_aebs_010_bridge/ros_node.py:34-35), exact; the layer's S-CORE mw::com configuration, the gateway configuration of gatewayd and someipd and the vsomeip 3.6.1 configuration of someipd (phase 10), candidate; the INC-AEBS-010 ingress stream (ingress/main.cpp:27-28, 142-146), exact";
-      attribute :>> softwareContractMessage = "host and guest loopback: the length-delimited frame stream; mw::com: the AEBS signal frame service instance with one event of the gateway type PreSerializedData<2048>; gateway IPC: the same bytes; SOME/IP: one service with one reliable event, events only, IDs not yet assigned";
+      attribute :>> softwareContractMessage = "host and guest loopback: the length-delimited frame stream; mw::com: the AEBS signal frame service instance with one event of the gateway type PreSerializedData<2048>; gateway IPC: the same bytes behind a 16-byte SOME/IP header that someipd removes; SOME/IP: one service with one reliable event, events only, IDs not yet assigned";
       attribute :>> softwareContractField = "the whole frame, opaque";
       attribute :>> dataTypeAndUnit = "a length-prefixed frame of at most 2048 bytes; no unit";
       attribute :>> timingQualityAndState = "source order (REQ-MW-014), not guaranteed (GAP-MW-037); discarded while the HMI application is not subscribed (REQ-MW-019): at someipd while the guest's subscription is absent, if someipd's vsomeip configuration gives the frame event no cycle, and at the receiver while the ingress is not connected; a late or repeated subscription of gatewayd forwards up to 9 stored frames (GAP-MW-039), and the ingress drops those that are not newer than its last accepted frame, and those older than 1 s if the host and guest clocks agree (guestStaleFrameDropGuardRail)";
@@ -726,9 +732,9 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * GetNewSamples returns the newest samples still in the slots, up to the
      * count it asks for (slot_collector.cpp:24 and 55-82,
      * subscription_not_subscribed_states.cpp:88 of communication 0.5.0;
-     * slot_collector.cpp is the same in 0.4.0). Neither the event settings
-     * of the mw::com configuration schema nor the gateway configuration
-     * can turn this off. Effects on the layer:
+     * slot_collector.cpp is the same in 0.4.0). DE4SDV found no setting in
+     * the mw::com configuration schema or the gateway configuration that
+     * turns this off. Effects on the layer:
      * - gatewayd asks for 10. So a late or repeated subscription of gatewayd
      *   forwards up to 9 stored frames with the next new frame. They can
      *   include frames that the AEBS stack produced while the HMI
@@ -755,25 +761,25 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
   part <'GAP-MW-040'> gapGatewaydOnlyRestartCorruptsPayloads : IncrementGap {
     doc /*
      * When gatewayd restarts while someipd keeps running, the SOME/IP
-     * subscriber keeps getting one event per frame, at the right rate and
-     * with the right length, but each payload is wrong. It holds only zeros,
-     * or the bytes of the last frame before the restart with leftovers of
-     * older frames. No host process logs an error. An unreviewed DE4SDV
-     * feasibility run observed this in every gatewayd-only restart, at
-     * inc_someip_gateway 951fbc09 with its message-passing IPC binding. The
-     * cause is not confirmed. On the HMI path it would break REQ-MW-015 and
-     * REQ-MW-014. The pair-restart guard rail avoids it, because gatewayd
-     * never restarts alone under the Launch Manager. A restart of gatewayd
-     * by hand would still cause it. For the payloads observed, the
-     * receiver's framing check and the sequence check of the ingress would
-     * then drop every frame. So the display would turn stale instead of
-     * showing wrong values. Other corruptions are not ruled out. The open
-     * rework of the gateway's IPC binding is designed for a gatewayd
-     * restart, but it is not merged and DE4SDV has not tested it. DE4SDV
-     * reported the defect to the gateway project (2026-10-22). Action:
-     * when that rework merges, DE4SDV repeats the gatewayd-only restart
-     * test and reports the result to the gateway project, as its report
-     * says it will.
+     * subscriber can keep getting one event per frame, at the right rate and
+     * with the right length, but with wrong payloads. A payload then holds
+     * only zeros, or the bytes of the last frame before the restart with
+     * leftovers of older frames. No host process logs an error. An
+     * unreviewed DE4SDV feasibility run observed this in every gatewayd-only
+     * restart, at inc_someip_gateway 951fbc09 with its message-passing IPC
+     * binding. The cause is not confirmed. On the HMI path it would break
+     * REQ-MW-015 and REQ-MW-014. The pair-restart guard rail avoids it,
+     * because gatewayd never restarts alone under the Launch Manager. A
+     * restart of gatewayd by hand could still cause it. For the payloads
+     * observed, the receiver's framing check and the sequence check of the
+     * ingress would then drop every frame. So the display would turn stale
+     * instead of showing wrong values. Other corruptions are not ruled out.
+     * The open rework of the gateway's IPC binding is designed for a
+     * gatewayd restart, but it is not merged and DE4SDV has not tested it.
+     * DE4SDV reported the defect to the gateway project (2026-10-22).
+     * Action: when that rework merges, DE4SDV repeats the gatewayd-only
+     * restart test and reports the result to the gateway project, as its
+     * report says it will.
      */
   }
 
@@ -894,8 +900,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
   /*
    * Guard rail, pair restart (owner decision of 2026-10-22). gatewayd and
    * someipd stop and start only as a pair, never gatewayd alone. A
-   * gatewayd-only restart beside a running someipd sends events with wrong
-   * payload bytes (GAP-MW-040). The Launch Manager of lifecycle v0.6.1
+   * gatewayd-only restart beside a running someipd can send events with
+   * wrong payload bytes (GAP-MW-040). The Launch Manager of lifecycle v0.6.1
    * realizes the rule with its fallback Run Target. Three of its properties
    * set the form:
    * - Only one Run Target is active. An activation terminates the active
@@ -919,8 +925,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    * Manager: no gatewayd-only restart under it; phase 10 tests that too.
    * The managed restart also starts a new adapter, so gatewayd's new
    * subscription should find no frame from before the failure; phase 10
-   * tests it. What stays open: a restart of gatewayd by hand still corrupts
-   * the payloads (GAP-MW-040). A pair restart beside a running adapter
+   * tests it. What stays open: a restart of gatewayd by hand can still
+   * corrupt the payloads (GAP-MW-040). A pair restart beside a running adapter
    * forwards up to 9 stored frames (GAP-MW-039).
    */
 
