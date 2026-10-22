@@ -1217,7 +1217,8 @@ def test_declared_type_before_a_reference_subsetting_or_redefinition(tmp_path):
     """A typing can come before a reference, a subsetting or a
     redefinition, as a keyword or as a symbol. The declared type is
     captured in each of these forms. A usage that only specializes has no
-    declared type."""
+    declared type. In a declaration on one line with a body, a typing in
+    the body belongs to the usage in the body, not to the declaration."""
     f = tmp_path / "typings.sysml"
     f.write_text(
         "package P {\n"
@@ -1230,12 +1231,14 @@ def test_declared_type_before_a_reference_subsetting_or_redefinition(tmp_path):
         "    part j : J :>> k;\n"
         "    part l :> m;\n"
         "  }\n"
+        "  port def N :> Base { in item n : T redefines payload; }\n"
+        "  port def O { out item o : T; }\n"
         "}\n",
         encoding="utf-8",
     )
     types = {m.name: m.type_name for m in parse_file(f, tmp_path).members}
     assert types == {"P": "", "Layer": "", "a": "A", "b": "B", "d": "D",
-                     "f": "F", "h": "H", "j": "J", "l": ""}
+                     "f": "F", "h": "H", "j": "J", "l": "", "N": "", "O": ""}
 
 
 # Synthetic model for qualified names in the source view (`Q::name`). The

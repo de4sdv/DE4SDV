@@ -312,8 +312,11 @@ def _declared_type(raw: str, name: str) -> str:
     (matrix row/column labels print only the usage name). Returns "" for
     definitions, untyped usages, and usages that only specialize
     (`part x :> y;`), because a specialization is not a typing.
+
+    Only the header of the declaration counts: the line before its first
+    `{`. In `port def P { in item x : T; }`, T is the type of x, not of P.
     """
-    if " : " not in raw:
+    if " : " not in raw.split("{", 1)[0]:
         return ""
     tail = raw.split(" : ", 1)[1]
     m = re.match(r"\s*([A-Za-z_][A-Za-z0-9_]*)", tail)
