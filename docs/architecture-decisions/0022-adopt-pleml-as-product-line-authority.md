@@ -43,6 +43,23 @@ then, the YAML authority of ADR 0014 stays in force.
 > fail the check. On the guest side, the requires constraints C007 and C008
 > state their rules exactly and need no allowed list. The decision itself is
 > unchanged.
+>
+> Note (2026-10-22): among the amended clauses, the derived-realization
+> clause of ADR 0014 stays as an admission rule. The catalogue configures
+> operating system, hypervisor and middleware, and admission classifies them
+> as derived realizations. Since INC-MW-011 phase 9 the SDV feature model
+> also has a guest side, and `middleware` names the middleware that the
+> vehicle application integrates with. On 2026-10-22 the owner decided that
+> the amendment covers these groups in the same way. The guest side carries
+> the split execution-domain topology that ADR 0014 calls a derived
+> realization. So `guestOperatingSystem`, `guestMiddleware` and `middleware`
+> in that partner role are configurable catalogue options. Admission
+> classifies each of their choices that corresponds to an admitted
+> alternative as a derived realization of it. None of them is an
+> independently selectable product feature. This holds for every member, the
+> AAOS-integrated member included. In the feature model, `guestAndroid` and
+> `guestAndroidSDV` correspond to AAOS Integrated, and `noGuestOS` and
+> `noGuestMiddleware` to Standalone. The decision itself is unchanged.
 
 ## Context
 
