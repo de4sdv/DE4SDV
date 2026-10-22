@@ -10,8 +10,10 @@
  *   - Stack layer definitions (vehicle applications, middleware, OS, hypervisor, hardware)
  *   - Boundary interface definitions between adjacent layers
  *   - Variation points with candidate variant realizations, inlined
- *     as structural variation points on the stack's layer parts
- *   - Compatibility constraints between layers
+ *     as structural variation points on the stack's layer parts, for the
+ *     main side and the optional guest side of one SoC
+ *   - Design notes on layer coexistence; the compatibility rules are the
+ *     constraints of the PLEML feature model
  *
  * Out of scope for this slice:
  *   - Internal architecture of any specific OSS project (Autoware, S-CORE, etc.)
@@ -26,7 +28,8 @@
  *   - Variability uses native SysML v2 `variation` / `variant` notation
  *   - Candidate realizations are `part def` specializations of layer defs,
  *     marked as candidates with doc-only provenance (no compliance claim)
- *   - Compatibility constraints use `constraint def`
+ *   - Design notes use doc-only `constraint def`s; the compatibility
+ *     rules are not restated here
  *   - File uses a flat top-level package name (DE4SDV_SDVPlatformStack)
  *     to avoid cross-file sibling-package import issues in SysIDE
  */
@@ -49,8 +52,22 @@ package DE4SDV_SDVPlatformStack {
     doc /*
      * Complete layered architecture of a software-defined vehicle
      * computing platform. A configured member product selects one
-     * realization from each variation, subject to compatibility
-     * constraints.
+     * realization from each variation, subject to the constraints of the
+     * PLEML feature model.
+     *
+     * One SoC has a main side and an optional guest side. The main side is
+     * the execution domain that runs the vehicle application, on the
+     * operating system of osPlatform. With KVM, the main side is the KVM
+     * host: its operating system hosts the hypervisor and is not a guest of
+     * it. The guest side is a second execution domain under the
+     * hypervisor, with guestOSPlatform and guestMiddleware.
+     *
+     * The middleware variation is the middleware that the vehicle
+     * application integrates with through the adapter. Eclipse S-CORE and
+     * AUTOSAR Adaptive run on the main side. An AAOS SDV partner runs in
+     * the guest (constraint C009 of the feature model), so the androidSDV
+     * variant refers to the AAOS SDV of the guest and adds no second
+     * instance.
      */
 
     variation part vehicleApplication : VehicleApplicationLayer {
@@ -62,8 +79,10 @@ package DE4SDV_SDVPlatformStack {
     }
 
     variation part middleware : MiddlewareLayer {
+      /* The middleware that the vehicle application integrates with. The
+       * AAOS SDV partner is a reference to the AAOS SDV of the guest. */
       variant part eclipseSCORE : EclipseSCORE;
-      variant part androidSDV : AndroidSDVMiddleware;
+      variant ref part androidSDV : AndroidSDVMiddleware references guestMiddleware::androidSDV;
       variant part autosarAdaptive : AUTOSARAdaptive;
       variant part none[0]; /* single-domain architecture, no vehicle-level middleware */
     }
@@ -78,6 +97,8 @@ package DE4SDV_SDVPlatformStack {
     }
 
     variation part osPlatform : OSPlatformLayer {
+      /* The main side: the operating system of the execution domain that
+       * runs the vehicle application. */
       variant part linux : LinuxPlatform;
       variant part android : AndroidHLOS;
       variant part qnx : QNXPlatform;
@@ -88,6 +109,19 @@ package DE4SDV_SDVPlatformStack {
       variant part acrn : ACRNHypervisor;
       variant part kvm : KVMHypervisor;
       variant part none[0]; /* single-domain architecture, no hypervisor */
+    }
+
+    variation part guestOSPlatform : OSPlatformLayer {
+      /* The guest side: the operating system of the second execution
+       * domain, under the hypervisor of the SoC. */
+      variant part android : AndroidHLOS;
+      variant part none[0]; /* no guest domain */
+    }
+
+    variation part guestMiddleware : MiddlewareLayer {
+      /* The middleware of the guest side, on the guest operating system. */
+      variant part androidSDV : AndroidSDVMiddleware;
+      variant part none[0]; /* no guest middleware */
     }
 
     part hardware : HardwareLayer;
@@ -104,11 +138,27 @@ package DE4SDV_SDVPlatformStack {
     interface adapterMiddlewareBoundary : AdapterMiddlewareInterface
       connect applicationMiddlewareAdapter.middlewarePort to middleware.applicationPort;
 
-    interface middlewareOSBoundary : MiddlewareOSInterface
-      connect middleware.osPort to osPlatform.middlewarePort;
+    /*
+     * The middleware-to-OS boundary, per side. Eclipse S-CORE and AUTOSAR
+     * Adaptive run on the main-side OS. The guest middleware runs on the
+     * guest OS; the AAOS SDV partner is that guest middleware, so it has
+     * no boundary to the main-side OS.
+     */
+    interface eclipseSCOREOSBoundary : MiddlewareOSInterface
+      connect middleware::eclipseSCORE.osPort to osPlatform.middlewarePort;
 
-    interface osHypervisorBoundary : OSHypervisorInterface
-      connect osPlatform.hypervisorPort to hypervisor.guestPort;
+    interface autosarAdaptiveOSBoundary : MiddlewareOSInterface
+      connect middleware::autosarAdaptive.osPort to osPlatform.middlewarePort;
+
+    interface guestMiddlewareOSBoundary : MiddlewareOSInterface
+      connect guestMiddleware.osPort to guestOSPlatform.middlewarePort;
+
+    /*
+     * Only the guest OS is a guest of the hypervisor. The main-side OS is
+     * not connected to the guest port: with KVM it hosts the hypervisor.
+     */
+    interface guestOSHypervisorBoundary : OSHypervisorInterface
+      connect guestOSPlatform.hypervisorPort to hypervisor.guestPort;
 
     interface hypervisorHardwareBoundary : HardwareHypervisorInterface
       connect hypervisor.hypervisorPort to hardware.hypervisorPort;
@@ -156,10 +206,12 @@ package DE4SDV_SDVPlatformStack {
      * Vehicle-level middleware / runtime platform.
      * Provides IPC, lifecycle management, service discovery,
      * diagnostics, persistency, and timing orchestration for
-     * vehicle applications running on the same compute domain.
+     * the applications of its execution domain.
      *
      * Candidate realizations: Eclipse S-CORE, Android SDV,
-     * AUTOSAR Adaptive (ARA).
+     * AUTOSAR Adaptive (ARA). The stack has two middleware slots:
+     * middleware, the one that the vehicle application integrates with,
+     * and guestMiddleware, the one of the guest side.
      *
      * Note: AGL is a full platform (OS + IVI + app framework),
      * not a middleware layer. It is modeled at the OS platform layer.
@@ -176,7 +228,9 @@ package DE4SDV_SDVPlatformStack {
      * and POSIX or Android framework services.
      *
      * Candidate realizations: Linux (AGL, generic), Android HLOS,
-     * QNX, AUTOSAR Adaptive platform.
+     * QNX, AUTOSAR Adaptive platform. The stack has two OS slots:
+     * osPlatform for the main side and guestOSPlatform for the guest
+     * side. The hypervisorPort serves an OS that runs as a guest.
      */
 
     port middlewarePort : MiddlewareOSPort;
@@ -187,10 +241,16 @@ package DE4SDV_SDVPlatformStack {
     doc /*
      * Virtualization / hypervisor layer.
      * Provides partition isolation for mixed-criticality systems
-     * where multiple OS domains share the same SoC.
+     * where multiple OS domains share the same SoC. One hypervisor
+     * per SoC.
      *
      * Optional: single-domain architectures do not use a hypervisor.
      * The variation below includes a "none" variant for this case.
+     *
+     * Its guest port serves the guest side. Whether the main side hosts
+     * the hypervisor or runs as a guest of it depends on the realization:
+     * KVM runs in the Linux kernel of the main side, so the main side is
+     * its host. The stack connects only the guest OS to the guest port.
      *
      * Candidate realizations: QNX QVM, ACRN, KVM (Linux).
      */
@@ -434,6 +494,8 @@ package DE4SDV_SDVPlatformStack {
      * Modules: communication (LoLa), orchestration, persistency,
      * time, lifecycle, diagnostics, baselibs.
      * Targets: Linux, QNX. Not designed for Android HLOS.
+     * In the stack it runs on the main side, so the main-side operating
+     * system is Linux or QNX (constraint C001 of the feature model).
      * License: Apache 2.0.
      * Status: candidate realization. S-CORE maintainers have
      * not been engaged on SysML v2 model integration.
@@ -442,10 +504,18 @@ package DE4SDV_SDVPlatformStack {
 
   part def AndroidSDVMiddleware :> MiddlewareLayer {
     doc /*
-     * Android SDV (Google / AOSP).
-     * Headless, native Android-derived platform for distributed vehicle
-     * services. Runs as a VM on a hypervisor. Excludes JVM, Java services,
-     * Android applications, and GUI functionality.
+     * Android SDV (Google / AOSP): the AAOS SDV middleware, a native
+     * Android-derived platform for distributed vehicle services.
+     * It runs on Android HLOS (constraint C008 of the feature model). In
+     * the stack it runs in the guest domain under a hypervisor: it is the
+     * guest middleware, and an AAOS SDV partner of the vehicle application
+     * is that guest middleware (C009).
+     *
+     * The image that carries it is a realization choice. The headless SDV
+     * Core image (sdv_core_cf) excludes the JVM, Java services, Android
+     * applications and GUI functionality. The display-capable IVI image
+     * (sdv_ivi_cf) runs Android applications with a GUI. A product that
+     * shows the HMI on a display selects the hmiDisplay capability (C010).
      *
      * Internal structure modeled in:
      *   textual-notation-of-model/packages/architecture/aaos_sdv_middleware_boundary.sysml
@@ -456,7 +526,6 @@ package DE4SDV_SDVPlatformStack {
      * SOME/IP interoperability, Automotive Services (Diagnostics, Configuration,
      * Calibration, Vehicle Power Mode, User Profile).
      *
-     * Runs on Android HLOS, Linux, and as QNX QVM guest.
      * License: Apache 2.0 (AOSP).
      * Status: candidate realization. Upstream AAOS SDV maintainers have
      * not been engaged on DE4SDV model integration (GAP-MW-005).
@@ -532,53 +601,24 @@ package DE4SDV_SDVPlatformStack {
     doc /*
      * KVM (Kernel-based Virtual Machine, Linux).
      * Open-source virtualization in the Linux kernel.
+     * In the stack the main side hosts it: KVM runs in the kernel of the
+     * main-side operating system, and only the guest OS is a KVM guest.
      * License: GPL / LGPL.
      * Status: candidate realization.
      */
   }
 
   /* ──────────────────────────────────────────
-   * Compatibility constraints
+   * Compatibility rules and design notes
    * ──────────────────────────────────────────
-   * These constraints encode which combinations of layer
-   * realizations are architecturally valid. They are the
-   * product-line decision rules that enable trade-off analysis.
-   *
-   * Constraint bodies are documented as doc comments in this
-   * increment. Future increments may formalize them as
-   * require constraint bodies when validation confirms the
-   * SysML v2 constraint expression syntax.
+   * The compatibility rules between the layer realizations are the
+   * constraints of the PLEML feature model,
+   * model-based-product-line-engineering/feature-models/sdv_product_line.sysml:
+   * the exclusions C001 and C003 to C005, the requires constraints C007
+   * to C011 and the pair exclusions of Openpilot and Apollo. This
+   * superset does not restate them. The constraint definitions below are
+   * design notes, not rules.
    */
-
-  constraint def MiddlewareOSCompatibility {
-    doc /*
-     * Middleware ↔ OS compatibility.
-     *
-     * Valid combinations:
-     *   Eclipse S-CORE  ↔ Linux, QNX (not Android HLOS)
-     *   Android SDV     ↔ Linux, Android HLOS, QNX (as QVM guest)
-     *   AUTOSAR Adaptive ↔ Linux, QNX
-     *
-     * Invalid:
-     *   Eclipse S-CORE ↔ Android HLOS (architecturally incompatible)
-     */
-  }
-
-  constraint def HypervisorOSCompatibility {
-    doc /*
-     * Hypervisor ↔ OS compatibility.
-     *
-     * Valid combinations:
-     *   QNX QVM  ↔ QNX (native), Linux, Android, AGL (all as guests)
-     *   ACRN     ↔ Linux, Android, AGL (all as guests; not QNX)
-     *   KVM      ↔ Linux, AGL (guests; QNX guest support varies)
-     *   none     ↔ any single OS (no virtualization)
-     *
-     * Invalid:
-     *   ACRN ↔ QNX (not supported)
-     *   KVM ↔ QNX (community-only, not production)
-     */
-  }
 
   constraint def ApplicationMiddlewareCoexistence {
     doc /*
@@ -655,8 +695,8 @@ package DE4SDV_SDVPlatformStack {
   part def ConfiguredSDVVariant :> SDVPlatformStack {
     doc /*
      * A configured member product of the SDV product line.
-     * Selects one variant from each variation, subject to
-     * compatibility constraints.
+     * Selects one variant from each variation, subject to the
+     * constraints of the PLEML feature model.
      *
      * Concrete configured variants are generated by the PLE configurator
      * (tools/configure_variant.py) from the receipts of the PLEML feature
