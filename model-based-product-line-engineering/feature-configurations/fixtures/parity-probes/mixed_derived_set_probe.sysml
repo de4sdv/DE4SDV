@@ -13,9 +13,11 @@ package DE4SDV_MixedDerivedSetProbeConfiguration {
     private import DE4SDV_ProductLineDerivation::ProductModelProjectionName;
 
     #featureConfiguration occurrence mixedDerivedSetProbe : SDVProductLineFeatureTree :> featureConfigurations {
-        doc /* Parity probe derived-set-mixed. Android SDV middleware on Linux
-             * without a hypervisor, which mixes the realizations of both
-             * integration modes. */
+        doc /* Parity probe derived-set-mixed. No middleware, with KVM and an
+             * AAOS SDV guest, which mixes the realizations of both integration
+             * modes. Until INC-MW-011 phase 9 it selected Android SDV on Linux
+             * without a hypervisor; the AAOS SDV partner now needs the guest
+             * (C009), and a guest needs a hypervisor (C007). */
         @ProductModelProjectionName {
             partDefinitionName = "MixedDerivedSetProbe";
         }
@@ -23,12 +25,16 @@ package DE4SDV_MixedDerivedSetProbeConfiguration {
         #feature occurrence :>> platformStack[1] {
             #feature occurrence :>> vehicleApplication[1] = (autoware);
             #feature occurrence :>> autoware[1];
-            #feature occurrence :>> middleware[1] = (androidSDV);
-            #feature occurrence :>> androidSDV[1];
+            #feature occurrence :>> middleware[1] = (noMiddleware);
+            #feature occurrence :>> noMiddleware[1];
             #feature occurrence :>> operatingSystem[1] = (linux);
             #feature occurrence :>> linux[1];
-            #feature occurrence :>> hypervisor[1] = (noHypervisor);
-            #feature occurrence :>> noHypervisor[1];
+            #feature occurrence :>> hypervisor[1] = (kvm);
+            #feature occurrence :>> kvm[1];
+            #feature occurrence :>> guestOperatingSystem[1] = (guestAndroid);
+            #feature occurrence :>> guestAndroid[1];
+            #feature occurrence :>> guestMiddleware[1] = (guestAndroidSDV);
+            #feature occurrence :>> guestAndroidSDV[1];
         }
         #feature occurrence :>> sensingBoundary[1] {
             #feature occurrence :>> perceptionSensors[1..*] = (lidar, camera);
@@ -40,6 +46,7 @@ package DE4SDV_MixedDerivedSetProbeConfiguration {
             #feature occurrence :>> bicycleDetection[0];
             #feature occurrence :>> adaptiveCruiseControl[0];
             #feature occurrence :>> laneKeepAssist[0];
+            #feature occurrence :>> hmiDisplay[0];
         }
     }
 }

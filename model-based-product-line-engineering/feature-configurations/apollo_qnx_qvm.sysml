@@ -28,6 +28,10 @@ package DE4SDV_ApolloQNXQVMVariantConfiguration {
             #feature occurrence :>> qnx[1];
             #feature occurrence :>> hypervisor[1] = (qvm);
             #feature occurrence :>> qvm[1];
+            #feature occurrence :>> guestOperatingSystem[1] = (noGuestOS);
+            #feature occurrence :>> noGuestOS[1];
+            #feature occurrence :>> guestMiddleware[1] = (noGuestMiddleware);
+            #feature occurrence :>> noGuestMiddleware[1];
         }
         #feature occurrence :>> sensingBoundary[1] {
             #feature occurrence :>> perceptionSensors[1..*] = (lidar, radar);
@@ -39,6 +43,7 @@ package DE4SDV_ApolloQNXQVMVariantConfiguration {
             #feature occurrence :>> bicycleDetection[0];
             #feature occurrence :>> adaptiveCruiseControl[0];
             #feature occurrence :>> laneKeepAssist[0];
+            #feature occurrence :>> hmiDisplay[0];
         }
     }
 }

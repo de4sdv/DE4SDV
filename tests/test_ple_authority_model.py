@@ -18,10 +18,11 @@ validator, and the evaluator of step S2 owns the semantics. They pin:
 - the agreement check over the twelve application-middleware pairs: exactly
   one derivation rule for each allowed pair and exactly one exclusion for each
   unsupported one;
+- the exclusions and the requires constraints of the SDV product line;
 - the complement check of the allowed lists of C001 and C003, and of C002's;
 - the closed world: on every structurally valid selection, the model's
-  groups, constraints and rules give the verdicts that the configurator gave
-  on the YAML catalogue until S7;
+  groups, constraints and rules give the reviewed table of verdicts (this
+  lexical model only; see CLOSED_WORLD);
 - one feature binding per shared-asset variant, the correspondences, the
   projection metadata and the configurations' shape;
 - the admission of each configuration by the stated reading of the
@@ -98,10 +99,10 @@ PROJECTIONS = {
     "vehicle": ("DE4SDV_ExecutionEnvironments", "VehicleTargetExecutionEnvironment",
                 "vehicle-target execution-environment"),
 }
-#: The features whose binding time is not decided: the four capabilities of the SDV product line.
+#: The features whose binding time is not decided: the five capabilities of the SDV product line.
 UNASSIGNED = {
     "sdv": {"F-CAPABILITY-AEBS-PEDESTRIAN-DETECTION", "F-CAPABILITY-AEBS-BICYCLE-DETECTION",
-            "F-CAPABILITY-ADAPTIVE-CRUISE-CONTROL", "F-CAPABILITY-LANE-KEEP-ASSIST"},
+            "F-CAPABILITY-ADAPTIVE-CRUISE-CONTROL", "F-CAPABILITY-LANE-KEEP-ASSIST", "F-CAPABILITY-HMI-DISPLAY"},
     "engineering": set(),
     "vehicle": set(),
 }
@@ -113,11 +114,22 @@ SDV_EXCLUSIONS = {
     "C004": ("acrn", {"qnx"}),
     "C005": ("kvm", {"qnx"}),
 }
+#: The SDV requires constraints of INC-MW-011 phase 9: (owner, required features). Each requires
+#: constraint states its rule exactly, so it needs no allowed list and no complement check.
+SDV_REQUIRES = {
+    "C007": ("noHypervisor", {"noGuestOS"}),
+    "C008": ("guestAndroidSDV", {"guestAndroid"}),
+    "C009": ("androidSDV", {"guestAndroidSDV"}),
+    "C010": ("hmiDisplay", {"guestAndroidSDV"}),
+    "C011": ("autoware", {"linux"}),
+}
 
 #: The correspondences of the SDV features to the governed scope, by feature ID: the
 #: retired PLE-S catalogue correspondence restated feature by feature, plus the PLE-S
 #: derived-realization bindings (a derived realization corresponds to its admitted
 #: alternative) and the common realization of Autoware. C- nodes have none (decision 2).
+#: Since INC-MW-011 phase 9 the guest choices carry the split topology of the
+#: AAOS-integrated alternative, and Linux corresponds to the common runtime only.
 SDV_CORRESPONDENCES = {
     "F-PLATFORM-VEHICLE-APPLICATION": {"DeferredVariabilitySet::drivingStackVariability"},
     "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE": {"InitialCommonCoreEngineeringContent::autowareApplication"},
@@ -127,14 +139,16 @@ SDV_CORRESPONDENCES = {
     "F-PLATFORM-MIDDLEWARE-ANDROID-SDV": {"vehiclePlatformIntegrationMode::aaosIntegrated"},
     "F-PLATFORM-MIDDLEWARE-AUTOSAR-ADAPTIVE": {"ReferenceOnlyAlternativeSet::autosarAdaptive"},
     "F-PLATFORM-MIDDLEWARE-NONE": {"vehiclePlatformIntegrationMode::standalone"},
-    "F-PLATFORM-OS-LINUX": {"vehiclePlatformIntegrationMode::standalone",
-                            "InitialCommonCoreEngineeringContent::linuxROS2AutowareRuntime"},
-    "F-PLATFORM-OS-ANDROID": {"vehiclePlatformIntegrationMode::aaosIntegrated"},
+    "F-PLATFORM-OS-LINUX": {"InitialCommonCoreEngineeringContent::linuxROS2AutowareRuntime"},
     "F-PLATFORM-OS-QNX": {"ReferenceOnlyAlternativeSet::qnxQVM"},
     "F-PLATFORM-HYPERVISOR-QVM": {"ReferenceOnlyAlternativeSet::qnxQVM"},
     "F-PLATFORM-HYPERVISOR-ACRN": {"ReferenceOnlyAlternativeSet::acrn"},
     "F-PLATFORM-HYPERVISOR-KVM": {"vehiclePlatformIntegrationMode::aaosIntegrated"},
     "F-PLATFORM-HYPERVISOR-NONE": {"vehiclePlatformIntegrationMode::standalone"},
+    "F-PLATFORM-GUEST-OS-ANDROID": {"vehiclePlatformIntegrationMode::aaosIntegrated"},
+    "F-PLATFORM-GUEST-OS-NONE": {"vehiclePlatformIntegrationMode::standalone"},
+    "F-PLATFORM-GUEST-MIDDLEWARE-ANDROID-SDV": {"vehiclePlatformIntegrationMode::aaosIntegrated"},
+    "F-PLATFORM-GUEST-MIDDLEWARE-NONE": {"vehiclePlatformIntegrationMode::standalone"},
     "F-SENSING-PERCEPTION": {"DeferredVariabilitySet::sensingVariability"},
     "F-SENSING-PERCEPTION-LIDAR": {"InitialCommonCoreEngineeringContent::currentSensingBaseline"},
     "F-SENSING-PERCEPTION-RADAR": {"DeferredVariabilitySet::sensingVariability"},
@@ -143,10 +157,12 @@ SDV_CORRESPONDENCES = {
     "F-CAPABILITY-AEBS-BICYCLE-DETECTION": {"DeferredVariabilitySet::expandedAEBSCapabilityVariability"},
 }
 #: Features with no governed-scope element of their own: the grouping features, the
-#: middleware, operating-system and hypervisor groups, and two catalogue candidates.
+#: middleware, operating-system, hypervisor and guest groups, two catalogue candidates,
+#: main-side Android and the HMI display.
 SDV_WITHOUT_CORRESPONDENCE = {
-    "F-PLATFORM-STACK", "F-PLATFORM-MIDDLEWARE", "F-PLATFORM-OS", "F-PLATFORM-HYPERVISOR", "F-SENSING",
-    "F-CAPABILITIES", "F-CAPABILITY-ADAPTIVE-CRUISE-CONTROL", "F-CAPABILITY-LANE-KEEP-ASSIST",
+    "F-PLATFORM-STACK", "F-PLATFORM-MIDDLEWARE", "F-PLATFORM-OS", "F-PLATFORM-HYPERVISOR", "F-PLATFORM-GUEST-OS",
+    "F-PLATFORM-GUEST-MIDDLEWARE", "F-SENSING", "F-CAPABILITIES", "F-CAPABILITY-ADAPTIVE-CRUISE-CONTROL",
+    "F-CAPABILITY-LANE-KEEP-ASSIST", "F-PLATFORM-OS-ANDROID", "F-CAPABILITY-HMI-DISPLAY",
 }
 ALLOWED_LIST = re.compile(r"Allowed operating systems: ([a-zA-Z0-9]+(?:, [a-zA-Z0-9]+)*)\.")
 #: The allowed-list rules and where their reviewed list is recorded: the rationale of the
@@ -186,7 +202,7 @@ _FEATURE = re.compile(
 )
 _CONSTRAINT = re.compile(
     r"assert constraint (?:<'(?P<id>[^']+)'> )?(?P<name>\w+) :> (?P<kind>xorFeatures|requiresFeatures|impliesFeatures)"
-    r"\s*\{\s*in occurrence constrainedFeatures = new FeatureOperand\(that, (?P<operand>\([^()]*\)|\w+)\);\s*\}"
+    r"\s*\{\s*in occurrence constrainedFeatures = new FeatureOperand\(that, (?P<operand>\([^()]*\)|[\w:]+)\);\s*\}"
 )
 _DEPENDENCY = re.compile(
     r"(?:#(?P<metadata>\w+) )?dependency (?:<'(?P<short>[^']+)'> )?(?P<name>\w+)\s+from (?P<client>[\w:]+)"
@@ -215,8 +231,14 @@ class Dependency:
     suppliers: tuple[str, ...]
 
 
+def _written_operands(text: str) -> tuple[tuple[str, ...], ...]:
+    """The operands as written: each a name, or a qualified name split at ``::``."""
+    return tuple(tuple(segment.strip() for segment in part.strip().split("::")) for part in text.strip("()").split(","))
+
+
 def _operands(text: str) -> tuple[str, ...]:
-    return tuple(part.strip() for part in text.strip("()").split(","))
+    """The names of the operands; feature names are unique within a tree (``_by_name``)."""
+    return tuple(written[-1] for written in _written_operands(text))
 
 
 def _without_nested_features(text: str) -> str:
@@ -233,7 +255,8 @@ def _features(body: str, path: tuple[str, ...] = ()) -> list[Feature]:
     while (match := _FEATURE.search(body, position)) is not None:
         inner, position = ("", match.end()) if match["end"] == ";" else _braced(body, match.end() - 1)
         own = _without_nested_features(inner)
-        constraints = [{"id": c["id"], "name": c["name"], "kind": c["kind"], "operands": _operands(c["operand"])}
+        constraints = [{"id": c["id"], "name": c["name"], "kind": c["kind"], "operands": _operands(c["operand"]),
+                        "written": _written_operands(c["operand"])}
                        for c in _CONSTRAINT.finditer(own)]
         assert own.count("assert constraint") == len(constraints), f"an unreviewed constraint form in {match['name']}"
         feature = Feature(match["id"], match["name"], match["mult"], match["parent"], bool(match["default"]),
@@ -285,7 +308,8 @@ def _variants(superset: Path, owner: str, variation: str) -> set[str]:
     variation_match = re.search(rf"\bvariation part {variation}\b[^{{;]*\{{", body)
     assert variation_match, variation
     inner, _end = _braced(body, variation_match.end() - 1)
-    return set(re.findall(r"\bvariant part (\w+)", inner))
+    # A variant is a part, or a reference part such as the AAOS SDV partner of middleware.
+    return set(re.findall(r"\bvariant (?:ref )?part (\w+)", inner))
 
 
 def _owned_metadata(body: str, metadata: str) -> list[dict[str, str]]:
@@ -573,7 +597,8 @@ def _exclusions(by_name: dict[str, Feature]) -> list[tuple[Feature, dict]]:
 
 def test_the_sdv_exclusions_are_the_reviewed_constraints() -> None:
     """C001, C003, C004 and C005 are exclusions, each owned by one choice and excluding choices of another
-    group; C002 and C006 are dropped rules with no constraint (below). Every SDV constraint is an exclusion."""
+    group; C002 and C006 are dropped rules with no constraint (below). Every SDV constraint is an exclusion
+    or one of the reviewed requires constraints; no implies constraint exists."""
     by_name = _by_name(_tree(FAMILIES["sdv"])[1])
     identified = {constraint["id"]: (owner.name, set(constraint["operands"]))
                   for owner, constraint in _exclusions(by_name) if constraint["id"]}
@@ -581,7 +606,81 @@ def test_the_sdv_exclusions_are_the_reviewed_constraints() -> None:
     for identifier, (owner, excluded) in identified.items():
         group = by_name[owner].parent
         assert group and all(by_name[name].parent not in (None, group) for name in excluded), identifier
-    assert all(constraint["kind"] == "xorFeatures" for feature in by_name.values() for constraint in feature.constraints)
+    kinds = Counter(constraint["kind"] for feature in by_name.values() for constraint in feature.constraints)
+    assert kinds == {"xorFeatures": len(SDV_EXCLUSIONS) + 2, "requiresFeatures": len(SDV_REQUIRES)}, kinds
+
+
+def test_the_sdv_requires_constraints_are_the_reviewed_constraints() -> None:
+    """C007 to C011 (INC-MW-011 phase 9) are requires constraints, each with its constraint ID, owned by one
+    feature and requiring one choice of another group: the guest side, its hypervisor, the AAOS SDV partner,
+    the HMI display and Autoware's Linux. Each owner other than the HMI display is a choice of a group."""
+    by_name = _by_name(_tree(FAMILIES["sdv"])[1])
+    identified = {constraint["id"]: (owner.name, set(constraint["operands"]))
+                  for owner in by_name.values() for constraint in owner.constraints
+                  if constraint["kind"] == "requiresFeatures"}
+    assert identified == SDV_REQUIRES
+    for identifier, (owner, required) in identified.items():
+        [operand] = required
+        assert by_name[operand].parent not in (None, by_name[owner].parent), identifier
+        assert by_name[owner].parent or by_name[owner].path[:-1] == ("capabilities",), identifier
+
+
+def test_every_constraint_operand_names_a_feature_its_owner_can_see() -> None:
+    """A name resolves in an enclosing namespace of the constraint, and a qualified name walks down from
+    one: C010, owned by the HMI display under capabilities, names platformStack::guestAndroidSDV."""
+    for name, family in FAMILIES.items():
+        by_name = _by_name(_tree(family)[1])
+        for owner in by_name.values():
+            for constraint in owner.constraints:
+                for written, operand in zip(constraint["written"], constraint["operands"]):
+                    path = by_name[operand].path
+                    assert path[-len(written):] == written, (name, constraint["name"], written)
+                    scope = path[:-len(written)]
+                    assert owner.path[:len(scope)] == scope, (name, constraint["name"], written)
+    hmi_display = _by_name(_tree(FAMILIES["sdv"])[1])["hmiDisplay"]
+    assert [constraint["written"] for constraint in hmi_display.constraints] == [(("platformStack",
+                                                                                   "guestAndroidSDV"),)]
+
+
+#: The interface usages of SDVPlatformStack after the W1 re-wiring of INC-MW-011 phase 9: (first end,
+#: second end). S-CORE and AUTOSAR Adaptive connect to the main-side OS through their variants, the guest
+#: middleware to the guest OS, and only the guest OS to the guest port of the hypervisor.
+SUPERSET_WIRING = {
+    "applicationMiddlewareBoundary": ("vehicleApplication.middlewarePort", "applicationMiddlewareAdapter.applicationPort"),
+    "adapterMiddlewareBoundary": ("applicationMiddlewareAdapter.middlewarePort", "middleware.applicationPort"),
+    "eclipseSCOREOSBoundary": ("middleware::eclipseSCORE.osPort", "osPlatform.middlewarePort"),
+    "autosarAdaptiveOSBoundary": ("middleware::autosarAdaptive.osPort", "osPlatform.middlewarePort"),
+    "guestMiddlewareOSBoundary": ("guestMiddleware.osPort", "guestOSPlatform.middlewarePort"),
+    "guestOSHypervisorBoundary": ("guestOSPlatform.hypervisorPort", "hypervisor.guestPort"),
+    "hypervisorHardwareBoundary": ("hypervisor.hypervisorPort", "hardware.hypervisorPort"),
+}
+
+
+def test_the_superset_wiring_says_where_each_layer_runs() -> None:
+    """W1: no projection says that AAOS SDV runs on the main side, or that the main side is a KVM guest. The
+    projections inherit the interfaces of SDVPlatformStack, so the superset may connect the middleware that
+    the vehicle application integrates with to the main-side OS only through the variants that run there,
+    and only the guest OS to the guest port. The AAOS SDV partner refers to the guest's AAOS SDV, so a
+    product model holds one AAOS SDV instance."""
+    code = _code(SUPERSETS["DE4SDV_SDVPlatformStack"])
+    owner = re.search(r"\bpart def SDVPlatformStack\b[^{;]*\{", code)
+    assert owner
+    body, _end = _braced(code, owner.end() - 1)
+    wiring = {match[1]: (match[2], match[3]) for match in re.finditer(
+        r"\binterface (\w+) : \w+\s+connect ([\w:.]+) to ([\w:.]+);", body)}
+    assert len(wiring) == len(re.findall(r"\binterface\b", body)), "an unreviewed interface form"
+    assert wiring == SUPERSET_WIRING
+    ends = [end for pair in wiring.values() for end in pair]
+    assert "osPlatform.hypervisorPort" not in ends, "the main-side OS is not connected to the guest port"
+    assert not any(end.startswith("middleware.") and other.startswith("osPlatform.")
+                   for end, other in wiring.values()), "the partner middleware has no unconditional main-side OS"
+    middleware = re.search(r"\bvariation part middleware\b[^{;]*\{", body)
+    assert middleware
+    variants, _end = _braced(body, middleware.end() - 1)
+    assert re.findall(r"\bvariant ref part (\w+) : (\w+) references ([\w:]+);", variants) == [
+        ("androidSDV", "AndroidSDVMiddleware", "guestMiddleware::androidSDV")]
+    for variation, expected in (("guestOSPlatform", {"android", "none"}), ("guestMiddleware", {"androidSDV", "none"})):
+        assert _variants(SUPERSETS["DE4SDV_SDVPlatformStack"], "SDVPlatformStack", variation) == expected
 
 
 def test_the_derived_variation_and_its_rules_target_the_superset_and_no_binding() -> None:
@@ -660,8 +759,9 @@ def complement_violations(options: set[str], allowed: dict[str, set[str]], exclu
 
 
 def _complement_inputs():
-    """The operating-system options, the reviewed allowed list of each rule as its rationale records it,
-    and the operating systems the rule's premise excludes."""
+    """The main-side operating-system options, the reviewed allowed list of each rule as its rationale
+    records it, and the operating systems the rule's premise excludes. The guest operating systems are
+    another group: C007 and C008 state their rules exactly, so they need no allowed list."""
     by_name = _by_name(_tree(FAMILIES["sdv"])[1])
     raw = _raw(FAMILIES["sdv"].model)
     options = {feature.name for feature in by_name.values() if feature.parent == "operatingSystem"}
@@ -685,7 +785,10 @@ def test_each_exclusion_set_is_the_complement_of_its_reviewed_allowed_list() -> 
     assert options == {"linux", "android", "qnx"}
     assert sorted(allowed) == ["C001", "C002", "C003"]
     assert complement_violations(options, allowed, exclusions) == []
-    assert exclusions["C002"] == set(), "the dropped rule owns no exclusion"
+    assert exclusions["C002"] == set(), "the dropped rule owns no exclusion of an operating system"
+    # Since INC-MW-011 phase 9 the AAOS SDV partner runs in the guest (C009), and the rationale says so.
+    rationale = _rationale(_raw(FAMILIES["sdv"].model), "androidSDV")
+    assert "runs in the guest (C009)" in rationale and "main side" in rationale
 
 
 def test_the_complement_check_fails_when_an_operating_system_option_is_added() -> None:
@@ -779,24 +882,94 @@ def _model_verdict(features: list[Feature], rules: list[Dependency], selected: s
 
 
 #: The verdicts of the closed world on every structurally valid selection, (valid, constraint IDs, pair
-#: exclusion, derived adapter) -> count. Until S7 a test compared each selection with the configurator's
-#: verdict on the YAML catalogue; these counts are what both gave.
+#: exclusion, derived adapter) -> count: a reviewed table. Until S7 a test compared each selection with the
+#: configurator's verdict on the YAML catalogue. The SDV table changed with the two-sided tree of INC-MW-011
+#: phase 9, and the test computes it with the lexical model above, over the model text only. On 2026-10-22,
+#: in the phase-9 review, a one-off run of the DE4SDV evaluator over a hand-built synthetic mirror of the
+#: tree (revision 1fb1250f) agreed with it selection by selection. That run is not in the repository, and CI
+#: does not repeat it. Of the 129,024 SDV selections, 16,016 are valid; they are 143 valid platform and
+#: display selections, each with the 112 choices of the sensors and the four other capabilities, which no
+#: constraint names.
 CLOSED_WORLD = {
     "sdv": {
-        (False, ('C001',), False, None): 1344,
-        (False, ('C003',), False, None): 448,
-        (False, ('C003',), True, None): 896,
-        (False, ('C004',), False, None): 896,
-        (False, ('C004',), True, None): 448,
-        (False, ('C005',), False, None): 896,
-        (False, ('C005',), True, None): 448,
-        (False, (), True, None): 3584,
-        (True, (), False, 'apolloToSCORE'): 672,
-        (True, (), False, 'autowareToAAOSSDV'): 1120,
-        (True, (), False, 'autowareToAUTOSAR'): 672,
-        (True, (), False, 'autowareToSCORE'): 672,
-        (True, (), False, 'none'): 3360,
-        (True, (), False, 'openpilotToSCORE'): 672,
+        (False, (), True, None): 7168,
+        (False, ('C001',), False, None): 2912,
+        (False, ('C001', 'C007'), False, None): 672,
+        (False, ('C001', 'C007', 'C010'), False, None): 224,
+        (False, ('C001', 'C007', 'C010', 'C011'), False, None): 112,
+        (False, ('C001', 'C007', 'C011'), False, None): 336,
+        (False, ('C001', 'C008'), False, None): 1792,
+        (False, ('C001', 'C008', 'C011'), False, None): 896,
+        (False, ('C001', 'C010'), False, None): 1568,
+        (False, ('C001', 'C010', 'C011'), False, None): 784,
+        (False, ('C001', 'C011'), False, None): 1456,
+        (False, ('C003',), True, None): 2912,
+        (False, ('C003', 'C007'), True, None): 672,
+        (False, ('C003', 'C007', 'C010'), True, None): 224,
+        (False, ('C003', 'C007', 'C010', 'C011'), False, None): 112,
+        (False, ('C003', 'C007', 'C011'), False, None): 336,
+        (False, ('C003', 'C008'), True, None): 1792,
+        (False, ('C003', 'C008', 'C011'), False, None): 896,
+        (False, ('C003', 'C010'), True, None): 1568,
+        (False, ('C003', 'C010', 'C011'), False, None): 784,
+        (False, ('C003', 'C011'), False, None): 1456,
+        (False, ('C004',), False, None): 1792,
+        (False, ('C004',), True, None): 1344,
+        (False, ('C004', 'C008'), False, None): 896,
+        (False, ('C004', 'C008'), True, None): 896,
+        (False, ('C004', 'C008', 'C011'), False, None): 896,
+        (False, ('C004', 'C009'), True, None): 448,
+        (False, ('C004', 'C009', 'C010'), True, None): 448,
+        (False, ('C004', 'C009', 'C010', 'C011'), False, None): 224,
+        (False, ('C004', 'C009', 'C011'), False, None): 224,
+        (False, ('C004', 'C010'), False, None): 896,
+        (False, ('C004', 'C010'), True, None): 448,
+        (False, ('C004', 'C010', 'C011'), False, None): 672,
+        (False, ('C004', 'C011'), False, None): 1568,
+        (False, ('C005',), False, None): 1792,
+        (False, ('C005',), True, None): 1344,
+        (False, ('C005', 'C008'), False, None): 896,
+        (False, ('C005', 'C008'), True, None): 896,
+        (False, ('C005', 'C008', 'C011'), False, None): 896,
+        (False, ('C005', 'C009'), True, None): 448,
+        (False, ('C005', 'C009', 'C010'), True, None): 448,
+        (False, ('C005', 'C009', 'C010', 'C011'), False, None): 224,
+        (False, ('C005', 'C009', 'C011'), False, None): 224,
+        (False, ('C005', 'C010'), False, None): 896,
+        (False, ('C005', 'C010'), True, None): 448,
+        (False, ('C005', 'C010', 'C011'), False, None): 672,
+        (False, ('C005', 'C011'), False, None): 1568,
+        (False, ('C007',), False, None): 4592,
+        (False, ('C007',), True, None): 2688,
+        (False, ('C007', 'C009'), False, None): 112,
+        (False, ('C007', 'C009'), True, None): 672,
+        (False, ('C007', 'C009', 'C010'), False, None): 112,
+        (False, ('C007', 'C009', 'C010'), True, None): 672,
+        (False, ('C007', 'C009', 'C010', 'C011'), False, None): 224,
+        (False, ('C007', 'C009', 'C011'), False, None): 224,
+        (False, ('C007', 'C010'), False, None): 1456,
+        (False, ('C007', 'C010'), True, None): 448,
+        (False, ('C007', 'C010', 'C011'), False, None): 448,
+        (False, ('C007', 'C011'), False, None): 1792,
+        (False, ('C008',), False, None): 10752,
+        (False, ('C008',), True, None): 7168,
+        (False, ('C008', 'C011'), False, None): 3584,
+        (False, ('C009',), False, None): 784,
+        (False, ('C009',), True, None): 3808,
+        (False, ('C009', 'C010'), False, None): 784,
+        (False, ('C009', 'C010'), True, None): 3808,
+        (False, ('C009', 'C010', 'C011'), False, None): 1120,
+        (False, ('C009', 'C011'), False, None): 1120,
+        (False, ('C010',), False, None): 8400,
+        (False, ('C010',), True, None): 2240,
+        (False, ('C010', 'C011'), False, None): 1792,
+        (False, ('C011',), False, None): 4032,
+        (True, (), False, 'apolloToSCORE'): 2016,
+        (True, (), False, 'autowareToAAOSSDV'): 672,
+        (True, (), False, 'autowareToAUTOSAR'): 1456,
+        (True, (), False, 'autowareToSCORE'): 1456,
+        (True, (), False, 'none'): 8400,
+        (True, (), False, 'openpilotToSCORE'): 2016,
     },
     "engineering": {
         (False, ('C-ENG-AOSP-HOST-REQUIRES-LINUX-X86-64', 'C-ENG-AOSP-HOST-REQUIRES-NESTED-KVM'), False, None): 4,
@@ -845,7 +1018,7 @@ def _rules(family: Family) -> list[Dependency]:
 @pytest.mark.parametrize("name", FAMILIES)
 def test_the_closed_world_keeps_its_verdicts_on_every_structurally_valid_selection(name: str) -> None:
     """The agreement and complement checks, evaluated: the model's groups, constraints and rules decide
-    every structurally valid selection as the configurator decided it on the YAML catalogue until S7."""
+    every structurally valid selection as the reviewed table records it (see CLOSED_WORLD)."""
     family = FAMILIES[name]
     features = _tree(family)[1]
     rules = _rules(family)
@@ -853,7 +1026,7 @@ def test_the_closed_world_keeps_its_verdicts_on_every_structurally_valid_selecti
     for selected in _structural_selections(features):
         valid, ids, pair, variant = _model_verdict(features, rules, selected)
         histogram[(valid, tuple(sorted(ids)), pair, variant)] += 1
-    assert sum(histogram.values()) == {"sdv": 16128, "engineering": 27, "vehicle": 8}[name]
+    assert sum(histogram.values()) == {"sdv": 129024, "engineering": 27, "vehicle": 8}[name]
     assert dict(histogram) == CLOSED_WORLD[name]
 
 
@@ -863,8 +1036,9 @@ def test_the_closed_world_check_catches_a_dropped_exclusion() -> None:
     weakened = [Feature(**{**feature.__dict__, "constraints": [c for c in feature.constraints if c["id"] != "C001"]})
                 for feature in features]
     _family, selected = _configuration_selection(runner.FIXTURES[0])
-    assert _model_verdict(features, _rules(family), selected) == (False, frozenset({"C001"}), False, None)
-    assert _model_verdict(weakened, _rules(family), selected) != (False, frozenset({"C001"}), False, None)
+    # The invalid fixture runs Autoware on main-side Android, so C011 rejects it too.
+    assert _model_verdict(features, _rules(family), selected) == (False, frozenset({"C001", "C011"}), False, None)
+    assert _model_verdict(weakened, _rules(family), selected) == (False, frozenset({"C011"}), False, None)
 
 
 @pytest.mark.parametrize("stem, replaced, replacing, rejecting", ENVIRONMENT_MIXES,
@@ -1076,9 +1250,11 @@ GOVERNED_CLASSES = {
     "vehiclePlatformIntegrationMode": "admitted-alternative",
 }
 ADMISSIBLE = {"admitted-alternative", "common"}
-#: The representation difference PLE-S recorded: the common Linux runtime, whose one choice shares the
-#: single operating-system slot with the realization of an alternative that takes that slot otherwise.
-REPRESENTATION_DIFFERENCES = {("InitialCommonCoreEngineeringContent::linuxROS2AutowareRuntime", "operatingSystem")}
+#: The representation differences: a common element whose choice shares a slot with the realization of an
+#: alternative that takes the slot otherwise. PLE-S recorded one, the common Linux runtime under the
+#: AAOS-integrated alternative. None is left since INC-MW-011 phase 9: the AAOS-integrated member runs
+#: Autoware on Linux on the main side and its Android in the guest, so no member needs an exemption.
+REPRESENTATION_DIFFERENCES: set[tuple[str, str]] = set()
 #: The governed members of ADR 0014 and the alternative each realizes.
 GOVERNED_MEMBERS = {"aebs_autoware_linux_lidar_camera": "vehiclePlatformIntegrationMode::standalone",
                     "middleware_autoware_aaos_sdv_reference": "vehiclePlatformIntegrationMode::aaosIntegrated"}
@@ -1175,5 +1351,17 @@ def test_admission_blocks_only_on_selected_choices_and_leaves() -> None:
     assert admission(features, correspondences, family_elements, standalone - {"camera"})[1] == [
         "InitialCommonCoreEngineeringContent::currentSensingBaseline is not represented: camera is not selected"]
     # Two admitted alternatives, or a missing derived realization, reject.
-    assert admission(features, correspondences, family_elements, standalone - {"linux"} | {"android"})[1] == [
+    assert admission(features, correspondences, family_elements, standalone - {"noGuestOS"} | {"guestAndroid"})[1] == [
         "realizes 2 admitted alternatives"]
+    _family, integrated = _configuration_selection(CONFIGURATIONS_DIR / "middleware_autoware_aaos_sdv_reference.sysml")
+    assert admission(features, correspondences, family_elements, integrated) == (
+        "vehiclePlatformIntegrationMode::aaosIntegrated", [])
+    assert admission(features, correspondences, family_elements, integrated - {"kvm"})[1] == [
+        "a derived realization of vehiclePlatformIntegrationMode::aaosIntegrated is missing in hypervisor"]
+    # Main-side Android and the HMI display have no governed element (INC-MW-011 phase 9), and Linux
+    # represents the common runtime in both members, so no exemption covers its absence.
+    assert admission(features, correspondences, family_elements, standalone - {"linux"} | {"android"})[1] == [
+        "android: not in the governed scope",
+        "InitialCommonCoreEngineeringContent::linuxROS2AutowareRuntime is not represented: linux is not selected"]
+    assert admission(features, correspondences, family_elements, integrated | {"hmiDisplay"})[1] == [
+        "hmiDisplay: not in the governed scope"]

@@ -7,6 +7,8 @@ reference, not a production car or a certificate.
 
 ![Concept illustration, not a model view: four stages from left to right. One SysML v2 model, with requirements, architecture, variability and verification and validation (V&V) evidence (existing today), is configured along dimensions such as these two. Platform stack (application · middleware · OS): the member configurations Autoware · none · Linux and Autoware · Android SDV · Android exist today; not admitted yet are the candidate Autoware · Eclipse S-CORE · Linux with an AAOS SDV guest for the human-machine interface (HMI), in progress, and more stacks (deferred). Sensor set: LiDAR and camera, shared by both members, exists today; variants, for example entry, mid and premium, are deferred and not admitted. Every change is re-checked by CI and review, and model changes also by the Method Check; evidence per member is in progress. The aim is re-checkable evidence for every member and a continuously certifiable product line.](concept-vision-and-aim.drawio.svg)
 
+*Note: this figure predates INC-MW-011 phase 9. The AAOS member is now Autoware on Linux, with AAOS SDV in a KVM guest on the same chip. A redraw follows.*
+
 *Concept illustration, not a model view: the vision at a glance.* DE4SDV
 keeps one SysML v2 model for the whole product line and configures each member
 product from it, along dimensions such as the platform stack (application,
@@ -51,6 +53,11 @@ most layers have several candidate implementations:
 | Operating system | Scheduling, memory, drivers | Linux, Android, QNX |
 | Hypervisor | Isolates several operating systems on one chip | KVM (Kernel-based Virtual Machine), QNX QVM, ACRN, or none |
 | Hardware | The compute platform the stack runs on | Kept abstract |
+
+The operating system above is the one of the **main side**, the part of the
+chip that runs the vehicle application. Under a hypervisor, a **guest side**
+can run a second operating system with its own middleware: today Android with
+the Android SDV middleware (AAOS SDV), or no guest.
 
 Not every combination is valid. The
 [feature model](../../model-based-product-line-engineering/feature-models/sdv_product_line.sysml)
@@ -105,23 +112,26 @@ last two rows are common to both members:
 | Aspect | Standalone member | AAOS-integrated member |
 |---|---|---|
 | Vehicle application | Autoware | Autoware |
-| Middleware | none | Android SDV |
-| Operating system (platform domain) | Linux | Android¹ |
+| Middleware | none | Android SDV, in the guest¹ |
+| Operating system (main side) | Linux | Linux |
 | Hypervisor | none | KVM |
+| Guest operating system and middleware | none | Android with AAOS SDV¹ |
 | Adapter | none (derived) | Autoware→AAOS SDV (derived) |
 | Capability (common) | Emergency braking (vehicle-target AEBS) | Emergency braking (vehicle-target AEBS) |
 | Sensing baseline (common) | LiDAR + camera, IMU, wheel odometry | LiDAR + camera, IMU, wheel odometry |
 
-¹ Autoware keeps its own Linux and ROS 2 (Robot Operating System 2) runtime;
-the AAOS domain is added beside it. In the AAOS member's
+¹ Autoware keeps its own Linux and ROS 2 (Robot Operating System 2) runtime on
+the main side, which is also the KVM host. The AAOS SDV middleware runs in an
+Android guest under KVM on the same chip, and it is the middleware that
+Autoware integrates with. In the AAOS member's
 [configuration](../../model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml),
-cross-domain deployment and transport remain unresolved. Its
+cross-domain transport remains unresolved. Its
 [evidence record](../../model-based-product-line-engineering/feature-configurations/evidence/middleware-autoware-aaos-sdv-reference.yaml)
 states the evidence status `planned`.
 
 This is what the right-hand column looks like in the model itself:
 
-![SysIDE render of the model view middlewareProductLineConfigurationView: the part definition MiddlewareAutowareAAOSSDVReference specializes SDVPlatformStack and selects vehicleApplication autoware, middleware androidSDV, osPlatform android, hypervisor kvm and applicationMiddlewareAdapter autowareToAAOSSDV.](../../textual-notation-of-model/packages/features/middleware/diagrams/diagram-middlewareProductLineConfigurationView.svg)
+![SysIDE render of the model view middlewareProductLineConfigurationView: the part definition MiddlewareAutowareAAOSSDVReference specializes SDVPlatformStack and selects vehicleApplication autoware, middleware androidSDV, osPlatform linux, hypervisor kvm, guestOSPlatform android, guestMiddleware androidSDV and applicationMiddlewareAdapter autowareToAAOSSDV.](../../textual-notation-of-model/packages/features/middleware/diagrams/diagram-middlewareProductLineConfigurationView.svg)
 
 *SysIDE render of the model view `middlewareProductLineConfigurationView`.*
 It shows the platform-stack product model that the configurator generated for
@@ -338,7 +348,8 @@ python tools/configure_variant.py \
 ```
 
 Swap in `invalidSCOREAndroidVariant`, the invalid fixture, to watch the C001
-exclusion (S-CORE excludes Android) reject an incompatible combination.
+exclusion (S-CORE excludes Android on the main side) and C011 (Autoware
+requires Linux) reject an incompatible combination.
 Without `--check-only`, the configurator
 prints the generated product model; its doc comment lists the derived adapter
 (`none` for the standalone member, `autowareToAAOSSDV` for the AAOS-integrated

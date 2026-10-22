@@ -1,8 +1,8 @@
 {
   "elements": {
-    "content_sha256": "4800f13d31d7e09af9bfba58737fa7331d6dbf172ef8ed2f3c17d0539c0fb956",
+    "content_sha256": "f98babe2b30c5a8c972735f54e1e053fd62397aa5fb6562f6ff0cb4e34f690eb",
     "path": "pleml-feature-models.elements.json.xz",
-    "sha256": "f7c8b9439483aa66a2af75a52c31910b3c939042f5323500bb3b3ccc34c03dd4"
+    "sha256": "521baf63138d52b75eda9f45eea636f872a70324e08989bfe964d61bcb76777b"
   },
   "evaluation": {
     "admission_authority": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
@@ -298,6 +298,50 @@
             "variant_id": "f605a4bc-33da-5a7a-a414-764a041406f8",
             "variation": "hypervisor",
             "variation_id": "e3496884-92b2-5aee-bca2-66a605aaddb9"
+          },
+          {
+            "binding": "guestOSPlatformAndroidBinding",
+            "element_id": "4e288c1a-658d-5486-ae6d-52e0a239fc0d",
+            "feature": "platformStack.guestAndroid",
+            "feature_id": "1c482d61-0ef6-558b-8f5b-f805ddf05bc1",
+            "feature_short_name": "F-PLATFORM-GUEST-OS-ANDROID",
+            "variant": "android",
+            "variant_id": "bbffe2c8-6872-5e78-8244-397edf4baf79",
+            "variation": "guestOSPlatform",
+            "variation_id": "77e84c5e-7539-544d-a20c-7c499af0d032"
+          },
+          {
+            "binding": "guestOSPlatformNoneBinding",
+            "element_id": "7463638f-2ae1-571a-a2a1-4d4182325148",
+            "feature": "platformStack.noGuestOS",
+            "feature_id": "87f65666-c8cb-5442-a0ce-6fae147eece9",
+            "feature_short_name": "F-PLATFORM-GUEST-OS-NONE",
+            "variant": "none",
+            "variant_id": "99a8dcda-11fe-5d5f-9305-0ead21392957",
+            "variation": "guestOSPlatform",
+            "variation_id": "77e84c5e-7539-544d-a20c-7c499af0d032"
+          },
+          {
+            "binding": "guestMiddlewareAndroidSDVBinding",
+            "element_id": "0bd9b3da-e34a-530c-8d0b-68299dc0dc34",
+            "feature": "platformStack.guestAndroidSDV",
+            "feature_id": "2be2d405-7d5c-56e3-9e65-aed336bc41ca",
+            "feature_short_name": "F-PLATFORM-GUEST-MIDDLEWARE-ANDROID-SDV",
+            "variant": "androidSDV",
+            "variant_id": "b2a42812-989d-5511-beae-413f8316bf53",
+            "variation": "guestMiddleware",
+            "variation_id": "13790f3c-cc29-573f-956a-c7bf2376f2b2"
+          },
+          {
+            "binding": "guestMiddlewareNoneBinding",
+            "element_id": "15137536-42ed-54f9-8a2b-baedf944671a",
+            "feature": "platformStack.noGuestMiddleware",
+            "feature_id": "9482ba91-a86b-5b61-b3d8-55b5fb6ff99b",
+            "feature_short_name": "F-PLATFORM-GUEST-MIDDLEWARE-NONE",
+            "variant": "none",
+            "variant_id": "2d66b811-dd82-54e1-8bf6-f0c782ab1257",
+            "variation": "guestMiddleware",
+            "variation_id": "13790f3c-cc29-573f-956a-c7bf2376f2b2"
           }
         ],
         "configurations": [
@@ -308,8 +352,9 @@
               "alternatives_realized": {
                 "standalone": [
                   "platformStack.noMiddleware",
-                  "platformStack.linux",
-                  "platformStack.noHypervisor"
+                  "platformStack.noHypervisor",
+                  "platformStack.noGuestOS",
+                  "platformStack.noGuestMiddleware"
                 ]
               },
               "common_content": [
@@ -373,6 +418,18 @@
                 "variation": "applicationMiddlewareAdapter"
               },
               {
+                "binding": "guestMiddlewareNoneBinding",
+                "variant": "none",
+                "variant_id": "2d66b811-dd82-54e1-8bf6-f0c782ab1257",
+                "variation": "guestMiddleware"
+              },
+              {
+                "binding": "guestOSPlatformNoneBinding",
+                "variant": "none",
+                "variant_id": "99a8dcda-11fe-5d5f-9305-0ead21392957",
+                "variation": "guestOSPlatform"
+              },
+              {
                 "binding": "hypervisorNoneBinding",
                 "variant": "none",
                 "variant_id": "f605a4bc-33da-5a7a-a414-764a041406f8",
@@ -397,7 +454,7 @@
                 "variation": "vehicleApplication"
               }
             ],
-            "description": "AEBS reference member product.\nAutoware on Linux, single-domain (no middleware, no hypervisor).\nLiDAR + camera perception, IMU + wheel odometry common.\nVehicle-target AEBS only (no pedestrian/bicycle detection).",
+            "description": "AEBS reference member product.\nAutoware on Linux, single-domain (no middleware, no hypervisor,\nno guest side).\nLiDAR + camera perception, IMU + wheel odometry common.\nVehicle-target AEBS only (no pedestrian/bicycle detection).",
             "element_id": "01c24551-6a90-5b5e-a730-5d80b95f4943",
             "projection_name": "AEBSAutowareLinuxLidarCamera",
             "reasons": [],
@@ -405,9 +462,13 @@
               "capabilities",
               "platformStack",
               "platformStack.autoware",
+              "platformStack.guestMiddleware",
+              "platformStack.guestOperatingSystem",
               "platformStack.hypervisor",
               "platformStack.linux",
               "platformStack.middleware",
+              "platformStack.noGuestMiddleware",
+              "platformStack.noGuestOS",
               "platformStack.noHypervisor",
               "platformStack.noMiddleware",
               "platformStack.operatingSystem",
@@ -422,6 +483,7 @@
               "capabilities": "enabled",
               "capabilities.adaptiveCruiseControl": "disabled",
               "capabilities.bicycleDetection": "disabled",
+              "capabilities.hmiDisplay": "disabled",
               "capabilities.laneKeepAssist": "disabled",
               "capabilities.pedestrianDetection": "disabled",
               "platformStack": "enabled",
@@ -432,10 +494,16 @@
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "omitted",
+              "platformStack.guestAndroid": "omitted",
+              "platformStack.guestAndroidSDV": "omitted",
+              "platformStack.guestMiddleware": "enabled",
+              "platformStack.guestOperatingSystem": "enabled",
               "platformStack.hypervisor": "enabled",
               "platformStack.kvm": "omitted",
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
+              "platformStack.noGuestMiddleware": "enabled",
+              "platformStack.noGuestOS": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "enabled",
               "platformStack.openpilot": "omitted",
@@ -454,8 +522,13 @@
           {
             "admission": {
               "admitted": false,
-              "alternative": null,
-              "alternatives_realized": {},
+              "alternative": "standalone",
+              "alternatives_realized": {
+                "standalone": [
+                  "platformStack.noGuestOS",
+                  "platformStack.noGuestMiddleware"
+                ]
+              },
               "common_content": [
                 {
                   "asset": "autowareApplication",
@@ -513,7 +586,7 @@
               ],
               "reasons": [
                 "selects content the governed scope does not admit: platformStack.apollo: reference-only apollo | platformStack.eclipseSCORE: reference-only eclipseSCORE | platformStack.qnx: reference-only qnxQVM | platformStack.qvm: reference-only qnxQVM | sensingBoundary.radar: deferred sensingVariability",
-                "realizes no admitted alternative",
+                "misses derived realizations of standalone: platformStack.middleware = platformStack.noMiddleware, platformStack.hypervisor = platformStack.noHypervisor",
                 "does not represent the common content: autowareApplication (missing platformStack.autoware); currentSensingBaseline (missing sensingBoundary.camera); linuxROS2AutowareRuntime (missing platformStack.linux)"
               ]
             },
@@ -525,6 +598,18 @@
                 "variant": "apolloToSCORE",
                 "variant_id": "c5373e15-5571-59ca-bccb-e84e72098f48",
                 "variation": "applicationMiddlewareAdapter"
+              },
+              {
+                "binding": "guestMiddlewareNoneBinding",
+                "variant": "none",
+                "variant_id": "2d66b811-dd82-54e1-8bf6-f0c782ab1257",
+                "variation": "guestMiddleware"
+              },
+              {
+                "binding": "guestOSPlatformNoneBinding",
+                "variant": "none",
+                "variant_id": "99a8dcda-11fe-5d5f-9305-0ead21392957",
+                "variation": "guestOSPlatform"
               },
               {
                 "binding": "hypervisorQVMBinding",
@@ -560,8 +645,12 @@
               "platformStack",
               "platformStack.apollo",
               "platformStack.eclipseSCORE",
+              "platformStack.guestMiddleware",
+              "platformStack.guestOperatingSystem",
               "platformStack.hypervisor",
               "platformStack.middleware",
+              "platformStack.noGuestMiddleware",
+              "platformStack.noGuestOS",
               "platformStack.operatingSystem",
               "platformStack.qnx",
               "platformStack.qvm",
@@ -576,6 +665,7 @@
               "capabilities": "enabled",
               "capabilities.adaptiveCruiseControl": "disabled",
               "capabilities.bicycleDetection": "disabled",
+              "capabilities.hmiDisplay": "disabled",
               "capabilities.laneKeepAssist": "disabled",
               "capabilities.pedestrianDetection": "disabled",
               "platformStack": "enabled",
@@ -586,10 +676,16 @@
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "omitted",
               "platformStack.eclipseSCORE": "enabled",
+              "platformStack.guestAndroid": "omitted",
+              "platformStack.guestAndroidSDV": "omitted",
+              "platformStack.guestMiddleware": "enabled",
+              "platformStack.guestOperatingSystem": "enabled",
               "platformStack.hypervisor": "enabled",
               "platformStack.kvm": "omitted",
               "platformStack.linux": "omitted",
               "platformStack.middleware": "enabled",
+              "platformStack.noGuestMiddleware": "enabled",
+              "platformStack.noGuestOS": "enabled",
               "platformStack.noHypervisor": "omitted",
               "platformStack.noMiddleware": "omitted",
               "platformStack.openpilot": "omitted",
@@ -611,162 +707,9 @@
               "alternative": "standalone",
               "alternatives_realized": {
                 "standalone": [
-                  "platformStack.linux",
-                  "platformStack.noHypervisor"
-                ]
-              },
-              "common_content": [
-                {
-                  "asset": "autowareApplication",
-                  "complete": true,
-                  "exempted": [],
-                  "missing": [],
-                  "represented_by": [
-                    "platformStack.autoware"
-                  ]
-                },
-                {
-                  "asset": "currentSensingBaseline",
-                  "complete": true,
-                  "exempted": [],
-                  "missing": [],
-                  "represented_by": [
-                    "sensingBoundary.lidar",
-                    "sensingBoundary.camera"
-                  ]
-                },
-                {
-                  "asset": "linuxROS2AutowareRuntime",
-                  "complete": true,
-                  "exempted": [],
-                  "missing": [],
-                  "represented_by": [
-                    "platformStack.linux"
-                  ]
-                },
-                {
-                  "asset": "protectedEmergencyCommandPathIndependence",
-                  "complete": null,
-                  "exempted": [],
-                  "missing": [],
-                  "represented_by": []
-                },
-                {
-                  "asset": "vehicleTargetAEBS",
-                  "complete": null,
-                  "exempted": [],
-                  "missing": [],
-                  "represented_by": []
-                }
-              ],
-              "evaluated": true,
-              "notes": [
-                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
-                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
-              ],
-              "reasons": [
-                "selects content the governed scope does not admit: platformStack.eclipseSCORE: reference-only eclipseSCORE",
-                "misses derived realizations of standalone: platformStack.middleware = platformStack.noMiddleware"
-              ]
-            },
-            "configuration": "exampleLinuxSCOREVariant",
-            "derived_variants": [
-              {
-                "derivation": "D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER",
-                "rule": "autowareEclipseSCORERule",
-                "variant": "autowareToSCORE",
-                "variant_id": "ad3688f6-00c0-5341-a3b7-e7b5c0b12a11",
-                "variation": "applicationMiddlewareAdapter"
-              },
-              {
-                "binding": "hypervisorNoneBinding",
-                "variant": "none",
-                "variant_id": "f605a4bc-33da-5a7a-a414-764a041406f8",
-                "variation": "hypervisor"
-              },
-              {
-                "binding": "middlewareEclipseSCOREBinding",
-                "variant": "eclipseSCORE",
-                "variant_id": "db135c9e-c653-5275-8a88-409a0fa4afea",
-                "variation": "middleware"
-              },
-              {
-                "binding": "osPlatformLinuxBinding",
-                "variant": "linux",
-                "variant_id": "a6fea382-a4e0-55ec-b42f-736e915fcd02",
-                "variation": "osPlatform"
-              },
-              {
-                "binding": "vehicleApplicationAutowareBinding",
-                "variant": "autoware",
-                "variant_id": "c18b4ccc-8f57-5241-8f90-3ce459469a32",
-                "variation": "vehicleApplication"
-              }
-            ],
-            "description": "Single-domain reference configuration.\nAutoware (ADAS) on Eclipse S-CORE on Linux, no hypervisor.\nVehicle-target AEBS only (no pedestrian/bicycle detection).",
-            "element_id": "6a02500e-2192-54a3-91d1-4f44a9cf2856",
-            "projection_name": "ExampleLinuxSCOREVariant",
-            "reasons": [],
-            "selected": [
-              "capabilities",
-              "platformStack",
-              "platformStack.autoware",
-              "platformStack.eclipseSCORE",
-              "platformStack.hypervisor",
-              "platformStack.linux",
-              "platformStack.middleware",
-              "platformStack.noHypervisor",
-              "platformStack.operatingSystem",
-              "platformStack.vehicleApplication",
-              "sensingBoundary",
-              "sensingBoundary.camera",
-              "sensingBoundary.lidar",
-              "sensingBoundary.perceptionSensors"
-            ],
-            "source": "model-based-product-line-engineering/feature-configurations/example_linux_score_autoware.sysml",
-            "states": {
-              "capabilities": "enabled",
-              "capabilities.adaptiveCruiseControl": "disabled",
-              "capabilities.bicycleDetection": "disabled",
-              "capabilities.laneKeepAssist": "disabled",
-              "capabilities.pedestrianDetection": "disabled",
-              "platformStack": "enabled",
-              "platformStack.acrn": "omitted",
-              "platformStack.android": "omitted",
-              "platformStack.androidSDV": "omitted",
-              "platformStack.apollo": "omitted",
-              "platformStack.autosarAdaptive": "omitted",
-              "platformStack.autoware": "enabled",
-              "platformStack.eclipseSCORE": "enabled",
-              "platformStack.hypervisor": "enabled",
-              "platformStack.kvm": "omitted",
-              "platformStack.linux": "enabled",
-              "platformStack.middleware": "enabled",
-              "platformStack.noHypervisor": "enabled",
-              "platformStack.noMiddleware": "omitted",
-              "platformStack.openpilot": "omitted",
-              "platformStack.operatingSystem": "enabled",
-              "platformStack.qnx": "omitted",
-              "platformStack.qvm": "omitted",
-              "platformStack.vehicleApplication": "enabled",
-              "sensingBoundary": "enabled",
-              "sensingBoundary.camera": "enabled",
-              "sensingBoundary.lidar": "enabled",
-              "sensingBoundary.perceptionSensors": "enabled",
-              "sensingBoundary.radar": "omitted"
-            },
-            "valid": true
-          },
-          {
-            "admission": {
-              "admitted": false,
-              "alternative": null,
-              "alternatives_realized": {
-                "aaosIntegrated": [
-                  "platformStack.android"
-                ],
-                "standalone": [
-                  "platformStack.noHypervisor"
+                  "platformStack.noHypervisor",
+                  "platformStack.noGuestOS",
+                  "platformStack.noGuestMiddleware"
                 ]
               },
               "common_content": [
@@ -824,14 +767,14 @@
               ],
               "reasons": [
                 "invalid configuration: constraint",
-                "selects content the governed scope does not admit: platformStack.eclipseSCORE: reference-only eclipseSCORE",
-                "realizes more than one admitted alternative: aaosIntegrated, standalone",
+                "selects content the governed scope does not admit: platformStack.eclipseSCORE: reference-only eclipseSCORE | platformStack.android: not in the governed scope",
+                "misses derived realizations of standalone: platformStack.middleware = platformStack.noMiddleware",
                 "does not represent the common content: currentSensingBaseline (missing sensingBoundary.camera); linuxROS2AutowareRuntime (missing platformStack.linux)"
               ]
             },
             "configuration": "invalidSCOREAndroidVariant",
             "derived_variants": [],
-            "description": "Deliberately invalid: S-CORE + Android HLOS.\nShould fail constraint C001.",
+            "description": "Deliberately invalid: S-CORE + Android HLOS.\nShould fail constraint C001, and C011 for Autoware on Android.",
             "element_id": "f6f84832-f880-58bf-930c-3f29e0e785c8",
             "projection_name": "InvalidSCOREAndroidVariant",
             "reasons": [
@@ -845,6 +788,17 @@
                   "platformStack.eclipseSCORE"
                 ],
                 "kind": "xor"
+              },
+              {
+                "class": "constraint",
+                "code": "constraint",
+                "constraint": "C011",
+                "detail": "platformStack.autoware requires ['platformStack.linux']",
+                "features": [
+                  "platformStack.autoware",
+                  "platformStack.linux"
+                ],
+                "kind": "requires"
               }
             ],
             "selected": [
@@ -853,8 +807,12 @@
               "platformStack.android",
               "platformStack.autoware",
               "platformStack.eclipseSCORE",
+              "platformStack.guestMiddleware",
+              "platformStack.guestOperatingSystem",
               "platformStack.hypervisor",
               "platformStack.middleware",
+              "platformStack.noGuestMiddleware",
+              "platformStack.noGuestOS",
               "platformStack.noHypervisor",
               "platformStack.operatingSystem",
               "platformStack.vehicleApplication",
@@ -867,6 +825,7 @@
               "capabilities": "enabled",
               "capabilities.adaptiveCruiseControl": "disabled",
               "capabilities.bicycleDetection": "disabled",
+              "capabilities.hmiDisplay": "disabled",
               "capabilities.laneKeepAssist": "disabled",
               "capabilities.pedestrianDetection": "disabled",
               "platformStack": "enabled",
@@ -877,10 +836,16 @@
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "enabled",
+              "platformStack.guestAndroid": "omitted",
+              "platformStack.guestAndroidSDV": "omitted",
+              "platformStack.guestMiddleware": "enabled",
+              "platformStack.guestOperatingSystem": "enabled",
               "platformStack.hypervisor": "enabled",
               "platformStack.kvm": "omitted",
               "platformStack.linux": "omitted",
               "platformStack.middleware": "enabled",
+              "platformStack.noGuestMiddleware": "enabled",
+              "platformStack.noGuestOS": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "omitted",
               "platformStack.openpilot": "omitted",
@@ -903,8 +868,9 @@
               "alternatives_realized": {
                 "standalone": [
                   "platformStack.noMiddleware",
-                  "platformStack.linux",
-                  "platformStack.noHypervisor"
+                  "platformStack.noHypervisor",
+                  "platformStack.noGuestOS",
+                  "platformStack.noGuestMiddleware"
                 ]
               },
               "common_content": [
@@ -970,6 +936,18 @@
                 "variation": "applicationMiddlewareAdapter"
               },
               {
+                "binding": "guestMiddlewareNoneBinding",
+                "variant": "none",
+                "variant_id": "2d66b811-dd82-54e1-8bf6-f0c782ab1257",
+                "variation": "guestMiddleware"
+              },
+              {
+                "binding": "guestOSPlatformNoneBinding",
+                "variant": "none",
+                "variant_id": "99a8dcda-11fe-5d5f-9305-0ead21392957",
+                "variation": "guestOSPlatform"
+              },
+              {
                 "binding": "hypervisorNoneBinding",
                 "variant": "none",
                 "variant_id": "f605a4bc-33da-5a7a-a414-764a041406f8",
@@ -1003,9 +981,13 @@
               "capabilities.adaptiveCruiseControl",
               "platformStack",
               "platformStack.autoware",
+              "platformStack.guestMiddleware",
+              "platformStack.guestOperatingSystem",
               "platformStack.hypervisor",
               "platformStack.linux",
               "platformStack.middleware",
+              "platformStack.noGuestMiddleware",
+              "platformStack.noGuestOS",
               "platformStack.noHypervisor",
               "platformStack.noMiddleware",
               "platformStack.operatingSystem",
@@ -1020,6 +1002,7 @@
               "capabilities": "enabled",
               "capabilities.adaptiveCruiseControl": "enabled",
               "capabilities.bicycleDetection": "disabled",
+              "capabilities.hmiDisplay": "disabled",
               "capabilities.laneKeepAssist": "disabled",
               "capabilities.pedestrianDetection": "disabled",
               "platformStack": "enabled",
@@ -1030,10 +1013,16 @@
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "omitted",
+              "platformStack.guestAndroid": "omitted",
+              "platformStack.guestAndroidSDV": "omitted",
+              "platformStack.guestMiddleware": "enabled",
+              "platformStack.guestOperatingSystem": "enabled",
               "platformStack.hypervisor": "enabled",
               "platformStack.kvm": "omitted",
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
+              "platformStack.noGuestMiddleware": "enabled",
+              "platformStack.noGuestOS": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "enabled",
               "platformStack.openpilot": "omitted",
@@ -1052,14 +1041,13 @@
           {
             "admission": {
               "admitted": false,
-              "alternative": null,
+              "alternative": "aaosIntegrated",
               "alternatives_realized": {
                 "aaosIntegrated": [
-                  "platformStack.androidSDV"
-                ],
-                "standalone": [
-                  "platformStack.linux",
-                  "platformStack.noHypervisor"
+                  "platformStack.androidSDV",
+                  "platformStack.kvm",
+                  "platformStack.guestAndroid",
+                  "platformStack.guestAndroidSDV"
                 ]
               },
               "common_content": [
@@ -1116,13 +1104,12 @@
               "reasons": [
                 "invalid configuration: pair-exclusion",
                 "selects content the governed scope does not admit: platformStack.apollo: reference-only apollo",
-                "realizes more than one admitted alternative: aaosIntegrated, standalone",
                 "does not represent the common content: autowareApplication (missing platformStack.autoware)"
               ]
             },
             "configuration": "apolloAndroidSDVPairProbe",
             "derived_variants": [],
-            "description": "Parity probe unsupported-apollo-android-sdv. Apollo with\nAndroid SDV, a pair without a derivation rule.",
+            "description": "Parity probe unsupported-apollo-android-sdv. Apollo with\nAndroid SDV, a pair without a derivation rule. The AAOS SDV\npartner runs in the guest under KVM, so the pair exclusion is\nthe only reason.",
             "element_id": "5a96f3dc-939f-5790-9dda-26bc49885d30",
             "projection_name": "ApolloAndroidSDVPairProbe",
             "reasons": [
@@ -1143,10 +1130,14 @@
               "platformStack",
               "platformStack.androidSDV",
               "platformStack.apollo",
+              "platformStack.guestAndroid",
+              "platformStack.guestAndroidSDV",
+              "platformStack.guestMiddleware",
+              "platformStack.guestOperatingSystem",
               "platformStack.hypervisor",
+              "platformStack.kvm",
               "platformStack.linux",
               "platformStack.middleware",
-              "platformStack.noHypervisor",
               "platformStack.operatingSystem",
               "platformStack.vehicleApplication",
               "sensingBoundary",
@@ -1159,6 +1150,7 @@
               "capabilities": "enabled",
               "capabilities.adaptiveCruiseControl": "disabled",
               "capabilities.bicycleDetection": "disabled",
+              "capabilities.hmiDisplay": "disabled",
               "capabilities.laneKeepAssist": "disabled",
               "capabilities.pedestrianDetection": "disabled",
               "platformStack": "enabled",
@@ -1169,11 +1161,17 @@
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "omitted",
               "platformStack.eclipseSCORE": "omitted",
+              "platformStack.guestAndroid": "enabled",
+              "platformStack.guestAndroidSDV": "enabled",
+              "platformStack.guestMiddleware": "enabled",
+              "platformStack.guestOperatingSystem": "enabled",
               "platformStack.hypervisor": "enabled",
-              "platformStack.kvm": "omitted",
+              "platformStack.kvm": "enabled",
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
-              "platformStack.noHypervisor": "enabled",
+              "platformStack.noGuestMiddleware": "omitted",
+              "platformStack.noGuestOS": "omitted",
+              "platformStack.noHypervisor": "omitted",
               "platformStack.noMiddleware": "omitted",
               "platformStack.openpilot": "omitted",
               "platformStack.operatingSystem": "enabled",
@@ -1194,8 +1192,9 @@
               "alternative": "standalone",
               "alternatives_realized": {
                 "standalone": [
-                  "platformStack.linux",
-                  "platformStack.noHypervisor"
+                  "platformStack.noHypervisor",
+                  "platformStack.noGuestOS",
+                  "platformStack.noGuestMiddleware"
                 ]
               },
               "common_content": [
@@ -1279,9 +1278,13 @@
               "platformStack",
               "platformStack.apollo",
               "platformStack.autosarAdaptive",
+              "platformStack.guestMiddleware",
+              "platformStack.guestOperatingSystem",
               "platformStack.hypervisor",
               "platformStack.linux",
               "platformStack.middleware",
+              "platformStack.noGuestMiddleware",
+              "platformStack.noGuestOS",
               "platformStack.noHypervisor",
               "platformStack.operatingSystem",
               "platformStack.vehicleApplication",
@@ -1295,6 +1298,7 @@
               "capabilities": "enabled",
               "capabilities.adaptiveCruiseControl": "disabled",
               "capabilities.bicycleDetection": "disabled",
+              "capabilities.hmiDisplay": "disabled",
               "capabilities.laneKeepAssist": "disabled",
               "capabilities.pedestrianDetection": "disabled",
               "platformStack": "enabled",
@@ -1305,10 +1309,16 @@
               "platformStack.autosarAdaptive": "enabled",
               "platformStack.autoware": "omitted",
               "platformStack.eclipseSCORE": "omitted",
+              "platformStack.guestAndroid": "omitted",
+              "platformStack.guestAndroidSDV": "omitted",
+              "platformStack.guestMiddleware": "enabled",
+              "platformStack.guestOperatingSystem": "enabled",
               "platformStack.hypervisor": "enabled",
               "platformStack.kvm": "omitted",
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
+              "platformStack.noGuestMiddleware": "enabled",
+              "platformStack.noGuestOS": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "omitted",
               "platformStack.openpilot": "omitted",
@@ -1331,8 +1341,9 @@
               "alternatives_realized": {
                 "standalone": [
                   "platformStack.noMiddleware",
-                  "platformStack.linux",
-                  "platformStack.noHypervisor"
+                  "platformStack.noHypervisor",
+                  "platformStack.noGuestOS",
+                  "platformStack.noGuestMiddleware"
                 ]
               },
               "common_content": [
@@ -1401,6 +1412,18 @@
                 "variation": "applicationMiddlewareAdapter"
               },
               {
+                "binding": "guestMiddlewareNoneBinding",
+                "variant": "none",
+                "variant_id": "2d66b811-dd82-54e1-8bf6-f0c782ab1257",
+                "variation": "guestMiddleware"
+              },
+              {
+                "binding": "guestOSPlatformNoneBinding",
+                "variant": "none",
+                "variant_id": "99a8dcda-11fe-5d5f-9305-0ead21392957",
+                "variation": "guestOSPlatform"
+              },
+              {
                 "binding": "hypervisorNoneBinding",
                 "variant": "none",
                 "variant_id": "f605a4bc-33da-5a7a-a414-764a041406f8",
@@ -1433,9 +1456,13 @@
               "capabilities",
               "platformStack",
               "platformStack.apollo",
+              "platformStack.guestMiddleware",
+              "platformStack.guestOperatingSystem",
               "platformStack.hypervisor",
               "platformStack.linux",
               "platformStack.middleware",
+              "platformStack.noGuestMiddleware",
+              "platformStack.noGuestOS",
               "platformStack.noHypervisor",
               "platformStack.noMiddleware",
               "platformStack.operatingSystem",
@@ -1450,6 +1477,7 @@
               "capabilities": "enabled",
               "capabilities.adaptiveCruiseControl": "disabled",
               "capabilities.bicycleDetection": "disabled",
+              "capabilities.hmiDisplay": "disabled",
               "capabilities.laneKeepAssist": "disabled",
               "capabilities.pedestrianDetection": "disabled",
               "platformStack": "enabled",
@@ -1460,10 +1488,16 @@
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "omitted",
               "platformStack.eclipseSCORE": "omitted",
+              "platformStack.guestAndroid": "omitted",
+              "platformStack.guestAndroidSDV": "omitted",
+              "platformStack.guestMiddleware": "enabled",
+              "platformStack.guestOperatingSystem": "enabled",
               "platformStack.hypervisor": "enabled",
               "platformStack.kvm": "omitted",
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
+              "platformStack.noGuestMiddleware": "enabled",
+              "platformStack.noGuestOS": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "enabled",
               "platformStack.openpilot": "omitted",
@@ -1485,7 +1519,8 @@
               "alternative": "standalone",
               "alternatives_realized": {
                 "standalone": [
-                  "platformStack.linux"
+                  "platformStack.noGuestOS",
+                  "platformStack.noGuestMiddleware"
                 ]
               },
               "common_content": [
@@ -1552,6 +1587,18 @@
                 "variation": "applicationMiddlewareAdapter"
               },
               {
+                "binding": "guestMiddlewareNoneBinding",
+                "variant": "none",
+                "variant_id": "2d66b811-dd82-54e1-8bf6-f0c782ab1257",
+                "variation": "guestMiddleware"
+              },
+              {
+                "binding": "guestOSPlatformNoneBinding",
+                "variant": "none",
+                "variant_id": "99a8dcda-11fe-5d5f-9305-0ead21392957",
+                "variation": "guestOSPlatform"
+              },
+              {
                 "binding": "hypervisorACRNBinding",
                 "variant": "acrn",
                 "variant_id": "21f11945-cb18-5a6d-a5f1-5d20a5447188",
@@ -1586,9 +1633,13 @@
               "platformStack.acrn",
               "platformStack.autosarAdaptive",
               "platformStack.autoware",
+              "platformStack.guestMiddleware",
+              "platformStack.guestOperatingSystem",
               "platformStack.hypervisor",
               "platformStack.linux",
               "platformStack.middleware",
+              "platformStack.noGuestMiddleware",
+              "platformStack.noGuestOS",
               "platformStack.operatingSystem",
               "platformStack.vehicleApplication",
               "sensingBoundary",
@@ -1601,6 +1652,7 @@
               "capabilities": "enabled",
               "capabilities.adaptiveCruiseControl": "disabled",
               "capabilities.bicycleDetection": "disabled",
+              "capabilities.hmiDisplay": "disabled",
               "capabilities.laneKeepAssist": "disabled",
               "capabilities.pedestrianDetection": "disabled",
               "platformStack": "enabled",
@@ -1611,10 +1663,16 @@
               "platformStack.autosarAdaptive": "enabled",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "omitted",
+              "platformStack.guestAndroid": "omitted",
+              "platformStack.guestAndroidSDV": "omitted",
+              "platformStack.guestMiddleware": "enabled",
+              "platformStack.guestOperatingSystem": "enabled",
               "platformStack.hypervisor": "enabled",
               "platformStack.kvm": "omitted",
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
+              "platformStack.noGuestMiddleware": "enabled",
+              "platformStack.noGuestOS": "enabled",
               "platformStack.noHypervisor": "omitted",
               "platformStack.noMiddleware": "omitted",
               "platformStack.openpilot": "omitted",
@@ -1637,13 +1695,15 @@
               "alternatives_realized": {
                 "aaosIntegrated": [
                   "platformStack.androidSDV",
-                  "platformStack.android",
-                  "platformStack.kvm"
+                  "platformStack.kvm",
+                  "platformStack.guestAndroid",
+                  "platformStack.guestAndroidSDV"
                 ],
                 "standalone": [
                   "platformStack.noMiddleware",
-                  "platformStack.linux",
-                  "platformStack.noHypervisor"
+                  "platformStack.noHypervisor",
+                  "platformStack.noGuestOS",
+                  "platformStack.noGuestMiddleware"
                 ]
               },
               "common_content": [
@@ -1697,15 +1757,32 @@
               ],
               "reasons": [
                 "invalid configuration: upper-bound",
+                "selects content the governed scope does not admit: platformStack.android: not in the governed scope",
                 "realizes more than one admitted alternative: aaosIntegrated, standalone"
               ]
             },
             "configuration": "bothIntegrationModesProbe",
             "derived_variants": [],
-            "description": "Parity probe both-alternatives. Both integration modes at once,\nwith two choices each for the middleware, the operating system\nand the hypervisor.",
+            "description": "Parity probe both-alternatives. Both integration modes at once,\nwith two choices each for the middleware, the operating system,\nthe hypervisor, the guest operating system and the guest\nmiddleware.",
             "element_id": "b8cdf549-f370-549e-8145-7de1713b1631",
             "projection_name": "BothIntegrationModesProbe",
             "reasons": [
+              {
+                "class": "upper-bound",
+                "code": "upper-bound",
+                "detail": "group platformStack.guestMiddleware selects 2 of [1..1]",
+                "features": [
+                  "platformStack.guestMiddleware"
+                ]
+              },
+              {
+                "class": "upper-bound",
+                "code": "upper-bound",
+                "detail": "group platformStack.guestOperatingSystem selects 2 of [1..1]",
+                "features": [
+                  "platformStack.guestOperatingSystem"
+                ]
+              },
               {
                 "class": "upper-bound",
                 "code": "upper-bound",
@@ -1737,10 +1814,16 @@
               "platformStack.android",
               "platformStack.androidSDV",
               "platformStack.autoware",
+              "platformStack.guestAndroid",
+              "platformStack.guestAndroidSDV",
+              "platformStack.guestMiddleware",
+              "platformStack.guestOperatingSystem",
               "platformStack.hypervisor",
               "platformStack.kvm",
               "platformStack.linux",
               "platformStack.middleware",
+              "platformStack.noGuestMiddleware",
+              "platformStack.noGuestOS",
               "platformStack.noHypervisor",
               "platformStack.noMiddleware",
               "platformStack.operatingSystem",
@@ -1755,6 +1838,7 @@
               "capabilities": "enabled",
               "capabilities.adaptiveCruiseControl": "disabled",
               "capabilities.bicycleDetection": "disabled",
+              "capabilities.hmiDisplay": "disabled",
               "capabilities.laneKeepAssist": "disabled",
               "capabilities.pedestrianDetection": "disabled",
               "platformStack": "enabled",
@@ -1765,10 +1849,16 @@
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "omitted",
+              "platformStack.guestAndroid": "enabled",
+              "platformStack.guestAndroidSDV": "enabled",
+              "platformStack.guestMiddleware": "enabled",
+              "platformStack.guestOperatingSystem": "enabled",
               "platformStack.hypervisor": "enabled",
               "platformStack.kvm": "enabled",
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
+              "platformStack.noGuestMiddleware": "enabled",
+              "platformStack.noGuestOS": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "enabled",
               "platformStack.openpilot": "omitted",
@@ -1791,8 +1881,9 @@
               "alternatives_realized": {
                 "standalone": [
                   "platformStack.noMiddleware",
-                  "platformStack.linux",
-                  "platformStack.noHypervisor"
+                  "platformStack.noHypervisor",
+                  "platformStack.noGuestOS",
+                  "platformStack.noGuestMiddleware"
                 ]
               },
               "common_content": [
@@ -1860,6 +1951,18 @@
                 "variation": "applicationMiddlewareAdapter"
               },
               {
+                "binding": "guestMiddlewareNoneBinding",
+                "variant": "none",
+                "variant_id": "2d66b811-dd82-54e1-8bf6-f0c782ab1257",
+                "variation": "guestMiddleware"
+              },
+              {
+                "binding": "guestOSPlatformNoneBinding",
+                "variant": "none",
+                "variant_id": "99a8dcda-11fe-5d5f-9305-0ead21392957",
+                "variation": "guestOSPlatform"
+              },
+              {
                 "binding": "hypervisorNoneBinding",
                 "variant": "none",
                 "variant_id": "f605a4bc-33da-5a7a-a414-764a041406f8",
@@ -1892,9 +1995,13 @@
               "capabilities",
               "platformStack",
               "platformStack.autoware",
+              "platformStack.guestMiddleware",
+              "platformStack.guestOperatingSystem",
               "platformStack.hypervisor",
               "platformStack.linux",
               "platformStack.middleware",
+              "platformStack.noGuestMiddleware",
+              "platformStack.noGuestOS",
               "platformStack.noHypervisor",
               "platformStack.noMiddleware",
               "platformStack.operatingSystem",
@@ -1908,6 +2015,7 @@
               "capabilities": "enabled",
               "capabilities.adaptiveCruiseControl": "disabled",
               "capabilities.bicycleDetection": "disabled",
+              "capabilities.hmiDisplay": "disabled",
               "capabilities.laneKeepAssist": "disabled",
               "capabilities.pedestrianDetection": "disabled",
               "platformStack": "enabled",
@@ -1918,10 +2026,16 @@
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "omitted",
+              "platformStack.guestAndroid": "omitted",
+              "platformStack.guestAndroidSDV": "omitted",
+              "platformStack.guestMiddleware": "enabled",
+              "platformStack.guestOperatingSystem": "enabled",
               "platformStack.hypervisor": "enabled",
               "platformStack.kvm": "omitted",
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
+              "platformStack.noGuestMiddleware": "enabled",
+              "platformStack.noGuestOS": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "enabled",
               "platformStack.openpilot": "omitted",
@@ -1944,8 +2058,9 @@
               "alternatives_realized": {
                 "standalone": [
                   "platformStack.noMiddleware",
-                  "platformStack.linux",
-                  "platformStack.noHypervisor"
+                  "platformStack.noHypervisor",
+                  "platformStack.noGuestOS",
+                  "platformStack.noGuestMiddleware"
                 ]
               },
               "common_content": [
@@ -2021,9 +2136,13 @@
               "capabilities",
               "platformStack",
               "platformStack.autoware",
+              "platformStack.guestMiddleware",
+              "platformStack.guestOperatingSystem",
               "platformStack.hypervisor",
               "platformStack.linux",
               "platformStack.middleware",
+              "platformStack.noGuestMiddleware",
+              "platformStack.noGuestOS",
               "platformStack.noHypervisor",
               "platformStack.noMiddleware",
               "platformStack.operatingSystem",
@@ -2038,6 +2157,7 @@
               "capabilities": "enabled",
               "capabilities.adaptiveCruiseControl": "disabled",
               "capabilities.bicycleDetection": "disabled",
+              "capabilities.hmiDisplay": "disabled",
               "capabilities.laneKeepAssist": "disabled",
               "capabilities.pedestrianDetection": "disabled",
               "platformStack": "enabled",
@@ -2048,10 +2168,16 @@
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "omitted",
+              "platformStack.guestAndroid": "omitted",
+              "platformStack.guestAndroidSDV": "omitted",
+              "platformStack.guestMiddleware": "enabled",
+              "platformStack.guestOperatingSystem": "enabled",
               "platformStack.hypervisor": "enabled",
               "platformStack.kvm": "omitted",
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
+              "platformStack.noGuestMiddleware": "enabled",
+              "platformStack.noGuestOS": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "enabled",
               "platformStack.openpilot": "omitted",
@@ -2074,8 +2200,9 @@
               "alternatives_realized": {
                 "standalone": [
                   "platformStack.noMiddleware",
-                  "platformStack.linux",
-                  "platformStack.noHypervisor"
+                  "platformStack.noHypervisor",
+                  "platformStack.noGuestOS",
+                  "platformStack.noGuestMiddleware"
                 ]
               },
               "common_content": [
@@ -2143,6 +2270,18 @@
                 "variation": "applicationMiddlewareAdapter"
               },
               {
+                "binding": "guestMiddlewareNoneBinding",
+                "variant": "none",
+                "variant_id": "2d66b811-dd82-54e1-8bf6-f0c782ab1257",
+                "variation": "guestMiddleware"
+              },
+              {
+                "binding": "guestOSPlatformNoneBinding",
+                "variant": "none",
+                "variant_id": "99a8dcda-11fe-5d5f-9305-0ead21392957",
+                "variation": "guestOSPlatform"
+              },
+              {
                 "binding": "hypervisorNoneBinding",
                 "variant": "none",
                 "variant_id": "f605a4bc-33da-5a7a-a414-764a041406f8",
@@ -2175,9 +2314,13 @@
               "capabilities",
               "platformStack",
               "platformStack.autoware",
+              "platformStack.guestMiddleware",
+              "platformStack.guestOperatingSystem",
               "platformStack.hypervisor",
               "platformStack.linux",
               "platformStack.middleware",
+              "platformStack.noGuestMiddleware",
+              "platformStack.noGuestOS",
               "platformStack.noHypervisor",
               "platformStack.noMiddleware",
               "platformStack.operatingSystem",
@@ -2191,6 +2334,7 @@
               "capabilities": "enabled",
               "capabilities.adaptiveCruiseControl": "disabled",
               "capabilities.bicycleDetection": "disabled",
+              "capabilities.hmiDisplay": "disabled",
               "capabilities.laneKeepAssist": "disabled",
               "capabilities.pedestrianDetection": "disabled",
               "platformStack": "enabled",
@@ -2201,10 +2345,16 @@
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "omitted",
+              "platformStack.guestAndroid": "omitted",
+              "platformStack.guestAndroidSDV": "omitted",
+              "platformStack.guestMiddleware": "enabled",
+              "platformStack.guestOperatingSystem": "enabled",
               "platformStack.hypervisor": "enabled",
               "platformStack.kvm": "omitted",
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
+              "platformStack.noGuestMiddleware": "enabled",
+              "platformStack.noGuestOS": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "enabled",
               "platformStack.openpilot": "omitted",
@@ -2226,11 +2376,12 @@
               "alternative": null,
               "alternatives_realized": {
                 "aaosIntegrated": [
-                  "platformStack.androidSDV"
+                  "platformStack.kvm",
+                  "platformStack.guestAndroid",
+                  "platformStack.guestAndroidSDV"
                 ],
                 "standalone": [
-                  "platformStack.linux",
-                  "platformStack.noHypervisor"
+                  "platformStack.noMiddleware"
                 ]
               },
               "common_content": [
@@ -2290,21 +2441,33 @@
             "derived_variants": [
               {
                 "derivation": "D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER",
-                "rule": "autowareAndroidSDVRule",
-                "variant": "autowareToAAOSSDV",
-                "variant_id": "7aa95899-b3cf-5377-9676-a282a9cfc561",
+                "rule": "autowareNoMiddlewareRule",
+                "variant": "none",
+                "variant_id": "4d5d88d4-d00e-576d-8c5f-1d39c0963350",
                 "variation": "applicationMiddlewareAdapter"
               },
               {
-                "binding": "hypervisorNoneBinding",
-                "variant": "none",
-                "variant_id": "f605a4bc-33da-5a7a-a414-764a041406f8",
+                "binding": "guestMiddlewareAndroidSDVBinding",
+                "variant": "androidSDV",
+                "variant_id": "b2a42812-989d-5511-beae-413f8316bf53",
+                "variation": "guestMiddleware"
+              },
+              {
+                "binding": "guestOSPlatformAndroidBinding",
+                "variant": "android",
+                "variant_id": "bbffe2c8-6872-5e78-8244-397edf4baf79",
+                "variation": "guestOSPlatform"
+              },
+              {
+                "binding": "hypervisorKVMBinding",
+                "variant": "kvm",
+                "variant_id": "81032cdb-ae10-58eb-b691-ca5cc2b8ade0",
                 "variation": "hypervisor"
               },
               {
-                "binding": "middlewareAndroidSDVBinding",
-                "variant": "androidSDV",
-                "variant_id": "7249f096-905b-5aa7-8cbf-eb3f11935803",
+                "binding": "middlewareNoneBinding",
+                "variant": "none",
+                "variant_id": "b9825418-9bb9-57a7-8e57-67c9078d47a5",
                 "variation": "middleware"
               },
               {
@@ -2320,19 +2483,23 @@
                 "variation": "vehicleApplication"
               }
             ],
-            "description": "Parity probe derived-set-mixed. Android SDV middleware on Linux\nwithout a hypervisor, which mixes the realizations of both\nintegration modes.",
+            "description": "Parity probe derived-set-mixed. No middleware, with KVM and an\nAAOS SDV guest, which mixes the realizations of both integration\nmodes. Until INC-MW-011 phase 9 it selected Android SDV on Linux\nwithout a hypervisor; the AAOS SDV partner now needs the guest\n(C009), and a guest needs a hypervisor (C007).",
             "element_id": "35e9d0a3-a1fa-50a2-8ab0-adf3a250f0b7",
             "projection_name": "MixedDerivedSetProbe",
             "reasons": [],
             "selected": [
               "capabilities",
               "platformStack",
-              "platformStack.androidSDV",
               "platformStack.autoware",
+              "platformStack.guestAndroid",
+              "platformStack.guestAndroidSDV",
+              "platformStack.guestMiddleware",
+              "platformStack.guestOperatingSystem",
               "platformStack.hypervisor",
+              "platformStack.kvm",
               "platformStack.linux",
               "platformStack.middleware",
-              "platformStack.noHypervisor",
+              "platformStack.noMiddleware",
               "platformStack.operatingSystem",
               "platformStack.vehicleApplication",
               "sensingBoundary",
@@ -2345,22 +2512,29 @@
               "capabilities": "enabled",
               "capabilities.adaptiveCruiseControl": "disabled",
               "capabilities.bicycleDetection": "disabled",
+              "capabilities.hmiDisplay": "disabled",
               "capabilities.laneKeepAssist": "disabled",
               "capabilities.pedestrianDetection": "disabled",
               "platformStack": "enabled",
               "platformStack.acrn": "omitted",
               "platformStack.android": "omitted",
-              "platformStack.androidSDV": "enabled",
+              "platformStack.androidSDV": "omitted",
               "platformStack.apollo": "omitted",
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "omitted",
+              "platformStack.guestAndroid": "enabled",
+              "platformStack.guestAndroidSDV": "enabled",
+              "platformStack.guestMiddleware": "enabled",
+              "platformStack.guestOperatingSystem": "enabled",
               "platformStack.hypervisor": "enabled",
-              "platformStack.kvm": "omitted",
+              "platformStack.kvm": "enabled",
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
-              "platformStack.noHypervisor": "enabled",
-              "platformStack.noMiddleware": "omitted",
+              "platformStack.noGuestMiddleware": "omitted",
+              "platformStack.noGuestOS": "omitted",
+              "platformStack.noHypervisor": "omitted",
+              "platformStack.noMiddleware": "enabled",
               "platformStack.openpilot": "omitted",
               "platformStack.operatingSystem": "enabled",
               "platformStack.qnx": "omitted",
@@ -2431,17 +2605,44 @@
                 "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
               ],
               "reasons": [
-                "invalid configuration: lower-bound",
+                "invalid configuration: constraint, lower-bound",
                 "realizes no admitted alternative",
                 "does not represent the common content: linuxROS2AutowareRuntime (missing platformStack.linux)"
               ]
             },
             "configuration": "noIntegrationModeProbe",
             "derived_variants": [],
-            "description": "Parity probe no-alternative. No integration mode: no\nmiddleware, operating system or hypervisor is chosen.",
+            "description": "Parity probe no-alternative. No integration mode: no\nmiddleware, operating system, hypervisor, guest operating system\nor guest middleware is chosen.",
             "element_id": "0a0ce0c9-6a14-5d67-a38e-ec2fb73210ef",
             "projection_name": "NoIntegrationModeProbe",
             "reasons": [
+              {
+                "class": "constraint",
+                "code": "constraint",
+                "constraint": "C011",
+                "detail": "platformStack.autoware requires ['platformStack.linux']",
+                "features": [
+                  "platformStack.autoware",
+                  "platformStack.linux"
+                ],
+                "kind": "requires"
+              },
+              {
+                "class": "lower-bound",
+                "code": "lower-bound",
+                "detail": "group platformStack.guestMiddleware selects 0 of [1..1]",
+                "features": [
+                  "platformStack.guestMiddleware"
+                ]
+              },
+              {
+                "class": "lower-bound",
+                "code": "lower-bound",
+                "detail": "group platformStack.guestOperatingSystem selects 0 of [1..1]",
+                "features": [
+                  "platformStack.guestOperatingSystem"
+                ]
+              },
               {
                 "class": "lower-bound",
                 "code": "lower-bound",
@@ -2471,6 +2672,8 @@
               "capabilities",
               "platformStack",
               "platformStack.autoware",
+              "platformStack.guestMiddleware",
+              "platformStack.guestOperatingSystem",
               "platformStack.hypervisor",
               "platformStack.middleware",
               "platformStack.operatingSystem",
@@ -2485,6 +2688,7 @@
               "capabilities": "enabled",
               "capabilities.adaptiveCruiseControl": "disabled",
               "capabilities.bicycleDetection": "disabled",
+              "capabilities.hmiDisplay": "disabled",
               "capabilities.laneKeepAssist": "disabled",
               "capabilities.pedestrianDetection": "disabled",
               "platformStack": "enabled",
@@ -2495,10 +2699,16 @@
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "omitted",
+              "platformStack.guestAndroid": "omitted",
+              "platformStack.guestAndroidSDV": "omitted",
+              "platformStack.guestMiddleware": "implied",
+              "platformStack.guestOperatingSystem": "implied",
               "platformStack.hypervisor": "implied",
               "platformStack.kvm": "omitted",
               "platformStack.linux": "omitted",
               "platformStack.middleware": "implied",
+              "platformStack.noGuestMiddleware": "omitted",
+              "platformStack.noGuestOS": "omitted",
               "platformStack.noHypervisor": "omitted",
               "platformStack.noMiddleware": "omitted",
               "platformStack.openpilot": "omitted",
@@ -2517,14 +2727,13 @@
           {
             "admission": {
               "admitted": false,
-              "alternative": null,
+              "alternative": "aaosIntegrated",
               "alternatives_realized": {
                 "aaosIntegrated": [
-                  "platformStack.androidSDV"
-                ],
-                "standalone": [
-                  "platformStack.linux",
-                  "platformStack.noHypervisor"
+                  "platformStack.androidSDV",
+                  "platformStack.kvm",
+                  "platformStack.guestAndroid",
+                  "platformStack.guestAndroidSDV"
                 ]
               },
               "common_content": [
@@ -2581,13 +2790,12 @@
               "reasons": [
                 "invalid configuration: pair-exclusion",
                 "selects content the governed scope does not admit: platformStack.openpilot: reference-only openpilot",
-                "realizes more than one admitted alternative: aaosIntegrated, standalone",
                 "does not represent the common content: autowareApplication (missing platformStack.autoware)"
               ]
             },
             "configuration": "openpilotAndroidSDVPairProbe",
             "derived_variants": [],
-            "description": "Parity probe unsupported-openpilot-android-sdv. Openpilot with\nAndroid SDV, a pair without a derivation rule.",
+            "description": "Parity probe unsupported-openpilot-android-sdv. Openpilot with\nAndroid SDV, a pair without a derivation rule. The AAOS SDV\npartner runs in the guest under KVM, so the pair exclusion is\nthe only reason.",
             "element_id": "0bc6cd05-8f74-5bf6-8f32-a504e7f35ee6",
             "projection_name": "OpenpilotAndroidSDVPairProbe",
             "reasons": [
@@ -2607,10 +2815,14 @@
               "capabilities",
               "platformStack",
               "platformStack.androidSDV",
+              "platformStack.guestAndroid",
+              "platformStack.guestAndroidSDV",
+              "platformStack.guestMiddleware",
+              "platformStack.guestOperatingSystem",
               "platformStack.hypervisor",
+              "platformStack.kvm",
               "platformStack.linux",
               "platformStack.middleware",
-              "platformStack.noHypervisor",
               "platformStack.openpilot",
               "platformStack.operatingSystem",
               "platformStack.vehicleApplication",
@@ -2624,6 +2836,7 @@
               "capabilities": "enabled",
               "capabilities.adaptiveCruiseControl": "disabled",
               "capabilities.bicycleDetection": "disabled",
+              "capabilities.hmiDisplay": "disabled",
               "capabilities.laneKeepAssist": "disabled",
               "capabilities.pedestrianDetection": "disabled",
               "platformStack": "enabled",
@@ -2634,11 +2847,17 @@
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "omitted",
               "platformStack.eclipseSCORE": "omitted",
+              "platformStack.guestAndroid": "enabled",
+              "platformStack.guestAndroidSDV": "enabled",
+              "platformStack.guestMiddleware": "enabled",
+              "platformStack.guestOperatingSystem": "enabled",
               "platformStack.hypervisor": "enabled",
-              "platformStack.kvm": "omitted",
+              "platformStack.kvm": "enabled",
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
-              "platformStack.noHypervisor": "enabled",
+              "platformStack.noGuestMiddleware": "omitted",
+              "platformStack.noGuestOS": "omitted",
+              "platformStack.noHypervisor": "omitted",
               "platformStack.noMiddleware": "omitted",
               "platformStack.openpilot": "enabled",
               "platformStack.operatingSystem": "enabled",
@@ -2659,8 +2878,9 @@
               "alternative": "standalone",
               "alternatives_realized": {
                 "standalone": [
-                  "platformStack.linux",
-                  "platformStack.noHypervisor"
+                  "platformStack.noHypervisor",
+                  "platformStack.noGuestOS",
+                  "platformStack.noGuestMiddleware"
                 ]
               },
               "common_content": [
@@ -2743,9 +2963,13 @@
               "capabilities",
               "platformStack",
               "platformStack.autosarAdaptive",
+              "platformStack.guestMiddleware",
+              "platformStack.guestOperatingSystem",
               "platformStack.hypervisor",
               "platformStack.linux",
               "platformStack.middleware",
+              "platformStack.noGuestMiddleware",
+              "platformStack.noGuestOS",
               "platformStack.noHypervisor",
               "platformStack.openpilot",
               "platformStack.operatingSystem",
@@ -2760,6 +2984,7 @@
               "capabilities": "enabled",
               "capabilities.adaptiveCruiseControl": "disabled",
               "capabilities.bicycleDetection": "disabled",
+              "capabilities.hmiDisplay": "disabled",
               "capabilities.laneKeepAssist": "disabled",
               "capabilities.pedestrianDetection": "disabled",
               "platformStack": "enabled",
@@ -2770,10 +2995,16 @@
               "platformStack.autosarAdaptive": "enabled",
               "platformStack.autoware": "omitted",
               "platformStack.eclipseSCORE": "omitted",
+              "platformStack.guestAndroid": "omitted",
+              "platformStack.guestAndroidSDV": "omitted",
+              "platformStack.guestMiddleware": "enabled",
+              "platformStack.guestOperatingSystem": "enabled",
               "platformStack.hypervisor": "enabled",
               "platformStack.kvm": "omitted",
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
+              "platformStack.noGuestMiddleware": "enabled",
+              "platformStack.noGuestOS": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "omitted",
               "platformStack.openpilot": "enabled",
@@ -2795,8 +3026,9 @@
               "alternative": "standalone",
               "alternatives_realized": {
                 "standalone": [
-                  "platformStack.linux",
-                  "platformStack.noHypervisor"
+                  "platformStack.noHypervisor",
+                  "platformStack.noGuestOS",
+                  "platformStack.noGuestMiddleware"
                 ]
               },
               "common_content": [
@@ -2866,6 +3098,18 @@
                 "variation": "applicationMiddlewareAdapter"
               },
               {
+                "binding": "guestMiddlewareNoneBinding",
+                "variant": "none",
+                "variant_id": "2d66b811-dd82-54e1-8bf6-f0c782ab1257",
+                "variation": "guestMiddleware"
+              },
+              {
+                "binding": "guestOSPlatformNoneBinding",
+                "variant": "none",
+                "variant_id": "99a8dcda-11fe-5d5f-9305-0ead21392957",
+                "variation": "guestOSPlatform"
+              },
+              {
                 "binding": "hypervisorNoneBinding",
                 "variant": "none",
                 "variant_id": "f605a4bc-33da-5a7a-a414-764a041406f8",
@@ -2898,9 +3142,13 @@
               "capabilities",
               "platformStack",
               "platformStack.eclipseSCORE",
+              "platformStack.guestMiddleware",
+              "platformStack.guestOperatingSystem",
               "platformStack.hypervisor",
               "platformStack.linux",
               "platformStack.middleware",
+              "platformStack.noGuestMiddleware",
+              "platformStack.noGuestOS",
               "platformStack.noHypervisor",
               "platformStack.openpilot",
               "platformStack.operatingSystem",
@@ -2915,6 +3163,7 @@
               "capabilities": "enabled",
               "capabilities.adaptiveCruiseControl": "disabled",
               "capabilities.bicycleDetection": "disabled",
+              "capabilities.hmiDisplay": "disabled",
               "capabilities.laneKeepAssist": "disabled",
               "capabilities.pedestrianDetection": "disabled",
               "platformStack": "enabled",
@@ -2925,10 +3174,16 @@
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "omitted",
               "platformStack.eclipseSCORE": "enabled",
+              "platformStack.guestAndroid": "omitted",
+              "platformStack.guestAndroidSDV": "omitted",
+              "platformStack.guestMiddleware": "enabled",
+              "platformStack.guestOperatingSystem": "enabled",
               "platformStack.hypervisor": "enabled",
               "platformStack.kvm": "omitted",
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
+              "platformStack.noGuestMiddleware": "enabled",
+              "platformStack.noGuestOS": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "omitted",
               "platformStack.openpilot": "enabled",
@@ -2951,8 +3206,9 @@
               "alternatives_realized": {
                 "standalone": [
                   "platformStack.noMiddleware",
-                  "platformStack.linux",
-                  "platformStack.noHypervisor"
+                  "platformStack.noHypervisor",
+                  "platformStack.noGuestOS",
+                  "platformStack.noGuestMiddleware"
                 ]
               },
               "common_content": [
@@ -3021,6 +3277,18 @@
                 "variation": "applicationMiddlewareAdapter"
               },
               {
+                "binding": "guestMiddlewareNoneBinding",
+                "variant": "none",
+                "variant_id": "2d66b811-dd82-54e1-8bf6-f0c782ab1257",
+                "variation": "guestMiddleware"
+              },
+              {
+                "binding": "guestOSPlatformNoneBinding",
+                "variant": "none",
+                "variant_id": "99a8dcda-11fe-5d5f-9305-0ead21392957",
+                "variation": "guestOSPlatform"
+              },
+              {
                 "binding": "hypervisorNoneBinding",
                 "variant": "none",
                 "variant_id": "f605a4bc-33da-5a7a-a414-764a041406f8",
@@ -3052,9 +3320,13 @@
             "selected": [
               "capabilities",
               "platformStack",
+              "platformStack.guestMiddleware",
+              "platformStack.guestOperatingSystem",
               "platformStack.hypervisor",
               "platformStack.linux",
               "platformStack.middleware",
+              "platformStack.noGuestMiddleware",
+              "platformStack.noGuestOS",
               "platformStack.noHypervisor",
               "platformStack.noMiddleware",
               "platformStack.openpilot",
@@ -3070,6 +3342,7 @@
               "capabilities": "enabled",
               "capabilities.adaptiveCruiseControl": "disabled",
               "capabilities.bicycleDetection": "disabled",
+              "capabilities.hmiDisplay": "disabled",
               "capabilities.laneKeepAssist": "disabled",
               "capabilities.pedestrianDetection": "disabled",
               "platformStack": "enabled",
@@ -3080,10 +3353,16 @@
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "omitted",
               "platformStack.eclipseSCORE": "omitted",
+              "platformStack.guestAndroid": "omitted",
+              "platformStack.guestAndroidSDV": "omitted",
+              "platformStack.guestMiddleware": "enabled",
+              "platformStack.guestOperatingSystem": "enabled",
               "platformStack.hypervisor": "enabled",
               "platformStack.kvm": "omitted",
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
+              "platformStack.noGuestMiddleware": "enabled",
+              "platformStack.noGuestOS": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "enabled",
               "platformStack.openpilot": "enabled",
@@ -3106,8 +3385,9 @@
               "alternatives_realized": {
                 "standalone": [
                   "platformStack.noMiddleware",
-                  "platformStack.linux",
-                  "platformStack.noHypervisor"
+                  "platformStack.noHypervisor",
+                  "platformStack.noGuestOS",
+                  "platformStack.noGuestMiddleware"
                 ]
               },
               "common_content": [
@@ -3177,6 +3457,18 @@
                 "variation": "applicationMiddlewareAdapter"
               },
               {
+                "binding": "guestMiddlewareNoneBinding",
+                "variant": "none",
+                "variant_id": "2d66b811-dd82-54e1-8bf6-f0c782ab1257",
+                "variation": "guestMiddleware"
+              },
+              {
+                "binding": "guestOSPlatformNoneBinding",
+                "variant": "none",
+                "variant_id": "99a8dcda-11fe-5d5f-9305-0ead21392957",
+                "variation": "guestOSPlatform"
+              },
+              {
                 "binding": "hypervisorNoneBinding",
                 "variant": "none",
                 "variant_id": "f605a4bc-33da-5a7a-a414-764a041406f8",
@@ -3209,9 +3501,13 @@
               "capabilities",
               "platformStack",
               "platformStack.autoware",
+              "platformStack.guestMiddleware",
+              "platformStack.guestOperatingSystem",
               "platformStack.hypervisor",
               "platformStack.linux",
               "platformStack.middleware",
+              "platformStack.noGuestMiddleware",
+              "platformStack.noGuestOS",
               "platformStack.noHypervisor",
               "platformStack.noMiddleware",
               "platformStack.operatingSystem",
@@ -3225,6 +3521,7 @@
               "capabilities": "enabled",
               "capabilities.adaptiveCruiseControl": "disabled",
               "capabilities.bicycleDetection": "disabled",
+              "capabilities.hmiDisplay": "disabled",
               "capabilities.laneKeepAssist": "disabled",
               "capabilities.pedestrianDetection": "disabled",
               "platformStack": "enabled",
@@ -3235,10 +3532,16 @@
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "omitted",
+              "platformStack.guestAndroid": "omitted",
+              "platformStack.guestAndroidSDV": "omitted",
+              "platformStack.guestMiddleware": "enabled",
+              "platformStack.guestOperatingSystem": "enabled",
               "platformStack.hypervisor": "enabled",
               "platformStack.kvm": "omitted",
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
+              "platformStack.noGuestMiddleware": "enabled",
+              "platformStack.noGuestOS": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "enabled",
               "platformStack.openpilot": "omitted",
@@ -3261,8 +3564,9 @@
               "alternatives_realized": {
                 "standalone": [
                   "platformStack.noMiddleware",
-                  "platformStack.linux",
-                  "platformStack.noHypervisor"
+                  "platformStack.noHypervisor",
+                  "platformStack.noGuestOS",
+                  "platformStack.noGuestMiddleware"
                 ]
               },
               "common_content": [
@@ -3326,6 +3630,18 @@
                 "variation": "applicationMiddlewareAdapter"
               },
               {
+                "binding": "guestMiddlewareNoneBinding",
+                "variant": "none",
+                "variant_id": "2d66b811-dd82-54e1-8bf6-f0c782ab1257",
+                "variation": "guestMiddleware"
+              },
+              {
+                "binding": "guestOSPlatformNoneBinding",
+                "variant": "none",
+                "variant_id": "99a8dcda-11fe-5d5f-9305-0ead21392957",
+                "variation": "guestOSPlatform"
+              },
+              {
                 "binding": "hypervisorNoneBinding",
                 "variant": "none",
                 "variant_id": "f605a4bc-33da-5a7a-a414-764a041406f8",
@@ -3358,9 +3674,13 @@
               "capabilities",
               "platformStack",
               "platformStack.autoware",
+              "platformStack.guestMiddleware",
+              "platformStack.guestOperatingSystem",
               "platformStack.hypervisor",
               "platformStack.linux",
               "platformStack.middleware",
+              "platformStack.noGuestMiddleware",
+              "platformStack.noGuestOS",
               "platformStack.noHypervisor",
               "platformStack.noMiddleware",
               "platformStack.operatingSystem",
@@ -3375,6 +3695,7 @@
               "capabilities": "enabled",
               "capabilities.adaptiveCruiseControl": "disabled",
               "capabilities.bicycleDetection": "disabled",
+              "capabilities.hmiDisplay": "disabled",
               "capabilities.laneKeepAssist": "disabled",
               "capabilities.pedestrianDetection": "disabled",
               "platformStack": "enabled",
@@ -3385,10 +3706,16 @@
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "omitted",
+              "platformStack.guestAndroid": "omitted",
+              "platformStack.guestAndroidSDV": "omitted",
+              "platformStack.guestMiddleware": "enabled",
+              "platformStack.guestOperatingSystem": "enabled",
               "platformStack.hypervisor": "enabled",
               "platformStack.kvm": "omitted",
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
+              "platformStack.noGuestMiddleware": "enabled",
+              "platformStack.noGuestOS": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "enabled",
               "platformStack.openpilot": "omitted",
@@ -3411,8 +3738,9 @@
               "alternatives_realized": {
                 "aaosIntegrated": [
                   "platformStack.androidSDV",
-                  "platformStack.android",
-                  "platformStack.kvm"
+                  "platformStack.kvm",
+                  "platformStack.guestAndroid",
+                  "platformStack.guestAndroidSDV"
                 ]
               },
               "common_content": [
@@ -3438,9 +3766,7 @@
                 {
                   "asset": "linuxROS2AutowareRuntime",
                   "complete": true,
-                  "exempted": [
-                    "platformStack.linux"
-                  ],
+                  "exempted": [],
                   "missing": [],
                   "represented_by": [
                     "platformStack.linux"
@@ -3478,6 +3804,18 @@
                 "variation": "applicationMiddlewareAdapter"
               },
               {
+                "binding": "guestMiddlewareAndroidSDVBinding",
+                "variant": "androidSDV",
+                "variant_id": "b2a42812-989d-5511-beae-413f8316bf53",
+                "variation": "guestMiddleware"
+              },
+              {
+                "binding": "guestOSPlatformAndroidBinding",
+                "variant": "android",
+                "variant_id": "bbffe2c8-6872-5e78-8244-397edf4baf79",
+                "variation": "guestOSPlatform"
+              },
+              {
                 "binding": "hypervisorKVMBinding",
                 "variant": "kvm",
                 "variant_id": "81032cdb-ae10-58eb-b691-ca5cc2b8ade0",
@@ -3490,9 +3828,9 @@
                 "variation": "middleware"
               },
               {
-                "binding": "osPlatformAndroidBinding",
-                "variant": "android",
-                "variant_id": "9fe145b5-a5cd-5d92-ba08-6fac1d1b9f2b",
+                "binding": "osPlatformLinuxBinding",
+                "variant": "linux",
+                "variant_id": "a6fea382-a4e0-55ec-b42f-736e915fcd02",
                 "variation": "osPlatform"
               },
               {
@@ -3502,18 +3840,22 @@
                 "variation": "vehicleApplication"
               }
             ],
-            "description": "Planned Autoware + AAOS SDV middleware reference member on the\nAndroid/KVM SDV Core platform domain with LiDAR and camera\nperception. Autoware retains its ROS 2/Linux application runtime;\ncross-domain deployment and transport remain unresolved. This\nconfiguration and its projection do not prove provider, generated\nbinding, discovery, transport, adapter deployment, ROS 2\npublication, Autoware observation, safety, compliance, or runtime\ninteroperability.",
+            "description": "Planned Autoware + AAOS SDV middleware reference member on one\nSoC, with LiDAR and camera perception. Autoware runs on its ROS\n2/Linux application runtime on the main side, which is also the\nKVM host. The AAOS SDV middleware runs in the AAOS SDV guest under\nKVM, the SDV Core platform domain with no HMI display (owner\ndecisions D3 of 2026-10-21 and D2 V3 of 2026-10-22).\nCross-domain transport remains unresolved. This configuration\nand its projection do not prove provider, generated binding,\ndiscovery, transport, adapter deployment, ROS 2 publication,\nAutoware observation, safety, compliance, or runtime\ninteroperability.\n\nConfiguration management note: this is MW-CONFIG-001, and the\nidentity is not renumbered. Until INC-MW-011 phase 9 its single\noperating-system selection was Android HLOS, and it had no guest\nside. E-MW-011 to E-MW-014, BL-MW-010-P12 and CLM-MW-010-01 were\nretained against that pre-correction content, at the INC-MW-010\nbaseline revision b8170f6953567b07164b8c02be05be137f8047f0. Their\nrecords are not edited.",
             "element_id": "e4b7316b-9878-5127-af74-e525e518be3a",
             "projection_name": "MiddlewareAutowareAAOSSDVReference",
             "reasons": [],
             "selected": [
               "capabilities",
               "platformStack",
-              "platformStack.android",
               "platformStack.androidSDV",
               "platformStack.autoware",
+              "platformStack.guestAndroid",
+              "platformStack.guestAndroidSDV",
+              "platformStack.guestMiddleware",
+              "platformStack.guestOperatingSystem",
               "platformStack.hypervisor",
               "platformStack.kvm",
+              "platformStack.linux",
               "platformStack.middleware",
               "platformStack.operatingSystem",
               "platformStack.vehicleApplication",
@@ -3527,20 +3869,204 @@
               "capabilities": "enabled",
               "capabilities.adaptiveCruiseControl": "disabled",
               "capabilities.bicycleDetection": "disabled",
+              "capabilities.hmiDisplay": "disabled",
               "capabilities.laneKeepAssist": "disabled",
               "capabilities.pedestrianDetection": "disabled",
               "platformStack": "enabled",
               "platformStack.acrn": "omitted",
-              "platformStack.android": "enabled",
+              "platformStack.android": "omitted",
               "platformStack.androidSDV": "enabled",
               "platformStack.apollo": "omitted",
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "omitted",
+              "platformStack.guestAndroid": "enabled",
+              "platformStack.guestAndroidSDV": "enabled",
+              "platformStack.guestMiddleware": "enabled",
+              "platformStack.guestOperatingSystem": "enabled",
               "platformStack.hypervisor": "enabled",
               "platformStack.kvm": "enabled",
-              "platformStack.linux": "omitted",
+              "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
+              "platformStack.noGuestMiddleware": "omitted",
+              "platformStack.noGuestOS": "omitted",
+              "platformStack.noHypervisor": "omitted",
+              "platformStack.noMiddleware": "omitted",
+              "platformStack.openpilot": "omitted",
+              "platformStack.operatingSystem": "enabled",
+              "platformStack.qnx": "omitted",
+              "platformStack.qvm": "omitted",
+              "platformStack.vehicleApplication": "enabled",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "enabled",
+              "sensingBoundary.lidar": "enabled",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "omitted"
+            },
+            "valid": true
+          },
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": "aaosIntegrated",
+              "alternatives_realized": {
+                "aaosIntegrated": [
+                  "platformStack.kvm",
+                  "platformStack.guestAndroid",
+                  "platformStack.guestAndroidSDV"
+                ]
+              },
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": [
+                "selects content the governed scope does not admit: platformStack.eclipseSCORE: reference-only eclipseSCORE | capabilities.hmiDisplay: not in the governed scope",
+                "misses derived realizations of aaosIntegrated: platformStack.middleware = platformStack.androidSDV"
+              ]
+            },
+            "configuration": "middlewareAutowareSCOREReference",
+            "derived_variants": [
+              {
+                "derivation": "D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER",
+                "rule": "autowareEclipseSCORERule",
+                "variant": "autowareToSCORE",
+                "variant_id": "ad3688f6-00c0-5341-a3b7-e7b5c0b12a11",
+                "variation": "applicationMiddlewareAdapter"
+              },
+              {
+                "binding": "guestMiddlewareAndroidSDVBinding",
+                "variant": "androidSDV",
+                "variant_id": "b2a42812-989d-5511-beae-413f8316bf53",
+                "variation": "guestMiddleware"
+              },
+              {
+                "binding": "guestOSPlatformAndroidBinding",
+                "variant": "android",
+                "variant_id": "bbffe2c8-6872-5e78-8244-397edf4baf79",
+                "variation": "guestOSPlatform"
+              },
+              {
+                "binding": "hypervisorKVMBinding",
+                "variant": "kvm",
+                "variant_id": "81032cdb-ae10-58eb-b691-ca5cc2b8ade0",
+                "variation": "hypervisor"
+              },
+              {
+                "binding": "middlewareEclipseSCOREBinding",
+                "variant": "eclipseSCORE",
+                "variant_id": "db135c9e-c653-5275-8a88-409a0fa4afea",
+                "variation": "middleware"
+              },
+              {
+                "binding": "osPlatformLinuxBinding",
+                "variant": "linux",
+                "variant_id": "a6fea382-a4e0-55ec-b42f-736e915fcd02",
+                "variation": "osPlatform"
+              },
+              {
+                "binding": "vehicleApplicationAutowareBinding",
+                "variant": "autoware",
+                "variant_id": "c18b4ccc-8f57-5241-8f90-3ce459469a32",
+                "variation": "vehicleApplication"
+              }
+            ],
+            "description": "Eclipse S-CORE reference configuration on one SoC: Autoware on\nEclipse S-CORE on Linux on the main side, which is also the KVM\nhost, and an AAOS SDV guest under KVM that shows the HMI on a\ndisplay. Vehicle-target AEBS only (no pedestrian/bicycle\ndetection).",
+            "element_id": "935078fc-afd7-56f8-8510-d578c2c19b8b",
+            "projection_name": "MiddlewareAutowareSCOREReference",
+            "reasons": [],
+            "selected": [
+              "capabilities",
+              "capabilities.hmiDisplay",
+              "platformStack",
+              "platformStack.autoware",
+              "platformStack.eclipseSCORE",
+              "platformStack.guestAndroid",
+              "platformStack.guestAndroidSDV",
+              "platformStack.guestMiddleware",
+              "platformStack.guestOperatingSystem",
+              "platformStack.hypervisor",
+              "platformStack.kvm",
+              "platformStack.linux",
+              "platformStack.middleware",
+              "platformStack.operatingSystem",
+              "platformStack.vehicleApplication",
+              "sensingBoundary",
+              "sensingBoundary.camera",
+              "sensingBoundary.lidar",
+              "sensingBoundary.perceptionSensors"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/middleware_autoware_score_reference.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.hmiDisplay": "enabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "omitted",
+              "platformStack.android": "omitted",
+              "platformStack.androidSDV": "omitted",
+              "platformStack.apollo": "omitted",
+              "platformStack.autosarAdaptive": "omitted",
+              "platformStack.autoware": "enabled",
+              "platformStack.eclipseSCORE": "enabled",
+              "platformStack.guestAndroid": "enabled",
+              "platformStack.guestAndroidSDV": "enabled",
+              "platformStack.guestMiddleware": "enabled",
+              "platformStack.guestOperatingSystem": "enabled",
+              "platformStack.hypervisor": "enabled",
+              "platformStack.kvm": "enabled",
+              "platformStack.linux": "enabled",
+              "platformStack.middleware": "enabled",
+              "platformStack.noGuestMiddleware": "omitted",
+              "platformStack.noGuestOS": "omitted",
               "platformStack.noHypervisor": "omitted",
               "platformStack.noMiddleware": "omitted",
               "platformStack.openpilot": "omitted",
@@ -3558,6 +4084,19 @@
           }
         ],
         "constraints": [
+          {
+            "element_id": "fcce3d62-e17a-58e8-a2c2-f536d4a021ba",
+            "kind": "requires",
+            "operand_a": [
+              "platformStack.autoware"
+            ],
+            "operand_b": [
+              "platformStack.linux"
+            ],
+            "owner": "platformStack.autoware",
+            "pair_exclusion": false,
+            "short_name": "C011"
+          },
           {
             "element_id": "2ee4ee0e-c2d2-5c86-993c-13c83c32bacb",
             "kind": "xor",
@@ -3600,6 +4139,19 @@
             "short_name": "C001"
           },
           {
+            "element_id": "6fc4c96a-4cc2-5482-bcbe-1a304e1ecb1e",
+            "kind": "requires",
+            "operand_a": [
+              "platformStack.androidSDV"
+            ],
+            "operand_b": [
+              "platformStack.guestAndroidSDV"
+            ],
+            "owner": "platformStack.androidSDV",
+            "pair_exclusion": false,
+            "short_name": "C009"
+          },
+          {
             "element_id": "b97c81f1-a300-5d56-aa8d-98511eb7a6d0",
             "kind": "xor",
             "operand_a": [
@@ -3637,6 +4189,45 @@
             "owner": "platformStack.kvm",
             "pair_exclusion": false,
             "short_name": "C005"
+          },
+          {
+            "element_id": "b1e72be3-4854-5e3b-8cc3-32c81b0bf70e",
+            "kind": "requires",
+            "operand_a": [
+              "platformStack.noHypervisor"
+            ],
+            "operand_b": [
+              "platformStack.noGuestOS"
+            ],
+            "owner": "platformStack.noHypervisor",
+            "pair_exclusion": false,
+            "short_name": "C007"
+          },
+          {
+            "element_id": "d8e7c9b3-837c-5222-94b9-3e213f74a688",
+            "kind": "requires",
+            "operand_a": [
+              "platformStack.guestAndroidSDV"
+            ],
+            "operand_b": [
+              "platformStack.guestAndroid"
+            ],
+            "owner": "platformStack.guestAndroidSDV",
+            "pair_exclusion": false,
+            "short_name": "C008"
+          },
+          {
+            "element_id": "ffa630a1-d2e0-5c66-b91c-a9b37cad0528",
+            "kind": "requires",
+            "operand_a": [
+              "capabilities.hmiDisplay"
+            ],
+            "operand_b": [
+              "platformStack.guestAndroidSDV"
+            ],
+            "owner": "capabilities.hmiDisplay",
+            "pair_exclusion": false,
+            "short_name": "C010"
           }
         ],
         "correspondences": [
@@ -3705,28 +4296,12 @@
             "governed_id": "3bbea54b-b0c6-50f5-b50b-beb0f85241bc"
           },
           {
-            "classification": "admitted-alternative",
-            "correspondence": "linuxCorrespondsToStandalone",
-            "element_id": "58b408ea-d086-5e9e-8ce2-7f1212e4d0e2",
-            "feature": "platformStack.linux",
-            "governed": "standalone",
-            "governed_id": "3bbea54b-b0c6-50f5-b50b-beb0f85241bc"
-          },
-          {
             "classification": "common",
             "correspondence": "linuxCorrespondsToCommonAutowareRuntime",
             "element_id": "b007ce26-1c6d-55e9-9676-37ba1e1b9bf5",
             "feature": "platformStack.linux",
             "governed": "linuxROS2AutowareRuntime",
             "governed_id": "7c6ebbf5-9790-597f-9ee3-96d0ec4c7b58"
-          },
-          {
-            "classification": "admitted-alternative",
-            "correspondence": "androidCorrespondsToAAOSIntegrated",
-            "element_id": "3eb94962-7c97-5ff7-a78e-f926148d471d",
-            "feature": "platformStack.android",
-            "governed": "aaosIntegrated",
-            "governed_id": "bbcaaea1-e378-5dc2-8751-c871bb5a14f1"
           },
           {
             "classification": "reference-only",
@@ -3765,6 +4340,38 @@
             "correspondence": "noHypervisorCorrespondsToStandalone",
             "element_id": "ec390384-ace0-5e24-b18f-23949f808f7c",
             "feature": "platformStack.noHypervisor",
+            "governed": "standalone",
+            "governed_id": "3bbea54b-b0c6-50f5-b50b-beb0f85241bc"
+          },
+          {
+            "classification": "admitted-alternative",
+            "correspondence": "guestAndroidCorrespondsToAAOSIntegrated",
+            "element_id": "52fc32b2-e7d8-59e6-99ea-327fb302c568",
+            "feature": "platformStack.guestAndroid",
+            "governed": "aaosIntegrated",
+            "governed_id": "bbcaaea1-e378-5dc2-8751-c871bb5a14f1"
+          },
+          {
+            "classification": "admitted-alternative",
+            "correspondence": "noGuestOSCorrespondsToStandalone",
+            "element_id": "a1a75b79-933c-54c9-9ed8-9b61065e5f89",
+            "feature": "platformStack.noGuestOS",
+            "governed": "standalone",
+            "governed_id": "3bbea54b-b0c6-50f5-b50b-beb0f85241bc"
+          },
+          {
+            "classification": "admitted-alternative",
+            "correspondence": "guestAndroidSDVCorrespondsToAAOSIntegrated",
+            "element_id": "3ff9f6fd-9a91-59bf-a001-a118b0a2ba29",
+            "feature": "platformStack.guestAndroidSDV",
+            "governed": "aaosIntegrated",
+            "governed_id": "bbcaaea1-e378-5dc2-8751-c871bb5a14f1"
+          },
+          {
+            "classification": "admitted-alternative",
+            "correspondence": "noGuestMiddlewareCorrespondsToStandalone",
+            "element_id": "055c95c1-7cb7-5f45-bbb1-2f473f2d321f",
+            "feature": "platformStack.noGuestMiddleware",
             "governed": "standalone",
             "governed_id": "3bbea54b-b0c6-50f5-b50b-beb0f85241bc"
           },
@@ -4220,6 +4827,102 @@
           },
           {
             "binding_time": "Development",
+            "element_id": "2e6d425b-e2b6-5104-bc3c-af3c6d177897",
+            "group": null,
+            "members": [
+              "platformStack.guestAndroid",
+              "platformStack.noGuestOS"
+            ],
+            "multiplicity": {
+              "lower": 1,
+              "upper": 1
+            },
+            "name": "guestOperatingSystem",
+            "owner": "platformStack",
+            "path": "platformStack.guestOperatingSystem",
+            "short_name": "F-PLATFORM-GUEST-OS",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "1c482d61-0ef6-558b-8f5b-f805ddf05bc1",
+            "group": "platformStack.guestOperatingSystem",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "guestAndroid",
+            "owner": "platformStack",
+            "path": "platformStack.guestAndroid",
+            "short_name": "F-PLATFORM-GUEST-OS-ANDROID",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "87f65666-c8cb-5442-a0ce-6fae147eece9",
+            "group": "platformStack.guestOperatingSystem",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "noGuestOS",
+            "owner": "platformStack",
+            "path": "platformStack.noGuestOS",
+            "short_name": "F-PLATFORM-GUEST-OS-NONE",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "9889de89-c286-500b-be3d-5e2c9c0e368f",
+            "group": null,
+            "members": [
+              "platformStack.guestAndroidSDV",
+              "platformStack.noGuestMiddleware"
+            ],
+            "multiplicity": {
+              "lower": 1,
+              "upper": 1
+            },
+            "name": "guestMiddleware",
+            "owner": "platformStack",
+            "path": "platformStack.guestMiddleware",
+            "short_name": "F-PLATFORM-GUEST-MIDDLEWARE",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "2be2d405-7d5c-56e3-9e65-aed336bc41ca",
+            "group": "platformStack.guestMiddleware",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "guestAndroidSDV",
+            "owner": "platformStack",
+            "path": "platformStack.guestAndroidSDV",
+            "short_name": "F-PLATFORM-GUEST-MIDDLEWARE-ANDROID-SDV",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "9482ba91-a86b-5b61-b3d8-55b5fb6ff99b",
+            "group": "platformStack.guestMiddleware",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "noGuestMiddleware",
+            "owner": "platformStack",
+            "path": "platformStack.noGuestMiddleware",
+            "short_name": "F-PLATFORM-GUEST-MIDDLEWARE-NONE",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
             "element_id": "b1dc0c90-30d0-5b28-b7b8-ec1bb9590119",
             "group": null,
             "members": [],
@@ -4371,6 +5074,21 @@
             "path": "capabilities.laneKeepAssist",
             "short_name": "F-CAPABILITY-LANE-KEEP-ASSIST",
             "unassigned": true
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "903196dd-42a6-569a-8662-9f09f95b9502",
+            "group": null,
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "hmiDisplay",
+            "owner": "capabilities",
+            "path": "capabilities.hmiDisplay",
+            "short_name": "F-CAPABILITY-HMI-DISPLAY",
+            "unassigned": true
           }
         ],
         "integrity_errors": [],
@@ -4399,7 +5117,6 @@
     "model_sources": [
       "model-based-product-line-engineering/feature-configurations/aebs_autoware_linux_lidar_camera.sysml",
       "model-based-product-line-engineering/feature-configurations/apollo_qnx_qvm.sysml",
-      "model-based-product-line-engineering/feature-configurations/example_linux_score_autoware.sysml",
       "model-based-product-line-engineering/feature-configurations/fixtures/invalid_score_android.sysml",
       "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/adaptive_cruise_control_probe.sysml",
       "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_android_sdv_pair_probe.sysml",
@@ -4419,6 +5136,7 @@
       "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/radar_only_sensing_probe.sysml",
       "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/vehicle_target_aebs_off_probe.sysml",
       "model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml",
+      "model-based-product-line-engineering/feature-configurations/middleware_autoware_score_reference.sysml",
       "model-based-product-line-engineering/feature-models/sdv_product_line.sysml"
     ],
     "native_expression_executed": false,
@@ -4427,12 +5145,12 @@
   },
   "evaluator": {
     "modules": {
-      "de4sdv/semantic/pleml_configuration.py": "f783596531561f9d18782460a385876fe939374f998afb828a78718333bd4553",
+      "de4sdv/semantic/pleml_configuration.py": "6f2f5b5d3d353202d4f84ec33bc4d80d98d6e0719c2a772edb98ddf58797636c",
       "de4sdv/semantic/pleml_package.py": "8d09409d802616780641fcfb8c86b41c21faeedb1a75989c17dfb76ef3cc9dfe",
       "de4sdv/semantic/pleml_receipts.py": "325bd1f47d9608a223354b7d78708709fb110ba56d50ecea0f7637ee3dfea1d7",
       "scripts/run_pleml_configuration_evaluation.py": "ade6a0c5077948162d99e975dfd5e115a395ee7ace70e180cb53c7b7fbaae12e"
     },
-    "sha256": "62f0aca8da9bea419319eebb7ae64b2b5fdeb10da815da59cc9fcbcf0a88cd14"
+    "sha256": "4b00cc77bb2c297f8bf73073d8c52d25b64ccfbd7ea2a6a5946fd6aca531a056"
   },
   "feature_models": [
     "SDVProductLineFeatureModel"
@@ -4447,7 +5165,6 @@
   "model_sources": [
     "model-based-product-line-engineering/feature-configurations/aebs_autoware_linux_lidar_camera.sysml",
     "model-based-product-line-engineering/feature-configurations/apollo_qnx_qvm.sysml",
-    "model-based-product-line-engineering/feature-configurations/example_linux_score_autoware.sysml",
     "model-based-product-line-engineering/feature-configurations/fixtures/invalid_score_android.sysml",
     "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/adaptive_cruise_control_probe.sysml",
     "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_android_sdv_pair_probe.sysml",
@@ -4467,12 +5184,13 @@
     "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/radar_only_sensing_probe.sysml",
     "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/vehicle_target_aebs_off_probe.sysml",
     "model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml",
+    "model-based-product-line-engineering/feature-configurations/middleware_autoware_score_reference.sysml",
     "model-based-product-line-engineering/feature-models/sdv_product_line.sysml"
   ],
   "native_expression_executed": false,
   "provenance": {
-    "bundle_git_commit": "b76bae0a029f10567529c4fad48f7872d5d6e967",
-    "executor_revision": "b76bae0a029f10567529c4fad48f7872d5d6e967"
+    "bundle_git_commit": "211c2eb63b03e667849697b32f6cbeb9b632500c",
+    "executor_revision": "211c2eb63b03e667849697b32f6cbeb9b632500c"
   },
   "qualified": false,
   "schema": "de4sdv.pleml-configuration-receipt/v2",
@@ -4491,14 +5209,14 @@
     {
       "authority": "pleml-feature-configuration",
       "path": "model-based-product-line-engineering/feature-configurations/aebs_autoware_linux_lidar_camera.sysml",
-      "sha256": "10d41e45e3253e10f7ee56edef10b411b73f42260091d40d973e7cd442f189cd",
-      "size": 2162
+      "sha256": "17b0f39e754ea979a620a71f7205ad8b4441ed8fb9a6d48adf6db0cb8cc0d484",
+      "size": 2504
     },
     {
       "authority": "pleml-feature-configuration",
       "path": "model-based-product-line-engineering/feature-configurations/apollo_qnx_qvm.sysml",
-      "sha256": "c2dd40f0acd5697fed55a002a1f908ff7c7016c488cc6cc9ec6aa088e189aee2",
-      "size": 2018
+      "sha256": "6b109544e9b09a18a17af33f9de34215112a22d98a1c378b1013a7702c38caa3",
+      "size": 2330
     },
     {
       "authority": "pleml-feature-configuration",
@@ -4507,118 +5225,112 @@
       "size": 1671
     },
     {
-      "authority": "pleml-feature-configuration",
-      "path": "model-based-product-line-engineering/feature-configurations/example_linux_score_autoware.sysml",
-      "sha256": "6fe553ae70ef91a5ca3098a169a2f33e5b583dcb7bf9aa504b5576100fec1e57",
-      "size": 2100
-    },
-    {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/invalid_score_android.sysml",
-      "sha256": "5e5339999999c41449156a25bc7794c0e27c458458e08c41a64e4729577035a7",
-      "size": 2067
+      "sha256": "864e8473903beec111b4666a5473fe7c690049f294a2cc6b229a2c1b640a0752",
+      "size": 2506
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/adaptive_cruise_control_probe.sysml",
-      "sha256": "7221e8754662c111afd24fd16f4053e78f76819dc2cda6514c78aff86508a2ab",
-      "size": 2178
+      "sha256": "9b9b2b5d1dcfb08572177ee2818b93fd3d3e9a98c649a8672ea0632037dced1f",
+      "size": 2490
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_android_sdv_pair_probe.sysml",
-      "sha256": "ac4db398d150fce31bedad31040fb7b55309494c93288bd1237b79e4dd3ac57d",
-      "size": 2115
+      "sha256": "10b7c37552ef5d9308c1ca154bb0d42cb3f62cc17784d5d2e5616a8e8aa56749",
+      "size": 2533
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_autosar_adaptive_pair_probe.sysml",
-      "sha256": "4016e85a4c09643ef7682d32affeeb8ff745a826b8417d5e787f98da9c9faed8",
-      "size": 2155
+      "sha256": "98e2676fc3702b4c87d363f257825793f1d4fe10c51249db0e261fbc8a81850b",
+      "size": 2467
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_no_middleware_pair_probe.sysml",
-      "sha256": "f282d541fbcfc537e0e3b2c682bb4adbdc8cb15953daa12fbdda9ce1d1ac7e0d",
-      "size": 2128
+      "sha256": "7a59304b87a071c2578abef959b63511d1e4b0ba65d74cfb34bac964e56cb420",
+      "size": 2440
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/autosar_adaptive_acrn_probe.sysml",
-      "sha256": "01d0a93444e459eed101f29c3cb59e612cac1426da465ae9988e812454610056",
-      "size": 2080
+      "sha256": "d351113230c1926d728a5958173f4f44a48a0c79c95401c472172b4384028bc4",
+      "size": 2392
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/both_integration_modes_probe.sysml",
-      "sha256": "7cefe656967620f378a78c7378286095eef1a57c851187390378c34539119138",
-      "size": 2337
+      "sha256": "89717a7be11f4bd32aa19a51b20a80ea6d27118f908dae21f50b53e76ea6db07",
+      "size": 2854
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/camera_only_sensing_probe.sysml",
-      "sha256": "e71e55a0b26e5266844c3510b31638739eadf46a1e5d918803c31efdffabb792",
-      "size": 2018
+      "sha256": "8291ff99ac78bd6e943e3eaedbb32584a5963b462284485cc90b12307c9b9367",
+      "size": 2330
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/hand_picked_adapter_probe.sysml",
-      "sha256": "ccf7efd0206f73bc5a68674fb69c8b37a43711c5cc82280cac905e93ad93fb3e",
-      "size": 2465
+      "sha256": "f78edadd6b978cee032fd18c023a3fa18e303e76a21cb1cbbdcbfb880a0c25af",
+      "size": 2777
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/lidar_only_sensing_probe.sysml",
-      "sha256": "c8d5b250ed7e8bd2a7a49321021aef129c8f77bc1967a3d33ae00d80b0c98ed1",
-      "size": 2006
+      "sha256": "1db0ce4c2e5b1deba222c267196bba45d6f3089b4b2fcbced7070ffe8d3ab875",
+      "size": 2318
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/mixed_derived_set_probe.sysml",
-      "sha256": "35c86cd4ee44e6e7b0df490f047fd4d56262c70e419c2792c0f8860c4559983f",
-      "size": 2144
+      "sha256": "153f15c42d1af4b795926770c45278d222e1376ec3cf37d1a00b4b8988f03b9e",
+      "size": 2635
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/no_integration_mode_probe.sysml",
-      "sha256": "4ac41082cea2097ab18d8a645a3f969171e541dc5c4d81579c972cca75d57b3e",
-      "size": 1747
+      "sha256": "ce638f09c9aa6441961fbb13011ebe296472243f32620652b692e7c032b6e9a2",
+      "size": 1855
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_android_sdv_pair_probe.sysml",
-      "sha256": "547879a6fb16be17544c7e5b5ecec7ce1459e6bde193137336dd00ad91cef7bb",
-      "size": 2139
+      "sha256": "dd1c9ee800367e80488a38a3b9e7e8fc186a804f5ef9f931e88dcb592d12efe9",
+      "size": 2557
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_autosar_adaptive_pair_probe.sysml",
-      "sha256": "de8f0e4dea141bb538efd0592c8c4989a5b050510d2d7b8ef2b7eea4a9a26887",
-      "size": 2179
+      "sha256": "c2352715d733ba12b5b320c8b6ef2995670389cdd6945274051de26df46abd71",
+      "size": 2491
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_eclipse_score_pair_probe.sysml",
-      "sha256": "324b90a0da4d6473cdface7b8e6e039096b787d763c67fee057a8b763bc07e1d",
-      "size": 2153
+      "sha256": "ae7e17c80c542455c38498b45fffccf25217e387417b7c541df9efc76bcbfda3",
+      "size": 2465
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_no_middleware_probe.sysml",
-      "sha256": "703d6e312095d6a32aaaf001f25bf63d00bb7297d84aff2413fcb63489204634",
-      "size": 2097
+      "sha256": "9364269016d2eabb3c178dc67343a0443b8f28ee4bd923511d915528d8ed2ab6",
+      "size": 2409
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/radar_only_sensing_probe.sysml",
-      "sha256": "81aedec935b9a030778a173849eaaaca00b6243b6747e3cba345cea0f8af056e",
-      "size": 2006
+      "sha256": "7180098749d92b61b2433fc8f4eaab2af562c4ea9abb56b37d95674d801022a9",
+      "size": 2318
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/vehicle_target_aebs_off_probe.sysml",
-      "sha256": "01a39249bb62dc7845861ef8c8f0e62c5dbdf1895076cec0a5f9399fe009d1f7",
-      "size": 2531
+      "sha256": "8791f47b7617068c722ad49a081556cfd113c1ce1eca26e297d2f43919ae0f26",
+      "size": 2843
     },
     {
       "authority": "pleml-feature-configuration",
@@ -4629,8 +5341,14 @@
     {
       "authority": "pleml-feature-configuration",
       "path": "model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml",
-      "sha256": "9e79b12815e06bedda2a1cfc0c8532261e42f832be40bafb5fcd7e23da39c379",
-      "size": 2601
+      "sha256": "d18207b51603af37e9f4f1037bf5789c11e4f7a496e04fc65294f827536f10ad",
+      "size": 3656
+    },
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/middleware_autoware_score_reference.sysml",
+      "sha256": "41ec74ab7c1aaf5318d7c669dc82ba0ef9c350b4f60f5ca5529cdbfca63ac561",
+      "size": 2648
     },
     {
       "authority": "pleml-feature-configuration",
@@ -4647,8 +5365,8 @@
     {
       "authority": "pleml-feature-model",
       "path": "model-based-product-line-engineering/feature-models/sdv_product_line.sysml",
-      "sha256": "844409c296bb51ab539c39af9719274dc92b8c4219a04be12aee8596d94d6669",
-      "size": 23564
+      "sha256": "7107e845773441abdde890718e8fda1f170e1c4ed4498c96855b4ec98b5e8f97",
+      "size": 30579
     },
     {
       "authority": "pleml-feature-model",
@@ -4671,8 +5389,8 @@
     {
       "authority": "reviewed",
       "path": "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml",
-      "sha256": "77c5cdd22035e028e1dd5cae0d7e5b69ec69eb1a6e14df4cf649ad70ce346b37",
-      "size": 26944
+      "sha256": "25c1dac5dc929cc1e7c2d7606a142e3d1032e63d7f3728bf98e2c362508dda35",
+      "size": 30388
     },
     {
       "authority": "reviewed",

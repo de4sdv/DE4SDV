@@ -359,11 +359,11 @@ exports = [
     "DE4SDV_Stakeholders",
     "DE4SDV_VSS_Extensions",
     "DE4SDV_VehicleSensingBoundary",
-    "ExampleLinuxSCOREVariant",
     "FixtureRoot",
     "FixtureShared",
     "INCAEBS009AJetsonExecutionEnvironment",
     "MiddlewareAutowareAAOSSDVReference",
+    "MiddlewareAutowareSCOREReference",
     "NXPZephyrVehicleTargetCandidate",
     "SAF_Viewpoints",
 ]

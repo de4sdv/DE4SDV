@@ -41,12 +41,25 @@ How the catalogue was restated:
   its variation points; an alternative group a `[1]` feature whose `[0..1]`
   choices subset it; the perception sensors a `[1..*]` group; an optional
   capability a `[0..1]` feature. Every feature keeps the Development binding
-  time; the four capabilities with an unassigned binding time carry
+  time; the five capabilities with an unassigned binding time carry
   `#UnassignedBindingTime`.
 - **Exclusions.** C001 and C003 (allowed lists) and C004 and C005 become
   exclusions. C002 and C006 never fire in any structurally valid selection,
   so they are dropped as constraints; their rationale stays in the model.
   The execution-environment constraints become requires constraints.
+- **The two sides of one SoC** (INC-MW-011 phase 9, owner decisions of
+  2026-10-21 and 2026-10-22). The platform has a main side, the execution
+  domain that runs the vehicle application (`operatingSystem`), and an
+  optional guest side under the hypervisor: the groups `guestOperatingSystem`
+  {`guestAndroid`, `noGuestOS`} and `guestMiddleware` {`guestAndroidSDV`,
+  `noGuestMiddleware`}. With KVM the main side is the KVM host. The
+  `middleware` group is the middleware that the vehicle application
+  integrates with, so its eight derivation rules stay. The optional
+  capability `hmiDisplay` has no shared asset yet. Five requires
+  constraints relate the sides: C007 `noHypervisor` requires `noGuestOS`,
+  C008 `guestAndroidSDV` requires `guestAndroid`, C009 `androidSDV`
+  requires `guestAndroidSDV`, C010 `hmiDisplay` requires `guestAndroidSDV`
+  and C011 `autoware` requires `linux`.
 - **Bindings.** One feature binding per shared-asset variant, with the variant
   as client.
 - **Derivation.** The application-middleware adapter is a derived variation,
@@ -79,17 +92,38 @@ rule or several is rejected.
 The allowed lists of C001 and C003 stay the reviewed source in the rationale
 of their exclusions, and C002's list in its rationale comment. The complement
 check proves that each exclusion set equals the complement of its list over
-the current operating-system options, so a new option fails CI until the
-rules are re-assessed.
+the current main-side operating-system options, so a new option fails CI
+until the rules are re-assessed. C002's list names every main-side option:
+the AAOS SDV partner runs in the guest (C009). The requires constraints C007
+to C011 state their rules exactly, so they need no allowed list. A later
+guest operating system, for example, falls under C007 with no edit.
 
 A test also evaluates the closed world: for every structurally valid
-selection of each feature model (16,128 for the SDV product line), it pins
-the verdicts that the model's groups, exclusions, requires constraints and
-derivation rules give: validity, the constraint IDs and the derived adapter.
-Until S7 the test required them to equal the configurator's verdicts on the
-YAML catalogue, selection by selection; the pinned counts are what both gave.
-Structurally invalid selections are outside the enumeration, because an
-exclusion presumes the exactly-one structure of its group.
+selection of each feature model, it pins the verdicts that the model's
+groups, exclusions, requires constraints and derivation rules give:
+validity, the constraint IDs and the derived adapter. Structurally invalid
+selections are outside the enumeration, because an exclusion presumes the
+exactly-one structure of its group.
+
+The pinned counts are a reviewed table. Until S7 the test required the
+verdicts to equal the configurator's on the YAML catalogue, selection by
+selection. The two-sided platform of INC-MW-011 phase 9 changed the SDV
+table. Since then, the test computes the table with its lexical model of the
+model text only. On 2026-10-22, in the phase-9 review, a one-off run of the
+DE4SDV evaluator over a hand-built synthetic mirror of the tree (revision
+1fb1250f) agreed with the table selection by selection. That run is not in
+the repository, and CI does not repeat it.
+
+| Feature model | Structurally valid selections | Valid | Verdict classes |
+|---|---|---|---|
+| SDV product line | 129,024 | 16,016 | 78 |
+| Engineering execution environments | 27 | 3 | 10 |
+| Vehicle-target execution environments | 8 | 2 | 7 |
+
+The 16,016 valid SDV selections are 143 valid platform and display
+selections, each with the 112 choices of the sensors and the four other
+capabilities, which no constraint names. Each valid selection derives
+exactly one adapter, and all eight derivation rules stay reachable.
 
 ## Admission
 
@@ -111,15 +145,17 @@ configuration is admitted when all of these hold:
 - The selections realize exactly one admitted alternative and select every
   derived realization of it.
 - Every common asset that features represent is represented by all of them.
-  The exception is the representation difference that PLE-S recorded: the
-  AAOS-integrated alternative takes the single operating-system slot, so the
-  common Linux runtime is exempt under that alternative. Common content without
-  a feature is part of every member.
+  A choice is exempt only where the realized alternative selects another
+  member of its group. Since INC-MW-011 phase 9 no member needs that
+  exemption: both run Autoware on Linux on the main side, and the guest
+  choices carry the split topology of the AAOS-integrated alternative.
+  Common content without a feature is part of every member.
 
 So the two governed members of ADR 0014 are admitted: the standalone member
 (`aebs_autoware_linux_lidar_camera`) and the AAOS-integrated member
-(`middleware_autoware_aaos_sdv_reference`). The two reference examples
-(Eclipse S-CORE, and Apollo on QNX) are not admitted. Neither is any
+(`middleware_autoware_aaos_sdv_reference`). The two reference configurations
+(Eclipse S-CORE, `middleware_autoware_score_reference`, and Apollo on QNX)
+are not admitted. Neither is any
 configuration of the two execution-environment families: the engineering
 family is the excluded System 2 concern, and the vehicle-target family is
 the deferred vehicle runtime variability. A test computes these verdicts from
@@ -131,11 +167,18 @@ Ontology rule R001 asks every feature to distinguish at least one member
 product from another. These features restate catalogue options that no
 configuration of their family selects, or that every one selects:
 
-| Family | In every configuration | In no configuration |
-|---|---|---|
-| SDV product line (4 configurations) | LiDAR | Openpilot, AUTOSAR Adaptive, ACRN, and the four capabilities |
-| Engineering execution environments (2) | none | the Intel x86-64 nested-KVM host, the x86-64 Linux AOSP build, and nested-KVM Cuttlefish |
-| Vehicle-target execution environments (1) | NXP compute, Zephyr and native Zephyr | the three "no concrete" choices |
+| Family | In every configuration | In no configuration | In no governed member yet, with no governed-scope element |
+|---|---|---|---|
+| SDV product line (4 configurations) | LiDAR | Openpilot, AUTOSAR Adaptive, main-side Android, ACRN, and the four capabilities of the catalogue | the HMI display |
+| Engineering execution environments (2) | none | the Intel x86-64 nested-KVM host, the x86-64 Linux AOSP build, and nested-KVM Cuttlefish | none |
+| Vehicle-target execution environments (1) | NXP compute, Zephyr and native Zephyr | the three "no concrete" choices | none |
+
+The HMI display (INC-MW-011 phase 9) is an option that no governed member
+selects yet: of the four configurations, only the Eclipse S-CORE reference
+configuration selects it, and that configuration is not admitted. No shared
+asset implements the display yet, so no feature binding resolves it. Like the
+sensing and the other capability selections, each projection lists it among
+the selections that SysML does not resolve.
 
 They stay features. The migration restates the full catalogue, reference-only
 options included (owner decision O1 of the plan), and a family with one
@@ -271,9 +314,12 @@ authority roots. Ten restate the probe selections of the retired PLE-S
 record, and seven probe the closed world: the four unsupported
 application-middleware pairs, one hand-picked adapter, and the two allowed
 pairs that no other configuration exercises, Openpilot with Eclipse S-CORE
-and Apollo without middleware. A new configuration needs licensed
-serialization, so the authority job serializes the probes into the receipts
-like the invalid fixture, and
+and Apollo without middleware. Since INC-MW-011 phase 9 every probe but the
+one with no integration mode selects a guest side: the two AAOS SDV pair
+probes put the partner in a guest under KVM, and the mixed derived-set probe
+mixes no middleware with an AAOS SDV guest. A new configuration needs
+licensed serialization, so the authority job serializes the probes into the
+receipts like the invalid fixture, and
 [`test_ple_authority_receipts.py`](../../tests/test_ple_authority_receipts.py)
 pins the verdict of each.
 

@@ -459,7 +459,7 @@ Review the selected feature variants in the deterministic generated platform-sta
 - **Source:** `middleware_variability_configuration.sysml`
 - **Viewpoint:** `selectedProductLineConfigurationViewpoint` (`ProductLineConfigurationViewpoint`)
 - **Concern:** `productLineConfigurationConcern`
-- **Exposes:** `MiddlewareAutowareAAOSSDVReference`, `selectedVehicleApplication`, `selectedMiddleware`, `selectedOperatingSystem`, `selectedHypervisor`, `selectedApplicationMiddlewareAdapter`
+- **Exposes:** `MiddlewareAutowareAAOSSDVReference`, `selectedVehicleApplication`, `selectedMiddleware`, `selectedOperatingSystem`, `selectedHypervisor`, `selectedGuestOperatingSystem`, `selectedGuestMiddleware`, `selectedApplicationMiddlewareAdapter`
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
