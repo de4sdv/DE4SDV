@@ -14,7 +14,9 @@ package DE4SDV_OpenpilotAndroidSDVPairProbeConfiguration {
 
     #featureConfiguration occurrence openpilotAndroidSDVPairProbe : SDVProductLineFeatureTree :> featureConfigurations {
         doc /* Parity probe unsupported-openpilot-android-sdv. Openpilot with
-             * Android SDV, a pair without a derivation rule. */
+             * Android SDV, a pair without a derivation rule. The AAOS SDV
+             * partner runs in the guest under KVM, so the pair exclusion is
+             * the only reason. */
         @ProductModelProjectionName {
             partDefinitionName = "OpenpilotAndroidSDVPairProbe";
         }
@@ -26,8 +28,12 @@ package DE4SDV_OpenpilotAndroidSDVPairProbeConfiguration {
             #feature occurrence :>> androidSDV[1];
             #feature occurrence :>> operatingSystem[1] = (linux);
             #feature occurrence :>> linux[1];
-            #feature occurrence :>> hypervisor[1] = (noHypervisor);
-            #feature occurrence :>> noHypervisor[1];
+            #feature occurrence :>> hypervisor[1] = (kvm);
+            #feature occurrence :>> kvm[1];
+            #feature occurrence :>> guestOS[1] = (guestAndroid);
+            #feature occurrence :>> guestAndroid[1];
+            #feature occurrence :>> guestMiddleware[1] = (guestAndroidSDV);
+            #feature occurrence :>> guestAndroidSDV[1];
         }
         #feature occurrence :>> sensingBoundary[1] {
             #feature occurrence :>> perceptionSensors[1..*] = (lidar, camera);
@@ -39,6 +45,7 @@ package DE4SDV_OpenpilotAndroidSDVPairProbeConfiguration {
             #feature occurrence :>> bicycleDetection[0];
             #feature occurrence :>> adaptiveCruiseControl[0];
             #feature occurrence :>> laneKeepAssist[0];
+            #feature occurrence :>> hmiDisplay[0];
         }
     }
 }

@@ -14,7 +14,8 @@ package DE4SDV_NoIntegrationModeProbeConfiguration {
 
     #featureConfiguration occurrence noIntegrationModeProbe : SDVProductLineFeatureTree :> featureConfigurations {
         doc /* Parity probe no-alternative. No integration mode: no
-             * middleware, operating system or hypervisor is chosen. */
+             * middleware, operating system, hypervisor, guest operating system
+             * or guest middleware is chosen. */
         @ProductModelProjectionName {
             partDefinitionName = "NoIntegrationModeProbe";
         }
@@ -33,6 +34,7 @@ package DE4SDV_NoIntegrationModeProbeConfiguration {
             #feature occurrence :>> bicycleDetection[0];
             #feature occurrence :>> adaptiveCruiseControl[0];
             #feature occurrence :>> laneKeepAssist[0];
+            #feature occurrence :>> hmiDisplay[0];
         }
     }
 }

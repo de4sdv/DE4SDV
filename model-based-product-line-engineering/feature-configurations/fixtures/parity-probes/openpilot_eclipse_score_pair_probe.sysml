@@ -28,6 +28,10 @@ package DE4SDV_OpenpilotEclipseSCOREPairProbeConfiguration {
             #feature occurrence :>> linux[1];
             #feature occurrence :>> hypervisor[1] = (noHypervisor);
             #feature occurrence :>> noHypervisor[1];
+            #feature occurrence :>> guestOS[1] = (noGuestOS);
+            #feature occurrence :>> noGuestOS[1];
+            #feature occurrence :>> guestMiddleware[1] = (noGuestMiddleware);
+            #feature occurrence :>> noGuestMiddleware[1];
         }
         #feature occurrence :>> sensingBoundary[1] {
             #feature occurrence :>> perceptionSensors[1..*] = (lidar, camera);
@@ -39,6 +43,7 @@ package DE4SDV_OpenpilotEclipseSCOREPairProbeConfiguration {
             #feature occurrence :>> bicycleDetection[0];
             #feature occurrence :>> adaptiveCruiseControl[0];
             #feature occurrence :>> laneKeepAssist[0];
+            #feature occurrence :>> hmiDisplay[0];
         }
     }
 }

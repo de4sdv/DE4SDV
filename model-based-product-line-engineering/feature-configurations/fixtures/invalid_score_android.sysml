@@ -2,9 +2,11 @@
  * DELIBERATELY INVALID PLEML feature configuration, a fixture. It restates
  * the bill of features fixtures/invalid-score-android.yaml, which retired at
  * step S7. It lies outside the authority roots and is never a member
- * configuration: it selects Eclipse S-CORE with Android HLOS, so it violates
- * the exclusion C001. The doc is the bill of features' description; a false
- * selection is a [0] redefinition, and an unlisted feature is left unset.
+ * configuration: it selects Eclipse S-CORE with Android HLOS on the main
+ * side, so it violates the exclusion C001. Its Autoware on Android also
+ * violates C011 (Autoware requires Linux). The doc is the bill of features'
+ * description; a false selection is a [0] redefinition, and an unlisted
+ * feature is left unset.
  */
 
 package DE4SDV_InvalidSCOREAndroidVariantConfiguration {
@@ -14,7 +16,7 @@ package DE4SDV_InvalidSCOREAndroidVariantConfiguration {
 
     #featureConfiguration occurrence invalidSCOREAndroidVariant : SDVProductLineFeatureTree :> featureConfigurations {
         doc /* Deliberately invalid: S-CORE + Android HLOS.
-             * Should fail constraint C001. */
+             * Should fail constraint C001, and C011 for Autoware on Android. */
         @ProductModelProjectionName {
             partDefinitionName = "InvalidSCOREAndroidVariant";
         }
@@ -28,6 +30,10 @@ package DE4SDV_InvalidSCOREAndroidVariantConfiguration {
             #feature occurrence :>> android[1];
             #feature occurrence :>> hypervisor[1] = (noHypervisor);
             #feature occurrence :>> noHypervisor[1];
+            #feature occurrence :>> guestOS[1] = (noGuestOS);
+            #feature occurrence :>> noGuestOS[1];
+            #feature occurrence :>> guestMiddleware[1] = (noGuestMiddleware);
+            #feature occurrence :>> noGuestMiddleware[1];
         }
         #feature occurrence :>> sensingBoundary[1] {
             #feature occurrence :>> perceptionSensors[1..*] = (lidar);
@@ -38,6 +44,7 @@ package DE4SDV_InvalidSCOREAndroidVariantConfiguration {
             #feature occurrence :>> bicycleDetection[0];
             #feature occurrence :>> adaptiveCruiseControl[0];
             #feature occurrence :>> laneKeepAssist[0];
+            #feature occurrence :>> hmiDisplay[0];
         }
     }
 }

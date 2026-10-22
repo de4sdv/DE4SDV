@@ -14,8 +14,9 @@ package DE4SDV_BothIntegrationModesProbeConfiguration {
 
     #featureConfiguration occurrence bothIntegrationModesProbe : SDVProductLineFeatureTree :> featureConfigurations {
         doc /* Parity probe both-alternatives. Both integration modes at once,
-             * with two choices each for the middleware, the operating system
-             * and the hypervisor. */
+             * with two choices each for the middleware, the operating system,
+             * the hypervisor, the guest operating system and the guest
+             * middleware. */
         @ProductModelProjectionName {
             partDefinitionName = "BothIntegrationModesProbe";
         }
@@ -32,6 +33,12 @@ package DE4SDV_BothIntegrationModesProbeConfiguration {
             #feature occurrence :>> hypervisor[1] = (kvm, noHypervisor);
             #feature occurrence :>> kvm[1];
             #feature occurrence :>> noHypervisor[1];
+            #feature occurrence :>> guestOS[1] = (guestAndroid, noGuestOS);
+            #feature occurrence :>> guestAndroid[1];
+            #feature occurrence :>> noGuestOS[1];
+            #feature occurrence :>> guestMiddleware[1] = (guestAndroidSDV, noGuestMiddleware);
+            #feature occurrence :>> guestAndroidSDV[1];
+            #feature occurrence :>> noGuestMiddleware[1];
         }
         #feature occurrence :>> sensingBoundary[1] {
             #feature occurrence :>> perceptionSensors[1..*] = (lidar, camera);
@@ -43,6 +50,7 @@ package DE4SDV_BothIntegrationModesProbeConfiguration {
             #feature occurrence :>> bicycleDetection[0];
             #feature occurrence :>> adaptiveCruiseControl[0];
             #feature occurrence :>> laneKeepAssist[0];
+            #feature occurrence :>> hmiDisplay[0];
         }
     }
 }

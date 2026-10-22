@@ -13,7 +13,8 @@ package DE4SDV_AEBSAutowareLinuxLidarCameraConfiguration {
 
     #featureConfiguration occurrence aebsAutowareLinuxLidarCamera : SDVProductLineFeatureTree :> featureConfigurations {
         doc /* AEBS reference member product.
-             * Autoware on Linux, single-domain (no middleware, no hypervisor).
+             * Autoware on Linux, single-domain (no middleware, no hypervisor,
+             * no guest side).
              * LiDAR + camera perception, IMU + wheel odometry common.
              * Vehicle-target AEBS only (no pedestrian/bicycle detection). */
         @ProductModelProjectionName {
@@ -29,6 +30,10 @@ package DE4SDV_AEBSAutowareLinuxLidarCameraConfiguration {
             #feature occurrence :>> linux[1];
             #feature occurrence :>> hypervisor[1] = (noHypervisor);
             #feature occurrence :>> noHypervisor[1];
+            #feature occurrence :>> guestOS[1] = (noGuestOS);
+            #feature occurrence :>> noGuestOS[1];
+            #feature occurrence :>> guestMiddleware[1] = (noGuestMiddleware);
+            #feature occurrence :>> noGuestMiddleware[1];
         }
         #feature occurrence :>> sensingBoundary[1] {
             #feature occurrence :>> perceptionSensors[1..*] = (lidar, camera);
@@ -40,6 +45,7 @@ package DE4SDV_AEBSAutowareLinuxLidarCameraConfiguration {
             #feature occurrence :>> bicycleDetection[0];
             #feature occurrence :>> adaptiveCruiseControl[0];
             #feature occurrence :>> laneKeepAssist[0];
+            #feature occurrence :>> hmiDisplay[0];
         }
     }
 }
