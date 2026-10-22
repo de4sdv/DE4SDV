@@ -28,9 +28,10 @@
  * and their C- node IDs retired with the catalogue.
  *
  * INC-MW-011 phase 9 (owner decisions of 2026-10-21 and 2026-10-22) added
- * the guest side of the platform (the guestOS and guestMiddleware groups),
- * the optional HMI display capability, and the requires constraints C007 to
- * C011, with the IDs of the next free constraint numbers.
+ * the guest side of the platform (the guestOperatingSystem and
+ * guestMiddleware groups), the optional HMI display capability, and the
+ * requires constraints C007 to C011, with the IDs of the next free
+ * constraint numbers.
  */
 
 package DE4SDV_SDVProductLineFeatureModel {
@@ -146,13 +147,13 @@ package DE4SDV_SDVProductLineFeatureModel {
                 }
             }
 
-            #feature occurrence <'F-PLATFORM-GUEST-OS'> guestOS[1] {
+            #feature occurrence <'F-PLATFORM-GUEST-OS'> guestOperatingSystem[1] {
                 doc /* The operating system of the guest side: a second
                      * execution domain on the same SoC, under the hypervisor.
                      * noGuestOS selects no guest domain. */
             }
-            #feature occurrence <'F-PLATFORM-GUEST-OS-ANDROID'> guestAndroid[0..1] :> guestOS default null;
-            #feature occurrence <'F-PLATFORM-GUEST-OS-NONE'> noGuestOS[0..1] :> guestOS default null;
+            #feature occurrence <'F-PLATFORM-GUEST-OS-ANDROID'> guestAndroid[0..1] :> guestOperatingSystem default null;
+            #feature occurrence <'F-PLATFORM-GUEST-OS-NONE'> noGuestOS[0..1] :> guestOperatingSystem default null;
 
             #feature occurrence <'F-PLATFORM-GUEST-MIDDLEWARE'> guestMiddleware[1] {
                 doc /* The middleware of the guest side, on the guest operating

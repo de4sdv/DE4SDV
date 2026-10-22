@@ -30,7 +30,7 @@ package DE4SDV_OpenpilotAndroidSDVPairProbeConfiguration {
             #feature occurrence :>> linux[1];
             #feature occurrence :>> hypervisor[1] = (kvm);
             #feature occurrence :>> kvm[1];
-            #feature occurrence :>> guestOS[1] = (guestAndroid);
+            #feature occurrence :>> guestOperatingSystem[1] = (guestAndroid);
             #feature occurrence :>> guestAndroid[1];
             #feature occurrence :>> guestMiddleware[1] = (guestAndroidSDV);
             #feature occurrence :>> guestAndroidSDV[1];

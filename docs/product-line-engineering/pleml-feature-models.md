@@ -50,7 +50,7 @@ How the catalogue was restated:
 - **The two sides of one SoC** (INC-MW-011 phase 9, owner decisions of
   2026-10-21 and 2026-10-22). The platform has a main side, the execution
   domain that runs the vehicle application (`operatingSystem`), and an
-  optional guest side under the hypervisor: the groups `guestOS`
+  optional guest side under the hypervisor: the groups `guestOperatingSystem`
   {`guestAndroid`, `noGuestOS`} and `guestMiddleware` {`guestAndroidSDV`,
   `noGuestMiddleware`}. With KVM the main side is the KVM host. The
   `middleware` group is the middleware that the vehicle application

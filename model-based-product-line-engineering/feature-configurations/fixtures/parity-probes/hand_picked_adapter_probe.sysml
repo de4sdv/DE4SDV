@@ -33,7 +33,7 @@ package DE4SDV_HandPickedAdapterProbeConfiguration {
             #feature occurrence :>> linux[1];
             #feature occurrence :>> hypervisor[1] = (noHypervisor);
             #feature occurrence :>> noHypervisor[1];
-            #feature occurrence :>> guestOS[1] = (noGuestOS);
+            #feature occurrence :>> guestOperatingSystem[1] = (noGuestOS);
             #feature occurrence :>> noGuestOS[1];
             #feature occurrence :>> guestMiddleware[1] = (noGuestMiddleware);
             #feature occurrence :>> noGuestMiddleware[1];
