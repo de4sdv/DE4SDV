@@ -202,7 +202,7 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     attribute :>> source = "NEED-MW-002; scope item hmiPathInScope (the one-way path); scenario SC-MW-004";
     attribute :>> rationale = "With no application data flowing back, a running, stalled or failed guest cannot influence the AEBS stack or the middleware on the host; transport control, such as acknowledgements, is not application data.";
     attribute :>> verificationMethod = "inspect";
-    attribute :>> successCriteria = "Met when inspection of the interface definition of the HMI path and of the configuration of the S-CORE services, the adapter, the host relay and the SOME/IP receiver finds no receiver on the Linux host for application data from the AAOS SDV guest.";
+    attribute :>> successCriteria = "Met when inspection of the interface definition of the HMI path and of the configuration of the S-CORE services, the adapter, gatewayd, someipd and the SOME/IP receiver finds no receiver on the Linux host for application data from the AAOS SDV guest.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
@@ -222,7 +222,7 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     attribute :>> source = "NEED-MW-003; ASM-MW-028; refines the direct vehicle-command path option of REQ-MW-006 (reqIsolateSafetyPath) for the S-CORE member";
     attribute :>> rationale = "The command keeps its direct path from the AEB node to the vehicle command gate on the Linux host. This does not define the failure-containment criteria of REQ-MW-006, so GAP-MW-029 stays open; REQ-MW-020 keeps the reference vehicle speed carried over S-CORE off the velocity input of the AEB node.";
     attribute :>> verificationMethod = "inspect";
-    attribute :>> successCriteria = "Met when inspection of the S-CORE service configuration, the adapter interfaces, the host relay and the SOME/IP receiver, and the interface definition of the HMI path finds no element that carries the AEBS emergency intervention command, and the path of that command from the AEB node to the vehicle command gate on the Linux host contains no element of the middleware integration layer.";
+    attribute :>> successCriteria = "Met when inspection of the S-CORE service configuration, the adapter interfaces, gatewayd, someipd and the SOME/IP receiver, and the interface definition of the HMI path finds no element that carries the AEBS emergency intervention command, and the path of that command from the AEB node to the vehicle command gate on the Linux host contains no element of the middleware integration layer.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 

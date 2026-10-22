@@ -9,7 +9,7 @@
  * adapter; an AAOS SDV guest runs the HMI. The reference vehicle speed
  * travels over S-CORE communication into Autoware. The AEBS signals of the
  * Autoware-based AEBS stack on the Linux host travel over S-CORE
- * communication inside the host, and a DE4SDV SOME/IP relay carries them
+ * communication inside the host, and the S-CORE SOME/IP gateway carries them
  * across the domain boundary to the HMI in the guest. One increment identity
  * spans phases 0 to 12: this framing slice, the needs, requirements,
  * physical/software realization, variability and configuration, and
@@ -168,7 +168,7 @@ package DE4SDV_MiddlewareSCOREFraming {
     ref part :>> systemOfInterest = DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
     attribute :>> owner = "DE4SDV maintainers";
     attribute :>> expectedArtifacts = ("DE4SDV_MiddlewareSCOREFraming", "DE4SDV_MiddlewareSCOREOperationalContext", "DE4SDV_MiddlewareSCOREFeatureClassification", "DE4SDV_MiddlewareSCORENeedsRequirements", "DE4SDV_MiddlewareSCOREFunctionalArchitecture", "DE4SDV_MiddlewareSCORELogicalArchitecture", "DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization");
-    attribute :>> expectedReviewEvidence = ("exact-head licensed SysML validation of the increment model slices", "repository gates and the Method Check at the reviewed head", "retained evidence of the runnable proof: the reference vehicle speed over S-CORE into Autoware and the AEBS signals over S-CORE inside the Linux host and over the DE4SDV SOME/IP relay to the HMI in the AAOS SDV guest");
+    attribute :>> expectedReviewEvidence = ("exact-head licensed SysML validation of the increment model slices", "repository gates and the Method Check at the reviewed head", "retained evidence of the runnable proof: the reference vehicle speed over S-CORE into Autoware and the AEBS signals over S-CORE inside the Linux host and over the S-CORE SOME/IP gateway to the HMI in the AAOS SDV guest");
   }
 
   /* Qualified references to the accepted baseline and to the platform-stack
@@ -211,8 +211,22 @@ package DE4SDV_MiddlewareSCOREFraming {
      * ASM-MW-021: Eclipse S-CORE v0.9.0 is the pinned baseline:
      * eclipse-score/reference_integration tag v0.9.0, commit
      * 71b00dda29e73433064f0b2536e916099ffe75a9. It is a pre-1.0 release, and
-     * the project states that it is not a ready-to-integrate series product;
-     * every S-CORE statement of this increment is bound to that commit.
+     * the project states that it is not a ready-to-integrate series product.
+     * Every S-CORE statement of this increment is bound to that commit, with
+     * one bounded deviation (owner decision of 2026-10-22). The middleware
+     * integration layer carries the AEBS signal frames over the S-CORE
+     * SOME/IP gateway, which is not in that baseline:
+     * eclipse-score/inc_someip_gateway at commit
+     * 951fbc09bfbe9011eb81471cd31e1379700669b8, with no tag. The gateway
+     * needs communication 0.5.0 and baselibs 0.2.15, each with a patch of the
+     * gateway, in place of the communication 0.4.0 and baselibs 0.2.12 of
+     * v0.9.0. No S-CORE baseline holds that set. The deviation covers these
+     * two modules, for every mw::com user on the Linux host, and the gateway
+     * with its patched vsomeip 3.6.1. Statements about them are bound to the
+     * versions and the commit named here. Everything else stays bound to
+     * v0.9.0, among it lifecycle v0.6.1 and the assumptions of use of
+     * eclipse-score/score v0.7.2 that NEED-MW-004 cites. GAP-MW-036 records
+     * the deviation and the trigger to revisit it.
      */
   }
   part asmAutowareApplicationUnchanged : IncrementAssumption {
