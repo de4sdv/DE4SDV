@@ -430,7 +430,7 @@ Reviewers, and the safety expert who reviews GAP-MW-033, need the exchanges betw
 - **Render:** `asInterconnectionDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
-- **Presentation note:** The four «connection» boxes above the layer are its connections to the context parts of `SCORETwoDomainPhysicalSystem`, drawn as nodes with their source and target ends because one end of each lies outside the view; none of them reaches the velocity input of the AEB node. The S-CORE part and the adapter are references of the layer («ref part»): the Linux host of `SCORETwoDomainPhysicalSystem` owns them. The S-CORE part holds the Launch Manager, gatewayd and someipd, and it shows the platform-stack ports it inherits from `MiddlewareLayer`, unconnected. The adapter shows the two ports it inherits from `ApplicationMiddlewareAdapterLayer` through its typing by `AutowareToSCOREAdapter`, unconnected too: the processes link S-CORE communication and connect to each other directly. Domain placement is stated in the process docs and the connection name; the view does not draw the host/guest boundary.
+- **Presentation note:** The four «connection» boxes above the layer are its connections to the context parts of `SCORETwoDomainPhysicalSystem`, drawn as nodes with their source and target ends because one end of each lies outside the view; none of them reaches the velocity input of the AEB node. The two boxes marked `=` bind the layer's references to the S-CORE services and the adapter that the Linux host owns. SysIDE draws a reference («ref part») without the structure declared in it. The adapter appears only as a row of the layer's parts compartment. The S-CORE part is a dashed box that lists the Launch Manager, gatewayd and someipd as rows and shows only the ports it inherits from `MiddlewareLayer`. So the view does not draw the frame path from the adapter through gatewayd and someipd: `frameEventOverSCORECommunication` and `frameEventOverGatewayIPC` are in the source only, and `speedTopicToHealthProxy` and `frameEventOverSOMEIPAcrossHypervisor` appear as «connection» boxes with their ends. Domain placement is stated in the process docs and the connection names; the view does not draw the host/guest boundary.
 
 ![scoreMiddlewareLayerInternalExchangeView](diagrams/diagram-scoreMiddlewareLayerInternalExchangeView.svg)
 
@@ -461,7 +461,7 @@ Reviewers need the assembly of MW-CONFIG-002 with one instance and one owner per
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
-- **Presentation note:** The two boxes marked `=` are the bindings. Each shows its two ends, `thisThing` and `sameThing`, without their targets. The source binds `integrationLayer.scoreServices` to `platformStack.middleware` and `integrationLayer.adapter` to `platformStack.applicationMiddlewareAdapter`. Both ends on the layer side are references, so the platform stack is the only owner of these parts.
+- **Presentation note:** The two boxes marked `=` are the bindings. The end `thisThing` names the layer's reference, `integrationLayer.scoreServices` or `integrationLayer.adapter`. SysIDE shows `sameThing` without its target, which the source names: `platformStack.middleware` and `platformStack.applicationMiddlewareAdapter`. The layer side is a reference, so the platform stack is the only owner of these parts.
 
 ![scoreMiddlewareProductModelAssemblyView](diagrams/diagram-scoreMiddlewareProductModelAssemblyView.svg)
 
