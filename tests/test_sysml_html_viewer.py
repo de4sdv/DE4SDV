@@ -827,7 +827,7 @@ const documentListeners = {};
 
 function element() {
   return {
-    style: {},
+    style: {setProperty(name, value) { this[name] = value; }},
     classList: {
       add() {}, remove() {}, toggle() {}, contains() { return false; }
     },
@@ -879,8 +879,13 @@ if (!resizer.listeners || !resizer.listeners.mousedown) {
 }
 resizer.listeners.mousedown({preventDefault() {}, clientX: 320});
 documentListeners.mousemove({clientX: 500});
-if (layout.style.gridTemplateColumns !== '500px 6px 1fr') {
+if (layout.style['--tree-w'] !== '500px') {
   throw new Error('tree width did not follow the dragged divider');
+}
+// the width is only a custom property: an inline grid-template-columns
+// would also apply on a narrow screen and make the page scroll sideways
+if (layout.style.gridTemplateColumns !== undefined) {
+  throw new Error('the divider set the grid columns inline');
 }
 """
     result = subprocess.run(

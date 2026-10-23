@@ -1702,7 +1702,10 @@
     function apply(width) {
       if (!width) return;
       width = Math.max(MIN, Math.min(MAX, width));
-      layout.style.gridTemplateColumns = width + 'px 6px 1fr';
+      // only a custom property: the stylesheet uses it in the two-column
+      // layout. An inline grid-template-columns would also apply on a
+      // narrow screen, where the layout has one column.
+      layout.style.setProperty('--tree-w', width + 'px');
     }
 
     try {

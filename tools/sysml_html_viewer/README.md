@@ -264,7 +264,9 @@ unresolved labels.
 
 The navigation tree is **resizable**: drag the divider between tree and
 content pane; the width is remembered per browser (localStorage, guarded
-for `file://`).
+for `file://`). The divider sets the CSS variable `--tree-w`, and only the
+two-column layout uses it. Below 900 px the layout has one column, so a
+remembered width cannot make a page wider than the screen.
 
 ## Design rules
 
@@ -286,6 +288,13 @@ as tokens under `:root`.
   pinned to the outermost left edge of every screen, below a sticky
   header; content is centered at a comfortable reading width
   (max 1080 px). Below 900 px the tree collapses above the content.
+- **Fit** — no page and no box scrolls sideways, at all screen widths
+  down to 320 px. A long source line wraps, and its wrapped part starts
+  under its code, not under its line number. A long name wraps in the
+  tree, in a heading and in a table cell: at a `<wbr>` word boundary where
+  the page has one (the file path, the view name, the view metadata), else
+  between two characters. The view metadata table has fixed columns. A
+  code block in a guide page or in an Ask answer wraps too.
 - **Color** — four neutrals plus one accent, all in `:root`:
   `--bg #f4f6f9`, `--panel #ffffff`, `--ink #1f2933`,
   `--muted #6b7a8a`, `--line #e2e8f0`, `--accent #1a56db`
