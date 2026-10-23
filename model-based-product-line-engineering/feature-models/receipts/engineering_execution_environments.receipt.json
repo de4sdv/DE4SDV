@@ -1,8 +1,8 @@
 {
   "elements": {
-    "content_sha256": "4800f13d31d7e09af9bfba58737fa7331d6dbf172ef8ed2f3c17d0539c0fb956",
+    "content_sha256": "f98babe2b30c5a8c972735f54e1e053fd62397aa5fb6562f6ff0cb4e34f690eb",
     "path": "pleml-feature-models.elements.json.xz",
-    "sha256": "f7c8b9439483aa66a2af75a52c31910b3c939042f5323500bb3b3ccc34c03dd4"
+    "sha256": "521baf63138d52b75eda9f45eea636f872a70324e08989bfe964d61bcb76777b"
   },
   "evaluation": {
     "admission_authority": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
@@ -651,12 +651,12 @@
   },
   "evaluator": {
     "modules": {
-      "de4sdv/semantic/pleml_configuration.py": "f783596531561f9d18782460a385876fe939374f998afb828a78718333bd4553",
+      "de4sdv/semantic/pleml_configuration.py": "6f2f5b5d3d353202d4f84ec33bc4d80d98d6e0719c2a772edb98ddf58797636c",
       "de4sdv/semantic/pleml_package.py": "8d09409d802616780641fcfb8c86b41c21faeedb1a75989c17dfb76ef3cc9dfe",
       "de4sdv/semantic/pleml_receipts.py": "325bd1f47d9608a223354b7d78708709fb110ba56d50ecea0f7637ee3dfea1d7",
       "scripts/run_pleml_configuration_evaluation.py": "ade6a0c5077948162d99e975dfd5e115a395ee7ace70e180cb53c7b7fbaae12e"
     },
-    "sha256": "62f0aca8da9bea419319eebb7ae64b2b5fdeb10da815da59cc9fcbcf0a88cd14"
+    "sha256": "4b00cc77bb2c297f8bf73073d8c52d25b64ccfbd7ea2a6a5946fd6aca531a056"
   },
   "feature_models": [
     "EngineeringExecutionEnvironmentFeatureModel"
@@ -675,8 +675,8 @@
   ],
   "native_expression_executed": false,
   "provenance": {
-    "bundle_git_commit": "b76bae0a029f10567529c4fad48f7872d5d6e967",
-    "executor_revision": "b76bae0a029f10567529c4fad48f7872d5d6e967"
+    "bundle_git_commit": "211c2eb63b03e667849697b32f6cbeb9b632500c",
+    "executor_revision": "211c2eb63b03e667849697b32f6cbeb9b632500c"
   },
   "qualified": false,
   "schema": "de4sdv.pleml-configuration-receipt/v2",
@@ -695,14 +695,14 @@
     {
       "authority": "pleml-feature-configuration",
       "path": "model-based-product-line-engineering/feature-configurations/aebs_autoware_linux_lidar_camera.sysml",
-      "sha256": "10d41e45e3253e10f7ee56edef10b411b73f42260091d40d973e7cd442f189cd",
-      "size": 2162
+      "sha256": "17b0f39e754ea979a620a71f7205ad8b4441ed8fb9a6d48adf6db0cb8cc0d484",
+      "size": 2504
     },
     {
       "authority": "pleml-feature-configuration",
       "path": "model-based-product-line-engineering/feature-configurations/apollo_qnx_qvm.sysml",
-      "sha256": "c2dd40f0acd5697fed55a002a1f908ff7c7016c488cc6cc9ec6aa088e189aee2",
-      "size": 2018
+      "sha256": "6b109544e9b09a18a17af33f9de34215112a22d98a1c378b1013a7702c38caa3",
+      "size": 2330
     },
     {
       "authority": "pleml-feature-configuration",
@@ -711,118 +711,112 @@
       "size": 1671
     },
     {
-      "authority": "pleml-feature-configuration",
-      "path": "model-based-product-line-engineering/feature-configurations/example_linux_score_autoware.sysml",
-      "sha256": "6fe553ae70ef91a5ca3098a169a2f33e5b583dcb7bf9aa504b5576100fec1e57",
-      "size": 2100
-    },
-    {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/invalid_score_android.sysml",
-      "sha256": "5e5339999999c41449156a25bc7794c0e27c458458e08c41a64e4729577035a7",
-      "size": 2067
+      "sha256": "864e8473903beec111b4666a5473fe7c690049f294a2cc6b229a2c1b640a0752",
+      "size": 2506
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/adaptive_cruise_control_probe.sysml",
-      "sha256": "7221e8754662c111afd24fd16f4053e78f76819dc2cda6514c78aff86508a2ab",
-      "size": 2178
+      "sha256": "9b9b2b5d1dcfb08572177ee2818b93fd3d3e9a98c649a8672ea0632037dced1f",
+      "size": 2490
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_android_sdv_pair_probe.sysml",
-      "sha256": "ac4db398d150fce31bedad31040fb7b55309494c93288bd1237b79e4dd3ac57d",
-      "size": 2115
+      "sha256": "10b7c37552ef5d9308c1ca154bb0d42cb3f62cc17784d5d2e5616a8e8aa56749",
+      "size": 2533
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_autosar_adaptive_pair_probe.sysml",
-      "sha256": "4016e85a4c09643ef7682d32affeeb8ff745a826b8417d5e787f98da9c9faed8",
-      "size": 2155
+      "sha256": "98e2676fc3702b4c87d363f257825793f1d4fe10c51249db0e261fbc8a81850b",
+      "size": 2467
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_no_middleware_pair_probe.sysml",
-      "sha256": "f282d541fbcfc537e0e3b2c682bb4adbdc8cb15953daa12fbdda9ce1d1ac7e0d",
-      "size": 2128
+      "sha256": "7a59304b87a071c2578abef959b63511d1e4b0ba65d74cfb34bac964e56cb420",
+      "size": 2440
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/autosar_adaptive_acrn_probe.sysml",
-      "sha256": "01d0a93444e459eed101f29c3cb59e612cac1426da465ae9988e812454610056",
-      "size": 2080
+      "sha256": "d351113230c1926d728a5958173f4f44a48a0c79c95401c472172b4384028bc4",
+      "size": 2392
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/both_integration_modes_probe.sysml",
-      "sha256": "7cefe656967620f378a78c7378286095eef1a57c851187390378c34539119138",
-      "size": 2337
+      "sha256": "89717a7be11f4bd32aa19a51b20a80ea6d27118f908dae21f50b53e76ea6db07",
+      "size": 2854
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/camera_only_sensing_probe.sysml",
-      "sha256": "e71e55a0b26e5266844c3510b31638739eadf46a1e5d918803c31efdffabb792",
-      "size": 2018
+      "sha256": "8291ff99ac78bd6e943e3eaedbb32584a5963b462284485cc90b12307c9b9367",
+      "size": 2330
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/hand_picked_adapter_probe.sysml",
-      "sha256": "ccf7efd0206f73bc5a68674fb69c8b37a43711c5cc82280cac905e93ad93fb3e",
-      "size": 2465
+      "sha256": "f78edadd6b978cee032fd18c023a3fa18e303e76a21cb1cbbdcbfb880a0c25af",
+      "size": 2777
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/lidar_only_sensing_probe.sysml",
-      "sha256": "c8d5b250ed7e8bd2a7a49321021aef129c8f77bc1967a3d33ae00d80b0c98ed1",
-      "size": 2006
+      "sha256": "1db0ce4c2e5b1deba222c267196bba45d6f3089b4b2fcbced7070ffe8d3ab875",
+      "size": 2318
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/mixed_derived_set_probe.sysml",
-      "sha256": "35c86cd4ee44e6e7b0df490f047fd4d56262c70e419c2792c0f8860c4559983f",
-      "size": 2144
+      "sha256": "153f15c42d1af4b795926770c45278d222e1376ec3cf37d1a00b4b8988f03b9e",
+      "size": 2635
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/no_integration_mode_probe.sysml",
-      "sha256": "4ac41082cea2097ab18d8a645a3f969171e541dc5c4d81579c972cca75d57b3e",
-      "size": 1747
+      "sha256": "ce638f09c9aa6441961fbb13011ebe296472243f32620652b692e7c032b6e9a2",
+      "size": 1855
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_android_sdv_pair_probe.sysml",
-      "sha256": "547879a6fb16be17544c7e5b5ecec7ce1459e6bde193137336dd00ad91cef7bb",
-      "size": 2139
+      "sha256": "dd1c9ee800367e80488a38a3b9e7e8fc186a804f5ef9f931e88dcb592d12efe9",
+      "size": 2557
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_autosar_adaptive_pair_probe.sysml",
-      "sha256": "de8f0e4dea141bb538efd0592c8c4989a5b050510d2d7b8ef2b7eea4a9a26887",
-      "size": 2179
+      "sha256": "c2352715d733ba12b5b320c8b6ef2995670389cdd6945274051de26df46abd71",
+      "size": 2491
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_eclipse_score_pair_probe.sysml",
-      "sha256": "324b90a0da4d6473cdface7b8e6e039096b787d763c67fee057a8b763bc07e1d",
-      "size": 2153
+      "sha256": "ae7e17c80c542455c38498b45fffccf25217e387417b7c541df9efc76bcbfda3",
+      "size": 2465
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_no_middleware_probe.sysml",
-      "sha256": "703d6e312095d6a32aaaf001f25bf63d00bb7297d84aff2413fcb63489204634",
-      "size": 2097
+      "sha256": "9364269016d2eabb3c178dc67343a0443b8f28ee4bd923511d915528d8ed2ab6",
+      "size": 2409
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/radar_only_sensing_probe.sysml",
-      "sha256": "81aedec935b9a030778a173849eaaaca00b6243b6747e3cba345cea0f8af056e",
-      "size": 2006
+      "sha256": "7180098749d92b61b2433fc8f4eaab2af562c4ea9abb56b37d95674d801022a9",
+      "size": 2318
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/vehicle_target_aebs_off_probe.sysml",
-      "sha256": "01a39249bb62dc7845861ef8c8f0e62c5dbdf1895076cec0a5f9399fe009d1f7",
-      "size": 2531
+      "sha256": "8791f47b7617068c722ad49a081556cfd113c1ce1eca26e297d2f43919ae0f26",
+      "size": 2843
     },
     {
       "authority": "pleml-feature-configuration",
@@ -833,8 +827,14 @@
     {
       "authority": "pleml-feature-configuration",
       "path": "model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml",
-      "sha256": "9e79b12815e06bedda2a1cfc0c8532261e42f832be40bafb5fcd7e23da39c379",
-      "size": 2601
+      "sha256": "d18207b51603af37e9f4f1037bf5789c11e4f7a496e04fc65294f827536f10ad",
+      "size": 3656
+    },
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/middleware_autoware_score_reference.sysml",
+      "sha256": "41ec74ab7c1aaf5318d7c669dc82ba0ef9c350b4f60f5ca5529cdbfca63ac561",
+      "size": 2648
     },
     {
       "authority": "pleml-feature-configuration",
@@ -851,8 +851,8 @@
     {
       "authority": "pleml-feature-model",
       "path": "model-based-product-line-engineering/feature-models/sdv_product_line.sysml",
-      "sha256": "844409c296bb51ab539c39af9719274dc92b8c4219a04be12aee8596d94d6669",
-      "size": 23564
+      "sha256": "7107e845773441abdde890718e8fda1f170e1c4ed4498c96855b4ec98b5e8f97",
+      "size": 30579
     },
     {
       "authority": "pleml-feature-model",
@@ -875,8 +875,8 @@
     {
       "authority": "reviewed",
       "path": "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml",
-      "sha256": "77c5cdd22035e028e1dd5cae0d7e5b69ec69eb1a6e14df4cf649ad70ce346b37",
-      "size": 26944
+      "sha256": "25c1dac5dc929cc1e7c2d7606a142e3d1032e63d7f3728bf98e2c362508dda35",
+      "size": 30388
     },
     {
       "authority": "reviewed",

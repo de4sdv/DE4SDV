@@ -47,13 +47,19 @@ class TestMWVariabilityConfiguration(unittest.TestCase):
         [configuration] = [item for item in model["configurations"]
                            if item["source"] == CONFIGURATION.relative_to(REPO_ROOT).as_posix()]
         self.assertTrue(configuration["valid"])
+        # One SoC (owner decision D3, INC-MW-011 phase 9): Autoware on Linux on the main side, the KVM host,
+        # and the AAOS SDV middleware in the Android guest. No HMI display (owner decisions D3 and D2 V3).
         self.assertEqual(
-            {"platformStack.autoware", "platformStack.androidSDV", "platformStack.android", "platformStack.kvm",
+            {"platformStack.autoware", "platformStack.androidSDV", "platformStack.linux", "platformStack.kvm",
+             "platformStack.guestAndroid", "platformStack.guestAndroidSDV",
              "sensingBoundary.lidar", "sensingBoundary.camera"} - set(configuration["selected"]),
             set(),
         )
-        self.assertFalse({"platformStack.noMiddleware", "platformStack.linux", "sensingBoundary.radar"}
+        self.assertFalse({"platformStack.noMiddleware", "platformStack.android", "platformStack.noGuestOS",
+                          "platformStack.noGuestMiddleware", "capabilities.hmiDisplay", "sensingBoundary.radar"}
                          & set(configuration["selected"]))
+        exempted = [item["asset"] for item in configuration["admission"]["common_content"] if item["exempted"]]
+        self.assertEqual(exempted, [], "the member needs no exemption")
         self.assertFalse(any("adapter" in path.lower() for path in configuration["selected"]))
         derived = {item["variation"]: item for item in configuration["derived_variants"]}
         self.assertEqual(derived["applicationMiddlewareAdapter"]["variant"], "autowareToAAOSSDV")

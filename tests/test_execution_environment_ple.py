@@ -75,7 +75,7 @@ class TestExecutionEnvironmentPle(unittest.TestCase):
         import projection_sources as sources
 
         legacy = {
-            "example_linux_score_autoware.sysml": "example_linux_score.sysml",
+            "middleware_autoware_score_reference.sysml": "middleware_autoware_score_reference.sysml",
             "apollo_qnx_qvm.sysml": "apollo_qnx_qvm.sysml",
             "aebs_autoware_linux_lidar_camera.sysml": "aebs_autoware_linux_lidar_camera.sysml",
         }

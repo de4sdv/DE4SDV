@@ -4,7 +4,6 @@
     "DE4SDV_AEBSAutowareReferenceProduct": "model-based-product-line-engineering/product-models/aebs_autoware_reference_product.sysml",
     "ApolloQNXQVMVariant": "model-based-product-line-engineering/product-models/apollo_qnx_qvm.sysml",
     "AppleSiliconMacOSCandidate": "model-based-product-line-engineering/product-models/apple_silicon_macos_candidate.sysml",
-    "ExampleLinuxSCOREVariant": "model-based-product-line-engineering/product-models/example_linux_score.sysml",
     "INCAEBS009AJetsonExecutionEnvironment": "model-based-product-line-engineering/product-models/inc_aebs_009a_jetson_execution_environment.sysml",
     "MiddlewareAutowareAAOSSDVReference": "model-based-product-line-engineering/product-models/middleware_autoware_aaos_sdv_reference.sysml",
     "NXPZephyrVehicleTargetCandidate": "model-based-product-line-engineering/product-models/nxp_zephyr_vehicle_target_candidate.sysml",
@@ -58,7 +57,8 @@
     "DE4SDV_Stakeholders": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_stakeholders.sysml",
     "DE4SDV_SYSMODAdapter": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_sysmod_adapter.sysml",
     "SAF_Viewpoints": "textual-notation-of-model/packages/methods/saf/SAF_Viewpoints.sysml",
-    "DE4SDV_ContextSpikeSnapshot": "textual-notation-of-model/snapshots/de4sdv-context-spike.sysml"
+    "DE4SDV_ContextSpikeSnapshot": "textual-notation-of-model/snapshots/de4sdv-context-spike.sysml",
+    "MiddlewareAutowareSCOREReference": "model-based-product-line-engineering/product-models/middleware_autoware_score_reference.sysml"
   },
   "created": "2026-08-29T14:14:52Z",
   "checksum": {
@@ -75,10 +75,6 @@
       "algorithm": "NONE"
     },
     "model-based-product-line-engineering/product-models/apple_silicon_macos_candidate.sysml": {
-      "value": "",
-      "algorithm": "NONE"
-    },
-    "model-based-product-line-engineering/product-models/example_linux_score.sysml": {
       "value": "",
       "algorithm": "NONE"
     },
@@ -295,6 +291,10 @@
       "algorithm": "NONE"
     },
     "textual-notation-of-model/snapshots/de4sdv-context-spike.sysml": {
+      "value": "",
+      "algorithm": "NONE"
+    },
+    "model-based-product-line-engineering/product-models/middleware_autoware_score_reference.sysml": {
       "value": "",
       "algorithm": "NONE"
     }

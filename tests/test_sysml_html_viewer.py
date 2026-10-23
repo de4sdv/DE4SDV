@@ -1147,6 +1147,72 @@ def test_connection_kind_parsed(tmp_path):
     assert index["ab"][0].kind == "connection"
 
 
+_PREFIXES_MODEL = (
+    "package P {\n"
+    "  part def Stack {\n"
+    "    variation part hostLayer : Layer {\n"
+    "      variant part own : Own;\n"
+    "      variant ref part shared : Shared references guestLayer::shared;\n"
+    "    }\n"
+    "    variation part guestLayer : Layer {\n"
+    "      variant part shared : Shared;\n"
+    "    }\n"
+    "    abstract ref part slot : Slot;\n"
+    "  }\n"
+    "  action def Refuel {\n"
+    "    in item nozzle : Nozzle;\n"
+    "    in ref item fuel : Fuel;\n"
+    "    out derived ref attribute total : Real;\n"
+    "  }\n"
+    "}\n"
+)
+
+
+def test_declarations_with_several_prefix_keywords_are_indexed(tmp_path):
+    """A usage declaration can have more than one prefix keyword. Examples
+    from the SysML v2 textual notation are `variant ref part`, `in ref item`
+    and `out derived ref attribute`. The index has each such declaration
+    under its own name and parent. Declarations with one prefix keyword or
+    none parse as before."""
+    f = tmp_path / "prefixes.sysml"
+    f.write_text(_PREFIXES_MODEL, encoding="utf-8")
+    index = build_member_index([parse_file(f, tmp_path)])
+
+    def entries(name):
+        return [(r.kind, r.parent_name, r.line, r.type_name) for r in index.get(name, [])]
+
+    # more than one prefix keyword
+    assert entries("slot") == [("part", "Stack", 10, "Slot")]
+    assert entries("fuel") == [("item", "Refuel", 14, "Fuel")]
+    assert entries("total") == [("attribute", "Refuel", 15, "Real")]
+    # the variant reference and the variant that it references are two
+    # declarations with the same name
+    assert [entry[:3] for entry in entries("shared")] == [
+        ("part", "hostLayer", 5), ("part", "guestLayer", 8)]
+    # one prefix keyword or none
+    assert entries("Stack") == [("part def", "P", 2, "")]
+    assert entries("hostLayer") == [("part", "Stack", 3, "Layer")]
+    assert entries("own") == [("part", "hostLayer", 4, "Own")]
+    assert entries("nozzle") == [("item", "Refuel", 13, "Nozzle")]
+
+
+def test_variant_reference_label_resolves_in_its_own_variation(tmp_path):
+    """Two variants can have the same name when one references the other.
+    A diagram label resolves to the variant of the variation that contains
+    the label."""
+    f = tmp_path / "prefixes.sysml"
+    f.write_text(_PREFIXES_MODEL, encoding="utf-8")
+    index = build_member_index([parse_file(f, tmp_path)])
+    resolved = svg_info.resolve_labels(
+        ["hostLayer : Layer", "shared : Shared", "guestLayer : Layer", "shared : Shared"],
+        index,
+        view_file="prefixes.sysml",
+        view_folder="",
+    )
+    assert [(li.name, li.line) for li in resolved] == [
+        ("hostLayer", 3), ("shared", 5), ("guestLayer", 7), ("shared", 8)]
+
+
 def test_anonymous_usage_indexed(tmp_path):
     """Anonymous usages (objective/subject) are parsed, nested, and get
     their doc — so diagram compartment labels can resolve to them."""

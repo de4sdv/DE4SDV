@@ -206,6 +206,11 @@ package DE4SDV_MiddlewareVariabilityConfiguration {
     for MiddlewareAutowareAAOSSDVReference::hypervisor;
   alias selectedApplicationMiddlewareAdapter
     for MiddlewareAutowareAAOSSDVReference::applicationMiddlewareAdapter;
+  /* The guest side of the platform stack, added in INC-MW-011 phase 9. */
+  alias selectedGuestOperatingSystem
+    for MiddlewareAutowareAAOSSDVReference::guestOSPlatform;
+  alias selectedGuestMiddleware
+    for MiddlewareAutowareAAOSSDVReference::guestMiddleware;
 
   view middlewareProductLineConfigurationView {
     viewpoint selectedProductLineConfigurationViewpoint : ProductLineConfigurationViewpoint {
@@ -216,6 +221,8 @@ package DE4SDV_MiddlewareVariabilityConfiguration {
     expose selectedMiddleware;
     expose selectedOperatingSystem;
     expose selectedHypervisor;
+    expose selectedGuestOperatingSystem;
+    expose selectedGuestMiddleware;
     expose selectedApplicationMiddlewareAdapter;
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;
