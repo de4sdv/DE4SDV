@@ -22,8 +22,8 @@ No model element is typed as a risk. The prose also went stale: until #424,
 the baseline register missed five production releases.
 
 A program differs from a project. A program coordinates related work to
-deliver goals that no single piece of work delivers alone. Its goals stay the
-same during its life, while its components start and finish. A project, here
+deliver goals that no single piece of work delivers alone. Its goals outlive
+its components, which start and finish. A project, here
 an increment, is bounded work with a deliverable. A release is such a
 component: its deliverable is a baseline, and a gate decides it.
 
@@ -33,20 +33,22 @@ verification case verifies it. An increment ends with a lifecycle decision.
 System 3 governs and evolves System 2 (ADR 0004). The method context has no
 generic project context by design.
 
-Three alternatives were considered:
+Four alternatives were considered:
 
 - **Prose registers and plans.** This is the current state, and it goes stale.
 - **New program types**, such as an outcome, a release gate and a program
   risk. They duplicate `Need` and `Requirement` and need their own checks.
-  Both options need a roll-up per goal.
+  This decision needs a roll-up per goal too.
 - **The program as one increment.** Its goals would end with that increment,
   but the goals outlive every release.
+- **No release increments.** The release gate would be a program record only,
+  and new program-level checks would have to judge it.
 
 ## Decision
 
 1. **The program is a package, not an increment.** One enduring program
-   package holds the program's goals. Its system of interest is the DE4SDV
-   program, a model definition that specializes
+   package, outside the kernel directory, holds the goals. Their subject is
+   the DE4SDV program, a model definition that specializes
    `System3OpenSourceGovernanceEcosystem`.
 2. **Goals are needs.** Each roadmap goal is a need in the program package,
    with the program as subject. The measure of a goal is the validation
@@ -70,10 +72,10 @@ Three alternatives were considered:
    `DE4SDV_TraceVocabulary`, with a relation record, a vocabulary role and an
    inverse for the roll-up per goal. It records relevance only, not
    satisfaction or progress. It is the only ontology addition.
-7. **Risks are assumptions and gaps.** The release increment records the
-   condition that a risk threatens as an assumption. A risk still open at the
-   release decision is a gap. A risk type is added only when a check needs
-   one.
+7. **Risks are recorded as assumptions and gaps.** The release increment
+   records the condition that a risk threatens as an assumption. A risk still
+   open at the release decision is a gap. A risk type is added only when a
+   check needs one.
 8. **Two named roles.** The program owner is a duty of the lead maintainer.
    The program owner proposes goals and priorities through `GOVERNANCE.md` §7
    and makes the release decision. The chief systems engineer owns technical
