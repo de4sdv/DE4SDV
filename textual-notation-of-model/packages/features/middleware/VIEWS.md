@@ -411,7 +411,7 @@ Reviewers need each logical element of the middleware integration layer, the six
 - **Viewpoint:** `selectedPhysicalLogicalMappingViewpoint` (`PhysicalLogicalMappingViewpoint`)
 - **View type:** `MVD::MatrixView`
 - **Concern:** `scoreMiddlewarePhysicalAllocationConcern`
-- **Exposes:** `DE4SDV_MiddlewareLogicalArchitecture::system::signalTranslator`, `DE4SDV_MiddlewareLogicalArchitecture::system::diagnosticProxy`, `DE4SDV_MiddlewareLogicalArchitecture::system::lifecycleBridge`, `DE4SDV_MiddlewareLogicalArchitecture::system::healthProxy`, `DE4SDV_MiddlewareLogicalArchitecture::system::updateCoordinator`, `DE4SDV_MiddlewareLogicalArchitecture::system::serviceBindingManager`, `DE4SDV_MiddlewareSCORELogicalArchitecture::hmiFrameRelay`, `scoreTwoDomainPhysicalSystem::integrationLayer::adapter`, `scoreTwoDomainPhysicalSystem::integrationLayer::healthProxyNode`, `scoreTwoDomainPhysicalSystem::integrationLayer::hostRelay`, `scoreTwoDomainPhysicalSystem::integrationLayer::someipReceiver`, `scoreTwoDomainPhysicalSystem::integrationLayer::scoreServices::launchManager`, `DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization::*`
+- **Exposes:** `DE4SDV_MiddlewareLogicalArchitecture::system::signalTranslator`, `DE4SDV_MiddlewareLogicalArchitecture::system::diagnosticProxy`, `DE4SDV_MiddlewareLogicalArchitecture::system::lifecycleBridge`, `DE4SDV_MiddlewareLogicalArchitecture::system::healthProxy`, `DE4SDV_MiddlewareLogicalArchitecture::system::updateCoordinator`, `DE4SDV_MiddlewareLogicalArchitecture::system::serviceBindingManager`, `DE4SDV_MiddlewareSCORELogicalArchitecture::hmiFrameRelay`, `scoreTwoDomainPhysicalSystem::integrationLayer::adapter`, `scoreTwoDomainPhysicalSystem::integrationLayer::healthProxyNode`, `scoreTwoDomainPhysicalSystem::integrationLayer::scoreServices::gatewayd`, `scoreTwoDomainPhysicalSystem::integrationLayer::scoreServices::someipd`, `scoreTwoDomainPhysicalSystem::integrationLayer::someipReceiver`, `scoreTwoDomainPhysicalSystem::integrationLayer::scoreServices::launchManager`, `DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization::*`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
 - **Presentation note:** Cells show ↗ for every allocation; the two partial allocations are typed `PartialLogicalToPhysicalSoftwareRealization`.
@@ -420,7 +420,7 @@ Reviewers need each logical element of the middleware integration layer, the six
 
 ### `scoreMiddlewareLayerInternalExchangeView`
 
-Reviewers, and the safety expert who reviews GAP-MW-033, need the exchanges between the processes of the integration layer: which process publishes the speed topic and which observes it, how the AEBS signal frames pass over S-CORE communication inside the Linux host and over SOME/IP across the hypervisor into the guest, and that nothing flows back from the guest.
+Reviewers, and the safety expert who reviews GAP-MW-033, need the exchanges between the processes of the integration layer: which process publishes the speed topic and which observes it, how the AEBS signal frames pass over S-CORE communication inside the Linux host, through the two processes of the S-CORE SOME/IP gateway, and over SOME/IP across the hypervisor into the guest, and that nothing flows back from the guest.
 
 - **Source:** `middleware_score_physical_software_realization.sysml`
 - **Viewpoint:** `selectedLayerInternalExchangeViewpoint` (`PhysicalInternalExchangeViewpoint`)
@@ -430,7 +430,7 @@ Reviewers, and the safety expert who reviews GAP-MW-033, need the exchanges betw
 - **Render:** `asInterconnectionDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
-- **Presentation note:** The four «connection» boxes above the layer are its connections to the context parts of `SCORETwoDomainPhysicalSystem`, drawn as nodes with their source and target ends because one end of each lies outside the view; none of them reaches the velocity input of the AEB node. The S-CORE part shows the platform-stack ports it inherits from `MiddlewareLayer`, unconnected: the processes link S-CORE communication and connect to each other directly. Domain placement is stated in the process docs and the connection name; the view does not draw the host/guest boundary.
+- **Presentation note:** The four «connection» boxes above the layer are its connections to the context parts of `SCORETwoDomainPhysicalSystem`, drawn as nodes with their source and target ends because one end of each lies outside the view; none of them reaches the velocity input of the AEB node. The S-CORE part holds the Launch Manager, gatewayd and someipd, and it shows the platform-stack ports it inherits from `MiddlewareLayer`, unconnected: the processes link S-CORE communication and connect to each other directly. Domain placement is stated in the process docs and the connection name; the view does not draw the host/guest boundary.
 
 ![scoreMiddlewareLayerInternalExchangeView](diagrams/diagram-scoreMiddlewareLayerInternalExchangeView.svg)
 
