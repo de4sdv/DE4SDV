@@ -165,6 +165,7 @@ Review the System 1 candidate software boundary: adapter, AAOS SDV boundary, and
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
+- **Presentation note:** The parts compartment lists `adapter` and `aaosSdvBoundary` like the other parts, without the `ref` keyword. In the source both are references (`ref part`): the boundary refers to them, and in the configured member `MW-CONFIG-001` the platform stack owns them.
 
 ![middlewarePhysicalStructureView](diagrams/diagram-middlewarePhysicalStructureView.svg)
 
@@ -180,6 +181,7 @@ Which AAOS SDV VSIDL service access feeds the adapter, and which Autoware-facing
 - **Render:** `asInterconnectionDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
+- **Presentation note:** The adapter and the AAOS SDV boundary are dashed «ref part» boxes. The boundary refers to them; in the configured member `MW-CONFIG-001` the platform stack owns them. Their ports come from their definitions, so SysIDE still draws the wired velocity path.
 
 ![middlewareAdapterBoundaryExchangeView](diagrams/diagram-middlewareAdapterBoundaryExchangeView.svg)
 
@@ -469,16 +471,16 @@ Review the selected feature variants in the deterministic generated platform-sta
 
 ### `middlewareProductModelAssemblyView`
 
-Review the resulting member-product composition: configured platform stack plus the middleware physical/software boundary.
+Review the resulting member-product composition: configured platform stack plus the middleware physical/software boundary, with one instance and one owner per platform layer.
 
 - **Source:** `middleware_variability_configuration.sysml`
 - **Viewpoint:** `selectedProductModelAssemblyViewpoint` (`ProductModelAssemblyViewpoint`)
 - **Concern:** `productModelAssemblyConcern`
-- **Exposes:** `MiddlewareAutowareAAOSSDVConfiguredMember`, `MiddlewareAutowareAAOSSDVConfiguredMember::platformStack`, `MiddlewareAutowareAAOSSDVConfiguredMember::middlewareBoundary`
+- **Exposes:** `MiddlewareAutowareAAOSSDVConfiguredMember`, `MiddlewareAutowareAAOSSDVConfiguredMember::platformStack`, `MiddlewareAutowareAAOSSDVConfiguredMember::middlewareBoundary`, `MiddlewareAutowareAAOSSDVConfiguredMember::adapterBoundToDerivedAdapter`, `MiddlewareAutowareAAOSSDVConfiguredMember::aaosSdvBoundaryBoundToGuestMiddleware`
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
-- **Presentation note:** Long qualified labels overlap in the current SysIDE layout; use the source and exposure list above for exact names.
+- **Presentation note:** The two boxes marked `=` are the bindings. The end `thisThing` names the reference of the middleware boundary, `middlewareBoundary.adapter` or `middlewareBoundary.aaosSdvBoundary`. SysIDE shows `sameThing` without its target, which the source names: `platformStack.applicationMiddlewareAdapter` and `platformStack.guestMiddleware`. The boundary side is a reference, so the platform stack is the only owner of these parts.
 
 ![middlewareProductModelAssemblyView](diagrams/diagram-middlewareProductModelAssemblyView.svg)
 

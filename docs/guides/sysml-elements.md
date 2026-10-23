@@ -179,6 +179,10 @@ Product-line slices assemble **configured members** from shared assets:
 part def MiddlewareAutowareAAOSSDVConfiguredMember :> DE4SDV_AEBSProductLineScope::AAOSIntegratedAutowareAEBSReferenceMember {
   part platformStack : MiddlewareAutowareAAOSSDVReference;
   part middlewareBoundary : MiddlewarePhysicalSoftwareBoundary;
+  binding adapterBoundToDerivedAdapter
+    bind middlewareBoundary.adapter = platformStack.applicationMiddlewareAdapter;
+  binding aaosSdvBoundaryBoundToGuestMiddleware
+    bind middlewareBoundary.aaosSdvBoundary = platformStack.guestMiddleware;
 }
 
 part configuredMember : MiddlewareAutowareAAOSSDVConfiguredMember {
@@ -192,6 +196,13 @@ part configuredMember : MiddlewareAutowareAAOSSDVConfiguredMember {
   generated from its configuration. `variation`/`variant` memberships and
   `:>>` selections express *what varies* — see `de4sdv_product_line.sysml`
   and `model-based-product-line-engineering/`.
+- A configured member has **one instance and one owner per platform
+  layer**. The platform stack owns its layers. Another asset that needs a
+  layer, such as `MiddlewarePhysicalSoftwareBoundary`, declares it as a
+  `ref part`. A `binding` in the configured member then makes the reference
+  the same thing as the layer of the stack. Declare `ref` in the definition
+  that does not own the part. A `ref` on a redefinition (`ref part :>> x`)
+  does not remove the composite semantics of `x`.
 - A characteristic is a **feature** only when it distinguishes one member
   product from another; otherwise it is common. Phase 3 records only the
   feature candidates (`ProductLineFeatureCandidate`) an increment adds, the
