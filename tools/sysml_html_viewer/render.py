@@ -18,6 +18,7 @@ import re
 from pathlib import Path
 
 from .model_parse import (
+    ElementRef,
     ModelFile,
     TreeNode,
     ViewInfo,
@@ -439,21 +440,43 @@ _IDENT_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 
 def _resolve_source_ref(
-    token: str, line_no: int, mf: ModelFile, member_index: dict
+    token: str,
+    line_no: int,
+    mf: ModelFile,
+    member_index: dict,
+    qualifier_ref: ElementRef | None = None,
 ):
     """Resolve an identifier in the source to its declaration, or None.
 
     The declaration itself is never annotated; usages in the same file
     resolve to the same file, everything else to the defining file.
+
+    In a qualified name `Q::token`, qualifier_ref is the resolved
+    declaration of Q. The declarations of token that it owns (its
+    children) come first. A declaration on this line is not a candidate.
+    If no candidate remains, the rules for a name without a qualifier
+    apply. Thus a feature that a usage without a body gets from its type
+    (`part layer : Realization;`) resolves by the rules for a name without
+    a qualifier; the name of Q is not used. This is a navigation heuristic
+    over the scanned declarations, not SysML v2 name resolution.
     """
     refs = member_index.get(token)
     if not refs:
         return None
-    if any(r.rel_path == mf.rel_path and r.line == line_no for r in refs):
-        return None
     from .svg_info import _prefer
 
     folder = str(Path(mf.rel_path).parent)
+    if qualifier_ref is not None:
+        owned = [
+            r for r in refs
+            if r.rel_path == qualifier_ref.rel_path
+            and r.parent_line == qualifier_ref.line
+            and not (r.rel_path == mf.rel_path and r.line == line_no)
+        ]
+        if owned:
+            return _prefer(owned, mf.rel_path, folder)
+    if any(r.rel_path == mf.rel_path and r.line == line_no for r in refs):
+        return None
     return _prefer(refs, mf.rel_path, folder)
 
 
@@ -489,13 +512,25 @@ def _highlight_code(
     prefix: str,
 ) -> str:
     """Highlight keywords/numbers/operators in a comment-free segment and
-    wrap identifiers that resolve to model elements as source references."""
+    wrap identifiers that resolve to model elements as source references.
+
+    The resolved declaration of the last identifier is kept across spaces
+    and `::`, so the name after `Q::` resolves in Q (see
+    _resolve_source_ref). Any other token clears it."""
     out = []
     pos = 0
+    # last_ref: the resolved declaration of the last identifier;
+    # qualifier_ref: the same, after a `::` that follows that identifier
+    last_ref, qualifier_ref = None, None
     for m in _SRC_TOKEN_RE.finditer(seg):
         out.append(esc(seg[pos : m.start()]))
         tok = m.group(0)
         cls = _token_class(tok)
+        is_ident = cls == "" and _IDENT_RE.fullmatch(tok) is not None
+        if tok == "::":
+            last_ref, qualifier_ref = None, last_ref
+        elif not is_ident and not tok.isspace():
+            last_ref, qualifier_ref = None, None
         if cls:
             if cls == "op" and tok in _SYM_TIPS:
                 out.append(
@@ -507,8 +542,12 @@ def _highlight_code(
                 out.append(f'<span class="src-{cls}">{esc(tok)}</span>')
         else:
             ref = None
-            if mf is not None and member_index is not None and _IDENT_RE.fullmatch(tok):
-                ref = _resolve_source_ref(tok, line_no, mf, member_index)
+            if mf is not None and member_index is not None and is_ident:
+                ref = _resolve_source_ref(
+                    tok, line_no, mf, member_index, qualifier_ref
+                )
+            if is_ident:
+                last_ref, qualifier_ref = ref, None
             if ref is not None:
                 same = ref.rel_path == mf.rel_path
                 href = (

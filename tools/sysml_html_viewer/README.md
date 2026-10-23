@@ -221,7 +221,12 @@ one thing a published snapshot intentionally never shows.
     the element's kind, doc, and declaration location; click jumps to
     the definition — same file (`#src-N`) or the defining file
     (`pages/<file>.html#src-N`) for members imported from other
-    packages. Textual-notation **symbols** (`:`, `:>`, `:>>`, `::`)
+    packages. A name links to a declaration with the same name: in the
+    same file first, then in the same folder or below it, else the first
+    one found. In a qualified name `Q::name`, the declarations of name in
+    the body of the declaration that `Q` links to come first. This is a
+    navigation heuristic over the scanned declarations, not SysML v2 name
+    resolution. Textual-notation **symbols** (`:`, `:>`, `:>>`, `::`)
     also carry hover tooltips explaining the construct (typing,
     specialization, feature specialization, qualified names). Tree
     entries for elements jump to the element's
