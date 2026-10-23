@@ -1111,4 +1111,48 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
     attribute showAnnotationRows = false;
     render asInterconnectionDiagram;
   }
+
+  view scoreMiddlewareLayerExchangeRefRootsUsageView {
+    viewpoint selectedLayerInternalExchangeViewpoint : PhysicalInternalExchangeViewpoint {
+      frame scoreMiddlewareLayerInternalExchangeConcern;
+    }
+    doc /*
+     * Temporary A/B variant A of scoreMiddlewareLayerInternalExchangeView
+     * (owner decision of 2026-10-23). It has the same exposes, and it also
+     * exposes the two references of the layer as exposure roots, on the
+     * usage path. It is not a published view, and it goes before merge.
+     */
+    expose scoreTwoDomainPhysicalSystem::integrationLayer;
+    expose scoreTwoDomainPhysicalSystem::integrationLayer::**;
+    expose scoreTwoDomainPhysicalSystem::integrationLayer::adapter;
+    expose scoreTwoDomainPhysicalSystem::integrationLayer::adapter::**;
+    expose scoreTwoDomainPhysicalSystem::integrationLayer::scoreServices;
+    expose scoreTwoDomainPhysicalSystem::integrationLayer::scoreServices::**;
+    filter not (@ SysML::AllocationUsage);
+    attribute depth = -1;
+    attribute showAnnotationRows = false;
+    render asInterconnectionDiagram;
+  }
+
+  view scoreMiddlewareLayerExchangeRefRootsDefinitionView {
+    viewpoint selectedLayerInternalExchangeViewpoint : PhysicalInternalExchangeViewpoint {
+      frame scoreMiddlewareLayerInternalExchangeConcern;
+    }
+    doc /*
+     * Temporary A/B variant B (owner decision of 2026-10-23). It is variant A
+     * with one change: the two references are exposure roots on the
+     * definition path, as in middlewareAdapterBoundaryExchangeView of
+     * INC-MW-009. It is not a published view, and it goes before merge.
+     */
+    expose scoreTwoDomainPhysicalSystem::integrationLayer;
+    expose scoreTwoDomainPhysicalSystem::integrationLayer::**;
+    expose SCOREMiddlewareIntegrationLayerRealization::adapter;
+    expose SCOREMiddlewareIntegrationLayerRealization::adapter::**;
+    expose SCOREMiddlewareIntegrationLayerRealization::scoreServices;
+    expose SCOREMiddlewareIntegrationLayerRealization::scoreServices::**;
+    filter not (@ SysML::AllocationUsage);
+    attribute depth = -1;
+    attribute showAnnotationRows = false;
+    render asInterconnectionDiagram;
+  }
 }
