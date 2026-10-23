@@ -178,10 +178,19 @@ KNOWN_PRESENTATION_NOTES = {
         "view; none of them reaches the velocity input of the AEB node. The "
         "S-CORE part holds the Launch Manager, gatewayd and someipd, and it "
         "shows the platform-stack ports it inherits from "
-        "`MiddlewareLayer`, unconnected: the processes link S-CORE "
-        "communication and connect to each other directly. Domain placement "
-        "is stated in the process docs and the connection name; the view "
-        "does not draw the host/guest boundary."
+        "`MiddlewareLayer`, unconnected. The adapter shows the two ports it "
+        "inherits from `ApplicationMiddlewareAdapterLayer` through its typing "
+        "by `AutowareToSCOREAdapter`, unconnected too: the processes link "
+        "S-CORE communication and connect to each other directly. Domain "
+        "placement is stated in the process docs and the connection name; "
+        "the view does not draw the host/guest boundary."
+    ),
+    "scoreMiddlewareProductModelAssemblyView": (
+        "Each binding («=») shows its two ends, `thisThing` and `sameThing`, "
+        "without their targets. The source binds `integrationLayer.scoreServices` "
+        "to `platformStack.middleware` and `integrationLayer.adapter` to "
+        "`platformStack.applicationMiddlewareAdapter`; the two «ref part» "
+        "boxes are those references of the integration layer."
     ),
     "scoreTwoDomainOperationalContextView": (
         "SysIDE lists the actions of the signal flow `scoreTwoDomainSignalFlow` "

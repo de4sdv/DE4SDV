@@ -196,6 +196,12 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
     viewpoint selectedProductModelAssemblyViewpoint : ProductModelAssemblyViewpoint {
       frame scoreMiddlewareProductModelAssemblyConcern;
     }
+    doc /*
+     * The configured product with its two parts, the two references of the
+     * integration layer and the two bindings that make them the selected
+     * middleware and the derived adapter of the platform stack. The phase-8
+     * allocations to the adapter are filtered out.
+     */
     expose MiddlewareAutowareSCOREConfiguredProduct;
     expose MiddlewareAutowareSCOREConfiguredProduct::platformStack;
     expose MiddlewareAutowareSCOREConfiguredProduct::integrationLayer;
@@ -203,6 +209,7 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
     expose MiddlewareAutowareSCOREConfiguredProduct::integrationLayer::adapter;
     expose MiddlewareAutowareSCOREConfiguredProduct::scoreServicesBoundToSelectedMiddleware;
     expose MiddlewareAutowareSCOREConfiguredProduct::adapterBoundToDerivedAdapter;
+    filter not (@ SysML::AllocationUsage);
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;
     render asTreeDiagram;
