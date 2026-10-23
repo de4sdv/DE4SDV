@@ -2,13 +2,19 @@
 
 The member's PLEML feature configuration selects the application and the
 middleware; the receipt derives the adapter, which no configuration selects;
-the committed projection regenerates from the receipt byte for byte.
+the committed projection regenerates from the receipt byte for byte. The
+configured member has one instance and one owner per platform layer (owner
+decision of 2026-10-23): the platform stack owns the layers, the middleware
+boundary refers to them, and two bindings make the references the same things.
 """
 import json
+import re
 import unittest
 from pathlib import Path
 
 import yaml
+
+from sysml_shapes import braced_body, strip_comments
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -18,14 +24,14 @@ CONFIGURATION = PLE_ROOT / "feature-configurations" / "middleware_autoware_aaos_
 EVIDENCE_RECORD = PLE_ROOT / "feature-configurations" / "evidence" / "middleware-autoware-aaos-sdv-reference.yaml"
 RECEIPT = PLE_ROOT / "feature-models" / "receipts" / "sdv_product_line.receipt.json"
 PRODUCT_MODEL = PLE_ROOT / "product-models" / "middleware_autoware_aaos_sdv_reference.sysml"
-PHASE9_MODEL = (
-    REPO_ROOT
-    / "textual-notation-of-model"
-    / "packages"
-    / "features"
-    / "middleware"
-    / "middleware_variability_configuration.sysml"
-)
+MIDDLEWARE = REPO_ROOT / "textual-notation-of-model" / "packages" / "features" / "middleware"
+PHASE9_MODEL = MIDDLEWARE / "middleware_variability_configuration.sysml"
+PHYSICAL_MODEL = MIDDLEWARE / "middleware_physical_software_realization.sysml"
+EVIDENCE_MODEL = MIDDLEWARE / "middleware_verification_evidence.sysml"
+PLATFORM_STACK = REPO_ROOT / "textual-notation-of-model" / "packages" / "architecture" / "sdv_platform_stack.sysml"
+#: SDVCoreBoundary models the internal structure of the AAOS SDV middleware layer
+#: (the doc of AndroidSDVMiddleware in the platform stack), so it stands for that layer.
+AAOS_SDV_MIDDLEWARE_MODEL = "SDVCoreBoundary"
 PILOT = (
     REPO_ROOT
     / "methodologies"
@@ -39,6 +45,34 @@ def _receipt_model():
     receipt = json.loads(RECEIPT.read_text())
     [model] = receipt["evaluation"]["feature_models"]
     return model
+
+
+def _platform_layer_definitions() -> set[str]:
+    """The layer definitions of the SDV platform stack, their realizations, and every
+    specialization of them in the physical slice (lexical, transitive)."""
+    specializations = []
+    for path in (PLATFORM_STACK, PHYSICAL_MODEL):
+        specializations += re.findall(r"\bpart\s+def\s+(\w+)\s*:>\s*([\w:]+)", strip_comments(path.read_text()))
+    layers = set(re.findall(r"\bpart\s+def\s+(\w+Layer)\b", strip_comments(PLATFORM_STACK.read_text())))
+    assert len(layers) == 6, layers
+    grown = True
+    while grown:
+        grown = False
+        for name, general in specializations:
+            if general.rsplit("::", 1)[-1] in layers and name not in layers:
+                layers.add(name)
+                grown = True
+    return layers | {AAOS_SDV_MIDDLEWARE_MODEL}
+
+
+def _declarations(body: str) -> list[tuple[str, str, str]]:
+    """``(ref keyword or '', name, type)`` of the part usages declared directly in ``body``."""
+    flat, depth = [], 0
+    for character in body:
+        depth += (character == "{") - (character == "}")
+        if depth == 0 and character != "}":
+            flat.append(character)
+    return re.findall(r"\b(ref\s+)?part\s+(\w+)\s*:\s*([\w:]+)", "".join(flat))
 
 
 class TestMWVariabilityConfiguration(unittest.TestCase):
@@ -130,6 +164,62 @@ class TestMWVariabilityConfiguration(unittest.TestCase):
         self.assertIn("not deployed", normalized)
         self.assertIn("not empirically verified", normalized)
         self.assertNotIn("part kuksaDatabroker", model)
+
+    def test_the_boundary_refers_to_the_platform_layers_it_needs(self):
+        """The middleware boundary owns no platform layer (owner decision of 2026-10-23).
+
+        It refers to the adapter and to the AAOS SDV boundary; every other part it declares
+        is typed by no platform layer, so it keeps owning them."""
+        layers = _platform_layer_definitions()
+        self.assertIn("AutowareToAAOSSDVAdapterPhysical", layers)
+        boundary = braced_body(strip_comments(PHYSICAL_MODEL.read_text()), "part def MiddlewarePhysicalSoftwareBoundary")
+        declared = _declarations(boundary)
+        self.assertEqual(len(declared), 9)
+        layered = [(ref.strip(), name) for ref, name, typed in declared if typed.rsplit("::", 1)[-1] in layers]
+        self.assertEqual(layered, [("ref", "adapter"), ("ref", "aaosSdvBoundary")])
+        self.assertEqual([name for ref, name, _ in declared if ref], ["adapter", "aaosSdvBoundary"])
+
+    def test_the_configured_member_has_one_instance_and_one_owner_per_platform_layer(self):
+        """The platform stack owns the derived adapter and the guest middleware; two bindings
+        make the references of the boundary the same things. The body declares exactly the
+        two parts and exactly these two bindings."""
+        code = strip_comments(PHASE9_MODEL.read_text())
+        member = braced_body(code, "part def MiddlewareAutowareAAOSSDVConfiguredMember")
+        self.assertEqual(
+            [(ref.strip(), name, typed) for ref, name, typed in _declarations(member)],
+            [("", "platformStack", "MiddlewareAutowareAAOSSDVReference"),
+             ("", "middlewareBoundary", "MiddlewarePhysicalSoftwareBoundary")],
+        )
+        own = " ".join(member.split())
+        self.assertEqual(re.findall(r"\bbinding\s+(\w+)\s+bind\b", own),
+                         ["adapterBoundToDerivedAdapter", "aaosSdvBoundaryBoundToGuestMiddleware"])
+        self.assertIn("binding adapterBoundToDerivedAdapter bind middlewareBoundary.adapter = "
+                      "platformStack.applicationMiddlewareAdapter;", own)
+        self.assertIn("binding aaosSdvBoundaryBoundToGuestMiddleware bind middlewareBoundary.aaosSdvBoundary = "
+                      "platformStack.guestMiddleware;", own)
+        self.assertNotIn(":>>", member, "the member redefines no feature of its parts")
+        # The guest middleware is the single owner of the AAOS SDV: the stack's middleware variant
+        # androidSDV refers to it (constraint C009), and the projection selects it.
+        stack = " ".join(strip_comments(PLATFORM_STACK.read_text()).split())
+        self.assertIn("variant ref part androidSDV : AndroidSDVMiddleware references guestMiddleware::androidSDV;",
+                      stack)
+        self.assertIn("part :>> guestMiddleware = guestMiddleware::androidSDV;", PRODUCT_MODEL.read_text())
+
+    def test_the_configuration_identity_keeps_its_evidence_and_records_the_structure_change(self):
+        """MW-CONFIG-001 is not renumbered; the retained records still bind it, and the
+        configured member records that they ran against the earlier content."""
+        evidence = EVIDENCE_MODEL.read_text()
+        self.assertEqual(evidence.count('attribute :>> configurationIdentity = "MW-CONFIG-001";'), 4)
+        member = PHASE9_MODEL.read_text()
+        usage = member[member.index("part configuredMember : MiddlewareAutowareAAOSSDVConfiguredMember"):]
+        usage = " ".join(usage[:usage.index("\n  }\n")].replace("*", " ").split())
+        for text in ("Configuration management note: on 2026-10-23 the owner decided one owner per layer",
+                     "The identity MW-CONFIG-001 is not renumbered, and no variant selection changed.",
+                     "E-MW-011 to E-MW-014, BL-MW-010-P12 and CLM-MW-010-01 bind only this identity.",
+                     "INC-MW-010 baseline revision b8170f6953567b07164b8c02be05be137f8047f0.",
+                     "Their records are not edited."):
+            with self.subTest(text=text):
+                self.assertIn(text, usage)
 
     def test_pilot_is_framing_metadata_not_a_second_configuration_model(self):
         data = yaml.safe_load(PILOT.read_text())

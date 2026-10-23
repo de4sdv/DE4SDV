@@ -469,12 +469,12 @@ Review the selected feature variants in the deterministic generated platform-sta
 
 ### `middlewareProductModelAssemblyView`
 
-Review the resulting member-product composition: configured platform stack plus the middleware physical/software boundary.
+Review the resulting member-product composition: configured platform stack plus the middleware physical/software boundary, with one instance and one owner per platform layer.
 
 - **Source:** `middleware_variability_configuration.sysml`
 - **Viewpoint:** `selectedProductModelAssemblyViewpoint` (`ProductModelAssemblyViewpoint`)
 - **Concern:** `productModelAssemblyConcern`
-- **Exposes:** `MiddlewareAutowareAAOSSDVConfiguredMember`, `MiddlewareAutowareAAOSSDVConfiguredMember::platformStack`, `MiddlewareAutowareAAOSSDVConfiguredMember::middlewareBoundary`
+- **Exposes:** `MiddlewareAutowareAAOSSDVConfiguredMember`, `MiddlewareAutowareAAOSSDVConfiguredMember::platformStack`, `MiddlewareAutowareAAOSSDVConfiguredMember::middlewareBoundary`, `MiddlewareAutowareAAOSSDVConfiguredMember::adapterBoundToDerivedAdapter`, `MiddlewareAutowareAAOSSDVConfiguredMember::aaosSdvBoundaryBoundToGuestMiddleware`
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.

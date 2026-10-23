@@ -34,9 +34,24 @@ package DE4SDV_MiddlewareVariabilityConfiguration {
      * PLEML restatement of the Phase 9 BoF) and deterministic generated
      * platform-stack projection. The local parts compose accepted
      * shared assets; they do not independently choose platform variants.
+     *
+     * One instance and one owner per layer (owner decision of 2026-10-23).
+     * The platform stack owns the derived Autoware-to-AAOS SDV adapter and
+     * the AAOS SDV middleware of its guest side. The middleware boundary
+     * only refers to its adapter and to its AAOS SDV boundary. One binding
+     * makes the adapter of the boundary the same thing as the derived
+     * adapter. The other binding makes the AAOS SDV boundary the same thing
+     * as the guest middleware. The middleware variant androidSDV of the
+     * stack also refers to that guest middleware (constraint C009). So the
+     * member has one adapter and one AAOS SDV instance, and the platform
+     * stack is their only owner.
      */
     part platformStack : MiddlewareAutowareAAOSSDVReference;
     part middlewareBoundary : MiddlewarePhysicalSoftwareBoundary;
+    binding adapterBoundToDerivedAdapter
+      bind middlewareBoundary.adapter = platformStack.applicationMiddlewareAdapter;
+    binding aaosSdvBoundaryBoundToGuestMiddleware
+      bind middlewareBoundary.aaosSdvBoundary = platformStack.guestMiddleware;
   }
 
   part configuredMember : MiddlewareAutowareAAOSSDVConfiguredMember {
@@ -45,6 +60,19 @@ package DE4SDV_MiddlewareVariabilityConfiguration {
      * middleware derive the adapter through D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER.
      * Runtime support, requirement satisfaction, safety, compliance, and
      * interoperability are not implied by this configured-member usage.
+     *
+     * Configuration management note: on 2026-10-23 the owner decided one
+     * owner per layer for this configured member, so its structure changed.
+     * Before, the middleware boundary owned a second adapter and a second
+     * representation of the AAOS SDV guest. Now it refers to the adapter and
+     * to the guest middleware that the platform stack owns. The identity
+     * MW-CONFIG-001 is not renumbered, and no variant selection changed.
+     * E-MW-011 to E-MW-014, BL-MW-010-P12 and CLM-MW-010-01 bind only this
+     * identity. They were retained against the earlier content, at the
+     * INC-MW-010 baseline revision b8170f6953567b07164b8c02be05be137f8047f0.
+     * Their records are not edited. The INC-AEBS-010 test article
+     * specializes this member, so it inherits the change. The evidence of
+     * that test article was also retained against the earlier content.
      */
   }
 
@@ -187,8 +215,11 @@ package DE4SDV_MiddlewareVariabilityConfiguration {
   concern productModelAssemblyConcern : ProductModelAssemblyConcern {
     doc /*
      * Review the resulting member-product composition: configured platform
-     * stack plus the middleware physical/software boundary. This concern is
-     * about assembled assets, not the full variation space.
+     * stack plus the middleware physical/software boundary, with one instance
+     * and one owner per platform layer. The boundary refers to the derived
+     * adapter and to the guest middleware of the platform stack, the owner of
+     * both. This concern is about assembled assets, not the full variation
+     * space.
      */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
@@ -233,9 +264,18 @@ package DE4SDV_MiddlewareVariabilityConfiguration {
     viewpoint selectedProductModelAssemblyViewpoint : ProductModelAssemblyViewpoint {
       frame productModelAssemblyConcern;
     }
+    doc /*
+     * The configured member, its two parts and the two bindings. The
+     * bindings make the adapter and the AAOS SDV boundary of the middleware
+     * boundary the same things as the derived adapter and the guest
+     * middleware of the platform stack. The boundary only refers to them;
+     * the platform stack is their only owner.
+     */
     expose MiddlewareAutowareAAOSSDVConfiguredMember;
     expose MiddlewareAutowareAAOSSDVConfiguredMember::platformStack;
     expose MiddlewareAutowareAAOSSDVConfiguredMember::middlewareBoundary;
+    expose MiddlewareAutowareAAOSSDVConfiguredMember::adapterBoundToDerivedAdapter;
+    expose MiddlewareAutowareAAOSSDVConfiguredMember::aaosSdvBoundaryBoundToGuestMiddleware;
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;
     render asTreeDiagram;
