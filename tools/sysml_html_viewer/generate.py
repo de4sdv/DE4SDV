@@ -604,10 +604,14 @@ def _render_help_md(text: str, link_path: str = "") -> str:
             para_buf.clear()
 
     def flush_list() -> None:
+        # None means "no open list": the next item opens a new list with the
+        # type of that item. An emptied buffer would close the list again at
+        # every later line and keep the type of the first list.
+        nonlocal list_buf
         if list_buf is not None:
             items = "".join(f"<li>{_inline_md(i, link_path)}</li>" for i in list_buf)
             out.append(f"<{list_tag}>{items}</{list_tag}>")
-            list_buf.clear()
+            list_buf = None
 
     def flush_table() -> None:
         if not table_buf:
@@ -711,7 +715,11 @@ def _render_help_md(text: str, link_path: str = "") -> str:
                 list_tag = "ol"
             list_buf.append(m.group(1))
             continue
-        flush_list()
+        if list_buf:
+            # a line that starts no other block continues the last list
+            # item (as in CommonMark): a wrapped item stays one item
+            list_buf[-1] += " " + s
+            continue
         para_buf.append(s)
     flush_all()
     if in_code:

@@ -455,6 +455,58 @@ def test_elements_page_renders_guide_markdown(tmp_path):
     assert (out2 / "elements.html").read_bytes() == (out / "elements.html").read_bytes()
 
 
+def test_guide_markdown_lists_end_and_keep_their_own_type():
+    """A list ends at a blank line or at other content and leaves no empty
+    list behind. Each list has the type of its own items: a numbered list
+    after a bullet list is an <ol>, a bullet list after it is a <ul>."""
+    from tools.sysml_html_viewer.generate import _render_help_md
+
+    assert _render_help_md(
+        "- first\n"
+        "- second\n"
+        "\n"
+        "Some prose.\n"
+        "\n"
+        "1. one\n"
+        "2. two\n"
+        "\n"
+        "## Heading\n"
+        "\n"
+        "- after\n"
+    ).split("\n") == [
+        "<ul><li>first</li><li>second</li></ul>",
+        "<p>Some prose.</p>",
+        "<ol><li>one</li><li>two</li></ol>",
+        '<h2 id="heading">Heading</h2>',
+        "<ul><li>after</li></ul>",
+    ]
+
+
+def test_guide_markdown_list_item_continues_on_its_next_lines():
+    """The lines after a list item that start no other block are part of
+    that item, as in CommonMark. An item that wraps over several lines
+    stays one item; its text is not split off into a paragraph."""
+    from tools.sysml_html_viewer.generate import _render_help_md
+
+    assert _render_help_md(
+        "- **Model** answers about one\n"
+        "  model element.\n"
+        "- **Repository** answers about\n"
+        "  the repository.\n"
+        "\n"
+        "1. First step,\n"
+        "   on two lines.\n"
+        "2. Second step.\n"
+        "\n"
+        "After the lists.\n"
+    ).split("\n") == [
+        "<ul><li><strong>Model</strong> answers about one model element.</li>"
+        "<li><strong>Repository</strong> answers about the repository.</li></ul>",
+        "<ol><li>First step, on two lines.</li><li>Second step.</li></ol>",
+        "<p>After the lists.</p>",
+    ]
+
+
 def _git(repo: Path, *args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         ["git", "-C", str(repo), *args], capture_output=True, text=True
