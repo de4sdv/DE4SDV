@@ -103,8 +103,8 @@ Each record's own Status section is authoritative.
   place](0021-make-model-elements-earn-their-place.md)
 - [ADR 0022: Adopt PLEML as the product-line
   authority](0022-adopt-pleml-as-product-line-authority.md)
-- [ADR 0024: Model the program as a release
-  increment](0024-model-the-program-as-a-release-increment.md)
+- [ADR 0024: Keep the program in the model, with releases as
+  increments](0024-keep-the-program-in-the-model.md)
 
 ## Template
 
