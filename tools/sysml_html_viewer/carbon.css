@@ -317,12 +317,17 @@ code {
 .stat-n { font-size: 28px; font-weight: 300; color: var(--ink); letter-spacing: 0; }
 .stat-k { font-size: 12px; color: var(--muted); text-transform: none; letter-spacing: 0.32px; }
 
-/* landing "Get started" columns */
+/* landing "Get started" columns: two columns when both can be at least
+   270 px wide, else one. A column of 270 px holds the longest name in
+   them (`tools.sysml_html_viewer.serve` in a list item), so no word
+   breaks inside on a desktop. break-word (not anywhere) keeps the
+   minimum width of a column at its longest word. */
 .land-cols {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr));
   gap: 8px 32px;
   margin-top: 6px;
+  overflow-wrap: break-word;
 }
 .land-cols h3 {
   font-size: 14px; font-weight: 600; margin: 8px 0 6px;
@@ -334,7 +339,6 @@ code {
 .land-more { margin-top: 14px; font-size: 13px; }
 .land-more a { color: var(--accent); text-decoration: none; }
 .land-more a:hover { text-decoration: underline; }
-@media (max-width: 760px) { .land-cols { grid-template-columns: 1fr; } }
 
 /* kind badges → Carbon tags */
 .kind-badge {

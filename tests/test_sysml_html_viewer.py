@@ -997,7 +997,14 @@ def test_every_narrow_screen_rule_comes_after_its_base_rule():
     loads viewer.css first and carbon.css after it, and selectors of the
     same specificity follow the source order. Thus a base rule after the
     narrow-screen rule cancels it, and the narrow screen keeps the
-    desktop value."""
+    desktop value.
+
+    Limits of the check: it compares only rules with the same selector
+    text, so a base rule with another selector for the same element (for
+    example `.a table td` for `.a td`) is not seen. Its shorthand map has
+    padding, margin, overflow, flex, gap and inset; it does not know
+    border, background, font or list-style and their longhand
+    properties."""
     # the check finds a cancelled rule, and accepts a rule that a later
     # narrow-screen rule states again after the base rule
     assert _dead_narrow_rules([
