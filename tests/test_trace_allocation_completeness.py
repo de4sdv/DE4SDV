@@ -164,22 +164,30 @@ def definition(codes, name):
     return found[0]
 
 
+def types_of(typing: str) -> list[str]:
+    """The type names of one type or of a typing list (``A, B``)."""
+    return [name.strip() for name in typing.split(",")]
+
+
 def lineage(codes, name, seen=None):
+    """The definitions that ``name``, one type or a typing list, specializes, itself included."""
     seen = set() if seen is None else seen
-    if name in seen:
-        return seen
-    seen.add(name)
-    try:
-        header, _ = definition(codes, name)
-    except AssertionError:
-        return seen  # external base (kernel class): lineage stops here
-    for base in re.findall(r"[A-Za-z_]\w*", header.replace(":>", " ")):
-        lineage(codes, base, seen)
+    for one in types_of(name):
+        if one in seen:
+            continue
+        seen.add(one)
+        try:
+            header, _ = definition(codes, one)
+        except AssertionError:
+            continue  # external base (kernel class): lineage stops here
+        for base in re.findall(r"[A-Za-z_]\w*", header.replace(":>", " ")):
+            lineage(codes, base, seen)
     return seen
 
 
-# An optional short name (<'REQ-MW-010'>) may precede the declared name.
-USAGE = r"\b(?:part|action|requirement)\s+(?:<'[^']*'>\s*)?{name}\s*:\s*(\w+)\s*([{{;])"
+# An optional short name (<'REQ-MW-010'>) may precede the declared name, and a
+# usage may have more than one type (``part adapter : A, B``).
+USAGE = r"\b(?:part|action|requirement)\s+(?:<'[^']*'>\s*)?{name}\s*:\s*(\w+(?:\s*,\s*\w+)*)\s*([{{;])"
 
 
 def member(body: str, name: str):
@@ -211,8 +219,13 @@ def resolve(path: str, files) -> str:
     current, inline = candidates[0]
     for segment in rest:
         found = member(inline, segment) if inline else None
-        if found is None:
-            found = member(definition(codes, current)[1], segment)
+        for typed in types_of(current) if found is None else ():
+            try:
+                found = member(definition(codes, typed)[1], segment)
+            except AssertionError:
+                found = None  # a type that the searched files do not define, such as a kernel class
+            if found is not None:
+                break
         assert found is not None, (path, segment)
         current, inline = found
     return current
@@ -302,7 +315,7 @@ def test_recorded_composite_deviations_are_never_allocation_endpoints():
     for path, (files, _, _, _) in ALLOCATION_FILES.items():
         for _, kind, source, target in allocations(code_of(path)):
             if kind not in EXCLUDED_ALLOCATION_DEFS:
-                ends |= {resolve(source, files), resolve(target, files)}
+                ends |= {*types_of(resolve(source, files)), *types_of(resolve(target, files))}
     assert len(ends) >= 60, "the scan must resolve the allocation endpoints"
     assert not ends & AEBS_CORE_COMPOSITE_DEVIATIONS
 

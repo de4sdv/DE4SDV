@@ -272,7 +272,7 @@
   <text x="36" y="1553" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Each later slice belongs to this increment and is not a second</tspan></text>
   <text x="36" y="1565" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">increment identity. Owner, expected artifacts and expected review</tspan></text>
   <text x="36" y="1577" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">evidence are declarations, not completion or review evidence. The</tspan></text>
-  <text x="36" y="1589" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">expected artifacts name the packages of phases 0 to 8; each later slice</tspan></text>
+  <text x="36" y="1589" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">expected artifacts name the packages of phases 0 to 9; each later slice</tspan></text>
   <text x="36" y="1601" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">adds its own package when it is authored. The system of interest is</tspan></text>
   <text x="36" y="1613" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the middleware integration layer: the needs and requirements take it</tspan></text>
   <text x="36" y="1625" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">as their subject, the problem statement keeps the increment.</tspan></text>
@@ -289,7 +289,7 @@
   <text x="36" y="1767" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        "DE4SDV_MiddlewareSCOREFraming", "DE4SDV_MiddlewareSCOREOperationalContext",</tspan></text>
   <text x="36" y="1779" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        "DE4SDV_MiddlewareSCOREFeatureClassification", "DE4SDV_MiddlewareSCORENeedsRequirements",</tspan></text>
   <text x="36" y="1791" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        "DE4SDV_MiddlewareSCOREFunctionalArchitecture", "DE4SDV_MiddlewareSCORELogicalArchitecture",</tspan></text>
-  <text x="36" y="1803" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        "DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization",</tspan></text>
+  <text x="36" y="1803" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        "DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization", "DE4SDV_MiddlewareSCOREVariabilityConfiguration",</tspan></text>
   <text x="36" y="1815" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">    )</tspan></text>
   <text x="36" y="1827" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">expectedReviewEvidence :&gt;&gt; expectedReviewEvidence = (</tspan></text>
   <text x="36" y="1839" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        "exact-head licensed SysML validation of the increment model slices",</tspan></text>
