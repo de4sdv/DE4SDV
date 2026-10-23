@@ -199,19 +199,19 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * it subscribes again when someipd offers the service again. So the
        * ingress keeps its last accepted sequence, which the guest-side drop
        * needs (guestStaleFrameDropGuardRail). It forwards a payload only when
-       * the payload's own length prefix matches the payload length. So a
-       * corrupted payload cannot shift the stream framing of the ingress
-       * (GAP-MW-040). This check reads only the length prefix; the frame
-       * stays opaque. It sends the host nothing but SOME/IP service discovery
-       * and TCP protocol control; that is a design property, not the
-       * protection of REQ-MW-016, which someipd enforces. It runs as a native
-       * init service of the guest, outside the Launch Manager, which runs
-       * only on the Linux host. It must listen before the ingress starts,
-       * because the ingress exits when nothing listens
-       * (ingress/main.cpp:183-188), and it is not a oneshot service, so init
-       * restarts it when it exits. vsomeip on AAOS is untested, and so is the
-       * pairing of its vsomeip 3.7.6 with the vsomeip 3.6.1 of someipd
-       * (GAP-MW-038).
+       * the payload's own length prefix matches the payload length (owner
+       * decision of 2026-10-23). So a corrupted payload cannot shift the
+       * stream framing of the ingress (GAP-MW-040). This check reads only
+       * the length prefix; the frame stays opaque. It sends the host
+       * nothing but SOME/IP service discovery and TCP protocol control; that
+       * is a design property, not the protection of REQ-MW-016, which
+       * someipd enforces. It runs as a native init service of the guest,
+       * outside the Launch Manager, which runs only on the Linux host. It
+       * must listen before the ingress starts, because the ingress exits
+       * when nothing listens (ingress/main.cpp:183-188), and it is not a
+       * oneshot service, so init restarts it when it exits. vsomeip on AAOS
+       * is untested, and so is the pairing of its vsomeip 3.7.6 with the
+       * vsomeip 3.6.1 of someipd (GAP-MW-038).
        */
       port aebsSignalFrameIn : AEBSSignalFrameIn {
         doc /* Subscription to someipd's SOME/IP frame event. */
@@ -831,8 +831,10 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
     doc /*
      * Consequences of the start-order and pair-restart guard rails under the
      * Launch Manager of lifecycle v0.6.1. The owner accepts them (owner
-     * decision of 2026-10-22). This Launch Manager starts four processes of
-     * the model: someipd, gatewayd, the adapter and the health proxy node.
+     * decision of 2026-10-22, re-confirmed by the owner on 2026-10-23 with
+     * the health-proxy consequence). This Launch Manager starts four
+     * processes of the model: someipd, gatewayd, the adapter and the health
+     * proxy node.
      * In v0.6.1, the default recovery action of every component and every
      * Run Target is a switch to the fallback Run Target
      * (scripts/config_mapping/lifecycle_config.py:36-40 and 72-76;
