@@ -452,7 +452,7 @@ Reviewers need the variant selections of MW-CONFIG-002 in the platform-stack pro
 
 ### `scoreMiddlewareProductModelAssemblyView`
 
-Reviewers need the assembly of MW-CONFIG-002 with one instance per platform layer: the platform-stack projection and the realization of the integration layer, whose S-CORE services are the selected middleware and whose adapter is the derived adapter.
+Reviewers need the assembly of MW-CONFIG-002 with one instance per platform layer, by identity.
 
 - **Source:** `middleware_score_variability_configuration.sysml`
 - **Viewpoint:** `selectedProductModelAssemblyViewpoint` (`ProductModelAssemblyViewpoint`)
@@ -461,7 +461,7 @@ Reviewers need the assembly of MW-CONFIG-002 with one instance per platform laye
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
-- **Presentation note:** The two boxes marked `=` are the bindings. Each shows its two ends, `thisThing` and `sameThing`, without their targets. The source binds `integrationLayer.scoreServices` to `platformStack.middleware` and `integrationLayer.adapter` to `platformStack.applicationMiddlewareAdapter`; the two «ref part» boxes are those references of the integration layer.
+- **Presentation note:** The two boxes marked `=` are the bindings. Each shows its two ends, `thisThing` and `sameThing`, without their targets. The source binds `integrationLayer.scoreServices` to `platformStack.middleware` and `integrationLayer.adapter` to `platformStack.applicationMiddlewareAdapter`. The two «ref part» boxes are `scoreServices` and `adapter` of the integration layer, as the product redefines them. The bindings state identity only: the platform stack and the integration layer both still compose these parts.
 
 ![scoreMiddlewareProductModelAssemblyView](diagrams/diagram-scoreMiddlewareProductModelAssemblyView.svg)
 

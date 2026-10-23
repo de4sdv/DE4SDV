@@ -4,17 +4,19 @@
  *
  * INC-MW-011, phase 9: the configured product of the Eclipse S-CORE
  * reference configuration, with the configuration identity MW-CONFIG-002.
- * It pairs the platform-stack projection that the configurator generates
- * from the receipt of the feature configuration
- * middleware_autoware_score_reference.sysml with the realization of the
- * middleware integration layer from phase 8, as INC-MW-009 pairs the
- * projection of its member with the middleware boundary. The feature
- * configuration and the generated projection own the variant selections.
- * This package does not restate them.
+ * It pairs two parts. The first is the platform-stack projection that the
+ * configurator generates from the receipt of the feature configuration
+ * middleware_autoware_score_reference.sysml. The second is the realization
+ * of the middleware integration layer from phase 8. INC-MW-009 pairs the
+ * projection of its member with the middleware boundary in the same way.
+ * The feature configuration and the generated projection own the variant
+ * selections. No element of this package restates them. Its docs name some
+ * of them, and a guard test keeps those names equal to the receipt.
  *
- * The configuration is valid and not admitted. Eclipse S-CORE is a
- * reference-only alternative of the governed product-line scope, and the
- * HMI display is not in that scope (ADR 0014). So the configured product
+ * The configuration is valid and not admitted. The receipt gives three
+ * reasons: Eclipse S-CORE is reference-only, the HMI display has no element
+ * in the governed scope, and the guest side realizes the AAOS-integrated
+ * alternative without its middleware androidSDV. So the configured product
  * specializes no member-product type. The member decision is phase-12 work,
  * after the runnable proof of phase 10 (owner decision of 2026-10-21). This
  * slice is configuration evidence only: it proves no runtime behavior,
@@ -30,24 +32,26 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
 
   part def MiddlewareAutowareSCOREConfiguredProduct {
     doc /*
-     * The configured product of the Eclipse S-CORE reference configuration:
-     * the generated platform-stack projection and the realization of the
-     * middleware integration layer, the system of interest of INC-MW-011.
+     * The configured product of the Eclipse S-CORE reference configuration.
+     * It holds the generated platform-stack projection and the realization of
+     * the middleware integration layer, the system of interest of INC-MW-011.
      * The local parts compose the projection and the phase-8 realization.
-     * They choose no variant. The context parts of phase 8, such as the
+     * They choose no variant. The context parts of phase 8 stay in the
+     * physical context SCORETwoDomainPhysicalSystem. Examples are the
      * Autoware-based AEBS stack, the vehicle-speed provider and the HMI
-     * application in the guest, stay in the physical context
-     * SCORETwoDomainPhysicalSystem.
+     * application in the guest.
      *
-     * One instance per layer. The platform stack composes the selected
-     * Eclipse S-CORE middleware and the derived Autoware-to-S-CORE adapter.
-     * In this product the integration layer refers to these two parts: one
-     * binding makes its S-CORE services the selected middleware, and one
-     * binding makes its adapter the derived adapter. Its other parts are no
-     * platform layers. The guest side is the guest operating system and the
-     * guest middleware of the platform stack. So the product composes no
-     * second Android or AAOS SDV instance. For the same reason it does not
-     * compose SCORETwoDomainPhysicalSystem.
+     * One instance per layer, by identity. The platform stack composes the
+     * selected Eclipse S-CORE middleware and the derived Autoware-to-S-CORE
+     * adapter. One binding makes the S-CORE services of the integration layer
+     * the same thing as the selected middleware. The other binding makes the
+     * adapter of the integration layer the same thing as the derived adapter.
+     * The bindings state identity only: the platform stack and the
+     * integration layer both still compose these two parts. The other parts
+     * of the layer are no platform layers. The guest side is the guest
+     * operating system and the guest middleware of the platform stack. So
+     * the product has no second Android or AAOS SDV instance. For the same
+     * reason it does not compose SCORETwoDomainPhysicalSystem.
      *
      * No shared asset implements the HMI display, so no feature binding
      * resolves the hmiDisplay selection. The projection lists it among the
@@ -55,8 +59,8 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
      *
      * The definition specializes no member-product type, because the
      * configuration is not admitted. If the owner admits the member in phase
-     * 12, it specializes the new member definition, as the AAOS-integrated
-     * configured member specializes its member decision.
+     * 12, it specializes the new member definition. The AAOS-integrated
+     * configured member specializes its member definition in the same way.
      */
     part platformStack : MiddlewareAutowareSCOREReference;
     part integrationLayer : SCOREMiddlewareIntegrationLayerRealization {
@@ -78,13 +82,15 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
      * model-based-product-line-engineering/feature-models/receipts/sdv_product_line.receipt.json.
      * That receipt records the evaluation of the feature configuration
      * middlewareAutowareSCOREReference: valid, with the derived adapter
-     * autowareToSCORE, and not admitted. A new receipt needs a new binding
-     * here.
+     * autowareToSCORE, and not admitted. A receipt re-cut keeps this
+     * identity and rebinds receiptSha256 here. The pull request that rebinds
+     * it states whether the configuration's own receipt record changed.
+     * Evidence that binds MW-CONFIG-002 also records the receipt SHA-256 it
+     * ran against.
      *
-     * The guest side runs the display-capable sdv_ivi_cf guest of
-     * INC-AEBS-010 (ASM-MW-027), not the headless sdv_core_cf guest of the
-     * MW-CONFIG-001 evidence. For the SOME/IP receiver, that guest needs a
-     * rebuild with vsomeip (GAP-MW-038).
+     * The guest side is the display-capable sdv_ivi_cf guest image of
+     * INC-AEBS-010 (phase 8, hmiGuest). For the SOME/IP receiver, that guest
+     * needs a rebuild with vsomeip (GAP-MW-038).
      *
      * Configuration evidence only. This usage proves no provider, transport,
      * gateway, adapter or HMI behavior and no requirement satisfaction.
@@ -108,8 +114,8 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
    * guestMiddleware bind the variations guestOSPlatform and guestMiddleware,
    * and the requires constraints C007 to C010 constrain the guest side. C001
    * reads the main side only. MW-CONFIG-002 expresses the two-domain
-   * product: Linux with Eclipse S-CORE on the main side, which is also the
-   * KVM host, and Android with the AAOS SDV middleware on the guest side.
+   * product. Its main side is Linux with Eclipse S-CORE, and it is also the
+   * KVM host. Its guest side is Android with the AAOS SDV middleware.
    * The AAOS-integrated member MW-CONFIG-001 has the same guest side. The
    * admission of the S-CORE product is not part of this gap. It stays a
    * phase-12 decision.
@@ -136,8 +142,9 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
      * receipt: Autoware, Eclipse S-CORE and Linux on the main side, KVM,
      * Android with the AAOS SDV middleware on the guest side, and the
      * derived Autoware-to-S-CORE adapter. For the S-CORE product, this
-     * answers the twoDomainMemberRepresentationConcern of the framing. This
-     * concern is about choices, not assembly.
+     * answers the representation part of the framing's
+     * twoDomainMemberRepresentationConcern. This concern is about choices,
+     * not assembly.
      */
     subject;
     stakeholder productLineEngineer : ProductLineEngineer;
@@ -148,11 +155,11 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
   concern scoreMiddlewareProductModelAssemblyConcern : ProductModelAssemblyConcern {
     doc /*
      * Reviewers need the assembly of MW-CONFIG-002 with one instance per
-     * platform layer: the platform-stack projection and the realization of
-     * the integration layer, whose S-CORE services are the selected
-     * middleware and whose adapter is the derived adapter. Phase 10 then
-     * verifies one product. This concern is about assembled assets, not the
-     * variation space.
+     * platform layer, by identity. It holds the platform-stack projection and
+     * the realization of the integration layer. The S-CORE services of the
+     * layer are the selected middleware, and its adapter is the derived
+     * adapter. Phase 10 then verifies one product. This concern is about
+     * assembled assets, not the variation space.
      */
     subject;
     stakeholder systemArchitect : SystemArchitect;
@@ -197,10 +204,13 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
       frame scoreMiddlewareProductModelAssemblyConcern;
     }
     doc /*
-     * The configured product with its two parts, the two references of the
-     * integration layer and the two bindings that make them the selected
-     * middleware and the derived adapter of the platform stack. The phase-8
-     * allocations to the adapter are filtered out.
+     * The configured product and its two parts. The view also shows
+     * scoreServices and adapter of the integration layer, as the product
+     * redefines them, and the two bindings. The bindings make these parts the
+     * same things as the selected middleware and the derived adapter of the
+     * platform stack. The view filters out the phase-8 allocations. They
+     * target the adapter feature of the realization definition, so every
+     * usage of that definition carries them, this product included.
      */
     expose MiddlewareAutowareSCOREConfiguredProduct;
     expose MiddlewareAutowareSCOREConfiguredProduct::platformStack;

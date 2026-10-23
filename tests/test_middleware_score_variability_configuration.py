@@ -2,8 +2,9 @@
 
 The configured product pairs the platform-stack projection that the configurator
 generates from the receipt with the realization of the middleware integration
-layer. It holds one instance per platform layer, it is no member product before
-the phase-12 decision, and MW-CONFIG-002 is bound to the exact receipt. Under
+layer. It holds one instance per platform layer by identity (two bindings), it is
+no member product before the phase-12 decision, and MW-CONFIG-002 is bound to the
+exact receipt. Under
 rule 5 of the increment workflow, the four HMI-path requirements depend on the
 HMI display, declared with the requirements and outside the feature-model and
 configuration documents.
@@ -47,8 +48,10 @@ LAYER_DEFINITIONS = (
 )
 
 _NOT_CODE = re.compile(r'/\*.*?\*/|//[^\n]*|"(?:[^"\\\n]|\\.)*"', re.DOTALL)
-#: Typing: ``name : T`` or ``name : Pkg::T`` (never ``:>``, ``:>>`` or ``::``).
-_TYPED_BY = r"(?<![:\w])\w+\s*(?:\[[^\]]*\]\s*)?(?<!:):(?![:>])\s*(?:\w+\s*::\s*)*{definition}\b"
+#: Typing: ``name : T``, ``name : Pkg::T`` or ``T`` anywhere in a typing list ``name : A, P::B, T``
+#: (never ``:>``, ``:>>`` or ``::``).
+_TYPED_BY = (r"(?<![:\w])\w+\s*(?:\[[^\]]*\]\s*)?(?<!:):(?![:>])\s*(?:(?:\w+\s*::\s*)*\w+\s*,\s*)*"
+             r"(?:\w+\s*::\s*)*{definition}\b")
 
 
 def _code(path: Path) -> str:
@@ -98,8 +101,14 @@ def test_the_configured_product_pairs_the_projection_with_the_layer_realization(
 
 
 def test_the_configured_product_holds_one_instance_per_platform_layer() -> None:
-    """The layer refers to the S-CORE middleware and to the adapter that the platform stack composes."""
+    """Two bindings make the S-CORE services and the adapter of the layer the same things as the
+    selected middleware and the derived adapter of the platform stack (identity). The product body
+    declares exactly two parts and exactly these two bindings."""
     own = _own(_product_body())
+    assert re.findall(r"\b(?:ref\s+)?part\s+(\w+)\s*:", own) == ["platformStack", "integrationLayer"]
+    assert re.findall(r"\bbinding\s+(\w+)\s+bind\b", own) == [
+        "scoreServicesBoundToSelectedMiddleware", "adapterBoundToDerivedAdapter"]
+    assert len(re.findall(r"\bbind\b", own)) == 2, "a further binding in the product body"
     assert ("binding scoreServicesBoundToSelectedMiddleware bind "
             "integrationLayer.scoreServices = platformStack.middleware;") in own
     assert ("binding adapterBoundToDerivedAdapter bind "
@@ -118,7 +127,8 @@ def test_the_configured_product_is_no_member_product_before_phase_12() -> None:
 
 
 def test_mw_config_002_is_bound_to_the_exact_receipt() -> None:
-    """The phase-10 evidence binds MW-CONFIG-002, so a new receipt needs a new binding in the slice."""
+    """The phase-10 evidence binds MW-CONFIG-002, so a receipt re-cut keeps the identity and rebinds
+    receiptSha256 in the slice."""
     text = SLICE.read_text(encoding="utf-8")
     holders = sorted(path.relative_to(ROOT).as_posix() for root in MODEL_ROOTS for path in root.rglob("*.sysml")
                      if "<'MW-CONFIG-002'>" in path.read_text(encoding="utf-8"))
@@ -130,7 +140,8 @@ def test_mw_config_002_is_bound_to_the_exact_receipt() -> None:
     committed = hashlib.sha256(RECEIPT.read_bytes()).hexdigest()
     assert bound == header == committed, (
         f"MW-CONFIG-002 binds the receipt {bound}, the projection names {header}, and the committed receipt "
-        f"is {committed}: bind MW-CONFIG-002 to the new receipt and record the change")
+        f"is {committed}: rebind receiptSha256 of MW-CONFIG-002 to the new receipt, and state in the pull "
+        f"request whether the configuration's own receipt record changed")
 
 
 def test_the_receipt_records_what_the_configured_product_states() -> None:

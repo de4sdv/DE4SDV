@@ -227,9 +227,9 @@ In progress, or not there yet:
 
 - `INC-MW-011`, Eclipse S-CORE as the middleware layer: phases 0 to 8 are
   merged. Variability and configuration (phase 9) gave the platform a guest
-  side and added the configured product `MW-CONFIG-002`, which stays valid
-  and not admitted until the phase-12 decision. Verification and evidence
-  (phase 10) is next, and phases 11 and 12 are still to come
+  side. It also added the configured product `MW-CONFIG-002`, which is valid
+  and not admitted; admission is the owner's phase-12 decision. Verification
+  and evidence (phase 10) is next, and phases 11 and 12 are still to come
   ([framing model](../../textual-notation-of-model/packages/features/middleware/middleware_score_framing.sysml),
   [configured product](../../textual-notation-of-model/packages/features/middleware/middleware_score_variability_configuration.sysml));
 - executable method checks for the phases that have none yet;

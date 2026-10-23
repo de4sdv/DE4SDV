@@ -17,7 +17,7 @@
  * the derived autowareToSCORE variant (DE4SDV_MiddlewareSCOREFraming). So
  * each requirement applies to a member product that selects Autoware and
  * Eclipse S-CORE. The HMI-path requirements REQ-MW-014, REQ-MW-015,
- * REQ-MW-016 and REQ-MW-019 also depend on the HMI display (hmiDisplay), so
+ * REQ-MW-016 and REQ-MW-019 also depend on the HMI display (hmiDisplay). So
  * they apply only to a member product that also selects the display. Phase
  * 9 added these four dependencies (owner decision of 2026-10-22).
  *
@@ -224,9 +224,9 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
-  /* Rule 5 of the increment workflow: the four HMI-path requirements above
-   * apply only to a member product that also selects the HMI display (owner
-   * decision of 2026-10-22, INC-MW-011 phase 9). */
+  /* Rule 5 of the increment workflow. The four HMI-path requirements above
+   * apply only to a member product that also selects the HMI display. Owner
+   * decision of 2026-10-22, INC-MW-011 phase 9. */
   dependency reqDeliverAEBSSignalsInSourceOrderOnHMIDisplay
     from reqDeliverAEBSSignalsInSourceOrder
     to DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::capabilities::hmiDisplay;

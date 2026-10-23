@@ -189,8 +189,11 @@ KNOWN_PRESENTATION_NOTES = {
         "The two boxes marked `=` are the bindings. Each shows its two ends, "
         "`thisThing` and `sameThing`, without their targets. The source binds "
         "`integrationLayer.scoreServices` to `platformStack.middleware` and "
-        "`integrationLayer.adapter` to `platformStack.applicationMiddlewareAdapter`; "
-        "the two «ref part» boxes are those references of the integration layer."
+        "`integrationLayer.adapter` to `platformStack.applicationMiddlewareAdapter`. "
+        "The two «ref part» boxes are `scoreServices` and `adapter` of the "
+        "integration layer, as the product redefines them. The bindings state "
+        "identity only: the platform stack and the integration layer both still "
+        "compose these parts."
     ),
     "scoreTwoDomainOperationalContextView": (
         "SysIDE lists the actions of the signal flow `scoreTwoDomainSignalFlow` "

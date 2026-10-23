@@ -109,10 +109,11 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * that is both an S-CORE application and a ROS 2 node (GAP-MW-035).
        * Phase 9 typed it by AutowareToSCOREAdapter, the definition of
        * autowareToSCORE, the adapter variant that the feature model derives
-       * for Autoware with Eclipse S-CORE. So its abort requirement REQ-MW-018
-       * traces to the derived variant (owner decision of 2026-10-21). The
-       * typing adds the two layer ports of the adapter layer. This slice does
-       * not connect them: the adapter's own ports carry its exchanges.
+       * for Autoware with Eclipse S-CORE. So the process that REQ-MW-018
+       * names is typed by the definition of the derived variant (owner
+       * decision of 2026-10-21). The typing adds the two layer ports of the
+       * adapter layer. This slice does not connect them: the adapter's own
+       * ports carry its exchanges.
        * Speed: it receives the reference vehicle speed as an mw::com proxy
        * and publishes each finite sample once as an Autoware VelocityReport,
        * which is not a VSS signal, whose longitudinal velocity in m/s is the
