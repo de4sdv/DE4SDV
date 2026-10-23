@@ -1423,6 +1423,111 @@ def test_anonymous_usage_indexed(tmp_path):
     assert refs[0].parent_line == uc.line
 
 
+def _parents(index: dict) -> dict[str, tuple[str, int]]:
+    """Declaration name -> (parent name, parent line) of the source entries."""
+    return {
+        name: (r.parent_name, r.parent_line)
+        for name, refs in index.items()
+        for r in refs
+        if r.anchor.startswith("src-")
+    }
+
+
+def test_package_after_a_sibling_usage_keeps_the_parent_of_its_braces(tmp_path):
+    """A package that follows a sibling declaration is a member of the
+    package that contains both. The members after that package keep their
+    parent too. All members get one depth: the number of open braces before
+    the declaration, plus 1. The Ask evidence names the same owner and the
+    same children."""
+    from tools.sysml_html_viewer.ask_model import build_evidence
+
+    f = tmp_path / "depth.sysml"
+    f.write_text(
+        "package Outer {\n"
+        "  part def A {\n"
+        "    part x;\n"
+        "  }\n"
+        "  package Inner {\n"
+        "    part def B;\n"
+        "  }\n"
+        "  part def C;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    mf = parse_file(f, tmp_path)
+    assert [(m.name, m.depth) for m in mf.members] == [
+        ("Outer", 1), ("A", 2), ("x", 3), ("Inner", 2), ("B", 3), ("C", 2)]
+    by_name = {m.name: m for m in mf.members}
+    assert [c.name for c in by_name["Outer"].children] == ["A", "Inner", "C"]
+    assert [c.name for c in by_name["A"].children] == ["x"]
+    assert [c.name for c in by_name["Inner"].children] == ["B"]
+
+    index = build_member_index([mf])
+    assert _parents(index) == {
+        "Outer": ("", 0), "A": ("Outer", 1), "x": ("A", 2),
+        "Inner": ("Outer", 1), "B": ("Inner", 5), "C": ("Outer", 1)}
+    assert build_evidence(index["C"][0], [mf])["element"]["owner"] == "Outer"
+    assert build_evidence(index["Inner"][0], [mf])["element"]["owner"] == "Outer"
+    assert build_evidence(index["A"][0], [mf])["child_elements"] == ["x"]
+    assert build_evidence(index["Outer"][0], [mf])["child_elements"] == ["A", "Inner", "C"]
+
+
+def test_package_after_a_sibling_package_keeps_the_parent_of_its_braces(tmp_path):
+    """Two sibling packages are members of the package that contains them,
+    and the declaration after them is a member of that package too."""
+    f = tmp_path / "siblings.sysml"
+    f.write_text(
+        "package Outer {\n"
+        "  package First {\n"
+        "    part def A;\n"
+        "  }\n"
+        "  package Second {\n"
+        "    part def B;\n"
+        "  }\n"
+        "  part def C;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    mf = parse_file(f, tmp_path)
+    assert [(m.name, m.depth) for m in mf.members] == [
+        ("Outer", 1), ("First", 2), ("A", 3), ("Second", 2), ("B", 3), ("C", 2)]
+    assert _parents(build_member_index([mf])) == {
+        "Outer": ("", 0), "First": ("Outer", 1), "A": ("First", 2),
+        "Second": ("Outer", 1), "B": ("Second", 5), "C": ("Outer", 1)}
+
+
+def test_top_level_declarations_are_index_roots(tmp_path):
+    """A declaration outside all braces has no parent, whatever its kind.
+    A second top-level package is not a member of the first. A file
+    without a package, such as a derived product model with one top-level
+    part definition, has that definition in the index with its members."""
+    two = tmp_path / "two_packages.sysml"
+    two.write_text(
+        "package One {\n"
+        "  part def A;\n"
+        "}\n"
+        "package Two {\n"
+        "  part def B;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    product = tmp_path / "product.sysml"
+    product.write_text(
+        "private import Lib::Base;\n"
+        "\n"
+        "part def Member :> Base {\n"
+        "  part slot;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    assert _parents(build_member_index([parse_file(two, tmp_path)])) == {
+        "One": ("", 0), "A": ("One", 1), "Two": ("", 0), "B": ("Two", 4)}
+    product_mf = parse_file(product, tmp_path)
+    assert [(m.name, m.depth) for m in product_mf.members] == [("Member", 1), ("slot", 2)]
+    assert _parents(build_member_index([product_mf])) == {
+        "Member": ("", 0), "slot": ("Member", 3)}
+
+
 def test_svg_label_context_resolution():
     """Compartment labels resolve via the current context element, and
     qualified expose labels resolve to their member, not the package."""

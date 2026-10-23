@@ -86,7 +86,7 @@ class Member:
 
     kind: str
     name: str
-    depth: int          # brace depth at which the member lives
+    depth: int          # braces open before the declaration, plus 1
     line: int           # 1-based line of the declaration
     doc: str = ""       # attached doc /* ... */ text (raw, unescaped)
     type_name: str = "" # declared typing (`part x : T;` -> "T"), usages only
@@ -339,11 +339,15 @@ def parse_file(path: Path, repo_root: Path) -> ModelFile:
     text = path.read_text(encoding="utf-8")
     mf = ModelFile(path=path, rel_path=path.relative_to(repo_root).as_posix())
 
-    depth = 0
+    # open_braces counts the braces that are open before the line. Every
+    # member gets the same depth from it, packages too: open_braces + 1. A
+    # declaration outside all braces has depth 1 and is an index root.
+    open_braces = 0
     for lineno, raw in enumerate(text.splitlines(), start=1):
         m = DECL_RE.match(raw)
         opens = raw.count("{")
         closes = raw.count("}")
+        depth = open_braces + 1
         if m:
             kind = m.group("kind").strip()
             name = m.group("name")
@@ -361,10 +365,8 @@ def parse_file(path: Path, repo_root: Path) -> ModelFile:
                 # `flow from A to B;` — no declaration
                 pass
             elif kind == "package":
-                decl_depth = depth + 1
-                depth += 1
                 mf.members.append(
-                    Member(kind=kind, name=name, depth=decl_depth, line=lineno)
+                    Member(kind=kind, name=name, depth=depth, line=lineno)
                 )
             else:
                 mf.members.append(
@@ -385,11 +387,9 @@ def parse_file(path: Path, repo_root: Path) -> ModelFile:
                     # resolve to the declaration (with its doc)
                     akind = anon.group("kind").strip()
                     mf.members.append(Member(kind=akind, name=akind, depth=depth, line=lineno))
-        depth += opens - closes
-        if depth < 0:
-            depth = 0
+        open_braces = max(0, open_braces + opens - closes)
 
-    # member tree: parent = nearest preceding member with depth-1
+    # member tree: parent = nearest preceding member with a smaller depth
     stack: list[tuple[int, Member]] = []
     for m in mf.members:
         while stack and stack[-1][0] >= m.depth:
