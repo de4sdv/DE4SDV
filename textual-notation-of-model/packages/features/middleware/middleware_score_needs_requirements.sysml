@@ -202,7 +202,7 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     attribute :>> source = "NEED-MW-002; scope item hmiPathInScope (the one-way path); scenario SC-MW-004";
     attribute :>> rationale = "With no application data flowing back, a running, stalled or failed guest cannot influence the AEBS stack or the middleware on the host; transport control, such as acknowledgements, is not application data.";
     attribute :>> verificationMethod = "inspect";
-    attribute :>> successCriteria = "Met when inspection of the interface definition of the HMI path and of the configuration of the S-CORE services, the adapter, the host relay and the SOME/IP receiver finds no receiver on the Linux host for application data from the AAOS SDV guest.";
+    attribute :>> successCriteria = "Met when inspection of the interface definition of the HMI path and of the configuration of the S-CORE services, the adapter, gatewayd, someipd and the SOME/IP receiver finds no receiver on the Linux host for application data from the AAOS SDV guest.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
@@ -222,7 +222,7 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     attribute :>> source = "NEED-MW-003; ASM-MW-028; refines the direct vehicle-command path option of REQ-MW-006 (reqIsolateSafetyPath) for the S-CORE member";
     attribute :>> rationale = "The command keeps its direct path from the AEB node to the vehicle command gate on the Linux host. This does not define the failure-containment criteria of REQ-MW-006, so GAP-MW-029 stays open; REQ-MW-020 keeps the reference vehicle speed carried over S-CORE off the velocity input of the AEB node.";
     attribute :>> verificationMethod = "inspect";
-    attribute :>> successCriteria = "Met when inspection of the S-CORE service configuration, the adapter interfaces, the host relay and the SOME/IP receiver, and the interface definition of the HMI path finds no element that carries the AEBS emergency intervention command, and the path of that command from the AEB node to the vehicle command gate on the Linux host contains no element of the middleware integration layer.";
+    attribute :>> successCriteria = "Met when inspection of the S-CORE service configuration, the adapter interfaces, gatewayd, someipd and the SOME/IP receiver, and the interface definition of the HMI path finds no element that carries the AEBS emergency intervention command, and the path of that command from the AEB node to the vehicle command gate on the Linux host contains no element of the middleware integration layer.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
@@ -317,8 +317,10 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
      * the selected operating system, hypervisor and hardware, or to argue
      * equivalence; phase 10 does so for the Linux host.
      * aou_req__platform__bug_report asks the integrator to report
-     * integration bugs to the supplier and to S-CORE; it is not met while
-     * engagement with the S-CORE project is out of scope.
+     * integration bugs to the supplier and to S-CORE. It is not met yet,
+     * because the integration happens in phase 10. On 2026-10-22, DE4SDV
+     * reported upstream the defects that its gateway feasibility run found
+     * (GAP-MW-036).
      * aou_req__platform__posix_operating_system holds only as far as the
      * Linux host of ASM-MW-026 runs a configuration that S-CORE v0.9.0
      * supports; its conformance to IEEE Std 1003.1 is not established. The
@@ -338,12 +340,14 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
      * so every such error stops the adapter; the unavailable indication of
      * REQ-MW-004 must therefore come from outside the adapter.
      * Middleware baseline items that face this member without being acted
-     * on here: N-MW-005 (engagement with upstream maintainers) holds but is
-     * not acted on while engagement with the S-CORE project is out of
-     * scope; REQ-MW-008 and N-MW-009 (authenticated service binding across a
-     * trust boundary, GAP-MW-012) now face the hypervisor boundary between
-     * the Linux host and the AAOS SDV guest, whose trust boundary stays
-     * undefined. No security claim is made.
+     * on here: N-MW-005 (engagement with upstream maintainers) holds.
+     * Outside this slice, its only action for S-CORE is the defect reports
+     * of 2026-10-22 (GAP-MW-036). Deeper engagement stays out of scope
+     * (scoreUpstreamEngagementOutOfScope). REQ-MW-008 and N-MW-009
+     * (authenticated service binding across a trust boundary, GAP-MW-012)
+     * now face the hypervisor boundary between the Linux host and the AAOS
+     * SDV guest, whose trust boundary stays undefined. No security claim is
+     * made.
      */
   }
 
