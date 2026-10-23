@@ -197,14 +197,13 @@ html, body {
 /* On a narrow screen a guide table keeps its width: the cell text wraps,
  * also inside a long identifier, instead of the table scrolling sideways.
  * On a wider screen the cells keep the default, so that the table makes a
- * column wide enough for its longest word and breaks no word. */
+ * column wide enough for its longest word and breaks no word. On a phone
+ * the rows stack (carbon.css, after its table rules). */
 @media (max-width: 900px) {
   .help-content th, .help-content td { overflow-wrap: anywhere; }
 }
 @media (max-width: 640px) {
   .help-page { padding: 0 14px 48px; }
-  .help-content th, .help-content td { padding: 6px 8px; }
-  .help-content th { white-space: normal; }
 }
 
 /* viewpoint names in view metadata: hover shows the SAF description */

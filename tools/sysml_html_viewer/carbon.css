@@ -181,6 +181,16 @@ select:focus-visible, input:focus-visible {
 .help-content tr:nth-child(even) td { background: transparent; }
 .help-content tbody tr:hover td { background: var(--accent-soft); }
 .help-content hr { border-top: 1px solid var(--line); }
+/* On a phone a guide table stacks: each row is a block, and each cell
+   shows the name of its column (data-label, from the header) above its
+   text. The header row is then not shown. */
+@media (max-width: 640px) {
+  .help-content table, .help-content tbody, .help-content tr, .help-content td { display: block; width: auto; }
+  .help-content thead { display: none; }
+  .help-content tr { padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .help-content td { padding: 2px 0; border: none; }
+  .help-content td[data-label]::before { content: attr(data-label); display: block; font-size: 12px; color: var(--muted); }
+}
 
 /* ---------- revision picker ---------- */
 .ref-picker-label { font-size: 12px; color: var(--muted); letter-spacing: 0.32px; text-transform: none; }
@@ -264,7 +274,6 @@ mark.tree-hl { background: #ff832b; color: #161616; border-radius: 0; padding: 0
 }
 @media (max-width: 640px) {
   .card { padding: 14px 12px; }
-  .help-content th, .help-content td { padding: 6px 8px; }
 }
 
 /* long file paths are single unbreakable tokens (underscores, slashes);

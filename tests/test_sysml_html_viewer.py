@@ -444,8 +444,10 @@ def test_elements_page_renders_guide_markdown(tmp_path):
     assert "<blockquote><p>A quoted note with <strong>bold</strong>.</p></blockquote>" in html
     assert "<hr>" in html
     assert "<table><thead><tr><th>Kind</th><th>Used for</th></tr></thead><tbody>" in html
-    assert "<td><code>part def</code></td><td>structure</td>" in html
-    assert "<td><code>dependency</code></td><td>trace links</td>" in html
+    assert ('<td data-label="Kind"><code>part def</code></td>'
+            '<td data-label="Used for">structure</td>') in html
+    assert ('<td data-label="Kind"><code>dependency</code></td>'
+            '<td data-label="Used for">trace links</td>') in html
     assert "No element guide found" not in html
     index = (out / "index.html").read_text(encoding="utf-8")
     assert '<a class="site-nav-link" href="elements.html">Elements</a>' in index
@@ -505,6 +507,32 @@ def test_guide_markdown_list_item_continues_on_its_next_lines():
         "<ol><li>First step, on two lines.</li><li>Second step.</li></ol>",
         "<p>After the lists.</p>",
     ]
+
+
+def test_guide_table_cells_carry_the_name_of_their_column():
+    """Each body cell of a guide table has the text of its column header in
+    data-label, without markdown and escaped for the attribute. On a phone
+    the rows stack, and each cell shows that name above its text. A cell
+    without a header (a row longer than the header) has no data-label."""
+    from tools.sysml_html_viewer.generate import _render_help_md
+
+    html = _render_help_md(
+        "| **Kind** | Used `for` | [Example](x.md) | A \"quoted\" <name> |\n"
+        "|---|---|---|---|\n"
+        "| `part def` | structure | `PartA` | q | extra |\n"
+    )
+    assert html == (
+        "<table><thead><tr><th><strong>Kind</strong></th><th>Used <code>for</code></th>"
+        '<th><a href="x.md" rel="noopener">Example</a></th>'
+        "<th>A &quot;quoted&quot; &lt;name&gt;</th></tr></thead><tbody><tr>"
+        '<td data-label="Kind"><code>part def</code></td>'
+        '<td data-label="Used for">structure</td>'
+        '<td data-label="Example"><code>PartA</code></td>'
+        '<td data-label="A &quot;quoted&quot; &lt;name&gt;">q</td>'
+        "<td>extra</td></tr></tbody></table>"
+    )
+    css = (REPO_ROOT / "tools/sysml_html_viewer/carbon.css").read_text(encoding="utf-8")
+    assert "td[data-label]::before { content: attr(data-label);" in css
 
 
 def _git(repo: Path, *args: str) -> subprocess.CompletedProcess:

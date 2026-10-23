@@ -295,7 +295,9 @@ as tokens under `:root`.
   the page has one (the file path, the view name, the view metadata), else
   between two characters. The view metadata table has fixed columns. A
   code block in a guide page or in an Ask answer wraps too. A guide table
-  breaks a word only below 900 px. The one exception is the full-screen
+  breaks a word only below 900 px. On a phone (640 px and below) its rows
+  stack, and each cell shows the name of its column (`data-label`) above
+  its text. The one exception is the full-screen
   diagram: it shows the diagram at its native size, and you pan it in its
   box. A narrow-screen rule comes after its base rule (a test checks
   this): in the cascade, a narrow-screen rule before its base rule has no

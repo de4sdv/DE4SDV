@@ -629,8 +629,16 @@ def _render_help_md(text: str, link_path: str = "") -> str:
         cells = "".join(
             f"<th>{_inline_md(c, link_path)}</th>" for c in header
         )
+        # each body cell names its column (data-label): on a phone the rows
+        # stack, and the stylesheet shows that name above the cell text
+        labels = [_plain_md(c) for c in header]
+
+        def td(i: int, c: str) -> str:
+            label = f' data-label="{_esc(labels[i])}"' if i < len(labels) and labels[i] else ""
+            return f"<td{label}>{_inline_md(c, link_path)}</td>"
+
         rows_html = "".join(
-            "<tr>" + "".join(f"<td>{_inline_md(c, link_path)}</td>" for c in row) + "</tr>"
+            "<tr>" + "".join(td(i, c) for i, c in enumerate(row)) + "</tr>"
             for row in body
         )
         out.append(f"<table><thead><tr>{cells}</tr></thead><tbody>{rows_html}</tbody></table>")
@@ -725,6 +733,13 @@ def _render_help_md(text: str, link_path: str = "") -> str:
     if in_code:
         out.append("<pre><code>" + _esc("\n".join(code_buf)) + "</code></pre>")
     return "\n".join(out)
+
+
+def _plain_md(s: str) -> str:
+    """The text of an inline markdown string: the text of a link without its
+    target, and no code, bold or italic markers."""
+    s = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", s)
+    return re.sub(r"[`*]", "", s).strip()
 
 
 def _inline_md(s: str, link_path: str = "") -> str:
