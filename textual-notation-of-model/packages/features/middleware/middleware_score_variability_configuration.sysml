@@ -41,14 +41,14 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
      * Autoware-based AEBS stack, the vehicle-speed provider and the HMI
      * application in the guest.
      *
-     * One instance per layer, by identity. The platform stack composes the
+     * One instance and one owner per layer. The platform stack composes the
      * selected Eclipse S-CORE middleware and the derived Autoware-to-S-CORE
-     * adapter. One binding makes the S-CORE services of the integration layer
-     * the same thing as the selected middleware. The other binding makes the
-     * adapter of the integration layer the same thing as the derived adapter.
-     * The bindings state identity only: the platform stack and the
-     * integration layer both still compose these two parts. The other parts
-     * of the layer are no platform layers. The guest side is the guest
+     * adapter. The integration layer only refers to its S-CORE services and
+     * to its adapter (phase 8). One binding makes the S-CORE services of the
+     * layer the same thing as the selected middleware. The other binding
+     * makes the adapter of the layer the same thing as the derived adapter.
+     * So the platform stack is the only owner of both. The other parts of
+     * the layer are no platform layers. The guest side is the guest
      * operating system and the guest middleware of the platform stack. So
      * the product has no second Android or AAOS SDV instance. For the same
      * reason it does not compose SCORETwoDomainPhysicalSystem.
@@ -63,10 +63,7 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
      * configured member specializes its member definition in the same way.
      */
     part platformStack : MiddlewareAutowareSCOREReference;
-    part integrationLayer : SCOREMiddlewareIntegrationLayerRealization {
-      ref part :>> scoreServices;
-      ref part :>> adapter;
-    }
+    part integrationLayer : SCOREMiddlewareIntegrationLayerRealization;
     binding scoreServicesBoundToSelectedMiddleware
       bind integrationLayer.scoreServices = platformStack.middleware;
     binding adapterBoundToDerivedAdapter
@@ -154,12 +151,13 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
 
   concern scoreMiddlewareProductModelAssemblyConcern : ProductModelAssemblyConcern {
     doc /*
-     * Reviewers need the assembly of MW-CONFIG-002 with one instance per
-     * platform layer, by identity. It holds the platform-stack projection and
+     * Reviewers need the assembly of MW-CONFIG-002 with one instance and one
+     * owner per platform layer. It holds the platform-stack projection and
      * the realization of the integration layer. The S-CORE services of the
      * layer are the selected middleware, and its adapter is the derived
-     * adapter. Phase 10 then verifies one product. This concern is about
-     * assembled assets, not the variation space.
+     * adapter; the platform stack owns both. Phase 10 then verifies one
+     * product. This concern is about assembled assets, not the variation
+     * space.
      */
     subject;
     stakeholder systemArchitect : SystemArchitect;
@@ -204,19 +202,17 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
       frame scoreMiddlewareProductModelAssemblyConcern;
     }
     doc /*
-     * The configured product and its two parts. The view also shows
-     * scoreServices and adapter of the integration layer, as the product
-     * redefines them, and the two bindings. The bindings make these parts the
-     * same things as the selected middleware and the derived adapter of the
-     * platform stack. The view filters out the phase-8 allocations. They
-     * target the adapter feature of the realization definition, so every
-     * usage of that definition carries them, this product included.
+     * The configured product, its two parts and the two bindings. The
+     * bindings make the S-CORE services and the adapter of the integration
+     * layer, both references, the same things as the selected middleware and
+     * the derived adapter of the platform stack, their only owner. The view
+     * filters out the phase-8 allocations. They target the adapter feature
+     * of the realization definition, so every usage of that definition
+     * carries them, this product included.
      */
     expose MiddlewareAutowareSCOREConfiguredProduct;
     expose MiddlewareAutowareSCOREConfiguredProduct::platformStack;
     expose MiddlewareAutowareSCOREConfiguredProduct::integrationLayer;
-    expose MiddlewareAutowareSCOREConfiguredProduct::integrationLayer::scoreServices;
-    expose MiddlewareAutowareSCOREConfiguredProduct::integrationLayer::adapter;
     expose MiddlewareAutowareSCOREConfiguredProduct::scoreServicesBoundToSelectedMiddleware;
     expose MiddlewareAutowareSCOREConfiguredProduct::adapterBoundToDerivedAdapter;
     filter not (@ SysML::AllocationUsage);

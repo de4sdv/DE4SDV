@@ -2,11 +2,12 @@
 
 The configured product pairs the platform-stack projection that the configurator
 generates from the receipt with the realization of the middleware integration
-layer. It holds one instance per platform layer by identity (two bindings), it is
-no member product before the phase-12 decision, and MW-CONFIG-002 is bound to the
-exact receipt. Under
-rule 5 of the increment workflow, the four HMI-path requirements depend on the
-HMI display, declared with the requirements and outside the feature-model and
+layer. It holds one instance and one owner per platform layer: the layer declares
+its S-CORE services and its adapter as references, and two bindings make them the
+platform stack's parts (owner decision of 2026-10-23). It is no member product
+before the phase-12 decision, and MW-CONFIG-002 is bound to the exact receipt.
+Under rule 5 of the increment workflow, the four HMI-path requirements depend on
+the HMI display, declared with the requirements and outside the feature-model and
 configuration documents.
 
 These are lexical source guards; licensed Syside validates the model in CI.
@@ -87,6 +88,23 @@ def _own(body: str) -> str:
     return " ".join("".join(kept).split())
 
 
+def _heads(body: str) -> str:
+    """Like :func:`_own`, but each nested body stays as ``{}``, so a declaration head ends at ``;`` or ``{``."""
+    kept, depth = [], 0
+    for character in body[1:-1]:
+        if character == "{":
+            depth += 1
+            if depth == 1:
+                kept.append("{")
+        elif character == "}":
+            depth -= 1
+            if depth == 0:
+                kept.append("}")
+        elif depth == 0:
+            kept.append(character)
+    return " ".join("".join(kept).split())
+
+
 def _product_body() -> str:
     return _body(_code(SLICE), r"\bpart\s+def\s+MiddlewareAutowareSCOREConfiguredProduct\s*\{")
 
@@ -95,15 +113,30 @@ def test_the_configured_product_pairs_the_projection_with_the_layer_realization(
     body = _product_body()
     own = _own(body)
     assert "part platformStack : MiddlewareAutowareSCOREReference;" in own
-    assert "part integrationLayer : SCOREMiddlewareIntegrationLayerRealization " in own
-    layer = _body(body, r"\bpart\s+integrationLayer\s*:\s*SCOREMiddlewareIntegrationLayerRealization\s*\{")
-    assert " ".join(layer.split()) == "{ ref part :>> scoreServices; ref part :>> adapter; }"
+    assert "part integrationLayer : SCOREMiddlewareIntegrationLayerRealization;" in own
+    assert ":>>" not in body, "the product redefines no feature of its parts"
 
 
-def test_the_configured_product_holds_one_instance_per_platform_layer() -> None:
-    """Two bindings make the S-CORE services and the adapter of the layer the same things as the
-    selected middleware and the derived adapter of the platform stack (identity). The product body
-    declares exactly two parts and exactly these two bindings."""
+def test_the_layer_refers_to_its_s_core_services_and_its_adapter() -> None:
+    """The realization owns no platform layer: its S-CORE services and its adapter are references
+    (owner decision of 2026-10-23). The phase-8 physical context composes them once, in the Linux host,
+    and binds the layer's references to them."""
+    realization = _heads(_body(_code(PHYSICAL), r"\bpart\s+def\s+SCOREMiddlewareIntegrationLayerRealization\b[^{;]*\{"))
+    layered = [(match[1], match[2]) for match in re.finditer(r"\b(ref\s+)?part\s+(\w+)\s*:\s*([^{;]*)", realization)
+               if {name.strip().rsplit("::", 1)[-1] for name in match[3].split(",")} & set(LAYER_DEFINITIONS)]
+    assert layered == [("ref ", "adapter"), ("ref ", "scoreServices")]
+    context = _body(_code(PHYSICAL), r"\bpart\s+def\s+SCORETwoDomainPhysicalSystem\s*\{")
+    host = _own(_body(context, r"\bpart\s+linuxHost\s*\{"))
+    assert "part scoreServices : EclipseSCORE" in host and "part adapter : AutowareToSCOREAdapter" in host
+    own = _own(context)
+    assert "binding scoreServicesBoundToLinuxHost bind integrationLayer.scoreServices = linuxHost.scoreServices;" in own
+    assert "binding adapterBoundToLinuxHost bind integrationLayer.adapter = linuxHost.adapter;" in own
+
+
+def test_the_configured_product_holds_one_instance_and_one_owner_per_platform_layer() -> None:
+    """Two bindings make the layer's references, its S-CORE services and its adapter, the same things as
+    the selected middleware and the derived adapter that the platform stack composes, their only owner.
+    The product body declares exactly two parts and exactly these two bindings."""
     own = _own(_product_body())
     assert re.findall(r"\b(?:ref\s+)?part\s+(\w+)\s*:", own) == ["platformStack", "integrationLayer"]
     assert re.findall(r"\bbinding\s+(\w+)\s+bind\b", own) == [
@@ -160,9 +193,9 @@ def test_the_receipt_records_what_the_configured_product_states() -> None:
 
 
 def test_the_layer_adapter_is_typed_by_the_derived_adapter_variant() -> None:
-    """REQ-MW-018 traces to the derived variant through the adapter process."""
+    """The process that REQ-MW-018 names is typed by the definition of the derived variant."""
     realization = _body(_code(PHYSICAL), r"\bpart\s+def\s+SCOREMiddlewareIntegrationLayerRealization\b[^{;]*\{")
-    assert re.search(r"\bpart adapter : PhysicalAllocationElement, AutowareToSCOREAdapter\s*\{", realization)
+    assert re.search(r"\bref part adapter : PhysicalAllocationElement, AutowareToSCOREAdapter\s*\{", realization)
 
 
 def test_the_hmi_path_requirements_depend_on_the_hmi_display() -> None:

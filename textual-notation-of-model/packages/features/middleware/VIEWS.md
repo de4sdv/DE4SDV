@@ -430,7 +430,7 @@ Reviewers, and the safety expert who reviews GAP-MW-033, need the exchanges betw
 - **Render:** `asInterconnectionDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
-- **Presentation note:** The four «connection» boxes above the layer are its connections to the context parts of `SCORETwoDomainPhysicalSystem`, drawn as nodes with their source and target ends because one end of each lies outside the view; none of them reaches the velocity input of the AEB node. The S-CORE part holds the Launch Manager, gatewayd and someipd, and it shows the platform-stack ports it inherits from `MiddlewareLayer`, unconnected. The adapter shows the two ports it inherits from `ApplicationMiddlewareAdapterLayer` through its typing by `AutowareToSCOREAdapter`, unconnected too: the processes link S-CORE communication and connect to each other directly. Domain placement is stated in the process docs and the connection name; the view does not draw the host/guest boundary.
+- **Presentation note:** The four «connection» boxes above the layer are its connections to the context parts of `SCORETwoDomainPhysicalSystem`, drawn as nodes with their source and target ends because one end of each lies outside the view; none of them reaches the velocity input of the AEB node. The S-CORE part and the adapter are references of the layer («ref part»): the Linux host of `SCORETwoDomainPhysicalSystem` owns them. The S-CORE part holds the Launch Manager, gatewayd and someipd, and it shows the platform-stack ports it inherits from `MiddlewareLayer`, unconnected. The adapter shows the two ports it inherits from `ApplicationMiddlewareAdapterLayer` through its typing by `AutowareToSCOREAdapter`, unconnected too: the processes link S-CORE communication and connect to each other directly. Domain placement is stated in the process docs and the connection name; the view does not draw the host/guest boundary.
 
 ![scoreMiddlewareLayerInternalExchangeView](diagrams/diagram-scoreMiddlewareLayerInternalExchangeView.svg)
 
@@ -452,16 +452,16 @@ Reviewers need the variant selections of MW-CONFIG-002 in the platform-stack pro
 
 ### `scoreMiddlewareProductModelAssemblyView`
 
-Reviewers need the assembly of MW-CONFIG-002 with one instance per platform layer, by identity.
+Reviewers need the assembly of MW-CONFIG-002 with one instance and one owner per platform layer.
 
 - **Source:** `middleware_score_variability_configuration.sysml`
 - **Viewpoint:** `selectedProductModelAssemblyViewpoint` (`ProductModelAssemblyViewpoint`)
 - **Concern:** `scoreMiddlewareProductModelAssemblyConcern`
-- **Exposes:** `MiddlewareAutowareSCOREConfiguredProduct`, `MiddlewareAutowareSCOREConfiguredProduct::platformStack`, `MiddlewareAutowareSCOREConfiguredProduct::integrationLayer`, `MiddlewareAutowareSCOREConfiguredProduct::integrationLayer::scoreServices`, `MiddlewareAutowareSCOREConfiguredProduct::integrationLayer::adapter`, `MiddlewareAutowareSCOREConfiguredProduct::scoreServicesBoundToSelectedMiddleware`, `MiddlewareAutowareSCOREConfiguredProduct::adapterBoundToDerivedAdapter`
+- **Exposes:** `MiddlewareAutowareSCOREConfiguredProduct`, `MiddlewareAutowareSCOREConfiguredProduct::platformStack`, `MiddlewareAutowareSCOREConfiguredProduct::integrationLayer`, `MiddlewareAutowareSCOREConfiguredProduct::scoreServicesBoundToSelectedMiddleware`, `MiddlewareAutowareSCOREConfiguredProduct::adapterBoundToDerivedAdapter`
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
-- **Presentation note:** The two boxes marked `=` are the bindings. Each shows its two ends, `thisThing` and `sameThing`, without their targets. The source binds `integrationLayer.scoreServices` to `platformStack.middleware` and `integrationLayer.adapter` to `platformStack.applicationMiddlewareAdapter`. The two «ref part» boxes are `scoreServices` and `adapter` of the integration layer, as the product redefines them. The bindings state identity only: the platform stack and the integration layer both still compose these parts.
+- **Presentation note:** The two boxes marked `=` are the bindings. Each shows its two ends, `thisThing` and `sameThing`, without their targets. The source binds `integrationLayer.scoreServices` to `platformStack.middleware` and `integrationLayer.adapter` to `platformStack.applicationMiddlewareAdapter`. Both ends on the layer side are references, so the platform stack is the only owner of these parts.
 
 ![scoreMiddlewareProductModelAssemblyView](diagrams/diagram-scoreMiddlewareProductModelAssemblyView.svg)
 

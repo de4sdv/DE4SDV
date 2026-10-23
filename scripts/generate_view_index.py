@@ -176,6 +176,8 @@ KNOWN_PRESENTATION_NOTES = {
         "context parts of `SCORETwoDomainPhysicalSystem`, drawn as nodes with "
         "their source and target ends because one end of each lies outside the "
         "view; none of them reaches the velocity input of the AEB node. The "
+        "S-CORE part and the adapter are references of the layer («ref part»): "
+        "the Linux host of `SCORETwoDomainPhysicalSystem` owns them. The "
         "S-CORE part holds the Launch Manager, gatewayd and someipd, and it "
         "shows the platform-stack ports it inherits from "
         "`MiddlewareLayer`, unconnected. The adapter shows the two ports it "
@@ -190,10 +192,8 @@ KNOWN_PRESENTATION_NOTES = {
         "`thisThing` and `sameThing`, without their targets. The source binds "
         "`integrationLayer.scoreServices` to `platformStack.middleware` and "
         "`integrationLayer.adapter` to `platformStack.applicationMiddlewareAdapter`. "
-        "The two «ref part» boxes are `scoreServices` and `adapter` of the "
-        "integration layer, as the product redefines them. The bindings state "
-        "identity only: the platform stack and the integration layer both still "
-        "compose these parts."
+        "Both ends on the layer side are references, so the platform stack is "
+        "the only owner of these parts."
     ),
     "scoreTwoDomainOperationalContextView": (
         "SysIDE lists the actions of the signal flow `scoreTwoDomainSignalFlow` "
