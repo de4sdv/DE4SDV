@@ -186,11 +186,11 @@ KNOWN_PRESENTATION_NOTES = {
         "the view does not draw the host/guest boundary."
     ),
     "scoreMiddlewareProductModelAssemblyView": (
-        "Each binding («=») shows its two ends, `thisThing` and `sameThing`, "
-        "without their targets. The source binds `integrationLayer.scoreServices` "
-        "to `platformStack.middleware` and `integrationLayer.adapter` to "
-        "`platformStack.applicationMiddlewareAdapter`; the two «ref part» "
-        "boxes are those references of the integration layer."
+        "The two boxes marked `=` are the bindings. Each shows its two ends, "
+        "`thisThing` and `sameThing`, without their targets. The source binds "
+        "`integrationLayer.scoreServices` to `platformStack.middleware` and "
+        "`integrationLayer.adapter` to `platformStack.applicationMiddlewareAdapter`; "
+        "the two «ref part» boxes are those references of the integration layer."
     ),
     "scoreTwoDomainOperationalContextView": (
         "SysIDE lists the actions of the signal flow `scoreTwoDomainSignalFlow` "
