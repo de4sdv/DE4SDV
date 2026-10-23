@@ -226,10 +226,12 @@ In the repository today:
 In progress, or not there yet:
 
 - `INC-MW-011`, Eclipse S-CORE as the middleware layer: phases 0 to 8 are
-  merged, and verification and evidence (phase 10) is next. Variability
-  (phase 9) can start now that the product-line authority has switched to
-  PLEML, and phases 11 and 12 are still to come
-  ([framing model](../../textual-notation-of-model/packages/features/middleware/middleware_score_framing.sysml));
+  merged. Variability and configuration (phase 9) gave the platform a guest
+  side and added the configured product `MW-CONFIG-002`, which stays valid
+  and not admitted until the phase-12 decision. Verification and evidence
+  (phase 10) is next, and phases 11 and 12 are still to come
+  ([framing model](../../textual-notation-of-model/packages/features/middleware/middleware_score_framing.sysml),
+  [configured product](../../textual-notation-of-model/packages/features/middleware/middleware_score_variability_configuration.sysml));
 - executable method checks for the phases that have none yet;
 - verification of the candidate requirements; `REQ-AEBS-003` is still
   `NotStarted`;

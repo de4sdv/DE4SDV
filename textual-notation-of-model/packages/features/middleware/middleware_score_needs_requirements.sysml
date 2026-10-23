@@ -10,8 +10,16 @@
  * stakeholders, source and rationale and has a planned validation scenario.
  * Each requirement derives from a need through DerivesFromNeed, takes the
  * system of interest as subject, and records one verification method and
- * its success criteria. The requirements are core requirements of the
- * member, with no feature or common-capability trace.
+ * its success criteria. The requirements vary with the features that bring
+ * their system of interest into a member product (rule 5 of the increment
+ * workflow). The system of interest depends on EclipseSCORE and on
+ * AutowareToSCOREAdapter, the definitions of the eclipseSCORE variant and of
+ * the derived autowareToSCORE variant (DE4SDV_MiddlewareSCOREFraming). So
+ * each requirement applies to a member product that selects Autoware and
+ * Eclipse S-CORE. The HMI-path requirements REQ-MW-014, REQ-MW-015,
+ * REQ-MW-016 and REQ-MW-019 also depend on the HMI display (hmiDisplay), so
+ * they apply only to a member product that also selects the display. Phase
+ * 9 added these four dependencies (owner decision of 2026-10-22).
  *
  * The needs of INC-MW-004 and the requirements of INC-MW-005 hold for the
  * S-CORE member (ASM-MW-023); this slice adds only what the two-domain
@@ -215,6 +223,22 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     attribute :>> successCriteria = "Met when, after the HMI application subscribes again, it receives no frame that the AEBS stack produced while the HMI application was not subscribed.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
+
+  /* Rule 5 of the increment workflow: the four HMI-path requirements above
+   * apply only to a member product that also selects the HMI display (owner
+   * decision of 2026-10-22, INC-MW-011 phase 9). */
+  dependency reqDeliverAEBSSignalsInSourceOrderOnHMIDisplay
+    from reqDeliverAEBSSignalsInSourceOrder
+    to DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::capabilities::hmiDisplay;
+  dependency reqPreserveAEBSSignalProvenanceOnHMIDisplay
+    from reqPreserveAEBSSignalProvenance
+    to DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::capabilities::hmiDisplay;
+  dependency reqNoApplicationDataFromHMIGuestOnHMIDisplay
+    from reqNoApplicationDataFromHMIGuest
+    to DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::capabilities::hmiDisplay;
+  dependency reqDiscardFramesWhileHMIUnsubscribedOnHMIDisplay
+    from reqDiscardFramesWhileHMIUnsubscribed
+    to DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::capabilities::hmiDisplay;
 
   requirement <'REQ-MW-017'> reqNoEmergencyCommandOnMiddleware : RequirementCandidate {
     subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
