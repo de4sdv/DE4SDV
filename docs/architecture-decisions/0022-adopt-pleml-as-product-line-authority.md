@@ -33,6 +33,38 @@ then, the YAML authority of ADR 0014 stays in force.
 > [Nested features](../product-line-engineering/pleml-configuration-evaluation.md#nested-features)
 > gives the reason, and DE4SDV's own test cases check the reading. The
 > decision itself is unchanged.
+>
+> Note (2026-10-22): decision 4 says that "a new operating system option
+> fails CI until C002 is re-assessed". Since INC-MW-011 phase 9 the SDV
+> feature model has a main side and a guest side, each with its own
+> operating-system group. The complement check reads the main-side options
+> only, for C001 and C003 as for C002. So the sentence holds for a new
+> main-side operating-system option. A new guest operating system does not
+> fail the check. On the guest side, the requires constraints C007 and C008
+> state their rules exactly and need no allowed list. The decision itself is
+> unchanged.
+>
+> Note (2026-10-22): among the amended clauses, the derived-realization
+> clause of ADR 0014 stays as an admission rule. At acceptance, the catalogue
+> configured operating system, hypervisor and middleware, and admission
+> classified them as derived realizations. Since INC-MW-011 phase 9 the SDV
+> feature model also has a guest side. The `middleware` group now names the
+> partner of the vehicle application: the middleware that the application
+> integrates with. Since phase 9, no main-side operating-system choice is a
+> derived realization: Linux corresponds only to the common Linux/ROS 2
+> Autoware runtime. On 2026-10-22 the owner decided that the amendment covers
+> three groups in the same way: `guestOperatingSystem`, `guestMiddleware`,
+> and `middleware` in that partner role. The guest side carries the split
+> execution-domain topology that ADR 0014 calls a derived realization. So
+> these three groups are configurable in the catalogue. Admission classifies
+> each of their choices that corresponds to an admitted alternative as a
+> derived realization of it. A configuration whose choices realize more than
+> one alternative, or miss a derived realization of the one they realize, is
+> not admitted. None of the three groups is an independently selectable
+> product feature. This holds for every member, the AAOS-integrated member
+> included. In the feature model, `guestAndroid` and `guestAndroidSDV`
+> correspond to AAOS Integrated, and `noGuestOS` and `noGuestMiddleware` to
+> Standalone. The decision itself is unchanged.
 
 ## Context
 
