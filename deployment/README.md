@@ -319,13 +319,19 @@ release gate: revision, export digest, served model, binding and kernel
 bindings, the runtime answers over the export (K pair, EvidenceContract
 closure, VerificationCase grounding), coverage and the battery identities.
 
-The CI import rehearsal in step 1 stays for two releases after the ceremony
-retirement, then it is dropped. It still includes the full import, two
-candidate imports, correspondence, pilot read-back and the three API
-batteries. Release duration under this contract is not yet measured: those
-retained slow steps took 11,705 seconds (about 195 minutes), before deployment,
-in [run 38095581274](https://github.com/de4sdv/DE4SDV/actions/runs/38095581274).
-That is a historical planning baseline, not a new-contract performance result.
+After the deploy succeeds, add the release to the
+[production-release table](../configuration-management/baseline-register.md#production-releases)
+of the baseline register in a pull request.
+
+The CI import rehearsal in step 1 was planned to stop two releases after the
+ceremony retirement. It still runs, because the successor parity's API half
+needs the import. It includes the full import, two candidate imports,
+correspondence, pilot read-back and the three API batteries. Four releases ran
+under this contract from 2026-10-15 to 2026-10-21. Step 1 took 2 h 32 min to
+3 h 43 min. Step 2 took 50 to 60 minutes after the approval. Before the
+contract, step 1 took 4 h 9 min in
+[run 38095581274](https://github.com/de4sdv/DE4SDV/actions/runs/38095581274).
+Its retained slow steps took 11,705 seconds (about 195 minutes).
 
 During the first two releases after the retirement, leave the 063c4fb1 lines in
 `/srv/de4sdv/sysml2-api.env` (`DE4SDV_SEMANTIC_AUTHORITY`,
