@@ -1115,12 +1115,16 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
   cursor: default;
   filter: none;
 }
+/* On a phone the Ask window spans the screen between its two 8 px
+ * margins. (A width of 100vw includes a scroll bar, so the window would
+ * start off the left edge of the screen.) */
 @media (max-width: 640px) {
   .chat-fab { right: 12px; bottom: 12px; padding: 8px 13px; }
   .chat-panel {
+    left: 8px;
     right: 8px;
     bottom: 8px;
-    width: calc(100vw - 16px);
+    width: auto;
     height: min(70vh, 520px);
   }
 }
