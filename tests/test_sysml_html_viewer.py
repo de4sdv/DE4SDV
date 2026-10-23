@@ -967,6 +967,35 @@ def test_source_view_only(tmp_path):
         assert "\n" not in cmt
 
 
+def test_long_names_on_a_file_page_wrap_between_words(tmp_path):
+    """A file page puts <wbr> at the word boundaries of the long names that
+    it shows once: the file path heading, the view heading, the diagram
+    file name and the view metadata. A word boundary is after `::`, `/`,
+    `.` and `_`, and before a capital letter that starts a word. A narrow
+    screen then wraps a long name between two words, not inside a word.
+    The text of each name stays the same."""
+    from tools.sysml_html_viewer.render import wbr
+
+    assert wbr("MiddlewareIntegrationFlow::translateSignal") == (
+        "Middleware<wbr>Integration<wbr>Flow::<wbr>translate<wbr>Signal")
+    assert wbr("features/aebs_needs.sysml") == "features/<wbr>aebs_<wbr>needs.<wbr>sysml"
+    assert wbr("AEBSAutoware") == "AEBS<wbr>Autoware"
+    assert wbr("a<b & 'c'") == "a&lt;b &amp; &#x27;c&#x27;"
+    assert wbr("") == ""
+
+    out = tmp_path / "site"
+    generate(FIXTURE, out, ["textual-notation-of-model/packages"])
+    rel = "textual-notation-of-model/packages/features/fixture/fixture_feature.sysml"
+    html = (out / "pages" / f"{rel}.html").read_text(encoding="utf-8")
+    assert f"<h1>{wbr(rel)}</h1>" in html
+    assert f"{wbr('fixtureStructureView')}<a class=\"view-src-jump\"" in html
+    assert (f'<span class="diagram-toolbar-file">'
+            f'{wbr("diagram-fixtureStructureView.svg")}</span>') in html
+    source_row = re.search(r"<tr><th>Source</th><td><code>(.*?)</code></td></tr>", html)
+    assert source_row and "<wbr>" in source_row.group(1)
+    assert source_row.group(1).replace("<wbr>", "").startswith(f"{rel}:")
+
+
 def test_member_links_target_source_lines(tmp_path):
     """Tree member nodes and hover JSON jump to declaration lines (#src-N)."""
     out = tmp_path / "site"
@@ -1132,7 +1161,7 @@ def test_viewpoint_tooltips(tmp_path, monkeypatch):
     assert re.search(
         r"<span class='muted vp-tip' data-tip-kind=\"SAF viewpoint\" "
         r'data-tip-name="FixtureViewpoint" '
-        r'data-tip-doc="Synthetic SAF description\."> \(FixtureViewpoint\)</span>',
+        r'data-tip-doc="Synthetic SAF description\."> \(Fixture<wbr>Viewpoint\)</span>',
         file_page,
     )
     # the SAF info map is populated and every entry is a non-empty description
