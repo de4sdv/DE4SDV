@@ -194,12 +194,16 @@ html, body {
 .help-content tr:nth-child(even) td { background: rgba(31, 41, 51, 0.025); }
 .help-content tbody tr:hover td { background: var(--accent-soft); }
 
-/* on a phone a table keeps its width: the cell text wraps, also inside
- * a long identifier, instead of the table scrolling sideways */
+/* On a narrow screen a guide table keeps its width: the cell text wraps,
+ * also inside a long identifier, instead of the table scrolling sideways.
+ * On a wider screen the cells keep the default, so that the table makes a
+ * column wide enough for its longest word and breaks no word. */
+@media (max-width: 900px) {
+  .help-content th, .help-content td { overflow-wrap: anywhere; }
+}
 @media (max-width: 640px) {
   .help-page { padding: 0 14px 48px; }
-  .help-content { font-size: 15px; }
-  .help-content th, .help-content td { padding: 6px 8px; overflow-wrap: anywhere; }
+  .help-content th, .help-content td { padding: 6px 8px; }
   .help-content th { white-space: normal; }
 }
 
@@ -323,8 +327,11 @@ li.tree-node { padding-left: 25px; text-indent: -25px; }
 
 /* No page and no box scrolls sideways. A long name (a file path, a
  * qualified name, an identifier) wraps in its pane, if necessary between
- * two characters. */
-.content-pane, .tree-pane, .help-content { overflow-wrap: anywhere; }
+ * two characters. In the guide pages the value is break-word: it wraps the
+ * same, but it does not make the minimum width of a guide table cell
+ * smaller. With anywhere, a guide table broke words on a desktop too. */
+.content-pane, .tree-pane { overflow-wrap: anywhere; }
+.help-content { overflow-wrap: break-word; }
 
 /* ---- content pane ---- */
 .content-pane {
@@ -857,9 +864,12 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
   font-weight: 600;
   font-size: 14px;
 }
-/* mode switch: one segmented control, the active mode filled */
+/* mode switch: one segmented control, the active mode filled. It never
+ * shrinks: its overflow is hidden, so a smaller switch would cut off the
+ * label of its last mode on a narrow screen. */
 .chat-modes {
   display: inline-flex;
+  flex: 0 0 auto;
   border: 1px solid var(--line);
   border-radius: 6px;
   overflow: hidden;

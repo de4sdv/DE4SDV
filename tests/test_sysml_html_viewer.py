@@ -896,6 +896,96 @@ if (layout.style.gridTemplateColumns !== undefined) {
     assert result.returncode == 0, result.stderr
 
 
+# a shorthand property sets these properties too
+_CSS_SHORTHANDS = {
+    "padding": ("padding-top", "padding-right", "padding-bottom", "padding-left"),
+    "margin": ("margin-top", "margin-right", "margin-bottom", "margin-left"),
+    "overflow": ("overflow-x", "overflow-y"),
+    "flex": ("flex-grow", "flex-shrink", "flex-basis"),
+    "gap": ("row-gap", "column-gap"),
+    "inset": ("top", "right", "bottom", "left"),
+}
+
+
+def _css_declarations(text: str) -> list[tuple[bool, str, str]]:
+    """(narrow, selector, property) of each declaration, in source order.
+
+    narrow is True in an `@media (max-width: ...)` block. The declarations
+    of the other at-rule blocks (other media queries, keyframes) are left
+    out: they are neither base rules nor narrow-screen rules."""
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+    out: list[tuple[bool, str, str]] = []
+
+    def plain_rules(block: str, narrow: bool) -> None:
+        for m in re.finditer(r"([^{}]+)\{([^{}]*)\}", block):
+            selectors = [" ".join(s.split()) for s in m.group(1).split(",")]
+            for decl in m.group(2).split(";"):
+                if ":" in decl:
+                    prop = decl.split(":", 1)[0].strip().lower()
+                    out.extend((narrow, sel, prop) for sel in selectors)
+
+    pos = 0
+    while True:
+        at = text.find("@", pos)
+        plain_rules(text[pos: len(text) if at == -1 else at], False)
+        if at == -1:
+            return out
+        brace = text.find("{", at)
+        depth, end = 1, brace + 1
+        while depth:
+            depth += {"{": 1, "}": -1}.get(text[end], 0)
+            end += 1
+        prelude = text[at:brace]
+        if prelude.startswith("@media") and "max-width" in prelude:
+            plain_rules(text[brace + 1: end - 1], True)
+        pos = end
+
+
+def _dead_narrow_rules(texts: list[str]) -> list[tuple[str, str]]:
+    """Narrow-screen declarations that a later base rule cancels.
+
+    The texts are given in the order the page loads them. A narrow-screen
+    rule has no effect when a base rule for the same selector and property
+    comes after it and no narrow-screen rule follows that base rule."""
+    decls = [d for text in texts for d in _css_declarations(text)]
+
+    def same(a: str, b: str) -> bool:
+        return a == b or b in _CSS_SHORTHANDS.get(a, ()) or a in _CSS_SHORTHANDS.get(b, ())
+
+    dead = []
+    for i, (narrow, sel, prop) in enumerate(decls):
+        if not narrow:
+            continue
+        later = [(j, n) for j, (n, s, p) in enumerate(decls) if j > i and s == sel and same(p, prop)]
+        last_base = max((j for j, n in later if not n), default=-1)
+        if last_base != -1 and not any(n and j > last_base for j, n in later):
+            dead.append((sel, prop))
+    return dead
+
+
+def test_every_narrow_screen_rule_comes_after_its_base_rule():
+    """A narrow-screen rule (`@media (max-width: ...)`) of viewer.css or
+    carbon.css must come after the base rule that it changes. The page
+    loads viewer.css first and carbon.css after it, and selectors of the
+    same specificity follow the source order. Thus a base rule after the
+    narrow-screen rule cancels it, and the narrow screen keeps the
+    desktop value."""
+    # the check finds a cancelled rule, and accepts a rule that a later
+    # narrow-screen rule states again after the base rule
+    assert _dead_narrow_rules([
+        "@media (max-width: 640px) { .a { padding: 1px; } }",
+        ".a { padding: 2px; } .b { color: red; }",
+    ]) == [(".a", "padding")]
+    assert _dead_narrow_rules([
+        "@media (max-width: 640px) { .a { padding-left: 1px; } }",
+        ".a { padding: 2px; }\n@media (max-width: 900px) { .a { padding-left: 3px; } }",
+    ]) == []
+    viewer_dir = REPO_ROOT / "tools/sysml_html_viewer"
+    texts = [(viewer_dir / name).read_text(encoding="utf-8") for name in ("viewer.css", "carbon.css")]
+    assert sum(narrow for text in texts for narrow, _, _ in _css_declarations(text)) > 20
+    assert _dead_narrow_rules(texts) == []
+
+
 def test_active_path_chain_stays_open(tmp_path):
     """Regression: the tree on a file page must keep the whole ancestor
     chain of the active file open (root > dirs > file), not just the root."""

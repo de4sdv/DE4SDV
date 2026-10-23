@@ -96,9 +96,6 @@ select:focus-visible, input:focus-visible {
   gap: 2px;
   min-width: 0;
 }
-@media (max-width: 640px) {
-  .site-nav-link { padding: 6px 8px; }
-}
 .site-nav-link {
   display: inline-flex;
   align-items: center;
@@ -108,6 +105,10 @@ select:focus-visible, input:focus-visible {
   color: var(--ink);
   text-decoration: none;
   border-radius: 0;
+}
+/* after the base rule: a narrow-screen rule before it has no effect */
+@media (max-width: 640px) {
+  .site-nav-link { padding: 6px 8px; }
 }
 .site-nav-link:hover { background: var(--btn-hover); }
 .site-chat-icon { flex: 0 0 auto; }
