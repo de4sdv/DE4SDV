@@ -36,6 +36,23 @@ def esc(text: str) -> str:
     return html.escape(text, quote=True)
 
 
+# word boundaries in a name: after `::`, `/`, `.` and `_`; before a capital
+# letter after a lower-case letter or a digit; and before the capital that
+# starts a word after a run of capitals (`AEBSAutoware`: AEBS | Autoware)
+_WORD_BOUNDARY_RE = re.compile(
+    r"(?<=::)(?=.)|(?<=[/._])(?=.)|(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])"
+)
+
+
+def wbr(name: str) -> str:
+    """The name escaped for HTML, with <wbr> at its word boundaries.
+
+    A long identifier or path in a narrow column then wraps between two
+    words, not inside a word. <wbr> adds no text, so a copy of the name
+    stays the same."""
+    return "<wbr>".join(esc(part) for part in _WORD_BOUNDARY_RE.split(name))
+
+
 def make_anchor(counter: dict[str, int], name: str) -> str:
     base = slugify(name)
     counter[base] = counter.get(base, 0) + 1
@@ -782,7 +799,7 @@ def _render_view_block(
             diagram_html = (
                 f'<div class="diagram-frame interactive" data-view="{esc(anchor)}">'
                 f'<div class="diagram-toolbar">'
-                f'<span class="diagram-toolbar-file">{esc(artifact)}</span>'
+                f'<span class="diagram-toolbar-file">{wbr(artifact)}</span>'
                 f'<button type="button" class="diagram-fs-btn" '
                 f'title="Fullscreen (Esc to close)">&#x26F6; Fullscreen</button>'
                 f"</div>"
@@ -813,22 +830,22 @@ def _render_view_block(
                 f' data-tip-hint="click to open the SAF viewpoint page"'
             )
         rows.append(
-            ("Viewpoint", f"<code>{esc(v.viewpoint)}</code>"
-             f"<span class='muted vp-tip'{vp_tip}> ({esc(v.viewpoint_type)})</span>")
+            ("Viewpoint", f"<code>{wbr(v.viewpoint)}</code>"
+             f"<span class='muted vp-tip'{vp_tip}> ({wbr(v.viewpoint_type)})</span>")
         )
     if v.view_type:
-        rows.append(("View type", f"<code>{esc(v.view_type)}</code>"))
+        rows.append(("View type", f"<code>{wbr(v.view_type)}</code>"))
     if v.concern:
-        rows.append(("Concern", f"<code>{esc(v.concern)}</code>"))
+        rows.append(("Concern", f"<code>{wbr(v.concern)}</code>"))
     if v.render:
-        rows.append(("Render", f"<code>{esc(v.render)}</code>"))
+        rows.append(("Render", f"<code>{wbr(v.render)}</code>"))
     if v.depth:
         rows.append(("Depth", f"<code>{esc(v.depth)}</code>"))
     if v.exposes:
         rows.append(
-            ("Exposes", "<br>".join(f"<code>{esc(e)}</code>" for e in v.exposes))
+            ("Exposes", "<br>".join(f"<code>{wbr(e)}</code>" for e in v.exposes))
         )
-    rows.append(("Source", f"<code>{esc(mf.rel_path)}:{v.line}</code>"))
+    rows.append(("Source", f"<code>{wbr(mf.rel_path)}:{v.line}</code>"))
     meta_html = "".join(
         f"<tr><th>{esc(k)}</th><td>{val}</td></tr>" for k, val in rows
     )
@@ -839,7 +856,7 @@ def _render_view_block(
     )
     return f"""
 <section class="view-section" id="view-{anchor}">
-  <h2><span class="kind-badge view-badge">view</span> {esc(v.name)}<a class="view-src-jump" href="#source" title="Jump to the highlighted source below">source ↓</a></h2>
+  <h2><span class="kind-badge view-badge">view</span> {wbr(v.name)}<a class="view-src-jump" href="#source" title="Jump to the highlighted source below">source ↓</a></h2>
   <table class="meta-table">{meta_html}</table>
   {doc_html}
   {diagram_html}
@@ -892,7 +909,7 @@ def render_file_page(
         source_html = "<p class='muted'>Source file not readable.</p>"
     content = f"""
 <div class="card file-header">
-  <h1>{esc(mf.rel_path)}</h1>
+  <h1>{wbr(mf.rel_path)}</h1>
   <p class="muted">{view_count} view(s) · {len(mf.members)} declared member(s) {source_link}{jump_link}</p>
   {doc_html}
 </div>
