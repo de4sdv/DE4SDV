@@ -181,7 +181,7 @@ Which AAOS SDV VSIDL service access feeds the adapter, and which Autoware-facing
 - **Render:** `asInterconnectionDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
-- **Presentation note:** The adapter and the AAOS SDV boundary are dashed «ref part» boxes. The boundary refers to them; in the configured member `MW-CONFIG-001` the platform stack owns them. In this render each reference is a container with the ports of its definition. Both are declared without a body and exposed directly as roots. The wired velocity path is drawn.
+- **Presentation note:** The adapter and the AAOS SDV boundary are dashed «ref part» boxes. The boundary refers to them; in the configured member `MW-CONFIG-001` the platform stack owns them. The adapter box carries the ports of its definition (exposed with `::**`). The AAOS SDV boundary box carries only `vehicleSignalAccessOut`, its connection end of the wired path (exposed without recursion). The wired velocity path is drawn.
 
 ![middlewareAdapterBoundaryExchangeView](diagrams/diagram-middlewareAdapterBoundaryExchangeView.svg)
 
@@ -511,7 +511,7 @@ Review the resulting member-product composition: configured platform stack plus 
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
-- **Presentation note:** The three boxes marked `=` are the bindings. Their end `thisThing` names a reference: `middlewareBoundary.adapter`, `middlewareBoundary.aaosSdvBoundary` or `middlewareBoundary.aaosSdvBoundary.platformSoftware`. SysIDE shows `sameThing` without its target, which the source names: `platformStack.applicationMiddlewareAdapter`, `platformStack.guestMiddleware` and `platformStack.guestOSPlatform`. Each `thisThing` end is a reference. The platform stack is the only owner of the adapter, the guest middleware and the guest operating system.
+- **Presentation note:** The three boxes marked `=` are the bindings. Their end `thisThing` names a reference: `middlewareBoundary.adapter`, `middlewareBoundary.aaosSdvBoundary` or `middlewareBoundary.aaosSdvBoundary.platformSoftware`. SysIDE shows `sameThing` without its target, which the source names: `platformStack.applicationMiddlewareAdapter`, `platformStack.guestMiddleware` and `platformStack.guestOSPlatform`. Each `thisThing` end names a `ref part`. The platform stack is the only owner of the adapter, the guest middleware and the guest operating system.
 
 ![middlewareProductModelAssemblyView](diagrams/diagram-middlewareProductModelAssemblyView.svg)
 

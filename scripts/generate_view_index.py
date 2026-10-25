@@ -169,10 +169,10 @@ KNOWN_PRESENTATION_NOTES = {
     "middlewareAdapterBoundaryExchangeView": (
         "The adapter and the AAOS SDV boundary are dashed «ref part» boxes. The "
         "boundary refers to them; in the configured member `MW-CONFIG-001` the "
-        "platform stack owns them. In this render each reference is a "
-        "container with the ports of its definition. Both are declared "
-        "without a body and exposed directly as roots. The wired velocity path "
-        "is drawn."
+        "platform stack owns them. The adapter box carries the ports of its "
+        "definition (exposed with `::**`). The AAOS SDV boundary box carries "
+        "only `vehicleSignalAccessOut`, its connection end of the wired path "
+        "(exposed without recursion). The wired velocity path is drawn."
     ),
     "middlewarePhysicalStructureView": (
         "The parts compartment lists `adapter` and `aaosSdvBoundary` like the "
@@ -192,9 +192,9 @@ KNOWN_PRESENTATION_NOTES = {
         "`sameThing` without its target, which the source names: "
         "`platformStack.applicationMiddlewareAdapter`, "
         "`platformStack.guestMiddleware` and `platformStack.guestOSPlatform`. "
-        "Each `thisThing` end is a reference. The platform stack is the only "
-        "owner of the adapter, the guest middleware and the guest operating "
-        "system."
+        "Each `thisThing` end names a `ref part`. The platform stack is the "
+        "only owner of the adapter, the guest middleware and the guest "
+        "operating system."
     ),
     "scoreMiddlewarePhysicalLogicalMappingView": (
         "Cells show ↗ for every allocation; the two partial allocations are "

@@ -64,26 +64,29 @@ package DE4SDV_MiddlewareVariabilityConfiguration {
      * Runtime support, requirement satisfaction, safety, compliance, and
      * interoperability are not implied by this configured-member usage.
      *
-     * Configuration management note: the structure of this configured member
-     * changed twice. On 2026-10-23 the owner decided one owner per layer. The
-     * first change, narrowed to the adapter on 2026-10-25, removed the second
-     * adapter of the middleware boundary. Later on 2026-10-25 the owner
-     * decided to give the AAOS SDV guest one owner too. Before, the
+     * Configuration management note: under the owner decision of one owner
+     * per layer (2026-10-23), the structure of this configured member changed
+     * twice. The first change, narrowed to the adapter on 2026-10-25, removed
+     * the second adapter of the middleware boundary. Later on 2026-10-25 the
+     * owner decided to give the AAOS SDV guest one owner too. Before, the
      * middleware boundary owned a second representation of the guest
      * (aaosSdvBoundary), and SDVCoreBoundary owned guest operating-system
      * content (platformSoftware: GKI, drivers, HALs). Now the middleware
      * boundary refers to its AAOS SDV boundary, and that boundary refers to
      * its platform software. Bindings make them the guest middleware and the
      * guest operating system of the platform stack, which owns both. So the
-     * open item about the duplicate guest is closed. The identity
-     * MW-CONFIG-001 is not renumbered, and no variant selection changed.
-     * E-MW-011 to E-MW-014 bind this identity, and BL-MW-010-P12 rests on
-     * them. CLM-MW-010-01 and the other INC-MW-010 records take
-     * MiddlewareIntegrationVandVBench as subject, whose System 1 part is
-     * typed by MiddlewareAutowareAAOSSDVConfiguredMember, so they inherit the
-     * change. So do the INC-AEBS-010 test article and its verification bench.
-     * All these records were retained against the earlier content, the
-     * INC-MW-010 records at the baseline revision
+     * open item about the duplicate guest in this member is closed. Its
+     * platform stack also changed in INC-MW-011 phase 9 (a Linux main side
+     * and a guest side); the projection records that change. The identity
+     * MW-CONFIG-001 is not renumbered, and no variant selection changed in
+     * these two changes. E-MW-011 to E-MW-014 bind this identity, and
+     * BL-MW-010-P12 rests on them. CLM-MW-010-01 and the other INC-MW-010
+     * records take MiddlewareIntegrationVandVBench as subject, whose System 1
+     * part is typed by MiddlewareAutowareAAOSSDVConfiguredMember, so they
+     * inherit the change. So do the INC-AEBS-010 test article and its
+     * verification bench, and with them EVID-AEBS-S2-001 to EVID-AEBS-S2-006,
+     * which bind AEBS-CONFIG-010-001. All these records were retained against
+     * the earlier content, the INC-MW-010 records at the baseline revision
      * b8170f6953567b07164b8c02be05be137f8047f0. No record is edited.
      *
      * Headless or display: the binding makes the guest middleware of this
@@ -91,9 +94,13 @@ package DE4SDV_MiddlewareVariabilityConfiguration {
      * no GUI). That is right for MW-CONFIG-001: it selects no HMI display,
      * and its runtime evidence names the headless sdv_core_cf image
      * (E-MW-011, E-MW-013). The INC-AEBS-010 test article inherits this
-     * structure, but its evidence ran the display-capable sdv_ivi_cf image.
-     * So the binding sharpens the discrepancy that INC-AEBS-010 records: the
-     * inherited structure now states a headless guest. How to resolve it
+     * headless guest middleware. It also composes a second AAOS SDV guest,
+     * the display-capable sdv_ivi_cf guest of its System 2 instrument
+     * (iviGuest : SdvIviCfGuestTarget), and its evidence ran that image. The
+     * doc of SdvIviCfGuestTarget says that it replaces the headless
+     * sdv_core_cf target, and the binding now contradicts that statement. So
+     * the binding sharpens the discrepancy that INC-AEBS-010 records. How to
+     * model the guest of the test article (one guest, headless or display)
      * stays a later owner decision.
      */
   }

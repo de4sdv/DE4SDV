@@ -200,20 +200,25 @@ part configuredMember : MiddlewareAutowareAAOSSDVConfiguredMember {
   and `model-based-product-line-engineering/`.
 - A configured member should have **one instance and one owner per platform
   layer**. The platform stack owns its layers. Another asset that needs a
-  layer declares it as a `ref part`, as `MiddlewarePhysicalSoftwareBoundary`
-  does for the adapter and the AAOS SDV boundary, and `SDVCoreBoundary` for
-  its platform software. A `binding` in the configured member then makes the
-  reference the same thing as the layer of the stack. A binding end can be a
-  feature chain (`middlewareBoundary.aaosSdvBoundary.platformSoftware`).
+  layer declares it as a `ref part`. `MiddlewarePhysicalSoftwareBoundary`
+  does so for the adapter and the AAOS SDV boundary, and `SDVCoreBoundary`
+  for its platform software. A `binding` in the configured member then makes
+  each reference the same thing as the layer of the stack. A binding end can
+  be a feature chain (`middlewareBoundary.aaosSdvBoundary.platformSoftware`).
   Declare `ref` in the definition that does not own the part. A `ref` on a
   redefinition (`ref part :>> x`) does not remove the composite semantics of
-  `x`. Today two guards cover this rule. The guard in
-  `tests/test_middleware_variability_configuration.py` covers
-  `MW-CONFIG-001`: its adapter, its AAOS SDV boundary (the guest middleware)
-  and the platform software of that boundary (the guest operating system).
-  The guard in `tests/test_middleware_score_variability_configuration.py`
-  covers `MW-CONFIG-002`: its S-CORE services and its adapter, in the
-  configured product and in the phase-8 physical context.
+  `x`.
+- Two test modules guard this rule. They read the model lexically.
+  `tests/test_middleware_variability_configuration.py` covers `MW-CONFIG-001`
+  and its specializations. In every model file, a part usage typed by an SDV
+  Core boundary definition, or by a specialization of one, must be a
+  reference. The member and its specializations must compose no guest
+  operating system, guest middleware or adapter outside `platformStack`, at
+  any depth. One named exception remains: the display guest of the
+  INC-AEBS-010 test article, an open owner decision.
+  `tests/test_middleware_score_variability_configuration.py` covers
+  `MW-CONFIG-002`: its S-CORE services and its adapter, in the configured
+  product and in the phase-8 physical context.
 - A characteristic is a **feature** only when it distinguishes one member
   product from another; otherwise it is common. Phase 3 records only the
   feature candidates (`ProductLineFeatureCandidate`) an increment adds, the
