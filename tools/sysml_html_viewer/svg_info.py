@@ -22,6 +22,8 @@ _TAG_RE = re.compile(r"<[^>]+>")
 # Label shapes SysIDE emits: stereotype prefix «view» name, `expose name`,
 # `name : Type`, plain name. Anything else is layout text (headers, notes).
 _STEREOTYPE_RE = re.compile(r"^«[^»]*»\s*")
+# a short name before the name: `<REQ-1> reqDeliver : R`
+_SHORT_NAME_RE = re.compile(r"^<[^<>\s][^<>]*>\s*")
 _EXPOSE_RE = re.compile(r"^expose\s+")
 _EXHIBIT_RE = re.compile(r"^exhibit\s+")
 # `states lifecycleStates` renders the exhibited usage; resolve by its name
@@ -142,7 +144,7 @@ def _dist_point_segment(
     return math.hypot(px - (x1 + t * dx), py - (y1 + t * dy))
 
 
-_CONNECTION_KINDS = frozenset({"connection", "flow", "bind", "dependency"})
+_CONNECTION_KINDS = frozenset({"connection", "flow", "bind", "binding", "dependency"})
 
 # kinds that own an element box (the white rounded rects SysIDE draws for
 # part defs, parts, item defs, ...)
@@ -232,6 +234,7 @@ def _connector_label(
                 rel_path=ref.rel_path,
                 line=ref.line,
                 anchor=ref.anchor,
+                short_name=ref.short_name,
             )
     return li
 
@@ -388,6 +391,7 @@ def _normalize(label: str) -> list[str]:
     s = _EXPOSE_RE.sub("", s).strip()
     s = _EXHIBIT_RE.sub("", s).strip()
     s = s.lstrip("^")  # `^name` = redefines marker
+    s = _SHORT_NAME_RE.sub("", s).strip()
     if not s:
         return []
     candidates.append(s)
@@ -455,9 +459,12 @@ class LabelInfo:
     anchor: str = ""
     x: float = 0.0
     y: float = 0.0
+    short_name: str = ""
 
     def to_dict(self) -> dict[str, object]:
         d: dict[str, object] = {"name": self.name, "kind": self.kind}
+        if self.short_name:
+            d["short"] = self.short_name
         if self.doc:
             d["doc"] = self.doc
         if self.rel_path:
@@ -567,18 +574,36 @@ def _typed_doc_fallback(
     for key in _normalize(label):
         if " : " in key:
             type_names.append(key.rsplit(" : ", 1)[-1].strip())
-    if resolved_ref is not None and resolved_ref.type_name:
-        type_names.append(resolved_ref.type_name)
+    if resolved_ref is not None:
+        # every type of a typing list, in its order (the first with a doc wins)
+        type_names.extend(resolved_ref.type_names or (resolved_ref.type_name,))
     for type_name in type_names:
-        if not type_name:
-            continue
-        refs = index.get(type_name) or index.get(f"'{type_name}'")
-        if not refs:
-            continue
-        ref = _prefer(refs, view_file, view_folder)
+        ref = _type_ref(type_name, index, view_file, view_folder)
         if ref is not None and ref.doc:
             return ref.doc
     return ""
+
+
+def _type_ref(
+    type_name: str,
+    index: dict[str, list[ElementRef]],
+    view_file: str,
+    view_folder: str,
+) -> ElementRef | None:
+    """The declaration of a type: `Q::T` finds T by its name, and a T whose
+    parent is Q comes first; else the usual preference (same file, same
+    folder, first)."""
+    parts = [p.strip() for p in type_name.split("::") if p.strip()]
+    if not parts:
+        return None
+    refs = index.get(parts[-1]) or index.get(f"'{parts[-1]}'")
+    if not refs:
+        return None
+    if len(parts) > 1:
+        owned = [r for r in refs if r.parent_name == parts[-2]]
+        if owned:
+            return _prefer(owned, view_file, view_folder)
+    return _prefer(refs, view_file, view_folder)
 
 
 def resolve_labels(
@@ -639,6 +664,7 @@ def resolve_labels(
                 rel_path=ref.rel_path,
                 line=ref.line,
                 anchor=ref.anchor,
+                short_name=ref.short_name,
                 x=x,
                 y=y,
             )
@@ -674,6 +700,7 @@ def resolve_labels(
                     rel_path=alt.rel_path,
                     line=alt.line,
                     anchor=alt.anchor,
+                    short_name=alt.short_name,
                     x=li.x,
                     y=li.y,
                 )
@@ -704,6 +731,7 @@ def resolve_labels(
                 rel_path=li.rel_path,
                 line=li.line,
                 anchor=li.anchor,
+                short_name=li.short_name,
                 x=li.x,
                 y=li.y,
             )

@@ -23,6 +23,7 @@ from .model_parse import (
     TreeNode,
     ViewInfo,
     artifact_filename,
+    file_index,
     slugify,
 )
 from .saf_viewpoint_info import SAF_VIEWPOINT_INFO, SAF_VIEWPOINT_URLS
@@ -121,6 +122,8 @@ def node_data_attrs(node: TreeNode) -> str:
             f'data-tip-file="{esc(node.element_file)}"',
             f'data-tip-line="{node.element_line}"',
         ]
+        if node.short_name:
+            parts.append(f'data-tip-short="{esc(node.short_name)}"')
     return " ".join(parts)
 
 
@@ -132,9 +135,9 @@ def render_tree(node: TreeNode, active_href: str = "", depth: int = 0) -> str:
     kids = "".join(render_tree(c, active_href, depth + 1) for c in node.children)
     inner = f'<span class="tree-icon">{_icon(node.kind)}</span>'
     if node.href:
-        label = f'<a href="{esc(node.href)}">{esc(node.label)}</a>'
+        label = f'<a href="{esc(node.href)}">{esc(node.text)}</a>'
     else:
-        label = f"<span class='tree-label'>{esc(node.label)}</span>"
+        label = f"<span class='tree-label'>{esc(node.text)}</span>"
     meta = f"<span class='tree-meta'>{esc(node.meta)}</span>" if node.meta else ""
     attrs = node_data_attrs(node)
     if kids:
@@ -417,7 +420,7 @@ def render_dir_page(
             )
         else:
             items.append(
-                f"<li class='child-item'>{_icon(c.kind)} <a href='{esc(c.href)}'>{esc(c.label)}</a></li>"
+                f"<li class='child-item'>{_icon(c.kind)} <a href='{esc(c.href)}'>{esc(c.text)}</a></li>"
             )
     content = (
         f"<div class='card'><h1>{esc(dir_label)}</h1>"
@@ -450,8 +453,10 @@ _SRC_TOKEN_RE = re.compile(
     r"\b[A-Za-z_][A-Za-z0-9_]*\b|.",
 )
 
-# per-line scan: quoted names first, then comment openers
-_LINE_SCAN_RE = re.compile(r"'[^']*'|/\*|//")
+# per-line scan: quoted names and strings (a string without its closing
+# quote runs to the end of the line), then comment openers. A word in a
+# string is text, never a source reference.
+_LINE_SCAN_RE = re.compile(r"'[^']*'|\"(?:[^\"\\]|\\.)*\"?|/\*|//")
 
 _IDENT_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
@@ -576,6 +581,8 @@ def _highlight_code(
                     f' data-tip-kind="{esc(ref.kind)}"'
                     f' data-tip-name="{esc(ref.name)}"'
                 )
+                if ref.short_name:
+                    tip += f' data-tip-short="{esc(ref.short_name)}"'
                 if ref.doc:
                     tip += f' data-tip-doc="{esc(ref.doc)}"'
                 tip += f' data-tip-file="{esc(ref.rel_path)}" data-tip-line="{ref.line}"'
@@ -624,7 +631,7 @@ def _highlight_line(
             break
         out.append(_highlight_code(line[pos : m.start()], line_no, mf, member_index, prefix))
         tok = m.group(0)
-        if tok.startswith("'"):
+        if tok.startswith(("'", '"')):
             out.append(f'<span class="src-str">{esc(tok)}</span>')
             pos = m.end()
         elif tok == "/*":
@@ -879,6 +886,9 @@ def render_file_page(
     filters: str = "",
     asset_stamp: str = "",
 ) -> str:
+    # the source references and the diagram labels of this file see the
+    # index as the file sees it (library declarations: see file_index)
+    member_index = file_index(member_index, mf)
     anchor_counter: dict[str, int] = {}
     views_html = "".join(
         _render_view_block(

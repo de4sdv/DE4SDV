@@ -164,8 +164,11 @@ def build_evidence(ref, files) -> dict:
         "element": {
             "name": ref.name, "kind": ref.kind,
             "file": ref.rel_path, "line": ref.line,
-            "typed_as": ref.type_name or None,
+            # all types of a typing list (`: A, B` -> "A, B")
+            "typed_as": ", ".join(ref.type_names) or ref.type_name or None,
             "owner": ref.parent_name or None,
+            # the short name (`requirement <'REQ-MW-010'> r` -> "REQ-MW-010")
+            "short_name": ref.short_name or None,
         },
         "doc": ref.doc or None,
         "child_elements": siblings_of(ref, files) or None,

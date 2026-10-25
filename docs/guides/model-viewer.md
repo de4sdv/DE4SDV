@@ -103,7 +103,8 @@ Rest the pointer on any model label — tree entry or diagram element. A tooltip
 shows the element kind, its documentation, the source file and line, and a
 link that jumps to the declaration in the highlighted source. Hovering a
 compartment row (for example `attributes` or `doc …`) shows the tooltip of the
-element whose compartment it renders.
+element whose compartment it renders. An element with a short name shows it
+before its name, as in the diagrams: `<REQ-MW-010> reqDeliverReferenceVehicleSpeed`.
 
 ### Hover tooltips on connections
 
@@ -125,14 +126,18 @@ In a qualified name such as `guestMiddleware::androidSDV`, the link goes to the
 `androidSDV` that `guestMiddleware` declares in its body. This is also true on
 a line that declares another `androidSDV`. If the qualifier declares no such
 element in its body, the link uses the rules for a name without a qualifier.
-An example is a feature that the qualifier gets from its type. These links
-help you navigate. They are not SysML v2 name resolution.
+An example is a feature that the qualifier gets from its type. A word in a
+string (`"..."`) is never a link. A declaration in a library package, such as
+the COVESA VSS signals, is a link target only in a file that names the library
+(`import COVESA_VSS::*`) and in the library file itself. These links help you
+navigate. They are not SysML v2 name resolution.
 
 ### Tree search and filters
 
-The search box filters the model tree live by **names, kinds, and
-documentation text** — type and the tree narrows to matching members, with
-matches highlighted. The filter row beside the search narrows by **kind**
+The search box filters the model tree live by the **text of each tree
+entry**: the name, and the short name if the element has one (`REQ-MW-010`).
+Type and the tree narrows to matching members, with matches highlighted. The
+filter row beside the search narrows by **kind**
 (part, port, requirement, view, … — only kinds actually used in the model are
 listed), **SAF domain**, and **SAF aspect**. The ✕ button clears search and
 filters.

@@ -42,6 +42,7 @@ from .model_parse import (
     build_member_index,
     build_tree,
     count_stats,
+    file_index,
     load_model,
 )
 from .render import (
@@ -401,9 +402,9 @@ def _tree_with_prefix(tree: TreeNode, prefix: str, active_site: str) -> str:
         attrs = node_data_attrs(node)
         inner = f'<span class="tree-icon">{_icon(node.kind)}</span>'
         if href:
-            label = f'<a href="{href}">{_esc(node.label)}</a>'
+            label = f'<a href="{href}">{_esc(node.text)}</a>'
         else:
-            label = f"<span class='tree-label'>{_esc(node.label)}</span>"
+            label = f"<span class='tree-label'>{_esc(node.text)}</span>"
         meta = f"<span class='tree-meta'>{_esc(node.meta)}</span>" if node.meta else ""
         if kids_html:
             open_attr = " open" if node.depth <= 1 or contains else ""
@@ -786,6 +787,8 @@ def _uses_index(
     uses: dict[str, list[dict[str, str]]] = {}
     for mf in files:
         counter: dict[str, int] = {}
+        # the labels of this file's diagrams resolve as on its page
+        view_index = file_index(member_index, mf) if mf.views else member_index
         for v in mf.views:
             anchor = make_anchor(counter, v.name)
             svg_abs = mf.path.parent / "diagrams" / _artifact(v)
@@ -797,7 +800,7 @@ def _uses_index(
             labels = svg_info.extract_text_labels(svg_markup)
             folder = str(Path(mf.rel_path).parent)
             resolved = svg_info.resolve_labels(
-                labels, member_index, mf.rel_path, folder, svg_markup
+                labels, view_index, mf.rel_path, folder, svg_markup
             )
             by_label = {li.label: li for li in resolved}
             resolved_pos = {
@@ -810,7 +813,7 @@ def _uses_index(
                 svg_info.resolve_connectors(
                     svg_markup,
                     by_label,
-                    member_index,
+                    view_index,
                     mf.rel_path,
                     folder,
                     resolved_pos=resolved_pos,
