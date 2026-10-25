@@ -83,6 +83,15 @@ package DE4SDV_AAOSSDVMiddlewareBoundary {
      * SoC, on different SoCs, or communicate across the vehicle network.
      * Functions are implemented as distributed services, not permanently
      * tied to a particular processor or ECU.
+     *
+     * Ownership (owner decision of 2026-10-25): the boundary owns the AAOS
+     * SDV services below and refers to its platform software, the guest
+     * operating-system content. The SDV platform stack has two layers on the
+     * guest side: the guest operating system and the guest middleware. A
+     * configured product binds this boundary to its guest middleware and the
+     * platform software to its guest operating system, as MW-CONFIG-001
+     * does. So the platform stack owns each of them once. A usage outside a
+     * product leaves the reference unbound.
      */
 
     /* Core services and frameworks */
@@ -108,8 +117,8 @@ package DE4SDV_AAOSSDVMiddlewareBoundary {
     part vehiclePowerMode : VehiclePowerModeBoundary;
     part userProfile : UserProfileBoundary;
 
-    /* Platform software */
-    part platformSoftware : SDVPlatformSoftwareBoundary;
+    /* Platform software: guest operating-system content, referred to, not owned */
+    ref part platformSoftware : SDVPlatformSoftwareBoundary;
 
     /* Boundary ports exposed to the adapter and other systems */
     port middlewarePort : MiddlewareAdapterPort;
@@ -288,6 +297,10 @@ package DE4SDV_AAOSSDVMiddlewareBoundary {
      *
      * Virtio is the preferred hardware abstraction. HALs are only used
      * where a standardized virtual device is unavailable.
+     *
+     * This content is the guest operating system of the SDV platform stack
+     * (guestOSPlatform). SDVCoreBoundary refers to it and does not own it
+     * (owner decision of 2026-10-25).
      */
   }
 

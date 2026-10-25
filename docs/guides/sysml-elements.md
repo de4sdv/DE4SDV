@@ -181,6 +181,10 @@ part def MiddlewareAutowareAAOSSDVConfiguredMember :> DE4SDV_AEBSProductLineScop
   part middlewareBoundary : MiddlewarePhysicalSoftwareBoundary;
   binding adapterBoundToDerivedAdapter
     bind middlewareBoundary.adapter = platformStack.applicationMiddlewareAdapter;
+  binding aaosSdvBoundaryBoundToGuestMiddleware
+    bind middlewareBoundary.aaosSdvBoundary = platformStack.guestMiddleware;
+  binding platformSoftwareBoundToGuestOperatingSystem
+    bind middlewareBoundary.aaosSdvBoundary.platformSoftware = platformStack.guestOSPlatform;
 }
 
 part configuredMember : MiddlewareAutowareAAOSSDVConfiguredMember {
@@ -197,18 +201,19 @@ part configuredMember : MiddlewareAutowareAAOSSDVConfiguredMember {
 - A configured member should have **one instance and one owner per platform
   layer**. The platform stack owns its layers. Another asset that needs a
   layer declares it as a `ref part`, as `MiddlewarePhysicalSoftwareBoundary`
-  does for the adapter. A `binding` in the configured member then makes the
-  reference the same thing as the layer of the stack. Declare `ref` in the
-  definition that does not own the part. A `ref` on a redefinition
-  (`ref part :>> x`) does not remove the composite semantics of `x`. Today
-  two guards cover this rule. The guard in
-  `tests/test_middleware_variability_configuration.py` covers `MW-CONFIG-001`,
-  and only its adapter. The guard in
-  `tests/test_middleware_score_variability_configuration.py` covers
-  `MW-CONFIG-002`: its S-CORE services and its adapter, in the configured
-  product and in the phase-8 physical context. The middleware boundary of
-  `MW-CONFIG-001` still represents the AAOS SDV guest a second time; how to
-  model that guest is an open owner decision.
+  does for the adapter and the AAOS SDV boundary, and `SDVCoreBoundary` for
+  its platform software. A `binding` in the configured member then makes the
+  reference the same thing as the layer of the stack. A binding end can be a
+  feature chain (`middlewareBoundary.aaosSdvBoundary.platformSoftware`).
+  Declare `ref` in the definition that does not own the part. A `ref` on a
+  redefinition (`ref part :>> x`) does not remove the composite semantics of
+  `x`. Today two guards cover this rule. The guard in
+  `tests/test_middleware_variability_configuration.py` covers
+  `MW-CONFIG-001`: its adapter, its AAOS SDV boundary (the guest middleware)
+  and the platform software of that boundary (the guest operating system).
+  The guard in `tests/test_middleware_score_variability_configuration.py`
+  covers `MW-CONFIG-002`: its S-CORE services and its adapter, in the
+  configured product and in the phase-8 physical context.
 - A characteristic is a **feature** only when it distinguishes one member
   product from another; otherwise it is common. Phase 3 records only the
   feature candidates (`ProductLineFeatureCandidate`) an increment adds, the
