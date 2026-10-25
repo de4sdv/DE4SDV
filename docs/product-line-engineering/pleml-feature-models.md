@@ -306,6 +306,7 @@ refuses to project a fixture (exit 2); `--check-only` reports a fixture's
 verdict. Each of the seven committed projections regenerates from its
 receipt byte for byte. The public CI replays every committed receipt
 (`python scripts/run_pleml_configuration_evaluation.py replay ...`).
+A projection is a derived product model, and an increment can complete it in a configured product ([product models](../../model-based-product-line-engineering/product-models/README.md#derived-product-models-and-configured-products)).
 
 ## The parity probes
 

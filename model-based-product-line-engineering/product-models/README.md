@@ -37,6 +37,41 @@ step S7 of ADR 0022 the YAML path of the configurator was a non-authoritative
 shadow, and the parity check required its projection of each committed file
 to have the same normalised body.
 
+## Derived product models and configured products
+
+A product model has two stages in DE4SDV.
+
+A **derived product model** (a projection) is generated. The configurator
+writes it from a feature configuration and the receipt of that
+configuration. It specializes the shared asset of its feature model, for
+example `SDVPlatformStack`. It only selects one variant for each variation
+(`part :>> x = x::variant;`). The generated
+files in this directory are derived product models. Do not edit them by
+hand. Generation goes in one direction only: an edit here does not reach
+the feature configuration or the shared asset. To change a derived product
+model, change its feature configuration or the shared asset, and generate
+it again.
+
+A **configured product** completes one derived product model for one
+product. Its increment models it in its own slice, not in this directory.
+It adds the engineering content that the product line does not manage as
+variants. An example is a middleware integration layer with its processes
+and connections. That content refers to the platform-stack parts that it
+uses. A binding makes each reference the same thing as its part, so each
+part has one owner. A configured product carries a configuration identity,
+for example `MW-CONFIG-001` or `MW-CONFIG-002`, and verification evidence
+binds that identity. `MW-CONFIG-002` also records the SHA-256 of its
+receipt. A **configured member** is the configured product of an admitted
+member. The examples are the configured member
+[`MW-CONFIG-001`](../../textual-notation-of-model/packages/features/middleware/middleware_variability_configuration.sysml)
+of INC-MW-009 and the configured product
+[`MW-CONFIG-002`](../../textual-notation-of-model/packages/features/middleware/middleware_score_variability_configuration.sysml)
+of INC-MW-011.
+
+Only content that varies across member products belongs in the shared
+assets. Content that one product needs stays in the slice of its increment
+and enters through the configured product.
+
 ## Validation boundary
 
 The configurator writes what the receipt records: the DE4SDV evaluation of
