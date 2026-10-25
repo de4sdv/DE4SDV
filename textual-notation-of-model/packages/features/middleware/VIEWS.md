@@ -425,7 +425,7 @@ Reviewers, and the safety expert who reviews GAP-MW-033, need the exchanges betw
 - **Source:** `middleware_score_physical_software_realization.sysml`
 - **Viewpoint:** `selectedLayerInternalExchangeViewpoint` (`PhysicalInternalExchangeViewpoint`)
 - **Concern:** `scoreMiddlewareLayerInternalExchangeConcern`
-- **Exposes:** `scoreTwoDomainPhysicalSystem::integrationLayer`, `scoreTwoDomainPhysicalSystem::integrationLayer::**`
+- **Exposes:** `SCOREMiddlewareIntegrationLayerRealization::adapter`, `SCOREMiddlewareIntegrationLayerRealization::adapter::**`, `SCOREMiddlewareIntegrationLayerRealization::scoreServices`, `SCOREMiddlewareIntegrationLayerRealization::scoreServices::**`, `SCOREMiddlewareIntegrationLayerRealization::someipReceiver`, `SCOREMiddlewareIntegrationLayerRealization::someipReceiver::**`, `SCOREMiddlewareIntegrationLayerRealization::healthProxyNode`, `SCOREMiddlewareIntegrationLayerRealization::healthProxyNode::**`
 - **Depth:** `-1`
 - **Render:** `asInterconnectionDiagram`
 
