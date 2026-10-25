@@ -160,29 +160,29 @@ KNOWN_PRESENTATION_NOTES = {
         "remain readable at full size."
     ),
     "middlewareAdapterBoundaryExchangeView": (
-        "The adapter and the AAOS SDV boundary are dashed «ref part» boxes. The "
-        "boundary refers to them; in the configured member `MW-CONFIG-001` the "
-        "platform stack owns them. Their ports come from their definitions, so "
-        "SysIDE still draws the wired velocity path."
+        "The adapter is a dashed «ref part» box. The boundary refers to it; in "
+        "the configured member `MW-CONFIG-001` the platform stack owns it. In "
+        "this render the reference is a container with the ports of its "
+        "definition. It is declared without a body and exposed directly as a "
+        "root. The wired velocity path is drawn. The AAOS SDV boundary stays a "
+        "part of the boundary, an open item of `MW-CONFIG-001`."
     ),
     "middlewarePhysicalStructureView": (
-        "The parts compartment lists `adapter` and `aaosSdvBoundary` like the "
-        "other parts, without the `ref` keyword. In the source both are "
-        "references (`ref part`): the boundary refers to them, and in the "
-        "configured member `MW-CONFIG-001` the platform stack owns them."
+        "The parts compartment lists `adapter` like the other parts, without "
+        "the `ref` keyword. In the source it is a reference (`ref part`): the "
+        "boundary refers to it, and in the configured member `MW-CONFIG-001` "
+        "the platform stack owns it."
     ),
     "middlewareProductLineConfigurationView": (
         "Long qualified labels overlap in the current SysIDE layout; use the "
         "source and exposure list above for exact names."
     ),
     "middlewareProductModelAssemblyView": (
-        "The two boxes marked `=` are the bindings. The end `thisThing` names "
-        "the reference of the middleware boundary, `middlewareBoundary.adapter` "
-        "or `middlewareBoundary.aaosSdvBoundary`. SysIDE shows `sameThing` "
-        "without its target, which the source names: "
-        "`platformStack.applicationMiddlewareAdapter` and "
-        "`platformStack.guestMiddleware`. The boundary side is a reference, so "
-        "the platform stack is the only owner of these parts."
+        "The box marked `=` is the binding. Its end `thisThing` names the "
+        "reference of the middleware boundary, `middlewareBoundary.adapter`. "
+        "SysIDE shows `sameThing` without its target, which the source names: "
+        "`platformStack.applicationMiddlewareAdapter`. The boundary side is a "
+        "reference; the platform stack is the only owner of the adapter."
     ),
     "scoreMiddlewarePhysicalLogicalMappingView": (
         "Cells show ↗ for every allocation; the two partial allocations are "
