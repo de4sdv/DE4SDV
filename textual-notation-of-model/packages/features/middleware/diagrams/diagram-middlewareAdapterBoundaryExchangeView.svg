@@ -21,7 +21,7 @@
   <path d="M 62,422 H 246 A 6,6 0 0 1 252,428 V 474 A 6,6 0 0 1 246,480 H 62 A 6,6 0 0 1 56,474 V 428 A 6,6 0 0 1 62,422 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 1822,115 H 2083 A 6,6 0 0 1 2089,121 V 167 A 6,6 0 0 1 2083,173 H 1822 A 6,6 0 0 1 1816,167 V 121 A 6,6 0 0 1 1822,115 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 790,88 H 1025 A 6,6 0 0 1 1031,94 V 1268 A 6,6 0 0 1 1025,1274 H 790 A 6,6 0 0 1 784,1268 V 94 A 6,6 0 0 1 790,88 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="8 4"/>
-  <path d="M 62,422 H 246 A 6,6 0 0 1 252,428 V 474 A 6,6 0 0 1 246,480 H 62 A 6,6 0 0 1 56,474 V 428 A 6,6 0 0 1 62,422 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 62,422 H 246 A 6,6 0 0 1 252,428 V 474 A 6,6 0 0 1 246,480 H 62 A 6,6 0 0 1 56,474 V 428 A 6,6 0 0 1 62,422 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="8 4"/>
   <path d="M 1822,115 H 2083 A 6,6 0 0 1 2089,121 V 167 A 6,6 0 0 1 2083,173 H 1822 A 6,6 0 0 1 1816,167 V 121 A 6,6 0 0 1 1822,115 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 777,456 H 791 V 470 H 777 V 456 Z" fill="#FFFFFF" fill-opacity="1.000" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 1024,98 H 1038 V 112 H 1024 V 98 Z" fill="#FFFFFF" fill-opacity="1.000" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -352,7 +352,7 @@
   <path d="M 5,3 L 2,6 L 5,9" fill="none" stroke="black" stroke-width="1" data-render="stroked"/>
   </g>
   </g>
-  <text x="150.5" y="434" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
+  <text x="150.5" y="434" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«ref part»</tspan></text>
   <text x="150.5" y="450" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">aaosSdvBoundary : SDVCoreBoundary</tspan></text>
   <text x="260" y="427.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^vehicleSignalAccessOut</tspan></text>
   <text x="260" y="477.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^vehicleSignalAccessOut.vehicleSignals</tspan></text>

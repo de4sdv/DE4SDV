@@ -147,6 +147,13 @@ DIAGRAM_PUBLICATION_GAPS = {
 
 
 KNOWN_PRESENTATION_NOTES = {
+    "aaosSdvBoundaryView": (
+        "The parts compartment of `SDVCoreBoundary` lists `platformSoftware` "
+        "like the other parts, without the `ref` keyword. In the source it is a "
+        "reference (`ref part`): guest operating-system content, which the "
+        "platform stack owns as its guest operating system in the configured "
+        "member `MW-CONFIG-001`."
+    ),
     "aebsVisualizationProductLineConfigurationView": (
         "Long qualified labels overlap in the current SysIDE layout; use the "
         "source and exposure list above for exact names."
