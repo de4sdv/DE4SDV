@@ -714,7 +714,11 @@ def _svg_hover_json(
         entry = li.to_dict()
         if li.anchor:
             entry["href"] = prefix + f"pages/{li.rel_path}.html#{li.anchor}"
-        payload[li.label] = entry
+        # a compartment row only under its position: many rows have the same
+        # text (`doc`), and under the text a row without its own entry would
+        # show the tooltip of another row
+        if not svg_info.is_compartment_row(li.label):
+            payload[li.label] = entry
         by_label[li.label] = li
         if li.x or li.y:
             positions[f"{li.x:g},{li.y:g}"] = entry

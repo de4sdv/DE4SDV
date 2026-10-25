@@ -37,6 +37,14 @@ _PLURAL_USAGE_RE = re.compile(
 _HEADING_RE = re.compile(
     r"^(?:subject|actors|include use cases|attributes)\s*$|^doc\b"
 )
+# a stereotype line alone (`«part def»`): never the title of a box
+_STEREOTYPE_ONLY_RE = re.compile(r"^«[^»]*»$")
+
+
+def is_compartment_row(label: str) -> bool:
+    """A compartment heading or doc row: it names no element of its own,
+    and many rows have the same text (`doc`)."""
+    return bool(_HEADING_RE.match(label))
 
 
 def _unescape(s: str) -> str:
@@ -615,13 +623,15 @@ def resolve_labels(
 ) -> list[LabelInfo]:
     """Resolve diagram labels against the model index, most specific first.
 
-    Compartment labels (``objective``, ``subject``, ``actors``, ``include
-    use cases``, ``attributes``, ``doc ...``) have no declaration of their
-    own or repeat a keyword; they resolve to the element whose compartment
-    they render (the last resolved label that owns children), so hovering
-    them shows that element's tooltip. Anonymous usages (``objective {``)
-    are indexed under their keyword; when several exist, the one nested in
-    the current context element wins.
+    Compartment rows (``subject``, ``actors``, ``include use cases``,
+    ``attributes``, ``doc ...``) have no declaration of their own; they
+    resolve to the element whose compartment they render, so hovering them
+    shows that element's tooltip. With the SVG, that element is the title
+    of the box that contains the row (see _row_title); a row whose title
+    does not resolve resolves to nothing. Without the SVG (labels only), it
+    is the last resolved label that owns children. Anonymous usages
+    (``objective {``) are indexed under their keyword; when several exist,
+    the one nested in the current context element wins.
     """
     out: list[LabelInfo] = []
     context: ElementRef | None = None
@@ -630,9 +640,14 @@ def resolve_labels(
         items = [(x, y, plain) for (x, y, plain) in _text_positions(svg_text) if plain]
     else:
         items = [(0.0, 0.0, label) for label in labels]
+    rows: list[tuple[float, float, str]] = []
     for x, y, label in items:
         ref = None
         key_hit = ""
+        if svg_text and _HEADING_RE.match(label):
+            # a compartment row: resolved below, from the box that contains it
+            rows.append((x, y, label))
+            continue
         if context is not None and _HEADING_RE.match(label):
             # compartment headings/doc rows show their containing element
             ref = context
@@ -735,7 +750,71 @@ def resolve_labels(
                 x=li.x,
                 y=li.y,
             )
+    # compartment rows: the element of the title of their box, as resolved
+    # (and doc-filled) above, so a row shows the tooltip of its title
+    if rows:
+        boxes = _element_boxes(svg_text)
+        by_position = {(li.x, li.y): li for li in out}
+        for x, y, label in rows:
+            title = by_position.get(_row_title(x, y, items, boxes))
+            if title is None:
+                continue
+            out.append(
+                LabelInfo(
+                    label=label,
+                    name=title.name,
+                    kind=title.kind,
+                    doc=title.doc,
+                    rel_path=title.rel_path,
+                    line=title.line,
+                    anchor=title.anchor,
+                    short_name=title.short_name,
+                    x=x,
+                    y=y,
+                )
+            )
     return out
+
+
+def _element_boxes(svg_text: str) -> list[tuple[float, float, float, float]]:
+    """Bounding boxes of the white element boxes of a SysIDE diagram."""
+    boxes = []
+    for m in _BOX_PATH_RE.finditer(svg_text):
+        bbox = _path_bbox(m.group(1))
+        if bbox is not None:
+            boxes.append(bbox)
+    return boxes
+
+
+def _row_title(
+    x: float,
+    y: float,
+    items: list[tuple[float, float, str]],
+    boxes: list[tuple[float, float, float, float]],
+) -> tuple[float, float] | None:
+    """Position of the title of the compartment row at (x, y), or None.
+
+    The title is the topmost text of the smallest element box that contains
+    the row, without stereotype lines and other compartment rows. A row in
+    no box takes the nearest such text above it in the same column."""
+    def candidate(text: str) -> bool:
+        return not _STEREOTYPE_ONLY_RE.match(text) and not _HEADING_RE.match(text)
+
+    inside = [b for b in boxes if b[0] < x < b[2] and b[1] < y < b[3]]
+    if inside:
+        x1, y1, x2, y2 = min(inside, key=lambda b: (b[2] - b[0]) * (b[3] - b[1]))
+        texts = [(ty, tx) for tx, ty, text in items
+                 if x1 < tx < x2 and y1 < ty < y and candidate(text)]
+        if not texts:
+            return None
+        ty, tx = min(texts)
+        return (tx, ty)
+    above = [(ty, tx) for tx, ty, text in items
+             if abs(tx - x) <= 0.5 and ty < y and candidate(text)]
+    if not above:
+        return None
+    ty, tx = max(above)
+    return (tx, ty)
 
 
 def labels_to_json(

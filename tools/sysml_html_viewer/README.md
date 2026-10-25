@@ -292,6 +292,12 @@ the diagram shows is resolved back to the model:
   list (`: A, B`), the first type with a doc gives the doc. A doc comment
   placed right after a declaration's opening brace belongs to that
   declaration only; it never leaks onto the member that follows it.
+- **Compartment rows** (`doc …`, `attributes`, `subject`, `actors`,
+  `include use cases`) belong to the element whose box contains them: the
+  title of the smallest box around the row (its topmost text that is not
+  a stereotype line). A row in no box belongs to the title above it in the
+  same column. A row whose title does not resolve shows nothing. Many rows
+  have the same text, so the hover data has a row only under its position.
 - **Click** a label — the viewer jumps to the element's declaration
   line (`#src-N`) in its defining file.
 - Labels that are pure layout text (headers, "parts", stereotype labels)

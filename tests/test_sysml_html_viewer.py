@@ -2300,6 +2300,80 @@ def test_svg_label_context_resolution():
     assert resolved["doc The objective body text."].doc == "The use case doc."
 
 
+# Synthetic diagram: element boxes, each with a stereotype, a title and a
+# doc row. Holder has members (the last element with members before the
+# second box); plan has none; the third box has a title that does not
+# resolve. Other has no box: its doc row is below its title in the same
+# column.
+_COMPARTMENT_SVG = (
+    '<svg>'
+    '<path d="M 10,10 H 200 V 100 H 10 Z" fill="#FFFFFF"/>'
+    '<text x="100" y="20">«part def»</text>'
+    '<text x="100" y="36">Holder</text>'
+    '<text x="100" y="54">doc</text>'
+    '<path d="M 10,110 H 200 V 200 H 10 Z" fill="#FFFFFF"/>'
+    '<text x="100" y="120">«part»</text>'
+    '<text x="100" y="136">plan : Plan</text>'
+    '<text x="100" y="154">doc</text>'
+    '<text x="20" y="170">doc The plan of the review.</text>'
+    '<path d="M 10,210 H 200 V 300 H 10 Z" fill="#FFFFFF"/>'
+    '<text x="100" y="220">«part»</text>'
+    '<text x="100" y="236">unknown : Unknown</text>'
+    '<text x="100" y="254">doc</text>'
+    '<text x="300" y="20">Other</text>'
+    '<text x="300" y="40">doc</text>'
+    '</svg>'
+)
+
+
+def _compartment_index():
+    from tools.sysml_html_viewer.model_parse import ElementRef
+
+    refs = [
+        ElementRef(name="Holder", kind="part def", doc="The holder.", rel_path="p/f.sysml",
+                   line=1, anchor="src-1", has_children=True),
+        ElementRef(name="plan", kind="part", doc="The plan.", rel_path="p/f.sysml",
+                   line=5, anchor="src-5"),
+        ElementRef(name="Other", kind="part def", doc="The other.", rel_path="p/f.sysml",
+                   line=9, anchor="src-9"),
+    ]
+    return {r.name: [r] for r in refs}
+
+
+def test_a_compartment_row_resolves_to_the_title_of_its_box():
+    """A compartment row (`doc`, `doc text`, `attributes`, `subject`, ...)
+    belongs to the element whose box contains it: the title of the box, the
+    topmost text in the box that is no stereotype. A row in no box belongs
+    to the title above it in the same column. If the title does not
+    resolve, the row resolves to nothing. The last element with members
+    before the row is not its owner."""
+    resolved = svg_info.resolve_labels(
+        svg_info.extract_text_labels(_COMPARTMENT_SVG), _compartment_index(),
+        "p/f.sysml", "p", _COMPARTMENT_SVG)
+    by_position = {(li.x, li.y): li.name for li in resolved}
+    assert by_position[(100, 54)] == "Holder"
+    assert by_position[(100, 154)] == "plan"
+    assert by_position[(20, 170)] == "plan"
+    assert by_position[(300, 40)] == "Other"
+    assert (100, 254) not in by_position
+
+
+def test_a_compartment_row_has_no_entry_under_its_text(tmp_path):
+    """Many rows have the same text (`doc`). The hover data has a row only
+    under its position, never under its text: under the text, a row without
+    its own entry would show the tooltip of another row."""
+    from tools.sysml_html_viewer.model_parse import ModelFile, ViewInfo
+    from tools.sysml_html_viewer.render import _svg_hover_json
+
+    mf = ModelFile(path=tmp_path / "f.sysml", rel_path="p/f.sysml")
+    payload = json.loads(_svg_hover_json(
+        _COMPARTMENT_SVG, ViewInfo(name="v"), mf, _compartment_index(), "").replace("<\\/", "</"))
+    assert "doc" not in payload and "doc The plan of the review." not in payload
+    assert payload["Holder"]["name"] == "Holder"
+    assert payload["positions"]["100,154"]["name"] == "plan"
+    assert "100,254" not in payload["positions"]
+
+
 
 def test_bind_kind_parsed(tmp_path):
     """`bind a = b;` and `bind a.b = c;` parse as members (BindingConnector

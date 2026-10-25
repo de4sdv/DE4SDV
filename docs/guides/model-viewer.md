@@ -103,7 +103,8 @@ Rest the pointer on any model label — tree entry or diagram element. A tooltip
 shows the element kind, its documentation, the source file and line, and a
 link that jumps to the declaration in the highlighted source. Hovering a
 compartment row (for example `attributes` or `doc …`) shows the tooltip of the
-element whose compartment it renders. An element with a short name shows it
+element whose compartment it renders: the title of the box that contains the
+row. An element with a short name shows it
 before its name, as in the diagrams: `<REQ-MW-010> reqDeliverReferenceVehicleSpeed`.
 
 ### Hover tooltips on connections
