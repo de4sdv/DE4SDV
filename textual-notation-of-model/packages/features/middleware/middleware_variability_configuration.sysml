@@ -94,14 +94,14 @@ package DE4SDV_MiddlewareVariabilityConfiguration {
      * no GUI). That is right for MW-CONFIG-001: it selects no HMI display,
      * and its runtime evidence names the headless sdv_core_cf image
      * (E-MW-011, E-MW-013). The INC-AEBS-010 test article inherits this
-     * headless guest middleware. It also composes a second AAOS SDV guest,
+     * headless guest middleware. It also composes a second AAOS SDV guest:
      * the display-capable sdv_ivi_cf guest of its System 2 instrument
-     * (iviGuest : SdvIviCfGuestTarget), and its evidence ran that image. The
-     * doc of SdvIviCfGuestTarget says that it replaces the headless
-     * sdv_core_cf target, and the binding now contradicts that statement. So
-     * the binding sharpens the discrepancy that INC-AEBS-010 records. How to
-     * model the guest of the test article (one guest, headless or display)
-     * stays a later owner decision.
+     * (iviGuest : SdvIviCfGuestTarget). Its evidence ran that image. The doc
+     * of SdvIviCfGuestTarget says that it replaces the headless sdv_core_cf
+     * target, and the binding now contradicts that statement. So the binding
+     * sharpens the discrepancy that INC-AEBS-010 records. How to model the
+     * guest of the test article (one guest, headless or display) stays a
+     * later owner decision.
      */
   }
 

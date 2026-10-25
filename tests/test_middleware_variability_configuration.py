@@ -438,8 +438,8 @@ class TestMWVariabilityConfiguration(unittest.TestCase):
                      "EVID-AEBS-S2-001 to EVID-AEBS-S2-006, which bind AEBS-CONFIG-010-001.",
                      "baseline revision b8170f6953567b07164b8c02be05be137f8047f0. No record is edited.",
                      "the binding makes the guest middleware of this member a headless SDV Core boundary",
-                     "It also composes a second AAOS SDV guest, the display-capable sdv_ivi_cf guest of its System 2 "
-                     "instrument (iviGuest : SdvIviCfGuestTarget)",
+                     "It also composes a second AAOS SDV guest: the display-capable sdv_ivi_cf guest of its System 2 "
+                     "instrument (iviGuest : SdvIviCfGuestTarget). Its evidence ran that image.",
                      "the binding now contradicts that statement.",
                      "So the binding sharpens the discrepancy that INC-AEBS-010 records.",
                      "stays a later owner decision."):

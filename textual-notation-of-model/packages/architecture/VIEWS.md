@@ -24,7 +24,7 @@ Reviewers need the AAOS SDV boundary visible for the middleware integration incr
 
 - **Diagram status:** Published from the committed SysIDE SVG.
 - **Presentation note:** This is a dense review artifact; open the SVG at full size rather than reading it from the page thumbnail.
-- **Presentation note:** The parts compartment of `SDVCoreBoundary` lists `platformSoftware` like the other parts, without the `ref` keyword. In the source it is a reference (`ref part`): guest operating-system content, which the platform stack owns as its guest operating system in the configured member `MW-CONFIG-001`.
+- **Presentation note:** The parts compartment of `SDVCoreBoundary` lists `platformSoftware` like the other parts, without the `ref` keyword. In the source it is a reference (`ref part`) to guest operating-system content. In the configured member `MW-CONFIG-001`, the platform stack owns that content as its guest operating system.
 
 ![aaosSdvBoundaryView](diagrams/diagram-aaosSdvBoundaryView.svg)
 
