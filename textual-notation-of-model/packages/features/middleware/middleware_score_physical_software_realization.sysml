@@ -101,12 +101,27 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * of the layer carries the AEBS emergency intervention command
      * (REQ-MW-017, ASM-MW-028). The layer has no boundary ports of its own:
      * the context parts connect to its processes directly.
+     * Ownership (owner decision of 2026-10-23, INC-MW-011 phase 9): the
+     * layer refers to the adapter and to the S-CORE services and does not
+     * own them. The product around the layer owns them: the Linux host in
+     * SCORETwoDomainPhysicalSystem, and the platform stack in the
+     * configured product MW-CONFIG-002. Bindings make the references the
+     * same things as the owned parts, so each product has one instance and
+     * one owner of each.
      */
 
-    part adapter : PhysicalAllocationElement {
+    ref part adapter : PhysicalAllocationElement, AutowareToSCOREAdapter {
       doc /*
        * The Autoware-to-S-CORE adapter: one DE4SDV process on the Linux host
        * that is both an S-CORE application and a ROS 2 node (GAP-MW-035).
+       * The layer refers to it and does not own it.
+       * Phase 9 typed it by AutowareToSCOREAdapter, the definition of
+       * autowareToSCORE, the adapter variant that the feature model derives
+       * for Autoware with Eclipse S-CORE. So the process that REQ-MW-018
+       * names is typed by the definition of the derived variant (owner
+       * decision of 2026-10-21). The typing adds the two layer ports of the
+       * adapter layer. This slice does not connect them: the adapter's own
+       * ports carry its exchanges.
        * Speed: it receives the reference vehicle speed as an mw::com proxy
        * and publishes each finite sample once as an Autoware VelocityReport,
        * which is not a VSS signal, whose longitudinal velocity in m/s is the
@@ -221,9 +236,11 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
       }
     }
 
-    part scoreServices : EclipseSCORE {
+    ref part scoreServices : EclipseSCORE {
       doc /*
-       * The Eclipse S-CORE modules the layer uses, with their processes.
+       * The Eclipse S-CORE modules the layer uses, with their processes. The
+       * layer refers to them and does not own them; the processes below are
+       * parts of the S-CORE instance that the product owns.
        * lifecycle v0.6.1 comes from reference_integration v0.9.0, as its
        * known_good.json integrates it, with its test exclusions
        * (ASM-MW-021). The S-CORE SOME/IP
@@ -389,23 +406,34 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
 
   part def SCORETwoDomainPhysicalSystem {
     doc /*
-     * The physical context of the two-domain member product: the Linux host,
-     * the AAOS SDV guest under its KVM hypervisor, and the integration layer
-     * that spans both. Each domain is typed with the existing layers of the
-     * SDV platform stack; phase 9 adds the per-domain variation
-     * (GAP-MW-032).
+     * The physical context of the two-domain member product. It holds the
+     * Linux host, the AAOS SDV guest under its KVM hypervisor, and the
+     * integration layer that spans both. Each domain is typed with the
+     * existing layers of the SDV platform stack; phase 9 adds the per-domain
+     * variation (GAP-MW-032). The Linux host owns the S-CORE services and
+     * the adapter.
+     * Two bindings make the layer's references the same things, so this
+     * context has one instance and one owner of each (owner decision of
+     * 2026-10-23).
      */
 
     part linuxHost {
       doc /*
        * The Linux execution domain: Ubuntu x86_64 (ASM-MW-026) and the KVM
-       * hypervisor (ASM-MW-027). Its vehicle-level middleware, Eclipse
-       * S-CORE, is part of the integration layer (scoreServices). The AEBS
-       * emergency intervention command path stays in this domain, outside
-       * the layer (ASM-MW-028).
+       * hypervisor (ASM-MW-027). It owns its vehicle-level middleware,
+       * Eclipse S-CORE (scoreServices), and the adapter process (adapter).
+       * The integration layer refers to both. The AEBS emergency
+       * intervention command path stays in this domain, outside the layer
+       * (ASM-MW-028).
        */
       part os : LinuxPlatform;
       part hypervisor : KVMHypervisor;
+      part scoreServices : EclipseSCORE {
+        doc /* The Eclipse S-CORE instance of this domain. The layer's scoreServices refers to it and declares its processes. */
+      }
+      part adapter : AutowareToSCOREAdapter {
+        doc /* The adapter process of this domain. The layer's adapter refers to it and declares its ports. */
+      }
 
       part vehicleSpeedProvider {
         doc /* The vehicle-speed provider, an S-CORE application outside the system of interest; it offers the reference vehicle speed as an mw::com event. */
@@ -463,6 +491,10 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
     }
 
     part integrationLayer : SCOREMiddlewareIntegrationLayerRealization;
+    binding scoreServicesBoundToLinuxHost
+      bind integrationLayer.scoreServices = linuxHost.scoreServices;
+    binding adapterBoundToLinuxHost
+      bind integrationLayer.adapter = linuxHost.adapter;
 
     interface hmiGuestUnderKVM : OSHypervisorInterface
       connect hmiGuest.os.hypervisorPort to linuxHost.hypervisor.guestPort;
@@ -1062,9 +1094,14 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
       frame scoreMiddlewareLayerInternalExchangeConcern;
     }
     doc /*
-     * Bounded projection of the integration layer: its three DE4SDV
-     * processes, the S-CORE modules with the Launch Manager, gatewayd and
-     * someipd, their ports and the four connections between the processes.
+     * Bounded projection of the integration layer. It exposes the three
+     * DE4SDV processes, the S-CORE modules with the Launch Manager, gatewayd
+     * and someipd, their ports and the four connections between the
+     * processes. The published diagram draws two of these four connections
+     * only as connection boxes and the other two not at all. The view index
+     * says why.
+     * The adapter and the S-CORE modules are references of the layer; the
+     * Linux host of SCORETwoDomainPhysicalSystem owns them.
      * The connections to the context parts are in
      * SCORETwoDomainPhysicalSystem; the layer has no boundary ports to
      * delegate them. Allocations are filtered out. Domain placement

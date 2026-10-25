@@ -201,10 +201,14 @@ part configuredMember : MiddlewareAutowareAAOSSDVConfiguredMember {
   reference the same thing as the layer of the stack. Declare `ref` in the
   definition that does not own the part. A `ref` on a redefinition
   (`ref part :>> x`) does not remove the composite semantics of `x`. Today
-  the guard in `tests/test_middleware_variability_configuration.py` covers
-  one configured member, `MW-CONFIG-001`, and only its adapter. Its middleware
-  boundary still represents the AAOS SDV guest a second time; how to model
-  that guest is an open owner decision.
+  two guards cover this rule. The guard in
+  `tests/test_middleware_variability_configuration.py` covers `MW-CONFIG-001`,
+  and only its adapter. The guard in
+  `tests/test_middleware_score_variability_configuration.py` covers
+  `MW-CONFIG-002`: its S-CORE services and its adapter, in the configured
+  product and in the phase-8 physical context. The middleware boundary of
+  `MW-CONFIG-001` still represents the AAOS SDV guest a second time; how to
+  model that guest is an open owner decision.
 - A characteristic is a **feature** only when it distinguishes one member
   product from another; otherwise it is common. Phase 3 records only the
   feature candidates (`ProductLineFeatureCandidate`) an increment adds, the
