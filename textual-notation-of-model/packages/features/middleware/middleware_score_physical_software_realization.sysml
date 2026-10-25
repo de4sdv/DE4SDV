@@ -406,11 +406,12 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
 
   part def SCORETwoDomainPhysicalSystem {
     doc /*
-     * The physical context of the two-domain member product: the Linux host,
-     * the AAOS SDV guest under its KVM hypervisor, and the integration layer
-     * that spans both. Each domain is typed with the existing layers of the
-     * SDV platform stack; phase 9 adds the per-domain variation
-     * (GAP-MW-032). The Linux host owns the S-CORE services and the adapter.
+     * The physical context of the two-domain member product. It holds the
+     * Linux host, the AAOS SDV guest under its KVM hypervisor, and the
+     * integration layer that spans both. Each domain is typed with the
+     * existing layers of the SDV platform stack; phase 9 adds the per-domain
+     * variation (GAP-MW-032). The Linux host owns the S-CORE services and
+     * the adapter.
      * Two bindings make the layer's references the same things, so this
      * context has one instance and one owner of each (owner decision of
      * 2026-10-23).
@@ -1093,9 +1094,12 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
       frame scoreMiddlewareLayerInternalExchangeConcern;
     }
     doc /*
-     * Bounded projection of the integration layer: its three DE4SDV
-     * processes, the S-CORE modules with the Launch Manager, gatewayd and
-     * someipd, their ports and the four connections between the processes.
+     * Bounded projection of the integration layer. It exposes the three
+     * DE4SDV processes, the S-CORE modules with the Launch Manager, gatewayd
+     * and someipd, their ports and the four connections between the
+     * processes. The published diagram draws two of these four connections
+     * only as connection boxes and the other two not at all. The view index
+     * says why.
      * The adapter and the S-CORE modules are references of the layer; the
      * Linux host of SCORETwoDomainPhysicalSystem owns them.
      * The connections to the context parts are in

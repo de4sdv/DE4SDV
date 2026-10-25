@@ -109,6 +109,16 @@ def _product_body() -> str:
     return _body(_code(SLICE), r"\bpart\s+def\s+MiddlewareAutowareSCOREConfiguredProduct\s*\{")
 
 
+def _composite_parts_typed_by(body: str, definition: str) -> list[str]:
+    """The names of the composite (not ``ref``) part usages at any depth of ``body`` whose typing list has
+    ``definition``, as in ``part adapter : PhysicalAllocationElement, AutowareToSCOREAdapter``."""
+    names = []
+    for match in re.finditer(r"\b(ref\s+)?part\s+(\w+)\s*(?:\[[^\]]*\]\s*)?:(?![:>])([^;{]*)", body):
+        if not match[1] and definition in re.findall(r"(?:\w+\s*::\s*)*(\w+)", match[3]):
+            names.append(match[2])
+    return names
+
+
 def test_the_configured_product_pairs_the_projection_with_the_layer_realization() -> None:
     body = _product_body()
     own = _own(body)
@@ -119,15 +129,19 @@ def test_the_configured_product_pairs_the_projection_with_the_layer_realization(
 
 def test_the_layer_refers_to_its_s_core_services_and_its_adapter() -> None:
     """The realization owns no platform layer: its S-CORE services and its adapter are references
-    (owner decision of 2026-10-23). The phase-8 physical context composes them once, in the Linux host,
-    and binds the layer's references to them."""
+    (owner decision of 2026-10-23). The phase-8 physical context composes each of them exactly once, in
+    the Linux host, and binds the layer's references to them."""
     realization = _heads(_body(_code(PHYSICAL), r"\bpart\s+def\s+SCOREMiddlewareIntegrationLayerRealization\b[^{;]*\{"))
     layered = [(match[1], match[2]) for match in re.finditer(r"\b(ref\s+)?part\s+(\w+)\s*:\s*([^{;]*)", realization)
                if {name.strip().rsplit("::", 1)[-1] for name in match[3].split(",")} & set(LAYER_DEFINITIONS)]
     assert layered == [("ref ", "adapter"), ("ref ", "scoreServices")]
     context = _body(_code(PHYSICAL), r"\bpart\s+def\s+SCORETwoDomainPhysicalSystem\s*\{")
     host = _own(_body(context, r"\bpart\s+linuxHost\s*\{"))
-    assert "part scoreServices : EclipseSCORE" in host and "part adapter : AutowareToSCOREAdapter" in host
+    assert re.search(r"(?<!ref )\bpart scoreServices : EclipseSCORE\b", host), "the Linux host composes scoreServices"
+    assert re.search(r"(?<!ref )\bpart adapter : AutowareToSCOREAdapter\b", host), "the Linux host composes adapter"
+    for definition, name in (("EclipseSCORE", "scoreServices"), ("AutowareToSCOREAdapter", "adapter")):
+        assert _composite_parts_typed_by(context, definition) == [name], (
+            f"the phase-8 context composes exactly one part typed by {definition}: linuxHost.{name}")
     own = _own(context)
     assert "binding scoreServicesBoundToLinuxHost bind integrationLayer.scoreServices = linuxHost.scoreServices;" in own
     assert "binding adapterBoundToLinuxHost bind integrationLayer.adapter = linuxHost.adapter;" in own

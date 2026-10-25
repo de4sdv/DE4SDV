@@ -186,11 +186,11 @@ KNOWN_PRESENTATION_NOTES = {
         "`frameEventOverSCORECommunication` and `frameEventOverGatewayIPC` "
         "are in the source only. `speedTopicToHealthProxy` and "
         "`frameEventOverSOMEIPAcrossHypervisor` appear as «connection» boxes "
-        "with their ends. This is a known render limit. Other exposures did "
-        "not draw the path either: the two references as exposure roots next "
-        "to the layer, or the four processes as exposure roots without the "
-        "layer. Domain placement is stated in the process docs and the "
-        "connection name; the view does not draw the host/guest boundary."
+        "with their ends. This is an observed render limit in SysIDE 0.10.3; "
+        "the cause is not documented. The four processes as exposure roots, "
+        "without the layer, did not draw the path either. Domain placement is "
+        "stated in the process docs and the connection name; the view does not "
+        "draw the host/guest boundary."
     ),
     "scoreMiddlewareProductModelAssemblyView": (
         "The two boxes marked `=` are the bindings. The end `thisThing` names "

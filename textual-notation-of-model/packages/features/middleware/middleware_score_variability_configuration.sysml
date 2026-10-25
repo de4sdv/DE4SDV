@@ -14,14 +14,14 @@
  * of them, and a guard test keeps those names equal to the receipt.
  *
  * The configuration is valid and not admitted. The receipt gives three
- * reasons: Eclipse S-CORE is reference-only, the HMI display has no element
- * in the governed scope, and the guest side realizes the AAOS-integrated
- * alternative without its middleware androidSDV. So the configured product
- * specializes no member-product type. The member decision is phase-12 work,
- * after the runnable proof of phase 10 (owner decision of 2026-10-21). This
- * slice is configuration evidence only: it proves no runtime behavior,
- * satisfies no requirement and makes no safety, cybersecurity or compliance
- * claim.
+ * reasons. First, Eclipse S-CORE is reference-only. Second, the HMI display
+ * has no element in the governed scope. Third, the guest side realizes the
+ * AAOS-integrated alternative without its middleware androidSDV. So the
+ * configured product specializes no member-product type. The member
+ * decision is phase-12 work, after the runnable proof of phase 10 (owner
+ * decision of 2026-10-21). This slice is configuration evidence only: it
+ * proves no runtime behavior, satisfies no requirement and makes no safety,
+ * cybersecurity or compliance claim.
  */
 
 package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
@@ -106,8 +106,8 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
     about DE4SDV_MiddlewareSCOREFraming::gapTwoDomainMemberNotExpressible
   /*
    * Phase 9 resolves GAP-MW-032. The SDV platform stack and the SDV feature
-   * model have a main side and a guest side on one SoC (owner decisions of
-   * 2026-10-21 and 2026-10-22). The groups guestOperatingSystem and
+   * model have a main side and a guest side on one SoC. The owner decided
+   * this on 2026-10-21 and 2026-10-22. The groups guestOperatingSystem and
    * guestMiddleware bind the variations guestOSPlatform and guestMiddleware,
    * and the requires constraints C007 to C010 constrain the guest side. C001
    * reads the main side only. MW-CONFIG-002 expresses the two-domain
@@ -136,12 +136,12 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
     doc /*
      * Reviewers need the variant selections of MW-CONFIG-002 in the
      * platform-stack projection that the configurator generates from its
-     * receipt: Autoware, Eclipse S-CORE and Linux on the main side, KVM,
-     * Android with the AAOS SDV middleware on the guest side, and the
-     * derived Autoware-to-S-CORE adapter. For the S-CORE product, this
-     * answers the representation part of the framing's
-     * twoDomainMemberRepresentationConcern. This concern is about choices,
-     * not assembly.
+     * receipt. The main side selects Autoware, Eclipse S-CORE and Linux. The
+     * hypervisor is KVM. The guest side selects Android with the AAOS SDV
+     * middleware. The adapter is the derived Autoware-to-S-CORE adapter. For
+     * the S-CORE product, this answers the representation part of the
+     * framing's twoDomainMemberRepresentationConcern. This concern is about
+     * choices, not assembly.
      */
     subject;
     stakeholder productLineEngineer : ProductLineEngineer;
@@ -203,12 +203,12 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
     }
     doc /*
      * The configured product, its two parts and the two bindings. The
-     * bindings make the S-CORE services and the adapter of the integration
-     * layer, both references, the same things as the selected middleware and
-     * the derived adapter of the platform stack, their only owner. The view
-     * filters out the phase-8 allocations. They target the adapter feature
-     * of the realization definition, so every usage of that definition
-     * carries them, this product included.
+     * S-CORE services and the adapter of the integration layer are
+     * references. The bindings make them the same things as the selected
+     * middleware and the derived adapter of the platform stack, their only
+     * owner. The view filters out the phase-8 allocations. They target the
+     * adapter feature of the realization definition, so every usage of that
+     * definition carries them, this product included.
      */
     expose MiddlewareAutowareSCOREConfiguredProduct;
     expose MiddlewareAutowareSCOREConfiguredProduct::platformStack;
