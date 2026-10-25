@@ -293,8 +293,9 @@ published revision, so work on a branch is evaluated by the **Method Check** of
 its pull request, which exports the pull-request head and evaluates every
 increment the model declares; that export can also be re-evaluated offline.
 INC-AEBS-010 was walked this way, push by push
-([#349](https://github.com/de4sdv/DE4SDV/pull/349)), and INC-MW-011 is being
-authored the same way ([#374](https://github.com/de4sdv/DE4SDV/pull/374)).
+([AEBS visualization framing](../../textual-notation-of-model/packages/features/aebs/aebs_visualization_framing.sysml)),
+and INC-MW-011 is being authored the same way
+([S-CORE framing](../../textual-notation-of-model/packages/features/middleware/middleware_score_framing.sysml)).
 
 The scope is deliberately narrow. Today the steps for framing, needs,
 requirements, architecture, and V&V and evidence declare executable checks
