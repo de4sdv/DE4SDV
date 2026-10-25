@@ -538,8 +538,7 @@ package DE4SDV_SDVPlatformStack {
   part def AUTOSARAdaptive :> MiddlewareLayer {
     doc /*
      * AUTOSAR Adaptive Platform (ARA).
-     * Automotive middleware standard with functional safety
-     * focus (ASIL).
+     * Service-oriented automotive middleware standard.
      * This entry is a placeholder for the standard interface
      * contract, not a specific open-source implementation.
      * License: varies by implementation.
@@ -571,7 +570,7 @@ package DE4SDV_SDVPlatformStack {
   part def QNXPlatform :> OSPlatformLayer {
     doc /*
      * QNX Neutrino RTOS (BlackBerry / QNX).
-     * Real-time POSIX OS, ASIL-D certified.
+     * Real-time POSIX OS with a microkernel.
      * License: commercial (not open-source).
      * Status: candidate realization — included for mixed-criticality
      * architectures; acknowledged as non-OSS.

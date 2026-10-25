@@ -30,8 +30,8 @@ package DE4SDV_InvalidSCOREAndroidVariantConfiguration {
             #feature occurrence :>> android[1];
             #feature occurrence :>> hypervisor[1] = (noHypervisor);
             #feature occurrence :>> noHypervisor[1];
-            #feature occurrence :>> guestOperatingSystem[1] = (noGuestOS);
-            #feature occurrence :>> noGuestOS[1];
+            #feature occurrence :>> guestOperatingSystem[1] = (noGuestOperatingSystem);
+            #feature occurrence :>> noGuestOperatingSystem[1];
             #feature occurrence :>> guestMiddleware[1] = (noGuestMiddleware);
             #feature occurrence :>> noGuestMiddleware[1];
         }

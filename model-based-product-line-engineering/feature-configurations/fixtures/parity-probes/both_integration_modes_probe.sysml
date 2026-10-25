@@ -33,9 +33,9 @@ package DE4SDV_BothIntegrationModesProbeConfiguration {
             #feature occurrence :>> hypervisor[1] = (kvm, noHypervisor);
             #feature occurrence :>> kvm[1];
             #feature occurrence :>> noHypervisor[1];
-            #feature occurrence :>> guestOperatingSystem[1] = (guestAndroid, noGuestOS);
+            #feature occurrence :>> guestOperatingSystem[1] = (guestAndroid, noGuestOperatingSystem);
             #feature occurrence :>> guestAndroid[1];
-            #feature occurrence :>> noGuestOS[1];
+            #feature occurrence :>> noGuestOperatingSystem[1];
             #feature occurrence :>> guestMiddleware[1] = (guestAndroidSDV, noGuestMiddleware);
             #feature occurrence :>> guestAndroidSDV[1];
             #feature occurrence :>> noGuestMiddleware[1];

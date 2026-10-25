@@ -119,8 +119,9 @@ class TestMWVariabilityConfiguration(unittest.TestCase):
              "sensingBoundary.lidar", "sensingBoundary.camera"} - set(configuration["selected"]),
             set(),
         )
-        self.assertFalse({"platformStack.noMiddleware", "platformStack.android", "platformStack.noGuestOS",
-                          "platformStack.noGuestMiddleware", "capabilities.hmiDisplay", "sensingBoundary.radar"}
+        self.assertFalse({"platformStack.noMiddleware", "platformStack.android",
+                          "platformStack.noGuestOperatingSystem", "platformStack.noGuestMiddleware",
+                          "capabilities.hmiDisplay", "sensingBoundary.radar"}
                          & set(configuration["selected"]))
         exempted = [item["asset"] for item in configuration["admission"]["common_content"] if item["exempted"]]
         self.assertEqual(exempted, [], "the member needs no exemption")

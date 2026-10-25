@@ -51,15 +51,17 @@ How the catalogue was restated:
   2026-10-21 and 2026-10-22). The platform has a main side, the execution
   domain that runs the vehicle application (`operatingSystem`), and an
   optional guest side under the hypervisor: the groups `guestOperatingSystem`
-  {`guestAndroid`, `noGuestOS`} and `guestMiddleware` {`guestAndroidSDV`,
-  `noGuestMiddleware`}. With KVM the main side is the KVM host. The
-  `middleware` group is the middleware that the vehicle application
-  integrates with, so its eight derivation rules stay. The optional
-  capability `hmiDisplay` has no shared asset yet. Five requires
-  constraints relate the sides: C007 `noHypervisor` requires `noGuestOS`,
-  C008 `guestAndroidSDV` requires `guestAndroid`, C009 `androidSDV`
-  requires `guestAndroidSDV`, C010 `hmiDisplay` requires `guestAndroidSDV`
-  and C011 `autoware` requires `linux`.
+  {`guestAndroid`, `noGuestOperatingSystem`} and `guestMiddleware`
+  {`guestAndroidSDV`, `noGuestMiddleware`}. Each none choice is named
+  `no<Group>`, like `noMiddleware` and `noHypervisor` (owner decision of
+  2026-10-25). With KVM the main side is the KVM host. The `middleware` group
+  is the middleware that the vehicle application integrates with, so its
+  eight derivation rules stay. The optional capability `hmiDisplay` has no
+  shared asset yet. Five requires constraints relate the sides: C007
+  `noHypervisor` requires `noGuestOperatingSystem`, C008 `guestAndroidSDV`
+  requires `guestAndroid`, C009 `androidSDV` requires `guestAndroidSDV`, C010
+  `hmiDisplay` requires `guestAndroidSDV` and C011 `autoware` requires
+  `linux`.
 - **Bindings.** One feature binding per shared-asset variant, with the variant
   as client.
 - **Derivation.** The application-middleware adapter is a derived variation,
