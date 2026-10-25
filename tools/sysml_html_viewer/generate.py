@@ -604,10 +604,14 @@ def _render_help_md(text: str, link_path: str = "") -> str:
             para_buf.clear()
 
     def flush_list() -> None:
+        # None means "no open list": the next item opens a new list with the
+        # type of that item. An emptied buffer would close the list again at
+        # every later line and keep the type of the first list.
+        nonlocal list_buf
         if list_buf is not None:
             items = "".join(f"<li>{_inline_md(i, link_path)}</li>" for i in list_buf)
             out.append(f"<{list_tag}>{items}</{list_tag}>")
-            list_buf.clear()
+            list_buf = None
 
     def flush_table() -> None:
         if not table_buf:
@@ -625,8 +629,16 @@ def _render_help_md(text: str, link_path: str = "") -> str:
         cells = "".join(
             f"<th>{_inline_md(c, link_path)}</th>" for c in header
         )
+        # each body cell names its column (data-label): on a phone the rows
+        # stack, and the stylesheet shows that name above the cell text
+        labels = [_plain_md(c) for c in header]
+
+        def td(i: int, c: str) -> str:
+            label = f' data-label="{_esc(labels[i])}"' if i < len(labels) and labels[i] else ""
+            return f"<td{label}>{_inline_md(c, link_path)}</td>"
+
         rows_html = "".join(
-            "<tr>" + "".join(f"<td>{_inline_md(c, link_path)}</td>" for c in row) + "</tr>"
+            "<tr>" + "".join(td(i, c) for i, c in enumerate(row)) + "</tr>"
             for row in body
         )
         out.append(f"<table><thead><tr>{cells}</tr></thead><tbody>{rows_html}</tbody></table>")
@@ -711,12 +723,23 @@ def _render_help_md(text: str, link_path: str = "") -> str:
                 list_tag = "ol"
             list_buf.append(m.group(1))
             continue
-        flush_list()
+        if list_buf:
+            # a line that starts no other block continues the last list
+            # item (as in CommonMark): a wrapped item stays one item
+            list_buf[-1] += " " + s
+            continue
         para_buf.append(s)
     flush_all()
     if in_code:
         out.append("<pre><code>" + _esc("\n".join(code_buf)) + "</code></pre>")
     return "\n".join(out)
+
+
+def _plain_md(s: str) -> str:
+    """The text of an inline markdown string: the text of a link without its
+    target, and no code, bold or italic markers."""
+    s = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", s)
+    return re.sub(r"[`*]", "", s).strip()
 
 
 def _inline_md(s: str, link_path: str = "") -> str:

@@ -144,6 +144,7 @@ html, body {
 .help-content a:hover { text-decoration: underline; }
 .help-content a code { color: var(--accent); }
 
+/* a long code line wraps in its block; the page never scrolls sideways */
 .help-content pre {
   background: #0f1a26;
   color: #dce6f2;
@@ -151,6 +152,8 @@ html, body {
   border-radius: 8px;
   padding: 14px 16px;
   overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   font-family: var(--mono);
   font-size: 13px;
   line-height: 1.6;
@@ -191,11 +194,16 @@ html, body {
 .help-content tr:nth-child(even) td { background: rgba(31, 41, 51, 0.025); }
 .help-content tbody tr:hover td { background: var(--accent-soft); }
 
+/* On a narrow screen a guide table keeps its width: the cell text wraps,
+ * also inside a long identifier, instead of the table scrolling sideways.
+ * On a wider screen the cells keep the default, so that the table makes a
+ * column wide enough for its longest word and breaks no word. On a phone
+ * the rows stack (carbon.css, after its table rules). */
+@media (max-width: 900px) {
+  .help-content th, .help-content td { overflow-wrap: anywhere; }
+}
 @media (max-width: 640px) {
   .help-page { padding: 0 14px 48px; }
-  .help-content { font-size: 15px; }
-  .help-content th, .help-content td { padding: 6px 8px; }
-  .help-content table { display: block; overflow-x: auto; white-space: nowrap; }
 }
 
 /* viewpoint names in view metadata: hover shows the SAF description */
@@ -241,11 +249,20 @@ html, body {
   .ref-picker-wrap { flex-wrap: wrap; }
   .ref-picker-note { flex-basis: 100%; text-align: right; }
 }
+/* On a phone the picker gets a header line of its own and is never wider
+ * than that line, also with the long title of a pull request. (A
+ * percentage maximum on all screens would move the picker to a second
+ * header line on a desktop too.) */
+@media (max-width: 640px) {
+  .ref-picker-wrap { flex: 1 1 100%; }
+  .ref-picker { max-width: 100%; }
+}
 
 /* ---- layout: project browser pinned to the left edge, content centered ---- */
+/* --tree-w: the tree width that the divider sets (viewer.js) */
 .layout {
   display: grid;
-  grid-template-columns: 320px 6px minmax(0, 1fr);
+  grid-template-columns: var(--tree-w, 320px) 6px minmax(0, 1fr);
   align-items: stretch;
   margin: 0;
   padding: 0;
@@ -292,7 +309,7 @@ html, body {
 .tree-pane ul { list-style: none; margin: 0; padding: 0 0 0 14px; }
 .tree-pane > ul { padding-left: 0; }
 .tree-pane details > summary { cursor: pointer; }
-.tree-node { padding: 2px 0; font-size: 13.5px; white-space: nowrap; }
+.tree-node { padding: 2px 0; font-size: 13.5px; }
 .tree-node a { color: var(--ink); text-decoration: none; }
 .tree-node a:hover { color: var(--accent); text-decoration: underline; }
 .tree-node.active > a, .tree-node.active > summary a { color: var(--accent); font-weight: 600; }
@@ -300,6 +317,20 @@ html, body {
 .tree-icon svg { width: 16px; height: 16px; }
 .tree-meta { color: var(--muted); font-size: 11px; margin-left: 6px; }
 .tree-label { color: var(--muted); }
+/* A long name in the tree wraps. It starts beside its icon and goes on
+ * under its first character (a hanging indent), not under the icon. */
+.tree-node a, .tree-node .tree-label { word-break: break-all; }
+li.tree-node { padding-left: 25px; text-indent: -25px; }
+.tree-node > summary { padding-left: 39px; text-indent: -39px; }
+.tree-icon { text-indent: 0; }
+
+/* No page and no box scrolls sideways. A long name (a file path, a
+ * qualified name, an identifier) wraps in its pane, if necessary between
+ * two characters. In the guide pages the value is break-word: it wraps the
+ * same, but it does not make the minimum width of a guide table cell
+ * smaller. With anywhere, a guide table broke words on a desktop too. */
+.content-pane, .tree-pane { overflow-wrap: anywhere; }
+.help-content { overflow-wrap: break-word; }
 
 /* ---- content pane ---- */
 .content-pane {
@@ -368,8 +399,9 @@ code {
 }
 .view-badge { background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9; }
 
-/* meta tables */
-.meta-table { border-collapse: collapse; width: 100%; margin: 8px 0 4px; }
+/* meta tables: fixed columns, so a long qualified name wraps in its cell
+ * and never makes the table wider than its card */
+.meta-table { border-collapse: collapse; width: 100%; margin: 8px 0 4px; table-layout: fixed; }
 .meta-table th {
   text-align: left;
   width: 130px;
@@ -380,7 +412,10 @@ code {
   vertical-align: top;
   white-space: nowrap;
 }
-.meta-table td { padding: 4px 0; vertical-align: top; }
+.meta-table td { padding: 4px 0; vertical-align: top; overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+  .meta-table th { width: 84px; white-space: normal; }
+}
 
 /* doc blocks */
 .doc-block {
@@ -678,13 +713,24 @@ mark.tree-hl {
   font-size: 12px;
   line-height: 1.2;
 }
-.src-line { display: block; white-space: pre; line-height: 1.2; }
+/* A long source line wraps in the pane; the page never scrolls sideways.
+ * The hanging indent (padding-left with the negative text-indent) puts
+ * the wrapped part of a line under its code, not under its number. */
+.src-line {
+  display: block;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding-left: 4.2em;
+  text-indent: -4.2em;
+  line-height: 1.2;
+}
 .src-line:hover { background: #f0f4fa; }
 .src-ln {
   display: inline-block;
   width: 3.2em;
   text-align: right;
   margin-right: 1em;
+  text-indent: 0;
   color: #9aa7b4;
   user-select: none;
 }
@@ -817,9 +863,12 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
   font-weight: 600;
   font-size: 14px;
 }
-/* mode switch: one segmented control, the active mode filled */
+/* mode switch: one segmented control, the active mode filled. It never
+ * shrinks: its overflow is hidden, so a smaller switch would cut off the
+ * label of its last mode on a narrow screen. */
 .chat-modes {
   display: inline-flex;
+  flex: 0 0 auto;
   border: 1px solid var(--line);
   border-radius: 6px;
   overflow: hidden;
@@ -949,11 +998,13 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
   background: #0f1a26;
   border-radius: 5px;
 }
+/* a long code line in an answer wraps; the answer never scrolls sideways */
 .chat-msg-bot pre code {
   color: inherit;
   background: none;
   padding: 0;
-  white-space: pre;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 .chat-msg-bot a { color: var(--accent); }
 .chat-msg-bot a.guide-inline-src {
@@ -1073,12 +1124,16 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
   cursor: default;
   filter: none;
 }
+/* On a phone the Ask window spans the screen between its two 8 px
+ * margins. (A width of 100vw includes a scroll bar, so the window would
+ * start off the left edge of the screen.) */
 @media (max-width: 640px) {
   .chat-fab { right: 12px; bottom: 12px; padding: 8px 13px; }
   .chat-panel {
+    left: 8px;
     right: 8px;
     bottom: 8px;
-    width: calc(100vw - 16px);
+    width: auto;
     height: min(70vh, 520px);
   }
 }
@@ -1119,7 +1174,7 @@ a.src-ref.has-uses { text-decoration: underline dotted #e8590c; text-decoration-
 
 /* responsive */
 @media (max-width: 900px) {
-  .layout { grid-template-columns: 1fr; padding: 0 14px; }
+  .layout { grid-template-columns: minmax(0, 1fr); padding: 0 14px; }
   .tree-pane {
     position: static;
     height: auto;

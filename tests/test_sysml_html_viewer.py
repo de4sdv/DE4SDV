@@ -444,8 +444,10 @@ def test_elements_page_renders_guide_markdown(tmp_path):
     assert "<blockquote><p>A quoted note with <strong>bold</strong>.</p></blockquote>" in html
     assert "<hr>" in html
     assert "<table><thead><tr><th>Kind</th><th>Used for</th></tr></thead><tbody>" in html
-    assert "<td><code>part def</code></td><td>structure</td>" in html
-    assert "<td><code>dependency</code></td><td>trace links</td>" in html
+    assert ('<td data-label="Kind"><code>part def</code></td>'
+            '<td data-label="Used for">structure</td>') in html
+    assert ('<td data-label="Kind"><code>dependency</code></td>'
+            '<td data-label="Used for">trace links</td>') in html
     assert "No element guide found" not in html
     index = (out / "index.html").read_text(encoding="utf-8")
     assert '<a class="site-nav-link" href="elements.html">Elements</a>' in index
@@ -453,6 +455,84 @@ def test_elements_page_renders_guide_markdown(tmp_path):
     out2 = tmp_path / "site2"
     generate(repo, out2, ["textual-notation-of-model/packages"])
     assert (out2 / "elements.html").read_bytes() == (out / "elements.html").read_bytes()
+
+
+def test_guide_markdown_lists_end_and_keep_their_own_type():
+    """A list ends at a blank line or at other content and leaves no empty
+    list behind. Each list has the type of its own items: a numbered list
+    after a bullet list is an <ol>, a bullet list after it is a <ul>."""
+    from tools.sysml_html_viewer.generate import _render_help_md
+
+    assert _render_help_md(
+        "- first\n"
+        "- second\n"
+        "\n"
+        "Some prose.\n"
+        "\n"
+        "1. one\n"
+        "2. two\n"
+        "\n"
+        "## Heading\n"
+        "\n"
+        "- after\n"
+    ).split("\n") == [
+        "<ul><li>first</li><li>second</li></ul>",
+        "<p>Some prose.</p>",
+        "<ol><li>one</li><li>two</li></ol>",
+        '<h2 id="heading">Heading</h2>',
+        "<ul><li>after</li></ul>",
+    ]
+
+
+def test_guide_markdown_list_item_continues_on_its_next_lines():
+    """The lines after a list item that start no other block are part of
+    that item, as in CommonMark. An item that wraps over several lines
+    stays one item; its text is not split off into a paragraph."""
+    from tools.sysml_html_viewer.generate import _render_help_md
+
+    assert _render_help_md(
+        "- **Model** answers about one\n"
+        "  model element.\n"
+        "- **Repository** answers about\n"
+        "  the repository.\n"
+        "\n"
+        "1. First step,\n"
+        "   on two lines.\n"
+        "2. Second step.\n"
+        "\n"
+        "After the lists.\n"
+    ).split("\n") == [
+        "<ul><li><strong>Model</strong> answers about one model element.</li>"
+        "<li><strong>Repository</strong> answers about the repository.</li></ul>",
+        "<ol><li>First step, on two lines.</li><li>Second step.</li></ol>",
+        "<p>After the lists.</p>",
+    ]
+
+
+def test_guide_table_cells_carry_the_name_of_their_column():
+    """Each body cell of a guide table has the text of its column header in
+    data-label, without markdown and escaped for the attribute. On a phone
+    the rows stack, and each cell shows that name above its text. A cell
+    without a header (a row longer than the header) has no data-label."""
+    from tools.sysml_html_viewer.generate import _render_help_md
+
+    html = _render_help_md(
+        "| **Kind** | Used `for` | [Example](x.md) | A \"quoted\" <name> |\n"
+        "|---|---|---|---|\n"
+        "| `part def` | structure | `PartA` | q | extra |\n"
+    )
+    assert html == (
+        "<table><thead><tr><th><strong>Kind</strong></th><th>Used <code>for</code></th>"
+        '<th><a href="x.md" rel="noopener">Example</a></th>'
+        "<th>A &quot;quoted&quot; &lt;name&gt;</th></tr></thead><tbody><tr>"
+        '<td data-label="Kind"><code>part def</code></td>'
+        '<td data-label="Used for">structure</td>'
+        '<td data-label="Example"><code>PartA</code></td>'
+        '<td data-label="A &quot;quoted&quot; &lt;name&gt;">q</td>'
+        "<td>extra</td></tr></tbody></table>"
+    )
+    css = (REPO_ROOT / "tools/sysml_html_viewer/carbon.css").read_text(encoding="utf-8")
+    assert "td[data-label]::before { content: attr(data-label);" in css
 
 
 def _git(repo: Path, *args: str) -> subprocess.CompletedProcess:
@@ -775,7 +855,7 @@ const documentListeners = {};
 
 function element() {
   return {
-    style: {},
+    style: {setProperty(name, value) { this[name] = value; }},
     classList: {
       add() {}, remove() {}, toggle() {}, contains() { return false; }
     },
@@ -827,8 +907,13 @@ if (!resizer.listeners || !resizer.listeners.mousedown) {
 }
 resizer.listeners.mousedown({preventDefault() {}, clientX: 320});
 documentListeners.mousemove({clientX: 500});
-if (layout.style.gridTemplateColumns !== '500px 6px 1fr') {
+if (layout.style['--tree-w'] !== '500px') {
   throw new Error('tree width did not follow the dragged divider');
+}
+// the width is only a custom property: an inline grid-template-columns
+// would also apply on a narrow screen and make the page scroll sideways
+if (layout.style.gridTemplateColumns !== undefined) {
+  throw new Error('the divider set the grid columns inline');
 }
 """
     result = subprocess.run(
@@ -837,6 +922,103 @@ if (layout.style.gridTemplateColumns !== '500px 6px 1fr') {
         text=True,
     )
     assert result.returncode == 0, result.stderr
+
+
+# a shorthand property sets these properties too
+_CSS_SHORTHANDS = {
+    "padding": ("padding-top", "padding-right", "padding-bottom", "padding-left"),
+    "margin": ("margin-top", "margin-right", "margin-bottom", "margin-left"),
+    "overflow": ("overflow-x", "overflow-y"),
+    "flex": ("flex-grow", "flex-shrink", "flex-basis"),
+    "gap": ("row-gap", "column-gap"),
+    "inset": ("top", "right", "bottom", "left"),
+}
+
+
+def _css_declarations(text: str) -> list[tuple[bool, str, str]]:
+    """(narrow, selector, property) of each declaration, in source order.
+
+    narrow is True in an `@media (max-width: ...)` block. The declarations
+    of the other at-rule blocks (other media queries, keyframes) are left
+    out: they are neither base rules nor narrow-screen rules."""
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+    out: list[tuple[bool, str, str]] = []
+
+    def plain_rules(block: str, narrow: bool) -> None:
+        for m in re.finditer(r"([^{}]+)\{([^{}]*)\}", block):
+            selectors = [" ".join(s.split()) for s in m.group(1).split(",")]
+            for decl in m.group(2).split(";"):
+                if ":" in decl:
+                    prop = decl.split(":", 1)[0].strip().lower()
+                    out.extend((narrow, sel, prop) for sel in selectors)
+
+    pos = 0
+    while True:
+        at = text.find("@", pos)
+        plain_rules(text[pos: len(text) if at == -1 else at], False)
+        if at == -1:
+            return out
+        brace = text.find("{", at)
+        depth, end = 1, brace + 1
+        while depth:
+            depth += {"{": 1, "}": -1}.get(text[end], 0)
+            end += 1
+        prelude = text[at:brace]
+        if prelude.startswith("@media") and "max-width" in prelude:
+            plain_rules(text[brace + 1: end - 1], True)
+        pos = end
+
+
+def _dead_narrow_rules(texts: list[str]) -> list[tuple[str, str]]:
+    """Narrow-screen declarations that a later base rule cancels.
+
+    The texts are given in the order the page loads them. A narrow-screen
+    rule has no effect when a base rule for the same selector and property
+    comes after it and no narrow-screen rule follows that base rule."""
+    decls = [d for text in texts for d in _css_declarations(text)]
+
+    def same(a: str, b: str) -> bool:
+        return a == b or b in _CSS_SHORTHANDS.get(a, ()) or a in _CSS_SHORTHANDS.get(b, ())
+
+    dead = []
+    for i, (narrow, sel, prop) in enumerate(decls):
+        if not narrow:
+            continue
+        later = [(j, n) for j, (n, s, p) in enumerate(decls) if j > i and s == sel and same(p, prop)]
+        last_base = max((j for j, n in later if not n), default=-1)
+        if last_base != -1 and not any(n and j > last_base for j, n in later):
+            dead.append((sel, prop))
+    return dead
+
+
+def test_every_narrow_screen_rule_comes_after_its_base_rule():
+    """A narrow-screen rule (`@media (max-width: ...)`) of viewer.css or
+    carbon.css must come after the base rule that it changes. The page
+    loads viewer.css first and carbon.css after it, and selectors of the
+    same specificity follow the source order. Thus a base rule after the
+    narrow-screen rule cancels it, and the narrow screen keeps the
+    desktop value.
+
+    Limits of the check: it compares only rules with the same selector
+    text, so a base rule with another selector for the same element (for
+    example `.a table td` for `.a td`) is not seen. Its shorthand map has
+    padding, margin, overflow, flex, gap and inset; it does not know
+    border, background, font or list-style and their longhand
+    properties."""
+    # the check finds a cancelled rule, and accepts a rule that a later
+    # narrow-screen rule states again after the base rule
+    assert _dead_narrow_rules([
+        "@media (max-width: 640px) { .a { padding: 1px; } }",
+        ".a { padding: 2px; } .b { color: red; }",
+    ]) == [(".a", "padding")]
+    assert _dead_narrow_rules([
+        "@media (max-width: 640px) { .a { padding-left: 1px; } }",
+        ".a { padding: 2px; }\n@media (max-width: 900px) { .a { padding-left: 3px; } }",
+    ]) == []
+    viewer_dir = REPO_ROOT / "tools/sysml_html_viewer"
+    texts = [(viewer_dir / name).read_text(encoding="utf-8") for name in ("viewer.css", "carbon.css")]
+    assert sum(narrow for text in texts for narrow, _, _ in _css_declarations(text)) > 20
+    assert _dead_narrow_rules(texts) == []
 
 
 def test_active_path_chain_stays_open(tmp_path):
@@ -908,6 +1090,35 @@ def test_source_view_only(tmp_path):
     # no comment span may contain a newline (would break line wrapping)
     for cmt in re.findall(r'<span class="src-cmt">(.*?)</span>', pre_body, re.S):
         assert "\n" not in cmt
+
+
+def test_long_names_on_a_file_page_wrap_between_words(tmp_path):
+    """A file page puts <wbr> at the word boundaries of the long names that
+    it shows once: the file path heading, the view heading, the diagram
+    file name and the view metadata. A word boundary is after `::`, `/`,
+    `.` and `_`, and before a capital letter that starts a word. A narrow
+    screen then wraps a long name between two words, not inside a word.
+    The text of each name stays the same."""
+    from tools.sysml_html_viewer.render import wbr
+
+    assert wbr("MiddlewareIntegrationFlow::translateSignal") == (
+        "Middleware<wbr>Integration<wbr>Flow::<wbr>translate<wbr>Signal")
+    assert wbr("features/aebs_needs.sysml") == "features/<wbr>aebs_<wbr>needs.<wbr>sysml"
+    assert wbr("AEBSAutoware") == "AEBS<wbr>Autoware"
+    assert wbr("a<b & 'c'") == "a&lt;b &amp; &#x27;c&#x27;"
+    assert wbr("") == ""
+
+    out = tmp_path / "site"
+    generate(FIXTURE, out, ["textual-notation-of-model/packages"])
+    rel = "textual-notation-of-model/packages/features/fixture/fixture_feature.sysml"
+    html = (out / "pages" / f"{rel}.html").read_text(encoding="utf-8")
+    assert f"<h1>{wbr(rel)}</h1>" in html
+    assert f"{wbr('fixtureStructureView')}<a class=\"view-src-jump\"" in html
+    assert (f'<span class="diagram-toolbar-file">'
+            f'{wbr("diagram-fixtureStructureView.svg")}</span>') in html
+    source_row = re.search(r"<tr><th>Source</th><td><code>(.*?)</code></td></tr>", html)
+    assert source_row and "<wbr>" in source_row.group(1)
+    assert source_row.group(1).replace("<wbr>", "").startswith(f"{rel}:")
 
 
 def test_member_links_target_source_lines(tmp_path):
@@ -1075,7 +1286,7 @@ def test_viewpoint_tooltips(tmp_path, monkeypatch):
     assert re.search(
         r"<span class='muted vp-tip' data-tip-kind=\"SAF viewpoint\" "
         r'data-tip-name="FixtureViewpoint" '
-        r'data-tip-doc="Synthetic SAF description\."> \(FixtureViewpoint\)</span>',
+        r'data-tip-doc="Synthetic SAF description\."> \(Fixture<wbr>Viewpoint\)</span>',
         file_page,
     )
     # the SAF info map is populated and every entry is a non-empty description
@@ -1421,6 +1632,111 @@ def test_anonymous_usage_indexed(tmp_path):
     assert refs[0].doc == "The real objective text."
     assert refs[0].parent_name == "UC"
     assert refs[0].parent_line == uc.line
+
+
+def _parents(index: dict) -> dict[str, tuple[str, int]]:
+    """Declaration name -> (parent name, parent line) of the source entries."""
+    return {
+        name: (r.parent_name, r.parent_line)
+        for name, refs in index.items()
+        for r in refs
+        if r.anchor.startswith("src-")
+    }
+
+
+def test_package_after_a_sibling_usage_keeps_the_parent_of_its_braces(tmp_path):
+    """A package that follows a sibling declaration is a member of the
+    package that contains both. The members after that package keep their
+    parent too. All members get one depth: the number of open braces before
+    the declaration, plus 1. The Ask evidence names the same owner and the
+    same children."""
+    from tools.sysml_html_viewer.ask_model import build_evidence
+
+    f = tmp_path / "depth.sysml"
+    f.write_text(
+        "package Outer {\n"
+        "  part def A {\n"
+        "    part x;\n"
+        "  }\n"
+        "  package Inner {\n"
+        "    part def B;\n"
+        "  }\n"
+        "  part def C;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    mf = parse_file(f, tmp_path)
+    assert [(m.name, m.depth) for m in mf.members] == [
+        ("Outer", 1), ("A", 2), ("x", 3), ("Inner", 2), ("B", 3), ("C", 2)]
+    by_name = {m.name: m for m in mf.members}
+    assert [c.name for c in by_name["Outer"].children] == ["A", "Inner", "C"]
+    assert [c.name for c in by_name["A"].children] == ["x"]
+    assert [c.name for c in by_name["Inner"].children] == ["B"]
+
+    index = build_member_index([mf])
+    assert _parents(index) == {
+        "Outer": ("", 0), "A": ("Outer", 1), "x": ("A", 2),
+        "Inner": ("Outer", 1), "B": ("Inner", 5), "C": ("Outer", 1)}
+    assert build_evidence(index["C"][0], [mf])["element"]["owner"] == "Outer"
+    assert build_evidence(index["Inner"][0], [mf])["element"]["owner"] == "Outer"
+    assert build_evidence(index["A"][0], [mf])["child_elements"] == ["x"]
+    assert build_evidence(index["Outer"][0], [mf])["child_elements"] == ["A", "Inner", "C"]
+
+
+def test_package_after_a_sibling_package_keeps_the_parent_of_its_braces(tmp_path):
+    """Two sibling packages are members of the package that contains them,
+    and the declaration after them is a member of that package too."""
+    f = tmp_path / "siblings.sysml"
+    f.write_text(
+        "package Outer {\n"
+        "  package First {\n"
+        "    part def A;\n"
+        "  }\n"
+        "  package Second {\n"
+        "    part def B;\n"
+        "  }\n"
+        "  part def C;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    mf = parse_file(f, tmp_path)
+    assert [(m.name, m.depth) for m in mf.members] == [
+        ("Outer", 1), ("First", 2), ("A", 3), ("Second", 2), ("B", 3), ("C", 2)]
+    assert _parents(build_member_index([mf])) == {
+        "Outer": ("", 0), "First": ("Outer", 1), "A": ("First", 2),
+        "Second": ("Outer", 1), "B": ("Second", 5), "C": ("Outer", 1)}
+
+
+def test_top_level_declarations_are_index_roots(tmp_path):
+    """A declaration outside all braces has no parent, whatever its kind.
+    A second top-level package is not a member of the first. A file
+    without a package, such as a derived product model with one top-level
+    part definition, has that definition in the index with its members."""
+    two = tmp_path / "two_packages.sysml"
+    two.write_text(
+        "package One {\n"
+        "  part def A;\n"
+        "}\n"
+        "package Two {\n"
+        "  part def B;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    product = tmp_path / "product.sysml"
+    product.write_text(
+        "private import Lib::Base;\n"
+        "\n"
+        "part def Member :> Base {\n"
+        "  part slot;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    assert _parents(build_member_index([parse_file(two, tmp_path)])) == {
+        "One": ("", 0), "A": ("One", 1), "Two": ("", 0), "B": ("Two", 4)}
+    product_mf = parse_file(product, tmp_path)
+    assert [(m.name, m.depth) for m in product_mf.members] == [("Member", 1), ("slot", 2)]
+    assert _parents(build_member_index([product_mf])) == {
+        "Member": ("", 0), "slot": ("Member", 3)}
 
 
 def test_svg_label_context_resolution():
