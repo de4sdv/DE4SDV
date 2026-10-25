@@ -323,8 +323,22 @@ package DE4SDV_MiddlewarePhysicalSoftwareRealization {
      * contract, and generated binding remain candidates (GAP-MW-019,
      * GAP-MW-022); the ROS 2 publication boundary is exercised as a
      * VelocityReport-shaped record, not as live ROS 2 runtime evidence.
+     *
+     * Ownership of the adapter (owner decisions of 2026-10-23 and
+     * 2026-10-25): the boundary refers to the adapter and does not own it.
+     * The adapter is a layer of the SDV platform stack. In the configured
+     * member MW-CONFIG-001, the platform stack owns the derived adapter, and
+     * a binding makes the reference the same thing. So the member has one
+     * adapter with one owner. The physical adapter definition stays a
+     * specialization of the adapter definition of the platform stack. The
+     * usage physicalSoftware below is in no product, so its adapter
+     * reference stays unbound. The boundary still owns its other parts. Of
+     * these, aaosSdvBoundary represents the AAOS SDV guest a second time,
+     * beside the guest middleware of the platform stack. How to model that
+     * guest is a later owner decision. The configuration management note of
+     * MW-CONFIG-001 records it as an open item.
      */
-    part adapter : AutowareToAAOSSDVAdapterPhysical;
+    ref part adapter : AutowareToAAOSSDVAdapterPhysical;
     part aaosSdvBoundary : SDVCoreBoundary;
     part autowareRos2Boundary : AutowareRos2TopicBoundary;
     part signalAccessClient : SignalAccessClient;
