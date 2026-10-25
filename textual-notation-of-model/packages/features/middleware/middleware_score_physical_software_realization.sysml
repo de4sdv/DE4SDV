@@ -1098,24 +1098,14 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * someipd, their ports and the four connections between the processes.
      * The adapter and the S-CORE modules are references of the layer; the
      * Linux host of SCORETwoDomainPhysicalSystem owns them.
-     * The view exposes the four parts of the realization definition as
-     * exposure roots, not the layer usage, so that SysIDE draws the two
-     * references with their ports and nested processes (owner decision of
-     * 2026-10-25).
      * The connections to the context parts are in
      * SCORETwoDomainPhysicalSystem; the layer has no boundary ports to
      * delegate them. Allocations are filtered out. Domain placement
      * is stated in the process docs and the connection name; the view does
      * not draw the host/guest boundary.
      */
-    expose SCOREMiddlewareIntegrationLayerRealization::adapter;
-    expose SCOREMiddlewareIntegrationLayerRealization::adapter::**;
-    expose SCOREMiddlewareIntegrationLayerRealization::scoreServices;
-    expose SCOREMiddlewareIntegrationLayerRealization::scoreServices::**;
-    expose SCOREMiddlewareIntegrationLayerRealization::someipReceiver;
-    expose SCOREMiddlewareIntegrationLayerRealization::someipReceiver::**;
-    expose SCOREMiddlewareIntegrationLayerRealization::healthProxyNode;
-    expose SCOREMiddlewareIntegrationLayerRealization::healthProxyNode::**;
+    expose scoreTwoDomainPhysicalSystem::integrationLayer;
+    expose scoreTwoDomainPhysicalSystem::integrationLayer::**;
     filter not (@ SysML::AllocationUsage);
     attribute depth = -1;
     attribute showAnnotationRows = false;
