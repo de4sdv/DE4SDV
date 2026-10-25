@@ -1,8 +1,8 @@
 {
   "elements": {
-    "content_sha256": "f98babe2b30c5a8c972735f54e1e053fd62397aa5fb6562f6ff0cb4e34f690eb",
+    "content_sha256": "4afe5e3bb44564349c0a5b33eb95e39fa5166ae1251be44cd28ba0f0effdd62b",
     "path": "pleml-feature-models.elements.json.xz",
-    "sha256": "521baf63138d52b75eda9f45eea636f872a70324e08989bfe964d61bcb76777b"
+    "sha256": "34c75562cc01cc4050a3e40c43b89b71bbb8e1b37e0e05f371d44296ed1c2413"
   },
   "evaluation": {
     "admission_authority": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
@@ -313,8 +313,8 @@
           {
             "binding": "guestOSPlatformNoneBinding",
             "element_id": "7463638f-2ae1-571a-a2a1-4d4182325148",
-            "feature": "platformStack.noGuestOS",
-            "feature_id": "87f65666-c8cb-5442-a0ce-6fae147eece9",
+            "feature": "platformStack.noGuestOperatingSystem",
+            "feature_id": "dd89bc5f-f540-5df5-ac64-71ebeb43de9f",
             "feature_short_name": "F-PLATFORM-GUEST-OS-NONE",
             "variant": "none",
             "variant_id": "99a8dcda-11fe-5d5f-9305-0ead21392957",
@@ -353,7 +353,7 @@
                 "standalone": [
                   "platformStack.noMiddleware",
                   "platformStack.noHypervisor",
-                  "platformStack.noGuestOS",
+                  "platformStack.noGuestOperatingSystem",
                   "platformStack.noGuestMiddleware"
                 ]
               },
@@ -468,7 +468,7 @@
               "platformStack.linux",
               "platformStack.middleware",
               "platformStack.noGuestMiddleware",
-              "platformStack.noGuestOS",
+              "platformStack.noGuestOperatingSystem",
               "platformStack.noHypervisor",
               "platformStack.noMiddleware",
               "platformStack.operatingSystem",
@@ -503,7 +503,7 @@
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
               "platformStack.noGuestMiddleware": "enabled",
-              "platformStack.noGuestOS": "enabled",
+              "platformStack.noGuestOperatingSystem": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "enabled",
               "platformStack.openpilot": "omitted",
@@ -525,7 +525,7 @@
               "alternative": "standalone",
               "alternatives_realized": {
                 "standalone": [
-                  "platformStack.noGuestOS",
+                  "platformStack.noGuestOperatingSystem",
                   "platformStack.noGuestMiddleware"
                 ]
               },
@@ -650,7 +650,7 @@
               "platformStack.hypervisor",
               "platformStack.middleware",
               "platformStack.noGuestMiddleware",
-              "platformStack.noGuestOS",
+              "platformStack.noGuestOperatingSystem",
               "platformStack.operatingSystem",
               "platformStack.qnx",
               "platformStack.qvm",
@@ -685,7 +685,7 @@
               "platformStack.linux": "omitted",
               "platformStack.middleware": "enabled",
               "platformStack.noGuestMiddleware": "enabled",
-              "platformStack.noGuestOS": "enabled",
+              "platformStack.noGuestOperatingSystem": "enabled",
               "platformStack.noHypervisor": "omitted",
               "platformStack.noMiddleware": "omitted",
               "platformStack.openpilot": "omitted",
@@ -708,7 +708,7 @@
               "alternatives_realized": {
                 "standalone": [
                   "platformStack.noHypervisor",
-                  "platformStack.noGuestOS",
+                  "platformStack.noGuestOperatingSystem",
                   "platformStack.noGuestMiddleware"
                 ]
               },
@@ -812,7 +812,7 @@
               "platformStack.hypervisor",
               "platformStack.middleware",
               "platformStack.noGuestMiddleware",
-              "platformStack.noGuestOS",
+              "platformStack.noGuestOperatingSystem",
               "platformStack.noHypervisor",
               "platformStack.operatingSystem",
               "platformStack.vehicleApplication",
@@ -845,7 +845,7 @@
               "platformStack.linux": "omitted",
               "platformStack.middleware": "enabled",
               "platformStack.noGuestMiddleware": "enabled",
-              "platformStack.noGuestOS": "enabled",
+              "platformStack.noGuestOperatingSystem": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "omitted",
               "platformStack.openpilot": "omitted",
@@ -869,7 +869,7 @@
                 "standalone": [
                   "platformStack.noMiddleware",
                   "platformStack.noHypervisor",
-                  "platformStack.noGuestOS",
+                  "platformStack.noGuestOperatingSystem",
                   "platformStack.noGuestMiddleware"
                 ]
               },
@@ -987,7 +987,7 @@
               "platformStack.linux",
               "platformStack.middleware",
               "platformStack.noGuestMiddleware",
-              "platformStack.noGuestOS",
+              "platformStack.noGuestOperatingSystem",
               "platformStack.noHypervisor",
               "platformStack.noMiddleware",
               "platformStack.operatingSystem",
@@ -1022,7 +1022,7 @@
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
               "platformStack.noGuestMiddleware": "enabled",
-              "platformStack.noGuestOS": "enabled",
+              "platformStack.noGuestOperatingSystem": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "enabled",
               "platformStack.openpilot": "omitted",
@@ -1170,7 +1170,7 @@
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
               "platformStack.noGuestMiddleware": "omitted",
-              "platformStack.noGuestOS": "omitted",
+              "platformStack.noGuestOperatingSystem": "omitted",
               "platformStack.noHypervisor": "omitted",
               "platformStack.noMiddleware": "omitted",
               "platformStack.openpilot": "omitted",
@@ -1193,7 +1193,7 @@
               "alternatives_realized": {
                 "standalone": [
                   "platformStack.noHypervisor",
-                  "platformStack.noGuestOS",
+                  "platformStack.noGuestOperatingSystem",
                   "platformStack.noGuestMiddleware"
                 ]
               },
@@ -1284,7 +1284,7 @@
               "platformStack.linux",
               "platformStack.middleware",
               "platformStack.noGuestMiddleware",
-              "platformStack.noGuestOS",
+              "platformStack.noGuestOperatingSystem",
               "platformStack.noHypervisor",
               "platformStack.operatingSystem",
               "platformStack.vehicleApplication",
@@ -1318,7 +1318,7 @@
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
               "platformStack.noGuestMiddleware": "enabled",
-              "platformStack.noGuestOS": "enabled",
+              "platformStack.noGuestOperatingSystem": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "omitted",
               "platformStack.openpilot": "omitted",
@@ -1342,7 +1342,7 @@
                 "standalone": [
                   "platformStack.noMiddleware",
                   "platformStack.noHypervisor",
-                  "platformStack.noGuestOS",
+                  "platformStack.noGuestOperatingSystem",
                   "platformStack.noGuestMiddleware"
                 ]
               },
@@ -1462,7 +1462,7 @@
               "platformStack.linux",
               "platformStack.middleware",
               "platformStack.noGuestMiddleware",
-              "platformStack.noGuestOS",
+              "platformStack.noGuestOperatingSystem",
               "platformStack.noHypervisor",
               "platformStack.noMiddleware",
               "platformStack.operatingSystem",
@@ -1497,7 +1497,7 @@
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
               "platformStack.noGuestMiddleware": "enabled",
-              "platformStack.noGuestOS": "enabled",
+              "platformStack.noGuestOperatingSystem": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "enabled",
               "platformStack.openpilot": "omitted",
@@ -1519,7 +1519,7 @@
               "alternative": "standalone",
               "alternatives_realized": {
                 "standalone": [
-                  "platformStack.noGuestOS",
+                  "platformStack.noGuestOperatingSystem",
                   "platformStack.noGuestMiddleware"
                 ]
               },
@@ -1639,7 +1639,7 @@
               "platformStack.linux",
               "platformStack.middleware",
               "platformStack.noGuestMiddleware",
-              "platformStack.noGuestOS",
+              "platformStack.noGuestOperatingSystem",
               "platformStack.operatingSystem",
               "platformStack.vehicleApplication",
               "sensingBoundary",
@@ -1672,7 +1672,7 @@
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
               "platformStack.noGuestMiddleware": "enabled",
-              "platformStack.noGuestOS": "enabled",
+              "platformStack.noGuestOperatingSystem": "enabled",
               "platformStack.noHypervisor": "omitted",
               "platformStack.noMiddleware": "omitted",
               "platformStack.openpilot": "omitted",
@@ -1702,7 +1702,7 @@
                 "standalone": [
                   "platformStack.noMiddleware",
                   "platformStack.noHypervisor",
-                  "platformStack.noGuestOS",
+                  "platformStack.noGuestOperatingSystem",
                   "platformStack.noGuestMiddleware"
                 ]
               },
@@ -1823,7 +1823,7 @@
               "platformStack.linux",
               "platformStack.middleware",
               "platformStack.noGuestMiddleware",
-              "platformStack.noGuestOS",
+              "platformStack.noGuestOperatingSystem",
               "platformStack.noHypervisor",
               "platformStack.noMiddleware",
               "platformStack.operatingSystem",
@@ -1858,7 +1858,7 @@
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
               "platformStack.noGuestMiddleware": "enabled",
-              "platformStack.noGuestOS": "enabled",
+              "platformStack.noGuestOperatingSystem": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "enabled",
               "platformStack.openpilot": "omitted",
@@ -1882,7 +1882,7 @@
                 "standalone": [
                   "platformStack.noMiddleware",
                   "platformStack.noHypervisor",
-                  "platformStack.noGuestOS",
+                  "platformStack.noGuestOperatingSystem",
                   "platformStack.noGuestMiddleware"
                 ]
               },
@@ -2001,7 +2001,7 @@
               "platformStack.linux",
               "platformStack.middleware",
               "platformStack.noGuestMiddleware",
-              "platformStack.noGuestOS",
+              "platformStack.noGuestOperatingSystem",
               "platformStack.noHypervisor",
               "platformStack.noMiddleware",
               "platformStack.operatingSystem",
@@ -2035,7 +2035,7 @@
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
               "platformStack.noGuestMiddleware": "enabled",
-              "platformStack.noGuestOS": "enabled",
+              "platformStack.noGuestOperatingSystem": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "enabled",
               "platformStack.openpilot": "omitted",
@@ -2059,7 +2059,7 @@
                 "standalone": [
                   "platformStack.noMiddleware",
                   "platformStack.noHypervisor",
-                  "platformStack.noGuestOS",
+                  "platformStack.noGuestOperatingSystem",
                   "platformStack.noGuestMiddleware"
                 ]
               },
@@ -2142,7 +2142,7 @@
               "platformStack.linux",
               "platformStack.middleware",
               "platformStack.noGuestMiddleware",
-              "platformStack.noGuestOS",
+              "platformStack.noGuestOperatingSystem",
               "platformStack.noHypervisor",
               "platformStack.noMiddleware",
               "platformStack.operatingSystem",
@@ -2177,7 +2177,7 @@
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
               "platformStack.noGuestMiddleware": "enabled",
-              "platformStack.noGuestOS": "enabled",
+              "platformStack.noGuestOperatingSystem": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "enabled",
               "platformStack.openpilot": "omitted",
@@ -2201,7 +2201,7 @@
                 "standalone": [
                   "platformStack.noMiddleware",
                   "platformStack.noHypervisor",
-                  "platformStack.noGuestOS",
+                  "platformStack.noGuestOperatingSystem",
                   "platformStack.noGuestMiddleware"
                 ]
               },
@@ -2320,7 +2320,7 @@
               "platformStack.linux",
               "platformStack.middleware",
               "platformStack.noGuestMiddleware",
-              "platformStack.noGuestOS",
+              "platformStack.noGuestOperatingSystem",
               "platformStack.noHypervisor",
               "platformStack.noMiddleware",
               "platformStack.operatingSystem",
@@ -2354,7 +2354,7 @@
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
               "platformStack.noGuestMiddleware": "enabled",
-              "platformStack.noGuestOS": "enabled",
+              "platformStack.noGuestOperatingSystem": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "enabled",
               "platformStack.openpilot": "omitted",
@@ -2532,7 +2532,7 @@
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
               "platformStack.noGuestMiddleware": "omitted",
-              "platformStack.noGuestOS": "omitted",
+              "platformStack.noGuestOperatingSystem": "omitted",
               "platformStack.noHypervisor": "omitted",
               "platformStack.noMiddleware": "enabled",
               "platformStack.openpilot": "omitted",
@@ -2708,7 +2708,7 @@
               "platformStack.linux": "omitted",
               "platformStack.middleware": "implied",
               "platformStack.noGuestMiddleware": "omitted",
-              "platformStack.noGuestOS": "omitted",
+              "platformStack.noGuestOperatingSystem": "omitted",
               "platformStack.noHypervisor": "omitted",
               "platformStack.noMiddleware": "omitted",
               "platformStack.openpilot": "omitted",
@@ -2856,7 +2856,7 @@
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
               "platformStack.noGuestMiddleware": "omitted",
-              "platformStack.noGuestOS": "omitted",
+              "platformStack.noGuestOperatingSystem": "omitted",
               "platformStack.noHypervisor": "omitted",
               "platformStack.noMiddleware": "omitted",
               "platformStack.openpilot": "enabled",
@@ -2879,7 +2879,7 @@
               "alternatives_realized": {
                 "standalone": [
                   "platformStack.noHypervisor",
-                  "platformStack.noGuestOS",
+                  "platformStack.noGuestOperatingSystem",
                   "platformStack.noGuestMiddleware"
                 ]
               },
@@ -2969,7 +2969,7 @@
               "platformStack.linux",
               "platformStack.middleware",
               "platformStack.noGuestMiddleware",
-              "platformStack.noGuestOS",
+              "platformStack.noGuestOperatingSystem",
               "platformStack.noHypervisor",
               "platformStack.openpilot",
               "platformStack.operatingSystem",
@@ -3004,7 +3004,7 @@
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
               "platformStack.noGuestMiddleware": "enabled",
-              "platformStack.noGuestOS": "enabled",
+              "platformStack.noGuestOperatingSystem": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "omitted",
               "platformStack.openpilot": "enabled",
@@ -3027,7 +3027,7 @@
               "alternatives_realized": {
                 "standalone": [
                   "platformStack.noHypervisor",
-                  "platformStack.noGuestOS",
+                  "platformStack.noGuestOperatingSystem",
                   "platformStack.noGuestMiddleware"
                 ]
               },
@@ -3148,7 +3148,7 @@
               "platformStack.linux",
               "platformStack.middleware",
               "platformStack.noGuestMiddleware",
-              "platformStack.noGuestOS",
+              "platformStack.noGuestOperatingSystem",
               "platformStack.noHypervisor",
               "platformStack.openpilot",
               "platformStack.operatingSystem",
@@ -3183,7 +3183,7 @@
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
               "platformStack.noGuestMiddleware": "enabled",
-              "platformStack.noGuestOS": "enabled",
+              "platformStack.noGuestOperatingSystem": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "omitted",
               "platformStack.openpilot": "enabled",
@@ -3207,7 +3207,7 @@
                 "standalone": [
                   "platformStack.noMiddleware",
                   "platformStack.noHypervisor",
-                  "platformStack.noGuestOS",
+                  "platformStack.noGuestOperatingSystem",
                   "platformStack.noGuestMiddleware"
                 ]
               },
@@ -3326,7 +3326,7 @@
               "platformStack.linux",
               "platformStack.middleware",
               "platformStack.noGuestMiddleware",
-              "platformStack.noGuestOS",
+              "platformStack.noGuestOperatingSystem",
               "platformStack.noHypervisor",
               "platformStack.noMiddleware",
               "platformStack.openpilot",
@@ -3362,7 +3362,7 @@
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
               "platformStack.noGuestMiddleware": "enabled",
-              "platformStack.noGuestOS": "enabled",
+              "platformStack.noGuestOperatingSystem": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "enabled",
               "platformStack.openpilot": "enabled",
@@ -3386,7 +3386,7 @@
                 "standalone": [
                   "platformStack.noMiddleware",
                   "platformStack.noHypervisor",
-                  "platformStack.noGuestOS",
+                  "platformStack.noGuestOperatingSystem",
                   "platformStack.noGuestMiddleware"
                 ]
               },
@@ -3507,7 +3507,7 @@
               "platformStack.linux",
               "platformStack.middleware",
               "platformStack.noGuestMiddleware",
-              "platformStack.noGuestOS",
+              "platformStack.noGuestOperatingSystem",
               "platformStack.noHypervisor",
               "platformStack.noMiddleware",
               "platformStack.operatingSystem",
@@ -3541,7 +3541,7 @@
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
               "platformStack.noGuestMiddleware": "enabled",
-              "platformStack.noGuestOS": "enabled",
+              "platformStack.noGuestOperatingSystem": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "enabled",
               "platformStack.openpilot": "omitted",
@@ -3565,7 +3565,7 @@
                 "standalone": [
                   "platformStack.noMiddleware",
                   "platformStack.noHypervisor",
-                  "platformStack.noGuestOS",
+                  "platformStack.noGuestOperatingSystem",
                   "platformStack.noGuestMiddleware"
                 ]
               },
@@ -3680,7 +3680,7 @@
               "platformStack.linux",
               "platformStack.middleware",
               "platformStack.noGuestMiddleware",
-              "platformStack.noGuestOS",
+              "platformStack.noGuestOperatingSystem",
               "platformStack.noHypervisor",
               "platformStack.noMiddleware",
               "platformStack.operatingSystem",
@@ -3715,7 +3715,7 @@
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
               "platformStack.noGuestMiddleware": "enabled",
-              "platformStack.noGuestOS": "enabled",
+              "platformStack.noGuestOperatingSystem": "enabled",
               "platformStack.noHypervisor": "enabled",
               "platformStack.noMiddleware": "enabled",
               "platformStack.openpilot": "omitted",
@@ -3889,7 +3889,7 @@
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
               "platformStack.noGuestMiddleware": "omitted",
-              "platformStack.noGuestOS": "omitted",
+              "platformStack.noGuestOperatingSystem": "omitted",
               "platformStack.noHypervisor": "omitted",
               "platformStack.noMiddleware": "omitted",
               "platformStack.openpilot": "omitted",
@@ -4066,7 +4066,7 @@
               "platformStack.linux": "enabled",
               "platformStack.middleware": "enabled",
               "platformStack.noGuestMiddleware": "omitted",
-              "platformStack.noGuestOS": "omitted",
+              "platformStack.noGuestOperatingSystem": "omitted",
               "platformStack.noHypervisor": "omitted",
               "platformStack.noMiddleware": "omitted",
               "platformStack.openpilot": "omitted",
@@ -4191,13 +4191,13 @@
             "short_name": "C005"
           },
           {
-            "element_id": "b1e72be3-4854-5e3b-8cc3-32c81b0bf70e",
+            "element_id": "221926ea-831e-59dc-a1e6-544bb5d965b1",
             "kind": "requires",
             "operand_a": [
               "platformStack.noHypervisor"
             ],
             "operand_b": [
-              "platformStack.noGuestOS"
+              "platformStack.noGuestOperatingSystem"
             ],
             "owner": "platformStack.noHypervisor",
             "pair_exclusion": false,
@@ -4353,9 +4353,9 @@
           },
           {
             "classification": "admitted-alternative",
-            "correspondence": "noGuestOSCorrespondsToStandalone",
-            "element_id": "a1a75b79-933c-54c9-9ed8-9b61065e5f89",
-            "feature": "platformStack.noGuestOS",
+            "correspondence": "noGuestOperatingSystemCorrespondsToStandalone",
+            "element_id": "5932cbbf-3b51-50d6-bba4-75fd065fad8a",
+            "feature": "platformStack.noGuestOperatingSystem",
             "governed": "standalone",
             "governed_id": "3bbea54b-b0c6-50f5-b50b-beb0f85241bc"
           },
@@ -4831,7 +4831,7 @@
             "group": null,
             "members": [
               "platformStack.guestAndroid",
-              "platformStack.noGuestOS"
+              "platformStack.noGuestOperatingSystem"
             ],
             "multiplicity": {
               "lower": 1,
@@ -4860,16 +4860,16 @@
           },
           {
             "binding_time": "Development",
-            "element_id": "87f65666-c8cb-5442-a0ce-6fae147eece9",
+            "element_id": "dd89bc5f-f540-5df5-ac64-71ebeb43de9f",
             "group": "platformStack.guestOperatingSystem",
             "members": [],
             "multiplicity": {
               "lower": 0,
               "upper": 1
             },
-            "name": "noGuestOS",
+            "name": "noGuestOperatingSystem",
             "owner": "platformStack",
-            "path": "platformStack.noGuestOS",
+            "path": "platformStack.noGuestOperatingSystem",
             "short_name": "F-PLATFORM-GUEST-OS-NONE",
             "unassigned": false
           },
@@ -5189,8 +5189,8 @@
   ],
   "native_expression_executed": false,
   "provenance": {
-    "bundle_git_commit": "211c2eb63b03e667849697b32f6cbeb9b632500c",
-    "executor_revision": "211c2eb63b03e667849697b32f6cbeb9b632500c"
+    "bundle_git_commit": "39b9b2bd365bef9c7ed8b90dea16417b1e63ae08",
+    "executor_revision": "39b9b2bd365bef9c7ed8b90dea16417b1e63ae08"
   },
   "qualified": false,
   "schema": "de4sdv.pleml-configuration-receipt/v2",
@@ -5209,14 +5209,14 @@
     {
       "authority": "pleml-feature-configuration",
       "path": "model-based-product-line-engineering/feature-configurations/aebs_autoware_linux_lidar_camera.sysml",
-      "sha256": "17b0f39e754ea979a620a71f7205ad8b4441ed8fb9a6d48adf6db0cb8cc0d484",
-      "size": 2504
+      "sha256": "35ce40733e3ccfe030d48a815b4eb403fa61035f0ffcf7a1dc86a68ad3bc1128",
+      "size": 2530
     },
     {
       "authority": "pleml-feature-configuration",
       "path": "model-based-product-line-engineering/feature-configurations/apollo_qnx_qvm.sysml",
-      "sha256": "6b109544e9b09a18a17af33f9de34215112a22d98a1c378b1013a7702c38caa3",
-      "size": 2330
+      "sha256": "98d196d4b39b5bef9738048872779a3fa527f4b2dcec694e7ec9eb6f8f5f9169",
+      "size": 2356
     },
     {
       "authority": "pleml-feature-configuration",
@@ -5227,14 +5227,14 @@
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/invalid_score_android.sysml",
-      "sha256": "864e8473903beec111b4666a5473fe7c690049f294a2cc6b229a2c1b640a0752",
-      "size": 2506
+      "sha256": "c9d9001235baf8c4de123c683a7ee7bcdec6e449ffad25f069ba45f3d6f86ead",
+      "size": 2532
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/adaptive_cruise_control_probe.sysml",
-      "sha256": "9b9b2b5d1dcfb08572177ee2818b93fd3d3e9a98c649a8672ea0632037dced1f",
-      "size": 2490
+      "sha256": "c29d86d278988cfc1e7d76d8940d543c6311c7e1a6db4fb5bce32ec8a169cddc",
+      "size": 2516
     },
     {
       "authority": "pleml-fixture",
@@ -5245,44 +5245,44 @@
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_autosar_adaptive_pair_probe.sysml",
-      "sha256": "98e2676fc3702b4c87d363f257825793f1d4fe10c51249db0e261fbc8a81850b",
-      "size": 2467
+      "sha256": "cae2df82f0397dbca1877da1fd418297a2fdd8516d66f1e4cf355d3e0014728e",
+      "size": 2493
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_no_middleware_pair_probe.sysml",
-      "sha256": "7a59304b87a071c2578abef959b63511d1e4b0ba65d74cfb34bac964e56cb420",
-      "size": 2440
+      "sha256": "cb588f6f37e6a897a59f633436ca105349fa7c993306cddd2a972f7968542af1",
+      "size": 2466
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/autosar_adaptive_acrn_probe.sysml",
-      "sha256": "d351113230c1926d728a5958173f4f44a48a0c79c95401c472172b4384028bc4",
-      "size": 2392
+      "sha256": "5c803be7dce3e961f9ee44c4ce4241100377c32a91abd655fdcabcb0dbb1731c",
+      "size": 2418
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/both_integration_modes_probe.sysml",
-      "sha256": "89717a7be11f4bd32aa19a51b20a80ea6d27118f908dae21f50b53e76ea6db07",
-      "size": 2854
+      "sha256": "5cdf3f611374af6a37647ff0142362c1d5be72e4ba563b27ead19a9dac1b2b49",
+      "size": 2880
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/camera_only_sensing_probe.sysml",
-      "sha256": "8291ff99ac78bd6e943e3eaedbb32584a5963b462284485cc90b12307c9b9367",
-      "size": 2330
+      "sha256": "cc3ed094e01c0444b65af5fb507ef89bf88be6993e764fac8ce29742e7474cda",
+      "size": 2356
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/hand_picked_adapter_probe.sysml",
-      "sha256": "f78edadd6b978cee032fd18c023a3fa18e303e76a21cb1cbbdcbfb880a0c25af",
-      "size": 2777
+      "sha256": "0ee3300bd985a5436c11ed72313235991c3da71dbd65a27c01e91cc1b46092b2",
+      "size": 2803
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/lidar_only_sensing_probe.sysml",
-      "sha256": "1db0ce4c2e5b1deba222c267196bba45d6f3089b4b2fcbced7070ffe8d3ab875",
-      "size": 2318
+      "sha256": "67baf3ab3d13c45f34000e79b49a6f101b626d8f42f7b0118439eadb362f2561",
+      "size": 2344
     },
     {
       "authority": "pleml-fixture",
@@ -5305,32 +5305,32 @@
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_autosar_adaptive_pair_probe.sysml",
-      "sha256": "c2352715d733ba12b5b320c8b6ef2995670389cdd6945274051de26df46abd71",
-      "size": 2491
+      "sha256": "d54f4708fc51d7dc8c0148796856a04bf4145c2628b3cc1e651aa855062e073b",
+      "size": 2517
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_eclipse_score_pair_probe.sysml",
-      "sha256": "ae7e17c80c542455c38498b45fffccf25217e387417b7c541df9efc76bcbfda3",
-      "size": 2465
+      "sha256": "d6864f4362f90f3468afedfe6480ec80ec822485b394d7a1f4f1ac81b895ba89",
+      "size": 2491
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/openpilot_no_middleware_probe.sysml",
-      "sha256": "9364269016d2eabb3c178dc67343a0443b8f28ee4bd923511d915528d8ed2ab6",
-      "size": 2409
+      "sha256": "12b807051fd01d5c84dd720d3087d258d278bf4a53afffadf02883e9bd77e37a",
+      "size": 2435
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/radar_only_sensing_probe.sysml",
-      "sha256": "7180098749d92b61b2433fc8f4eaab2af562c4ea9abb56b37d95674d801022a9",
-      "size": 2318
+      "sha256": "e0b93a087a7ba57a054d55ef7b741ae9298ef5688bde2df1604c9090de432a0c",
+      "size": 2344
     },
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/vehicle_target_aebs_off_probe.sysml",
-      "sha256": "8791f47b7617068c722ad49a081556cfd113c1ce1eca26e297d2f43919ae0f26",
-      "size": 2843
+      "sha256": "8a211f5ae997b44f4c87dc41351625cb417550425d6851b768e4c598331b7a62",
+      "size": 2869
     },
     {
       "authority": "pleml-feature-configuration",
@@ -5365,8 +5365,8 @@
     {
       "authority": "pleml-feature-model",
       "path": "model-based-product-line-engineering/feature-models/sdv_product_line.sysml",
-      "sha256": "7107e845773441abdde890718e8fda1f170e1c4ed4498c96855b4ec98b5e8f97",
-      "size": 30579
+      "sha256": "519404bdfed8ff4b41026d07605d23dc564ec9fafd0fbe993ddeaf026bd451d2",
+      "size": 30683
     },
     {
       "authority": "pleml-feature-model",
@@ -5389,8 +5389,8 @@
     {
       "authority": "reviewed",
       "path": "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml",
-      "sha256": "25c1dac5dc929cc1e7c2d7606a142e3d1032e63d7f3728bf98e2c362508dda35",
-      "size": 30388
+      "sha256": "321f17a9e9bb9a721519bf33541939e69c1c54bedd899b4525a1d3aedafadcaa",
+      "size": 30363
     },
     {
       "authority": "reviewed",
