@@ -200,15 +200,20 @@ one thing a published snapshot intentionally never shows.
   verification, use case, …), **SAF domain** and **SAF aspect** (parsed
   from the viewpoint definitions' doc comments in the model), and
   **viewpoint**. Filters combine with the name search and with each
-  other. Click a match (or press Enter to jump to the first one) to open
-  it; **Esc** clears the name search, the **✕** button clears
-  everything. No view switch, no separate results page.
+  other. The name search reads the text of each tree entry, so it also
+  finds a short name (`REQ-MW-010`). Click a match (or press Enter to
+  jump to the first one) to open it; **Esc** clears the name search, the
+  **✕** button clears everything. No view switch, no separate results
+  page.
 - **Directory pages** (`pages/<model-dir>/index.html`) — contents of each
   model folder.
 - **Tree nodes for files** — expanding a `.sysml` file lists its views and
   **every declared member** (ports and attributes nested in part
   definitions included), each jumping to its declaration line. Packages
-  are structural containers and are not listed as members.
+  are structural containers and are not listed as members. A member with
+  a short name shows it before its name, as the SysIDE diagrams do:
+  `<REQ-MW-010> reqDeliverReferenceVehicleSpeed`. See "Declarations and
+  their owners" below for what the scanner reads.
 - **File pages** (`pages/<model-file>.html`) — one per `.sysml` file:
   - *view sections*: view name, viewpoint, concern, expose targets,
     depth, render kind, source line — and the SysIDE diagram (or an
@@ -224,7 +229,13 @@ one thing a published snapshot intentionally never shows.
     packages. A name links to a declaration with the same name: in the
     same file first, then in the same folder or below it, else the first
     one found. In a qualified name `Q::name`, the declarations of name in
-    the body of the declaration that `Q` links to come first. This is a
+    the body of the declaration that `Q` links to come first. A
+    declaration in a library package (`library package L`) is a target
+    only in its own file and in a file that names `L` as a qualifier
+    (`import L::*`, `L::x`); thus a common name such as `kind` in another
+    file does not link to the library. A string (`"..."`) is text: a word
+    in it is never a source reference. The tooltip of a source reference
+    to an element with a short name shows the short name too. This is a
     navigation heuristic over the scanned declarations, not SysML v2 name
     resolution. Textual-notation **symbols** (`:`, `:>`, `:>>`, `::`)
     also carry hover tooltips explaining the construct (typing,
@@ -234,18 +245,59 @@ one thing a published snapshot intentionally never shows.
   - *source link*: the exact `.sysml` file on GitHub (at the current
     branch, or at the ref for ref builds).
 
+## Declarations and their owners
+
+The scanner (`model_parse.py`) reads the `.sysml` text line by line. It is
+a navigation heuristic, not a SysML v2 parser. A line declares a member
+when it starts a statement with a declaration: prefix keywords (`abstract`,
+`variant`, `in`, `ref`, ...), a kind (`part def`, `requirement`,
+`connection def`, `assert constraint`, `binding`, ...), an optional short
+name (`<'REQ-MW-010'>`) and a name. `library package` and
+`standard library package` declare packages. A keyword is never a name:
+`attribute redefines x = ...;` is an unnamed attribute, like
+`attribute :>> x = ...;`. `flow of T from a to b;` is an unnamed flow:
+the index lists it under its keyword, `flow`, as it lists `objective` and
+`subject`. A line that continues a statement declares nothing: when
+`binding b` has its `bind x = y;` on the next line, that line is part of
+the binding b.
+
+The owner of a member is the nearest member that owns one of the braces
+open at its line. A brace in a comment, a string or a quoted name does not
+count. A brace that belongs to a statement the scanner does not index
+(`perform ... {`, `attribute :>> x = ... {`, `#feature occurrence ... {`)
+is no owner: the members inside it get the nearest member around it, never
+a member that comes before it. The index, the diagram hover data and the
+Ask evidence (owner and children) use this owner. The index also has the
+short name as a name of the element, so `REQ-MW-010` finds the
+requirement.
+
+The declaration forms that the scanner does not read yet: kindless
+features (`in x : T;`, `out x : T;`, `end x : T;`), `#metadata`-prefixed
+declarations (the feature models), `occurrence` and `occurrence def`, a
+multiplicity right after the name (`part x[0..1]`), named constraints of
+requirements (`require constraint statement { ... }`), and a declaration
+that is not the first statement of its line.
+
 ## Diagram hover enrichment
 
 Diagrams are inlined into the page (not `<img>`), and every element label
 the diagram shows is resolved back to the model:
 
-- **Hover** an element label — a tooltip shows its kind, its `doc`
-  comment, and its exact source location (file:line). A usage label
-  (`name : Type`) whose own declaration has no `doc` shows the `doc`
-  of its **type definition** instead — the documentation a reader
-  wants when hovering a part/port usage. A doc comment placed right
-  after a declaration's opening brace belongs to that declaration
-  only; it never leaks onto the member that follows it.
+- **Hover** an element label — a tooltip shows its kind, its short name
+  (if it has one), its `doc` comment, and its exact source location
+  (file:line). A usage label (`name : Type`) whose own declaration has no
+  `doc` shows the `doc` of its **type definition** instead — the
+  documentation a reader wants when hovering a part/port usage. A
+  qualified type (`Q::T`) finds the T that Q declares first. In a typing
+  list (`: A, B`), the first type with a doc gives the doc. A doc comment
+  placed right after a declaration's opening brace belongs to that
+  declaration only; it never leaks onto the member that follows it.
+- **Compartment rows** (`doc …`, `attributes`, `subject`, `actors`,
+  `include use cases`) belong to the element whose box contains them: the
+  title of the smallest box around the row (its topmost text that is not
+  a stereotype line). A row in no box belongs to the title above it in the
+  same column. A row whose title does not resolve shows nothing. Many rows
+  have the same text, so the hover data has a row only under its position.
 - **Click** a label — the viewer jumps to the element's declaration
   line (`#src-N`) in its defining file.
 - Labels that are pure layout text (headers, "parts", stereotype labels)
@@ -257,8 +309,10 @@ files, so the tooltip content can never say something the model does not
 declare. Labels resolve across all the model roots the generator reads,
 including
 specializer (`:>`, `:>>`), typing (` : `), qualified (`A::b`), dotted
-deployment (`host.role.port.item`), redefines (`^name`) and package-expose
-shapes. Pure layout text and stereotype markers stay inert. Run
+deployment (`host.role.port.item`), redefines (`^name`), short name
+(`<REQ-MW-010> name`) and package-expose shapes. The library rule of the
+source references applies to the labels too. Pure layout text and
+stereotype markers stay inert. Run
 `python scripts/audit_diagram_labels.py` to audit every diagram's
 unresolved labels.
 
