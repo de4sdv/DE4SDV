@@ -51,17 +51,28 @@ How the catalogue was restated:
   2026-10-21 and 2026-10-22). The platform has a main side, the execution
   domain that runs the vehicle application (`operatingSystem`), and an
   optional guest side under the hypervisor: the groups `guestOperatingSystem`
-  {`guestAndroid`, `noGuestOS`} and `guestMiddleware` {`guestAndroidSDV`,
-  `noGuestMiddleware`}. With KVM the main side is the KVM host. The
+  {`guestAndroid`, `noGuestOperatingSystem`} and `guestMiddleware`
+  {`guestAndroidSDV`, `noGuestMiddleware`}. In the SDV feature model, each
+  none choice is named `no<Group>` after its group: `noMiddleware`,
+  `noHypervisor`, `noGuestOperatingSystem` and `noGuestMiddleware` (owner
+  decision of 2026-10-25; before it, the guest choice was `noGuestOS`). The
+  vehicle-target feature model names its none choices `noConcrete<Group>`,
+  like its superset variants. With KVM the main side is the KVM host. The
   `middleware` group is the middleware that the vehicle application
   integrates with, so its eight derivation rules stay. The optional
-  capability `hmiDisplay` has no shared asset yet. Five requires
-  constraints relate the sides: C007 `noHypervisor` requires `noGuestOS`,
-  C008 `guestAndroidSDV` requires `guestAndroid`, C009 `androidSDV`
-  requires `guestAndroidSDV`, C010 `hmiDisplay` requires `guestAndroidSDV`
-  and C011 `autoware` requires `linux`.
+  capability `hmiDisplay` has no shared asset yet. Five requires constraints
+  relate the sides: C007 `noHypervisor` requires `noGuestOperatingSystem`,
+  C008 `guestAndroidSDV` requires `guestAndroid`, C009 `androidSDV` requires
+  `guestAndroidSDV`, C010 `hmiDisplay` requires `guestAndroidSDV` and C011
+  `autoware` requires `linux`.
 - **Bindings.** One feature binding per shared-asset variant, with the variant
-  as client.
+  as client. A binding takes the name of its client,
+  `<variation><Variant>Binding`. The superset keeps `OS` in its names
+  (`osPlatform`, `guestOSPlatform`, `guestOSHypervisorBoundary`), so the
+  binding of `noGuestOperatingSystem` is `guestOSPlatformNoneBinding`. The
+  feature names spell the term out (`operatingSystem`,
+  `guestOperatingSystem`), and the feature IDs keep `OS`
+  (`F-PLATFORM-GUEST-OS-NONE`).
 - **Derivation.** The application-middleware adapter is a derived variation,
   `D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER`, with the eight rules of the
   catalogue as derivation rules. A derived variant is never a feature, and no

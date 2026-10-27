@@ -117,7 +117,7 @@ SDV_EXCLUSIONS = {
 #: The SDV requires constraints of INC-MW-011 phase 9: (owner, required features). Each requires
 #: constraint states its rule exactly, so it needs no allowed list and no complement check.
 SDV_REQUIRES = {
-    "C007": ("noHypervisor", {"noGuestOS"}),
+    "C007": ("noHypervisor", {"noGuestOperatingSystem"}),
     "C008": ("guestAndroidSDV", {"guestAndroid"}),
     "C009": ("androidSDV", {"guestAndroidSDV"}),
     "C010": ("hmiDisplay", {"guestAndroidSDV"}),
@@ -1351,7 +1351,8 @@ def test_admission_blocks_only_on_selected_choices_and_leaves() -> None:
     assert admission(features, correspondences, family_elements, standalone - {"camera"})[1] == [
         "InitialCommonCoreEngineeringContent::currentSensingBaseline is not represented: camera is not selected"]
     # Two admitted alternatives, or a missing derived realization, reject.
-    assert admission(features, correspondences, family_elements, standalone - {"noGuestOS"} | {"guestAndroid"})[1] == [
+    assert admission(features, correspondences, family_elements,
+                     standalone - {"noGuestOperatingSystem"} | {"guestAndroid"})[1] == [
         "realizes 2 admitted alternatives"]
     _family, integrated = _configuration_selection(CONFIGURATIONS_DIR / "middleware_autoware_aaos_sdv_reference.sysml")
     assert admission(features, correspondences, family_elements, integrated) == (

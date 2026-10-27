@@ -139,21 +139,21 @@ package DE4SDV_SDVProductLineFeatureModel {
                 }
             }
             #feature occurrence <'F-PLATFORM-HYPERVISOR-NONE'> noHypervisor[0..1] :> hypervisor default null {
-                assert constraint <'C007'> noHypervisorRequiresNoGuestOS :> requiresFeatures {
+                assert constraint <'C007'> noHypervisorRequiresNoGuestOperatingSystem :> requiresFeatures {
                     doc /* A guest needs a hypervisor: without one, there is no
                          * guest operating system. The rule covers every guest
                          * operating system, also a later one. */
-                    in occurrence constrainedFeatures = new FeatureOperand(that, noGuestOS);
+                    in occurrence constrainedFeatures = new FeatureOperand(that, noGuestOperatingSystem);
                 }
             }
 
             #feature occurrence <'F-PLATFORM-GUEST-OS'> guestOperatingSystem[1] {
                 doc /* The operating system of the guest side: a second
                      * execution domain on the same SoC, under the hypervisor.
-                     * noGuestOS selects no guest domain. */
+                     * noGuestOperatingSystem selects no guest domain. */
             }
             #feature occurrence <'F-PLATFORM-GUEST-OS-ANDROID'> guestAndroid[0..1] :> guestOperatingSystem default null;
-            #feature occurrence <'F-PLATFORM-GUEST-OS-NONE'> noGuestOS[0..1] :> guestOperatingSystem default null;
+            #feature occurrence <'F-PLATFORM-GUEST-OS-NONE'> noGuestOperatingSystem[0..1] :> guestOperatingSystem default null;
 
             #feature occurrence <'F-PLATFORM-GUEST-MIDDLEWARE'> guestMiddleware[1] {
                 doc /* The middleware of the guest side, on the guest operating
@@ -271,7 +271,7 @@ package DE4SDV_SDVProductLineFeatureModel {
         to SDVProductLineFeatureTree::platformStack::guestAndroid;
     #FeatureBinding dependency guestOSPlatformNoneBinding
         from DE4SDV_SDVPlatformStack::SDVPlatformStack::guestOSPlatform::none
-        to SDVProductLineFeatureTree::platformStack::noGuestOS;
+        to SDVProductLineFeatureTree::platformStack::noGuestOperatingSystem;
 
     #FeatureBinding dependency guestMiddlewareAndroidSDVBinding
         from DE4SDV_SDVPlatformStack::SDVPlatformStack::guestMiddleware::androidSDV
@@ -388,7 +388,7 @@ package DE4SDV_SDVProductLineFeatureModel {
      * is no derived realization of either alternative. The guest side
      * carries the split execution-domain topology of the AAOS-integrated
      * alternative: guestAndroid and guestAndroidSDV correspond to it, and
-     * noGuestOS and noGuestMiddleware to standalone.
+     * noGuestOperatingSystem and noGuestMiddleware to standalone.
      */
     dependency linuxCorrespondsToCommonAutowareRuntime
         from SDVProductLineFeatureTree::platformStack::linux
@@ -413,8 +413,8 @@ package DE4SDV_SDVProductLineFeatureModel {
     dependency guestAndroidCorrespondsToAAOSIntegrated
         from SDVProductLineFeatureTree::platformStack::guestAndroid
         to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::aaosIntegrated;
-    dependency noGuestOSCorrespondsToStandalone
-        from SDVProductLineFeatureTree::platformStack::noGuestOS
+    dependency noGuestOperatingSystemCorrespondsToStandalone
+        from SDVProductLineFeatureTree::platformStack::noGuestOperatingSystem
         to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::standalone;
     dependency guestAndroidSDVCorrespondsToAAOSIntegrated
         from SDVProductLineFeatureTree::platformStack::guestAndroidSDV
