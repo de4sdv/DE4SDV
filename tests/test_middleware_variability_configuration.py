@@ -10,12 +10,13 @@ boundary refers to the adapter and to the AAOS SDV boundary, the AAOS SDV
 boundary refers to its platform software, and three bindings make the
 references the same things.
 
-The ownership guards are lexical. They use the reader of
-``test_member_product_projections.py``: it blanks comments and strings, reads
-every typing form (``:``, ``defined by``, ``typed by``), every specialization
-form (``:>``, ``specializes``), short names and redefinitions, and fails on a
-part definition header it cannot read. Licensed Syside validates the model in
-CI.
+The ownership guards are lexical. They scan the files of the five validated
+model roots (``scripts/validate_sysml.py``), without their fixtures, with the
+reader of ``test_member_product_projections.py``: it blanks comments and
+strings, reads every typing form (``:``, ``defined by``, ``typed by``), every
+specialization form (``:>``, ``specializes``), short names and redefinitions,
+and fails on a part definition header it cannot read. Licensed Syside
+validates the model in CI.
 """
 import json
 import re
@@ -27,6 +28,7 @@ import pytest
 import yaml
 
 import test_member_product_projections as reader
+from scripts.validate_sysml import MODEL_PATHS as VALIDATED_MODEL_ROOTS, model_files
 from sysml_shapes import braced_body, strip_comments
 
 
@@ -43,7 +45,6 @@ PHYSICAL_MODEL = MIDDLEWARE / "middleware_physical_software_realization.sysml"
 EVIDENCE_MODEL = MIDDLEWARE / "middleware_verification_evidence.sysml"
 PLATFORM_STACK = REPO_ROOT / "textual-notation-of-model" / "packages" / "architecture" / "sdv_platform_stack.sysml"
 AAOS_BOUNDARY_MODEL = REPO_ROOT / "textual-notation-of-model" / "packages" / "architecture" / "aaos_sdv_middleware_boundary.sysml"
-MODEL_ROOTS = (REPO_ROOT / "textual-notation-of-model", PLE_ROOT)
 #: SDVCoreBoundary models the internal structure of the AAOS SDV middleware layer
 #: (the doc of AndroidSDVMiddleware in the platform stack), so it stands for that layer.
 AAOS_SDV_MIDDLEWARE_MODEL = "SDVCoreBoundary"
@@ -62,8 +63,8 @@ MEMBER = "MiddlewareAutowareAAOSSDVConfiguredMember"
 #: The SDV Core boundary definitions. Every part usage typed by one of them, or by a
 #: specialization of one, is a reference: the platform stack owns the guest.
 SDV_CORE_BOUNDARY_DEFINITIONS = frozenset({AAOS_SDV_MIDDLEWARE_MODEL, GUEST_OPERATING_SYSTEM_MODEL})
-#: The references that stand for the guest outside the platform stack. A redefinition of
-#: one of them must stay a reference too.
+#: The references that stand for the guest outside the platform stack. A part usage that
+#: redefines, subsets or reference-subsets one of them must stay a reference too.
 GUEST_REFERENCES = frozenset({"aaosSdvBoundary", "platformSoftware"})
 #: Definitions that stand for a layer the member's platform stack owns: the guest operating
 #: system, the guest middleware and the adapter (the stack realizations and the boundary
@@ -82,8 +83,11 @@ KNOWN_SECOND_GUEST = frozenset({
 _KIND = re.compile(r"\b(?:part|item|occurrence)\b")
 _PART = re.compile(r"\bpart\b")
 _REF = re.compile(r"\bref\b")
-#: A redefinition in a declaration: ``:>> name`` or ``redefines name``.
-_REDEFINITION = re.compile(rf"(?::>>|\bredefines\b)\s*(?P<target>{reader._QUALIFIED})")
+#: A feature relation in a declaration: a redefinition (``:>>``, ``redefines``), a subsetting
+#: (``:>``, ``subsets``) or a reference subsetting (``::>``, ``references``) of ``target``.
+_FEATURE_RELATION = re.compile(
+    rf"(?::>>|\bredefines\b|::>|\breferences\b|:>(?!>)|\bsubsets\b)\s*(?P<target>{reader._QUALIFIED})")
+_PART_DEF = re.compile(r"\bpart\s+def\b")
 #: The start of a usage declaration that owns a body: ``part <'id'> name : T {``, ``part name {``.
 _USAGE_BODY = re.compile(
     rf"\b(?:part|item|occurrence)\s+{reader._SHORT_NAME}(?:(?::>>|\bredefines\b)\s*)?(?P<name>{reader._NAME})"
@@ -107,7 +111,7 @@ def _typed_usages(code: str) -> list[tuple[int, str, str, list[str]]]:
 
 
 def _is_composite(head: str) -> bool:
-    """A usage with a part, item or occurrence keyword and no ``ref`` is composite (SysML 7.6.3)."""
+    """A usage with a part, item or occurrence keyword and no ``ref`` is composite."""
     return bool(_KIND.search(head)) and not _REF.search(head)
 
 
@@ -133,23 +137,26 @@ def _with_specializations(roots, index) -> set[str]:
 
 
 def _guest_model_code() -> dict[str, str]:
-    """Active code of every validated model file, as the shared reader reads it."""
-    return reader._model_code()
+    """Active code of every file of the five validated model roots, without their fixtures, as
+    ``scripts/validate_sysml.py`` and the licensed check select them."""
+    return {path.relative_to(REPO_ROOT).as_posix(): reader._active(path.read_text(encoding="utf-8"))
+            for model_path in VALIDATED_MODEL_ROOTS for path in model_files(REPO_ROOT, model_path)}
 
 
 def _sdv_core_boundary_usages(code: dict[str, str]) -> set[tuple[str, str, bool]]:
     """(file, usage, composite) of every part usage typed by an SDV Core boundary definition or a
-    specialization of one, and of every part redefinition of a guest reference."""
+    specialization of one, and of every part usage that redefines, subsets or reference-subsets a
+    guest reference."""
     family = _with_specializations(SDV_CORE_BOUNDARY_DEFINITIONS, _definition_index(code))
     found = set()
     for path, text in code.items():
         for _, head, usage, types in _typed_usages(text):
             if family.intersection(types) and _PART.search(head):
                 found.add((path, usage, _is_composite(head)))
-        for match in _REDEFINITION.finditer(text):
+        for match in _FEATURE_RELATION.finditer(text):
             target = reader._qualified(match["target"]).rsplit("::", 1)[-1]
             head = _head(text, match.start())
-            if target in GUEST_REFERENCES and _PART.search(head):
+            if target in GUEST_REFERENCES and _PART.search(head) and not _PART_DEF.search(head):
                 found.add((path, target, _is_composite(head)))
     return found
 
@@ -172,8 +179,10 @@ def _composed_shared_layers(code: dict[str, str]) -> set[tuple[str, str, str]]:
     """(definition, usage path, type) of every composite usage typed by a shared layer definition, or a
     specialization of one, that the member or a specialization of it composes outside ``platformStack``.
 
-    The walk follows composite usages at any depth of a body, and the definitions (with their
-    supertypes) of the composite usages it passes, so the path names each composite owner on the way.
+    The walk starts at the bodies of each such definition and of its supertypes. It follows composite
+    usages at any depth of a body, and the definitions (with their supertypes) of every composite
+    usage it passes, a hit included. So the path names each composite owner on the way, and a shared
+    layer inside the definition of a hit is reported too.
     """
     index = _definition_index(code)
     family = _with_specializations(SHARED_LAYER_DEFINITIONS, index)
@@ -201,14 +210,13 @@ def _composed_shared_layers(code: dict[str, str]) -> set[tuple[str, str, str]]:
             shared = family.intersection(types)
             if shared:
                 hits.add((owner, ".".join(full), sorted(shared)[0]))
-                continue
             for name in types:
                 if name not in visited:
                     for inner in bodies(name, {name}):
                         walk(owner, inner, full, visited | {name}, False)
 
     for member in sorted(lineage):
-        for _, text in index.get(member, []):
+        for text in bodies(member, {member}):
             walk(member, text, (), frozenset({member}), True)
     return hits
 
@@ -466,7 +474,7 @@ if __name__ == "__main__":
     unittest.main()
 
 
-# Ownership guards over every validated model file, with self-tests on synthetic inputs
+# Ownership guards over the five validated model roots, with self-tests on synthetic inputs
 # (never copies of model files).
 
 KNOWN_GUEST_REFERENCES = {
@@ -478,27 +486,47 @@ KNOWN_GUEST_REFERENCES = {
 
 def test_only_references_are_typed_by_the_aaos_sdv_boundary_definitions() -> None:
     """Every part usage typed by SDVCoreBoundary, SDVPlatformSoftwareBoundary or a specialization
-    of one, and every part redefinition of aaosSdvBoundary or platformSoftware, is a reference: the
-    platform stack owns the guest (owner decision of 2026-10-25)."""
+    of one, and every part usage that redefines, subsets or reference-subsets aaosSdvBoundary or
+    platformSoftware, is a reference: the platform stack owns the guest (owner decision of
+    2026-10-25)."""
     found = _sdv_core_boundary_usages(_guest_model_code())
     assert KNOWN_GUEST_REFERENCES <= found, "the scan must see the two guest references"
     assert sorted(usage for usage in found if usage[2]) == []
 
 
 def test_the_member_and_its_specializations_compose_no_shared_layer_outside_the_platform_stack() -> None:
-    """The member and its specializations compose the guest operating system, the guest middleware
-    and the adapter only through platformStack, at any depth. The one named exception is the
-    display guest of the INC-AEBS-010 test article (open owner decision on headless or display)."""
+    """The member (with its supertypes) and its specializations compose the shared layers only
+    through platformStack, at any depth: AndroidHLOS, AndroidSDVMiddleware, AutowareToAAOSSDVAdapter,
+    SDVCoreBoundary, SDVPlatformSoftwareBoundary, SdvIviCfGuestTarget and their specializations.
+    The one named exception is the display guest of the INC-AEBS-010 test article (open owner
+    decision on headless or display); shared layers inside its definition are still reported."""
     assert _composed_shared_layers(_guest_model_code()) == KNOWN_SECOND_GUEST
+
+
+def test_the_guest_guards_scan_the_five_validated_model_roots() -> None:
+    """The guards read every file that the licensed check validates: the five model roots of
+    scripts/validate_sysml.py (AGENTS.md), feature models and configurations included, and no fixture."""
+    scanned = set(_guest_model_code())
+    roots = [model_path.as_posix() for model_path in VALIDATED_MODEL_ROOTS]
+    assert roots == ["textual-notation-of-model", "model-based-product-line-engineering/product-models",
+                     "model-based-product-line-engineering/scoping",
+                     "model-based-product-line-engineering/feature-models",
+                     "model-based-product-line-engineering/feature-configurations"]
+    for root in roots:
+        assert any(path.startswith(root + "/") for path in scanned), root
+    assert FEATURE_MODEL.relative_to(REPO_ROOT).as_posix() in scanned
+    assert CONFIGURATION.relative_to(REPO_ROOT).as_posix() in scanned
+    assert not [path for path in scanned if "/fixtures/" in path]
+    assert (PLE_ROOT / "feature-configurations" / "fixtures").is_dir(), "the fixture exclusion must be exercised"
 
 
 _PROBE = "textual-notation-of-model/packages/probe/probe.sysml"
 
 
-def _with_probe(monkeypatch, text: str) -> None:
+def _with_probe(monkeypatch, text: str, path: str = _PROBE) -> None:
     original = _guest_model_code
     monkeypatch.setattr(sys.modules[__name__], "_guest_model_code",
-                        lambda: {**original(), _PROBE: reader._active(text)})
+                        lambda: {**original(), path: reader._active(text)})
 
 
 _COMPOSED_GUESTS = {
@@ -510,6 +538,10 @@ _COMPOSED_GUESTS = {
     "typed-redefinition": "part def Probe :> MiddlewarePhysicalSoftwareBoundary { part :>> aaosSdvBoundary : SDVCoreBoundary; }",
     "redefinition": "part def Probe :> MiddlewarePhysicalSoftwareBoundary { part :>> aaosSdvBoundary; }",
     "named-redefinition": "part def Probe :> SDVCoreBoundary { part os redefines platformSoftware; }",
+    "subsetting": "part def Probe :> MiddlewarePhysicalSoftwareBoundary { part guestCopy :> aaosSdvBoundary; }",
+    "subsets": "part def Probe :> MiddlewarePhysicalSoftwareBoundary { part guestCopy subsets aaosSdvBoundary; }",
+    "reference-subsetting": "part def Probe :> SDVCoreBoundary { part os ::> platformSoftware; }",
+    "references": "part def Probe :> SDVCoreBoundary { part os references platformSoftware; }",
     "specialization": "part def ExtraSDVCore :> DE4SDV_AAOSSDVMiddlewareBoundary::SDVCoreBoundary;"
                       " part extraCoreOwner { part extraCore : ExtraSDVCore; }",
     "package-level": "part extraCore : SDVCoreBoundary;",
@@ -523,13 +555,22 @@ def test_guest_reference_guard_refuses_a_composite_guest_in_every_form(monkeypat
         test_only_references_are_typed_by_the_aaos_sdv_boundary_definitions()
 
 
+@pytest.mark.parametrize("root", [model_path.as_posix() for model_path in VALIDATED_MODEL_ROOTS])
+def test_guest_reference_guard_refuses_a_composite_guest_in_every_validated_root(monkeypatch, root: str) -> None:
+    """A composite guest in a file of any validated root fails; feature models and configurations included."""
+    _with_probe(monkeypatch, "part def Probe { part extraGuest : SDVCoreBoundary; }", f"{root}/probe.sysml")
+    with pytest.raises(AssertionError):
+        test_only_references_are_typed_by_the_aaos_sdv_boundary_definitions()
+
+
 @pytest.mark.parametrize("text", [
     "part def Probe { ref part extraGuest : SDVCoreBoundary; }",
     "part def Probe { extraGuest : SDVCoreBoundary; }",
     "part def Probe :> MiddlewarePhysicalSoftwareBoundary { ref part :>> aaosSdvBoundary; }",
+    "part def Probe :> MiddlewarePhysicalSoftwareBoundary { ref part guestCopy :> aaosSdvBoundary; }",
     "part def Probe { /* part extraGuest : SDVCoreBoundary; */ }",
     'part def Probe { attribute note = "part extraGuest : SDVCoreBoundary;"; }',
-], ids=["ref-part", "reference-usage", "ref-redefinition", "comment", "string"])
+], ids=["ref-part", "reference-usage", "ref-redefinition", "ref-subsetting", "comment", "string"])
 def test_guest_reference_guard_accepts_references(monkeypatch, text: str) -> None:
     """Positive controls: references, comments and strings are no composite guest."""
     _with_probe(monkeypatch, text)
@@ -547,6 +588,9 @@ _SECOND_LAYERS = {
                            " part def Probe :> MiddlewareAutowareAAOSSDVConfiguredMember { part holder : Holder; }",
     "specialized-guest": "part def ExtraGuest :> AndroidSDVMiddleware;"
                          " part def Probe :> MiddlewareAutowareAAOSSDVConfiguredMember { part guest defined by ExtraGuest; }",
+    # A second declaration of a definition adds its body to the walk, as a model edit would.
+    "inside-the-excepted-guest-definition": "part def SdvIviCfGuestTarget { part guestMiddleware : AndroidSDVMiddleware; }",
+    "in-a-supertype-of-the-member": "part def AAOSIntegratedAutowareAEBSReferenceMember { part extraGuest : AndroidSDVMiddleware; }",
 }
 
 
@@ -555,6 +599,18 @@ def test_member_guard_refuses_a_second_composite_layer(monkeypatch, text: str) -
     _with_probe(monkeypatch, text)
     with pytest.raises(AssertionError):
         test_the_member_and_its_specializations_compose_no_shared_layer_outside_the_platform_stack()
+
+
+def test_member_walk_reports_shared_layers_inside_the_definition_of_a_hit() -> None:
+    """On a hit the walk still reads the hit's definitions, so an exception never hides what its
+    definition composes."""
+    code = {_PROBE: reader._active(
+        "part def MiddlewareAutowareAAOSSDVConfiguredMember { part display : Guest; }"
+        " part def Guest :> SdvIviCfGuestTarget { part os : AndroidHLOS; }")}
+    assert _composed_shared_layers(code) == {
+        ("MiddlewareAutowareAAOSSDVConfiguredMember", "display", "Guest"),
+        ("MiddlewareAutowareAAOSSDVConfiguredMember", "display.os", "AndroidHLOS"),
+    }
 
 
 @pytest.mark.parametrize("text", [

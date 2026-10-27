@@ -209,12 +209,17 @@ part configuredMember : MiddlewareAutowareAAOSSDVConfiguredMember {
   redefinition (`ref part :>> x`) does not remove the composite semantics of
   `x`.
 - Two test modules guard this rule. They read the model lexically.
-  `tests/test_middleware_variability_configuration.py` covers `MW-CONFIG-001`
-  and its specializations. In every model file, a part usage typed by an SDV
-  Core boundary definition, or by a specialization of one, must be a
-  reference. The member and its specializations must compose no guest
-  operating system, guest middleware or adapter outside `platformStack`, at
-  any depth. One named exception remains: the display guest of the
+  `tests/test_middleware_variability_configuration.py` covers `MW-CONFIG-001`,
+  its supertypes and its specializations. It scans the files of the five
+  validated model roots (`scripts/validate_sysml.py`), without their fixtures.
+  In those files, a part usage typed by an SDV Core boundary definition, or by
+  a specialization of one, must be a reference. So must a part usage that
+  redefines or subsets `aaosSdvBoundary` or `platformSoftware`. The member must
+  compose these definitions only through `platformStack`, at any depth:
+  `AndroidHLOS`, `AndroidSDVMiddleware`, `AutowareToAAOSSDVAdapter`,
+  `SDVCoreBoundary`, `SDVPlatformSoftwareBoundary`, `SdvIviCfGuestTarget` and
+  their specializations. The same holds for its supertypes and its
+  specializations. One named exception remains: the display guest of the
   INC-AEBS-010 test article, an open owner decision.
   `tests/test_middleware_score_variability_configuration.py` covers
   `MW-CONFIG-002`: its S-CORE services and its adapter, in the configured

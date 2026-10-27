@@ -34,9 +34,11 @@
  *   AAOS SDV is a middleware variant (AndroidSDVMiddleware) in the SDV platform
  *   stack. This model defines the internal structure of that variant. The
  *   AutowareToAAOSSDVAdapter connects to the boundary ports defined here. The
- *   platform software is guest operating-system content, and the boundary
- *   refers to it. In a configured product that selects the Android guest, a
- *   binding makes it the guest operating system of the stack.
+ *   platform software is guest operating-system content, and the boundary refers
+ *   to it. A configured product can use this boundary and select the AAOS SDV
+ *   guest middleware (guestAndroidSDV, which requires the Android guest, C008).
+ *   Such a product binds the boundary to that guest middleware, and the platform
+ *   software to its guest operating system.
  *
  * Relationship to AEBS:
  *   The AEBS physical software realization defines required boundaries
@@ -91,17 +93,18 @@ package DE4SDV_AAOSSDVMiddlewareBoundary {
      * One SDV Core VM is the guest side of the SDV platform stack: the guest
      * operating system and the guest middleware. This boundary refers to the
      * guest operating-system content as platformSoftware and does not own it
-     * (owner decision of 2026-10-25). A configured product that selects the
-     * Android guest binds this boundary to its guest middleware and
-     * platformSoftware to its guest operating system. Then the platform stack
-     * owns each of them once. A usage outside a product leaves the reference
-     * unbound.
+     * (owner decision of 2026-10-25). A configured product can use this
+     * boundary and select the AAOS SDV guest middleware (guestAndroidSDV,
+     * which requires the Android guest, C008). Such a product binds this
+     * boundary to that guest middleware and platformSoftware to its guest
+     * operating system. Then the platform stack owns each of them once. A
+     * usage outside a product leaves the reference unbound.
      *
      * This definition deliberately does not specialize AndroidSDVMiddleware.
      * So in a bound product one AAOS SDV occurrence has two ports for one
-     * interface: MiddlewareLayer::applicationPort, which the stack wires to
-     * the adapter, and middlewarePort below, which nothing wires. The type
-     * link is a later owner decision, together with headless or display.
+     * interface. The stack wires MiddlewareLayer::applicationPort to the
+     * adapter. Nothing wires middlewarePort below. The type link is a later
+     * owner decision, together with headless or display.
      */
 
     /* Core services and frameworks */
@@ -309,9 +312,11 @@ package DE4SDV_AAOSSDVMiddlewareBoundary {
      * where a standardized virtual device is unavailable.
      *
      * SDVCoreBoundary refers to this content and does not own it (owner
-     * decision of 2026-10-25). In a configured product that selects the
-     * Android guest, a binding makes this content the guest operating system
-     * of the SDV platform stack (guestOSPlatform).
+     * decision of 2026-10-25). A configured product can use SDVCoreBoundary
+     * and select the AAOS SDV guest middleware (guestAndroidSDV, which
+     * requires the Android guest, C008). In such a product, a binding makes
+     * this content the guest operating system of the SDV platform stack
+     * (guestOSPlatform).
      */
   }
 
