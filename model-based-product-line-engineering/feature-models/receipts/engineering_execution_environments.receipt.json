@@ -1,8 +1,8 @@
 {
   "elements": {
-    "content_sha256": "4afe5e3bb44564349c0a5b33eb95e39fa5166ae1251be44cd28ba0f0effdd62b",
+    "content_sha256": "8f01a5910b62d6697be3358c775354ad01f4dea22561619a45e764272e55d660",
     "path": "pleml-feature-models.elements.json.xz",
-    "sha256": "34c75562cc01cc4050a3e40c43b89b71bbb8e1b37e0e05f371d44296ed1c2413"
+    "sha256": "f86a9afd2b32f410bbbedf912dab3149c39dceaebbff3dee8c22874a6d8af203"
   },
   "evaluation": {
     "admission_authority": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
@@ -675,8 +675,8 @@
   ],
   "native_expression_executed": false,
   "provenance": {
-    "bundle_git_commit": "39b9b2bd365bef9c7ed8b90dea16417b1e63ae08",
-    "executor_revision": "39b9b2bd365bef9c7ed8b90dea16417b1e63ae08"
+    "bundle_git_commit": "4bb60ea6dfe4e3b67d53cae1af60630befcc6d2c",
+    "executor_revision": "4bb60ea6dfe4e3b67d53cae1af60630befcc6d2c"
   },
   "qualified": false,
   "schema": "de4sdv.pleml-configuration-receipt/v2",
@@ -875,8 +875,8 @@
     {
       "authority": "reviewed",
       "path": "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml",
-      "sha256": "321f17a9e9bb9a721519bf33541939e69c1c54bedd899b4525a1d3aedafadcaa",
-      "size": 30363
+      "sha256": "c7842499c68bb1d131c1d4d9e046a078c116a66d2007b14fc86c0120234ccb6b",
+      "size": 30380
     },
     {
       "authority": "reviewed",
