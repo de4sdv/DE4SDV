@@ -212,7 +212,7 @@ package DE4SDV_SDVPlatformStack {
      * the applications of its execution domain.
      *
      * Candidate realizations: Eclipse S-CORE, Android SDV,
-     * AUTOSAR Adaptive (ARA). The stack has two middleware slots:
+     * AUTOSAR Adaptive Platform (AP). The stack has two middleware slots:
      * middleware, the one that the vehicle application integrates with,
      * and guestMiddleware, the one of the guest side.
      *
@@ -537,7 +537,7 @@ package DE4SDV_SDVPlatformStack {
 
   part def AUTOSARAdaptive :> MiddlewareLayer {
     doc /*
-     * AUTOSAR Adaptive Platform (ARA).
+     * AUTOSAR Adaptive Platform (AP).
      * Service-oriented automotive middleware standard.
      * This entry is a placeholder for the standard interface
      * contract, not a specific open-source implementation.
@@ -570,7 +570,7 @@ package DE4SDV_SDVPlatformStack {
   part def QNXPlatform :> OSPlatformLayer {
     doc /*
      * QNX Neutrino RTOS (BlackBerry / QNX).
-     * Real-time POSIX OS with a microkernel.
+     * Real-time OS with a microkernel and a POSIX API.
      * License: commercial (not open-source).
      * Status: candidate realization — included for mixed-criticality
      * architectures; acknowledged as non-OSS.
