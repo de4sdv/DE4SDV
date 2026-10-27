@@ -35,7 +35,11 @@ concurrency:
 jobs:
   ingest-and-validate:
     if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
+    # Pinned. On ubuntu-26.04, /tmp is a size-capped tmpfs, and this job
+    # writes several GB there (the API service log, the exports). A release
+    # run on 26.04 failed with "Disk quota exceeded"; the releases before it
+    # passed on 24.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 360
     services:
       postgres:

@@ -20,7 +20,9 @@ env:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    # Pinned with the ingestion workflow: the release path runs on the image
+    # of the releases that passed.
+    runs-on: ubuntu-24.04
     environment: sysml-api-production
     timeout-minutes: 35
     steps:
