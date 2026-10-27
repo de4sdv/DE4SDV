@@ -487,17 +487,18 @@ KNOWN_GUEST_REFERENCES = {
 def test_only_references_are_typed_by_the_aaos_sdv_boundary_definitions() -> None:
     """Every part usage typed by SDVCoreBoundary, SDVPlatformSoftwareBoundary or a specialization
     of one, and every part usage that redefines, subsets or reference-subsets aaosSdvBoundary or
-    platformSoftware, is a reference: the platform stack owns the guest (owner decision of
-    2026-10-25)."""
+    platformSoftware by name, is a reference: the platform stack owns the guest (owner decision of
+    2026-10-25). The scan does not read feature-chain targets."""
     found = _sdv_core_boundary_usages(_guest_model_code())
     assert KNOWN_GUEST_REFERENCES <= found, "the scan must see the two guest references"
     assert sorted(usage for usage in found if usage[2]) == []
 
 
 def test_the_member_and_its_specializations_compose_no_shared_layer_outside_the_platform_stack() -> None:
-    """The member (with its supertypes) and its specializations compose the shared layers only
-    through platformStack, at any depth: AndroidHLOS, AndroidSDVMiddleware, AutowareToAAOSSDVAdapter,
-    SDVCoreBoundary, SDVPlatformSoftwareBoundary, SdvIviCfGuestTarget and their specializations.
+    """In typed part usages, the member (with its supertypes) and its specializations compose the
+    shared layers only through platformStack, at any depth: AndroidHLOS, AndroidSDVMiddleware,
+    AutowareToAAOSSDVAdapter, SDVCoreBoundary, SDVPlatformSoftwareBoundary, SdvIviCfGuestTarget and
+    their specializations.
     The one named exception is the display guest of the INC-AEBS-010 test article (open owner
     decision on headless or display); shared layers inside its definition are still reported."""
     assert _composed_shared_layers(_guest_model_code()) == KNOWN_SECOND_GUEST

@@ -214,7 +214,8 @@ part configuredMember : MiddlewareAutowareAAOSSDVConfiguredMember {
   validated model roots (`scripts/validate_sysml.py`), without their fixtures.
   In those files, a part usage typed by an SDV Core boundary definition, or by
   a specialization of one, must be a reference. So must a part usage that
-  redefines or subsets `aaosSdvBoundary` or `platformSoftware`. The member must
+  redefines or subsets `aaosSdvBoundary` or `platformSoftware` by name; the
+  guard does not read feature chains. In typed part usages, the member must
   compose these definitions only through `platformStack`, at any depth:
   `AndroidHLOS`, `AndroidSDVMiddleware`, `AutowareToAAOSSDVAdapter`,
   `SDVCoreBoundary`, `SDVPlatformSoftwareBoundary`, `SdvIviCfGuestTarget` and
