@@ -33,7 +33,9 @@ if [ "$overlay" = "--overlay" ]; then
   cp -r "$spike_dir/overlay/de4sdv_spike" "$dest/de4sdv_spike"
   cp "$spike_dir/config/someip_gateway_config.json" \
      "$spike_dir/config/mw_com_config_publisher.json" \
-     "$spike_dir/config/mw_com_config_gatewayd.json" "$dest/de4sdv_spike/"
+     "$spike_dir/config/mw_com_config_gatewayd.json" \
+     "$spike_dir/config/mw_com_config_gatewayd_mwcom.json" \
+     "$spike_dir/config/mw_com_config_someipd.json" "$dest/de4sdv_spike/"
 fi
 
 status=$(git -C "$dest" status --porcelain --untracked-files=all)

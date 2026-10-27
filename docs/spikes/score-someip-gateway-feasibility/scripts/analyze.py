@@ -256,21 +256,31 @@ def s03(data: Data) -> dict:
                        f"resubscription; missing expected {len(facts['missing_expected'])}"}
 
 
+def byte_correct(data: Data, record: dict) -> bool:
+    """True if the received bytes equal the published frame that the record's own header names."""
+    frame = data.pub_by_seq.get(record["seq"]) if record["seq"] is not None else None
+    return frame is not None and frame["sha256"] == record["sha256"]
+
+
 def s04(data: Data) -> dict:
     killed = data.meta.get("gatewayd_killed_ns")
     after = [r for r in data.received if killed is not None and r["recv_ns"] >= killed]
-    replayed = [r["seq"] for r in after if r["seq"] is not None and r["seq"] <= 50]
-    recovered = sorted({r["seq"] for r in after if r["seq"] is not None and r["seq"] > 50})
+    correct_after = [r for r in after if byte_correct(data, r)]
+    wrong_after = [r for r in after if not byte_correct(data, r)]
+    replayed = [r["seq"] for r in correct_after if r["seq"] <= 50]
+    recovered = sorted({r["seq"] for r in correct_after if r["seq"] > 50})
     facts = identity(data)
-    facts.update({"received_after_kill": len(after), "replayed_after_restart": replayed,
+    facts.update({"received_after_kill": len(after), "byte_correct_after_kill": len(correct_after),
+                  "wrong_bytes_after_kill": len(wrong_after), "replayed_after_restart": replayed,
                   "new_frames_after_restart": len(recovered),
                   "gatewayd_2_log_tail": (data.dir / "gatewayd-2.stdout.log").read_text(errors="replace").splitlines()[-15:]
                   if (data.dir / "gatewayd-2.stdout.log").exists() else None})
-    recovery = "PASS" if len(recovered) == 50 else ("PARTIAL" if recovered else "FAIL")
+    recovery = "PASS" if len(recovered) == 50 and not wrong_after else ("PARTIAL" if recovered else "FAIL")
     no_replay = "PASS" if not replayed else "FAIL"
     return {"verdict": f"recovery {recovery}, no-replay {no_replay}", "facts": facts,
-            "summary": f"after the gatewayd restart the guest got {len(recovered)}/50 new frames and "
-                       f"{len(replayed)} replayed frames (seq <= 50)"}
+            "summary": f"after the gatewayd restart the guest got {len(after)} events: {len(correct_after)} with "
+                       f"the published bytes ({len(recovered)} new frames, {len(replayed)} replayed, seq <= 50) and "
+                       f"{len(wrong_after)} with wrong bytes"}
 
 
 def s05(data: Data) -> dict:
@@ -278,8 +288,10 @@ def s05(data: Data) -> dict:
     facts = identity(data, list(range(21, 61)))
     facts["received_produced_before_subscription"] = stale
     ok = not stale and facts["received"] > 0
+    order = ("after gatewayd connected (someipd offers only then)" if data.meta.get("ipc_binding") == "mw_com"
+             else "before gatewayd started")
     return {"verdict": "PASS" if ok else "FAIL", "facts": facts,
-            "summary": f"guest subscribed before gatewayd started; it received {len(stale)} of the 20 frames "
+            "summary": f"guest subscribed {order}; it received {len(stale)} of the 20 frames "
                        f"produced before it subscribed ({stale[:10]})"}
 
 
@@ -310,8 +322,10 @@ def s07(data: Data) -> dict:
              "frames_received": len(data.received),
              "last_frame_phase": phase_of(last_frame, marks) if last_frame else None,
              "tcp_streams": data.wire["streams"] if data.wire else None}
-    went_away = [a for a in availability if a["value"] == 0]
-    summary = ("guest availability went to 0 " + (f"in phase '{went_away[0]['phase']}'" if went_away else "never")
+    first_up = next((a["ns"] for a in availability if a["value"] == 1), None)
+    went_away = [a for a in availability if a["value"] == 0 and first_up is not None and a["ns"] > first_up]
+    summary = ("after the guest saw the service, it first saw it unavailable "
+               + (f"in phase '{went_away[0]['phase']}'" if went_away else "never")
                + f"; host SD offers by phase: {facts['host_sd_offers_by_phase']}")
     return {"verdict": "INFO", "facts": facts, "summary": summary}
 
@@ -423,6 +437,27 @@ def s15(data: Data) -> dict:
                        f"frames of the new publisher instance"}
 
 
+def s18(data: Data) -> dict:
+    facts = identity(data)
+    subscribed = next((s for s, status in data.subscriptions() if status == "0x0"), None)
+    found = data.meta.get("gatewayd_found_ns")  # orchestrator poll, about 50 ms after the log line
+    correct = [r for r in data.received if byte_correct(data, r)]
+    before_sub = sorted(r["seq"] for r in correct if subscribed is not None and data.pub_by_seq[r["seq"]]["t_ns"] < subscribed)
+    before_found = sorted(r["seq"] for r in correct if found is not None and data.pub_by_seq[r["seq"]]["t_ns"] < found)
+    ages = [(r["recv_ns"] - data.pub_by_seq[r["seq"]]["t_ns"]) / 1e9 for r in correct]
+    facts.update({"client_subscribed_ns": subscribed, "gatewayd_found_ns": found,
+                  "delivered_published_before_guest_subscription": before_sub,
+                  "delivered_published_before_gatewayd_found": before_found,
+                  "first_delivered_seq": data.received[0]["seq"] if data.received else None,
+                  "max_delivery_age_s": max(ages, default=None)})
+    ok = (facts["corrupted_or_unknown"] == 0 and not before_sub and facts["received"] > 0)
+    return {"verdict": "PASS" if ok else "FAIL", "facts": facts,
+            "summary": f"spawn-only start order: {facts['byte_identical']}/{facts['received']} received frames "
+                       f"byte-identical, {facts['corrupted_or_unknown']} wrong; {len(before_sub)} delivered frames were "
+                       f"published before the guest subscribed, {len(before_found)} before gatewayd found the "
+                       f"publisher; oldest delivery {facts['max_delivery_age_s']} s"}
+
+
 def s16(data: Data) -> dict:
     facts = identity(data)
     ok = (facts["received"] >= 100 and facts["byte_identical"] == facts["received"]
@@ -441,6 +476,7 @@ EVALUATORS = {
     "s13-gatewayd-crash-restart-debug": s13, "s14-gatewayd-crash-restart-2subs": s13,
     "s15-gatewayd-crash-then-publisher-restart": s15, "s16-main-1000-frames-100hz": s16,
     "s17-gateway-pair-restart": s13,
+    "s18-start-order-spawn-only": s18,
 }
 
 

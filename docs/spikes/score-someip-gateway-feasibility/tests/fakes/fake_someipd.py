@@ -3,6 +3,8 @@
 
 Offers 0x4dee.0x0001 by SD multicast, accepts the guest's TCP connection on
 10.250.0.1:30509 and frames each relayed frame as a SOME/IP notification.
+With -s (the mw::com IPC binding of PR #375) it offers nothing until the fake
+gatewayd sends its configuration (a CONFIG datagram), as the real someipd does.
 """
 
 import select
@@ -29,7 +31,12 @@ def sd_offer(ttl):
 
 signal.signal(signal.SIGTERM, on_signal)
 signal.signal(signal.SIGINT, on_signal)
-print("OFFER(0100): [4dee.0001:1.0] (true)", flush=True)
+MW_COM = "-s" in sys.argv[1:]
+offering = not MW_COM
+if MW_COM:
+    print("[someipd] mw::com IPC binding started, SomeipdService offered to gatewayd", flush=True)
+else:
+    print("OFFER(0100): [4dee.0001:1.0] (true)", flush=True)
 rx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 rx.bind(("127.0.0.1", 40001))
 listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -45,7 +52,7 @@ session = 0
 next_offer = 0.0
 while not STOP:
     now = time.monotonic()
-    if now >= next_offer:
+    if offering and now >= next_offer:
         sd.sendto(sd_offer(3), ("224.244.224.245", 30490))
         next_offer = now + 1.0
     readable, _, _ = select.select([rx, listener] + ([client] if client else []), [], [], 0.1)
@@ -54,6 +61,11 @@ while not STOP:
             client, _ = listener.accept()
         elif sock is rx:
             data = rx.recv(65535)
+            if data == b"CONFIG":
+                if not offering:
+                    print("OFFER(0100): [4dee.0001:1.0] (true)", flush=True)
+                offering = True
+                continue
             if client:
                 session = (session % 0xFFFF) + 1
                 message = struct.pack("!HHIHHBBBB", 0x4DEE, 0x8001, 8 + len(data), 0, session, 1, 1, 0x02, 0) + data

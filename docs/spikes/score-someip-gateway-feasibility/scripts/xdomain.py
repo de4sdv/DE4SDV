@@ -33,7 +33,11 @@ GUEST_IF = "veth-g"
 HOST_IP = "10.250.0.1"
 GUEST_IP = "10.250.0.2"
 
+# message_passing IPC binding (inc_someip_gateway up to main a4dce403)
 GATEWAYD_IPC_READY = r"\[gatewayd\] IPC connection to someipd established"
+# mw::com IPC binding (PR #375): gatewayd is connected once someipd accepted its configuration
+GATEWAYD_IPC_READY_MWCOM = r"\[gatewayd\] Connected to someipd over the mw::com IPC binding"
+SOMEIPD_BINDING_STARTED = r"\[someipd\] mw::com IPC binding started"
 GATEWAYD_FOUND = r"LocalServiceInstance created for instance specifier: de4sdv/aebs_signal_frame"
 SOMEIPD_OFFER = r"OFFER\(0100\): \[4dee\.0001"
 CLIENT_SUBSCRIBED = r"SUBSCRIPTION_STATUS status=0x0\b"
@@ -104,6 +108,9 @@ class Scenario:
     def __init__(self, name: str, root: Path, paths: dict, description: str) -> None:
         self.name = name
         self.paths = paths
+        # message_passing or mw_com: the daemons' command lines, manifests and log lines differ
+        self.binding = paths.get("ipc_binding", "message_passing")
+        self.someipd_name = "someipd"  # the someipd process whose log shows the SOME/IP offer
         self.out = root / name
         self.out.mkdir(parents=True, exist_ok=True)
         self.control = self.out / "client-control"
@@ -116,6 +123,9 @@ class Scenario:
             "clock": {"monotonic_ns": time.monotonic_ns(), "realtime_ns": time.time_ns()},
             "processes": {},
             "waits": [],
+            "ipc_binding": paths.get("ipc_binding", "message_passing"),
+            "pin": paths.get("pin"),
+            "gateway_sha": paths.get("gateway_sha"),
         }
         # Diagnostic options, set by a scenario before it starts processes.
         self.debug_logs = False  # mw::log at kDebug on the console for the host processes
@@ -284,7 +294,10 @@ class Scenario:
         return env
 
     def manifest(self, role: str) -> str:
-        return self.paths[f"mw_com_{role}{self.manifest_variant}"]
+        key = f"mw_com_{role}{self.manifest_variant}"
+        if role == "gatewayd" and self.binding == "mw_com":
+            key += "_mwcom"  # adds the SomeipdService entry of the mw::com IPC binding
+        return self.paths[key]
 
     def start_tcpdump(self) -> None:
         pcap = str(self.out / "guest_wire.pcap")
@@ -295,17 +308,38 @@ class Scenario:
         self.start("tcpdump", GUEST_NS, argv)
         self.wait_log("tcpdump", r"listening on", 10)
 
-    def start_someipd(self, name: str = "someipd") -> None:
+    def spawn_someipd(self, name: str = "someipd") -> None:
         env = self.host_env() | {"VSOMEIP_CONFIGURATION": self.paths["vsomeip_host"]}
-        self.start(name, HOST_NS, [self.paths["someipd"], "-c", self.paths["someip_config_bin"]], env=env)
-        self.wait_log(name, SOMEIPD_OFFER, 20)
+        if self.binding == "mw_com":
+            # PR #375: someipd starts without a gateway configuration and offers only its
+            # SomeipdService over mw::com; the SOME/IP offer follows a gatewayd's configuration.
+            argv = [self.paths["someipd"], "-s", self.paths["mw_com_someipd"]]
+        else:
+            argv = [self.paths["someipd"], "-c", self.paths["someip_config_bin"]]
+        self.someipd_name = name
+        self.start(name, HOST_NS, argv, env=env)
+
+    def start_someipd(self, name: str = "someipd") -> None:
+        self.spawn_someipd(name)
+        if self.binding == "mw_com":
+            self.wait_log(name, SOMEIPD_BINDING_STARTED, 20)
+        else:
+            self.wait_log(name, SOMEIPD_OFFER, 20)
         self.record_maps(name, 0.2)
 
-    def start_gatewayd(self, name: str = "gatewayd", wait_ipc: bool = True) -> None:
+    def spawn_gatewayd(self, name: str = "gatewayd") -> None:
         argv = [self.paths["gatewayd"], "-c", self.paths["someip_config_bin"], "-s", self.manifest("gatewayd")]
         self.start(name, HOST_NS, argv, env=self.host_env())
+
+    def start_gatewayd(self, name: str = "gatewayd", wait_ipc: bool = True) -> None:
+        self.spawn_gatewayd(name)
         if wait_ipc:
-            self.wait_log(name, GATEWAYD_IPC_READY, 20)
+            if self.binding == "mw_com":
+                self.wait_log(name, GATEWAYD_IPC_READY_MWCOM, 20)
+                # someipd offers the SOME/IP service once it accepted this configuration
+                self.wait_log(self.someipd_name, SOMEIPD_OFFER, 20)
+            else:
+                self.wait_log(name, GATEWAYD_IPC_READY, 20)
         self.record_maps(name, 0.2)
 
     def start_publisher(self, tag: str = "publisher", extra: list[str] | None = None, wait_offer: bool = True) -> None:
@@ -449,17 +483,27 @@ def s4_gatewayd_crash_restart(sc: Scenario) -> None:
 
 
 def s5_late_gatewayd(sc: Scenario) -> None:
-    """Frames 1..20 published before gatewayd and before the guest subscribed (static SOME/IP offer)."""
+    """Frames 1..20 published before gatewayd started and before the guest subscribed.
+
+    message_passing: someipd offers statically, so the guest subscribes before gatewayd starts.
+    mw_com (PR #375): someipd offers only after gatewayd sent its configuration, so the guest
+    subscribes after gatewayd connected. In both, gatewayd subscribes to the publisher late."""
     sc.start_tcpdump()
     sc.start_publisher(extra=["--frames", "60", "--period-ms", "50", "--pause-at", "20"])
     sc.wait_file(sc.out / "publisher.paused-20", 30)
     sc.start_someipd()
     sc.start_client()
-    sc.wait_subscribed()
-    sc.meta["client_subscribed_ns"] = sc.note("CLIENT_SUBSCRIBED_BEFORE_GATEWAYD")
-    time.sleep(1.0)
-    sc.start_gatewayd()
-    sc.wait_log("gatewayd", GATEWAYD_FOUND, 20)
+    if sc.binding == "mw_com":
+        sc.start_gatewayd()
+        sc.wait_subscribed()
+        sc.meta["client_subscribed_ns"] = sc.note("CLIENT_SUBSCRIBED_AFTER_GATEWAYD_CONNECTED")
+        sc.wait_log("gatewayd", GATEWAYD_FOUND, 20)
+    else:
+        sc.wait_subscribed()
+        sc.meta["client_subscribed_ns"] = sc.note("CLIENT_SUBSCRIBED_BEFORE_GATEWAYD")
+        time.sleep(1.0)
+        sc.start_gatewayd()
+        sc.wait_log("gatewayd", GATEWAYD_FOUND, 20)
     time.sleep(2.0)
     sc.touch(sc.out / "resume-20")
     sc.wait_file(sc.out / "publisher.done", 30)
@@ -678,6 +722,26 @@ def s17_gateway_pair_restart(sc: Scenario) -> None:
     time.sleep(3.0)
 
 
+def s18_start_order_spawn_only(sc: Scenario) -> None:
+    """G1 start order as the Launch Manager applies it: someipd, gatewayd, then the publisher, each
+    100 ms after the previous spawn (a Native component is ready once its process is spawned). The
+    guest runs first and subscribes when the service appears. The publisher sends from its offer
+    on, without a go file: frames sent before gatewayd and the guest subscribed show what leaks."""
+    sc.start_tcpdump()
+    sc.start_client()
+    sc.spawn_someipd()
+    time.sleep(0.1)
+    sc.spawn_gatewayd()
+    time.sleep(0.1)
+    sc.meta["publisher_spawn_ns"] = sc.note("PUBLISHER_SPAWN")
+    sc.start_publisher(extra=["--frames", "100", "--period-ms", "50"], wait_offer=False)
+    if sc.wait_log("gatewayd", GATEWAYD_FOUND, 30):
+        sc.meta["gatewayd_found_ns"] = time.monotonic_ns()
+    sc.wait_subscribed(timeout=30)
+    sc.wait_file(sc.out / "publisher.done", 30)
+    time.sleep(3.0)
+
+
 def s16_main_1000_frames_100hz(sc: Scenario) -> None:
     """1000 frames at 100 Hz, ten times the HMI rate: identity, order and gaps under load."""
     sc.start_tcpdump()
@@ -712,6 +776,7 @@ SCENARIOS = {
     "s15-gatewayd-crash-then-publisher-restart": s15_gatewayd_crash_then_publisher_restart,
     "s16-main-1000-frames-100hz": s16_main_1000_frames_100hz,
     "s17-gateway-pair-restart": s17_gateway_pair_restart,
+    "s18-start-order-spawn-only": s18_start_order_spawn_only,
 }
 
 

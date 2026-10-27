@@ -4,11 +4,12 @@
 # processes (tests/fakes) in an unprivileged user, mount and network namespace,
 # with private /tmp, /dev/shm and /run. Proves the plumbing (namespaces, veth,
 # private guest /tmp, capture, waits, control files, analysis), never the
-# gateway. Usage: run_local_dry_run.sh <out-dir> [scenarios]
+# gateway. Usage: run_local_dry_run.sh <out-dir> [scenarios] [message_passing|mw_com]
 set -euo pipefail
 
 out=$(realpath -m "${1:?usage: run_local_dry_run.sh <out-dir> [scenarios]}")
 scenarios=${2:-all}
+ipc_binding=${3:-message_passing}
 here=$(cd "$(dirname "$0")" && pwd)
 scripts=$(cd "$here/../scripts" && pwd)
 config=$(cd "$here/../config" && pwd)
@@ -26,6 +27,11 @@ cat > "$out/paths.json" <<EOF
   "mw_com_gatewayd": "$config/mw_com_config_gatewayd.json",
   "mw_com_publisher_2subs": "$config/mw_com_config_publisher_2subs.json",
   "mw_com_gatewayd_2subs": "$config/mw_com_config_gatewayd_2subs.json",
+  "mw_com_gatewayd_mwcom": "$config/mw_com_config_gatewayd_mwcom.json",
+  "mw_com_gatewayd_2subs_mwcom": "$config/mw_com_config_gatewayd_2subs_mwcom.json",
+  "mw_com_someipd": "$config/mw_com_config_someipd.json",
+  "ipc_binding": "$ipc_binding",
+  "pin": "local-dry-run",
   "mw_log_debug": "$config/mw_log_debug.json",
   "vsomeip_host": "$config/vsomeip_host.json",
   "vsomeip_guest": "$config/vsomeip_guest.json",

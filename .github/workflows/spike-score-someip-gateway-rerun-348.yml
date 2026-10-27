@@ -1,14 +1,21 @@
-# DE4SDV throwaway spike (INC-MW-011 gateway feasibility). Lives only on the
-# branch spike/score-someip-gateway-feasibility and never merges. It builds the
-# Eclipse S-CORE SOME/IP gateway at a pinned commit, runs its own tests, and runs
-# the cross-domain case of the phase-8 model: an mw::com publisher on the host
-# network domain, gatewayd and someipd, and a vsomeip 3.7.6 client in a separate
-# network namespace. See docs/spikes/score-someip-gateway-feasibility/README.md.
-name: Spike S-CORE SOME/IP gateway feasibility
+# DE4SDV throwaway spike (INC-MW-011 gateway feasibility), rerun on new upstream
+# commits after eclipse-score/inc_someip_gateway#348 merged. Lives only on the
+# branch spike/score-someip-gateway-rerun-348 and never merges. It builds the
+# Eclipse S-CORE SOME/IP gateway at two pinned commits and runs the same
+# cross-domain scenarios at each: an mw::com publisher on the host network
+# domain, gatewayd and someipd, and a vsomeip 3.7.6 client in a separate network
+# namespace. See docs/spikes/score-someip-gateway-feasibility/README.md.
+#
+# Pins:
+#   main-a4dce403  inc_someip_gateway main, which includes #348. Both daemons
+#                  still use the message_passing IPC binding there.
+#   pr375-723119c4 the head of the open PR #375, which switches gatewayd and
+#                  someipd to the mw::com IPC binding.
+name: Spike S-CORE SOME/IP gateway rerun after 348
 
 on:
   push:
-    branches: [spike/score-someip-gateway-feasibility]
+    branches: [spike/score-someip-gateway-rerun-348]
     paths-ignore:
       - docs/spikes/score-someip-gateway-feasibility/README.md
       - docs/spikes/score-someip-gateway-feasibility/tests/**
@@ -18,74 +25,35 @@ permissions:
   contents: read
 
 concurrency:
-  group: spike-score-someip-gateway-${{ github.ref }}
+  group: spike-score-someip-gateway-rerun-${{ github.ref }}
   cancel-in-progress: false
 
 env:
   GATEWAY_REPO: https://github.com/eclipse-score/inc_someip_gateway.git
-  GATEWAY_SHA: 951fbc09bfbe9011eb81471cd31e1379700669b8
   VSOMEIP_SHA: 4187431d2815bd351845a09d01aa85b2a3163cab
   SPIKE_DIR: docs/spikes/score-someip-gateway-feasibility
-  # bazel-8.6.0-linux-x86_64, the version of the gateway's .bazelversion
+  # bazel-8.6.0-linux-x86_64, the version of the gateway's .bazelversion at both pins
   BAZELISK_VERIFY_SHA256: 9860da9c9386bbc023feed8f43af3105d338727d77b644fa6aeca45a4a11957c
 
 jobs:
-  upstream-tests:
-    name: Gateway unit and component tests (upstream, untouched)
-    runs-on: ubuntu-24.04
-    timeout-minutes: 240
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - name: Prepare runner
-        run: bash "$SPIKE_DIR/scripts/ci_prepare_runner.sh" "$RUNNER_TEMP/facts"
-      - name: Check out the gateway at the pinned commit
-        run: bash "$SPIKE_DIR/scripts/ci_checkout_gateway.sh" "$RUNNER_TEMP/gw" "$RUNNER_TEMP/facts"
-      - name: Build and test (their CI's host-toolchain set)
-        run: bash "$SPIKE_DIR/scripts/ci_upstream_tests.sh" "$RUNNER_TEMP/gw" "$RUNNER_TEMP/facts" unit
-      - name: Summary
-        if: always()
-        run: cat "$RUNNER_TEMP/facts/tests_summary.md" >> "$GITHUB_STEP_SUMMARY" || true
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: upstream-tests-facts
-          path: ${{ runner.temp }}/facts
-          retention-days: 30
-
-  qemu-integration:
-    name: Gateway Linux QEMU integration tests (upstream, untouched)
-    runs-on: ubuntu-24.04
-    timeout-minutes: 240
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - name: Prepare runner
-        run: bash "$SPIKE_DIR/scripts/ci_prepare_runner.sh" "$RUNNER_TEMP/facts"
-      - name: Install the tools their QEMU tests need
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y qemu-system-x86 iputils-ping tcpdump cloud-image-utils
-      - name: Check out the gateway at the pinned commit
-        run: bash "$SPIKE_DIR/scripts/ci_checkout_gateway.sh" "$RUNNER_TEMP/gw" "$RUNNER_TEMP/facts"
-      - name: QEMU integration and TC8 tests
-        run: bash "$SPIKE_DIR/scripts/ci_upstream_tests.sh" "$RUNNER_TEMP/gw" "$RUNNER_TEMP/facts" qemu
-      - name: Summary
-        if: always()
-        run: cat "$RUNNER_TEMP/facts/tests_summary.md" >> "$GITHUB_STEP_SUMMARY" || true
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: qemu-integration-facts
-          path: ${{ runner.temp }}/facts
-          retention-days: 30
-
   cross-domain:
-    name: Cross-domain case (mw::com -> gatewayd -> someipd -> netns -> vsomeip 3.7.6)
+    name: Cross-domain case at ${{ matrix.pin }}
     runs-on: ubuntu-24.04
     timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - pin: main-a4dce403
+            gateway_sha: a4dce40322d4523522263d7c0765946e18f59589
+            ipc_binding: message_passing
+          - pin: pr375-723119c4
+            gateway_sha: 723119c405d8b7140cdd0bb2c2816baefcc53e01
+            ipc_binding: mw_com
+    env:
+      GATEWAY_SHA: ${{ matrix.gateway_sha }}
+      IPC_BINDING: ${{ matrix.ipc_binding }}
+      SPIKE_PIN: ${{ matrix.pin }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -139,11 +107,15 @@ jobs:
           sudo chown -R "$USER:$USER" "$RUNNER_TEMP/results" || true
           python3 "$SPIKE_DIR/scripts/analyze.py" "$RUNNER_TEMP/results" \
             --json "$RUNNER_TEMP/results/analysis.json" --markdown "$RUNNER_TEMP/results/analysis.md"
-          cat "$RUNNER_TEMP/results/analysis.md" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### Pin $SPIKE_PIN (inc_someip_gateway $GATEWAY_SHA, IPC binding $IPC_BINDING)"
+            echo
+            cat "$RUNNER_TEMP/results/analysis.md"
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: cross-domain-evidence
+          name: cross-domain-evidence-${{ matrix.pin }}
           path: |
             ${{ runner.temp }}/facts
             ${{ runner.temp }}/results

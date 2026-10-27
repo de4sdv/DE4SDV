@@ -87,10 +87,18 @@ paths.update({
     "mw_com_gatewayd": "$spike_dir/config/mw_com_config_gatewayd.json",
     "mw_com_publisher_2subs": "$spike_dir/config/mw_com_config_publisher_2subs.json",
     "mw_com_gatewayd_2subs": "$spike_dir/config/mw_com_config_gatewayd_2subs.json",
+    "mw_com_gatewayd_mwcom": "$spike_dir/config/mw_com_config_gatewayd_mwcom.json",
+    "mw_com_gatewayd_2subs_mwcom": "$spike_dir/config/mw_com_config_gatewayd_2subs_mwcom.json",
+    "mw_com_someipd": "$spike_dir/config/mw_com_config_someipd.json",
     "mw_log_debug": "$spike_dir/config/mw_log_debug.json",
     "vsomeip_host": "$spike_dir/config/vsomeip_host.json",
     "vsomeip_guest": "$spike_dir/config/vsomeip_guest.json",
     "host_ld_library_path": "$host_ld",
+    # message_passing (main a4dce403 and earlier) or mw_com (PR #375): decides the
+    # daemons' command lines, manifests and log lines in xdomain.py
+    "ipc_binding": "${IPC_BINDING:-message_passing}",
+    "pin": "${SPIKE_PIN:-}",
+    "gateway_sha": "${GATEWAY_SHA:-}",
 })
 json.dump(paths, open("$paths_json", "w"), indent=2)
 EOF
@@ -137,8 +145,11 @@ print(json.dumps(result, indent=2))
 EOF
 
 # The gateway's own launch script, as packaged in //deployment:gateway_tar.
+# Each daemon alone first (exit 124 = still running when the 5 s timeout hit),
+# then both together for 8 s in a throwaway network and mount namespace with a
+# private /tmp and /dev/shm, so that their LoLa files cannot reach the scenarios.
 if [ -n "$gateway_tar" ]; then
-  tar_dir=$(mktemp -d)
+  tar_dir=$(mktemp -d "${RUNNER_TEMP:-/var/tmp}/gateway_tar.XXXXXX")
   tar -xzf "$gateway_tar" -C "$tar_dir"
   tar -tzvf "$gateway_tar" > "$out/gateway_tar_listing.txt"
   script=$(find "$tar_dir" -name run_gateway.sh | head -1)
@@ -150,7 +161,27 @@ if [ -n "$gateway_tar" ]; then
     echo "== $script someipd"
     (cd "$(dirname "$script")" && VSOMEIP_CONFIGURATION=/nonexistent timeout 5 ./run_gateway.sh someipd)
     echo "exit=$?"
+    echo "== packaged score_com_serializer.so"
+    find "$tar_dir" -name 'score_com_serializer.so' | sed "s|$tar_dir/||" || true
     set -e
   } > "$out/run_gateway_sh_check.txt" 2>&1 || true
+  {
+    echo "== both packaged daemons for 8 s (someipd first, gatewayd 1 s later)"
+    sudo unshare --net --mount --propagation private -- bash -c '
+      set +e
+      mount -t tmpfs tmpfs /tmp && mount -t tmpfs tmpfs /dev/shm
+      ip link set lo up
+      cd "$1"
+      VSOMEIP_CONFIGURATION=/nonexistent timeout 8 ./run_gateway.sh someipd > /tmp/someipd.log 2>&1 &
+      someipd_pid=$!
+      sleep 1
+      timeout 7 ./run_gateway.sh gatewayd > /tmp/gatewayd.log 2>&1
+      echo "gatewayd exit=$?"
+      wait "$someipd_pid"
+      echo "someipd exit=$?"
+      echo "--- someipd log (head)"; head -40 /tmp/someipd.log
+      echo "--- gatewayd log (head)"; head -40 /tmp/gatewayd.log
+    ' _ "$(dirname "$script")"
+  } > "$out/gateway_tar_pair_check.txt" 2>&1 || true
   rm -rf "$tar_dir"
 fi
