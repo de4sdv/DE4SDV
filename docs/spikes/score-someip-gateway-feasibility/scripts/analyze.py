@@ -426,15 +426,23 @@ def s13(data: Data) -> dict:
 def s15(data: Data) -> dict:
     killed = data.meta.get("gatewayd_killed_ns")
     b_frames = {f["seq"] for f in data.published if f["tag"] == "publisher-b"}
-    got_b = received_in(data, b_frames)
+    after = [r for r in data.received if killed is not None and r["recv_ns"] >= killed]
+    correct_after = [r for r in after if byte_correct(data, r)]
+    wrong_after = [r for r in after if not byte_correct(data, r)]
+    got_b = sorted({r["seq"] for r in correct_after if r["seq"] in b_frames})
+    # publisher-b starts at seq 51: a byte-correct seq <= 50 after the kill is a sample of the first instance
+    old_instance = [r["seq"] for r in correct_after if r["seq"] not in b_frames]
     facts = identity(data)
-    facts.update({"publisher_b_published": len(b_frames), "publisher_b_received": len(got_b),
-                  "received_after_kill": len([r for r in data.received if killed and r["recv_ns"] >= killed]),
+    facts.update({"publisher_b_published": len(b_frames), "publisher_b_received_byte_correct": len(got_b),
+                  "received_after_kill": len(after), "wrong_bytes_after_kill": len(wrong_after),
+                  "first_instance_samples_after_restart": old_instance,
                   "debug_log_excerpts": debug_excerpts(data, ["gatewayd-2", "publisher-b"])})
-    recovery = "PASS" if b_frames and len(got_b) == len(b_frames) else ("PARTIAL" if got_b else "FAIL")
-    return {"verdict": f"recovery {recovery}", "facts": facts,
-            "summary": f"after restarting gatewayd and then the publisher, the guest got {len(got_b)}/{len(b_frames)} "
-                       f"frames of the new publisher instance"}
+    recovery = ("PASS" if b_frames and len(got_b) == len(b_frames) and not wrong_after
+                else ("PARTIAL" if got_b else "FAIL"))
+    return {"verdict": f"recovery {recovery}, no-replay {'PASS' if not old_instance else 'FAIL'}", "facts": facts,
+            "summary": f"after restarting gatewayd and then the publisher, the guest got {len(after)} events: "
+                       f"{len(got_b)}/{len(b_frames)} frames of the new publisher instance with the published bytes, "
+                       f"{len(old_instance)} samples of the first instance, and {len(wrong_after)} with wrong bytes"}
 
 
 def s18(data: Data) -> dict:

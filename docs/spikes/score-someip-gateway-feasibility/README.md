@@ -52,10 +52,11 @@ Two scenario changes follow from #375:
   Launch Manager rule, someipd, then gatewayd, then the publisher, each 100 ms
   after the previous spawn, with the publisher sending from its offer on.
 
-The `analyze.py` summaries of the s04 family and s07 now say what the first
-run's summaries hid: the s04 family counts the events with wrong bytes after
-the restart as well as the correct ones, and s07 ignores vsomeip's initial
-availability callback.
+The `analyze.py` summaries of the s04 family, s07 and s15 now say what the
+first run's summaries hid: the s04 family and s15 count the events with wrong
+bytes after the restart as well as the correct ones, s15 also counts the
+samples of the first publisher instance that arrive after the restart, and s07
+ignores vsomeip's initial availability callback.
 
 ## Layout
 
