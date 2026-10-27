@@ -886,7 +886,8 @@
 
       var name = document.createElement('span');
       name.className = 'tip-name';
-      name.textContent = info.name;
+      // a short name comes before the name, as in the diagrams: <REQ-1> r
+      name.textContent = (info.short ? '<' + info.short + '> ' : '') + info.name;
       tip.appendChild(name);
 
       if (info.doc) {
@@ -1187,6 +1188,7 @@
         show(a, {
           kind: a.getAttribute('data-tip-kind') || 'element',
           name: a.getAttribute('data-tip-name') || norm(a.textContent),
+          short: a.getAttribute('data-tip-short') || '',
           doc: a.getAttribute('data-tip-doc') || '',
           file: a.getAttribute('data-tip-file') || '',
           line: a.getAttribute('data-tip-line') || '',
