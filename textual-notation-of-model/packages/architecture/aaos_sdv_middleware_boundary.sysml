@@ -12,7 +12,8 @@
  *   License: Apache 2.0 (AOSP)
  *
  * Scope:
- *   - SDV Core boundary definition (headless Android-derived OS guest)
+ *   - SDV Core boundary definition (the service side of the headless SDV
+ *     Core guest; it refers to the platform software)
  *   - Core services (Orchestrator, Service Lifecycle Manager, Health Monitor,
  *     Update Manager, Connectivity Manager)
  *   - VSIDL and SDV Middleware (vehicle signal abstraction)
@@ -32,7 +33,12 @@
  * Relationship to SDV platform stack:
  *   AAOS SDV is a middleware variant (AndroidSDVMiddleware) in the SDV platform
  *   stack. This model defines the internal structure of that variant. The
- *   AutowareToAAOSSDVAdapter connects to the boundary ports defined here.
+ *   AutowareToAAOSSDVAdapter connects to the boundary ports defined here. The
+ *   platform software is guest operating-system content, and the boundary refers
+ *   to it. A configured product can use this boundary and select the AAOS SDV
+ *   guest middleware (guestAndroidSDV, which requires the Android guest, C008).
+ *   Such a product binds the boundary to that guest middleware, and the platform
+ *   software to its guest operating system.
  *
  * Relationship to AEBS:
  *   The AEBS physical software realization defines required boundaries
@@ -75,14 +81,30 @@ package DE4SDV_AAOSSDVMiddlewareBoundary {
 
   part def SDVCoreBoundary {
     doc /*
-     * Headless, native Android-derived operating system guest that hosts
-     * distributed vehicle services. Runs on a hypervisor. Excludes JVM,
-     * Java services, Android applications, and GUI functionality.
+     * The service side of the headless SDV Core guest: its native,
+     * distributed vehicle services, which this boundary owns. SDV Core is a
+     * headless, native Android-derived guest that runs on a hypervisor. It
+     * excludes the JVM, Java services, Android applications and GUI
+     * functionality. Its functions are distributed services, not permanently
+     * tied to a particular processor or ECU. Multiple SDV Core instances may
+     * run on one SoC, on different SoCs, or communicate across the vehicle
+     * network.
      *
-     * One SDV Core instance is one VM. Multiple instances may run on one
-     * SoC, on different SoCs, or communicate across the vehicle network.
-     * Functions are implemented as distributed services, not permanently
-     * tied to a particular processor or ECU.
+     * One SDV Core VM is the guest side of the SDV platform stack: the guest
+     * operating system and the guest middleware. This boundary refers to the
+     * guest operating-system content as platformSoftware and does not own it
+     * (owner decision of 2026-10-25). A configured product can use this
+     * boundary and select the AAOS SDV guest middleware (guestAndroidSDV,
+     * which requires the Android guest, C008). Such a product binds this
+     * boundary to that guest middleware and platformSoftware to its guest
+     * operating system. Then the platform stack owns each of them once. A
+     * usage outside a product leaves the reference unbound.
+     *
+     * This definition deliberately does not specialize AndroidSDVMiddleware.
+     * So in a bound product one AAOS SDV occurrence has two ports for one
+     * interface. The stack wires MiddlewareLayer::applicationPort to the
+     * adapter. Nothing wires middlewarePort below. The type link is a later
+     * owner decision, together with headless or display.
      */
 
     /* Core services and frameworks */
@@ -108,8 +130,8 @@ package DE4SDV_AAOSSDVMiddlewareBoundary {
     part vehiclePowerMode : VehiclePowerModeBoundary;
     part userProfile : UserProfileBoundary;
 
-    /* Platform software */
-    part platformSoftware : SDVPlatformSoftwareBoundary;
+    /* Platform software: guest operating-system content, referred to, not owned */
+    ref part platformSoftware : SDVPlatformSoftwareBoundary;
 
     /* Boundary ports exposed to the adapter and other systems */
     port middlewarePort : MiddlewareAdapterPort;
@@ -288,6 +310,13 @@ package DE4SDV_AAOSSDVMiddlewareBoundary {
      *
      * Virtio is the preferred hardware abstraction. HALs are only used
      * where a standardized virtual device is unavailable.
+     *
+     * SDVCoreBoundary refers to this content and does not own it (owner
+     * decision of 2026-10-25). A configured product can use SDVCoreBoundary
+     * and select the AAOS SDV guest middleware (guestAndroidSDV, which
+     * requires the Android guest, C008). In such a product, a binding makes
+     * this content the guest operating system of the SDV platform stack
+     * (guestOSPlatform).
      */
   }
 
@@ -436,9 +465,11 @@ package DE4SDV_AAOSSDVMiddlewareBoundary {
 
   concern aaosSdvStructureConcern : PhysicalStructureConcern {
     doc /*
-     * Reviewers need the AAOS SDV middleware internal structure visible
-     * for the middleware integration increment: core services, communication
-     * stack, automotive services, platform software, and network topology.
+     * Reviewers need the AAOS SDV boundary visible for the middleware
+     * integration increment. It shows the core services, the communication
+     * stack and the automotive services of the AAOS SDV middleware. It also
+     * shows the platform software, which the boundary refers to (guest
+     * operating-system content), and the network topology.
      */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;

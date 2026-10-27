@@ -35,20 +35,26 @@ package DE4SDV_MiddlewareVariabilityConfiguration {
      * platform-stack projection. The local parts compose accepted
      * shared assets; they do not independently choose platform variants.
      *
-     * One owner for the adapter layer (owner decisions of 2026-10-23 and
-     * 2026-10-25). The platform stack owns the derived Autoware-to-AAOS SDV
-     * adapter. The middleware boundary only refers to its adapter, and one
-     * binding makes that reference the same thing as the derived adapter. So
-     * the member has one adapter, and the platform stack is its only owner.
-     * The AAOS SDV guest still has two representations: the guest
-     * middleware of the platform stack, and the AAOS SDV boundary of the
-     * middleware boundary. The configuration management note of
-     * configuredMember records this open item.
+     * One instance and one owner per layer (owner decisions of 2026-10-23
+     * and 2026-10-25). The platform stack owns the derived Autoware-to-AAOS
+     * SDV adapter and the two layers of its guest side: the guest operating
+     * system and the guest middleware. The middleware boundary only refers
+     * to its adapter and to its AAOS SDV boundary. The AAOS SDV boundary
+     * only refers to its platform software. Three bindings make these
+     * references the same things as the derived adapter, the guest
+     * middleware and the guest operating system. The middleware variant
+     * androidSDV of the stack also refers to the guest middleware
+     * (constraint C009). So the member has one adapter, one AAOS SDV and one
+     * guest operating system, and the platform stack is their only owner.
      */
     part platformStack : MiddlewareAutowareAAOSSDVReference;
     part middlewareBoundary : MiddlewarePhysicalSoftwareBoundary;
     binding adapterBoundToDerivedAdapter
       bind middlewareBoundary.adapter = platformStack.applicationMiddlewareAdapter;
+    binding aaosSdvBoundaryBoundToGuestMiddleware
+      bind middlewareBoundary.aaosSdvBoundary = platformStack.guestMiddleware;
+    binding platformSoftwareBoundToGuestOperatingSystem
+      bind middlewareBoundary.aaosSdvBoundary.platformSoftware = platformStack.guestOSPlatform;
   }
 
   part configuredMember : MiddlewareAutowareAAOSSDVConfiguredMember {
@@ -58,29 +64,44 @@ package DE4SDV_MiddlewareVariabilityConfiguration {
      * Runtime support, requirement satisfaction, safety, compliance, and
      * interoperability are not implied by this configured-member usage.
      *
-     * Configuration management note: on 2026-10-23 the owner decided one
-     * owner per layer for this configured member, and on 2026-10-25 the owner
-     * narrowed the change to the adapter. Before, the middleware boundary
-     * owned a second adapter. Now it refers to the derived adapter that the
-     * platform stack owns. The identity MW-CONFIG-001 is not renumbered, and
-     * no variant selection changed. E-MW-011 to E-MW-014 bind this identity,
-     * and BL-MW-010-P12 rests on them. CLM-MW-010-01 and the other INC-MW-010
+     * Configuration management note: under the owner decision of one owner
+     * per layer (2026-10-23), the structure of this configured member changed
+     * twice. The first change, narrowed to the adapter on 2026-10-25, removed
+     * the second adapter of the middleware boundary. Later on 2026-10-25 the
+     * owner decided to give the AAOS SDV guest one owner too. Before, the
+     * middleware boundary owned a second representation of the guest
+     * (aaosSdvBoundary), and SDVCoreBoundary owned guest operating-system
+     * content (platformSoftware: GKI, drivers, HALs). Now the middleware
+     * boundary refers to its AAOS SDV boundary, and that boundary refers to
+     * its platform software. Bindings make them the guest middleware and the
+     * guest operating system of the platform stack, which owns both. So the
+     * open item about the duplicate guest in this member is closed. Its
+     * platform stack also changed in INC-MW-011 phase 9 (a Linux main side
+     * and a guest side); the projection records that change. The identity
+     * MW-CONFIG-001 is not renumbered, and no variant selection changed in
+     * these two changes. E-MW-011 to E-MW-014 bind this identity, and
+     * BL-MW-010-P12 rests on them. CLM-MW-010-01 and the other INC-MW-010
      * records take MiddlewareIntegrationVandVBench as subject, whose System 1
      * part is typed by MiddlewareAutowareAAOSSDVConfiguredMember, so they
      * inherit the change. So do the INC-AEBS-010 test article and its
-     * verification bench. All these records were retained against the
-     * earlier content, the INC-MW-010 records at the baseline revision
+     * verification bench, and with them EVID-AEBS-S2-001 to EVID-AEBS-S2-006,
+     * which bind AEBS-CONFIG-010-001. All these records were retained against
+     * the earlier content, the INC-MW-010 records at the baseline revision
      * b8170f6953567b07164b8c02be05be137f8047f0. No record is edited.
      *
-     * Open item (owner decision of 2026-10-25): the middleware boundary still
-     * represents the AAOS SDV guest a second time (aaosSdvBoundary). The
-     * first representation is the guest middleware of the platform stack.
-     * SDVCoreBoundary also holds guest operating-system content
-     * (platformSoftware: GKI, drivers, HALs). It describes the headless
-     * sdv_core_cf image, while the INC-AEBS-010 evidence ran the
-     * display-capable sdv_ivi_cf image. How to model the AAOS SDV guest
-     * (operating system or middleware, headless or display) is a later owner
-     * decision.
+     * Headless or display: the binding makes the guest middleware of this
+     * member a headless SDV Core boundary (no JVM, no Android applications,
+     * no GUI). That is right for MW-CONFIG-001: it selects no HMI display,
+     * and its runtime evidence names the headless sdv_core_cf image
+     * (E-MW-011, E-MW-013). The INC-AEBS-010 test article inherits this
+     * headless guest middleware. It also composes a second AAOS SDV guest:
+     * the display-capable sdv_ivi_cf guest of its System 2 instrument
+     * (iviGuest : SdvIviCfGuestTarget). Its evidence ran that image. The doc
+     * of SdvIviCfGuestTarget says that it replaces the headless sdv_core_cf
+     * target, and the binding now contradicts that statement. So the binding
+     * sharpens the discrepancy that INC-AEBS-010 records. How to model the
+     * guest of the test article (one guest, headless or display) stays a
+     * later owner decision.
      */
   }
 
@@ -223,9 +244,10 @@ package DE4SDV_MiddlewareVariabilityConfiguration {
   concern productModelAssemblyConcern : ProductModelAssemblyConcern {
     doc /*
      * Review the resulting member-product composition: configured platform
-     * stack plus the middleware physical/software boundary. The boundary
-     * refers to the derived adapter, which the platform stack owns. It still
-     * owns a second representation of the AAOS SDV guest, an open item. This
+     * stack plus the middleware physical/software boundary, with one instance
+     * and one owner per platform layer. The boundary refers to the derived
+     * adapter and to the guest middleware, and the guest middleware refers to
+     * the guest operating system. The platform stack owns all three. This
      * concern is about assembled assets, not the full variation space.
      */
     subject;
@@ -272,15 +294,19 @@ package DE4SDV_MiddlewareVariabilityConfiguration {
       frame productModelAssemblyConcern;
     }
     doc /*
-     * The configured member, its two parts and the binding. The binding
-     * makes the adapter of the middleware boundary the same thing as the
-     * derived adapter of the platform stack. The boundary only refers to the
-     * adapter. The platform stack is its only owner.
+     * The configured member, its two parts and the three bindings. Two
+     * bindings make the adapter and the AAOS SDV boundary of the middleware
+     * boundary the same things as the derived adapter and the guest
+     * middleware. The third makes the platform software of the AAOS SDV
+     * boundary the same thing as the guest operating system. The platform
+     * stack is the only owner of all three.
      */
     expose MiddlewareAutowareAAOSSDVConfiguredMember;
     expose MiddlewareAutowareAAOSSDVConfiguredMember::platformStack;
     expose MiddlewareAutowareAAOSSDVConfiguredMember::middlewareBoundary;
     expose MiddlewareAutowareAAOSSDVConfiguredMember::adapterBoundToDerivedAdapter;
+    expose MiddlewareAutowareAAOSSDVConfiguredMember::aaosSdvBoundaryBoundToGuestMiddleware;
+    expose MiddlewareAutowareAAOSSDVConfiguredMember::platformSoftwareBoundToGuestOperatingSystem;
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;
     render asTreeDiagram;

@@ -210,10 +210,10 @@ def test_physical_structure_view_contains_only_physical_software_parts() -> None
     assert "attribute maxCompartmentEntries = -1;" in view
     part_count = len(re.findall(r"^\s+(?:ref )?part \w+ :", boundary, flags=re.M))
     assert part_count == 9
-    # One owner for the adapter (owner decisions of 2026-10-23 and 2026-10-25):
-    # the boundary refers to the adapter; the platform stack of the configured
-    # member owns it. aaosSdvBoundary stays composite (open item).
-    assert re.findall(r"^\s+ref part (\w+) :", boundary, flags=re.M) == ["adapter"]
+    # One owner per platform layer (owner decisions of 2026-10-23 and
+    # 2026-10-25): the boundary refers to the adapter and to the AAOS SDV
+    # boundary; the platform stack of the configured member owns them.
+    assert re.findall(r"^\s+ref part (\w+) :", boundary, flags=re.M) == ["adapter", "aaosSdvBoundary"]
 
 
 def test_unsubstantiated_system1_physical_interface_view_is_withheld() -> None:
@@ -292,8 +292,14 @@ def test_configuration_and_assembly_views_answer_different_questions() -> None:
     assert "expose MiddlewareAutowareAAOSSDVConfiguredMember;" in assembly
     assert "expose MiddlewareAutowareAAOSSDVConfiguredMember::platformStack;" in assembly
     assert "expose MiddlewareAutowareAAOSSDVConfiguredMember::middlewareBoundary;" in assembly
-    # The binding that gives the adapter one owner.
-    assert "expose MiddlewareAutowareAAOSSDVConfiguredMember::adapterBoundToDerivedAdapter;" in assembly
+    # The bindings that give the adapter, the guest middleware and the guest
+    # operating system one owner each.
+    for binding in (
+        "adapterBoundToDerivedAdapter",
+        "aaosSdvBoundaryBoundToGuestMiddleware",
+        "platformSoftwareBoundToGuestOperatingSystem",
+    ):
+        assert f"expose MiddlewareAutowareAAOSSDVConfiguredMember::{binding};" in assembly
     assert "DE4SDV_MiddlewareVariabilityConfiguration::*" not in assembly
 
 
