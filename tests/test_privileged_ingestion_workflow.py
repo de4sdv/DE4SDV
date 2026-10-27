@@ -73,6 +73,14 @@ def test_one_job_and_no_ceremony():
         assert retired not in text, retired
 
 
+def test_the_release_path_runs_on_the_image_of_the_releases_that_passed():
+    # ubuntu-26.04 keeps /tmp in a size-capped tmpfs; the ingestion writes several GB there.
+    assert _workflow()["jobs"][JOB]["runs-on"] == "ubuntu-24.04"
+    for name in ("deploy-public-sysml-api.yml", "deploy-public-ask-viewer.yml"):
+        deploy = yaml.safe_load((ROOT / ".github/workflows" / name).read_text(encoding="utf-8"))
+        assert deploy["jobs"]["deploy"]["runs-on"] == "ubuntu-24.04"
+
+
 def test_release_evidence_runs_over_the_export_after_the_batteries_and_before_the_tests():
     names = _names()
     assert all(names.index(b) < names.index(EVIDENCE) for b in BATTERIES)
