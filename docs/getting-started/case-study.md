@@ -5,21 +5,23 @@ open-source parts and keep the design, configuration choices, tests, and
 evidence connected while those parts change. We build an open engineering
 reference, not a production car or a certificate.
 
-![Concept illustration, not a model view: four stages from left to right. One SysML v2 model, with requirements, architecture, variability and verification and validation (V&V) evidence (existing today), is configured along dimensions such as these two. Platform stack (application · middleware · OS): the member configurations Autoware · none · Linux and Autoware · Android SDV · Android exist today; not admitted yet are the candidate Autoware · Eclipse S-CORE · Linux with an AAOS SDV guest for the human-machine interface (HMI), in progress, and more stacks (deferred). Sensor set: LiDAR and camera, shared by both members, exists today; variants, for example entry, mid and premium, are deferred and not admitted. Every change is re-checked by CI and review, and model changes also by the Method Check; evidence per member is in progress. The aim is re-checkable evidence for every member and a continuously certifiable product line.](concept-vision-and-aim.drawio.svg)
-
-*Note: this figure predates INC-MW-011 phase 9. The AAOS member is now Autoware on Linux, with AAOS SDV in a KVM guest on the same chip. A redraw follows.*
+![Concept illustration, not a model view: four stages from left to right. One SysML v2 model, with requirements, architecture, variability and verification and validation (V&V) evidence (existing today), is configured along dimensions such as these two. Platform stack: a configuration has a main side and can have a guest side under KVM on the same chip. Each side lists its layers in the order application · middleware · OS. Two member configurations exist today: Autoware · Linux with no guest side, and Autoware · Linux with an AAOS SDV · Android guest side. Not admitted yet: the candidate Autoware · Eclipse S-CORE · Linux with an AAOS SDV · Android guest side and a human-machine interface (HMI) display, in progress. More stacks are deferred and not admitted. Sensor set: LiDAR and camera, shared by both members, exists today; variants, for example entry, mid and premium, are deferred and not admitted. Every change is re-checked by CI and review, and model changes also by the Method Check; evidence per member is in progress. The aim is re-checkable evidence for every member and a continuously certifiable product line.](concept-vision-and-aim.drawio.svg)
 
 *Concept illustration, not a model view: the vision at a glance.* DE4SDV
 keeps one SysML v2 model for the whole product line and configures each member
-product from it, along dimensions such as the platform stack (application,
-middleware, OS) and the sensor set. Today two members are admitted, each with
-its own platform stack, and both share one LiDAR and camera sensor set; an
-Eclipse S-CORE stack is under test but not admitted, and sensor-set variants,
-for example entry, mid and premium, are deferred until a scope decision admits
-them. CI and review re-check every change, the Method Check also checks model
-changes, and the aim is traceable, re-checkable evidence for every member: that
-is what **continuously certifiable SDV product lines** means here, and no
-member is certified.
+product from it. The configuration dimensions include the platform stack
+(application, middleware, OS) and the sensor set. Today two members are
+admitted. Both select Autoware on Linux for the main side of the chip. One of
+them adds a guest side under the KVM hypervisor, with the Android SDV
+middleware (AAOS SDV) on Android. Both members share one LiDAR and camera
+sensor set. Another configuration is valid but not admitted. It selects
+Autoware on Eclipse S-CORE on Linux, with an AAOS SDV guest for a
+human-machine interface (HMI) display. The owner decides on its admission after
+a runnable proof. Sensor-set variants, for example entry, mid and premium, are
+deferred until a scope decision admits them. CI and review re-check every
+change, and the Method Check also checks model changes. The aim is traceable,
+re-checkable evidence for every member: that is what **continuously certifiable
+SDV product lines** means here, and no member is certified.
 
 Start with the story below. Then follow the engineering workflow or pick a
 small contribution. You do not need to know SysML or install tools to read it.
@@ -225,12 +227,17 @@ In the repository today:
 
 In progress, or not there yet:
 
-- `INC-MW-011`, Eclipse S-CORE as the middleware layer: phases 0 to 8 are
-  merged. Variability and configuration (phase 9) gave the platform a guest
-  side. It also added the configured product `MW-CONFIG-002`, which is valid
-  and not admitted; admission is the owner's phase-12 decision. Verification
-  and evidence (phase 10) is next, and phases 11 and 12 are still to come
+- `INC-MW-011`, Eclipse S-CORE as the middleware layer: phases 0 to 9 are
+  merged. Phase 8 models how the S-CORE SOME/IP gateway carries the AEBS
+  signals to the HMI in the guest. Guard rails in the model bound the
+  gateway's known defects, and phase 10 tests them. Variability and
+  configuration (phase 9) gave the platform a guest
+  side and added the configured product `MW-CONFIG-002`. It is valid and not
+  admitted, and admission is the owner's phase-12 decision. Verification and
+  evidence (phase 10) is next, with a runnable proof on a bench, and phases 11
+  and 12 are still to come
   ([framing model](../../textual-notation-of-model/packages/features/middleware/middleware_score_framing.sysml),
+  [physical realization](../../textual-notation-of-model/packages/features/middleware/middleware_score_physical_software_realization.sysml),
   [configured product](../../textual-notation-of-model/packages/features/middleware/middleware_score_variability_configuration.sysml));
 - executable method checks for the phases that have none yet;
 - verification of the candidate requirements; `REQ-AEBS-003` is still
@@ -287,8 +294,9 @@ published revision, so work on a branch is evaluated by the **Method Check** of
 its pull request, which exports the pull-request head and evaluates every
 increment the model declares; that export can also be re-evaluated offline.
 INC-AEBS-010 was walked this way, push by push
-([#349](https://github.com/de4sdv/DE4SDV/pull/349)), and INC-MW-011 is being
-authored the same way ([#374](https://github.com/de4sdv/DE4SDV/pull/374)).
+([framing model](../../textual-notation-of-model/packages/features/aebs/aebs_visualization_framing.sysml)),
+and INC-MW-011 is being authored the same way
+([framing model](../../textual-notation-of-model/packages/features/middleware/middleware_score_framing.sysml)).
 
 The scope is deliberately narrow. Today the steps for framing, needs,
 requirements, architecture, and V&V and evidence declare executable checks
