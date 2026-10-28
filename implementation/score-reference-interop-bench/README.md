@@ -313,10 +313,11 @@ model.
 The `ci_*` scripts are for a disposable CI runner only. They install
 packages, write `~/.bazelrc` and put bazelisk in `/usr/local/bin`, so each
 one refuses to run unless `GITHUB_ACTIONS=true` or its first argument is
-`--runner`. On the shared bench VM that would redirect every Bazel run,
-android-cuttlefish with its large output base among them, and shadow the
-VM's own Bazel. A bench session on the VM takes its own path, and nothing
-goes into `$HOME` or `/usr/local`:
+`--runner` (the guard [`scripts/runner_only.sh`](scripts/runner_only.sh),
+which each one sources first). On the shared bench VM that would redirect
+every Bazel run, android-cuttlefish with its large output base among them,
+and shadow the VM's own Bazel. A bench session on the VM takes its own path,
+and nothing goes into `$HOME` or `/usr/local`:
 
 - Bazel: bazelisk (v1.29.0, checked by digest) in a bench directory, with
   `BAZELISK_HOME` in that directory, and the Bazel options in a bench
