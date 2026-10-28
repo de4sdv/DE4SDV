@@ -1346,8 +1346,9 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    *   frames of a restart in the host half during the phase (GAP-MW-039).
    *   For this check the receiver keeps the sequence and frame_timestamp_ns
    *   of the last 40 frames it served, and it clears them at each phase
-   *   start. 40 is the sum of the slot counts on the path: the 20 slots of
-   *   the adapter's frame event and the 20 of gatewayd's bridged service.
+   *   start. This window is the sum of the slot counts on the path: the 20
+   *   slots of the adapter's frame event and the 20 of gatewayd's bridged
+   *   service.
    * The receiver reads these two fields of the INC-AEBS-010 frame contract,
    * sequence and frame_timestamp_ns (aebs_visualization.proto:59-60). It
    * changes no byte (REQ-MW-015). It drops a frame in which one of the two
@@ -1430,8 +1431,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    *   loopback interface. With ROS_LOCALHOST_ONLY=1, rmw_cyclonedds_cpp
    *   1.3.5 adds a second entry for 127.0.0.1 (rmw_node.cpp:1052-1061).
    *   CycloneDDS 0.10.5 then refuses the interface with "the same interface
-   *   may not be selected twice" (ddsi_ownip.c:362-369). No participant
-   *   comes up, and the adapter aborts at start.
+   *   may not be selected twice" (ddsi_ownip.c:364-370, the error at 368).
+   *   No participant comes up, and the adapter aborts at start.
    * - No parameter services. The adapter node starts without the ROS 2
    *   parameter services (rclcpp NodeOptions, start_parameter_services set
    *   to false). In rclcpp 16.0.21, the get, get-types, set, set-atomically
@@ -1445,8 +1446,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    *   limits on who reaches the graph do not bound what a local peer sends.
    *   The adapter needs no parameter change while it runs, so the services
    *   give it nothing. So the test of REQ-MW-018 triggers each throw with a
-   *   signal to the adapter, through the fault-injection interface of the
-   *   adapter, in the member's start configuration.
+   *   signal to the adapter, through its fault-injection interface
+   *   (adapter), in the member's start configuration.
    * Residual: a malformed sample from a DDS participant of the domain can
    * still abort the adapter. rmw_cyclonedds_cpp 1.3.5 takes samples on its
    * own ros_discovery_info subscription (rmw_node.cpp:849), and the node's
