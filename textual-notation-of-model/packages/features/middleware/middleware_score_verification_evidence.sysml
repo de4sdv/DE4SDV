@@ -20,8 +20,10 @@
  * Phase 8 names more realization checks for phase 10. They are the LoLa
  * rules of the adapter and the start, stop and restart cases of the guard
  * rails. They also include the corrupted-payload case, the subscription time
- * of gatewayd and the clock offset. They are preflight checks of the
- * execution slices and stay with GAP-MW-039 to GAP-MW-043. They verify no
+ * of gatewayd and the clock offset. The phase starts and stored frames of the
+ * receiver's discard rule, and the ROS 2 environment of the adapter, belong
+ * to them too. They are preflight checks of the execution slices and stay
+ * with GAP-MW-035, GAP-MW-039 to GAP-MW-043 and GAP-MW-045. They verify no
  * requirement, so no case of this slice holds them. The one exception is the
  * adapter restart: it is a test condition of VC-MW-014.
  *
@@ -101,11 +103,11 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * layer's host processes and the Autoware nodes that each case names.
      * VC-MW-015, VC-MW-016 and VC-MW-020 also need the AAOS SDV guest with
      * the HMI application under KVM on that host (ASM-MW-027). The guest
-     * image needs the rebuild with vsomeip (GAP-MW-038). The inspection cases
-     * VC-MW-017, VC-MW-018 and VC-MW-021 need no run. They need the
-     * configurations and the wiring that the execution slices author. The
-     * next slice adds the System 2 test environment element and closes this
-     * gap.
+     * needs the SOME/IP receiver of phase 8 (GAP-MW-038). The inspection
+     * cases VC-MW-017, VC-MW-018 and VC-MW-021 need no run. They
+     * need the configurations and the wiring that the execution slices
+     * author. The next slice adds the System 2 test environment element and
+     * closes this gap.
      */
   }
 
@@ -414,11 +416,18 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * Test of REQ-MW-018. The adapter process runs on the Linux host. The
      * case throws an exception in the adapter's own code. It also throws one
      * inside a library that the adapter links, such as the ROS 2 client
-     * library. The execution slice chooses how to throw them. If that needs a
-     * changed build of the adapter, the record names that build. collectData
-     * records each thrown exception and how the process ends. processData
-     * checks that each exception aborts the process. If the adapter splits
-     * into two processes (GAP-MW-035), the case is revisited.
+     * library. The adapter of the member has no ROS 2 parameter services
+     * (phase 8). So the case triggers each throw through the fault-injection
+     * interface of the adapter (phase 8): one real-time signal per throw, to
+     * the binary and the start configuration that the member runs. For the
+     * throw inside the ROS 2 client library, the adapter calls get_parameter
+     * with an undeclared name, and rclcpp throws inside librclcpp.so. The
+     * record names the trigger. The run uses the ROS 2 environment that
+     * phase 8 sets. Under another ROS 2 middleware, the adapter can abort
+     * before any trigger. collectData records each thrown exception and how
+     * the process ends. processData checks that each exception aborts the
+     * process. If the adapter splits into two processes (GAP-MW-035), the
+     * case is revisited.
      */
     subject verifiedBench : SCOREMiddlewareVerificationBench;
     objective adapterAbortOnExceptionObjective {
@@ -454,11 +463,15 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * capture of the guest-loopback stream gives them, before the ingress's
      * own checks and independent of the receiver's and the ingress's own
      * logs. processData checks that no frame from the time without a
-     * subscription arrives after the new subscription. A pass covers these
-     * two conditions only. While GAP-MW-039 is open, a pass does not close
-     * REQ-MW-019. A late or repeated subscription of gatewayd forwards up to
-     * 9 stored frames with the next new frame. Phase 8 keeps REQ-MW-019 open
-     * for those cases.
+     * subscription arrives after the new subscription. The new subscription
+     * is the start of a subscription phase of the SOME/IP receiver, as phase
+     * 8 defines it. The guest captures show it: the acknowledged
+     * subscription and the accepted loopback client. A pass covers these
+     * two conditions only. It does not show the stored frames of a late or
+     * repeated subscription in the host half (GAP-MW-039). Phase 8 discards
+     * them at the receiver, and the preflight checks of the execution slices
+     * test that rule. While GAP-MW-039 or GAP-MW-045 is open, a pass does
+     * not close REQ-MW-019.
      */
     subject verifiedBench : SCOREMiddlewareVerificationBench;
     objective unsubscribedFrameDiscardObjective {
@@ -563,7 +576,7 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
   }
 
   verification <'VC-MW-019'> adapterAbortOnExceptionVerification : AdapterAbortOnExceptionVerification {
-    doc /* Not started. Bench: the Linux host only, with the adapter process and a way to throw an exception in it. */
+    doc /* Not started. Bench: the Linux host only, with the adapter process in the ROS 2 environment of phase 8 and a way to throw an exception in it. */
     @VerificationMethod{ kind = (test, analyze); }
     subject verifiedBench :> scoreMiddlewareVerificationBench;
   }

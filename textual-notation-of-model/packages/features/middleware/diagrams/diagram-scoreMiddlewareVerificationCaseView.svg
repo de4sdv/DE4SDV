@@ -289,7 +289,7 @@
   <text x="2844" y="1452" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«verification»</tspan></text>
   <text x="2844" y="1468" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">&lt;VC-MW-019&gt; adapterAbortOnExceptionVerification : AdapterAbortOnExceptionVerification</tspan></text>
   <text x="2844" y="1486.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="36" y="1502" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Not started. Bench: the Linux host only, with the adapter process and a way to throw an exception in it.</tspan></text>
+  <text x="36" y="1502" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Not started. Bench: the Linux host only, with the adapter process in the ROS 2 environment of phase 8 and a way to throw an exception in it.</tspan></text>
   <text x="2844" y="1520.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">actions</tspan></text>
   <text x="36" y="1536" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^collectData</tspan></text>
   <text x="36" y="1548" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^processData</tspan></text>
@@ -402,9 +402,9 @@
   <text x="36" y="258" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">layer's host processes and the Autoware nodes that each case names.</tspan></text>
   <text x="36" y="270" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">VC-MW-015, VC-MW-016 and VC-MW-020 also need the AAOS SDV guest with</tspan></text>
   <text x="36" y="282" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the HMI application under KVM on that host (ASM-MW-027). The guest</tspan></text>
-  <text x="36" y="294" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">image needs the rebuild with vsomeip (GAP-MW-038). The inspection cases</tspan></text>
-  <text x="36" y="306" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">VC-MW-017, VC-MW-018 and VC-MW-021 need no run. They need the</tspan></text>
-  <text x="36" y="318" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">configurations and the wiring that the execution slices author. The</tspan></text>
-  <text x="36" y="330" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">next slice adds the System 2 test environment element and closes this</tspan></text>
-  <text x="36" y="342" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">gap.</tspan></text>
+  <text x="36" y="294" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">needs the SOME/IP receiver of phase 8 (GAP-MW-038). The inspection</tspan></text>
+  <text x="36" y="306" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">cases VC-MW-017, VC-MW-018 and VC-MW-021 need no run. They</tspan></text>
+  <text x="36" y="318" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">need the configurations and the wiring that the execution slices</tspan></text>
+  <text x="36" y="330" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">author. The next slice adds the System 2 test environment element and</tspan></text>
+  <text x="36" y="342" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">closes this gap.</tspan></text>
 </svg>
