@@ -873,8 +873,11 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      *   the override: one that rclcpp throws and catches, one in adapter
      *   code and one inside libstdc++. A build without the override
      *   survived all three.
-     * - Under rmw_cyclonedds_cpp it ran for 30 minutes with the provider,
-     *   gatewayd, someipd and an observer, and it did not abort. Under
+     * - Under rmw_cyclonedds_cpp, the first build of the adapter ran for 30
+     *   minutes with the provider, gatewayd, someipd and an observer, and it
+     *   did not abort. A later build, without parameter services, with the
+     *   fault-injection signals and with RCL_SYSTEM_TIME stamps, ran for 10
+     *   minutes with the same processes, and it did not abort either. Under
      *   rmw_fastrtps_cpp it aborted at start with the default transports,
      *   and with a UDP-only profile once another ROS 2 process ran
      *   (adapterAbortConditions).
@@ -1399,10 +1402,12 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    *   (UDPTransportInterface.cpp:231). Under Fast DDS the adapter aborted at
    *   start with the default transports, and with a UDP-only profile once
    *   another ROS 2 process ran (GAP-MW-035). rmw_cyclonedds_cpp showed no
-   *   throw at start, as first participant and after another one, and none
-   *   in a 30-minute run with a few participants. It is C++ too, and it
-   *   catches exceptions on its error paths (serdata.cpp:383-389 of
-   *   rmw_cyclonedds_cpp 1.3.5). The full Autoware graph is not tested.
+   *   throw at start, as first participant and after another one. It
+   *   showed none in a 30-minute run of the first build of the adapter and
+   *   in a 10-minute run of a later build, each with a few participants
+   *   (GAP-MW-035). It is C++ too, and it catches exceptions on its error
+   *   paths (serdata.cpp:383-389 of rmw_cyclonedds_cpp 1.3.5). The full
+   *   Autoware graph is not tested.
    *   So every ROS 2 process on the Linux host runs in one environment. The
    *   Launch Manager sets it for the adapter and the health proxy node
    *   (launchManager). For the other ROS 2 processes of the host, the ros2
