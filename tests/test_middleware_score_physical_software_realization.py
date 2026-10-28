@@ -6,9 +6,12 @@ the layer builds those commits too. The SOME/IP receiver discards the frames tha
 the AEBS stack produced before the HMI application's subscription phase
 (REQ-MW-019), with the clock bound of ASM-MW-030 and the residual band of
 GAP-MW-045; the receiver's code uses the same margin and copy window. The
-one-process adapter of REQ-MW-018 has two conditions: one ROS 2 environment on the
-host (ASM-MW-031 for the processes outside the layer) and no ROS 2 parameter
-services. Its fault-injection interface is the trigger of the abort test.
+criteria of REQ-MW-019 declare that margin as the bound of ASM-MW-030, and
+VC-MW-020 checks it. The one-process adapter of REQ-MW-018 has two conditions:
+one ROS 2 environment on the host (ASM-MW-031 for the processes outside the
+layer) and no ROS 2 parameter services. Its fault-injection interface is the
+trigger of the abort test. someipd names ASM-MW-031 for the DDS criteria of
+REQ-MW-016.
 
 These are lexical source guards; licensed Syside validates the model in CI. The
 pins live in doc comments, so these tests read the docs on purpose. They check
@@ -373,6 +376,36 @@ def test_the_adapter_declares_the_fault_injection_interface_that_the_abort_test_
     assert "through the fault-injection interface of the adapter (phase 8)" in case, case[:400]
 
 
-def test_vc_mw_020_does_not_close_req_mw_019_while_the_stored_frame_or_band_gap_is_open() -> None:
+def test_vc_mw_020_does_not_close_req_mw_019_while_the_stored_frame_gap_is_open() -> None:
+    """The criteria of REQ-MW-019 declare the margin, so only the stored-frame gap holds a pass back."""
     case = _verification_def_doc("UnsubscribedFrameDiscardVerification")
-    assert case.endswith("While GAP-MW-039 or GAP-MW-045 is open, a pass does not close REQ-MW-019."), case[-200:]
+    assert case.endswith("While GAP-MW-039 is open, a pass does not close REQ-MW-019."), case[-200:]
+    assert "GAP-MW-045 is open" not in case, "the declared margin no longer holds a pass back"
+
+
+def test_vc_mw_020_checks_the_margin_and_the_condition_of_asm_mw_030() -> None:
+    """VC-MW-020 checks the criteria of REQ-MW-019: the bound of ASM-MW-030 as the margin, on the two clocks."""
+    case = _verification_def_doc("UnsubscribedFrameDiscardVerification")
+    for statement in ("processData checks that no frame that the AEBS stack produced more than the bound of "
+                      "ASM-MW-030 before the new subscription arrives after it.",
+                      "It takes the production time from the frame timestamp on the host clock, and the start of "
+                      "the new subscription on the guest clock.",
+                      "If ASM-MW-030 does not hold in the run, the run does not meet the condition of the criteria. "
+                      "In that case, the outcome is inconclusiveMissingEvidence."):
+        assert statement in case, statement
+    assert "from the time without a subscription" not in case, "the literal criteria of REQ-MW-019 are gone"
+
+
+def test_gap_mw_045_records_that_the_criteria_of_req_mw_019_declare_the_margin() -> None:
+    gap = _part_doc(PHYSICAL.read_text(encoding="utf-8"), "GAP-MW-045")
+    assert ("The success criteria of REQ-MW-019 declare this margin as the bound of ASM-MW-030 (owner decision of "
+            "2026-10-28). So such a frame meets them while ASM-MW-030 holds.") in gap
+    assert "does not meet the success criteria" not in gap, gap
+
+
+def test_someipd_names_the_assumption_that_the_dds_criteria_of_req_mw_016_need() -> None:
+    """REQ-MW-016 also covers the host's ROS 2 processes outside the layer; ASM-MW-031 assumes their environment."""
+    doc = _named_part_doc(PHYSICAL.read_text(encoding="utf-8"), "someipd")
+    assert ("The criteria of REQ-MW-016 also cover the ROS 2 processes of the host outside the layer. ASM-MW-031 "
+            "assumes that they run in the ROS 2 environment of adapterAbortConditions, which keeps DDS on the "
+            "loopback interface.") in doc, doc

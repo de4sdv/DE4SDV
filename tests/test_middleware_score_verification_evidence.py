@@ -8,6 +8,8 @@ the verification status NotStarted. The evidence record specializes the retained
 record of the closed INC-MW-010 slice and adds the receipt digest, the model revision
 and the two S-CORE commits of ASM-MW-021; the closed slice is unchanged. GAP-MW-044
 keeps the System 2 test environment open and ends on the verification system.
+VC-MW-017 inspects the ROS 2 (DDS) and network configuration of the host that the
+criteria of REQ-MW-016 name; VC-MW-018 needs only its HMI-path configurations.
 
 These are lexical source guards; licensed Syside validates the model in CI, and the
 Method Check evaluates the phase-10 checks. Comments and string literals are blanked
@@ -272,3 +274,42 @@ def test_the_environment_gap_ends_on_the_verification_system() -> None:
     assert "part <'GAP-MW-044'> gapSCOREVerificationEnvironmentOpen : IncrementGap {" in code
     assert ("dependency environmentGapOnVerificationSystem from gapSCOREVerificationEnvironmentOpen "
             "to scoreMiddlewareVerificationSystem;") in code
+
+
+def _flat_doc(body: str) -> str:
+    """The first doc comment of ``body``, comment line prefixes removed and whitespace collapsed."""
+    comment = re.findall(r"\bdoc\s*/\*(.*?)\*/", body, re.DOTALL)[0]
+    return " ".join(" ".join(re.sub(r"^\s*\*\s?", "", line) for line in comment.splitlines()).split())
+
+
+def _usage_doc(case: str) -> str:
+    """The flattened doc of the usage of ``case``."""
+    header = rf"\bverification\s+<'{case}'>\s*\w+\s*:\s*\w+\s*\{{"
+    return _flat_doc(_raw_body(SLICE.read_text(encoding="utf-8"), header))
+
+
+def test_the_isolation_case_inspects_the_ros2_environment_and_the_host_configuration() -> None:
+    """REQ-MW-016 also covers ROS 2 (DDS) on the host, so VC-MW-017 inspects it and its bench needs it."""
+    definition = _flat_doc(_raw_body(SLICE.read_text(encoding="utf-8"),
+                                     r"\bverification\s+def\s+NoApplicationDataFromHMIGuestVerification\s*\{"))
+    for statement in ("the configuration of each element of the layer.",
+                      "These elements are the S-CORE services, the adapter, gatewayd, someipd, the health proxy node "
+                      "and the SOME/IP receiver.",
+                      "the ROS 2 environment of each ROS 2 process on the Linux host, with the DDS configuration that "
+                      "it names, and the network configuration of the Linux host.",
+                      "It records each ROS 2 subscription on the Linux host that the guest network can reach, and each "
+                      "interface to which DDS binds."):
+        assert statement in definition, statement
+    assert "does not inspect them" not in definition, "the criteria now name the host's ROS 2 and DDS configuration"
+    needs = _usage_doc("VC-MW-017")
+    for statement in ("For ROS 2 (DDS), it needs the Launch Manager configuration and the launch configuration of the "
+                      "member on the Linux host.",
+                      "It also needs the DDS configuration and the network configuration of the Linux host."):
+        assert statement in needs, statement
+
+
+def test_the_emergency_command_case_needs_only_the_hmi_path_configurations_of_vc_mw_017() -> None:
+    """VC-MW-018 needs no ROS 2 (DDS) or network configuration of the host."""
+    needs = _usage_doc("VC-MW-018")
+    assert "the mw::com, gateway, vsomeip and receiver configurations that VC-MW-017 needs" in needs, needs
+    assert "and the configurations that VC-MW-017 needs" not in needs, needs

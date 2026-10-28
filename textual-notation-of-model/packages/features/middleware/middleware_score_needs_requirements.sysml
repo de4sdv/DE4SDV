@@ -207,20 +207,20 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
   requirement <'REQ-MW-016'> reqNoApplicationDataFromHMIGuest : RequirementCandidate {
     subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
     require constraint statement { language "English" /* The middleware integration layer shall carry no application data from the AAOS SDV guest to the Linux host. */ }
-    attribute :>> source = "NEED-MW-002; scope item hmiPathInScope (the one-way path); scenario SC-MW-004";
-    attribute :>> rationale = "With no application data flowing back, a running, stalled or failed guest cannot influence the AEBS stack or the middleware on the host; transport control, such as acknowledgements, is not application data.";
+    attribute :>> source = "NEED-MW-002; scope item hmiPathInScope (the one-way path); scenario SC-MW-004; owner decision 2026-10-28 (the ROS 2 (DDS) criteria)";
+    attribute :>> rationale = "With no application data flowing back, a running, stalled or failed guest cannot influence the AEBS stack or the middleware on the host; transport control, such as acknowledgements, is not application data. The criteria also cover ROS 2 (DDS) on the Linux host. A host process whose DDS subscription a guest domain can reach could take data from the guest outside the elements of the layer.";
     attribute :>> verificationMethod = "inspect";
-    attribute :>> successCriteria = "Met when inspection of the interface definition of the HMI path and of the configuration of the S-CORE services, the adapter, gatewayd, someipd and the SOME/IP receiver finds no receiver on the Linux host for application data from the AAOS SDV guest.";
+    attribute :>> successCriteria = "Met when inspection finds three things. A guest domain of the layer is a domain under the hypervisor that the HMI path enters. First, the interface definition of the HMI path and the configuration of each element of the layer declare no endpoint on the Linux host for application data from a guest domain of the layer. Second, no ROS 2 (DDS) subscription of any process on the Linux host is reachable from a guest domain of the layer. Third, the DDS and network configuration of the Linux host keeps DDS on the loopback interface.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
   requirement <'REQ-MW-019'> reqDiscardFramesWhileHMIUnsubscribed : FunctionalRequirementCandidate {
     subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
     require constraint statement { language "English" /* While the HMI application in the AAOS SDV guest is not subscribed, the middleware integration layer shall discard the AEBS signal frames of the Autoware-based AEBS stack instead of holding them for later delivery. */ }
-    attribute :>> source = "NEED-MW-002; scenario SC-MW-004 (the guest or the HMI application down)";
-    attribute :>> rationale = "A guest that is down or stalled must not make the host hold a growing backlog of frames, which could influence the AEBS stack or the middleware on the host, and the HMI must not show old frames as current when it subscribes again.";
+    attribute :>> source = "NEED-MW-002; scenario SC-MW-004 (the guest or the HMI application down); owner decision 2026-10-28 (the margin at the start of a subscription)";
+    attribute :>> rationale = "A guest that is down or stalled must not make the host hold a growing backlog of frames, which could influence the AEBS stack or the middleware on the host, and the HMI must not show old frames as current when it subscribes again. The clock that stamps a frame is not the clock at the HMI application's subscription. So a discard that compares the two clocks needs a margin. Without it, the discard could drop a frame produced after the subscription started, against REQ-MW-014. On one clock, a frame inside the margin is less than twice the bound of ASM-MW-030 older than the start of the subscription (GAP-MW-045).";
     attribute :>> verificationMethod = "test";
-    attribute :>> successCriteria = "Met when, after the HMI application subscribes again, it receives no frame that the AEBS stack produced while the HMI application was not subscribed.";
+    attribute :>> successCriteria = "Met when, while ASM-MW-030 holds, the HMI application receives no frame that the AEBS stack produced more than a margin before the start of its current subscription. The margin is the bound of ASM-MW-030 on the offset between the clock of the frame's producer and the clock at the HMI application's subscription. The production time is on the first clock, and the start of the subscription is on the second.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 

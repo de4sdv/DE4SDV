@@ -460,9 +460,13 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
          * proxy node off the guest network, as it keeps port 4721 of the frame
          * assembler (GAP-MW-012). So REQ-MW-016, and REQ-MW-019 while the guest's
          * subscription is absent, are enforced here by the host's own
-         * configuration and do not rely on the guest. The trust boundary to
-         * the guest lies here, inside the layer (GAP-MW-012), and no
-         * robustness against malformed input from the guest is claimed.
+         * configuration and do not rely on the guest. The criteria of
+         * REQ-MW-016 also cover the ROS 2 processes of the host outside the
+         * layer. ASM-MW-031 assumes that they run in the ROS 2 environment of
+         * adapterAbortConditions, which keeps DDS on the loopback interface.
+         * The trust boundary to the guest lies here, inside the layer
+         * (GAP-MW-012), and no robustness against malformed input from the
+         * guest is claimed.
          * REQ-MW-016: someipd registers a message handler only in its remote
          * network service
          * (score/someipd/impl/remote_network_service.cpp:83-100). It creates
@@ -1177,7 +1181,9 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * - a frame that was on its way through the layer at the phase start;
      * - a stored frame of GAP-MW-039 that the AEBS stack produced in the
      *   band.
-     * Such a frame does not meet the success criteria of REQ-MW-019.
+     * The success criteria of REQ-MW-019 declare this margin as the bound of
+     * ASM-MW-030 (owner decision of 2026-10-28). So such a frame meets them
+     * while ASM-MW-030 holds.
      * Design data, one clock, no rate claimed: an unreviewed DE4SDV
      * feasibility run of the receiver on Linux, with one clock for both
      * halves (CI run 40713587621, 2026-10-28), saw the first kind. One frame

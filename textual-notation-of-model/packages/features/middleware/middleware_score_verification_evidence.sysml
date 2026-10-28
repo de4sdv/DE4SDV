@@ -24,8 +24,11 @@
  * receiver's discard rule, and the ROS 2 environment of the adapter, belong
  * to them too. They are preflight checks of the execution slices and stay
  * with GAP-MW-035, GAP-MW-039 to GAP-MW-043 and GAP-MW-045. They verify no
- * requirement, so no case of this slice holds them. The one exception is the
- * adapter restart: it is a test condition of VC-MW-014.
+ * requirement, so no case of this slice holds them. Three exceptions apply.
+ * The adapter restart is a test condition of VC-MW-014. The clock offset
+ * shows whether ASM-MW-030 holds, which the criteria of REQ-MW-019 need, so
+ * VC-MW-020 records it. VC-MW-017 inspects the ROS 2 environment of each
+ * ROS 2 process on the host, for the DDS criteria of REQ-MW-016.
  *
  * The cases reuse the outcome vocabulary and the verdict mapping of
  * INC-MW-010 and edit no closed slice. The evidence record of this slice
@@ -349,13 +352,16 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
     doc /*
      * Inspection of REQ-MW-016. It inspects the artifacts that the success
      * criteria name. They are the interface definition of the HMI path and
-     * the configuration of the S-CORE services, the adapter, gatewayd, someipd
-     * and the SOME/IP receiver. collectData records each inspected artifact at
-     * its exact revision. It also records each receiver on the Linux host that
-     * it finds for application data from the AAOS SDV guest. processData
-     * compares the findings with the criteria. The criteria do not name the
-     * health proxy node or the network configuration of the Linux host, so
-     * the case does not inspect them.
+     * the configuration of each element of the layer. These elements are the
+     * S-CORE services, the adapter, gatewayd, someipd, the health proxy node
+     * and the SOME/IP receiver. The artifacts are also the ROS 2 environment
+     * of each ROS 2 process on the Linux host, with the DDS configuration that
+     * it names, and the network configuration of the Linux host. collectData
+     * records each inspected artifact at its exact revision. It also records
+     * each receiver on the Linux host that it finds for application data from
+     * the AAOS SDV guest. It records each ROS 2 subscription on the Linux host
+     * that the guest network can reach, and each interface to which DDS
+     * binds. processData compares the findings with the criteria.
      */
     subject verifiedBench : SCOREMiddlewareVerificationBench;
     objective noApplicationDataFromHMIGuestObjective {
@@ -462,16 +468,20 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * frame input of the HMI application after the new subscription. A
      * capture of the guest-loopback stream gives them, before the ingress's
      * own checks and independent of the receiver's and the ingress's own
-     * logs. processData checks that no frame from the time without a
-     * subscription arrives after the new subscription. The new subscription
-     * is the start of a subscription phase of the SOME/IP receiver, as phase
-     * 8 defines it. The guest captures show it: the acknowledged
-     * subscription and the accepted loopback client. A pass covers these
-     * two conditions only. It does not show the stored frames of a late or
-     * repeated subscription in the host half (GAP-MW-039). Phase 8 discards
-     * them at the receiver, and the preflight checks of the execution slices
-     * test that rule. While GAP-MW-039 or GAP-MW-045 is open, a pass does
-     * not close REQ-MW-019.
+     * logs. processData checks that no frame that the AEBS stack produced
+     * more than the bound of ASM-MW-030 before the new subscription arrives
+     * after it. It takes the production time from the frame timestamp on the
+     * host clock, and the start of the new subscription on the guest clock.
+     * If ASM-MW-030 does not hold in the run, the run does not meet the
+     * condition of the criteria. In that case, the outcome is
+     * inconclusiveMissingEvidence. The new subscription is the start of a
+     * subscription phase of the SOME/IP receiver, as phase 8 defines it. The
+     * guest captures show it: the acknowledged subscription and the accepted
+     * loopback client. A pass covers these two conditions only. It does not
+     * show the stored frames of a late or repeated subscription in the host
+     * half (GAP-MW-039). Phase 8 discards them at the receiver, and the
+     * preflight checks of the execution slices test that rule. While
+     * GAP-MW-039 is open, a pass does not close REQ-MW-019.
      */
     subject verifiedBench : SCOREMiddlewareVerificationBench;
     objective unsubscribedFrameDiscardObjective {
@@ -564,13 +574,13 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
   }
 
   verification <'VC-MW-017'> noApplicationDataFromHMIGuestVerification : NoApplicationDataFromHMIGuestVerification {
-    doc /* Not started. Bench: no run. The case needs the interface definition of the HMI path: the SOME/IP service definition and the frame contract of INC-AEBS-010. It also needs the layer's mw::com configuration and the gateway configuration of gatewayd and someipd. It needs the vsomeip configuration of someipd and the configuration of the SOME/IP receiver too. The execution slices author all of them except the frame contract. */
+    doc /* Not started. Bench: no run. The case needs the interface definition of the HMI path: the SOME/IP service definition and the frame contract of INC-AEBS-010. It also needs the layer's mw::com configuration and the gateway configuration of gatewayd and someipd. It needs the vsomeip configuration of someipd and the configuration of the SOME/IP receiver too. For ROS 2 (DDS), it needs the Launch Manager configuration and the launch configuration of the member on the Linux host. It also needs the DDS configuration and the network configuration of the Linux host. The execution slices author all of them except the frame contract. */
     @VerificationMethod{ kind = (inspect, analyze); }
     subject verifiedBench :> scoreMiddlewareVerificationBench;
   }
 
   verification <'VC-MW-018'> noEmergencyCommandOnMiddlewareVerification : NoEmergencyCommandOnMiddlewareVerification {
-    doc /* Not started. Bench: no run. The case needs the interface definition and the configurations that VC-MW-017 needs, and the wiring of the AEBS stack on the Linux host. */
+    doc /* Not started. Bench: no run. The case needs the interface definition and the mw::com, gateway, vsomeip and receiver configurations that VC-MW-017 needs, and the wiring of the AEBS stack on the Linux host. */
     @VerificationMethod{ kind = (inspect, analyze); }
     subject verifiedBench :> scoreMiddlewareVerificationBench;
   }
