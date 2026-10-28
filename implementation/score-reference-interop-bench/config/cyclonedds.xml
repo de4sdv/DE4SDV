@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  CycloneDDS configuration of every host ROS 2 process of the S-CORE
+  reference interoperability bench (INC-MW-011), the same as the AEBS
+  Autoware benches use. ros_environment.sh points CYCLONEDDS_URI to this file.
+
+  - Loopback only, without multicast: discovery goes to the localhost peer.
+  - Without multicast, each participant needs its own participant index. The
+    CycloneDDS default allows indices 0 to 9, so at most ten ROS 2 processes
+    on the host could create their participant. For the next one rclcpp
+    throws, and the adapter, which links baselibs' abort override, would
+    abort. This file allows indices 0 to 120.
+-->
+<CycloneDDS xmlns="https://cdds.io/config">
+  <Domain Id="any">
+    <Discovery>
+      <ParticipantIndex>auto</ParticipantIndex>
+      <MaxAutoParticipantIndex>120</MaxAutoParticipantIndex>
+      <Peers>
+        <Peer Address="localhost"/>
+      </Peers>
+    </Discovery>
+    <General>
+      <Interfaces>
+        <NetworkInterface name="lo" priority="default" multicast="false"/>
+      </Interfaces>
+      <AllowMulticast>false</AllowMulticast>
+      <MaxMessageSize>65500B</MaxMessageSize>
+    </General>
+    <Internal>
+      <Watermarks>
+        <WhcHigh>500kB</WhcHigh>
+      </Watermarks>
+    </Internal>
+  </Domain>
+</CycloneDDS>

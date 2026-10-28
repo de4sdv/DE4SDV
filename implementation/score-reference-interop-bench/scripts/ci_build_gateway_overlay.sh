@@ -140,6 +140,9 @@ test -n "$vsomeip_lib" || { echo "no vsomeip library directory" >&2; exit 1; }
 cp -L "$(dirname "$vsomeip_lib")"/libvsomeip3*.so* "$bundle/lib/"
 cp "$bin/de4sdv_score_bench/config/someip_gateway_config.bin" "$bundle/config/"
 cp "$bench"/config/*.json "$bundle/config/"
+# The one ROS 2 environment of every host ROS 2 process, for the runtime jobs
+# now and for the Launch Manager wrappers later.
+cp "$bench/config/ros_environment.sh" "$bench/config/cyclonedds.xml" "$bundle/config/"
 chmod -R u+w "$bundle"
 (cd "$bundle" && find . -type f -print0 | sort -z | xargs -0 sha256sum) > "$out/bundle_score_sha256.txt"
 (cd "$sdk" && find . -type f -print0 | sort -z | xargs -0 sha256sum) > "$out/facade_sdk_sha256.txt"

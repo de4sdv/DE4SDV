@@ -4,9 +4,10 @@
 # communication 0.4.0 and baselibs 0.2.12 from its MODULE.bazel), with the
 # toolchain configuration of lifecycle's own CI (--config=x86_64-linux), and
 # serializes the DE4SDV Launch Manager configuration with lifecycle's own
-# launch_manager_config rule (schema check, mapping, flatbuffer). The sandbox
-# user and group of the configuration are set to the bench user first; the
-# committed file leaves them to the Launch Manager defaults.
+# launch_manager_config rule (schema check, mapping, flatbuffer). First
+# scripts/render_launch_manager_config.py renders the configuration for this
+# host: the ROS 2 setup of /opt/ros/humble for the ROS 2 components, and the
+# bench user as sandbox user and group.
 # Usage: ci_build_launch_manager.sh <checkout-dir> <facts-dir> <output-dir> <bench-dir>
 set -euo pipefail
 
@@ -20,16 +21,9 @@ here=$(cd "$(dirname "$0")" && pwd)
 
 overlay=$(mktemp -d)
 cp -r "$bench/launch-manager/." "$overlay/"
-python3 - "$overlay/launch_manager_config.json" "$(id -u)" "$(id -g)" <<'PY'
-import json, sys
-path, uid, gid = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
-config = json.load(open(path))
-config["defaults"]["deployment_config"]["sandbox"] = {
-    "uid": uid, "gid": gid, "supplementary_group_ids": [],
-    "scheduling_policy": "SCHED_OTHER", "scheduling_priority": 0,
-}
-open(path, "w").write(json.dumps(config, indent=4) + "\n")
-PY
+python3 "$here/render_launch_manager_config.py" "$bench/launch-manager/launch_manager_config.json" \
+  "$overlay/launch_manager_config.json" --uid "$(id -u)" --gid "$(id -g)" > "$out/launch_manager_ros_setup.json"
+cp "$overlay/launch_manager_config.json" "$out/launch_manager_config_rendered.json"
 {
   echo "committed: $(sha256sum "$bench/launch-manager/launch_manager_config.json")"
   echo "rendered for uid $(id -u) gid $(id -g): $(sha256sum "$overlay/launch_manager_config.json")"
