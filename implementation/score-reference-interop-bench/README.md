@@ -49,9 +49,10 @@ context (rmw_node.cpp:849 and 1261) and on `/parameter_events`. Both go
 through a deserialization that throws and catches (serdata.cpp:383-389).
 With the override linked, one malformed sample from any DDS participant in
 the domain aborts the adapter. That is outside normal operation, and no
-configuration of ROS 2 Humble removes it. With DDS on the loopback, only
-processes on the host can send such a sample. The bench makes no claim about
-it.
+configuration of ROS 2 Humble removes it. Only a process that reaches the
+host's DDS ports can send such a sample; the host must keep these ports off
+the guest network (REQ-MW-016). That host configuration is not authored yet
+(GAP-MW-046). The bench makes no claim about this malformed-sample path.
 
 The adapter follows the three LoLa rules of the model:
 
@@ -81,9 +82,13 @@ cannot count them. The adapter reads at once on the receive handler, and at
 least every 20 ms; the provider of the bench sends every 100 ms.
 
 The INC-AEBS-010 frame server serves its newest client. A second client of
-127.0.0.1:4721 takes the stream from the adapter, and the adapter then gets
-no frame and no end of stream. So the adapter must be the only client of the
-frame server; the soak checks that with `ss -tnp` at each liveness check.
+port 4721 takes the stream from the adapter, and the adapter then gets no
+frame and no end of stream. So the adapter must be the only client of the
+frame server (ASM-MW-029). The frame server binds 0.0.0.0, so the host must
+keep the guest network off port 4721; that host configuration is not
+authored yet (GAP-MW-046). In the soak, the synthetic frame source binds
+127.0.0.1, and `ss -tnp` must show at each liveness check that the adapter
+is its only client.
 
 The adapter withholds a sample whose float32 value is not finite: NaN, +inf
 and -inf (REQ-MW-011), and also a finite value beyond the float32 range,
@@ -123,15 +128,17 @@ runtime jobs source it for every ROS 2 process they start. It sets:
   `rmw_cyclonedds_cpp` is C++ too and showed no throw in the tested setups.
 - `ROS_DOMAIN_ID=91`, one fixed domain, as the AEBS Autoware benches.
 - `CYCLONEDDS_URI` to [`config/cyclonedds.xml`](config/cyclonedds.xml), the
-  configuration of the AEBS Autoware benches. It keeps DDS on the loopback
-  interface and sets `MaxAutoParticipantIndex` to 120. On the loopback,
-  which has no multicast, CycloneDDS 0.10.5 gives each process an automatic
-  participant index. With the default (`MaxAutoParticipantIndex` 9), at
-  most 9 processes get a participant: a bind at the last index fails too
-  (q_init.c:1609, 1627-1631). The next process gets no participant, so
-  rclcpp throws, and in the adapter that is an abort at start. This file's
-  120 allows 120 processes, more than the bench runs. The startup probe
-  measured 9 of 11 with the default.
+  configuration of the AEBS Autoware benches. It selects the loopback
+  interface for its locators and sends; its receive sockets bind INADDR_ANY
+  (CycloneDDS 0.10.5 ddsi_udp.c:453-456, 479-480). It sets
+  `MaxAutoParticipantIndex` to 120. On the loopback, which has no multicast,
+  CycloneDDS 0.10.5 gives each process an automatic participant index. With
+  the default (`MaxAutoParticipantIndex` 9), at most 9 processes get a
+  participant: a bind at the last index fails too (q_init.c:1609,
+  1627-1631). The next process gets no participant, so rclcpp throws, and in
+  the adapter that is an abort at start. This file's 120 allows 120
+  processes, more than the bench runs. The startup probe measured 9 of 11
+  with the default.
 - No `ROS_LOCALHOST_ONLY`, as the AEBS Autoware benches. With
   `ROS_LOCALHOST_ONLY=1`, rmw_cyclonedds_cpp 1.3.5 adds the address
   127.0.0.1 to the interface that `cyclonedds.xml` selects, and CycloneDDS
@@ -370,5 +377,6 @@ that environment.
 Not shown: any requirement of INC-MW-011 as verified, the behavior on the
 bench VM, the full Autoware graph, the guest side, the SOME/IP crossing to a
 real subscriber, the Launch Manager at run time, the health proxy node, the
-malformed-sample path of rmw_cyclonedds_cpp, and the timing of any case. No
-safety, cybersecurity, compliance or certification claim is made.
+malformed-sample path of rmw_cyclonedds_cpp, a host that keeps the guest
+network off its DDS ports and port 4721 (GAP-MW-046), and the timing of any
+case. No safety, cybersecurity, compliance or certification claim is made.

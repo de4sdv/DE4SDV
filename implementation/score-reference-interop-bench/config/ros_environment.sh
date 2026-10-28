@@ -12,9 +12,11 @@
 #   abort override, and Fast DDS 2.6 throws and catches on its normal
 #   startup path, so the adapter aborted under rmw_fastrtps_cpp (README,
 #   section "Earlier Fast DDS cases").
-# - CYCLONEDDS_URI: cyclonedds.xml next to this file. It keeps DDS on the
-#   loopback interface without multicast and sets MaxAutoParticipantIndex to
-#   120, as the AEBS Autoware benches do.
+# - CYCLONEDDS_URI: cyclonedds.xml next to this file. It selects the
+#   loopback interface for its locators and sends; its receive sockets bind
+#   INADDR_ANY (CycloneDDS 0.10.5 ddsi_udp.c:453-456, 479-480). It allows no
+#   multicast and sets MaxAutoParticipantIndex to 120, as the AEBS Autoware
+#   benches do.
 # - ROS_DOMAIN_ID: 91, as the AEBS Autoware benches.
 # - ROS_LOCALHOST_ONLY: unset, as in the AEBS Autoware benches;
 #   cyclonedds.xml already selects the loopback interface, so one setting
