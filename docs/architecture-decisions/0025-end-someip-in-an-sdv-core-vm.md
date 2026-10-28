@@ -89,6 +89,10 @@ On 2026-10-28 the owner decided:
    the first session of record.
 6. **The feature model does not change.** The guest side, `guestAndroidSDV`,
    is the AAOS SDV guest partition with one or more VMs.
+7. **A domain is a side.** The member has two sides and three
+   operating-system instances, and the increment keeps its two-domain
+   vocabulary.
+8. **The fallback rule and the exit** of decision 4 hold as written there.
 
 The owner also decided to record this change of topology in a new ADR. The
 DE4SDV receiver work is re-scoped to the IVI frame relay.
@@ -97,7 +101,8 @@ DE4SDV receiver work is re-scoped to the IVI frame relay.
 
 1. **Two sides, three operating-system instances.** The S-CORE-integrated
    member that draft ADR 0023 proposes (not admitted) runs on one SoC. A
-   domain is a side, so the whole increment keeps its two-domain vocabulary:
+   domain is a side (owner decision 7), so the two-domain vocabulary holds in
+   the whole increment:
    - the main side, the Linux host: Autoware, Eclipse S-CORE with its SOME/IP
      gateway, the adapter and the KVM hypervisor;
    - the guest side, a guest partition of two VMs under KVM. The SDV Core VM
@@ -129,16 +134,17 @@ DE4SDV receiver work is re-scoped to the IVI frame relay.
    VM subscribes to the topic through the SDV Gateway. It applies the discard
    rule of REQ-MW-019. It serves the frames to the reused HMI chain of
    INC-AEBS-010 on the IVI VM loopback, so the HMI chain stays unchanged.
-   - **Fallback.** It covers only an interoperability failure of the
-     reference stack with someipd. The owner decides it on the evidence of the
-     feasibility run. One trigger is a run in which the stack does not
-     subscribe to the frame event of someipd. The other is a run in which the
-     events do not reach the broker. Under the fallback, the custom stack is
-     DE4SDV code in the SDV Core VM, so it is an element of the layer.
-   - **Exit.** The decision on the guest end goes back to the owner if the run
-     fails at one of four points. They are the multi-VM launch, the broker's
-     mapped topic, the cross-VM subscription, and delivery with unchanged
-     bytes.
+   - **Fallback** (owner decision 8). It covers only an interoperability
+     failure of the reference stack with someipd. The owner decides it on the
+     evidence of the feasibility run. One trigger is a run in which the stack
+     does not subscribe to the frame event of someipd. The other is a run in
+     which the events do not reach the broker. Under the fallback, the custom
+     stack is DE4SDV code in the SDV Core VM, so it is an element of the
+     layer.
+   - **Exit** (owner decision 8). The decision on the guest end goes back to
+     the owner if the run fails at one of four points. They are the multi-VM
+     launch, the broker's mapped topic, the cross-VM subscription, and
+     delivery with unchanged bytes.
 5. **One role per VM.** The SDV Core VM is headless. The IVI VM has the
    display. Neither VM takes both roles.
 6. **The layer refers, and does not own.** The layer refers to the AAOS SDV
