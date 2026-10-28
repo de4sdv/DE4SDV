@@ -396,8 +396,8 @@
   <text x="36" y="186" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">virtualization, restored from the snapshot de4sdv-aaos-build-20261014.</tspan></text>
   <text x="36" y="198" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Two items stay open. The first is the exact System 2 identity as a</tspan></text>
   <text x="36" y="210" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">model element. The second is the assignment of each case to a bench.</tspan></text>
-  <text x="36" y="222" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">A bench plan is in work. The Linux-side cases can also run on</tspan></text>
-  <text x="36" y="234" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">GitHub-hosted runners if the S-CORE build fits there. The cases that</tspan></text>
+  <text x="36" y="222" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">The Linux-side cases can also run on GitHub-hosted runners if the</tspan></text>
+  <text x="36" y="234" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">S-CORE build fits there. The cases that</tspan></text>
   <text x="36" y="246" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">run need a Linux x86_64 host (ASM-MW-026) with Eclipse S-CORE, the</tspan></text>
   <text x="36" y="258" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">layer's host processes and the Autoware nodes that each case names.</tspan></text>
   <text x="36" y="270" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">VC-MW-015, VC-MW-016 and VC-MW-020 also need the AAOS SDV guest with</tspan></text>
