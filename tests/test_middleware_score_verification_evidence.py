@@ -297,8 +297,9 @@ def test_the_isolation_case_inspects_the_ros2_environment_and_the_host_configura
                       "and the SOME/IP receiver.",
                       "the ROS 2 environment of each ROS 2 process on the Linux host, with the DDS configuration that "
                       "it names, and the network configuration of the Linux host.",
-                      "It records each ROS 2 subscription on the Linux host that the guest network can reach, and each "
-                      "interface to which DDS binds."):
+                      "It records each ROS 2 subscription on the Linux host that the guest network can reach.",
+                      "It records each network interface on which the host offers a DDS endpoint, and whether the guest "
+                      "network reaches that interface."):
         assert statement in definition, statement
     assert "does not inspect them" not in definition, "the criteria now name the host's ROS 2 and DDS configuration"
     needs = _usage_doc("VC-MW-017")

@@ -1,8 +1,9 @@
 """INC-MW-011 phase 5: the success criteria of REQ-MW-016 and REQ-MW-019 (owner decision of 2026-10-28).
 
 REQ-MW-016 keeps application data of the guest out of the Linux host on three counts: the HMI path and the
-configuration of each element of the layer, the ROS 2 (DDS) subscriptions of every process on the host, and DDS
-on the loopback interface of the host. REQ-MW-019 declares a margin at the start of a subscription. The margin is
+configuration of each element of the layer, the ROS 2 (DDS) subscriptions of every process on the host, and no DDS
+endpoint of the host on an interface that a guest domain reaches. The third count states an outcome, so a loopback
+binding meets it and a firewall could too. REQ-MW-019 declares a margin at the start of a subscription. The margin is
 the clock bound of ASM-MW-030, and ASM-MW-030 is also the condition of the criteria. ASM-MW-030 holds the value,
 so the criteria state none. The statements and the criteria of both requirements name the guest by its role and
 name no element of the realization, so a revision of phase 8 does not change them.
@@ -64,9 +65,13 @@ def test_req_mw_016_criteria_cover_the_hmi_path_the_ros2_subscriptions_and_dds_o
                    "layer.",
                    "Second, no ROS 2 (DDS) subscription of any process on the Linux host is reachable from a guest "
                    "domain of the layer.",
-                   "Third, the DDS and network configuration of the Linux host keeps DDS on the loopback interface."):
+                   "Third, the DDS and network configuration of the Linux host offers no DDS endpoint on a network "
+                   "interface that a guest domain of the layer reaches."):
         assert clause in criteria, clause
+    assert "loopback" not in criteria, "the third clause states the outcome, not the loopback design"
     assert "owner decision 2026-10-28 (the ROS 2 (DDS) criteria)" in _attribute(body, "source")
+    assert ("For the processes outside the layer, ASM-MW-031 states the condition that the context must meet, and "
+            "the inspection checks it on the member.") in _attribute(body, "rationale")
 
 
 def test_req_mw_019_criteria_take_their_margin_and_their_condition_from_asm_mw_030() -> None:

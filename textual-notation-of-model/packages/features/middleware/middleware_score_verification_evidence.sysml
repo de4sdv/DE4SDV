@@ -360,8 +360,10 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * records each inspected artifact at its exact revision. It also records
      * each receiver on the Linux host that it finds for application data from
      * the AAOS SDV guest. It records each ROS 2 subscription on the Linux host
-     * that the guest network can reach, and each interface to which DDS
-     * binds. processData compares the findings with the criteria.
+     * that the guest network can reach. It records each network interface on
+     * which the host offers a DDS endpoint, and whether the guest network
+     * reaches that interface. processData compares the findings with the
+     * criteria.
      */
     subject verifiedBench : SCOREMiddlewareVerificationBench;
     objective noApplicationDataFromHMIGuestObjective {
