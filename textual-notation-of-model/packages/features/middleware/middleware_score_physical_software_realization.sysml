@@ -858,9 +858,9 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * bytes make a gap unlikely, but none of this rules out a sequence gap.
      * Stored frames of a late subscription in the host half can also arrive
      * late and out of order (GAP-MW-039). The receiver serves the frames of
-     * a phase as they come, apart from copies, so VC-MW-015 sees each gap
-     * and each change of order. Phase 10 measures it with the frames' own
-     * sequence numbers.
+     * a phase as they come, apart from copies, so the test of REQ-MW-014
+     * sees each gap and each change of order. Phase 10 measures it with the
+     * frames' own sequence numbers.
      */
   }
 
@@ -1170,9 +1170,9 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    * (main.cpp:198-202), and a new ingress process starts from sequence 0.
    * What the ingress adds: it drops a frame that the receiver serves out of
    * order, so the display does not step back. The layer itself still
-   * delivers such a frame, and VC-MW-015 sees it (GAP-MW-037). After a
-   * restart of the ingress, its sequence check starts again from 0. The
-   * ingress's stale check needs clocks that agree. ASM-MW-030 bounds their
+   * delivers such a frame, and the test of REQ-MW-014 sees it (GAP-MW-037).
+   * After a restart of the ingress, its sequence check starts again from 0.
+   * The ingress's stale check needs clocks that agree. ASM-MW-030 bounds their
    * offset, which the INC-AEBS-010 bench did not do (main.cpp:29-33).
    */
 
@@ -1187,8 +1187,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    * Discard rule of the layer for REQ-MW-019, at the SOME/IP receiver. The
    * receiver is the last element of the layer. It is the only element that
    * sees both the guest's subscription and the frame input of the HMI
-   * application. So the rule sits at the layer boundary that VC-MW-020
-   * observes, and it does not rely on the reused ingress.
+   * application. So the rule sits at the layer boundary that the test of
+   * REQ-MW-019 observes, and it does not rely on the reused ingress.
    * Subscription phase. The layer takes the HMI application as subscribed
    * while two conditions hold:
    * - the receiver is subscribed to the frame event at someipd;
@@ -1227,7 +1227,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    * start. The second check drops only copies of frames already served.
    * The rule serves every other frame in the order the frames come, also a
    * frame older than one already served. So it hides no gap and no change
-   * of order from VC-MW-015 (GAP-MW-037).
+   * of order from the test of REQ-MW-014 (GAP-MW-037).
    * The cost: a frame that the AEBS stack produced shortly before the phase
    * start can still pass (GAP-MW-045).
    */
@@ -1298,8 +1298,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    *   graph on the host, would rest on every peer and every operator. The
    *   limits on who reaches the graph do not bound what a local peer sends.
    *   The adapter needs no parameter change while it runs, so the services
-   *   give it nothing. VC-MW-019 brings its own trigger for a throw inside
-   *   rclcpp.
+   *   give it nothing. The test of REQ-MW-018 brings its own trigger for a
+   *   throw inside rclcpp.
    * The Launch Manager passes a component only the environment that its
    * configuration names, so that configuration carries the environment
    * above (launchManager).
