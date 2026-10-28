@@ -149,12 +149,13 @@ def test_the_receiver_discard_rule_traces_its_requirements_bound_and_residual() 
     assert re.search(r"\bpart <'ASM-MW-030'> asmHostAndGuestClocksAgree : IncrementAssumption \{", text)
     assert re.search(r"\bpart <'GAP-MW-045'> gapPhaseStartDiscardBand : IncrementGap \{", text)
     (margin,) = _numbers(r"not earlier than the phase start less (\d+) ms, the bound of ASM-MW-030", rule)
-    assert _numbers(r"The margin is fixed at (\d+) ms, and the receiver rejects a larger value", rule) == [margin]
+    assert _numbers(r"The margin is fixed at (\d+) ms\. No option sets it, and the receiver stops at start on any "
+                    r"margin option", rule) == [margin]
     (bound,) = _numbers(r"differ by less than (\d+) ms", _part_doc(text, "ASM-MW-030"))
     (band_margin,) = _numbers(r"it puts its (\d+) ms margin before the start", _part_doc(text, "GAP-MW-045"))
     assert margin == bound == band_margin, (margin, bound, band_margin)
     for statement in ("SubscribeEventgroupAck", "accepts it as the only client", "a reboot of someipd",
-                      "a loss of the SOME/IP framing of the TCP stream",
+                      "a loss of the SOME/IP framing of the TCP stream", "The receiver sets no TCP keepalive",
                       "It is no copy of a frame that the receiver served in this phase",
                       "it clears them at each phase start",
                       "the rule drops no frame that the AEBS stack produced after the phase start"):
@@ -192,8 +193,17 @@ def test_the_receiver_code_uses_the_margin_and_the_copy_window_of_the_model() ->
     assert margins == [margin * 1_000_000], f"the receiver's margin is {margins} ns, the model's {margin} ms"
     assert windows == [window], f"the receiver keeps {windows} frames, the model {window}"
     for rc in sorted(RECEIVER.glob("*.rc")):
-        for option, value in re.findall(r"(--[\w-]*(?:margin|bound)[\w-]*)\s+(\d+)", rc.read_text(encoding="utf-8")):
-            assert int(value) == margin, f"{rc.name} sets {option} {value}, the model fixes {margin} ms"
+        lines = [line for line in rc.read_text(encoding="utf-8").splitlines() if not line.lstrip().startswith("#")]
+        options = re.findall(r"--[\w-]*(?:margin|bound)[\w-]*", "\n".join(lines))
+        assert not options, f"{rc.name} passes {options}; no option sets the margin, fixed at {margin} ms"
+
+
+def test_the_receiver_starts_the_ingress_and_triggers_it_again_while_no_client_is_connected() -> None:
+    doc = _named_part_doc(PHYSICAL.read_text(encoding="utf-8"), "someipReceiver")
+    for statement in ("It does so at each of its own starts, once its loopback server listens",
+                      "while no client is connected, the receiver triggers the ingress again at a fixed interval.",
+                      "A trigger while an ingress runs does nothing"):
+        assert statement in doc, statement
 
 
 def test_the_guest_side_guard_rail_names_the_clock_assumption() -> None:

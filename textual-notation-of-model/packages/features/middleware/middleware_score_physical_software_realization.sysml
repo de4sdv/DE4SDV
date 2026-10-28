@@ -267,12 +267,16 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * Manager, which runs only on the Linux host. It is not a oneshot
        * service, so init restarts it when it exits. The receiver starts the
        * ingress, because the ingress exits when nothing listens
-       * (ingress/main.cpp:183-188). Once its loopback server listens, the
-       * receiver sets the start property of the ingress. The ingress is a
-       * oneshot service, so the receiver sets that property to 0 and then to
-       * 1 at each of its own starts. Its bench form, and what stays
-       * untested, are in GAP-MW-038. The same source builds for Linux, so
-       * phase 10 tests it against the real someipd before any guest run.
+       * (ingress/main.cpp:183-188). The ingress is a oneshot service, and a
+       * property starts it. The receiver triggers the ingress: it sets that
+       * property to 0 and then to 1. It does so at each of its own starts,
+       * once its loopback server listens. Init ignores a start of a oneshot
+       * service whose old process it has not reaped yet. So while no client
+       * is connected, the receiver triggers the ingress again at a fixed
+       * interval. A trigger while an ingress runs does nothing, so the
+       * repeat is harmless. Its bench form, and what stays untested, are in
+       * GAP-MW-038. The same source builds for Linux, so phase 10 tests it
+       * against the real someipd before any guest run.
        */
       port aebsSignalFrameIn : AEBSSignalFrameIn {
         doc /* Subscription to someipd's SOME/IP frame event: service discovery over UDP, the event over TCP. */
@@ -773,9 +777,9 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * - the automatic time and time zone of the guest are off (auto_time and
      *   auto_time_zone);
      * - the guest clock is set once, before the session;
-     * - the receiver logs CLOCK_REALTIME minus CLOCK_MONOTONIC, where a step
-     *   shows as a jump, and for each frame its receipt time minus its frame
-     *   timestamp;
+     * - the receiver logs CLOCK_REALTIME minus CLOCK_MONOTONIC and each step
+     *   of it. For the frames that it serves in a phase, it logs the minimum
+     *   and the maximum of receipt time minus frame timestamp;
      * - the offset comes from the same SOME/IP packets, captured on both
      *   sides of the guest's network tap, at the start and at the end of the
      *   session;
@@ -939,16 +943,22 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      *   multicast offers in the guest, the unicast fallback, and someipd
      *   after a link loss of the guest;
      * - its build for the guest and its start as a native init service.
+     * An unreviewed DE4SDV feasibility run did the Linux test of the first
+     * item at d9eac670 (2026-10-28). After a gatewayd restart in a phase, the
+     * receiver dropped 10 copies of frames that it had served. After a
+     * restart of gatewayd and someipd as a pair, it dropped 9 frames as older
+     * than the new phase. Its client got no copy and no frame produced before
+     * the phase start. This is design data, not evidence of record.
      * Bench form: phase 10 provisions the receiver and its init service on
      * the existing eng image of the sdv_ivi_cf guest, by remount. SELinux
      * stays permissive, as in the INC-AEBS-010 bench. Product form, still
      * open: a SELinux domain of its own and a guest image built with the
      * receiver. Because the receiver belongs to the system of interest, that
      * build is realization work of the layer; the rest of the guest image is
-     * context. DE4SDV's feasibility runs used a vsomeip client in a second
-     * network namespace in place of the receiver. A vsomeip client in the
-     * guest stays possible later. It would need Boost 1.75 or later in the
-     * AOSP source tree, with an Android.bp of its own (vsomeip
+     * context. The earlier gateway feasibility runs used a vsomeip client in
+     * a second network namespace in place of the receiver. A vsomeip client
+     * in the guest stays possible later. It would need Boost 1.75 or later
+     * in the AOSP source tree, with an Android.bp of its own (vsomeip
      * README.md:95-115 at 4187431d2815bd351845a09d01aa85b2a3163cab).
      */
   }
@@ -1275,21 +1285,24 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    *   the session ID of someipd's SD messages;
    * - the end of the TTL of its last acknowledged subscription.
    * It is subscribed again when it next gets a SubscribeEventgroupAck. The
-   * acknowledgement of a renewal does not change the state. The ingress is
-   * connected from the time the receiver accepts it as the only client. A
-   * phase starts when the second of the two conditions starts to hold. It
-   * ends when one of them ends. The receiver takes the phase start from its
-   * own system clock.
+   * acknowledgement of a renewal does not change the state. The receiver
+   * sets no TCP keepalive. So after a link loss, the end of the TTL ends
+   * its subscription. When the link comes back, a negative acknowledgement
+   * from someipd ends the half-open connection. The ingress is connected from
+   * the time the receiver accepts it as the only client. A phase starts
+   * when the second of the two conditions starts to hold. It ends when one
+   * of them ends. The receiver takes the phase start from its own system
+   * clock.
    * Frames. Outside a phase, the receiver reads each frame and drops it. It
    * holds no frame for later delivery. In a phase, it serves a frame
    * unchanged only if the frame passes two checks:
    * - Its frame timestamp is not earlier than the phase start less 20 ms,
-   *   the bound of ASM-MW-030. The margin is fixed at 20 ms, and the
-   *   receiver rejects a larger value. The frame assembler stamps each frame
-   *   with the host clock when it produces the frame. So this check drops
-   *   the frames that the AEBS stack produced before the phase, apart from
-   *   the band of GAP-MW-045. The stored frames of GAP-MW-039 are among
-   *   them.
+   *   the bound of ASM-MW-030. The margin is fixed at 20 ms. No option sets
+   *   it, and the receiver stops at start on any margin option. The frame
+   *   assembler stamps each frame with the host clock when it produces the
+   *   frame. So this check drops the frames that the AEBS stack produced
+   *   before the phase, apart from the band of GAP-MW-045. The stored
+   *   frames of GAP-MW-039 are among them.
    * - It is no copy of a frame that the receiver served in this phase, with
    *   the same sequence and frame timestamp. A copy comes from the stored
    *   frames of a restart in the host half during the phase (GAP-MW-039).
