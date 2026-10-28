@@ -980,11 +980,12 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      *   after a link loss of the guest;
      * - its build for the guest and its start as a native init service.
      * An unreviewed DE4SDV feasibility run did the Linux test of the first
-     * item at d9eac670 (2026-10-28). After a gatewayd restart in a phase, the
-     * receiver dropped 10 copies of frames that it had served. After a
-     * restart of gatewayd and someipd as a pair, it dropped 9 frames as older
-     * than the new phase. Its client got no copy and no frame produced before
-     * the phase start. This is design data, not evidence of record.
+     * item at d9eac670 (CI run 40696388984, 2026-10-28). After a gatewayd
+     * restart in a phase, the receiver dropped 10 copies of frames that it
+     * had served. After a restart of gatewayd and someipd as a pair, it
+     * dropped 9 frames as older than the new phase. Its client got no copy
+     * and no frame produced before the phase start. This is design data, not
+     * evidence of record.
      * Bench form: phase 10 provisions the receiver and its init service on
      * the existing eng image of the sdv_ivi_cf guest, by remount. SELinux
      * stays permissive, as in the INC-AEBS-010 bench. Product form, still
@@ -1176,12 +1177,19 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * - a frame that was on its way through the layer at the phase start;
      * - a stored frame of GAP-MW-039 that the AEBS stack produced in the
      *   band.
-     * Such a frame does not meet the success criteria of REQ-MW-019. Phase
-     * 10 reports each frame that the AEBS stack produced in the band of a
-     * phase start. Open: the member has no time synchronization between the
-     * Linux host and the AAOS SDV guest. So ASM-MW-030 holds only where the
-     * bench keeps the clocks together and measures them. A narrower band
-     * needs closer clocks and a smaller bound.
+     * Such a frame does not meet the success criteria of REQ-MW-019.
+     * Design data, one clock, no rate claimed: an unreviewed DE4SDV
+     * feasibility run of the receiver on Linux, with one clock for both
+     * halves (CI run 40713587621, 2026-10-28), saw the first kind. One frame
+     * reached the client inside the band: sequence 63, produced 4.84 ms
+     * before the start of a phase that began when the ingress connected, and
+     * received 5.36 ms after its stamp. It came at 1 of the 5 phase starts
+     * of the resubscription case. Phase 10 reports each frame that the AEBS
+     * stack produced in the band of a phase start. Open: the member has no
+     * time synchronization between the Linux host and the AAOS SDV guest.
+     * So ASM-MW-030 holds only where the bench keeps the clocks together and
+     * measures them. A narrower band needs closer clocks and a smaller
+     * bound.
      */
   }
 
