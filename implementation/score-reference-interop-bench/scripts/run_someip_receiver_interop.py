@@ -247,15 +247,15 @@ class Stack:
         self.wait("frame_source", "listening", 10.0, json_event=True)
 
     def ros_env(self) -> dict[str, str]:
-        # The bench user's environment with ROS 2 sourced, one middleware, loopback only.
-        env = dict(self.base_env, RMW_IMPLEMENTATION=self.args.rmw, ROS_LOCALHOST_ONLY="1",
-                   ROS_DOMAIN_ID=self.base_env.get("ROS_DOMAIN_ID", "42"), RCUTILS_LOGGING_BUFFERED_STREAM="0")
-        for key in ("FASTRTPS_DEFAULT_PROFILES_FILE", "DE4SDV_ADAPTER_FAULT_HOOK"):
+        """The one ROS 2 environment of the bench: the bench user's shell after /opt/ros/humble/setup.bash
+        and config/ros_environment.sh of the bundle, as the other runtime jobs use it."""
+        env = dict(self.base_env, RCUTILS_LOGGING_BUFFERED_STREAM="0")
+        for key in ("FASTRTPS_DEFAULT_PROFILES_FILE", "MW_LOG_CONFIG_FILE"):
             env.pop(key, None)
         return env
 
     def start_adapter(self) -> None:
-        env = self.ros_env()
+        env = rt.adapter_environment(self.bundle, self.ros_env())
         self.start("adapter", HOST_NS, [str(self.bundle / "bin" / "de4sdv_score_adapter"), "--mw-com-config",
                                         str(self.config / "mw_com_config_adapter.json"), "--frame-port",
                                         str(FRAME_PORT), "--status-period-s", "10"], env=env)
@@ -761,8 +761,9 @@ def main() -> int:
     parser.add_argument("--receiver", required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--user", required=True)
-    parser.add_argument("--env-json", required=True, help="environment of the bench user with ROS 2 sourced")
-    parser.add_argument("--rmw", default="rmw_cyclonedds_cpp")
+    parser.add_argument("--env-json", required=True,
+                        help="environment of the bench user after /opt/ros/humble/setup.bash and "
+                             "config/ros_environment.sh of the bundle")
     parser.add_argument("--cases", default=",".join(CASES))
     args = parser.parse_args()
     if os.geteuid() != 0:
@@ -773,6 +774,11 @@ def main() -> int:
     out.mkdir(parents=True, exist_ok=True)
     os.chown(out, user.pw_uid, user.pw_gid)
     base_env = json.loads(Path(args.env_json).read_text())
+    problems = rt.bench_environment_problems(base_env)
+    if problems:
+        print("source /opt/ros/humble/setup.bash and config/ros_environment.sh first: " + "; ".join(problems),
+              file=sys.stderr)
+        return 2
     base_env["PYTHONUNBUFFERED"] = "1"
     rt.write_json(out / "run-facts.json", {
         "receiver_sha256": rt.sha256(Path(args.receiver)),
@@ -781,6 +787,7 @@ def main() -> int:
         "bundle_adapter_sha256": rt.sha256(Path(args.bundle) / "bin" / "de4sdv_score_adapter"),
         "vsomeip_config_sha256": rt.sha256(BENCH / "config" / "vsomeip_netns_host.json"),
         "bench_user": {"name": user.pw_name, "uid": user.pw_uid, "gid": user.pw_gid},
+        "ros_environment": rt.environment_record(base_env),
         "setpriv": run(["setpriv", "--version"], check=False).stdout.strip(),
     })
     results: dict[str, dict] = {}
