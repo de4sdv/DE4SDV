@@ -3,26 +3,38 @@
 
 baselibs' abort override turns every throw in the adapter process into an
 abort, also a throw that a ROS 2 middleware catches itself on its normal
-path. This probe starts the adapter (fault hook off) with the
-vehicle-speed provider running, once per case, optionally after another ROS 2
-participant took the first ports, and records whether the adapter gets ready
-and stops cleanly on SIGTERM, or aborts, with the backtrace of the abort:
+path. Each case starts the vehicle-speed provider and the adapter (fault
+hook off), optionally after or before other ROS 2 participants on the host
+(scripts/ros_peer.py, one participant per process), holds, stops, turns a
+core into a backtrace with the core's address mappings, and evaluates the
+case against its expectation (de4sdv_score_bench.startup_probe):
 
-- rmw_fastrtps_cpp with its default transports and ROS_LOCALHOST_ONLY=1, the
-  bench configuration of the plan;
-- rmw_fastrtps_cpp with a UDP-only loopback profile (no shared-memory
-  transport), as first participant and after another one;
-- rmw_cyclonedds_cpp with ROS_LOCALHOST_ONLY=1, as first participant and
-  after another one.
+- the bench environment (config/ros_environment.sh, rmw_cyclonedds_cpp with
+  config/cyclonedds.xml) as first participant, after 11 others and before 11
+  others; the last other participant counts the adapter's VelocityReports;
+- a control of the participant index: the same loopback configuration
+  without MaxAutoParticipantIndex, so with the CycloneDDS default, after 11
+  others. It must fail, and it reports how many others got a participant;
+- a control of ROS_LOCALHOST_ONLY: the bench environment with
+  ROS_LOCALHOST_ONLY=1. rmw_cyclonedds_cpp then adds the address 127.0.0.1
+  to the interface that cyclonedds.xml selects, and CycloneDDS refuses the
+  same interface twice, so no participant is created;
+- rmw_fastrtps_cpp with its default transports and ROS_LOCALHOST_ONLY=1 (the
+  Fast DDS setup of the bench plan; this variable then selects the Fast DDS
+  loopback), and with a UDP-only loopback profile as first participant and
+  after another one; each setup that aborts the adapter of record also runs
+  with the control build, which must survive it, so the abort comes from the
+  override and not from Fast DDS.
 
-A case passes when the adapter gets ready, stays up for --hold-s and exits
-with 0 on SIGTERM. The probe reports; its exit status is always 0 unless the
-runner itself fails.
+Run in a shell with /opt/ros/humble/setup.bash and config/ros_environment.sh
+sourced. Exit status 0 only when every case is as expected.
 """
 
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
+import json
 from pathlib import Path
 import sys
 import time
@@ -31,37 +43,98 @@ BENCH = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BENCH / "src"))
 
 import bench_runtime as rt  # noqa: E402
-from de4sdv_score_bench.backtrace import check_abort_top_frames, parse_gdb_backtrace  # noqa: E402
+from de4sdv_score_bench.backtrace import (  # noqa: E402
+    check_abort_top_frames,
+    first_named_frame_below_override,
+    frame_text,
+    read_located_frames,
+)
+from de4sdv_score_bench.startup_probe import evaluate_case, summarize_probe  # noqa: E402
 
 PROFILE = BENCH / "config" / "fastdds_udp_loopback_profile.xml"
+BINARIES = {"adapter": "de4sdv_score_adapter", "control": "de4sdv_score_adapter_no_abort_control"}
+OTHER_PARTICIPANTS = 11
+
+# The loopback configuration of config/cyclonedds.xml without
+# MaxAutoParticipantIndex, so with the CycloneDDS default.
+DEFAULT_INDEX_CONFIGURATION = (
+    '<CycloneDDS xmlns="https://cdds.io/config"><Domain Id="any"><Discovery>'
+    '<ParticipantIndex>auto</ParticipantIndex><Peers><Peer Address="localhost"/></Peers></Discovery>'
+    '<General><Interfaces><NetworkInterface name="lo" priority="default" multicast="false"/></Interfaces>'
+    '<AllowMulticast>false</AllowMulticast></General></Domain></CycloneDDS>'
+)
+SAME_INTERFACE_TWICE = "the same interface may not be selected twice"
+
+BENCH_SETUP: dict = {"extra": {}, "remove": ()}
+CYCLONEDDS_DEFAULT_INDEX = {"extra": {"CYCLONEDDS_URI": DEFAULT_INDEX_CONFIGURATION}, "remove": ()}
+CYCLONEDDS_WITH_LOCALHOST_ONLY = {"extra": {"ROS_LOCALHOST_ONLY": "1"}, "remove": ()}
+FASTRTPS_DEFAULT = {"extra": {"RMW_IMPLEMENTATION": "rmw_fastrtps_cpp", "ROS_LOCALHOST_ONLY": "1"},
+                    "remove": ("CYCLONEDDS_URI",)}
+FASTRTPS_UDP_ONLY = {"extra": {"RMW_IMPLEMENTATION": "rmw_fastrtps_cpp",
+                               "FASTRTPS_DEFAULT_PROFILES_FILE": str(PROFILE)},
+                     "remove": ("CYCLONEDDS_URI",)}
+
+
+@dataclass(frozen=True)
+class Case:
+    name: str
+    role: str
+    setup: dict
+    peers_before: int
+    peers_after: int
+    expected: str
+    log_text: str | None = None
+
+
 CASES = [
-    ("fastrtps_default_localhost_only", "rmw_fastrtps_cpp", True, None, False),
-    ("fastrtps_udp_only_first_participant", "rmw_fastrtps_cpp", False, PROFILE, False),
-    ("fastrtps_udp_only_after_another_participant", "rmw_fastrtps_cpp", False, PROFILE, True),
-    ("cyclonedds_localhost_only_first_participant", "rmw_cyclonedds_cpp", True, None, False),
-    ("cyclonedds_localhost_only_after_another_participant", "rmw_cyclonedds_cpp", True, None, True),
+    Case("cyclonedds_bench_environment_first_participant", "adapter", BENCH_SETUP, 0, 0, "runs"),
+    Case("cyclonedds_bench_environment_after_11_participants", "adapter", BENCH_SETUP, OTHER_PARTICIPANTS, 0, "runs"),
+    Case("cyclonedds_bench_environment_before_11_participants", "adapter", BENCH_SETUP, 0, OTHER_PARTICIPANTS, "runs"),
+    Case("cyclonedds_default_participant_index_after_11_participants", "adapter", CYCLONEDDS_DEFAULT_INDEX,
+         OTHER_PARTICIPANTS, 0, "does_not_start"),
+    Case("cyclonedds_bench_environment_with_ros_localhost_only", "adapter", CYCLONEDDS_WITH_LOCALHOST_ONLY, 0, 0,
+         "does_not_start", SAME_INTERFACE_TWICE),
+    Case("fastrtps_default_localhost_only", "adapter", FASTRTPS_DEFAULT, 0, 0, "aborts_at_override"),
+    Case("fastrtps_default_localhost_only_control_build", "control", FASTRTPS_DEFAULT, 0, 0, "runs"),
+    Case("fastrtps_udp_only_first_participant", "adapter", FASTRTPS_UDP_ONLY, 0, 0, "runs"),
+    Case("fastrtps_udp_only_after_another_participant", "adapter", FASTRTPS_UDP_ONLY, 1, 0, "aborts_at_override"),
+    Case("fastrtps_udp_only_after_another_participant_control_build", "control", FASTRTPS_UDP_ONLY, 1, 0, "runs"),
 ]
 
 
-def thrower(backtrace_text: str) -> str | None:
-    frames = parse_gdb_backtrace(backtrace_text)
-    check = check_abort_top_frames(frames)
-    if check.caller_frame is None:
-        return None
-    below = frames[frames.index(check.caller_frame):]
-    named = next((frame for frame in below if frame.function != "??"), check.caller_frame)
-    return f"{named.function} in {check.caller_frame.library or 'the adapter executable'}"
+def start_peers(count: int, first_number: int, run_dir: Path, env: dict[str, str], count_last: bool,
+                peers: list[rt.BenchProcess]) -> int:
+    """Starts count peers one after the other; returns how many got ready."""
+    ready = 0
+    for number in range(first_number, first_number + count):
+        argv = [sys.executable, str(BENCH / "scripts" / "ros_peer.py"), "--name", f"de4sdv_probe_peer_{number}"]
+        if count_last and number == first_number + count - 1:
+            argv.append("--count-velocity")
+        peer = rt.BenchProcess(f"peer_{number}", argv, run_dir / f"peer_{number}.log", env=env)
+        peers.append(peer)
+        if peer.wait_for(rt.json_event_predicate("peer_ready"), 20.0) and peer.alive():
+            ready += 1
+    return ready
 
 
-def run_case(args: argparse.Namespace, name: str, rmw: str, localhost_only: bool, profile: Path | None,
-             prior: bool) -> dict:
+def velocity_reports(peers: list[rt.BenchProcess]) -> int | None:
+    for peer in peers:
+        if "--count-velocity" not in peer.argv:
+            continue
+        for line in peer.log_text().splitlines():
+            if '"event": "peer_stopped"' in line:
+                return json.loads(line)["velocity_reports"]
+        return 0
+    return None
+
+
+def run_case(args: argparse.Namespace, case: Case) -> dict:
     bundle = Path(args.bundle)
-    run_dir = Path(args.out) / name
+    run_dir = Path(args.out) / case.name
     run_dir.mkdir(parents=True, exist_ok=True)
     cleaned: list[str] = []
     rt.clean_lola_state(cleaned)
-    extra = {"FASTRTPS_DEFAULT_PROFILES_FILE": str(profile)} if profile else None
-    env = rt.ros_environment(rmw, localhost_only, extra)
+    env = rt.bench_environment(case.setup["extra"], case.setup["remove"])
     provider = rt.BenchProcess(
         "provider",
         [str(bundle / "bin" / "vehicle_speed_provider"), "--service_instance_manifest",
@@ -69,49 +142,64 @@ def run_case(args: argparse.Namespace, name: str, rmw: str, localhost_only: bool
          "--period-ms", "100"],
         run_dir / "provider.log", env=env)
     provider.wait_for(rt.json_event_predicate("offered"), 20.0)
-    other = None
-    if prior:
-        other = rt.BenchProcess("other_participant",
-                                ["ros2", "topic", "pub", "-r", "2", "/de4sdv_probe", "std_msgs/msg/String",
-                                 "{data: probe}"], run_dir / "other_participant.log", env=env)
-        time.sleep(6.0)
-    binary = bundle / "bin" / "de4sdv_score_adapter"
-    adapter = rt.BenchProcess("adapter", [str(binary), "--mw-com-config",
+    peers: list[rt.BenchProcess] = []
+    count_velocity = case.expected == "runs" and case.peers_before + case.peers_after >= OTHER_PARTICIPANTS
+    peers_ready = start_peers(case.peers_before, 1, run_dir, env, count_velocity and case.peers_after == 0, peers)
+    binary = bundle / "bin" / BINARIES[case.role]
+    adapter = rt.BenchProcess(case.role, [str(binary), "--mw-com-config",
                                           str(bundle / "config" / "mw_com_config_adapter.json"),
-                                          "--status-period-s", "5"], run_dir / "adapter.log", env=env)
+                                          "--status-period-s", "5"],
+                              run_dir / "adapter.log", env=rt.adapter_environment(bundle, env))
     ready = adapter.wait_for(rt.json_event_predicate("ready"), 25.0) and adapter.alive()
     if ready:
+        peers_ready += start_peers(case.peers_after, case.peers_before + 1, run_dir, env,
+                                   count_velocity and case.peers_after > 0, peers)
         deadline = time.monotonic() + args.hold_s
         while time.monotonic() < deadline and adapter.alive():
             time.sleep(0.5)
     survived = adapter.alive()
     end_returncode = adapter.returncode
     stop_returncode = adapter.stop(timeout_s=15.0) if survived else None
-    if other is not None:
-        other.stop(timeout_s=5.0)
+    for peer in reversed(peers):
+        peer.stop(timeout_s=5.0)
     provider.stop(timeout_s=5.0)
     core = rt.find_core(Path(args.core_dir), adapter.pid)
-    abort_thrower = None
+    override_check_passed = None
+    first_named = None
     if core is not None:
-        abort_thrower = thrower(rt.gdb_backtrace(binary, core, run_dir, "adapter-core"))
+        backtrace, mappings = rt.gdb_backtrace(binary, core, run_dir, "adapter-core")
+        frames = read_located_frames(backtrace, mappings)
+        check = check_abort_top_frames(frames, binary.name)
+        override_check_passed = check.passed
+        named = first_named_frame_below_override(frames, check)
+        first_named = frame_text(named) if named is not None else None
         core.unlink()
-    result = {
-        "case": name,
-        "rmw": rmw,
-        "ros_localhost_only": localhost_only,
-        "fastdds_profile": profile.name if profile else None,
-        "another_participant_first": prior,
+    record = {
+        "case": case.name,
+        "binary": binary.name,
+        "expected": case.expected,
+        "ros_environment": rt.environment_record(env),
+        "peers_before": case.peers_before,
+        "peers_after": case.peers_after if ready else 0,
+        "peers_ready": peers_ready,
+        "peer_velocity_reports": velocity_reports(peers),
         "ready": bool(ready),
-        "survived_hold_s": survived and bool(ready),
-        "end_returncode_before_stop": end_returncode,
+        "survived_hold": bool(survived and ready),
+        "end_returncode": end_returncode,
         "stop_returncode": stop_returncode,
-        "abort_thrower": abort_thrower,
-        "passed": bool(ready) and survived and stop_returncode == 0,
+        "core": core is not None,
+        "override_check_passed": override_check_passed,
+        "first_named_frame_below_override": first_named,
+        "required_log_text": case.log_text,
+        "required_log_text_found": None if case.log_text is None else case.log_text in adapter.log_text(),
     }
-    rt.write_json(run_dir / "result.json", result)
-    print(f"{name:52s} ready={result['ready']} survived={result['survived_hold_s']} "
-          f"stop={stop_returncode} end={end_returncode} thrower={abort_thrower}", flush=True)
-    return result
+    evaluation = evaluate_case(record)
+    rt.write_json(run_dir / "record.json", record)
+    rt.write_json(run_dir / "result.json", evaluation)
+    print(f"{case.name:58s} expected={case.expected} observed={evaluation['observed']} "
+          f"as_expected={evaluation['as_expected']} peers_ready={peers_ready} {'; '.join(evaluation['reasons'])}",
+          flush=True)
+    return {"record": record, "evaluation": evaluation}
 
 
 def main() -> int:
@@ -122,15 +210,32 @@ def main() -> int:
     parser.add_argument("--hold-s", type=float, default=30.0)
     args = parser.parse_args()
     Path(args.out).mkdir(parents=True, exist_ok=True)
-    results = [run_case(args, *case) for case in CASES]
-    rt.write_json(Path(args.out) / "rmw-startup-probe.json", results)
-    lines = ["### Adapter startup under ROS 2 middleware setups (abort override linked)", "",
-             "| case | ready | stays up and stops with 0 | abort thrower |", "|---|---|---|---|"]
-    for result in results:
-        lines.append(f"| {result['case']} | {result['ready']} | {result['passed']} | {result['abort_thrower']} |")
+    runs = [run_case(args, case) for case in CASES]
+    summary = summarize_probe([run["evaluation"] for run in runs])
+    rt.write_json(Path(args.out) / "rmw-startup-probe.json", {"summary": summary, "cases": runs})
+    lines = [
+        "### Adapter startup under ROS 2 middleware setups (abort override linked unless the control build)",
+        "",
+        f"Gate: **{summary['gate']}** ({summary['as_expected']} of {summary['cases']} cases as expected)",
+        "",
+        "| case | binary | expected | observed | other participants ready | first named frame below the override "
+        "| log text of the control | as expected |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for run in runs:
+        record, evaluation = run["record"], run["evaluation"]
+        peers = record["peers_before"] + record["peers_after"]
+        counted = record["peer_velocity_reports"]
+        peers_text = f"{record['peers_ready']} of {peers}" + (f", {counted} VelocityReports counted"
+                                                                if counted is not None else "")
+        log_text = ("" if record["required_log_text"] is None
+                    else f"{record['required_log_text']}: {'found' if record['required_log_text_found'] else 'missing'}")
+        lines.append(f"| {record['case']} | {record['binary']} | {record['expected']} | {evaluation['observed']} | "
+                     f"{peers_text} | {record['first_named_frame_below_override']} | {log_text} | "
+                     f"{evaluation['as_expected']} |")
     (Path(args.out) / "rmw-startup-probe.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))
-    return 0
+    return 0 if summary["gate"] == "pass" else 1
 
 
 if __name__ == "__main__":

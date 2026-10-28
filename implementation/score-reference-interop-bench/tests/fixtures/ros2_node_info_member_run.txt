@@ -1,0 +1,13 @@
+/de4sdv_score_adapter
+  Subscribers:
+    /parameter_events: rcl_interfaces/msg/ParameterEvent
+  Publishers:
+    /de4sdv/middleware/velocity_status: autoware_vehicle_msgs/msg/VelocityReport
+  Service Servers:
+
+  Service Clients:
+
+  Action Servers:
+
+  Action Clients:
+

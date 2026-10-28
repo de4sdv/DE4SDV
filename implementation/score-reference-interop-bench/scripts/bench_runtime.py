@@ -1,9 +1,12 @@
-"""Process handling for the bench runners (abort matrix, soak, RMW probe).
+"""Process handling for the bench runners (abort matrix, soak, startup probe).
 
 The runners start every bench process as the calling, non-root user, with
 unlimited core size, each with its own log file; they record the start and
-exit times on CLOCK_MONOTONIC and turn cores into gdb backtraces. They need a
-shell in which /opt/ros/humble/setup.bash was sourced.
+exit times on CLOCK_MONOTONIC and turn cores into gdb backtraces with the
+address mappings of the core. They need a shell in which
+/opt/ros/humble/setup.bash and then config/ros_environment.sh of the bench
+(or of its runtime bundle) were sourced: every ROS 2 process of a run uses
+that one environment, and the runners record it.
 """
 
 from __future__ import annotations
@@ -120,8 +123,9 @@ class BenchProcess:
 
 
 def json_event_predicate(event: str) -> Callable[[str], bool]:
-    marker = f'"event":"{event}"'
-    return lambda text: marker in text
+    """True once a JSON line with this event is in the text, with or without spaces after the colon."""
+    compiled = re.compile(r'"event"\s*:\s*"' + re.escape(event) + '"')
+    return lambda text: compiled.search(text) is not None
 
 
 def regex_predicate(pattern: str) -> Callable[[str], bool]:
@@ -149,16 +153,39 @@ def clean_lola_state(record: list[str]) -> None:
             record.append(f"{path}: {error}")
 
 
-def ros_environment(rmw: str, localhost_only: bool, extra: dict[str, str] | None = None) -> dict[str, str]:
+# The variables that config/ros_environment.sh sets, and the ones a probe case changes.
+ENVIRONMENT_KEYS = (
+    "RMW_IMPLEMENTATION",
+    "CYCLONEDDS_URI",
+    "ROS_DOMAIN_ID",
+    "ROS_LOCALHOST_ONLY",
+    "FASTRTPS_DEFAULT_PROFILES_FILE",
+)
+
+
+def bench_environment_problems(env: dict[str, str]) -> list[str]:
+    """What differs from the environment of config/ros_environment.sh."""
+    problems = []
+    if env.get("RMW_IMPLEMENTATION") != "rmw_cyclonedds_cpp":
+        problems.append(f"RMW_IMPLEMENTATION is {env.get('RMW_IMPLEMENTATION')!r}, not 'rmw_cyclonedds_cpp'")
+    uri = env.get("CYCLONEDDS_URI", "")
+    if not uri.startswith("file://") or not uri.endswith("/cyclonedds.xml") or not Path(uri[7:]).is_file():
+        problems.append(f"CYCLONEDDS_URI {uri!r} names no cyclonedds.xml of the bench")
+    if not env.get("ROS_DOMAIN_ID"):
+        problems.append("ROS_DOMAIN_ID is not set")
+    if "ROS_LOCALHOST_ONLY" in env:
+        problems.append("ROS_LOCALHOST_ONLY is set")
+    return problems
+
+
+def bench_environment(extra: dict[str, str] | None = None, remove: tuple[str, ...] = ()) -> dict[str, str]:
+    """The environment of a bench process: the sourced bench environment, changed only by extra and remove."""
     env = dict(os.environ)
-    env["RMW_IMPLEMENTATION"] = rmw
-    env["ROS_DOMAIN_ID"] = env.get("ROS_DOMAIN_ID", "42")
-    if localhost_only:
-        env["ROS_LOCALHOST_ONLY"] = "1"
-    else:
-        env.pop("ROS_LOCALHOST_ONLY", None)
-    env.pop("FASTRTPS_DEFAULT_PROFILES_FILE", None)
-    env.pop("DE4SDV_ADAPTER_FAULT_HOOK", None)
+    problems = bench_environment_problems(env)
+    if problems:
+        raise SystemExit("source /opt/ros/humble/setup.bash and config/ros_environment.sh first: " + "; ".join(problems))
+    for key in ("FASTRTPS_DEFAULT_PROFILES_FILE", "MW_LOG_CONFIG_FILE", *remove):
+        env.pop(key, None)
     env["RCUTILS_LOGGING_BUFFERED_STREAM"] = "0"
     env["PYTHONUNBUFFERED"] = "1"
     if extra:
@@ -166,22 +193,72 @@ def ros_environment(rmw: str, localhost_only: bool, extra: dict[str, str] | None
     return env
 
 
+def adapter_environment(bundle: Path, env: dict[str, str]) -> dict[str, str]:
+    """The adapter's environment: env and the mw::log configuration of the adapter."""
+    return dict(env, MW_LOG_CONFIG_FILE=str(bundle / "config" / "mw_log_adapter.json"))
+
+
+def environment_record(env: dict[str, str]) -> dict[str, str | None]:
+    return {key: env.get(key) for key in ENVIRONMENT_KEYS}
+
+
 def find_core(core_dir: Path, pid: int) -> Path | None:
     matches = sorted(core_dir.glob(f"core.*.{pid}"))
     return matches[0] if matches else None
 
 
-def gdb_backtrace(binary: Path, core: Path, out_dir: Path, stem: str) -> str:
-    """Writes <stem>.bt.txt (crashing thread) and <stem>.all-threads.txt; returns the first."""
+def gdb_backtrace(binary: Path, core: Path, out_dir: Path, stem: str) -> tuple[str, str]:
+    """Writes <stem>.bt.txt (crashing thread), <stem>.all-threads.txt and <stem>.mappings.txt.
+
+    Returns the backtrace of the crashing thread and the address mappings of
+    the core (gdb's info proc mappings), which locate each frame.
+    """
     common = ["gdb", "-batch", "-nx", "-iex", "set debuginfod enabled off", "-iex", "set pagination off"]
-    crashing = subprocess.run(common + ["-ex", "bt", str(binary), str(core)], capture_output=True, text=True,
-                              timeout=180, check=False)
-    text = crashing.stdout + crashing.stderr
-    (out_dir / f"{stem}.bt.txt").write_text(text, encoding="utf-8")
-    threads = subprocess.run(common + ["-ex", "thread apply all bt", str(binary), str(core)], capture_output=True,
-                             text=True, timeout=180, check=False)
-    (out_dir / f"{stem}.all-threads.txt").write_text(threads.stdout + threads.stderr, encoding="utf-8")
-    return text
+
+    def run(command: str, name: str) -> str:
+        completed = subprocess.run(common + ["-ex", command, str(binary), str(core)], capture_output=True, text=True,
+                                   timeout=180, check=False)
+        text = completed.stdout + completed.stderr
+        (out_dir / f"{stem}.{name}.txt").write_text(text, encoding="utf-8")
+        return text
+
+    backtrace = run("bt", "bt")
+    run("thread apply all bt", "all-threads")
+    mappings = run("info proc mappings", "mappings")
+    return backtrace, mappings
+
+
+def backtrace_other_cores(core_dir: Path, processes: list["BenchProcess"], out_dir: Path) -> list[dict]:
+    """Backtraces of the cores that native bench processes other than the adapter left.
+
+    A core of a Python process (observer, frame source) is listed without a
+    backtrace.
+    """
+    from de4sdv_score_bench.backtrace import frame_text, read_located_frames
+
+    records = []
+    for process in processes:
+        core = find_core(core_dir, process.pid)
+        if core is None:
+            continue
+        binary = Path(process.argv[0])
+        record: dict = {"process": process.name, "core": core.name, "returncode": process.returncode,
+                        "named_top_frames": None}
+        if binary.is_file() and not binary.name.startswith("python"):
+            backtrace, mappings = gdb_backtrace(binary, core, out_dir, f"{process.name}-core")
+            frames = read_located_frames(backtrace, mappings)
+            record["named_top_frames"] = [frame_text(frame) for frame in frames if frame.function != "??"][:12]
+        records.append(record)
+    return records
+
+
+def frame_stream_client_pids(port: int) -> list[int] | None:
+    """The processes with an established TCP connection to the frame stream port (ss -tnp); None when ss fails."""
+    completed = subprocess.run(["ss", "-H", "-t", "-n", "-p", "state", "established", f"( dport = :{port} )"],
+                               capture_output=True, text=True, check=False)
+    if completed.returncode != 0:
+        return None
+    return sorted(int(pid) for pid in re.findall(r"pid=(\d+)", completed.stdout))
 
 
 def run_command(argv: list[str], env: dict[str, str], timeout_s: float) -> dict:

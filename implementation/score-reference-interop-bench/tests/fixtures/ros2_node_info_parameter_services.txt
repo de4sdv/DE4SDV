@@ -1,0 +1,18 @@
+/de4sdv_score_adapter
+  Subscribers:
+    /parameter_events: rcl_interfaces/msg/ParameterEvent
+  Publishers:
+    /de4sdv/middleware/velocity_status: autoware_vehicle_msgs/msg/VelocityReport
+  Service Servers:
+    /de4sdv_score_adapter/describe_parameters: rcl_interfaces/srv/DescribeParameters
+    /de4sdv_score_adapter/get_parameter_types: rcl_interfaces/srv/GetParameterTypes
+    /de4sdv_score_adapter/get_parameters: rcl_interfaces/srv/GetParameters
+    /de4sdv_score_adapter/list_parameters: rcl_interfaces/srv/ListParameters
+    /de4sdv_score_adapter/set_parameters: rcl_interfaces/srv/SetParameters
+    /de4sdv_score_adapter/set_parameters_atomically: rcl_interfaces/srv/SetParametersAtomically
+  Service Clients:
+
+  Action Servers:
+
+  Action Clients:
+

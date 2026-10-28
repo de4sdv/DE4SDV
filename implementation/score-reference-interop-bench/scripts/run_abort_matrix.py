@@ -3,21 +3,25 @@
 
 For each variant and for the adapter of record and the control build (the
 same sources without baselibs' abort override), with fresh LoLa state:
-start the vehicle-speed provider, start the adapter and wait until it logs
-ready, deliver the trigger with ``ros2 param set``, record how the process
-ends, turn the core into a gdb backtrace, and evaluate the raw artifacts with
-de4sdv_score_bench.abort_matrix. The fault hook is off for the rclcpp
-variant and on (DE4SDV_ADAPTER_FAULT_HOOK=1) for the two hook variants.
+start the vehicle-speed provider, start the adapter with the start
+configuration of a member run and wait until it logs ready, send the
+real-time signal that the adapter logged for the variant at start, record
+how the process ends, turn the core into a gdb backtrace with the core's
+address mappings, and evaluate the raw artifacts with
+de4sdv_score_bench.abort_matrix.
 
-Run in a shell with /opt/ros/humble sourced, as the non-root bench user,
-with kernel.core_pattern pointing into --core-dir. Exit status 0 only when
-the gate passes: 3 of 3 variants of the adapter of record end with SIGABRT at
-the override.
+Run in a shell with /opt/ros/humble/setup.bash and config/ros_environment.sh
+sourced, as the non-root bench user, with kernel.core_pattern pointing into
+--core-dir. Exit status 0 only when the gate passes: 3 of 3 variants of the
+adapter of record end with SIGABRT at the override, and the control build
+survives 3 of 3.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
+import os
 from pathlib import Path
 import sys
 import time
@@ -26,15 +30,24 @@ BENCH = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BENCH / "src"))
 
 import bench_runtime as rt  # noqa: E402
-from de4sdv_score_bench.abort_matrix import HOOK_VARIANTS, VARIANTS, evaluate_variant, summarize_matrix  # noqa: E402
+from de4sdv_score_bench.abort_matrix import VARIANTS, evaluate_variant, summarize_matrix  # noqa: E402
 
-NODE = "/de4sdv_score_adapter"
-TRIGGERS = {
-    "rclcpp_internal": ("de4sdv_undeclared_parameter", "1"),
-    "adapter_code": ("de4sdv_fault_hook", "adapter_code"),
-    "libstdcxx": ("de4sdv_fault_hook", "libstdcxx"),
-}
 BINARIES = {"adapter": "de4sdv_score_adapter", "control": "de4sdv_score_adapter_no_abort_control"}
+
+
+def logged_fault_signal(log_text: str, variant: str) -> int | None:
+    """The signal that the adapter logged at start for the variant."""
+    for line in log_text.splitlines():
+        if not line.startswith("{"):
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("event") == "start" and isinstance(event.get("fault_signals"), dict):
+            value = event["fault_signals"].get(variant)
+            return value if type(value) is int else None
+    return None
 
 
 def run_variant(args: argparse.Namespace, role: str, variant: str) -> dict:
@@ -44,8 +57,7 @@ def run_variant(args: argparse.Namespace, role: str, variant: str) -> dict:
     binary = bundle / "bin" / BINARIES[role]
     cleaned: list[str] = []
     rt.clean_lola_state(cleaned)
-    hook = variant in HOOK_VARIANTS
-    env = rt.ros_environment(args.rmw, args.localhost_only, {"DE4SDV_ADAPTER_FAULT_HOOK": "1"} if hook else None)
+    env = rt.bench_environment()
 
     provider = rt.BenchProcess(
         "provider",
@@ -55,21 +67,20 @@ def run_variant(args: argparse.Namespace, role: str, variant: str) -> dict:
         run_dir / "provider.stdout.log", env=env)
     provider_offered = provider.wait_for(rt.json_event_predicate("offered"), 20.0)
 
+    # The start configuration of a member run: no option and no variable
+    # selects the fault; the signal does.
     adapter = rt.BenchProcess(
         role,
         [str(binary), "--mw-com-config", str(bundle / "config" / "mw_com_config_adapter.json"),
          "--frame-port", str(args.frame_port), "--status-period-s", "5"],
-        run_dir / "adapter.log", env=env)
+        run_dir / "adapter.log", env=rt.adapter_environment(bundle, env))
     ready = provider_offered and adapter.wait_for(rt.json_event_predicate("ready"), 30.0) and adapter.alive()
-    if ready:
-        time.sleep(2.0)  # ROS 2 discovery of the node by the CLI
-    parameter, value = TRIGGERS[variant]
-    trigger_env = rt.ros_environment(args.rmw, args.localhost_only)
-    trigger = rt.run_command(
-        ["ros2", "param", "set", "--no-daemon", "--spin-time", "5", NODE, parameter, value], trigger_env,
-        timeout_s=40.0) if ready else {
-            "argv": [], "start_monotonic_ns": rt.monotonic_ns(), "end_monotonic_ns": rt.monotonic_ns(),
-            "returncode": None, "timed_out": False, "output": "not run: the adapter was not ready"}
+    signal_number = logged_fault_signal(adapter.log_text(), variant)
+    sent_ns = None
+    if ready and signal_number is not None:
+        time.sleep(1.0)
+        sent_ns = rt.monotonic_ns()
+        os.kill(adapter.pid, signal_number)
     if role == "adapter":
         adapter.wait_exit(15.0)
     else:
@@ -82,14 +93,14 @@ def run_variant(args: argparse.Namespace, role: str, variant: str) -> dict:
 
     core = rt.find_core(Path(args.core_dir), adapter.pid)
     backtrace_text = None
+    mappings_text = None
     if core is not None:
-        backtrace_text = rt.gdb_backtrace(binary, core, run_dir, "adapter-core")
+        backtrace_text, mappings_text = rt.gdb_backtrace(binary, core, run_dir, "adapter-core")
     record = {
         "role": role,
         "variant": variant,
-        "fault_hook_environment": "1" if hook else "unset",
         "ready_before_trigger": bool(ready),
-        "trigger": trigger,
+        "trigger": {"signal": signal_number, "sent_monotonic_ns": sent_ns},
         "process": {
             "returncode": returncode_at_check,
             "exit_monotonic_ns": exit_ns,
@@ -101,7 +112,7 @@ def run_variant(args: argparse.Namespace, role: str, variant: str) -> dict:
     }
     rt.write_json(run_dir / "record.json", record)
     rt.write_json(run_dir / "lola_state_removed.json", cleaned)
-    result = evaluate_variant(record, backtrace_text, adapter.log_text())
+    result = evaluate_variant(record, backtrace_text, adapter.log_text(), mappings_text)
     rt.write_json(run_dir / "result.json", result)
     if core is not None and not args.keep_cores:
         core.unlink()
@@ -115,15 +126,13 @@ def main() -> int:
     parser.add_argument("--bundle", required=True, help="runtime bundle of the build job")
     parser.add_argument("--out", required=True)
     parser.add_argument("--core-dir", required=True)
-    parser.add_argument("--rmw", default="rmw_cyclonedds_cpp")
-    parser.add_argument("--localhost-only", type=int, choices=(0, 1), default=1)
     parser.add_argument("--frame-port", type=int, default=4721)
     parser.add_argument("--roles", default="adapter,control")
     parser.add_argument("--keep-cores", action="store_true")
     args = parser.parse_args()
-    args.localhost_only = bool(args.localhost_only)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
+    environment = rt.environment_record(rt.bench_environment())
 
     results = []
     for role in args.roles.split(","):
@@ -131,8 +140,7 @@ def main() -> int:
             results.append(run_variant(args, role, variant))
     summary = summarize_matrix(results)
     adapter_binary = Path(args.bundle) / "bin" / BINARIES["adapter"]
-    summary["rmw"] = args.rmw
-    summary["ros_localhost_only"] = args.localhost_only
+    summary["ros_environment"] = environment
     summary["nm_dynamic_cxa_allocate_exception"] = rt.nm_dynamic_line(adapter_binary, "__cxa_allocate_exception")
     summary["adapter_sha256"] = rt.sha256(adapter_binary)
     control_binary = Path(args.bundle) / "bin" / BINARIES["control"]
@@ -141,14 +149,16 @@ def main() -> int:
     summary["results"] = results
     rt.write_json(out / "abort-matrix-summary.json", summary)
     lines = [
-        f"### REQ-MW-018 abort matrix ({args.rmw}, ROS_LOCALHOST_ONLY={int(args.localhost_only)})",
+        f"### REQ-MW-018 abort matrix ({environment['RMW_IMPLEMENTATION']}, "
+        f"CYCLONEDDS_URI={environment['CYCLONEDDS_URI']}, ROS_DOMAIN_ID={environment['ROS_DOMAIN_ID']})",
         "",
-        f"Adapter of record ends with SIGABRT at the override: **{summary['adapter_sigabrt_at_override']}**; "
-        f"control build survives: {summary['control_survived']}; discriminates: {summary['discriminates']}.",
+        f"Gate: **{summary['gate']}**. Adapter of record ends with SIGABRT at the override: "
+        f"**{summary['adapter_sigabrt_at_override']}**; control build survives: **{summary['control_survived']}**; "
+        f"discriminates: {summary['discriminates']}. {'; '.join(summary['gate_problems'])}",
         "",
         f"`nm -D`: `{summary['nm_dynamic_cxa_allocate_exception']}`",
         "",
-        "| role | variant | outcome | signal | top frames | thrower | first named frame below |",
+        "| role | variant | outcome | signal | top frames | caller below the override | first named frame below the override |",
         "|---|---|---|---|---|---|---|",
     ]
     for result in results:

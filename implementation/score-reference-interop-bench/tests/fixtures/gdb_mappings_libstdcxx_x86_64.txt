@@ -1,0 +1,10 @@
+Mapped address spaces:
+
+          Start Addr           End Addr       Size     Offset objfile
+      0x55d4c1a00000     0x55d4c1a20000    0x20000        0x0 /home/runner/install/de4sdv_score_adapter/lib/de4sdv_score_adapter/de4sdv_score_adapter
+      0x55d4c1a20000     0x55d4c1c00000   0x1e0000    0x20000 /home/runner/install/de4sdv_score_adapter/lib/de4sdv_score_adapter/de4sdv_score_adapter
+      0x7f8d3e400000     0x7f8d3e428000    0x28000        0x0 /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x7f8d3e428000     0x7f8d3e5bd000   0x195000    0x28000 /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x7f8d3e800000     0x7f8d3e89a000    0x9a000        0x0 /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30
+      0x7f8d3e89a000     0x7f8d3e9ab000   0x111000    0x9a000 /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30
+      0x7f8d3ee00000     0x7f8d3ee80000    0x80000        0x0 /opt/ros/humble/lib/librclcpp.so
