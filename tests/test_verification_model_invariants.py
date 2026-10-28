@@ -36,6 +36,7 @@ import pytest
 
 from sysml_shapes import (
     MODEL_ROOT,
+    SHORT_NAME,
     bound_requirement_verifications,
     braced_body,
     has_product_claim,
@@ -95,7 +96,7 @@ def test_every_verification_def_runs_the_collect_process_evaluate_pipeline(model
 
 def test_every_verification_usage_binds_subject_and_verification_method(model):
     _, code = model
-    usage_re = re.compile(r"\bverification\s+\w+\s*:\s*\w+\s*\{")
+    usage_re = re.compile(rf"\bverification\s+{SHORT_NAME}\w+\s*:\s*\w+\s*\{{")
     for match in usage_re.finditer(code):
         body = braced_body(code, match.group(0).rstrip("{").strip())
         assert "subject verifiedBench :>" in body, match.group(0)
@@ -145,7 +146,11 @@ def test_no_verify_or_satisfy_relationship_claims_a_product_requirement(model):
     assert not has_product_claim(source)
 
 
-_REQUIREMENT_USAGE_RE = re.compile(r"\brequirement\s+(\w+)\s*:\s*(\w+)\s*\{")
+# requirement [<short name>] <usage> : <Type> {; a short name such as
+# <'REQ-MW-010'> is the requirement's registered ID.
+_REQUIREMENT_USAGE_RE = re.compile(
+    r"\brequirement\s+(?:<(?:'(?P<quoted>[^']*)'|(?P<basic>\w+))>\s*)?(?P<name>\w+)\s*:\s*(?P<type>\w+)\s*\{"
+)
 _SUCCESS_CRITERIA_RE = re.compile(r'\battribute\s*:>>\s*successCriteria\s*=\s*"[^"]+"\s*;')
 _REQUIREMENT_ID_RE = re.compile(r"\bREQ-[A-Z0-9]+(?:-[A-Z0-9]+)*-\d{3}\b")
 _GAP_PART_RE = re.compile(r"\bpart\s+\w+\s*:\s*IncrementGap\s*\{")
@@ -158,20 +163,23 @@ _SUBJECT_TYPE_RE = re.compile(r"\bsubject\s+\w+\s*:\s*(\w+)\s*;")
 
 def _declared_requirement_usages() -> dict[str, dict]:
     """Requirement usages of the model tree: subject types, whether the usage
-    states successCriteria, and the requirement IDs its doc names."""
+    states successCriteria, and the requirement IDs its short name or doc names."""
     usages: dict[str, dict] = {}
     for path in sorted(MODEL_ROOT.rglob("*.sysml")):
         raw = path.read_text(encoding="utf-8")
         code = strip_comments(raw)
         for match in _REQUIREMENT_USAGE_RE.finditer(code):
             body = braced_body(code[match.start():], match.group(0).rstrip("{").strip())
-            facts = usages.setdefault(match.group(1), {"subjects": set(), "criteria": False, "ids": set()})
+            facts = usages.setdefault(match["name"], {"subjects": set(), "criteria": False, "ids": set()})
             facts["subjects"].update(_SUBJECT_TYPE_RE.findall(body))
             facts["criteria"] = facts["criteria"] or bool(_SUCCESS_CRITERIA_RE.search(body))
+            short_name = match["quoted"] or match["basic"] or ""
+            if _REQUIREMENT_ID_RE.fullmatch(short_name):
+                facts["ids"].add(short_name)
         for match in _REQUIREMENT_USAGE_RE.finditer(raw):
             doc = re.match(r"\s*doc\s*/\*(.*?)\*/", raw[match.end():], re.DOTALL)
-            if doc and match.group(1) in usages:
-                usages[match.group(1)]["ids"].update(_REQUIREMENT_ID_RE.findall(doc.group(1).split(".")[0]))
+            if doc and match["name"] in usages:
+                usages[match["name"]]["ids"].update(_REQUIREMENT_ID_RE.findall(doc.group(1).split(".")[0]))
     return usages
 
 
@@ -226,6 +234,23 @@ _SYNTHETIC_CASE = """
 
 def _facts(criteria: bool, subjects: set[str] | None = None) -> dict:
     return {"subjects": subjects or set(), "criteria": criteria, "ids": {"REQ-SYN-S2-001"}}
+
+
+def test_short_named_usages_and_requirements_are_read():
+    """A short name (the element's registered ID) does not hide a usage from these checks."""
+    code = """
+      requirement <'REQ-SYN-001'> reqA : RequirementCandidate { attribute :>> successCriteria = "Met when x."; }
+      requirement reqB : RequirementCandidate { }
+      verification def SyntheticVerification { subject verifiedBench : Bench; }
+      verification <'VC-SYN-001'> syntheticVerification : SyntheticVerification { subject verifiedBench :> bench; }
+      verification <VC_SYN_002> otherVerification : SyntheticVerification { subject verifiedBench :> bench; }
+      verification plainVerification : SyntheticVerification { subject verifiedBench :> bench; }
+    """
+    assert verification_usages(code) == [
+        ("syntheticVerification", "SyntheticVerification"), ("otherVerification", "SyntheticVerification"),
+        ("plainVerification", "SyntheticVerification")]
+    found = [(m["quoted"] or m["basic"], m["name"], m["type"]) for m in _REQUIREMENT_USAGE_RE.finditer(code)]
+    assert found == [("REQ-SYN-001", "reqA", "RequirementCandidate"), (None, "reqB", "RequirementCandidate")]
 
 
 def test_bound_requirement_verification_rule_rejects_violations():

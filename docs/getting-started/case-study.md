@@ -234,11 +234,13 @@ In progress, or not there yet:
   configuration (phase 9) gave the platform a guest
   side and added the configured product `MW-CONFIG-002`. It is valid and not
   admitted, and admission is the owner's phase-12 decision. Verification and
-  evidence (phase 10) is next, with a runnable proof on a bench, and phases 11
+  evidence (phase 10) has begun: one verification case per requirement, and no
+  case has started. The runnable proof on a bench comes next, and phases 11
   and 12 are still to come
   ([framing model](../../textual-notation-of-model/packages/features/middleware/middleware_score_framing.sysml),
   [physical realization](../../textual-notation-of-model/packages/features/middleware/middleware_score_physical_software_realization.sysml),
-  [configured product](../../textual-notation-of-model/packages/features/middleware/middleware_score_variability_configuration.sysml));
+  [configured product](../../textual-notation-of-model/packages/features/middleware/middleware_score_variability_configuration.sysml),
+  [verification cases](../../textual-notation-of-model/packages/features/middleware/middleware_score_verification_evidence.sysml));
 - executable method checks for the phases that have none yet;
 - verification of the candidate requirements; `REQ-AEBS-003` is still
   `NotStarted`;
