@@ -16,7 +16,7 @@ using de4sdv::someip_receiver::StartRecord;
 
 using Args = std::vector<std::string>;
 
-Args Minimal() { return {"--server-address", "10.250.0.1", "--clock-offset-bound-ms", "0"}; }
+Args Minimal() { return {"--server-address", "10.250.0.1"}; }
 
 Args With(Args args, const Args& more) {
   args.insert(args.end(), more.begin(), more.end());
@@ -41,12 +41,24 @@ TEST(Options, DefaultsAreTheSpikeIdentifiersAndTheIngressPort) {
   EXPECT_EQ(options.listen_port, 4731);
   EXPECT_TRUE(options.join_multicast);
   EXPECT_EQ(options.multicast_group, 0xE0F4E0F5U);
-  EXPECT_EQ(options.clock_offset_bound_ns, 0);
+  EXPECT_TRUE(options.announce_property.empty());
 }
 
-TEST(Options, ServerAddressAndClockOffsetBoundAreRequired) {
-  EXPECT_FALSE(ParseOptions({"--server-address", "10.250.0.1"}).options.has_value());
-  EXPECT_FALSE(ParseOptions({"--clock-offset-bound-ms", "100"}).options.has_value());
+TEST(Options, ServerAddressIsRequired) {
+  EXPECT_FALSE(ParseOptions({}).options.has_value());
+  EXPECT_FALSE(ParseOptions({"--listen-port", "4731"}).options.has_value());
+}
+
+TEST(Options, TheDiscardRuleHasNoOption) {
+  EXPECT_FALSE(ParseOptions(With(Minimal(), {"--clock-offset-bound-ms", "0"})).options.has_value());
+}
+
+TEST(Options, AnnouncePropertyIsNameEqualsValue) {
+  const auto parsed = ParseOptions(With(Minimal(), {"--announce-property", "de4sdv.aebs.frame_server.host=127.0.0.1"}));
+  ASSERT_TRUE(parsed.options.has_value()) << parsed.error;
+  EXPECT_EQ(parsed.options->announce_property, "de4sdv.aebs.frame_server.host=127.0.0.1");
+  EXPECT_FALSE(ParseOptions(With(Minimal(), {"--announce-property", "=127.0.0.1"})).options.has_value());
+  EXPECT_FALSE(ParseOptions(With(Minimal(), {"--announce-property", "no-value"})).options.has_value());
 }
 
 TEST(Options, AllValuesAreRead) {
@@ -94,7 +106,7 @@ TEST(Options, InvalidValuesAreRejected) {
   for (const Args& bad : {Args{"--listen-address", "0.0.0.0"}, Args{"--listen-address", "192.168.98.2"},
                           Args{"--listen-port", "0"}, Args{"--listen-port", "65536"}, Args{"--service", "0x10000"},
                           Args{"--major-version", "256"}, Args{"--ttl-s", "0"}, Args{"--ttl-s", "16777216"},
-                          Args{"--renew-period-ms", "3000"}, Args{"--clock-offset-bound-ms", "-1"},
+                          Args{"--renew-period-ms", "3000"},
                           Args{"--max-payload-bytes", "3"}, Args{"--multicast-group", "10.0.0.1"},
                           Args{"--server-address", "10.250.0"}, Args{"--status-period-s", "0"},
                           Args{"--unknown-option"}, Args{"--event"}}) {
@@ -113,13 +125,14 @@ TEST(Options, HelpIsNotAnError) {
 TEST(Options, StartRecordRepeatsTheConfiguration) {
   const auto parsed = ParseOptions(With(Minimal(), {"--log-frames"}));
   ASSERT_TRUE(parsed.options.has_value());
-  const auto record = StartRecord(*parsed.options, "provisional_sequence_and_phase_start", 4242);
+  const auto record = StartRecord(*parsed.options, "receiver_subscription_phase_discard_rule", 4242);
   EXPECT_EQ(record.event(), "start");
   for (const char* expected :
        {"\"pid\":4242", "\"server_address\":\"10.250.0.1\"", "\"service_id\":19950", "\"event_id\":32769",
         "\"eventgroup_id\":1", "\"reliable_port\":30509", "\"sd_port\":30490",
         "\"multicast_group\":\"224.244.224.245\"", "\"join_multicast\":true", "\"listen\":\"127.0.0.1:4731\"",
-        "\"clock_offset_bound_ns\":0", "\"discard_policy\":\"provisional_sequence_and_phase_start\"",
+        "\"phase_start_margin_ns\":20000000", "\"copy_memory_frames\":40",
+        "\"discard_policy\":\"receiver_subscription_phase_discard_rule\"",
         "\"subscription_ttl_s\":3", "\"renew_period_ns\":1000000000", "\"max_payload_bytes\":2048",
         "\"log_frames\":true"}) {
     EXPECT_NE(record.fields().find(expected), std::string::npos) << expected;

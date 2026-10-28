@@ -1,13 +1,19 @@
 // Pure core of the DE4SDV minimal SOME/IP receiver: one object that holds
-// the subscription, the SOME/IP-over-TCP reassembly, the payload checks and
-// the discard policy, and decides for every frame whether it goes to the
-// loopback client of the HMI ingress.
+// the subscription, the SOME/IP-over-TCP reassembly, the payload checks, the
+// subscription phase and the discard policy, and decides for every frame
+// whether it goes to the loopback client of the HMI ingress.
 //
-// The I/O shell feeds it the socket events and implements its ports. Each
-// notification of the frame event ends in exactly one outcome: delivered,
-// or dropped with one reason. So frames_received equals frames_delivered
-// plus the sum of the drops. The receiver holds no queue: a frame that
-// finds no client, or no subscription, is dropped at once.
+// Subscription phase (receiverSubscriptionPhaseDiscardRule): a phase holds
+// while the receiver is subscribed at someipd and the ingress is its only
+// loopback client. It starts when the second of the two conditions starts to
+// hold, at the receiver's CLOCK_REALTIME, and ends when one of them ends. The
+// acknowledgement of a renewal changes nothing. A second client is refused
+// and starts no phase. Outside a phase every frame is read and dropped.
+//
+// The I/O shell feeds the core the socket events and implements its ports.
+// Each notification of the frame event ends in exactly one outcome:
+// delivered, or dropped with one reason. So frames_received equals
+// frames_delivered plus the sum of the drops. The receiver holds no queue.
 
 #ifndef DE4SDV_SOMEIP_RECEIVER_RECEIVER_CORE_HPP
 #define DE4SDV_SOMEIP_RECEIVER_RECEIVER_CORE_HPP
@@ -15,6 +21,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 #include "de4sdv_someip_receiver/discard_policy.hpp"
 #include "de4sdv_someip_receiver/event_log.hpp"
@@ -47,14 +54,15 @@ enum class DropReason : std::uint8_t {
   kPayloadTooLarge,
   kLengthPrefixMismatch,
   kFrameUnreadable,
-  kNotSubscribed,
-  kNoClient,
-  kSequenceNotIncreasing,
+  kNotSubscribed,  // outside a phase: no subscription
+  kNoClient,       // outside a phase: subscribed, but no client
+  kFieldNotPositive,
   kOlderThanPhase,
+  kCopyInPhase,
   kClientWriteFailed,
 };
 
-constexpr std::size_t kDropReasonCount = 9;
+constexpr std::size_t kDropReasonCount = 10;
 
 const char* ToText(DropReason reason) noexcept;
 
@@ -68,10 +76,11 @@ struct ReceiverCounters {
   std::uint64_t frames_received{0};
   std::uint64_t frames_delivered{0};
   std::array<std::uint64_t, kDropReasonCount> drops{};
-  std::uint64_t clients_connected{0};
+  std::uint64_t clients_accepted{0};
+  std::uint64_t clients_refused{0};
   std::uint64_t clients_lost{0};
-  std::uint64_t phases_by_subscription{0};
-  std::uint64_t phases_by_client{0};
+  std::uint64_t phases_started{0};
+  std::uint64_t phases_ended{0};
 
   std::uint64_t frames_dropped() const noexcept;
 };
@@ -88,13 +97,16 @@ class ReceiverCore final : private SubscriptionTransport, private SubscriptionLi
   void OnTcpConnectFailed(const Clock& now, int error_number);
   void OnTcpData(const Clock& now, const std::uint8_t* data, std::size_t size);
   void OnTcpClosed(const Clock& now);
-  void OnClientConnected(const Clock& now);
+  // A loopback client connected. false: another client is connected, so the
+  // shell closes the new one; it is not served and starts no phase.
+  bool OnClientAccepted(const Clock& now);
   void OnClientDisconnected(const Clock& now);
   void Stop(const Clock& now);
 
   std::int64_t NextDeadline() const noexcept { return machine_.NextDeadline(); }
   bool subscribed() const noexcept { return machine_.subscribed(); }
   bool client_connected() const noexcept { return client_connected_; }
+  bool in_phase() const noexcept { return in_phase_; }
   const ReceiverCounters& counters() const noexcept { return counters_; }
   const SubscriptionMachine& subscription() const noexcept { return machine_; }
   // A status line with every counter.
@@ -114,7 +126,8 @@ class ReceiverCore final : private SubscriptionTransport, private SubscriptionLi
   void Drop(const Clock& now, DropReason reason, const Header& header, std::size_t size, const FrameFields* fields);
   void LogFrame(const Clock& now, const char* verdict, const Header& header, std::size_t size,
                 const FrameFields* fields);
-  void StartPhase(const Clock& now, PhaseCause cause);
+  // Starts or ends the phase when the two conditions change; cause names the change.
+  void UpdatePhase(const Clock& now, const std::string& cause);
 
   ReceiverConfig config_;
   SubscriptionTransport& transport_;
@@ -124,6 +137,8 @@ class ReceiverCore final : private SubscriptionTransport, private SubscriptionLi
   SubscriptionMachine machine_;
   SomeipStreamReassembler reassembler_;
   bool client_connected_{false};
+  bool in_phase_{false};
+  std::int64_t phase_start_realtime_ns_{0};
   ReceiverCounters counters_{};
 };
 

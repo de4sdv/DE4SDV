@@ -27,10 +27,12 @@ const char* ToText(DropReason reason) noexcept {
       return "not_subscribed";
     case DropReason::kNoClient:
       return "no_client";
-    case DropReason::kSequenceNotIncreasing:
-      return "sequence_not_increasing";
+    case DropReason::kFieldNotPositive:
+      return "field_not_positive";
     case DropReason::kOlderThanPhase:
       return "older_than_phase";
+    case DropReason::kCopyInPhase:
+      return "copy_in_phase";
     case DropReason::kClientWriteFailed:
       return "client_write_failed";
   }
@@ -69,24 +71,33 @@ bool ReceiverCore::SendSd(const std::vector<std::uint8_t>& datagram, std::uint32
   return transport_.SendSd(datagram, address, port);
 }
 
-void ReceiverCore::StartPhase(const Clock& now, PhaseCause cause) {
-  policy_.OnPhaseStart(cause, now.realtime_ns);
-  if (cause == PhaseCause::kSubscriptionAcknowledged) {
-    ++counters_.phases_by_subscription;
-  } else {
-    ++counters_.phases_by_client;
+void ReceiverCore::UpdatePhase(const Clock& now, const std::string& cause) {
+  const bool holds = machine_.subscribed() && client_connected_;
+  if (holds && !in_phase_) {
+    in_phase_ = true;
+    phase_start_realtime_ns_ = now.realtime_ns;
+    ++counters_.phases_started;
+    policy_.OnPhaseStart(now.realtime_ns);
+    log_.Log(now, LogRecord{"phase_start"}
+                      .Text("cause", cause)
+                      .Signed("phase_start_realtime_ns", now.realtime_ns)
+                      .Unsigned("phase", counters_.phases_started));
+  } else if (!holds && in_phase_) {
+    in_phase_ = false;
+    ++counters_.phases_ended;
+    policy_.OnPhaseEnd();
+    log_.Log(now, LogRecord{"phase_end"}
+                      .Text("cause", cause)
+                      .Signed("phase_start_realtime_ns", phase_start_realtime_ns_)
+                      .Unsigned("phase", counters_.phases_started));
   }
-  log_.Log(now, LogRecord{"phase_start"}
-                    .Text("cause", ToText(cause))
-                    .Signed("phase_start_realtime_ns", now.realtime_ns)
-                    .Bool("subscribed", machine_.subscribed())
-                    .Bool("client_connected", client_connected_));
 }
 
-void ReceiverCore::OnSubscribed(const Clock& now) { StartPhase(now, PhaseCause::kSubscriptionAcknowledged); }
+void ReceiverCore::OnSubscribed(const Clock& now) { UpdatePhase(now, "subscription_acknowledged"); }
 
 void ReceiverCore::OnSubscriptionLost(const Clock& now, SubscriptionLoss loss) {
   log_.Log(now, LogRecord{"subscription_lost"}.Text("reason", ToText(loss)));
+  UpdatePhase(now, std::string{"subscription_lost:"} + ToText(loss));
 }
 
 void ReceiverCore::OnTick(const Clock& now) { machine_.OnTick(now); }
@@ -132,11 +143,17 @@ void ReceiverCore::OnTcpClosed(const Clock& now) {
   machine_.OnTcpClosed(now);
 }
 
-void ReceiverCore::OnClientConnected(const Clock& now) {
+bool ReceiverCore::OnClientAccepted(const Clock& now) {
+  if (client_connected_) {
+    ++counters_.clients_refused;
+    log_.Log(now, LogRecord{"client_refused"}.Text("reason", "a client is connected"));
+    return false;
+  }
   client_connected_ = true;
-  ++counters_.clients_connected;
+  ++counters_.clients_accepted;
   log_.Log(now, LogRecord{"client_connected"});
-  StartPhase(now, PhaseCause::kClientConnected);
+  UpdatePhase(now, "client_connected");
+  return true;
 }
 
 void ReceiverCore::OnClientDisconnected(const Clock& now) {
@@ -146,6 +163,7 @@ void ReceiverCore::OnClientDisconnected(const Clock& now) {
   client_connected_ = false;
   ++counters_.clients_lost;
   log_.Log(now, LogRecord{"client_lost"});
+  UpdatePhase(now, "client_lost");
 }
 
 void ReceiverCore::Stop(const Clock& now) { machine_.Stop(now); }
@@ -199,22 +217,22 @@ void ReceiverCore::OnMessage(const Clock& now, const Header& header, const std::
     return;
   }
   const FrameFields& fields = *read.fields;
-  if (!machine_.subscribed()) {
-    Drop(now, DropReason::kNotSubscribed, header, size, &fields);
+  if (!in_phase_) {  // outside a phase: read every frame and drop it
+    Drop(now, machine_.subscribed() ? DropReason::kNoClient : DropReason::kNotSubscribed, header, size, &fields);
     return;
   }
-  if (!client_connected_) {
-    Drop(now, DropReason::kNoClient, header, size, &fields);
-    return;
-  }
-  const FrameVerdict verdict = policy_.Admit(fields);
-  if (verdict == FrameVerdict::kDropSequenceNotIncreasing) {
-    Drop(now, DropReason::kSequenceNotIncreasing, header, size, &fields);
-    return;
-  }
-  if (verdict == FrameVerdict::kDropOlderThanPhase) {
-    Drop(now, DropReason::kOlderThanPhase, header, size, &fields);
-    return;
+  switch (policy_.Admit(fields)) {
+    case FrameVerdict::kDeliver:
+      break;
+    case FrameVerdict::kDropFieldNotPositive:
+      Drop(now, DropReason::kFieldNotPositive, header, size, &fields);
+      return;
+    case FrameVerdict::kDropOlderThanPhase:
+      Drop(now, DropReason::kOlderThanPhase, header, size, &fields);
+      return;
+    case FrameVerdict::kDropCopyInPhase:
+      Drop(now, DropReason::kCopyInPhase, header, size, &fields);
+      return;
   }
   if (!sink_.Forward(payload, size)) {
     Drop(now, DropReason::kClientWriteFailed, header, size, &fields);
@@ -231,6 +249,8 @@ LogRecord ReceiverCore::Status(const char* event) const {
   LogRecord record{event};
   record.Text("subscription_state", ToText(machine_.state()))
       .Bool("client_connected", client_connected_)
+      .Bool("in_phase", in_phase_)
+      .Signed("phase_start_realtime_ns", in_phase_ ? phase_start_realtime_ns_ : 0)
       .Bool("offer_known", machine_.has_offer())
       .Unsigned("frames_received", c.frames_received)
       .Unsigned("frames_delivered", c.frames_delivered)
@@ -245,10 +265,11 @@ LogRecord ReceiverCore::Status(const char* event) const {
       .Unsigned("stream_framing_errors", c.stream_framing_errors)
       .Unsigned("sd_datagrams", c.sd_datagrams)
       .Unsigned("sd_malformed", c.sd_malformed)
-      .Unsigned("clients_connected", c.clients_connected)
+      .Unsigned("clients_accepted", c.clients_accepted)
+      .Unsigned("clients_refused", c.clients_refused)
       .Unsigned("clients_lost", c.clients_lost)
-      .Unsigned("phases_by_subscription", c.phases_by_subscription)
-      .Unsigned("phases_by_client", c.phases_by_client)
+      .Unsigned("phases_started", c.phases_started)
+      .Unsigned("phases_ended", c.phases_ended)
       .Unsigned("offers", s.offers)
       .Unsigned("stop_offers", s.stop_offers)
       .Unsigned("sd_messages_from_other_senders", s.sd_messages_from_other_senders)

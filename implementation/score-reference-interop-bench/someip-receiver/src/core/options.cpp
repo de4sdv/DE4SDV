@@ -3,6 +3,8 @@
 #include <functional>
 #include <map>
 
+#include "de4sdv_someip_receiver/discard_policy.hpp"
+
 namespace de4sdv::someip_receiver {
 
 namespace {
@@ -51,7 +53,7 @@ std::string Hex16(std::uint16_t value) {
 }  // namespace
 
 std::string Usage() {
-  return "usage: de4sdv_someip_receiver --server-address <ipv4> --clock-offset-bound-ms <ms> [options]\n"
+  return "usage: de4sdv_someip_receiver --server-address <ipv4> [options]\n"
          "  --sd-port <port>              SOME/IP-SD port (30490)\n"
          "  --reliable-port <port>        TCP port of the event without an offer (30509)\n"
          "  --multicast-group <ipv4>      SD multicast group (224.244.224.245)\n"
@@ -69,14 +71,15 @@ std::string Usage() {
          "  --listen-port <port>          port of the frame server (4731)\n"
          "  --max-payload-bytes <n>       largest payload: prefix and frame (2048)\n"
          "  --status-period-s <s>         period of the status line (10)\n"
-         "  --log-frames                  one log line per frame of the event\n";
+         "  --log-frames                  one log line per frame of the event\n"
+         "  --announce-property <name=value>  set this system property once the loopback\n"
+         "                                server listens (Android only)\n";
 }
 
 ParsedOptions ParseOptions(const std::vector<std::string>& arguments) {
   ParsedOptions result;
   ReceiverOptions options;
   bool has_server = false;
-  bool has_bound = false;
   SubscriptionConfig& s = options.receiver.subscription;
   std::string error;
 
@@ -115,10 +118,15 @@ ParsedOptions ParseOptions(const std::vector<std::string>& arguments) {
 
   const std::map<std::string, Setter> valued = {
       {"--server-address", address([&](std::uint32_t v) { s.server_address = v; has_server = true; })},
-      {"--clock-offset-bound-ms", number(3'600'000, [&](std::uint64_t v) {
-         options.clock_offset_bound_ns = static_cast<std::int64_t>(v) * kNanosecondsPerMillisecond;
-         has_bound = true;
-       })},
+      {"--announce-property", [&](const std::string& text) {
+         std::string name;
+         std::string value;
+         if (!SplitProperty(text, &name, &value)) {
+           return false;
+         }
+         options.announce_property = text;
+         return true;
+       }},
       {"--sd-port", number(65535, [&](std::uint64_t v) { s.sd_port = static_cast<std::uint16_t>(v); })},
       {"--reliable-port", number(65535, [&](std::uint64_t v) { s.reliable_port = static_cast<std::uint16_t>(v); })},
       {"--multicast-group", address([&](std::uint32_t v) { options.multicast_group = v; })},
@@ -172,9 +180,6 @@ ParsedOptions ParseOptions(const std::vector<std::string>& arguments) {
   if (!has_server) {
     return fail("--server-address is required");
   }
-  if (!has_bound) {
-    return fail("--clock-offset-bound-ms is required");
-  }
   if (s.sd_port == 0 || s.reliable_port == 0 || options.listen_port == 0) {
     return fail("a port must not be 0");
   }
@@ -203,6 +208,16 @@ ParsedOptions ParseOptions(const std::vector<std::string>& arguments) {
   return result;
 }
 
+bool SplitProperty(const std::string& text, std::string* name, std::string* value) {
+  const std::size_t equals = text.find('=');
+  if (equals == std::string::npos || equals == 0U) {
+    return false;
+  }
+  *name = text.substr(0, equals);
+  *value = text.substr(equals + 1);
+  return true;
+}
+
 LogRecord StartRecord(const ReceiverOptions& options, const char* policy_name, std::int64_t pid) {
   const SubscriptionConfig& s = options.receiver.subscription;
   LogRecord record{"start"};
@@ -229,7 +244,9 @@ LogRecord StartRecord(const ReceiverOptions& options, const char* policy_name, s
       .Text("listen", Ipv4ToText(options.listen_address) + ":" + std::to_string(options.listen_port))
       .Unsigned("max_payload_bytes", options.receiver.max_payload_bytes)
       .Text("discard_policy", policy_name)
-      .Signed("clock_offset_bound_ns", options.clock_offset_bound_ns)
+      .Signed("phase_start_margin_ns", PhaseStartDiscardPolicy::kPhaseStartMarginNs)
+      .Unsigned("copy_memory_frames", PhaseStartDiscardPolicy::kCopyMemoryFrames)
+      .Text("announce_property", options.announce_property)
       .Signed("status_period_ns", options.status_period_ns)
       .Signed("client_write_timeout_ns", options.client_write_timeout_ns)
       .Bool("log_frames", options.receiver.log_frames);

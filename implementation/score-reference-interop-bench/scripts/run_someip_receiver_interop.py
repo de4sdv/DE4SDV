@@ -23,7 +23,9 @@ raw records in <out>/<case>/):
   guest end longer than the subscription TTL;
 - no_client: frames while no client is connected, then the client;
 - stored_samples: frames into the adapter before gatewayd starts, then
-  gatewayd and the subscription;
+  gatewayd and the subscription; then gatewayd restarted beside the running
+  someipd in the phase (a stimulus outside the operating rules, so that the
+  stored frames repeat served frames), then a restart of the gateway pair;
 - ttl_renewal: the unicast fallback only (no multicast membership) over
   five TTLs.
 
@@ -34,6 +36,7 @@ and exits with 0 only when every gate case passes.
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import glob
 import json
 import os
@@ -128,9 +131,10 @@ class Stack:
         self.order: list[str] = []
         self.timeline: dict = {"case": case, "events": [], "disturbances": [], "processes": {},
                                "receiver_logs": [], "gatewayd_logs": [], "parameters": {
-                                   "subscription_ttl_s": SUBSCRIPTION_TTL_S, "clock_offset_bound_ms": 0,
+                                   "subscription_ttl_s": SUBSCRIPTION_TTL_S, "phase_start_margin_ms": 20,
                                    "frame_port": FRAME_PORT, "loopback_port": LOOPBACK_PORT,
-                                   "host_ip": HOST_IP, "guest_ip": GUEST_IP}}
+                                   "host_ip": HOST_IP, "guest_ip": GUEST_IP,
+                                   "clocks": "both namespaces share the clock of one kernel"}}
         self.receiver_count = 0
         self.go_file = self.out / "go"
 
@@ -243,7 +247,7 @@ class Stack:
     def start_receiver(self, multicast: bool = True) -> str:
         self.receiver_count += 1
         name = f"receiver-{self.receiver_count}"
-        argv = [str(Path(self.args.receiver)), "--server-address", HOST_IP, "--clock-offset-bound-ms", "0",
+        argv = [str(Path(self.args.receiver)), "--server-address", HOST_IP,
                 "--ttl-s", str(SUBSCRIPTION_TTL_S), "--listen-port", str(LOOPBACK_PORT), "--status-period-s", "1",
                 "--log-frames"]
         if not multicast:
@@ -264,6 +268,11 @@ class Stack:
     def go(self) -> None:
         self.go_file.write_text("")
         self.note("go")
+
+    def disturbance(self, kind: str, start: dict, expects_resubscription: bool = True, **fields) -> None:
+        self.timeline["disturbances"].append({"kind": kind, "start_realtime_ns": start["realtime_ns"],
+                                              "end_realtime_ns": time.time_ns(),
+                                              "expects_resubscription": expects_resubscription, **fields})
 
     # -- shared memory
     def shared_memory_snapshot(self) -> None:
@@ -396,26 +405,16 @@ def case_resubscribe(stack: Stack) -> None:
     start = stack.note("disturbance receiver_sigterm_restart")
     stack.stop(receiver, signal.SIGTERM)
     receiver = stack.start_receiver()
-    stack.timeline["disturbances"].append({"kind": "receiver_sigterm_restart", "start_realtime_ns": start["realtime_ns"],
-                                           "end_realtime_ns": time.time_ns()})
+    stack.disturbance("receiver_sigterm_restart", start)
     _recover(stack, receiver, 0)
     # 2. receiver killed by SIGKILL and started again
     start = stack.note("disturbance receiver_sigkill_restart")
     stack.stop(receiver, signal.SIGKILL)
     receiver = stack.start_receiver()
-    stack.timeline["disturbances"].append({"kind": "receiver_sigkill_restart", "start_realtime_ns": start["realtime_ns"],
-                                           "end_realtime_ns": time.time_ns()})
+    stack.disturbance("receiver_sigkill_restart", start)
     _recover(stack, receiver, 0)
     # 3. the gateway pair restarted together (operating rule OR-2), the adapter kept
-    before = stack.subscribed_count(receiver)
-    start = stack.note("disturbance gateway_pair_restart")
-    stack.stop("gatewayd", signal.SIGKILL)
-    stack.stop("someipd", signal.SIGTERM)
-    stack.start_someipd("someipd-2")
-    stack.start_gatewayd("gatewayd-2", someipd="someipd-2")
-    stack.timeline["disturbances"].append({"kind": "gateway_pair_restart", "start_realtime_ns": start["realtime_ns"],
-                                           "end_realtime_ns": time.time_ns()})
-    _recover(stack, receiver, before)
+    pair_restart(stack, receiver, "gatewayd", "someipd", "gatewayd-2", "someipd-2")
     # 4. the guest end of the link down for longer than the subscription TTL
     before = stack.subscribed_count(receiver)
     start = stack.note("disturbance link_outage", seconds=LINK_OUTAGE_S)
@@ -424,9 +423,7 @@ def case_resubscribe(stack: Stack) -> None:
     run(["ip", "-n", GUEST_NS, "link", "set", GUEST_IF, "up"])
     # An administrative down removes the routes of the interface; restore the group route.
     run(["ip", "-n", GUEST_NS, "route", "replace", MULTICAST_ROUTE, "dev", GUEST_IF])
-    stack.timeline["disturbances"].append({"kind": "link_outage", "start_realtime_ns": start["realtime_ns"],
-                                           "end_realtime_ns": time.time_ns(),
-                                           "guest_route": run(["ip", "-n", GUEST_NS, "route"]).stdout})
+    stack.disturbance("link_outage", start, guest_route=run(["ip", "-n", GUEST_NS, "route"]).stdout)
     _recover(stack, receiver, before)
 
 
@@ -439,6 +436,19 @@ def case_no_client(stack: Stack) -> None:
     time.sleep(5.0)
 
 
+def pair_restart(stack: Stack, receiver: str, gatewayd: str, someipd: str, new_gatewayd: str,
+                 new_someipd: str) -> None:
+    """gatewayd killed, someipd stopped, both started again (operating rule OR-2); the adapter keeps running."""
+    before = stack.subscribed_count(receiver)
+    start = stack.note("disturbance gateway_pair_restart")
+    stack.stop(gatewayd, signal.SIGKILL)
+    stack.stop(someipd, signal.SIGTERM)
+    stack.start_someipd(new_someipd)
+    stack.start_gatewayd(new_gatewayd, someipd=new_someipd)
+    stack.disturbance("gateway_pair_restart", start)
+    _recover(stack, receiver, before)
+
+
 def case_stored_samples(stack: Stack) -> None:
     receiver = bring_up(stack, gatewayd=False, frames=0)
     stack.go()
@@ -447,7 +457,19 @@ def case_stored_samples(stack: Stack) -> None:
     stack.wait("gatewayd", GATEWAYD_FOUND, 20.0)
     stack.wait_count(receiver, '"event":"subscribed"', 1, 20.0)
     stack.shared_memory_snapshot()
-    time.sleep(5.0)
+    time.sleep(4.0)
+    # gatewayd alone, beside the running someipd: the receiver stays subscribed,
+    # so its phase goes on, and the stored frames of gatewayd's new
+    # subscription repeat frames that the receiver served in the phase.
+    start = stack.note("disturbance gatewayd_restart")
+    stack.stop("gatewayd", signal.SIGKILL)
+    time.sleep(1.0)
+    stack.start_gatewayd("gatewayd-2")
+    stack.wait("gatewayd-2", GATEWAYD_FOUND, 20.0)
+    stack.disturbance("gatewayd_restart", start, expects_resubscription=False)
+    time.sleep(4.0)
+    # The gateway pair: a new subscription, so the stored frames are older than the new phase.
+    pair_restart(stack, receiver, "gatewayd-2", "someipd", "gatewayd-3", "someipd-2")
 
 
 def case_ttl_renewal(stack: Stack) -> None:
@@ -471,9 +493,12 @@ def summarize(results: dict[str, dict]) -> str:
     for case, result in results.items():
         metrics = result.get("metrics", {})
         keys = ("frames_produced", "frames_byte_identical", "frames_at_client", "duplicates_at_client",
-                "dropped_no_client", "stored_frames_on_link", "stored_frames_by_verdict", "acked_window_s",
-                "largest_ack_gap_s", "drops_by_reason")
+                "band_frames", "dropped_no_client", "stored_frames_dropped", "repeats_on_link", "acked_window_s",
+                "largest_ack_gap_s", "nacks_before_first_ack")
         data = "; ".join(f"{key} {metrics[key]}" for key in keys if key in metrics)
+        drops = {reason: count for reason, count in metrics.get("drops_by_reason", {}).items() if count}
+        phases = Counter(phase["cause"] for phase in metrics.get("phases", []))
+        data += f"; drops {drops or 'none'}; phase starts {dict(phases)}"
         lines.append(f"| {case} | {result['outcome']} | {data} |")
         if result.get("reasons"):
             lines.append(f"| | | reasons: {'; '.join(result['reasons'])} |")

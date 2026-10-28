@@ -1,6 +1,7 @@
-// Unit tests of the receiver core: every notification of the frame event
-// ends delivered or dropped with one reason, the payload goes to the
-// loopback client unchanged, and nothing is queued.
+// Unit tests of the receiver core: the subscription phase of the discard
+// rule (subscribed and one client), every notification of the frame event
+// delivered or dropped with one reason, the payload unchanged, no queue.
+// Each event carries its clock, so the tests set every time they need.
 
 #include <gtest/gtest.h>
 
@@ -21,7 +22,7 @@ using de4sdv::someip_receiver::FrameSink;
 using de4sdv::someip_receiver::Ipv4Endpoint;
 using de4sdv::someip_receiver::kL4ProtocolTcp;
 using de4sdv::someip_receiver::LogRecord;
-using de4sdv::someip_receiver::ProvisionalDiscardPolicy;
+using de4sdv::someip_receiver::PhaseStartDiscardPolicy;
 using de4sdv::someip_receiver::ReceiverConfig;
 using de4sdv::someip_receiver::ReceiverCore;
 using de4sdv::someip_receiver::SubscriptionTransport;
@@ -31,7 +32,6 @@ using de4sdv::someip_receiver::test::LoadHexFixture;
 constexpr std::int64_t kMs = 1'000'000;
 constexpr std::int64_t kS = 1'000'000'000;
 constexpr std::int64_t kRealtimeBase = 1'793'116'440'000'000'000;
-constexpr std::int64_t kBound = 50 * kMs;
 constexpr std::uint32_t kServer = 0x0AFA0001;
 const Ipv4Endpoint kLocal{0x0AFA0002, 41000, kL4ProtocolTcp};
 
@@ -145,7 +145,7 @@ struct Bench {
   ReceiverConfig config;
   FakeTransport transport;
   FakeSink sink;
-  ProvisionalDiscardPolicy policy{kBound};
+  PhaseStartDiscardPolicy policy;
   Lines log;
   ReceiverCore core;
 
@@ -164,9 +164,13 @@ struct Bench {
     core.OnTcpConnected(At(t + 1 * kMs), kLocal);
     core.OnTick(At(t + 1 * kMs + config.subscription.subscribe_delay_ns));
     const std::int64_t ack_at = t + 2 * kMs + config.subscription.subscribe_delay_ns;
-    const Bytes ack = Ack(ack_session);
-    core.OnSdDatagram(At(ack_at), kServer, false, ack.data(), ack.size());
+    SdAck(ack_at, ack_session);
     return ack_at;
+  }
+
+  void SdAck(std::int64_t t, std::uint16_t session, std::uint32_t ttl = 3) {
+    const Bytes ack = Ack(session, ttl);
+    core.OnSdDatagram(At(t), kServer, false, ack.data(), ack.size());
   }
 
   void Data(std::int64_t t, const Bytes& bytes) { core.OnTcpData(At(t), bytes.data(), bytes.size()); }
@@ -181,31 +185,192 @@ struct Bench {
   }
 };
 
-TEST(ReceiverCore, SubscribedWithClientDeliversThePayloadUnchanged) {
+// A phase that starts with the client at ack + 1 ms; returns the phase start (monotonic).
+std::int64_t StartPhase(Bench& bench) {
+  const std::int64_t ack = bench.Subscribe(0);
+  EXPECT_TRUE(bench.core.OnClientAccepted(At(ack + 1 * kMs)));
+  EXPECT_TRUE(bench.core.in_phase());
+  return ack + 1 * kMs;
+}
+
+std::int64_t Realtime(std::int64_t monotonic) { return kRealtimeBase + monotonic; }
+
+TEST(ReceiverCore, PhaseStartsWhenTheSecondConditionStartsToHold) {
   Bench bench;
   const std::int64_t ack = bench.Subscribe(0);
   EXPECT_TRUE(bench.core.subscribed());
-  bench.core.OnClientConnected(At(ack + 1 * kMs));
+  EXPECT_FALSE(bench.core.in_phase());  // subscribed, no client
+  EXPECT_EQ(bench.log.Count("\"event\":\"phase_start\""), 0);
+  ASSERT_TRUE(bench.core.OnClientAccepted(At(ack + 7 * kMs)));
+  EXPECT_TRUE(bench.core.in_phase());
+  ASSERT_EQ(bench.log.Count("\"event\":\"phase_start\""), 1);
+  EXPECT_EQ(bench.log.Count("\"cause\":\"client_connected\",\"phase_start_realtime_ns\":" +
+                            std::to_string(Realtime(ack + 7 * kMs))),
+            1);
+}
+
+TEST(ReceiverCore, ClientWithoutSubscriptionStartsNoPhase) {
+  Bench bench;
+  ASSERT_TRUE(bench.core.OnClientAccepted(At(0)));
+  EXPECT_FALSE(bench.core.in_phase());
+  EXPECT_EQ(bench.core.counters().phases_started, 0U);
+  const std::int64_t ack = bench.Subscribe(1 * kMs);
+  EXPECT_TRUE(bench.core.in_phase());
+  EXPECT_EQ(bench.log.Count("\"cause\":\"subscription_acknowledged\",\"phase_start_realtime_ns\":" +
+                            std::to_string(Realtime(ack))),
+            1);
+}
+
+TEST(ReceiverCore, RenewalAckDoesNotRestartThePhase) {
+  Bench bench;
+  const std::int64_t start = StartPhase(bench);
+  for (int renewal = 1; renewal <= 5; ++renewal) {
+    const std::int64_t at = start + renewal * kS;
+    bench.core.OnTick(At(at));
+    bench.SdAck(at + 1 * kMs, static_cast<std::uint16_t>(renewal + 1));
+  }
+  EXPECT_TRUE(bench.core.in_phase());
+  EXPECT_EQ(bench.core.counters().phases_started, 1U);
+  EXPECT_EQ(bench.core.counters().phases_ended, 0U);
+}
+
+TEST(ReceiverCore, SecondClientIsRefusedAndStartsNoPhase) {
+  Bench bench;
+  bench.Subscribe(0);
+  ASSERT_TRUE(bench.core.OnClientAccepted(At(100 * kMs)));
+  EXPECT_FALSE(bench.core.OnClientAccepted(At(200 * kMs)));
+  EXPECT_EQ(bench.core.counters().clients_refused, 1U);
+  EXPECT_EQ(bench.core.counters().phases_started, 1U);
+  EXPECT_EQ(bench.log.Count("\"event\":\"client_refused\""), 1);
+  // The first client stays the only one: its loss ends the phase.
+  bench.core.OnClientDisconnected(At(300 * kMs));
+  EXPECT_FALSE(bench.core.in_phase());
+  EXPECT_EQ(bench.log.Count("\"event\":\"phase_end\",\"cause\":\"client_lost\""), 1);
+}
+
+TEST(ReceiverCore, FramesOutsideAPhaseAreReadAndDropped) {
+  Bench bench;
+  bench.core.OnTick(At(0));
+  bench.core.OnTcpConnected(At(1 * kMs), kLocal);
+  bench.Data(2 * kMs, FrameNotification(1, Realtime(2 * kMs)));  // connected, not subscribed
+  const std::int64_t ack = 30 * kMs;
+  bench.core.OnTick(At(25 * kMs));
+  bench.SdAck(ack, 1);
+  bench.Data(ack + 1 * kMs, FrameNotification(2, Realtime(ack + 1 * kMs)));  // subscribed, no client
+  EXPECT_EQ(bench.Dropped(DropReason::kNotSubscribed), 1U);
+  EXPECT_EQ(bench.Dropped(DropReason::kNoClient), 1U);
+  EXPECT_TRUE(bench.sink.delivered.empty());
+  // The client connects: nothing was kept for it.
+  ASSERT_TRUE(bench.core.OnClientAccepted(At(ack + 2 * kMs)));
+  EXPECT_TRUE(bench.sink.delivered.empty());
+  bench.ExpectBalanced();
+}
+
+TEST(ReceiverCore, MarginOfTwentyMillisecondsBeforeThePhaseStart) {
+  Bench bench;
+  const std::int64_t start = StartPhase(bench);
+  bench.Data(start + 1 * kMs, FrameNotification(10, Realtime(start) - 19 * kMs));
+  bench.Data(start + 2 * kMs, FrameNotification(11, Realtime(start) - 21 * kMs));
+  ASSERT_EQ(bench.sink.delivered.size(), 1U);
+  EXPECT_EQ(bench.Dropped(DropReason::kOlderThanPhase), 1U);
+  bench.ExpectBalanced();
+}
+
+TEST(ReceiverCore, OlderFrameThatIsNoCopyIsServedAndACopyIsDropped) {
+  Bench bench;
+  const std::int64_t start = StartPhase(bench);
+  bench.Data(start + 10 * kMs, FrameNotification(20, Realtime(start) + 9 * kMs));
+  bench.Data(start + 11 * kMs, FrameNotification(19, Realtime(start) + 5 * kMs));  // older, no copy
+  bench.Data(start + 12 * kMs, FrameNotification(20, Realtime(start) + 9 * kMs));  // copy
+  EXPECT_EQ(bench.sink.delivered.size(), 2U);
+  EXPECT_EQ(bench.Dropped(DropReason::kCopyInPhase), 1U);
+  EXPECT_EQ(bench.log.Count("\"verdict\":\"copy_in_phase\""), 1);
+  bench.ExpectBalanced();
+}
+
+TEST(ReceiverCore, FieldsWithoutPositiveValueAreDropped) {
+  Bench bench;
+  const std::int64_t start = StartPhase(bench);
+  bench.Data(start + 1 * kMs, Notification(Prefixed(Frame(0, Realtime(start)))));
+  bench.Data(start + 2 * kMs, Notification(Prefixed(Frame(5, 0))));
+  bench.Data(start + 3 * kMs, Notification(Prefixed(Frame(6, -1))));
+  // A frame without fields 3 and 4: both read as 0.
+  bench.Data(start + 4 * kMs, Notification(Prefixed(Bytes{0x08, 0x01, 0x10, 0x01})));
+  EXPECT_EQ(bench.Dropped(DropReason::kFieldNotPositive), 4U);
+  EXPECT_TRUE(bench.sink.delivered.empty());
+  bench.ExpectBalanced();
+}
+
+TEST(ReceiverCore, LossOfEitherConditionEndsThePhase) {
+  Bench bench;
+  std::int64_t start = StartPhase(bench);
+  // TTL of the last acknowledged subscription ends without a renewal Ack.
+  bench.core.OnTick(At(start + 3 * kS));
+  EXPECT_FALSE(bench.core.in_phase());
+  EXPECT_EQ(bench.log.Count("\"cause\":\"subscription_lost:ttl_expired\""), 1);
+  bench.SdAck(start + 3 * kS + 5 * kMs, 9);
+  EXPECT_TRUE(bench.core.in_phase());
+  // Nack.
+  bench.SdAck(start + 4 * kS, 10, 0);
+  EXPECT_FALSE(bench.core.in_phase());
+  EXPECT_EQ(bench.log.Count("\"cause\":\"subscription_lost:nack\""), 1);
+  // Loss of the TCP connection.
+  start = bench.Subscribe(start + 5 * kS, 11);
+  EXPECT_TRUE(bench.core.in_phase());
+  bench.core.OnTcpClosed(At(start + 1 * kS));
+  EXPECT_FALSE(bench.core.in_phase());
+  EXPECT_EQ(bench.log.Count("\"cause\":\"subscription_lost:tcp_closed\""), 1);
+  // StopOffer.
+  start = bench.Subscribe(start + 2 * kS, 12);
+  EXPECT_TRUE(bench.core.in_phase());
+  const Bytes stop = LoadHexFixture("sd_stop_offer");
+  bench.core.OnSdDatagram(At(start + 1 * kS), kServer, true, stop.data(), stop.size());
+  EXPECT_FALSE(bench.core.in_phase());
+  EXPECT_EQ(bench.log.Count("\"cause\":\"subscription_lost:stop_offer\""), 1);
+  EXPECT_EQ(bench.core.counters().phases_started, 4U);
+  EXPECT_EQ(bench.core.counters().phases_ended, 4U);
+}
+
+TEST(ReceiverCore, StoredFramesAfterAResubscriptionAreDropped) {
+  Bench bench;
+  std::int64_t start = StartPhase(bench);
+  bench.Data(start + 100 * kMs, FrameNotification(40, Realtime(start) + 90 * kMs));
+  bench.core.OnTcpClosed(At(start + 1 * kS));
+  start = bench.Subscribe(start + 5 * kS, 2);  // the client stayed: the Ack starts the phase
+  ASSERT_TRUE(bench.core.in_phase());
+  // Ten frames that the layer stored about 4 s before, one a copy of frame 40.
+  bench.Data(start + 1 * kMs, FrameNotification(40, Realtime(start) - 4910 * kMs));
+  for (std::uint64_t sequence = 41; sequence <= 49; ++sequence) {
+    bench.Data(start + 1 * kMs, FrameNotification(sequence, Realtime(start) - 4000 * kMs));
+  }
+  bench.Data(start + 50 * kMs, FrameNotification(50, Realtime(start) + 40 * kMs));
+  EXPECT_EQ(bench.Dropped(DropReason::kOlderThanPhase), 10U);
+  ASSERT_EQ(bench.sink.delivered.size(), 2U);
+  EXPECT_EQ(bench.core.counters().phases_started, 2U);
+  bench.ExpectBalanced();
+}
+
+TEST(ReceiverCore, ServedPayloadIsUnchanged) {
+  Bench bench;
+  const std::int64_t start = StartPhase(bench);
   Bytes stream;
   std::vector<Bytes> payloads;
   for (std::uint64_t sequence = 1; sequence <= 3; ++sequence) {
-    const Bytes payload = Prefixed(Frame(sequence, kRealtimeBase + ack + static_cast<std::int64_t>(sequence) * kMs));
+    const Bytes payload = Prefixed(Frame(sequence, Realtime(start) + static_cast<std::int64_t>(sequence) * kMs));
     payloads.push_back(payload);
     const Bytes message = Notification(payload, static_cast<std::uint16_t>(sequence));
     stream.insert(stream.end(), message.begin(), message.end());
   }
-  bench.Data(ack + 10 * kMs, stream);
+  bench.Data(start + 10 * kMs, stream);
   EXPECT_EQ(bench.sink.delivered, payloads);
-  EXPECT_EQ(bench.core.counters().frames_delivered, 3U);
   EXPECT_EQ(bench.log.Count("\"event\":\"frame\",\"verdict\":\"delivered\""), 3);
   bench.ExpectBalanced();
 }
 
 TEST(ReceiverCore, LargestFrameOf2044BytesIsDelivered) {
   Bench bench;
-  const std::int64_t ack = bench.Subscribe(0);
-  bench.core.OnClientConnected(At(ack));
-  Bytes frame = Frame(7, kRealtimeBase + ack);
+  const std::int64_t start = StartPhase(bench);
+  Bytes frame = Frame(7, Realtime(start));
   // Pad with an unknown length-delimited field (number 16) up to 2044 bytes.
   frame.push_back(0x82);
   frame.push_back(0x01);
@@ -214,7 +379,7 @@ TEST(ReceiverCore, LargestFrameOf2044BytesIsDelivered) {
   frame.insert(frame.end(), room, 0x5A);
   ASSERT_EQ(frame.size(), 2044U);
   const Bytes payload = Prefixed(frame);
-  bench.Data(ack + 1 * kMs, Notification(payload));
+  bench.Data(start + 1 * kMs, Notification(payload));
   ASSERT_EQ(bench.sink.delivered.size(), 1U);
   EXPECT_EQ(bench.sink.delivered[0], payload);
   EXPECT_EQ(bench.sink.delivered[0].size(), 2048U);
@@ -222,81 +387,24 @@ TEST(ReceiverCore, LargestFrameOf2044BytesIsDelivered) {
 
 TEST(ReceiverCore, PayloadAboveTheSampleSizeIsDropped) {
   Bench bench;
-  const std::int64_t ack = bench.Subscribe(0);
-  bench.core.OnClientConnected(At(ack));
-  Bytes frame = Frame(7, kRealtimeBase + ack);
-  frame.resize(2045, 0x00);  // trailing zero bytes are not a valid field, but the size check comes first
-  bench.Data(ack + 1 * kMs, Notification(Prefixed(frame)));
+  const std::int64_t start = StartPhase(bench);
+  Bytes frame = Frame(7, Realtime(start));
+  frame.resize(2045, 0x00);
+  bench.Data(start + 1 * kMs, Notification(Prefixed(frame)));
   EXPECT_TRUE(bench.sink.delivered.empty());
   EXPECT_EQ(bench.Dropped(DropReason::kPayloadTooLarge), 1U);
   bench.ExpectBalanced();
 }
 
-TEST(ReceiverCore, FramesWithoutClientAreDroppedAndNotQueued) {
-  Bench bench;
-  const std::int64_t ack = bench.Subscribe(0);
-  for (std::uint64_t sequence = 1; sequence <= 5; ++sequence) {
-    bench.Data(ack + static_cast<std::int64_t>(sequence) * 100 * kMs,
-               FrameNotification(sequence, kRealtimeBase + ack + static_cast<std::int64_t>(sequence) * 100 * kMs));
-  }
-  EXPECT_EQ(bench.Dropped(DropReason::kNoClient), 5U);
-  const std::int64_t connected = ack + 600 * kMs;
-  bench.core.OnClientConnected(At(connected));
-  EXPECT_TRUE(bench.sink.delivered.empty());  // nothing queued for the new client
-  // A frame produced before the client connected, still in flight: older than the phase.
-  bench.Data(connected + 1 * kMs, FrameNotification(6, kRealtimeBase + connected - kBound - 1));
-  bench.Data(connected + 2 * kMs, FrameNotification(7, kRealtimeBase + connected + 1 * kMs));
-  ASSERT_EQ(bench.sink.delivered.size(), 1U);
-  EXPECT_EQ(bench.Dropped(DropReason::kOlderThanPhase), 1U);
-  EXPECT_EQ(bench.core.counters().phases_by_client, 1U);
-  bench.ExpectBalanced();
-}
-
-TEST(ReceiverCore, FramesBeforeTheAckAreDropped) {
-  Bench bench;
-  bench.core.OnClientConnected(At(0));
-  bench.core.OnTick(At(0));
-  bench.core.OnTcpConnected(At(1 * kMs), kLocal);
-  bench.Data(2 * kMs, FrameNotification(1, kRealtimeBase + 2 * kMs));
-  EXPECT_EQ(bench.Dropped(DropReason::kNotSubscribed), 1U);
-  EXPECT_TRUE(bench.sink.delivered.empty());
-  bench.ExpectBalanced();
-}
-
-TEST(ReceiverCore, StoredFramesAfterAResubscriptionAreDroppedAndCounted) {
-  Bench bench;
-  std::int64_t ack = bench.Subscribe(0);
-  bench.core.OnClientConnected(At(ack));
-  bench.Data(ack + 100 * kMs, FrameNotification(40, kRealtimeBase + ack + 90 * kMs));
-  // The TCP connection closes; a new connection and subscription follow 5 s later.
-  bench.core.OnTcpClosed(At(ack + 1 * kS));
-  ack = bench.Subscribe(ack + 5 * kS, 2);
-  ASSERT_TRUE(bench.core.subscribed());
-  // The layer sends ten frames that it stored about 4 s before the new phase,
-  // one of them a duplicate of a delivered frame, then new frames.
-  bench.Data(ack + 1 * kMs, FrameNotification(40, kRealtimeBase + ack - 4100 * kMs));
-  for (std::uint64_t sequence = 41; sequence <= 49; ++sequence) {
-    bench.Data(ack + 1 * kMs, FrameNotification(sequence, kRealtimeBase + ack - 4000 * kMs));
-  }
-  bench.Data(ack + 50 * kMs, FrameNotification(50, kRealtimeBase + ack + 40 * kMs));
-  EXPECT_EQ(bench.Dropped(DropReason::kSequenceNotIncreasing), 1U);
-  EXPECT_EQ(bench.Dropped(DropReason::kOlderThanPhase), 9U);
-  ASSERT_EQ(bench.sink.delivered.size(), 2U);
-  EXPECT_EQ(bench.core.counters().phases_by_subscription, 2U);
-  EXPECT_EQ(bench.log.Count("\"event\":\"phase_start\""), 3);
-  bench.ExpectBalanced();
-}
-
 TEST(ReceiverCore, LengthPrefixMismatchIsDroppedAndTheStreamStaysIntact) {
   Bench bench;
-  const std::int64_t ack = bench.Subscribe(0);
-  bench.core.OnClientConnected(At(ack));
-  Bytes bad = Prefixed(Frame(1, kRealtimeBase + ack));
+  const std::int64_t start = StartPhase(bench);
+  Bytes bad = Prefixed(Frame(1, Realtime(start)));
   bad[0] = static_cast<std::uint8_t>(bad[0] + 1);  // the prefix counts one byte too many
   Bytes stream = Notification(bad);
-  const Bytes good = FrameNotification(2, kRealtimeBase + ack + 1 * kMs);
+  const Bytes good = FrameNotification(2, Realtime(start) + 1 * kMs);
   stream.insert(stream.end(), good.begin(), good.end());
-  bench.Data(ack + 2 * kMs, stream);
+  bench.Data(start + 2 * kMs, stream);
   EXPECT_EQ(bench.Dropped(DropReason::kLengthPrefixMismatch), 1U);
   ASSERT_EQ(bench.sink.delivered.size(), 1U);
   bench.ExpectBalanced();
@@ -304,9 +412,8 @@ TEST(ReceiverCore, LengthPrefixMismatchIsDroppedAndTheStreamStaysIntact) {
 
 TEST(ReceiverCore, SpikePayloadsWithBigEndianPrefixAreAllDropped) {
   Bench bench;
-  const std::int64_t ack = bench.Subscribe(0);
-  bench.core.OnClientConnected(At(ack));
-  bench.Data(ack + 1 * kMs, LoadHexFixture("tcp_notifications_someipd"));
+  const std::int64_t start = StartPhase(bench);
+  bench.Data(start + 1 * kMs, LoadHexFixture("tcp_notifications_someipd"));
   EXPECT_EQ(bench.core.counters().frames_received, 4U);
   EXPECT_EQ(bench.Dropped(DropReason::kLengthPrefixMismatch), 4U);
   EXPECT_TRUE(bench.sink.delivered.empty());
@@ -315,25 +422,23 @@ TEST(ReceiverCore, SpikePayloadsWithBigEndianPrefixAreAllDropped) {
 
 TEST(ReceiverCore, UnreadableFrameIsDropped) {
   Bench bench;
-  const std::int64_t ack = bench.Subscribe(0);
-  bench.core.OnClientConnected(At(ack));
+  const std::int64_t start = StartPhase(bench);
   const Bytes truncated{0x08, 0x01, 0x18, 0x81};  // the varint of field 3 is cut
-  bench.Data(ack + 1 * kMs, Notification(Prefixed(truncated)));
+  bench.Data(start + 1 * kMs, Notification(Prefixed(truncated)));
   EXPECT_EQ(bench.Dropped(DropReason::kFrameUnreadable), 1U);
   bench.ExpectBalanced();
 }
 
 TEST(ReceiverCore, OtherMessagesAndMagicCookiesAreNotFrames) {
   Bench bench;
-  const std::int64_t ack = bench.Subscribe(0);
-  bench.core.OnClientConnected(At(ack));
-  Bytes stream = Notification(Prefixed(Frame(1, kRealtimeBase + ack)), 1, 0x8002);  // another event
+  const std::int64_t start = StartPhase(bench);
+  Bytes stream = Notification(Prefixed(Frame(1, Realtime(start))), 1, 0x8002);  // another event
   const Bytes cookie{0xFF, 0xFF, 0x80, 0x00, 0x00, 0x00, 0x00, 0x08,
                      0xDE, 0xAD, 0xBE, 0xEF, 0x01, 0x01, 0x02, 0x00};
   stream.insert(stream.end(), cookie.begin(), cookie.end());
-  const Bytes request = Notification(Prefixed(Frame(2, kRealtimeBase + ack)), 2, 0x8001, 0x00);
+  const Bytes request = Notification(Prefixed(Frame(2, Realtime(start))), 2, 0x8001, 0x00);
   stream.insert(stream.end(), request.begin(), request.end());
-  bench.Data(ack + 1 * kMs, stream);
+  bench.Data(start + 1 * kMs, stream);
   EXPECT_EQ(bench.core.counters().other_messages, 1U);
   EXPECT_EQ(bench.core.counters().magic_cookies, 1U);
   EXPECT_EQ(bench.core.counters().frames_received, 1U);
@@ -342,45 +447,43 @@ TEST(ReceiverCore, OtherMessagesAndMagicCookiesAreNotFrames) {
   bench.ExpectBalanced();
 }
 
-TEST(ReceiverCore, FailedWriteDropsTheFrameAndTheClient) {
+TEST(ReceiverCore, FailedWriteDropsTheFrameAndEndsThePhase) {
   Bench bench;
-  const std::int64_t ack = bench.Subscribe(0);
-  bench.core.OnClientConnected(At(ack));
+  const std::int64_t start = StartPhase(bench);
   bench.sink.fail = true;
-  bench.Data(ack + 1 * kMs, FrameNotification(1, kRealtimeBase + ack));
+  bench.Data(start + 1 * kMs, FrameNotification(1, Realtime(start)));
   EXPECT_EQ(bench.Dropped(DropReason::kClientWriteFailed), 1U);
   EXPECT_FALSE(bench.core.client_connected());
+  EXPECT_FALSE(bench.core.in_phase());
   EXPECT_EQ(bench.core.counters().clients_lost, 1U);
   bench.sink.fail = false;
-  bench.Data(ack + 2 * kMs, FrameNotification(2, kRealtimeBase + ack + 1 * kMs));
+  bench.Data(start + 2 * kMs, FrameNotification(2, Realtime(start) + 1 * kMs));
   EXPECT_EQ(bench.Dropped(DropReason::kNoClient), 1U);
   bench.ExpectBalanced();
 }
 
 TEST(ReceiverCore, LostFramingEndsTheConnectionAndResetsTheReassembly) {
   Bench bench;
-  const std::int64_t ack = bench.Subscribe(0);
-  bench.core.OnClientConnected(At(ack));
-  Bytes broken = FrameNotification(1, kRealtimeBase + ack);
+  const std::int64_t start = StartPhase(bench);
+  Bytes broken = FrameNotification(1, Realtime(start));
   broken[7] = 0x03;  // length 3
-  bench.Data(ack + 1 * kMs, broken);
+  bench.Data(start + 1 * kMs, broken);
   EXPECT_FALSE(bench.core.subscribed());
+  EXPECT_FALSE(bench.core.in_phase());
   EXPECT_EQ(bench.core.counters().stream_framing_errors, 1U);
   EXPECT_EQ(bench.transport.closes, 1);
-  // The next connection starts with clean framing.
-  const std::int64_t again = bench.Subscribe(ack + 1 * kS, 2);
-  bench.Data(again + 1 * kMs, FrameNotification(2, kRealtimeBase + again));
+  const std::int64_t again = bench.Subscribe(start + 1 * kS, 2);
+  bench.Data(again + 1 * kMs, FrameNotification(2, Realtime(again)));
   EXPECT_EQ(bench.sink.delivered.size(), 1U);
 }
 
 TEST(ReceiverCore, PartialMessageOfAClosedConnectionIsNotDelivered) {
   Bench bench;
-  const std::int64_t ack = bench.Subscribe(0);
-  bench.core.OnClientConnected(At(ack));
-  const Bytes message = FrameNotification(1, kRealtimeBase + ack);
-  bench.core.OnTcpData(At(ack + 1 * kMs), message.data(), 20);
-  bench.core.OnTcpClosed(At(ack + 2 * kMs));
-  const std::int64_t again = bench.Subscribe(ack + 1 * kS, 2);
+  const std::int64_t start = StartPhase(bench);
+  const Bytes message = FrameNotification(1, Realtime(start));
+  bench.core.OnTcpData(At(start + 1 * kMs), message.data(), 20);
+  bench.core.OnTcpClosed(At(start + 2 * kMs));
+  const std::int64_t again = bench.Subscribe(start + 1 * kS, 2);
   bench.core.OnTcpData(At(again + 1 * kMs), message.data() + 20, message.size() - 20);
   EXPECT_TRUE(bench.sink.delivered.empty());
 }
@@ -398,20 +501,22 @@ TEST(ReceiverCore, StatusHoldsEveryDropReason) {
   Bench bench;
   const LogRecord status = bench.core.Status("status");
   for (const char* key : {"drop_malformed_notification", "drop_payload_too_large", "drop_length_prefix_mismatch",
-                          "drop_frame_unreadable", "drop_not_subscribed", "drop_no_client",
-                          "drop_sequence_not_increasing", "drop_older_than_phase", "drop_client_write_failed",
-                          "frames_received", "frames_delivered", "subscription_state", "client_connected"}) {
+                          "drop_frame_unreadable", "drop_not_subscribed", "drop_no_client", "drop_field_not_positive",
+                          "drop_older_than_phase", "drop_copy_in_phase", "drop_client_write_failed",
+                          "frames_received", "frames_delivered", "subscription_state", "client_connected", "in_phase",
+                          "phases_started", "phases_ended", "clients_refused"}) {
     EXPECT_NE(status.fields().find(std::string{"\""} + key + "\":"), std::string::npos) << key;
   }
 }
 
-TEST(ReceiverCore, StopSendsStopSubscribe) {
+TEST(ReceiverCore, StopSendsStopSubscribeAndEndsThePhase) {
   Bench bench;
-  const std::int64_t ack = bench.Subscribe(0);
+  const std::int64_t start = StartPhase(bench);
   const int sent = bench.transport.sent;
-  bench.core.Stop(At(ack + 1 * kS));
+  bench.core.Stop(At(start + 1 * kS));
   EXPECT_EQ(bench.transport.sent, sent + 1);
   EXPECT_FALSE(bench.core.subscribed());
+  EXPECT_FALSE(bench.core.in_phase());
 }
 
 }  // namespace
