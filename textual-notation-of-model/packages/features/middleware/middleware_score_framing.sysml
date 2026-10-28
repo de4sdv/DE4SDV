@@ -224,24 +224,25 @@ package DE4SDV_MiddlewareSCOREFraming {
      * integration layer carries the AEBS signal frames over the S-CORE
      * SOME/IP gateway, which is not in that baseline:
      * eclipse-score/inc_someip_gateway at commit
-     * 951fbc09bfbe9011eb81471cd31e1379700669b8, with no tag. The gateway
-     * needs communication 0.5.0 and baselibs 0.2.15, each with a patch of the
-     * gateway, in place of the communication 0.4.0 and baselibs 0.2.12 of
-     * v0.9.0. No S-CORE baseline holds that set. The deviation covers these
-     * two modules, for every mw::com user on the Linux host, and the gateway
-     * with its patched vsomeip 3.6.1. Statements about them are bound to the
-     * versions and the commit named here. Everything else stays bound to
-     * v0.9.0, among it lifecycle v0.6.1 and the assumptions of use of
-     * eclipse-score/score v0.7.2 that NEED-MW-004 cites. NEED-MW-004 is
-     * read through this deviation. The component assumptions of use of
-     * communication are the same in 0.4.0 and 0.5.0:
+     * d9eac670b7534352749da3d30f52aebf5129f168 (2026-10-27), with no tag. The
+     * gateway needs communication 0.5.0 with two patches of the gateway and
+     * baselibs 0.2.16 with one, in place of the communication 0.4.0 and
+     * baselibs 0.2.12 of v0.9.0. No S-CORE baseline holds that set. The
+     * deviation covers these two modules, for every mw::com user on the
+     * Linux host, and the gateway with its patched vsomeip 3.6.1. Statements
+     * about them are bound to the versions and the commit named here.
+     * Everything else stays bound to v0.9.0, among it lifecycle v0.6.1
+     * (commit 432c85d91db8bd72a39a61f245eaf119a570b88d) and the assumptions
+     * of use of eclipse-score/score v0.7.2 that NEED-MW-004 cites.
+     * NEED-MW-004 is read through this deviation. The component assumptions
+     * of use of communication are the same in 0.4.0 and 0.5.0:
      * score/mw/com/dependability/safety_analysis/aou.trlc and
      * score/message_passing/dependability/assumed_system/aous.trlc do not
      * change. baselibs' component assumptions of use are the same in 0.2.12
-     * and 0.2.15, and the gateway declares none. So SC-MW-009 reviews the
+     * and 0.2.16, and the gateway declares none. So SC-MW-009 reviews the
      * integration against the same set.
      * Statements about later releases and open upstream work record the
-     * upstream state of 2026-10-22; the trigger of GAP-MW-036 watches it.
+     * upstream state of 2026-10-28; the trigger of GAP-MW-036 watches it.
      * GAP-MW-036 records the deviation and the trigger to revisit it.
      */
   }

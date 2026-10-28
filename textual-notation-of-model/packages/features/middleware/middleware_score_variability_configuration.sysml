@@ -86,8 +86,9 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
      * ran against.
      *
      * The guest side is the display-capable sdv_ivi_cf guest image of
-     * INC-AEBS-010 (phase 8, hmiGuest). For the SOME/IP receiver, that guest
-     * needs a rebuild with vsomeip (GAP-MW-038).
+     * INC-AEBS-010 (phase 8, hmiGuest). The SOME/IP receiver of phase 8
+     * runs in that guest. For the bench, it is provisioned on the existing
+     * image; a guest image built with the receiver stays open (GAP-MW-038).
      *
      * Configuration evidence only. This usage proves no provider, transport,
      * gateway, adapter or HMI behavior and no requirement satisfaction.
