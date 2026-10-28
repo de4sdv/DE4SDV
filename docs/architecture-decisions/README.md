@@ -103,6 +103,8 @@ Each record's own Status section is authoritative.
   place](0021-make-model-elements-earn-their-place.md)
 - [ADR 0022: Adopt PLEML as the product-line
   authority](0022-adopt-pleml-as-product-line-authority.md)
+- [ADR 0025: End SOME/IP in an SDV Core VM for the S-CORE-integrated
+  member](0025-end-someip-in-an-sdv-core-vm.md)
 
 ## Template
 
