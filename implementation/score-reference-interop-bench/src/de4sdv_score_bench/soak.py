@@ -53,9 +53,9 @@ import json
 import math
 import re
 import struct
-from typing import Any
+from typing import Any, Callable
 
-from de4sdv_score_bench.abort_matrix import BLOCKED, ERROR, FAIL, MISSING, PASS, parse_adapter_log
+from de4sdv_score_bench.abort_matrix import BLOCKED, ERROR, FAIL, MISSING, PASS, json_lines, parse_adapter_log
 from de4sdv_score_bench.backtrace import (
     check_abort_top_frames,
     first_named_frame_below_override,
@@ -85,6 +85,14 @@ _RUN_KEYS = {
     "someipd_subscribed",
     "gatewayd_drops_before_subscription",
 }
+# The fields of a result besides outcome and reasons; each stays None until the evaluation reads it.
+_RESULT_FIELDS = (
+    "soak_s", "published", "observed_messages", "speed_pairing", "provider_samples_sent", "frames_sent",
+    "frames_forwarded", "frame_bytes_read", "frame_source_frames", "frames_allocate_failed",
+    "frame_connection_losses", "liveness_checks", "frame_stream_clients", "gatewayd_failures",
+    "pre_subscription_drops", "adapter_endpoints", "mw_log_fallback", "rss_kib_first", "rss_kib_last",
+    "abort_caller",
+)
 _GATEWAYD_FAILURE = re.compile(r"\[gatewayd\][^\n]*Failed to[^\n]*")
 # gatewayd's drop of a frame while no client (someipd) subscribed its event.
 _GATEWAYD_NO_SUBSCRIBER = re.compile(
@@ -116,21 +124,6 @@ def float32_bits(value: float) -> str:
 
 def _double_from_bits(bits: str) -> float:
     return struct.unpack(">d", bytes.fromhex(bits))[0]
-
-
-def _json_lines(text: str) -> list[dict[str, Any]]:
-    records = []
-    for line in text.splitlines():
-        line = line.strip()
-        if not line.startswith("{"):
-            continue
-        try:
-            value = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if isinstance(value, dict):
-            records.append(value)
-    return records
 
 
 def _is_int(value: Any) -> bool:
@@ -192,38 +185,40 @@ def _publishable(value: float) -> bool:
     return math.isfinite(value) and abs(value / 3.6) <= FLOAT32_MAX
 
 
+def _hex_bits(value: Any, digits: int) -> bool:
+    return isinstance(value, str) and len(value) == digits and _HEX.match(value) is not None
+
+
+def _records(text: str, key: str, source: str,
+             valid: Callable[[dict[str, Any]], bool]) -> tuple[list[dict[str, Any]], list[str]]:
+    """The JSON records of text that hold key, in order, and an error for each of them that is not valid."""
+    records, errors = [], []
+    for record in json_lines(text):
+        if key not in record:
+            continue
+        if valid(record):
+            records.append(record)
+        else:
+            errors.append(f"{source} record is malformed: {json.dumps(record)[:120]}")
+    return records, errors
+
+
 def _provider_samples(text: str) -> tuple[list[tuple[int, str, int]], list[str]]:
     """(seq, expected observed bits, send time) of each sample the provider sent and the adapter may publish."""
+    records, errors = _records(text, "seq", "a provider", lambda record: (
+        _is_int(record.get("seq")) and _hex_bits(record.get("bits"), 16)
+        and _is_int(record.get("monotonic_ns")) and isinstance(record.get("send"), str)))
     samples = []
-    errors = []
-    for record in _json_lines(text):
-        if "seq" not in record:
-            continue
-        seq, bits, sent_ns, send = record.get("seq"), record.get("bits"), record.get("monotonic_ns"), record.get("send")
-        if not (_is_int(seq) and isinstance(bits, str) and len(bits) == 16 and _HEX.match(bits)
-                and _is_int(sent_ns) and isinstance(send, str)):
-            errors.append(f"a provider record is malformed: {json.dumps(record)[:120]}")
-            continue
-        if send != "ok":
-            continue
-        value = _double_from_bits(bits)
-        if _publishable(value):
-            samples.append((seq, float32_bits(value / 3.6), sent_ns))
+    for record in records:
+        value = _double_from_bits(record["bits"])
+        if record["send"] == "ok" and _publishable(value):
+            samples.append((record["seq"], float32_bits(value / 3.6), record["monotonic_ns"]))
     return samples, errors
 
 
 def _observed_messages(text: str) -> tuple[list[dict[str, Any]], list[str]]:
-    observed = []
-    errors = []
-    for record in _json_lines(text):
-        if "longitudinal_velocity_bits" not in record:
-            continue
-        bits, receipt_ns = record.get("longitudinal_velocity_bits"), record.get("receipt_monotonic_ns")
-        if not (isinstance(bits, str) and len(bits) == 8 and _HEX.match(bits) and _is_int(receipt_ns)):
-            errors.append(f"an observer record is malformed: {json.dumps(record)[:120]}")
-            continue
-        observed.append(record)
-    return observed, errors
+    return _records(text, "longitudinal_velocity_bits", "an observer", lambda record: (
+        _hex_bits(record.get("longitudinal_velocity_bits"), 8) and _is_int(record.get("receipt_monotonic_ns"))))
 
 
 def _repeat_window_ns(provider: list[tuple[int, str, int]]) -> int | None:
@@ -294,16 +289,9 @@ def pair_speed_messages(
 
 
 def _frame_source(text: str) -> tuple[list[int], list[str]]:
-    sizes = []
-    errors = []
-    for record in _json_lines(text):
-        if "seq" not in record:
-            continue
-        if not (_is_int(record.get("seq")) and _is_int(record.get("size")) and record["size"] >= 0):
-            errors.append(f"a frame source record is malformed: {json.dumps(record)[:120]}")
-            continue
-        sizes.append(record["size"])
-    return sizes, errors
+    records, errors = _records(text, "seq", "a frame source", lambda record: (
+        _is_int(record.get("seq")) and _is_int(record.get("size")) and record["size"] >= 0))
+    return [record["size"] for record in records], errors
 
 
 def evaluate_soak(
@@ -318,30 +306,7 @@ def evaluate_soak(
     backtrace_text: str | None,
     mappings_text: str | None,
 ) -> dict[str, Any]:
-    result: dict[str, Any] = {
-        "outcome": PASS,
-        "reasons": [],
-        "soak_s": None,
-        "published": None,
-        "observed_messages": None,
-        "speed_pairing": None,
-        "provider_samples_sent": None,
-        "frames_sent": None,
-        "frames_forwarded": None,
-        "frame_bytes_read": None,
-        "frame_source_frames": None,
-        "frames_allocate_failed": None,
-        "frame_connection_losses": None,
-        "liveness_checks": None,
-        "frame_stream_clients": None,
-        "gatewayd_failures": None,
-        "pre_subscription_drops": None,
-        "adapter_endpoints": None,
-        "mw_log_fallback": None,
-        "rss_kib_first": None,
-        "rss_kib_last": None,
-        "abort_caller": None,
-    }
+    result: dict[str, Any] = {"outcome": PASS, "reasons": [], **dict.fromkeys(_RESULT_FIELDS)}
     errors = _shape_errors(run)
     if errors:
         result["outcome"] = ERROR

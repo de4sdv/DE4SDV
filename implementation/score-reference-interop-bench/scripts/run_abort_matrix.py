@@ -20,7 +20,6 @@ survives 3 of 3.
 from __future__ import annotations
 
 import argparse
-import json
 import os
 from pathlib import Path
 import sys
@@ -30,21 +29,15 @@ BENCH = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BENCH / "src"))
 
 import bench_runtime as rt  # noqa: E402
-from de4sdv_score_bench.abort_matrix import VARIANTS, evaluate_variant, summarize_matrix  # noqa: E402
+from de4sdv_score_bench.abort_matrix import VARIANTS, evaluate_variant, parse_adapter_log, summarize_matrix  # noqa: E402
 
 BINARIES = {"adapter": "de4sdv_score_adapter", "control": "de4sdv_score_adapter_no_abort_control"}
 
 
 def logged_fault_signal(log_text: str, variant: str) -> int | None:
     """The signal that the adapter logged at start for the variant."""
-    for line in log_text.splitlines():
-        if not line.startswith("{"):
-            continue
-        try:
-            event = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if event.get("event") == "start" and isinstance(event.get("fault_signals"), dict):
+    for event in parse_adapter_log(log_text):
+        if event["event"] == "start" and isinstance(event.get("fault_signals"), dict):
             value = event["fault_signals"].get(variant)
             return value if type(value) is int else None
     return None
