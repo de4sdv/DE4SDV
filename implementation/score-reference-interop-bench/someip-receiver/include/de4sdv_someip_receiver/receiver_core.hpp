@@ -21,6 +21,15 @@
 // and the phase end and the status records log the minimum and maximum of
 // that value in the phase.
 //
+// Start of the HMI ingress: the ingress is a oneshot service. It exits when
+// its connect fails or its stream closes, and init does not start a service
+// again while it runs or before init has reaped it. So the core sets the
+// start property of the ingress to 0 and then 1 once the loopback server
+// listens, and again every 2 s while no client is connected. A start of a
+// running ingress does nothing, so the repeat is harmless. The ingress
+// connects to the frame server first thing in its main function. Each
+// trigger gives one log line, so at most one line every 2 s.
+//
 // The I/O shell feeds the core the socket events and implements its ports.
 // Each notification of the frame event ends in exactly one outcome:
 // delivered, or dropped with one reason. So frames_received equals
@@ -49,11 +58,14 @@ struct ReceiverConfig {
   std::size_t max_payload_bytes{2048};
   // One "frame" log line per notification of the frame event.
   bool log_frames{false};
+  // The system property that starts the HMI ingress; empty: no trigger.
+  std::string ingress_start_property;
 };
 
 constexpr std::int64_t kClockStepThresholdNs = 1'000'000;
 constexpr std::int64_t kClockSlewDivisor = 2'000;  // 500 ppm
 constexpr std::uint64_t kFirstFramesLoggedPerPhase = 5;
+constexpr std::int64_t kIngressRetriggerPeriodNs = 2'000'000'000;
 
 // The loopback client of the HMI ingress, implemented by the shell.
 class FrameSink {
@@ -62,6 +74,14 @@ class FrameSink {
   // Writes the whole payload; false when the write failed and the shell
   // closed the client.
   virtual bool Forward(const std::uint8_t* payload, std::size_t size) = 0;
+};
+
+// Sets a system property, implemented by the shell: on Android with
+// __system_property_set; elsewhere it only logs the property.
+class PropertySetter {
+ public:
+  virtual ~PropertySetter() = default;
+  virtual bool SetProperty(const Clock& now, const std::string& name, const std::string& value) = 0;
 };
 
 enum class DropReason : std::uint8_t {
@@ -97,6 +117,7 @@ struct ReceiverCounters {
   std::uint64_t phases_started{0};
   std::uint64_t phases_ended{0};
   std::uint64_t clock_steps{0};
+  std::uint64_t ingress_triggers{0};
 
   std::uint64_t frames_dropped() const noexcept;
 };
@@ -104,9 +125,11 @@ struct ReceiverCounters {
 class ReceiverCore final : private SubscriptionTransport, private SubscriptionListener {
  public:
   ReceiverCore(const ReceiverConfig& config, SubscriptionTransport& transport, FrameSink& sink,
-               FrameDiscardPolicy& policy, EventLog& log);
+               FrameDiscardPolicy& policy, EventLog& log, PropertySetter* properties = nullptr);
 
   void OnTick(const Clock& now);
+  // The loopback server listens: the first trigger of the ingress.
+  void OnListening(const Clock& now);
   // Reads the offset of the two clocks; every event calls it, and the shell
   // calls it once at start.
   void ObserveClock(const Clock& now);
@@ -122,7 +145,7 @@ class ReceiverCore final : private SubscriptionTransport, private SubscriptionLi
   void OnClientDisconnected(const Clock& now);
   void Stop(const Clock& now);
 
-  std::int64_t NextDeadline() const noexcept { return machine_.NextDeadline(); }
+  std::int64_t NextDeadline() const noexcept;
   bool subscribed() const noexcept { return machine_.subscribed(); }
   bool client_connected() const noexcept { return client_connected_; }
   bool in_phase() const noexcept { return in_phase_; }
@@ -147,12 +170,15 @@ class ReceiverCore final : private SubscriptionTransport, private SubscriptionLi
                 const FrameFields* fields);
   // Starts or ends the phase when the two conditions change; cause names the change.
   void UpdatePhase(const Clock& now, const std::string& cause);
+  bool IngressTriggerDue() const noexcept;
+  void TriggerIngress(const Clock& now, const char* reason);
 
   ReceiverConfig config_;
   SubscriptionTransport& transport_;
   FrameSink& sink_;
   FrameDiscardPolicy& policy_;
   EventLog& log_;
+  PropertySetter* properties_;
   SubscriptionMachine machine_;
   SomeipStreamReassembler reassembler_;
   bool client_connected_{false};
@@ -165,6 +191,9 @@ class ReceiverCore final : private SubscriptionTransport, private SubscriptionLi
   bool clock_seen_{false};
   std::int64_t clock_offset_ns_{0};
   std::int64_t clock_seen_monotonic_ns_{0};
+  bool listening_{false};
+  std::int64_t next_ingress_trigger_ns_{0};
+  std::uint64_t triggers_without_client_{0};
   ReceiverCounters counters_{};
 };
 

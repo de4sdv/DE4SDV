@@ -31,7 +31,13 @@ raw records in <out>/<case>/):
   frames); then a restart of the gateway pair (stored frames from before the
   new phase);
 - ttl_renewal: the unicast fallback only (no multicast membership) over
-  five TTLs.
+  five TTLs;
+- ingress_retrigger: the loopback client is a oneshot ingress stand-in that
+  only the init stand-in of this runner starts, on the receiver's records of
+  its start properties, as init does on Android; the ingress stand-in is
+  killed, then killed with its reap held for 3 s, then the receiver is
+  killed and started again with the reap of the exiting ingress held for
+  1.5 s.
 
 It evaluates every case with de4sdv_score_bench.someip_receiver_interop
 and exits with 0 only when every gate case passes.
@@ -58,7 +64,13 @@ sys.path.insert(0, str(BENCH / "scripts"))
 
 import bench_runtime as rt  # noqa: E402
 from de4sdv_score_bench.abort_matrix import MISSING, PASS  # noqa: E402
-from de4sdv_score_bench.someip_receiver_interop import ANNOUNCED_PROPERTIES, EVALUATORS, load_case  # noqa: E402
+from de4sdv_score_bench.someip_receiver_interop import (  # noqa: E402
+    ANNOUNCED_PROPERTIES,
+    EVALUATORS,
+    FRAME_SERVER_HOST_PROPERTY,
+    INGRESS_START_PROPERTY,
+    load_case,
+)
 
 HOST_NS = "de4sdv-host"
 GUEST_NS = "de4sdv-guest"
@@ -70,13 +82,14 @@ MULTICAST_ROUTE = "224.0.0.0/4"
 FRAME_PORT = 4721
 LOOPBACK_PORT = 4731
 SUBSCRIPTION_TTL_S = 3
+SECOND_NS = 1_000_000_000
 LINK_OUTAGE_S = 5.0
 
 SOMEIPD_STARTED = r"\[someipd\] mw::com IPC binding started"
 SOMEIPD_OFFERED = r"OFFER\(0100\): \[4dee\.0001"
 GATEWAYD_CONNECTED = r"\[gatewayd\] Connected to someipd over the mw::com IPC binding"
 GATEWAYD_FOUND = r"LocalServiceInstance created for instance specifier: de4sdv/aebs_signal_frame"
-GATE_CASES = ("identity", "resubscribe", "no_client", "ttl_renewal")
+GATE_CASES = ("identity", "resubscribe", "no_client", "ttl_renewal", "ingress_retrigger")
 MEASUREMENT_CASES = ("stored_samples",)
 
 
@@ -257,12 +270,20 @@ class Stack:
                 "--log-frames"]
         for property_name, value in ANNOUNCED_PROPERTIES:
             argv += ["--announce-property", f"{property_name}={value}"]
+        argv += ["--ingress-start-property", INGRESS_START_PROPERTY]
         if not multicast:
             argv.append("--no-multicast")
         self.start(name, GUEST_NS, argv, private_tmp=True)
         self.timeline["receiver_logs"].append(f"{name}.log")
         self.wait(name, "start", 10.0, json_event=True)
         return name
+
+    def start_ingress(self, name: str, connection: int) -> None:
+        """The ingress stand-in: a oneshot loopback client, started by the init stand-in only."""
+        self.start(name, GUEST_NS, [sys.executable, str(BENCH / "scripts" / "loopback_frame_recorder.py"),
+                                    "--port", str(LOOPBACK_PORT), "--log", str(self.out / "recorder.jsonl"),
+                                    "--stream-dir", str(self.out), "--oneshot", "--connection", str(connection)],
+                   private_tmp=True)
 
     def start_recorder(self) -> None:
         self.start("recorder", GUEST_NS, [sys.executable, str(BENCH / "scripts" / "loopback_frame_recorder.py"),
@@ -520,12 +541,194 @@ def case_ttl_renewal(stack: Stack) -> None:
     time.sleep(5 * SUBSCRIPTION_TTL_S)
 
 
+class IngressInitStandIn:
+    """Stands in for init and de4sdv_aebs_ingress.rc in the guest namespace.
+
+    On Android, init starts the oneshot ingress when the frame server host
+    property is set and when the ingress start property is set to 1, unless
+    the ingress still runs or init has not reaped it yet. Off Android, the
+    receiver logs each property instead of setting it. This stand-in reads
+    those records in the log of the receiver that it follows and starts the
+    ingress stand-in by the same rule. hold_reap(s) keeps the next ingress
+    that exits counted as running for s seconds after its exit. Each decision
+    goes to init-stand-in.jsonl.
+    """
+
+    def __init__(self, stack: Stack) -> None:
+        self.stack = stack
+        self.path = stack.out / "init-stand-in.jsonl"
+        self.receiver: str | None = None
+        self.offset = 0
+        self.partial = ""
+        self.ingress: str | None = None
+        self.count = 0
+        self.hold_s = 0.0
+        self.held_until_ns: int | None = None
+        self.reaped = True
+
+    def record(self, event: str, **fields) -> None:
+        with self.path.open("a", encoding="utf-8") as log:
+            log.write(json.dumps({"event": event, "monotonic_ns": time.monotonic_ns(), "realtime_ns": time.time_ns(),
+                                  **fields}) + "\n")
+
+    def follow(self, receiver: str) -> None:
+        self.receiver = receiver
+        self.offset = 0
+        self.partial = ""
+        self.record("following", receiver_log=f"{receiver}.log")
+
+    def hold_reap(self, seconds: float) -> None:
+        self.hold_s = seconds
+
+    def state(self) -> str:
+        if self.ingress is None:
+            return "none"
+        process = self.stack.processes[self.ingress]
+        if process.alive():
+            return "running"
+        if self.reaped:
+            return "reaped"
+        exit_ns = process.exit_monotonic_ns or time.monotonic_ns()
+        if self.held_until_ns is None:
+            self.held_until_ns = exit_ns + int(self.hold_s * SECOND_NS)
+            self.hold_s = 0.0
+        if time.monotonic_ns() < self.held_until_ns:
+            return "not_reaped"
+        self.reaped = True
+        self.record("reaped", ingress=self.ingress, returncode=process.returncode, exit_monotonic_ns=exit_ns,
+                    held_ns=self.held_until_ns - exit_ns)
+        return "reaped"
+
+    def _new_records(self) -> list[dict]:
+        if self.receiver is None:
+            return []
+        path = self.stack.out / f"{self.receiver}.log"
+        try:
+            with path.open("r", encoding="utf-8", errors="replace") as log:
+                log.seek(self.offset)
+                text = log.read()
+                self.offset = log.tell()
+        except OSError:
+            return []
+        lines = (self.partial + text).split("\n")
+        self.partial = lines.pop()
+        records = []
+        for line in lines:
+            if line.startswith("{"):
+                try:
+                    records.append(json.loads(line))
+                except json.JSONDecodeError:
+                    pass
+        return records
+
+    def poll(self) -> None:
+        self.state()
+        for record in self._new_records():
+            if record.get("event") != "property_not_announced":
+                continue
+            name, value = record.get("name"), record.get("value")
+            if name == FRAME_SERVER_HOST_PROPERTY or (name == INGRESS_START_PROPERTY and value == "1"):
+                self.start(name, value, record)
+
+    def start(self, name: str, value: str, record: dict) -> None:
+        fields = {"property": name, "value": value, "receiver_log": f"{self.receiver}.log",
+                  "receiver_monotonic_ns": record.get("monotonic_ns")}
+        state = self.state()
+        if state in ("running", "not_reaped"):
+            self.record("start_ignored", state=state, ingress=self.ingress, **fields)
+            return
+        self.count += 1
+        self.ingress = f"ingress-{self.count}"
+        self.reaped = False
+        self.held_until_ns = None
+        self.stack.start_ingress(self.ingress, self.count)
+        self.record("started", ingress=self.ingress, connection=self.count, **fields)
+
+    def connections(self) -> int:
+        path = self.stack.out / "recorder.jsonl"
+        if not path.exists():
+            return 0
+        count = 0
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+            if line.startswith("{"):
+                try:
+                    count += json.loads(line).get("event") == "connected"
+                except json.JSONDecodeError:
+                    pass
+        return count
+
+    def pump(self, seconds: float) -> None:
+        deadline = time.monotonic() + seconds
+        while time.monotonic() < deadline:
+            self.poll()
+            time.sleep(0.05)
+
+    def pump_until(self, what: str, predicate, timeout_s: float) -> bool:
+        deadline = time.monotonic() + timeout_s
+        while time.monotonic() < deadline:
+            self.poll()
+            if predicate():
+                self.stack.note(f"wait {what}", ok=True)
+                return True
+            time.sleep(0.05)
+        self.stack.note(f"wait {what}", ok=False)
+        return False
+
+    def kill_ingress(self) -> None:
+        if self.ingress is not None:
+            self.stack.stop(self.ingress, signal.SIGKILL)
+
+
+def case_ingress_retrigger(stack: Stack) -> None:
+    standin = IngressInitStandIn(stack)
+    stack.timeline["lola_state_removed"] = stack.clean_lola_state()
+    stack.start_capture()
+    stack.start_someipd()
+    stack.start_gatewayd()
+    stack.start_source(0)
+    stack.start_adapter()
+    stack.wait("gatewayd", GATEWAYD_FOUND, 20.0)
+    receiver = stack.start_receiver()
+    standin.follow(receiver)
+    standin.pump_until("first ingress connected", lambda: standin.connections() >= 1, 10.0)
+    standin.pump_until("subscribed", lambda: stack.subscribed_count(receiver) >= 1, 20.0)
+    stack.shared_memory_snapshot()
+    stack.go()
+    standin.pump(3.0)
+    # 1. The ingress exits; init reaps it at once.
+    start = stack.note("disturbance ingress_lost")
+    standin.kill_ingress()
+    standin.pump_until("ingress back", lambda: standin.connections() >= 2, 10.0)
+    stack.disturbance("ingress_lost", start, expects_resubscription=False, reap_hold_s=0.0)
+    standin.pump(3.0)
+    # 2. The ingress exits; init does not reap it for 3 s, so the first repeated trigger does nothing.
+    start = stack.note("disturbance ingress_lost_not_reaped")
+    standin.hold_reap(3.0)
+    standin.kill_ingress()
+    standin.pump_until("ingress back", lambda: standin.connections() >= 3, 12.0)
+    stack.disturbance("ingress_lost_not_reaped", start, expects_resubscription=False, reap_hold_s=3.0)
+    standin.pump(3.0)
+    # 3. The receiver is killed and starts again; the ingress exits with its
+    # stream, and init does not reap it for 1.5 s, so the trigger of the new
+    # receiver at listen does nothing.
+    start = stack.note("disturbance receiver_restart_ingress_not_reaped")
+    standin.hold_reap(1.5)
+    stack.stop(receiver, signal.SIGKILL)
+    receiver = stack.start_receiver()
+    standin.follow(receiver)
+    standin.pump_until("ingress back", lambda: standin.connections() >= 4, 12.0)
+    stack.disturbance("receiver_restart_ingress_not_reaped", start, reap_hold_s=1.5)
+    standin.pump_until("subscribed", lambda: stack.subscribed_count(receiver) >= 1, 20.0)
+    standin.pump(3.0)
+
+
 CASES = {
     "identity": case_identity,
     "resubscribe": case_resubscribe,
     "no_client": case_no_client,
     "stored_samples": case_stored_samples,
     "ttl_renewal": case_ttl_renewal,
+    "ingress_retrigger": case_ingress_retrigger,
 }
 
 
@@ -537,16 +740,16 @@ def summarize(results: dict[str, dict]) -> str:
         keys = ("frames_produced", "frames_byte_identical", "frames_at_client", "duplicates_at_client",
                 "band_frames", "dropped_no_client", "dropped_older_than_phase", "dropped_copy_in_phase",
                 "older_frame_age_s", "repeats_on_link", "acked_window_s", "largest_ack_gap_s",
-                "nacks_before_first_ack", "receipt_minus_frame_ms", "clock_steps")
+                "nacks_before_first_ack", "receipt_minus_frame_ms", "clock_steps", "ingress_starts",
+                "ingress_triggers")
         data = "; ".join(f"{key} {metrics[key]}" for key in keys if key in metrics)
         drops = {reason: count for reason, count in metrics.get("drops_by_reason", {}).items() if count}
         phases = Counter(phase["cause"] for phase in metrics.get("phases", []))
         data += f"; drops {drops or 'none'}; phase starts {dict(phases)}"
         lines.append(f"| {case} | {result['outcome']} | {data} |")
         for step in metrics.get("steps", []):
-            lines.append(f"| | | step {step['step']}: dropped {step['stored_dropped'] or 'none'}, older on the link "
-                         f"{step['older_on_link']}, repeats on the link {step['repeats_on_link']}, served "
-                         f"{step['served']} |")
+            details = ", ".join(f"{key} {value}" for key, value in step.items() if key != "step")
+            lines.append(f"| | | step {step['step']}: {details} |")
         if result.get("reasons"):
             lines.append(f"| | | reasons: {'; '.join(result['reasons'])} |")
     return "\n".join(lines) + "\n"

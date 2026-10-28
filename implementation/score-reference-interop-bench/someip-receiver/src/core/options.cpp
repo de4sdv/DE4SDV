@@ -73,7 +73,9 @@ std::string Usage() {
          "  --status-period-s <s>         period of the status line (10)\n"
          "  --log-frames                  one log line per frame of the event\n"
          "  --announce-property <name=value>  set this system property once the loopback\n"
-         "                                server listens (Android only; repeatable, in order)\n";
+         "                                server listens (Android only; repeatable, in order)\n"
+         "  --ingress-start-property <name>  set it to 0 and then 1 once the loopback server\n"
+         "                                listens, and every 2 s while no client is connected\n";
 }
 
 ParsedOptions ParseOptions(const std::vector<std::string>& arguments) {
@@ -118,6 +120,13 @@ ParsedOptions ParseOptions(const std::vector<std::string>& arguments) {
 
   const std::map<std::string, Setter> valued = {
       {"--server-address", address([&](std::uint32_t v) { s.server_address = v; has_server = true; })},
+      {"--ingress-start-property", [&](const std::string& text) {
+         if (text.empty() || text.find('=') != std::string::npos) {
+           return false;
+         }
+         options.receiver.ingress_start_property = text;
+         return true;
+       }},
       {"--announce-property", [&](const std::string& text) {
          std::string name;
          std::string value;
@@ -247,6 +256,8 @@ LogRecord StartRecord(const ReceiverOptions& options, const char* policy_name, s
       .Signed("phase_start_margin_ns", PhaseStartDiscardPolicy::kPhaseStartMarginNs)
       .Unsigned("copy_memory_frames", PhaseStartDiscardPolicy::kCopyMemoryFrames)
       .Unsigned("announce_properties", options.announce_properties.size())
+      .Text("ingress_start_property", options.receiver.ingress_start_property)
+      .Signed("ingress_retrigger_period_ns", kIngressRetriggerPeriodNs)
       .Signed("status_period_ns", options.status_period_ns)
       .Signed("client_write_timeout_ns", options.client_write_timeout_ns)
       .Bool("log_frames", options.receiver.log_frames);

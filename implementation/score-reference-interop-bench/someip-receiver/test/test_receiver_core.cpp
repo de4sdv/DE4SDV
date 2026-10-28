@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "de4sdv_someip_receiver/receiver_core.hpp"
@@ -20,9 +21,11 @@ using de4sdv::someip_receiver::EncodeSubscribeEventgroup;
 using de4sdv::someip_receiver::EventLog;
 using de4sdv::someip_receiver::FrameSink;
 using de4sdv::someip_receiver::Ipv4Endpoint;
+using de4sdv::someip_receiver::kIngressRetriggerPeriodNs;
 using de4sdv::someip_receiver::kL4ProtocolTcp;
 using de4sdv::someip_receiver::LogRecord;
 using de4sdv::someip_receiver::PhaseStartDiscardPolicy;
+using de4sdv::someip_receiver::PropertySetter;
 using de4sdv::someip_receiver::ReceiverConfig;
 using de4sdv::someip_receiver::ReceiverCore;
 using de4sdv::someip_receiver::SubscriptionTransport;
@@ -126,6 +129,16 @@ class FakeSink : public FrameSink {
   bool fail{false};
 };
 
+class FakeProperties : public PropertySetter {
+ public:
+  bool SetProperty(const Clock&, const std::string& name, const std::string& value) override {
+    sets.emplace_back(name, value);
+    return ok;
+  }
+  std::vector<std::pair<std::string, std::string>> sets;
+  bool ok{true};
+};
+
 class Lines : public EventLog {
  public:
   void Log(const Clock& now, const LogRecord& record) override { lines.push_back(record.ToJson(now)); }
@@ -147,6 +160,7 @@ struct Bench {
   FakeSink sink;
   PhaseStartDiscardPolicy policy;
   Lines log;
+  FakeProperties properties;
   ReceiverCore core;
 
   static ReceiverConfig Defaults() {
@@ -156,7 +170,8 @@ struct Bench {
     return config;
   }
 
-  explicit Bench(ReceiverConfig base = Defaults()) : config{base}, core{config, transport, sink, policy, log} {}
+  explicit Bench(ReceiverConfig base = Defaults())
+      : config{base}, core{config, transport, sink, policy, log, &properties} {}
 
   // Fallback connect, subscribe and Ack; returns the Ack time.
   std::int64_t Subscribe(std::int64_t t, std::uint16_t ack_session = 1) {
@@ -570,6 +585,87 @@ TEST(ReceiverCore, PhaseStartAndFramesLogTheClockFacts) {
       << status;
   bench.core.OnClientDisconnected(At(start + 2 * kS));
   EXPECT_EQ(bench.log.Count("\"receipt_minus_frame_min_ns\":3000000,\"receipt_minus_frame_max_ns\":3000000"), 1);
+}
+
+// The ingress is a oneshot service that init starts on its start property.
+constexpr char kIngressStart[] = "de4sdv.aebs.ingress.start";
+using PropertySets = std::vector<std::pair<std::string, std::string>>;
+
+ReceiverConfig WithIngressTrigger() {
+  ReceiverConfig config = Bench::Defaults();
+  config.ingress_start_property = kIngressStart;
+  return config;
+}
+
+PropertySets Triggers(int count) {
+  PropertySets sets;
+  for (int index = 0; index < count; ++index) {
+    sets.emplace_back(kIngressStart, "0");
+    sets.emplace_back(kIngressStart, "1");
+  }
+  return sets;
+}
+
+TEST(ReceiverCore, IngressStartsAtListenAndAgainEveryTwoSecondsWithoutAClient) {
+  Bench bench{WithIngressTrigger()};
+  bench.core.OnListening(At(0));
+  EXPECT_EQ(bench.properties.sets, Triggers(1));
+  EXPECT_EQ(bench.log.Count("\"event\":\"ingress_trigger\",\"reason\":\"listening\""), 1);
+  EXPECT_LE(bench.core.NextDeadline(), kIngressRetriggerPeriodNs);
+  bench.core.OnTick(At(kIngressRetriggerPeriodNs - 1));
+  EXPECT_EQ(bench.properties.sets, Triggers(1));
+  bench.core.OnTick(At(kIngressRetriggerPeriodNs));
+  EXPECT_EQ(bench.properties.sets, Triggers(2));
+  bench.core.OnTick(At(2 * kIngressRetriggerPeriodNs + 50 * kMs));
+  EXPECT_EQ(bench.properties.sets, Triggers(3));
+  EXPECT_EQ(bench.log.Count("\"event\":\"ingress_trigger\",\"reason\":\"no_client\""), 2);
+  EXPECT_EQ(bench.log.Count("\"triggers_without_client\":3"), 1);
+  EXPECT_EQ(bench.core.counters().ingress_triggers, 3U);
+}
+
+TEST(ReceiverCore, NoIngressTriggerWhileAClientIsConnected) {
+  Bench bench{WithIngressTrigger()};
+  bench.core.OnListening(At(0));
+  ASSERT_TRUE(bench.core.OnClientAccepted(At(100 * kMs)));
+  for (std::int64_t t = kS; t <= 20 * kS; t += kS) {
+    bench.core.OnTick(At(t));
+  }
+  EXPECT_EQ(bench.properties.sets, Triggers(1));
+  // The ingress exits: the first trigger comes one period after the loss.
+  bench.core.OnClientDisconnected(At(20 * kS + 300 * kMs));
+  bench.core.OnTick(At(20 * kS + 300 * kMs + kIngressRetriggerPeriodNs - 1));
+  EXPECT_EQ(bench.properties.sets, Triggers(1));
+  bench.core.OnTick(At(20 * kS + 300 * kMs + kIngressRetriggerPeriodNs));
+  EXPECT_EQ(bench.properties.sets, Triggers(2));
+  EXPECT_EQ(bench.log.Count("\"reason\":\"no_client\",\"property\":\"de4sdv.aebs.ingress.start\",\"ok\":true,"
+                            "\"triggers_without_client\":1"),
+            1);
+}
+
+TEST(ReceiverCore, NoIngressTriggerBeforeListenAfterStopOrWithoutAProperty) {
+  Bench bench{WithIngressTrigger()};
+  bench.core.OnTick(At(5 * kS));
+  EXPECT_TRUE(bench.properties.sets.empty());
+  bench.core.OnListening(At(6 * kS));
+  bench.core.Stop(At(7 * kS));
+  bench.core.OnTick(At(30 * kS));
+  EXPECT_EQ(bench.properties.sets, Triggers(1));
+
+  Bench without;
+  without.core.OnListening(At(0));
+  without.core.OnTick(At(10 * kS));
+  EXPECT_TRUE(without.properties.sets.empty());
+  EXPECT_EQ(without.log.Count("ingress_trigger"), 0);
+}
+
+TEST(ReceiverCore, AFailedIngressTriggerIsLoggedAndRepeated) {
+  Bench bench{WithIngressTrigger()};
+  bench.properties.ok = false;
+  bench.core.OnListening(At(0));
+  EXPECT_EQ(bench.log.Count("\"ok\":false"), 1);
+  bench.properties.ok = true;
+  bench.core.OnTick(At(kIngressRetriggerPeriodNs));
+  EXPECT_EQ(bench.properties.sets, Triggers(2));
 }
 
 TEST(ReceiverCore, StopSendsStopSubscribeAndEndsThePhase) {

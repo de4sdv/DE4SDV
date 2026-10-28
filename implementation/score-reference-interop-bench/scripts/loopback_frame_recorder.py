@@ -7,7 +7,9 @@ records every frame as one JSON line: receipt times, size, SHA-256 of prefix
 plus frame, and sequence and frame_timestamp_ns read with the bench's own
 wire reader. The bytes of connection k go to <stream-dir>/recorder-stream-<k>.bin.
 With --reconnect it connects again after the stream ends, every 100 ms,
-until SIGTERM. It never writes to the receiver.
+until SIGTERM. With --oneshot it behaves as the oneshot ingress: one connect
+attempt, and it exits when that fails or the stream ends; --connection numbers
+its connection. It never writes to the receiver.
 """
 
 from __future__ import annotations
@@ -36,6 +38,9 @@ def main() -> int:
     parser.add_argument("--log", required=True)
     parser.add_argument("--stream-dir", required=True)
     parser.add_argument("--reconnect", action="store_true")
+    parser.add_argument("--oneshot", action="store_true",
+                        help="one connect attempt; exit when it fails or when the stream ends")
+    parser.add_argument("--connection", type=int, default=1, help="number of the first connection")
     arguments = parser.parse_args()
 
     stop = {"requested": False}
@@ -46,18 +51,22 @@ def main() -> int:
     signal.signal(signal.SIGTERM, _on_signal)
     signal.signal(signal.SIGINT, _on_signal)
 
-    connection = 0
+    connection = arguments.connection - 1
     with open(arguments.log, "a", encoding="utf-8") as log:
         def record(event: str, **fields) -> None:
             log.write(json.dumps({"event": event, **fields}) + "\n")
             log.flush()
 
         record("recorder_start", host=arguments.host, port=arguments.port, reconnect=arguments.reconnect,
-               monotonic_ns=time.monotonic_ns(), realtime_ns=time.time_ns())
+               oneshot=arguments.oneshot, monotonic_ns=time.monotonic_ns(), realtime_ns=time.time_ns())
         while not stop["requested"]:
             try:
                 client = socket.create_connection((arguments.host, arguments.port), timeout=0.5)
-            except OSError:
+            except OSError as error:
+                if arguments.oneshot:
+                    record("connect_failed", error=str(error), monotonic_ns=time.monotonic_ns(),
+                           realtime_ns=time.time_ns())
+                    return 1
                 time.sleep(0.1)
                 continue
             connection += 1
@@ -101,7 +110,7 @@ def main() -> int:
                 client.close()
             record("disconnected", connection=connection, reason=reason, partial_bytes=len(buffer),
                    monotonic_ns=time.monotonic_ns(), realtime_ns=time.time_ns())
-            if not arguments.reconnect:
+            if arguments.oneshot or not arguments.reconnect:
                 break
     return 0
 

@@ -7,13 +7,13 @@
 #
 # The ingress is oneshot: it exits when its connect fails or its stream
 # closes. This file sets only the port of its frame server and no ingress
-# trigger. The receiver sets the other properties itself, in this order,
-# after its loopback server listens and at each of its starts: the host
-# (which de4sdv_aebs_ingress.rc also takes as a start), then
-# de4sdv.aebs.ingress.start 0 and 1, which start the ingress again after a
-# restart of the receiver. The discard rule has no option: its margin is
-# fixed at 20 ms.
-service de4sdv_someip_receiver /system/bin/de4sdv_someip_receiver --server-address 192.168.98.1 --status-period-s 10 --announce-property de4sdv.aebs.frame_server.host=127.0.0.1 --announce-property de4sdv.aebs.ingress.start=0 --announce-property de4sdv.aebs.ingress.start=1
+# trigger. At each of its starts, after its loopback server listens, the
+# receiver sets the host (which de4sdv_aebs_ingress.rc also takes as a
+# start), then de4sdv.aebs.ingress.start to 0 and 1. While no client is
+# connected, it sets 0 and 1 again every 2 s: init does not start the
+# ingress again while it runs or before init has reaped it. The discard rule
+# has no option: its margin is fixed at 20 ms.
+service de4sdv_someip_receiver /system/bin/de4sdv_someip_receiver --server-address 192.168.98.1 --status-period-s 10 --announce-property de4sdv.aebs.frame_server.host=127.0.0.1 --ingress-start-property de4sdv.aebs.ingress.start
     class late_start
     user system
     group inet
