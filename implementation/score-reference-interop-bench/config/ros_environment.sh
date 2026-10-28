@@ -10,8 +10,8 @@
 #
 # - RMW_IMPLEMENTATION: rmw_cyclonedds_cpp. The adapter links baselibs'
 #   abort override, and Fast DDS 2.6 throws and catches on its normal
-#   startup path, so the adapter aborts under rmw_fastrtps_cpp (startup
-#   probe of the bench).
+#   startup path, so the adapter aborted under rmw_fastrtps_cpp (README,
+#   section "Earlier Fast DDS cases").
 # - CYCLONEDDS_URI: cyclonedds.xml next to this file. It keeps DDS on the
 #   loopback interface without multicast and sets MaxAutoParticipantIndex to
 #   120, as the AEBS Autoware benches do.

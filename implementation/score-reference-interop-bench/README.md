@@ -116,14 +116,11 @@ ros2 command line tools with their daemon. For a shell it comes from
 runtime jobs source it for every ROS 2 process they start. It sets:
 
 - `RMW_IMPLEMENTATION=rmw_cyclonedds_cpp`. Fast DDS 2.6 throws and catches
-  on its normal startup path in two places: its shared-memory transport
-  opens its port with `open_only` and creates the port in the catch, and its
-  UDP transport catches the error of a port that is taken. In the startup
-  probe the adapter aborted at start with the default transports of Fast DDS
-  (the shared-memory transport), and with a UDP-only profile after another
-  participant (the port probe). With the UDP-only profile as first
-  participant, it started and stopped with 0. `rmw_cyclonedds_cpp` is C++
-  too and showed no throw in the tested setups.
+  on its normal startup path. Under rmw_fastrtps_cpp the adapter aborted at
+  start with the default transports, and with a UDP-only profile after
+  another participant (section "Earlier Fast DDS cases"). The model records
+  the choice (comment `adapterAbortConditions`, GAP-MW-035).
+  `rmw_cyclonedds_cpp` is C++ too and showed no throw in the tested setups.
 - `ROS_DOMAIN_ID=91`, one fixed domain, as the AEBS Autoware benches.
 - `CYCLONEDDS_URI` to [`config/cyclonedds.xml`](config/cyclonedds.xml), the
   configuration of the AEBS Autoware benches. It keeps DDS on the loopback
@@ -217,7 +214,7 @@ proxy node come with the next steps.
 | `adapter/facade/` | Facade header and its mw::com implementation, Bazel overlay |
 | `adapter/de4sdv_score_adapter/` | ament_cmake package: pure core, adapter executable, control build, unit tests |
 | `provider/` | Vehicle-speed provider (Bazel overlay) |
-| `config/` | ROS 2 environment and CycloneDDS configuration of the host, mw::com and mw::log configurations, gateway configuration, vsomeip loopback configuration for CI, Fast DDS UDP-only profile for the startup probe |
+| `config/` | ROS 2 environment and CycloneDDS configuration of the host, mw::com and mw::log configurations, gateway configuration, vsomeip loopback configuration for CI |
 | `launch-manager/` | Launch Manager configuration (lifecycle overlay) |
 | `src/de4sdv_score_bench/` | Pure Python evaluators of the abort matrix, the refused subscription, the startup probe and the soak |
 | `scripts/` | CI build steps (runner only), the runtime facts, the renderer of the Launch Manager configuration and its load check, and the runners |
@@ -298,15 +295,38 @@ and ROS 2 environment.
   participant, after 11 others and before 11 others. Two controls must fail:
   the bench configuration without `MaxAutoParticipantIndex` after 11 others,
   and the bench environment with `ROS_LOCALHOST_ONLY=1`, whose log must hold
-  the error of the second interface. Fast DDS runs with its default
-  transports and `ROS_LOCALHOST_ONLY=1`, and with a UDP-only profile; each
-  failing Fast DDS setup also runs with the control build, which must
-  survive it.
+  the error of the second interface.
 
 The runners write raw artifacts (adapter log, provider and observer records,
 backtraces and core mappings) and evaluate them with `src/de4sdv_score_bench`.
 The outcomes use the evidence outcome names of the middleware verification
 model.
+
+### Earlier Fast DDS cases
+
+The startup probe ran five Fast DDS cases to show why the bench runs
+rmw_cyclonedds_cpp. The model records that choice (comment
+`adapterAbortConditions`, GAP-MW-035). So the probe no longer runs these
+cases, and the CI no longer installs Fast DDS. The last two runs with them,
+[40704447008](https://github.com/de4sdv/DE4SDV/actions/runs/40704447008) and
+[40714437918](https://github.com/de4sdv/DE4SDV/actions/runs/40714437918)
+(2026-10-28, ubuntu-22.04 image 20261026.341.1, rmw_fastrtps_cpp 6.2.10,
+Fast DDS 2.6.12), showed the same in each case:
+
+| Fast DDS setup | Build | Result |
+|---|---|---|
+| Default transports, `ROS_LOCALHOST_ONLY=1`, first participant | adapter | Aborted at start, SIGABRT at the override. First named frame below it: `eprosima::fastdds::rtps::SharedMemTransport::CreateInputChannelResource` in `libfastrtps.so.2.6.12` |
+| The same | control build | Ran for the hold time of 30 s and stopped with 0 on SIGTERM |
+| UDP-only profile, first participant | adapter | Ran for the hold time of 30 s and stopped with 0 on SIGTERM |
+| UDP-only profile, after 1 other participant (ready) | adapter | Aborted at start, SIGABRT at the override. First named frame below it: `eprosima::fastdds::rtps::UDPv4Transport::OpenAndBindInputSocket` in `libfastrtps.so.2.6.12` |
+| The same | control build | Ran for the hold time of 30 s and stopped with 0 on SIGTERM |
+
+The shared-memory transport opens its port with `open_only` and creates the
+port in the catch. The UDP transport catches the error of a port that is
+taken. The UDP-only profile had one UDPv4 transport with the interface
+whitelist 127.0.0.1, and no builtin transports. The control build is the
+adapter without the override, so each abort came from the override. The
+artifacts of the two runs expire on 2026-11-27.
 
 ## Bench VM
 

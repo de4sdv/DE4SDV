@@ -33,10 +33,10 @@ sudo install -m 0644 "$work/keyring.gpg" "$keyring"
 echo "deb [arch=amd64 signed-by=$keyring] http://snapshots.ros.org/humble/$snapshot_date/ubuntu jammy main" |
   sudo tee /etc/apt/sources.list.d/ros2-snapshot.list
 
-# Both ROS 2 middlewares by name: ros-base asks for one of them only, and
-# rmw_implementation's search for a missing one throws.
-packages=(ros-humble-ros-base ros-humble-rmw-fastrtps-cpp ros-humble-rmw-cyclonedds-cpp
-          ros-humble-autoware-vehicle-msgs)
+# rmw_cyclonedds_cpp by name: rmw_implementation of ros-base asks for one
+# ROS 2 middleware (rmw_fastrtps_cpp, rmw_cyclonedds_cpp or rmw_connextdds),
+# and apt takes the named one, so no Fast DDS is installed.
+packages=(ros-humble-ros-base ros-humble-rmw-cyclonedds-cpp ros-humble-autoware-vehicle-msgs)
 if [ "$mode" = "build" ]; then
   packages+=(ros-humble-ament-cmake-gtest python3-colcon-common-extensions)
 else
@@ -51,6 +51,6 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -o Acquire::Retries=5 --n
   echo "mode: $mode"
   dpkg-query -W 'ros-humble-*' python3-colcon-core python3-colcon-common-extensions gdb 2>/dev/null || true
 } > "$out/ros_packages_${mode}.txt"
-grep -E "ros-humble-(rclcpp|rmw-fastrtps-cpp|rmw-cyclonedds-cpp|fastrtps|cyclonedds|autoware-vehicle-msgs|ros2param)\s" \
+grep -E "ros-humble-(rclcpp|rmw-cyclonedds-cpp|cyclonedds|autoware-vehicle-msgs|ros2param)\s" \
   "$out/ros_packages_${mode}.txt" || true
 rm -rf "$work"
