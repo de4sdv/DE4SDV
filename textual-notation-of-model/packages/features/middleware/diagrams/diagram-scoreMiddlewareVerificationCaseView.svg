@@ -402,8 +402,8 @@
   <text x="36" y="258" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">layer's host processes and the Autoware nodes that each case names.</tspan></text>
   <text x="36" y="270" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">VC-MW-015, VC-MW-016 and VC-MW-020 also need the AAOS SDV guest with</tspan></text>
   <text x="36" y="282" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the HMI application under KVM on that host (ASM-MW-027). The guest</tspan></text>
-  <text x="36" y="294" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">needs the SOME/IP receiver of phase 8 on its image (GAP-MW-038). The</tspan></text>
-  <text x="36" y="306" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">inspection cases VC-MW-017, VC-MW-018 and VC-MW-021 need no run. They</tspan></text>
+  <text x="36" y="294" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">needs the SOME/IP receiver of phase 8 (GAP-MW-038). The inspection</tspan></text>
+  <text x="36" y="306" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">cases VC-MW-017, VC-MW-018 and VC-MW-021 need no run. They</tspan></text>
   <text x="36" y="318" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">need the configurations and the wiring that the execution slices</tspan></text>
   <text x="36" y="330" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">author. The next slice adds the System 2 test environment element and</tspan></text>
   <text x="36" y="342" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">closes this gap.</tspan></text>
