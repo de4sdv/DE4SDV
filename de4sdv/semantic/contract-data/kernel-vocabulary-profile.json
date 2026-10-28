@@ -100,6 +100,20 @@
       ]
     },
     {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#ConfiguredProduct",
+      "for_concept": "ConfiguredProduct",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+        "owner": "part def ProductLineConfiguredProduct",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
+      ],
+      "configurator_authority": "none (configuration authority follows ADR 0022)"
+    },
+    {
       "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#DerivationRule",
       "for_concept": "DerivationRule",
       "representation_class": "metadata-definition",
@@ -225,6 +239,19 @@
       ]
     },
     {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#IncrementBaselineDecision",
+      "for_concept": "IncrementBaselineDecision",
+      "representation_class": "part-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "owner": "part def IncrementBaselineDecision",
+        "api_metaclass": "PartDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
+      ]
+    },
+    {
       "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#IncrementTraceObligations",
       "for_concept": "IncrementTraceObligations",
       "representation_class": "part-definition",
@@ -248,6 +275,19 @@
       },
       "witness_forms": [
         "ownedRelationship -> OwningMembership -> Documentation (named, owner-selected index)"
+      ]
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#LifecycleDisposition",
+      "for_concept": "LifecycleDisposition",
+      "representation_class": "enumeration-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+        "owner": "enum def LifecycleDisposition",
+        "api_metaclass": "EnumerationDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
       ]
     },
     {
@@ -528,6 +568,20 @@
         "accepted_ref": "docs/method-conformance/o4/external-reference-acceptance-review.md#capturedInBaseline",
         "representation_class": "external-reference-record"
       }
+    },
+    {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#configuredBy",
+      "for_concept": "configuredBy",
+      "representation_class": "vocabulary-role-comment",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+        "owner": "package DE4SDV_ProductLine",
+        "api_metaclass": "Comment"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Comment (named, annotating the about targets)"
+      ],
+      "configurator_authority": "none (configuration authority follows ADR 0022)"
     },
     {
       "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#constrainedBy",

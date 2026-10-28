@@ -11,14 +11,17 @@
 #     hasRegulatorySource (allocatedTo is a register row), and the retired
 #     name validatesFitnessForUse (merged register row with a model retirement
 #     record);
-#   * the method-admitted classes (accounting method-admitted): kernel classes
-#     that a reviewed method pull request admitted after the authored
-#     ontology's deletion, with no register row and no authored-ontology
-#     comparison; their manifest fields are their reviewed contract. ADR 0022
-#     (step S2k, pull request #402) admitted the five product-line derivation
-#     classes DerivationRule, DerivedVariation, ProductModelProjection,
-#     ProductModelProjectionName and UnassignedBindingTime;
-#     tests/test_kernel_vocabulary_projection.py pins that set.
+#   * the method-admitted rows (accounting method-admitted): kernel classes
+#     and vocabulary-only relationships that a reviewed method pull request
+#     admitted after the authored ontology's deletion, with no register row
+#     and no authored-ontology comparison; their manifest fields are their
+#     reviewed contract. ADR 0022 (step S2k) admitted the five product-line
+#     derivation classes DerivationRule, DerivedVariation,
+#     ProductModelProjection, ProductModelProjectionName and
+#     UnassignedBindingTime. The owner decisions of 2026-10-28 on phases 9
+#     and 12 admitted the classes ConfiguredProduct, IncrementBaselineDecision
+#     and LifecycleDisposition and the relationship configuredBy;
+#     tests/test_kernel_vocabulary_projection.py pins these sets.
 # Rows whose register entry is gated name, per gate, the governance record that
 # resolved it (approved semantic decisions, ADR 0020, the October 2026 owner
 # record, the W6 transition plan). Gates resolved here unblock ADMISSION
@@ -282,6 +285,26 @@ admitted:
     - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#decision-7
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: ConfiguredProduct
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: null
+    accounting: method-admitted
+  boundary: ple-no-configurator-authority
+  home:
+    form: owned-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+    owner: part def ProductLineConfiguredProduct
+    index: 0
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+      declaration: part def ProductLineConfiguredProduct
+    sub_class_of: null
+    disjoint_with: []
+  gates: []
+  forward_obligations: []
 - identity: DerivationRule
   semantic_kind: class
   admission_class: definition
@@ -482,6 +505,26 @@ admitted:
     - docs/architecture-decisions/0020-give-ontology-definitions-model-resident-kernel-homes.md#d1
   forward_obligations:
   - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: IncrementBaselineDecision
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: null
+    accounting: method-admitted
+  boundary: none
+  home:
+    form: owned-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    owner: part def IncrementBaselineDecision
+    index: 0
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: part def IncrementBaselineDecision
+    sub_class_of: IncrementLifecycleDecision
+    disjoint_with: []
+  gates: []
+  forward_obligations: []
 - identity: IncrementTraceObligations
   semantic_kind: class
   admission_class: definition
@@ -519,6 +562,26 @@ admitted:
     kernel_mapping:
       native: SysML v2 port def and connection elements
     sub_class_of: ArchitectureElement
+    disjoint_with: []
+  gates: []
+  forward_obligations: []
+- identity: LifecycleDisposition
+  semantic_kind: class
+  admission_class: definition
+  register:
+    wave: null
+    accounting: method-admitted
+  boundary: none
+  home:
+    form: owned-doc
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+    owner: enum def LifecycleDisposition
+    index: 0
+  grounding:
+    kernel_mapping:
+      file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml
+      declaration: enum def LifecycleDisposition
+    sub_class_of: null
     disjoint_with: []
   gates: []
   forward_obligations: []
@@ -1007,6 +1070,34 @@ admitted:
   forward_obligations:
   - a reviewed derived realization over the configuration's owned ProductModelProjectionName and the
     member product that types a usage by the generated part definition, before any runtime claim
+  - the realization binds the generated part definition through validated identity (the evaluation
+    receipt, or its metatype, declared name and generated product-model document), never by the
+    partDefinitionName string alone (ADR 0011; ADR 0022 decision 3)
+  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+- identity: configuredBy
+  semantic_kind: relationship
+  admission_class: relationship-vocabulary
+  register:
+    wave: null
+    accounting: method-admitted
+  boundary: ple-no-configurator-authority
+  home:
+    form: vocabulary-role
+    file: textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml
+    owner: package DE4SDV_ProductLine
+    name: configuredByVocabularyRole
+    about:
+    - ProductLineConfiguredProduct
+    about_imports: {}
+  relation:
+    domain: ConfiguredProduct
+    range: FeatureConfiguration
+    semantic_strength: null
+  gates: []
+  forward_obligations:
+  - a reviewed derived realization over the configuration's owned ProductModelProjectionName and the
+    configured product whose part usage, its own or an inherited one, is typed by the generated part
+    definition, before any check or runtime claim reads the relationship
   - the realization binds the generated part definition through validated identity (the evaluation
     receipt, or its metatype, declared name and generated product-model document), never by the
     partDefinitionName string alone (ADR 0011; ADR 0022 decision 3)

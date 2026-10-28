@@ -12,6 +12,7 @@
       "AssuranceClaim",
       "Baseline",
       "CommonCapability",
+      "ConfiguredProduct",
       "DerivationRule",
       "DerivedVariation",
       "DerivesFromNeed",
@@ -21,8 +22,10 @@
       "Feature",
       "FeatureConfiguration",
       "Function",
+      "IncrementBaselineDecision",
       "IncrementTraceObligations",
       "Interface",
+      "LifecycleDisposition",
       "LogicalAllocationElement",
       "LogicalElement",
       "MethodEvaluationScope",
@@ -42,6 +45,7 @@
       "allocatedTo",
       "appliesToMemberProduct",
       "capturedInBaseline",
+      "configuredBy",
       "constrainedBy",
       "deployedTo",
       "hasAcceptanceCriterion",
@@ -340,6 +344,39 @@
       "api_identity": "unclaimed"
     },
     {
+      "identity": "ConfiguredProduct",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": null,
+      "accounting": "method-admitted",
+      "boundary": "ple-no-configurator-authority",
+      "definition": {
+        "documentation": "A product that a feature configuration configures, the main output of phase 9. It composes, by its own part or by a part it inherits, the product-model projection that the configurator generates from the evaluation receipt of the configuration, and it adds the shared assets and the realizations that the projection does not own. The selections stay in the feature configuration and in the projection: the configured product records none. A configured product whose configuration is admitted also specializes the definition of its member in the governed scope. A configured product that is not admitted specializes no member definition. Configuration evidence only: it proves no runtime behavior and satisfies no requirement.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+          "owner": "part def ProductLineConfiguredProduct",
+          "form": "owned-doc",
+          "documentation_name": null,
+          "documentation_index": 0
+        },
+        "documentation_observation": "model-owned-documentation"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+          "declaration": "part def ProductLineConfiguredProduct"
+        },
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed admission-manifest fields (manifest-held: the model does not carry them structurally, so the reviewed manifest is their authority); file mappings are resolved in the model by this generator; admitted by a method pull request after the authored ontology's deletion: no authored-ontology comparison exists"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
       "identity": "DerivationRule",
       "semantic_kind": "class",
       "admission_class": "definition",
@@ -630,6 +667,39 @@
       "api_identity": "unclaimed"
     },
     {
+      "identity": "IncrementBaselineDecision",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": null,
+      "accounting": "method-admitted",
+      "boundary": "none",
+      "definition": {
+        "documentation": "The lifecycle decision of phase 12: what the baseline of the increment accepts, defers or invalidates. It is not the framing decision of phase 0, which states the decision that the increment is to support. Its disposition states the decision. Its typing identifies it, never a name: a BL identifier in its short name names the record and does not make it a baseline decision. No check reads the baseline register, and the model does not mirror it. No acceptance under de4sdv.acceptance.maintainer-decision.v1, no compliance and no certification claim follows from it.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "owner": "part def IncrementBaselineDecision",
+          "form": "owned-doc",
+          "documentation_name": null,
+          "documentation_index": 0
+        },
+        "documentation_observation": "model-owned-documentation"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "part def IncrementBaselineDecision"
+        },
+        "ontology_relations": {
+          "sub_class_of": "IncrementLifecycleDecision",
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed admission-manifest fields (manifest-held: the model does not carry them structurally, so the reviewed manifest is their authority); file mappings are resolved in the model by this generator; admitted by a method pull request after the authored ontology's deletion: no authored-ontology comparison exists"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
       "identity": "IncrementTraceObligations",
       "semantic_kind": "class",
       "admission_class": "definition",
@@ -687,6 +757,39 @@
           "disjoint_with": []
         },
         "contract_source": "kernel mapping kind and ontology relations: reviewed admission-manifest fields (manifest-held: the model does not carry them structurally, so the reviewed manifest is their authority); file mappings are resolved in the model by this generator; authored-ontology parity proven before its deletion: https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/docs/method-conformance/o4/closure/contract-equivalence.json"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "LifecycleDisposition",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": null,
+      "accounting": "method-admitted",
+      "boundary": "none",
+      "definition": {
+        "documentation": "The disposition that a baseline decision gives the result of an increment or an open gap (accepted, deferred, or invalidated). It is no evidence status, no verdict and no acceptance record.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "owner": "enum def LifecycleDisposition",
+          "form": "owned-doc",
+          "documentation_name": null,
+          "documentation_index": 0
+        },
+        "documentation_observation": "model-owned-documentation"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
+          "declaration": "enum def LifecycleDisposition"
+        },
+        "ontology_relations": {
+          "sub_class_of": null,
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed admission-manifest fields (manifest-held: the model does not carry them structurally, so the reviewed manifest is their authority); file mappings are resolved in the model by this generator; admitted by a method pull request after the authored ontology's deletion: no authored-ontology comparison exists"
       },
       "support": "vocabulary-only",
       "traversal": false,
@@ -1381,6 +1484,42 @@
         "contract_source": "domain/range/strength: reviewed admission-manifest fields (manifest-held, model-witnessed declaration: the model carries no structural domain/range, so the reviewed manifest is their authority); authored-ontology parity proven before its deletion: https://github.com/de4sdv/DE4SDV/blob/release-2026-10-11/docs/method-conformance/o4/closure/contract-equivalence.json"
       },
       "support": "external",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "configuredBy",
+      "semantic_kind": "relationship",
+      "admission_class": "relationship-vocabulary",
+      "register_wave": null,
+      "accounting": "method-admitted",
+      "boundary": "ple-no-configurator-authority",
+      "definition": {
+        "documentation": "Vocabulary role of the reviewed relationship configuredBy: domain ConfiguredProduct (kernel ProductLineConfiguredProduct), range FeatureConfiguration (the pinned PLEML definition FeatureConfiguration). The relationship maps the configured product onto the PLEML feature configuration through the ontology, so the kernel imports no PLEML package (ADR 0022 confines PLEML imports to the feature models). Vocabulary only, with no sysml_mapping and no runtime traversal. No configurator authority; configuration authority follows ADR 0022. The relationship is a DE4SDV derived fact. PLEML binds the product model of a member product to its feature configuration with its FeatureConfigurationBinding metadata, but no DE4SDV model outside the feature models applies PLEML metadata. A configured product is configured by a feature configuration when one of its part usages, its own or an inherited one, is typed by the part definition of that configuration's product-model projection. The configuration's owned ProductModelProjectionName annotation names that part definition. An inherited usage counts, so a specialization of a configured product, such as an instrumented test article, is configured by the same configuration, and a configuration can configure more than one configured product.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
+          "owner": "package DE4SDV_ProductLine",
+          "form": "vocabulary-role",
+          "comment_name": "configuredByVocabularyRole",
+          "about": [
+            "ProductLineConfiguredProduct"
+          ],
+          "about_imports": {}
+        },
+        "documentation_observation": "model-owned-vocabulary-role"
+      },
+      "relation": {
+        "domain": {
+          "ontology_class": "ConfiguredProduct"
+        },
+        "range": {
+          "ontology_class": "FeatureConfiguration"
+        },
+        "canonical_direction": "ConfiguredProduct -> FeatureConfiguration",
+        "semantic_strength": null,
+        "contract_source": "domain/range/strength: reviewed admission-manifest fields (manifest-held, model-witnessed declaration: the model carries no structural domain/range, so the reviewed manifest is their authority); admitted by a method pull request after the authored ontology's deletion: no authored-ontology comparison exists"
+      },
+      "support": "vocabulary-only",
       "traversal": false,
       "api_identity": "unclaimed"
     },

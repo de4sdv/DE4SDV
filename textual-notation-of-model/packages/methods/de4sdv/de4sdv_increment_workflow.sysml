@@ -37,6 +37,7 @@ package DE4SDV_IncrementWorkflow {
   private import DE4SDV_TraceVocabulary::AllocatableFunction;
   private import DE4SDV_TraceVocabulary::LogicalAllocationElement;
   private import DE4SDV_TraceVocabulary::PhysicalAllocationElement;
+  private import DE4SDV_ProductLine::ProductLineConfiguredProduct;
 
   metadata def MethodCheck {
     doc /* A method rule about one parameter of a step definition. Its subjects are
@@ -497,7 +498,8 @@ package DE4SDV_IncrementWorkflow {
     doc /* How does this vary across member products or configurations? */
     attribute :>> phase = MethodPhase::phase9_variabilityConfiguration;
     in part physicalElements[0..*];
-    out part variationPoints[1..*];
+    out part variationPoints[0..*];
+    out part configuredProducts[1..*] : ProductLineConfiguredProduct;
   }
 
   action def PlanVerificationAndEvidence :> IncrementStep {
@@ -551,7 +553,7 @@ package DE4SDV_IncrementWorkflow {
     doc /* What is accepted, deferred, or invalidated? */
     attribute :>> phase = MethodPhase::phase12_baselineNextSlice;
     in part charter : IncrementCharter;
-    out part baselineDecision : IncrementLifecycleDecision;
+    out part baselineDecision : IncrementBaselineDecision;
     out part openGaps[0..*] : IncrementGap;
   }
 }

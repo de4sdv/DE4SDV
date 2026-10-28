@@ -38,10 +38,17 @@ OTHER_LAYERS = {
 }
 NEW_SUCCESSOR_PREDICATES = {"hasValidationScenario", "hasRegulatorySource"}
 MERGED_ALIASES = {"validatesFitnessForUse"}
-#: Classes a method pull request admitted after the authored ontology's
-#: deletion (ADR 0022 step S2k): no authored-ontology comparison exists for them.
-METHOD_ADMITTED_CLASSES = {"DerivationRule", "DerivedVariation", "ProductModelProjection",
-                           "ProductModelProjectionName", "UnassignedBindingTime"}
+#: Rows a method pull request admitted after the authored ontology's deletion:
+#: no authored-ontology comparison exists for them. ADR 0022 step S2k admitted
+#: the five product-line derivation classes. The owner decisions of 2026-10-28 on
+#: phases 9 and 12 admitted three classes and the vocabulary relationship
+#: configuredBy, which maps the configured product onto FeatureConfiguration.
+DERIVATION_CLASSES = {"DerivationRule", "DerivedVariation", "ProductModelProjection",
+                      "ProductModelProjectionName", "UnassignedBindingTime"}
+METHOD_ADMITTED_CLASSES = DERIVATION_CLASSES | {"ConfiguredProduct", "IncrementBaselineDecision",
+                                                "LifecycleDisposition"}
+METHOD_ADMITTED_RELATIONSHIPS = {"configuredBy"}
+METHOD_ADMITTED = METHOD_ADMITTED_CLASSES | METHOD_ADMITTED_RELATIONSHIPS
 #: Rows whose manifest-held fields were proven equal to the authored ontology.
 ONTOLOGY_COMPARED_HELD_ROWS = 48
 #: Owner decision 2026-10-06 (ADR 0020 D4 follow-up): the closure is exactly these.
@@ -122,9 +129,10 @@ def test_admitted_set_is_exactly_the_derived_family():
     # Content, not counts: admitting another definition must not trip this test.
     # Every retained register row that no other layer projects is admitted here,
     # with the named successors and the merged retired name; every other
-    # admitted row is a class outside the register.
+    # admitted row is a class outside the register or a method-admitted
+    # vocabulary relationship.
     assert family <= set(rows)
-    assert all(rows[i]["semantic_kind"] == "class" for i in set(rows) - family)
+    assert {i for i in set(rows) - family if rows[i]["semantic_kind"] != "class"} == METHOD_ADMITTED_RELATIONSHIPS
     assert not (set(rows) - family) & set(register)
     assert len(rows) == len(_manifest()["admitted"])  # one admitted entry per identity
     assert not set(rows) & set(MIGRATED_IDENTITIES)
@@ -181,7 +189,7 @@ def test_projection_scope_echoes_the_owner_visible_exceptions():
 
 
 def test_manifest_held_contract_fields_equal_the_recorded_values():
-    """The manifest holds 53 rows' contract fields itself instead of the model
+    """The manifest holds 57 rows' contract fields itself instead of the model
     (the model does not carry them structurally): kernel mapping, subclass and
     disjointness pins, and
     relation domain/range/direction/strength with mechanics. They feed the served
@@ -195,8 +203,8 @@ def test_manifest_held_contract_fields_equal_the_recorded_values():
     assert set(recorded["entries"]) == set(rows)
     held = {identity: entry for identity, entry in recorded["entries"].items() if entry["manifest"]}
     assert len(held) == recorded["rows_with_manifest_held_contract_fields"] == (
-        ONTOLOGY_COMPARED_HELD_ROWS + len(METHOD_ADMITTED_CLASSES))
-    assert {i for i, r in rows.items() if r["register"]["accounting"] == "method-admitted"} == METHOD_ADMITTED_CLASSES
+        ONTOLOGY_COMPARED_HELD_ROWS + len(METHOD_ADMITTED))
+    assert {i for i, r in rows.items() if r["register"]["accounting"] == "method-admitted"} == METHOD_ADMITTED
     for identity, row in rows.items():
         entry = recorded["entries"][identity]
         assert row["admission_class"] == entry["admission_class"], identity
@@ -231,7 +239,7 @@ def test_every_contract_row_is_labeled_manifest_held():
                 labeled += 1
                 assert "reviewed admission-manifest" in source, identity
                 assert "test-locked to the authored ontology" not in source, identity
-                if identity in METHOD_ADMITTED_CLASSES:
+                if identity in METHOD_ADMITTED:
                     # Admitted after the deletion: the row never claims a comparison.
                     assert "no authored-ontology comparison exists" in source, identity
                     assert "contract-equivalence.json" not in source and "parity" not in source, identity
@@ -239,7 +247,7 @@ def test_every_contract_row_is_labeled_manifest_held():
                     compared += 1
                     assert "closure/contract-equivalence.json" in source, identity
     assert compared == ONTOLOGY_COMPARED_HELD_ROWS
-    assert labeled == ONTOLOGY_COMPARED_HELD_ROWS + len(METHOD_ADMITTED_CLASSES)
+    assert labeled == ONTOLOGY_COMPARED_HELD_ROWS + len(METHOD_ADMITTED)
 
 
 def test_successors_and_retired_names_follow_the_relationship_redesign():
@@ -349,9 +357,10 @@ def test_generated_rows_carry_no_governance_fields_or_executable_claims():
         assert ("configurator_authority" in entry) == (boundary == "ple-no-configurator-authority")
     ple = {r["identity"] for r in rows.values() if r["boundary"] == "ple-no-configurator-authority"}
     # S5o: the PLE configuration rows and the method-admitted derivation classes share
-    # the boundary; none of them carries configurator authority (ADR 0022).
+    # the boundary; none of them carries configurator authority (ADR 0022). So do the
+    # configured product and configuredBy (owner decision of 2026-10-28, Q1).
     assert ple == {"FeatureConfiguration", "appliesToMemberProduct", "selectsFeature",
-                   "selectsVariant"} | METHOD_ADMITTED_CLASSES
+                   "selectsVariant", "ConfiguredProduct", "configuredBy"} | DERIVATION_CLASSES
     assert all(rows[i]["admission_class"] in ("definition", "relationship-vocabulary") for i in ple)
 
 
@@ -528,7 +537,9 @@ _NEGATIVE_MANIFESTS = {
                                                                       "mechanics": {"strategy": "dependency"}}),
     "retired name without retirement home": lambda r, m: r["oldAlphaLink"].update({"home": copy.deepcopy(r["betaLink"]["home"])}),
     "traversal claim key": lambda r, m: r["betaLink"].update({"traversal": True}),
-    "method-admitted relationship": lambda r, m: r["betaLink"].update(
+    "method-admitted successor": lambda r, m: r["alphaLink"].update(
+        {"register": {"wave": None, "accounting": "method-admitted"}}),
+    "method-admitted retired name": lambda r, m: r["oldAlphaLink"].update(
         {"register": {"wave": None, "accounting": "method-admitted"}}),
 }
 
@@ -553,7 +564,8 @@ _NEGATIVE_REASONS = {
     "ple row with runtime class": "PLE configuration rows stay vocabulary-only",
     "retired name without retirement home": "homed by a retirement record",
     "traversal claim key": "unknown keys",
-    "method-admitted relationship": "a method-admitted row is a class definition",
+    "method-admitted successor": "a method-admitted row is a class definition or a vocabulary-only relationship",
+    "method-admitted retired name": "a method-admitted row is a class definition or a vocabulary-only relationship",
 }
 
 
@@ -583,6 +595,22 @@ def test_method_admitted_metadata_class_is_projected_without_a_comparison_claim(
     assert "closure/contract-equivalence.json" in rows["Alpha"]["grounding"]["contract_source"]
     assert profiles["Gamma"]["representation_class"] == "metadata-definition"
     assert profiles["Gamma"]["binding_contract_echo"]["api_metaclass"] == "MetadataDefinition"
+
+
+def test_method_admitted_vocabulary_relationship_is_projected_without_a_comparison_claim(tmp_path):
+    """A vocabulary-only relationship a method pull request admits after the deletion
+    keeps its manifest-held domain and range, and its row never claims an
+    authored-ontology comparison; a compared relationship keeps its parity label."""
+    gamma = copy.deepcopy(_FIXTURE_MANIFEST["admitted"][2])
+    gamma.update({"identity": "gammaLink", "register": {"wave": None, "accounting": "method-admitted"}})
+    outputs = _build(_fixture(tmp_path, manifest=_mutated(lambda r, m: m["admitted"].append(gamma))))
+    rows = {row["identity"]: row for row in outputs["projection_rows"]}
+    assert rows["gammaLink"]["accounting"] == "method-admitted"
+    assert rows["gammaLink"]["relation"]["canonical_direction"] == "Alpha -> Beta"
+    assert (rows["gammaLink"]["support"], rows["gammaLink"]["traversal"]) == ("vocabulary-only", False)
+    source = rows["gammaLink"]["relation"]["contract_source"]
+    assert "no authored-ontology comparison exists" in source and "parity" not in source
+    assert "closure/contract-equivalence.json" in rows["betaLink"]["relation"]["contract_source"]
 
 
 def test_gate_records_archived_at_a_release_tag_are_tag_qualified(tmp_path):

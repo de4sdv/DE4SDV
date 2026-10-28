@@ -138,6 +138,24 @@ package DE4SDV_ProductLine {
    * relationship kind, no sysml_mapping and no runtime traversal; model-native configured
    * products use the native variant-selection construct of ADR 0006. */
 
+  comment configuredByVocabularyRole about ProductLineConfiguredProduct /* Vocabulary
+   * role of the reviewed relationship configuredBy: domain ConfiguredProduct (kernel
+   * ProductLineConfiguredProduct), range FeatureConfiguration (the pinned PLEML
+   * definition FeatureConfiguration). The relationship maps the configured product onto
+   * the PLEML feature configuration through the ontology, so the kernel imports no PLEML
+   * package (ADR 0022 confines PLEML imports to the feature models). Vocabulary only,
+   * with no sysml_mapping and no runtime traversal. No configurator authority;
+   * configuration authority follows ADR 0022. The relationship is a DE4SDV derived fact.
+   * PLEML binds the product model of a member product to its feature configuration with
+   * its FeatureConfigurationBinding metadata, but no DE4SDV model outside the feature
+   * models applies PLEML metadata. A configured product is configured by a feature
+   * configuration when one of its part usages, its own or an inherited one, is typed by
+   * the part definition of that configuration's product-model projection. The
+   * configuration's owned ProductModelProjectionName annotation names that part
+   * definition. An inherited usage counts, so a specialization of a configured product,
+   * such as an instrumented test article, is configured by the same configuration, and a
+   * configuration can configure more than one configured product. */
+
 
   part def ProductLine {
     doc /* A family of related member products managed through shared assets and variability. */
@@ -149,6 +167,19 @@ package DE4SDV_ProductLine {
 
   part def ProductLineMemberProduct {
     doc /* A configured product or product variant that belongs to a product line. */
+  }
+
+  part def ProductLineConfiguredProduct {
+    doc /* A product that a feature configuration configures, the main output of phase 9. It
+         * composes, by its own part or by a part it inherits, the product-model projection
+         * that the configurator generates from the evaluation receipt of the configuration,
+         * and it adds the shared assets and the realizations that the projection does not
+         * own. The selections stay in the feature configuration and in the projection: the
+         * configured product records none. A configured product whose configuration is
+         * admitted also specializes the definition of its member in the governed scope. A
+         * configured product that is not admitted specializes no member definition.
+         * Configuration evidence only: it proves no runtime behavior and satisfies no
+         * requirement. */
   }
 
   part def ProductLineCharacteristic {
