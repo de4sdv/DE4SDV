@@ -8,11 +8,12 @@ the AEBS stack produced before the HMI application's subscription phase
 GAP-MW-045; the receiver's code uses the same margin and copy window. The
 one-process adapter of REQ-MW-018 has two conditions: one ROS 2 environment on the
 host (ASM-MW-031 for the processes outside the layer) and no ROS 2 parameter
-services.
+services. Its fault-injection interface is the trigger of the abort test.
 
 These are lexical source guards; licensed Syside validates the model in CI. The
 pins live in doc comments, so these tests read the docs on purpose. The bench and
-receiver checks skip only while the bench is not on the revision.
+receiver checks skip only while the bench is not on the revision; once it is,
+they fail when its pins, its receiver or the receiver's init file are missing.
 """
 
 from __future__ import annotations
@@ -30,9 +31,8 @@ VERIFICATION = MIDDLEWARE / "middleware_score_verification_evidence.sysml"
 #: The S-CORE slices of INC-MW-011.
 SCORE_SLICES = sorted(MIDDLEWARE.glob("middleware_score_*.sysml"))
 WORKFLOWS = ROOT / ".github" / "workflows"
-#: The S-CORE reference interop bench and its SOME/IP receiver, when they are on the revision.
+#: The S-CORE reference interop bench, with its SOME/IP receiver, when it is on the revision.
 BENCH = ROOT / "implementation" / "score-reference-interop-bench"
-RECEIVER = BENCH / "someip-receiver"
 #: The frame assembler of INC-AEBS-010, whose timer sets the frame period.
 BRIDGE_NODE = (ROOT / "implementation" / "aebs-aaos-sdv-visualization-bench" / "src" / "de4sdv_aebs_010_bridge"
                / "de4sdv_aebs_010_bridge" / "ros_node.py")
@@ -210,20 +210,34 @@ def test_the_derived_numbers_follow_the_bound_the_frame_period_and_the_slots() -
     slots = re.search(r"the (\d+) slots of the adapter's frame event and the (\d+) of gatewayd's bridged service", rule)
     assert slots, "the rule names the slot counts that its copy window sums"
     assert window == int(slots[1]) + int(slots[2]), (window, slots.groups())
+    # Each addend comes from the statement that sets it, not from the rule itself.
+    (frame_event_slots,) = _numbers(r"give the frame event no cycle and (\d+) sample slots", text)
+    gatewayd = _named_part_doc(text, "gatewayd")
+    (bridged_slots,) = _numbers(r"offers the frame service again as a bridged service with (\d+) sample slots", gatewayd)
+    assert (int(slots[1]), int(slots[2])) == (frame_event_slots, bridged_slots), (slots.groups(), frame_event_slots,
+                                                                                 bridged_slots)
+    (max_samples,) = _numbers(r"with a maximum sample count of (\d+)", gatewayd)
+    (needed,) = _numbers(r"So the frame event needs at least (\d+) sample slots", gatewayd)
+    assert needed == max_samples <= frame_event_slots, (needed, max_samples, frame_event_slots)
 
 
 def test_the_receiver_code_uses_the_margin_and_the_copy_window_of_the_model() -> None:
-    if not RECEIVER.exists():
-        pytest.skip("the SOME/IP receiver is not on this revision")
+    """Once the bench is on the revision, its SOME/IP receiver carries the model's margin and copy window."""
+    if not BENCH.exists():
+        pytest.skip("the S-CORE reference interop bench is not on this revision")
     _, rule = _comment(PHYSICAL.read_text(encoding="utf-8"), "receiverSubscriptionPhaseDiscardRule")
     (margin,) = _numbers(r"not earlier than the phase start less (\d+) ms", rule)
     (window,) = _numbers(r"of the last (\d+) frames it served", rule)
-    code = "\n".join(path.read_text(encoding="utf-8") for path in sorted(RECEIVER.rglob("*.hpp")))
+    # The receiver is found by its content, wherever it sits in the bench.
+    code = "\n".join(path.read_text(encoding="utf-8") for path in sorted(BENCH.rglob("*.hpp")))
     margins = [int(value.replace("'", "")) for value in re.findall(r"\bkPhaseStartMarginNs\s*=\s*([0-9']+)", code)]
     windows = [int(value) for value in re.findall(r"\bkCopyMemoryFrames\s*=\s*(\d+)", code)]
+    assert margins, f"no header under {BENCH.relative_to(ROOT)} defines kPhaseStartMarginNs: the receiver is missing"
     assert margins == [margin * 1_000_000], f"the receiver's margin is {margins} ns, the model's {margin} ms"
     assert windows == [window], f"the receiver keeps {windows} frames, the model {window}"
-    for rc in sorted(RECEIVER.glob("*.rc")):
+    init_files = sorted(BENCH.rglob("*.rc"))
+    assert init_files, f"no init file (*.rc) under {BENCH.relative_to(ROOT)}"
+    for rc in init_files:
         lines = [line for line in rc.read_text(encoding="utf-8").splitlines() if not line.lstrip().startswith("#")]
         options = re.findall(r"--[\w-]*(?:margin|bound)[\w-]*", "\n".join(lines))
         assert not options, f"{rc.name} passes {options}; no option sets the margin, fixed at {margin} ms"
@@ -298,3 +312,8 @@ def test_the_adapter_declares_the_fault_injection_interface_that_the_abort_test_
         assert statement in doc, statement
     case = _verification_def_doc("AdapterAbortOnExceptionVerification")
     assert "through the fault-injection interface of the adapter (phase 8)" in case, case[:400]
+
+
+def test_vc_mw_020_does_not_close_req_mw_019_while_the_stored_frame_or_band_gap_is_open() -> None:
+    case = _verification_def_doc("UnsubscribedFrameDiscardVerification")
+    assert case.endswith("While GAP-MW-039 or GAP-MW-045 is open, a pass does not close REQ-MW-019."), case[-200:]
