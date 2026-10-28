@@ -219,9 +219,10 @@ proxy node come with the next steps.
 | `provider/` | Vehicle-speed provider (Bazel overlay) |
 | `config/` | ROS 2 environment and CycloneDDS configuration of the host, mw::com and mw::log configurations, gateway configuration, vsomeip loopback configuration for CI, Fast DDS UDP-only profile for the startup probe |
 | `launch-manager/` | Launch Manager configuration (lifecycle overlay) |
-| `src/de4sdv_score_bench/` | Pure Python evaluators of the abort matrix, the refused subscription, the startup probe and the soak |
-| `scripts/` | CI build steps (runner only), the runtime facts, the renderer of the Launch Manager configuration and its load check, and the runners |
+| `src/de4sdv_score_bench/` | Pure Python evaluators of the abort matrix, the refused subscription, the startup probe, the soak and the SOME/IP receiver runs |
+| `scripts/` | CI build steps (runner only), the runtime facts, the renderer of the Launch Manager configuration and its load check, and the runners, also of the SOME/IP receiver runs |
 | `tests/` | Evaluator unit tests |
+| `someip-receiver/` | DE4SDV minimal SOME/IP receiver of the AAOS SDV guest: pure core, POSIX shell, gtest suites, golden fixtures, `Android.bp` and init script |
 
 ## Pure core and its tests
 
@@ -345,4 +346,111 @@ Not shown: any requirement of INC-MW-011 as verified, the behavior on the
 bench VM, the full Autoware graph, the guest side, the SOME/IP crossing to a
 real subscriber, the Launch Manager at run time, the health proxy node, the
 malformed-sample path of rmw_cyclonedds_cpp, and the timing of any case. No
-safety, cybersecurity, compliance or certification claim is made.
+safety, cybersecurity, compliance or certification claim is made. The
+receiver runs below have their own claim boundary.
+
+## SOME/IP receiver of the AAOS SDV guest
+
+The guest needs a SOME/IP client that receives the AEBS signal frames from
+someipd on the Linux host. It hands them to the HMI ingress on the guest
+loopback. [`someip-receiver/`](someip-receiver) is a small DE4SDV receiver
+for this: portable C++17 on POSIX sockets, without Boost and without
+vsomeip. The owner has not yet decided between this receiver and a port of
+vsomeip to AOSP.
+
+What the receiver does:
+
+- It connects TCP to the reliable endpoint of the frame event, then sends
+  SubscribeEventgroup with an IPv4 endpoint option that names the local end
+  of that connection. It handles Ack and Nack, and renews the subscription
+  every second for a TTL of 3 s. A TTL that ends without an Ack ends the
+  subscription.
+- It listens for offers of the configured server. Without an offer, it
+  tries the configured server every 500 ms (the unicast fallback for a guest
+  that receives no multicast). A StopOffer, a Nack, a closed connection or a
+  reboot of the server ends the connection, and the receiver starts again.
+- It reassembles SOME/IP over TCP, checks that the 4-byte little-endian
+  length prefix counts the bytes of the frame, and reads `sequence` and
+  `frame_timestamp_ns` with a minimal protobuf wire reader.
+- It serves one client on 127.0.0.1:4731. It forwards each payload unchanged,
+  prefix and frame. It holds no queue: a frame without a client is dropped.
+- Every frame ends delivered or dropped with one reason, and a counter per
+  reason shows it. The start line repeats the whole configuration.
+
+The discard rule is a separate component (`FrameDiscardPolicy`). The final
+rule comes with the revision of the phase-8 model. Until then the receiver
+uses this provisional rule:
+
+- A subscription phase starts at each SubscribeEventgroupAck after a
+  not-subscribed state and at each new client connection.
+- In a phase, the receiver delivers a frame only if its `sequence` is greater
+  than that of the last frame delivered to the current client, and its
+  `frame_timestamp_ns` is not older than the phase start minus the
+  clock-offset bound.
+- A new client resets that floor to 0; a new subscription with the same
+  client keeps it. So a frame never reaches the same client twice.
+
+The clock-offset bound has no default. In CI, both namespaces share one
+clock, so the runs use 0 ms. On the bench VM, the guest preflight measures
+the host-guest offset first, and the bound follows from it.
+
+Build and test the receiver with CMake and GTest (Ubuntu: `libgtest-dev`):
+
+```bash
+cmake -S implementation/score-reference-interop-bench/someip-receiver -B build/someip-receiver -G Ninja
+ninja -C build/someip-receiver && build/someip-receiver/de4sdv_someip_receiver_tests
+```
+
+`Android.bp` builds the same sources as a native binary (liblog only) with
+`de4sdv_someip_receiver.rc`, an init script for the eng or userdebug image:
+`seclabel u:r:su:s0`, and the ingress properties
+`de4sdv.aebs.frame_server.host=127.0.0.1` and `de4sdv.aebs.frame_server.port=4731`.
+
+### Runs against the real someipd
+
+Three jobs of the workflow cover the receiver. `someip-receiver-unit` builds
+it with g++ and runs the gtest suites; this binary goes to the namespace runs.
+`someip-receiver-clang` builds and tests it with clang++. The third job,
+`someip-receiver-interop`, runs `scripts/run_someip_receiver_interop.py` as root
+with the runtime bundle of the build job. The script creates a "host" and a
+"guest" network namespace, joined by a veth pair, with a route for
+224.0.0.0/4 in both. Every bench process runs as the non-root runner user.
+
+- Host namespace: someipd with service discovery on and the unicast address
+  10.250.0.1 (`config/vsomeip_netns_host.json`), gatewayd, the adapter, and
+  `scripts/visualization_frame_source.py`. The source sends VisualizationFrame
+  encodings of 64 to 2044 bytes, because the receiver reads `sequence` and
+  `frame_timestamp_ns`.
+- Guest namespace, with a private `/tmp` and `/dev/shm`: the receiver and
+  `scripts/loopback_frame_recorder.py`, a loopback client that reads the
+  stream as the ingress does and records every frame.
+- A capture of the link on the host end, and a record of the LoLa shared
+  memory files that someipd, gatewayd and the adapter map.
+
+Each case starts a fresh stack:
+
+| Case | What it shows |
+|---|---|
+| `identity` | 200 frames reach the client byte for byte, in order, with the 2044-byte frames |
+| `resubscribe` | after a receiver restart by SIGTERM, one by SIGKILL, a restart of the gateway pair and a 5 s link outage, the receiver subscribes again and delivery resumes; no frame comes twice; every drop has a reason |
+| `no_client` | frames without a client are dropped and not queued; the client receives no frame produced before it connected |
+| `stored_samples` | frames that the layer stored before the subscription are counted, and the rule drops them |
+| `ttl_renewal` | without multicast offers, the receiver renews its subscription over five TTLs, without a lapse or a gap |
+
+`src/de4sdv_score_bench/someip_receiver_interop.py` evaluates the raw records
+of each case. A case also fails on a "Failed to subscribe" line of gatewayd,
+on LoLa shared memory that the adapter, gatewayd and someipd do not share, and
+on any frame at the client that is not byte-identical to a source frame.
+
+### Claim boundary of the receiver runs
+
+These runs are CI regression and design data on GitHub-hosted ubuntu-22.04
+runners. They are not evidence of record, they verify no requirement, and
+every result stays draft until independent review.
+
+Shown by a passing run: the receiver's interoperation over a veth pair with
+the someipd and gatewayd of the bundle, on Linux, with the provisional
+discard rule. Not shown: the Android build of the receiver, the AAOS SDV
+guest, the Cuttlefish network, the HMI ingress, the clock offset of a real
+guest, and any timing of record. No safety, cybersecurity, compliance or
+certification claim is made.
