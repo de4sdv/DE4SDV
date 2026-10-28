@@ -460,10 +460,10 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
          * proxy node off the guest network, as it keeps port 4721 of the frame
          * assembler (GAP-MW-012). So REQ-MW-016, and REQ-MW-019 while the guest's
          * subscription is absent, are enforced here by the host's own
-         * configuration and do not rely on the guest. The criteria of
-         * REQ-MW-016 also cover the ROS 2 processes of the host outside the
-         * layer. ASM-MW-031 assumes that they run in the ROS 2 environment of
-         * adapterAbortConditions, which keeps DDS on the loopback interface.
+         * configuration and do not rely on the guest. While ASM-MW-031 holds,
+         * the criteria of REQ-MW-016 also cover the ROS 2 processes of the host
+         * outside the layer. ASM-MW-031 assumes that they run in the ROS 2
+         * environment of adapterAbortConditions.
          * The trust boundary to the guest lies here, inside the layer
          * (GAP-MW-012), and no robustness against malformed input from the
          * guest is claimed.
@@ -1168,16 +1168,20 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
 
   part <'GAP-MW-045'> gapPhaseStartDiscardBand : IncrementGap {
     doc /*
-     * REQ-MW-019 at the start of a subscription phase. The receiver's
-     * discard rule compares a frame stamp on the host clock with a phase
-     * start on the guest clock (receiverSubscriptionPhaseDiscardRule,
-     * ASM-MW-030). So that it drops no frame produced after the phase start
-     * (REQ-MW-014), it puts its 20 ms margin before the start. A frame that
-     * the AEBS stack produced in that margin can still reach the HMI
-     * application. Take the clock offset as the guest clock minus the host
-     * clock. By the host clock, the band is then 20 ms minus that offset
-     * wide: more than 0 ms and less than 40 ms while ASM-MW-030 holds. Two
-     * kinds of frames can fall in it:
+     * Open: the member has no time synchronization between the Linux host
+     * and the AAOS SDV guest. So ASM-MW-030 holds only where the bench keeps
+     * the clocks together and measures them, and the band below rests on it.
+     * A narrower band needs closer clocks and a smaller bound.
+     * The band is that of REQ-MW-019 at the start of a subscription phase.
+     * The receiver's discard rule compares a frame stamp on the host clock
+     * with a phase start on the guest clock
+     * (receiverSubscriptionPhaseDiscardRule, ASM-MW-030). So that it drops no
+     * frame produced after the phase start (REQ-MW-014), it puts its 20 ms
+     * margin before the start. A frame that the AEBS stack produced in that
+     * margin can still reach the HMI application. Take the clock offset as the
+     * guest clock minus the host clock. By the host clock, the band is then
+     * 20 ms minus that offset wide: more than 0 ms and less than 40 ms while
+     * ASM-MW-030 holds. Two kinds of frames can fall in it:
      * - a frame that was on its way through the layer at the phase start;
      * - a stored frame of GAP-MW-039 that the AEBS stack produced in the
      *   band.
@@ -1191,11 +1195,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * before the start of a phase that began when the ingress connected, and
      * received 5.36 ms after its stamp. It came at 1 of the 5 phase starts
      * of the resubscription case. Phase 10 reports each frame that the AEBS
-     * stack produced in the band of a phase start. Open: the member has no
-     * time synchronization between the Linux host and the AAOS SDV guest.
-     * So ASM-MW-030 holds only where the bench keeps the clocks together and
-     * measures them. A narrower band needs closer clocks and a smaller
-     * bound.
+     * stack produced in the band of a phase start.
      */
   }
 
@@ -1429,8 +1429,11 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    *   command line tools and their daemon among them, ASM-MW-031 assumes it.
    *   The environment sets RMW_IMPLEMENTATION=rmw_cyclonedds_cpp, one fixed
    *   ROS_DOMAIN_ID and one CYCLONEDDS_URI. That configuration binds DDS to
-   *   the loopback interface, as the AEBS benches of DE4SDV do, and so keeps
-   *   DDS off the guest network (someipd). It sets MaxAutoParticipantIndex to
+   *   the loopback interface, as the AEBS benches of DE4SDV do. That alone
+   *   does not keep the DDS ports off the guest network: CycloneDDS 0.10.5
+   *   binds its receive sockets to INADDR_ANY (ddsi_udp.c:453-456, 479-480).
+   *   So the host must also keep these ports off the guest network, as
+   *   REQ-MW-016 asks (someipd). It sets MaxAutoParticipantIndex to
    *   at least the number of ROS 2 processes. On an interface without
    *   multicast, CycloneDDS 0.10.5 gives each process an automatic
    *   participant index (q_init.c:1394-1401). At most MaxAutoParticipantIndex
@@ -1469,9 +1472,9 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    * deserialize raises an exception that serdata.cpp:383-389 would catch,
    * and the override turns that throw into an abort. This lies outside
    * normal operation. In Humble no configuration removes these two
-   * subscriptions. DDS on the loopback interface limits the senders to
-   * processes on the host. No robustness against malformed DDS input is
-   * claimed.
+   * subscriptions. Only while the host keeps the DDS ports off the guest
+   * network (REQ-MW-016) are the senders processes on the host. No
+   * robustness against malformed DDS input is claimed.
    * The Launch Manager passes a component only the environment that its
    * configuration names, so that configuration carries the environment
    * above (launchManager).

@@ -33,6 +33,10 @@ CONFIGURATION = MIDDLEWARE / "middleware_score_variability_configuration.sysml"
 CLOSED_SLICE = MIDDLEWARE / "middleware_verification_evidence.sysml"
 PACKAGE = "DE4SDV_MiddlewareSCOREVerificationEvidence"
 
+#: Case ID -> the kinds a case adds to its requirement's method when it collects. VC-MW-017 adds a runtime
+#: reachability probe (test) to the inspection of REQ-MW-016 (owner decision of 2026-10-28, real isolation).
+SUPPORTING_KINDS = {"VC-MW-017": ("test",)}
+
 #: Case ID -> the requirement it verifies, in requirement order. The IDs take the next free numbers of
 #: the VC-MW family after the grandfathered VC-MW-010-01 to VC-MW-010-06 (docs/naming/naming-conventions.md).
 CASES = {
@@ -156,23 +160,33 @@ def test_the_case_ids_are_unique_in_the_model() -> None:
         assert len(re.findall(rf"<'{case}'>", text)) == 1, case
 
 
+def _kinds(annotation_body: str) -> list[tuple[str, ...]]:
+    """The kinds of each ``@VerificationMethod`` annotation in ``annotation_body``, one tuple per annotation."""
+    found = re.findall(r"@VerificationMethod\{ kind = (\w+|\([\w, ]+\)); \}", annotation_body)
+    return [tuple(kind.strip("()").split(", ")) for kind in found]
+
+
 def test_each_case_collects_by_the_method_its_requirement_states() -> None:
     """A test requirement gets a test and an inspect requirement an inspection; processing and evaluation
-    are analysis. The usage names the methods of its actions."""
+    are analysis. A case collects by its requirement's method first and adds only the kinds that
+    SUPPORTING_KINDS states. The usage names the methods of its actions."""
     requirements = _requirements()
     text = SLICE.read_text(encoding="utf-8")
+    assert set(SUPPORTING_KINDS) <= set(CASES)
     for case, requirement in CASES.items():
         name, definition = _usages()[case]
         method = requirements[requirement]["method"]
         assert method in {"test", "inspect"}, (requirement, method)
+        collected = (method, *SUPPORTING_KINDS.get(case, ()))
         body = _definition(definition)
-        for action, expected in (("collectData", method), ("processData", "analyze"), ("evaluateData", "analyze")):
+        for action, expected in (("collectData", collected), ("processData", ("analyze",)),
+                                 ("evaluateData", ("analyze",))):
             action_body = _code_body(body, rf"\baction\s+{action}\s*\{{")
-            assert re.findall(r"@VerificationMethod\{ kind = (\w+); \}", action_body) == [expected], (case, action)
+            assert _kinds(action_body) == [expected], (case, action, _kinds(action_body))
         assert "subject verifiedBench : SCOREMiddlewareVerificationBench;" in body, case
         assert "out item retainedEvidence : ReceiptBoundMiddlewareEvidence;" in body, case
         usage = _code_body(text, rf"\bverification\s+<'{case}'>\s*{name}\s*:\s*{definition}\s*\{{")
-        assert f"@VerificationMethod{{ kind = ({method}, analyze); }}" in usage, case
+        assert _kinds(usage) == [(*collected, "analyze")], (case, _kinds(usage))
         assert "subject verifiedBench :> scoreMiddlewareVerificationBench;" in usage, case
 
 
@@ -288,25 +302,57 @@ def _usage_doc(case: str) -> str:
     return _flat_doc(_raw_body(SLICE.read_text(encoding="utf-8"), header))
 
 
-def test_the_isolation_case_inspects_the_ros2_environment_and_the_host_configuration() -> None:
-    """REQ-MW-016 also covers ROS 2 (DDS) on the host, so VC-MW-017 inspects it and its bench needs it."""
+def test_the_isolation_case_inspects_the_host_and_probes_the_dds_ports_from_each_guest_domain() -> None:
+    """REQ-MW-016 asks for DDS ports that no guest domain reaches: VC-MW-017 inspects the configuration that does
+    it and probes the ports at run time, with a control on someipd (owner decision of 2026-10-28)."""
     definition = _flat_doc(_raw_body(SLICE.read_text(encoding="utf-8"),
                                      r"\bverification\s+def\s+NoApplicationDataFromHMIGuestVerification\s*\{"))
-    for statement in ("the configuration of each element of the layer.",
+    for statement in ("Inspection of REQ-MW-016, with a runtime probe for its second finding.",
+                      "the configuration of each element of the layer.",
                       "These elements are the S-CORE services, the adapter, gatewayd, someipd, the health proxy node "
                       "and the SOME/IP receiver.",
                       "the ROS 2 environment of each ROS 2 process on the Linux host, with the DDS configuration that "
-                      "it names, and the network configuration of the Linux host.",
-                      "It records each ROS 2 subscription on the Linux host that the guest network can reach.",
-                      "It records each network interface on which the host offers a DDS endpoint, and whether the guest "
-                      "network reaches that interface."):
+                      "it names, and the host configuration that makes the DDS ports unreachable from the guest "
+                      "domains, such as its firewall rules.",
+                      "For the ROS 2 processes outside the layer, it records whether ASM-MW-031 holds on the member.",
+                      "While the layer runs, collectData also runs a reachability probe from each guest domain of the "
+                      "layer against the DDS ports of the Linux host. The probe must find these ports unreachable.",
+                      "As a control, it must reach the SOME/IP ports of someipd from the guest domain that someipd "
+                      "serves.",
+                      "If ASM-MW-031 does not hold, the case does not show the criteria met. If the control fails, the "
+                      "probe shows nothing about the DDS ports. In both cases, the outcome is "
+                      "inconclusiveMissingEvidence."):
         assert statement in definition, statement
-    assert "does not inspect them" not in definition, "the criteria now name the host's ROS 2 and DDS configuration"
+    assert "does not inspect them" not in definition, "the criteria name the host's ROS 2 and DDS configuration"
     needs = _usage_doc("VC-MW-017")
-    for statement in ("For ROS 2 (DDS), it needs the Launch Manager configuration and the launch configuration of the "
+    assert needs.startswith("Not started. Bench: the Linux host with the layer running and each guest domain of the "
+                            "layer up, with a reachability probe in each guest domain."), needs[:200]
+    for statement in ("With the AAOS SDV broker path that the owner chose on 2026-10-28, these are the SDV Core VM "
+                      "and the IVI VM, and someipd serves the SDV Core VM.",
+                      "For ROS 2 (DDS), it needs the Launch Manager configuration and the launch configuration of the "
                       "member on the Linux host.",
-                      "It also needs the DDS configuration and the network configuration of the Linux host."):
+                      "It also needs the DDS configuration of the Linux host and the host configuration that makes "
+                      "the DDS ports unreachable from the guest domains."):
         assert statement in needs, statement
+    gap = _flat_doc(_raw_body(SLICE.read_text(encoding="utf-8"),
+                              r"\bpart\s+<'GAP-MW-044'>\s*\w+\s*:\s*IncrementGap\s*\{"))
+    assert ("The inspection cases VC-MW-018 and VC-MW-021 need no run. They need the configurations and the wiring "
+            "that the execution slices author. VC-MW-017 needs them too, and a run for its reachability probe from "
+            "each guest domain of the layer.") in gap, gap
+
+
+def test_the_slice_header_names_its_three_exceptions_to_the_preflight_rule() -> None:
+    """Preflight checks verify no requirement, apart from the three that a case holds."""
+    (header,) = re.findall(r"\A/\*(.*?)\*/", SLICE.read_text(encoding="utf-8"), re.DOTALL)
+    flat = " ".join(" ".join(re.sub(r"^\s*\*\s?", "", line) for line in header.splitlines()).split())
+    exceptions = ("The adapter restart is a test condition of VC-MW-014.",
+                  "The clock offset shows whether ASM-MW-030 holds, which the criteria of REQ-MW-019 need, so "
+                  "VC-MW-020 records it.",
+                  "VC-MW-017 inspects the ROS 2 environment of each ROS 2 process on the host, for the DDS criteria of "
+                  "REQ-MW-016.")
+    assert "They verify no requirement, so no case of this slice holds them. Three exceptions apply. " in flat, flat
+    for exception in exceptions:
+        assert exception in flat, exception
 
 
 def test_the_emergency_command_case_needs_only_the_hmi_path_configurations_of_vc_mw_017() -> None:

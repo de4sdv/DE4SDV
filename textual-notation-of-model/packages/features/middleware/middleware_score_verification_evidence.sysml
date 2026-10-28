@@ -107,10 +107,11 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * VC-MW-015, VC-MW-016 and VC-MW-020 also need the AAOS SDV guest with
      * the HMI application under KVM on that host (ASM-MW-027). The guest
      * needs the SOME/IP receiver of phase 8 (GAP-MW-038). The inspection
-     * cases VC-MW-017, VC-MW-018 and VC-MW-021 need no run. They
-     * need the configurations and the wiring that the execution slices
-     * author. The next slice adds the System 2 test environment element and
-     * closes this gap.
+     * cases VC-MW-018 and VC-MW-021 need no run. They need the
+     * configurations and the wiring that the execution slices author.
+     * VC-MW-017 needs them too, and a run for its reachability probe from
+     * each guest domain of the layer. The next slice adds the System 2 test
+     * environment element and closes this gap.
      */
   }
 
@@ -350,27 +351,34 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
 
   verification def NoApplicationDataFromHMIGuestVerification {
     doc /*
-     * Inspection of REQ-MW-016. It inspects the artifacts that the success
-     * criteria name. They are the interface definition of the HMI path and
-     * the configuration of each element of the layer. These elements are the
-     * S-CORE services, the adapter, gatewayd, someipd, the health proxy node
-     * and the SOME/IP receiver. The artifacts are also the ROS 2 environment
-     * of each ROS 2 process on the Linux host, with the DDS configuration that
-     * it names, and the network configuration of the Linux host. collectData
-     * records each inspected artifact at its exact revision. It also records
-     * each receiver on the Linux host that it finds for application data from
-     * the AAOS SDV guest. It records each ROS 2 subscription on the Linux host
-     * that the guest network can reach. It records each network interface on
-     * which the host offers a DDS endpoint, and whether the guest network
-     * reaches that interface. processData compares the findings with the
-     * criteria.
+     * Inspection of REQ-MW-016, with a runtime probe for its second finding.
+     * It inspects the artifacts that the success criteria name. They are the
+     * interface definition of the HMI path and the configuration of each
+     * element of the layer. These elements are the S-CORE services, the
+     * adapter, gatewayd, someipd, the health proxy node and the SOME/IP
+     * receiver. The artifacts are also the ROS 2 environment of each ROS 2
+     * process on the Linux host, with the DDS configuration that it names, and
+     * the host configuration that makes the DDS ports unreachable from the
+     * guest domains, such as its firewall rules. collectData records each
+     * inspected artifact at its exact revision. It also records each receiver
+     * on the Linux host that it finds for application data from the AAOS SDV
+     * guest. For the ROS 2 processes outside the layer, it records whether
+     * ASM-MW-031 holds on the member. While the layer runs, collectData also
+     * runs a reachability probe from each guest domain of the layer against
+     * the DDS ports of the Linux host. The probe must find these ports
+     * unreachable. As a control, it must reach the SOME/IP ports of someipd
+     * from the guest domain that someipd serves. processData compares the
+     * findings with the criteria. If ASM-MW-031 does not hold, the case does
+     * not show the criteria met. If the control fails, the probe shows
+     * nothing about the DDS ports. In both cases, the outcome is
+     * inconclusiveMissingEvidence.
      */
     subject verifiedBench : SCOREMiddlewareVerificationBench;
     objective noApplicationDataFromHMIGuestObjective {
       verify reqNoApplicationDataFromHMIGuest { subject integrationLayer = verifiedBench.integrationLayer; }
     }
     action collectData {
-      @VerificationMethod{ kind = inspect; }
+      @VerificationMethod{ kind = (inspect, test); }
       out item retainedEvidence : ReceiptBoundMiddlewareEvidence;
     }
     action processData {
@@ -470,20 +478,21 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * frame input of the HMI application after the new subscription. A
      * capture of the guest-loopback stream gives them, before the ingress's
      * own checks and independent of the receiver's and the ingress's own
-     * logs. processData checks that no frame that the AEBS stack produced
-     * more than the bound of ASM-MW-030 before the new subscription arrives
-     * after it. It takes the production time from the frame timestamp on the
-     * host clock, and the start of the new subscription on the guest clock.
-     * If ASM-MW-030 does not hold in the run, the run does not meet the
-     * condition of the criteria. In that case, the outcome is
-     * inconclusiveMissingEvidence. The new subscription is the start of a
-     * subscription phase of the SOME/IP receiver, as phase 8 defines it. The
-     * guest captures show it: the acknowledged subscription and the accepted
-     * loopback client. A pass covers these two conditions only. It does not
-     * show the stored frames of a late or repeated subscription in the host
-     * half (GAP-MW-039). Phase 8 discards them at the receiver, and the
-     * preflight checks of the execution slices test that rule. While
-     * GAP-MW-039 is open, a pass does not close REQ-MW-019.
+     * logs. processData checks each frame that arrives after the new
+     * subscription. The AEBS stack must not have produced it more than the
+     * bound of ASM-MW-030 before the new subscription. processData takes the
+     * production time from the frame timestamp, on the host clock. It takes
+     * the start of the new subscription from the guest clock. If ASM-MW-030
+     * does not hold in the run, the run does not show the criteria met. In
+     * that case, the outcome is inconclusiveMissingEvidence. The new
+     * subscription is the start of a subscription phase of the SOME/IP
+     * receiver, as phase 8 defines it. The guest captures show it: the
+     * acknowledged subscription and the accepted loopback client. A pass
+     * covers these two conditions only. It does not show the stored frames of
+     * a late or repeated subscription in the host half (GAP-MW-039). Phase 8
+     * discards them at the receiver, and the preflight checks of the execution
+     * slices test that rule. While GAP-MW-039 is open, a pass does not close
+     * REQ-MW-019.
      */
     subject verifiedBench : SCOREMiddlewareVerificationBench;
     objective unsubscribedFrameDiscardObjective {
@@ -576,8 +585,8 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
   }
 
   verification <'VC-MW-017'> noApplicationDataFromHMIGuestVerification : NoApplicationDataFromHMIGuestVerification {
-    doc /* Not started. Bench: no run. The case needs the interface definition of the HMI path: the SOME/IP service definition and the frame contract of INC-AEBS-010. It also needs the layer's mw::com configuration and the gateway configuration of gatewayd and someipd. It needs the vsomeip configuration of someipd and the configuration of the SOME/IP receiver too. For ROS 2 (DDS), it needs the Launch Manager configuration and the launch configuration of the member on the Linux host. It also needs the DDS configuration and the network configuration of the Linux host. The execution slices author all of them except the frame contract. */
-    @VerificationMethod{ kind = (inspect, analyze); }
+    doc /* Not started. Bench: the Linux host with the layer running and each guest domain of the layer up, with a reachability probe in each guest domain. With the AAOS SDV broker path that the owner chose on 2026-10-28, these are the SDV Core VM and the IVI VM, and someipd serves the SDV Core VM. The case also needs the interface definition of the HMI path: the SOME/IP service definition and the frame contract of INC-AEBS-010. It also needs the layer's mw::com configuration and the gateway configuration of gatewayd and someipd. It needs the vsomeip configuration of someipd and the configuration of the SOME/IP receiver too. For ROS 2 (DDS), it needs the Launch Manager configuration and the launch configuration of the member on the Linux host. It also needs the DDS configuration of the Linux host and the host configuration that makes the DDS ports unreachable from the guest domains. The execution slices author all of them except the frame contract. */
+    @VerificationMethod{ kind = (inspect, test, analyze); }
     subject verifiedBench :> scoreMiddlewareVerificationBench;
   }
 

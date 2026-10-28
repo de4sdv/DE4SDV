@@ -344,6 +344,15 @@ def test_the_adapter_abort_conditions_name_the_ros2_environment_and_the_paramete
                     "start_parameter_services set to false", "triggers each throw with a signal to the adapter",
                     "No robustness against malformed DDS input is claimed"):
         assert setting in conditions, setting
+    # A loopback binding alone keeps no DDS port off the guest network (owner decision of 2026-10-28, REQ-MW-016).
+    for statement in ("That alone does not keep the DDS ports off the guest network: CycloneDDS 0.10.5 binds its "
+                      "receive sockets to INADDR_ANY (ddsi_udp.c:453-456, 479-480). So the host must also keep these "
+                      "ports off the guest network, as REQ-MW-016 asks (someipd).",
+                      "Only while the host keeps the DDS ports off the guest network (REQ-MW-016) are the senders "
+                      "processes on the host."):
+        assert statement in conditions, statement
+    for overclaim in ("and so keeps DDS off the guest network", "DDS on the loopback interface limits the senders"):
+        assert overclaim not in conditions, overclaim
     assert re.search(r"\bpart <'ASM-MW-031'> asmOneROS2EnvironmentOnHost : IncrementAssumption \{", text)
 
 
@@ -386,18 +395,25 @@ def test_vc_mw_020_does_not_close_req_mw_019_while_the_stored_frame_gap_is_open(
 def test_vc_mw_020_checks_the_margin_and_the_condition_of_asm_mw_030() -> None:
     """VC-MW-020 checks the criteria of REQ-MW-019: the bound of ASM-MW-030 as the margin, on the two clocks."""
     case = _verification_def_doc("UnsubscribedFrameDiscardVerification")
-    for statement in ("processData checks that no frame that the AEBS stack produced more than the bound of "
-                      "ASM-MW-030 before the new subscription arrives after it.",
-                      "It takes the production time from the frame timestamp on the host clock, and the start of "
-                      "the new subscription on the guest clock.",
-                      "If ASM-MW-030 does not hold in the run, the run does not meet the condition of the criteria. "
-                      "In that case, the outcome is inconclusiveMissingEvidence."):
+    for statement in ("processData checks each frame that arrives after the new subscription. The AEBS stack must "
+                      "not have produced it more than the bound of ASM-MW-030 before the new subscription.",
+                      "processData takes the production time from the frame timestamp, on the host clock. It takes "
+                      "the start of the new subscription from the guest clock.",
+                      "If ASM-MW-030 does not hold in the run, the run does not show the criteria met. In that case, "
+                      "the outcome is inconclusiveMissingEvidence.",
+                      "It records the times of the stop and of the new subscription, and the offset between the host "
+                      "clock and the guest clock."):
         assert statement in case, statement
     assert "from the time without a subscription" not in case, "the literal criteria of REQ-MW-019 are gone"
 
 
 def test_gap_mw_045_records_that_the_criteria_of_req_mw_019_declare_the_margin() -> None:
+    """The gap leads with what stays open; the band itself now meets the criteria while ASM-MW-030 holds."""
     gap = _part_doc(PHYSICAL.read_text(encoding="utf-8"), "GAP-MW-045")
+    assert gap.startswith("Open: the member has no time synchronization between the Linux host and the AAOS SDV "
+                          "guest. So ASM-MW-030 holds only where the bench keeps the clocks together and measures "
+                          "them, and the band below rests on it."), gap[:200]
+    assert gap.count("Open:") == 1, "one open item, stated first"
     assert ("The success criteria of REQ-MW-019 declare this margin as the bound of ASM-MW-030 (owner decision of "
             "2026-10-28). So such a frame meets them while ASM-MW-030 holds.") in gap
     assert "does not meet the success criteria" not in gap, gap
@@ -406,6 +422,6 @@ def test_gap_mw_045_records_that_the_criteria_of_req_mw_019_declare_the_margin()
 def test_someipd_names_the_assumption_that_the_dds_criteria_of_req_mw_016_need() -> None:
     """REQ-MW-016 also covers the host's ROS 2 processes outside the layer; ASM-MW-031 assumes their environment."""
     doc = _named_part_doc(PHYSICAL.read_text(encoding="utf-8"), "someipd")
-    assert ("The criteria of REQ-MW-016 also cover the ROS 2 processes of the host outside the layer. ASM-MW-031 "
-            "assumes that they run in the ROS 2 environment of adapterAbortConditions, which keeps DDS on the "
-            "loopback interface.") in doc, doc
+    assert ("While ASM-MW-031 holds, the criteria of REQ-MW-016 also cover the ROS 2 processes of the host outside "
+            "the layer. ASM-MW-031 assumes that they run in the ROS 2 environment of "
+            "adapterAbortConditions.") in doc, doc
