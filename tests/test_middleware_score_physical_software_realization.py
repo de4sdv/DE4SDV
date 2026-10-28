@@ -198,12 +198,15 @@ def test_the_receiver_code_uses_the_margin_and_the_copy_window_of_the_model() ->
         assert not options, f"{rc.name} passes {options}; no option sets the margin, fixed at {margin} ms"
 
 
-def test_the_receiver_starts_the_ingress_and_triggers_it_again_while_no_client_is_connected() -> None:
+def test_the_receiver_repeats_the_ingress_trigger_only_until_its_first_client() -> None:
     doc = _named_part_doc(PHYSICAL.read_text(encoding="utf-8"), "someipReceiver")
-    for statement in ("It does so at each of its own starts, once its loopback server listens",
-                      "while no client is connected, the receiver triggers the ingress again at a fixed interval.",
-                      "A trigger while an ingress runs does nothing"):
+    for statement in ("It does so at each of its own starts, once its loopback server listens.",
+                      "So until the first client of the current receiver process connects, the receiver repeats "
+                      "the trigger at a fixed interval, a fixed number of times at most.",
+                      "After that first client, it never triggers the ingress again."):
         assert statement in doc, statement
+    for removed in ("while no client is connected", "harmless"):
+        assert removed not in doc, removed
 
 
 def test_the_guest_side_guard_rail_names_the_clock_assumption() -> None:

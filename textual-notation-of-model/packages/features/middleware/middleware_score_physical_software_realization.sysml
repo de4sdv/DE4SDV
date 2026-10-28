@@ -271,10 +271,14 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * property starts it. The receiver triggers the ingress: it sets that
        * property to 0 and then to 1. It does so at each of its own starts,
        * once its loopback server listens. Init ignores a start of a oneshot
-       * service whose old process it has not reaped yet. So while no client
-       * is connected, the receiver triggers the ingress again at a fixed
-       * interval. A trigger while an ingress runs does nothing, so the
-       * repeat is harmless. Its bench form, and what stays untested, are in
+       * service whose old process it has not reaped yet
+       * (init/service.cpp:589-608 and 313-314 of AOSP android14-release).
+       * So until the first client of the current receiver process connects,
+       * the receiver repeats the trigger at a fixed interval, a fixed number
+       * of times at most. After that first client, it never triggers the
+       * ingress again. An ingress that the bench stopped, or that exited by
+       * itself, stays down until the bench starts it or the receiver
+       * restarts. Its bench form, and what stays untested, are in
        * GAP-MW-038. The same source builds for Linux, so phase 10 tests it
        * against the real someipd before any guest run.
        */
