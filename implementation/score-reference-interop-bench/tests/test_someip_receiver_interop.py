@@ -31,6 +31,7 @@ from de4sdv_score_bench.someip_capture import (  # noqa: E402
     TcpStream,
 )
 from de4sdv_score_bench.someip_receiver_interop import (  # noqa: E402
+    ANNOUNCED_PROPERTIES,
     DROP_REASONS,
     CaseRecords,
     ReceiverRun,
@@ -85,6 +86,8 @@ class Builder:
     def receiver(self, multicast: bool = True) -> list[dict]:
         events = [{"event": "start", "monotonic_ns": 0, "realtime_ns": T0, "phase_start_margin_ns": MARGIN,
                    "join_multicast": multicast, "subscription_ttl_s": 3}]
+        events += [{"event": "property_not_announced", "monotonic_ns": 1000, "realtime_ns": T0 + 1000, "name": name,
+                    "value": value, "reason": "not Android"} for name, value in ANNOUNCED_PROPERTIES]
         self.receivers.append(events)
         return events
 
@@ -307,6 +310,50 @@ def test_load_case_reads_the_files_of_the_runner(tmp_path):
     assert len(records.receivers[0].phases()) == 1
     assert "Failed to subscribe" in records.gatewayd_logs["gatewayd.log"]
     assert records.capture is None and records.source_stream == b"\x01\x02"
+
+
+def test_identity_reports_the_receipt_time_less_the_frame_stamp():
+    result = evaluate_identity(identity_builder().records())
+    assert result["metrics"]["receipt_minus_frame_ms"] == {"min": 2.0, "max": 2.0}
+    assert result["metrics"]["clock_steps"] == 0
+
+
+def test_a_clock_step_voids_the_case():
+    builder = identity_builder()
+    events = builder.receivers[0]
+    events.insert(len(events) - 1, {"event": "clock_step", "monotonic_ns": 9 * S, "realtime_ns": T0 + 9 * S,
+                                    "step_ns": 5 * MS, "in_phase": True})
+    result = evaluate_identity(builder.records())
+    assert result["outcome"] == MISSING
+    assert not result["checks"]["no_clock_step:receiver-1.log"]
+
+
+def test_a_receiver_run_must_start_the_ingress_after_it_listens():
+    builder = identity_builder()
+    events = builder.receivers[0]
+    builder.receivers[0] = [e for e in events if e["event"] != "property_not_announced"]
+    result = evaluate_identity(builder.records())
+    assert result["outcome"] == FAIL
+    assert not result["checks"]["ingress_start_after_listen:receiver-1.log"]
+
+
+def test_the_ingress_start_comes_after_the_start_record_and_in_order():
+    builder = identity_builder()
+    events = builder.receivers[0]
+    properties = [e for e in events if e["event"] == "property_not_announced"]
+    rest = [e for e in events if e["event"] != "property_not_announced"]
+    builder.receivers[0] = properties[:1] + rest[:1] + properties[1:] + rest[1:]
+    assert evaluate_identity(builder.records())["outcome"] == FAIL
+    builder.receivers[0] = rest[:1] + [properties[0], properties[2], properties[1]] + rest[1:]
+    assert evaluate_identity(builder.records())["outcome"] == FAIL
+
+
+def test_a_failed_property_set_does_not_count():
+    builder = identity_builder()
+    for event in builder.receivers[0]:
+        if event["event"] == "property_not_announced":
+            event.update(event="property_announced", ok=event["value"] != "1")
+    assert evaluate_identity(builder.records())["outcome"] == FAIL
 
 
 # --------------------------------------------------------------------------- resubscribe
@@ -596,3 +643,23 @@ def test_ttl_renewal_fails_on_a_lapse():
 
 def test_ttl_renewal_is_inconclusive_for_a_short_window():
     assert evaluate_ttl_renewal(ttl_builder(seconds=4).records())["outcome"] == MISSING
+
+
+# --------------------------------------------------------------------------- init file
+
+
+def test_the_init_file_lets_the_receiver_start_the_ingress():
+    """The .rc passes the announce sequence of the bench and sets no ingress trigger itself."""
+    rc = (BENCH / "someip-receiver" / "de4sdv_someip_receiver.rc").read_text()
+    lines = [line.strip() for line in rc.splitlines() if line.strip() and not line.strip().startswith("#")]
+    service = next(line.split() for line in lines if line.startswith("service de4sdv_someip_receiver "))
+    announced = [tuple(service[i + 1].split("=", 1)) for i, word in enumerate(service) if word == "--announce-property"]
+    assert announced == list(ANNOUNCED_PROPERTIES)
+    commands = [line for line in lines if not line.startswith("service ")]
+    assert not [line for line in commands if line.startswith("setprop de4sdv.aebs.frame_server.host")]
+    assert not [line for line in commands if line.startswith("setprop de4sdv.aebs.ingress.start")]
+    assert not [line for line in lines if "init.svc.de4sdv_someip_receiver" in line]
+    assert "setprop de4sdv.aebs.frame_server.port 4731" in commands
+    # The margin of the discard rule is fixed: the service passes no margin option.
+    assert not [word for word in service if "margin" in word or "clock-offset" in word]
+    assert "oneshot" not in lines

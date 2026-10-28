@@ -58,7 +58,7 @@ sys.path.insert(0, str(BENCH / "scripts"))
 
 import bench_runtime as rt  # noqa: E402
 from de4sdv_score_bench.abort_matrix import MISSING, PASS  # noqa: E402
-from de4sdv_score_bench.someip_receiver_interop import EVALUATORS, load_case  # noqa: E402
+from de4sdv_score_bench.someip_receiver_interop import ANNOUNCED_PROPERTIES, EVALUATORS, load_case  # noqa: E402
 
 HOST_NS = "de4sdv-host"
 GUEST_NS = "de4sdv-guest"
@@ -255,6 +255,8 @@ class Stack:
         argv = [str(Path(self.args.receiver)), "--server-address", HOST_IP,
                 "--ttl-s", str(SUBSCRIPTION_TTL_S), "--listen-port", str(LOOPBACK_PORT), "--status-period-s", "1",
                 "--log-frames"]
+        for property_name, value in ANNOUNCED_PROPERTIES:
+            argv += ["--announce-property", f"{property_name}={value}"]
         if not multicast:
             argv.append("--no-multicast")
         self.start(name, GUEST_NS, argv, private_tmp=True)
@@ -535,7 +537,7 @@ def summarize(results: dict[str, dict]) -> str:
         keys = ("frames_produced", "frames_byte_identical", "frames_at_client", "duplicates_at_client",
                 "band_frames", "dropped_no_client", "dropped_older_than_phase", "dropped_copy_in_phase",
                 "older_frame_age_s", "repeats_on_link", "acked_window_s", "largest_ack_gap_s",
-                "nacks_before_first_ack")
+                "nacks_before_first_ack", "receipt_minus_frame_ms", "clock_steps")
         data = "; ".join(f"{key} {metrics[key]}" for key in keys if key in metrics)
         drops = {reason: count for reason, count in metrics.get("drops_by_reason", {}).items() if count}
         phases = Counter(phase["cause"] for phase in metrics.get("phases", []))

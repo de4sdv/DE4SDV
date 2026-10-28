@@ -411,6 +411,31 @@ TEST(SubscriptionMachine, FailedSendIsCountedAndRetried) {
   EXPECT_EQ(bench.machine.counters().subscribes_sent, 1U);
 }
 
+TEST(SubscriptionMachine, EverySdMessageGetsANewSessionId) {
+  // someipd takes a session ID that does not grow, with the reboot flag set,
+  // as a reboot of the receiver and expires its subscription. So no ID is
+  // used twice, also not after a failed send.
+  Bench bench;
+  bench.transport.send_ok = false;
+  std::int64_t t = bench.ConnectAndSubscribe(0);
+  bench.transport.send_ok = true;
+  t += bench.config.renew_period_ns;
+  bench.machine.OnTick(At(t));
+  bench.machine.OnSdMessage(At(t), Ack(1), kServer, false);
+  for (int renewal = 1; renewal <= 3; ++renewal) {
+    t += bench.config.renew_period_ns;
+    bench.machine.OnTick(At(t));
+  }
+  bench.machine.Stop(At(t + 1));
+  std::vector<std::uint16_t> sessions;
+  for (const auto& sent : bench.transport.sent) {
+    sessions.push_back(Parsed(sent.bytes).session_id);
+  }
+  // Session 1 went to the failed send; the next messages take 2, 3, ...
+  EXPECT_EQ(sessions, (std::vector<std::uint16_t>{1, 2, 3, 4, 5, 6}));
+  EXPECT_EQ(bench.machine.next_session_id(), 7);
+}
+
 TEST(SubscriptionMachine, AckForAnotherEventgroupIsNotOurs) {
   Bench bench;
   const std::int64_t t = bench.ConnectAndSubscribe(0);

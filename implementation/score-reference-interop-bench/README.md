@@ -340,6 +340,12 @@ What the receiver does:
   tries the configured server every 500 ms (the unicast fallback for a guest
   that receives no multicast). A StopOffer, a Nack, a closed connection or a
   reboot of the server ends the connection, and the receiver starts again.
+  A TCP stream that loses its SOME/IP framing also ends the connection.
+- Every SD message takes a new session ID, also a message whose send fails.
+  someipd reads a session ID that does not grow, with the reboot flag set, as
+  a reboot of the receiver and ends its subscription. The receiver sets no TCP
+  keepalive: after a link loss, the TTL ends the subscription, and when the
+  link comes back, the Nack of someipd ends a half-open connection.
 - It reassembles SOME/IP over TCP, checks that the 4-byte little-endian
   length prefix counts the bytes of the frame, and reads `sequence` and
   `frame_timestamp_ns` with a minimal protobuf wire reader.
@@ -371,19 +377,40 @@ The discard rule is a separate component (`FrameDiscardPolicy`). It is
   each change of order.
 - It drops a frame whose `sequence` or `frame_timestamp_ns` has no positive
   value.
+- The margin is fixed at 20 ms. No option sets it: the receiver stops at
+  start (exit status 2) on any margin option.
 
-The copy memory keeps the 40 frames served last in the phase. A copy comes
+The bound of the copy memory counts sample slots, not reads. A copy comes
 only from the stored frames that a new subscription in the host half reads
 after a restart during the phase (GAP-MW-039). A stored frame is still in a
-sample slot, and each of the two LoLa hops of the frame path has 20 slots:
-the adapter's frame event and gatewayd's bridged service. So a copy repeats
-one of the 20 newest frames of its hop, and 40 frames cover both hops. A
-copy of a frame that left the memory would pass. The receiver logs each phase
-start and end, and each dropped frame with its reason.
+sample slot: 20 slots in the adapter's frame event and 20 in gatewayd's
+bridged service. So the memory keeps the 40 frames served last, and each
+phase start clears it. When 12 stored frames arrive after 12 newer ones, a
+memory of 10 or 20 frames serves 12 frames twice, and a memory of 40 frames
+serves none twice (gtest `MemoryOfFortyServesNoStoredFrameTwice`). A copy of
+a frame that left the memory would pass. The receiver logs each phase start
+and end, and each dropped frame with its reason.
 
-The receiver sets the ingress host property itself once its loopback server
-listens (`--announce-property`, Android only), because the ingress exits when
-nothing listens. The init script sets the port property.
+Clock controls for ASM-MW-030: the start record, each phase start and each
+status record give `CLOCK_REALTIME` less `CLOCK_MONOTONIC`. A change of this
+offset by 1 ms plus 500 ppm of the time since the last reading, or more, is a
+clock step. The receiver logs it as `clock_step`, and the phase end and the
+status records count the steps in the phase. A served frame in the log has
+`receipt_minus_frame_ns`, its receipt time on the receiver clock less its
+`frame_timestamp_ns`: every frame with `--log-frames`, else the first five
+of each phase. The phase end and the status records give the minimum and the
+maximum in the phase. On the VM, these records and the measured host-guest
+offset show which runs are void: a run is void when the offset is not below
+20 ms.
+
+The ingress is oneshot: it exits when its connect fails or its stream
+closes. So the receiver starts it, after its loopback server listens, at each
+of its starts: it sets `de4sdv.aebs.frame_server.host=127.0.0.1`, then
+`de4sdv.aebs.ingress.start` to 0 and then to 1 (`--announce-property`, in
+this order; Android only, on Linux the receiver logs them). The init script
+sets only the port property and no ingress trigger. If the ingress has not
+exited yet when a restarted receiver sets the properties, init does not start
+it again. The VM runs must show the restart.
 
 Build and test the receiver with CMake and GTest (Ubuntu: `libgtest-dev`):
 
@@ -394,9 +421,9 @@ ninja -C build/someip-receiver && build/someip-receiver/de4sdv_someip_receiver_t
 
 `Android.bp` builds the same sources as a native binary (liblog only) with
 `de4sdv_someip_receiver.rc`, an init script for the eng or userdebug image:
-`seclabel u:r:su:s0`, a service that init restarts, the ingress property
-`de4sdv.aebs.frame_server.port=4731`, and
-`de4sdv.aebs.frame_server.host=127.0.0.1` through the receiver.
+`seclabel u:r:su:s0`, a service that init restarts, and the ingress property
+`de4sdv.aebs.frame_server.port=4731`. The receiver sets the host and the
+ingress start.
 
 ### Runs against the real someipd
 
@@ -433,10 +460,12 @@ Each case starts a fresh stack:
 of each case. A case also fails on a "Failed to subscribe" line of gatewayd,
 on LoLa shared memory that the adapter, gatewayd and someipd do not share, on
 any frame at the client that is not byte-identical to a source frame, on a
-frame served outside a phase or older than its phase start less 20 ms, and on
-a copy served in a phase. The results list the phase starts of each case. A
-frame that the AEBS stack produced in the 20 ms before a phase start (the
-band of GAP-MW-045) is reported, not failed.
+frame served outside a phase or older than its phase start less 20 ms, on
+a copy served in a phase, and on a receiver run that does not set the
+ingress properties in order after its start record. A clock step makes the
+case inconclusive. The results list the phase starts of each case. A frame
+that the AEBS stack produced in the 20 ms before a phase start (the band of
+GAP-MW-045) is reported, not failed.
 
 Both namespaces share the clock of one kernel, so ASM-MW-030 holds in these
 runs by construction. They do not measure a host-guest clock offset.

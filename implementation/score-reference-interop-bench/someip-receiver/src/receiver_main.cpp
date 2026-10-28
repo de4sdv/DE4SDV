@@ -28,6 +28,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -77,7 +78,26 @@ std::int64_t ClockNs(clockid_t clock) {
   return static_cast<std::int64_t>(value.tv_sec) * 1'000'000'000 + value.tv_nsec;
 }
 
-Clock Now() { return Clock{ClockNs(CLOCK_MONOTONIC), ClockNs(CLOCK_REALTIME)}; }
+// Reads CLOCK_REALTIME between two reads of CLOCK_MONOTONIC and keeps the
+// reading with the shortest window, so that a preemption between the reads
+// does not look like a clock step.
+Clock Now() {
+  Clock best{};
+  std::int64_t best_window = std::numeric_limits<std::int64_t>::max();
+  for (int attempt = 0; attempt < 3; ++attempt) {
+    const std::int64_t before = ClockNs(CLOCK_MONOTONIC);
+    const std::int64_t realtime = ClockNs(CLOCK_REALTIME);
+    const std::int64_t after = ClockNs(CLOCK_MONOTONIC);
+    if (after - before < best_window) {
+      best_window = after - before;
+      best = Clock{before + best_window / 2, realtime};
+    }
+    if (best_window < 100'000) {
+      break;
+    }
+  }
+  return best;
+}
 
 sockaddr_in SocketAddress(std::uint32_t address, std::uint16_t port) {
   sockaddr_in socket_address{};
@@ -455,18 +475,24 @@ int main(int argc, char** argv) {
   }
   ReceiverCore core{options.receiver, shell, shell, policy, log};
   shell.Attach(&core);
-  log.Log(Now(), StartRecord(options, policy.Name(), static_cast<std::int64_t>(::getpid()))
-                     .Text("multicast_membership", multicast_result));
-  if (!options.announce_property.empty()) {
-    // The loopback server listens now, so the ingress may start (it exits when nothing listens).
+  // The start record comes after listen(): the ingress may connect from now on.
+  const Clock started = Now();
+  core.ObserveClock(started);
+  log.Log(started, StartRecord(options, policy.Name(), static_cast<std::int64_t>(::getpid()))
+                       .Text("multicast_membership", multicast_result)
+                       .Signed("realtime_minus_monotonic_ns", started.realtime_ns - started.monotonic_ns));
+  // The loopback server listens now, so the ingress may start: it exits when
+  // nothing listens, and after a receiver restart it must start again.
+  for (const std::string& property : options.announce_properties) {
     std::string name;
     std::string value;
-    SplitProperty(options.announce_property, &name, &value);
+    SplitProperty(property, &name, &value);
 #ifdef __ANDROID__
     const int result = __system_property_set(name.c_str(), value.c_str());
     log.Log(Now(), LogRecord{"property_announced"}.Text("name", name).Text("value", value).Bool("ok", result == 0));
 #else
-    log.Log(Now(), LogRecord{"property_not_announced"}.Text("name", name).Text("reason", "not Android"));
+    log.Log(Now(), LogRecord{"property_not_announced"}.Text("name", name).Text("value", value)
+                       .Text("reason", "not Android"));
 #endif
   }
 

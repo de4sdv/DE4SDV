@@ -23,20 +23,19 @@
 // - Every other frame is served in the order it comes, also a frame older
 //   than one already served: the rule does not filter on sequence order.
 //
-// The copy memory is bounded. A copy comes only from the stored frames that
-// a new subscription in the host half reads after a restart during the
-// phase (GAP-MW-039). A stored frame is still in a sample slot, and each of
-// the two LoLa hops of the frame path has 20 slots (the adapter's frame
-// event and gatewayd's bridged service). So a copy repeats one of the 20
-// newest frames of its hop. The memory keeps the 40 frames served last,
-// enough for both hops.
+// The copy memory is bounded by slots, not by reads. A copy comes only from
+// the stored frames that a new subscription in the host half reads after a
+// restart during the phase (GAP-MW-039). A stored frame is still in a sample
+// slot: 20 slots in the adapter's frame event and 20 in gatewayd's bridged
+// service. The memory keeps the 40 frames served last and is cleared at each
+// phase start. A copy of a frame that left the memory would pass.
 
 #ifndef DE4SDV_SOMEIP_RECEIVER_DISCARD_POLICY_HPP
 #define DE4SDV_SOMEIP_RECEIVER_DISCARD_POLICY_HPP
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 #include "de4sdv_someip_receiver/frame_fields.hpp"
 
@@ -65,7 +64,10 @@ class FrameDiscardPolicy {
 class PhaseStartDiscardPolicy final : public FrameDiscardPolicy {
  public:
   static constexpr std::int64_t kPhaseStartMarginNs = 20'000'000;  // ASM-MW-030
-  static constexpr std::size_t kCopyMemoryFrames = 40;
+  static constexpr std::size_t kCopyMemoryFrames = 40;  // 20 + 20 sample slots
+
+  // The memory size is a parameter for the tests only; the receiver uses 40.
+  explicit PhaseStartDiscardPolicy(std::size_t copy_memory_frames = kCopyMemoryFrames);
 
   const char* Name() const noexcept override { return "receiver_subscription_phase_discard_rule"; }
   void OnPhaseStart(std::int64_t realtime_ns) override;
@@ -81,7 +83,7 @@ class PhaseStartDiscardPolicy final : public FrameDiscardPolicy {
 
   bool in_phase_{false};
   std::int64_t phase_start_realtime_ns_{0};
-  std::array<FrameFields, kCopyMemoryFrames> served_{};
+  std::vector<FrameFields> served_;
   std::size_t served_next_{0};
   std::size_t served_count_{0};
 };

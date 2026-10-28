@@ -109,4 +109,28 @@ TEST(PhaseStartDiscardPolicy, CopyMemoryKeepsTheFortyFramesServedLast) {
   EXPECT_EQ(policy.Admit(Frame(60, kStart + 60 * kMs)), FrameVerdict::kDeliver);
 }
 
+// 12 stored frames arrive after 12 newer ones: 12 frames were served, then
+// 12 newer frames, then the 12 first frames come again from the slots.
+std::size_t ServedTwice(std::size_t memory_frames) {
+  PhaseStartDiscardPolicy policy{memory_frames};
+  policy.OnPhaseStart(kStart);
+  for (std::uint64_t sequence = 1; sequence <= 24; ++sequence) {
+    EXPECT_EQ(policy.Admit(Frame(sequence, kStart + static_cast<std::int64_t>(sequence) * kMs)),
+              FrameVerdict::kDeliver);
+  }
+  std::size_t twice = 0;
+  for (std::uint64_t sequence = 1; sequence <= 12; ++sequence) {
+    if (policy.Admit(Frame(sequence, kStart + static_cast<std::int64_t>(sequence) * kMs)) == FrameVerdict::kDeliver) {
+      ++twice;
+    }
+  }
+  return twice;
+}
+
+TEST(PhaseStartDiscardPolicy, MemoryOfFortyServesNoStoredFrameTwice) {
+  EXPECT_EQ(ServedTwice(10), 12U);
+  EXPECT_EQ(ServedTwice(20), 12U);
+  EXPECT_EQ(ServedTwice(PhaseStartDiscardPolicy::kCopyMemoryFrames), 0U);
+}
+
 }  // namespace
