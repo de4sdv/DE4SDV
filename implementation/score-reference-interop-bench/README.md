@@ -421,16 +421,20 @@ a frame that left the memory would pass. The receiver logs each phase start
 and end, and each dropped frame with its reason.
 
 Clock controls for ASM-MW-030: the start record, each phase start and each
-status record give `CLOCK_REALTIME` less `CLOCK_MONOTONIC`. A change of this
-offset by 1 ms plus 500 ppm of the time since the last reading, or more, is a
-clock step. The receiver logs it as `clock_step`, and the phase end and the
-status records count the steps in the phase. A served frame in the log has
-`receipt_minus_frame_ns`, its receipt time on the receiver clock less its
-`frame_timestamp_ns`: every frame with `--log-frames`, else the first five
-of each phase. The phase end and the status records give the minimum and the
-maximum in the phase. On the VM, these records and the measured host-guest
-offset show which runs are void: a run is void when the offset is not below
-20 ms.
+status record give `CLOCK_REALTIME` less `CLOCK_MONOTONIC`. A slew moves both
+clocks alike, so this difference changes only when the realtime clock is
+stepped or across a suspend. A change of 1 ms or more between two readings
+(at most 100 ms apart) is a clock step. The receiver logs it as
+`clock_step`, and the phase end and the status records count the steps in
+the phase. A served frame in the log has `receipt_minus_frame_ns`, its
+receipt time on the receiver clock less its `frame_timestamp_ns`: every
+frame with `--log-frames`, else the first five of each phase. The phase end
+and the status records give the minimum and the maximum in the phase. The
+minimum bounds the host-guest offset from one side only: a negative minimum
+shows a guest clock behind the host clock by at least that much, and a guest
+clock ahead looks like latency. On the VM, these records and the measured
+host-guest offset show which runs are void: a run is void when the offset is
+not below 20 ms.
 
 The ingress is oneshot: it exits when its connect fails or its stream
 closes, and init does not start it again while it runs or before init has
@@ -438,14 +442,21 @@ reaped it. So the receiver starts the ingress itself. At each of its starts,
 after its loopback server listens, it sets
 `de4sdv.aebs.frame_server.host=127.0.0.1` (`--announce-property`), then
 `de4sdv.aebs.ingress.start` to 0 and then to 1 (`--ingress-start-property`).
-While no client is connected, it sets 0 and 1 again every 2 s; the first
-repeat comes 2 s after a client loss. The ingress connects to the frame
-server first thing in its `main`, and a start of a running ingress does
-nothing, so the repeat is harmless; the VM runs must show that the ingress
-connects well within 2 s. Each trigger gives one `ingress_trigger` record,
-so at most one record every 2 s. The period is fixed. On Linux, the receiver
-logs the properties and does not set them. The init script sets only the
-port property and no ingress trigger.
+When a receiver starts after the end of an old one, the old ingress can
+still run or wait for init to reap it, and that trigger does nothing. So,
+until the first client of this receiver process connects, the receiver
+repeats the trigger every 1 s, at most 10 times. The old ingress exits when
+the end of the old receiver closes its stream, and init reaps it then; the
+10 s of repeats cover an ingress that is slow to exit and an init that is
+busy, with margin. The VM runs must show the restart. A start of a running
+ingress does nothing, so a repeat is harmless. Each try gives one
+`ingress_trigger` record, and 1 s after the last try without a client the
+receiver logs `ingress_trigger_gave_up`. After the first client, the
+receiver never triggers the ingress again in this process: an ingress that
+exits by itself or that the bench stops stays down (the "HMI application
+down" condition of VC-MW-020 holds). The period and the count are fixed. On
+Linux, the receiver logs the properties and does not set them. The init
+script sets only the port property and no ingress trigger.
 
 Build and test the receiver with CMake and GTest (Ubuntu: `libgtest-dev`):
 
@@ -490,7 +501,7 @@ Each case starts a fresh stack:
 | `no_client` | frames without a client are dropped and not queued; the client receives no frame produced before it connected |
 | `stored_samples` | in the order of the stored-sample cases of the gateway spike, with the source paused at each step so that the newest frames stay in the sample slots: frames into the adapter, then gatewayd and the subscription, then the source again (frames from before the phase arrive in it); then gatewayd restarted beside the running someipd in the phase, a stimulus outside the operating rules (stored frames repeat served frames); then a restart of the gateway pair. The case passes only when both checks of the rule acted: a frame older than its phase start less 20 ms dropped in a phase, and a copy dropped in a phase |
 | `ttl_renewal` | without multicast offers, the receiver renews its subscription over five TTLs, without a lapse or a gap. someipd answers a subscription that comes before its first offer with a Nack, as it does for the vsomeip client; the case counts these as `nacks_before_first_ack` and fails only on a Nack after the first Ack |
-| `ingress_retrigger` | the client is a oneshot ingress stand-in (`loopback_frame_recorder.py --oneshot`). Only an init stand-in of the runner starts it, on the property records of the receiver, by the rule of init: no start while the ingress runs or is not reaped. After an ingress loss, an ingress loss with its reap held for 3 s, and a receiver restart by SIGKILL with the reap of the exiting ingress held for 1.5 s, a repeated trigger (reason `no_client`) brings a client back, within 2 s per ignored trigger plus 2 s, and the client receives frames |
+| `ingress_start` | the client is a oneshot ingress stand-in (`loopback_frame_recorder.py --oneshot`). Only an init stand-in of the runner starts it, on the property records of the receiver, by the rule of init: no start while the ingress runs. (1) The receiver is killed and starts again while its old ingress still runs (the stand-in stays alive 2.5 s after its stream ends): a repeat of the trigger (reason `no_first_client`) starts the new ingress, which receives frames. (2) The bench stops the ingress after the first client of the receiver: no trigger, no start and no client follow. (3) A receiver starts while no ingress can start: it tries 11 times, 1 s apart, and logs `ingress_trigger_gave_up` |
 
 `src/de4sdv_score_bench/someip_receiver_interop.py` evaluates the raw records
 of each case. A case also fails on a "Failed to subscribe" line of gatewayd,
@@ -498,9 +509,10 @@ on LoLa shared memory that the adapter, gatewayd and someipd do not share, on
 any frame at the client that is not byte-identical to a source frame, on a
 frame served outside a phase or older than its phase start less 20 ms, on
 a copy served in a phase, on a receiver run that does not set the ingress
-properties in order after its start record, and on a repeated trigger while
-a client is connected or not 2 s after the last trigger or client loss. A
-clock step makes the case inconclusive. The results list the phase starts of each case. A frame
+properties in order after its start record, and on an ingress trigger after
+the first client of a receiver run, a repeat not 1 s after the last try, more
+than 10 repeats, or a give-up before the 10th repeat. A clock step makes the
+case inconclusive. The results list the phase starts of each case. A frame
 that the AEBS stack produced in the 20 ms before a phase start (the band of
 GAP-MW-045) is reported, not failed.
 

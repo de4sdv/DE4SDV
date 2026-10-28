@@ -12,23 +12,30 @@
 //
 // Clock controls for ASM-MW-030: the core reads CLOCK_REALTIME minus
 // CLOCK_MONOTONIC at every event, and the shell gives it an event at least
-// every 100 ms. A change of that offset between two readings by 1 ms plus
-// 500 ppm of the interval (the fastest slew of the kernel clock discipline)
-// or more is a clock step: it is logged, and the phase it falls in is
-// marked. The start, each phase start and each status record log the
-// offset. Every served frame logs its receipt time minus its
-// frame_timestamp_ns (only the first five of a phase without --log-frames),
-// and the phase end and the status records log the minimum and maximum of
-// that value in the phase.
+// every 100 ms. A slew moves both clocks alike, so this difference changes
+// only when the realtime clock is stepped or across a suspend. A change of
+// 1 ms or more between two readings is a clock step: it is logged, and the
+// phase it falls in is marked. The start, each phase start and each status
+// record log the difference. Every served frame logs its receipt time minus
+// its frame_timestamp_ns (only the first five of a phase without
+// --log-frames), and the phase end and the status records log the minimum
+// and maximum of that value in the phase. The minimum bounds the host-guest
+// offset from one side only: a negative minimum shows a guest clock that is
+// behind the host clock by at least that much; a guest clock ahead looks
+// like latency.
 //
 // Start of the HMI ingress: the ingress is a oneshot service. It exits when
 // its connect fails or its stream closes, and init does not start a service
 // again while it runs or before init has reaped it. So the core sets the
 // start property of the ingress to 0 and then 1 once the loopback server
-// listens, and again every 2 s while no client is connected. A start of a
-// running ingress does nothing, so the repeat is harmless. The ingress
-// connects to the frame server first thing in its main function. Each
-// trigger gives one log line, so at most one line every 2 s.
+// listens. When this start of the receiver follows the end of an old
+// receiver, its old ingress may still run or not be reaped yet, and that
+// trigger does nothing. So, until the first client of this receiver process
+// connects, the core repeats the trigger every 1 s, at most 10 times, and
+// logs ingress_trigger_gave_up 1 s after the last try. After the first
+// client, the core never triggers the ingress again in this process: an
+// ingress that exits by itself or is stopped on purpose stays down. Each
+// try gives one log line.
 //
 // The I/O shell feeds the core the socket events and implements its ports.
 // Each notification of the frame event ends in exactly one outcome:
@@ -63,9 +70,9 @@ struct ReceiverConfig {
 };
 
 constexpr std::int64_t kClockStepThresholdNs = 1'000'000;
-constexpr std::int64_t kClockSlewDivisor = 2'000;  // 500 ppm
 constexpr std::uint64_t kFirstFramesLoggedPerPhase = 5;
-constexpr std::int64_t kIngressRetriggerPeriodNs = 2'000'000'000;
+constexpr std::int64_t kIngressRetriggerPeriodNs = 1'000'000'000;
+constexpr std::uint64_t kIngressRetriggerLimit = 10;
 
 // The loopback client of the HMI ingress, implemented by the shell.
 class FrameSink {
@@ -190,10 +197,11 @@ class ReceiverCore final : private SubscriptionTransport, private SubscriptionLi
   std::int64_t phase_receipt_max_ns_{0};
   bool clock_seen_{false};
   std::int64_t clock_offset_ns_{0};
-  std::int64_t clock_seen_monotonic_ns_{0};
   bool listening_{false};
+  bool first_client_seen_{false};
+  bool ingress_trigger_gave_up_{false};
   std::int64_t next_ingress_trigger_ns_{0};
-  std::uint64_t triggers_without_client_{0};
+  std::uint64_t ingress_retriggers_{0};
   ReceiverCounters counters_{};
 };
 
