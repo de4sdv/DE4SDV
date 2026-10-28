@@ -549,14 +549,14 @@ def test_declared_phases_without_executable_checks_are_reported_never_dropped(tm
                                           "phase6_functionalArchitecture", "phase7_logicalArchitecture",
                                           "phase8_physicalRealization", P10, "phase11_publication"]
     assert entry["phases_without_checks"] == [
-        {"phase": P9, "step": "defineVariabilityAndConfiguration", "outputs": ["variationPoints"]},
+        {"phase": P9, "step": "defineVariabilityAndConfiguration", "outputs": ["variationPoints", "configuredProducts"]},
         {"phase": P12, "step": "decideBaselineAndNextSlice", "outputs": ["baselineDecision", "openGaps"]},
     ]
     lines = summary.splitlines()
     assert ("**Declared phases without executable checks at this revision** (reported, never evaluated; the "
             "counts above say nothing about them): phase9_variabilityConfiguration (defineVariabilityAndConfiguration: "
-            "variationPoints), phase12_baselineNextSlice (decideBaselineAndNextSlice: baselineDecision, "
-            "openGaps)") in lines
+            "variationPoints, configuredProducts), phase12_baselineNextSlice (decideBaselineAndNextSlice: "
+            "baselineDecision, openGaps)") in lines
     assert ("**Next:** none. every required gate passes or is not applicable; no executable checks at this revision "
             "judge the declared phases phase9_variabilityConfiguration, phase12_baselineNextSlice") in lines
 
