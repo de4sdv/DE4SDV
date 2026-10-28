@@ -11,9 +11,12 @@ host (ASM-MW-031 for the processes outside the layer) and no ROS 2 parameter
 services. Its fault-injection interface is the trigger of the abort test.
 
 These are lexical source guards; licensed Syside validates the model in CI. The
-pins live in doc comments, so these tests read the docs on purpose. The bench and
-receiver checks skip only while the bench is not on the revision; once it is,
-they fail when its pins, its receiver or the receiver's init file are missing.
+pins live in doc comments, so these tests read the docs on purpose. They check
+consistency, not existence. The pin check skips only while the bench is absent and
+no workflow declares the pins. The receiver check skips only while no file under
+implementation/ or .github/ names the receiver's service (de4sdv_someip_receiver)
+or its margin constant (kPhaseStartMarginNs); once one does, the receiver's code
+and init file must carry the model's margin and copy window.
 """
 
 from __future__ import annotations
@@ -31,8 +34,15 @@ VERIFICATION = MIDDLEWARE / "middleware_score_verification_evidence.sysml"
 #: The S-CORE slices of INC-MW-011.
 SCORE_SLICES = sorted(MIDDLEWARE.glob("middleware_score_*.sysml"))
 WORKFLOWS = ROOT / ".github" / "workflows"
-#: The S-CORE reference interop bench, with its SOME/IP receiver, when it is on the revision.
-BENCH = ROOT / "implementation" / "score-reference-interop-bench"
+#: The realization trees, and the S-CORE reference interop bench when it is on the revision.
+IMPLEMENTATION = ROOT / "implementation"
+BENCH = IMPLEMENTATION / "score-reference-interop-bench"
+#: The SOME/IP receiver shows by its service name or by its margin constant, in the realization or in CI.
+RECEIVER_SERVICE = "de4sdv_someip_receiver"
+RECEIVER_MARKERS = (RECEIVER_SERVICE, "kPhaseStartMarginNs")
+MARKER_ROOTS = (IMPLEMENTATION, ROOT / ".github")
+#: Directories of local build output, which the scans leave out.
+_OUTPUT_DIRS = frozenset({".git", "build", "install", "log", "node_modules", "__pycache__"})
 #: The frame assembler of INC-AEBS-010, whose timer sets the frame period.
 BRIDGE_NODE = (ROOT / "implementation" / "aebs-aaos-sdv-visualization-bench" / "src" / "de4sdv_aebs_010_bridge"
                / "de4sdv_aebs_010_bridge" / "ros_node.py")
@@ -104,6 +114,26 @@ def _workflow_pins(text: str) -> list[tuple[str, str]]:
 
 def _numbers(pattern: str, text: str) -> list[int]:
     return [int(value) for value in re.findall(pattern, text)]
+
+
+def _source_files(root: Path, pattern: str = "*") -> list[Path]:
+    """The files under ``root`` that match ``pattern``, without local build output."""
+    if not root.exists():
+        return []
+    return [path for path in sorted(root.rglob(pattern))
+            if path.is_file() and not _OUTPUT_DIRS.intersection(path.relative_to(ROOT).parts)]
+
+
+def _receiver_marker_files() -> list[str]:
+    """The files under implementation/ and .github/ that name the receiver's service or its margin constant."""
+    markers = tuple(marker.encode() for marker in RECEIVER_MARKERS)
+    found = []
+    for root in MARKER_ROOTS:
+        for path in _source_files(root):
+            data = path.read_bytes()
+            if any(marker in data for marker in markers):
+                found.append(path.relative_to(ROOT).as_posix())
+    return found
 
 
 def test_asm_mw_021_pins_one_gateway_commit_with_its_module_versions() -> None:
@@ -222,21 +252,29 @@ def test_the_derived_numbers_follow_the_bound_the_frame_period_and_the_slots() -
 
 
 def test_the_receiver_code_uses_the_margin_and_the_copy_window_of_the_model() -> None:
-    """Once the bench is on the revision, its SOME/IP receiver carries the model's margin and copy window."""
-    if not BENCH.exists():
-        pytest.skip("the S-CORE reference interop bench is not on this revision")
+    """Once the SOME/IP receiver shows anywhere, its code and its init file carry the model's margin and window.
+
+    The check holds the realization to the model; it does not need the receiver to exist. It skips only while no
+    file under implementation/ or .github/ names the receiver's service or its margin constant, so a silent skip
+    needs both names gone everywhere.
+    """
+    found = _receiver_marker_files()
+    if not found:
+        pytest.skip("no file under implementation/ or .github/ names the SOME/IP receiver")
     _, rule = _comment(PHYSICAL.read_text(encoding="utf-8"), "receiverSubscriptionPhaseDiscardRule")
     (margin,) = _numbers(r"not earlier than the phase start less (\d+) ms", rule)
     (window,) = _numbers(r"of the last (\d+) frames it served", rule)
-    # The receiver is found by its content, wherever it sits in the bench.
-    code = "\n".join(path.read_text(encoding="utf-8") for path in sorted(BENCH.rglob("*.hpp")))
+    named = f"{found[0]} names the receiver"
+    code = "\n".join(path.read_text(encoding="utf-8") for path in _source_files(IMPLEMENTATION, "*.hpp"))
     margins = [int(value.replace("'", "")) for value in re.findall(r"\bkPhaseStartMarginNs\s*=\s*([0-9']+)", code)]
     windows = [int(value) for value in re.findall(r"\bkCopyMemoryFrames\s*=\s*(\d+)", code)]
-    assert margins, f"no header under {BENCH.relative_to(ROOT)} defines kPhaseStartMarginNs: the receiver is missing"
+    assert margins, f"{named}, but no header under implementation/ defines kPhaseStartMarginNs"
     assert margins == [margin * 1_000_000], f"the receiver's margin is {margins} ns, the model's {margin} ms"
     assert windows == [window], f"the receiver keeps {windows} frames, the model {window}"
-    init_files = sorted(BENCH.rglob("*.rc"))
-    assert init_files, f"no init file (*.rc) under {BENCH.relative_to(ROOT)}"
+    init_files = _source_files(ROOT, "*.rc")
+    # The ingress of INC-AEBS-010 has an init file too, so the receiver's own one must name its service.
+    receiver_init = [rc for rc in init_files if RECEIVER_SERVICE in rc.read_text(encoding="utf-8")]
+    assert receiver_init, f"{named}, but no init file (*.rc) names {RECEIVER_SERVICE}"
     for rc in init_files:
         lines = [line for line in rc.read_text(encoding="utf-8").splitlines() if not line.lstrip().startswith("#")]
         options = re.findall(r"--[\w-]*(?:margin|bound)[\w-]*", "\n".join(lines))
