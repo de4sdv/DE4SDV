@@ -1,0 +1,33 @@
+// DE4SDV minimal SOME/IP receiver of the AAOS SDV guest (INC-MW-011).
+//
+// The same sources as CMakeLists.txt, as a native binary for /system/bin with
+// its init script. It needs liblog only. The DE4SDV CI does not build this
+// module; it builds and tests the sources with CMake on Linux. Stage the
+// directory in the AOSP tree next to the other DE4SDV modules
+// (system/software_defined_vehicle/samples/, as for the visualization bench)
+// before a build.
+
+cc_binary {
+    name: "de4sdv_someip_receiver",
+    srcs: [
+        "src/core/discard_policy.cpp",
+        "src/core/event_log.cpp",
+        "src/core/frame_fields.cpp",
+        "src/core/options.cpp",
+        "src/core/receiver_core.cpp",
+        "src/core/someip_stream.cpp",
+        "src/core/someip_wire.cpp",
+        "src/core/subscription.cpp",
+        "src/receiver_main.cpp",
+    ],
+    local_include_dirs: ["include"],
+    cpp_std: "c++17",
+    cflags: [
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+    ],
+    shared_libs: ["liblog"],
+    init_rc: ["de4sdv_someip_receiver.rc"],
+    owner: "de4sdv",
+}
