@@ -55,6 +55,7 @@ using de4sdv::someip_receiver::kNoDeadline;
 using de4sdv::someip_receiver::LogRecord;
 using de4sdv::someip_receiver::ParseOptions;
 using de4sdv::someip_receiver::PhaseStartDiscardPolicy;
+using de4sdv::someip_receiver::PropertySetter;
 using de4sdv::someip_receiver::ReceiverCore;
 using de4sdv::someip_receiver::ReceiverOptions;
 using de4sdv::someip_receiver::SplitProperty;
@@ -438,6 +439,27 @@ class Shell final : public SubscriptionTransport, public FrameSink {
   std::vector<std::uint8_t> buffer_ = std::vector<std::uint8_t>(65536);
 };
 
+// System properties of the HMI ingress: set on Android, logged elsewhere.
+class SystemProperties final : public PropertySetter {
+ public:
+  explicit SystemProperties(EventLog& log) : log_{log} {}
+
+  bool SetProperty(const Clock& now, const std::string& name, const std::string& value) override {
+#ifdef __ANDROID__
+    const bool ok = __system_property_set(name.c_str(), value.c_str()) == 0;
+    log_.Log(now, LogRecord{"property_announced"}.Text("name", name).Text("value", value).Bool("ok", ok));
+    return ok;
+#else
+    log_.Log(now, LogRecord{"property_not_announced"}.Text("name", name).Text("value", value)
+                      .Text("reason", "not Android"));
+    return true;
+#endif
+  }
+
+ private:
+  EventLog& log_;
+};
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -473,7 +495,8 @@ int main(int argc, char** argv) {
     log.Log(Now(), LogRecord{"sd_socket_failed"}.Text("error", error));
     return kExitSdSocketFailed;
   }
-  ReceiverCore core{options.receiver, shell, shell, policy, log};
+  SystemProperties properties{log};
+  ReceiverCore core{options.receiver, shell, shell, policy, log, &properties};
   shell.Attach(&core);
   // The start record comes after listen(): the ingress may connect from now on.
   const Clock started = Now();
@@ -481,20 +504,15 @@ int main(int argc, char** argv) {
   log.Log(started, StartRecord(options, policy.Name(), static_cast<std::int64_t>(::getpid()))
                        .Text("multicast_membership", multicast_result)
                        .Signed("realtime_minus_monotonic_ns", started.realtime_ns - started.monotonic_ns));
-  // The loopback server listens now, so the ingress may start: it exits when
-  // nothing listens, and after a receiver restart it must start again.
+  // The loopback server listens now: the properties of the ingress, then
+  // its first start trigger (the core repeats it while no client is connected).
   for (const std::string& property : options.announce_properties) {
     std::string name;
     std::string value;
     SplitProperty(property, &name, &value);
-#ifdef __ANDROID__
-    const int result = __system_property_set(name.c_str(), value.c_str());
-    log.Log(Now(), LogRecord{"property_announced"}.Text("name", name).Text("value", value).Bool("ok", result == 0));
-#else
-    log.Log(Now(), LogRecord{"property_not_announced"}.Text("name", name).Text("value", value)
-                       .Text("reason", "not Android"));
-#endif
+    properties.SetProperty(Now(), name, value);
   }
+  core.OnListening(Now());
 
   std::int64_t next_status_ns = Now().monotonic_ns + options.status_period_ns;
   while (g_stop_requested == 0) {

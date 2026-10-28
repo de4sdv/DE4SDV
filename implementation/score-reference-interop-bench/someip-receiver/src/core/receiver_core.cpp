@@ -1,5 +1,6 @@
 #include "de4sdv_someip_receiver/receiver_core.hpp"
 
+#include <algorithm>
 #include <string>
 
 namespace de4sdv::someip_receiver {
@@ -48,12 +49,13 @@ std::uint64_t ReceiverCounters::frames_dropped() const noexcept {
 }
 
 ReceiverCore::ReceiverCore(const ReceiverConfig& config, SubscriptionTransport& transport, FrameSink& sink,
-                           FrameDiscardPolicy& policy, EventLog& log)
+                           FrameDiscardPolicy& policy, EventLog& log, PropertySetter* properties)
     : config_{config},
       transport_{transport},
       sink_{sink},
       policy_{policy},
       log_{log},
+      properties_{properties},
       machine_{config_.subscription, *this, *this, log},
       reassembler_{kStreamMessageLimitBytes} {}
 
@@ -136,6 +138,42 @@ void ReceiverCore::OnSubscriptionLost(const Clock& now, SubscriptionLoss loss) {
 void ReceiverCore::OnTick(const Clock& now) {
   ObserveClock(now);
   machine_.OnTick(now);
+  if (IngressTriggerDue() && now.monotonic_ns >= next_ingress_trigger_ns_) {
+    TriggerIngress(now, "no_client");
+  }
+}
+
+void ReceiverCore::OnListening(const Clock& now) {
+  ObserveClock(now);
+  listening_ = true;
+  TriggerIngress(now, "listening");
+}
+
+bool ReceiverCore::IngressTriggerDue() const noexcept {
+  return listening_ && !client_connected_ && properties_ != nullptr && !config_.ingress_start_property.empty();
+}
+
+void ReceiverCore::TriggerIngress(const Clock& now, const char* reason) {
+  next_ingress_trigger_ns_ = now.monotonic_ns + kIngressRetriggerPeriodNs;
+  if (properties_ == nullptr || config_.ingress_start_property.empty()) {
+    return;
+  }
+  // 0 and then 1: init sees a change to 1, also when the property was 1.
+  const bool reset = properties_->SetProperty(now, config_.ingress_start_property, "0");
+  const bool start = properties_->SetProperty(now, config_.ingress_start_property, "1");
+  ++counters_.ingress_triggers;
+  ++triggers_without_client_;
+  log_.Log(now, LogRecord{"ingress_trigger"}
+                    .Text("reason", reason)
+                    .Text("property", config_.ingress_start_property)
+                    .Bool("ok", reset && start)
+                    .Unsigned("triggers_without_client", triggers_without_client_)
+                    .Unsigned("ingress_triggers", counters_.ingress_triggers));
+}
+
+std::int64_t ReceiverCore::NextDeadline() const noexcept {
+  const std::int64_t deadline = machine_.NextDeadline();
+  return IngressTriggerDue() ? std::min(deadline, next_ingress_trigger_ns_) : deadline;
 }
 
 void ReceiverCore::OnSdDatagram(const Clock& now, std::uint32_t source_address, bool multicast,
@@ -192,6 +230,7 @@ bool ReceiverCore::OnClientAccepted(const Clock& now) {
     return false;
   }
   client_connected_ = true;
+  triggers_without_client_ = 0;
   ++counters_.clients_accepted;
   log_.Log(now, LogRecord{"client_connected"});
   UpdatePhase(now, "client_connected");
@@ -204,6 +243,9 @@ void ReceiverCore::OnClientDisconnected(const Clock& now) {
     return;
   }
   client_connected_ = false;
+  // The ingress has exited: init may not have reaped it yet, so the next
+  // trigger comes one period later.
+  next_ingress_trigger_ns_ = now.monotonic_ns + kIngressRetriggerPeriodNs;
   ++counters_.clients_lost;
   log_.Log(now, LogRecord{"client_lost"});
   UpdatePhase(now, "client_lost");
@@ -211,6 +253,7 @@ void ReceiverCore::OnClientDisconnected(const Clock& now) {
 
 void ReceiverCore::Stop(const Clock& now) {
   ObserveClock(now);
+  listening_ = false;
   machine_.Stop(now);
 }
 
@@ -334,6 +377,7 @@ LogRecord ReceiverCore::Status(const char* event) const {
       .Unsigned("clients_accepted", c.clients_accepted)
       .Unsigned("clients_refused", c.clients_refused)
       .Unsigned("clients_lost", c.clients_lost)
+      .Unsigned("ingress_triggers", c.ingress_triggers)
       .Unsigned("phases_started", c.phases_started)
       .Unsigned("phases_ended", c.phases_ended)
       .Unsigned("offers", s.offers)

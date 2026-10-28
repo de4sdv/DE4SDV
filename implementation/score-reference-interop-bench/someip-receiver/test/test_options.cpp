@@ -61,6 +61,17 @@ TEST(Options, TheDiscardRuleHasNoOption) {
   }
 }
 
+TEST(Options, IngressStartPropertyIsAName) {
+  const auto parsed = ParseOptions(With(Minimal(), {"--ingress-start-property", "de4sdv.aebs.ingress.start"}));
+  ASSERT_TRUE(parsed.options.has_value()) << parsed.error;
+  EXPECT_EQ(parsed.options->receiver.ingress_start_property, "de4sdv.aebs.ingress.start");
+  EXPECT_FALSE(ParseOptions(With(Minimal(), {"--ingress-start-property", ""})).options.has_value());
+  EXPECT_FALSE(ParseOptions(With(Minimal(), {"--ingress-start-property", "a=1"})).options.has_value());
+  // The period of the trigger is fixed at 2 s.
+  EXPECT_FALSE(ParseOptions(With(Minimal(), {"--ingress-retrigger-ms", "500"})).options.has_value());
+  EXPECT_TRUE(ParseOptions(Minimal()).options->receiver.ingress_start_property.empty());
+}
+
 TEST(Options, AnnouncePropertiesAreNameEqualsValueInOrder) {
   const auto parsed = ParseOptions(With(Minimal(), {"--announce-property", "de4sdv.aebs.frame_server.host=127.0.0.1",
                                                      "--announce-property", "de4sdv.aebs.ingress.start=0",
