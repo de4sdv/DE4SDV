@@ -1381,10 +1381,13 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    *   DDS off the guest network (someipd). It sets MaxAutoParticipantIndex to
    *   at least the number of ROS 2 processes. On an interface without
    *   multicast, CycloneDDS 0.10.5 gives each process an automatic
-   *   participant index (q_init.c:1394-1401). It tries the indices from 0 to
-   *   MaxAutoParticipantIndex (q_init.c:1609), so 0 to 9 by default, and a
-   *   process that finds none free fails at start (q_init.c:1627-1631). In
-   *   the adapter that failure is an abort at start. The AEBS benches set 120
+   *   participant index (q_init.c:1394-1401). At most MaxAutoParticipantIndex
+   *   processes get a participant, 9 by default (ddsi_cfgelems.h:1907). A
+   *   bind at the last index fails too (q_init.c:1609, 1627-1631). A process
+   *   without a participant fails at start, and in the adapter that failure
+   *   is an abort at start. A DE4SDV CI probe with the default started 11
+   *   ROS 2 processes before the adapter: 9 got a participant, and the
+   *   adapter aborted at start (design data). The AEBS benches set 120
    *   (implementation/aebs-autoware-executable-bench/cyclonedds.xml).
    *   ROS_LOCALHOST_ONLY stays unset, because the URI already binds the
    *   loopback interface. With ROS_LOCALHOST_ONLY=1, rmw_cyclonedds_cpp

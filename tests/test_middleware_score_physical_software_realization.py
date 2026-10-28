@@ -228,7 +228,9 @@ def test_the_adapter_abort_conditions_name_the_ros2_environment_and_the_paramete
         "asmOneROS2EnvironmentOnHost",
     ]
     for setting in ("RMW_IMPLEMENTATION=rmw_cyclonedds_cpp", "ROS_DOMAIN_ID", "CYCLONEDDS_URI",
-                    "MaxAutoParticipantIndex", "ROS_LOCALHOST_ONLY stays unset",
+                    "MaxAutoParticipantIndex to at least the number of ROS 2 processes",
+                    "At most MaxAutoParticipantIndex processes get a participant, 9 by default",
+                    "ROS_LOCALHOST_ONLY stays unset",
                     "start_parameter_services set to false", "triggers each throw with a signal to the adapter",
                     "No robustness against malformed DDS input is claimed"):
         assert setting in conditions, setting
