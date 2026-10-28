@@ -222,7 +222,7 @@ proxy node come with the next steps.
 | `src/de4sdv_score_bench/` | Pure Python evaluators of the abort matrix, the refused subscription, the startup probe, the soak and the SOME/IP receiver runs |
 | `scripts/` | CI build steps (runner only), the runtime facts, the renderer of the Launch Manager configuration and its load check, and the runners, also of the SOME/IP receiver runs |
 | `tests/` | Evaluator unit tests |
-| `someip-receiver/` | DE4SDV minimal SOME/IP receiver of the AAOS SDV guest: pure core, POSIX shell, gtest suites, golden fixtures, `Android.bp` and init script |
+| `someip-receiver/` | DE4SDV minimal SOME/IP receiver of the AAOS SDV guest: pure core, POSIX shell, gtest suites, golden fixtures, `Android.bp` and init script (not built by CI) |
 
 ## Pure core and its tests
 
@@ -372,9 +372,15 @@ What the receiver does:
   A TCP stream that loses its SOME/IP framing also ends the connection.
 - Every SD message takes a new session ID, also a message whose send fails.
   someipd reads a session ID that does not grow, with the reboot flag set, as
-  a reboot of the receiver and ends its subscription. The receiver sets no TCP
-  keepalive: after a link loss, the TTL ends the subscription, and when the
-  link comes back, the Nack of someipd ends a half-open connection.
+  a reboot of the receiver and ends its subscription.
+- The receiver sets no TCP keepalive. So a link loss that lasts longer than
+  the TTL ends its subscription when the TTL ends. When the link comes back,
+  someipd sends a Nack only if it no longer holds the TCP connection
+  (service_discovery_impl.cpp:2103-2112 of vsomeip 3.6.1). The receiver then
+  ends the half-open connection. Otherwise someipd acknowledges the
+  subscription. Design data: in the 5 s link outage of `resubscribe`, the
+  receiver log shows `subscription_expired`, then `nack`, `tcp_connected` and
+  `subscribed`.
 - It reassembles SOME/IP over TCP, checks that the 4-byte little-endian
   length prefix counts the bytes of the frame, and reads `sequence` and
   `frame_timestamp_ns` with a minimal protobuf wire reader.
@@ -466,10 +472,11 @@ ninja -C build/someip-receiver && build/someip-receiver/de4sdv_someip_receiver_t
 ```
 
 `Android.bp` builds the same sources as a native binary (liblog only) with
-`de4sdv_someip_receiver.rc`, an init script for the eng or userdebug image:
-`seclabel u:r:su:s0`, a service that init restarts, and the ingress property
-`de4sdv.aebs.frame_server.port=4731`. The receiver sets the host and the
-ingress start.
+`de4sdv_someip_receiver.rc`, an init script for the eng or userdebug image;
+CI does not build either. The init script has `seclabel u:r:su:s0` (bench
+only; a product needs its own SELinux domain, GAP-MW-038), a service that
+init restarts, and the ingress property `de4sdv.aebs.frame_server.port=4731`.
+The receiver sets the host and the ingress start.
 
 ### Runs against the real someipd
 
@@ -492,7 +499,8 @@ with the runtime bundle of the build job. The script creates a "host" and a
 - A capture of the link on the host end, and a record of the LoLa shared
   memory files that someipd, gatewayd and the adapter map.
 
-Each case starts a fresh stack:
+Each case starts a fresh stack, and each case is a gate: the job passes only
+when every case passes; an inconclusive case fails it too.
 
 | Case | What it shows |
 |---|---|
@@ -528,6 +536,8 @@ every result stays draft until independent review.
 Shown by a passing run: the receiver's interoperation over a veth pair with
 the someipd and gatewayd of the bundle, on Linux, with the discard rule of
 the model, on one clock. Not shown: the Android build of the receiver, the
-AAOS SDV guest, the Cuttlefish network, the HMI ingress, the clock offset of
-a real guest (ASM-MW-030), and any timing of record. No safety,
-cybersecurity, compliance or certification claim is made.
+AAOS SDV guest, the Cuttlefish network, the HMI ingress, the Android property
+service and init (the runs use stand-ins for both), the receiver under its
+init user and SELinux domain (the runs start it with setpriv as a non-root
+user), the clock offset of a real guest (ASM-MW-030), and any timing of
+record. No safety, cybersecurity, compliance or certification claim is made.

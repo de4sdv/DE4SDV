@@ -1,9 +1,10 @@
 # DE4SDV minimal SOME/IP receiver of the AAOS SDV guest (INC-MW-011).
 #
 # For the eng or userdebug image of the bench only: seclabel u:r:su:s0, with
-# SELinux permissive as on the INC-AEBS-010 bench. A product form needs its
-# own domain. The server address is the host end of cvd-ebr. The service is
-# not oneshot, so init restarts the receiver when it exits.
+# SELinux permissive as on the INC-AEBS-010 bench (bench only; a product
+# needs its own SELinux domain, GAP-MW-038). CI does not build this file.
+# The server address is the host end of cvd-ebr. The service is not oneshot,
+# so init restarts the receiver when it exits.
 #
 # The ingress is oneshot: it exits when its connect fails or its stream
 # closes. This file sets only the port of its frame server and no ingress

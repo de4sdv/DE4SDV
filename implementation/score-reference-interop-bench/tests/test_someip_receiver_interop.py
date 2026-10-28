@@ -883,3 +883,12 @@ def test_a_client_that_the_receiver_closed_may_not_miss_frames():
     builder.connections[1].end_reason = "closed"
     del builder.recorded[-1]
     assert evaluate_ingress_start(ingress_records(builder))["outcome"] == FAIL
+
+
+def test_every_receiver_case_is_a_gate():
+    """An inconclusive case fails the job too: no case is measured only."""
+    sys.path.insert(0, str(BENCH / "scripts"))
+    import run_someip_receiver_interop as runner  # noqa: PLC0415
+
+    assert set(runner.GATE_CASES) == set(runner.CASES)
+    assert not hasattr(runner, "MEASUREMENT_CASES")

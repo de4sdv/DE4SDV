@@ -64,7 +64,7 @@ sys.path.insert(0, str(BENCH / "src"))
 sys.path.insert(0, str(BENCH / "scripts"))
 
 import bench_runtime as rt  # noqa: E402
-from de4sdv_score_bench.abort_matrix import MISSING, PASS  # noqa: E402
+from de4sdv_score_bench.abort_matrix import PASS  # noqa: E402
 from de4sdv_score_bench.someip_receiver_interop import (  # noqa: E402
     ANNOUNCED_PROPERTIES,
     EVALUATORS,
@@ -91,8 +91,9 @@ SOMEIPD_STARTED = r"\[someipd\] mw::com IPC binding started"
 SOMEIPD_OFFERED = r"OFFER\(0100\): \[4dee\.0001"
 GATEWAYD_CONNECTED = r"\[gatewayd\] Connected to someipd over the mw::com IPC binding"
 GATEWAYD_FOUND = r"LocalServiceInstance created for instance specifier: de4sdv/aebs_signal_frame"
-GATE_CASES = ("identity", "resubscribe", "no_client", "ttl_renewal", "ingress_start")
-MEASUREMENT_CASES = ("stored_samples",)
+# Every case is a gate: a case passes only with the outcome pass. An
+# inconclusive outcome (no evidence that a check acted) fails the job too.
+GATE_CASES = ("identity", "resubscribe", "no_client", "stored_samples", "ttl_renewal", "ingress_start")
 
 
 def run(argv: list[str], check: bool = True) -> subprocess.CompletedProcess:
@@ -811,9 +812,7 @@ def main() -> int:
     (out / "summary.md").write_text(summary, encoding="utf-8")
     print(summary)
     gates_ok = all(results.get(case, {}).get("outcome") == PASS for case in GATE_CASES if case in args.cases)
-    measurements_ok = all(results.get(case, {}).get("outcome") in (PASS, MISSING)
-                          for case in MEASUREMENT_CASES if case in args.cases)
-    return 0 if gates_ok and measurements_ok else 1
+    return 0 if gates_ok else 1
 
 
 if __name__ == "__main__":

@@ -8,8 +8,10 @@ one hex string.
 
 Source: the guest-side captures (`guest_wire.pcap`) of GitHub Actions run
 40532187964 of the DE4SDV gateway spike, the job at `inc_someip_gateway`
-`723119c4`. That commit has the sources of `d9eac670` except the baselibs
-version. In those captures, someipd uses vsomeip 3.6.1 on 10.250.0.1, and a
+`723119c4`. That commit differs from `d9eac670` in `MODULE.bazel` (the
+versions of baselibs, of docs-as-code and of two development dependencies),
+in its lockfile and in two socom unit tests (one unused `using` each). In
+those captures, someipd uses vsomeip 3.6.1 on 10.250.0.1, and a
 vsomeip 3.7.6 client (`4187431d`) runs on 10.250.0.2. The packet index counts
 the IPv4 TCP and UDP packets of the capture from 0.
 

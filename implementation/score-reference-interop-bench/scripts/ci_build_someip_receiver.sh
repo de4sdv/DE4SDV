@@ -5,8 +5,18 @@
 # results, and the sha256, the dynamic libraries and the file type of the
 # receiver. The g++ build is the binary of the namespace runs; the clang++
 # build only shows that the sources build with the compiler family of AOSP.
-# Usage: ci_build_someip_receiver.sh <g++|clang++> <build-dir> <facts-dir> <bench-dir> <bin-dir>
+# Usage: ci_build_someip_receiver.sh [--runner] <g++|clang++> <build-dir> <facts-dir> <bench-dir> <bin-dir>
 set -euo pipefail
+# Runner only: the ci_* scripts are written for a disposable CI runner and
+# may change the host (packages, ~/.bazelrc, /usr/local, large build trees).
+# Each one refuses to run elsewhere unless its first argument is --runner.
+# The bench VM has its own path (README, section "Bench VM").
+if [ "${1:-}" = "--runner" ]; then
+  shift
+elif [ "${GITHUB_ACTIONS:-}" != "true" ]; then
+  echo "$(basename "$0"): runs only on a CI runner (GITHUB_ACTIONS=true) or with --runner as the first argument" >&2
+  exit 2
+fi
 
 compiler=${1:?}
 build=${2:?}
