@@ -13,15 +13,29 @@
 // 2; the frame ingest thread. The mw::com receive and state handlers only
 // wake the main thread.
 //
-// The node creates no other publisher or subscription: the parameter event
-// publisher and /rosout are off. The parameter services stay, for the abort
-// matrix of VC-MW-019. Every log line on stdout is one JSON object.
+// ROS 2 endpoints (adapterAbortConditions of the model): the node starts
+// without parameter services, without a parameter event publisher and
+// without /rosout, so its endpoints are its VelocityReport publication and
+// the /parameter_events subscription of rclcpp's time source. There the time
+// source reads only this node's use_sim_time, and it logs a value of a wrong
+// type without a throw. With parameter services, any ROS 2 process on the
+// host could abort the adapter: rclcpp throws and catches
+// ParameterNotDeclaredException for a request that names an undeclared
+// parameter. The stamp of each VelocityReport comes from a clock of system
+// time, not from the node clock, so a switch of the node clock to /clock
+// cannot change the stamps.
+//
+// Abort matrix of VC-MW-019: real-time signals select a throw inside a
+// try/catch (fault_signal.hpp, fault_hook.hpp). The matrix so runs this
+// start configuration and this binary.
+//
+// Logging: the adapter writes its own events to stdout, one JSON object per
+// line. mw::log writes its own text lines to stdout as well (configured by
+// MW_LOG_CONFIG_FILE), and rclcpp and the ROS 2 middleware write to stderr.
+//
+// Exit codes: exit_codes.hpp.
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <poll.h>
 #include <signal.h>
-#include <sys/socket.h>
 #include <unistd.h>
 
 #include <atomic>
@@ -36,6 +50,7 @@
 #include <cstring>
 #include <ctime>
 #include <fstream>
+#include <initializer_list>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -43,8 +58,11 @@
 #include <vector>
 
 #include "autoware_vehicle_msgs/msg/velocity_report.hpp"
+#include "de4sdv_score_adapter/exit_codes.hpp"
+#include "de4sdv_score_adapter/fault_signal.hpp"
 #include "de4sdv_score_adapter/frame_path_controller.hpp"
 #include "de4sdv_score_adapter/frame_splitter.hpp"
+#include "de4sdv_score_adapter/frame_stream_client.hpp"
 #include "de4sdv_score_adapter/speed_path_controller.hpp"
 #include "de4sdv_score_facade/score_facade.h"
 #include "facade_ports.hpp"
@@ -56,15 +74,21 @@ namespace {
 
 using de4sdv::score_adapter::FacadeFrameEventPort;
 using de4sdv::score_adapter::FacadeSpeedEventPort;
+using de4sdv::score_adapter::FaultRequest;
+using de4sdv::score_adapter::FaultVariant;
 using de4sdv::score_adapter::FramePathController;
 using de4sdv::score_adapter::FrameSplitter;
+using de4sdv::score_adapter::FrameStreamClient;
+using de4sdv::score_adapter::FrameStreamEvents;
 using de4sdv::score_adapter::ReconnectBackoff;
 using de4sdv::score_adapter::ShutdownResult;
 using de4sdv::score_adapter::SpeedPathController;
 using de4sdv::score_adapter::SpeedPathEvents;
+using de4sdv::score_adapter::SubscribeResult;
 using de4sdv::score_adapter::SubscriptionState;
 using de4sdv::score_adapter::TranslationOutcome;
 using de4sdv::score_adapter::VelocityPublisherPort;
+namespace exit_code = de4sdv::score_adapter::exit_code;
 namespace fault_hook = de4sdv::score_adapter::fault_hook;
 namespace score_facade = de4sdv::score_facade;
 
@@ -74,13 +98,12 @@ constexpr const char* kFrameId = "base_link";
 constexpr const char* kSpeedInstanceSpecifier = "de4sdv/reference_vehicle_speed";
 constexpr const char* kFrameInstanceSpecifier = "de4sdv/aebs_signal_frame";
 constexpr std::size_t kSpeedMaxSamples = 5;
-constexpr int kExitConfigurationError = 2;
-constexpr int kExitStillSubscribed = 3;
-constexpr int kExitFrameOfferFailed = 4;
 
 std::atomic<bool> g_stop_requested{false};
+FaultRequest g_fault_request;
 
 extern "C" void OnStopSignal(int /*signal*/) { g_stop_requested.store(true); }
+extern "C" void OnFaultSignal(int signal) { g_fault_request.Store(signal); }
 
 std::int64_t ClockNs(clockid_t clock) {
   timespec ts{};
@@ -204,13 +227,14 @@ bool ParseOptions(int argc, char** argv, Options* options) {
 class VelocityPublisher final : public VelocityPublisherPort {
  public:
   explicit VelocityPublisher(rclcpp::Node& node)
-      : node_{node},
-        publisher_{node.create_publisher<autoware_vehicle_msgs::msg::VelocityReport>(
+      : publisher_{node.create_publisher<autoware_vehicle_msgs::msg::VelocityReport>(
             kVelocityTopic, rclcpp::QoS(rclcpp::KeepLast(10)).reliable())} {}
 
   void Publish(float longitudinal_velocity_mps) override {
     autoware_vehicle_msgs::msg::VelocityReport message;
-    message.header.stamp = node_.get_clock()->now();
+    // System time, not the node clock: /parameter_events can switch the node
+    // clock to /clock, but not this one.
+    message.header.stamp = stamp_clock_.now();
     message.header.frame_id = kFrameId;
     message.longitudinal_velocity = longitudinal_velocity_mps;
     message.lateral_velocity = 0.0F;
@@ -219,7 +243,7 @@ class VelocityPublisher final : public VelocityPublisherPort {
   }
 
  private:
-  rclcpp::Node& node_;
+  rclcpp::Clock stamp_clock_{RCL_SYSTEM_TIME};
   rclcpp::Publisher<autoware_vehicle_msgs::msg::VelocityReport>::SharedPtr publisher_;
 };
 
@@ -284,74 +308,44 @@ void SleepUnlessStopped(std::chrono::milliseconds duration, const std::atomic<bo
   }
 }
 
+// Rule 3: the frame stream comes and goes; the skeleton offer stays.
+class FrameStreamLog final : public FrameStreamEvents {
+ public:
+  explicit FrameStreamLog(const Options& options) : options_{options} {}
+  void OnWaiting() override {
+    LogEvent("frame_stream_waiting",
+             Field("host", options_.frame_host) + "," + Field("port", static_cast<std::uint64_t>(options_.frame_port)));
+  }
+  void OnConnected() override { LogEvent("frame_stream_connected"); }
+  void OnLost(std::chrono::milliseconds next_delay) override {
+    LogEvent("frame_stream_lost", Field("next_attempt_in_ms", static_cast<std::int64_t>(next_delay.count())));
+  }
+  void OnInvalidAddress() override {
+    LogEvent("frame_stream_error", Field("reason", std::string{"invalid --frame-host"}));
+  }
+
+ private:
+  const Options& options_;
+};
+
 void FrameIngestLoop(const Options& options, FramePathController& controller, FrameSplitter& splitter,
                      const std::atomic<bool>& stop) {
-  ReconnectBackoff backoff{std::chrono::milliseconds{100}, std::chrono::milliseconds{2000}};
-  std::vector<std::uint8_t> buffer(8192);
-  sockaddr_in address{};
-  address.sin_family = AF_INET;
-  address.sin_port = htons(options.frame_port);
-  if (inet_pton(AF_INET, options.frame_host.c_str(), &address.sin_addr) != 1) {
-    LogEvent("frame_stream_error", Field("reason", std::string{"invalid --frame-host"}));
-    return;
-  }
-  bool waiting_logged = false;
-  while (!stop.load()) {
-    const int fd = ::socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
-    if (fd < 0 || ::connect(fd, reinterpret_cast<const sockaddr*>(&address), sizeof(address)) != 0) {
-      if (fd >= 0) {
-        ::close(fd);
-      }
-      if (!waiting_logged) {
-        LogEvent("frame_stream_waiting", Field("host", options.frame_host) + "," +
-                                             Field("port", static_cast<std::uint64_t>(options.frame_port)));
-        waiting_logged = true;
-      }
-      SleepUnlessStopped(backoff.NextDelay(), stop);
-      continue;
-    }
-    backoff.Reset();
-    waiting_logged = false;
-    controller.OnConnectionEstablished();
-    LogEvent("frame_stream_connected");
-    while (!stop.load()) {
-      pollfd poll_fd{fd, POLLIN, 0};
-      const int ready = ::poll(&poll_fd, 1, 100);
-      if (ready < 0) {
-        if (errno == EINTR) {
-          continue;
-        }
-        break;
-      }
-      if (ready == 0) {
-        continue;
-      }
-      const ssize_t received = ::recv(fd, buffer.data(), buffer.size(), 0);
-      if (received > 0) {
-        splitter.Feed(buffer.data(), static_cast<std::size_t>(received),
-                      [&controller](const std::uint8_t* sample, std::size_t size) { controller.OnFrame(sample, size); });
-        continue;
-      }
-      if (received < 0 && (errno == EINTR || errno == EAGAIN)) {
-        continue;
-      }
-      break;  // closed by the frame assembler, or an error
-    }
-    ::close(fd);
-    splitter.Reset();
-    if (stop.load()) {
-      break;  // the adapter's own shutdown, not a loss of the stream
-    }
-    controller.OnConnectionLost();  // rule 3: the offer stays
-    LogEvent("frame_stream_lost");
-  }
+  FrameStreamLog log{options};
+  FrameStreamClient client{options.frame_host,
+                           options.frame_port,
+                           splitter,
+                           controller,
+                           ReconnectBackoff{std::chrono::milliseconds{100}, std::chrono::milliseconds{2000}},
+                           [&stop](std::chrono::milliseconds delay) { SleepUnlessStopped(delay, stop); },
+                           &log};
+  client.Run(stop);
 }
 
 void LogStatus(const char* event, const SpeedPathController& speed, const FramePathController& frames,
                const FrameSplitter& splitter, SubscriptionState state) {
   const auto s = speed.counters();
   const auto f = frames.counters();
-  const auto& split = splitter.stats();
+  const FrameSplitter::Stats split = splitter.stats();
   LogEvent(event,
            Field("speed_state", std::string{de4sdv::score_adapter::ToText(state)}) + "," +
                Field("speed_reads", s.reads) + "," + Field("speed_discard_reads", s.discard_reads) + "," +
@@ -367,39 +361,44 @@ void LogStatus(const char* event, const SpeedPathController& speed, const FrameP
                "," + Field("frames_allocate_failed", f.frames_allocate_failed) + "," +
                Field("frames_send_failed", f.frames_send_failed) + "," +
                Field("frames_not_offered", f.frames_not_offered) + "," +
+               Field("frames_forwarded", split.frames_forwarded) + "," +
                Field("frames_dropped_oversize", split.frames_dropped_oversize) + "," +
                Field("frame_bytes_read", split.bytes_read) + "," +
                Field("frame_partial_frames_discarded", split.partial_frames_discarded) + "," +
                Field("rss_kib", ResidentKiB()));
 }
 
-rcl_interfaces::msg::SetParametersResult OnFaultHookParameter(const std::vector<rclcpp::Parameter>& parameters) {
-  rcl_interfaces::msg::SetParametersResult result;
-  result.successful = true;
-  for (const auto& parameter : parameters) {
-    if (parameter.get_name() != fault_hook::kParameterName) {
-      continue;
-    }
-    if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_STRING) {
-      result.successful = false;
-      result.reason = "a string is expected";
-      continue;
-    }
-    const std::string variant = parameter.as_string();
-    if (variant == "adapter_code") {
-      LogEvent("fault_hook_trigger", Field("variant", variant));
-      const std::string caught = fault_hook::ThrowInAdapterCode();
-      LogEvent("fault_hook_caught", Field("variant", variant) + "," + Field("what", caught));
-    } else if (variant == "libstdcxx") {
-      LogEvent("fault_hook_trigger", Field("variant", variant));
-      const std::string caught = fault_hook::ThrowInsideLibstdcxx();
-      LogEvent("fault_hook_caught", Field("variant", variant) + "," + Field("what", caught));
-    } else if (variant != "none") {
-      result.successful = false;
-      result.reason = "unknown variant";
-    }
+// Runs the throw of a fault signal inside a try/catch (abort matrix).
+void RunFault(FaultVariant variant, rclcpp::Node& node) {
+  const std::string name{de4sdv::score_adapter::ToText(variant)};
+  LogEvent("fault_hook_trigger", Field("variant", name));
+  std::string caught;
+  switch (variant) {
+    case FaultVariant::kRclcpp:
+      caught = fault_hook::ThrowInsideRclcpp(node);
+      break;
+    case FaultVariant::kAdapterCode:
+      caught = fault_hook::ThrowInAdapterCode();
+      break;
+    case FaultVariant::kLibstdcxx:
+      caught = fault_hook::ThrowInsideLibstdcxx();
+      break;
+    case FaultVariant::kNone:
+    default:
+      return;
   }
-  return result;
+  LogEvent("fault_hook_caught", Field("variant", name) + "," + Field("what", caught));
+}
+
+std::string FaultSignalsField() {
+  std::string text = Quote("fault_signals") + ":{";
+  bool first = true;
+  for (const FaultVariant variant : {FaultVariant::kRclcpp, FaultVariant::kAdapterCode, FaultVariant::kLibstdcxx}) {
+    text += (first ? "" : ",") + Quote(de4sdv::score_adapter::ToText(variant)) + ":" +
+            std::to_string(de4sdv::score_adapter::SignalFor(variant));
+    first = false;
+  }
+  return text + "}";
 }
 
 }  // namespace
@@ -410,39 +409,39 @@ int main(int argc, char** argv) {
     std::fprintf(stderr,
                  "usage: de4sdv_score_adapter --mw-com-config <mw_com_config.json> [--frame-host 127.0.0.1] "
                  "[--frame-port 4721] [--status-period-s 10] [--ros-args ...]\n");
-    return kExitConfigurationError;
+    return exit_code::kConfigurationError;
   }
   struct sigaction action {};
   action.sa_handler = OnStopSignal;
   sigemptyset(&action.sa_mask);
   sigaction(SIGTERM, &action, nullptr);
   sigaction(SIGINT, &action, nullptr);
+  struct sigaction fault_action {};
+  fault_action.sa_handler = OnFaultSignal;
+  sigemptyset(&fault_action.sa_mask);
+  for (const FaultVariant variant : {FaultVariant::kRclcpp, FaultVariant::kAdapterCode, FaultVariant::kLibstdcxx}) {
+    sigaction(de4sdv::score_adapter::SignalFor(variant), &fault_action, nullptr);
+  }
 
-  const bool hook_enabled = fault_hook::EnabledByEnvironment();
   LogEvent("start", Field("pid", static_cast<std::int64_t>(::getpid())) + "," +
-                        Field("mw_com_config", options.mw_com_config) + "," +
-                        Field("fault_hook_enabled", hook_enabled) + "," +
-                        Field("fault_hook_environment",
-                              std::string{fault_hook::kEnvironmentVariable} + "=" + fault_hook::EnvironmentSetting()));
+                        Field("mw_com_config", options.mw_com_config) + "," + FaultSignalsField());
 
   // Rule 2 needs SIGTERM to set the flag only; rclcpp installs no handler.
   rclcpp::init(argc, argv, rclcpp::InitOptions(), rclcpp::SignalHandlerOptions::None);
   if (!score_facade::InitializeRuntime(options.mw_com_config.c_str())) {
     LogEvent("configuration_error", Field("reason", std::string{"mw::com configuration not readable"}));
     rclcpp::shutdown();
-    return kExitConfigurationError;
+    return exit_code::kConfigurationError;
   }
 
-  auto node = std::make_shared<rclcpp::Node>(
-      kNodeName, rclcpp::NodeOptions().start_parameter_event_publisher(false).enable_rosout(false));
+  auto node = std::make_shared<rclcpp::Node>(kNodeName, rclcpp::NodeOptions()
+                                                            .start_parameter_services(false)
+                                                            .start_parameter_event_publisher(false)
+                                                            .enable_rosout(false));
   VelocityPublisher publisher{*node};
-  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr hook_handle;
-  if (hook_enabled) {
-    node->declare_parameter<std::string>(fault_hook::kParameterName, "none");
-    hook_handle = node->add_on_set_parameters_callback(&OnFaultHookParameter);
-  }
   LogEvent("ros_node_ready", Field("node", std::string{kNodeName}) + "," +
                                  Field("topic", std::string{kVelocityTopic}) + "," +
+                                 Field("parameter_services", false) + "," +
                                  Field("rmw", std::string{rmw_get_implementation_identifier()}));
 
   // Rule 3: offer the frame skeleton once, at start.
@@ -450,9 +449,10 @@ int main(int argc, char** argv) {
   FacadeFrameEventPort frame_port{frame_publisher};
   FramePathController frame_controller{frame_port};
   if (!frame_publisher.Create() || !frame_controller.Start()) {
-    LogEvent("frame_offer_failed", Field("reason", std::string{frame_publisher.LastError()}));
+    LogEvent("frame_offer_failed", Field("reason", std::string{frame_publisher.LastError()}) + "," +
+                                       Field("exit_code", static_cast<std::int64_t>(exit_code::kFrameOfferFailed)));
     rclcpp::shutdown();
-    return kExitFrameOfferFailed;
+    return exit_code::kFrameOfferFailed;
   }
   LogEvent("frame_offered", Field("instance", std::string{kFrameInstanceSpecifier}));
   FrameSplitter splitter{score_facade::kFrameSampleBytes};
@@ -470,7 +470,9 @@ int main(int argc, char** argv) {
   SpeedPathController speed_controller{speed_port, publisher, kSpeedMaxSamples, &speed_log};
   Wakeup wakeup;
   SpeedHandlerContext handler_context{&speed_controller, &wakeup};
+  speed_port.BindHandlers(&OnSpeedSubscriptionState, &OnSpeedSamplesReceived, &handler_context);
 
+  int exit_status = 0;
   bool ready_logged = false;
   bool not_found_logged = false;
   const auto status_period = std::chrono::seconds{options.status_period_s};
@@ -480,15 +482,20 @@ int main(int argc, char** argv) {
     const auto now = std::chrono::steady_clock::now();
     if (!subscriber.HasProxy() && now >= next_find) {
       if (subscriber.FindAndCreate()) {
-        // Handlers first, so the controller sees every state change.
-        if (!subscriber.SetStateHandler(&OnSpeedSubscriptionState, &handler_context) ||
-            !subscriber.SetReceiveHandler(&OnSpeedSamplesReceived, &handler_context) ||
-            !speed_controller.Subscribe()) {
-          LogEvent("speed_subscribe_failed", Field("reason", std::string{subscriber.LastError()}));
-        } else {
-          LogEvent("speed_proxy_subscribed", Field("instance", std::string{kSpeedInstanceSpecifier}) + "," +
-                                                 Field("max_samples", static_cast<std::uint64_t>(kSpeedMaxSamples)));
+        const SubscribeResult subscribed = speed_controller.Subscribe();
+        if (subscribed != SubscribeResult::kSubscribed) {
+          // Not retried in the process: the adapter ends with its own exit
+          // code, through the shutdown of rule 2, so the Launch Manager sees
+          // the failure.
+          LogEvent("speed_subscribe_failed",
+                   Field("step", std::string{de4sdv::score_adapter::ToText(subscribed)}) + "," +
+                       Field("reason", std::string{subscriber.LastError()}) + "," +
+                       Field("exit_code", static_cast<std::int64_t>(exit_code::kSpeedSubscribeFailed)));
+          exit_status = exit_code::kSpeedSubscribeFailed;
+          break;
         }
+        LogEvent("speed_proxy_subscribed", Field("instance", std::string{kSpeedInstanceSpecifier}) + "," +
+                                               Field("max_samples", static_cast<std::uint64_t>(kSpeedMaxSamples)));
       } else {
         if (!not_found_logged) {
           LogEvent("speed_provider_not_found", Field("reason", std::string{subscriber.LastError()}));
@@ -498,6 +505,10 @@ int main(int argc, char** argv) {
       }
     }
     speed_controller.ReadAvailable();
+    const FaultVariant fault = g_fault_request.Take();
+    if (fault != FaultVariant::kNone) {
+      RunFault(fault, *node);
+    }
     if (!ready_logged && subscriber.HasProxy() && speed_port.State() == SubscriptionState::kSubscribed &&
         frame_controller.offered()) {
       LogEvent("ready");
@@ -510,7 +521,9 @@ int main(int argc, char** argv) {
     wakeup.WaitFor(std::chrono::milliseconds{20});
   }
 
-  LogEvent("stop_requested");
+  if (exit_status == 0) {
+    LogEvent("stop_requested");
+  }
   // Rule 2: no read, no receive handler, no held sample, Unsubscribe(), wait
   // for kNotSubscribed, then destroy the proxy.
   const ShutdownResult speed_result = speed_controller.Shutdown(std::chrono::milliseconds{2000});
@@ -522,7 +535,7 @@ int main(int argc, char** argv) {
     // Destroying a subscribed proxy aborts the process (GAP-MW-041); end
     // without destructors instead.
     std::fflush(stdout);
-    std::_Exit(kExitStillSubscribed);
+    std::_Exit(exit_code::kStillSubscribed);
   }
   frame_stop.store(true);
   frame_thread.join();
@@ -531,10 +544,9 @@ int main(int argc, char** argv) {
   executor.cancel();
   executor_thread.join();
   LogStatus("final_status", speed_controller, frame_controller, splitter, speed_port.State());
-  hook_handle.reset();
   executor.remove_node(node);
   node.reset();
   rclcpp::shutdown();
-  LogEvent("exit", Field("code", static_cast<std::int64_t>(0)));
-  return 0;
+  LogEvent("exit", Field("code", static_cast<std::int64_t>(exit_status)));
+  return exit_status;
 }

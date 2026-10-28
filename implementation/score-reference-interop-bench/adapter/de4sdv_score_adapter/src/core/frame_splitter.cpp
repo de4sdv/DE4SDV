@@ -29,7 +29,7 @@ void FrameSplitter::Feed(const std::uint8_t* data, std::size_t size, const Frame
         position += take;
         if (sample_.size() == sample_expected_) {
           on_frame(sample_.data(), sample_.size());
-          ++stats_.frames_forwarded;
+          frames_forwarded_.fetch_add(1U, std::memory_order_relaxed);
           sample_.clear();
           state_ = State::kPrefix;
         }
@@ -47,7 +47,7 @@ void FrameSplitter::Feed(const std::uint8_t* data, std::size_t size, const Frame
       }
     }
   }
-  stats_.bytes_read += size;
+  bytes_read_.fetch_add(static_cast<std::uint64_t>(size), std::memory_order_relaxed);
 }
 
 void FrameSplitter::StartFrame(const FrameHandler& on_frame) {
@@ -58,7 +58,7 @@ void FrameSplitter::StartFrame(const FrameHandler& on_frame) {
   prefix_filled_ = 0;
   const std::uint64_t sample_size = static_cast<std::uint64_t>(kPrefixBytes) + length;
   if (sample_size > static_cast<std::uint64_t>(max_sample_bytes_)) {
-    ++stats_.frames_dropped_oversize;
+    frames_dropped_oversize_.fetch_add(1U, std::memory_order_relaxed);
     skip_remaining_ = length;
     state_ = State::kSkip;
     return;
@@ -67,7 +67,7 @@ void FrameSplitter::StartFrame(const FrameHandler& on_frame) {
   sample_expected_ = static_cast<std::size_t>(sample_size);
   if (length == 0U) {
     on_frame(sample_.data(), sample_.size());
-    ++stats_.frames_forwarded;
+    frames_forwarded_.fetch_add(1U, std::memory_order_relaxed);
     sample_.clear();
     state_ = State::kPrefix;
     return;
@@ -77,7 +77,7 @@ void FrameSplitter::StartFrame(const FrameHandler& on_frame) {
 
 void FrameSplitter::Reset() noexcept {
   if (HasPartialFrame() && state_ != State::kSkip) {
-    ++stats_.partial_frames_discarded;
+    partial_frames_discarded_.fetch_add(1U, std::memory_order_relaxed);
   }
   state_ = State::kPrefix;
   prefix_filled_ = 0;
@@ -88,6 +88,15 @@ void FrameSplitter::Reset() noexcept {
 
 bool FrameSplitter::HasPartialFrame() const noexcept {
   return state_ != State::kPrefix || prefix_filled_ != 0U;
+}
+
+FrameSplitter::Stats FrameSplitter::stats() const noexcept {
+  Stats stats;
+  stats.bytes_read = bytes_read_.load(std::memory_order_relaxed);
+  stats.frames_forwarded = frames_forwarded_.load(std::memory_order_relaxed);
+  stats.frames_dropped_oversize = frames_dropped_oversize_.load(std::memory_order_relaxed);
+  stats.partial_frames_discarded = partial_frames_discarded_.load(std::memory_order_relaxed);
+  return stats;
 }
 
 }  // namespace de4sdv::score_adapter

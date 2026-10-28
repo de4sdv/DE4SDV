@@ -5,9 +5,13 @@
 // samples that the provider sent before it. So the first read after each
 // entry into kSubscribed (the first subscription, and every return after the
 // subscription left kSubscribed, for example on a provider restart) is read
-// and discarded; only samples that arrive after it are published
-// (REQ-MW-013). A read that does not stay inside one stable kSubscribed phase
-// is dropped too.
+// and discarded, and so is every next read while the reads are full; only
+// samples that arrive after the discard are published (REQ-MW-013). A read
+// that does not stay inside one stable kSubscribed phase is dropped too.
+//
+// The fake proxy event reads as LoLa 0.5.0 does (slot_collector.cpp): one
+// read returns at most max_samples new samples, the newest ones, oldest
+// first, and the older new samples are skipped for good.
 //
 // Rule 2 (shutdown, GAP-MW-041): on SIGTERM the adapter stops reading, unsets
 // the receive handler, holds no sample, calls Unsubscribe(), waits for
@@ -34,6 +38,7 @@ using de4sdv::score_adapter::ShutdownResult;
 using de4sdv::score_adapter::SpeedEventPort;
 using de4sdv::score_adapter::SpeedPathController;
 using de4sdv::score_adapter::SpeedPathEvents;
+using de4sdv::score_adapter::SubscribeResult;
 using de4sdv::score_adapter::SubscriptionState;
 using de4sdv::score_adapter::TranslationOutcome;
 using de4sdv::score_adapter::VelocityPublisherPort;
@@ -41,16 +46,31 @@ using de4sdv::score_adapter::VelocityPublisherPort;
 class FakeSpeedEvent final : public SpeedEventPort {
  public:
   SubscriptionState state{SubscriptionState::kNotSubscribed};
-  std::deque<double> pending;  // samples a read would return, oldest first
+  std::deque<double> pending;  // new samples, oldest first
   std::vector<std::string> calls;
-  std::function<void()> during_read;  // simulates a transition inside a read
+  std::function<void()> during_read;  // simulates a transition or an arrival inside a read
   int unsubscribe_reaches_not_subscribed_after_polls{0};
   bool proxy_destroyed{false};
   bool fail_reads{false};
+  bool state_handler_result{true};
+  bool receive_handler_result{true};
+  bool subscribe_result{true};
+  // false: a reader that returns the oldest samples first and keeps the rest
+  // for the next read (not LoLa; it shows that rule 1 does not depend on
+  // which samples a full read returns).
+  bool newest_only{true};
 
+  bool SetStateHandler() override {
+    calls.push_back("SetStateHandler");
+    return state_handler_result;
+  }
+  bool SetReceiveHandler() override {
+    calls.push_back("SetReceiveHandler");
+    return receive_handler_result;
+  }
   bool Subscribe(std::size_t max_samples) override {
     calls.push_back("Subscribe(" + std::to_string(max_samples) + ")");
-    return true;
+    return subscribe_result;
   }
   void Unsubscribe() override {
     calls.push_back("Unsubscribe");
@@ -71,6 +91,10 @@ class FakeSpeedEvent final : public SpeedEventPort {
     calls.push_back("Read");
     if (fail_reads) {
       return -1;
+    }
+    // As LoLa: only the newest max_samples come; the older ones are skipped.
+    while (newest_only && pending.size() > max_samples) {
+      pending.pop_front();
     }
     std::int64_t delivered = 0;
     while (!pending.empty() && static_cast<std::size_t>(delivered) < max_samples) {
@@ -111,7 +135,7 @@ struct Fixture {
 
   // The provider is found, the proxy subscribes, LoLa enters kSubscribed.
   void SubscribeAndEnter() {
-    ASSERT_TRUE(controller.Subscribe());
+    ASSERT_EQ(controller.Subscribe(), SubscribeResult::kSubscribed);
     event.state = SubscriptionState::kSubscribed;
     controller.OnSubscriptionStateChanged(SubscriptionState::kSubscribed);
   }
@@ -125,10 +149,57 @@ struct Fixture {
   }
 };
 
-TEST(SpeedPathController, SubscribesWithTheConfiguredSampleCount) {
+TEST(SpeedPathController, SetsBothHandlersBeforeItSubscribesWithTheConfiguredSampleCount) {
   Fixture f;
-  ASSERT_TRUE(f.controller.Subscribe());
-  EXPECT_EQ(f.event.calls, (std::vector<std::string>{"Subscribe(5)"}));
+  ASSERT_EQ(f.controller.Subscribe(), SubscribeResult::kSubscribed);
+  EXPECT_EQ(f.event.calls, (std::vector<std::string>{"SetStateHandler", "SetReceiveHandler", "Subscribe(5)"}));
+}
+
+TEST(SpeedPathController, ARefusedStateHandlerIsReportedAndNothingElseIsTried) {
+  Fixture f;
+  f.event.state_handler_result = false;
+  EXPECT_EQ(f.controller.Subscribe(), SubscribeResult::kStateHandlerFailed);
+  EXPECT_EQ(f.event.calls, (std::vector<std::string>{"SetStateHandler"}));
+}
+
+TEST(SpeedPathController, ARefusedReceiveHandlerIsReportedBeforeAnySubscription) {
+  Fixture f;
+  f.event.receive_handler_result = false;
+  EXPECT_EQ(f.controller.Subscribe(), SubscribeResult::kReceiveHandlerFailed);
+  EXPECT_EQ(f.event.calls, (std::vector<std::string>{"SetStateHandler", "SetReceiveHandler"}));
+}
+
+TEST(SpeedPathController, ARefusedSubscriptionIsReportedAndTheShutdownStillCleansUp) {
+  // The adapter ends with its own exit code after a refused step, through
+  // the shutdown of rule 2. The proxy is not subscribed, so it is destroyed.
+  Fixture f;
+  f.event.subscribe_result = false;
+  EXPECT_EQ(f.controller.Subscribe(), SubscribeResult::kSubscribeFailed);
+  f.event.calls.clear();
+  EXPECT_EQ(f.controller.Shutdown(std::chrono::milliseconds{100}), ShutdownResult::kProxyDestroyed);
+  EXPECT_EQ(f.event.calls,
+            (std::vector<std::string>{"UnsetReceiveHandler", "Unsubscribe", "UnsetStateHandler", "DestroyProxy"}));
+}
+
+TEST(SpeedPathController, NoSubscriptionAfterShutdown) {
+  Fixture f;
+  ASSERT_EQ(f.controller.Shutdown(std::chrono::milliseconds{10}), ShutdownResult::kNoProxy);
+  EXPECT_EQ(f.controller.Subscribe(), SubscribeResult::kShutDown);
+  EXPECT_TRUE(f.event.calls.empty());
+}
+
+TEST(SpeedPathController, SubscribeResultsHaveDistinctTexts) {
+  const std::vector<std::string> texts{
+      de4sdv::score_adapter::ToText(SubscribeResult::kSubscribed),
+      de4sdv::score_adapter::ToText(SubscribeResult::kStateHandlerFailed),
+      de4sdv::score_adapter::ToText(SubscribeResult::kReceiveHandlerFailed),
+      de4sdv::score_adapter::ToText(SubscribeResult::kSubscribeFailed),
+      de4sdv::score_adapter::ToText(SubscribeResult::kShutDown)};
+  for (std::size_t i = 0; i < texts.size(); ++i) {
+    for (std::size_t j = i + 1; j < texts.size(); ++j) {
+      EXPECT_NE(texts[i], texts[j]);
+    }
+  }
 }
 
 TEST(SpeedPathController, FirstReadAfterTheSubscriptionDiscardsTheStoredSamples) {
@@ -238,11 +309,60 @@ TEST(SpeedPathController, ATransitionIntoSubscribedThatTheReadSeesFirstStillGets
   EXPECT_EQ(f.publisher.published[0], 20.0F);
 }
 
-TEST(SpeedPathController, PublishesInArrivalOrderAndReadsUntilEmpty) {
+TEST(SpeedPathController, StoredSamplesBeyondMaxSamplesPublishNothing) {
+  // Seven stored samples, five per read: LoLa returns the newest five and
+  // skips the two older ones for good. The full read keeps the discard
+  // open, the empty read after it ends the discard.
+  Fixture f;
+  f.SubscribeAndEnter();
+  f.event.pending = {3.6, 7.2, 10.8, 14.4, 18.0, 21.6, 25.2};
+  f.controller.ReadAvailable();
+  EXPECT_TRUE(f.publisher.published.empty());
+  EXPECT_EQ(f.controller.counters().discard_reads, 2U);
+  EXPECT_EQ(f.controller.counters().samples_discarded_stored, 5U);
+  f.event.pending = {36.0};
+  f.controller.ReadAvailable();
+  ASSERT_EQ(f.publisher.published.size(), 1U);
+  EXPECT_EQ(f.publisher.published[0], 10.0F);
+}
+
+TEST(SpeedPathController, AReaderThatReturnsTheOldestFirstPublishesNoStoredSampleEither) {
+  Fixture f;
+  f.event.newest_only = false;
+  f.SubscribeAndEnter();
+  f.event.pending = {3.6, 7.2, 10.8, 14.4, 18.0, 21.6, 25.2};
+  f.controller.ReadAvailable();
+  EXPECT_TRUE(f.publisher.published.empty());
+  EXPECT_EQ(f.controller.counters().samples_discarded_stored, 7U);
+  f.event.pending = {36.0};
+  f.controller.ReadAvailable();
+  ASSERT_EQ(f.publisher.published.size(), 1U);
+  EXPECT_EQ(f.publisher.published[0], 10.0F);
+}
+
+TEST(SpeedPathController, KeepsDiscardingWhileTheDiscardReadsAreFull) {
+  // Five stored samples fill the first read; five more arrive during it and
+  // fill the second read. Both are discarded (the model's cost of rule 1),
+  // and the third read, with fewer samples, ends the discard.
+  Fixture f;
+  f.SubscribeAndEnter();
+  f.event.pending = {3.6, 7.2, 10.8, 14.4, 18.0};
+  f.event.during_read = [&f]() { f.event.pending = {21.6, 25.2, 28.8, 32.4, 36.0}; };
+  f.controller.ReadAvailable();
+  EXPECT_TRUE(f.publisher.published.empty());
+  EXPECT_EQ(f.controller.counters().discard_reads, 3U);
+  EXPECT_EQ(f.controller.counters().samples_discarded_stored, 10U);
+  f.event.pending = {72.0};
+  f.controller.ReadAvailable();
+  ASSERT_EQ(f.publisher.published.size(), 1U);
+  EXPECT_EQ(f.publisher.published[0], 20.0F);
+}
+
+TEST(SpeedPathController, PublishesInArrivalOrder) {
   Fixture f;
   f.SubscribeAndEnter();
   f.controller.ReadAvailable();
-  const std::vector<double> sent{3.6, 7.2, 10.8, 14.4, 18.0, 21.6, 25.2};  // more than one read holds
+  const std::vector<double> sent{3.6, 7.2, 10.8, 14.4};
   f.event.pending.assign(sent.begin(), sent.end());
   f.controller.ReadAvailable();
   ASSERT_EQ(f.publisher.published.size(), sent.size());
@@ -251,16 +371,42 @@ TEST(SpeedPathController, PublishesInArrivalOrderAndReadsUntilEmpty) {
   }
 }
 
+TEST(SpeedPathController, ReadsAgainAfterAFullRead) {
+  // A full read can leave newer samples behind (they arrived during it), so
+  // the controller reads again until a read is not full.
+  Fixture f;
+  f.SubscribeAndEnter();
+  f.controller.ReadAvailable();
+  f.event.pending = {3.6, 7.2, 10.8, 14.4, 18.0};
+  f.event.during_read = [&f]() { f.event.pending = {21.6, 25.2}; };
+  f.controller.ReadAvailable();
+  ASSERT_EQ(f.publisher.published.size(), 7U);
+  EXPECT_EQ(f.publisher.published[0], 1.0F);
+  EXPECT_EQ(f.publisher.published[6], 7.0F);
+}
+
+TEST(SpeedPathController, ABurstOfMoreThanMaxSamplesBetweenTwoReadsLosesItsOldestSamples) {
+  // The loss of LoLa's read: seven new samples, one read of five. The two
+  // oldest never reach the adapter, so it cannot count them.
+  Fixture f;
+  f.SubscribeAndEnter();
+  f.controller.ReadAvailable();
+  f.event.pending = {3.6, 7.2, 10.8, 14.4, 18.0, 21.6, 25.2};
+  f.controller.ReadAvailable();
+  ASSERT_EQ(f.publisher.published.size(), 5U);
+  EXPECT_EQ(f.publisher.published.front(), 3.0F);
+  EXPECT_EQ(f.publisher.published.back(), 7.0F);
+  EXPECT_EQ(f.controller.counters().samples_read, 5U);
+}
+
 TEST(SpeedPathController, WithholdsNonFiniteSamplesAndCountsThem) {
   Fixture f;
   f.SubscribeAndEnter();
   f.controller.ReadAvailable();
-  f.event.pending = {36.0,
-                     std::numeric_limits<double>::quiet_NaN(),
-                     std::numeric_limits<double>::infinity(),
-                     -std::numeric_limits<double>::infinity(),
-                     1.0e300,
-                     72.0};
+  f.event.pending = {36.0, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity(),
+                     -std::numeric_limits<double>::infinity(), 72.0};
+  f.controller.ReadAvailable();
+  f.event.pending = {1.0e300};
   f.controller.ReadAvailable();
   ASSERT_EQ(f.publisher.published.size(), 2U);
   EXPECT_EQ(f.publisher.published[0], 10.0F);
@@ -288,7 +434,7 @@ TEST(SpeedPathController, ReportsEachWithheldSampleAndEachDiscardRead) {
   FakePublisher publisher;
   RecordingEvents events;
   SpeedPathController controller{event, publisher, kMaxSamples, &events};
-  ASSERT_TRUE(controller.Subscribe());
+  ASSERT_EQ(controller.Subscribe(), SubscribeResult::kSubscribed);
   event.state = SubscriptionState::kSubscribed;
   controller.OnSubscriptionStateChanged(SubscriptionState::kSubscribed);
   event.pending = {1.0, 2.0};

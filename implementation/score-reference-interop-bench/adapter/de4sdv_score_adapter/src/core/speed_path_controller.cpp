@@ -16,13 +16,40 @@ SpeedPathController::SpeedPathController(SpeedEventPort& event, VelocityPublishe
   buffer_.reserve(max_samples_);
 }
 
-bool SpeedPathController::Subscribe() {
+const char* ToText(SubscribeResult result) noexcept {
+  switch (result) {
+    case SubscribeResult::kSubscribed:
+      return "subscribed";
+    case SubscribeResult::kStateHandlerFailed:
+      return "state_handler_failed";
+    case SubscribeResult::kReceiveHandlerFailed:
+      return "receive_handler_failed";
+    case SubscribeResult::kSubscribeFailed:
+      return "subscribe_failed";
+    case SubscribeResult::kShutDown:
+    default:
+      return "shut_down";
+  }
+}
+
+SubscribeResult SpeedPathController::Subscribe() {
   std::lock_guard<std::mutex> lock{read_mutex_};
   if (shut_down_) {
-    return false;
+    return SubscribeResult::kShutDown;
   }
+  // From here on Shutdown() handles the proxy by rule 2, whatever step
+  // mw::com refuses below.
   proxy_present_ = true;
-  return event_.Subscribe(max_samples_);
+  if (!event_.SetStateHandler()) {
+    return SubscribeResult::kStateHandlerFailed;
+  }
+  if (!event_.SetReceiveHandler()) {
+    return SubscribeResult::kReceiveHandlerFailed;
+  }
+  if (!event_.Subscribe(max_samples_)) {
+    return SubscribeResult::kSubscribeFailed;
+  }
+  return SubscribeResult::kSubscribed;
 }
 
 void SpeedPathController::OnSubscriptionStateChanged(SubscriptionState new_state) noexcept {
@@ -71,7 +98,10 @@ bool SpeedPathController::ReadOnce() {
   }
   const bool more_may_wait = buffer_.size() >= max_samples_;
   if (discarded_epoch_ != epoch_before) {
-    discarded_epoch_ = epoch_before;
+    // Rule 1: the discard of this epoch goes on while the reads are full.
+    if (!more_may_wait) {
+      discarded_epoch_ = epoch_before;
+    }
     discard_reads_.fetch_add(1U, std::memory_order_relaxed);
     samples_discarded_stored_.fetch_add(buffer_.size(), std::memory_order_relaxed);
     if (events_ != nullptr) {

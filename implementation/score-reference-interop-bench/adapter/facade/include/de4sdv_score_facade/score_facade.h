@@ -4,9 +4,11 @@
 // Build route: Bazel compiles this facade with the S-CORE SOME/IP gateway's
 // own toolchain inside a throwaway checkout of the gateway and bundles it,
 // with communication and baselibs, into one static archive
-// (cc_static_library). That archive carries no libstdc++. The adapter's
-// ament_cmake package then links the archive with rclcpp, g++ and the shared
-// libstdc++, so the process holds one C++ runtime.
+// (cc_static_library). The build checks that the archive defines none of
+// four libstdc++ sentinel functions (__cxa_throw, __cxa_free_exception,
+// std::__throw_length_error, operator new). The adapter's ament_cmake
+// package then links the archive with rclcpp, g++ and the shared libstdc++,
+// so the process holds one C++ runtime.
 //
 // This header uses plain types only (bool, integers, double, byte pointers,
 // C function pointers). No S-CORE type and no standard library class crosses

@@ -15,6 +15,16 @@ class FacadeSpeedEventPort final : public SpeedEventPort {
  public:
   explicit FacadeSpeedEventPort(score_facade::SpeedSubscriber& subscriber) : subscriber_{subscriber} {}
 
+  // The handlers that SetStateHandler() and SetReceiveHandler() register.
+  void BindHandlers(score_facade::StateCallback state_callback, score_facade::ReceiveCallback receive_callback,
+                    void* context) noexcept {
+    state_callback_ = state_callback;
+    receive_callback_ = receive_callback;
+    context_ = context;
+  }
+
+  bool SetStateHandler() override { return subscriber_.SetStateHandler(state_callback_, context_); }
+  bool SetReceiveHandler() override { return subscriber_.SetReceiveHandler(receive_callback_, context_); }
   bool Subscribe(std::size_t max_samples) override { return subscriber_.Subscribe(max_samples); }
   void Unsubscribe() override { subscriber_.Unsubscribe(); }
   SubscriptionState State() const override { return FromFacade(subscriber_.State()); }
@@ -25,6 +35,9 @@ class FacadeSpeedEventPort final : public SpeedEventPort {
 
  private:
   score_facade::SpeedSubscriber& subscriber_;
+  score_facade::StateCallback state_callback_{nullptr};
+  score_facade::ReceiveCallback receive_callback_{nullptr};
+  void* context_{nullptr};
 };
 
 class FacadeFrameEventPort final : public FrameEventPort {

@@ -68,7 +68,8 @@ class FramePathController {
 };
 
 // Delay between connection attempts to the frame stream: doubles from
-// initial to max, back to initial after a connection.
+// initial to max, back to initial after Reset(). The frame stream client
+// resets it only after a complete frame.
 class ReconnectBackoff {
  public:
   ReconnectBackoff(std::chrono::milliseconds initial, std::chrono::milliseconds max);

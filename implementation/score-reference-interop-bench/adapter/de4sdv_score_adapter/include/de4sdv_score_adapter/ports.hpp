@@ -27,10 +27,16 @@ class SpeedEventPort {
 
   virtual ~SpeedEventPort() = default;
 
+  // Register the subscription state handler and the receive handler of the
+  // adapter with the proxy event; false when mw::com refuses.
+  virtual bool SetStateHandler() = 0;
+  virtual bool SetReceiveHandler() = 0;
   virtual bool Subscribe(std::size_t max_samples) = 0;
   virtual void Unsubscribe() = 0;
   virtual SubscriptionState State() const = 0;
-  // Hands up to max_samples new samples to sink, oldest first. Returns the
+  // Hands the new samples to sink, oldest first, at most max_samples. As in
+  // LoLa, when more than max_samples new samples wait, only the newest
+  // max_samples come; the older ones are skipped for good. Returns the
   // number of samples, or -1 when the read failed. No sample stays held
   // after the call.
   virtual std::int64_t ReadNewSamples(std::size_t max_samples, const SampleSink& sink) = 0;

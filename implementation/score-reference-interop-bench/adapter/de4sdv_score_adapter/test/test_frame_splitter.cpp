@@ -8,7 +8,9 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cstdint>
+#include <thread>
 #include <vector>
 
 #include "de4sdv_score_adapter/frame_splitter.hpp"
@@ -185,6 +187,31 @@ TEST(FrameSplitter, CountsTheBytesItReads) {
   splitter.Feed(stream.data(), stream.size(), collector.Handler());
   EXPECT_EQ(splitter.stats().bytes_read, stream.size());
   EXPECT_EQ(collector.samples.size(), 2U);
+}
+
+TEST(FrameSplitter, StatsMayBeReadWhileTheIngestThreadFeeds) {
+  // The adapter logs the counters from its main thread while the frame
+  // ingest thread feeds the splitter; the counters are atomics, so this is
+  // free of data races (a ThreadSanitizer build of this test reports none).
+  FrameSplitter splitter{kMaxSampleBytes};
+  const Bytes frame = Frame(100, 0x05);
+  std::atomic<bool> done{false};
+  std::uint64_t last_seen = 0;
+  std::thread reader{[&] {
+    while (!done.load()) {
+      const FrameSplitter::Stats snapshot = splitter.stats();
+      EXPECT_GE(snapshot.frames_forwarded, last_seen);
+      last_seen = snapshot.frames_forwarded;
+    }
+  }};
+  std::uint64_t forwarded = 0;
+  for (int i = 0; i < 20000; ++i) {
+    splitter.Feed(frame.data(), frame.size(), [&forwarded](const std::uint8_t*, std::size_t) { ++forwarded; });
+  }
+  done.store(true);
+  reader.join();
+  EXPECT_EQ(splitter.stats().frames_forwarded, forwarded);
+  EXPECT_EQ(splitter.stats().bytes_read, 20000U * frame.size());
 }
 
 }  // namespace

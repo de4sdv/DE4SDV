@@ -3,10 +3,11 @@ project(de4sdv_score_adapter CXX)
 
 # The DE4SDV AutowareToSCORE adapter of INC-MW-011 (one process, REQ-MW-018).
 #
-# The pure core (speed translation, frame splitter, LoLa rules) builds and
-# tests without S-CORE and ROS 2. The adapter executable needs rclcpp,
+# The pure core (speed translation, frame splitter, frame stream client,
+# LoLa rules, exit codes, fault signals) builds and tests without S-CORE and
+# ROS 2. The adapter executable needs rclcpp,
 # autoware_vehicle_msgs and the facade SDK that the Bazel build of the S-CORE
-# SOME/IP gateway workspace produces (scripts/ci_stage_facade_sdk.sh):
+# SOME/IP gateway workspace produces (scripts/ci_build_gateway_overlay.sh):
 #   <sdk>/include/de4sdv_score_facade/score_facade.h
 #   <sdk>/lib/libde4sdv_score_facade.a            facade, mw::com, baselibs
 #   <sdk>/lib/libde4sdv_aborts_upon_exception.a   baselibs' abort override
@@ -27,8 +28,10 @@ find_package(ament_cmake REQUIRED)
 set(DE4SDV_WARNINGS -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion)
 
 add_library(de4sdv_score_adapter_core STATIC
+  src/core/fault_signal.cpp
   src/core/frame_path_controller.cpp
   src/core/frame_splitter.cpp
+  src/core/frame_stream_client.cpp
   src/core/speed_path_controller.cpp
   src/core/speed_translation.cpp
 )
@@ -43,7 +46,7 @@ target_link_libraries(de4sdv_score_adapter_core PUBLIC Threads::Threads)
 option(DE4SDV_BUILD_ADAPTER "Build the adapter executable (needs rclcpp, autoware_vehicle_msgs and the facade SDK)" ON)
 option(DE4SDV_BUILD_DISCRIMINATION_CONTROL
   "Also build de4sdv_score_adapter_no_abort_control: the same adapter without the abort override, used only to show that the abort matrix discriminates" OFF)
-set(DE4SDV_SCORE_FACADE_DIR "" CACHE PATH "Facade SDK directory from scripts/ci_stage_facade_sdk.sh")
+set(DE4SDV_SCORE_FACADE_DIR "" CACHE PATH "Facade SDK directory from scripts/ci_build_gateway_overlay.sh")
 
 if(DE4SDV_BUILD_ADAPTER)
   find_package(rclcpp REQUIRED)
@@ -56,7 +59,7 @@ if(DE4SDV_BUILD_ADAPTER)
                              "${DE4SDV_SCORE_FACADE_DIR}/include/de4sdv_score_facade/score_facade.h")
     if(NOT EXISTS "${_required}")
       message(FATAL_ERROR "de4sdv_score_adapter: ${_required} is missing; set DE4SDV_SCORE_FACADE_DIR to the facade SDK "
-                          "(scripts/ci_stage_facade_sdk.sh), or build the core only with -DDE4SDV_BUILD_ADAPTER=OFF")
+                          "(scripts/ci_build_gateway_overlay.sh), or build the core only with -DDE4SDV_BUILD_ADAPTER=OFF")
     endif()
   endforeach()
   file(STRINGS "${_link_inputs_file}" DE4SDV_FACADE_LINK_INPUTS)
@@ -93,8 +96,11 @@ endif()
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
   foreach(_test IN ITEMS
+      test_exit_codes
+      test_fault_signal
       test_frame_path_controller
       test_frame_splitter
+      test_frame_stream_client
       test_speed_path_controller
       test_speed_translation)
     ament_add_gtest(${_test} test/${_test}.cpp)

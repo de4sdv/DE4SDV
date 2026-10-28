@@ -10,11 +10,16 @@
 // the framing of the frames after it (REQ-MW-015). Reset() is called when the
 // stream connection ends, so a frame torn by the end of a connection is never
 // handed on. The frame content stays opaque.
+//
+// Threads: Feed() and Reset() run in the frame ingest thread. stats() may
+// run in any thread: each counter is an atomic, so a snapshot is free of data
+// races, although the four values are not read at one instant.
 
 #ifndef DE4SDV_SCORE_ADAPTER_FRAME_SPLITTER_HPP
 #define DE4SDV_SCORE_ADAPTER_FRAME_SPLITTER_HPP
 
 #include <array>
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -46,7 +51,8 @@ class FrameSplitter {
 
   bool HasPartialFrame() const noexcept;
 
-  const Stats& stats() const noexcept { return stats_; }
+  // A snapshot of the counters.
+  Stats stats() const noexcept;
 
  private:
   enum class State { kPrefix, kFrame, kSkip };
@@ -60,7 +66,10 @@ class FrameSplitter {
   std::vector<std::uint8_t> sample_;
   std::size_t sample_expected_{0};
   std::uint64_t skip_remaining_{0};
-  Stats stats_{};
+  std::atomic<std::uint64_t> bytes_read_{0};
+  std::atomic<std::uint64_t> frames_forwarded_{0};
+  std::atomic<std::uint64_t> frames_dropped_oversize_{0};
+  std::atomic<std::uint64_t> partial_frames_discarded_{0};
 };
 
 }  // namespace de4sdv::score_adapter

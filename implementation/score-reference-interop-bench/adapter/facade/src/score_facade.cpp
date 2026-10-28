@@ -117,7 +117,7 @@ bool SpeedSubscriber::HasProxy() const noexcept { return impl_->proxy != nullptr
 
 bool SpeedSubscriber::SetStateHandler(StateCallback callback, void* context) noexcept {
   if (impl_->proxy == nullptr || callback == nullptr) {
-    impl_->last_error = "SetStateHandler: no proxy";
+    impl_->last_error = impl_->proxy == nullptr ? "SetStateHandler: no proxy" : "SetStateHandler: no callback";
     return false;
   }
   auto result = impl_->proxy->vehicle_speed_.SetSubscriptionStateChangeHandler(
@@ -140,7 +140,7 @@ void SpeedSubscriber::UnsetStateHandler() noexcept {
 
 bool SpeedSubscriber::SetReceiveHandler(ReceiveCallback callback, void* context) noexcept {
   if (impl_->proxy == nullptr || callback == nullptr) {
-    impl_->last_error = "SetReceiveHandler: no proxy";
+    impl_->last_error = impl_->proxy == nullptr ? "SetReceiveHandler: no proxy" : "SetReceiveHandler: no callback";
     return false;
   }
   auto result = impl_->proxy->vehicle_speed_.SetReceiveHandler([callback, context]() { callback(context); });
