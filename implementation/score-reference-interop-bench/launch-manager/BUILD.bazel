@@ -1,0 +1,17 @@
+# DE4SDV Launch Manager configuration of the S-CORE reference interoperability
+# bench (INC-MW-011). This file is copied, with the configuration, into a
+# throwaway checkout of eclipse-score/lifecycle at v0.6.1 as the package
+# //de4sdv_score_bench (scripts/ci_checkout_upstream.sh). It adds files only;
+# no upstream file changes, and no S-CORE file enters the DE4SDV repository.
+#
+# launch_manager_config validates the JSON against the Launch Manager schema
+# of v0.6.1, maps it and serializes it to the flatbuffer that the Launch
+# Manager reads. The build step sets the sandbox user and group of the bench
+# host first (scripts/ci_build_launch_manager.sh).
+
+load("//:defs.bzl", "launch_manager_config")
+
+launch_manager_config(
+    name = "de4sdv_lm_config",
+    config = "launch_manager_config.json",
+)

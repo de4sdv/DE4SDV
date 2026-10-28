@@ -18,3 +18,8 @@ configuration or model validation as runtime proof.
   — INC-AEBS-010 read-only AEBS visualization bridge, AAOS SDV ingress, and
   center-display app. Implemented and locally tested; runtime evidence
   pending the Phase 10 campaign.
+- [`score-reference-interop-bench`](score-reference-interop-bench/README.md)
+  — INC-MW-011 Eclipse S-CORE member: the one-process AutowareToSCORE
+  adapter (S-CORE communication and ROS 2), its CI build, the REQ-MW-018
+  abort matrix and a soak on GitHub-hosted runners. CI regression and design
+  data, not evidence of record.

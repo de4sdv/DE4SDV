@@ -1,0 +1,82 @@
+{
+    "schema_version": 1,
+    "defaults": {
+        "deployment_config": {
+            "bin_dir": "/tmp/de4sdv-score-bench/bin",
+            "working_dir": "/tmp/de4sdv-score-bench",
+            "ready_timeout": 2.0,
+            "shutdown_timeout": 3.0,
+            "ready_recovery_action": {
+                "restart": {
+                    "number_of_attempts": 0
+                }
+            },
+            "recovery_action": {
+                "switch_run_target": {
+                    "run_target": "fallback_run_target"
+                }
+            },
+            "environmental_variables": {}
+        },
+        "component_properties": {
+            "application_profile": {
+                "application_type": "Native",
+                "is_self_terminating": false
+            },
+            "ready_condition": {
+                "process_state": "Running"
+            }
+        }
+    },
+    "components": {
+        "someipd": {
+            "component_properties": {
+                "binary_name": "run_someipd.sh"
+            }
+        },
+        "gatewayd": {
+            "component_properties": {
+                "binary_name": "run_gatewayd.sh",
+                "depends_on": [
+                    "someipd"
+                ]
+            }
+        },
+        "adapter": {
+            "component_properties": {
+                "binary_name": "run_adapter.sh",
+                "depends_on": [
+                    "gatewayd"
+                ]
+            }
+        },
+        "health_proxy": {
+            "component_properties": {
+                "binary_name": "run_health_proxy.sh"
+            }
+        }
+    },
+    "run_targets": {
+        "middleware_layer": {
+            "description": "The host processes of the middleware integration layer, in the start order of the gateway guard rail: someipd, gatewayd, then the adapter; and the health proxy node.",
+            "depends_on": [
+                "someipd",
+                "gatewayd",
+                "adapter",
+                "health_proxy"
+            ],
+            "recovery_action": {
+                "switch_run_target": {
+                    "run_target": "fallback_run_target"
+                }
+            }
+        }
+    },
+    "initial_run_target": "middleware_layer",
+    "fallback_run_target": {
+        "description": "Only the health proxy node, so a failure of any component stops someipd, gatewayd and the adapter together and the health topic turns stale.",
+        "depends_on": [
+            "health_proxy"
+        ]
+    }
+}
