@@ -8,8 +8,18 @@
 # scripts/render_launch_manager_config.py renders the configuration for this
 # host: the ROS 2 setup of /opt/ros/humble for the ROS 2 components, and the
 # bench user as sandbox user and group.
-# Usage: ci_build_launch_manager.sh <checkout-dir> <facts-dir> <output-dir> <bench-dir>
+# Usage: ci_build_launch_manager.sh [--runner] <checkout-dir> <facts-dir> <output-dir> <bench-dir>
 set -euo pipefail
+# Runner only: the ci_* scripts are written for a disposable CI runner and
+# may change the host (packages, ~/.bazelrc, /usr/local, large build trees).
+# Each one refuses to run elsewhere unless its first argument is --runner.
+# The bench VM has its own path (README, section "Bench VM").
+if [ "${1:-}" = "--runner" ]; then
+  shift
+elif [ "${GITHUB_ACTIONS:-}" != "true" ]; then
+  echo "$(basename "$0"): runs only on a CI runner (GITHUB_ACTIONS=true) or with --runner as the first argument" >&2
+  exit 2
+fi
 
 lc=${1:?}
 out=${2:?}
@@ -29,7 +39,7 @@ cp "$overlay/launch_manager_config.json" "$out/launch_manager_config_rendered.js
   echo "rendered for uid $(id -u) gid $(id -g): $(sha256sum "$overlay/launch_manager_config.json")"
 } | tee "$out/launch_manager_config_render.txt"
 
-bash "$here/ci_checkout_upstream.sh" "$LIFECYCLE_REPO" "$LIFECYCLE_SHA" "$lc" "$out" lifecycle \
+bash "$here/ci_checkout_upstream.sh" --runner "$LIFECYCLE_REPO" "$LIFECYCLE_SHA" "$lc" "$out" lifecycle \
   "$overlay=de4sdv_score_bench"
 cd "$lc"
 bazel --version | tee "$out/launch_manager_bazel_version.txt"

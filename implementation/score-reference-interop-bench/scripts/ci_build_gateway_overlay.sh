@@ -11,8 +11,18 @@
 # It runs the schema tests of the overlay's mw::com configuration, stages the
 # facade SDK for the ament_cmake link (<sdk>) and the S-CORE runtime files for
 # the bench (<bundle>), and records the build facts.
-# Usage: ci_build_gateway_overlay.sh <gateway-checkout> <facts-dir> <sdk-dir> <bundle-dir> <bench-dir>
+# Usage: ci_build_gateway_overlay.sh [--runner] <gateway-checkout> <facts-dir> <sdk-dir> <bundle-dir> <bench-dir>
 set -euo pipefail
+# Runner only: the ci_* scripts are written for a disposable CI runner and
+# may change the host (packages, ~/.bazelrc, /usr/local, large build trees).
+# Each one refuses to run elsewhere unless its first argument is --runner.
+# The bench VM has its own path (README, section "Bench VM").
+if [ "${1:-}" = "--runner" ]; then
+  shift
+elif [ "${GITHUB_ACTIONS:-}" != "true" ]; then
+  echo "$(basename "$0"): runs only on a CI runner (GITHUB_ACTIONS=true) or with --runner as the first argument" >&2
+  exit 2
+fi
 
 gw=${1:?}
 out=${2:?}

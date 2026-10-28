@@ -210,6 +210,16 @@ jobs:
           sudo sysctl -w kernel.core_pattern="$RUNNER_TEMP/cores/core.%e.%p" | tee "$RUNNER_TEMP/facts/core_pattern.txt"
       - name: Record the runtime facts
         run: bash "$BENCH_DIR/scripts/ci_record_runtime_facts.sh" "$RUNNER_TEMP/facts" "$RUNNER_TEMP/bundle" "$RUNNER_TEMP/runtime-bundle.tar.gz"
+      # The bundle in the working directory of the Launch Manager
+      # configuration, so its paths are real; ldd of each component in its
+      # rendered environment must find every library.
+      - name: Check that each Launch Manager component loads in its rendered environment
+        run: |
+          mkdir -p /tmp/de4sdv-score-bench
+          tar -C /tmp/de4sdv-score-bench -xzf "$RUNNER_TEMP/runtime-bundle.tar.gz"
+          python3 "$BENCH_DIR/scripts/check_launch_manager_environment.py" \
+            "$BENCH_DIR/launch-manager/launch_manager_config.json" --require adapter,someipd,gatewayd \
+            --out "$RUNNER_TEMP/facts/launch_manager_ldd.txt"
       - name: Run the abort matrix
         run: |
           set +u
@@ -230,6 +240,7 @@ jobs:
       - name: Summary
         if: always()
         run: |
+          head -6 "$RUNNER_TEMP/facts/launch_manager_ldd.txt" >> "$GITHUB_STEP_SUMMARY" || true
           cat "$RUNNER_TEMP/results/abort-matrix/abort-matrix-summary.md" >> "$GITHUB_STEP_SUMMARY" || true
           cat "$RUNNER_TEMP/results/subscribe-failure/subscribe-failure.md" >> "$GITHUB_STEP_SUMMARY" || true
       - uses: actions/upload-artifact@v4

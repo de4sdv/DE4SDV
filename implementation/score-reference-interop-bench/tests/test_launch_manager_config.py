@@ -19,6 +19,7 @@ import pytest
 BENCH = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BENCH / "scripts"))
 
+import check_launch_manager_environment as loader  # noqa: E402
 import render_launch_manager_config as renderer  # noqa: E402
 
 CONFIG_PATH = BENCH / "launch-manager" / "launch_manager_config.json"
@@ -107,3 +108,34 @@ def test_the_renderer_runs_as_a_script(tmp_path):
     rendered = json.loads(rendered_path.read_text(encoding="utf-8"))
     assert _variables(rendered, "health_proxy")["AMENT_PREFIX_PATH"] == "/opt/ros/humble"
     assert rendered["defaults"]["deployment_config"]["sandbox"]["gid"] == 8
+
+
+def test_the_load_check_names_each_library_that_ldd_cannot_find():
+    output = ("\tlinux-vdso.so.1 (0x00007ffd)\n"
+              "\tlibrclcpp.so => /opt/ros/humble/lib/librclcpp.so (0x00007f1)\n"
+              "\tlibautoware_vehicle_msgs__rosidl_typesupport_cpp.so => not found\n")
+    assert loader.ldd_problems(output) == ["libautoware_vehicle_msgs__rosidl_typesupport_cpp.so => not found"]
+    assert loader.ldd_problems("\tlibc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x1)\n") == []
+
+
+def test_the_load_check_runs_ldd_in_the_rendered_environment_only(tmp_path):
+    config = json.loads(json.dumps(CONFIG))
+    config["defaults"]["deployment_config"]["bin_dir"] = "/usr/bin"
+    config["components"]["someipd"]["component_properties"]["binary_name"] = "true"
+    config["components"]["gatewayd"]["component_properties"]["binary_name"] = "de4sdv-no-such-binary"
+    results, passed = loader.check(config)
+    by_name = {result["component"]: result for result in results}
+    assert by_name["someipd"]["result"] == "loads"
+    assert by_name["someipd"]["variables"] == 2
+    assert by_name["gatewayd"]["result"] == "not in bin_dir yet"
+    assert passed
+
+
+def test_the_load_check_fails_when_a_required_executable_is_missing():
+    config = json.loads(json.dumps(CONFIG))
+    config["defaults"]["deployment_config"]["bin_dir"] = "/usr/bin"
+    config["components"]["someipd"]["component_properties"]["binary_name"] = "true"
+    config["components"]["gatewayd"]["component_properties"]["binary_name"] = "de4sdv-no-such-binary"
+    results, passed = loader.check(config, ("someipd", "gatewayd"))
+    assert not passed
+    assert {result["component"]: result["result"] for result in results}["gatewayd"] == "missing from bin_dir"

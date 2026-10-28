@@ -127,13 +127,14 @@ runtime jobs source it for every ROS 2 process they start. It sets:
 - `ROS_DOMAIN_ID=91`, one fixed domain, as the AEBS Autoware benches.
 - `CYCLONEDDS_URI` to [`config/cyclonedds.xml`](config/cyclonedds.xml), the
   configuration of the AEBS Autoware benches. It keeps DDS on the loopback
-  interface and sets `MaxAutoParticipantIndex` to 120, more than the number
-  of ROS 2 processes of the bench. On the loopback, which has no multicast,
-  CycloneDDS 0.10.5 gives each process an automatic participant index, by
-  default up to MaxAutoParticipantIndex 9. A process beyond that gets no
-  participant, so rclcpp throws, and in the adapter that is an abort at
-  start. The startup probe runs both sides and reports how many processes
-  got a participant.
+  interface and sets `MaxAutoParticipantIndex` to 120. On the loopback,
+  which has no multicast, CycloneDDS 0.10.5 gives each process an automatic
+  participant index. With the default (`MaxAutoParticipantIndex` 9), at
+  most 9 processes get a participant: a bind at the last index fails too
+  (q_init.c:1609, 1627-1631). The next process gets no participant, so
+  rclcpp throws, and in the adapter that is an abort at start. This file's
+  120 allows 120 processes, more than the bench runs. The startup probe
+  measured 9 of 11 with the default.
 - No `ROS_LOCALHOST_ONLY`, as the AEBS Autoware benches. With
   `ROS_LOCALHOST_ONLY=1`, rmw_cyclonedds_cpp 1.3.5 adds the address
   127.0.0.1 to the interface that `cyclonedds.xml` selects, and CycloneDDS
@@ -219,7 +220,7 @@ proxy node come with the next steps.
 | `config/` | ROS 2 environment and CycloneDDS configuration of the host, mw::com and mw::log configurations, gateway configuration, vsomeip loopback configuration for CI, Fast DDS UDP-only profile for the startup probe |
 | `launch-manager/` | Launch Manager configuration (lifecycle overlay) |
 | `src/de4sdv_score_bench/` | Pure Python evaluators of the abort matrix, the refused subscription, the startup probe and the soak |
-| `scripts/` | CI build steps, the runtime facts, the renderer of the Launch Manager configuration, and the runners |
+| `scripts/` | CI build steps (runner only), the runtime facts, the renderer of the Launch Manager configuration and its load check, and the runners |
 | `tests/` | Evaluator unit tests |
 
 ## Pure core and its tests
@@ -301,6 +302,34 @@ The runners write raw artifacts (adapter log, provider and observer records,
 backtraces and core mappings) and evaluate them with `src/de4sdv_score_bench`.
 The outcomes use the evidence outcome names of the middleware verification
 model.
+
+## Bench VM
+
+The `ci_*` scripts are for a disposable CI runner only. They install
+packages, write `~/.bazelrc` and put bazelisk in `/usr/local/bin`, so each
+one refuses to run unless `GITHUB_ACTIONS=true` or its first argument is
+`--runner`. On the shared bench VM that would redirect every Bazel run,
+android-cuttlefish with its large output base among them, and shadow the
+VM's own Bazel. A bench session on the VM takes its own path, and nothing
+goes into `$HOME` or `/usr/local`:
+
+- Bazel: bazelisk (v1.29.0, checked by digest) in a bench directory, with
+  `BAZELISK_HOME` in that directory, and the Bazel options in a bench
+  bazelrc that the build names with `bazel --bazelrc=<bench>/bazelrc`, or in
+  a `.bazelrc` inside the throwaway checkout: the output base, the disk cache
+  and the repository cache all in the bench directory.
+- ROS 2 setup of the Launch Manager configuration: render it with the setup
+  script that holds `autoware_vehicle_msgs`. On the VM that is the Autoware
+  workspace (`--ros-setup ~/autoware/install/setup.bash`, which also sources
+  `/opt/ros/humble`); or install `ros-humble-autoware-vehicle-msgs` from the
+  same ROS snapshot. Then run
+  [`scripts/check_launch_manager_environment.py`](scripts/check_launch_manager_environment.py)
+  with the same setup script: it runs `ldd` on each component in its
+  rendered environment and fails on a library that is not found. CI runs it
+  in the abort-matrix job.
+- At its last inventory the VM had rclcpp 16.0.19, older than the 16.0.21
+  of the snapshot that CI builds against. So the adapter is built on the VM,
+  or the VM's ROS 2 packages come from the same snapshot.
 
 ## Claim boundary
 

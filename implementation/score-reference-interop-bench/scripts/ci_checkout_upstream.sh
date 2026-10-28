@@ -4,8 +4,18 @@
 # copies DE4SDV overlay directories into it as new packages. Only new files
 # may appear; an overlay that would change an upstream file fails the step.
 # No S-CORE file enters the DE4SDV repository: the overlay goes the other way.
-# Usage: ci_checkout_upstream.sh <repo-url> <commit> <dest> <facts-dir> <name> [<src-dir>=<dest-subdir> ...]
+# Usage: ci_checkout_upstream.sh [--runner] <repo-url> <commit> <dest> <facts-dir> <name> [<src-dir>=<dest-subdir> ...]
 set -euo pipefail
+# Runner only: the ci_* scripts are written for a disposable CI runner and
+# may change the host (packages, ~/.bazelrc, /usr/local, large build trees).
+# Each one refuses to run elsewhere unless its first argument is --runner.
+# The bench VM has its own path (README, section "Bench VM").
+if [ "${1:-}" = "--runner" ]; then
+  shift
+elif [ "${GITHUB_ACTIONS:-}" != "true" ]; then
+  echo "$(basename "$0"): runs only on a CI runner (GITHUB_ACTIONS=true) or with --runner as the first argument" >&2
+  exit 2
+fi
 
 repo=${1:?}
 commit=${2:?}

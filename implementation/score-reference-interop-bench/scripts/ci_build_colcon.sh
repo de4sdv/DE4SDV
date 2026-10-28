@@ -5,8 +5,18 @@
 # shared libstdc++ in the process, __cxa_allocate_exception defined in and
 # exported by the executable, and the libstdc++ throw sites that bind to it.
 # The control build without the abort override is built next to it.
-# Usage: ci_build_colcon.sh <workspace-dir> <facts-dir> <sdk-dir> <bench-dir> <bundle-dir>
+# Usage: ci_build_colcon.sh [--runner] <workspace-dir> <facts-dir> <sdk-dir> <bench-dir> <bundle-dir>
 set -eo pipefail
+# Runner only: the ci_* scripts are written for a disposable CI runner and
+# may change the host (packages, ~/.bazelrc, /usr/local, large build trees).
+# Each one refuses to run elsewhere unless its first argument is --runner.
+# The bench VM has its own path (README, section "Bench VM").
+if [ "${1:-}" = "--runner" ]; then
+  shift
+elif [ "${GITHUB_ACTIONS:-}" != "true" ]; then
+  echo "$(basename "$0"): runs only on a CI runner (GITHUB_ACTIONS=true) or with --runner as the first argument" >&2
+  exit 2
+fi
 
 ws=${1:?}
 out=${2:?}

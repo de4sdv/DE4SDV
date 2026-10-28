@@ -5,11 +5,13 @@
   Autoware benches use. ros_environment.sh points CYCLONEDDS_URI to this file.
 
   - Loopback only, without multicast: discovery goes to the localhost peer.
-  - Without multicast, each participant needs its own participant index. The
-    CycloneDDS default allows indices 0 to 9, so at most ten ROS 2 processes
-    on the host could create their participant. For the next one rclcpp
-    throws, and the adapter, which links baselibs' abort override, would
-    abort. This file allows indices 0 to 120.
+  - Without multicast, each participant needs its own participant index.
+    With the CycloneDDS default (MaxAutoParticipantIndex 9), at most 9
+    processes on the host get a participant: a bind at the last index fails
+    too (CycloneDDS 0.10.5 q_init.c:1609, 1627-1631). For the next process
+    rclcpp throws, and the adapter, which links baselibs' abort override,
+    would abort. This file's 120 allows 120 processes. The startup probe of
+    the bench measured 9 of 11 with the default.
 -->
 <CycloneDDS xmlns="https://cdds.io/config">
   <Domain Id="any">
