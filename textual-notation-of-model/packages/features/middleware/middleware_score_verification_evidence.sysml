@@ -103,8 +103,8 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * layer's host processes and the Autoware nodes that each case names.
      * VC-MW-015, VC-MW-016 and VC-MW-020 also need the AAOS SDV guest with
      * the HMI application under KVM on that host (ASM-MW-027). The guest
-     * needs the SOME/IP receiver of phase 8 on its image (GAP-MW-038). The
-     * inspection cases VC-MW-017, VC-MW-018 and VC-MW-021 need no run. They
+     * needs the SOME/IP receiver of phase 8 (GAP-MW-038). The inspection
+     * cases VC-MW-017, VC-MW-018 and VC-MW-021 need no run. They
      * need the configurations and the wiring that the execution slices
      * author. The next slice adds the System 2 test environment element and
      * closes this gap.
@@ -416,16 +416,17 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * Test of REQ-MW-018. The adapter process runs on the Linux host. The
      * case throws an exception in the adapter's own code. It also throws one
      * inside a library that the adapter links, such as the ROS 2 client
-     * library. The execution slice chooses how to throw them. The adapter of
-     * the member has no ROS 2 parameter services (phase 8), so the case
-     * brings its own trigger for the throw inside the library. If a trigger
-     * needs a changed build or start configuration of the adapter, the
-     * record names it. The run uses the ROS 2 environment that phase 8 sets
-     * (adapterAbortConditions). Under another ROS 2 middleware, the adapter
-     * can abort before any trigger. collectData records each thrown
-     * exception and how the process ends. processData checks that each
-     * exception aborts the process. If the adapter splits into two
-     * processes (GAP-MW-035), the case is revisited.
+     * library. The adapter of the member has no ROS 2 parameter services
+     * (phase 8). So the case triggers each throw with a signal to the
+     * adapter, which runs in the member's start configuration. For the
+     * throw inside the ROS 2 client library, the adapter calls get_parameter
+     * with an undeclared name, and rclcpp throws inside librclcpp.so
+     * (adapterAbortConditions). The record names the trigger. The run uses
+     * the ROS 2 environment that phase 8 sets. Under another ROS 2
+     * middleware, the adapter can abort before any trigger. collectData
+     * records each thrown exception and how the process ends. processData
+     * checks that each exception aborts the process. If the adapter splits
+     * into two processes (GAP-MW-035), the case is revisited.
      */
     subject verifiedBench : SCOREMiddlewareVerificationBench;
     objective adapterAbortOnExceptionObjective {
@@ -468,8 +469,8 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * two conditions only. It does not show the stored frames of a late or
      * repeated subscription in the host half (GAP-MW-039). Phase 8 discards
      * them at the receiver, and the preflight checks of the execution slices
-     * test that rule. While GAP-MW-045 is open, a pass does not close
-     * REQ-MW-019.
+     * test that rule. While GAP-MW-039 or GAP-MW-045 is open, a pass does
+     * not close REQ-MW-019.
      */
     subject verifiedBench : SCOREMiddlewareVerificationBench;
     objective unsubscribedFrameDiscardObjective {

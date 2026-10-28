@@ -135,8 +135,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * longitudinal_velocity. As float32, that value would become an
        * infinity, which REQ-MW-011 keeps away from Autoware. Its km/h value
        * also lies outside the float datatype of VSS Vehicle.Speed, which
-       * types speed_kmh. So it is no reference vehicle speed sample that
-       * REQ-MW-010 asks for. Frames: it reads the length-delimited frame
+       * types speed_kmh. So it is not a reference vehicle speed sample of
+       * REQ-MW-010. Frames: it reads the length-delimited frame
        * stream of the INC-AEBS-010 frame assembler on the host loopback and
        * offers each frame, unread and unchanged, as an mw::com event
        * (REQ-MW-015); a sample holds one length-prefixed frame of at most
@@ -150,15 +150,19 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * library, aborts the whole process. The health topic then turns stale,
        * and the HMI shows its stale overlay. Two conditions keep that abort
        * out of normal operation (adapterAbortConditions). Every ROS 2 process
-       * on the host runs in one ROS 2 environment with rmw_cyclonedds_cpp.
-       * The adapter node has no ROS 2 parameter services.
+       * on the host runs in one ROS 2 environment with rmw_cyclonedds_cpp;
+       * for the processes outside the layer, ASM-MW-031 assumes it. The
+       * adapter node has no ROS 2 parameter services.
        * ROS 2 endpoints: its node has its publication port and one more
        * endpoint. rclcpp 16.0.21 gives every node a time source that
        * subscribes to /parameter_events (time_source.cpp:270-278). There the
        * time source reads only this node's use_sim_time. It logs a value of
        * a wrong type instead of throwing (time_source.cpp:427-460), but a
-       * peer can switch the node's clock to /clock that way. The node starts
-       * without parameter services, parameter event publisher and /rosout.
+       * peer can switch the node's clock to /clock that way. So the adapter
+       * stamps each VelocityReport from a clock of type RCL_SYSTEM_TIME, not
+       * from the node clock, and such a switch does not change the stamps.
+       * The node starts without parameter services, parameter event
+       * publisher and /rosout.
        * LoLa rules: the adapter is a LoLa consumer
        * of the speed event and a LoLa provider of the frame event, so it
        * follows three rules. First, each time the speed subscription enters
@@ -243,27 +247,32 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * from the frame assembler's 4721, so a leftover forward of 4721 into
        * the guest cannot stand in for the receiver. REQ-MW-019: it discards
        * the frames that the AEBS stack produced before the HMI application's
-       * current subscription. It drops every frame while it has no client or
-       * no subscription. In a subscription phase, it drops the frames
-       * produced before the phase started
-       * (receiverSubscriptionPhaseDiscardRule). For that rule it reads two
-       * fields of each frame, the sequence and the frame timestamp. It
-       * changes no byte (REQ-MW-015). The host half cannot see whether the
-       * HMI application is connected, so this rule is the discard that
-       * REQ-MW-019 relies on in the guest. It keeps the ingress connection
-       * open while someipd's service is unavailable, and it subscribes again
-       * when someipd offers the service again. So the ingress keeps its last
-       * accepted sequence (guestStaleFrameDropGuardRail). It sends the host
-       * nothing but SOME/IP service discovery and TCP protocol control; that
-       * is a design property, not the protection of REQ-MW-016, which
-       * someipd enforces. It runs as a native init service of the guest,
-       * outside the Launch Manager, which runs only on the Linux host. It
-       * must listen before the ingress starts, because the ingress exits
-       * when nothing listens (ingress/main.cpp:183-188). It is not a
-       * oneshot service, so init restarts it when it exits. Its bench form,
-       * and what stays untested, are in GAP-MW-038. The same source builds
-       * for Linux, so phase 10 tests it against the real someipd before any
-       * guest run.
+       * current subscription, apart from the band of GAP-MW-045. It drops
+       * every frame while it has no client or no subscription. In a
+       * subscription phase, it drops the frames produced before the phase
+       * started, apart from that band (receiverSubscriptionPhaseDiscardRule).
+       * For that rule it reads two fields of each frame, the sequence and the
+       * frame timestamp. It changes no byte (REQ-MW-015). The host half
+       * cannot see whether the HMI application is connected, so this rule is
+       * the discard that REQ-MW-019 relies on in the guest. It keeps the
+       * ingress connection open while someipd's service is unavailable, and
+       * it subscribes again when someipd offers the service again. So the
+       * ingress keeps its last accepted sequence
+       * (guestStaleFrameDropGuardRail). It raises its own SD session ID with
+       * every SD message that it sends. So someipd reads no reboot of the
+       * receiver and keeps its subscription. It sends the host nothing but
+       * SOME/IP service discovery and TCP protocol control; that is a design
+       * property, not the protection of REQ-MW-016, which someipd enforces.
+       * It runs as a native init service of the guest, outside the Launch
+       * Manager, which runs only on the Linux host. It is not a oneshot
+       * service, so init restarts it when it exits. The receiver starts the
+       * ingress, because the ingress exits when nothing listens
+       * (ingress/main.cpp:183-188). Once its loopback server listens, the
+       * receiver sets the start property of the ingress. The ingress is a
+       * oneshot service, so the receiver sets that property to 0 and then to
+       * 1 at each of its own starts. Its bench form, and what stays
+       * untested, are in GAP-MW-038. The same source builds for Linux, so
+       * phase 10 tests it against the real someipd before any guest run.
        */
       port aebsSignalFrameIn : AEBSSignalFrameIn {
         doc /* Subscription to someipd's SOME/IP frame event: service discovery over UDP, the event over TCP. */
@@ -322,12 +331,21 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
          * (concepts.rst:92-94). It passes a component only the environment
          * variables that its configuration names
          * (launch_manager.schema.json:203-210; process_launcher.cpp:488-494).
-         * So the layer's configuration sets the ROS 2 environment of
-         * adapterAbortConditions for the adapter and the health proxy node.
-         * It also sets a directory for their ROS 2 logs (HOME or
-         * ROS_LOG_DIR). Without them the adapter aborts at start: under the
-         * default Fast DDS, or when the ROS 2 logging setup fails and rclcpp
-         * throws. Two guard rails set its configuration
+         * It passes each value literally, with no expansion
+         * (environment_config.cpp:21-22), and at most 100 variables
+         * (constants.hpp:27). So the layer's configuration, or exec wrappers
+         * that source the setup files, set the whole environment of each
+         * component:
+         * - the library paths of all four components, because the adapter
+         *   has no RUNPATH and the RUNPATHs of gatewayd and someipd point into
+         *   the build tree;
+         * - for the adapter and the health proxy node, the full ROS 2 setup
+         *   with the ROS 2 environment of adapterAbortConditions and a
+         *   directory for the ROS 2 logs (HOME or ROS_LOG_DIR);
+         * - VSOMEIP_CONFIGURATION for someipd.
+         * Without them the adapter aborts at start: under the default Fast
+         * DDS, or when the ROS 2 logging setup fails and rclcpp throws. Two
+         * guard rails set its configuration
          * (gatewayStartOrderGuardRail, gatewayPairRestartGuardRail). When one
          * of these components terminates unexpectedly after its ready state,
          * for example on the abort of REQ-MW-018, it runs the component's
@@ -666,11 +684,11 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
       attribute :>> softwareContractMessage = "host and guest loopback: the length-delimited frame stream; mw::com: the AEBS signal frame service instance with one event of the gateway type PreSerializedData<2048>; gateway IPC binding: the same bytes behind a 16-byte SOME/IP header, as a sample of gatewayd's bridged mw::com service, and someipd removes the header; SOME/IP: one service with one reliable event, events only, IDs not yet assigned";
       attribute :>> softwareContractField = "the whole frame, opaque; the receiver reads only sequence and frame_timestamp_ns (aebs_visualization.proto:59-60 of INC-AEBS-010) for its discard rule";
       attribute :>> dataTypeAndUnit = "a length-prefixed frame of at most 2048 bytes; no unit";
-      attribute :>> timingQualityAndState = "source order (REQ-MW-014), not guaranteed (GAP-MW-037); discarded while the HMI application is not subscribed (REQ-MW-019): at someipd while the guest's subscription is absent, if someipd's vsomeip configuration gives the frame event no cycle, and at the receiver outside a subscription phase and, in a phase, when the AEBS stack produced the frame before the phase started (receiverSubscriptionPhaseDiscardRule, ASM-MW-030); a new subscription of a LoLa hop can return up to 10 frames from before it (GAP-MW-039), and the receiver drops those produced before the phase, apart from a band of less than 40 ms (GAP-MW-045)";
+      attribute :>> timingQualityAndState = "source order (REQ-MW-014), not guaranteed (GAP-MW-037); discarded while the HMI application is not subscribed (REQ-MW-019): at someipd while the guest's subscription is absent, if someipd's vsomeip configuration gives the frame event no cycle, and at the receiver outside a subscription phase and, in a phase, when the AEBS stack produced the frame before the phase started (receiverSubscriptionPhaseDiscardRule, ASM-MW-030); a new subscription of a LoLa hop can return up to 10 frames from before it (GAP-MW-039), and the receiver drops those produced before the phase, apart from the band of GAP-MW-045";
       attribute :>> transformationRule = "pass-through and unchanged (REQ-MW-015): no element changes the frame; the receiver reads the length prefix to check the framing, and the sequence and the frame timestamp for its discard rule; no VSS signal, by owner decision";
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
-      attribute :>> nextAction = "phase 10: assign the mw::com instance and the SOME/IP service, instance and event IDs, give the frame event at least 10 sample slots and no cycle, then run the sequence-gap and resubscription tests of REQ-MW-014 and REQ-MW-019, the start, stop and restart cases of the guard rails, the phase starts and stored-frame cases of the receiver's discard rule with the measured clock offset of ASM-MW-030, and a corrupted-payload case for the receiver's framing check; also check that the host keeps the ROS 2 (DDS) traffic of the adapter and the health proxy node off the guest network, the condition under which someipd is the only process of the layer that the guest reaches (REQ-MW-016)";
+      attribute :>> nextAction = "phase 10, in this order: (1) assign the mw::com instance and the SOME/IP service, instance and event IDs, and give the frame event no cycle and 20 sample slots, at least the 10 that gatewayd needs and the count that the receiver's copy check sums; (2) before each session, apply the clock controls of ASM-MW-030: guest auto_time and auto_time_zone off, one clock setting, and the cross-capture at the start and the end; (3) check with ss -tnp that the adapter is the only client of the frame assembler (ASM-MW-029); (4) run the sequence-gap and resubscription tests of REQ-MW-014 and REQ-MW-019; (5) run the start, stop and restart cases of the guard rails, a restart of the receiver after which it starts the ingress again, and a link loss and a reboot of the guest; (6) run the phase-start and stored-frame cases of the receiver's discard rule, and a corrupted-payload case for its framing check; (7) check that the host keeps the ROS 2 (DDS) traffic of the adapter and the health proxy node off the guest network, the condition under which someipd is the only process of the layer that the guest reaches (REQ-MW-016)";
       attribute :>> evidenceOrGap = "no runtime evidence yet; GAP-MW-035, GAP-MW-036, GAP-MW-037, GAP-MW-038, GAP-MW-039, GAP-MW-040, GAP-MW-041, GAP-MW-042, GAP-MW-043, GAP-MW-045";
     }
   }
@@ -724,7 +742,11 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * and 142-146 of the INC-AEBS-010 bench). The ingress stays unchanged
      * only because of that loopback hop; an ingress rebuilt around a SOME/IP
      * client would save a guest process but would no longer carry the
-     * INC-AEBS-010 evidence over.
+     * INC-AEBS-010 evidence over. The frame assembler serves one client at a
+     * time: it gives its stream to the newest client, and the previous
+     * client loses it (de4sdv_aebs_010_bridge/source_adapter.py:273-295).
+     * So the adapter must be its only client. That is a condition of
+     * REQ-MW-014, and phase 10 checks it with ss -tnp.
      */
   }
   dependency frameAssemblerReusedOnLinuxHost
@@ -744,16 +766,56 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * host. Its ROS 2 node runs without simulated time
      * (de4sdv_aebs_010_bridge/ros_node.py:92-98, frame_assembler.py:247-265).
      * The receiver takes the phase start from the system clock of the guest.
-     * No element of the member keeps the two clocks together. So phase 10
-     * measures the offset in each session, at its start and at its end. It
-     * uses the same SOME/IP packets, captured on both sides of the guest's
-     * network tap. A run whose measured offset is not below 20 ms is outside
-     * this assumption. Its frames at a phase start cannot be judged against
-     * the rule. The bound keeps the band of GAP-MW-045 below half of
-     * the 100 ms frame period of the frame assembler
+     * No element of the member keeps the two clocks together, and Android
+     * corrects its clock only in steps (AOSP behaviour, not checked on the
+     * sdv_ivi_cf guest). So phase 10 holds the assumption with these
+     * controls in each session:
+     * - the automatic time and time zone of the guest are off (auto_time and
+     *   auto_time_zone);
+     * - the guest clock is set once, before the session;
+     * - the receiver logs CLOCK_REALTIME minus CLOCK_MONOTONIC, where a step
+     *   shows as a jump, and for each frame its receipt time minus its frame
+     *   timestamp;
+     * - the offset comes from the same SOME/IP packets, captured on both
+     *   sides of the guest's network tap, at the start and at the end of the
+     *   session;
+     * - each frame_timestamp_ns is compared with the host capture time of the
+     *   packet that carries it, because the bridge node stamps with its ROS 2
+     *   clock (de4sdv_aebs_010_bridge/ros_node.py:93) and a peer could switch
+     *   that clock to /clock.
+     * A run whose measured offset is not below 20 ms is void, and so is a run
+     * in which a clock steps. The bound keeps the band of GAP-MW-045 below
+     * half of the 100 ms frame period of the frame assembler
      * (de4sdv_aebs_010_bridge/ros_node.py:56).
      */
   }
+
+  part <'ASM-MW-031'> asmOneROS2EnvironmentOnHost : IncrementAssumption {
+    doc /*
+     * ASM-MW-031: Every ROS 2 process on the Linux host outside the layer
+     * runs in the one ROS 2 environment of adapterAbortConditions. These are
+     * the Autoware-based AEBS stack, the vehicle velocity converter, the
+     * bridge node of the frame assembler, the observers of the bench, and the
+     * ros2 command line tools with their daemon. The layer sets that
+     * environment for its own two ROS 2 processes, the adapter and the health
+     * proxy node, through the Launch Manager. It cannot set it for the other
+     * processes, so it assumes it. With one environment, every ROS 2 process
+     * of the host uses one middleware, one domain and one range of
+     * participant indices. When more ROS 2 processes run than the range
+     * holds, the last one to start gets no participant; if that is the
+     * adapter, it aborts. Phase 10 records the environment of each ROS 2
+     * process of a run.
+     */
+  }
+  dependency ros2EnvironmentAssumedForAEBSStack
+    from asmOneROS2EnvironmentOnHost
+    to scoreTwoDomainPhysicalSystem::linuxHost::aebsStack;
+  dependency ros2EnvironmentAssumedForVelocityConverter
+    from asmOneROS2EnvironmentOnHost
+    to scoreTwoDomainPhysicalSystem::linuxHost::velocityConverter;
+  dependency ros2EnvironmentAssumedForFrameAssembler
+    from asmOneROS2EnvironmentOnHost
+    to scoreTwoDomainPhysicalSystem::linuxHost::aebsSignalFrameAssembler;
 
   part <'GAP-MW-035'> gapROS2AndSCOREInOneProcessUnproven : IncrementGap {
     doc /*
@@ -813,11 +875,12 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      *   and GAP-MW-041 are LoLa defects of communication 0.4.0 and 0.5.0,
      *   reported to the communication project (2026-10-22). GAP-MW-040 and
      *   GAP-MW-042 are gateway defects, reported to the gateway project
-     *   (2026-10-22). A LoLa skeleton that stops its offer while a proxy is
-     *   subscribed, and offers again after that proxy is gone, can abort;
-     *   its upstream fix is open. None of these defects has a released fix.
-     *   Code contributions stay a later decision of the owner
-     *   (scoreUpstreamEngagementOutOfScope).
+     *   (2026-10-22). The gateway project closed the report of GAP-MW-040 as
+     *   completed when the rework merged (2026-10-27). A LoLa skeleton that
+     *   stops its offer while a proxy is subscribed, and offers again after
+     *   that proxy is gone, can abort; its upstream fix is open. None of
+     *   these defects has a released fix. Code contributions stay a later
+     *   decision of the owner (scoreUpstreamEngagementOutOfScope).
      * Trigger to revisit, all three of:
      * - the open rework of the gateway's IPC binding and configuration is
      *   merged;
@@ -902,9 +965,11 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * configuration that turns this off. At inc_someip_gateway d9eac670 the
      * frame path has two LoLa hops: the adapter's skeleton to gatewayd, and
      * gatewayd's bridged service to someipd. On each hop the subscriber
-     * reads up to 10 samples at a time
-     * (score/gatewayd/impl/local_service_instance.cpp:124-126;
-     * score/gateway_ipc_binding/impl/mw_com/consumer_service_binding.cpp:401-433).
+     * reads up to 10 samples at a time. gatewayd reads with kMaxSampleCount
+     * (score/gatewayd/impl/local_service_instance.cpp:124-126). someipd reads
+     * with the max_sample_count of the bridged event
+     * (score/gateway_ipc_binding/impl/mw_com/consumer_service_binding.cpp:433),
+     * which is 10 (score/bridged_services/bridged_service_configs.cpp:73).
      * So the first read after a new subscription on a hop can return up to
      * 10 frames from before that subscription. An unreviewed DE4SDV
      * feasibility rerun at d9eac670 (two runs, 2026-10-28) saw this at the
@@ -914,7 +979,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * - gatewayd restarting beside a running someipd: 9 to 11 old frames, 0
      *   to 2 of them repeats from reused shared memory;
      * - gatewayd and someipd restarting as a pair beside a running
-     *   publisher: 9 frames that the guest already had;
+     *   publisher: 9 to 10 old frames, 0 to 1 of them repeats; the guest
+     *   already had 9 of them;
      * - no old frame when the guest subscribed late or again, when the
      *   publisher restarted under a subscribed gatewayd, and at a start in
      *   the start order.
@@ -956,10 +1022,10 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * stays: under the Launch Manager, gatewayd never restarts alone. A
      * payload of the kinds observed would not reach the ingress: the
      * receiver's framing check or its discard rule drops it. Other
-     * corruptions are not ruled out. Open: DE4SDV's report to the gateway
-     * project (2026-10-22) said that DE4SDV would repeat the test after the
-     * rework merged and report the result. The test is repeated. The report
-     * is a decision of the owner (scoreUpstreamEngagementOutOfScope).
+     * corruptions are not ruled out. DE4SDV retested at the head of the
+     * rework and reported the result to the gateway project on 2026-10-27.
+     * The project closed the report as completed when the rework merged on
+     * the same day.
      */
   }
 
@@ -1057,8 +1123,10 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * ASM-MW-030). So that it drops no frame produced after the phase start
      * (REQ-MW-014), it puts its 20 ms margin before the start. A frame that
      * the AEBS stack produced in that margin can still reach the HMI
-     * application. By the host clock, the band is 20 ms less the clock
-     * offset wide, so less than 40 ms. Two kinds of frames can fall in it:
+     * application. Take the clock offset as the guest clock minus the host
+     * clock. By the host clock, the band is then 20 ms minus that offset
+     * wide: more than 0 ms and less than 40 ms while ASM-MW-030 holds. Two
+     * kinds of frames can fall in it:
      * - a frame that was on its way through the layer at the phase start;
      * - a stored frame of GAP-MW-039 that the AEBS stack produced in the
      *   band.
@@ -1150,15 +1218,17 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
     about scoreTwoDomainPhysicalSystem::integrationLayer::someipReceiver,
       asmFrameAssemblerAndIngressReusedUnchanged,
       DE4SDV_MiddlewareSCORENeedsRequirements::reqDiscardFramesWhileHMIUnsubscribed,
-      gapLoLaReturnsStoredSamplesOnSubscription
+      gapLoLaReturnsStoredSamplesOnSubscription,
+      asmHostAndGuestClocksAgree
   /*
    * Guard rail, guest-side drop (owner decision of 2026-10-22). The guest
    * side drops a stale frame and a frame that is out of order. Two elements
    * do this:
    * - Inside the layer, the receiver drops the frames that the AEBS stack
-   *   produced before the current subscription phase, and copies of frames
-   *   it already served (receiverSubscriptionPhaseDiscardRule). REQ-MW-019
-   *   relies on this rule.
+   *   produced before the current subscription phase, apart from the band
+   *   of GAP-MW-045, and copies of frames it already served
+   *   (receiverSubscriptionPhaseDiscardRule). REQ-MW-019 relies on this
+   *   rule.
    * - Outside the layer, the reused INC-AEBS-010 ingress (ASM-MW-029) drops
    *   a frame whose sequence is not above the last accepted one
    *   (validator.cpp:37-40 of the INC-AEBS-010 ingress). It also drops a
@@ -1180,6 +1250,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
     about scoreTwoDomainPhysicalSystem::integrationLayer::someipReceiver,
       DE4SDV_MiddlewareSCORENeedsRequirements::reqDiscardFramesWhileHMIUnsubscribed,
       DE4SDV_MiddlewareSCORENeedsRequirements::reqDeliverAEBSSignalsInSourceOrder,
+      DE4SDV_MiddlewareSCORENeedsRequirements::reqPreserveAEBSSignalProvenance,
       gapLoLaReturnsStoredSamplesOnSubscription,
       asmHostAndGuestClocksAgree,
       gapPhaseStartDiscardBand
@@ -1197,7 +1268,11 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    * on each of these events:
    * - a negative acknowledgement;
    * - the loss of its TCP connection to someipd;
+   * - a loss of the SOME/IP framing of the TCP stream, after which the
+   *   receiver closes the connection;
    * - a StopOffer of the service;
+   * - a reboot of someipd that the receiver detects from the reboot flag and
+   *   the session ID of someipd's SD messages;
    * - the end of the TTL of its last acknowledged subscription.
    * It is subscribed again when it next gets a SubscribeEventgroupAck. The
    * acknowledgement of a renewal does not change the state. The ingress is
@@ -1209,13 +1284,19 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    * holds no frame for later delivery. In a phase, it serves a frame
    * unchanged only if the frame passes two checks:
    * - Its frame timestamp is not earlier than the phase start less 20 ms,
-   *   the bound of ASM-MW-030. The frame assembler stamps each frame with
-   *   the host clock when it produces the frame. So this check drops the
-   *   frames that the AEBS stack produced before the phase. The stored
-   *   frames of GAP-MW-039 are among them.
+   *   the bound of ASM-MW-030. The margin is fixed at 20 ms, and the
+   *   receiver rejects a larger value. The frame assembler stamps each frame
+   *   with the host clock when it produces the frame. So this check drops
+   *   the frames that the AEBS stack produced before the phase, apart from
+   *   the band of GAP-MW-045. The stored frames of GAP-MW-039 are among
+   *   them.
    * - It is no copy of a frame that the receiver served in this phase, with
    *   the same sequence and frame timestamp. A copy comes from the stored
    *   frames of a restart in the host half during the phase (GAP-MW-039).
+   *   For this check the receiver keeps the sequence and frame_timestamp_ns
+   *   of the last 40 frames it served, and it clears them at each phase
+   *   start. 40 is the sum of the slot counts on the path: the 20 slots of
+   *   the adapter's frame event and the 20 of gatewayd's bridged service.
    * The receiver reads these two fields of the INC-AEBS-010 frame contract,
    * sequence and frame_timestamp_ns (aebs_visualization.proto:59-60). It
    * changes no byte (REQ-MW-015). It drops a frame in which one of the two
@@ -1255,7 +1336,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
     about scoreTwoDomainPhysicalSystem::integrationLayer::adapter,
       scoreTwoDomainPhysicalSystem::integrationLayer::scoreServices::launchManager,
       DE4SDV_MiddlewareSCORENeedsRequirements::reqTerminateAdapterOnException,
-      gapROS2AndSCOREInOneProcessUnproven
+      gapROS2AndSCOREInOneProcessUnproven,
+      asmOneROS2EnvironmentOnHost
   /*
    * Conditions of the one-process adapter (REQ-MW-018). The override of
    * aborts_upon_exception turns every throw into an abort, also a throw that
@@ -1266,26 +1348,34 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    *   port with open_only and creates it in the catch
    *   (SharedMemGlobal.hpp:1076-1078 and 1165-1167 of Fast DDS v2.6.12).
    *   Its UDP transport catches asio::system_error when a port is taken
-   *   (UDPTransportInterface.cpp:231). So the adapter aborts at start under
-   *   Fast DDS. rmw_cyclonedds_cpp showed no throw at start, as first
-   *   participant and after another one, and none in a 30-minute run with a
-   *   few participants (GAP-MW-035). It is C++ too, and it catches
-   *   exceptions on its error paths (serdata.cpp:383-389 of
+   *   (UDPTransportInterface.cpp:231). Under Fast DDS the adapter aborted at
+   *   start with the default transports, and with a UDP-only profile once
+   *   another ROS 2 process ran (GAP-MW-035). rmw_cyclonedds_cpp showed no
+   *   throw at start, as first participant and after another one, and none
+   *   in a 30-minute run with a few participants. It is C++ too, and it
+   *   catches exceptions on its error paths (serdata.cpp:383-389 of
    *   rmw_cyclonedds_cpp 1.3.5). The full Autoware graph is not tested.
-   *   So every ROS 2 process on the Linux host runs in one environment:
-   *   Autoware, the layer's ROS 2 processes, and the ros2 command line tools
-   *   with their daemon. The environment sets
-   *   RMW_IMPLEMENTATION=rmw_cyclonedds_cpp, one fixed ROS_DOMAIN_ID and one
-   *   CYCLONEDDS_URI. That configuration keeps DDS on the loopback
-   *   interface, as the AEBS benches of DE4SDV do, and so off the guest
-   *   network (someipd). It sets MaxAutoParticipantIndex to at least the
-   *   number of ROS 2 processes. On the loopback interface, which has no
+   *   So every ROS 2 process on the Linux host runs in one environment. The
+   *   Launch Manager sets it for the adapter and the health proxy node
+   *   (launchManager). For the other ROS 2 processes of the host, the ros2
+   *   command line tools and their daemon among them, ASM-MW-031 assumes it.
+   *   The environment sets RMW_IMPLEMENTATION=rmw_cyclonedds_cpp, one fixed
+   *   ROS_DOMAIN_ID and one CYCLONEDDS_URI. That configuration binds DDS to
+   *   the loopback interface, as the AEBS benches of DE4SDV do, and so keeps
+   *   DDS off the guest network (someipd). It sets MaxAutoParticipantIndex to
+   *   at least the number of ROS 2 processes. On an interface without
    *   multicast, CycloneDDS 0.10.5 gives each process an automatic
-   *   participant index, by default up to 9 (MaxAutoParticipantIndex,
-   *   docs/manual/options.md). A process beyond that gets no participant,
-   *   so rclcpp throws, and in the adapter that is an abort at start. The
-   *   AEBS benches set 120
+   *   participant index (q_init.c:1394-1401). It tries the indices from 0 to
+   *   MaxAutoParticipantIndex (q_init.c:1609), so 0 to 9 by default, and a
+   *   process that finds none free fails at start (q_init.c:1627-1631). In
+   *   the adapter that failure is an abort at start. The AEBS benches set 120
    *   (implementation/aebs-autoware-executable-bench/cyclonedds.xml).
+   *   ROS_LOCALHOST_ONLY stays unset, because the URI already binds the
+   *   loopback interface. With ROS_LOCALHOST_ONLY=1, rmw_cyclonedds_cpp
+   *   1.3.5 adds a second entry for 127.0.0.1 (rmw_node.cpp:1052-1061).
+   *   CycloneDDS 0.10.5 then refuses the interface with "the same interface
+   *   may not be selected twice" (ddsi_ownip.c:362-369). No participant
+   *   comes up, and the adapter aborts at start.
    * - No parameter services. The adapter node starts without the ROS 2
    *   parameter services (rclcpp NodeOptions, start_parameter_services set
    *   to false). In rclcpp 16.0.21, the get, get-types, set, set-atomically
@@ -1295,11 +1385,23 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    *   these services, any ROS 2 peer on the host could abort the adapter, an
    *   operator's command line among them. Under the Launch Manager, that
    *   also stops the frame path (GAP-MW-043). The other way, a trusted ROS 2
-   *   graph on the host, would rest on every peer and every operator. The
+   *   graph on the host, would depend on every peer and every operator. The
    *   limits on who reaches the graph do not bound what a local peer sends.
    *   The adapter needs no parameter change while it runs, so the services
-   *   give it nothing. The test of REQ-MW-018 brings its own trigger for a
-   *   throw inside rclcpp.
+   *   give it nothing. So the test of REQ-MW-018 triggers each throw with a
+   *   signal to the adapter, which runs in the member's start configuration.
+   *   For the throw inside rclcpp, the adapter then calls get_parameter with
+   *   an undeclared name, and rclcpp throws inside librclcpp.so.
+   * Residual: a malformed sample from a DDS participant of the domain can
+   * still abort the adapter. rmw_cyclonedds_cpp 1.3.5 takes samples on its
+   * own ros_discovery_info subscription (rmw_node.cpp:849), and the node's
+   * time source takes them on /parameter_events. A sample that fails to
+   * deserialize raises an exception that serdata.cpp:383-389 would catch,
+   * and the override turns that throw into an abort. This lies outside
+   * normal operation. In Humble no configuration removes these two
+   * subscriptions. DDS on the loopback interface limits the senders to
+   * processes on the host. No robustness against malformed DDS input is
+   * claimed.
    * The Launch Manager passes a component only the environment that its
    * configuration names, so that configuration carries the environment
    * above (launchManager).
