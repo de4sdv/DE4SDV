@@ -6,9 +6,9 @@ Proposed
 
 This record comes from INC-MW-011 phase 8 (2026-10-28). It states the owner
 decisions of 2026-10-28 on the guest end of the HMI path. It applies while it
-is Proposed: the model and the bench follow it from now on. The owner accepts
-it after two steps: the feasibility run on the bench, and the consultation of
-the AAOS SDV maintainers.
+is Proposed: the model and the bench follow it from now on. The owner decides
+on it (accept, amend or reject) after two steps: the feasibility run on the
+bench, and the consultation of the AAOS SDV maintainers.
 
 ## Context
 
@@ -20,14 +20,14 @@ layer carries the AEBS signal frames one way, from the Linux host to the HMI
 application in the guest. On the host, the S-CORE SOME/IP gateway (gatewayd
 with someipd) offers the frames as a SOME/IP event.
 
-Until 2026-10-28, phase 8 described two execution domains: the Linux host and
-a guest side with one display-capable AAOS SDV VM under KVM. Phase 8 put a
-DE4SDV SOME/IP receiver in that VM. The receiver was to subscribe to someipd
-and apply the discard rule of REQ-MW-019. Then it was to serve the frames to
-the reused HMI chain of INC-AEBS-010 on the loopback of that VM. It has not
-run in the guest. It
-has run on Linux only, in feasibility runs against the real someipd. Where
-the guest end of SOME/IP sits was an open owner decision.
+Phase 8, as merged before this record, describes two execution domains. They
+are the Linux host and a guest side with one display-capable AAOS SDV VM under
+KVM. Phase 8 puts a DE4SDV SOME/IP receiver in that VM. The receiver is to
+subscribe to someipd and apply the discard rule of REQ-MW-019. Then it is to
+serve the frames to the reused HMI chain of INC-AEBS-010 on the loopback of
+that VM. It has not run in the guest. It has run on Linux only, in
+feasibility runs against the real someipd. Where the guest end of SOME/IP sits
+was an open owner decision.
 
 ### What the AAOS SDV sources show
 
@@ -42,8 +42,13 @@ The AAOS SDV documentation and the android17-release code give these parts:
 - The [SOME/IP stack](https://source.android.com/docs/automotive/sdv/some-ip-integration/some-ip-stack)
   page calls Google's stack a non-production reference sample. It is a thin
   wrapper atop the COVESA vsomeip library. The system deploys it only to the
-  `sdv_core_cf` and `sdv_core_arm64` targets. The broker and the stack start
-  when the boot property `ro.boot.sdv.someip.enable` is true.
+  `sdv_core_cf` and `sdv_core_arm64` targets.
+- The [deployment page](https://source.android.com/docs/automotive/sdv/some-ip-integration/deployment)
+  says that the broker and the stack start on the boot property
+  `ro.boot.sdv.someip.enable`. The android17-release
+  [`init.sdv_core_cf.rc`](https://android.googlesource.com/device/google/sdv/+/refs/heads/android17-release/sdv_core_cf/init.sdv_core_cf.rc)
+  does so and declares both oneshot. The stack page gives a CID=3 trigger
+  instead.
 - A SOME/IP mapping in VSIDL maps a SOME/IP event to an SDV topic. The mode
   `INTERPRET_AS_BYTES` forwards the payload bytes without translation. The
   documented consumers of such bytes are service bundles.
@@ -51,9 +56,9 @@ The AAOS SDV documentation and the android17-release code give these parts:
   services reach SDV services through the SDV Gateway on IVI. The package
   list of the reference `sdv_ivi_cf` product holds no SOME/IP module.
 - The android17-release manifest includes `external/sdv/vsomeip`: vsomeip
-  3.1.37.1 with Boost 1.76.0, built with Soong. So the premise that a guest
-  vsomeip needs a Boost port holds only for upstream vsomeip, not for this
-  copy.
+  3.1.37.1 with Boost 1.76.0, built with Soong. So the premise of GAP-MW-038,
+  that a guest vsomeip needs a Boost port, holds only for upstream vsomeip,
+  not for this copy.
 
 No source walks through the whole chain from a SOME/IP event to an IVI
 subscriber. The chain of this record composes the documented parts. The
@@ -90,9 +95,9 @@ DE4SDV receiver work is re-scoped to the IVI frame relay.
 
 ## Decision
 
-1. **Two sides, three operating-system instances.** The planned
-   S-CORE-integrated member (draft ADR 0023) runs on one SoC. A domain is a
-   side, so the increment keeps its two-domain vocabulary in phases 0 to 9:
+1. **Two sides, three operating-system instances.** The S-CORE-integrated
+   member that draft ADR 0023 proposes (not admitted) runs on one SoC. A
+   domain is a side, so the whole increment keeps its two-domain vocabulary:
    - the main side, the Linux host: Autoware, Eclipse S-CORE with its SOME/IP
      gateway, the adapter and the KVM hypervisor;
    - the guest side, a guest partition of two VMs under KVM. The SDV Core VM
@@ -102,13 +107,18 @@ DE4SDV receiver work is re-scoped to the IVI frame relay.
      relay and the HMI application.
 
    So the member runs three operating-system instances.
-2. **No feature-model change.** The guest side of the feature model,
-   `guestAndroidSDV`, is the AAOS SDV guest partition with one or more VMs.
-   The VM layout is part of the split execution-domain topology. ADR 0014 calls
-   that topology a derived technical realization, not a feature, and ADR 0022
-   places it on the guest side. So the VM layout is realization content of
-   phase 8. The feature configurations and their selections stay as they
-   are.
+2. **No feature-model change.** In the feature model, the guest side
+   (`guestOperatingSystem` and `guestMiddleware`) stands for a guest partition
+   of one or more VMs. `guestAndroidSDV` selects AAOS SDV for it. ADR 0014's
+   derived-realization clause, which ADR 0022 keeps as an admission rule,
+   makes the split execution-domain topology no independently selectable
+   product feature. Under the ADR 0022 note of 2026-10-22, the catalogue
+   configures its guest operating system and guest middleware, and admission
+   classifies them. The VM count has no group, because the selections imply
+   it. `hmiDisplay` (C010) needs a display VM, the SOME/IP end of decision 3
+   needs an SDV Core VM, and decision 5 keeps them apart. So the VM layout is
+   realization content of phase 8. The feature configurations and their
+   selections stay as they are.
 3. **SOME/IP ends in the SDV Core VM.** someipd on the host sends the frame
    event to the SOME/IP stack of the SDV Core VM. The broker maps the event to
    an SDV topic with `INTERPRET_AS_BYTES`. Data Tunnel carries the topic to
@@ -121,11 +131,10 @@ DE4SDV receiver work is re-scoped to the IVI frame relay.
    INC-AEBS-010 on the IVI VM loopback, so the HMI chain stays unchanged.
    - **Fallback.** It covers only an interoperability failure of the
      reference stack with someipd. The owner decides it on the evidence of the
-     feasibility run. The trigger is a run in which the stack does not
-     subscribe to the frame event of someipd, or the events do not reach the
-     broker.
-     Under the fallback, the custom stack is DE4SDV code in the SDV Core VM,
-     so it is an element of the layer.
+     feasibility run. One trigger is a run in which the stack does not
+     subscribe to the frame event of someipd. The other is a run in which the
+     events do not reach the broker. Under the fallback, the custom stack is
+     DE4SDV code in the SDV Core VM, so it is an element of the layer.
    - **Exit.** The decision on the guest end goes back to the owner if the run
      fails at one of four points. They are the multi-VM launch, the broker's
      mapped topic, the cross-VM subscription, and delivery with unchanged
@@ -135,44 +144,49 @@ DE4SDV receiver work is re-scoped to the IVI frame relay.
 6. **The layer refers, and does not own.** The layer refers to the AAOS SDV
    elements it uses: the SOME/IP broker with its stack, Data Tunnel and the
    SDV Gateway on IVI. The guest side owns them, as the main side owns the
-   S-CORE services. The layer owns the IVI frame relay and the DE4SDV
-   configuration of the AAOS SDV elements: the SOME/IP mapping and the stack
-   configuration.
+   S-CORE services, unless the fallback of decision 4 applies to the stack.
+   The layer owns the IVI frame relay and the DE4SDV configuration of the AAOS
+   SDV elements: the SOME/IP mapping and the stack configuration.
 7. **The DE4SDV SOME/IP receiver leaves the product path.** Its discard
    policy, its loopback server and its ingress trigger go into the IVI frame
    relay. Its SOME/IP code stays available for the fallback.
 8. **Bench settings.** The bench runs in the UNLOCKED boot mode, so the SDV
    Gateway uses no TLS. Both images come from one android17-release revision.
    These are bench settings, not a product posture.
-9. **Claim boundary.** Google's reference stack is a non-production
-   reference sample. Google has not confirmed or endorsed the chain of this
-   record. No SOME/IP conformance, AAOS SDV compatibility, safety or
-   cybersecurity claim is made.
+9. **Claim boundary.** Unless the fallback of decision 4 applies, the member
+   uses Google's reference stack, a non-production reference sample. Google
+   has not confirmed or endorsed the chain of this record. No SOME/IP
+   conformance, AAOS SDV compatibility, safety or cybersecurity claim is made.
 
 ## Alternatives considered
 
-- **The DE4SDV receiver in the IVI VM.** It is built, and CI runs proved it
-  against the real someipd. It costs the least, and the research recommended
-  it for phase 10. But it ends SOME/IP outside the AAOS SDV design. The IVI
-  product holds no SOME/IP module, and the reference stack is deployed only to
-  the SDV Core targets. The broker path follows the design, and it ends
-  SOME/IP where the model's `SDVCoreBoundary` already has it. It costs more:
-  one to two weeks of bench work, by the research estimate. It needs a second
-  VM, a SOME/IP mapping with its catalog, authorization entries and a
-  cross-VM subscription. This alternative comes back with the exit of
-  decision 4.
-- **vsomeip of AOSP in the IVI VM.** It ends SOME/IP outside the AAOS SDV
-  design too, and it adds the version skew without the receiver's tests.
+- **The DE4SDV receiver in the IVI VM.** It is built. Feasibility runs on
+  Linux exercised it against the real someipd: design data, not evidence of
+  record. It costs the least, and the research recommended it for phase 10.
+  But it ends SOME/IP where the AAOS SDV sources show none (absent, not
+  forbidden). The IVI product holds no SOME/IP module, and the reference stack
+  is deployed only to the SDV Core targets. The broker path follows the
+  documented end point, and it ends SOME/IP where the model's
+  `SDVCoreBoundary` already has it. The broker path costs more: one to two
+  weeks of bench work, by the research estimate. It needs a second VM, a
+  SOME/IP mapping with its catalog, authorization entries and a cross-VM
+  subscription. This alternative comes back with the exit of decision 4, or
+  if the AAOS SDV maintainers say an IVI endpoint is supported.
+- **vsomeip of AOSP in the IVI VM.** It also ends SOME/IP where the AAOS SDV
+  sources show none, and it adds the version skew without the receiver's
+  tests.
 - **Other places for the discard rule.** In the HMI application, the rule
   would sit outside the layer and change the reused application. A DE4SDV
-  service or a custom stack in the SDV Core VM cannot see the subscription in
-  the IVI VM. And the unchanged HMI chain would still need a feed. The
-  platform's subscription semantics alone are unverified: a new subscriber can
-  receive the most recently published message.
-- **A feature group for the guest VM layout.** A configuration would select
-  the layout, for example one VM, or an SDV Core VM with an IVI VM. That would
-  make part of a derived realization selectable. Trigger to revisit: a member
-  that needs a different VM layout for the same feature selection.
+  service or a custom stack could sit in the SDV Core VM. It cannot see the
+  subscription in the IVI VM unless the platform reports it (untested). And
+  the unchanged HMI chain would still need a feed. The platform's subscription
+  semantics alone are unverified: a new subscriber can receive the most
+  recently published message.
+- **A feature group for the guest VM layout.** A VM-layout group would be a
+  fourth configurable group of the derived topology. It would need
+  correspondences and an extension of the ADR 0022 note, and no member needs
+  it today. Trigger to revisit: a member that needs a different VM layout for
+  the same feature selection.
 
 ## Consequences
 
@@ -203,8 +217,9 @@ DE4SDV receiver work is re-scoped to the IVI frame relay.
   revision states the HMI-path requirements for the guests of this member.
 - **The clock assumption keeps its scope.** The discard rule compares a frame
   stamp of the host clock with a phase start of the IVI VM clock, as before.
-  A two-way time exchange measures the offset between them, because SOME/IP
-  no longer reaches the IVI VM.
+  A two-way time exchange is to measure the offset between them, because
+  SOME/IP no longer reaches the IVI VM. The feasibility run checks the tool in
+  both images.
 - **The bench grows.** It needs a multi-VM Cuttlefish launch, a SOME/IP
   mapping and its catalog in the SDV Core VM, and a cross-VM subscription in
   the IVI VM. The rebuild of both images costs VM hours. The path is untested
@@ -216,13 +231,15 @@ DE4SDV receiver work is re-scoped to the IVI frame relay.
     nothing restarts it until the VM restarts or the health monitor restarts
     it.
   - The SDV Gateway can give a new subscriber the most recently published
-    message. The relay drops such a message if the AEBS stack produced it
-    before the relay's phase start less 20 ms. A message from that margin
-    band still passes, and the topic capacity bounds how many old messages
-    can arrive.
-  - In the UNLOCKED mode, verification errors are not fatal, DICE runs in its
-    debug mode, and the VM truststore is writable. So bench results do not
-    carry over to the LOCKED mode.
+    message. The relay subscribes with that option off. It is designed to
+    drop such a message if the AEBS stack produced it before the relay's
+    phase start less 20 ms. A message from that margin band still passes.
+    The topic capacity is to bound how many old messages can arrive, which is
+    untested.
+  - In the UNLOCKED mode, Service Discovery mesh verification errors are
+    warnings, not fatal. The DICE certificate of the Android HLOS carries the
+    Debug mode. The vvmtruststore partition is mounted read-write. So bench
+    results do not carry over to the LOCKED mode.
 - **Doc changes.** These texts change to say that the guest side holds one or
   more VMs. `guestAndroidSDV` has no doc of its own.
   - The SDV feature model
@@ -241,9 +258,11 @@ DE4SDV receiver work is re-scoped to the IVI frame relay.
   - `tools/configure_variant.py --receipt` regenerates the seven product-model
     projections;
   - MW-CONFIG-002 rebinds its `receiptSha256`;
-  - three view renders change.
+  - the renders of `sdvPlatformStackStructureView` and
+    `productStructureView` change.
 
-  The edits in the boundary package re-cut nothing.
+  The edits in the boundary package re-cut no receipt, but the render of
+  `aaosSdvBoundaryView` changes.
 - **Upstream first.** The
   [project charter](../project-goals/project-charter.md) asks DE4SDV to
   coordinate with upstream maintainers before deep adoption of external
@@ -276,8 +295,10 @@ DE4SDV receiver work is re-scoped to the IVI frame relay.
 - [INC-MW-011 phase 8](../../textual-notation-of-model/packages/features/middleware/middleware_score_physical_software_realization.sysml)
 - [SOME/IP integration](https://source.android.com/docs/automotive/sdv/some-ip-integration)
 - [SOME/IP stack](https://source.android.com/docs/automotive/sdv/some-ip-integration/some-ip-stack)
+- [Integrate SOME/IP with SDV](https://source.android.com/docs/automotive/sdv/some-ip-integration/deployment)
 - [Optimize the SOME/IP performance](https://source.android.com/docs/automotive/sdv/some-ip-integration/optimization)
 - [SDV Gateway on IVI](https://source.android.com/docs/automotive/sdv/sdv-gateway-on-ivi)
 - [SDV Core integration guide](https://source.android.com/docs/automotive/sdv/workstreams/core/integration-guide)
 - [IVI package list](https://android.googlesource.com/device/google/sdv/+/refs/heads/android17-release/sdv_ivi_base/sdv_packages_ivi_services.mk)
+- [SDV Core init script](https://android.googlesource.com/device/google/sdv/+/refs/heads/android17-release/sdv_core_cf/init.sdv_core_cf.rc)
 - [vsomeip in AOSP](https://android.googlesource.com/platform/external/sdv/vsomeip/+/refs/heads/android17-release/METADATA)
