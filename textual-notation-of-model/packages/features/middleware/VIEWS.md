@@ -427,12 +427,12 @@ Reviewers, and the safety expert who reviews GAP-MW-033, need the exchanges betw
 - **Source:** `middleware_score_physical_software_realization.sysml`
 - **Viewpoint:** `selectedLayerInternalExchangeViewpoint` (`PhysicalInternalExchangeViewpoint`)
 - **Concern:** `scoreMiddlewareLayerInternalExchangeConcern`
-- **Exposes:** `scoreTwoDomainPhysicalSystem::integrationLayer`, `scoreTwoDomainPhysicalSystem::integrationLayer::**`
+- **Exposes:** `scoreTwoDomainPhysicalSystem::integrationLayer`, `scoreTwoDomainPhysicalSystem::integrationLayer::*`, `scoreTwoDomainPhysicalSystem::integrationLayer::adapter::*`, `scoreTwoDomainPhysicalSystem::integrationLayer::healthProxyNode::*`, `scoreTwoDomainPhysicalSystem::integrationLayer::iviFrameRelay::*`, `scoreTwoDomainPhysicalSystem::integrationLayer::scoreServices::**`, `scoreTwoDomainPhysicalSystem::integrationLayer::sdvCore::someIp`, `scoreTwoDomainPhysicalSystem::integrationLayer::sdvCore::someIp::*`, `scoreTwoDomainPhysicalSystem::integrationLayer::sdvCore::dataTunnel`, `scoreTwoDomainPhysicalSystem::integrationLayer::sdvCore::dataTunnel::*`, `scoreTwoDomainPhysicalSystem::integrationLayer::sdvGateway::*`
 - **Depth:** `-1`
 - **Render:** `asInterconnectionDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
-- **Presentation note:** The four «connection» boxes above the layer are its connections to the context parts of `SCORETwoDomainPhysicalSystem`, drawn as nodes with their source and target ends because one end of each lies outside the view; none of them reaches the velocity input of the AEB node. The two boxes marked `=` bind the layer's references to the S-CORE services and the adapter that the Linux host owns. SysIDE 0.10.3 does not draw these two references («ref part») as containers. The adapter is only a row of the layer's parts compartment. The S-CORE part lists the Launch Manager, gatewayd and someipd as rows and shows only the ports that it inherits from `MiddlewareLayer`. So the view does not draw the frame path from the adapter through gatewayd and someipd: `frameEventOverSCORECommunication` and `frameEventOverGatewayIPC` are in the source only. `speedTopicToHealthProxy` and `frameEventOverSOMEIPAcrossHypervisor` appear as «connection» boxes with their ends. This is an observed render limit in SysIDE 0.10.3; the cause is not documented. The four processes as exposure roots, without the layer, did not draw the path either. Domain placement is stated in the process docs and the connection name; the view does not draw the host/guest boundary.
+- **Presentation note:** This note follows the licensed render of the exposure above, which the pull request of the AAOS SDV broker path revised; the next render replaces it.
 
 ![scoreMiddlewareLayerInternalExchangeView](diagrams/diagram-scoreMiddlewareLayerInternalExchangeView.svg)
 
@@ -463,7 +463,7 @@ Reviewers need the assembly of MW-CONFIG-002 with one instance and one owner per
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
-- **Presentation note:** The two boxes marked `=` are the bindings. The end `thisThing` names the layer's reference, `integrationLayer.scoreServices` or `integrationLayer.adapter`. SysIDE shows `sameThing` without its target, which the source names: `platformStack.middleware` and `platformStack.applicationMiddlewareAdapter`. The layer side is a reference, so the platform stack is the only owner of these parts.
+- **Presentation note:** The four boxes marked `=` are the bindings. The end `thisThing` names the layer's reference: `integrationLayer.scoreServices`, `integrationLayer.adapter`, `integrationLayer.sdvCore` or `integrationLayer.sdvCore.platformSoftware`. SysIDE shows `sameThing` without its target, which the source names: `platformStack.middleware`, `platformStack.applicationMiddlewareAdapter`, `platformStack.guestMiddleware` and `platformStack.guestOSPlatform`. The layer side is a reference, so the platform stack is the only owner of these parts. The layer's reference to the SDV Gateway on IVI has no binding in this product.
 
 ![scoreMiddlewareProductModelAssemblyView](diagrams/diagram-scoreMiddlewareProductModelAssemblyView.svg)
 

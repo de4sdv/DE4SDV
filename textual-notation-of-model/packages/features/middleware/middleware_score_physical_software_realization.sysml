@@ -1798,8 +1798,10 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * DE4SDV processes and the S-CORE modules with the Launch Manager,
      * gatewayd and someipd. It also exposes the SDV Core and the SDV Gateway
      * on IVI that the layer refers to, their ports and the seven connections
-     * between them. The published diagram does not draw all seven. The view
-     * index says which it draws and why.
+     * between them. Of the SDV Core it exposes only the SOME/IP broker with
+     * its stack and Data Tunnel, not its other services. The published
+     * diagram does not draw all seven connections. The view index says
+     * which it draws and why.
      * The adapter, the S-CORE modules, the SDV Core and the SDV Gateway on
      * IVI are references of the layer. The Linux host and the two VMs of
      * SCORETwoDomainPhysicalSystem own them.
@@ -1810,7 +1812,16 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * not draw the host/guest boundary.
      */
     expose scoreTwoDomainPhysicalSystem::integrationLayer;
-    expose scoreTwoDomainPhysicalSystem::integrationLayer::**;
+    expose scoreTwoDomainPhysicalSystem::integrationLayer::*;
+    expose scoreTwoDomainPhysicalSystem::integrationLayer::adapter::*;
+    expose scoreTwoDomainPhysicalSystem::integrationLayer::healthProxyNode::*;
+    expose scoreTwoDomainPhysicalSystem::integrationLayer::iviFrameRelay::*;
+    expose scoreTwoDomainPhysicalSystem::integrationLayer::scoreServices::**;
+    expose scoreTwoDomainPhysicalSystem::integrationLayer::sdvCore::someIp;
+    expose scoreTwoDomainPhysicalSystem::integrationLayer::sdvCore::someIp::*;
+    expose scoreTwoDomainPhysicalSystem::integrationLayer::sdvCore::dataTunnel;
+    expose scoreTwoDomainPhysicalSystem::integrationLayer::sdvCore::dataTunnel::*;
+    expose scoreTwoDomainPhysicalSystem::integrationLayer::sdvGateway::*;
     filter not (@ SysML::AllocationUsage);
     attribute depth = -1;
     attribute showAnnotationRows = false;

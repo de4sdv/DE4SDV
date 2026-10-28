@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="930" height="404" viewBox="0 0 930 404" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="922" height="404" viewBox="0 0 922 404" role="img" aria-labelledby="title description">
   <title id="title">S-CORE middleware conceptual-to-physical mapping</title>
   <desc id="description">Maps the conceptual system elements of the S-CORE member's integration layer to the physical/software elements they are allocated to.</desc>
   <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
   <rect width="100%" height="100%" fill="#ffffff"/>
-  <rect x="0" y="0" width="930" height="84" fill="#172033"/>
+  <rect x="0" y="0" width="922" height="84" fill="#172033"/>
   <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">S-CORE middleware conceptual-to-physical mapping</text>
   <text x="12" y="62" font-family="Inter, Arial, sans-serif" font-size="13" fill="#d9e2f2">Rows ↓: conceptual system elements (part usages)   |   Columns →: physical/software elements (part usages)</text>
   <rect x="0" y="84" width="192" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
@@ -27,13 +27,13 @@
   <text x="568" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="568" dy="0">someipd</tspan>
   </text>
-  <rect x="666" y="84" width="136" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="666" y="84" width="128" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
   <text x="678" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
-    <tspan x="678" dy="0">someipReceiver</tspan>
+    <tspan x="678" dy="0">iviFrameRelay</tspan>
   </text>
-  <rect x="802" y="84" width="128" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="814" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
-    <tspan x="814" dy="0">launchManager</tspan>
+  <rect x="794" y="84" width="128" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="806" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="806" dy="0">launchManager</tspan>
   </text>
   <rect x="0" y="124" width="192" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="12" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
@@ -56,13 +56,13 @@
   <text x="568" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="568" dy="0"></tspan>
   </text>
-  <rect x="666" y="124" width="136" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="666" y="124" width="128" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="678" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="678" dy="0"></tspan>
   </text>
-  <rect x="802" y="124" width="128" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="814" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="814" dy="0"></tspan>
+  <rect x="794" y="124" width="128" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="806" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="806" dy="0"></tspan>
   </text>
   <rect x="0" y="164" width="192" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="12" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
@@ -84,13 +84,13 @@
   <text x="568" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="568" dy="0"></tspan>
   </text>
-  <rect x="666" y="164" width="136" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="666" y="164" width="128" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="678" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="678" dy="0"></tspan>
   </text>
-  <rect x="802" y="164" width="128" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="814" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="814" dy="0"></tspan>
+  <rect x="794" y="164" width="128" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="806" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="806" dy="0"></tspan>
   </text>
   <rect x="0" y="204" width="192" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="12" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
@@ -112,14 +112,14 @@
   <text x="568" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="568" dy="0"></tspan>
   </text>
-  <rect x="666" y="204" width="136" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="666" y="204" width="128" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="678" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="678" dy="0"></tspan>
   </text>
-  <rect x="802" y="204" width="128" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <rect x="805" y="207" width="122" height="34" rx="5" fill="#dff4e5"/>
-  <text x="866.0" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
-    <tspan x="866.0" dy="0">↗</tspan>
+  <rect x="794" y="204" width="128" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="797" y="207" width="122" height="34" rx="5" fill="#dff4e5"/>
+  <text x="858.0" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="858.0" dy="0">↗</tspan>
   </text>
   <rect x="0" y="244" width="192" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="12" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
@@ -142,13 +142,13 @@
   <text x="568" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="568" dy="0"></tspan>
   </text>
-  <rect x="666" y="244" width="136" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="666" y="244" width="128" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="678" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="678" dy="0"></tspan>
   </text>
-  <rect x="802" y="244" width="128" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="814" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="814" dy="0"></tspan>
+  <rect x="794" y="244" width="128" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="806" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="806" dy="0"></tspan>
   </text>
   <rect x="0" y="284" width="192" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="12" y="308" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
@@ -170,13 +170,13 @@
   <text x="568" y="308" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="568" dy="0"></tspan>
   </text>
-  <rect x="666" y="284" width="136" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="666" y="284" width="128" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="678" y="308" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="678" dy="0"></tspan>
   </text>
-  <rect x="802" y="284" width="128" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="814" y="308" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="814" dy="0"></tspan>
+  <rect x="794" y="284" width="128" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="806" y="308" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="806" dy="0"></tspan>
   </text>
   <rect x="0" y="324" width="192" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="12" y="348" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
@@ -198,13 +198,13 @@
   <text x="568" y="348" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="568" dy="0"></tspan>
   </text>
-  <rect x="666" y="324" width="136" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="666" y="324" width="128" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="678" y="348" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="678" dy="0"></tspan>
   </text>
-  <rect x="802" y="324" width="128" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="814" y="348" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="814" dy="0"></tspan>
+  <rect x="794" y="324" width="128" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="806" y="348" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="806" dy="0"></tspan>
   </text>
   <rect x="0" y="364" width="192" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="12" y="388" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
@@ -229,13 +229,13 @@
   <text x="611.0" y="388" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
     <tspan x="611.0" dy="0">↗</tspan>
   </text>
-  <rect x="666" y="364" width="136" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <rect x="669" y="367" width="130" height="34" rx="5" fill="#dff4e5"/>
-  <text x="734.0" y="388" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
-    <tspan x="734.0" dy="0">↗</tspan>
+  <rect x="666" y="364" width="128" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="669" y="367" width="122" height="34" rx="5" fill="#dff4e5"/>
+  <text x="730.0" y="388" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="730.0" dy="0">↗</tspan>
   </text>
-  <rect x="802" y="364" width="128" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="814" y="388" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="814" dy="0"></tspan>
+  <rect x="794" y="364" width="128" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="806" y="388" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="806" dy="0"></tspan>
   </text>
 </svg>
