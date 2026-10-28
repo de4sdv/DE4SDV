@@ -121,10 +121,13 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
      * One frame of the AEBS signals that the Autoware-based AEBS stack
      * produces on the Linux host, as the HMI path carries it, with the
      * per-field provenance that the framing's hmiPathInScope states; the
-     * integration layer carries it unchanged and reads none of its fields
-     * (REQ-MW-015). A System 1 item that references no System 2 element, so a
-     * System 2 frame type can specialize it; it replaces the System 2 frame
-     * type of the HMI flow (owner decision of 2026-10-18). By the same
+     * integration layer carries it unchanged (REQ-MW-015). Only the SOME/IP
+     * receiver reads two of its fields, the sequence and the frame
+     * timestamp. It needs them to discard the frames produced before the HMI
+     * application subscribed (REQ-MW-019, phase 8). A System 1 item that
+     * references no System 2 element, so a System 2 frame type can
+     * specialize it; it replaces the System 2 frame type of the HMI flow
+     * (owner decision of 2026-10-18). By the same
      * decision it stays opaque, with no DE4SDV VSS extension signal: the two
      * candidates, Vehicle.ADAS.AEBS.DriverWarning.IsActive and
      * Vehicle.ADAS.AEBS.EmergencyBraking.IsCommanded, carry actuator-signal
