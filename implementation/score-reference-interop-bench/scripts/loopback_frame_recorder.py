@@ -63,6 +63,9 @@ def main() -> int:
         record("recorder_start", host=arguments.host, port=arguments.port, reconnect=arguments.reconnect,
                oneshot=arguments.oneshot, monotonic_ns=time.monotonic_ns(), realtime_ns=time.time_ns())
         while not stop["requested"]:
+            # The pre-connect stamp: the receiver cannot accept this
+            # connection before it, so a phase start before it is wrong.
+            pre_monotonic, pre_realtime = time.monotonic_ns(), time.time_ns()
             try:
                 client = socket.create_connection((arguments.host, arguments.port), timeout=0.5)
             except OSError as error:
@@ -73,7 +76,8 @@ def main() -> int:
                 time.sleep(0.1)
                 continue
             connection += 1
-            record("connected", connection=connection, monotonic_ns=time.monotonic_ns(), realtime_ns=time.time_ns())
+            record("connected", connection=connection, monotonic_ns=time.monotonic_ns(), realtime_ns=time.time_ns(),
+                   pre_connect_monotonic_ns=pre_monotonic, pre_connect_realtime_ns=pre_realtime)
             print(json.dumps({"event": "connected", "connection": connection}, separators=(",", ":")), flush=True)
             client.settimeout(0.2)
             stream = open(Path(arguments.stream_dir) / f"recorder-stream-{connection}.bin", "ab")

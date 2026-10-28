@@ -530,25 +530,48 @@ frame served outside a phase or older than its phase start less 20 ms, on
 a copy served in a phase, on a receiver run that does not set the ingress
 properties in order after its start record, and on an ingress trigger after
 the first client of a receiver run, a repeat not 1 s after the last try, more
-than 10 repeats, or a give-up before the 10th repeat. The evaluator also
-does not take the receiver's word for its own rule and phases:
+than 10 repeats, or a give-up before the 10th repeat.
 
-- It uses its own margin of 20 ms and copy memory of 40 frames, and a start
-  record that gives other values fails the case.
-- A receiver that the runner stops with SIGTERM must end with 0 and log its
-  final status; a missing final status is accepted only after a planned
-  SIGKILL, and a receiver that ends without a planned stop fails the case.
-- The runner records the cores of each case. A receiver core fails the case;
-  the cores of other processes are recorded with their first named frames
-  (gatewayd ends with SIGABRT at its stop, GAP-MW-041).
-- Each phase start must lie at most 100 ms after the later of the last Ack
-  of someipd in the capture (inside its TTL) and the connect of the client,
-  and the later one must be the logged cause. Each phase end must lie within
-  100 ms of an independent record of its cause: a Nack, a StopOffer, a FIN or
-  RST of the TCP connection, a reboot of someipd or the StopSubscribe of the
-  receiver in the capture, the end of the TTL after the last Ack, or the end
-  of the client. In the CI runs so far, each start and end lay within
-  0.1 ms of its record, and a TTL end 0.4 ms after the end of the TTL.
+The evaluator also checks the receiver's records against records that the
+receiver does not write: the capture of the link on the host end, the
+client's own log and the runner's timeline. It still reads the frame
+verdicts, the phases and the final status from the receiver's log, and the
+checks below rest on one clock: both namespaces share the clock of one
+kernel, so the capture, the client and the receiver stamp on one time line,
+with a capture slack of 1 ms.
+
+- Its own margin of 20 ms and copy memory of 40 frames; a start record that
+  gives other values fails the case.
+- The end of each receiver against the runner's planned stop: after SIGTERM
+  it must end with 0 and log its final status; a missing final status is
+  accepted only after a planned SIGKILL; a receiver that ends without a
+  planned stop fails the case.
+- Cores: the runner reads `kernel.core_pattern` and the core limit of a bench
+  child, and the case gives an error unless the pattern is a plain path in
+  the core directory of the run and the limit is above 0. A receiver core
+  fails the case. Every other core must be gatewayd's abort at the stop that
+  follows its planned SIGTERM (GAP-MW-041: `TransactionLogNode::Reset` under
+  `~ProxyEvent` or `~LocalServiceInstance`), else the case fails.
+- Phase starts: let I be the later of the last Ack of someipd in the capture
+  (inside its TTL) and the client's connect. The client stamps its connect
+  before and after `connect()`. A phase start must lie at or after the stamp
+  before `connect()` and at most 10 ms after I (in the CI runs, the starts lie
+  2 to 31 us after I), and the later of the two must be the logged cause. No
+  frame received after I is dropped as outside a phase, and no frame stamped
+  at or after I less 20 ms is dropped as older than the phase.
+- Phase ends: each end must lie within 100 ms of an independent record of
+  its cause: a Nack, a StopOffer, a FIN or RST that someipd sent on its
+  reliable port (at or before the end plus 1 ms), a reboot of someipd or the
+  StopSubscribe of the receiver in the capture, the end of the TTL after the
+  last Ack, or the end of the client. The other way round, each of these
+  records inside a phase (also an Ack gap longer than the TTL) must be
+  followed by the end of the phase within 100 ms. A phase that ends on a loss
+  of the SOME/IP framing fails the case.
+
+On the VM, host and guest have two clocks. A run there needs its measured
+ASM-MW-030 bound: the capture slack becomes that bound plus the transit, and
+a two-clock run without a measured bound gives an error. The client records
+then come from the ingress's own log or from a capture inside the guest.
 
 A clock step makes the case inconclusive. The results list the phase starts
 of each case. A frame that the AEBS stack produced in the 20 ms before a

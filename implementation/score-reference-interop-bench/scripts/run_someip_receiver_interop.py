@@ -98,6 +98,28 @@ GATEWAYD_FOUND = r"LocalServiceInstance created for instance specifier: de4sdv/a
 GATE_CASES = ("identity", "resubscribe", "no_client", "stored_samples", "ttl_renewal", "ingress_start")
 
 
+def core_pattern_facts(core_dir: Path) -> dict:
+    """kernel.core_pattern and whether it is a plain path under the core directory of the run."""
+    try:
+        pattern = Path("/proc/sys/kernel/core_pattern").read_text(encoding="utf-8").strip()
+    except OSError as error:
+        pattern = f"unreadable: {error}"
+    plain = pattern.startswith("/") and "|" not in pattern[:1]
+    inside = plain and Path(os.path.dirname(pattern)).resolve() == Path(core_dir).resolve()
+    return {"core_pattern": pattern, "core_dir": str(core_dir), "pattern_in_core_dir": inside}
+
+
+def core_limit_of(pid: int) -> str:
+    """The soft RLIMIT_CORE of a running process, as /proc/<pid>/limits gives it."""
+    try:
+        for line in Path(f"/proc/{pid}/limits").read_text(encoding="utf-8").splitlines():
+            if line.startswith("Max core file size"):
+                return line.split()[4]
+    except OSError as error:
+        return f"unreadable: {error}"
+    return "unknown"
+
+
 def run(argv: list[str], check: bool = True) -> subprocess.CompletedProcess:
     return subprocess.run(argv, check=check, capture_output=True, text=True)
 
@@ -156,7 +178,8 @@ class Stack:
                                    "subscription_ttl_s": SUBSCRIPTION_TTL_S, "phase_start_margin_ms": 20,
                                    "frame_port": FRAME_PORT, "loopback_port": LOOPBACK_PORT,
                                    "host_ip": HOST_IP, "guest_ip": GUEST_IP,
-                                   "clocks": "both namespaces share the clock of one kernel"}}
+                                   "clocks": "both namespaces share the clock of one kernel",
+                                   "one_clock": True}}
         self.receiver_count = 0
         self.go_file = self.out / "go"
         self.pause_file = self.out / "pause"
@@ -278,9 +301,13 @@ class Stack:
         argv += ["--ingress-start-property", INGRESS_START_PROPERTY]
         if not multicast:
             argv.append("--no-multicast")
-        self.start(name, GUEST_NS, argv, private_tmp=True)
+        process = self.start(name, GUEST_NS, argv, private_tmp=True)
         self.timeline["receiver_logs"].append(f"{name}.log")
         self.wait(name, "start", 10.0, json_event=True)
+        scan = self.timeline.setdefault("core_scan", {})
+        if "child_rlimit_core" not in scan:
+            scan["child_rlimit_core"] = core_limit_of(process.pid)
+            scan["child_rlimit_core_process"] = name
         return name
 
     def start_ingress(self, name: str, connection: int) -> None:
@@ -401,16 +428,19 @@ class Stack:
                 continue
             binary = Path(self.timeline["processes"][name]["argv"][0])
             record = {"process": name, "pid": process.pid, "core": core.name, "returncode": process.returncode,
-                      "named_top_frames": None}
+                      "named_top_frames": None, "named_frames": None}
             if binary.is_file() and not binary.name.startswith("python"):
                 try:
                     backtrace, mappings = rt.gdb_backtrace(binary, core, self.out, f"{name}-core")
                     frames = read_located_frames(backtrace, mappings)
-                    record["named_top_frames"] = [frame_text(frame) for frame in frames if frame.function != "??"][:12]
+                    named = [frame_text(frame) for frame in frames if frame.function != "??"]
+                    record["named_frames"] = named
+                    record["named_top_frames"] = named[:12]
                 except Exception as error:  # a broken core is recorded, not fatal
                     record["backtrace_error"] = repr(error)
             records.append(record)
         self.timeline["cores"] = records
+        self.timeline.setdefault("core_scan", {}).update(core_pattern_facts(core_dir))
         self.note("core scan", cores=[(r["process"], r["returncode"]) for r in records])
 
     def finish(self) -> None:

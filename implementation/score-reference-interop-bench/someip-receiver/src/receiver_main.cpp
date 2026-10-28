@@ -68,6 +68,8 @@ constexpr int kExitListenFailed = 3;
 constexpr int kExitSdSocketFailed = 4;
 constexpr std::int64_t kMaxPollWaitNs = 100 * kNanosecondsPerMillisecond;
 constexpr int kMaxReadsPerTurn = 32;
+// A blocked write to the client checks for a stop request this often.
+constexpr std::int64_t kStopCheckPeriodMs = 10;
 
 volatile std::sig_atomic_t g_stop_requested = 0;
 
@@ -243,12 +245,15 @@ class Shell final : public SubscriptionTransport, public FrameSink {
         continue;
       }
       if (sent < 0 && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)) {
+        // A stop request ends the wait: init's gentle_kill gives 200 ms
+        // between SIGTERM and SIGKILL, and the write timeout is longer.
         const std::int64_t left = deadline - ClockNs(CLOCK_MONOTONIC);
-        if (left <= 0) {
+        if (left <= 0 || g_stop_requested != 0) {
           break;
         }
         pollfd writable{client_fd_, POLLOUT, 0};
-        ::poll(&writable, 1, static_cast<int>(std::max<std::int64_t>(1, left / kNanosecondsPerMillisecond)));
+        ::poll(&writable, 1, static_cast<int>(std::clamp<std::int64_t>(left / kNanosecondsPerMillisecond, 1,
+                                                                       kStopCheckPeriodMs)));
         continue;
       }
       break;

@@ -78,6 +78,7 @@ class Builder:
         self.link: list[SomeipMessage] = []
         self.sd: list[SdMessage] = []
         self.tcp_ends: list[int] = []  # FIN times of TCP connections that someipd closed
+        self.auto_renewals = True  # a correct run renews its subscription every second
         self.timeline: dict = {"case": "test", "disturbances": [], "stop_realtime_ns": T0 + 600 * S}
         self.gatewayd = {"gatewayd.log": "[gatewayd] Connected to someipd over the mw::com IPC binding\n"}
         self.shm = {"shared_pairs": {"adapter-gatewayd": ["/dev/shm/lola-data-1"],
@@ -138,8 +139,10 @@ class Builder:
         self.event(events, "phase_end", realtime_ns, cause=cause)
 
     def connect_client(self, events: list[dict], realtime_ns: int, *, starts_phase: bool) -> int:
+        """The client stamps 100 us before connect() and at its return; the receiver accepts at the return."""
         index = len(self.connections) + 1
-        self.connections.append(RecorderConnection(index, realtime_ns, None))
+        self.connections.append(RecorderConnection(index, realtime_ns, None,
+                                                   pre_connect_realtime_ns=realtime_ns - 100_000))
         if starts_phase:
             self.phase_start(events, "client_connected", realtime_ns)
         else:
@@ -178,7 +181,6 @@ class Builder:
         stream = TcpStream(0, HOST, 30509, GUEST, 40000, messages=list(self.link))
         closed = [TcpStream(index + 1, HOST, 30509, GUEST, 40001 + index, fin=True, fin_ts_ns=stamp)
                   for index, stamp in enumerate(self.tcp_ends)]
-        capture = CaptureAnalysis(len(self.link), list(self.sd), 0, [stream] + closed)
         # The runner's records of each receiver process: a run with a final
         # status was stopped by SIGTERM and ended with 0, a run without one
         # was killed by a planned SIGKILL; no core.
@@ -186,6 +188,22 @@ class Builder:
         timeline.setdefault("events", [])
         timeline.setdefault("processes", {})
         timeline.setdefault("cores", [])
+        timeline.setdefault("parameters", {"one_clock": True})
+        timeline.setdefault("core_scan", {"core_pattern": "/runner/cores/core.%e.%p", "core_dir": "/runner/cores",
+                                          "pattern_in_core_dir": True, "child_rlimit_core": "unlimited"})
+        sd = list(self.sd)
+        if self.auto_renewals:
+            # The Ack of each renewal, every second through each phase.
+            for events in self.receivers:
+                for phase in ReceiverRun("renewals", events).phases():
+                    end = phase.end_realtime_ns or max(e["realtime_ns"] for e in events)
+                    at = phase.start_realtime_ns + S
+                    while at < end:
+                        sd.append(SdMessage(at, HOST, 30490, GUEST, 30490, 50_000 + len(sd), True, True,
+                                            [SdEntry(7, "SubscribeEventgroupAck", 0x4DEE, 1, 1, 3, 1, None, [])]))
+                        at += S
+            sd.sort(key=lambda message: message.ts_ns)
+        capture = CaptureAnalysis(len(self.link), sd, 0, [stream] + closed)
         for index, events in enumerate(self.receivers):
             name = f"receiver-{index + 1}"
             if name in timeline["processes"]:
@@ -531,16 +549,48 @@ def test_a_receiver_core_fails_the_case():
     assert not result["checks"]["no_receiver_core"]
 
 
+GAP_MW_041_FRAMES = [  # the crashing thread of gatewayd's abort at its stop, as the CI cores give it
+    "pthread_kill in libc.so.6", "raise in libc.so.6", "abort in libc.so.6",
+    "score::cpp::detail::assertion_failed in gatewayd",
+    "score::mw::com::impl::lola::TransactionLogSet::TransactionLogNode::Reset in gatewayd",
+    "score::cpp::move_only_function<void (), 32ul, 16ul>::wrapper<...>::invoke in gatewayd",
+    "score::mw::com::impl::lola::SubscriptionStateMachine::~SubscriptionStateMachine in gatewayd",
+    "score::mw::com::impl::lola::ProxyEvent::~ProxyEvent in gatewayd",
+    "score::mw::com::impl::ProxyEventBase::~ProxyEventBase in gatewayd",
+    "score::someip_gateway::gatewayd::LocalServiceInstance::~LocalServiceInstance in gatewayd",
+    "main in gatewayd"]
+
+
+def gatewayd_core(builder: Builder, frames: list[str], signal_name: str = "SIGTERM", returncode: int = -6) -> None:
+    builder.timeline["cores"] = [{"process": "gatewayd", "core": "core.gatewayd.5914", "returncode": returncode,
+                                  "named_top_frames": frames[:12], "named_frames": frames}]
+    builder.timeline["events"] = [{"what": "stop gatewayd", "signal": signal_name, "realtime_ns": T0 + 29 * S}]
+
+
 def test_the_gatewayd_abort_is_recorded_with_its_frames():
     builder = identity_builder()
-    frames = ["abort", "std::terminate() in libstdc++.so.6", "main in gatewayd"]
-    builder.timeline["cores"] = [{"process": "gatewayd", "core": "core.gatewayd.5914", "returncode": -6,
-                                  "named_top_frames": frames}]
+    gatewayd_core(builder, GAP_MW_041_FRAMES)
     result = evaluate_identity(builder.records())
     assert result["outcome"] == PASS, result["reasons"]
     assert result["metrics"]["process_cores"] == [{"process": "gatewayd", "returncode": -6,
-                                                   "core": "core.gatewayd.5914", "top_frames": frames,
+                                                   "core": "core.gatewayd.5914", "top_frames": GAP_MW_041_FRAMES[:6],
                                                    "known": "GAP-MW-041"}]
+
+
+@pytest.mark.parametrize("frames, signal_name, returncode", [
+    (["abort in libc.so.6", "score::cpp::detail::assertion_failed in gatewayd",
+      "score::someip_gateway::gatewayd::SomethingElse::OnSample in gatewayd"], "SIGTERM", -6),  # other frames
+    (GAP_MW_041_FRAMES[:5], "SIGTERM", -6),  # Reset, but not under ~ProxyEvent or ~LocalServiceInstance
+    (GAP_MW_041_FRAMES, "SIGKILL", -6),  # the signature, but not at the end that follows a planned SIGTERM
+    (GAP_MW_041_FRAMES, "SIGTERM", -11),  # the signature with another signal
+])
+def test_a_core_that_is_not_the_known_gatewayd_abort_fails(frames, signal_name, returncode):
+    builder = identity_builder()
+    gatewayd_core(builder, frames, signal_name, returncode)
+    result = evaluate_identity(builder.records())
+    assert result["outcome"] == FAIL
+    assert not result["checks"]["only_known_cores"]
+    assert result["metrics"]["process_cores"][0]["known"] is None
 
 
 def test_a_case_needs_the_core_scan():
@@ -608,6 +658,162 @@ def test_a_ttl_end_comes_one_ttl_after_the_last_ack():
     builder.phase_end(events, "subscription_lost:ttl_expired", last_ack + 1 * S)
     events.append(final)
     assert not evaluate_ttl_renewal(builder.records())["checks"]["phase_ends_independent:receiver-1.log"]
+
+
+# ------------------------------------------------ delta review: D1, D2, D3, D5, D6, D8 (mutations)
+
+
+def late_start_no_client(late_ms: int = 0, early_ms: int = 0) -> Builder:
+    """no_client with the receiver's phase start late_ms after the client's connect, or early_ms before its
+    pre-connect stamp; frames received before the logged start are dropped as no_client."""
+    builder = Builder(120)
+    events = builder.receiver()
+    for k in range(7):  # subscribed at 500 ms, renewed every second
+        builder.ack(T0 + 500 * MS + k * S)
+    builder.event(events, "subscribed", T0 + 500 * MS)
+    connect = builder.produced(50) + 50 * MS
+    builder.connections.append(RecorderConnection(1, connect, None, pre_connect_realtime_ns=connect - 100_000))
+    start = connect + late_ms * MS - early_ms * MS
+    for seq in range(1, 121):
+        if builder.produced(seq) + 2 * MS < start:
+            builder.arrive(events, seq, "no_client")
+    builder.event(events, "client_connected", start)
+    builder.event(events, "phase_start", start, cause="client_connected", phase_start_realtime_ns=start)
+    for seq in range(1, 121):
+        if builder.produced(seq) + 2 * MS >= start:
+            builder.arrive(events, seq, "delivered")
+    builder.final(events, T0 + 20 * S)
+    return builder
+
+
+def test_a_frame_dropped_outside_a_phase_after_the_independent_start_fails():
+    result = evaluate_no_client(late_start_no_client(late_ms=90).records())
+    assert result["outcome"] == FAIL
+    assert not result["checks"]["drops_against_independent_starts:receiver-1.log"]
+    assert not result["checks"]["phase_starts_independent:receiver-1.log"]  # 90 ms after I: above 10 ms
+
+
+def test_a_phase_start_more_than_10_ms_after_its_cause_fails():
+    result = evaluate_no_client(late_start_no_client(late_ms=11).records())
+    assert not result["checks"]["phase_starts_independent:receiver-1.log"]
+    assert evaluate_no_client(late_start_no_client(late_ms=5).records())["outcome"] == PASS
+
+
+def test_a_frame_dropped_as_older_although_it_is_not_older_than_the_independent_start_fails():
+    builder = identity_builder()  # Ack at 700 ms: I = 700 ms
+    events = builder.receivers[0]
+    frame = next(e for e in events if e["event"] == "frame" and e["frame_timestamp_ns"] > T0 + 700 * MS)
+    frame["verdict"] = "older_than_phase"
+    builder.recorded = [f for f in builder.recorded if f.sequence != frame["sequence"]]
+    final = next(e for e in events if e["event"] == "final_status")
+    final["frames_delivered"] -= 1
+    final["drop_older_than_phase"] += 1
+    result = evaluate_identity(builder.records())
+    assert not result["checks"]["drops_against_independent_starts:receiver-1.log"]
+
+
+def test_a_phase_start_before_the_pre_connect_stamp_fails():
+    """The reviewer's D2 case: the receiver logs its start 45 ms before the client's stamp."""
+    result = evaluate_no_client(late_start_no_client(early_ms=45).records())
+    assert result["outcome"] == FAIL
+    assert not result["checks"]["phase_starts_independent:receiver-1.log"]
+
+
+def test_the_cause_tie_is_the_stamp_interval_and_1_ms():
+    builder = identity_builder()  # client connect at 500 ms (pre 499.9 ms), Ack at 700 ms
+    ack = next(m for m in builder.sd if m.src == HOST and m.entries[0].type_name == "SubscribeEventgroupAck")
+    start = next(e for e in builder.receivers[0] if e["event"] == "phase_start")
+    for event in (start,):
+        event["cause"] = "client_connected"
+    ack.ts_ns = T0 + 500 * MS + 900_000  # inside the stamp interval plus 1 ms: either cause
+    start["phase_start_realtime_ns"] = start["realtime_ns"] = T0 + 500 * MS + 950_000
+    assert evaluate_identity(builder.records())["checks"]["phase_starts_independent:receiver-1.log"]
+    ack.ts_ns = T0 + 500 * MS + 5 * MS  # 5 ms after the connect: the Ack is the cause
+    start["phase_start_realtime_ns"] = start["realtime_ns"] = T0 + 500 * MS + 5 * MS + 50_000
+    assert not evaluate_identity(builder.records())["checks"]["phase_starts_independent:receiver-1.log"]
+
+
+def test_a_tcp_end_needs_a_fin_or_rst_of_someipd():
+    """The reviewer's D3 case: only the receiver's own FIN, 50 us after its tcp_closed end."""
+    builder = resubscribe_builder()
+    records = builder.records()
+    ends = [e["realtime_ns"] for e in records.receivers[-1].events
+            if e.get("event") == "phase_end" and e.get("cause") == "subscription_lost:tcp_closed"]
+    assert evaluate_resubscribe(records)["outcome"] == PASS
+    records.capture.streams = [s for s in records.capture.streams if not s.fin] + [
+        TcpStream(90 + i, GUEST, 40000, HOST, 30509, fin=True, fin_ts_ns=end + 50_000) for i, end in enumerate(ends)]
+    assert not all(v for k, v in evaluate_resubscribe(records)["checks"].items()
+                   if k.startswith("phase_ends_independent"))
+    builder = resubscribe_builder()
+    builder.tcp_ends = [stamp + 2 * MS + 10_000 for stamp in builder.tcp_ends]  # someipd's FIN 2 ms after the end
+    assert not all(v for k, v in evaluate_resubscribe(builder.records())["checks"].items()
+                   if k.startswith("phase_ends_independent"))
+
+
+def test_a_phase_that_goes_on_after_someipds_fin_fails():
+    """The reviewer's D5 case: no phase end at someipd's FIN of the current connection."""
+    builder = resubscribe_builder()
+    events = builder.receivers[-1]
+    end = next(i for i, e in enumerate(events) if e.get("event") == "phase_end"
+               and e.get("cause") == "subscription_lost:tcp_closed")
+    fin = builder.tcp_ends[-1]
+    port = 40001 + len(builder.tcp_ends) - 1
+    events.insert(1, {"event": "tcp_connected", "monotonic_ns": 1, "realtime_ns": T0 + 1, "local": f"{GUEST}:{port}"})
+    del events[end + 1]
+    result = evaluate_resubscribe(builder.records())
+    assert not all(v for k, v in result["checks"].items() if k.startswith("leave_records_end_their_phase")), \
+        f"someipd FIN at {fin} inside the phase must end it"
+
+
+@pytest.mark.parametrize("what", ["nack", "stop_offer", "client_end", "ack_gap"])
+def test_a_leave_record_inside_a_phase_needs_its_end(what):
+    builder = identity_builder()  # one phase from 700 ms to the end of the run at 30 s
+    at = T0 + 10 * S
+    if what == "nack":
+        builder.sd.append(SdMessage(at, HOST, 30490, GUEST, 30490, 9000, True, True,
+                                    [SdEntry(7, "SubscribeEventgroupAck", 0x4DEE, 1, 1, 0, 1, None, [])]))
+    elif what == "stop_offer":
+        builder.sd.append(SdMessage(at, HOST, 30490, "224.244.224.245", 30490, 9000, True, False,
+                                    [SdEntry(1, "OfferService", 0x4DEE, 1, 1, 0, None, 0, [])]))
+    elif what == "client_end":
+        builder.connections[0].close_realtime_ns = at
+    else:
+        builder.auto_renewals = False  # one Ack at 700 ms, then none for 29 s
+    result = evaluate_identity(builder.records())
+    assert result["outcome"] == FAIL
+    assert not result["checks"]["leave_records_end_their_phase:receiver-1.log"]
+
+
+def test_the_core_scan_must_cover_the_kernel_core_pattern():
+    builder = identity_builder()
+    builder.timeline["core_scan"] = {"core_pattern": "|/usr/share/apport/apport %p", "core_dir": "/runner/cores",
+                                     "pattern_in_core_dir": False, "child_rlimit_core": "unlimited"}
+    result = evaluate_identity(builder.records())
+    assert result["outcome"] == ERROR
+    assert not result["checks"]["core_pattern_in_core_dir"]
+    builder.timeline["core_scan"] = {"core_pattern": "/runner/cores/core.%e.%p", "core_dir": "/runner/cores",
+                                     "pattern_in_core_dir": True, "child_rlimit_core": "0"}
+    assert not evaluate_identity(builder.records())["checks"]["child_core_limit"]
+
+
+def test_a_run_on_two_clocks_needs_its_measured_bound():
+    builder = identity_builder()
+    builder.timeline["parameters"] = {"one_clock": False}
+    result = evaluate_identity(builder.records())
+    assert result["outcome"] == ERROR
+    assert not result["checks"]["capture_clock_known"]
+    builder.timeline["parameters"] = {"one_clock": False, "clock_offset_bound_ns": 3 * MS, "transit_bound_ns": MS}
+    assert evaluate_identity(builder.records())["checks"]["capture_clock_known"]
+
+
+def test_a_framing_loss_in_a_phase_fails_with_its_own_check():
+    builder = trigger_builder()
+    end = next(e for e in builder.receivers[0] if e["event"] == "phase_end")
+    end["cause"] = "subscription_lost:stream_framing_lost"
+    result = evaluate_identity(builder.records())
+    assert not result["checks"]["no_framing_loss_in_a_phase:receiver-1.log"]
+    assert any("loss of the SOME/IP framing" in reason for reason in result["reasons"])
+    assert result["checks"]["phase_ends_independent:receiver-1.log"]
 
 
 # --------------------------------------------------------------------------- resubscribe
@@ -844,6 +1050,7 @@ def test_a_copy_served_after_a_gatewayd_restart_fails():
 def ttl_builder(*, ack_gap_s: float = 1.0, multicast: bool = False, lapse: bool = False, seconds: int = 15,
                 early_nack: bool = False, late_nack: bool = False) -> Builder:
     builder = Builder(seconds * 10 + 20)
+    builder.auto_renewals = False  # the Acks of this case are its subject
     events = builder.receiver(multicast=multicast)
     builder.connect_client(events, T0 + 300 * MS, starts_phase=False)
     if early_nack:  # a subscription before someipd's first offer
