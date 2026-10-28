@@ -775,18 +775,27 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * (de4sdv_aebs_010_bridge/ros_node.py:92-98, frame_assembler.py:247-265).
      * The receiver takes the phase start from the system clock of the guest.
      * No element of the member keeps the two clocks together, and Android
-     * corrects its clock only in steps (AOSP behaviour, not checked on the
+     * corrects its clock only in steps (AOSP behavior, not checked on the
      * sdv_ivi_cf guest). So phase 10 holds the assumption with these
      * controls in each session:
      * - the automatic time and time zone of the guest are off (auto_time and
      *   auto_time_zone);
-     * - the guest clock is set once, before the session;
+     * - the guest clock is set once, before the session, by a two-way time
+     *   exchange with the chrony of the host, for example with the sntp of
+     *   toybox if the image has it. A setting through adb is not used,
+     *   because its round trip would add to the offset;
+     * - the offset comes from SOME/IP packets in both directions, each
+     *   captured on both sides of the guest's network tap, at the start and
+     *   at the end of the session. This two-way capture measures the offset.
+     *   No case starts before the start capture gives an offset below 20 ms;
+     * - the host logs each step of its clock, from the "System clock was
+     *   stepped" lines of chrony or from its own CLOCK_REALTIME minus
+     *   CLOCK_MONOTONIC;
      * - the receiver logs CLOCK_REALTIME minus CLOCK_MONOTONIC and each step
      *   of it. For the frames that it serves in a phase, it logs the minimum
-     *   and the maximum of receipt time minus frame timestamp;
-     * - the offset comes from the same SOME/IP packets, captured on both
-     *   sides of the guest's network tap, at the start and at the end of the
-     *   session;
+     *   and the maximum of receipt time minus frame timestamp. That minimum
+     *   bounds the offset from one side only: it shows a guest clock that
+     *   runs behind the host clock;
      * - each frame_timestamp_ns is compared with the host capture time of the
      *   packet that carries it, because the bridge node stamps with its ROS 2
      *   clock (de4sdv_aebs_010_bridge/ros_node.py:93) and a peer could switch

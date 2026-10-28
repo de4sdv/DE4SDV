@@ -162,6 +162,19 @@ def test_the_receiver_discard_rule_traces_its_requirements_bound_and_residual() 
         assert statement in rule, statement
 
 
+def test_asm_mw_030_holds_the_clock_bound_with_session_controls() -> None:
+    """The offset is measured two-way and gates the session; steps of both clocks are logged."""
+    assumption = _part_doc(PHYSICAL.read_text(encoding="utf-8"), "ASM-MW-030")
+    (bound,) = _numbers(r"differ by less than (\d+) ms", assumption)
+    assert _numbers(r"No case starts before the start capture gives an offset below (\d+) ms", assumption) == [bound]
+    for control in ("by a two-way time exchange with the chrony of the host",
+                    "A setting through adb is not used",
+                    "This two-way capture measures the offset.",
+                    "the host logs each step of its clock",
+                    "That minimum bounds the offset from one side only"):
+        assert control in assumption, control
+
+
 def test_the_derived_numbers_follow_the_bound_the_frame_period_and_the_slots() -> None:
     """The band is twice the bound at most, below half of the assembler's frame period; the copy window sums the slots."""
     text = PHYSICAL.read_text(encoding="utf-8")
