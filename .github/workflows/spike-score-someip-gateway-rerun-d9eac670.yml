@@ -1,21 +1,24 @@
-# DE4SDV throwaway spike (INC-MW-011 gateway feasibility), rerun on new upstream
-# commits after eclipse-score/inc_someip_gateway#348 merged. Lives only on the
-# branch spike/score-someip-gateway-rerun-348 and never merges. It builds the
-# Eclipse S-CORE SOME/IP gateway at two pinned commits and runs the same
-# cross-domain scenarios at each: an mw::com publisher on the host network
-# domain, gatewayd and someipd, and a vsomeip 3.7.6 client in a separate network
-# namespace. See docs/spikes/score-someip-gateway-feasibility/README.md.
+# DE4SDV throwaway spike (INC-MW-011 gateway feasibility), rerun at the merge of
+# eclipse-score/inc_someip_gateway#375. Lives only on the branch
+# spike/score-someip-gateway-d9eac670 and never merges. It builds the Eclipse
+# S-CORE SOME/IP gateway at one pinned commit and runs the same cross-domain
+# scenarios as the 2026-10-27 reruns (runs 40532187964 and 40537983047): an
+# mw::com publisher on the host network domain, gatewayd and someipd, and a
+# vsomeip 3.7.6 client in a separate network namespace. Two matrix jobs run the
+# same pin on two runners, so the results compare one to one with the two
+# earlier runs per pin. See docs/spikes/score-someip-gateway-feasibility/README.md.
 #
-# Pins:
-#   main-a4dce403  inc_someip_gateway main, which includes #348. Both daemons
-#                  still use the message_passing IPC binding there.
-#   pr375-723119c4 the head of the open PR #375, which switches gatewayd and
-#                  someipd to the mw::com IPC binding.
-name: Spike S-CORE SOME/IP gateway rerun after 348
+# Pin:
+#   main-d9eac670  inc_someip_gateway main at the merge of #375 (mw::com IPC
+#                  binding). Its sources equal the tested PR head 723119c4; only
+#                  MODULE.bazel (score_baselibs 0.2.15 -> 0.2.16 and three dev or
+#                  docs dependencies), MODULE.bazel.lock and two socom unit tests
+#                  differ. .bazelversion stays 8.6.0.
+name: Spike S-CORE SOME/IP gateway rerun at d9eac670
 
 on:
   push:
-    branches: [spike/score-someip-gateway-rerun-348]
+    branches: [spike/score-someip-gateway-d9eac670]
     paths-ignore:
       - docs/spikes/score-someip-gateway-feasibility/README.md
       - docs/spikes/score-someip-gateway-feasibility/tests/**
@@ -32,7 +35,7 @@ env:
   GATEWAY_REPO: https://github.com/eclipse-score/inc_someip_gateway.git
   VSOMEIP_SHA: 4187431d2815bd351845a09d01aa85b2a3163cab
   SPIKE_DIR: docs/spikes/score-someip-gateway-feasibility
-  # bazel-8.6.0-linux-x86_64, the version of the gateway's .bazelversion at both pins
+  # bazel-8.6.0-linux-x86_64, the version of the gateway's .bazelversion at d9eac670
   BAZELISK_VERIFY_SHA256: 9860da9c9386bbc023feed8f43af3105d338727d77b644fa6aeca45a4a11957c
 
 jobs:
@@ -44,11 +47,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - pin: main-a4dce403
-            gateway_sha: a4dce40322d4523522263d7c0765946e18f59589
-            ipc_binding: message_passing
-          - pin: pr375-723119c4
-            gateway_sha: 723119c405d8b7140cdd0bb2c2816baefcc53e01
+          - pin: main-d9eac670-r1
+            gateway_sha: d9eac670b7534352749da3d30f52aebf5129f168
+            ipc_binding: mw_com
+          - pin: main-d9eac670-r2
+            gateway_sha: d9eac670b7534352749da3d30f52aebf5129f168
             ipc_binding: mw_com
     env:
       GATEWAY_SHA: ${{ matrix.gateway_sha }}
@@ -81,6 +84,17 @@ jobs:
         env:
           SPIKE_CACHE_HIT: ${{ steps.cache.outputs.cache-hit || 'false' }} (matched key ${{ steps.cache.outputs.cache-matched-key || 'none' }})
         run: bash "$SPIKE_DIR/scripts/ci_build_gateway.sh" "$RUNNER_TEMP/gw" "$RUNNER_TEMP/facts" "$RUNNER_TEMP/paths.json"
+      - name: Record disk use after the build (measurement only)
+        if: always()
+        run: |
+          {
+            echo "== df after build"
+            df -h / /mnt 2>/dev/null || df -h /
+            echo "== du of the Bazel output base and caches"
+            du -sh "$HOME/spike-bazel" /mnt/spike-bazel "$HOME/.cache/spike-bazel" 2>/dev/null || true
+            echo "== memory"
+            free -g
+          } | tee "$RUNNER_TEMP/facts/disk_after_build.txt"
       - name: Save the Bazel caches of this spike
         if: success() && steps.cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4

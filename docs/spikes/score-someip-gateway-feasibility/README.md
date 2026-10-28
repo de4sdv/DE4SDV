@@ -58,6 +58,21 @@ bytes after the restart as well as the correct ones, s15 also counts the
 samples of the first publisher instance that arrive after the restart, and s07
 ignores vsomeip's initial availability callback.
 
+## Rerun at d9eac670 (2026-10-28)
+
+PR #375 merged on 2026-10-27 as inc_someip_gateway main `d9eac670`. Its
+sources equal the tested PR head `723119c4`. Only `MODULE.bazel`
+(score_baselibs 0.2.15 to 0.2.16, and three development or documentation
+dependencies), `MODULE.bazel.lock` and two socom unit tests differ.
+`.bazelversion` stays 8.6.0. The workflow
+`.github/workflows/spike-score-someip-gateway-rerun-d9eac670.yml` on the
+branch `spike/score-someip-gateway-d9eac670` runs the same scenarios with the
+mw::com IPC binding, twice, on two runners (`main-d9eac670-r1`,
+`main-d9eac670-r2`), so the results compare one to one with the two earlier
+runs per pin. It changes no scenario, script, overlay or configuration. It
+adds one measurement step that records the disk and memory use after the
+build.
+
 ## Layout
 
 - `overlay/de4sdv_spike/`: the Bazel package added to the gateway checkout
