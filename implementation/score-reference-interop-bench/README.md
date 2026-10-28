@@ -552,26 +552,48 @@ with a capture slack of 1 ms.
   fails the case. Every other core must be gatewayd's abort at the stop that
   follows its planned SIGTERM (GAP-MW-041: `TransactionLogNode::Reset` under
   `~ProxyEvent` or `~LocalServiceInstance`), else the case fails.
-- Phase starts: let I be the later of the last Ack of someipd in the capture
-  (inside its TTL) and the client's connect. The client stamps its connect
-  before and after `connect()`. A phase start must lie at or after the stamp
-  before `connect()` and at most 10 ms after I (in the CI runs, the starts lie
-  2 to 31 us after I), and the later of the two must be the logged cause. No
-  frame received after I is dropped as outside a phase, and no frame stamped
-  at or after I less 20 ms is dropped as older than the phase.
+- The current TCP connection: the latest connection of someipd's reliable
+  port to the guest that the capture shows set up before the phase start.
+  The receiver's last `tcp_connected` record must name its port; a receiver
+  run without the record gives an error.
+- Phase starts: let I be the later of the first Ack of someipd (TTL above 0)
+  after the setup of the current connection and after the last record that
+  ended a subscription (a Nack, a StopOffer, a reboot of someipd, a TTL
+  lapse), and the client's connect. The client stamps its connect before and
+  after `connect()`. A phase start must lie at or after the stamp before
+  `connect()`, and at most 10 ms after I, with I taken from the stamp after
+  `connect()` (on two clocks, 10 ms plus the slack). The last Ack must be
+  inside its TTL, and the later of the two must be the logged cause. In the
+  CI runs, the starts lie 10 to 53 us after I, and a start by the client
+  about 1.2 ms after its stamp before `connect()`.
+- Drops: no frame received after I is dropped as outside a phase, and no
+  frame stamped at or after I less 20 ms is dropped as older than the phase.
+  A copy must repeat one of the last 40 frames served in its phase. A frame
+  dropped for its content (malformed notification, payload too large, length
+  prefix, unreadable frame, field not positive) must be malformed in its
+  notification on the link too.
 - Phase ends: each end must lie within 100 ms of an independent record of
   its cause: a Nack, a StopOffer, a FIN or RST that someipd sent on its
   reliable port (at or before the end plus 1 ms), a reboot of someipd or the
   StopSubscribe of the receiver in the capture, the end of the TTL after the
   last Ack, or the end of the client. The other way round, each of these
-  records inside a phase (also an Ack gap longer than the TTL) must be
-  followed by the end of the phase within 100 ms. A phase that ends on a loss
-  of the SOME/IP framing fails the case.
+  records strictly inside a phase (also an Ack gap longer than the TTL) must
+  be followed by the end of the phase within 100 ms. A phase that ends on a
+  loss of the SOME/IP framing fails the case.
 
 On the VM, host and guest have two clocks. A run there needs its measured
 ASM-MW-030 bound: the capture slack becomes that bound plus the transit, and
 a two-clock run without a measured bound gives an error. The client records
 then come from the ingress's own log or from a capture inside the guest.
+
+Known limits of these evaluators: they read the frame verdicts, the phases,
+the final status and the TCP records from the receiver's log, and check
+them against the capture, the client and the runner only where the checks
+above say so. A frame that the receiver dropped outside a phase before I, a
+leave record that the capture does not hold (for example a framing loss), and
+the timing of a phase start inside its 10 ms bound are not checked further.
+The netns runs are CI design data; the evidence of record is the run on the
+VM, which needs its own evaluation on two clocks.
 
 A clock step makes the case inconclusive. The results list the phase starts
 of each case. A frame that the AEBS stack produced in the 20 ms before a

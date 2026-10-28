@@ -79,6 +79,7 @@ class Builder:
         self.sd: list[SdMessage] = []
         self.tcp_ends: list[int] = []  # FIN times of TCP connections that someipd closed
         self.auto_renewals = True  # a correct run renews its subscription every second
+        self.log_tcp_connected = True  # a correct receiver logs each TCP connection
         self.timeline: dict = {"case": "test", "disturbances": [], "stop_realtime_ns": T0 + 600 * S}
         self.gatewayd = {"gatewayd.log": "[gatewayd] Connected to someipd over the mw::com IPC binding\n"}
         self.shm = {"shared_pairs": {"adapter-gatewayd": ["/dev/shm/lola-data-1"],
@@ -89,13 +90,14 @@ class Builder:
     def produced(seq: int) -> int:
         return T0 + S + seq * 100 * MS
 
-    def receiver(self, multicast: bool = True) -> list[dict]:
-        events = [{"event": "start", "monotonic_ns": 0, "realtime_ns": T0, "phase_start_margin_ns": MARGIN,
+    def receiver(self, multicast: bool = True, at: int = T0) -> list[dict]:
+        """A receiver run that starts at at: its start record, the host property and the trigger at listen."""
+        events = [{"event": "start", "monotonic_ns": at - T0, "realtime_ns": at, "phase_start_margin_ns": MARGIN,
                    "copy_memory_frames": 40, "join_multicast": multicast, "subscription_ttl_s": 3}]
-        events += [{"event": "property_not_announced", "monotonic_ns": 1000, "realtime_ns": T0 + 1000, "name": name,
-                    "value": value, "reason": "not Android"} for name, value in ANNOUNCED_PROPERTIES]
+        events += [{"event": "property_not_announced", "monotonic_ns": at - T0 + 1000, "realtime_ns": at + 1000,
+                    "name": name, "value": value, "reason": "not Android"} for name, value in ANNOUNCED_PROPERTIES]
         self.receivers.append(events)
-        self.trigger(events, T0 + 2000, "listening")
+        self.trigger(events, at + 2000, "listening")
         return events
 
     def trigger(self, events: list[dict], realtime_ns: int, reason: str, ok: bool = True) -> None:
@@ -154,7 +156,7 @@ class Builder:
         data = self.payloads[seq]
         receipt = at if at is not None else self.produced(seq) + 2 * MS
         self.event(events, "frame", receipt, verdict=verdict, sequence=seq, frame_timestamp_ns=self.produced(seq),
-                   payload_bytes=len(data))
+                   payload_bytes=len(data), someip_session=seq & 0xFFFF)
         if on_link:
             self.link.append(SomeipMessage(receipt - MS, HOST, 30509, GUEST, 40000, 0x4DEE, 0x8001, 0, seq & 0xFFFF,
                                            1, 1, 0x02, 0, data))
@@ -177,10 +179,40 @@ class Builder:
         self.sd.append(SdMessage(realtime_ns, HOST, 30490, GUEST, 30490, len(self.sd) + 1, True, True,
                                  [SdEntry(7, "SubscribeEventgroupAck", 0x4DEE, 1, 1, ttl, 1, None, [])]))
 
+    def connections_of(self, receivers: list[list[dict]]) -> list[TcpStream]:
+        """The TCP connections of a correct run: each receiver run connects at its start and again after each
+        phase end that ends its connection; someipd's FIN of a tcp_closed end belongs to the connection it ends.
+        Each connection gets the tcp_connected record of the receiver; a run that has its own keeps them."""
+        streams: list[TcpStream] = []
+        assigned: set[int] = set()
+        port = 41000
+        for events in receivers:
+            if any(e.get("event") == "tcp_connected" for e in events):
+                continue
+            ending = ("subscription_lost:tcp_closed", "subscription_lost:nack", "subscription_lost:stop_offer",
+                      "subscription_lost:server_reboot", "subscription_lost:stream_framing_lost")
+            times = [events[0]["realtime_ns"] + 1000] + [e["realtime_ns"] + 1000 for e in events
+                                                          if e.get("event") == "phase_end" and e.get("cause") in ending]
+            for k, connect in enumerate(times):
+                limit = times[k + 1] if k + 1 < len(times) else 2 ** 63
+                fins = [stamp for stamp in self.tcp_ends if connect < stamp < limit]
+                assigned.update(fins)
+                streams.append(TcpStream(len(streams) + 1, HOST, 30509, GUEST, port, syn=True, first_ts_ns=connect,
+                                         fin=bool(fins), fin_ts_ns=fins[0] if fins else None))
+                if self.log_tcp_connected:
+                    at = next((i for i, e in enumerate(events) if e.get("realtime_ns", 0) > connect), len(events))
+                    events.insert(at, {"event": "tcp_connected", "monotonic_ns": connect - T0, "realtime_ns": connect,
+                                       "local": f"{GUEST}:{port}", "server": f"{HOST}:30509"})
+                port += 1
+        for index, stamp in enumerate(self.tcp_ends):
+            if stamp not in assigned:
+                streams.append(TcpStream(100 + index, HOST, 30509, GUEST, 40001 + index, fin=True, fin_ts_ns=stamp))
+        return streams
+
     def records(self) -> CaseRecords:
         stream = TcpStream(0, HOST, 30509, GUEST, 40000, messages=list(self.link))
-        closed = [TcpStream(index + 1, HOST, 30509, GUEST, 40001 + index, fin=True, fin_ts_ns=stamp)
-                  for index, stamp in enumerate(self.tcp_ends)]
+        receivers = [copy.deepcopy(e) for e in self.receivers]
+        closed = self.connections_of(receivers)
         # The runner's records of each receiver process: a run with a final
         # status was stopped by SIGTERM and ended with 0, a run without one
         # was killed by a planned SIGKILL; no core.
@@ -219,7 +251,7 @@ class Builder:
         return CaseRecords(
             case="test", timeline=timeline, source_frames=sources,
             recorder_frames=list(self.recorded), recorder_connections=list(self.connections),
-            receivers=[ReceiverRun(f"receiver-{i + 1}.log", copy.deepcopy(e)) for i, e in enumerate(self.receivers)],
+            receivers=[ReceiverRun(f"receiver-{i + 1}.log", e) for i, e in enumerate(receivers)],
             capture=capture, gatewayd_logs=dict(self.gatewayd), shared_memory=copy.deepcopy(self.shm),
             source_stream=source_stream, recorder_stream=recorder_stream)
 
@@ -561,10 +593,14 @@ GAP_MW_041_FRAMES = [  # the crashing thread of gatewayd's abort at its stop, as
     "main in gatewayd"]
 
 
-def gatewayd_core(builder: Builder, frames: list[str], signal_name: str = "SIGTERM", returncode: int = -6) -> None:
+def gatewayd_core(builder: Builder, frames: list[str], signal_name: str = "SIGTERM", returncode: int = -6,
+                  exit_s: float = 29.05) -> None:
+    """A core of gatewayd and the runner's records of its planned stop at 29 s and its exit."""
     builder.timeline["cores"] = [{"process": "gatewayd", "core": "core.gatewayd.5914", "returncode": returncode,
                                   "named_top_frames": frames[:12], "named_frames": frames}]
-    builder.timeline["events"] = [{"what": "stop gatewayd", "signal": signal_name, "realtime_ns": T0 + 29 * S}]
+    builder.timeline["events"] = [{"what": "stop gatewayd", "signal": signal_name, "monotonic_ns": 29 * S,
+                                   "realtime_ns": T0 + 29 * S}]
+    builder.timeline["processes"] = {"gatewayd": {"returncode": returncode, "exit_monotonic_ns": int(exit_s * S)}}
 
 
 def test_the_gatewayd_abort_is_recorded_with_its_frames():
@@ -587,6 +623,16 @@ def test_the_gatewayd_abort_is_recorded_with_its_frames():
 def test_a_core_that_is_not_the_known_gatewayd_abort_fails(frames, signal_name, returncode):
     builder = identity_builder()
     gatewayd_core(builder, frames, signal_name, returncode)
+    result = evaluate_identity(builder.records())
+    assert result["outcome"] == FAIL
+    assert not result["checks"]["only_known_cores"]
+    assert result["metrics"]["process_cores"][0]["known"] is None
+
+
+def test_the_known_abort_must_follow_the_planned_stop():
+    """The reviewer's D7c case: the signature, but the abort 15 s before the planned SIGTERM."""
+    builder = identity_builder()
+    gatewayd_core(builder, GAP_MW_041_FRAMES, exit_s=15.0)
     result = evaluate_identity(builder.records())
     assert result["outcome"] == FAIL
     assert not result["checks"]["only_known_cores"]
@@ -750,19 +796,145 @@ def test_a_tcp_end_needs_a_fin_or_rst_of_someipd():
                    if k.startswith("phase_ends_independent"))
 
 
-def test_a_phase_that_goes_on_after_someipds_fin_fails():
-    """The reviewer's D5 case: no phase end at someipd's FIN of the current connection."""
+def phase_across_the_fin() -> Builder:
+    """The reviewer's D5 case: receiver-3 goes on across someipd's FIN at the gateway pair restart."""
     builder = resubscribe_builder()
     events = builder.receivers[-1]
     end = next(i for i, e in enumerate(events) if e.get("event") == "phase_end"
                and e.get("cause") == "subscription_lost:tcp_closed")
-    fin = builder.tcp_ends[-1]
-    port = 40001 + len(builder.tcp_ends) - 1
-    events.insert(1, {"event": "tcp_connected", "monotonic_ns": 1, "realtime_ns": T0 + 1, "local": f"{GUEST}:{port}"})
-    del events[end + 1]
+    next_start = next(i for i, e in enumerate(events) if i > end and e.get("event") == "phase_start")
+    del events[next_start]
+    del events[end]
+    return builder
+
+
+def test_a_phase_that_goes_on_after_someipds_fin_fails():
+    result = evaluate_resubscribe(phase_across_the_fin().records())
+    assert result["outcome"] == FAIL
+    assert not result["checks"]["leave_records_end_their_phase:receiver-3.log"]
+
+
+def test_a_receiver_without_its_tcp_connected_record_gives_an_error():
+    """The reviewer's D5b case: no tcp_connected record names the current connection."""
+    builder = phase_across_the_fin()
+    builder.log_tcp_connected = False
     result = evaluate_resubscribe(builder.records())
-    assert not all(v for k, v in result["checks"].items() if k.startswith("leave_records_end_their_phase")), \
-        f"someipd FIN at {fin} inside the phase must end it"
+    assert result["outcome"] == ERROR
+    assert not result["checks"]["receiver_logs_its_connection:receiver-3.log"]
+
+
+def test_a_receiver_that_names_another_connection_fails():
+    """The reviewer's D5c case: the receiver's tcp_connected names a port the capture does not set up."""
+    builder = resubscribe_builder()
+    records = builder.records()
+    connected = [e for e in records.receivers[-1].events if e.get("event") == "tcp_connected"]
+    connected[0]["local"] = f"{GUEST}:49999"
+    result = evaluate_resubscribe(records)
+    assert result["outcome"] == FAIL
+    assert not result["checks"]["phase_starts_independent:receiver-3.log"]
+
+
+def test_a_phase_start_on_a_renewal_ack_fails():
+    """The reviewer's D10 case: the receiver ignores the first Ack and starts on the third, 2 s later."""
+    builder = ttl_builder()
+    events = builder.receivers[0]
+    late = T0 + 2500 * MS
+    for event in events:
+        if event.get("event") in ("subscribed", "phase_start"):
+            event["realtime_ns"], event["monotonic_ns"] = late, late - T0
+            if event.get("event") == "phase_start":
+                event["phase_start_realtime_ns"] = late
+    lost = [e for e in events if e.get("event") == "frame" and e["realtime_ns"] < late]
+    for event in lost:
+        event["verdict"] = "not_subscribed"
+    builder.recorded = [f for f in builder.recorded if f.sequence not in {e["sequence"] for e in lost}]
+    final = next(e for e in events if e.get("event") == "final_status")
+    final["frames_delivered"] -= len(lost)
+    final["drop_not_subscribed"] = final.get("drop_not_subscribed", 0) + len(lost)
+    events.sort(key=lambda e: e["realtime_ns"])
+    result = evaluate_ttl_renewal(builder.records())
+    assert result["outcome"] == FAIL
+    assert not result["checks"]["phase_starts_independent:receiver-1.log"]
+    assert not result["checks"]["drops_against_independent_starts:receiver-1.log"]
+
+
+@pytest.mark.parametrize("reason", ["length_prefix_mismatch", "malformed_notification", "field_not_positive",
+                                    "copy_in_phase"])
+def test_a_valid_frame_dropped_for_its_content_or_as_a_copy_fails(reason):
+    """The reviewer's D11 cases: a well-formed frame on the link, dropped 200 ms into a phase."""
+    builder = resubscribe_builder()
+    events = builder.receivers[-1]
+    start = next(e for e in events if e.get("event") == "phase_start")
+    frame = next(e for e in events if e.get("event") == "frame" and e.get("verdict") == "delivered"
+                 and e["realtime_ns"] > start["realtime_ns"] + 200 * MS)
+    frame["verdict"] = reason
+    builder.recorded = [f for f in builder.recorded if f.sequence != frame["sequence"]]
+    final = next(e for e in events if e.get("event") == "final_status")
+    final["frames_delivered"] -= 1
+    final[f"drop_{reason}"] = final.get(f"drop_{reason}", 0) + 1
+    result = evaluate_resubscribe(builder.records())
+    assert result["outcome"] == FAIL
+    name = "copies_repeat_a_served_frame" if reason == "copy_in_phase" else "content_drops_malformed_on_link"
+    assert not result["checks"][f"{name}:receiver-3.log"]
+
+
+def test_a_malformed_frame_on_the_link_may_be_dropped_for_its_content():
+    builder = resubscribe_builder()
+    events = builder.receivers[-1]
+    start = next(e for e in events if e.get("event") == "phase_start")
+    frame = next(e for e in events if e.get("event") == "frame" and e.get("verdict") == "delivered"
+                 and e["realtime_ns"] > start["realtime_ns"] + 200 * MS)
+    frame["verdict"] = "length_prefix_mismatch"
+    builder.recorded = [f for f in builder.recorded if f.sequence != frame["sequence"]]
+    message = next(m for m in builder.link if m.session == frame["sequence"] & 0xFFFF)
+    message.payload = b"\xff\x00\x00\x00" + message.payload[4:]  # the prefix no longer counts the frame
+    final = next(e for e in events if e.get("event") == "final_status")
+    final["frames_delivered"] -= 1
+    final["drop_length_prefix_mismatch"] += 1
+    assert evaluate_resubscribe(builder.records())["checks"]["content_drops_malformed_on_link:receiver-3.log"]
+
+
+@pytest.mark.parametrize("connect_ms", [1.2, 5.0])
+def test_a_frame_during_the_clients_connect_may_be_dropped(connect_ms):
+    """The reviewer's D12 case: frame 51 arrives 2 ms before the accept, while connect() is under way."""
+    builder = Builder(120)
+    events = builder.receiver()
+    builder.auto_renewals = False
+    for k in range(20):
+        builder.ack(T0 + 500 * MS + k * S + 300_000)
+    builder.event(events, "subscribed", T0 + 500 * MS)
+    accept = builder.produced(51) + 4 * MS
+    for seq in range(1, 52):
+        builder.arrive(events, seq, "no_client")
+    builder.connections.append(RecorderConnection(1, accept + 20_000, None,
+                                                  pre_connect_realtime_ns=accept - int(connect_ms * MS)))
+    builder.event(events, "client_connected", accept)
+    builder.event(events, "phase_start", accept, cause="client_connected", phase_start_realtime_ns=accept)
+    for seq in range(52, 121):
+        builder.arrive(events, seq, "delivered")
+    builder.final(events, T0 + 20 * S)
+    result = evaluate_no_client(builder.records())
+    assert result["outcome"] == PASS, result["reasons"]
+
+
+@pytest.mark.parametrize("shift_ms", [0, 5, 15, 19, -5, -9, -11, -15, -19])
+def test_two_clocks_accept_an_offset_inside_their_bound(shift_ms):
+    """The reviewer's D4 case on the builder: the capture moved by an offset, a bound of 19 ms and 1 ms transit."""
+    for builder, evaluate in ((identity_builder(), evaluate_identity), (resubscribe_builder(), evaluate_resubscribe),
+                              (ingress_builder(), evaluate_ingress_start)):
+        builder.timeline["parameters"] = {"one_clock": False, "clock_offset_bound_ns": 19 * MS,
+                                          "transit_bound_ns": MS}
+        records = ingress_records(builder) if evaluate is evaluate_ingress_start else builder.records()
+        shift = shift_ms * MS
+        for message in records.capture.sd_messages:
+            message.ts_ns += shift
+        for stream in records.capture.streams:
+            stream.fin_ts_ns = None if stream.fin_ts_ns is None else stream.fin_ts_ns + shift
+            stream.first_ts_ns = None if stream.first_ts_ns is None else stream.first_ts_ns + shift
+            for message in stream.messages:
+                message.ts_ns += shift
+        result = evaluate(records)
+        assert result["outcome"] == PASS, (evaluate.__name__, result["reasons"][:3])
 
 
 @pytest.mark.parametrize("what", ["nack", "stop_offer", "client_end", "ack_gap"])
@@ -848,7 +1020,7 @@ def resubscribe_builder(*, missing_resubscribe: bool = False, killed_extra_frame
                                                       builder.produced(seq),
                                                       hashlib.sha256(builder.payloads[seq]).hexdigest()))
                 seq += 1
-            events = builder.receiver()
+            events = builder.receiver(at=disturbance_start + 100 * MS)
             builder.connect_client(events, recovery - 300 * MS, starts_phase=False)
         else:
             builder.phase_end(events, "subscription_lost:tcp_closed", disturbance_start)
