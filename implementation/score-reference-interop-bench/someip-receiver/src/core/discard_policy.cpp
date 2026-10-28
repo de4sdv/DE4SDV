@@ -16,6 +16,9 @@ const char* ToText(FrameVerdict verdict) noexcept {
   return "unknown";
 }
 
+PhaseStartDiscardPolicy::PhaseStartDiscardPolicy(std::size_t copy_memory_frames)
+    : served_(copy_memory_frames == 0U ? 1U : copy_memory_frames) {}
+
 void PhaseStartDiscardPolicy::ClearMemory() noexcept {
   served_next_ = 0;
   served_count_ = 0;
@@ -46,8 +49,8 @@ FrameVerdict PhaseStartDiscardPolicy::Admit(const FrameFields& frame) {
     }
   }
   served_[served_next_] = frame;  // the ring forgets the oldest served frame
-  served_next_ = (served_next_ + 1U) % kCopyMemoryFrames;
-  if (served_count_ < kCopyMemoryFrames) {
+  served_next_ = (served_next_ + 1U) % served_.size();
+  if (served_count_ < served_.size()) {
     ++served_count_;
   }
   return FrameVerdict::kDeliver;

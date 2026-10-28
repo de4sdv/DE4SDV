@@ -41,7 +41,7 @@ TEST(Options, DefaultsAreTheSpikeIdentifiersAndTheIngressPort) {
   EXPECT_EQ(options.listen_port, 4731);
   EXPECT_TRUE(options.join_multicast);
   EXPECT_EQ(options.multicast_group, 0xE0F4E0F5U);
-  EXPECT_TRUE(options.announce_property.empty());
+  EXPECT_TRUE(options.announce_properties.empty());
 }
 
 TEST(Options, ServerAddressIsRequired) {
@@ -50,13 +50,25 @@ TEST(Options, ServerAddressIsRequired) {
 }
 
 TEST(Options, TheDiscardRuleHasNoOption) {
-  EXPECT_FALSE(ParseOptions(With(Minimal(), {"--clock-offset-bound-ms", "0"})).options.has_value());
+  // The margin is fixed at 20 ms: no option sets it, so the receiver exits
+  // at start on any margin option, also on one above 20 ms.
+  for (const char* option : {"--clock-offset-bound-ms", "--phase-start-margin-ms", "--margin-ms"}) {
+    for (const char* value : {"0", "20", "21", "100"}) {
+      const auto parsed = ParseOptions(With(Minimal(), {option, value}));
+      EXPECT_FALSE(parsed.options.has_value()) << option << " " << value;
+      EXPECT_NE(parsed.error.find(option), std::string::npos) << parsed.error;
+    }
+  }
 }
 
-TEST(Options, AnnouncePropertyIsNameEqualsValue) {
-  const auto parsed = ParseOptions(With(Minimal(), {"--announce-property", "de4sdv.aebs.frame_server.host=127.0.0.1"}));
+TEST(Options, AnnouncePropertiesAreNameEqualsValueInOrder) {
+  const auto parsed = ParseOptions(With(Minimal(), {"--announce-property", "de4sdv.aebs.frame_server.host=127.0.0.1",
+                                                     "--announce-property", "de4sdv.aebs.ingress.start=0",
+                                                     "--announce-property", "de4sdv.aebs.ingress.start=1"}));
   ASSERT_TRUE(parsed.options.has_value()) << parsed.error;
-  EXPECT_EQ(parsed.options->announce_property, "de4sdv.aebs.frame_server.host=127.0.0.1");
+  EXPECT_EQ(parsed.options->announce_properties,
+            (std::vector<std::string>{"de4sdv.aebs.frame_server.host=127.0.0.1", "de4sdv.aebs.ingress.start=0",
+                                      "de4sdv.aebs.ingress.start=1"}));
   EXPECT_FALSE(ParseOptions(With(Minimal(), {"--announce-property", "=127.0.0.1"})).options.has_value());
   EXPECT_FALSE(ParseOptions(With(Minimal(), {"--announce-property", "no-value"})).options.has_value());
 }

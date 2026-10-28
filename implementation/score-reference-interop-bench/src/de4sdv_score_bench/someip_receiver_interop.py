@@ -67,6 +67,14 @@ DROP_REASONS = (
     "client_write_failed",
 )
 STORED_FRAME_VERDICTS = ("older_than_phase", "copy_in_phase")
+# The properties that the receiver sets after its loopback server listens,
+# in this order, at each of its starts: the frame server host of the ingress,
+# then the ingress start 0 and 1 (de4sdv_someip_receiver.rc passes the same).
+# Off Android, the receiver logs them and does not set them.
+ANNOUNCED_PROPERTIES = (("de4sdv.aebs.frame_server.host", "127.0.0.1"),
+                        ("de4sdv.aebs.ingress.start", "0"),
+                        ("de4sdv.aebs.ingress.start", "1"))
+PROPERTY_EVENTS = ("property_announced", "property_not_announced")
 LARGEST_FRAME_BYTES = 2044
 
 
@@ -149,6 +157,18 @@ class ReceiverRun:
                 phases[-1].end_monotonic_ns = event["monotonic_ns"]
                 phases[-1].end_cause = event.get("cause")
         return phases
+
+    def properties(self) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
+        """The properties set or logged before and after the start record (logged after listen())."""
+        before: list[tuple[str, str]] = []
+        after: list[tuple[str, str]] = []
+        started = False
+        for record in self.events:
+            if record.get("event") == "start":
+                started = True
+            elif record.get("event") in PROPERTY_EVENTS and record.get("ok", True):
+                (after if started else before).append((record.get("name"), record.get("value")))
+        return before, after
 
     def phase_at(self, monotonic_ns: int) -> Phase | None:
         for phase in self.phases():
@@ -288,6 +308,7 @@ def check_common(records: CaseRecords, verdict: Verdict, *, shared_memory_expect
     drops: Counter = Counter()
     delivered = []  # (run, frame line, phase)
     band_frames = 0
+    clock_steps = 0
     case_start = _case_start_ns(records)
     phase_report = []
     for run in records.receivers:
@@ -307,6 +328,19 @@ def check_common(records: CaseRecords, verdict: Verdict, *, shared_memory_expect
             for reason in DROP_REASONS:
                 verdict.check(f"drop_count:{run.name}:{reason}", counts.get(reason, 0) == final.get(f"drop_{reason}"),
                               f"{run.name}: the frame lines and the final status disagree on {reason}")
+        # The ingress is oneshot: each start of the receiver must start it
+        # again, and only after the loopback server listens.
+        before, after = run.properties()
+        verdict.check(f"ingress_start_after_listen:{run.name}", not before and after == list(ANNOUNCED_PROPERTIES),
+                      f"{run.name}: the properties after the start record are {after} (before it: {before}), "
+                      f"not {list(ANNOUNCED_PROPERTIES)}")
+        # A clock step voids the run: the phase start and the frame stamps no
+        # longer share one time line (ASM-MW-030).
+        steps = run.of("clock_step")
+        clock_steps += len(steps)
+        verdict.check(f"no_clock_step:{run.name}", not steps,
+                      f"{run.name}: {len(steps)} clock steps, the first of {steps[0].get('step_ns') if steps else 0} ns",
+                      MISSING)
         phases = run.phases()
         for phase in phases:
             phase_report.append({"run": run.name, "phase": phase.number, "cause": phase.cause,
@@ -341,6 +375,12 @@ def check_common(records: CaseRecords, verdict: Verdict, *, shared_memory_expect
                       f"{run.name}: {copies} copies served in one phase")
     verdict.metrics["drops_by_reason"] = {reason: drops.get(reason, 0) for reason in DROP_REASONS}
     verdict.metrics["frames_delivered_by_receiver"] = len(delivered)
+    verdict.metrics["clock_steps"] = clock_steps
+    if delivered:
+        # Receipt time on the receiver clock less frame_timestamp_ns: the path
+        # latency here, on one clock; on the VM also the host-guest offset.
+        lags = [frame["realtime_ns"] - frame["frame_timestamp_ns"] for _, frame, _ in delivered]
+        verdict.metrics["receipt_minus_frame_ms"] = {"min": round(min(lags) / 1e6, 3), "max": round(max(lags) / 1e6, 3)}
     verdict.metrics["phases"] = phase_report
     verdict.metrics["band_frames"] = band_frames
 

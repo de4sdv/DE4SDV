@@ -29,9 +29,11 @@ struct ReceiverOptions {
   std::uint32_t multicast_group{0xE0F4E0F5};  // 224.244.224.245
   std::uint32_t multicast_interface{0};       // 0.0.0.0: the kernel picks the interface by route
   std::int64_t status_period_ns{10 * kNanosecondsPerSecond};
-  // name=value of a system property that the receiver sets once its loopback
-  // server listens (Android only), so that the ingress starts after that.
-  std::string announce_property;
+  // name=value of the system properties that the receiver sets, in this
+  // order, once its loopback server listens (Android only): the ingress
+  // reads its frame server from two of them and starts on a third one, so it
+  // starts only after the receiver listens, also after a receiver restart.
+  std::vector<std::string> announce_properties;
   std::int64_t client_write_timeout_ns{500 * kNanosecondsPerMillisecond};
 };
 

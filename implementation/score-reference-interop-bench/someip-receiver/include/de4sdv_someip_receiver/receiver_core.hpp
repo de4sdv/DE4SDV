@@ -10,6 +10,17 @@
 // acknowledgement of a renewal changes nothing. A second client is refused
 // and starts no phase. Outside a phase every frame is read and dropped.
 //
+// Clock controls for ASM-MW-030: the core reads CLOCK_REALTIME minus
+// CLOCK_MONOTONIC at every event, and the shell gives it an event at least
+// every 100 ms. A change of that offset between two readings by 1 ms plus
+// 500 ppm of the interval (the fastest slew of the kernel clock discipline)
+// or more is a clock step: it is logged, and the phase it falls in is
+// marked. The start, each phase start and each status record log the
+// offset. Every served frame logs its receipt time minus its
+// frame_timestamp_ns (only the first five of a phase without --log-frames),
+// and the phase end and the status records log the minimum and maximum of
+// that value in the phase.
+//
 // The I/O shell feeds the core the socket events and implements its ports.
 // Each notification of the frame event ends in exactly one outcome:
 // delivered, or dropped with one reason. So frames_received equals
@@ -39,6 +50,10 @@ struct ReceiverConfig {
   // One "frame" log line per notification of the frame event.
   bool log_frames{false};
 };
+
+constexpr std::int64_t kClockStepThresholdNs = 1'000'000;
+constexpr std::int64_t kClockSlewDivisor = 2'000;  // 500 ppm
+constexpr std::uint64_t kFirstFramesLoggedPerPhase = 5;
 
 // The loopback client of the HMI ingress, implemented by the shell.
 class FrameSink {
@@ -81,6 +96,7 @@ struct ReceiverCounters {
   std::uint64_t clients_lost{0};
   std::uint64_t phases_started{0};
   std::uint64_t phases_ended{0};
+  std::uint64_t clock_steps{0};
 
   std::uint64_t frames_dropped() const noexcept;
 };
@@ -91,6 +107,9 @@ class ReceiverCore final : private SubscriptionTransport, private SubscriptionLi
                FrameDiscardPolicy& policy, EventLog& log);
 
   void OnTick(const Clock& now);
+  // Reads the offset of the two clocks; every event calls it, and the shell
+  // calls it once at start.
+  void ObserveClock(const Clock& now);
   void OnSdDatagram(const Clock& now, std::uint32_t source_address, bool multicast, const std::uint8_t* data,
                     std::size_t size);
   void OnTcpConnected(const Clock& now, const Ipv4Endpoint& local);
@@ -139,6 +158,13 @@ class ReceiverCore final : private SubscriptionTransport, private SubscriptionLi
   bool client_connected_{false};
   bool in_phase_{false};
   std::int64_t phase_start_realtime_ns_{0};
+  std::uint64_t phase_clock_steps_{0};
+  std::uint64_t phase_served_{0};
+  std::int64_t phase_receipt_min_ns_{0};
+  std::int64_t phase_receipt_max_ns_{0};
+  bool clock_seen_{false};
+  std::int64_t clock_offset_ns_{0};
+  std::int64_t clock_seen_monotonic_ns_{0};
   ReceiverCounters counters_{};
 };
 

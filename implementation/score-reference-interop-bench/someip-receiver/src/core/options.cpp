@@ -73,7 +73,7 @@ std::string Usage() {
          "  --status-period-s <s>         period of the status line (10)\n"
          "  --log-frames                  one log line per frame of the event\n"
          "  --announce-property <name=value>  set this system property once the loopback\n"
-         "                                server listens (Android only)\n";
+         "                                server listens (Android only; repeatable, in order)\n";
 }
 
 ParsedOptions ParseOptions(const std::vector<std::string>& arguments) {
@@ -124,7 +124,7 @@ ParsedOptions ParseOptions(const std::vector<std::string>& arguments) {
          if (!SplitProperty(text, &name, &value)) {
            return false;
          }
-         options.announce_property = text;
+         options.announce_properties.push_back(text);
          return true;
        }},
       {"--sd-port", number(65535, [&](std::uint64_t v) { s.sd_port = static_cast<std::uint16_t>(v); })},
@@ -246,7 +246,7 @@ LogRecord StartRecord(const ReceiverOptions& options, const char* policy_name, s
       .Text("discard_policy", policy_name)
       .Signed("phase_start_margin_ns", PhaseStartDiscardPolicy::kPhaseStartMarginNs)
       .Unsigned("copy_memory_frames", PhaseStartDiscardPolicy::kCopyMemoryFrames)
-      .Text("announce_property", options.announce_property)
+      .Unsigned("announce_properties", options.announce_properties.size())
       .Signed("status_period_ns", options.status_period_ns)
       .Signed("client_write_timeout_ns", options.client_write_timeout_ns)
       .Bool("log_frames", options.receiver.log_frames);

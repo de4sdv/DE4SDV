@@ -71,25 +71,58 @@ bool ReceiverCore::SendSd(const std::vector<std::uint8_t>& datagram, std::uint32
   return transport_.SendSd(datagram, address, port);
 }
 
+void ReceiverCore::ObserveClock(const Clock& now) {
+  const std::int64_t offset = now.realtime_ns - now.monotonic_ns;
+  if (clock_seen_) {
+    const std::int64_t step = offset - clock_offset_ns_;
+    const std::int64_t interval =
+        now.monotonic_ns > clock_seen_monotonic_ns_ ? now.monotonic_ns - clock_seen_monotonic_ns_ : 0;
+    const std::int64_t allowed = kClockStepThresholdNs + interval / kClockSlewDivisor;
+    if (step >= allowed || step <= -allowed) {
+      ++counters_.clock_steps;
+      if (in_phase_) {
+        ++phase_clock_steps_;
+      }
+      log_.Log(now, LogRecord{"clock_step"}
+                        .Signed("step_ns", step)
+                        .Signed("realtime_minus_monotonic_ns", offset)
+                        .Bool("in_phase", in_phase_));
+    }
+  }
+  clock_seen_ = true;
+  clock_offset_ns_ = offset;
+  clock_seen_monotonic_ns_ = now.monotonic_ns;
+}
+
 void ReceiverCore::UpdatePhase(const Clock& now, const std::string& cause) {
   const bool holds = machine_.subscribed() && client_connected_;
   if (holds && !in_phase_) {
     in_phase_ = true;
     phase_start_realtime_ns_ = now.realtime_ns;
+    phase_clock_steps_ = 0;
+    phase_served_ = 0;
     ++counters_.phases_started;
     policy_.OnPhaseStart(now.realtime_ns);
     log_.Log(now, LogRecord{"phase_start"}
                       .Text("cause", cause)
                       .Signed("phase_start_realtime_ns", now.realtime_ns)
-                      .Unsigned("phase", counters_.phases_started));
+                      .Unsigned("phase", counters_.phases_started)
+                      .Signed("realtime_minus_monotonic_ns", now.realtime_ns - now.monotonic_ns));
   } else if (!holds && in_phase_) {
     in_phase_ = false;
     ++counters_.phases_ended;
     policy_.OnPhaseEnd();
-    log_.Log(now, LogRecord{"phase_end"}
-                      .Text("cause", cause)
-                      .Signed("phase_start_realtime_ns", phase_start_realtime_ns_)
-                      .Unsigned("phase", counters_.phases_started));
+    LogRecord record{"phase_end"};
+    record.Text("cause", cause)
+        .Signed("phase_start_realtime_ns", phase_start_realtime_ns_)
+        .Unsigned("phase", counters_.phases_started)
+        .Unsigned("frames_served", phase_served_)
+        .Unsigned("clock_steps_in_phase", phase_clock_steps_);
+    if (phase_served_ > 0U) {
+      record.Signed("receipt_minus_frame_min_ns", phase_receipt_min_ns_)
+          .Signed("receipt_minus_frame_max_ns", phase_receipt_max_ns_);
+    }
+    log_.Log(now, record);
   }
 }
 
@@ -100,10 +133,14 @@ void ReceiverCore::OnSubscriptionLost(const Clock& now, SubscriptionLoss loss) {
   UpdatePhase(now, std::string{"subscription_lost:"} + ToText(loss));
 }
 
-void ReceiverCore::OnTick(const Clock& now) { machine_.OnTick(now); }
+void ReceiverCore::OnTick(const Clock& now) {
+  ObserveClock(now);
+  machine_.OnTick(now);
+}
 
 void ReceiverCore::OnSdDatagram(const Clock& now, std::uint32_t source_address, bool multicast,
                                 const std::uint8_t* data, std::size_t size) {
+  ObserveClock(now);
   ++counters_.sd_datagrams;
   const SdParseResult result = ParseSdMessage(data, size);
   if (!result.message.has_value()) {
@@ -118,15 +155,18 @@ void ReceiverCore::OnSdDatagram(const Clock& now, std::uint32_t source_address, 
 }
 
 void ReceiverCore::OnTcpConnected(const Clock& now, const Ipv4Endpoint& local) {
+  ObserveClock(now);
   reassembler_.Reset();
   machine_.OnTcpConnected(now, local);
 }
 
 void ReceiverCore::OnTcpConnectFailed(const Clock& now, int error_number) {
+  ObserveClock(now);
   machine_.OnTcpConnectFailed(now, error_number);
 }
 
 void ReceiverCore::OnTcpData(const Clock& now, const std::uint8_t* data, std::size_t size) {
+  ObserveClock(now);
   const bool framing_kept = reassembler_.Feed(
       data, size, [this, &now](const Header& header, const std::uint8_t* payload, std::size_t payload_size) {
         OnMessage(now, header, payload, payload_size);
@@ -139,11 +179,13 @@ void ReceiverCore::OnTcpData(const Clock& now, const std::uint8_t* data, std::si
 }
 
 void ReceiverCore::OnTcpClosed(const Clock& now) {
+  ObserveClock(now);
   reassembler_.Reset();
   machine_.OnTcpClosed(now);
 }
 
 bool ReceiverCore::OnClientAccepted(const Clock& now) {
+  ObserveClock(now);
   if (client_connected_) {
     ++counters_.clients_refused;
     log_.Log(now, LogRecord{"client_refused"}.Text("reason", "a client is connected"));
@@ -157,6 +199,7 @@ bool ReceiverCore::OnClientAccepted(const Clock& now) {
 }
 
 void ReceiverCore::OnClientDisconnected(const Clock& now) {
+  ObserveClock(now);
   if (!client_connected_) {
     return;
   }
@@ -166,17 +209,19 @@ void ReceiverCore::OnClientDisconnected(const Clock& now) {
   UpdatePhase(now, "client_lost");
 }
 
-void ReceiverCore::Stop(const Clock& now) { machine_.Stop(now); }
+void ReceiverCore::Stop(const Clock& now) {
+  ObserveClock(now);
+  machine_.Stop(now);
+}
 
 void ReceiverCore::LogFrame(const Clock& now, const char* verdict, const Header& header, std::size_t size,
                             const FrameFields* fields) {
-  if (!config_.log_frames) {
-    return;
-  }
   LogRecord record{"frame"};
   record.Text("verdict", verdict).Unsigned("someip_session", header.session_id).Unsigned("payload_bytes", size);
   if (fields != nullptr) {
-    record.Unsigned("sequence", fields->sequence).Signed("frame_timestamp_ns", fields->frame_timestamp_ns);
+    record.Unsigned("sequence", fields->sequence)
+        .Signed("frame_timestamp_ns", fields->frame_timestamp_ns)
+        .Signed("receipt_minus_frame_ns", now.realtime_ns - fields->frame_timestamp_ns);
   }
   log_.Log(now, record);
 }
@@ -184,7 +229,9 @@ void ReceiverCore::LogFrame(const Clock& now, const char* verdict, const Header&
 void ReceiverCore::Drop(const Clock& now, DropReason reason, const Header& header, std::size_t size,
                         const FrameFields* fields) {
   ++counters_.drops.at(static_cast<std::size_t>(reason));
-  LogFrame(now, ToText(reason), header, size, fields);
+  if (config_.log_frames) {
+    LogFrame(now, ToText(reason), header, size, fields);
+  }
 }
 
 void ReceiverCore::OnMessage(const Clock& now, const Header& header, const std::uint8_t* payload, std::size_t size) {
@@ -240,7 +287,17 @@ void ReceiverCore::OnMessage(const Clock& now, const Header& header, const std::
     return;
   }
   ++counters_.frames_delivered;
-  LogFrame(now, "delivered", header, size, &fields);
+  const std::int64_t receipt_minus_frame = now.realtime_ns - fields.frame_timestamp_ns;
+  if (phase_served_ == 0U || receipt_minus_frame < phase_receipt_min_ns_) {
+    phase_receipt_min_ns_ = receipt_minus_frame;
+  }
+  if (phase_served_ == 0U || receipt_minus_frame > phase_receipt_max_ns_) {
+    phase_receipt_max_ns_ = receipt_minus_frame;
+  }
+  ++phase_served_;
+  if (config_.log_frames || phase_served_ <= kFirstFramesLoggedPerPhase) {
+    LogFrame(now, "delivered", header, size, &fields);
+  }
 }
 
 LogRecord ReceiverCore::Status(const char* event) const {
@@ -251,7 +308,16 @@ LogRecord ReceiverCore::Status(const char* event) const {
       .Bool("client_connected", client_connected_)
       .Bool("in_phase", in_phase_)
       .Signed("phase_start_realtime_ns", in_phase_ ? phase_start_realtime_ns_ : 0)
-      .Bool("offer_known", machine_.has_offer())
+      .Signed("realtime_minus_monotonic_ns", clock_offset_ns_)
+      .Unsigned("clock_steps", counters_.clock_steps);
+  if (in_phase_) {
+    record.Unsigned("frames_served_in_phase", phase_served_).Unsigned("clock_steps_in_phase", phase_clock_steps_);
+    if (phase_served_ > 0U) {
+      record.Signed("receipt_minus_frame_min_ns", phase_receipt_min_ns_)
+          .Signed("receipt_minus_frame_max_ns", phase_receipt_max_ns_);
+    }
+  }
+  record.Bool("offer_known", machine_.has_offer())
       .Unsigned("frames_received", c.frames_received)
       .Unsigned("frames_delivered", c.frames_delivered)
       .Unsigned("frames_dropped", c.frames_dropped());

@@ -509,6 +509,69 @@ TEST(ReceiverCore, StatusHoldsEveryDropReason) {
   }
 }
 
+TEST(ReceiverCore, ClockStepInAPhaseIsLoggedAndMarksThePhase) {
+  Bench bench;
+  const std::int64_t start = StartPhase(bench);
+  bench.core.OnTick(Clock{start + 100 * kMs, Realtime(start + 100 * kMs)});
+  EXPECT_EQ(bench.log.Count("\"event\":\"clock_step\""), 0);
+  // CLOCK_REALTIME jumps 5 ms ahead of CLOCK_MONOTONIC.
+  bench.core.OnTick(Clock{start + 200 * kMs, Realtime(start + 200 * kMs) + 5 * kMs});
+  EXPECT_EQ(bench.log.Count("\"event\":\"clock_step\",\"step_ns\":5000000"), 1);
+  EXPECT_EQ(bench.core.counters().clock_steps, 1U);
+  bench.core.OnClientDisconnected(Clock{start + 300 * kMs, Realtime(start + 300 * kMs) + 5 * kMs});
+  EXPECT_EQ(bench.log.Count("\"event\":\"phase_end\""), 1);
+  EXPECT_EQ(bench.log.Count("\"clock_steps_in_phase\":1"), 1);
+}
+
+TEST(ReceiverCore, SlowDriftIsNoClockStep) {
+  Bench bench;
+  const std::int64_t start = StartPhase(bench);
+  for (int tick = 1; tick <= 50; ++tick) {
+    // 0.05 ms per 100 ms: 500 ppm, the fastest slew of the kernel's own adjustment.
+    const std::int64_t t = start + tick * 100 * kMs;
+    bench.core.OnTick(Clock{t, Realtime(t) + tick * 50'000});
+  }
+  EXPECT_EQ(bench.core.counters().clock_steps, 0U);
+}
+
+TEST(ReceiverCore, TheSlewAllowanceGrowsWithTheInterval) {
+  Bench bench;
+  bench.core.ObserveClock(At(0));
+  // 10 s without an event: 4 ms of slew (400 ppm) is no step, 7 ms is one
+  // (the allowance is 1 ms + 5 ms).
+  bench.core.ObserveClock(Clock{10 * kS, Realtime(10 * kS) + 4 * kMs});
+  EXPECT_EQ(bench.core.counters().clock_steps, 0U);
+  bench.core.ObserveClock(Clock{20 * kS, Realtime(20 * kS) + 11 * kMs});
+  EXPECT_EQ(bench.core.counters().clock_steps, 1U);
+  // A step back is a step too.
+  bench.core.ObserveClock(Clock{20 * kS + 100 * kMs, Realtime(20 * kS + 100 * kMs) + 9 * kMs});
+  EXPECT_EQ(bench.core.counters().clock_steps, 2U);
+}
+
+TEST(ReceiverCore, PhaseStartAndFramesLogTheClockFacts) {
+  ReceiverConfig config = Bench::Defaults();
+  config.log_frames = false;
+  Bench bench{config};
+  const std::int64_t start = StartPhase(bench);
+  EXPECT_EQ(bench.log.Count("\"realtime_minus_monotonic_ns\":" + std::to_string(kRealtimeBase)), 1);
+  for (std::uint64_t sequence = 1; sequence <= 8; ++sequence) {
+    const std::int64_t produced = Realtime(start) + static_cast<std::int64_t>(sequence) * 100 * kMs;
+    // Received 3 ms after it was produced.
+    bench.core.OnTcpData(At(start + static_cast<std::int64_t>(sequence) * 100 * kMs + 3 * kMs),
+                         FrameNotification(sequence, produced).data(), FrameNotification(sequence, produced).size());
+  }
+  // Without --log-frames, the first five frames served in a phase are logged.
+  EXPECT_EQ(bench.log.Count("\"event\":\"frame\""), 5);
+  EXPECT_EQ(bench.log.Count("\"receipt_minus_frame_ns\":3000000"), 5);
+  const std::string status = bench.core.Status("status").ToJson(At(start + kS));
+  EXPECT_NE(status.find("\"frames_served_in_phase\":8,\"clock_steps_in_phase\":0,"
+                        "\"receipt_minus_frame_min_ns\":3000000,\"receipt_minus_frame_max_ns\":3000000"),
+            std::string::npos)
+      << status;
+  bench.core.OnClientDisconnected(At(start + 2 * kS));
+  EXPECT_EQ(bench.log.Count("\"receipt_minus_frame_min_ns\":3000000,\"receipt_minus_frame_max_ns\":3000000"), 1);
+}
+
 TEST(ReceiverCore, StopSendsStopSubscribeAndEndsThePhase) {
   Bench bench;
   const std::int64_t start = StartPhase(bench);

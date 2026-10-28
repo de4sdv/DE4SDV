@@ -115,6 +115,16 @@ bool SubscriptionMachine::SendSubscribe(const Clock& now, std::uint32_t ttl) {
   request.ttl = ttl;
   request.eventgroup_id = config_.eventgroup_id;
   request.endpoint = tcp_local_;
+  // Every SD message takes a new session ID, also one whose send fails, so
+  // someipd never sees an ID twice (it would read that as a reboot of the
+  // receiver). The ID wraps from 0xFFFF to 1; the reboot flag stays set
+  // until the first wrap.
+  if (session_id_ == 0xFFFFU) {
+    session_id_ = 1;
+    reboot_flag_ = false;
+  } else {
+    ++session_id_;
+  }
   if (!transport_.SendSd(EncodeSubscribeEventgroup(request), config_.server_address, config_.sd_port)) {
     ++counters_.subscribe_send_failures;
     log_.Log(now, LogRecord{"sd_send_failed"}.Unsigned("session", request.session_id).Unsigned("ttl", ttl));
@@ -131,13 +141,6 @@ bool SubscriptionMachine::SendSubscribe(const Clock& now, std::uint32_t ttl) {
                       .Bool("reboot_flag", request.reboot)
                       .Unsigned("ttl", ttl)
                       .Text("endpoint", EndpointText(tcp_local_)));
-  }
-  // The session ID wraps from 0xFFFF to 1; the reboot flag stays set until the first wrap.
-  if (session_id_ == 0xFFFFU) {
-    session_id_ = 1;
-    reboot_flag_ = false;
-  } else {
-    ++session_id_;
   }
   return true;
 }
