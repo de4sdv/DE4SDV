@@ -230,13 +230,13 @@ def test_the_record_and_bench_guards_read_short_named_declarations() -> None:
     guard (negative cases of those two guards)."""
     text = SLICE.read_text(encoding="utf-8")
     anchor = "  part scoreMiddlewareVerificationBench : SCOREMiddlewareVerificationBench;"
-    record = "  part <'EVID-MW-099'> speedRunEvidence : ReceiptBoundMiddlewareEvidence { }\n"
+    record = "  part <'EVID-SYN-001'> speedRunEvidence : ReceiptBoundMiddlewareEvidence { }\n"
     with_record = text.replace(anchor, record + anchor, 1)
     assert with_record != text
     assert "speedRunEvidence" in _evidence_records(_blanked(with_record))
     assert _evidence_records(_blanked(with_record)) != ["retainedEvidence"] * (2 * len(CASES))
     first_part = "    ref part system1ConfiguredProduct"
-    with_part = text.replace(first_part, "    part <'SYS2-MW-001'> testEnvironment : Environment;\n" + first_part, 1)
+    with_part = text.replace(first_part, "    part <'SYS2-SYN-001'> testEnvironment : Environment;\n" + first_part, 1)
     assert with_part != text
     assert _bench_parts(with_part) == [
         ("", "testEnvironment"), ("ref ", "system1ConfiguredProduct"), ("ref ", "integrationLayer")]
@@ -250,6 +250,20 @@ def test_the_source_order_case_needs_all_four_stages() -> None:
     doc = " ".join(doc.split())
     assert "all four stages, MONITORING, WARNING, INTERVENTION and RELEASED" in doc
     assert "In that case, the outcome is inconclusiveMissingEvidence." in doc
+
+
+def test_the_at_most_once_case_bounds_messages_after_the_stop() -> None:
+    """REQ-MW-013: the pairing check covers the second clause; a bounded in-flight allowance covers the first."""
+    body = _raw_body(SLICE.read_text(encoding="utf-8"),
+                     r"\bverification\s+def\s+AtMostOnceSpeedSampleDeliveryVerification\s*\{")
+    (comment,) = re.findall(r"\bdoc\s*/\*(.*?)\*/", body, re.DOTALL)
+    doc = " ".join(" ".join(re.sub(r"^\s*\*\s?", "", line) for line in comment.splitlines()).split())
+    for statement in ("It checks both clauses of the success criteria and adds no criterion.",
+                      "The run declares an in-flight bound before it starts.",
+                      "It pairs with a distinct sample that is not yet delivered.",
+                      "It also arrives within the in-flight bound after the publish of that sample.",
+                      "Any other message in that time fails the first clause."):
+        assert statement in doc, statement
 
 
 def test_the_environment_gap_ends_on_the_verification_system() -> None:

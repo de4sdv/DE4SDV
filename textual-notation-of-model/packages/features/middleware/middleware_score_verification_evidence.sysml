@@ -95,8 +95,8 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * virtualization, restored from the snapshot de4sdv-aaos-build-20261014.
      * Two items stay open. The first is the exact System 2 identity as a
      * model element. The second is the assignment of each case to a bench.
-     * A bench plan is in work. The Linux-side cases can also run on
-     * GitHub-hosted runners if the S-CORE build fits there. The cases that
+     * The Linux-side cases can also run on GitHub-hosted runners if the
+     * S-CORE build fits there. The cases that
      * run need a Linux x86_64 host (ASM-MW-026) with Eclipse S-CORE, the
      * layer's host processes and the Autoware nodes that each case names.
      * VC-MW-015, VC-MW-016 and VC-MW-020 also need the AAOS SDV guest with
@@ -227,18 +227,25 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
 
   verification def AtMostOnceSpeedSampleDeliveryVerification {
     doc /*
-     * Test of REQ-MW-013. The vehicle-speed provider publishes samples with
+     * Test of REQ-MW-013. It checks both clauses of the success criteria and
+     * adds no criterion. The vehicle-speed provider publishes samples with
      * distinct values, stops, and then publishes again. While the provider
      * publishes, the run also restarts the adapter. GAP-MW-039 names this
      * restart: a restarted adapter could publish stored samples a second
      * time. An observer subscribes to the velocity input of the Autoware
-     * vehicle velocity converter. collectData records each provider sample,
-     * the stop and the restart of the provider, the adapter restart and each
-     * message at that input. processData pairs each delivered message with
-     * one distinct provider sample that the provider published before it.
-     * The case fails if a message has no such sample, or if two messages
-     * pair with the same sample. A message that arrives after the stop, for
-     * a sample published before the stop, is no failure.
+     * vehicle velocity converter. The run declares an in-flight bound before
+     * it starts. In the same run, it measures the one-way latency of the path
+     * from the provider to that input. collectData records each provider
+     * sample, the stop and the restart of the provider, the adapter restart
+     * and each message at that input. processData pairs each delivered
+     * message with one distinct provider sample that the provider published
+     * before it. The case fails the second clause if a message has no such
+     * sample, or if two messages pair with the same sample. After the stop
+     * and until the provider publishes again, a message is no failure only
+     * under two conditions. It pairs with a distinct sample that is not yet
+     * delivered. It also arrives within the in-flight bound after the
+     * publish of that sample. Any other message in that time fails the first
+     * clause.
      */
     subject verifiedBench : SCOREMiddlewareVerificationBench;
     objective atMostOnceSpeedSampleDeliveryObjective {
@@ -343,10 +350,10 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * the configuration of the S-CORE services, the adapter, gatewayd, someipd
      * and the SOME/IP receiver. collectData records each inspected artifact at
      * its exact revision. It also records each receiver on the Linux host that
-     * it finds for application data from the AAOS SDV guest. processData compares the
-     * findings with the criteria. The criteria do not name the health proxy
-     * node or the network configuration of the Linux host, so the case does
-     * not inspect them.
+     * it finds for application data from the AAOS SDV guest. processData
+     * compares the findings with the criteria. The criteria do not name the
+     * health proxy node or the network configuration of the Linux host, so
+     * the case does not inspect them.
      */
     subject verifiedBench : SCOREMiddlewareVerificationBench;
     objective noApplicationDataFromHMIGuestObjective {
@@ -407,11 +414,11 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * Test of REQ-MW-018. The adapter process runs on the Linux host. The
      * case throws an exception in the adapter's own code. It also throws one
      * inside a library that the adapter links, such as the ROS 2 client
-     * library. The execution slice chooses how to throw them. If that needs a changed
-     * build of the adapter, the record names that build. collectData records
-     * each thrown exception and how the process ends. processData checks that
-     * each exception aborts the process. If the adapter splits into two
-     * processes (GAP-MW-035), the case is revisited.
+     * library. The execution slice chooses how to throw them. If that needs a
+     * changed build of the adapter, the record names that build. collectData
+     * records each thrown exception and how the process ends. processData
+     * checks that each exception aborts the process. If the adapter splits
+     * into two processes (GAP-MW-035), the case is revisited.
      */
     subject verifiedBench : SCOREMiddlewareVerificationBench;
     objective adapterAbortOnExceptionObjective {
@@ -594,10 +601,9 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
 
   concern scoreMiddlewareVerificationCaseConcern : RequirementTraceConcern {
     doc /*
-     * Reviewers need each requirement of the middleware integration layer
-     * verified by one verification case. For each case, they need its method,
-     * the bench it needs and its status. Before any run, the status is not
-     * started.
+     * Reviewers need the method, bench and status of the one verification
+     * case of each requirement of the middleware integration layer. Before
+     * any run, the status is not started.
      */
     subject;
     stakeholder verificationEngineer : VerificationEngineer;
