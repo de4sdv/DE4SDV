@@ -24,8 +24,8 @@ Until 2026-10-28, phase 8 described two execution domains: the Linux host and
 a guest side with one display-capable AAOS SDV VM under KVM. Phase 8 put a
 DE4SDV SOME/IP receiver in that VM. The receiver was to subscribe to someipd
 and apply the discard rule of REQ-MW-019. Then it was to serve the frames to
-the reused HMI chain of INC-AEBS-010 on the guest loopback. It has not run in
-the guest. It
+the reused HMI chain of INC-AEBS-010 on the loopback of that VM. It has not
+run in the guest. It
 has run on Linux only, in feasibility runs against the real someipd. Where
 the guest end of SOME/IP sits was an open owner decision.
 
@@ -98,7 +98,8 @@ DE4SDV receiver work is re-scoped to the IVI frame relay.
    - the guest side, a guest partition of two VMs under KVM. The SDV Core VM
      runs the headless `sdv_core_cf` image with the SOME/IP broker, its stack
      and the VSIDL catalog provider. The IVI VM runs the display-capable
-     `sdv_ivi_cf` image with the SDV Gateway on IVI and the HMI application.
+     `sdv_ivi_cf` image with the SDV Gateway on IVI, the DE4SDV IVI frame
+     relay and the HMI application.
 
    So the member runs three operating-system instances.
 2. **No feature-model change.** The guest side of the feature model,
@@ -112,12 +113,12 @@ DE4SDV receiver work is re-scoped to the IVI frame relay.
    event to the SOME/IP stack of the SDV Core VM. The broker maps the event to
    an SDV topic with `INTERPRET_AS_BYTES`. Data Tunnel carries the topic to
    the IVI VM, and the SDV Gateway on IVI delivers it there. The member uses
-   Google's reference stack as AAOS SDV deploys it, unless the fallback of
-   decision 4 applies.
+   Google's reference stack where AAOS SDV deploys it, with a DE4SDV stack
+   configuration, unless the fallback of decision 4 applies.
 4. **The discard rule moves to an IVI frame relay.** A DE4SDV relay in the IVI
    VM subscribes to the topic through the SDV Gateway. It applies the discard
    rule of REQ-MW-019. It serves the frames to the reused HMI chain of
-   INC-AEBS-010 on the guest loopback, so the HMI chain stays unchanged.
+   INC-AEBS-010 on the IVI VM loopback, so the HMI chain stays unchanged.
    - **Fallback.** It covers only an interoperability failure of the
      reference stack with someipd. The owner decides it on the evidence of the
      feasibility run. The trigger is a run in which the stack does not
@@ -134,8 +135,9 @@ DE4SDV receiver work is re-scoped to the IVI frame relay.
 6. **The layer refers, and does not own.** The layer refers to the AAOS SDV
    elements it uses: the SOME/IP broker with its stack, Data Tunnel and the
    SDV Gateway on IVI. The guest side owns them, as the main side owns the
-   S-CORE services. The layer owns the IVI frame relay and its DE4SDV
-   configuration: the SOME/IP mapping and the stack configuration.
+   S-CORE services. The layer owns the IVI frame relay and the DE4SDV
+   configuration of the AAOS SDV elements: the SOME/IP mapping and the stack
+   configuration.
 7. **The DE4SDV SOME/IP receiver leaves the product path.** Its discard
    policy, its loopback server and its ingress trigger go into the IVI frame
    relay. Its SOME/IP code stays available for the fallback.
@@ -193,10 +195,9 @@ DE4SDV receiver work is re-scoped to the IVI frame relay.
     emergency path, and the gap on the transport.
 - **The verification cases change.** The bench holds the Linux host, the SDV
   Core VM and the IVI VM. The cases on REQ-MW-014, REQ-MW-015 and REQ-MW-019
-  keep their observation point, the guest loopback in the IVI VM. The
-  inspection cases list the broker mapping, the stack configuration and the
-  relay. The bench needs one observation point per hop, so that it can
-  localize a failure.
+  keep their observation point, the IVI VM loopback. The inspection cases
+  list the broker mapping, the stack configuration and the relay. The bench
+  needs one observation point per hop, so that it can localize a failure.
 - **The requirements become solution-neutral.** The success criteria of
   REQ-MW-016 and REQ-MW-017 name the SOME/IP receiver. A separate requirements
   revision states the HMI-path requirements for the guests of this member.
@@ -260,7 +261,7 @@ DE4SDV receiver work is re-scoped to the IVI frame relay.
   boot mode.
 - An upgrade of vsomeip in AOSP.
 - The text of the requirements.
-- A SOME/IP stack inside the IVI VM.
+- Whether another member may place a SOME/IP stack inside the IVI VM.
 
 ## Links
 
