@@ -282,8 +282,13 @@ and ROS 2 environment.
     value repeat time. No VelocityReport pairs twice, no provider sample is
     missing between the first and the last paired one, and the observer
     received no more than the adapter published.
-  - Every process lived at every check, and gatewayd subscribed the frame
-    event without a failure line.
+  - Every process lived at every check. gatewayd subscribed the frame event,
+    someipd subscribed gatewayd's bridged event, and gatewayd logged no
+    failure line. The one exception is a start-up race: until someipd's
+    subscription takes effect, gatewayd drops a frame that comes, with "No
+    client subscribed for event". The runner counts these lines one second
+    after someipd logs its subscription, and the soak reports them as
+    pre-subscription drops; a later line of that kind fails the soak.
   - The adapter forwarded the first frames of the source, in number and
     bytes, without an allocation failure or a lost stream.
 

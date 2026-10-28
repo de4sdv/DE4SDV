@@ -331,6 +331,17 @@ requirements:
 The middleware slice described above is the immutable closure record of
 INC-MW-010 and keeps its original typing.
 
+INC-MW-011 follows the current convention in
+`middleware_score_verification_evidence.sysml`. Each requirement has one
+verification case, and the case ID is its short name
+(`verification <'VC-MW-011'> referenceVehicleSpeedDeliveryVerification`).
+Each case binds the requirement's subject to the integration layer of the
+configured product `MW-CONFIG-002` (`verifiedBench.integrationLayer`). Its
+evidence record, `ReceiptBoundMiddlewareEvidence`, specializes the closed
+`RetainedMiddlewareEvidence` and adds `receiptSha256`: the digest of the
+receipt that a run ran against. The record of INC-MW-010 stays unchanged.
+`tests/test_middleware_score_verification_evidence.py` guards the slice.
+
 ## Trace links
 
 Traceability is expressed as **`dependency` usages** in the SysML model —

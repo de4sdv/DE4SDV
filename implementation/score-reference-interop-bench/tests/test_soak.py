@@ -20,7 +20,12 @@ import pytest
 BENCH = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BENCH / "src"))
 
-from de4sdv_score_bench.soak import evaluate_soak, float32_bits, pair_speed_messages  # noqa: E402
+from de4sdv_score_bench.soak import (  # noqa: E402
+    count_no_subscriber_drops,
+    evaluate_soak,
+    float32_bits,
+    pair_speed_messages,
+)
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 SECOND = 1_000_000_000
@@ -125,6 +130,10 @@ def _frame_source_log() -> str:
 
 GATEWAYD_LOG = ("[gatewayd] Connected to someipd over the mw::com IPC binding\n"
                 "[gatewayd] LocalServiceInstance created for instance specifier: de4sdv/aebs_signal_frame\n")
+# The line of a CI soak (run 40734185142): gatewayd dropped a frame that came
+# before someipd's subscription of the bridged event.
+NO_SUBSCRIBER_DROP = ("[gatewayd] LocalServiceInstance - Failed to allocate event payload for event 0: "
+                      "No client subscribed for event\n")
 NODE_INFO = (FIXTURES / "ros2_node_info_member_run.txt").read_text(encoding="utf-8")
 NODE_INFO_WITH_SERVICES = (FIXTURES / "ros2_node_info_parameter_services.txt").read_text(encoding="utf-8")
 
@@ -150,6 +159,8 @@ def _run(planned_s: int = PLANNED_S) -> dict:
             for number in range(planned_s // 10)
         ],
         "adapter_pid": ADAPTER_PID,
+        "someipd_subscribed": True,
+        "gatewayd_drops_before_subscription": 0,
     }
 
 
@@ -298,6 +309,64 @@ def test_a_gatewayd_subscription_failure_fails_even_with_the_created_line():
     assert result["gatewayd_failures"] == 1
 
 
+def test_a_drop_for_lack_of_a_subscriber_before_the_subscription_passes():
+    run = _run()
+    run["gatewayd_drops_before_subscription"] = 1
+    result = _evaluate(run, gatewayd_log=GATEWAYD_LOG + NO_SUBSCRIBER_DROP)
+    assert result["outcome"] == "passBoundedVerification", result["reasons"]
+    assert result["pre_subscription_drops"] == 1
+    assert result["gatewayd_failures"] == 0
+
+
+def test_the_same_drop_after_the_subscription_fails():
+    run = _run()
+    run["gatewayd_drops_before_subscription"] = 0
+    result = _evaluate(run, gatewayd_log=GATEWAYD_LOG + NO_SUBSCRIBER_DROP)
+    assert result["outcome"] == "failObservedBehavior"
+    assert result["pre_subscription_drops"] == 0
+    assert result["gatewayd_failures"] == 1
+    assert any("after someipd had subscribed" in reason for reason in result["reasons"])
+
+
+def test_more_drops_than_before_the_subscription_fail():
+    run = _run()
+    run["gatewayd_drops_before_subscription"] = 1
+    result = _evaluate(run, gatewayd_log=GATEWAYD_LOG + NO_SUBSCRIBER_DROP * 3)
+    assert result["outcome"] == "failObservedBehavior"
+    assert result["pre_subscription_drops"] == 1
+    assert result["gatewayd_failures"] == 2
+
+
+def test_a_different_failure_line_fails_even_before_the_subscription():
+    run = _run()
+    run["gatewayd_drops_before_subscription"] = 1
+    log = GATEWAYD_LOG + "[gatewayd] LocalServiceInstance - Failed to read samples for event 0: binding failure\n"
+    result = _evaluate(run, gatewayd_log=log)
+    assert result["outcome"] == "failObservedBehavior"
+    assert result["gatewayd_failures"] == 1
+
+
+def test_a_soak_in_which_someipd_never_subscribed_fails():
+    run = _run()
+    run["someipd_subscribed"] = False
+    run["gatewayd_drops_before_subscription"] = None
+    result = _evaluate(run)
+    assert result["outcome"] == "failObservedBehavior"
+    assert any("someipd" in reason for reason in result["reasons"])
+
+
+def test_drops_without_the_count_at_the_subscription_are_not_accepted():
+    run = _run()
+    run["gatewayd_drops_before_subscription"] = None
+    result = _evaluate(run, gatewayd_log=GATEWAYD_LOG + NO_SUBSCRIBER_DROP)
+    assert result["outcome"] != "passBoundedVerification"
+
+
+def test_the_drop_count_reads_only_the_lines_for_lack_of_a_subscriber():
+    log = GATEWAYD_LOG + NO_SUBSCRIBER_DROP * 2 + "[gatewayd] LocalServiceInstance - Failed to subscribe event 0: x\n"
+    assert count_no_subscriber_drops(log) == 2
+
+
 def test_a_gatewayd_without_its_local_service_instance_fails():
     run = _run()
     run["gatewayd_subscribed"] = False
@@ -433,6 +502,8 @@ def test_a_malformed_provider_record_is_error_evidence():
         lambda run: run["liveness_checks"].append({"monotonic_ns": 1}),
         lambda run: run["liveness_checks"][0].update(frame_stream_client_pids=["4242"]),
         lambda run: run.update(adapter_pid="4242"),
+        lambda run: run.update(someipd_subscribed="yes"),
+        lambda run: run.update(gatewayd_drops_before_subscription=-1),
     ],
 )
 def test_malformed_run_records_are_error_evidence(mutation):

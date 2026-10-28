@@ -11,8 +11,15 @@ and an independent observer. It passes only when all of these hold:
 - Every bench process was alive at every liveness check, and at each check
   the adapter was the only client of the frame stream: the frame assembler
   gives its stream to its newest client.
-- gatewayd logged its subscription of the frame event, and no failure of its
-  local service instance.
+- gatewayd logged its subscription of the frame event, someipd logged its
+  subscription of gatewayd's bridged event, and gatewayd logged no failure
+  of its local service instance. One kind of line is a start-up race, not a
+  failure: until someipd's subscription takes effect, gatewayd drops each
+  frame for lack of a subscriber ("No client subscribed for event"), the
+  discard of an unsubscribed event. The runner counts these lines when
+  someipd has subscribed and SUBSCRIPTION_SETTLE_S has passed; those are
+  the pre-subscription drops. Every later line of that kind, and every other
+  failure line, fails the soak.
 - ``ros2 node info`` of the adapter node, in the same ROS 2 environment,
   shows exactly the endpoints of a member run: the VelocityReport
   publication and the /parameter_events subscription of rclcpp's time
@@ -75,8 +82,18 @@ _RUN_KEYS = {
     "liveness_period_s",
     "liveness_checks",
     "adapter_pid",
+    "someipd_subscribed",
+    "gatewayd_drops_before_subscription",
 }
 _GATEWAYD_FAILURE = re.compile(r"\[gatewayd\][^\n]*Failed to[^\n]*")
+# gatewayd's drop of a frame while no client (someipd) subscribed its event.
+_GATEWAYD_NO_SUBSCRIBER = re.compile(
+    r"\[gatewayd\] LocalServiceInstance - Failed to allocate event payload for event \d+: "
+    r"No client subscribed for event"
+)
+# The time after someipd's subscription line within which a drop still
+# counts as one before the subscription took effect.
+SUBSCRIPTION_SETTLE_S = 1.0
 _HEX = re.compile(r"^[0-9a-f]+$")
 _FRAME_COUNTERS_ZERO = (
     "frames_allocate_failed",
@@ -85,6 +102,11 @@ _FRAME_COUNTERS_ZERO = (
     "frames_dropped_oversize",
     "frame_connection_losses",
 )
+
+
+def count_no_subscriber_drops(gatewayd_log_text: str) -> int:
+    """The lines with which gatewayd dropped a frame because no client subscribed its event."""
+    return len(_GATEWAYD_NO_SUBSCRIBER.findall(gatewayd_log_text))
 
 
 def float32_bits(value: float) -> str:
@@ -137,8 +159,12 @@ def _shape_errors(run: Any) -> list[str]:
         errors.append("provider_values_kmh is not a list of finite numbers")
     if type(run["gateway"]) is not bool:
         errors.append("gateway is not a boolean")
-    if run["gatewayd_subscribed"] is not None and type(run["gatewayd_subscribed"]) is not bool:
-        errors.append("gatewayd_subscribed is not a boolean")
+    for key in ("gatewayd_subscribed", "someipd_subscribed"):
+        if run[key] is not None and type(run[key]) is not bool:
+            errors.append(f"{key} is not a boolean")
+    drops = run["gatewayd_drops_before_subscription"]
+    if drops is not None and (not _is_int(drops) or drops < 0):
+        errors.append("gatewayd_drops_before_subscription is not a count")
     checks = run["liveness_checks"]
     if not isinstance(checks, list) or not all(
         isinstance(check, dict)
@@ -309,6 +335,7 @@ def evaluate_soak(
         "liveness_checks": None,
         "frame_stream_clients": None,
         "gatewayd_failures": None,
+        "pre_subscription_drops": None,
         "adapter_endpoints": None,
         "mw_log_fallback": None,
         "rss_kib_first": None,
@@ -381,11 +408,26 @@ def evaluate_soak(
 
     if run["gateway"]:
         failures = _GATEWAYD_FAILURE.findall(gatewayd_log_text)
-        result["gatewayd_failures"] = len(failures)
+        others = [line for line in failures if not _GATEWAYD_NO_SUBSCRIBER.search(line)]
+        drops = len(failures) - len(others)
+        before = run["gatewayd_drops_before_subscription"]
+        later_drops = drops - before if before is not None else 0
+        result["pre_subscription_drops"] = min(drops, before) if before is not None else None
+        result["gatewayd_failures"] = len(others) + max(0, later_drops)
         if run["gatewayd_subscribed"] is not True:
             fail(FAIL, "gatewayd logged no local service instance of the frame event")
-        if failures:
-            fail(FAIL, f"gatewayd logged {len(failures)} failures, the first: {failures[0].strip()[:160]}")
+        if run["someipd_subscribed"] is not True:
+            fail(FAIL, "someipd logged no subscription of gatewayd's bridged frame event")
+        if others:
+            fail(FAIL, f"gatewayd logged {len(others)} failures, the first: {others[0].strip()[:160]}")
+        if before is None:
+            if drops:
+                fail(MISSING, f"gatewayd dropped {drops} frames for lack of a subscriber, and the run record has no "
+                              "count of the drops before the subscription")
+        elif later_drops > 0:
+            fail(FAIL, f"gatewayd dropped {later_drops} frames for lack of a subscriber after someipd had subscribed")
+        elif later_drops < 0:
+            fail(ERROR, f"gatewayd's log holds {drops} drops, fewer than the {before} counted at the subscription")
 
     if node_info_text is None:
         fail(MISSING, "no ros2 node info of the adapter node")

@@ -28,13 +28,14 @@ BENCH = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BENCH / "src"))
 
 import bench_runtime as rt  # noqa: E402
-from de4sdv_score_bench.soak import evaluate_soak  # noqa: E402
+from de4sdv_score_bench.soak import SUBSCRIPTION_SETTLE_S, count_no_subscriber_drops, evaluate_soak  # noqa: E402
 
 PROVIDER_VALUES = [0.0, 10.0, 36.0, 50.0, 72.0, 100.0, 130.0, 20.5]
 LIVENESS_PERIOD_S = 10
 SOMEIPD_STARTED = r"\[someipd\] mw::com IPC binding started"
 GATEWAYD_CONNECTED = r"\[gatewayd\] Connected to someipd over the mw::com IPC binding"
 GATEWAYD_SUBSCRIBED = r"\[gatewayd\] LocalServiceInstance created for instance specifier: de4sdv/aebs_signal_frame"
+SOMEIPD_SUBSCRIBED = r"\[someipd\] LocalNetworkService - Subscribing to event aebs_signal_frame "
 ADAPTER_NODE = "/de4sdv_score_adapter"
 
 
@@ -90,8 +91,16 @@ def main() -> int:
     ready = adapter.wait_for(rt.json_event_predicate("ready"), 30.0) and adapter.alive()
     ready_ns = rt.monotonic_ns() if ready else None
     gatewayd_subscribed = None
+    someipd_subscribed = None
+    drops_before_subscription = None
     if gatewayd is not None:
         gatewayd_subscribed = gatewayd.wait_for(rt.regex_predicate(GATEWAYD_SUBSCRIBED), 20.0)
+        # Until someipd's subscription of the bridged event takes effect,
+        # gatewayd drops frames for lack of a subscriber; count those.
+        someipd_subscribed = someipd.wait_for(rt.regex_predicate(SOMEIPD_SUBSCRIBED), 20.0)
+        if someipd_subscribed:
+            time.sleep(SUBSCRIPTION_SETTLE_S)
+            drops_before_subscription = count_no_subscriber_drops(gatewayd.log_text())
     node_info_text = None
     if ready:
         # The adapter node's ROS 2 endpoints, seen by one more participant in
@@ -143,6 +152,8 @@ def main() -> int:
         "liveness_period_s": LIVENESS_PERIOD_S,
         "liveness_checks": checks,
         "adapter_pid": adapter.pid,
+        "someipd_subscribed": someipd_subscribed,
+        "gatewayd_drops_before_subscription": drops_before_subscription,
     }
     rt.write_json(out / "soak-run.json", run)
     rt.write_json(out / "soak-notes.json", notes)
@@ -177,8 +188,9 @@ def main() -> int:
         f"- frames: source {result['frame_source_frames']}, forwarded {result['frames_forwarded']}, sent "
         f"{result['frames_sent']}, bytes read {result['frame_bytes_read']}; allocate failures "
         f"{result['frames_allocate_failed']}; stream losses {result['frame_connection_losses']}; stream clients "
-        f"{result['frame_stream_clients']}; gatewayd subscribed {gatewayd_subscribed}, gatewayd failures "
-        f"{result['gatewayd_failures']}",
+        f"{result['frame_stream_clients']}; gatewayd subscribed {gatewayd_subscribed}, someipd subscribed "
+        f"{someipd_subscribed}, gatewayd failures {result['gatewayd_failures']}, pre-subscription drops "
+        f"{result['pre_subscription_drops']}",
         f"- adapter node endpoints (ros2 node info): {result['adapter_endpoints']}",
         f"- RSS first/last {result['rss_kib_first']}/{result['rss_kib_last']} KiB; mw::log fallback "
         f"{result['mw_log_fallback']}; first named frame below the override {result['abort_caller']}",
