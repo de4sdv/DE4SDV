@@ -10,11 +10,14 @@ for its discard rule. The sizes cycle through small and large values up to
 2044 bytes, the largest frame that fits the 2048-byte sample of the S-CORE
 frame event with its prefix.
 
-It sends nothing before --go-file exists, stops after --frames frames
-(0: no limit) and keeps the connection open until SIGTERM. One JSON line per
-sent frame records the sequence, the timestamp, the size and the SHA-256 of
-prefix plus frame; the bytes sent on connection k go to
-<stream-dir>/source-stream-<k>.bin.
+It sends nothing before --go-file exists and nothing while --pause-file
+exists, stops after --frames frames (0: no limit) and keeps the connection
+open until SIGTERM. A pause leaves the newest frames in the sample slots of
+the S-CORE layer, so the first read of a later subscription in the host
+half returns frames from before it, as in the stored-sample cases of the
+gateway spike. One JSON line per sent frame records the sequence, the
+timestamp, the size and the SHA-256 of prefix plus frame; the bytes sent on
+connection k go to <stream-dir>/source-stream-<k>.bin.
 """
 
 from __future__ import annotations
@@ -55,6 +58,7 @@ def main() -> int:
     parser.add_argument("--period-ms", type=int, default=100)
     parser.add_argument("--frames", type=int, default=0)
     parser.add_argument("--go-file", default="")
+    parser.add_argument("--pause-file", default="")
     parser.add_argument("--log", required=True)
     parser.add_argument("--stream-dir", required=True)
     arguments = parser.parse_args()
@@ -68,7 +72,9 @@ def main() -> int:
     signal.signal(signal.SIGINT, _on_signal)
 
     def go() -> bool:
-        return not arguments.go_file or os.path.exists(arguments.go_file)
+        started = not arguments.go_file or os.path.exists(arguments.go_file)
+        paused = bool(arguments.pause_file) and os.path.exists(arguments.pause_file)
+        return started and not paused
 
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -80,6 +86,7 @@ def main() -> int:
     sequence = 0
     connection = 0
     done_logged = False
+    sending = False
     with open(arguments.log, "a", encoding="utf-8") as log:
         def record(event: str, **fields) -> None:
             log.write(json.dumps({"event": event, "monotonic_ns": time.monotonic_ns(),
@@ -101,9 +108,15 @@ def main() -> int:
                         if arguments.frames and sequence >= arguments.frames and not done_logged:
                             record("done", frames=sequence)
                             done_logged = True
+                        if sending:
+                            record("paused", last_sequence=sequence)
+                            sending = False
                         time.sleep(0.02)
                         next_send = None
                         continue
+                    if not sending:
+                        record("sending", next_sequence=sequence + 1)
+                        sending = True
                     if next_send is None:
                         next_send = time.monotonic()
                     sequence += 1

@@ -511,6 +511,26 @@ def test_stored_samples_are_inconclusive_when_none_arrive():
     assert evaluate_stored_samples(stored_builder(none=True).records())["outcome"] == MISSING
 
 
+def test_stored_samples_need_a_frame_from_before_the_phase():
+    result = evaluate_stored_samples(stored_builder(older=0).records())
+    assert result["outcome"] == MISSING
+    assert not result["checks"]["frames_from_before_the_phase_dropped_in_a_phase"]
+    assert result["checks"]["copies_dropped_in_a_phase"]
+
+
+def test_stored_samples_need_a_copy():
+    result = evaluate_stored_samples(stored_builder(copies=0).records())
+    assert result["outcome"] == MISSING
+    assert not result["checks"]["copies_dropped_in_a_phase"]
+    assert result["checks"]["frames_from_before_the_phase_dropped_in_a_phase"]
+
+
+def test_stored_samples_report_the_link_view_per_step():
+    steps = {s["step"]: s for s in evaluate_stored_samples(stored_builder().records())["metrics"]["steps"]}
+    assert steps["gatewayd_restart"]["repeats_on_link"] == 8
+    assert steps["gateway_pair_restart"]["older_on_link"] == 9
+
+
 def test_a_copy_served_after_a_gatewayd_restart_fails():
     result = evaluate_stored_samples(stored_builder(deliver_copy=True).records())
     assert result["outcome"] == FAIL
