@@ -1319,13 +1319,15 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    * - the end of the TTL of its last acknowledged subscription.
    * It is subscribed again when it next gets a SubscribeEventgroupAck. The
    * acknowledgement of a renewal does not change the state. The receiver
-   * sets no TCP keepalive. So after a link loss, the end of the TTL ends
-   * its subscription. When the link comes back, a negative acknowledgement
-   * from someipd ends the half-open connection. The ingress is connected from
-   * the time the receiver accepts it as the only client. A phase starts
-   * when the second of the two conditions starts to hold. It ends when one
-   * of them ends. The receiver takes the phase start from its own system
-   * clock.
+   * sets no TCP keepalive. So a link loss that lasts longer than the TTL
+   * ends its subscription when the TTL ends. When the link comes back,
+   * someipd sends a negative acknowledgement only if it no longer holds the
+   * TCP connection (service_discovery_impl.cpp:2103-2112 of vsomeip 3.6.1).
+   * The receiver then ends the half-open connection. Otherwise someipd
+   * acknowledges the subscription. The ingress is connected from the time
+   * the receiver accepts it as the only client. A phase starts when the
+   * second of the two conditions starts to hold. It ends when one of them
+   * ends. The receiver takes the phase start from its own system clock.
    * Frames. Outside a phase, the receiver reads each frame and drops it. It
    * holds no frame for later delivery. In a phase, it serves a frame
    * unchanged only if the frame passes two checks:

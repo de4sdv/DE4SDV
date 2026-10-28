@@ -172,6 +172,8 @@ def test_the_receiver_discard_rule_traces_its_requirements_bound_and_residual() 
     assert margin == bound == band_margin, (margin, bound, band_margin)
     for statement in ("SubscribeEventgroupAck", "accepts it as the only client", "a reboot of someipd",
                       "a loss of the SOME/IP framing of the TCP stream", "The receiver sets no TCP keepalive",
+                      "a link loss that lasts longer than the TTL",
+                      "only if it no longer holds the TCP connection",
                       "It is no copy of a frame that the receiver served in this phase",
                       "it clears them at each phase start",
                       "the rule drops no frame that the AEBS stack produced after the phase start"):
