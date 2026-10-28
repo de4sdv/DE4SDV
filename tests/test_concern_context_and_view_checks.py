@@ -204,7 +204,7 @@ def _workflow(story: Story) -> None:
         WorkflowStep("classifyCapabilities", P3, (
             P("characteristics", "ProductLineCharacteristic", "PartUsage", bounds=(0, INFINITY)),), (
             C(DELTA, "featureDeltaOnly", "characteristics"),)),
-        WorkflowStep("publishIncrement", P11, (P("publishedViews", None, "ViewUsage", bounds=(0, INFINITY)),), (
+        WorkflowStep("publishIncrement", P11, (P("publishedViews", None, "ViewUsage", bounds=(1, INFINITY)),), (
             C(VIEW_FRAMES, "viewpointFramesConcern", "publishedViews"),
             C(VIEW_EXPOSES, "exposesModelContent", "publishedViews"))),
     ], charter=story.scenario.charter)
@@ -276,7 +276,7 @@ def test_every_check_is_blocking_and_reads_the_population_its_parameter_declares
     assert all(gates[gate]["required"] for gate in GATES)
     assert {gate: gates[gate]["population"] for gate in GATES} == {
         STAKEHOLDER: [1, "*"], FRAMED: [1, "*"], CONTEXT: [1, 1], CONTEXT_SYSTEM: [1, 1], SUBJECT_BOUND: [1, 1],
-        ACTORS_BOUND: [1, 1], DELTA: [0, "*"], VIEW_FRAMES: [0, "*"], VIEW_EXPOSES: [0, "*"]}
+        ACTORS_BOUND: [1, 1], DELTA: [0, "*"], VIEW_FRAMES: [1, "*"], VIEW_EXPOSES: [1, "*"]}
     # Only the synthetic framing step, which declares no check here, is without one.
     assert contract["phases_without_executable_checks"] == [P0]
 
@@ -325,7 +325,56 @@ def test_a_viewpoint_outside_the_increment_s_packages_does_not_frame_its_concern
     _view_framing(b, elsewhere, "elsewhereView", story.context_concern)
     evaluation = _evaluate(story)
     assert _verdicts(evaluation, FRAMED)["fixtureContextConcern"] == me.VERDICT_FAIL
-    assert any("no viewpoint of a view in a package of the increment" in d for d in _diagnostics(evaluation, FRAMED))
+    assert any("elsewhereView::selectedViewpoint frames it but is no viewpoint of a view of the increment" in d
+               for d in _diagnostics(evaluation, FRAMED))
+
+
+def test_a_view_owned_by_a_part_is_no_view_of_the_increment_in_either_phase() -> None:
+    """Review R3: phases 1 and 11 count the same views, those the increment's packages own. A view that a
+    part owns frames no concern for phase 1 and is no phase-11 subject."""
+    story = _story()
+    b = story.builder
+    b.remove(story.context_view)
+    nested = b.usage("ViewUsage", "hostView", story.host, membership="FeatureMembership")
+    viewpoint = b.usage("ViewpointUsage", "selectedViewpoint", nested, membership="FeatureMembership")
+    b.frame(viewpoint, story.context_concern)
+    _expose(b, nested, story.context_package)
+    evaluation = _evaluate(story)
+    assert _verdicts(evaluation, FRAMED)["fixtureContextConcern"] == me.VERDICT_FAIL
+    assert any("hostView::selectedViewpoint frames it but is no viewpoint of a view of the increment" in d
+               for d in _diagnostics(evaluation, FRAMED))
+    for gate in (VIEW_FRAMES, VIEW_EXPOSES):
+        assert "hostView" not in _verdicts(evaluation, gate), gate
+
+
+def test_a_viewpoint_inherits_the_frames_of_its_viewpoint_definition_in_both_phases() -> None:
+    """Review R4: ``viewpoint vp : VD;`` where ``viewpoint def VD { frame c; }``: the usage frames ``c``."""
+    story = _story()
+    b = story.builder
+    viewpoint = b.feature_of(story.context_view, "selectedViewpoint")
+    b.remove(b.feature_of(viewpoint, "fixtureContextConcern"))
+    definition = b.definition("ViewpointDefinition", "FixtureContextViewpointDef", story.context_package)
+    b.frame(definition, story.context_concern)
+    b.typed(viewpoint, definition)
+    evaluation = _evaluate(story)
+    assert _verdicts(evaluation, FRAMED)["fixtureContextConcern"] == me.VERDICT_PASS
+    assert _verdicts(evaluation, VIEW_FRAMES)["fixtureContextView"] == me.VERDICT_PASS
+
+
+def test_a_viewpoint_definition_s_frame_counts_only_through_a_viewpoint_typed_by_it() -> None:
+    """Review R4: the diagnostic names the viewpoint definition as such, never "no viewpoint"."""
+    story = _story()
+    b = story.builder
+    viewpoint = b.feature_of(story.context_view, "selectedViewpoint")
+    b.remove(b.feature_of(viewpoint, "fixtureContextConcern"))
+    definition = b.definition("ViewpointDefinition", "FixtureContextViewpointDef", story.context_package)
+    b.frame(definition, story.context_concern)
+    evaluation = _evaluate(story)
+    assert _verdicts(evaluation, FRAMED)["fixtureContextConcern"] == me.VERDICT_FAIL
+    diagnostics = _diagnostics(evaluation, FRAMED)
+    assert any(f"the viewpoint definition {CONTEXT_PACKAGE}::FixtureContextViewpointDef frames it, but no viewpoint "
+               "of a view of the increment is typed by it" in d for d in diagnostics), diagnostics
+    assert not any("FixtureContextViewpointDef frames it but is no viewpoint" in d for d in diagnostics)
 
 
 def test_no_concern_in_the_increment_fails_the_population_of_phase_1() -> None:
@@ -462,10 +511,44 @@ def test_an_increment_without_a_use_case_has_no_story_to_bind_not_a_pass() -> No
     for gate in (SUBJECT_BOUND, ACTORS_BOUND):
         unit = _unit(evaluation, gate)
         assert (unit.state, unit.verdict) == (me.STATE_COMPLETE, me.VERDICT_NOT_APPLICABLE), gate
+        assert any("own no use case at any depth" in d for d in _diagnostics(evaluation, gate)), gate
+
+
+def test_a_story_the_context_owns_is_the_story_and_its_unbound_parameters_fail() -> None:
+    """Review R2: the story is every use case the packages own at any depth. A use case the context owns,
+    with an unbound subject and an unbound actor, fails both story checks; it is never "no use case"."""
+    story = _story()
+    b = story.builder
+    b.remove(story.use_case)
+    nested = b.usage("UseCaseUsage", "contextStory", story.context, membership="FeatureMembership")
+    _parameter(b, nested, "SubjectMembership", "ReferenceUsage", "subj", story.system_def)
+    _parameter(b, nested, "ActorMembership", "PartUsage", "driver")
+    evaluation = _evaluate(story)
+    assert _verdicts(evaluation, SUBJECT_BOUND) == {"fixtureContext": me.VERDICT_FAIL}
+    assert _verdicts(evaluation, ACTORS_BOUND) == {"fixtureContext": me.VERDICT_FAIL}
+    assert any("contextStory binds its subject" in d and "to no usage" in d
+               for d in _diagnostics(evaluation, SUBJECT_BOUND))
+    assert any("contextStory: actor driver is bound to no usage" in d for d in _diagnostics(evaluation, ACTORS_BOUND))
+    (phase,) = [p for p in evaluation.status()["phases"] if p["phase"] == P2]
+    assert phase["phase_exit"] == "BLOCKED"
+    for gate in (SUBJECT_BOUND, ACTORS_BOUND):
+        assert _authorable(_blocking(evaluation, gate), story) == []
+
+
+def test_an_include_use_case_is_no_use_case_of_the_story() -> None:
+    """``include use case <other>;`` in the story references another use case: it binds nothing itself."""
+    story = _story()
+    b = story.builder
+    other = b.usage("UseCaseUsage", "otherStory", b.package("DE4SDV_FixtureOtherStories"))
+    included = b.usage("IncludeUseCaseUsage", "otherStory", story.use_case, membership="FeatureMembership")
+    b.reference_subsetting(included, other)
+    evaluation = _evaluate(story)
+    for gate in (SUBJECT_BOUND, ACTORS_BOUND):
+        assert _unit(evaluation, gate).verdict == me.VERDICT_PASS, gate
 
 
 @pytest.mark.parametrize("where", ["package part", "the system of interest", "inside the system of interest",
-                                   "unbound"])
+                                   "the kernel's actors slot", "unbound"])
 def test_an_actor_not_bound_to_a_part_around_the_system_of_interest_fails(where) -> None:
     """INC-AEBS-010's shape binds its actors to package parts: no part of an operational context."""
     story = _story()
@@ -480,12 +563,31 @@ def test_an_actor_not_bound_to_a_part_around_the_system_of_interest_fails(where)
         _bind(b, actor, story.context_system)
     elif where == "inside the system of interest":
         _bind(b, actor, b.usage("PartUsage", "inner", story.context_system, membership="FeatureMembership"))
+    elif where == "the kernel's actors slot":  # review R1: ``actor driver = fixtureContext::actors;``
+        _bind(b, actor, b.feature_of(story.system_context, "actors"))
     evaluation = _evaluate(story)
     assert _verdicts(evaluation, ACTORS_BOUND) == {"fixtureContext": me.VERDICT_FAIL}
     assert any("actor driver" in d for d in _diagnostics(evaluation, ACTORS_BOUND))
     entry = _blocking(evaluation, ACTORS_BOUND)
     assert f"in the existing {CONTEXT_PACKAGE}::fixtureStory: actor driver = <contextPart>;" in entry["what_to_author"]
     assert _authorable(entry, story) == []
+
+
+def test_an_actor_bound_to_a_part_of_the_context_s_own_definition_passes() -> None:
+    """Review R1, the other side: a part the context's own definition declares is a part of the context. Only
+    the definition that first declares systemOfInterest (the kernel's SystemContext) owns no context part."""
+    story = _story()
+    b = story.builder
+    definition = b.definition("PartDefinition", "FixtureContextDefinition", story.context_package)
+    b.specializes(definition, story.system_context)
+    assistant = b.usage("PartUsage", "assistant", definition, membership="FeatureMembership")
+    b.typed(story.context, definition)
+    actor = story.actors["driver"]
+    (value,) = [r for r in b.elements if r.get("@type") == "FeatureValue"
+                and r.get("owningRelatedElement", {}).get("@id") == actor["@id"]]
+    b.remove(value)
+    _bind(b, actor, assistant)
+    assert _unit(_evaluate(story), ACTORS_BOUND).verdict == me.VERDICT_PASS
 
 
 def test_an_inherited_actor_no_own_actor_redefines_is_unbound_and_fails() -> None:
@@ -605,7 +707,9 @@ def test_a_view_that_exposes_nothing_fails_and_one_exposing_through_its_owned_vi
     assert _authorable(_blocking(evaluation, VIEW_EXPOSES), story) == []
 
 
-def test_an_increment_without_views_publishes_none_and_is_not_applicable() -> None:
+def test_a_declared_publication_without_views_fails_on_population() -> None:
+    """Review R3: ``publishedViews[1..*]``. A declared phase 11 with no view of the increment is no empty
+    publication that passes: both checks fail on population and the exit is BLOCKED (MC-05)."""
     story = _story()
     b = story.builder
     packages = {story.scenario.framing["@id"], story.context_package["@id"]}
@@ -614,7 +718,11 @@ def test_an_increment_without_views_publishes_none_and_is_not_applicable() -> No
     evaluation = _evaluate(story)
     for gate in (VIEW_FRAMES, VIEW_EXPOSES):
         unit = _unit(evaluation, gate)
-        assert (unit.state, unit.verdict) == (me.STATE_COMPLETE, me.VERDICT_NOT_APPLICABLE), gate
+        assert (unit.state, unit.verdict) == (me.STATE_COMPLETE, me.VERDICT_FAIL), gate
+        assert me.POPULATION_POLICY_VIOLATION in unit.reason_codes, gate
+        assert _authorable(_blocking(evaluation, gate), story) == []
+    (phase,) = [p for p in evaluation.status()["phases"] if p["phase"] == P11]
+    assert phase["phase_exit"] == "BLOCKED"
 
 
 # -- the registry ----------------------------------------------------------------------

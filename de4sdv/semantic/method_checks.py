@@ -827,59 +827,15 @@ def _population_member(view: ModelView, increment: IncrementScope, subject_id: s
 # ---------------------------------------------------------------------------
 
 
-def framing_views(view: ModelView, increment: IncrementScope) -> Mapping[str, tuple[tuple[str, str], ...]]:
-    """Concern -> ((view, framing membership), ...): the concerns that a viewpoint of a view frames, for
-    the views the increment's packages own at any depth. A frame is a FramedConcernMembership of a
-    viewpoint usage the view owns; its member is a shadow of the declared concern (``declared_of``).
-    Built once per corpus and package set."""
-    packages = tuple(increment.scope_packages)
-
-    def build() -> Mapping[str, tuple[tuple[str, str], ...]]:
-        index = view.index
-        found: dict[str, list[tuple[str, str]]] = {}
-        for element in scope_closure(view, increment):
-            if str(index.element(element).get("@type")) != "ViewUsage":
-                continue
-            for viewpoint in index.owned_members(element, "ViewpointUsage"):
-                for relationship in index.owned_relationships(viewpoint, "FramedConcernMembership"):
-                    for member in reference_ids(relationship.get("memberElement")):
-                        bucket = found.setdefault(index.declared_of(member), [])
-                        pair = (element, str(relationship.get("@id")))
-                        if pair not in bucket:
-                            bucket.append(pair)
-        return MappingProxyType({concern: tuple(pairs) for concern, pairs in found.items()})
-
-    return view.index.memo(("framing-views", packages), build)
+#: The metaclass of the views the publication step counts (``out view publishedViews``).
+VIEW_KIND = "ViewUsage"
 
 
-def _frames_elsewhere(view: ModelView, concern: str, inside: set[str]) -> list[str]:
-    """Why the other frames of ``concern`` do not count: a frame owned by no viewpoint (a need or a
-    requirement that frames it), or by a viewpoint of a view outside the increment's packages."""
-    index = view.index
-    notes: list[str] = []
-    for relationship in index.elements_of_type("FramedConcernMembership"):
-        element = index.element(relationship)
-        if not any(index.declared_of(member) == concern for member in reference_ids(element.get("memberElement"))):
-            continue
-        holder = (reference_ids(element.get("owningRelatedElement")) or [None])[0]
-        if holder is None:
-            continue
-        if str(index.element(holder).get("@type")) != "ViewpointUsage":
-            notes.append(f"{_name(view, holder)} frames it but is no viewpoint; only viewpoints frame concerns")
-        elif index.owner_of(holder) not in inside:
-            notes.append(f"{_name(view, holder)} frames it but is no viewpoint of a view in a package of the "
-                         "increment")
-    return notes
-
-
-def _framed_by_viewpoint(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
-    """A viewpoint of a view that the increment's packages own (at any depth) frames the concern."""
-    framing = framing_views(view, increment).get(subject_id, ())
-    if framing:
-        return satisfied([found for found, _membership in framing], [membership for _view, membership in framing])
-    inside = {e for e in scope_closure(view, increment) if str(view.element(e).get("@type")) == "ViewUsage"}
-    return violated(f"{_name(view, subject_id)} is framed by no viewpoint of a view in a package of the increment",
-                    _frames_elsewhere(view, subject_id, inside))
+def increment_views(view: ModelView, increment: IncrementScope) -> list[str]:
+    """The views the increment's packages own (nested packages included): the population of the
+    publication step's ``publishedViews``, and the views whose viewpoints frame the concerns of phase 1.
+    A view owned by a part or by another view (a matrix view's row view) is none of them."""
+    return [element for element in increment.scope_elements if str(view.element(element).get("@type")) == VIEW_KIND]
 
 
 def view_viewpoints(view: ModelView, subject_id: str) -> list[str]:
@@ -891,20 +847,87 @@ def view_viewpoints(view: ModelView, subject_id: str) -> list[str]:
     return found
 
 
+def viewpoint_frames(view: ModelView, viewpoint: str) -> list[tuple[str, str]]:
+    """(concern, framing membership) for each concern a viewpoint usage frames: its own frames, then those
+    of the viewpoint definitions it is typed by, which it inherits. A frame's member is a shadow of the
+    declared concern (``declared_of``)."""
+    found: list[tuple[str, str]] = []
+    for holder in (viewpoint, *type_lineage(view, viewpoint)):
+        for relationship in view.index.owned_relationships(holder, "FramedConcernMembership"):
+            for member in reference_ids(relationship.get("memberElement")):
+                pair = (view.index.declared_of(member), str(relationship.get("@id")))
+                if pair not in found:
+                    found.append(pair)
+    return found
+
+
+def framing_views(view: ModelView, increment: IncrementScope) -> Mapping[str, tuple[tuple[str, str], ...]]:
+    """Concern -> ((view, framing membership), ...): the concerns that a viewpoint of a view frames
+    (:func:`view_viewpoints`, :func:`viewpoint_frames`), for the views the increment's packages own
+    (:func:`increment_views`). Built once per corpus and package set."""
+    packages = tuple(increment.scope_packages)
+
+    def build() -> Mapping[str, tuple[tuple[str, str], ...]]:
+        found: dict[str, list[tuple[str, str]]] = {}
+        for element in increment_views(view, increment):
+            for viewpoint in view_viewpoints(view, element):
+                for concern, membership in viewpoint_frames(view, viewpoint):
+                    bucket = found.setdefault(concern, [])
+                    if (element, membership) not in bucket:
+                        bucket.append((element, membership))
+        return MappingProxyType({concern: tuple(pairs) for concern, pairs in found.items()})
+
+    return view.index.memo(("framing-views", packages), build)
+
+
+def _frames_elsewhere(view: ModelView, concern: str) -> list[str]:
+    """Why the other frames of ``concern`` do not count: a frame owned by no viewpoint (a need or a
+    requirement that frames it), by a viewpoint definition no viewpoint of a view of the increment is typed
+    by, or by a viewpoint of another view."""
+    index = view.index
+    notes: list[str] = []
+    for relationship in index.elements_of_type("FramedConcernMembership"):
+        element = index.element(relationship)
+        if not any(index.declared_of(member) == concern for member in reference_ids(element.get("memberElement"))):
+            continue
+        holder = (reference_ids(element.get("owningRelatedElement")) or [None])[0]
+        if holder is None:
+            continue
+        kind = str(index.element(holder).get("@type"))
+        if kind == "ViewpointDefinition":
+            notes.append(f"the viewpoint definition {_name(view, holder)} frames it, but no viewpoint of a view of "
+                         "the increment is typed by it")
+        elif kind != "ViewpointUsage":
+            notes.append(f"{_name(view, holder)} frames it but is no viewpoint; only a viewpoint, or the viewpoint "
+                         "definition it is typed by, frames a concern for a view")
+        else:
+            notes.append(f"{_name(view, holder)} frames it but is no viewpoint of a view of the increment")
+    return notes
+
+
+def _framed_by_viewpoint(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """A viewpoint of a view of the increment (:func:`increment_views`) frames the concern: the viewpoint
+    usage, or a viewpoint definition it is typed by."""
+    framing = framing_views(view, increment).get(subject_id, ())
+    if framing:
+        return satisfied([found for found, _membership in framing], [membership for _view, membership in framing])
+    return violated(f"{_name(view, subject_id)} is framed by no viewpoint of a view of the increment",
+                    _frames_elsewhere(view, subject_id))
+
+
 def _viewpoint_frames_concern(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
-    """The view has a viewpoint, of its own or of its definition, that frames a concern."""
+    """The view has a viewpoint, of its own or of its definition, that frames a concern, by its own frame or
+    by a frame of the viewpoint definition it is typed by."""
     name = _name(view, subject_id)
     viewpoints = view_viewpoints(view, subject_id)
     if not viewpoints:
         return violated(f"{name} has no viewpoint, so no concern governs it")
     concerns, witnesses = [], []
     for viewpoint in viewpoints:
-        for relationship in view.index.owned_relationships(viewpoint, "FramedConcernMembership"):
-            for member in reference_ids(relationship.get("memberElement")):
-                concern = view.index.declared_of(member)
-                if concern not in concerns:
-                    concerns.append(concern)
-                    witnesses.append(str(relationship.get("@id")))
+        for concern, membership in viewpoint_frames(view, viewpoint):
+            if concern not in concerns:
+                concerns.append(concern)
+                witnesses.append(membership)
     if not concerns:
         return violated(f"{name}'s viewpoint {', '.join(_name(view, v) for v in viewpoints)} frames no concern")
     return satisfied(concerns, witnesses)
@@ -1026,8 +1049,10 @@ def _context_system_of_interest(view: ModelView, increment: IncrementScope, subj
 
 
 def increment_use_cases(view: ModelView, increment: IncrementScope) -> list[str]:
-    """The use case usages the increment's packages own (nested packages included): the story."""
-    return [element for element in increment.scope_elements
+    """The use case usages the increment's packages own at any depth, also in the context or another part:
+    the story. An ``include use case`` is no use case of the story: its metaclass is IncludeUseCaseUsage,
+    and it references the use case it includes."""
+    return [element for element in scope_closure(view, increment)
             if str(view.element(element).get("@type")) == "UseCaseUsage"]
 
 
@@ -1081,8 +1106,8 @@ def _context_systems(view: ModelView, increment: IncrementScope, context: str) -
     case (not applicable), or a context that declares no system of interest to bind to."""
     name = _name(view, context)
     if not increment_use_cases(view, increment):
-        return [], outcome("not-applicable", diagnostics=(f"the increment declares no use case, so {name} has no "
-                                                          "story to bind",))
+        return [], outcome("not-applicable", diagnostics=(f"the increment's packages own no use case at any depth, "
+                                                          f"so {name} has no story to bind",))
     declared, systems = context_system_of_interest(view, context)
     if declared is None:
         return [], indeterminate(MODEL_WITNESS_PREFIX + CONTEXT_SYSTEM_OF_INTEREST,
@@ -1127,13 +1152,27 @@ def _story_subject_bound(view: ModelView, increment: IncrementScope, subject_id:
     return satisfied(increment_use_cases(view, increment), systems)
 
 
+def context_part_owners(view: ModelView, context: str, declared: str | None) -> set[str]:
+    """What may own a part around the system of interest: the context usage and the definitions it is typed
+    by, never the definition that first declares ``systemOfInterest`` (the kernel's SystemContext) or what
+    that definition specializes. Their features (``SystemContext::actors``) are generic slots, no part of
+    this context. The first declaration is the systemOfInterest feature that narrows no other feature."""
+    generic: set[str] = set()
+    if declared is not None:
+        for feature in narrowed_features(view, declared):
+            owner = view.index.owner_of(feature)
+            if owner and len(narrowed_features(view, feature)) == 1:
+                generic.update(view.index.generals(owner))
+    return {context, *type_lineage(view, context)} - generic
+
+
 def story_actor_problems(view: ModelView, increment: IncrementScope, context: str) -> list[tuple[str, str, str]]:
     """(use case, actor, what is wrong) for each actor of each use case of the increment that is not bound
     to a part the context owns at any depth, around its system of interest: the part is not one of the
     context's system-of-interest features, and none of them owns it."""
     declared, found = context_system_of_interest(view, context)
     systems = {*found, *([declared] if declared else [])}  # the system of interest, never a part around it
-    roots = {context, *type_lineage(view, context)}  # a context part may come from the context's definition
+    roots = context_part_owners(view, context, declared)
     problems: list[tuple[str, str, str]] = []
     for use_case in increment_use_cases(view, increment):
         for actor in use_case_parameters(view, use_case, "ActorMembership"):

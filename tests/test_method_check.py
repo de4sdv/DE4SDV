@@ -462,13 +462,14 @@ def test_the_summary_names_next_and_the_blocking_gaps_per_increment(tmp_path: Pa
     assert "- Subjects (1): `DE4SDV_FirstNeedsRequirements::need1`" in lines
     assert "**Blocking gaps: 1** (violation: 1)" in lines
     assert "| `needHasStakeholder` | phase4_needs | violation | 1 | `need1` |" in lines
-    assert ("**Phase exits:** phase0_incrementFraming READY (15/15 pass), phase1_concernFraming READY (0/2 pass, 2 "
-            "not applicable), phase2_operationalContext READY (0/4 pass, 4 not applicable), "
-            "phase3_capabilityClassification READY (0/1 pass, 1 not applicable), phase4_needs BLOCKED (4/6 pass), "
-            "phase5_requirements READY (4/6 pass), phase6_functionalArchitecture READY (0/4 pass, 4 not applicable), "
-            "phase7_logicalArchitecture READY (0/2 pass, 2 not applicable), phase8_physicalRealization READY "
-            "(0/4 pass, 4 not applicable), phase10_vvEvidence READY (2/3 pass), phase11_publication READY (0/2 pass, "
-            "2 not applicable)") in lines
+    # Review R7: a phase the charter does not declare is "not declared" in the summary, never READY.
+    assert ("**Phase exits:** phase0_incrementFraming READY (15/15 pass), phase1_concernFraming not declared, "
+            "phase2_operationalContext not declared, phase3_capabilityClassification not declared, phase4_needs "
+            "BLOCKED (4/6 pass), phase5_requirements READY (4/6 pass), phase6_functionalArchitecture not declared, "
+            "phase7_logicalArchitecture not declared, phase8_physicalRealization not declared, phase10_vvEvidence "
+            "READY (2/3 pass), phase11_publication not declared") in lines
+    (first,) = [entry for entry in result["increments"] if entry["id"] == FIRST]
+    assert first["phase_exits"]["phase11_publication"] == "READY"  # the report keeps the evaluation's exit
     assert "<details><summary>Advisory notes: 4</summary>" in lines
     assert "| `verificationCaseHasEvidenceRecordOrStatus` | phase10_vvEvidence | method-side | 1 | `firstVerification` |" in lines
     assert f"gh run download 4242 -R de4sdv/DE4SDV -n method-check-{GIT}" in text

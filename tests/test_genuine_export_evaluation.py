@@ -144,9 +144,9 @@ SCORE_CONTEXT = "DE4SDV_MiddlewareSCOREOperationalContext"
 
 
 def _package_scope(view, qualified: str) -> SimpleNamespace:
-    """The scope a charter naming one top-level package gives: what the package owns."""
+    """The scope a charter naming one top-level package gives: the package and what it owns."""
     (package,) = [p for p in view.index.elements_of_type("Package") if view.label(p) == qualified]
-    return SimpleNamespace(scope_elements=tuple(view.index.owned_members(package)))
+    return SimpleNamespace(scope_packages=(package,), scope_elements=tuple(view.index.owned_members(package)))
 
 
 def test_the_frozen_cut_reads_the_story_bindings_of_both_increments_in_their_genuine_shapes(tmp_path: Path) -> None:

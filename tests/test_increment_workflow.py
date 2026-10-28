@@ -213,7 +213,7 @@ REMAINING_PARAMETERS = {
         ("out", "part", "characteristics", "[0..*]", "ProductLineCharacteristic")],
     "PublishIncrement": [
         ("in", "part", "charter", "", "IncrementCharter"),
-        ("out", "view", "publishedViews", "[0..*]", "")],
+        ("out", "view", "publishedViews", "[1..*]", "")],
 }
 
 

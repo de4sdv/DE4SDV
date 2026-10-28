@@ -64,6 +64,7 @@ from de4sdv.semantic.export_evaluation import (  # noqa: E402
     load_export_snapshot,
 )
 from de4sdv.semantic.increment_discovery import DeclaredIncrement, declared_increments  # noqa: E402
+from de4sdv.semantic.increment_evaluation import PHASE_NOT_DECLARED  # noqa: E402
 from de4sdv.semantic.relation_checks import MethodSideInput  # noqa: E402
 from de4sdv.semantic.successor_parity import export_parity  # noqa: E402
 from de4sdv.sysml_api.errors import IdentityNotFoundError  # noqa: E402
@@ -444,6 +445,10 @@ def _increment_section(entry: Mapping[str, Any]) -> list[str]:
     exits = entry.get("phase_exits") or {}
     if exits:
         checks = entry.get("phase_checks") or {}
+        # The checks of a phase the charter does not declare are not applicable. The summary says "not
+        # declared" for it, never READY; the report keeps its exit as the evaluation states it.
+        undeclared = {str(phase.get("phase")) for phase in (evaluation.get("status") or {}).get("phases") or []
+                      if phase.get("applicability") == PHASE_NOT_DECLARED}
 
         def tally(phase: str) -> str:
             count = checks.get(phase)
@@ -454,7 +459,12 @@ def _increment_section(entry: Mapping[str, Any]) -> list[str]:
                 text += f", {count['not_applicable']} not applicable"
             return f" ({text})"
 
-        lines.append("**Phase exits:** " + ", ".join(f"{_plain(p)} {_plain(r)}{tally(p)}" for p, r in exits.items()))
+        def shown(phase: str, exit_: Any) -> str:
+            if phase in undeclared:
+                return f"{_plain(phase)} {PHASE_NOT_DECLARED}"
+            return f"{_plain(phase)} {_plain(exit_)}{tally(phase)}"
+
+        lines.append("**Phase exits:** " + ", ".join(shown(p, r) for p, r in exits.items()))
         lines.append("")
     unchecked = list(entry.get("phases_without_checks") or [])
     if unchecked:

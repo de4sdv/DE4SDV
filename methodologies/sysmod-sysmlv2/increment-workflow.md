@@ -178,9 +178,13 @@ These method rules apply to every increment:
      usage. A part of it redefines its `systemOfInterest`. That part is,
      narrows or is bound to the system of interest the charter declares, or
      is typed by its definition. Each use case the increment's packages own
-     binds its subject to that part. Each actor of each use case is bound
-     to a part the context owns at any depth, around that part, not inside
-     it.
+     at any depth, also one the context or another part owns, binds its
+     subject to that part. Each actor of each use case is bound to a part
+     the context owns at any depth, around that part, not inside it. A part
+     the context's own definition declares counts. The generic slots of the
+     kernel's `SystemContext` (`actors`) do not: they are no part of the
+     context. An `include use case` is no use case of its own. Without a
+     use case at any depth, the story checks are not applicable.
    - **Use case parameters.** A use case has one subject: its own, else its
      definition's. Its actors are its own and those of its definitions
      that no own actor redefines, explicitly or by the language rule (the
@@ -190,18 +194,17 @@ These method rules apply to every increment:
      the kernel classifies no role as either.
 10. **Feature-model delta (phase 3).** Phase 3 records only what the
     increment adds to the feature model: each characteristic it records is
-    a feature candidate (`ProductLineFeatureCandidate`). Core elements are
-    common by default and get no record, so phase 3 instantiates no
-    `CommonProductLineCapability` for them. Constraints go to the
-    requirements (phase 5) and evidence to V&V (phase 10). An increment that
-    adds no variability records nothing in phase 3. The basis is ISO/IEC
-    26580: a feature differentiates member products, and the feature model
-    covers variability only. Product-line scope the increment defers
-    (`DeferredProductLineScope`), such as a gap, is no classification record
-    and is allowed. The step's output is typed by the classification base
-    `ProductLineCharacteristic`. So its check sees every product-line
-    characteristic of the increment. One that is neither a feature candidate
-    nor deferred scope blocks (`featureDeltaOnly`).
+    a feature candidate (`ProductLineFeatureCandidate`) or product-line
+    scope the increment defers (`DeferredProductLineScope`), such as a gap.
+    Core elements are common by default and get no record, so phase 3
+    instantiates no `CommonProductLineCapability` for them. Constraints go to
+    the requirements (phase 5) and evidence to V&V (phase 10). An increment
+    that adds no variability records nothing in phase 3. The basis is
+    ISO/IEC 26580: a feature differentiates member products, and the feature
+    model covers variability only. The step's output is typed by the
+    classification base `ProductLineCharacteristic`. So its check sees every
+    product-line characteristic of the increment. One that is neither a
+    feature candidate nor deferred scope blocks (`featureDeltaOnly`).
 11. **Unconsumed elements (advisory).** Every element earns its place by
     the modeling rules in [AGENTS.md](../../AGENTS.md#model-elements-earn-their-place):
     a gate requires it, something consumes it, or it carries a decision,
@@ -318,17 +321,23 @@ These method rules apply to every increment:
       snapshot lacks goes into `DE4SDV_VSS_Extensions` as a candidate, and
       whether an item is a vehicle signal stays the reviewer's judgment.
 14. **Concerns (phase 1).** Each concern of the increment has a native
-    stakeholder member. A viewpoint of a view in a package of the increment
-    frames it. Both checks block. The concerns are the concern usages the
-    increment's packages own. Their stakeholders are the native
-    `stakeholder` members of the concerns, the problem statement and the
-    needs. So no check counts stakeholder parts: such a part would only
-    restate them (rule 11). A frame owned by a need or a requirement does
-    not count (rule 3). Nor does a viewpoint of a view outside the
-    increment's packages.
-15. **Publication (phase 11).** Each view of the increment has a viewpoint,
-    of its own or of its definition, that frames a concern. Each view, or a
-    view it owns at any depth, exposes model content. A table or matrix view
+    stakeholder member. A viewpoint of a view of the increment frames it,
+    by its own frame or by a frame of the viewpoint definition it is typed
+    by. Both checks block. The concerns are the concern usages the
+    increment's packages own. The views of the increment are the view
+    usages its packages own, nested packages included: the views of rule
+    15. A view that a part or another view owns is none of them. The
+    concerns' stakeholders are the native `stakeholder` members of the
+    concerns, the problem statement and the needs. So no check counts
+    stakeholder parts: such a part would only restate them (rule 11). A
+    frame owned by a need or a requirement does not count (rule 3). Nor
+    does a viewpoint of another view.
+15. **Publication (phase 11).** The increment publishes at least one view
+    (`publishedViews[1..*]`): a declared phase 11 without a view fails on
+    population. Each view of the increment (rule 14) has a viewpoint, of its
+    own or of its definition, that frames a concern, by its own frame or by
+    a frame of its viewpoint definition. Each view, or a view it owns at any
+    depth, exposes model content. A table or matrix view
     exposes through its row, column and cell views. Both checks block and
     judge the model only. The pull request, its review and the rendered
     diagrams are judged outside the model. CI checks the diagrams and each

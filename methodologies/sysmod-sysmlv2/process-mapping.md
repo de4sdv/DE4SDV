@@ -225,8 +225,9 @@ metadata.
 ### Phase 11 — Publication
 
 Produce reviewable SysML v2 textual notation, Markdown, YAML, and open
-a GitHub PR. Each view of the increment has a viewpoint that frames a
-concern and exposes model content (rule 15 of the
+a GitHub PR. The increment publishes at least one view. Each view of the
+increment has a viewpoint that frames a concern and exposes model content
+(rule 15 of the
 [increment workflow](increment-workflow.md#method-rules-and-the-increment-workflow-model)).
 The pull request and its review stay outside the model.
 

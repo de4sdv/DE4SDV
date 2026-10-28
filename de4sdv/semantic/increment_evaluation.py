@@ -73,6 +73,8 @@ RESOLVED = "resolved"  # exactly one increment usage carries the identifier
 NOT_DECLARED = "not-declared"  # none does: content on another branch or commit is invisible here
 AMBIGUOUS = "ambiguous"  # several do
 LINEAGE_UNAVAILABLE = "lineage-unavailable"  # the EngineeringIncrement lineage cannot be established
+#: The applicability of a phase the charter does not declare (a ``status`` phase block).
+PHASE_NOT_DECLARED = "not declared"
 NEXT_REASON = "the first open blocking check in workflow order (step order, then check order)"
 NONE_OPEN_REASON = "every required gate passes or is not applicable"
 #: What the bounds of a phase_contract gate count (a claim of "at least one ..." reads on one of them).
@@ -472,7 +474,7 @@ class IncrementEvaluation:
         declared = self.scope.declared_phases
         if declared is None:
             return "unresolved"
-        return "declared" if phase in declared else "not declared"
+        return "declared" if phase in declared else PHASE_NOT_DECLARED
 
     def gaps(self, phase: str | None = None) -> dict[str, Any]:
         """Unmet blocking gates and advisory notes."""

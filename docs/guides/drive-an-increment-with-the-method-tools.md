@@ -250,12 +250,15 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   at a port, never at an element, and text naming a VSS path is no VSS
   typing.
 - **Concerns (phase 1).** Each concern the increment's packages own has a
-  native `stakeholder` member (`stakeholderMember`). A viewpoint of a view in a
-  package of the increment frames it (`framedByViewpoint`). Both checks block.
+  native `stakeholder` member (`stakeholderMember`). A viewpoint of a view of
+  the increment frames it (`framedByViewpoint`), by its own frame or by a
+  frame of the viewpoint definition it is typed by. Both checks block. The
+  views of the increment are the views its packages own, the same views as
+  in phase 11. A view that a part or another view owns is none of them.
   The stakeholders are those members, of the concerns, the problem statement
   and the needs; no check counts stakeholder parts. A frame owned
-  by a need, or by a viewpoint of a view outside the increment's packages,
-  is reported and does not count. So, for a concern:
+  by a need, or by a viewpoint of another view, is reported and does not
+  count. So, for a concern:
 
   ```sysml
   concern <concern> : <ConcernDefinition> { subject; stakeholder <role> : <StakeholderRole>; }
@@ -270,16 +273,19 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   redefines its `systemOfInterest` and is the system of interest the charter
   declares (`contextSystemOfInterest`). That part is the declared usage, a
   usage that narrows or is bound to it, or a part typed by its definition.
-  Each use case the increment's packages own binds its subject to that part
-  (`storySubjectBound`). Each actor of a use case is bound to a part of the
-  context around that part, not inside it (`storyActorsBound`). All four
-  block. The checks are about the context,
+  Each use case the increment's packages own at any depth, also one the
+  context owns, binds its subject to that part (`storySubjectBound`). An
+  `include use case` is no use case of its own. Each actor of a use case is
+  bound to a part of the context around that part, not inside it
+  (`storyActorsBound`). A part the context's own definition declares counts.
+  The generic slots of the kernel's `SystemContext` (`actors`) do not. All
+  four block. The checks are about the context,
   the parameter through which they reach it; the gaps name each use case and
   actor that does not bind. A use case has one subject, its own or its
   definition's. Its actors are its own and those of its definitions that no
   own actor redefines. A redefinition by the language rule counts too: the
-  export records it. Without a use case, or without an actor, the story
-  checks are not applicable, never passed. Whether a role is a System 1 role
+  export records it. Without a use case at any depth, or without an actor,
+  the story checks are not applicable, never passed. Whether a role is a System 1 role
   stays with review. So:
 
   ```sysml
@@ -301,9 +307,12 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   `CommonProductLineCapability` record fails: core elements are common by
   default and get no record. An increment that adds no variability records
   nothing, and the check is not applicable.
-- **Publication (phase 11).** Each view the increment's packages own has a
-  viewpoint, of its own or of its definition, that frames a concern
-  (`viewpointFramesConcern`). Each view, or a view it owns at any depth,
+- **Publication (phase 11).** The increment publishes at least one view
+  (`publishedViews[1..*]`), so a declared phase 11 without a view fails on
+  population. Each view the increment's packages own has a viewpoint, of its
+  own or of its definition, that frames a concern
+  (`viewpointFramesConcern`). The frame is the viewpoint's own or its viewpoint
+  definition's. Each view, or a view it owns at any depth,
   exposes model content (`exposesModelContent`). A table or matrix view
   exposes through its row, column and cell views. Both block and judge the
   model only. The pull request, its review and the rendered diagrams are
@@ -404,7 +413,7 @@ jq '.increments[] | {id, outcome, next: .next.gate, counts}' method-check.json
 | `id`, `outcome` | The increment identifier, for example `INC-AEBS-010`; `evaluated`, `method-unavailable`, `method-invalid`, `refused` or `error` |
 | `next` | The first check to act on: `gate`, `stage`, `kind`, `what_to_author`, `authoring`, `where`, `subjects`; `null` when none is open |
 | `counts` | `blocking`, `blocking_by_kind`, `advisory`, `method_side_blockers` |
-| `phase_exits`, `phase_checks` | Per phase with executable checks: `READY` or `BLOCKED`, and how many of its checks pass (`pass`, `total`, `not_applicable`) |
+| `phase_exits`, `phase_checks` | Per phase with executable checks: `READY` or `BLOCKED`, and how many of its checks pass (`pass`, `total`, `not_applicable`). The exit of a phase the charter does not declare is `READY`, because all its checks are not applicable; the summary shows such a phase as "not declared" |
 | `phases_without_checks` | The declared phases whose step has no executable checks: `phase`, `step` and its `outputs`; never evaluated, so the counts say nothing about them |
 | `evaluation.gaps.blocking` | Every unmet blocking check with all its subjects; `evaluation.gaps.advisory` holds the advisory notes |
 | `evaluation` | The full `scripts/evaluate_increment.py` report: `status`, `gaps`, `next`, `contract` |

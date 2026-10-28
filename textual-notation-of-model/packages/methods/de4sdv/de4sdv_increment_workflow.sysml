@@ -222,8 +222,11 @@ package DE4SDV_IncrementWorkflow {
   action def FrameConcerns :> IncrementStep {
     doc /* Who cares and why? Rules: each concern of the increment has a native
          * stakeholder member, and a viewpoint of a view of the increment frames
-         * it. The stakeholders are the native stakeholder members of the concerns,
-         * the problem statement and the needs; no check counts stakeholder parts. */
+         * it, by its own frame or by a frame of the viewpoint definition it is
+         * typed by. The views of the increment are the views its packages own,
+         * as in phase 11. The stakeholders are the native stakeholder members
+         * of the concerns, the problem statement and the needs; no check counts
+         * stakeholder parts. */
     attribute :>> phase = MethodPhase::phase1_concernFraming;
     in requirement problemStatement : ProblemStatement;
     out part stakeholders[1..*] : Stakeholder;
@@ -234,7 +237,7 @@ package DE4SDV_IncrementWorkflow {
       :>> check = "stakeholderMember";
     }
     metadata concernFramedByViewpoint : MethodCheck about concerns {
-      doc /* Each concern of the increment is framed by a viewpoint of a view in a package of the increment; no claim that the view addresses the concern. */
+      doc /* Each concern of the increment is framed by a viewpoint of a view of the increment; no claim that the view addresses the concern. */
       :>> check = "framedByViewpoint";
     }
   }
@@ -246,7 +249,8 @@ package DE4SDV_IncrementWorkflow {
          * use case of the story binds its subject to the system of interest
          * and each actor to a context part around it. The context's own
          * systemOfInterest is the system of interest the charter declares. The
-         * checks read the context and the bindings of the increment's use cases.
+         * story is every use case the increment's packages own at any depth.
+         * The checks read the context and the bindings of those use cases.
          * Review judges the roles: the kernel classifies no role as System 1 or
          * System 2. */
     attribute :>> phase = MethodPhase::phase2_operationalContext;
@@ -274,10 +278,9 @@ package DE4SDV_IncrementWorkflow {
   action def ClassifyCapabilities :> IncrementStep {
     doc /* Which characteristics distinguish member products? Rule: the step
          * records only the feature-model delta, the feature candidates the
-         * increment adds, and the delta may be empty. Core elements are common
-         * by default and get no record; constraints go to the requirements and
-         * evidence to V&V. Product-line scope the increment defers, such as a
-         * gap, is no classification record and is allowed. */
+         * increment adds, and product-line scope it defers, such as a gap. The
+         * delta may be empty. Core elements are common by default and get no
+         * record; constraints go to the requirements and evidence to V&V. */
     attribute :>> phase = MethodPhase::phase3_capabilityClassification;
     in part operationalContext : SystemContext;
     out part characteristics[0..*] : ProductLineCharacteristic;
@@ -522,14 +525,17 @@ package DE4SDV_IncrementWorkflow {
   }
 
   action def PublishIncrement :> IncrementStep {
-    doc /* What is reviewable now? Rules: each view of the increment has a
-         * viewpoint that frames a concern, and the view, or a view it owns,
-         * exposes model content. The checks judge the model only. The pull
-         * request, its review and the rendered diagrams are judged outside the
-         * model: CI checks the diagrams and the view index, review the rest. */
+    doc /* What is reviewable now? Rules: the increment publishes at least one
+         * view; each view of the increment has a viewpoint that frames a
+         * concern, and the view, or a view it owns, exposes model content. The
+         * views of the increment are the views its packages own, not views that
+         * a part or another view owns. The checks judge the model only. The
+         * pull request, its review and the rendered diagrams are judged outside
+         * the model: CI checks the diagrams and the view index, review the
+         * rest. */
     attribute :>> phase = MethodPhase::phase11_publication;
     in part charter : IncrementCharter;
-    out view publishedViews[0..*];
+    out view publishedViews[1..*];
 
     metadata publishedViewFramesConcern : MethodCheck about publishedViews {
       doc /* Each view of the increment has a viewpoint, of its own or of its definition, that frames a concern; no claim that the view addresses the concern. */
