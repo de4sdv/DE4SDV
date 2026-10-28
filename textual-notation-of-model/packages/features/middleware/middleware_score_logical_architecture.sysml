@@ -30,8 +30,9 @@ package DE4SDV_MiddlewareSCORELogicalArchitecture {
   part hmiFrameRelay : LogicalAllocationElement {
     doc /*
      * The logical owner of the one-way HMI path: it relays the AEBS signal
-     * frames from the Linux host to the HMI in the AAOS SDV guest. Phase 8
-     * realizes it with the transport that GAP-MW-031 selects.
+     * frames from the Linux host to the HMI in the IVI VM of the AAOS SDV
+     * guest (ADR 0025). Phase 8 realizes it with the transport that
+     * GAP-MW-031 selects.
      */
   }
 

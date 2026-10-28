@@ -413,7 +413,7 @@ Reviewers need each logical element of the middleware integration layer, the six
 - **Viewpoint:** `selectedPhysicalLogicalMappingViewpoint` (`PhysicalLogicalMappingViewpoint`)
 - **View type:** `MVD::MatrixView`
 - **Concern:** `scoreMiddlewarePhysicalAllocationConcern`
-- **Exposes:** `DE4SDV_MiddlewareLogicalArchitecture::system::signalTranslator`, `DE4SDV_MiddlewareLogicalArchitecture::system::diagnosticProxy`, `DE4SDV_MiddlewareLogicalArchitecture::system::lifecycleBridge`, `DE4SDV_MiddlewareLogicalArchitecture::system::healthProxy`, `DE4SDV_MiddlewareLogicalArchitecture::system::updateCoordinator`, `DE4SDV_MiddlewareLogicalArchitecture::system::serviceBindingManager`, `DE4SDV_MiddlewareSCORELogicalArchitecture::hmiFrameRelay`, `scoreTwoDomainPhysicalSystem::integrationLayer::adapter`, `scoreTwoDomainPhysicalSystem::integrationLayer::healthProxyNode`, `scoreTwoDomainPhysicalSystem::integrationLayer::scoreServices::gatewayd`, `scoreTwoDomainPhysicalSystem::integrationLayer::scoreServices::someipd`, `scoreTwoDomainPhysicalSystem::integrationLayer::someipReceiver`, `scoreTwoDomainPhysicalSystem::integrationLayer::scoreServices::launchManager`, `DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization::*`
+- **Exposes:** `DE4SDV_MiddlewareLogicalArchitecture::system::signalTranslator`, `DE4SDV_MiddlewareLogicalArchitecture::system::diagnosticProxy`, `DE4SDV_MiddlewareLogicalArchitecture::system::lifecycleBridge`, `DE4SDV_MiddlewareLogicalArchitecture::system::healthProxy`, `DE4SDV_MiddlewareLogicalArchitecture::system::updateCoordinator`, `DE4SDV_MiddlewareLogicalArchitecture::system::serviceBindingManager`, `DE4SDV_MiddlewareSCORELogicalArchitecture::hmiFrameRelay`, `scoreTwoDomainPhysicalSystem::integrationLayer::adapter`, `scoreTwoDomainPhysicalSystem::integrationLayer::healthProxyNode`, `scoreTwoDomainPhysicalSystem::integrationLayer::scoreServices::gatewayd`, `scoreTwoDomainPhysicalSystem::integrationLayer::scoreServices::someipd`, `scoreTwoDomainPhysicalSystem::integrationLayer::iviFrameRelay`, `scoreTwoDomainPhysicalSystem::integrationLayer::scoreServices::launchManager`, `DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization::*`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
 - **Presentation note:** Cells show ↗ for every allocation; the two partial allocations are typed `PartialLogicalToPhysicalSoftwareRealization`.
@@ -422,7 +422,7 @@ Reviewers need each logical element of the middleware integration layer, the six
 
 ### `scoreMiddlewareLayerInternalExchangeView`
 
-Reviewers, and the safety expert who reviews GAP-MW-033, need the exchanges between the processes of the integration layer: which process publishes the speed topic and which observes it, how the AEBS signal frames pass over S-CORE communication inside the Linux host, through the two processes of the S-CORE SOME/IP gateway, and over SOME/IP across the hypervisor into the guest, and that nothing flows back from the guest.
+Reviewers, and the safety expert who reviews GAP-MW-033, need the exchanges between the processes of the integration layer.
 
 - **Source:** `middleware_score_physical_software_realization.sysml`
 - **Viewpoint:** `selectedLayerInternalExchangeViewpoint` (`PhysicalInternalExchangeViewpoint`)
@@ -459,7 +459,7 @@ Reviewers need the assembly of MW-CONFIG-002 with one instance and one owner per
 - **Source:** `middleware_score_variability_configuration.sysml`
 - **Viewpoint:** `selectedProductModelAssemblyViewpoint` (`ProductModelAssemblyViewpoint`)
 - **Concern:** `scoreMiddlewareProductModelAssemblyConcern`
-- **Exposes:** `MiddlewareAutowareSCOREConfiguredProduct`, `MiddlewareAutowareSCOREConfiguredProduct::platformStack`, `MiddlewareAutowareSCOREConfiguredProduct::integrationLayer`, `MiddlewareAutowareSCOREConfiguredProduct::scoreServicesBoundToSelectedMiddleware`, `MiddlewareAutowareSCOREConfiguredProduct::adapterBoundToDerivedAdapter`
+- **Exposes:** `MiddlewareAutowareSCOREConfiguredProduct`, `MiddlewareAutowareSCOREConfiguredProduct::platformStack`, `MiddlewareAutowareSCOREConfiguredProduct::integrationLayer`, `MiddlewareAutowareSCOREConfiguredProduct::scoreServicesBoundToSelectedMiddleware`, `MiddlewareAutowareSCOREConfiguredProduct::adapterBoundToDerivedAdapter`, `MiddlewareAutowareSCOREConfiguredProduct::sdvCoreBoundToGuestMiddleware`, `MiddlewareAutowareSCOREConfiguredProduct::platformSoftwareBoundToGuestOperatingSystem`
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
