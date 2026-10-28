@@ -326,9 +326,9 @@ of the baseline register in a pull request.
 The CI import rehearsal in step 1 was planned to stop two releases after the
 ceremony retirement. It still runs, because the successor parity's API half
 needs the import. It includes the full import, two candidate imports,
-correspondence, pilot read-back and the three API batteries. Four releases ran
-under this contract from 2026-10-15 to 2026-10-21. Step 1 took 2 h 32 min to
-3 h 43 min. Step 2 took 50 to 60 minutes after the approval. Before the
+correspondence, pilot read-back and the three API batteries. Five releases ran
+under this contract from 2026-10-15 to 2026-10-28. Step 1 took 2 h 32 min to
+3 h 43 min. Step 2 took 50 to 74 minutes after the approval. Before the
 contract, step 1 took 4 h 9 min in
 [run 38095581274](https://github.com/de4sdv/DE4SDV/actions/runs/38095581274).
 Its retained slow steps took 11,705 seconds (about 195 minutes).

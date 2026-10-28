@@ -22,6 +22,7 @@ decision.
 | `3cca3eaeb53aedadbf8dc929f2fb3052ef515b5e` | none | 2026-10-20 | [39252675717](https://github.com/de4sdv/DE4SDV/actions/runs/39252675717) | [39227055260](https://github.com/de4sdv/DE4SDV/actions/runs/39227055260) | `sai-feadb34ad784e7ff1409ffaf5cd1feef` |
 | `21cdbfede2df90a4e8666bedc02e4b23b8b64efc` | none | 2026-10-21 | [39578322090](https://github.com/de4sdv/DE4SDV/actions/runs/39578322090) | [39542982231](https://github.com/de4sdv/DE4SDV/actions/runs/39542982231) | `sai-0bbb86166f8743f726f159040691191a` |
 | `b6212d457913a4758f0d63bdbc206043d8eb65f1` | none | 2026-10-21 | [39662665485](https://github.com/de4sdv/DE4SDV/actions/runs/39662665485) | [39639315800](https://github.com/de4sdv/DE4SDV/actions/runs/39639315800) | `sai-b565a28ff2bae73230941fa090d640ad` |
+| `79cc57134396d2abb0c5aae0f9504f8209528fbe` | none | 2026-10-28 | [40635165749](https://github.com/de4sdv/DE4SDV/actions/runs/40635165749) | [40590286453](https://github.com/de4sdv/DE4SDV/actions/runs/40590286453) | `sai-b565a28ff2bae73230941fa090d640ad` |
 
 For `3cca3eae` and `21cdbfed`, the deploy run shows the workflow revision
 (`32e904ea`, `28fa4e8d`). The deploy job log (`DEPLOY_SHA`) names the deployed
