@@ -364,14 +364,29 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * on the Linux host that it finds for application data from the AAOS SDV
      * guest. For the ROS 2 processes outside the layer, it records whether
      * ASM-MW-031 holds on the member. While the layer runs, collectData also
-     * runs a reachability probe from each guest domain of the layer against
-     * the DDS ports of the Linux host. The probe must find these ports
-     * unreachable. As a control, it must reach the SOME/IP ports of someipd
-     * from the guest domain that someipd serves. processData compares the
-     * findings with the criteria. If ASM-MW-031 does not hold, the case does
-     * not show the criteria met. If the control fails, the probe shows
-     * nothing about the DDS ports. In both cases, the outcome is
-     * inconclusiveMissingEvidence.
+     * runs a reachability probe from each guest domain of the layer, in
+     * three steps:
+     * - It lists the sockets that the ROS 2 processes of the host have bound
+     *   (ss -ulnp, IPv4 and IPv6, unicast and multicast). It lists every
+     *   other host listener bound to an address that the guest domain
+     *   reaches, port 4721 of the frame assembler among them, and every host
+     *   address that the guest domain reaches.
+     * - It sends marked datagrams to each listed DDS socket, and it tries a
+     *   connection to each listed TCP listener. It observes the delivery on
+     *   the host: a capture on the guest-facing interface, and the counters
+     *   of the isolation rule.
+     * - It runs a positive control with the same method, against a control
+     *   socket that the host exposes on INADDR_ANY or with the isolation off
+     *   for a control window. The same observation must show the delivery.
+     * The SOME/IP ports of someipd stay the control of the network path.
+     * The record holds the lists, the observations and both controls.
+     * processData compares the findings with the criteria. A reachable DDS
+     * port of an element of the layer fails the case, whatever the control
+     * or ASM-MW-031 show. If the control fails, an unreachable result shows
+     * nothing, and the outcome is inconclusiveMissingEvidence. If ASM-MW-031
+     * does not hold, the case shows nothing about the other processes, and
+     * for them the outcome is inconclusiveMissingEvidence. A reachable port
+     * 4721 is a finding against ASM-MW-029, not against these criteria.
      */
     subject verifiedBench : SCOREMiddlewareVerificationBench;
     objective noApplicationDataFromHMIGuestObjective {
@@ -585,7 +600,7 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
   }
 
   verification <'VC-MW-017'> noApplicationDataFromHMIGuestVerification : NoApplicationDataFromHMIGuestVerification {
-    doc /* Not started. Bench: the Linux host with the layer running and each guest domain of the layer up, with a reachability probe in each guest domain. With the AAOS SDV broker path that the owner chose on 2026-10-28, these are the SDV Core VM and the IVI VM, and someipd serves the SDV Core VM. The case also needs the interface definition of the HMI path: the SOME/IP service definition and the frame contract of INC-AEBS-010. It also needs the layer's mw::com configuration and the gateway configuration of gatewayd and someipd. It needs the vsomeip configuration of someipd and the configuration of the SOME/IP receiver too. For ROS 2 (DDS), it needs the Launch Manager configuration and the launch configuration of the member on the Linux host. It also needs the DDS configuration of the Linux host and the host configuration that makes the DDS ports unreachable from the guest domains. The execution slices author all of them except the frame contract. */
+    doc /* Not started. Bench: the Linux host with the layer running and each guest domain of the layer up, with a reachability probe in each; someipd serves the guest domain that the HMI path enters. The positive control needs a control socket that the host exposes on INADDR_ANY, or a control window with the isolation off. The case also needs the interface definition of the HMI path: the SOME/IP service definition and the frame contract of INC-AEBS-010. It also needs the layer's mw::com configuration and the gateway configuration of gatewayd and someipd. It needs the vsomeip configuration of someipd and the configuration of the SOME/IP receiver too. For ROS 2 (DDS), it needs the Launch Manager configuration and the launch configuration of the member on the Linux host. It also needs the DDS configuration of the Linux host and the host configuration that makes the DDS ports and port 4721 unreachable from the guest domains (GAP-MW-046). The execution slices author all of them except the frame contract. */
     @VerificationMethod{ kind = (inspect, test, analyze); }
     subject verifiedBench :> scoreMiddlewareVerificationBench;
   }

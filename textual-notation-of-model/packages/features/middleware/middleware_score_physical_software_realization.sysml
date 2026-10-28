@@ -456,11 +456,13 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
          * (score/someipd/impl/gatewayd_services.cpp:30-134). It offers the
          * frame event as one reliable SOME/IP event on the KVM guest network.
          * It is the only process of the layer that the guest reaches, if the
-         * host also keeps the ROS 2 (DDS) traffic of the adapter and the health
-         * proxy node off the guest network, as it keeps port 4721 of the frame
-         * assembler (GAP-MW-012). So REQ-MW-016, and REQ-MW-019 while the guest's
-         * subscription is absent, are enforced here by the host's own
-         * configuration and do not rely on the guest. While ASM-MW-031 holds,
+         * host also keeps the DDS ports of the adapter and the health proxy
+         * node off the guest network, as it must keep port 4721 of the frame
+         * assembler (ASM-MW-029). So REQ-MW-016, and REQ-MW-019 while the
+         * guest's subscription is absent, are enforced here by the host's own
+         * configuration and do not rely on the guest. The bench does not have
+         * the configuration that keeps these ports off the guest network yet
+         * (GAP-MW-046). While ASM-MW-031 holds,
          * the criteria of REQ-MW-016 also cover the ROS 2 processes of the host
          * outside the layer. ASM-MW-031 assumes that they run in the ROS 2
          * environment of adapterAbortConditions.
@@ -555,8 +557,9 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
          * it assembles the AEBS signal frames and serves them as a
          * length-delimited stream on port 4721. It binds 0.0.0.0
          * (de4sdv_aebs_010_bridge/ros_node.py:34-35 of the INC-AEBS-010
-         * bench), so the host keeps the guest network off that port, and the
-         * frames reach the guest only through the layer.
+         * bench), so the host must keep the guest network off that port
+         * (ASM-MW-029). Then the frames reach the guest only through the
+         * layer.
          */
         port aebsSignalFrameOut : AEBSSignalFrameOut;
       }
@@ -704,7 +707,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * sequence and its frame timestamp, for its discard rule.
        */
       attribute :>> semanticSource = "the AEBS signal frame (AEBSSignalFrame), opaque DE4SDV content: it carries no VSS signal, by the owner decision of 2026-10-18 recorded on AEBSSignalFrame";
-      attribute :>> softwareContractArtifact = "the INC-AEBS-010 frame-server stream into the adapter on the host loopback, 127.0.0.1:4721 (de4sdv_aebs_010_bridge/ros_node.py:34-35), exact; the layer's S-CORE mw::com configuration, the gateway configuration that gatewayd hands to someipd, the vsomeip 3.6.1 configuration of someipd and the configuration of the SOME/IP receiver (phase 10), candidate; the receiver's stream on the guest loopback, 127.0.0.1:4731, candidate; the INC-AEBS-010 ingress stream (ingress/main.cpp:27-28, 142-146), exact";
+      attribute :>> softwareContractArtifact = "the INC-AEBS-010 frame-server stream into the adapter: the frame assembler binds 0.0.0.0:4721 (de4sdv_aebs_010_bridge/ros_node.py:34-35), and the adapter connects to 127.0.0.1:4721 on the host loopback (adapter/de4sdv_score_adapter/src/adapter_main.cpp:190-191 of the S-CORE reference interop bench), exact; the layer's S-CORE mw::com configuration, the gateway configuration that gatewayd hands to someipd, the vsomeip 3.6.1 configuration of someipd and the configuration of the SOME/IP receiver (phase 10), candidate; the receiver's stream on the guest loopback, 127.0.0.1:4731, candidate; the INC-AEBS-010 ingress stream (ingress/main.cpp:27-28, 142-146), exact";
       attribute :>> softwareContractMessage = "host and guest loopback: the length-delimited frame stream; mw::com: the AEBS signal frame service instance with one event of the gateway type PreSerializedData<2048>; gateway IPC binding: the same bytes behind a 16-byte SOME/IP header, as a sample of gatewayd's bridged mw::com service, and someipd removes the header; SOME/IP: one service with one reliable event, events only, IDs not yet assigned";
       attribute :>> softwareContractField = "the whole frame, opaque; the receiver reads only sequence and frame_timestamp_ns (aebs_visualization.proto:59-60 of INC-AEBS-010) for its discard rule";
       attribute :>> dataTypeAndUnit = "a length-prefixed frame of at most 2048 bytes; no unit";
@@ -712,8 +715,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
       attribute :>> transformationRule = "pass-through and unchanged (REQ-MW-015): no element changes the frame; the receiver reads the length prefix to check the framing, and the sequence and the frame timestamp for its discard rule; no VSS signal, by owner decision";
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
-      attribute :>> nextAction = "phase 10, in this order: (1) assign the mw::com instance and the SOME/IP service, instance and event IDs, and give the frame event no cycle and 20 sample slots, at least the 10 that gatewayd needs and the count that the receiver's copy check sums; (2) before each session, apply the clock controls of ASM-MW-030: guest auto_time and auto_time_zone off, one clock setting, and the cross-capture at the start and the end; (3) check with ss -tnp that the adapter is the only client of the frame assembler (ASM-MW-029); (4) run the sequence-gap and resubscription tests of REQ-MW-014 and REQ-MW-019; (5) run the start, stop and restart cases of the guard rails, a restart of the receiver after which it starts the ingress again, and a link loss and a reboot of the guest; (6) run the phase-start and stored-frame cases of the receiver's discard rule, and a corrupted-payload case for its framing check; (7) check that the host keeps the ROS 2 (DDS) traffic of the adapter and the health proxy node off the guest network, the condition under which someipd is the only process of the layer that the guest reaches (REQ-MW-016)";
-      attribute :>> evidenceOrGap = "no runtime evidence yet; GAP-MW-035, GAP-MW-036, GAP-MW-037, GAP-MW-038, GAP-MW-039, GAP-MW-040, GAP-MW-041, GAP-MW-042, GAP-MW-043, GAP-MW-045";
+      attribute :>> nextAction = "phase 10, in this order: (1) assign the mw::com instance and the SOME/IP service, instance and event IDs, and give the frame event no cycle and 20 sample slots, at least the 10 that gatewayd needs and the count that the receiver's copy check sums; (2) before each session, apply the clock controls of ASM-MW-030: guest auto_time and auto_time_zone off, one clock setting, and the cross-capture at the start and the end; (3) check with ss -tnp that the adapter is the only client of the frame assembler (ASM-MW-029); (4) run the sequence-gap and resubscription tests of REQ-MW-014 and REQ-MW-019; (5) run the start, stop and restart cases of the guard rails, a restart of the receiver after which it starts the ingress again, and a link loss and a reboot of the guest; (6) run the phase-start and stored-frame cases of the receiver's discard rule, and a corrupted-payload case for its framing check; (7) author the host configuration that makes the DDS ports of every host ROS 2 process, and port 4721, unreachable from each guest domain (a host firewall on the bench), and run the reachability probe of the case that verifies REQ-MW-016 (ASM-MW-029, GAP-MW-046)";
+      attribute :>> evidenceOrGap = "no runtime evidence yet; GAP-MW-035, GAP-MW-036, GAP-MW-037, GAP-MW-038, GAP-MW-039, GAP-MW-040, GAP-MW-041, GAP-MW-042, GAP-MW-043, GAP-MW-045, GAP-MW-046";
     }
   }
 
@@ -770,7 +773,13 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * time: it gives its stream to the newest client, and the previous
      * client loses it (de4sdv_aebs_010_bridge/source_adapter.py:273-295).
      * So the adapter must be its only client. That is a condition of
-     * REQ-MW-014, and phase 10 checks it with ss -tnp.
+     * REQ-MW-014, and phase 10 checks it with ss -tnp. The frame assembler
+     * binds 0.0.0.0 (de4sdv_aebs_010_bridge/ros_node.py:34-35), so port 4721
+     * is open on every address of the host. A guest that connects to it
+     * takes the stream from the adapter. So the host must keep the guest
+     * network off port 4721. The reachability probe of the case that
+     * verifies REQ-MW-016 records whether a guest domain reaches it. The
+     * bench does not keep it off yet (GAP-MW-046).
      */
   }
   dependency frameAssemblerReusedOnLinuxHost
@@ -1198,6 +1207,26 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * stack produced in the band of a phase start.
      */
   }
+
+  part <'GAP-MW-046'> gapHostPortIsolationNotAuthored : IncrementGap {
+    doc /*
+     * Open: the host configuration that keeps each guest domain of the layer
+     * off the DDS ports of the host and off port 4721 of the frame assembler
+     * is not authored. REQ-MW-016 asks for DDS ports that no guest domain
+     * reaches, and ASM-MW-029 asks the host to keep the guest network off
+     * port 4721. The bench has no such configuration. When it was inspected
+     * on 2026-10-28, its host had no INPUT firewall, and the guests share
+     * the host's untagged network segment. The loopback binding of the ROS 2
+     * environment does not close this gap: CycloneDDS 0.10.5 binds its
+     * receive sockets to INADDR_ANY (ddsi_udp.c:453-456, 479-480). The
+     * execution slice authors the configuration, a host firewall on the
+     * bench, and the reachability probe of the case that verifies REQ-MW-016
+     * checks it. Until then, the isolation
+     * that REQ-MW-016 and ASM-MW-029 need is not realized.
+     */
+  }
+  dependency hostPortIsolationGapOnLinuxHost
+    from gapHostPortIsolationNotAuthored to scoreTwoDomainPhysicalSystem::linuxHost;
 
   comment gatewayStartOrderGuardRail
     about scoreTwoDomainPhysicalSystem::integrationLayer::scoreServices::launchManager,

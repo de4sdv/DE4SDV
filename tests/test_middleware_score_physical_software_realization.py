@@ -419,6 +419,45 @@ def test_gap_mw_045_records_that_the_criteria_of_req_mw_019_declare_the_margin()
     assert "does not meet the success criteria" not in gap, gap
 
 
+def test_the_host_isolation_is_an_obligation_with_an_open_gap() -> None:
+    """The DDS ports and port 4721 must be kept off the guest network; the bench does not do it yet (GAP-MW-046)."""
+    text = PHYSICAL.read_text(encoding="utf-8")
+    someipd = _named_part_doc(text, "someipd")
+    assert ("if the host also keeps the DDS ports of the adapter and the health proxy node off the guest network, as "
+            "it must keep port 4721 of the frame assembler (ASM-MW-029).") in someipd, someipd
+    assert ("The bench does not have the configuration that keeps these ports off the guest network yet "
+            "(GAP-MW-046).") in someipd, someipd
+    assert "(DDS) traffic" not in someipd, "the isolation is about ports"
+    (assembler,) = (_flat(doc) for doc in re.findall(r"\bpart aebsSignalFrameAssembler \{\s*doc /\*(.*?)\*/", text,
+                                                       re.DOTALL))
+    assert "so the host must keep the guest network off that port (ASM-MW-029)." in assembler, assembler
+    assert "so the host keeps the guest network off that port" not in assembler, assembler
+    assumption = _part_doc(text, "ASM-MW-029")
+    for statement in ("The frame assembler binds 0.0.0.0 (de4sdv_aebs_010_bridge/ros_node.py:34-35), so port 4721 "
+                      "is open on every address of the host.",
+                      "So the host must keep the guest network off port 4721.",
+                      "The reachability probe of the case that verifies REQ-MW-016 records whether a guest domain "
+                      "reaches it. The bench does not keep it off yet (GAP-MW-046)."):
+        assert statement in assumption, statement
+    gap = _part_doc(text, "GAP-MW-046")
+    assert gap.startswith("Open: the host configuration that keeps each guest domain of the layer off the DDS ports "
+                          "of the host and off port 4721 of the frame assembler is not authored."), gap[:200]
+    assert ("The loopback binding of the ROS 2 environment does not close this gap: CycloneDDS 0.10.5 binds its "
+            "receive sockets to INADDR_ANY (ddsi_udp.c:453-456, 479-480).") in gap, gap
+    assert re.search(r"\bpart <'GAP-MW-046'> gapHostPortIsolationNotAuthored : IncrementGap \{", text)
+    assert re.findall(r"\bdependency (\w+)\s+from gapHostPortIsolationNotAuthored to ([\w:]+);", text) == [
+        ("hostPortIsolationGapOnLinuxHost", "scoreTwoDomainPhysicalSystem::linuxHost")]
+    (action,) = re.findall(r'attribute :>> nextAction = "phase 10, in this order: ([^"]*)";', text)
+    seventh = ("(7) author the host configuration that makes the DDS ports of every host ROS 2 process, and port "
+               "4721, unreachable from each guest domain (a host firewall on the bench), and run the reachability "
+               "probe of the case that verifies REQ-MW-016 (ASM-MW-029, GAP-MW-046)")
+    assert action.endswith(seventh), action[-260:]
+    assert ("the frame assembler binds 0.0.0.0:4721 (de4sdv_aebs_010_bridge/ros_node.py:34-35), and the adapter "
+            "connects to 127.0.0.1:4721 on the host loopback") in text
+    assert "on the host loopback, 127.0.0.1:4721 (de4sdv_aebs_010_bridge/ros_node.py:34-35)" not in text, "citation"
+    assert "GAP-MW-043, GAP-MW-045, GAP-MW-046\";" in text, "the frame mapping record lists the isolation gap"
+
+
 def test_someipd_names_the_assumption_that_the_dds_criteria_of_req_mw_016_need() -> None:
     """REQ-MW-016 also covers the host's ROS 2 processes outside the layer; ASM-MW-031 assumes their environment."""
     doc = _named_part_doc(PHYSICAL.read_text(encoding="utf-8"), "someipd")

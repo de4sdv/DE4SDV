@@ -3,8 +3,9 @@
 REQ-MW-016 keeps application data of the guest out of the Linux host with two findings. First, the HMI path and
 the configuration of each element of the layer give no endpoint on the host for data from a guest domain. Second,
 no DDS port of an element of the layer is reachable from any guest domain. The second finding states the
-property, real isolation, and names no mechanism. A loopback binding alone does not give it. It covers the other
-ROS 2 processes on the host only while ASM-MW-031 holds. A verification without ASM-MW-031 is inconclusive.
+property, real isolation, and names no mechanism. A loopback binding alone does not give it. A reachable port of
+an element of the layer fails. The other ROS 2 processes on the host count only while ASM-MW-031 holds; without
+it, a verification shows nothing about them.
 The criteria of REQ-MW-017 name the layer's elements in a guest domain by their role.
 REQ-MW-019 declares a margin at the start of a subscription. The margin is the clock bound of ASM-MW-030, and
 ASM-MW-030 is also the condition of the criteria. A run without it is inconclusive. ASM-MW-030 holds the value, so
@@ -71,8 +72,9 @@ def test_req_mw_016_criteria_state_the_hmi_path_and_unreachable_dds_ports() -> N
     for clause in ("First, the interface definition of the HMI path and the configuration of each element of the "
                    "layer declare no endpoint on the Linux host for application data from a guest domain of the "
                    "layer.",
-                   "Second, no DDS port of an element of the layer on the Linux host is reachable from any guest "
-                   "domain of the layer."):
+                   "Second, no DDS port on the Linux host of an element of the layer, nor, while ASM-MW-031 holds, "
+                   "of any other ROS 2 process on the Linux host, is reachable from any guest domain of the layer.",
+                   "A reachable port of an element of the layer fails the criteria."):
         assert clause in criteria, clause
     assert "Third," not in criteria and "subscription" not in criteria, "the port finding covers the subscriptions"
     assert "any process on the Linux host" not in criteria, "the findings name the elements of the layer"
@@ -82,12 +84,12 @@ def test_req_mw_016_criteria_extend_to_other_host_processes_only_while_asm_mw_03
     """The part outside the layer is conditioned on ASM-MW-031, as REQ-MW-019 is on ASM-MW-030."""
     body = _requirement("REQ-MW-016")
     criteria = _attribute(body, "successCriteria")
-    for statement in ("While ASM-MW-031 holds, the second finding also holds for the DDS ports of each other ROS 2 "
-                      "process on the Linux host.",
-                      "A verification that finds ASM-MW-031 not holding does not show the criteria met, and its "
-                      "outcome is inconclusive."):
+    for statement in ("nor, while ASM-MW-031 holds, of any other ROS 2 process on the Linux host,",
+                      "A verification that finds ASM-MW-031 not holding shows nothing about the other processes, and "
+                      "for them its outcome is inconclusive."):
         assert statement in criteria, statement
-    assert criteria.endswith("and its outcome is inconclusive."), criteria[-120:]
+    assert criteria.endswith("and for them its outcome is inconclusive."), criteria[-120:]
+    assert "does not show the criteria met" not in criteria, "a failing layer port is not hidden as inconclusive"
     source = _attribute(body, "source")
     assert "; ASM-MW-031; " in source, source
     assert "owner decision 2026-10-28 (the ROS 2 (DDS) criteria)" in source
@@ -103,13 +105,15 @@ def test_req_mw_016_criteria_extend_to_other_host_processes_only_while_asm_mw_03
 
 
 def test_req_mw_017_criteria_name_the_guest_element_by_its_role() -> None:
-    """A knock-on of the path decision: no criterion names the superseded receiver; the statement is unchanged."""
+    """A knock-on of the path decision: no criterion names the receiver; the statement is unchanged."""
     body = _requirement("REQ-MW-017")
     assert _statement(body) == "The middleware integration layer shall carry no AEBS emergency intervention command."
     criteria = _attribute(body, "successCriteria")
-    assert ("Met when inspection of the S-CORE service configuration, the adapter interfaces, gatewayd, someipd and "
-            "each element of the layer in a guest domain, and the interface definition of the HMI path finds no "
-            "element that carries the AEBS emergency intervention command,") in criteria, criteria
+    assert criteria == ("Met when inspection finds no element that carries the AEBS emergency intervention command. "
+                        "The inspection covers the S-CORE service configuration, the adapter interfaces, gatewayd, "
+                        "someipd, each element of the layer in a guest domain and the interface definition of the HMI "
+                        "path. The path of that command from the AEB node to the vehicle command gate on the Linux "
+                        "host contains no element of the middleware integration layer."), criteria
     assert not re.search(r"\breceiver", criteria, re.IGNORECASE), criteria
 
 
@@ -120,7 +124,8 @@ def test_req_mw_019_criteria_take_their_margin_and_their_condition_from_asm_mw_0
     for statement in ("Met when, while ASM-MW-030 holds, the HMI application receives no frame that the AEBS stack "
                       "produced more than a margin before the start of its current subscription.",
                       "The production time comes from the clock of the frame's producer.",
-                      "The start of the subscription comes from the clock at the HMI application's subscription.",
+                      "The start of the subscription comes from the clock that times the start of the HMI "
+                      "application's subscription.",
                       "The margin is the bound of ASM-MW-030 on the offset between these two clocks.",
                       "A run in which ASM-MW-030 does not hold does not show the criteria met, and its outcome is "
                       "inconclusive."):
@@ -130,6 +135,9 @@ def test_req_mw_019_criteria_take_their_margin_and_their_condition_from_asm_mw_0
     assert "; ASM-MW-030; " in source, source
     assert "owner decision 2026-10-28 (the margin at the start of a subscription)" in source
     rationale = _attribute(body, "rationale")
+    assert ("The clock that stamps a frame is not the clock that times the start of the HMI application's "
+            "subscription.") in rationale, rationale
+    assert "clock at the HMI application's subscription" not in criteria + rationale, "the vague clock name is gone"
     assert rationale.endswith("GAP-MW-045 records the band that the margin leaves."), rationale[-120:]
     assert "twice" not in rationale, "the rationale leaves the width of the band to GAP-MW-045"
     # The bound that the criteria take is stated once, in ASM-MW-030.

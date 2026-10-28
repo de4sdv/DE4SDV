@@ -316,24 +316,41 @@ def test_the_isolation_case_inspects_the_host_and_probes_the_dds_ports_from_each
                       "domains, such as its firewall rules.",
                       "For the ROS 2 processes outside the layer, it records whether ASM-MW-031 holds on the member.",
                       "While the layer runs, collectData also runs a reachability probe from each guest domain of the "
-                      "layer against the DDS ports of the Linux host. The probe must find these ports unreachable.",
-                      "As a control, it must reach the SOME/IP ports of someipd from the guest domain that someipd "
-                      "serves.",
-                      "If ASM-MW-031 does not hold, the case does not show the criteria met. If the control fails, the "
-                      "probe shows nothing about the DDS ports. In both cases, the outcome is "
-                      "inconclusiveMissingEvidence."):
+                      "layer, in three steps:",
+                      "It lists the sockets that the ROS 2 processes of the host have bound (ss -ulnp, IPv4 and IPv6, "
+                      "unicast and multicast).",
+                      "It lists every other host listener bound to an address that the guest domain reaches, port "
+                      "4721 of the frame assembler among them, and every host address that the guest domain reaches.",
+                      "It sends marked datagrams to each listed DDS socket, and it tries a connection to each listed "
+                      "TCP listener. It observes the delivery on the host: a capture on the guest-facing interface, "
+                      "and the counters of the isolation rule.",
+                      "It runs a positive control with the same method, against a control socket that the host "
+                      "exposes on INADDR_ANY or with the isolation off for a control window. The same observation "
+                      "must show the delivery.",
+                      "The SOME/IP ports of someipd stay the control of the network path.",
+                      "A reachable DDS port of an element of the layer fails the case, whatever the control or "
+                      "ASM-MW-031 show.",
+                      "If the control fails, an unreachable result shows nothing, and the outcome is "
+                      "inconclusiveMissingEvidence.",
+                      "If ASM-MW-031 does not hold, the case shows nothing about the other processes, and for them the "
+                      "outcome is inconclusiveMissingEvidence.",
+                      "A reachable port 4721 is a finding against ASM-MW-029, not against these criteria."):
         assert statement in definition, statement
     assert "does not inspect them" not in definition, "the criteria name the host's ROS 2 and DDS configuration"
     needs = _usage_doc("VC-MW-017")
     assert needs.startswith("Not started. Bench: the Linux host with the layer running and each guest domain of the "
-                            "layer up, with a reachability probe in each guest domain."), needs[:200]
-    for statement in ("With the AAOS SDV broker path that the owner chose on 2026-10-28, these are the SDV Core VM "
-                      "and the IVI VM, and someipd serves the SDV Core VM.",
+                            "layer up, with a reachability probe in each; someipd serves the guest domain that the HMI "
+                            "path enters."), needs[:200]
+    for statement in ("The positive control needs a control socket that the host exposes on INADDR_ANY, or a control "
+                      "window with the isolation off.",
                       "For ROS 2 (DDS), it needs the Launch Manager configuration and the launch configuration of the "
                       "member on the Linux host.",
                       "It also needs the DDS configuration of the Linux host and the host configuration that makes "
-                      "the DDS ports unreachable from the guest domains."):
+                      "the DDS ports and port 4721 unreachable from the guest domains (GAP-MW-046)."):
         assert statement in needs, statement
+    # Phase 8 models one guest so far; the bench of the case names no guest machine until phase 8 does.
+    for machine in ("SDV Core VM", "IVI VM", "broker"):
+        assert machine not in needs, machine
     gap = _flat_doc(_raw_body(SLICE.read_text(encoding="utf-8"),
                               r"\bpart\s+<'GAP-MW-044'>\s*\w+\s*:\s*IncrementGap\s*\{"))
     assert ("The inspection cases VC-MW-018 and VC-MW-021 need no run. They need the configurations and the wiring "
