@@ -134,7 +134,9 @@ assumptions. Produce an increment charter YAML + SysML v2 package.
 
 Identify stakeholders, concerns, and risks. Select SAF viewpoints.
 Stakeholder definitions use SysML v2 metadata features and DE4SDV
-method package part definitions.
+method package part definitions. Each concern has a native stakeholder
+member, and a viewpoint of a view of the increment frames it (rule 14 of the
+[increment workflow](increment-workflow.md#method-rules-and-the-increment-workflow-model)).
 
 ### Phase 2 — Operational context
 
@@ -205,7 +207,8 @@ rest (the shape and the advisory checks are rule 13 of the
 Variation points, feature configurations, and product-model
 applicability. Feature models become SysML v2 packages with variation
 points and configuration expressions. This is a significant DE4SDV
-extension.
+extension. Review judges this step: it has no executable check (rule 16 of
+the [increment workflow](increment-workflow.md#method-rules-and-the-increment-workflow-model)).
 
 ### Phase 10 — V&V and evidence
 
@@ -222,12 +225,17 @@ metadata.
 ### Phase 11 — Publication
 
 Produce reviewable SysML v2 textual notation, Markdown, YAML, and open
-a GitHub PR.
+a GitHub PR. The increment publishes at least one view. Each view of the
+increment has a viewpoint that frames a concern and exposes model content
+(rule 15 of the
+[increment workflow](increment-workflow.md#method-rules-and-the-increment-workflow-model)).
+The pull request and its review stay outside the model.
 
 ### Phase 12 — Baseline and next slice
 
 Baseline decision, open issues, next increment scope. Feed lessons
-back to System 3.
+back to System 3. Review judges this step: it has no executable check (rule
+16 of the [increment workflow](increment-workflow.md#method-rules-and-the-increment-workflow-model)).
 
 ## Viewpoint flow per phase
 

@@ -132,7 +132,11 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   lines after `then:` are what its check needs besides it. In
   `phase_contract`, `parameter_element_id` is the element id of that step
   parameter.
-- **Coverage.** Only some steps of the workflow carry checks. `phase_contract`
+- **Coverage.** Every step of the workflow carries checks except variability
+  and configuration (phase 9) and the baseline decision (phase 12). What those
+  two declare cannot be checked deterministically
+  ([rule 16](../../methodologies/sysmod-sysmlv2/increment-workflow.md#method-rules-and-the-increment-workflow-model)).
+  `phase_contract`
   lists every step in `steps`, with its phase, documentation, inputs and
   outputs (name, kind, type, multiplicity) and its checks; a step without
   checks has the coverage "no executable checks at this revision". In
@@ -245,6 +249,75 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   `attribute speed_kmh : Vehicle_Speed;` in the payload); VSS typing is read
   at a port, never at an element, and text naming a VSS path is no VSS
   typing.
+- **Concerns (phase 1).** Each concern the increment's packages own has a
+  native `stakeholder` member (`stakeholderMember`). A viewpoint of a view of
+  the increment frames it (`framedByViewpoint`), by its own frame or by a
+  frame of the viewpoint definition it is typed by. Both checks block. The
+  views of the increment are the views its packages own, the same views as
+  in phase 11. A view that a part or another view owns is none of them.
+  The stakeholders are those members, of the concerns, the problem statement
+  and the needs; no check counts stakeholder parts. A frame owned
+  by a need, or by a viewpoint of another view, is reported and does not
+  count. So, for a concern:
+
+  ```sysml
+  concern <concern> : <ConcernDefinition> { subject; stakeholder <role> : <StakeholderRole>; }
+  view <view> {
+    viewpoint <viewpoint> : <ViewpointDefinition> { frame <concern>; }
+    expose <element>;
+  }
+  ```
+
+- **Operational context and story (phase 2).** The increment has exactly
+  one `SystemContext` usage (`incrementHasOperationalContext`). A part of it
+  redefines its `systemOfInterest` and is the system of interest the charter
+  declares (`contextSystemOfInterest`). That part is the declared usage, a
+  usage that narrows or is bound to it, or a part typed by its definition.
+  Each use case the increment's packages own at any depth, also one the
+  context owns, binds its subject to that part (`storySubjectBound`). An
+  `include use case` is no use case of its own. Each actor of a use case is
+  bound to a part of the context around that part, not inside it
+  (`storyActorsBound`). A part the context's own definition declares counts.
+  The generic slots of the kernel's `SystemContext` (`actors`) do not. All
+  four block. The checks are about the context,
+  the parameter through which they reach it; the gaps name each use case and
+  actor that does not bind. A use case has one subject, its own or its
+  definition's. Its actors are its own and those of its definitions that no
+  own actor redefines. A redefinition by the language rule counts too: the
+  export records it. Without a use case at any depth, or without an actor,
+  the story checks are not applicable, never passed. Whether a role is a System 1 role
+  stays with review. So:
+
+  ```sysml
+  part <context> : SystemContext {
+    part <system> : <SystemOfInterestDefinition> :>> systemOfInterest;
+    part <host> : <HostDefinition> { part <provider> : <ProviderDefinition>; }
+  }
+  use case <story> {
+    subject <subject> = <context>::<system>;
+    actor <provider> = <context>::<host>::<provider>;
+  }
+  ```
+
+- **Feature-model delta (phase 3).** The step's output is typed by the
+  classification base `ProductLineCharacteristic`, so `featureDeltaOnly`
+  (blocking) reads every product-line characteristic the increment's
+  packages own. A feature candidate passes, and so does product-line scope
+  the increment defers (`DeferredProductLineScope`, such as a gap). A
+  `CommonProductLineCapability` record fails: core elements are common by
+  default and get no record. An increment that adds no variability records
+  nothing, and the check is not applicable.
+- **Publication (phase 11).** The increment publishes at least one view
+  (`publishedViews[1..*]`), so a declared phase 11 without a view fails on
+  population. Each view the increment's packages own has a viewpoint, of its
+  own or of its definition, that frames a concern
+  (`viewpointFramesConcern`). The frame is the viewpoint's own or its viewpoint
+  definition's. Each view, or a view it owns at any depth,
+  exposes model content (`exposesModelContent`). A table or matrix view
+  exposes through its row, column and cell views. Both block and judge the
+  model only. The pull request, its review and the rendered diagrams are
+  judged outside the model: CI checks the diagrams and each folder's
+  `VIEWS.md`.
 - **Method side versus model.** Some inputs only a method or kernel change can
   supply, for example a declaration without a validated kernel identity or a
   relation without a SysML mapping. Those checks are listed under
@@ -340,7 +413,7 @@ jq '.increments[] | {id, outcome, next: .next.gate, counts}' method-check.json
 | `id`, `outcome` | The increment identifier, for example `INC-AEBS-010`; `evaluated`, `method-unavailable`, `method-invalid`, `refused` or `error` |
 | `next` | The first check to act on: `gate`, `stage`, `kind`, `what_to_author`, `authoring`, `where`, `subjects`; `null` when none is open |
 | `counts` | `blocking`, `blocking_by_kind`, `advisory`, `method_side_blockers` |
-| `phase_exits`, `phase_checks` | Per phase with executable checks: `READY` or `BLOCKED`, and how many of its checks pass (`pass`, `total`, `not_applicable`) |
+| `phase_exits`, `phase_checks` | Per phase with executable checks: `READY` or `BLOCKED`, and how many of its checks pass (`pass`, `total`, `not_applicable`). The exit of a phase the charter does not declare is `READY`, because all its checks are not applicable; the summary shows such a phase as "not declared" |
 | `phases_without_checks` | The declared phases whose step has no executable checks: `phase`, `step` and its `outputs`; never evaluated, so the counts say nothing about them |
 | `evaluation.gaps.blocking` | Every unmet blocking check with all its subjects; `evaluation.gaps.advisory` holds the advisory notes |
 | `evaluation` | The full `scripts/evaluate_increment.py` report: `status`, `gaps`, `next`, `contract` |

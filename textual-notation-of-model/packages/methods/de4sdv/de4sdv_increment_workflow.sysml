@@ -33,7 +33,7 @@ package DE4SDV_IncrementWorkflow {
   private import DE4SDV_MethodProcess::*;
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_Stakeholders::*;
-  private import DE4SDV_ProductLine::ProductLineFeatureCandidate;
+  private import DE4SDV_ProductLine::ProductLineCharacteristic;
   private import DE4SDV_TraceVocabulary::AllocatableFunction;
   private import DE4SDV_TraceVocabulary::LogicalAllocationElement;
   private import DE4SDV_TraceVocabulary::PhysicalAllocationElement;
@@ -220,11 +220,26 @@ package DE4SDV_IncrementWorkflow {
   }
 
   action def FrameConcerns :> IncrementStep {
-    doc /* Who cares and why? */
+    doc /* Who cares and why? Rules: each concern of the increment has a native
+         * stakeholder member, and a viewpoint of a view of the increment frames
+         * it, by its own frame or by a frame of the viewpoint definition it is
+         * typed by. The views of the increment are the views its packages own,
+         * as in phase 11. The stakeholders are the native stakeholder members
+         * of the concerns, the problem statement and the needs; no check counts
+         * stakeholder parts. */
     attribute :>> phase = MethodPhase::phase1_concernFraming;
     in requirement problemStatement : ProblemStatement;
     out part stakeholders[1..*] : Stakeholder;
     out concern concerns[1..*];
+
+    metadata concernHasStakeholder : MethodCheck about concerns {
+      doc /* Each concern of the increment has a native stakeholder member; no assignment or authority claim. */
+      :>> check = "stakeholderMember";
+    }
+    metadata concernFramedByViewpoint : MethodCheck about concerns {
+      doc /* Each concern of the increment is framed by a viewpoint of a view of the increment; no claim that the view addresses the concern. */
+      :>> check = "framedByViewpoint";
+    }
   }
 
   action def SpecifyOperationalContext :> IncrementStep {
@@ -232,21 +247,48 @@ package DE4SDV_IncrementWorkflow {
          * context and story hold System 1 roles only; bench, reviewer and
          * evidence roles belong to the engineering and assurance system. Each
          * use case of the story binds its subject to the system of interest
-         * and each actor to a context part around it. */
+         * and each actor to a context part around it. The context's own
+         * systemOfInterest is the system of interest the charter declares. The
+         * story is every use case the increment's packages own at any depth.
+         * The checks read the context and the bindings of those use cases.
+         * Review judges the roles: the kernel classifies no role as System 1 or
+         * System 2. */
     attribute :>> phase = MethodPhase::phase2_operationalContext;
     in requirement problemStatement : ProblemStatement;
     out part operationalContext : SystemContext;
+
+    metadata incrementHasOperationalContext : MethodCheck about operationalContext {
+      doc /* The increment has exactly one operational context; the count is the rule, no completeness claim. */
+      :>> check = "populationMember";
+    }
+    metadata operationalContextHoldsSystemOfInterest : MethodCheck about operationalContext {
+      doc /* The operational context redefines its systemOfInterest with the system of interest the charter declares, by usage, narrowing, binding or type lineage; no completeness claim. */
+      :>> check = "contextSystemOfInterest";
+    }
+    metadata storyBindsSubjectToSystemOfInterest : MethodCheck about operationalContext {
+      doc /* Each use case of the increment binds its subject to the operational context's system of interest; no claim about what the story says. */
+      :>> check = "storySubjectBound";
+    }
+    metadata storyBindsActorsToContextParts : MethodCheck about operationalContext {
+      doc /* Each actor of each use case of the increment is bound to a part of the operational context around its system of interest; no claim that a role is a System 1 role. */
+      :>> check = "storyActorsBound";
+    }
   }
 
   action def ClassifyCapabilities :> IncrementStep {
     doc /* Which characteristics distinguish member products? Rule: the step
          * records only the feature-model delta, the feature candidates the
-         * increment adds, and the delta may be empty. Core elements are common
-         * by default and get no record; constraints go to the requirements and
-         * evidence to V&V. */
+         * increment adds, and product-line scope it defers, such as a gap. The
+         * delta may be empty. Core elements are common by default and get no
+         * record; constraints go to the requirements and evidence to V&V. */
     attribute :>> phase = MethodPhase::phase3_capabilityClassification;
     in part operationalContext : SystemContext;
-    out part characteristics[0..*] : ProductLineFeatureCandidate;
+    out part characteristics[0..*] : ProductLineCharacteristic;
+
+    metadata characteristicIsFeatureDelta : MethodCheck about characteristics {
+      doc /* Each product-line characteristic of the increment is a feature candidate or deferred product-line scope; a common-capability record is no feature-model delta. No claim that a candidate distinguishes member products. */
+      :>> check = "featureDeltaOnly";
+    }
   }
 
   action def ElaborateNeeds :> IncrementStep {
@@ -483,10 +525,26 @@ package DE4SDV_IncrementWorkflow {
   }
 
   action def PublishIncrement :> IncrementStep {
-    doc /* What is reviewable now? */
+    doc /* What is reviewable now? Rules: the increment publishes at least one
+         * view; each view of the increment has a viewpoint that frames a
+         * concern, and the view, or a view it owns, exposes model content. The
+         * views of the increment are the views its packages own, not views that
+         * a part or another view owns. The checks judge the model only. The
+         * pull request, its review and the rendered diagrams are judged outside
+         * the model: CI checks the diagrams and the view index, review the
+         * rest. */
     attribute :>> phase = MethodPhase::phase11_publication;
     in part charter : IncrementCharter;
-    out view publishedViews[0..*];
+    out view publishedViews[1..*];
+
+    metadata publishedViewFramesConcern : MethodCheck about publishedViews {
+      doc /* Each view of the increment has a viewpoint, of its own or of its definition, that frames a concern; no claim that the view addresses the concern. */
+      :>> check = "viewpointFramesConcern";
+    }
+    metadata publishedViewExposesContent : MethodCheck about publishedViews {
+      doc /* Each view of the increment, or a view it owns at any depth, exposes model content; no rendering, publication or review claim. */
+      :>> check = "exposesModelContent";
+    }
   }
 
   action def DecideBaselineAndNextSlice :> IncrementStep {
