@@ -13,15 +13,19 @@ services. Its fault-injection interface is the trigger of the abort test.
 These are lexical source guards; licensed Syside validates the model in CI. The
 pins live in doc comments, so these tests read the docs on purpose. They check
 consistency, not existence. The pin check skips only while the bench is absent and
-no workflow declares the pins. The receiver check skips only while no file under
-implementation/ or .github/ names the receiver's service (de4sdv_someip_receiver)
-or its margin constant (kPhaseStartMarginNs); once one does, the receiver's code
-and init file must carry the model's margin and copy window.
+no workflow declares the pins. The receiver check reads only the files that git
+tracks, so ignored build output, bags and workspaces never count. It skips while
+no tracked non-Markdown file under implementation/ or .github/ names the
+receiver's service (de4sdv_someip_receiver) or its margin constant
+(kPhaseStartMarginNs), and outside a git checkout. Once one does, the receiver's
+headers and its init file, the one with a `service de4sdv_someip_receiver` line,
+must carry the model's margin and copy window.
 """
 
 from __future__ import annotations
 
 import re
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -40,9 +44,10 @@ BENCH = IMPLEMENTATION / "score-reference-interop-bench"
 #: The SOME/IP receiver shows by its service name or by its margin constant, in the realization or in CI.
 RECEIVER_SERVICE = "de4sdv_someip_receiver"
 RECEIVER_MARKERS = (RECEIVER_SERVICE, "kPhaseStartMarginNs")
-MARKER_ROOTS = (IMPLEMENTATION, ROOT / ".github")
-#: Directories of local build output, which the scans leave out.
-_OUTPUT_DIRS = frozenset({".git", "build", "install", "log", "node_modules", "__pycache__"})
+#: The pathspecs of the marker and header scans.
+MARKER_PATHSPECS = ("implementation", ".github")
+#: The receiver's init file declares its service on a line of its own; a comment does not count.
+_RECEIVER_SERVICE_LINE = re.compile(rf"^\s*service\s+{RECEIVER_SERVICE}\b", re.M)
 #: The frame assembler of INC-AEBS-010, whose timer sets the frame period.
 BRIDGE_NODE = (ROOT / "implementation" / "aebs-aaos-sdv-visualization-bench" / "src" / "de4sdv_aebs_010_bridge"
                / "de4sdv_aebs_010_bridge" / "ros_node.py")
@@ -116,23 +121,34 @@ def _numbers(pattern: str, text: str) -> list[int]:
     return [int(value) for value in re.findall(pattern, text)]
 
 
-def _source_files(root: Path, pattern: str = "*") -> list[Path]:
-    """The files under ``root`` that match ``pattern``, without local build output."""
-    if not root.exists():
-        return []
-    return [path for path in sorted(root.rglob(pattern))
-            if path.is_file() and not _OUTPUT_DIRS.intersection(path.relative_to(ROOT).parts)]
+def _tracked(*pathspecs: str) -> list[Path] | None:
+    """The files that git tracks under ``pathspecs`` and that exist in the working tree; None outside a checkout.
+
+    Git, not the working tree, decides what belongs to the revision: an ignored file is never read, however large,
+    and a tracked file is read wherever it sits.
+    """
+    try:
+        listing = subprocess.run(["git", "ls-files", "-z", "--", *pathspecs], cwd=ROOT,
+                                 capture_output=True, check=True).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    paths = (ROOT / name for name in listing.decode("utf-8").split("\0") if name)
+    return [path for path in paths if path.is_file()]
 
 
-def _receiver_marker_files() -> list[str]:
-    """The files under implementation/ and .github/ that name the receiver's service or its margin constant."""
+def _receiver_marker_files(tracked: list[Path]) -> list[str]:
+    """The tracked non-Markdown files that name the receiver's service or its margin constant.
+
+    Markdown is left out, so a README may name the service before the code lands.
+    """
     markers = tuple(marker.encode() for marker in RECEIVER_MARKERS)
     found = []
-    for root in MARKER_ROOTS:
-        for path in _source_files(root):
-            data = path.read_bytes()
-            if any(marker in data for marker in markers):
-                found.append(path.relative_to(ROOT).as_posix())
+    for path in tracked:
+        if path.suffix == ".md":
+            continue
+        data = path.read_bytes()
+        if any(marker in data for marker in markers):
+            found.append(path.relative_to(ROOT).as_posix())
     return found
 
 
@@ -252,29 +268,34 @@ def test_the_derived_numbers_follow_the_bound_the_frame_period_and_the_slots() -
 
 
 def test_the_receiver_code_uses_the_margin_and_the_copy_window_of_the_model() -> None:
-    """Once the SOME/IP receiver shows anywhere, its code and its init file carry the model's margin and window.
+    """Once a tracked file names the SOME/IP receiver, its code and its init file carry the model's margin and window.
 
-    The check holds the realization to the model; it does not need the receiver to exist. It skips only while no
-    file under implementation/ or .github/ names the receiver's service or its margin constant, so a silent skip
-    needs both names gone everywhere.
+    The check holds the realization to the model; it does not need the receiver to exist. It reads only the files
+    that git tracks. It skips only while no tracked non-Markdown file under implementation/ or .github/ names the
+    receiver's service or its margin constant, so a silent skip needs both names gone from all of them. Outside a
+    git checkout it skips, because it cannot tell tracked files from build output there.
     """
-    found = _receiver_marker_files()
+    tracked = _tracked(*MARKER_PATHSPECS)
+    init_files = _tracked("*.rc")
+    if tracked is None or init_files is None:
+        pytest.skip("not a git checkout: the receiver check reads only the files that git tracks")
+    found = _receiver_marker_files(tracked)
     if not found:
-        pytest.skip("no file under implementation/ or .github/ names the SOME/IP receiver")
+        pytest.skip("no file under implementation/ or .github/ names the SOME/IP receiver (tracked, non-Markdown)")
     _, rule = _comment(PHYSICAL.read_text(encoding="utf-8"), "receiverSubscriptionPhaseDiscardRule")
     (margin,) = _numbers(r"not earlier than the phase start less (\d+) ms", rule)
     (window,) = _numbers(r"of the last (\d+) frames it served", rule)
     named = f"{found[0]} names the receiver"
-    code = "\n".join(path.read_text(encoding="utf-8") for path in _source_files(IMPLEMENTATION, "*.hpp"))
+    headers = [path for path in tracked if path.suffix == ".hpp" and path.is_relative_to(IMPLEMENTATION)]
+    code = "\n".join(path.read_text(encoding="utf-8") for path in headers)
     margins = [int(value.replace("'", "")) for value in re.findall(r"\bkPhaseStartMarginNs\s*=\s*([0-9']+)", code)]
     windows = [int(value) for value in re.findall(r"\bkCopyMemoryFrames\s*=\s*(\d+)", code)]
     assert margins, f"{named}, but no header under implementation/ defines kPhaseStartMarginNs"
     assert margins == [margin * 1_000_000], f"the receiver's margin is {margins} ns, the model's {margin} ms"
     assert windows == [window], f"the receiver keeps {windows} frames, the model {window}"
-    init_files = _source_files(ROOT, "*.rc")
-    # The ingress of INC-AEBS-010 has an init file too, so the receiver's own one must name its service.
-    receiver_init = [rc for rc in init_files if RECEIVER_SERVICE in rc.read_text(encoding="utf-8")]
-    assert receiver_init, f"{named}, but no init file (*.rc) names {RECEIVER_SERVICE}"
+    # The ingress of INC-AEBS-010 has an init file too, so the receiver's own one must declare its service.
+    receiver_init = [rc for rc in init_files if _RECEIVER_SERVICE_LINE.search(rc.read_text(encoding="utf-8"))]
+    assert receiver_init, f"{named}, but no tracked init file (*.rc) declares the service {RECEIVER_SERVICE}"
     for rc in init_files:
         lines = [line for line in rc.read_text(encoding="utf-8").splitlines() if not line.lstrip().startswith("#")]
         options = re.findall(r"--[\w-]*(?:margin|bound)[\w-]*", "\n".join(lines))
