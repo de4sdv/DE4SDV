@@ -1,0 +1,349 @@
+# S-CORE reference interoperability bench of INC-MW-011 (phase 10): the
+# one-process AutowareToSCORE adapter.
+#
+# On GitHub-hosted ubuntu-22.04 runners, without secrets, as the non-root
+# runner user:
+# - build: the S-CORE SOME/IP gateway workspace at a pinned commit with the
+#   DE4SDV overlay (facade archives, vehicle-speed provider, configuration);
+#   the colcon package de4sdv_score_adapter linked with g++-12 and the shared
+#   libstdc++ against ROS 2 Humble from a pinned snapshot; the unit tests;
+#   the link facts (nm -D of __cxa_allocate_exception).
+# - launch-manager: lifecycle v0.6.1's Launch Manager and the DE4SDV
+#   configuration, rendered with the ROS 2 setup of the host and serialized
+#   by lifecycle's own tool.
+# - abort-matrix: the REQ-MW-018 matrix (three throws inside a try/catch,
+#   selected by signals, the adapter and a control build without the
+#   override), and the refused speed subscription.
+# - rmw-startup-probe: adapter startup under several ROS 2 middleware setups.
+# - soak: nominal operation with someipd and gatewayd, 600 s on a pull
+#   request, the soak_seconds of a manual run (default 1800 s).
+# Every runtime job sources config/ros_environment.sh of the runtime bundle
+# and records the facts of its runner. Results are CI regression and design
+# data, not evidence of record.
+name: S-CORE reference interop bench
+
+on:
+  pull_request:
+    paths:
+      - implementation/score-reference-interop-bench/**
+      - '!implementation/score-reference-interop-bench/**/*.md'
+      - .github/workflows/score-reference-interop-bench.yml
+  workflow_dispatch:
+    inputs:
+      soak_seconds:
+        description: Duration of the soak in seconds (60 to 3600)
+        type: number
+        default: 1800
+
+permissions:
+  contents: read
+
+concurrency:
+  group: score-reference-interop-bench-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  BENCH_DIR: implementation/score-reference-interop-bench
+  GATEWAY_REPO: https://github.com/eclipse-score/inc_someip_gateway.git
+  # inc_someip_gateway main at the merge of its mw::com IPC binding rework;
+  # communication 0.5.0, baselibs 0.2.16, Bazel 8.6.0 (.bazelversion).
+  GATEWAY_SHA: d9eac670b7534352749da3d30f52aebf5129f168
+  LIFECYCLE_REPO: https://github.com/eclipse-score/lifecycle.git
+  # eclipse-score/lifecycle v0.6.1 (reference_integration v0.9.0), Bazel 8.7.0.
+  LIFECYCLE_SHA: 432c85d91db8bd72a39a61f245eaf119a570b88d
+
+jobs:
+  build:
+    name: Build gateway overlay, adapter and tests
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    env:
+      # bazel-8.6.0-linux-x86_64
+      BAZELISK_VERIFY_SHA256: 9860da9c9386bbc023feed8f43af3105d338727d77b644fa6aeca45a4a11957c
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Prepare the runner
+        run: bash "$BENCH_DIR/scripts/ci_prepare_runner.sh" "$RUNNER_TEMP/facts"
+      - name: Install ROS 2 Humble from the pinned snapshot
+        run: bash "$BENCH_DIR/scripts/ci_install_ros.sh" "$RUNNER_TEMP/facts" build
+      # One cache entry per gateway commit; a change of the DE4SDV overlay
+      # reuses it, and Bazel rebuilds only what changed.
+      - name: Restore the Bazel caches of the gateway workspace
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/de4sdv-bazel
+          key: score-bench-gateway-${{ env.GATEWAY_SHA }}
+          restore-keys: |
+            score-bench-gateway-${{ env.GATEWAY_SHA }}
+      - name: Check out the gateway at the pinned commit and add the DE4SDV overlay
+        run: |
+          bash "$BENCH_DIR/scripts/ci_checkout_upstream.sh" "$GATEWAY_REPO" "$GATEWAY_SHA" "$RUNNER_TEMP/gw" \
+            "$RUNNER_TEMP/facts" gateway \
+            "$BENCH_DIR/interface=de4sdv_score_bench/interface" \
+            "$BENCH_DIR/adapter/facade=de4sdv_score_bench/facade" \
+            "$BENCH_DIR/provider=de4sdv_score_bench/provider" \
+            "$BENCH_DIR/config=de4sdv_score_bench/config"
+      - name: Build the facade archives, the provider and the gateway daemons
+        env:
+          BAZEL_CACHE_RESTORED: ${{ steps.cache.outputs.cache-hit || 'false' }} (matched ${{ steps.cache.outputs.cache-matched-key || 'none' }})
+        run: |
+          bash "$BENCH_DIR/scripts/ci_build_gateway_overlay.sh" "$RUNNER_TEMP/gw" "$RUNNER_TEMP/facts" \
+            "$RUNNER_TEMP/facade-sdk" "$RUNNER_TEMP/bundle" "$GITHUB_WORKSPACE/$BENCH_DIR"
+      - name: Save the Bazel caches of the gateway workspace
+        if: success() && steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/de4sdv-bazel
+          key: score-bench-gateway-${{ env.GATEWAY_SHA }}
+      - name: Build and test the adapter package (colcon, g++-12, shared libstdc++)
+        run: |
+          bash "$BENCH_DIR/scripts/ci_build_colcon.sh" "$RUNNER_TEMP/ws" "$RUNNER_TEMP/facts" \
+            "$RUNNER_TEMP/facade-sdk" "$GITHUB_WORKSPACE/$BENCH_DIR" "$RUNNER_TEMP/bundle"
+      - name: Run the evaluator unit tests of the bench
+        run: |
+          python3 -m pip install --user --disable-pip-version-check pytest==8.4.2
+          pytest -q -p no:cacheprovider "$BENCH_DIR/tests" | tee "$RUNNER_TEMP/facts/bench_python_tests.txt"
+      - name: Record disk and pack the runtime bundle
+        if: always()
+        run: |
+          { df -h / /mnt 2>/dev/null || df -h /; du -sh "$HOME/.cache/de4sdv-bazel" /mnt/de4sdv-bazel "$HOME/de4sdv-bazel" 2>/dev/null || true; } \
+            | tee "$RUNNER_TEMP/facts/disk_after_build.txt"
+          if [ -d "$RUNNER_TEMP/bundle/bin" ]; then
+            tar -C "$RUNNER_TEMP/bundle" -czf "$RUNNER_TEMP/runtime-bundle.tar.gz" .
+            sha256sum "$RUNNER_TEMP/runtime-bundle.tar.gz" | tee "$RUNNER_TEMP/facts/runtime_bundle_sha256.txt"
+          fi
+          {
+            echo "### Build facts"
+            echo '```'
+            cat "$RUNNER_TEMP/facts/build_time.json" "$RUNNER_TEMP/facts/colcon_build_time.json" 2>/dev/null || true
+            sed -n '1,12p' "$RUNNER_TEMP/facts/adapter_link_facts.txt" 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-facts
+          path: ${{ runner.temp }}/facts
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runtime-bundle
+          path: ${{ runner.temp }}/runtime-bundle.tar.gz
+          retention-days: 30
+
+  launch-manager:
+    name: Build the Launch Manager and its DE4SDV configuration
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    env:
+      # bazel-8.7.0-linux-x86_64
+      BAZELISK_VERIFY_SHA256: d7606e679b78067c811096fb3d6cf135225b528835ca396e3a4dddf957859544
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Prepare the runner
+        run: bash "$BENCH_DIR/scripts/ci_prepare_runner.sh" "$RUNNER_TEMP/facts"
+      # The renderer of the configuration reads the ROS 2 setup of the host.
+      - name: Install ROS 2 Humble from the pinned snapshot
+        run: bash "$BENCH_DIR/scripts/ci_install_ros.sh" "$RUNNER_TEMP/facts" runtime
+      - name: Restore the Bazel caches of the lifecycle workspace
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/de4sdv-bazel
+          key: score-bench-lifecycle-${{ env.LIFECYCLE_SHA }}
+          restore-keys: |
+            score-bench-lifecycle-${{ env.LIFECYCLE_SHA }}
+      - name: Build the Launch Manager and serialize the configuration
+        env:
+          BAZEL_CACHE_RESTORED: ${{ steps.cache.outputs.cache-hit || 'false' }} (matched ${{ steps.cache.outputs.cache-matched-key || 'none' }})
+        run: bash "$BENCH_DIR/scripts/ci_build_launch_manager.sh" "$RUNNER_TEMP/lifecycle" "$RUNNER_TEMP/facts" "$RUNNER_TEMP/launch-manager" "$GITHUB_WORKSPACE/$BENCH_DIR"
+      - name: Save the Bazel caches of the lifecycle workspace
+        if: success() && steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/de4sdv-bazel
+          key: score-bench-lifecycle-${{ env.LIFECYCLE_SHA }}
+      - name: Record disk
+        if: always()
+        run: |
+          { df -h / /mnt 2>/dev/null || df -h /; } | tee "$RUNNER_TEMP/facts/disk_after_build.txt"
+          {
+            echo "### Launch Manager build"
+            echo '```'
+            cat "$RUNNER_TEMP/facts/launch_manager_build_time.json" 2>/dev/null || true
+            cat "$RUNNER_TEMP/facts/launch_manager_outputs.txt" 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: launch-manager
+          path: |
+            ${{ runner.temp }}/facts
+            ${{ runner.temp }}/launch-manager
+          retention-days: 30
+
+  abort-matrix:
+    name: REQ-MW-018 abort matrix and refused subscription
+    needs: build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install ROS 2 Humble from the pinned snapshot
+        run: bash "$BENCH_DIR/scripts/ci_install_ros.sh" "$RUNNER_TEMP/facts" runtime
+      - uses: actions/download-artifact@v4
+        with:
+          name: runtime-bundle
+          path: ${{ runner.temp }}
+      - name: Unpack the bundle and send cores to a run directory
+        run: |
+          mkdir -p "$RUNNER_TEMP/bundle" "$RUNNER_TEMP/cores"
+          tar -C "$RUNNER_TEMP/bundle" -xzf "$RUNNER_TEMP/runtime-bundle.tar.gz"
+          sudo sysctl -w kernel.core_pattern="$RUNNER_TEMP/cores/core.%e.%p" | tee "$RUNNER_TEMP/facts/core_pattern.txt"
+      - name: Record the runtime facts
+        run: bash "$BENCH_DIR/scripts/ci_record_runtime_facts.sh" "$RUNNER_TEMP/facts" "$RUNNER_TEMP/bundle" "$RUNNER_TEMP/runtime-bundle.tar.gz"
+      # The bundle in the working directory of the Launch Manager
+      # configuration, so its paths are real; ldd of each component in its
+      # rendered environment must find every library.
+      - name: Check that each Launch Manager component loads in its rendered environment
+        run: |
+          mkdir -p /tmp/de4sdv-score-bench
+          tar -C /tmp/de4sdv-score-bench -xzf "$RUNNER_TEMP/runtime-bundle.tar.gz"
+          python3 "$BENCH_DIR/scripts/check_launch_manager_environment.py" \
+            "$BENCH_DIR/launch-manager/launch_manager_config.json" --require adapter,someipd,gatewayd \
+            --out "$RUNNER_TEMP/facts/launch_manager_ldd.txt"
+      - name: Run the abort matrix
+        run: |
+          set +u
+          source /opt/ros/humble/setup.bash
+          source "$RUNNER_TEMP/bundle/config/ros_environment.sh"
+          set -u
+          python3 "$BENCH_DIR/scripts/run_abort_matrix.py" --bundle "$RUNNER_TEMP/bundle" \
+            --out "$RUNNER_TEMP/results/abort-matrix" --core-dir "$RUNNER_TEMP/cores"
+      - name: Run the refused speed subscription
+        if: success() || failure()
+        run: |
+          set +u
+          source /opt/ros/humble/setup.bash
+          source "$RUNNER_TEMP/bundle/config/ros_environment.sh"
+          set -u
+          python3 "$BENCH_DIR/scripts/run_subscribe_failure_check.py" --bundle "$RUNNER_TEMP/bundle" \
+            --out "$RUNNER_TEMP/results/subscribe-failure" --core-dir "$RUNNER_TEMP/cores"
+      - name: Summary
+        if: always()
+        run: |
+          head -6 "$RUNNER_TEMP/facts/launch_manager_ldd.txt" >> "$GITHUB_STEP_SUMMARY" || true
+          cat "$RUNNER_TEMP/results/abort-matrix/abort-matrix-summary.md" >> "$GITHUB_STEP_SUMMARY" || true
+          cat "$RUNNER_TEMP/results/subscribe-failure/subscribe-failure.md" >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: abort-matrix
+          path: |
+            ${{ runner.temp }}/facts
+            ${{ runner.temp }}/results
+          retention-days: 30
+
+  rmw-startup-probe:
+    name: Adapter startup under ROS 2 middleware setups
+    needs: build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install ROS 2 Humble from the pinned snapshot
+        run: bash "$BENCH_DIR/scripts/ci_install_ros.sh" "$RUNNER_TEMP/facts" runtime
+      - uses: actions/download-artifact@v4
+        with:
+          name: runtime-bundle
+          path: ${{ runner.temp }}
+      - name: Unpack the bundle and send cores to a run directory
+        run: |
+          mkdir -p "$RUNNER_TEMP/bundle" "$RUNNER_TEMP/cores"
+          tar -C "$RUNNER_TEMP/bundle" -xzf "$RUNNER_TEMP/runtime-bundle.tar.gz"
+          sudo sysctl -w kernel.core_pattern="$RUNNER_TEMP/cores/core.%e.%p" | tee "$RUNNER_TEMP/facts/core_pattern.txt"
+      - name: Record the runtime facts
+        run: bash "$BENCH_DIR/scripts/ci_record_runtime_facts.sh" "$RUNNER_TEMP/facts" "$RUNNER_TEMP/bundle" "$RUNNER_TEMP/runtime-bundle.tar.gz"
+      - name: Run the startup probe
+        run: |
+          set +u
+          source /opt/ros/humble/setup.bash
+          source "$RUNNER_TEMP/bundle/config/ros_environment.sh"
+          set -u
+          python3 "$BENCH_DIR/scripts/run_rmw_startup_probe.py" --bundle "$RUNNER_TEMP/bundle" \
+            --out "$RUNNER_TEMP/results/rmw-startup-probe" --core-dir "$RUNNER_TEMP/cores"
+      - name: Summary
+        if: always()
+        run: cat "$RUNNER_TEMP/results/rmw-startup-probe/rmw-startup-probe.md" >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rmw-startup-probe
+          path: |
+            ${{ runner.temp }}/facts
+            ${{ runner.temp }}/results
+          retention-days: 30
+
+  soak:
+    name: Soak of the one-process adapter
+    needs: build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    env:
+      SOAK_SECONDS: ${{ inputs.soak_seconds || 600 }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check the soak duration
+        run: |
+          case "$SOAK_SECONDS" in
+            ''|*[!0-9]*) echo "soak_seconds must be a whole number" >&2; exit 1 ;;
+          esac
+          if [ "$SOAK_SECONDS" -lt 60 ] || [ "$SOAK_SECONDS" -gt 3600 ]; then
+            echo "soak_seconds must lie between 60 and 3600" >&2
+            exit 1
+          fi
+          echo "soak: $SOAK_SECONDS s (event ${{ github.event_name }})"
+      - name: Install ROS 2 Humble from the pinned snapshot
+        run: bash "$BENCH_DIR/scripts/ci_install_ros.sh" "$RUNNER_TEMP/facts" runtime
+      - uses: actions/download-artifact@v4
+        with:
+          name: runtime-bundle
+          path: ${{ runner.temp }}
+      - name: Unpack the bundle and send cores to a run directory
+        run: |
+          mkdir -p "$RUNNER_TEMP/bundle" "$RUNNER_TEMP/cores"
+          tar -C "$RUNNER_TEMP/bundle" -xzf "$RUNNER_TEMP/runtime-bundle.tar.gz"
+          sudo sysctl -w kernel.core_pattern="$RUNNER_TEMP/cores/core.%e.%p" | tee "$RUNNER_TEMP/facts/core_pattern.txt"
+      - name: Record the runtime facts
+        run: bash "$BENCH_DIR/scripts/ci_record_runtime_facts.sh" "$RUNNER_TEMP/facts" "$RUNNER_TEMP/bundle" "$RUNNER_TEMP/runtime-bundle.tar.gz"
+      - name: Run the soak
+        run: |
+          set +u
+          source /opt/ros/humble/setup.bash
+          source "$RUNNER_TEMP/bundle/config/ros_environment.sh"
+          set -u
+          python3 "$BENCH_DIR/scripts/run_soak.py" --bundle "$RUNNER_TEMP/bundle" --out "$RUNNER_TEMP/results/soak" \
+            --core-dir "$RUNNER_TEMP/cores" --duration-s "$SOAK_SECONDS"
+      - name: Summary
+        if: always()
+        run: cat "$RUNNER_TEMP/results/soak/soak-result.md" >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: soak
+          path: |
+            ${{ runner.temp }}/facts
+            ${{ runner.temp }}/results
+          retention-days: 30

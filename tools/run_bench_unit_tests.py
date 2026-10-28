@@ -73,6 +73,11 @@ SUITES: list[dict[str, object]] = [
         "tests": ["implementation/vss-vehicle-speed-adapter/tests"],
         "pythonpath": [],
     },
+    {
+        "name": "score-reference-interop-bench (evaluators)",
+        "tests": ["implementation/score-reference-interop-bench/tests"],
+        "pythonpath": [],
+    },
 ]
 
 

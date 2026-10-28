@@ -1,0 +1,7 @@
+#0  0x00007f12a5e969fc in pthread_kill () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007f12a5e42476 in raise () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007f12a5e287f3 in abort () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007f12a62a2b9e in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#4  0x00007f12a62ae20c in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#5  0x00007f12a62ae277 in std::terminate() () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#6  0x00007f12a62ae4d8 in __cxa_throw () from /lib/x86_64-linux-gnu/libstdc++.so.6

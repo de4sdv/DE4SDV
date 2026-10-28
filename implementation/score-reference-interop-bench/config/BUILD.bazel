@@ -1,0 +1,41 @@
+# DE4SDV configuration of the S-CORE reference interoperability bench
+# (INC-MW-011). This file is copied, with the JSON files, into a throwaway
+# checkout of eclipse-score/inc_someip_gateway as the package
+# //de4sdv_score_bench/config (scripts/ci_checkout_upstream.sh). It adds files
+# only; no upstream file changes, and no S-CORE file enters the DE4SDV
+# repository.
+#
+# - The mw::com configuration of each mw::com user on the Linux host, checked
+#   against the schema of communication 0.5.0.
+# - The gateway configuration of gatewayd and someipd: one service type with
+#   one event, the null serializer with 2048 bytes, one local service instance
+#   and no remote service instance (REQ-MW-016), as the flatbuffer binary that
+#   both daemons read.
+
+load("//bazel/tools:json_schema_validator.bzl", "validate_json_schema_test")
+load("//bazel/tools:someip_config.bzl", "generate_someip_config_bin")
+
+package(default_visibility = ["//de4sdv_score_bench:__subpackages__"])
+
+exports_files(glob(["*.json"]))
+
+generate_someip_config_bin(
+    name = "someip_gateway_config",
+    json = "someip_gateway_config.json",
+    output = "someip_gateway_config.bin",
+)
+
+[
+    validate_json_schema_test(
+        name = name + "_schema_valid",
+        size = "small",
+        json = name + ".json",
+        schema = "@score_communication//score/mw/com:config_schema",
+    )
+    for name in [
+        "mw_com_config_adapter",
+        "mw_com_config_gatewayd",
+        "mw_com_config_someipd",
+        "mw_com_config_vehicle_speed_provider",
+    ]
+]

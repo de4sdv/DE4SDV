@@ -1,0 +1,128 @@
+{
+    "schema_version": 1,
+    "defaults": {
+        "deployment_config": {
+            "bin_dir": "/tmp/de4sdv-score-bench/bin",
+            "working_dir": "/tmp/de4sdv-score-bench",
+            "ready_timeout": 2.0,
+            "shutdown_timeout": 3.0,
+            "ready_recovery_action": {
+                "restart": {
+                    "number_of_attempts": 0
+                }
+            },
+            "recovery_action": {
+                "switch_run_target": {
+                    "run_target": "fallback_run_target"
+                }
+            },
+            "environmental_variables": {}
+        },
+        "component_properties": {
+            "application_profile": {
+                "application_type": "Native",
+                "is_self_terminating": false
+            },
+            "ready_condition": {
+                "process_state": "Running"
+            }
+        }
+    },
+    "components": {
+        "someipd": {
+            "description": "SOME/IP daemon of the gateway. VSOMEIP_CONFIGURATION names the loopback configuration of CI; the configuration toward the guest comes with the SOME/IP receiver.",
+            "component_properties": {
+                "binary_name": "someipd",
+                "process_arguments": [
+                    "-s",
+                    "/tmp/de4sdv-score-bench/config/mw_com_config_someipd.json"
+                ]
+            },
+            "deployment_config": {
+                "environmental_variables": {
+                    "LD_LIBRARY_PATH": "/tmp/de4sdv-score-bench/lib",
+                    "VSOMEIP_CONFIGURATION": "/tmp/de4sdv-score-bench/config/vsomeip_loopback.json"
+                }
+            }
+        },
+        "gatewayd": {
+            "description": "Gateway daemon: mw::com to someipd.",
+            "component_properties": {
+                "binary_name": "gatewayd",
+                "depends_on": [
+                    "someipd"
+                ],
+                "process_arguments": [
+                    "-c",
+                    "/tmp/de4sdv-score-bench/config/someip_gateway_config.bin",
+                    "-s",
+                    "/tmp/de4sdv-score-bench/config/mw_com_config_gatewayd.json"
+                ]
+            },
+            "deployment_config": {
+                "environmental_variables": {
+                    "LD_LIBRARY_PATH": "/tmp/de4sdv-score-bench/lib"
+                }
+            }
+        },
+        "adapter": {
+            "description": "The one-process AutowareToSCORE adapter. scripts/render_launch_manager_config.py adds the ROS 2 setup of the host.",
+            "component_properties": {
+                "binary_name": "de4sdv_score_adapter",
+                "depends_on": [
+                    "gatewayd"
+                ],
+                "process_arguments": [
+                    "--mw-com-config",
+                    "/tmp/de4sdv-score-bench/config/mw_com_config_adapter.json"
+                ]
+            },
+            "deployment_config": {
+                "environmental_variables": {
+                    "RMW_IMPLEMENTATION": "rmw_cyclonedds_cpp",
+                    "ROS_DOMAIN_ID": "91",
+                    "CYCLONEDDS_URI": "file:///tmp/de4sdv-score-bench/config/cyclonedds.xml",
+                    "ROS_LOG_DIR": "/tmp/de4sdv-score-bench/ros-log",
+                    "MW_LOG_CONFIG_FILE": "/tmp/de4sdv-score-bench/config/mw_log_adapter.json"
+                }
+            }
+        },
+        "health_proxy": {
+            "description": "The health proxy node; its executable comes with a later step. scripts/render_launch_manager_config.py adds the ROS 2 setup of the host.",
+            "component_properties": {
+                "binary_name": "de4sdv_health_proxy"
+            },
+            "deployment_config": {
+                "environmental_variables": {
+                    "RMW_IMPLEMENTATION": "rmw_cyclonedds_cpp",
+                    "ROS_DOMAIN_ID": "91",
+                    "CYCLONEDDS_URI": "file:///tmp/de4sdv-score-bench/config/cyclonedds.xml",
+                    "ROS_LOG_DIR": "/tmp/de4sdv-score-bench/ros-log"
+                }
+            }
+        }
+    },
+    "run_targets": {
+        "middleware_layer": {
+            "description": "The host processes of the middleware integration layer, in the start order of the gateway guard rail: someipd, gatewayd, then the adapter; and the health proxy node.",
+            "depends_on": [
+                "someipd",
+                "gatewayd",
+                "adapter",
+                "health_proxy"
+            ],
+            "recovery_action": {
+                "switch_run_target": {
+                    "run_target": "fallback_run_target"
+                }
+            }
+        }
+    },
+    "initial_run_target": "middleware_layer",
+    "fallback_run_target": {
+        "description": "Only the health proxy node, so a failure of any component stops someipd, gatewayd and the adapter together and the health topic turns stale.",
+        "depends_on": [
+            "health_proxy"
+        ]
+    }
+}

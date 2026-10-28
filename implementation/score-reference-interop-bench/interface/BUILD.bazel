@@ -1,0 +1,22 @@
+# DE4SDV mw::com service interfaces of the S-CORE reference interoperability
+# bench (INC-MW-011). This file is copied, with the headers, into a throwaway
+# checkout of eclipse-score/inc_someip_gateway as the package
+# //de4sdv_score_bench/interface (scripts/ci_checkout_upstream.sh). It adds
+# files only; no upstream file changes, and no S-CORE file enters the DE4SDV
+# repository.
+
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
+cc_library(
+    name = "service_interfaces",
+    hdrs = [
+        "include/de4sdv_score_interface/aebs_signal_frame_service.h",
+        "include/de4sdv_score_interface/reference_vehicle_speed_service.h",
+    ],
+    strip_include_prefix = "include",
+    visibility = ["//de4sdv_score_bench:__subpackages__"],
+    deps = [
+        "//score/serializer:pre_serialized_data",
+        "@score_communication//score/mw/com",
+    ],
+)
