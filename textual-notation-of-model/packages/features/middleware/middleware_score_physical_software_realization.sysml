@@ -874,7 +874,10 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * - It needs communication 0.5.0 and baselibs 0.2.16
      *   (MODULE.bazel:239-259 at that commit). reference_integration v0.9.0
      *   integrates 0.4.0 and 0.2.12, and lifecycle v0.6.1 and v0.7.0 declare
-     *   them too. So no S-CORE baseline holds the set (ASM-MW-021).
+     *   them too. Lifecycle v0.8.0 (2026-10-23) declares communication 0.5.0
+     *   with baselibs 0.2.15 (MODULE.bazel:330-331 at commit
+     *   0472ff81623b68dfdade4c1cd1cd602d1cf264cd). So no S-CORE baseline
+     *   holds the set (ASM-MW-021).
      * - Upstream state of the defects that the guard rails bound: GAP-MW-039
      *   and GAP-MW-041 are LoLa defects of communication 0.4.0 and 0.5.0,
      *   reported to the communication project (2026-10-22). GAP-MW-040 and
