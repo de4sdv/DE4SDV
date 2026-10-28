@@ -37,6 +37,7 @@ PRODUCT_LINE = KERNEL + "de4sdv_product_line.sysml"
 METHOD_CONTEXT = KERNEL + "de4sdv_method_context.sysml"
 WORKFLOW = KERNEL + "de4sdv_increment_workflow.sysml"
 PROJECTION = "de4sdv/semantic/contract-data/kernel-vocabulary-projection.json"
+ADMISSION = "de4sdv/semantic/contract-data/kernel-vocabulary-admission.yaml"
 #: Ontology class -> (kernel file, kernel declaration, boundary): the three
 #: classes of the owner decisions, each a method-admitted class bound like the kernel.
 CLASSES = {
@@ -67,6 +68,12 @@ def _members(relative: str, declaration: str) -> list[str]:
 
 def _rows() -> dict[str, dict]:
     return {row["identity"]: row for row in json.loads(_text(PROJECTION))["rows"]}
+
+
+def _admission_rows() -> dict[str, dict]:
+    import yaml
+
+    return {row["identity"]: row for row in yaml.safe_load(_text(ADMISSION))["admitted"]}
 
 
 # ---------------------------------------------------------------------------
@@ -113,12 +120,37 @@ def test_the_ontology_maps_the_configured_product_onto_the_pleml_feature_configu
                    "so the kernel imports no PLEML package",
                    "Vocabulary only, with no sysml_mapping and no runtime traversal",
                    "The relationship is a DE4SDV derived fact",
-                   "one of its part usages, its own or an inherited one, is typed by the part definition of that "
-                   "configuration's product-model projection",
-                   "The configuration's owned ProductModelProjectionName annotation names that part definition"):
+                   # The precisions of the assurance review (R1), pending the owner's confirmation (Q1).
+                   "The derivation reads the effective part usages of the configured product: its own usages and "
+                   "the inherited usages that it does not redefine",
+                   "when one of these usages is typed by the part definition of that configuration's product-model "
+                   "projection",
+                   "The configuration's owned ProductModelProjectionName annotation names that part definition",
+                   "binds the generated part definition by validated identity, never by partDefinitionName alone",
+                   "Exactly one feature configuration configures a configured product",
+                   "A specialization of a configured product that adds System 2 instrumentation, such as a test "
+                   "article, is configured by the same configuration and counts for the phase 9 of its increment",
+                   "It never becomes a product-line member, because membership is never inferred from specializing "
+                   "a member definition"):
         assert clause in role, clause
+    obligations = " ".join(_admission_rows()["configuredBy"]["forward_obligations"])
+    for clause in ("the effective part usages of the configured product (its own usages and the inherited usages "
+                   "that it does not redefine)",
+                   "exactly one feature configuration configures a configured product",
+                   "never infers membership from specializing a member definition",
+                   "never by the partDefinitionName string alone",
+                   "exact-revision traversal evidence"):
+        assert clause in obligations, clause
     for path in sorted((ROOT / KERNEL).glob("*.sysml")):
         assert not re.search(r"\bimport\s+PLEML\b", strip_comments(path.read_text(encoding="utf-8"))), path.name
+
+
+def test_the_member_product_is_a_product_variant_not_a_configured_product():
+    """Review R4: only one kernel definition calls itself a configured product."""
+    assert _first_doc(PRODUCT_LINE, "part def ProductLineMemberProduct") == (
+        "A product variant that belongs to a product line; the configured product of an admitted configuration "
+        "specializes its definition.")
+    assert "configured product or product variant" not in _text(PRODUCT_LINE)
 
 
 # ---------------------------------------------------------------------------
@@ -234,3 +266,51 @@ def test_no_method_module_reads_the_baseline_register():
     for path in sorted((ROOT / "de4sdv").rglob("*.py")):
         text = path.read_text(encoding="utf-8")
         assert not re.search(r"baseline[-_]register", text, re.IGNORECASE), path.relative_to(ROOT)
+
+
+#: The modules that decide a verdict, readiness or an acceptance: the result algebra,
+#: the increment evaluation with its phase exits, the delivery gate, the operational
+#: exit, the acceptance-policy readers and the Method Check scripts.
+VERDICT_AND_ACCEPTANCE_MODULES = (
+    "de4sdv/semantic/method_evaluator.py", "de4sdv/semantic/increment_evaluation.py",
+    "de4sdv/semantic/delivery_gate.py", "de4sdv/semantic/operational_exit.py",
+    "de4sdv/semantic/method_pilot.py", "de4sdv/semantic/method_contract.py",
+    "scripts/method_check.py", "scripts/run_delivery_gate.py", "scripts/run_core_operational_exit.py",
+)
+_DISPOSITION_LITERAL = re.compile(r"""(['"])(?:LifecycleDisposition::)?(?:accepted|deferred|invalidated)\1""")
+
+
+def _maps_a_disposition_literal(text: str) -> bool:
+    """Lexical proxy, not a parser: a module that names the LifecycleDisposition
+    enumeration in code and also holds one of its literal names as a string
+    constant. A mapping from a disposition value to an acceptance, a verdict or a
+    readiness takes this form. A check that a disposition is stated needs neither."""
+    code = re.sub(r"#[^\n]*", " ", text)
+    return "LifecycleDisposition" in code and _DISPOSITION_LITERAL.search(code) is not None
+
+
+def test_no_evaluator_or_acceptance_module_maps_a_disposition_literal():
+    """Review R5: LifecycleDisposition::accepted is a phase-12 decision, never an
+    acceptance under de4sdv.acceptance.maintainer-decision.v1, a verdict or
+    readiness. The modules that decide those do not name the enumeration, and no
+    other module maps its literals."""
+    for relative in VERDICT_AND_ACCEPTANCE_MODULES:
+        assert (ROOT / relative).is_file(), relative
+        assert "LifecycleDisposition" not in _text(relative), relative
+    modules = sorted((ROOT / "de4sdv").rglob("*.py")) + sorted((ROOT / "scripts").glob("*.py"))
+    assert len(modules) > 50, "the scan must see the code"
+    for path in modules:
+        assert not _maps_a_disposition_literal(path.read_text(encoding="utf-8")), path.relative_to(ROOT)
+
+
+@pytest.mark.parametrize("text, maps", [
+    ('DISPOSITION = "LifecycleDisposition"\nOUTCOME = {"accepted": "PASS", "deferred": "BLOCKED"}\n', True),
+    ("if value == 'LifecycleDisposition::accepted':\n    readiness = 'READY'\n", True),
+    ('DISPOSITION = "LifecycleDisposition"\nstated = value is not None\n', False),
+    ('if record["outcome"] == "accepted":\n    accepted.append(record)\n', False),
+    ('# LifecycleDisposition is named in a comment only\nOUTCOME = {"accepted": "PASS"}\n', False),
+])
+def test_the_disposition_guard_sees_a_mapping_and_only_a_mapping(text, maps):
+    """Positive and negative controls of the lexical guard above: an acceptance
+    policy's own "accepted" outcome and a presence check are no mapping."""
+    assert _maps_a_disposition_literal(text) is maps

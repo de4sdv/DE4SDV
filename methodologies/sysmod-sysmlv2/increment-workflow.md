@@ -362,9 +362,11 @@ These method rules apply to every increment:
       check counts the lifecycle decisions of the increment's own package,
       so a baseline decision there also counts for phase 0. An
       `IncrementGap` can state a disposition of the same type, but no owner
-      or next action. The baseline register and the status of an
-      architecture decision record are repository text, which the
-      evaluation does not read.
+      or next action. Convention: the record of a resolved gap leaves the
+      model, so every `IncrementGap` in scope is an open gap. A disposition
+      cannot say "resolved", and `invalidated` does not mean "fixed". The
+      baseline register and the status of an architecture decision record
+      are repository text, which the evaluation does not read.
 
     Review judges both steps, and their exits stay `BLOCKED` with
     `CONTRACT_UNAVAILABLE`, never passed.

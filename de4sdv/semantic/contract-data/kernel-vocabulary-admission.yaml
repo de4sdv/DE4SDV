@@ -1096,8 +1096,13 @@ admitted:
   gates: []
   forward_obligations:
   - a reviewed derived realization over the configuration's owned ProductModelProjectionName and the
-    configured product whose part usage, its own or an inherited one, is typed by the generated part
-    definition, before any check or runtime claim reads the relationship
+    effective part usages of the configured product (its own usages and the inherited usages that it
+    does not redefine), before any check or runtime claim reads the relationship
+  - exactly one feature configuration configures a configured product; the realization reports none
+    or several as a refusal and never chooses one
+  - a specialization that adds System 2 instrumentation counts for the phase 9 of its increment, but it
+    never becomes a product-line member; the realization never infers membership from specializing a
+    member definition
   - the realization binds the generated part definition through validated identity (the evaluation
     receipt, or its metatype, declared name and generated product-model document), never by the
     partDefinitionName string alone (ADR 0011; ADR 0022 decision 3)

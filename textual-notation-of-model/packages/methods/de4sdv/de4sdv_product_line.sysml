@@ -148,13 +148,19 @@ package DE4SDV_ProductLine {
    * configuration authority follows ADR 0022. The relationship is a DE4SDV derived fact.
    * PLEML binds the product model of a member product to its feature configuration with
    * its FeatureConfigurationBinding metadata, but no DE4SDV model outside the feature
-   * models applies PLEML metadata. A configured product is configured by a feature
-   * configuration when one of its part usages, its own or an inherited one, is typed by
-   * the part definition of that configuration's product-model projection. The
-   * configuration's owned ProductModelProjectionName annotation names that part
-   * definition. An inherited usage counts, so a specialization of a configured product,
-   * such as an instrumented test article, is configured by the same configuration, and a
-   * configuration can configure more than one configured product. */
+   * models applies PLEML metadata. The derivation reads the effective part usages of the
+   * configured product: its own usages and the inherited usages that it does not
+   * redefine. A configured product is configured by a feature configuration when one of
+   * these usages is typed by the part definition of that configuration's product-model
+   * projection. The configuration's owned ProductModelProjectionName annotation names
+   * that part definition. The derivation binds the generated part definition by
+   * validated identity, never by partDefinitionName alone. Exactly one feature
+   * configuration configures a configured product. A configuration can configure more
+   * than one configured product. A specialization of a configured product that adds
+   * System 2 instrumentation, such as a test article, is configured by the same
+   * configuration and counts for the phase 9 of its increment. It never becomes a
+   * product-line member, because membership is never inferred from specializing a member
+   * definition. */
 
 
   part def ProductLine {
@@ -166,7 +172,7 @@ package DE4SDV_ProductLine {
   }
 
   part def ProductLineMemberProduct {
-    doc /* A configured product or product variant that belongs to a product line. */
+    doc /* A product variant that belongs to a product line; the configured product of an admitted configuration specializes its definition. */
   }
 
   part def ProductLineConfiguredProduct {

@@ -541,6 +541,9 @@ _NEGATIVE_MANIFESTS = {
         {"register": {"wave": None, "accounting": "method-admitted"}}),
     "method-admitted retired name": lambda r, m: r["oldAlphaLink"].update(
         {"register": {"wave": None, "accounting": "method-admitted"}}),
+    "method-admitted runtime relationship": lambda r, m: r["betaLink"].update(
+        {"register": {"wave": None, "accounting": "method-admitted"}, "admission_class": "relationship-runtime",
+         "mechanics": {"strategy": "dependency"}}),
 }
 
 
@@ -566,6 +569,8 @@ _NEGATIVE_REASONS = {
     "traversal claim key": "unknown keys",
     "method-admitted successor": "a method-admitted row is a class definition or a vocabulary-only relationship",
     "method-admitted retired name": "a method-admitted row is a class definition or a vocabulary-only relationship",
+    "method-admitted runtime relationship":
+        "a method-admitted row is a class definition or a vocabulary-only relationship",
 }
 
 
