@@ -251,3 +251,19 @@ def test_the_adapter_abort_conditions_name_the_ros2_environment_and_the_paramete
                     "No robustness against malformed DDS input is claimed"):
         assert setting in conditions, setting
     assert re.search(r"\bpart <'ASM-MW-031'> asmOneROS2EnvironmentOnHost : IncrementAssumption \{", text)
+
+
+def test_asm_mw_031_names_one_distribution_and_depends_on_the_three_context_processes() -> None:
+    text = PHYSICAL.read_text(encoding="utf-8")
+    assumption = _part_doc(text, "ASM-MW-031")
+    assert "one ROS 2 distribution (Humble)" in assumption
+    assert assumption.endswith("Phase 10 records the environment of each ROS 2 process of a run, "
+                               "the observers of the bench among them."), assumption[-160:]
+    assert "the observers of the bench, and" not in assumption, "the bench observers are not member processes"
+    dependencies = re.findall(r"\bdependency (\w+)\s+from asmOneROS2EnvironmentOnHost\s+to ([\w:]+);", text)
+    assert dependencies == [
+        ("ros2EnvironmentAssumedForAEBSStack", "scoreTwoDomainPhysicalSystem::linuxHost::aebsStack"),
+        ("ros2EnvironmentAssumedForVelocityConverter", "scoreTwoDomainPhysicalSystem::linuxHost::velocityConverter"),
+        ("ros2EnvironmentAssumedForFrameAssembler",
+         "scoreTwoDomainPhysicalSystem::linuxHost::aebsSignalFrameAssembler"),
+    ], dependencies

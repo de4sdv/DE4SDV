@@ -812,16 +812,21 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * ASM-MW-031: Every ROS 2 process on the Linux host outside the layer
      * runs in the one ROS 2 environment of adapterAbortConditions. These are
      * the Autoware-based AEBS stack, the vehicle velocity converter, the
-     * bridge node of the frame assembler, the observers of the bench, and the
-     * ros2 command line tools with their daemon. The layer sets that
-     * environment for its own two ROS 2 processes, the adapter and the health
-     * proxy node, through the Launch Manager. It cannot set it for the other
-     * processes, so it assumes it. With one environment, every ROS 2 process
-     * of the host uses one middleware, one domain and one range of
-     * participant indices. When more ROS 2 processes run than the range
-     * holds, the last one to start gets no participant; if that is the
-     * adapter, it aborts. Phase 10 records the environment of each ROS 2
-     * process of a run.
+     * bridge node of the frame assembler, and the ros2 command line tools
+     * with their daemon. The layer sets that environment for its own two
+     * ROS 2 processes, the adapter and the health proxy node, through the
+     * Launch Manager. It cannot set it for the other processes, so it
+     * assumes it. With one environment, every ROS 2 process of the host uses
+     * one ROS 2 distribution (Humble), one middleware, one domain and one
+     * range of participant indices. The distribution matters: the Gid
+     * message has 24 bytes in Humble and 16 in Iron and Jazzy
+     * (rmw_dds_common/msg/Gid.msg). So a process of another distribution can
+     * send ros_discovery_info samples that the adapter cannot read. Such a
+     * sample reaches the residual of adapterAbortConditions. When more ROS 2
+     * processes run than the range holds, the last one to start gets no
+     * participant; if that is the adapter, it aborts. Phase 10 records the
+     * environment of each ROS 2 process of a run, the observers of the bench
+     * among them.
      */
   }
   dependency ros2EnvironmentAssumedForAEBSStack
