@@ -408,10 +408,12 @@ PLE_SELECTABLES = ("ProductLineFeatureCandidate", "CommonProductLineCapability",
                    "ProductLineVariantChoice", "DeferredVariantChoice", "ProductLineCharacteristic")
 #: The one kernel feature a selectable product-line class may type: the output
 #: parameter of the phase-3 workflow step ClassifyCapabilities, which says what
-#: kind of element the step records (feature candidates, the feature-model
-#: delta) and selects nothing. The exemption holds only inside that step's body.
+#: kind of element the step records and selects nothing. It is typed by the
+#: classification base, so its check (featureDeltaOnly) reads every product-line
+#: characteristic of an increment and admits only the feature-model delta and
+#: deferred scope. The exemption holds only inside that step's body.
 STEP_OUTPUT_EXEMPTION = ("de4sdv_increment_workflow.sysml", "action def ClassifyCapabilities",
-                         "out part characteristics[0..*] : ProductLineFeatureCandidate;")
+                         "out part characteristics[0..*] : ProductLineCharacteristic;")
 
 
 def test_kernel_holds_no_configuration_selection_under_any_name():

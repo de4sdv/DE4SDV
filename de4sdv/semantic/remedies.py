@@ -896,6 +896,13 @@ _NAMED: Mapping[str, Callable[[_Request], Remedy]] = {
     "populationMember": lambda request: _population_member(request),
     "signalMappingRecorded": lambda request: _signal_mapping_recorded(request),
     "semanticSourceNamed": lambda request: _semantic_source_named(request),
+    "framedByViewpoint": _framed_by_increment_view,
+    "contextSystemOfInterest": lambda request: _context_system_of_interest(request),
+    "storySubjectBound": lambda request: _story_subject_bound(request),
+    "storyActorsBound": lambda request: _story_actors_bound(request),
+    "featureDeltaOnly": lambda request: _feature_delta_only(request),
+    "viewpointFramesConcern": lambda request: _viewpoint_frames_concern(request),
+    "exposesModelContent": lambda request: _exposes_model_content(request),
 }
 
 
@@ -1260,6 +1267,185 @@ def _semantic_source_named(request: _Request) -> Remedy:
         lines.declarations.append(_mapping_line(lines, kernel, "<logical element>", "<port>", (_SEMANTIC_SOURCE,)))
         instruction = f"state the semantic source in the record, {_where(request) or 'in a package of the increment'}"
     lines.notes.append(_VSS_NOTE)
+    return lines.remedy(instruction)
+
+
+# ---------------------------------------------------------------------------
+# Operational context and story (phase 2), classification (phase 3), views (phase 11)
+# ---------------------------------------------------------------------------
+
+_SYSTEM_NAME = "<systemName>"
+_CONTEXT_PART = "<contextPart>"
+_VIEWPOINT_DEF = "viewpoint def <ViewpointName> { doc /* <what the view shows> */ }"
+_VIEWPOINT_NOTE = ("<ViewpointName> may instead be an existing SAF or DE4SDV method viewpoint definition; the "
+                   "check reads the viewpoint and its frame and tests no viewpoint or concern type.")
+
+
+def _declared_system_of_interest(lines: _Lines) -> str:
+    """The definition of the system of interest the charter declares (qualified), or, when it declares
+    none, ``<SystemName>``: declared first, with its usage and the charter's reference to it."""
+    from .method_checks import CONTEXT_SYSTEM_OF_INTEREST
+
+    request = lines.request
+    scope = request.scope
+    if scope is not None and scope.system_of_interest_types:
+        return lines.type(scope.system_of_interest_types[0],
+                          "the system of interest the charter declares, or a definition specializing it")
+    lines.declarations.extend(["part def <SystemName> { doc /* <the system of interest> */ }",
+                               "part <systemUsage> : <SystemName>;"])
+    line = _member_line(lines, CONTEXT_SYSTEM_OF_INTEREST, "<systemUsage>", definitions=_charter_definitions(request))
+    if line:
+        lines.declarations.append(_in_charter(lines, line))
+    return "<SystemName>"
+
+
+def _context_system_line(lines: _Lines) -> str:
+    """``part <systemName> : <the system of interest's definition> :>> systemOfInterest;``: the context's
+    own system of interest, typed like the charter's."""
+    from .method_checks import CONTEXT_SYSTEM_OF_INTEREST
+
+    return f"part {_SYSTEM_NAME} : {_declared_system_of_interest(lines)} :>> {CONTEXT_SYSTEM_OF_INTEREST};"
+
+
+def _context_system_of_interest(request: _Request) -> Remedy:
+    """The context redefines its systemOfInterest with the system of interest the charter declares."""
+    lines = _lines(request)
+    line = _context_system_line(lines)
+    if request.subject is not None:
+        lines.declarations.append(_existing_member(lines, request.subject, line))
+        return lines.remedy(f"give {request.view.label(request.subject)} the system of interest the charter "
+                            "declares as its own systemOfInterest")
+    lines.declarations.append(_declaration(lines, [line], name=_subject_name(request)))
+    where = _where(request)
+    return lines.remedy(f"declare {_parameter_phrase(request)}{' ' + where if where else ''}, its systemOfInterest "
+                        "the system of interest the charter declares")
+
+
+def _story_subject_bound(request: _Request) -> Remedy:
+    """Each use case binds its subject to the context's system of interest: the line for the first one
+    that does not, which replaces its subject (a use case has one)."""
+    from .method_checks import context_system_of_interest, story_subject_problems, use_case_parameters
+
+    view, scope = request.view, request.scope
+    lines = _lines(request)
+    instruction = "bind the subject of each use case of the increment to the system of interest of its operational context"
+    if request.subject is None:
+        lines.declarations.append("use case <useCaseName> { subject <subjectName> = <systemOfInterestPart>; }")
+        lines.notes.append("<systemOfInterestPart> is the part of the increment's operational context that redefines "
+                           "its systemOfInterest.")
+        return lines.remedy(instruction)
+    context = request.subject
+    systems = context_system_of_interest(view, context)[1]
+    if systems:
+        target = view.label(systems[0])
+    else:
+        lines.declarations.append(_existing_member(lines, context, _context_system_line(lines)))
+        target = _SYSTEM_NAME
+    line = f"subject <subjectName> = {target};"
+    problems = story_subject_problems(view, scope, context) if scope is not None else []
+    if problems:
+        use_case = problems[0][0]
+        own = [p for p in use_case_parameters(view, use_case, "SubjectMembership") if view.index.owner_of(p) == use_case]
+        lines.placed[line] = (f"replace the subject of {view.label(use_case)} with:" if own
+                              else f"in the existing {view.label(use_case)}:")
+        if len(problems) > 1:
+            lines.notes.append(f"Likewise in {', '.join(view.label(found) for found, _why in problems[1:])}.")
+    lines.declarations.append(line)
+    lines.notes.append("A use case's definition may declare its subject with another type; change that subject too "
+                       "when it is not the system of interest.")
+    return lines.remedy(instruction)
+
+
+def _story_actors_bound(request: _Request) -> Remedy:
+    """Each actor binds to a part of the context around its system of interest: the lines for the first
+    actor that does not, a context part and the actor's binding in its use case."""
+    from .method_checks import story_actor_problems
+
+    view, scope = request.view, request.scope
+    lines = _lines(request)
+    instruction = "bind each actor of each use case of the increment to a part of its operational context"
+    context = request.subject
+    problems = story_actor_problems(view, scope, context) if context is not None and scope is not None else []
+    if not problems:
+        lines.declarations.append(f"use case <useCaseName> {{ actor <actorName> = {_CONTEXT_PART}; }}")
+        lines.notes.append(f"{_CONTEXT_PART} is a part of the increment's operational context, around its system of "
+                           "interest, not inside it.")
+        return lines.remedy(instruction)
+    use_case, actor, _why = problems[0]
+    actor_type = _one_type(view, actor)
+    typed = lines.type(actor_type, "the type of the actor it binds") if actor_type else None
+    part = f"part {_CONTEXT_PART} : {typed};" if typed else f"part {_CONTEXT_PART};"
+    lines.declarations.append(_existing_member(lines, context, part))
+    binding = f"actor {view.index.name_of(actor) or '<actorName>'} = {_CONTEXT_PART};"
+    lines.declarations.append(_existing_member(lines, use_case, binding))
+    lines.notes.append(f"Bind an existing part of {view.label(context)} instead where it has one, by its qualified "
+                       "name; a part around the system of interest, not inside it.")
+    if view.index.owner_of(actor) == use_case:
+        lines.notes.append(f"The binding replaces the actor's own declaration in {view.label(use_case)}.")
+    if len(problems) > 1:
+        lines.notes.append("Likewise for " + ", ".join(
+            f"{view.label(found)} (actor {view.index.name_of(other) or other})" for found, other, _why in problems[1:])
+            + ".")
+    return lines.remedy(instruction)
+
+
+def _feature_delta_only(request: _Request) -> Remedy:
+    """A phase-3 record that is no feature candidate: no record for a core element; a candidate when it
+    distinguishes member products (a note, as a retyping of an existing element is)."""
+    from .method_checks import DEFERRED_SCOPE_CLASS, FEATURE_CLASS
+
+    view = request.view
+    lines = _lines(request)
+    feature, deferred = _kernel(view, FEATURE_CLASS), _kernel(view, DEFERRED_SCOPE_CLASS)
+    if feature is None or deferred is None:
+        return _method_side("the product-line characteristic classes have no validated kernel binding")(request)
+    candidate = lines.type(feature, "the feature-model delta: a characteristic that distinguishes member products")
+    deferring = lines.type(deferred, "product-line scope the increment defers")
+    if request.subject is None:
+        lines.declarations.append(f"part <name> : {candidate};")
+        lines.notes.append(f"Scope the increment defers is typed by {deferring}.")
+        where = _where(request)
+        return lines.remedy(f"record only the feature candidates the increment adds{' ' + where if where else ''}")
+    target = view.label(request.subject)
+    lines.notes.append(f"Core elements are common by default and get no record: remove {target} and what only "
+                       "restates it.")
+    lines.notes.append(f"When {target} distinguishes member products, retype the existing {target} to "
+                       f"`: {candidate}` instead; scope the increment defers is typed by {deferring}.")
+    return lines.remedy(f"remove {target}, a record of common content, or retype it as a feature candidate")
+
+
+def _viewpoint_frames_concern(request: _Request) -> Remedy:
+    view = request.view
+    lines = _lines(request)
+    lines.declarations.append(_VIEWPOINT_DEF)
+    line = "viewpoint <viewpointName> : <ViewpointName> { frame <concern>; }"
+    if request.subject is not None:
+        lines.declarations.append(_existing_member(lines, request.subject, line))
+        instruction = f"give {view.label(request.subject)} a viewpoint that frames the concern it presents"
+    else:
+        lines.declarations.append(f"view <viewName> {{ {line} expose <element>; }}")
+        where = _where(request)
+        instruction = f"declare the view{' ' + where if where else ''} with a viewpoint that frames a concern"
+    lines.notes.append(_VIEWPOINT_NOTE)
+    return lines.remedy(instruction)
+
+
+def _exposes_model_content(request: _Request) -> Remedy:
+    view = request.view
+    lines = _lines(request)
+    line = "expose <element>;"
+    if request.subject is not None:
+        lines.declarations.append(_existing_member(lines, request.subject, line))
+        instruction = f"expose the model content {view.label(request.subject)} presents"
+    else:
+        lines.declarations.append(_VIEWPOINT_DEF)
+        lines.declarations.append(f"view <viewName> {{ viewpoint <viewpointName> : <ViewpointName> "
+                                  f"{{ frame <concern>; }} {line} }}")
+        lines.notes.append(_VIEWPOINT_NOTE)
+        where = _where(request)
+        instruction = f"declare the view{' ' + where if where else ''}, exposing model content"
+    lines.notes.append("A table or matrix view may expose through the views it owns instead "
+                       "(view :>> rowView { expose <element>; }); expose <package>::*; exposes a package's members.")
     return lines.remedy(instruction)
 
 

@@ -35,6 +35,12 @@ CHECKS_BY_STEP = {
         "incrementDeclaresApplicablePhases", "incrementDeclaresExpectedArtifacts",
         "incrementDeclaresExpectedReviewEvidence", "expectedArtifactsCoverIncrementContent",
     },
+    "FrameConcerns": {"concernHasStakeholder", "concernFramedByViewpoint"},
+    "SpecifyOperationalContext": {
+        "incrementHasOperationalContext", "operationalContextHoldsSystemOfInterest",
+        "storyBindsSubjectToSystemOfInterest", "storyBindsActorsToContextParts",
+    },
+    "ClassifyCapabilities": {"characteristicIsFeatureDelta"},
     "ElaborateNeeds": {
         "needHasStatement", "needHasStakeholder", "needHasSource", "needHasRationale",
         "needHasValidationScenario", "needSubjectIsSystemOfInterest",
@@ -57,7 +63,11 @@ CHECKS_BY_STEP = {
         "verificationCaseVerifiesRequirement", "requirementVerifiedByVerificationCase",
         "verificationCaseHasEvidenceRecordOrStatus",
     },
+    "PublishIncrement": {"publishedViewFramesConcern", "publishedViewExposesContent"},
 }
+#: The steps with no executable check: what they declare cannot be checked deterministically (the
+#: guide's coverage section says why). A check added to them is a method decision this test makes visible.
+UNCHECKED_STEPS = {"DefineVariabilityAndConfiguration", "DecideBaselineAndNextSlice"}
 ADVISORY = {
     "expectedArtifactsCoverIncrementContent",
     "needSubjectIsSystemOfInterest",
@@ -84,6 +94,8 @@ CHECK_REGISTRY = {
     "allocatedTo", "populationMember", "carriedByArchitecture", "receivesAllocation",
     "signalMappingRecorded", "semanticSourceNamed",
     "verifiesIncrementRequirement", "verifiedBy", "evidenceRecordOrStatus",
+    "framedByViewpoint", "contextSystemOfInterest", "storySubjectBound", "storyActorsBound",
+    "featureDeltaOnly", "viewpointFramesConcern", "exposesModelContent",
 }
 
 
@@ -148,6 +160,12 @@ def test_checks_encode_the_accepted_rules_about_step_parameters() -> None:
             assert re.fullmatch(r'"\w+"', fields["check"]), (definition, name)
 
 
+def test_every_step_but_variability_and_baseline_has_checks() -> None:
+    steps = {definition for _, _, definition in _steps()}
+    assert {definition for definition in steps if not _checks(definition)} == UNCHECKED_STEPS
+    assert UNCHECKED_STEPS | set(CHECKS_BY_STEP) == steps
+
+
 def test_every_check_identifier_is_in_the_registry() -> None:
     used = {fields["check"].strip('"') for _, _, definition in _steps()
             for fields in _checks(definition).values()}
@@ -177,6 +195,35 @@ ARCHITECTURE_PARAMETERS = {
         ("out", "part", "physicalElements", "[1..*]", "PhysicalAllocationElement"),
         ("out", "allocation", "signalMappings", "[0..*]", "SystemToSoftwareSignalMappingCandidate")],
 }
+
+
+#: The parameters of the steps of phases 1, 2, 3 and 11 (direction, keyword, name, multiplicity, type). An
+#: untyped parameter counts the usages of its keyword; the phase-3 output is typed by the classification
+#: base, so the check also sees a characteristic that is no feature candidate.
+REMAINING_PARAMETERS = {
+    "FrameConcerns": [
+        ("in", "requirement", "problemStatement", "", "ProblemStatement"),
+        ("out", "part", "stakeholders", "[1..*]", "Stakeholder"),
+        ("out", "concern", "concerns", "[1..*]", "")],
+    "SpecifyOperationalContext": [
+        ("in", "requirement", "problemStatement", "", "ProblemStatement"),
+        ("out", "part", "operationalContext", "", "SystemContext")],
+    "ClassifyCapabilities": [
+        ("in", "part", "operationalContext", "", "SystemContext"),
+        ("out", "part", "characteristics", "[0..*]", "ProductLineCharacteristic")],
+    "PublishIncrement": [
+        ("in", "part", "charter", "", "IncrementCharter"),
+        ("out", "view", "publishedViews", "[0..*]", "")],
+}
+
+
+def test_remaining_steps_declare_the_parameters_their_checks_are_about() -> None:
+    for definition, expected in REMAINING_PARAMETERS.items():
+        found = re.findall(r"\b(in|out)\s+(\w+)\s+(\w+)(\[[^\]]*\])?\s*(?::\s*(\w+))?\s*;", _step_body(definition))
+        assert found == expected, definition
+    code = _code(WORKFLOW_FILE)
+    assert code.count("private import DE4SDV_ProductLine::ProductLineCharacteristic;") == 1
+    assert "ProductLineFeatureCandidate" not in code
 
 
 def test_architecture_steps_type_their_parameters_by_the_trace_profile_classes() -> None:

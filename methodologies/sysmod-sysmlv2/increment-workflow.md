@@ -171,7 +171,22 @@ These method rules apply to every increment:
    context part (`actor a = <part>;`), standard SysML v2 subject and actor
    binding. INC-AEBS-002's vehicle-target story
    (`aebs_operational_context.sysml`) shows the complete binding form,
-   although two of its actors are System 2 roles.
+   although two of its actors are System 2 roles. INC-MW-011's two-domain
+   story (`middleware_score_operational_context.sysml`) binds every use case
+   to the parts of its `SystemContext`.
+   - **Checks (blocking).** The increment has exactly one `SystemContext`
+     usage. A part of it redefines its `systemOfInterest`. That part is,
+     narrows or is bound to the system of interest the charter declares, or
+     is typed by its definition. Each use case the increment's packages own
+     binds its subject to that part. Each actor of each use case is bound
+     to a part the context owns at any depth, around that part, not inside
+     it.
+   - **Use case parameters.** A use case has one subject: its own, else its
+     definition's. Its actors are its own and those of its definitions
+     that no own actor redefines. A bound value is the parameter's own
+     `= <usage>`; a feature chain counts as its last feature.
+   - **Left to review.** Whether a role is a System 1 or a System 2 role:
+     the kernel classifies no role as either.
 10. **Feature-model delta (phase 3).** Phase 3 records only what the
     increment adds to the feature model: each characteristic it records is
     a feature candidate (`ProductLineFeatureCandidate`). Core elements are
@@ -180,7 +195,12 @@ These method rules apply to every increment:
     requirements (phase 5) and evidence to V&V (phase 10). An increment that
     adds no variability records nothing in phase 3. The basis is ISO/IEC
     26580: a feature differentiates member products, and the feature model
-    covers variability only.
+    covers variability only. Product-line scope the increment defers
+    (`DeferredProductLineScope`), such as a gap, is no classification record
+    and is allowed. The step's output is typed by the classification base
+    `ProductLineCharacteristic`. So its check sees every product-line
+    characteristic of the increment. One that is neither a feature candidate
+    nor deferred scope blocks (`featureDeltaOnly`).
 11. **Unconsumed elements (advisory).** Every element earns its place by
     the modeling rules in [AGENTS.md](../../AGENTS.md#model-elements-earn-their-place):
     a gate requires it, something consumes it, or it carries a decision,
@@ -296,6 +316,42 @@ These method rules apply to every increment:
       VSS path in a doc or a string is no VSS typing, a signal the pinned VSS
       snapshot lacks goes into `DE4SDV_VSS_Extensions` as a candidate, and
       whether an item is a vehicle signal stays the reviewer's judgment.
+14. **Concerns (phase 1).** Each concern of the increment has a native
+    stakeholder member. A viewpoint of a view in a package of the increment
+    frames it. Both checks block. The concerns are the concern usages the
+    increment's packages own. Their stakeholders are the native
+    `stakeholder` members of the concerns, the problem statement and the
+    needs. So no check counts stakeholder parts: such a part would only
+    restate them (rule 11). A frame owned by a need or a requirement does
+    not count (rule 3). Nor does a viewpoint of a view outside the
+    increment's packages.
+15. **Publication (phase 11).** Each view of the increment has a viewpoint,
+    of its own or of its definition, that frames a concern. Each view, or a
+    view it owns at any depth, exposes model content. A table or matrix view
+    exposes through its row, column and cell views. Both checks block and
+    judge the model only. The pull request, its review and the rendered
+    diagrams are judged outside the model. CI checks the diagrams and each
+    folder's `VIEWS.md`, and review judges the rest.
+16. **Variability and the baseline decision (phases 9 and 12).** These two
+    steps have no executable check, because what they declare cannot be
+    checked deterministically:
+    - **Phase 9.** Its parameters are untyped `part` usages, so a check
+      would count every part usage of the scope. The kernel has no class
+      for the configured product a phase-9 slice declares, and a native
+      variation point has no selector. The lower bound 1 of
+      `variationPoints` also contradicts accepted phase-9 work. A slice may
+      configure a member from existing variability, and shared variation
+      points live in shared-asset packages.
+    - **Phase 12.** The baseline decision is typed like the framing step's
+      lifecycle decision, which every scope holds. A count would pass on
+      the framing decision alone, and a separate baseline decision would
+      break the multiplicity `[1]`. `IncrementGap` states no disposition,
+      owner or next action. The baseline register and the status of an
+      architecture decision record are repository text, which the
+      evaluation does not read.
+
+    Review judges both steps, and their exits stay `BLOCKED` with
+    `CONTRACT_UNAVAILABLE`, never passed.
 
 [`DE4SDV_IncrementWorkflow`](../../textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml)
 models this workflow in the style of the SYSMOD default process. The
@@ -308,14 +364,13 @@ parameters.
 The checks of these rules are `MethodCheck` metadata inside the step
 definitions, one check per rule clause, each about the step parameter it
 constrains. The check identifier names the evaluation, an unknown identifier
-fails closed, and `advisory = true` marks the advisory checks. The increment
-framing, needs, requirements, functional, logical and physical architecture,
-and V&V and evidence steps carry checks so far; the physical-architecture
-step also checks rule 13. Rules 9 and 10 have no check yet: the
-operational-context and
-capability-classification steps state them in their documentation, which the
-method tools report with each step. Rule 11 is a report over the whole scope,
-not a check of one step. Declaring a check is not evaluating it, and no check
+fails closed, and `advisory = true` marks the advisory checks. Every step
+carries checks except variability and configuration (phase 9) and the
+baseline decision (phase 12); rule 16 says why. The physical-architecture
+step also checks rule 13. The phase-2 checks of rule 9 are about the
+operational context, the parameter through which they reach it. They read the
+story's use cases from there. Rule 11 is a report over the whole scope, not a
+check of one step. Declaring a check is not evaluating it, and no check
 result is a conformance, acceptance, or certification claim.
 
 ## Workflow phases
