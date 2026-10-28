@@ -163,6 +163,18 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * from the node clock, and such a switch does not change the stamps.
        * The node starts without parameter services, parameter event
        * publisher and /rosout.
+       * Fault-injection interface of the realization, for the test of
+       * REQ-MW-018: in every start configuration, the adapter takes three
+       * real-time signals, and each one makes one throw. SIGRTMIN+1 makes a
+       * throw inside librclcpp.so: the adapter calls get_parameter with an
+       * undeclared name, and rclcpp throws. SIGRTMIN+2 makes a throw in
+       * adapter code. SIGRTMIN+3 makes std::vector::at throw inside the
+       * shared libstdc++. So the test checks the binary and the start
+       * configuration that the member runs. Such a signal aborts the adapter
+       * outside the test too, and under the Launch Manager that also stops
+       * the frame path (GAP-MW-043). Linux lets the same senders send these
+       * signals and SIGKILL. So the interface gives a process that may
+       * signal the adapter nothing beyond what a kill already does.
        * LoLa rules: the adapter is a LoLa consumer
        * of the speed event and a LoLa provider of the frame event, so it
        * follows three rules. First, each time the speed subscription enters
@@ -1426,9 +1438,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    *   limits on who reaches the graph do not bound what a local peer sends.
    *   The adapter needs no parameter change while it runs, so the services
    *   give it nothing. So the test of REQ-MW-018 triggers each throw with a
-   *   signal to the adapter, which runs in the member's start configuration.
-   *   For the throw inside rclcpp, the adapter then calls get_parameter with
-   *   an undeclared name, and rclcpp throws inside librclcpp.so.
+   *   signal to the adapter, through the fault-injection interface of the
+   *   adapter, in the member's start configuration.
    * Residual: a malformed sample from a DDS participant of the domain can
    * still abort the adapter. rmw_cyclonedds_cpp 1.3.5 takes samples on its
    * own ros_discovery_info subscription (rmw_node.cpp:849), and the node's

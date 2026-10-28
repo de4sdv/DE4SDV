@@ -26,6 +26,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MIDDLEWARE = ROOT / "textual-notation-of-model" / "packages" / "features" / "middleware"
 PHYSICAL = MIDDLEWARE / "middleware_score_physical_software_realization.sysml"
 FRAMING = MIDDLEWARE / "middleware_score_framing.sysml"
+VERIFICATION = MIDDLEWARE / "middleware_score_verification_evidence.sysml"
 #: The S-CORE slices of INC-MW-011.
 SCORE_SLICES = sorted(MIDDLEWARE.glob("middleware_score_*.sysml"))
 WORKFLOWS = ROOT / ".github" / "workflows"
@@ -67,6 +68,21 @@ def _comment(text: str, name: str) -> tuple[list[str], str]:
     assert len(matches) == 1, f"expected one comment {name}, found {len(matches)}"
     targets = [target.strip() for target in matches[0][1].split(",")]
     return targets, _flat(matches[0][2])
+
+
+def _adapter_doc(text: str) -> str:
+    """The flattened doc of the adapter reference of the physical realization."""
+    matches = list(re.finditer(r"\bref part adapter : [\w, ]+ \{\s*doc /\*(.*?)\*/", text, re.DOTALL))
+    assert len(matches) == 1, f"expected one ref part adapter with a doc, found {len(matches)}"
+    return _flat(matches[0][1])
+
+
+def _verification_def_doc(name: str) -> str:
+    """The flattened doc of the one verification definition ``name`` of the verification slice."""
+    text = VERIFICATION.read_text(encoding="utf-8")
+    matches = list(re.finditer(rf"\bverification def {re.escape(name)}\s*\{{\s*doc /\*(.*?)\*/", text, re.DOTALL))
+    assert len(matches) == 1, f"expected one verification def {name} with a doc, found {len(matches)}"
+    return _flat(matches[0][1])
 
 
 def _asm_mw_021() -> str:
@@ -267,3 +283,16 @@ def test_asm_mw_031_names_one_distribution_and_depends_on_the_three_context_proc
         ("ros2EnvironmentAssumedForFrameAssembler",
          "scoreTwoDomainPhysicalSystem::linuxHost::aebsSignalFrameAssembler"),
     ], dependencies
+
+
+def test_the_adapter_declares_the_fault_injection_interface_that_the_abort_test_uses() -> None:
+    doc = _adapter_doc(PHYSICAL.read_text(encoding="utf-8"))
+    for statement in ("Fault-injection interface of the realization, for the test of REQ-MW-018",
+                      "in every start configuration, the adapter takes three real-time signals",
+                      "SIGRTMIN+1 makes a throw inside librclcpp.so", "SIGRTMIN+2 makes a throw in adapter code",
+                      "SIGRTMIN+3 makes std::vector::at throw inside the shared libstdc++",
+                      "Such a signal aborts the adapter outside the test too",
+                      "nothing beyond what a kill already does"):
+        assert statement in doc, statement
+    case = _verification_def_doc("AdapterAbortOnExceptionVerification")
+    assert "through the fault-injection interface of the adapter (phase 8)" in case, case[:400]

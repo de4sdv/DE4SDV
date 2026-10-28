@@ -417,16 +417,17 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * case throws an exception in the adapter's own code. It also throws one
      * inside a library that the adapter links, such as the ROS 2 client
      * library. The adapter of the member has no ROS 2 parameter services
-     * (phase 8). So the case triggers each throw with a signal to the
-     * adapter, which runs in the member's start configuration. For the
+     * (phase 8). So the case triggers each throw through the fault-injection
+     * interface of the adapter (phase 8): one real-time signal per throw, to
+     * the binary and the start configuration that the member runs. For the
      * throw inside the ROS 2 client library, the adapter calls get_parameter
-     * with an undeclared name, and rclcpp throws inside librclcpp.so
-     * (adapterAbortConditions). The record names the trigger. The run uses
-     * the ROS 2 environment that phase 8 sets. Under another ROS 2
-     * middleware, the adapter can abort before any trigger. collectData
-     * records each thrown exception and how the process ends. processData
-     * checks that each exception aborts the process. If the adapter splits
-     * into two processes (GAP-MW-035), the case is revisited.
+     * with an undeclared name, and rclcpp throws inside librclcpp.so. The
+     * record names the trigger. The run uses the ROS 2 environment that
+     * phase 8 sets. Under another ROS 2 middleware, the adapter can abort
+     * before any trigger. collectData records each thrown exception and how
+     * the process ends. processData checks that each exception aborts the
+     * process. If the adapter splits into two processes (GAP-MW-035), the
+     * case is revisited.
      */
     subject verifiedBench : SCOREMiddlewareVerificationBench;
     objective adapterAbortOnExceptionObjective {
