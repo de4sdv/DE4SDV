@@ -15,8 +15,14 @@
 # old ingress can still run or wait for its reap; after the first client it
 # never starts the ingress again. The discard rule has no option: its margin
 # is fixed at 20 ms.
-service de4sdv_someip_receiver /system/bin/de4sdv_someip_receiver --server-address 192.168.98.1 --status-period-s 10 --announce-property de4sdv.aebs.frame_server.host=127.0.0.1 --ingress-start-property de4sdv.aebs.ingress.start
+#
+# --log-frames gives a line per served frame (every dropped frame gives its
+# line anyway), so the records of the guest can be evaluated as the CI runs
+# are. gentle_kill: init's stop sends SIGTERM first, so the receiver sends
+# StopSubscribe and logs its final status before it exits.
+service de4sdv_someip_receiver /system/bin/de4sdv_someip_receiver --server-address 192.168.98.1 --status-period-s 10 --log-frames --announce-property de4sdv.aebs.frame_server.host=127.0.0.1 --ingress-start-property de4sdv.aebs.ingress.start
     class late_start
+    gentle_kill
     user system
     group inet
     seclabel u:r:su:s0

@@ -44,8 +44,10 @@ std::optional<std::uint64_t> ParseUnsigned(const std::string& text, std::uint64_
 std::string Hex16(std::uint16_t value) {
   static const char digits[] = "0123456789abcdef";
   std::string text = "0x";
-  for (int shift = 12; shift >= 0; shift -= 4) {
-    text += digits[(value >> static_cast<unsigned>(shift)) & 0xFU];
+  for (unsigned shift = 16U; shift > 0U;) {
+    shift -= 4U;
+    const unsigned nibble = (static_cast<unsigned>(value) >> shift) & 0xFU;
+    text += digits[nibble];
   }
   return text;
 }

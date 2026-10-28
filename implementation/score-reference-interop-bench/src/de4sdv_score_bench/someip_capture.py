@@ -112,6 +112,8 @@ class TcpStream:
     syn: bool = False
     fin: bool = False
     rst: bool = False
+    fin_ts_ns: int | None = None  # the first FIN of the stream
+    rst_ts_ns: int | None = None  # the first RST of the stream
     first_ts_ns: int | None = None
     last_ts_ns: int | None = None
     byte_count: int = 0
@@ -265,6 +267,10 @@ def _streams(packets: list[Packet]) -> list[TcpStream]:
         if syn:
             stream.syn = True
             stream._isn = (packet.seq + 1) & 0xFFFFFFFF
+        if packet.flags & 0x01 and stream.fin_ts_ns is None:
+            stream.fin_ts_ns = packet.ts_ns
+        if packet.flags & 0x04 and stream.rst_ts_ns is None:
+            stream.rst_ts_ns = packet.ts_ns
         stream.fin |= bool(packet.flags & 0x01)
         stream.rst |= bool(packet.flags & 0x04)
         if packet.payload:

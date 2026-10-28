@@ -34,7 +34,11 @@ the phase. Every case also needs: no "Failed to subscribe" line of
 gatewayd, LoLa shared memory mapped by the processes that must share it, a
 balanced account of every frame in every receiver run, only frames
 byte-identical to source frames at the client, every delivered frame in a
-phase and not older than its margin, and no copy served in a phase. A frame
+phase and not older than its margin, and no copy served in a phase. The
+evaluators do not take the receiver's word for its rule and phases: they use
+their own margin and copy memory, check each receiver's end against the
+runner's planned stop and the cores of the case, and tie each phase start
+and end to an independent record of the capture or of the client. A frame
 that the AEBS stack produced in the 20 ms margin of a phase start (the band
 of GAP-MW-045) is reported, not failed.
 
@@ -57,7 +61,19 @@ from de4sdv_score_bench.visualization_frame import read_payload
 
 SECOND_NS = 1_000_000_000
 RECOVERY_LIMIT_NS = 15 * SECOND_NS
-PHASE_START_MARGIN_NS = 20_000_000  # ASM-MW-030
+PHASE_START_MARGIN_NS = 20_000_000  # ASM-MW-030; the evaluators use this value, not the receiver's record
+COPY_MEMORY_FRAMES = 40  # 20 + 20 sample slots
+SUBSCRIPTION_TTL_NS = 3 * SECOND_NS
+# Independent checks of the phases: a phase starts or ends within 100 ms of
+# the event on the link or at the client that makes it start or end. The
+# client stamps its connect after connect() returns, up to 50 ms after the
+# receiver accepted it; two events less than 50 ms apart can both be the
+# cause of a phase start.
+PHASE_EVENT_BOUND_NS = 100 * 1_000_000
+CLIENT_STAMP_SLACK_NS = 50 * 1_000_000
+CAPTURE_SLACK_NS = 1_000_000
+CAUSE_TIE_NS = 50 * 1_000_000
+CLIENT_END_BEFORE_NS = 500 * 1_000_000
 GATEWAYD_SUBSCRIBE_FAILURE = "Failed to subscribe"
 DROP_REASONS = (
     "malformed_notification",
@@ -131,6 +147,7 @@ class Phase:
     start_realtime_ns: int
     end_monotonic_ns: int | None = None
     end_cause: str | None = None
+    end_realtime_ns: int | None = None
 
     def holds_at(self, monotonic_ns: int) -> bool:
         return self.start_monotonic_ns <= monotonic_ns and (
@@ -159,11 +176,6 @@ class ReceiverRun:
         finals = self.of("final_status")
         return finals[-1] if finals else None
 
-    @property
-    def margin_ns(self) -> int:
-        start = self.start or {}
-        return int(start.get("phase_start_margin_ns", PHASE_START_MARGIN_NS))
-
     def phases(self) -> list[Phase]:
         phases: list[Phase] = []
         for event in self.events:
@@ -173,6 +185,7 @@ class ReceiverRun:
             elif event.get("event") == "phase_end" and phases and phases[-1].end_monotonic_ns is None:
                 phases[-1].end_monotonic_ns = event["monotonic_ns"]
                 phases[-1].end_cause = event.get("cause")
+                phases[-1].end_realtime_ns = event.get("realtime_ns")
         return phases
 
     def properties(self) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
@@ -309,6 +322,146 @@ def _case_start_ns(records: CaseRecords) -> int:
     return min(starts) if starts else 0
 
 
+def _planned_stop(records: CaseRecords, process: str) -> str | None:
+    """The signal of the runner's last planned stop of this process, from the timeline."""
+    signal_name = None
+    for event in records.timeline.get("events", []):
+        if event.get("what") == f"stop {process}":
+            signal_name = event.get("signal")
+    return signal_name
+
+
+def _end_problems(records: CaseRecords, run: ReceiverRun) -> list[str]:
+    """A receiver stopped by SIGTERM exits with 0 and logs its final status; a missing final status is
+    accepted only after a planned SIGKILL, which ends the receiver with -9."""
+    process = run.name[:-4] if run.name.endswith(".log") else run.name
+    record = records.timeline.get("processes", {}).get(process)
+    if record is None:
+        return [f"the timeline has no process record of {process}"]
+    returncode = record.get("returncode")
+    planned = _planned_stop(records, process)
+    if planned == "SIGKILL":
+        return [] if returncode == -9 else [f"killed by a planned SIGKILL, but ended with {returncode}"]
+    if planned in ("SIGTERM", "SIGINT"):
+        problems = [] if returncode == 0 else [f"stopped by {planned}, but ended with {returncode}"]
+        if run.final_status is None:
+            problems.append(f"stopped by {planned}, but logged no final_status")
+        return problems
+    return [f"ended with {returncode} without a planned stop"]
+
+
+def _check_cores(records: CaseRecords, verdict: Verdict) -> None:
+    """No receiver may leave a core. The cores of other processes are recorded with their first named frames
+    (gatewayd ends with SIGABRT at its stop: GAP-MW-041)."""
+    cores = records.timeline.get("cores")
+    verdict.check("cores_scanned", cores is not None, "the runner recorded no scan of the core directory", ERROR)
+    cores = cores or []
+    receiver_cores = [c for c in cores if str(c.get("process", "")).startswith("receiver-")]
+    verdict.check("no_receiver_core", not receiver_cores,
+                  f"receiver cores: {[(c.get('process'), c.get('core')) for c in receiver_cores]}")
+    verdict.metrics["process_cores"] = [
+        {"process": c.get("process"), "returncode": c.get("returncode"), "core": c.get("core"),
+         "top_frames": (c.get("named_top_frames") or [])[:6],
+         "known": "GAP-MW-041" if str(c.get("process", "")).startswith("gatewayd") and c.get("returncode") == -6
+         else None}
+        for c in cores]
+
+
+def _link_events(records: CaseRecords) -> dict[str, list[int]]:
+    """The independent events of a case: SD messages and TCP ends of the capture, and the client's
+    connects and ends, each as a sorted list of CLOCK_REALTIME times."""
+    host, guest = records.host_address, records.guest_address
+    sd = records.capture.sd_messages if records.capture is not None else []
+    streams = records.capture.streams if records.capture is not None else []
+
+    def entries(src: str, name: str, ttl_positive: bool, dst: str | None = None) -> list[int]:
+        return sorted(m.ts_ns for m in sd if m.src == src and (dst is None or m.dst == dst)
+                      for e in m.entries if e.type_name == name and (e.ttl > 0) == ttl_positive)
+
+    reboots = []
+    last_session: dict[str, int] = {}
+    for message in sorted((m for m in sd if m.src == host), key=lambda m: m.ts_ns):
+        previous = last_session.get(message.dst)
+        if message.reboot and previous is not None and message.session <= previous:
+            reboots.append(message.ts_ns)
+        last_session[message.dst] = message.session
+    client_stops = sorted(event["realtime_ns"] for event in records.timeline.get("events", [])
+                          if str(event.get("what", "")).startswith(("stop recorder", "stop ingress-")))
+    return {
+        "acks": entries(host, "SubscribeEventgroupAck", True, guest),
+        "nacks": entries(host, "SubscribeEventgroupAck", False, guest),
+        "stop_offers": entries(host, "OfferService", False),
+        "stop_subscribes": entries(guest, "SubscribeEventgroup", False, host),
+        "tcp_ends": sorted(stamp for s in streams if {s.src, s.dst} == {host, guest}
+                           for stamp in (s.fin_ts_ns, s.rst_ts_ns) if stamp is not None),
+        "reboots": reboots,
+        "client_connects": sorted(c.connect_realtime_ns for c in records.recorder_connections),
+        "client_ends": sorted([c.close_realtime_ns for c in records.recorder_connections
+                               if c.close_realtime_ns is not None] + client_stops),
+    }
+
+
+def _phase_problems(records: CaseRecords, run: ReceiverRun) -> tuple[list[str], list[str]]:
+    """Each phase start and end of the run against the independent records of the case.
+
+    A start lies at most 100 ms after the later of the last Ack (TTL above 0) of
+    someipd on the link and the client's connect, and not before either (the
+    client's stamp may come 50 ms late); the later one names the cause. The
+    Ack must be inside its TTL. An end lies within 100 ms after the event of
+    its cause: a Nack, a StopOffer, a FIN or RST of the TCP connection, a
+    someipd reboot, the receiver's StopSubscribe at its stop, the end of the
+    TTL after the last Ack, or the client's end.
+    """
+    events = _link_events(records)
+    starts: list[str] = []
+    ends: list[str] = []
+
+    def last_before(times: list[int], limit: int) -> int | None:
+        found = [stamp for stamp in times if stamp <= limit]
+        return found[-1] if found else None
+
+    def near(times: list[int], at: int, before: int, after: int) -> bool:
+        return any(at - before <= stamp <= at + after for stamp in times)
+
+    for phase in run.phases():
+        s = phase.start_realtime_ns
+        ack = last_before(events["acks"], s + CAPTURE_SLACK_NS)
+        connect = last_before(events["client_connects"], s + CLIENT_STAMP_SLACK_NS)
+        if ack is None or connect is None:
+            starts.append(f"phase {phase.number}: no Ack ({ack}) or no client connect ({connect}) before its start")
+        else:
+            later = max(ack, connect)
+            if s - ack > SUBSCRIPTION_TTL_NS:
+                starts.append(f"phase {phase.number}: the last Ack is {(s - ack) / SECOND_NS:.3f} s old")
+            if s > later + PHASE_EVENT_BOUND_NS:
+                starts.append(f"phase {phase.number}: starts {(s - later) / 1e6:.3f} ms after its cause")
+            causes = {"subscription_acknowledged"} if ack > connect else {"client_connected"}
+            if abs(ack - connect) < CAUSE_TIE_NS:
+                causes = {"subscription_acknowledged", "client_connected"}
+            if phase.cause not in causes:
+                starts.append(f"phase {phase.number}: cause {phase.cause}, the records give {sorted(causes)}")
+        e = phase.end_realtime_ns
+        cause = phase.end_cause
+        if e is None or cause is None:
+            continue
+        if cause == "client_lost":
+            ok = near(events["client_ends"], e, CLIENT_END_BEFORE_NS, PHASE_EVENT_BOUND_NS)
+        elif cause == "subscription_lost:stopped":
+            ok = near(events["stop_subscribes"], e, PHASE_EVENT_BOUND_NS, PHASE_EVENT_BOUND_NS)
+        elif cause == "subscription_lost:ttl_expired":
+            last_ack = last_before(events["acks"], e)
+            ok = last_ack is not None and SUBSCRIPTION_TTL_NS - 5 * 1_000_000 <= e - last_ack <= \
+                SUBSCRIPTION_TTL_NS + 2 * PHASE_EVENT_BOUND_NS
+        else:
+            key = {"subscription_lost:nack": "nacks", "subscription_lost:stop_offer": "stop_offers",
+                   "subscription_lost:tcp_closed": "tcp_ends", "subscription_lost:tcp_lost": "tcp_ends",
+                   "subscription_lost:server_reboot": "reboots"}.get(cause)
+            ok = key is not None and near(events[key], e, PHASE_EVENT_BOUND_NS, CAPTURE_SLACK_NS)
+        if not ok:
+            ends.append(f"phase {phase.number}: end {cause} has no independent event within the bound")
+    return starts, ends
+
+
 def check_common(records: CaseRecords, verdict: Verdict, *, shared_memory_expected: bool = True) -> None:
     for name, text in records.gatewayd_logs.items():
         verdict.check(f"gatewayd_subscribed:{name}", GATEWAYD_SUBSCRIBE_FAILURE not in text,
@@ -338,6 +491,18 @@ def check_common(records: CaseRecords, verdict: Verdict, *, shared_memory_expect
         verdict.check(f"drop_reasons_known:{run.name}", not unknown, f"{run.name}: unknown drop reasons {unknown}")
         final = run.final_status
         frames = run.frames
+        start_record = run.start or {}
+        verdict.check(f"rule_constants:{run.name}",
+                      start_record.get("phase_start_margin_ns") == PHASE_START_MARGIN_NS
+                      and start_record.get("copy_memory_frames") == COPY_MEMORY_FRAMES,
+                      f"{run.name}: the start record gives margin {start_record.get('phase_start_margin_ns')} ns "
+                      f"and copy memory {start_record.get('copy_memory_frames')}, not {PHASE_START_MARGIN_NS} and "
+                      f"{COPY_MEMORY_FRAMES}")
+        problems = _end_problems(records, run)
+        verdict.check(f"receiver_end:{run.name}", not problems, f"{run.name}: {problems}")
+        starts, ends = _phase_problems(records, run)
+        verdict.check(f"phase_starts_independent:{run.name}", not starts, f"{run.name}: {starts[:3]}")
+        verdict.check(f"phase_ends_independent:{run.name}", not ends, f"{run.name}: {ends[:3]}")
         if final is not None:
             balanced = final["frames_received"] == final["frames_delivered"] + sum(
                 final.get(f"drop_{reason}", 0) for reason in DROP_REASONS)
@@ -349,8 +514,8 @@ def check_common(records: CaseRecords, verdict: Verdict, *, shared_memory_expect
                 verdict.check(f"drop_count:{run.name}:{reason}", counts.get(reason, 0) == final.get(f"drop_{reason}"),
                               f"{run.name}: the frame lines and the final status disagree on {reason}")
         # The ingress is oneshot: each start of the receiver must start it
-        # again, and only after the loopback server listens; while no client
-        # is connected, the trigger repeats every 2 s.
+        # again, and only after the loopback server listens; until the first
+        # client, the trigger repeats every 1 s, at most 10 times.
         before, after = run.properties()
         triggers = run.of("ingress_trigger")
         if run.final_status is None and after[-1:] == [INGRESS_TRIGGER[0]]:
@@ -387,7 +552,7 @@ def check_common(records: CaseRecords, verdict: Verdict, *, shared_memory_expect
                 outside += 1
                 continue
             stamp = frame["frame_timestamp_ns"]
-            if stamp < phase.start_realtime_ns - run.margin_ns:
+            if stamp < phase.start_realtime_ns - PHASE_START_MARGIN_NS:
                 older += 1
             elif stamp < phase.start_realtime_ns:
                 band_frames += 1
@@ -402,6 +567,7 @@ def check_common(records: CaseRecords, verdict: Verdict, *, shared_memory_expect
                       f"{run.name}: {older} delivered frames are older than their phase start less the margin")
         verdict.check(f"no_copy_served_in_phase:{run.name}", copies == 0,
                       f"{run.name}: {copies} copies served in one phase")
+    _check_cores(records, verdict)
     verdict.metrics["drops_by_reason"] = {reason: drops.get(reason, 0) for reason in DROP_REASONS}
     verdict.metrics["frames_delivered_by_receiver"] = len(delivered)
     verdict.metrics["clock_steps"] = clock_steps
@@ -663,7 +829,7 @@ def evaluate_no_client(records: CaseRecords) -> dict[str, Any]:
     if not phases:
         return verdict.result()
     phase_start_ns = phases[0].start_realtime_ns
-    margin = run.margin_ns
+    margin = PHASE_START_MARGIN_NS
     connect = records.recorder_connections[0].connect_realtime_ns
     before = [f for f in run.frames if f["monotonic_ns"] < phases[0].start_monotonic_ns]
     no_client = [f for f in before if f.get("verdict") == "no_client"]
@@ -739,7 +905,7 @@ def evaluate_stored_samples(records: CaseRecords) -> dict[str, Any]:
             ok, fields = read_payload(payload)
             in_force = [p for p in phases if p.start_realtime_ns <= ts_ns]
             if ok and fields is not None and in_force and \
-                    fields.frame_timestamp_ns < in_force[-1].start_realtime_ns - run.margin_ns:
+                    fields.frame_timestamp_ns < in_force[-1].start_realtime_ns - PHASE_START_MARGIN_NS:
                 older_on_link += 1
         report.append({"step": step["kind"], "stored_dropped": dict(Counter(f["verdict"] for f in stored)),
                        "older_on_link": older_on_link, "repeats_on_link": repeats_on_link,

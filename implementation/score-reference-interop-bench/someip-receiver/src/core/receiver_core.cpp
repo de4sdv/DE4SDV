@@ -185,13 +185,27 @@ void ReceiverCore::OnSdDatagram(const Clock& now, std::uint32_t source_address, 
                                 const std::uint8_t* data, std::size_t size) {
   ObserveClock(now);
   ++counters_.sd_datagrams;
+  // The sender filter comes first: a datagram of another sender is counted
+  // and dropped unread, so a flood of them gives no log lines.
+  if (source_address != config_.subscription.server_address) {
+    ++counters_.sd_datagrams_from_other_senders;
+    return;
+  }
   const SdParseResult result = ParseSdMessage(data, size);
   if (!result.message.has_value()) {
     ++counters_.sd_malformed;
+    if (malformed_logged_ && now.monotonic_ns - malformed_logged_ns_ < kMalformedLogPeriodNs) {
+      ++malformed_suppressed_;
+      return;
+    }
     log_.Log(now, LogRecord{"sd_malformed"}
                       .Text("reason", ToText(result.error))
                       .Text("source", Ipv4ToText(source_address))
-                      .Unsigned("bytes", size));
+                      .Unsigned("bytes", size)
+                      .Unsigned("suppressed", malformed_suppressed_));
+    malformed_logged_ = true;
+    malformed_logged_ns_ = now.monotonic_ns;
+    malformed_suppressed_ = 0;
     return;
   }
   machine_.OnSdMessage(now, *result.message, source_address, multicast);
@@ -274,9 +288,9 @@ void ReceiverCore::LogFrame(const Clock& now, const char* verdict, const Header&
 void ReceiverCore::Drop(const Clock& now, DropReason reason, const Header& header, std::size_t size,
                         const FrameFields* fields) {
   ++counters_.drops.at(static_cast<std::size_t>(reason));
-  if (config_.log_frames) {
-    LogFrame(now, ToText(reason), header, size, fields);
-  }
+  // Every drop is logged with its reason, at most at the frame rate;
+  // --log-frames adds only the line of each served frame.
+  LogFrame(now, ToText(reason), header, size, fields);
 }
 
 void ReceiverCore::OnMessage(const Clock& now, const Header& header, const std::uint8_t* payload, std::size_t size) {
@@ -375,6 +389,7 @@ LogRecord ReceiverCore::Status(const char* event) const {
       .Unsigned("magic_cookies", c.magic_cookies)
       .Unsigned("stream_framing_errors", c.stream_framing_errors)
       .Unsigned("sd_datagrams", c.sd_datagrams)
+      .Unsigned("sd_datagrams_from_other_senders", c.sd_datagrams_from_other_senders)
       .Unsigned("sd_malformed", c.sd_malformed)
       .Unsigned("clients_accepted", c.clients_accepted)
       .Unsigned("clients_refused", c.clients_refused)

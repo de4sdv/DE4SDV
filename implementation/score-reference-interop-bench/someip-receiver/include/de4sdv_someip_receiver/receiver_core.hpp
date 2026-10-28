@@ -63,7 +63,9 @@ struct ReceiverConfig {
   // The largest payload: the 4-byte prefix and a frame of up to 2044 bytes
   // in the 2048-byte sample of the S-CORE frame event.
   std::size_t max_payload_bytes{2048};
-  // One "frame" log line per notification of the frame event.
+  // One "frame" log line per served frame of the event. Every dropped frame
+  // gives its line anyway, with its reason; without this flag only the first
+  // five served frames of a phase give one.
   bool log_frames{false};
   // The system property that starts the HMI ingress; empty: no trigger.
   std::string ingress_start_property;
@@ -72,6 +74,8 @@ struct ReceiverConfig {
 constexpr std::int64_t kClockStepThresholdNs = 1'000'000;
 constexpr std::uint64_t kFirstFramesLoggedPerPhase = 5;
 constexpr std::int64_t kIngressRetriggerPeriodNs = 1'000'000'000;
+// A malformed SD datagram of the server gives at most one log line per second.
+constexpr std::int64_t kMalformedLogPeriodNs = 1'000'000'000;
 constexpr std::uint64_t kIngressRetriggerLimit = 10;
 
 // The loopback client of the HMI ingress, implemented by the shell.
@@ -110,6 +114,7 @@ const char* ToText(DropReason reason) noexcept;
 
 struct ReceiverCounters {
   std::uint64_t sd_datagrams{0};
+  std::uint64_t sd_datagrams_from_other_senders{0};  // counted, not parsed, not logged
   std::uint64_t sd_malformed{0};
   std::uint64_t stream_messages{0};
   std::uint64_t magic_cookies{0};
@@ -197,6 +202,9 @@ class ReceiverCore final : private SubscriptionTransport, private SubscriptionLi
   std::int64_t phase_receipt_max_ns_{0};
   bool clock_seen_{false};
   std::int64_t clock_offset_ns_{0};
+  bool malformed_logged_{false};
+  std::int64_t malformed_logged_ns_{0};
+  std::uint64_t malformed_suppressed_{0};
   bool listening_{false};
   bool first_client_seen_{false};
   bool ingress_trigger_gave_up_{false};

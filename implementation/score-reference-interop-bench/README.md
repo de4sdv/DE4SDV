@@ -387,7 +387,9 @@ What the receiver does:
 - It serves one client on 127.0.0.1:4731. It forwards each payload unchanged,
   prefix and frame. It holds no queue: a frame without a client is dropped.
 - Every frame ends delivered or dropped with one reason, and a counter per
-  reason shows it. The start line repeats the whole configuration.
+  reason shows it. Every dropped frame gives a log line with its reason, at
+  most at the frame rate; `--log-frames` adds a line per served frame. The
+  start line repeats the whole configuration.
 
 The discard rule is a separate component (`FrameDiscardPolicy`). It is
 `receiverSubscriptionPhaseDiscardRule` of the phase-8 realization model:
@@ -398,7 +400,8 @@ The discard rule is a separate component (`FrameDiscardPolicy`). It is
   receiver takes the phase start from its own `CLOCK_REALTIME`, the clock
   with which the frame assembler stamps `frame_timestamp_ns` on the host.
 - The receiver is not subscribed at its start. A Nack, the loss of the TCP
-  connection to someipd, a StopOffer, or the end of the TTL of the last
+  connection to someipd, a loss of the SOME/IP framing of the TCP stream, a
+  StopOffer, a reboot of someipd, or the end of the TTL of the last
   acknowledged subscription ends the subscription. The next Ack starts it
   again; the Ack of a renewal changes nothing.
 - A second client is refused while one is connected. It is not served and
@@ -480,13 +483,16 @@ The receiver sets the host and the ingress start.
 
 ### Runs against the real someipd
 
-Three jobs of the workflow cover the receiver. `someip-receiver-unit` builds
+Four jobs of the workflow cover the receiver. `someip-receiver-unit` builds
 it with g++ and runs the gtest suites; this binary goes to the namespace runs.
-`someip-receiver-clang` builds and tests it with clang++. The third job,
+`someip-receiver-clang` builds and tests it with clang++.
+`someip-receiver-sanitizers` runs the gtest suites of a g++ build with ASan
+and UBSan; every finding fails the job. The fourth job,
 `someip-receiver-interop`, runs `scripts/run_someip_receiver_interop.py` as root
 with the runtime bundle of the build job. The script creates a "host" and a
 "guest" network namespace, joined by a veth pair, with a route for
-224.0.0.0/4 in both. Every bench process runs as the non-root runner user.
+224.0.0.0/4 in both. Every bench process runs as the non-root runner user,
+except the capture (tcpdump runs as root).
 
 - Host namespace: someipd with service discovery on and the unicast address
   10.250.0.1 (`config/vsomeip_netns_host.json`), gatewayd, the adapter, and
@@ -506,7 +512,7 @@ when every case passes; an inconclusive case fails it too.
 |---|---|
 | `identity` | 200 frames reach the client byte for byte, in order, with the 2044-byte frames |
 | `resubscribe` | after a receiver restart by SIGTERM, one by SIGKILL, a restart of the gateway pair and a 5 s link outage, the receiver subscribes again and delivery resumes; no frame comes twice; every drop has a reason |
-| `no_client` | frames without a client are dropped and not queued; the client receives no frame produced before it connected |
+| `no_client` | frames without a client are dropped and not queued; the client receives no frame produced more than 20 ms before it connected |
 | `stored_samples` | in the order of the stored-sample cases of the gateway spike, with the source paused at each step so that the newest frames stay in the sample slots: frames into the adapter, then gatewayd and the subscription, then the source again (frames from before the phase arrive in it); then gatewayd restarted beside the running someipd in the phase, a stimulus outside the operating rules (stored frames repeat served frames); then a restart of the gateway pair. The case passes only when both checks of the rule acted: a frame older than its phase start less 20 ms dropped in a phase, and a copy dropped in a phase |
 | `ttl_renewal` | without multicast offers, the receiver renews its subscription over five TTLs, without a lapse or a gap. someipd answers a subscription that comes before its first offer with a Nack, as it does for the vsomeip client; the case counts these as `nacks_before_first_ack` and fails only on a Nack after the first Ack |
 | `ingress_start` | the client is a oneshot ingress stand-in (`loopback_frame_recorder.py --oneshot`). Only an init stand-in of the runner starts it, on the property records of the receiver, by the rule of init: no start while the ingress runs. (1) The receiver is killed and starts again while its old ingress still runs (the stand-in stays alive 2.5 s after its stream ends): a repeat of the trigger (reason `no_first_client`) starts the new ingress, which receives frames. (2) The bench stops the ingress after the first client of the receiver: no trigger, no start and no client follow. (3) A receiver starts while no ingress can start: it tries 11 times, 1 s apart, and logs `ingress_trigger_gave_up` |
@@ -519,10 +525,29 @@ frame served outside a phase or older than its phase start less 20 ms, on
 a copy served in a phase, on a receiver run that does not set the ingress
 properties in order after its start record, and on an ingress trigger after
 the first client of a receiver run, a repeat not 1 s after the last try, more
-than 10 repeats, or a give-up before the 10th repeat. A clock step makes the
-case inconclusive. The results list the phase starts of each case. A frame
-that the AEBS stack produced in the 20 ms before a phase start (the band of
-GAP-MW-045) is reported, not failed.
+than 10 repeats, or a give-up before the 10th repeat. The evaluator also
+does not take the receiver's word for its own rule and phases:
+
+- It uses its own margin of 20 ms and copy memory of 40 frames, and a start
+  record that gives other values fails the case.
+- A receiver that the runner stops with SIGTERM must end with 0 and log its
+  final status; a missing final status is accepted only after a planned
+  SIGKILL, and a receiver that ends without a planned stop fails the case.
+- The runner records the cores of each case. A receiver core fails the case;
+  the cores of other processes are recorded with their first named frames
+  (gatewayd ends with SIGABRT at its stop, GAP-MW-041).
+- Each phase start must lie at most 100 ms after the later of the last Ack
+  of someipd in the capture (inside its TTL) and the connect of the client,
+  and the later one must be the logged cause. Each phase end must lie within
+  100 ms of an independent record of its cause: a Nack, a StopOffer, a FIN or
+  RST of the TCP connection, a reboot of someipd or the StopSubscribe of the
+  receiver in the capture, the end of the TTL after the last Ack, or the end
+  of the client. In the CI runs so far, each start and end lay within
+  0.1 ms of its record, and a TTL end 0.4 ms after the end of the TTL.
+
+A clock step makes the case inconclusive. The results list the phase starts
+of each case. A frame that the AEBS stack produced in the 20 ms before a
+phase start (the band of GAP-MW-045) is reported, not failed.
 
 Both namespaces share the clock of one kernel, so ASM-MW-030 holds in these
 runs by construction. They do not measure a host-guest clock offset.

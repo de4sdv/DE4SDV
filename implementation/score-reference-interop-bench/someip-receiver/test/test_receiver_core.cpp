@@ -513,6 +513,45 @@ TEST(ReceiverCore, MalformedSdDatagramIsCountedAndIgnored) {
   EXPECT_EQ(bench.transport.connects, 0);
 }
 
+TEST(ReceiverCore, DatagramsOfOtherSendersAreCountedNotLogged) {
+  Bench bench;
+  Bytes offer = LoadHexFixture("sd_offer_multicast");
+  offer.pop_back();
+  constexpr std::uint32_t kOtherSender = 0x0AFA0063;
+  for (int index = 0; index < 5000; ++index) {
+    bench.core.OnSdDatagram(At(index * kMs), kOtherSender, false, offer.data(), offer.size());
+  }
+  EXPECT_EQ(bench.core.counters().sd_datagrams_from_other_senders, 5000U);
+  EXPECT_EQ(bench.core.counters().sd_malformed, 0U);
+  EXPECT_EQ(bench.log.Count("sd_malformed"), 0);
+  EXPECT_NE(bench.core.Status("status").fields().find("\"sd_datagrams_from_other_senders\":5000"), std::string::npos);
+}
+
+TEST(ReceiverCore, MalformedDatagramsOfTheServerAreLoggedAtMostOncePerSecond) {
+  Bench bench;
+  Bytes offer = LoadHexFixture("sd_offer_multicast");
+  offer.pop_back();
+  for (int index = 0; index < 100; ++index) {
+    bench.core.OnSdDatagram(At(index * 5 * kMs), kServer, false, offer.data(), offer.size());
+  }
+  EXPECT_EQ(bench.core.counters().sd_malformed, 100U);
+  EXPECT_EQ(bench.log.Count("\"event\":\"sd_malformed\""), 1);
+  bench.core.OnSdDatagram(At(kS), kServer, false, offer.data(), offer.size());
+  EXPECT_EQ(bench.log.Count("\"event\":\"sd_malformed\""), 2);
+  EXPECT_EQ(bench.log.Count("\"suppressed\":99"), 1);
+}
+
+TEST(ReceiverCore, EveryDroppedFrameIsLoggedWithItsReasonWithoutLogFrames) {
+  ReceiverConfig config = Bench::Defaults();
+  config.log_frames = false;
+  Bench bench{config};
+  const std::int64_t ack = bench.Subscribe(0);
+  // Subscribed, no client: the frame is dropped and its line names the reason.
+  const Bytes frame = FrameNotification(1, Realtime(ack) + 5 * kMs);
+  bench.Data(ack + 10 * kMs, frame);
+  EXPECT_EQ(bench.log.Count("\"event\":\"frame\",\"verdict\":\"no_client\""), 1);
+}
+
 TEST(ReceiverCore, StatusHoldsEveryDropReason) {
   Bench bench;
   const LogRecord status = bench.core.Status("status");

@@ -79,6 +79,10 @@ def test_tcp_connections_and_their_notifications(capture):
         (35005, 3, 3616, []), (46707, 5, 5548, [])]
     first = server_streams[0]
     assert first.fin and first.rst
+    # The times of the first FIN and RST lie inside the stream and in order.
+    assert first.first_ts_ns <= first.fin_ts_ns <= first.last_ts_ns
+    assert first.first_ts_ns <= first.rst_ts_ns <= first.last_ts_ns
+    assert server_streams[1].rst_ts_ns is None or server_streams[1].rst_ts_ns >= server_streams[1].first_ts_ns
     sizes = [len(message.payload) for message in first.messages]
     assert sizes == [2048, 20, 1500]
     message = first.messages[0]

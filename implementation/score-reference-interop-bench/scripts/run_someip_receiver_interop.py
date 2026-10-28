@@ -9,9 +9,11 @@ and /dev/shm, so the veth pair is the only path between the two. Both
 namespaces have a route for 224.0.0.0/4 on their veth end.
 
 Run as root: it creates the namespaces and the captures, and starts every
-bench process inside a namespace as the bench user (setpriv), so that LoLa
-runs without root and its shared memory belongs to that user. It records
-which LoLa shared memory files someipd, gatewayd and the adapter map.
+bench process except the capture inside a namespace as the bench user
+(setpriv), so that LoLa runs without root and its shared memory belongs to
+that user. It records which LoLa shared memory files someipd, gatewayd and
+the adapter map, the exit of each process, and the cores of each case in the
+directory of kernel.core_pattern, with gdb backtraces of the native ones.
 
 Cases (each with a fresh stack, a capture of the link on the host end and
 raw records in <out>/<case>/):
@@ -384,6 +386,33 @@ class Stack:
             time.sleep(0.5)
             self.stop("tcpdump", sig=signal.SIGINT)
 
+    def scan_cores(self, core_dir: Path) -> None:
+        """The cores that the processes of this case left, with the first named frames of a native one.
+
+        The evaluators fail a case on a receiver core and record the others,
+        as the soak does (gatewayd ends with SIGABRT at its stop: GAP-MW-041).
+        """
+        from de4sdv_score_bench.backtrace import frame_text, read_located_frames
+
+        records = []
+        for name, process in self.processes.items():
+            core = rt.find_core(core_dir, process.pid)
+            if core is None:
+                continue
+            binary = Path(self.timeline["processes"][name]["argv"][0])
+            record = {"process": name, "pid": process.pid, "core": core.name, "returncode": process.returncode,
+                      "named_top_frames": None}
+            if binary.is_file() and not binary.name.startswith("python"):
+                try:
+                    backtrace, mappings = rt.gdb_backtrace(binary, core, self.out, f"{name}-core")
+                    frames = read_located_frames(backtrace, mappings)
+                    record["named_top_frames"] = [frame_text(frame) for frame in frames if frame.function != "??"][:12]
+                except Exception as error:  # a broken core is recorded, not fatal
+                    record["backtrace_error"] = repr(error)
+            records.append(record)
+        self.timeline["cores"] = records
+        self.note("core scan", cores=[(r["process"], r["returncode"]) for r in records])
+
     def finish(self) -> None:
         for name, process in self.processes.items():
             record = self.timeline["processes"][name]
@@ -745,6 +774,9 @@ def summarize(results: dict[str, dict]) -> str:
         for step in metrics.get("steps", []):
             details = ", ".join(f"{key} {value}" for key, value in step.items() if key != "step")
             lines.append(f"| | | step {step['step']}: {details} |")
+        for core in metrics.get("process_cores", []):
+            lines.append(f"| | | core of {core['process']} ({core['returncode']}, {core['known'] or 'not known'}): "
+                         f"{' <- '.join(core['top_frames']) or 'no named frame'} |")
         if result.get("reasons"):
             lines.append(f"| | | reasons: {'; '.join(result['reasons'])} |")
     return "\n".join(lines) + "\n"
@@ -759,6 +791,7 @@ def main() -> int:
     parser.add_argument("--env-json", required=True,
                         help="environment of the bench user after /opt/ros/humble/setup.bash and "
                              "config/ros_environment.sh of the bundle")
+    parser.add_argument("--core-dir", required=True, help="the directory of kernel.core_pattern")
     parser.add_argument("--cases", default=",".join(CASES))
     args = parser.parse_args()
     if os.geteuid() != 0:
@@ -797,6 +830,7 @@ def main() -> int:
                 stack.timeline["runner_error"] = repr(error)
             finally:
                 stack.stop_all()
+                stack.scan_cores(Path(args.core_dir))
                 stack.finish()
             try:
                 results[case] = EVALUATORS[case](load_case(stack.out))
