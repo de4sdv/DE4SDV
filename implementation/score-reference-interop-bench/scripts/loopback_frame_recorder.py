@@ -9,7 +9,8 @@ wire reader. The bytes of connection k go to <stream-dir>/recorder-stream-<k>.bi
 With --reconnect it connects again after the stream ends, every 100 ms,
 until SIGTERM. With --oneshot it behaves as the oneshot ingress: one connect
 attempt, and it exits when that fails or the stream ends; --connection numbers
-its connection. It never writes to the receiver.
+its connection, and --linger-s keeps it alive for that time after the stream
+ends, as an ingress that is slow to exit. It never writes to the receiver.
 """
 
 from __future__ import annotations
@@ -41,6 +42,8 @@ def main() -> int:
     parser.add_argument("--oneshot", action="store_true",
                         help="one connect attempt; exit when it fails or when the stream ends")
     parser.add_argument("--connection", type=int, default=1, help="number of the first connection")
+    parser.add_argument("--linger-s", type=float, default=0.0,
+                        help="with --oneshot: stay alive this long after the stream ends")
     arguments = parser.parse_args()
 
     stop = {"requested": False}
@@ -76,7 +79,7 @@ def main() -> int:
             stream = open(Path(arguments.stream_dir) / f"recorder-stream-{connection}.bin", "ab")
             buffer = b""
             index = 0
-            reason = "closed"
+            reason = None
             try:
                 while not stop["requested"]:
                     try:
@@ -84,6 +87,7 @@ def main() -> int:
                     except socket.timeout:
                         continue
                     if not chunk:
+                        reason = "closed"  # the receiver ended the stream
                         break
                     receipt_monotonic, receipt_realtime = time.monotonic_ns(), time.time_ns()
                     stream.write(chunk)
@@ -103,6 +107,8 @@ def main() -> int:
                                sequence=fields.sequence if fields else None,
                                frame_timestamp_ns=fields.frame_timestamp_ns if fields else None,
                                payload_sha256=hashlib.sha256(payload).hexdigest())
+                if reason is None:
+                    reason = "stopped"  # SIGTERM: the bench stopped the client
             except (OSError, ValueError) as error:
                 reason = f"error: {error}"
             finally:
@@ -110,6 +116,12 @@ def main() -> int:
                 client.close()
             record("disconnected", connection=connection, reason=reason, partial_bytes=len(buffer),
                    monotonic_ns=time.monotonic_ns(), realtime_ns=time.time_ns())
+            if arguments.oneshot and reason == "closed" and arguments.linger_s > 0:
+                record("lingering", seconds=arguments.linger_s, monotonic_ns=time.monotonic_ns(),
+                       realtime_ns=time.time_ns())
+                deadline = time.monotonic() + arguments.linger_s
+                while time.monotonic() < deadline and not stop["requested"]:
+                    time.sleep(0.05)
             if arguments.oneshot or not arguments.reconnect:
                 break
     return 0

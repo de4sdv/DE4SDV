@@ -75,7 +75,8 @@ std::string Usage() {
          "  --announce-property <name=value>  set this system property once the loopback\n"
          "                                server listens (Android only; repeatable, in order)\n"
          "  --ingress-start-property <name>  set it to 0 and then 1 once the loopback server\n"
-         "                                listens, and every 2 s while no client is connected\n";
+         "                                listens, and every 1 s until the first client\n"
+         "                                connects, at most 10 times\n";
 }
 
 ParsedOptions ParseOptions(const std::vector<std::string>& arguments) {
@@ -258,6 +259,7 @@ LogRecord StartRecord(const ReceiverOptions& options, const char* policy_name, s
       .Unsigned("announce_properties", options.announce_properties.size())
       .Text("ingress_start_property", options.receiver.ingress_start_property)
       .Signed("ingress_retrigger_period_ns", kIngressRetriggerPeriodNs)
+      .Unsigned("ingress_retrigger_limit", kIngressRetriggerLimit)
       .Signed("status_period_ns", options.status_period_ns)
       .Signed("client_write_timeout_ns", options.client_write_timeout_ns)
       .Bool("log_frames", options.receiver.log_frames);

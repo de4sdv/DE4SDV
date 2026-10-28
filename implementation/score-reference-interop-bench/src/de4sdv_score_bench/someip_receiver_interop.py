@@ -20,11 +20,11 @@ functions here read only those records and return an outcome:
   copies and the frames older than the phase;
 - ttl_renewal: without multicast offers, the receiver renews its
   subscription over several TTLs without a lapse or a gap;
-- ingress_retrigger: the loopback client is a oneshot ingress stand-in that
-  only an init stand-in starts, on the receiver's start properties; after an
-  ingress loss, an ingress loss that init has not reaped yet, and a receiver
-  restart while init has not reaped the exited ingress, the receiver's
-  repeated trigger brings a client back.
+- ingress_start: the loopback client is a oneshot ingress stand-in that
+  only an init stand-in starts, on the receiver's start properties; after a
+  receiver restart while the old ingress still runs, a repeat of the start
+  trigger brings a client back; an ingress stopped after the first client
+  stays down; without any ingress, the receiver gives up after its tries.
 
 The receiver's rule is receiverSubscriptionPhaseDiscardRule of the phase-8
 model: a phase holds while the receiver is subscribed and its one client is
@@ -74,18 +74,21 @@ DROP_REASONS = (
 STORED_FRAME_VERDICTS = ("older_than_phase", "copy_in_phase")
 # At each of its starts, after its loopback server listens, the receiver sets
 # the frame server host of the ingress and then triggers the ingress: its start
-# property to 0 and then 1. It repeats the trigger every 2 s while no client is
-# connected (de4sdv_someip_receiver.rc passes the same properties). Off
-# Android, the receiver logs the properties and does not set them.
+# property to 0 and then 1. Until the first client of the receiver process
+# connects, it repeats the trigger every 1 s, at most 10 times, then gives up;
+# after the first client, it never triggers again (de4sdv_someip_receiver.rc
+# passes the same properties). Off Android, the receiver logs the properties
+# and does not set them.
 FRAME_SERVER_HOST_PROPERTY = "de4sdv.aebs.frame_server.host"
 INGRESS_START_PROPERTY = "de4sdv.aebs.ingress.start"
 ANNOUNCED_PROPERTIES = ((FRAME_SERVER_HOST_PROPERTY, "127.0.0.1"),)
 INGRESS_TRIGGER = ((INGRESS_START_PROPERTY, "0"), (INGRESS_START_PROPERTY, "1"))
-INGRESS_RETRIGGER_PERIOD_NS = 2 * SECOND_NS
+INGRESS_RETRIGGER_PERIOD_NS = SECOND_NS
+INGRESS_RETRIGGER_LIMIT = 10
 RETRIGGER_EARLY_NS = 5_000_000
 RETRIGGER_LATE_NS = 500_000_000
 PROPERTY_EVENTS = ("property_announced", "property_not_announced")
-INGRESS_STEPS = ("ingress_lost", "ingress_lost_not_reaped", "receiver_restart_ingress_not_reaped")
+INGRESS_STEPS = ("receiver_restart_old_ingress_alive", "ingress_stopped", "receiver_start_no_ingress")
 FRAMES_AFTER_INGRESS_BACK = 10
 KILLED_CLIENT_UNREAD_FRAMES = 3
 LARGEST_FRAME_BYTES = 2044
@@ -116,6 +119,7 @@ class RecorderConnection:
     index: int
     connect_realtime_ns: int
     close_realtime_ns: int | None
+    end_reason: str | None = None
 
 
 @dataclass
@@ -242,6 +246,7 @@ def load_case(case_dir: Path) -> CaseRecords:
             connections[record["connection"]] = RecorderConnection(record["connection"], record["realtime_ns"], None)
         elif record.get("event") == "disconnected" and record.get("connection") in connections:
             connections[record["connection"]].close_realtime_ns = record["realtime_ns"]
+            connections[record["connection"]].end_reason = record.get("reason")
     receivers = []
     for name in timeline.get("receiver_logs", []):
         path = case_dir / name
@@ -356,8 +361,8 @@ def check_common(records: CaseRecords, verdict: Verdict, *, shared_memory_expect
                       and triggers[0].get("reason") == "listening" and all(t.get("ok", True) for t in triggers),
                       f"{run.name}: properties after the start record {after} (before it: {before}), "
                       f"{len(triggers)} ingress triggers")
-        problems = _retrigger_problems(run)
-        verdict.check(f"ingress_retrigger_period:{run.name}", not problems, f"{run.name}: {problems[:3]}")
+        problems = _trigger_problems(run)
+        verdict.check(f"ingress_trigger_rule:{run.name}", not problems, f"{run.name}: {problems[:3]}")
         # A clock step voids the run: the phase start and the frame stamps no
         # longer share one time line (ASM-MW-030).
         steps = run.of("clock_step")
@@ -449,29 +454,44 @@ def check_common(records: CaseRecords, verdict: Verdict, *, shared_memory_expect
         verdict.check("link_capture_present", False, "no link capture", MISSING)
 
 
-def _retrigger_problems(run: ReceiverRun) -> list[str]:
-    """Ingress triggers of one receiver run against the rule: none while a client is connected, and each
-    repeat 2 s after the last trigger or the last client loss."""
+def _trigger_problems(run: ReceiverRun) -> list[str]:
+    """Ingress triggers of one receiver run against the rule: the first at listen; then, until the first
+    client, a repeat every 1 s, at most 10, and a give-up 1 s after the last; none after the first client."""
     problems = []
-    connected = False
+    first_client = False
     last_ns = None
+    repeats = 0
+    gave_up = False
+
+    def spaced(record: dict[str, Any], what: str) -> None:
+        gap = record["monotonic_ns"] - last_ns if last_ns is not None else None
+        if gap is None or not INGRESS_RETRIGGER_PERIOD_NS - RETRIGGER_EARLY_NS <= gap <= \
+                INGRESS_RETRIGGER_PERIOD_NS + RETRIGGER_LATE_NS:
+            problems.append(f"{what} {gap / SECOND_NS if gap is not None else None} s after the last try")
+
     for record in run.events:
         event = record.get("event")
         if event == "client_connected":
-            connected = True
-        elif event == "client_lost":
-            connected = False
-            last_ns = record["monotonic_ns"]
+            first_client = True
         elif event == "ingress_trigger":
-            if record.get("reason") == "no_client":
-                if connected:
-                    problems.append(f"trigger at {record['monotonic_ns']} with a client connected")
+            if first_client or gave_up:
+                problems.append(f"trigger at {record['monotonic_ns']} after the first client or the give-up")
+            if record.get("reason") == "listening":
                 if last_ns is not None:
-                    gap = record["monotonic_ns"] - last_ns
-                    if not INGRESS_RETRIGGER_PERIOD_NS - RETRIGGER_EARLY_NS <= gap <= \
-                            INGRESS_RETRIGGER_PERIOD_NS + RETRIGGER_LATE_NS:
-                        problems.append(f"trigger {gap / SECOND_NS:.3f} s after the last trigger or client loss")
+                    problems.append("a second trigger at listen")
+            elif record.get("reason") == "no_first_client":
+                repeats += 1
+                spaced(record, "repeat")
+            else:
+                problems.append(f"trigger reason {record.get('reason')}")
             last_ns = record["monotonic_ns"]
+        elif event == "ingress_trigger_gave_up":
+            gave_up = True
+            if first_client or repeats != INGRESS_RETRIGGER_LIMIT:
+                problems.append(f"gave up after {repeats} repeats, first client {first_client}")
+            spaced(record, "give-up")
+    if repeats > INGRESS_RETRIGGER_LIMIT:
+        problems.append(f"{repeats} repeats, more than {INGRESS_RETRIGGER_LIMIT}")
     return problems
 
 
@@ -481,10 +501,10 @@ def _client_session_mismatches(records: CaseRecords) -> list[str]:
     The k-th client connection that a receiver run accepted is the k-th
     connection of the client. A receiver run that was killed may have written
     one more frame than it logged, so its last connection may hold one extra
-    frame at the end. A client that was killed (its connection has no end
-    record) may not have read the last frames that the receiver wrote: its
-    frames are then the first ones of the delivered frames, with at most 3
-    missing at the end.
+    frame at the end. A client that was killed or stopped (its connection has
+    no end record, or ends with reason stopped) may not have read the last
+    frames that the receiver wrote: its frames are then the first ones of the
+    delivered frames, with at most 3 missing at the end.
     """
     sessions = []
     problems = []
@@ -505,7 +525,8 @@ def _client_session_mismatches(records: CaseRecords) -> list[str]:
     if len(sessions) != len(connections):
         problems.append(f"{len(sessions)} accepted client connections, {len(connections)} client connections")
         return problems
-    closed = {c.index: c.close_realtime_ns is not None for c in records.recorder_connections}
+    closed = {c.index: c.close_realtime_ns is not None and c.end_reason != "stopped"
+              for c in records.recorder_connections}
     for session, connection in zip(sessions, connections):
         received = [f.sequence for f in records.recorder_frames if f.connection == connection]
         delivered = session["sequences"]
@@ -803,72 +824,106 @@ def evaluate_ttl_renewal(records: CaseRecords, *, minimum_ttls: int = 3) -> dict
     return verdict.result()
 
 
-def evaluate_ingress_retrigger(records: CaseRecords) -> dict[str, Any]:
-    """The receiver's repeated trigger brings the oneshot ingress back.
+def evaluate_ingress_start(records: CaseRecords) -> dict[str, Any]:
+    """The start trigger of the oneshot ingress: bounded to the start of each receiver process.
 
     The init stand-in of the runner starts the ingress stand-in on each
     receiver record of the frame server host or of the ingress start set to
-    1, unless the ingress still runs or is not reaped yet. Per step: the
-    ingress stand-in connects again within the trigger period times the
-    number of start requests that came while it was not reaped, plus one,
-    and 2 s; the start that brings it back comes from a repeated trigger
-    (reason no_client); and the new client receives frames. In the steps
-    with an unreaped ingress, at least one start request must come while it
-    is not reaped, else the step did not show the race (inconclusive).
+    1, unless the ingress still runs. The steps:
+    - receiver_restart_old_ingress_alive: the receiver is killed and starts
+      again while its old ingress still runs (it stays alive 2.5 s after its
+      stream ends). At least one start request must come while the old
+      ingress runs, else the step did not show the race (inconclusive). A
+      repeat of the trigger (reason no_first_client) must start the new
+      ingress, which connects within 1 s per ignored start trigger, plus
+      1 s, plus 3 s for the receiver restart and the ingress start, and
+      receives frames.
+    - ingress_stopped: the bench stops the ingress after the first client of
+      the receiver: no start request, no start and no client follow.
+    - receiver_start_no_ingress: the receiver starts while no ingress can
+      start: it tries 11 times, 1 s apart, and gives up.
+    The trigger rule of every receiver run is checked in check_common.
     """
     verdict = Verdict()
     check_common(records, verdict)
     standin = records.init_stand_in
     verdict.check("init_stand_in_records", bool(standin), "the case has no records of the init stand-in", ERROR)
-    verdict.check("one_receiver_restart", len(records.receivers) == 2, "the case needs two receiver runs", ERROR)
-    if verdict.outcome == ERROR:
-        return verdict.result()
-    triggers = {(run.name, record["monotonic_ns"]): record.get("reason")
-                for run in records.receivers for record in run.of("ingress_trigger")}
+    verdict.check("three_receiver_runs", len(records.receivers) == 3, "the case needs three receiver runs", ERROR)
     disturbances = [d for d in records.timeline.get("disturbances", []) if d.get("kind") in INGRESS_STEPS]
     verdict.check("three_steps", [d["kind"] for d in disturbances] == list(INGRESS_STEPS),
                   f"the steps are {[d['kind'] for d in disturbances]}", ERROR)
     if verdict.outcome == ERROR:
         return verdict.result()
+    triggers = {(run.name, record["monotonic_ns"]): record.get("reason")
+                for run in records.receivers for record in run.of("ingress_trigger")}
     stop_ns = records.timeline.get("stop_realtime_ns", 2 ** 63)
+    windows = {}
+    for index, step in enumerate(disturbances):
+        end = disturbances[index + 1]["start_realtime_ns"] if index + 1 < len(disturbances) else stop_ns
+        windows[step["kind"]] = (step["start_realtime_ns"], end)
     first = [c for c in records.recorder_connections if c.connect_realtime_ns < disturbances[0]["start_realtime_ns"]]
     verdict.check("ingress_started_at_listen", len(first) == 1, f"{len(first)} client connections before the steps")
     report = []
-    for index, step in enumerate(disturbances):
-        kind = step["kind"]
-        start = step["start_realtime_ns"]
-        end = disturbances[index + 1]["start_realtime_ns"] if index + 1 < len(disturbances) else stop_ns
-        window = [r for r in standin if start <= r.get("realtime_ns", 0) < end]
-        started_at = next((i for i, r in enumerate(window) if r.get("event") == "started"), len(window))
-        started = window[started_at] if started_at < len(window) else None
-        # Start requests before the start, while the old ingress still ran or was not reaped.
-        not_reaped = [r for r in window[:started_at]
-                      if r.get("event") == "start_ignored" and r.get("state") in ("running", "not_reaped")]
-        ignored_triggers = sum(1 for r in not_reaped if r.get("property") == INGRESS_START_PROPERTY)
-        cause = None
-        if started is not None:
-            cause = (triggers.get((started.get("receiver_log"), started.get("receiver_monotonic_ns")))
-                     if started.get("property") == INGRESS_START_PROPERTY else "frame_server_host")
-        connection = next((c for c in records.recorder_connections if start <= c.connect_realtime_ns < end), None)
-        back_ns = connection.connect_realtime_ns - start if connection is not None else None
-        bound_ns = INGRESS_RETRIGGER_PERIOD_NS * (ignored_triggers + 1) + 2 * SECOND_NS
-        frames = sum(1 for f in records.recorder_frames if connection is not None and f.connection == connection.index)
-        report.append({"step": kind, "start_requests_not_reaped": len(not_reaped),
-                       "triggers_not_reaped": ignored_triggers, "started_by": cause,
-                       "client_back_s": round(back_ns / SECOND_NS, 3) if back_ns is not None else None,
-                       "bound_s": bound_ns / SECOND_NS, "frames_after": frames})
-        if kind.endswith("not_reaped"):
-            verdict.check(f"start_request_while_not_reaped:{kind}", bool(not_reaped),
-                          f"{kind}: no start request came while the ingress was not reaped", MISSING)
-        verdict.check(f"ingress_back:{kind}", back_ns is not None and back_ns <= bound_ns,
-                      f"{kind}: client back after {back_ns} ns, bound {bound_ns} ns")
-        verdict.check(f"started_by_the_repeated_trigger:{kind}", cause == "no_client",
-                      f"{kind}: the ingress came back through {cause}, not through a repeated trigger")
-        verdict.check(f"frames_after:{kind}", frames >= FRAMES_AFTER_INGRESS_BACK,
-                      f"{kind}: {frames} frames at the new client")
+
+    # 1. The start race: the old ingress still runs when the new receiver starts.
+    kind = "receiver_restart_old_ingress_alive"
+    start, end = windows[kind]
+    window = [r for r in standin if start <= r.get("realtime_ns", 0) < end]
+    started_at = next((i for i, r in enumerate(window) if r.get("event") == "started"), len(window))
+    started = window[started_at] if started_at < len(window) else None
+    old_alive = [r for r in window[:started_at] if r.get("event") == "start_ignored" and r.get("state") == "running"]
+    ignored_triggers = sum(1 for r in old_alive if r.get("property") == INGRESS_START_PROPERTY)
+    cause = None
+    if started is not None:
+        cause = (triggers.get((started.get("receiver_log"), started.get("receiver_monotonic_ns")))
+                 if started.get("property") == INGRESS_START_PROPERTY else "frame_server_host")
+    connection = next((c for c in records.recorder_connections if start <= c.connect_realtime_ns < end), None)
+    back_ns = connection.connect_realtime_ns - start if connection is not None else None
+    bound_ns = INGRESS_RETRIGGER_PERIOD_NS * (ignored_triggers + 1) + 3 * SECOND_NS
+    frames = sum(1 for f in records.recorder_frames if connection is not None and f.connection == connection.index)
+    report.append({"step": kind, "start_requests_while_old_ingress_ran": len(old_alive),
+                   "start_triggers_ignored": ignored_triggers, "started_by": cause,
+                   "client_back_s": round(back_ns / SECOND_NS, 3) if back_ns is not None else None,
+                   "bound_s": bound_ns / SECOND_NS, "frames_after": frames})
+    verdict.check(f"start_request_while_the_old_ingress_ran:{kind}", bool(old_alive),
+                  f"{kind}: no start request came while the old ingress ran", MISSING)
+    verdict.check(f"ingress_back:{kind}", back_ns is not None and back_ns <= bound_ns,
+                  f"{kind}: client back after {back_ns} ns, bound {bound_ns} ns")
+    verdict.check(f"started_by_a_repeat:{kind}", cause == "no_first_client",
+                  f"{kind}: the ingress came back through {cause}, not through a repeat of the trigger")
+    verdict.check(f"frames_after:{kind}", frames >= FRAMES_AFTER_INGRESS_BACK, f"{kind}: {frames} frames at the client")
+
+    # 2. A stopped ingress stays down after the first client.
+    kind = "ingress_stopped"
+    start, end = windows[kind]
+    requests = [r for r in standin if start <= r.get("realtime_ns", 0) < end
+                and r.get("event") in ("started", "start_ignored")]
+    later = [c for c in records.recorder_connections if start <= c.connect_realtime_ns < end]
+    run = records.receivers[1]
+    first_client = next((r["realtime_ns"] for r in run.of("client_connected")), None)
+    after_first = [r for r in run.of("ingress_trigger") if first_client is not None and r["realtime_ns"] > first_client]
+    report.append({"step": kind, "start_requests": len(requests), "client_connections": len(later),
+                   "triggers_after_first_client": len(after_first), "window_s": round((end - start) / SECOND_NS, 3)})
+    verdict.check(f"long_enough:{kind}", end - start >= 3 * INGRESS_RETRIGGER_PERIOD_NS,
+                  f"{kind}: the step lasted {(end - start) / SECOND_NS:.3f} s", ERROR)
+    verdict.check(f"no_trigger_after_the_first_client:{kind}", first_client is not None and not after_first,
+                  f"{kind}: {len(after_first)} triggers of {run.name} after its first client")
+    verdict.check(f"stays_down:{kind}", not requests and not later,
+                  f"{kind}: {len(requests)} start requests and {len(later)} client connections after the stop")
+
+    # 3. No ingress at all: the receiver tries 11 times and gives up.
+    kind = "receiver_start_no_ingress"
+    run = records.receivers[2]
+    tries = run.of("ingress_trigger")
+    gave_up = run.of("ingress_trigger_gave_up")
+    report.append({"step": kind, "tries": len(tries), "gave_up": bool(gave_up),
+                   "gave_up_after_s": round((gave_up[0]["monotonic_ns"] - tries[0]["monotonic_ns"]) / SECOND_NS, 3)
+                   if gave_up and tries else None})
+    verdict.check(f"tries_then_gave_up:{kind}", len(tries) == 1 + INGRESS_RETRIGGER_LIMIT and len(gave_up) == 1,
+                  f"{kind}: {len(tries)} tries, {len(gave_up)} give-up records")
     verdict.metrics["steps"] = report
     verdict.metrics["ingress_starts"] = sum(1 for r in standin if r.get("event") == "started")
-    verdict.metrics["ingress_triggers"] = dict(Counter(t for t in triggers.values()))
+    verdict.metrics["ingress_triggers"] = dict(Counter(triggers.values()))
     return verdict.result()
 
 
@@ -878,5 +933,5 @@ EVALUATORS = {
     "no_client": evaluate_no_client,
     "stored_samples": evaluate_stored_samples,
     "ttl_renewal": evaluate_ttl_renewal,
-    "ingress_retrigger": evaluate_ingress_retrigger,
+    "ingress_start": evaluate_ingress_start,
 }

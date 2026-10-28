@@ -41,7 +41,7 @@ from de4sdv_score_bench.someip_receiver_interop import (  # noqa: E402
     RecorderConnection,
     SourceFrame,
     evaluate_identity,
-    evaluate_ingress_retrigger,
+    evaluate_ingress_start,
     evaluate_no_client,
     evaluate_resubscribe,
     evaluate_stored_samples,
@@ -373,41 +373,54 @@ def test_a_failed_ingress_trigger_fails():
     assert evaluate_identity(builder.records())["outcome"] == FAIL
 
 
-def lost_client_builder(*, retrigger_after_s: float = 2.0, connected_trigger: bool = False) -> Builder:
-    """The client leaves at 5 s and comes back after two repeated triggers."""
+def trigger_builder(*, repeats: int = 2, gap_s: float = 1.0, after_client: bool = False,
+                    gave_up_after: int | None = None) -> Builder:
+    """A receiver run that repeats the ingress trigger until its first client connects."""
     builder = Builder(200)
     events = builder.receiver()
-    builder.ack(T0 + 100 * MS)
-    builder.event(events, "subscribed", T0 + 100 * MS)
-    builder.connect_client(events, T0 + 500 * MS, starts_phase=False)
-    builder.phase_start(events, "client_connected", T0 + 500 * MS)
-    if connected_trigger:
-        builder.trigger(events, T0 + 3 * S, "no_client")
-    builder.phase_end(events, "client_lost", T0 + 5 * S)
-    builder.event(events, "client_lost", T0 + 5 * S)
-    first = T0 + 5 * S + int(retrigger_after_s * S)
-    builder.trigger(events, first, "no_client")
-    builder.trigger(events, first + 2 * S, "no_client")
-    builder.final(events, T0 + 20 * S)
-    builder.timeline["stop_realtime_ns"] = T0 + 21 * S
+    at = T0 + 2000
+    for _ in range(repeats):
+        at += int(gap_s * S)
+        builder.trigger(events, at, "no_first_client")
+    if gave_up_after is not None:
+        builder.event(events, "ingress_trigger_gave_up", at + S, tries=1 + gave_up_after)
+    builder.ack(at + 100 * MS)
+    builder.event(events, "subscribed", at + 100 * MS)
+    builder.connect_client(events, at + 300 * MS, starts_phase=True)
+    builder.phase_end(events, "client_lost", at + 5 * S)
+    builder.event(events, "client_lost", at + 5 * S)
+    if after_client:
+        builder.trigger(events, at + 6 * S, "no_first_client")
+    builder.final(events, at + 20 * S)
+    builder.timeline["stop_realtime_ns"] = at + 21 * S
     return builder
 
 
-def test_repeated_triggers_without_a_client_pass():
-    result = evaluate_identity(lost_client_builder().records())
-    assert result["checks"]["ingress_retrigger_period:receiver-1.log"]
+def test_repeats_until_the_first_client_pass():
+    result = evaluate_identity(trigger_builder().records())
+    assert result["checks"]["ingress_trigger_rule:receiver-1.log"]
     assert result["checks"]["ingress_triggers_after_listen:receiver-1.log"]
 
 
-@pytest.mark.parametrize("seconds", [1.0, 2.6])
-def test_a_repeated_trigger_comes_two_seconds_after_the_loss(seconds):
-    result = evaluate_identity(lost_client_builder(retrigger_after_s=seconds).records())
-    assert not result["checks"]["ingress_retrigger_period:receiver-1.log"]
+def test_no_trigger_after_the_first_client():
+    result = evaluate_identity(trigger_builder(after_client=True).records())
+    assert not result["checks"]["ingress_trigger_rule:receiver-1.log"]
 
 
-def test_no_repeated_trigger_while_a_client_is_connected():
-    result = evaluate_identity(lost_client_builder(connected_trigger=True).records())
-    assert not result["checks"]["ingress_retrigger_period:receiver-1.log"]
+@pytest.mark.parametrize("gap_s", [0.5, 1.6])
+def test_repeats_are_one_second_apart(gap_s):
+    result = evaluate_identity(trigger_builder(gap_s=gap_s).records())
+    assert not result["checks"]["ingress_trigger_rule:receiver-1.log"]
+
+
+def test_at_most_ten_repeats():
+    assert evaluate_identity(trigger_builder(repeats=10).records())["checks"]["ingress_trigger_rule:receiver-1.log"]
+    assert not evaluate_identity(trigger_builder(repeats=11).records())["checks"]["ingress_trigger_rule:receiver-1.log"]
+
+
+def test_the_give_up_comes_after_ten_repeats_only():
+    builder = trigger_builder(repeats=5, gave_up_after=5)
+    assert not evaluate_identity(builder.records())["checks"]["ingress_trigger_rule:receiver-1.log"]
 
 
 # --------------------------------------------------------------------------- resubscribe
@@ -721,13 +734,14 @@ def test_the_init_file_lets_the_receiver_start_the_ingress():
     assert "oneshot" not in lines
 
 
-# --------------------------------------------------------------------------- ingress_retrigger
+# --------------------------------------------------------------------------- ingress_start
 
 
-def ingress_builder(*, started_by_listen: bool = False, no_wait_in_step_2: bool = False, late_s: float = 0.0,
-                    few_frames: bool = False, unread_at_kill: int = 0) -> Builder:
-    """Initial ingress, then: ingress lost at 5 s, lost with its reap held at 11 s, receiver restart at 19 s."""
-    builder = Builder(260)
+def ingress_builder(*, race: bool = True, trigger_after_stop: bool = False, request_after_stop: bool = False,
+                    tries_at_end: int = 11, unread_at_stop: int = 0) -> Builder:
+    """First ingress; receiver killed at 5 s while the old ingress lingers; ingress stopped at 12 s;
+    receiver killed at 18 s and started while no ingress can start."""
+    builder = Builder(300)
     standin: list[dict] = []
 
     def stand_in(event: str, realtime_ns: int, receiver: str, prop: str, monotonic: int, **fields) -> None:
@@ -743,76 +757,76 @@ def ingress_builder(*, started_by_listen: bool = False, no_wait_in_step_2: bool 
             builder.arrive(events, seq, verdict)
             seq += 1
 
+    def restart(at: int) -> list[dict]:
+        events = builder.receiver()
+        for record in events:
+            record["realtime_ns"] += at - T0
+            record["monotonic_ns"] += at - T0
+        return events
+
     events = builder.receiver()
     builder.ack(T0 + 100 * MS)
     builder.event(events, "subscribed", T0 + 100 * MS)
     stand_in("started", T0 + 50 * MS, "receiver-1.log", "de4sdv.aebs.frame_server.host", 1000, ingress="ingress-1")
     builder.connect_client(events, T0 + 300 * MS, starts_phase=True)
     frames_until(events, T0 + 5 * S, "delivered")
-
-    def lose(at: int, kill: bool = True) -> None:
-        if kill and unread_at_kill:
-            del builder.recorded[-unread_at_kill:]
-        builder.event(events, "client_lost", at + MS)
-        builder.phase_end(events, "client_lost", at + MS)
-
-    def come_back(trigger_at: int, ingress: str) -> None:
-        stand_in("started", trigger_at + 20 * MS, current, INGRESS_START_PROPERTY, trigger_at - T0, ingress=ingress)
-        builder.connect_client(events, trigger_at + 300 * MS + int(late_s * S), starts_phase=True)
-
-    current = "receiver-1.log"
-    # 1. ingress lost, reaped at once
-    builder.timeline["disturbances"].append({"kind": "ingress_lost", "start_realtime_ns": T0 + 5 * S})
-    lose(T0 + 5 * S)
-    trigger = T0 + 7 * S + MS
-    builder.trigger(events, trigger, "no_client")
-    frames_until(events, trigger + 300 * MS, "no_client")
-    come_back(trigger, "ingress-2")
-    frames_until(events, T0 + 11 * S if not few_frames else trigger + 900 * MS, "delivered")
-    frames_until(events, T0 + 11 * S, "no_client")
-    # 2. ingress lost, reap held for 3 s: the trigger at +2 s does nothing
-    builder.timeline["disturbances"].append({"kind": "ingress_lost_not_reaped", "start_realtime_ns": T0 + 11 * S})
-    lose(T0 + 11 * S)
-    first = T0 + 13 * S + MS
-    builder.trigger(events, first, "no_client")
-    if not no_wait_in_step_2:
-        stand_in("start_ignored", first + 20 * MS, current, INGRESS_START_PROPERTY, first - T0, state="not_reaped")
-    second = first + 2 * S
-    builder.trigger(events, second, "no_client")
-    frames_until(events, second + 300 * MS, "no_client")
-    come_back(second, "ingress-3")
-    frames_until(events, T0 + 19 * S, "delivered")
-    # 3. receiver killed and started again; the exited ingress not reaped for 1.5 s
-    builder.timeline["disturbances"].append({"kind": "receiver_restart_ingress_not_reaped",
-                                             "start_realtime_ns": T0 + 19 * S})
-    builder.connections[-1].close_realtime_ns = T0 + 19 * S + 10 * MS
-    events = builder.receiver()
-    restart = T0 + 19 * S + 300 * MS
-    for record in events:
-        record["realtime_ns"] += restart - T0
-        record["monotonic_ns"] += restart - T0
-    current = "receiver-2.log"
-    listen = next(e for e in events if e["event"] == "ingress_trigger")
+    # 1. receiver killed; its old ingress runs on for 2.5 s
+    builder.timeline["disturbances"].append({"kind": "receiver_restart_old_ingress_alive",
+                                             "start_realtime_ns": T0 + 5 * S})
+    builder.connections[-1].close_realtime_ns = T0 + 5 * S + 10 * MS
+    builder.connections[-1].end_reason = "closed"
+    listen_at = T0 + 5 * S + 300 * MS
+    events = restart(listen_at)
     host = next(e for e in events if e["event"] == "property_not_announced")
-    stand_in("start_ignored", restart + 20 * MS, current, "de4sdv.aebs.frame_server.host", host["monotonic_ns"],
-             state="not_reaped")
-    if started_by_listen:
-        come_back(listen["realtime_ns"], "ingress-4")
+    listen = next(e for e in events if e["event"] == "ingress_trigger")
+    builder.ack(listen_at + 200 * MS)
+    builder.event(events, "subscribed", listen_at + 200 * MS)
+    frames_until(events, listen_at + 200 * MS, "not_subscribed")
+    if race:
+        stand_in("start_ignored", listen_at + 20 * MS, "receiver-2.log", "de4sdv.aebs.frame_server.host",
+                 host["monotonic_ns"], state="running")
+        stand_in("start_ignored", listen_at + 20 * MS, "receiver-2.log", INGRESS_START_PROPERTY,
+                 listen["monotonic_ns"], state="running")
+        for k in (1, 2):
+            builder.trigger(events, listen["realtime_ns"] + k * S, "no_first_client")
+            stand_in("start_ignored", listen["realtime_ns"] + k * S + 20 * MS, "receiver-2.log", INGRESS_START_PROPERTY,
+                     listen["monotonic_ns"] + k * S, state="running")
+        start_at = listen["realtime_ns"] + 3 * S
+        builder.trigger(events, start_at, "no_first_client")
+        frames_until(events, start_at + 300 * MS, "no_client")
+        stand_in("started", start_at + 20 * MS, "receiver-2.log", INGRESS_START_PROPERTY, start_at - T0,
+                 ingress="ingress-2")
     else:
-        stand_in("start_ignored", restart + 20 * MS, current, INGRESS_START_PROPERTY, listen["monotonic_ns"],
-                 state="not_reaped")
-    builder.ack(restart + 200 * MS)
-    builder.event(events, "subscribed", restart + 200 * MS)
-    frames_until(events, restart + 200 * MS, "not_subscribed")
-    if not started_by_listen:
-        trigger = listen["realtime_ns"] + 2 * S
-        builder.trigger(events, trigger, "no_client")
-        frames_until(events, trigger + 300 * MS, "no_client")
-        come_back(trigger, "ingress-4")
-    frames_until(events, T0 + 26 * S, "delivered")
-    builder.connections[-1].close_realtime_ns = T0 + 26 * S + 100 * MS
-    builder.final(events, T0 + 26 * S + 100 * MS)
-    builder.timeline["stop_realtime_ns"] = T0 + 26 * S
+        start_at = listen["realtime_ns"]
+        stand_in("started", start_at + 20 * MS, "receiver-2.log", "de4sdv.aebs.frame_server.host",
+                 host["monotonic_ns"], ingress="ingress-2")
+        frames_until(events, start_at + 300 * MS, "no_client")
+    builder.connect_client(events, start_at + 300 * MS, starts_phase=True)
+    frames_until(events, T0 + 12 * S, "delivered")
+    # 2. the bench stops the ingress
+    builder.timeline["disturbances"].append({"kind": "ingress_stopped", "start_realtime_ns": T0 + 12 * S})
+    if unread_at_stop:
+        del builder.recorded[-unread_at_stop:]
+    builder.connections[-1].close_realtime_ns = T0 + 12 * S + 10 * MS
+    builder.connections[-1].end_reason = "stopped"
+    builder.event(events, "client_lost", T0 + 12 * S + 20 * MS)
+    builder.phase_end(events, "client_lost", T0 + 12 * S + 20 * MS)
+    if trigger_after_stop:
+        builder.trigger(events, T0 + 14 * S, "no_first_client")
+    if request_after_stop:
+        stand_in("start_ignored", T0 + 14 * S, "receiver-2.log", INGRESS_START_PROPERTY, 14 * S, state="running")
+    frames_until(events, T0 + 18 * S, "no_client")
+    # 3. receiver killed and started while no ingress can start
+    builder.timeline["disturbances"].append({"kind": "receiver_start_no_ingress", "start_realtime_ns": T0 + 18 * S})
+    listen_at = T0 + 18 * S + 300 * MS
+    events = restart(listen_at)
+    listen = next(e for e in events if e["event"] == "ingress_trigger")
+    for k in range(1, tries_at_end):
+        builder.trigger(events, listen["realtime_ns"] + k * S, "no_first_client")
+    if tries_at_end == 11:
+        builder.event(events, "ingress_trigger_gave_up", listen["realtime_ns"] + 11 * S, tries=11)
+    builder.final(events, T0 + 31 * S)
+    builder.timeline["stop_realtime_ns"] = T0 + 31 * S
     builder.standin = standin
     return builder
 
@@ -823,49 +837,49 @@ def ingress_records(builder: Builder) -> CaseRecords:
     return records
 
 
-def test_ingress_retrigger_passes_and_reports_each_step():
-    result = evaluate_ingress_retrigger(ingress_records(ingress_builder()))
+def test_ingress_start_passes_and_reports_each_step():
+    result = evaluate_ingress_start(ingress_records(ingress_builder()))
     assert result["outcome"] == PASS, result["reasons"]
     steps = {s["step"]: s for s in result["metrics"]["steps"]}
-    assert steps["ingress_lost"]["started_by"] == "no_client"
-    assert steps["ingress_lost"]["client_back_s"] == pytest.approx(2.301, abs=0.01)
-    assert steps["ingress_lost_not_reaped"]["triggers_not_reaped"] == 1
-    assert steps["receiver_restart_ingress_not_reaped"]["start_requests_not_reaped"] == 2
-    assert result["metrics"]["ingress_triggers"] == {"listening": 2, "no_client": 4}
+    race = steps["receiver_restart_old_ingress_alive"]
+    assert race["started_by"] == "no_first_client"
+    assert race["start_triggers_ignored"] == 3
+    assert race["client_back_s"] == pytest.approx(3.6, abs=0.01)
+    assert steps["ingress_stopped"]["start_requests"] == 0
+    assert steps["receiver_start_no_ingress"]["tries"] == 11
+    assert steps["receiver_start_no_ingress"]["gave_up_after_s"] == pytest.approx(11.0)
 
 
-def test_ingress_retrigger_needs_the_repeated_trigger_to_bring_the_client_back():
-    result = evaluate_ingress_retrigger(ingress_records(ingress_builder(started_by_listen=True)))
-    assert result["outcome"] == FAIL
-    assert not result["checks"]["started_by_the_repeated_trigger:receiver_restart_ingress_not_reaped"]
-
-
-def test_ingress_retrigger_is_inconclusive_without_a_start_request_while_not_reaped():
-    result = evaluate_ingress_retrigger(ingress_records(ingress_builder(no_wait_in_step_2=True)))
+def test_ingress_start_is_inconclusive_without_the_race():
+    result = evaluate_ingress_start(ingress_records(ingress_builder(race=False)))
     assert result["outcome"] == MISSING
-    assert not result["checks"]["start_request_while_not_reaped:ingress_lost_not_reaped"]
+    assert not result["checks"]["start_request_while_the_old_ingress_ran:receiver_restart_old_ingress_alive"]
+    assert not result["checks"]["started_by_a_repeat:receiver_restart_old_ingress_alive"]
 
 
-def test_ingress_retrigger_fails_when_the_client_comes_back_late():
-    result = evaluate_ingress_retrigger(ingress_records(ingress_builder(late_s=2.5)))
+def test_a_stopped_ingress_must_stay_down():
+    result = evaluate_ingress_start(ingress_records(ingress_builder(trigger_after_stop=True)))
     assert result["outcome"] == FAIL
-    assert not result["checks"]["ingress_back:ingress_lost"]
+    assert not result["checks"]["no_trigger_after_the_first_client:ingress_stopped"]
+    assert not result["checks"]["ingress_trigger_rule:receiver-2.log"]
+    result = evaluate_ingress_start(ingress_records(ingress_builder(request_after_stop=True)))
+    assert not result["checks"]["stays_down:ingress_stopped"]
 
 
-def test_ingress_retrigger_needs_frames_at_the_new_client():
-    result = evaluate_ingress_retrigger(ingress_records(ingress_builder(few_frames=True)))
+def test_the_receiver_gives_up_after_eleven_tries():
+    result = evaluate_ingress_start(ingress_records(ingress_builder(tries_at_end=5)))
     assert result["outcome"] == FAIL
-    assert not result["checks"]["frames_after:ingress_lost"]
+    assert not result["checks"]["tries_then_gave_up:receiver_start_no_ingress"]
 
 
 @pytest.mark.parametrize("unread, outcome", [(3, PASS), (4, FAIL)])
-def test_a_killed_client_may_miss_its_last_frames(unread, outcome):
-    result = evaluate_ingress_retrigger(ingress_records(ingress_builder(unread_at_kill=unread)))
+def test_a_stopped_client_may_miss_its_last_frames(unread, outcome):
+    result = evaluate_ingress_start(ingress_records(ingress_builder(unread_at_stop=unread)))
     assert result["outcome"] == outcome, result["reasons"]
 
 
-def test_a_client_that_closed_may_not_miss_frames():
+def test_a_client_that_the_receiver_closed_may_not_miss_frames():
     builder = ingress_builder()
-    builder.connections[0].close_realtime_ns = T0 + 5 * S
-    del builder.recorded[[f.connection for f in builder.recorded].index(2) - 1]
-    assert evaluate_ingress_retrigger(ingress_records(builder))["outcome"] == FAIL
+    builder.connections[1].end_reason = "closed"
+    del builder.recorded[-1]
+    assert evaluate_ingress_start(ingress_records(builder))["outcome"] == FAIL

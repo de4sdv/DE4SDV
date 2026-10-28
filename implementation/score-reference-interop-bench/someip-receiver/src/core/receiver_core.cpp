@@ -77,10 +77,7 @@ void ReceiverCore::ObserveClock(const Clock& now) {
   const std::int64_t offset = now.realtime_ns - now.monotonic_ns;
   if (clock_seen_) {
     const std::int64_t step = offset - clock_offset_ns_;
-    const std::int64_t interval =
-        now.monotonic_ns > clock_seen_monotonic_ns_ ? now.monotonic_ns - clock_seen_monotonic_ns_ : 0;
-    const std::int64_t allowed = kClockStepThresholdNs + interval / kClockSlewDivisor;
-    if (step >= allowed || step <= -allowed) {
+    if (step >= kClockStepThresholdNs || step <= -kClockStepThresholdNs) {
       ++counters_.clock_steps;
       if (in_phase_) {
         ++phase_clock_steps_;
@@ -93,7 +90,6 @@ void ReceiverCore::ObserveClock(const Clock& now) {
   }
   clock_seen_ = true;
   clock_offset_ns_ = offset;
-  clock_seen_monotonic_ns_ = now.monotonic_ns;
 }
 
 void ReceiverCore::UpdatePhase(const Clock& now, const std::string& cause) {
@@ -139,7 +135,16 @@ void ReceiverCore::OnTick(const Clock& now) {
   ObserveClock(now);
   machine_.OnTick(now);
   if (IngressTriggerDue() && now.monotonic_ns >= next_ingress_trigger_ns_) {
-    TriggerIngress(now, "no_client");
+    if (ingress_retriggers_ < kIngressRetriggerLimit) {
+      ++ingress_retriggers_;
+      TriggerIngress(now, "no_first_client");
+    } else {
+      ingress_trigger_gave_up_ = true;
+      log_.Log(now, LogRecord{"ingress_trigger_gave_up"}
+                        .Text("property", config_.ingress_start_property)
+                        .Unsigned("tries", 1 + ingress_retriggers_)
+                        .Signed("period_ns", kIngressRetriggerPeriodNs));
+    }
   }
 }
 
@@ -150,7 +155,8 @@ void ReceiverCore::OnListening(const Clock& now) {
 }
 
 bool ReceiverCore::IngressTriggerDue() const noexcept {
-  return listening_ && !client_connected_ && properties_ != nullptr && !config_.ingress_start_property.empty();
+  return listening_ && !first_client_seen_ && !ingress_trigger_gave_up_ && properties_ != nullptr &&
+         !config_.ingress_start_property.empty();
 }
 
 void ReceiverCore::TriggerIngress(const Clock& now, const char* reason) {
@@ -162,13 +168,12 @@ void ReceiverCore::TriggerIngress(const Clock& now, const char* reason) {
   const bool reset = properties_->SetProperty(now, config_.ingress_start_property, "0");
   const bool start = properties_->SetProperty(now, config_.ingress_start_property, "1");
   ++counters_.ingress_triggers;
-  ++triggers_without_client_;
   log_.Log(now, LogRecord{"ingress_trigger"}
                     .Text("reason", reason)
                     .Text("property", config_.ingress_start_property)
                     .Bool("ok", reset && start)
-                    .Unsigned("triggers_without_client", triggers_without_client_)
-                    .Unsigned("ingress_triggers", counters_.ingress_triggers));
+                    .Unsigned("try", 1 + ingress_retriggers_)
+                    .Unsigned("repeats_left", kIngressRetriggerLimit - ingress_retriggers_));
 }
 
 std::int64_t ReceiverCore::NextDeadline() const noexcept {
@@ -230,7 +235,7 @@ bool ReceiverCore::OnClientAccepted(const Clock& now) {
     return false;
   }
   client_connected_ = true;
-  triggers_without_client_ = 0;
+  first_client_seen_ = true;  // from now on, no ingress trigger in this process
   ++counters_.clients_accepted;
   log_.Log(now, LogRecord{"client_connected"});
   UpdatePhase(now, "client_connected");
@@ -243,9 +248,6 @@ void ReceiverCore::OnClientDisconnected(const Clock& now) {
     return;
   }
   client_connected_ = false;
-  // The ingress has exited: init may not have reaped it yet, so the next
-  // trigger comes one period later.
-  next_ingress_trigger_ns_ = now.monotonic_ns + kIngressRetriggerPeriodNs;
   ++counters_.clients_lost;
   log_.Log(now, LogRecord{"client_lost"});
   UpdatePhase(now, "client_lost");

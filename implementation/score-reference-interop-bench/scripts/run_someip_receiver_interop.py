@@ -32,12 +32,13 @@ raw records in <out>/<case>/):
   new phase);
 - ttl_renewal: the unicast fallback only (no multicast membership) over
   five TTLs;
-- ingress_retrigger: the loopback client is a oneshot ingress stand-in that
+- ingress_start: the loopback client is a oneshot ingress stand-in that
   only the init stand-in of this runner starts, on the receiver's records of
-  its start properties, as init does on Android; the ingress stand-in is
-  killed, then killed with its reap held for 3 s, then the receiver is
-  killed and started again with the reap of the exiting ingress held for
-  1.5 s.
+  its start properties, as init does on Android. The receiver is killed and
+  started again while its old ingress still runs (the stand-in stays alive
+  2.5 s after its stream ends); then the ingress is stopped after the first
+  client of the new receiver; then a receiver starts while no ingress can
+  start.
 
 It evaluates every case with de4sdv_score_bench.someip_receiver_interop
 and exits with 0 only when every gate case passes.
@@ -83,13 +84,14 @@ FRAME_PORT = 4721
 LOOPBACK_PORT = 4731
 SUBSCRIPTION_TTL_S = 3
 SECOND_NS = 1_000_000_000
+INGRESS_LINGER_S = 2.5
 LINK_OUTAGE_S = 5.0
 
 SOMEIPD_STARTED = r"\[someipd\] mw::com IPC binding started"
 SOMEIPD_OFFERED = r"OFFER\(0100\): \[4dee\.0001"
 GATEWAYD_CONNECTED = r"\[gatewayd\] Connected to someipd over the mw::com IPC binding"
 GATEWAYD_FOUND = r"LocalServiceInstance created for instance specifier: de4sdv/aebs_signal_frame"
-GATE_CASES = ("identity", "resubscribe", "no_client", "ttl_renewal", "ingress_retrigger")
+GATE_CASES = ("identity", "resubscribe", "no_client", "ttl_renewal", "ingress_start")
 MEASUREMENT_CASES = ("stored_samples",)
 
 
@@ -282,7 +284,8 @@ class Stack:
         """The ingress stand-in: a oneshot loopback client, started by the init stand-in only."""
         self.start(name, GUEST_NS, [sys.executable, str(BENCH / "scripts" / "loopback_frame_recorder.py"),
                                     "--port", str(LOOPBACK_PORT), "--log", str(self.out / "recorder.jsonl"),
-                                    "--stream-dir", str(self.out), "--oneshot", "--connection", str(connection)],
+                                    "--stream-dir", str(self.out), "--oneshot", "--connection", str(connection),
+                                    "--linger-s", str(INGRESS_LINGER_S)],
                    private_tmp=True)
 
     def start_recorder(self) -> None:
@@ -546,12 +549,11 @@ class IngressInitStandIn:
 
     On Android, init starts the oneshot ingress when the frame server host
     property is set and when the ingress start property is set to 1, unless
-    the ingress still runs or init has not reaped it yet. Off Android, the
-    receiver logs each property instead of setting it. This stand-in reads
-    those records in the log of the receiver that it follows and starts the
-    ingress stand-in by the same rule. hold_reap(s) keeps the next ingress
-    that exits counted as running for s seconds after its exit. Each decision
-    goes to init-stand-in.jsonl.
+    the ingress still runs. Off Android, the receiver logs each property
+    instead of setting it. This stand-in reads those records in the log of
+    the receiver that it follows and starts the ingress stand-in by the same
+    rule; disable() makes it refuse every start, as for an ingress that
+    cannot start. Each decision goes to init-stand-in.jsonl.
     """
 
     def __init__(self, stack: Stack) -> None:
@@ -562,8 +564,7 @@ class IngressInitStandIn:
         self.partial = ""
         self.ingress: str | None = None
         self.count = 0
-        self.hold_s = 0.0
-        self.held_until_ns: int | None = None
+        self.disabled = False
         self.reaped = True
 
     def record(self, event: str, **fields) -> None:
@@ -577,8 +578,9 @@ class IngressInitStandIn:
         self.partial = ""
         self.record("following", receiver_log=f"{receiver}.log")
 
-    def hold_reap(self, seconds: float) -> None:
-        self.hold_s = seconds
+    def disable(self) -> None:
+        self.disabled = True
+        self.record("disabled")
 
     def state(self) -> str:
         if self.ingress is None:
@@ -586,17 +588,10 @@ class IngressInitStandIn:
         process = self.stack.processes[self.ingress]
         if process.alive():
             return "running"
-        if self.reaped:
-            return "reaped"
-        exit_ns = process.exit_monotonic_ns or time.monotonic_ns()
-        if self.held_until_ns is None:
-            self.held_until_ns = exit_ns + int(self.hold_s * SECOND_NS)
-            self.hold_s = 0.0
-        if time.monotonic_ns() < self.held_until_ns:
-            return "not_reaped"
-        self.reaped = True
-        self.record("reaped", ingress=self.ingress, returncode=process.returncode, exit_monotonic_ns=exit_ns,
-                    held_ns=self.held_until_ns - exit_ns)
+        if not self.reaped:
+            self.reaped = True
+            self.record("reaped", ingress=self.ingress, returncode=process.returncode,
+                        exit_monotonic_ns=process.exit_monotonic_ns)
         return "reaped"
 
     def _new_records(self) -> list[dict]:
@@ -633,14 +628,13 @@ class IngressInitStandIn:
     def start(self, name: str, value: str, record: dict) -> None:
         fields = {"property": name, "value": value, "receiver_log": f"{self.receiver}.log",
                   "receiver_monotonic_ns": record.get("monotonic_ns")}
-        state = self.state()
-        if state in ("running", "not_reaped"):
+        state = "disabled" if self.disabled else self.state()
+        if state in ("running", "disabled"):
             self.record("start_ignored", state=state, ingress=self.ingress, **fields)
             return
         self.count += 1
         self.ingress = f"ingress-{self.count}"
         self.reaped = False
-        self.held_until_ns = None
         self.stack.start_ingress(self.ingress, self.count)
         self.record("started", ingress=self.ingress, connection=self.count, **fields)
 
@@ -674,12 +668,12 @@ class IngressInitStandIn:
         self.stack.note(f"wait {what}", ok=False)
         return False
 
-    def kill_ingress(self) -> None:
+    def stop_ingress(self) -> None:
         if self.ingress is not None:
-            self.stack.stop(self.ingress, signal.SIGKILL)
+            self.stack.stop(self.ingress, signal.SIGTERM)
 
 
-def case_ingress_retrigger(stack: Stack) -> None:
+def case_ingress_start(stack: Stack) -> None:
     standin = IngressInitStandIn(stack)
     stack.timeline["lola_state_removed"] = stack.clean_lola_state()
     stack.start_capture()
@@ -695,31 +689,31 @@ def case_ingress_retrigger(stack: Stack) -> None:
     stack.shared_memory_snapshot()
     stack.go()
     standin.pump(3.0)
-    # 1. The ingress exits; init reaps it at once.
-    start = stack.note("disturbance ingress_lost")
-    standin.kill_ingress()
-    standin.pump_until("ingress back", lambda: standin.connections() >= 2, 10.0)
-    stack.disturbance("ingress_lost", start, expects_resubscription=False, reap_hold_s=0.0)
-    standin.pump(3.0)
-    # 2. The ingress exits; init does not reap it for 3 s, so the first repeated trigger does nothing.
-    start = stack.note("disturbance ingress_lost_not_reaped")
-    standin.hold_reap(3.0)
-    standin.kill_ingress()
-    standin.pump_until("ingress back", lambda: standin.connections() >= 3, 12.0)
-    stack.disturbance("ingress_lost_not_reaped", start, expects_resubscription=False, reap_hold_s=3.0)
-    standin.pump(3.0)
-    # 3. The receiver is killed and starts again; the ingress exits with its
-    # stream, and init does not reap it for 1.5 s, so the trigger of the new
-    # receiver at listen does nothing.
-    start = stack.note("disturbance receiver_restart_ingress_not_reaped")
-    standin.hold_reap(1.5)
+    # 1. The start race: the receiver is killed and starts again while its old
+    # ingress still runs (the stand-in stays alive 2.5 s after its stream ends).
+    start = stack.note("disturbance receiver_restart_old_ingress_alive")
     stack.stop(receiver, signal.SIGKILL)
     receiver = stack.start_receiver()
     standin.follow(receiver)
-    standin.pump_until("ingress back", lambda: standin.connections() >= 4, 12.0)
-    stack.disturbance("receiver_restart_ingress_not_reaped", start, reap_hold_s=1.5)
+    standin.pump_until("ingress back", lambda: standin.connections() >= 2, 15.0)
+    stack.disturbance("receiver_restart_old_ingress_alive", start, linger_s=INGRESS_LINGER_S)
     standin.pump_until("subscribed", lambda: stack.subscribed_count(receiver) >= 1, 20.0)
     standin.pump(3.0)
+    # 2. The bench stops the ingress after the first client: it stays down.
+    start = stack.note("disturbance ingress_stopped")
+    standin.stop_ingress()
+    standin.pump(5.0)
+    stack.disturbance("ingress_stopped", start, expects_resubscription=False)
+    # 3. No ingress can start: the receiver tries 11 times and gives up.
+    start = stack.note("disturbance receiver_start_no_ingress")
+    standin.disable()
+    stack.stop(receiver, signal.SIGKILL)
+    receiver = stack.start_receiver()
+    standin.follow(receiver)
+    standin.pump_until("gave up", lambda: '"event":"ingress_trigger_gave_up"' in
+                       stack.processes[receiver].log_text(), 20.0)
+    stack.disturbance("receiver_start_no_ingress", start)
+    standin.pump(1.5)
 
 
 CASES = {
@@ -728,7 +722,7 @@ CASES = {
     "no_client": case_no_client,
     "stored_samples": case_stored_samples,
     "ttl_renewal": case_ttl_renewal,
-    "ingress_retrigger": case_ingress_retrigger,
+    "ingress_start": case_ingress_start,
 }
 
 

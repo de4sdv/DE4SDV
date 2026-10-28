@@ -21,6 +21,7 @@ using de4sdv::someip_receiver::EncodeSubscribeEventgroup;
 using de4sdv::someip_receiver::EventLog;
 using de4sdv::someip_receiver::FrameSink;
 using de4sdv::someip_receiver::Ipv4Endpoint;
+using de4sdv::someip_receiver::kIngressRetriggerLimit;
 using de4sdv::someip_receiver::kIngressRetriggerPeriodNs;
 using de4sdv::someip_receiver::kL4ProtocolTcp;
 using de4sdv::someip_receiver::LogRecord;
@@ -538,28 +539,28 @@ TEST(ReceiverCore, ClockStepInAPhaseIsLoggedAndMarksThePhase) {
   EXPECT_EQ(bench.log.Count("\"clock_steps_in_phase\":1"), 1);
 }
 
-TEST(ReceiverCore, SlowDriftIsNoClockStep) {
+TEST(ReceiverCore, ReadJitterBelowOneMillisecondIsNoClockStep) {
+  // A slew moves CLOCK_REALTIME and CLOCK_MONOTONIC alike, so their
+  // difference changes only on a step of the realtime clock or across a
+  // suspend; between two readings it moves only by the read jitter.
   Bench bench;
   const std::int64_t start = StartPhase(bench);
   for (int tick = 1; tick <= 50; ++tick) {
-    // 0.05 ms per 100 ms: 500 ppm, the fastest slew of the kernel's own adjustment.
     const std::int64_t t = start + tick * 100 * kMs;
-    bench.core.OnTick(Clock{t, Realtime(t) + tick * 50'000});
+    bench.core.OnTick(Clock{t, Realtime(t) + (tick % 2 == 0 ? 400'000 : -400'000)});
   }
   EXPECT_EQ(bench.core.counters().clock_steps, 0U);
 }
 
-TEST(ReceiverCore, TheSlewAllowanceGrowsWithTheInterval) {
+TEST(ReceiverCore, AChangeOfOneMillisecondIsAStepAlsoAfterALongPause) {
   Bench bench;
   bench.core.ObserveClock(At(0));
-  // 10 s without an event: 4 ms of slew (400 ppm) is no step, 7 ms is one
-  // (the allowance is 1 ms + 5 ms).
-  bench.core.ObserveClock(Clock{10 * kS, Realtime(10 * kS) + 4 * kMs});
+  bench.core.ObserveClock(Clock{10 * kS, Realtime(10 * kS) + 999'999});
   EXPECT_EQ(bench.core.counters().clock_steps, 0U);
-  bench.core.ObserveClock(Clock{20 * kS, Realtime(20 * kS) + 11 * kMs});
+  bench.core.ObserveClock(Clock{20 * kS, Realtime(20 * kS) + 999'999 + kMs});
   EXPECT_EQ(bench.core.counters().clock_steps, 1U);
   // A step back is a step too.
-  bench.core.ObserveClock(Clock{20 * kS + 100 * kMs, Realtime(20 * kS + 100 * kMs) + 9 * kMs});
+  bench.core.ObserveClock(Clock{20 * kS + 100 * kMs, Realtime(20 * kS + 100 * kMs)});
   EXPECT_EQ(bench.core.counters().clock_steps, 2U);
 }
 
@@ -606,7 +607,7 @@ PropertySets Triggers(int count) {
   return sets;
 }
 
-TEST(ReceiverCore, IngressStartsAtListenAndAgainEveryTwoSecondsWithoutAClient) {
+TEST(ReceiverCore, IngressStartsAtListenAndRepeatsOnlyUntilTheFirstClient) {
   Bench bench{WithIngressTrigger()};
   bench.core.OnListening(At(0));
   EXPECT_EQ(bench.properties.sets, Triggers(1));
@@ -615,31 +616,43 @@ TEST(ReceiverCore, IngressStartsAtListenAndAgainEveryTwoSecondsWithoutAClient) {
   bench.core.OnTick(At(kIngressRetriggerPeriodNs - 1));
   EXPECT_EQ(bench.properties.sets, Triggers(1));
   bench.core.OnTick(At(kIngressRetriggerPeriodNs));
-  EXPECT_EQ(bench.properties.sets, Triggers(2));
   bench.core.OnTick(At(2 * kIngressRetriggerPeriodNs + 50 * kMs));
   EXPECT_EQ(bench.properties.sets, Triggers(3));
-  EXPECT_EQ(bench.log.Count("\"event\":\"ingress_trigger\",\"reason\":\"no_client\""), 2);
-  EXPECT_EQ(bench.log.Count("\"triggers_without_client\":3"), 1);
-  EXPECT_EQ(bench.core.counters().ingress_triggers, 3U);
-}
-
-TEST(ReceiverCore, NoIngressTriggerWhileAClientIsConnected) {
-  Bench bench{WithIngressTrigger()};
-  bench.core.OnListening(At(0));
-  ASSERT_TRUE(bench.core.OnClientAccepted(At(100 * kMs)));
-  for (std::int64_t t = kS; t <= 20 * kS; t += kS) {
+  EXPECT_EQ(bench.log.Count("\"reason\":\"no_first_client\""), 2);
+  EXPECT_EQ(bench.log.Count("\"try\":3"), 1);
+  ASSERT_TRUE(bench.core.OnClientAccepted(At(2 * kIngressRetriggerPeriodNs + 300 * kMs)));
+  // The first client went away: an ingress that exits or is stopped stays down.
+  bench.core.OnClientDisconnected(At(5 * kS));
+  for (std::int64_t t = 5 * kS; t <= 60 * kS; t += 100 * kMs) {
     bench.core.OnTick(At(t));
   }
-  EXPECT_EQ(bench.properties.sets, Triggers(1));
-  // The ingress exits: the first trigger comes one period after the loss.
-  bench.core.OnClientDisconnected(At(20 * kS + 300 * kMs));
-  bench.core.OnTick(At(20 * kS + 300 * kMs + kIngressRetriggerPeriodNs - 1));
-  EXPECT_EQ(bench.properties.sets, Triggers(1));
-  bench.core.OnTick(At(20 * kS + 300 * kMs + kIngressRetriggerPeriodNs));
-  EXPECT_EQ(bench.properties.sets, Triggers(2));
-  EXPECT_EQ(bench.log.Count("\"reason\":\"no_client\",\"property\":\"de4sdv.aebs.ingress.start\",\"ok\":true,"
-                            "\"triggers_without_client\":1"),
-            1);
+  EXPECT_EQ(bench.properties.sets, Triggers(3));
+  EXPECT_EQ(bench.log.Count("ingress_trigger_gave_up"), 0);
+}
+
+TEST(ReceiverCore, IngressTriggerGivesUpAfterItsRepeatsWithoutAClient) {
+  Bench bench{WithIngressTrigger()};
+  bench.core.OnListening(At(0));
+  const auto repeats = static_cast<std::int64_t>(kIngressRetriggerLimit);
+  for (std::int64_t k = 1; k <= repeats; ++k) {
+    bench.core.OnTick(At(k * kIngressRetriggerPeriodNs));
+  }
+  EXPECT_EQ(bench.properties.sets, Triggers(1 + static_cast<int>(kIngressRetriggerLimit)));
+  // The give-up comes one period after the last try.
+  bench.core.OnTick(At((repeats + 1) * kIngressRetriggerPeriodNs - 1));
+  EXPECT_EQ(bench.log.Count("\"event\":\"ingress_trigger_gave_up\""), 0);
+  bench.core.OnTick(At((repeats + 1) * kIngressRetriggerPeriodNs));
+  EXPECT_EQ(bench.log.Count("\"event\":\"ingress_trigger_gave_up\""), 1);
+  for (std::int64_t t = (repeats + 1) * kIngressRetriggerPeriodNs; t <= 60 * kS; t += 100 * kMs) {
+    bench.core.OnTick(At(t));
+  }
+  // A client after the tries changes nothing.
+  ASSERT_TRUE(bench.core.OnClientAccepted(At(61 * kS)));
+  bench.core.OnClientDisconnected(At(62 * kS));
+  bench.core.OnTick(At(70 * kS));
+  EXPECT_EQ(bench.properties.sets, Triggers(1 + static_cast<int>(kIngressRetriggerLimit)));
+  EXPECT_EQ(bench.log.Count("ingress_trigger_gave_up"), 1);
+  EXPECT_EQ(bench.core.counters().ingress_triggers, 1 + kIngressRetriggerLimit);
 }
 
 TEST(ReceiverCore, NoIngressTriggerBeforeListenAfterStopOrWithoutAProperty) {
@@ -666,6 +679,7 @@ TEST(ReceiverCore, AFailedIngressTriggerIsLoggedAndRepeated) {
   bench.properties.ok = true;
   bench.core.OnTick(At(kIngressRetriggerPeriodNs));
   EXPECT_EQ(bench.properties.sets, Triggers(2));
+  EXPECT_EQ(bench.log.Count("\"ok\":true"), 1);
 }
 
 TEST(ReceiverCore, StopSendsStopSubscribeAndEndsThePhase) {
