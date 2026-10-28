@@ -5,8 +5,9 @@ the requirement's subject bound to the integration layer of the configured produ
 MW-CONFIG-002, collects by the method that the requirement states, and has not
 started: no evidence record, claim or verdict exists, and every requirement keeps
 the verification status NotStarted. The evidence record specializes the retained
-record of the closed INC-MW-010 slice and adds the receipt digest; the closed slice
-is unchanged.
+record of the closed INC-MW-010 slice and adds the receipt digest, the model revision
+and the two S-CORE commits of ASM-MW-021; the closed slice is unchanged. GAP-MW-044
+keeps the System 2 test environment open and ends on the verification system.
 
 These are lexical source guards; licensed Syside validates the model in CI, and the
 Method Check evaluates the phase-10 checks. Comments and string literals are blanked
@@ -17,6 +18,8 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+
+from sysml_shapes import SHORT_NAME
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL = ROOT / "textual-notation-of-model"
@@ -109,6 +112,18 @@ def _definition(definition: str) -> str:
     return _code_body(SLICE.read_text(encoding="utf-8"), rf"\bverification\s+def\s+{definition}\s*\{{")
 
 
+def _evidence_records(code: str) -> list[str]:
+    """The names of the part and item declarations typed by an evidence record, short-named or not."""
+    return re.findall(rf"\b(?:part|item)\s+{SHORT_NAME}(\w+)\s*:\s*(?:ReceiptBoundMiddlewareEvidence|"
+                      r"RetainedMiddlewareEvidence)\b", code)
+
+
+def _bench_parts(text: str) -> list[tuple[str, str]]:
+    """(``ref `` or empty, name) of each part of the bench definition in ``text``, short-named or not."""
+    bench = _code_body(text, r"\bpart\s+def\s+SCOREMiddlewareVerificationBench\s*\{")
+    return re.findall(rf"\b(ref\s+)?part\s+{SHORT_NAME}(\w+)", bench)
+
+
 def test_each_requirement_of_the_increment_is_verified_by_one_case() -> None:
     """Eleven cases for the eleven requirements, one each, the IDs in requirement order."""
     requirements = _requirements()
@@ -173,18 +188,19 @@ def test_no_case_has_started() -> None:
     assert not re.search(r"VerdictKind::\w+", code), "the slice states a verdict"
     assert not re.search(r"\b(?:AssuranceClaim|AssuranceArgument|AssuranceCounterClaim)\b", code)
     assert not re.search(r"\bsatisfy\b", code)
-    typed = re.findall(r"\b(?:part|item)\s+(\w+)\s*:\s*(?:ReceiptBoundMiddlewareEvidence|RetainedMiddlewareEvidence)\b",
-                       code)
-    assert typed == ["retainedEvidence"] * (2 * len(CASES)), "an evidence record outside the case parameters"
+    assert _evidence_records(code) == ["retainedEvidence"] * (2 * len(CASES)), (
+        "an evidence record outside the case parameters")
 
 
-def test_the_evidence_record_adds_the_receipt_digest_to_the_closed_record() -> None:
-    """The specialization carries the digest; the retained record of the closed INC-MW-010 slice is
-    unchanged and has none."""
+def test_the_evidence_record_adds_the_run_identity_to_the_closed_record() -> None:
+    """The specialization carries the receipt digest, the model revision and the two S-CORE commits of
+    ASM-MW-021; the retained record of the closed INC-MW-010 slice is unchanged and has none of them."""
     record = _code_body(SLICE.read_text(encoding="utf-8"),
                         r"\bitem\s+def\s+ReceiptBoundMiddlewareEvidence\s*:>\s*RetainedMiddlewareEvidence\s*\{")
-    assert re.findall(r"\battribute\s+(\w+)\s*:", record) == ["receiptSha256"]
-    assert "attribute receiptSha256 : ScalarValues::String;" in record
+    identity = ["receiptSha256", "modelRevision", "scoreReferenceIntegrationCommit", "scoreSOMEIPGatewayCommit"]
+    assert re.findall(r"\battribute\s+(\w+)\s*:", record) == identity
+    for name in identity:
+        assert f"attribute {name} : ScalarValues::String;" in record, name
     closed = _code_body(CLOSED_SLICE.read_text(encoding="utf-8"), r"\bitem\s+def\s+RetainedMiddlewareEvidence\s*\{")
     assert re.findall(r"\battribute\s+(\w+)\s*:", closed) == [
         "configurationIdentity", "executionEnvironmentIdentity", "contractIdentity", "rawObservationArtifact",
@@ -193,9 +209,9 @@ def test_the_evidence_record_adds_the_receipt_digest_to_the_closed_record() -> N
 
 def test_the_bench_refers_to_the_integration_layer_of_mw_config_002() -> None:
     """System 1 is MW-CONFIG-002, which the bench refers to; each requirement's subject binds its layer."""
-    bench = _code_body(SLICE.read_text(encoding="utf-8"), r"\bpart\s+def\s+SCOREMiddlewareVerificationBench\s*\{")
-    assert re.findall(r"\b(ref\s+)?part\s+(\w+)", bench) == [
-        ("ref ", "system1ConfiguredProduct"), ("ref ", "integrationLayer")]
+    text = SLICE.read_text(encoding="utf-8")
+    assert _bench_parts(text) == [("ref ", "system1ConfiguredProduct"), ("ref ", "integrationLayer")]
+    bench = _code_body(text, r"\bpart\s+def\s+SCOREMiddlewareVerificationBench\s*\{")
     assert ("ref part system1ConfiguredProduct :> "
             "DE4SDV_MiddlewareSCOREVariabilityConfiguration::configuredProduct;") in bench
     assert ("ref part integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer "
@@ -207,3 +223,38 @@ def test_the_charter_names_the_phase_10_package() -> None:
     (artifacts,) = re.findall(r"attribute :>> expectedArtifacts = \(([^)]*)\);", FRAMING.read_text(encoding="utf-8"))
     assert f'"{PACKAGE}"' in artifacts
     assert re.search(rf"\bpackage {PACKAGE}\s*\{{", _blanked(SLICE.read_text(encoding="utf-8")))
+
+
+def test_the_record_and_bench_guards_read_short_named_declarations() -> None:
+    """A short name hides neither an evidence record from the not-started guard nor a part from the bench
+    guard (negative cases of those two guards)."""
+    text = SLICE.read_text(encoding="utf-8")
+    anchor = "  part scoreMiddlewareVerificationBench : SCOREMiddlewareVerificationBench;"
+    record = "  part <'EVID-MW-099'> speedRunEvidence : ReceiptBoundMiddlewareEvidence { }\n"
+    with_record = text.replace(anchor, record + anchor, 1)
+    assert with_record != text
+    assert "speedRunEvidence" in _evidence_records(_blanked(with_record))
+    assert _evidence_records(_blanked(with_record)) != ["retainedEvidence"] * (2 * len(CASES))
+    first_part = "    ref part system1ConfiguredProduct"
+    with_part = text.replace(first_part, "    part <'SYS2-MW-001'> testEnvironment : Environment;\n" + first_part, 1)
+    assert with_part != text
+    assert _bench_parts(with_part) == [
+        ("", "testEnvironment"), ("ref ", "system1ConfiguredProduct"), ("ref ", "integrationLayer")]
+
+
+def test_the_source_order_case_needs_all_four_stages() -> None:
+    """REQ-MW-014 names an AEBS event through four stages; without all four, VC-MW-015 is inconclusive."""
+    body = _raw_body(SLICE.read_text(encoding="utf-8"), r"\bverification\s+def\s+AEBSSignalSourceOrderVerification\s*\{")
+    (comment,) = re.findall(r"\bdoc\s*/\*(.*?)\*/", body, re.DOTALL)
+    doc = " ".join(re.sub(r"^\s*\*\s?", "", line) for line in comment.splitlines())
+    doc = " ".join(doc.split())
+    assert "all four stages, MONITORING, WARNING, INTERVENTION and RELEASED" in doc
+    assert "In that case, the outcome is inconclusiveMissingEvidence." in doc
+
+
+def test_the_environment_gap_ends_on_the_verification_system() -> None:
+    """GAP-MW-044 leaves the System 2 performer of the cases without an identity."""
+    code = " ".join(_blanked(SLICE.read_text(encoding="utf-8")).split())
+    assert "part <'GAP-MW-044'> gapSCOREVerificationEnvironmentOpen : IncrementGap {" in code
+    assert ("dependency environmentGapOnVerificationSystem from gapSCOREVerificationEnvironmentOpen "
+            "to scoreMiddlewareVerificationSystem;") in code

@@ -237,7 +237,10 @@ def _facts(criteria: bool, subjects: set[str] | None = None) -> dict:
 
 
 def test_short_named_usages_and_requirements_are_read():
-    """A short name (the element's registered ID) does not hide a usage from these checks."""
+    """Two readers take a short name (the element's registered ID): verification_usages for a verification
+    usage, and the requirement scan of the subject-bound verify checks for a requirement usage. The other
+    patterns here and in sysml_shapes, among them file discovery, verification definitions, the
+    verify-target declarations and the gap scan, do not read short names yet."""
     code = """
       requirement <'REQ-SYN-001'> reqA : RequirementCandidate { attribute :>> successCriteria = "Met when x."; }
       requirement reqB : RequirementCandidate { }

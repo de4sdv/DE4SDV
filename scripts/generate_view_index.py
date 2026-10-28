@@ -229,6 +229,14 @@ KNOWN_PRESENTATION_NOTES = {
         "`platformStack.applicationMiddlewareAdapter`. The layer side is a "
         "reference, so the platform stack is the only owner of these parts."
     ),
+    "scoreMiddlewareVerificationCaseView": (
+        "Under each `verify`, SysIDE prints the verified requirement as "
+        "`DE4SDV_MiddlewareSCORENeedsRequirements` declares it. That text is "
+        "the declaration of the requirement, not a copy in this slice. The "
+        "render shows the requirement's own subject. The binding of that "
+        "subject to `verifiedBench.integrationLayer`, the integration layer of "
+        "`MW-CONFIG-002`, is in the source only."
+    ),
     "scoreTwoDomainOperationalContextView": (
         "SysIDE lists the actions of the signal flow `scoreTwoDomainSignalFlow` "
         "but does not draw the flows between them. The one-way flows are "

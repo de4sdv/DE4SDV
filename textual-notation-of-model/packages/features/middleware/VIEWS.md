@@ -471,16 +471,17 @@ Reviewers need the assembly of MW-CONFIG-002 with one instance and one owner per
 
 ### `scoreMiddlewareVerificationCaseView`
 
-Reviewers need each requirement of the middleware integration layer verified by one verification case, with the method of the case, the bench it needs and its status.
+Reviewers need each requirement of the middleware integration layer verified by one verification case.
 
 - **Source:** `middleware_score_verification_evidence.sysml`
 - **Viewpoint:** `selectedVerificationTraceViewpoint` (`SystemRequirementTraceabilityViewpoint`)
 - **Concern:** `scoreMiddlewareVerificationCaseConcern`
-- **Exposes:** `referenceVehicleSpeedDeliveryVerification`, `nonFiniteSpeedSampleWithholdingVerification`, `staleReferenceVehicleSpeedIndicationVerification`, `atMostOnceSpeedSampleDeliveryVerification`, `aebsSignalSourceOrderVerification`, `aebsSignalProvenanceVerification`, `noApplicationDataFromHMIGuestVerification`, `noEmergencyCommandOnMiddlewareVerification`, `adapterAbortOnExceptionVerification`, `unsubscribedFrameDiscardVerification`, `noSpeedSampleToAEBVelocityInputVerification`, `SCOREMiddlewareVerificationBench`, `ReceiptBoundMiddlewareEvidence`, `gapSCOREVerificationEnvironmentUndecided`
+- **Exposes:** `referenceVehicleSpeedDeliveryVerification`, `nonFiniteSpeedSampleWithholdingVerification`, `staleReferenceVehicleSpeedIndicationVerification`, `atMostOnceSpeedSampleDeliveryVerification`, `aebsSignalSourceOrderVerification`, `aebsSignalProvenanceVerification`, `noApplicationDataFromHMIGuestVerification`, `noEmergencyCommandOnMiddlewareVerification`, `adapterAbortOnExceptionVerification`, `unsubscribedFrameDiscardVerification`, `noSpeedSampleToAEBVelocityInputVerification`, `SCOREMiddlewareVerificationBench`, `ReceiptBoundMiddlewareEvidence`, `gapSCOREVerificationEnvironmentOpen`
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
 - **Presentation note:** This is a dense review artifact; open the SVG at full size rather than reading it from the page thumbnail.
+- **Presentation note:** Under each `verify`, SysIDE prints the verified requirement as `DE4SDV_MiddlewareSCORENeedsRequirements` declares it. That text is the declaration of the requirement, not a copy in this slice. The render shows the requirement's own subject. The binding of that subject to `verifiedBench.integrationLayer`, the integration layer of `MW-CONFIG-002`, is in the source only.
 
 ![scoreMiddlewareVerificationCaseView](diagrams/diagram-scoreMiddlewareVerificationCaseView.svg)
 

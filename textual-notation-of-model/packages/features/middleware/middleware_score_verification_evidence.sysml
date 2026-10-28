@@ -10,17 +10,28 @@
  * (phase 9).
  *
  * No case has started. No evidence record exists, and each requirement
- * keeps the verification status NotStarted. The doc of each case
- * usage states the bench that the case needs, so that the execution slices
- * can plan the runs. The System 2 test environment is not chosen yet
+ * keeps the verification status NotStarted. The doc of each case usage
+ * states the bench that the case needs, so that the execution slices can
+ * plan the runs. The owner chose the System 2 test environment on
+ * 2026-10-28. Its model element and the bench of each case stay open
  * (GAP-MW-044). The validation of the needs stays planned in phase 4
- * (SC-MW-006 to SC-MW-009); this slice adds no validation case.
+ * (SC-MW-006 to SC-MW-009). This slice adds no validation case.
  *
- * The cases reuse the outcome vocabulary and the verdict mapping of INC-MW-010
- * and edit no closed slice. The evidence record of this slice specializes the
- * retained record of INC-MW-010 and adds the receipt digest. This slice makes
- * no claim, argument or counter-claim; they come with the evidence. It makes
- * no result, safety, cybersecurity, compliance or certification claim.
+ * Phase 8 names more realization checks for phase 10. They are the LoLa
+ * rules of the adapter and the start, stop and restart cases of the guard
+ * rails. They also include the corrupted-payload case, the subscription time
+ * of gatewayd and the clock offset. They are preflight checks of the
+ * execution slices and stay with GAP-MW-039 to GAP-MW-043. They verify no
+ * requirement, so no case of this slice holds them. The one exception is the
+ * adapter restart: it is a test condition of VC-MW-014.
+ *
+ * The cases reuse the outcome vocabulary and the verdict mapping of
+ * INC-MW-010 and edit no closed slice. The evidence record of this slice
+ * specializes the retained record of INC-MW-010. It adds the receipt digest
+ * and the identities of the model and of the S-CORE sources. This slice
+ * makes no claim, argument or counter-claim; they come with the evidence.
+ * It makes no result, safety, cybersecurity, compliance or certification
+ * claim.
  */
 
 package DE4SDV_MiddlewareSCOREVerificationEvidence {
@@ -32,25 +43,33 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
   private import DE4SDV_MiddlewareVerificationEvidence::MapEvidenceOutcomeToVerdict;
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
-  private import ScalarValues::*;
   private import SAF_Viewpoints::*;
   private import Views::*;
 
   item def ReceiptBoundMiddlewareEvidence :> RetainedMiddlewareEvidence {
     doc /*
      * The evidence record that each case of this slice collects: the retained
-     * record of INC-MW-010 with the receipt digest added. A record binds
+     * record of INC-MW-010 with the identity of the run added. A record binds
      * MW-CONFIG-002 as its configurationIdentity. receiptSha256 is the SHA-256
      * of the receipt that the run ran against, as MW-CONFIG-002 asks of the
-     * evidence that binds it. If it differs from the receiptSha256 of
-     * MW-CONFIG-002, the run ran against an earlier receipt. In that case its
-     * verdict holds for MW-CONFIG-002 only if the configuration's own receipt
-     * record did not change; the pull request that rebinds receiptSha256
-     * states that. A record also binds the execution environment, the
-     * contract, the raw observation artifact and the observer. A missing or
-     * partial record gives inconclusive, never pass. No record exists yet.
+     * evidence that binds it. modelRevision is the Git commit of the DE4SDV
+     * model that the run evaluated. scoreReferenceIntegrationCommit and
+     * scoreSOMEIPGatewayCommit are the commits of
+     * eclipse-score/reference_integration and eclipse-score/inc_someip_gateway
+     * that the run built. ASM-MW-021 names the pins of the increment. If
+     * receiptSha256 differs from the receiptSha256 of MW-CONFIG-002, the run
+     * ran against an earlier receipt. In that case, its verdict holds for
+     * MW-CONFIG-002 only if the configuration's own receipt record did not
+     * change. As MW-CONFIG-002 states, the pull request that rebinds
+     * receiptSha256 says whether it changed. A record also binds the
+     * execution environment, the contract, the raw observation artifact and
+     * the observer. A missing or partial record gives inconclusive, never
+     * pass. No record exists yet.
      */
     attribute receiptSha256 : ScalarValues::String;
+    attribute modelRevision : ScalarValues::String;
+    attribute scoreReferenceIntegrationCommit : ScalarValues::String;
+    attribute scoreSOMEIPGatewayCommit : ScalarValues::String;
   }
 
   part def SCOREMiddlewareVerificationBench {
@@ -59,8 +78,8 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * configured product MW-CONFIG-002, which the bench refers to and does
      * not own. integrationLayer is its middleware integration layer: the
      * subject that each verified requirement binds. The System 2 test
-     * environment is not part of this definition yet, because it is not
-     * chosen (GAP-MW-044). The bench is not a product selection.
+     * environment is not part of this definition yet, because it has no
+     * model element (GAP-MW-044). The bench is not a product selection.
      */
     ref part system1ConfiguredProduct :> DE4SDV_MiddlewareSCOREVariabilityConfiguration::configuredProduct;
     ref part integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer = system1ConfiguredProduct.integrationLayer;
@@ -68,18 +87,25 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
 
   part scoreMiddlewareVerificationBench : SCOREMiddlewareVerificationBench;
 
-  part <'GAP-MW-044'> gapSCOREVerificationEnvironmentUndecided : IncrementGap {
+  part <'GAP-MW-044'> gapSCOREVerificationEnvironmentOpen : IncrementGap {
     doc /*
-     * The System 2 test environment of the phase-10 runs is not chosen. The
-     * cases that run need a Linux x86_64 host (ASM-MW-026) with Eclipse
-     * S-CORE, the layer's host processes and the Autoware nodes that each
-     * case names. VC-MW-015, VC-MW-016 and VC-MW-020 also need the AAOS SDV
-     * guest with the HMI application under KVM on that host (ASM-MW-027).
-     * The guest image needs the rebuild with vsomeip (GAP-MW-038). The
-     * inspection cases VC-MW-017, VC-MW-018 and VC-MW-021 need no run. They
-     * need the configurations and the wiring that the execution slices
-     * author. The choice waits for a decision of the owner, which includes
-     * the cost of the environment. Until then, no case that runs can start.
+     * The System 2 test environment of the phase-10 runs has no model element
+     * yet. By owner decision of 2026-10-28, the System 2 bench is the GCP VM
+     * de4sdv-aaos-build: n2-standard-16 in europe-west4-a, with nested
+     * virtualization, restored from the snapshot de4sdv-aaos-build-20261014.
+     * Two items stay open. The first is the exact System 2 identity as a
+     * model element. The second is the assignment of each case to a bench.
+     * A bench plan is in work. The Linux-side cases can also run on
+     * GitHub-hosted runners if the S-CORE build fits there. The cases that
+     * run need a Linux x86_64 host (ASM-MW-026) with Eclipse S-CORE, the
+     * layer's host processes and the Autoware nodes that each case names.
+     * VC-MW-015, VC-MW-016 and VC-MW-020 also need the AAOS SDV guest with
+     * the HMI application under KVM on that host (ASM-MW-027). The guest
+     * image needs the rebuild with vsomeip (GAP-MW-038). The inspection cases
+     * VC-MW-017, VC-MW-018 and VC-MW-021 need no run. They need the
+     * configurations and the wiring that the execution slices author. The
+     * next slice adds the System 2 test environment element and closes this
+     * gap.
      */
   }
 
@@ -163,14 +189,20 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
   verification def StaleReferenceVehicleSpeedIndicationVerification {
     doc /*
      * Test of REQ-MW-012. The vehicle-speed provider publishes, stops, and
-     * then publishes again. An observer subscribes to the health topic that
-     * accompanies the speed topic (/de4sdv/middleware/velocity_status_health,
-     * phase 8). collectData records the time of the last finite sample before
-     * the stop, the first stale indication, the next finite sample and the
-     * first restored indication after it, all on the Linux host clock. Each
-     * delay starts when the provider publishes its sample. processData
-     * compares the two delays with the bounds that the success criteria
-     * state.
+     * then publishes again. An observer subscribes to the speed topic and to
+     * the health topic that accompanies it
+     * (/de4sdv/middleware/velocity_status_health, phase 8). collectData
+     * records all times on the Linux host clock. For the last finite sample
+     * before the stop, it records when the provider publishes it and when the
+     * observer receives it on the speed topic. It records when the first
+     * stale indication arrives. For the next finite sample, it records the
+     * publish time and the receipt time. It records when the first restored
+     * indication arrives after that sample. Each delay starts when the
+     * provider publishes its sample. The receipt times show how much of each
+     * bound the path latency uses. The 5 s threshold and the 1 s watchdog of
+     * the health proxy node (phase 8) already reach the stale bound of the
+     * criteria. processData compares the two delays with the bounds that the
+     * success criteria state.
      */
     subject verifiedBench : SCOREMiddlewareVerificationBench;
     objective staleReferenceVehicleSpeedIndicationObjective {
@@ -196,13 +228,17 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
   verification def AtMostOnceSpeedSampleDeliveryVerification {
     doc /*
      * Test of REQ-MW-013. The vehicle-speed provider publishes samples with
-     * distinct values, stops, and then publishes again. An observer
-     * subscribes to the velocity input of the Autoware vehicle velocity
-     * converter. collectData records each provider sample, the stop and the
-     * restart of the provider, and each message at that input. processData
-     * checks that no message arrives between the stop and the restart, and
-     * that each message corresponds to one distinct provider sample. The
-     * success criteria name no adapter restart, so the case does not add one.
+     * distinct values, stops, and then publishes again. While the provider
+     * publishes, the run also restarts the adapter. GAP-MW-039 names this
+     * restart: a restarted adapter could publish stored samples a second
+     * time. An observer subscribes to the velocity input of the Autoware
+     * vehicle velocity converter. collectData records each provider sample,
+     * the stop and the restart of the provider, the adapter restart and each
+     * message at that input. processData pairs each delivered message with
+     * one distinct provider sample that the provider published before it.
+     * The case fails if a message has no such sample, or if two messages
+     * pair with the same sample. A message that arrives after the stop, for
+     * a sample published before the stop, is no failure.
      */
     subject verifiedBench : SCOREMiddlewareVerificationBench;
     objective atMostOnceSpeedSampleDeliveryObjective {
@@ -233,10 +269,17 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * lists with sequence numbers and times. The first list holds the frames
      * that the AEBS stack produced on the Linux host, as the frame assembler
      * serves them. The second list holds the frames at the frame input of the
-     * HMI application, where the SOME/IP receiver delivers them, before the
-     * own checks of the ingress. processData compares the two lists for
-     * completeness, order and sequence gaps, and compares the inter-arrival
-     * gaps with the bound that the criteria state.
+     * HMI application, where the SOME/IP receiver delivers them. A capture of
+     * the guest-loopback stream gives the second list, before the ingress's
+     * own checks. The capture does not use the receiver's and the ingress's
+     * own logs. The unchanged ingress logs sequence numbers only for the
+     * frames that it accepts. processData decodes the produced
+     * frames with the frame contract of INC-AEBS-010. If they do not show
+     * all four stages, MONITORING, WARNING, INTERVENTION and RELEASED, the
+     * run does not meet the condition of the criteria. In that case, the
+     * outcome is inconclusiveMissingEvidence. Otherwise, processData compares
+     * the two lists for completeness, order and sequence gaps. It also
+     * compares the inter-arrival gaps with the bound that the criteria state.
      */
     subject verifiedBench : SCOREMiddlewareVerificationBench;
     objective aebsSignalSourceOrderObjective {
@@ -264,10 +307,13 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * Test of REQ-MW-015. The Autoware-based AEBS stack runs an AEBS event
      * (SC-MW-002) while the HMI application in the AAOS SDV guest is
      * subscribed. collectData records each frame that the AEBS stack produced
-     * on the Linux host, and each frame that the guest received at the frame
-     * input of the HMI application. processData decodes both with the frame
-     * contract of INC-AEBS-010. It compares each received frame with its
-     * produced frame, field by field, with the source kind of each field.
+     * on the Linux host. It also records each frame that the guest received
+     * at the frame input of the HMI application. A capture of the
+     * guest-loopback stream gives the received frames, independent of the
+     * receiver's and the ingress's own logs. processData decodes both lists
+     * with the frame contract of INC-AEBS-010. It compares each received
+     * frame with its produced frame, field by field, with the source kind of
+     * each field.
      */
     subject verifiedBench : SCOREMiddlewareVerificationBench;
     objective aebsSignalProvenanceObjective {
@@ -293,11 +339,11 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
   verification def NoApplicationDataFromHMIGuestVerification {
     doc /*
      * Inspection of REQ-MW-016. It inspects the artifacts that the success
-     * criteria name: the interface definition of the HMI path, and the
-     * configuration of the S-CORE services, the adapter, gatewayd, someipd and
-     * the SOME/IP receiver. collectData records each inspected artifact at its
-     * exact revision, and each receiver on the Linux host that it finds for
-     * application data from the AAOS SDV guest. processData compares the
+     * criteria name. They are the interface definition of the HMI path and
+     * the configuration of the S-CORE services, the adapter, gatewayd, someipd
+     * and the SOME/IP receiver. collectData records each inspected artifact at
+     * its exact revision. It also records each receiver on the Linux host that
+     * it finds for application data from the AAOS SDV guest. processData compares the
      * findings with the criteria. The criteria do not name the health proxy
      * node or the network configuration of the Linux host, so the case does
      * not inspect them.
@@ -326,7 +372,7 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
   verification def NoEmergencyCommandOnMiddlewareVerification {
     doc /*
      * Inspection of REQ-MW-017. It inspects the artifacts that the success
-     * criteria name: the S-CORE service configuration, the adapter
+     * criteria name. They are the S-CORE service configuration, the adapter
      * interfaces, gatewayd, someipd, the SOME/IP receiver and the interface
      * definition of the HMI path. It also follows the path of the AEBS
      * emergency intervention command from the AEB node to the vehicle command
@@ -359,9 +405,9 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
   verification def AdapterAbortOnExceptionVerification {
     doc /*
      * Test of REQ-MW-018. The adapter process runs on the Linux host. The
-     * case throws an exception in the adapter's own code, and one inside a
-     * library that the adapter links, such as the ROS 2 client library. The
-     * execution slice chooses how to throw them. If that needs a changed
+     * case throws an exception in the adapter's own code. It also throws one
+     * inside a library that the adapter links, such as the ROS 2 client
+     * library. The execution slice chooses how to throw them. If that needs a changed
      * build of the adapter, the record names that build. collectData records
      * each thrown exception and how the process ends. processData checks that
      * each exception aborts the process. If the adapter splits into two
@@ -394,12 +440,18 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * SC-MW-004: the HMI application down, and the AAOS SDV guest down. The
      * AEBS stack produces frames all the time. The HMI application stops
      * being subscribed and then subscribes again. collectData records the
-     * frames that the AEBS stack produced on the Linux host, the times of the
-     * stop and of the new subscription, and the frames at the frame input of
-     * the HMI application after the new subscription, before the own checks
-     * of the ingress. It also records the offset between the host clock and
-     * the guest clock. processData checks that no frame from the time without
-     * a subscription arrives after the new subscription.
+     * frames that the AEBS stack produced on the Linux host. It records the
+     * times of the stop and of the new subscription, and the offset between
+     * the host clock and the guest clock. It also records the frames at the
+     * frame input of the HMI application after the new subscription. A
+     * capture of the guest-loopback stream gives them, before the ingress's
+     * own checks and independent of the receiver's and the ingress's own
+     * logs. processData checks that no frame from the time without a
+     * subscription arrives after the new subscription. A pass covers these
+     * two conditions only. While GAP-MW-039 is open, a pass does not close
+     * REQ-MW-019. A late or repeated subscription of gatewayd forwards up to
+     * 9 stored frames with the next new frame. Phase 8 keeps REQ-MW-019 open
+     * for those cases.
      */
     subject verifiedBench : SCOREMiddlewareVerificationBench;
     objective unsubscribedFrameDiscardObjective {
@@ -425,7 +477,7 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
   verification def NoSpeedSampleToAEBVelocityInputVerification {
     doc /*
      * Inspection of REQ-MW-020. It inspects the topic wiring of the member on
-     * the Linux host, as the success criteria name it: the launch
+     * the Linux host, as the success criteria name it. That is the launch
      * configuration and the remappings that give the publishers of the
      * velocity input of the Autoware AEB node
      * (/vehicle/status/velocity_status). collectData records the inspected
@@ -474,13 +526,13 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
   }
 
   verification <'VC-MW-014'> atMostOnceSpeedSampleDeliveryVerification : AtMostOnceSpeedSampleDeliveryVerification {
-    doc /* Not started. Bench: the Linux host only, as VC-MW-011. */
+    doc /* Not started. Bench: the Linux host only, as VC-MW-011, with a way to restart the adapter. */
     @VerificationMethod{ kind = (test, analyze); }
     subject verifiedBench :> scoreMiddlewareVerificationBench;
   }
 
   verification <'VC-MW-015'> aebsSignalSourceOrderVerification : AEBSSignalSourceOrderVerification {
-    doc /* Not started. Bench: the Linux host with the Autoware-based AEBS stack, the frame assembler and the layer's host processes, and the AAOS SDV guest under KVM with the SOME/IP receiver and the HMI application. */
+    doc /* Not started. Bench: the Linux host and the AAOS SDV guest under KVM. The host runs the Autoware-based AEBS stack, the frame assembler and the layer's host processes. The guest runs the SOME/IP receiver and the HMI application. */
     @VerificationMethod{ kind = (test, analyze); }
     subject verifiedBench :> scoreMiddlewareVerificationBench;
   }
@@ -492,13 +544,13 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
   }
 
   verification <'VC-MW-017'> noApplicationDataFromHMIGuestVerification : NoApplicationDataFromHMIGuestVerification {
-    doc /* Not started. Bench: no run. The case needs the layer's mw::com configuration, the gateway configuration of gatewayd and someipd, the vsomeip configuration of someipd and the configuration of the SOME/IP receiver, which the execution slices author. */
+    doc /* Not started. Bench: no run. The case needs the interface definition of the HMI path: the SOME/IP service definition and the frame contract of INC-AEBS-010. It also needs the layer's mw::com configuration and the gateway configuration of gatewayd and someipd. It needs the vsomeip configuration of someipd and the configuration of the SOME/IP receiver too. The execution slices author all of them except the frame contract. */
     @VerificationMethod{ kind = (inspect, analyze); }
     subject verifiedBench :> scoreMiddlewareVerificationBench;
   }
 
   verification <'VC-MW-018'> noEmergencyCommandOnMiddlewareVerification : NoEmergencyCommandOnMiddlewareVerification {
-    doc /* Not started. Bench: no run. The case needs the configurations that VC-MW-017 needs, and the wiring of the AEBS stack on the Linux host. */
+    doc /* Not started. Bench: no run. The case needs the interface definition and the configurations that VC-MW-017 needs, and the wiring of the AEBS stack on the Linux host. */
     @VerificationMethod{ kind = (inspect, analyze); }
     subject verifiedBench :> scoreMiddlewareVerificationBench;
   }
@@ -510,7 +562,7 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
   }
 
   verification <'VC-MW-020'> unsubscribedFrameDiscardVerification : UnsubscribedFrameDiscardVerification {
-    doc /* Not started. Bench: the Linux host and the AAOS SDV guest with the HMI application, as VC-MW-015, with the HMI application and the guest stopped and started on demand. */
+    doc /* Not started. Bench: the Linux host and the AAOS SDV guest with the HMI application, as VC-MW-015. The bench stops and starts the HMI application and the guest on demand. */
     @VerificationMethod{ kind = (test, analyze); }
     subject verifiedBench :> scoreMiddlewareVerificationBench;
   }
@@ -535,11 +587,16 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
     perform noSpeedSampleToAEBVelocityInputVerification;
   }
 
+  /* The verification system performs the cases. It is the System 2
+   * performer that GAP-MW-044 still leaves without an identity. */
+  dependency environmentGapOnVerificationSystem
+    from gapSCOREVerificationEnvironmentOpen to scoreMiddlewareVerificationSystem;
+
   concern scoreMiddlewareVerificationCaseConcern : RequirementTraceConcern {
     doc /*
      * Reviewers need each requirement of the middleware integration layer
-     * verified by one verification case, with the method of the case, the
-     * bench it needs and its status. Before any run, the status is not
+     * verified by one verification case. For each case, they need its method,
+     * the bench it needs and its status. Before any run, the status is not
      * started.
      */
     subject;
@@ -555,8 +612,9 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * The eleven cases with their subject, the requirement that each
      * objective verifies, the methods and the doc that states the status and
      * the bench. The bench definition shows the configured product and its
-     * integration layer. The evidence record shows the receipt digest. The
-     * gap states that the test environment is not chosen.
+     * integration layer. The evidence record shows the receipt digest and
+     * the identities of the run. The gap records the chosen test environment
+     * and what stays open.
      */
     expose referenceVehicleSpeedDeliveryVerification;
     expose nonFiniteSpeedSampleWithholdingVerification;
@@ -571,7 +629,7 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
     expose noSpeedSampleToAEBVelocityInputVerification;
     expose SCOREMiddlewareVerificationBench;
     expose ReceiptBoundMiddlewareEvidence;
-    expose gapSCOREVerificationEnvironmentUndecided;
+    expose gapSCOREVerificationEnvironmentOpen;
     render asTreeDiagram;
   }
 }
