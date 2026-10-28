@@ -148,12 +148,13 @@ def main() -> int:
         "",
         f"`nm -D`: `{summary['nm_dynamic_cxa_allocate_exception']}`",
         "",
-        "| role | variant | outcome | signal | top frames | thrower |",
-        "|---|---|---|---|---|---|",
+        "| role | variant | outcome | signal | top frames | thrower | first named frame below |",
+        "|---|---|---|---|---|---|---|",
     ]
     for result in results:
         lines.append(f"| {result['role']} | {result['variant']} | {result['outcome']} | {result['signal']} | "
-                     f"{' ← '.join(result['top_frames'][:2])} | {result['caller']} |")
+                     f"{' ← '.join(result['top_frames'][:2])} | {result['caller']} | "
+                     f"{result['first_named_frame']} |")
     (out / "abort-matrix-summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))
     return 0 if summary["gate"] == "pass" else 1

@@ -53,9 +53,11 @@ git status --porcelain --untracked-files=all > "$out/lifecycle_status_after_buil
 if [ "$status" -ne 0 ]; then
   exit "$status"
 fi
-bin=$(bazel info --config=x86_64-linux bazel-bin)
-launch_manager=$(bazel cquery --config=x86_64-linux --output=files //score/launch_manager:launch_manager 2>/dev/null | head -1)
-cp -L "$lc/$launch_manager" "$dest/launch_manager"
+# "bazel info" with --config=x86_64-linux cannot resolve the apparent
+# repository name in --host_platform; the workspace's bazel-bin link points to
+# the output tree of this build instead.
+bin="$lc/bazel-bin"
+cp -L "$bin/score/launch_manager/src/daemon/launch_manager" "$dest/launch_manager"
 find -L "$bin/de4sdv_score_bench" -type f \( -name '*.bin' -o -name '*_gen.json' \) -exec cp {} "$dest/" \;
 {
   echo "== outputs"

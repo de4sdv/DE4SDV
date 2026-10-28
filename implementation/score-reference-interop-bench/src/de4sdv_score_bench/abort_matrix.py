@@ -175,6 +175,7 @@ def evaluate_variant(record: Any, backtrace_text: str | None, adapter_log_text: 
             "signal": None,
             "top_frames": [],
             "caller": None,
+            "first_named_frame": None,
         }
     role = record["role"]
     variant = record["variant"]
@@ -189,6 +190,7 @@ def evaluate_variant(record: Any, backtrace_text: str | None, adapter_log_text: 
         "signal": _signal_name(process["returncode"]),
         "top_frames": [],
         "caller": None,
+        "first_named_frame": None,
     }
 
     def finish(outcome: str, reason: str) -> dict[str, Any]:
@@ -231,6 +233,11 @@ def evaluate_variant(record: Any, backtrace_text: str | None, adapter_log_text: 
     result["top_frames"] = [_frame_text(frame) for frame in frames[start : start + 4]]
     if check.caller_frame is not None:
         result["caller"] = _frame_text(check.caller_frame)
+        # A library without symbols for its internal functions shows "??";
+        # the first named frame below the thrower locates it for the report.
+        below = frames[frames.index(check.caller_frame) :]
+        named = next((frame for frame in below if frame.function != "??"), None)
+        result["first_named_frame"] = _frame_text(named) if named is not None else None
     if not check.passed:
         result["outcome"] = FAIL
         result["reasons"].extend(check.reasons)

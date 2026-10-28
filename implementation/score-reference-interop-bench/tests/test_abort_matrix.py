@@ -231,3 +231,19 @@ def test_summary_fails_the_gate_with_two_of_three():
     summary = summarize_matrix(results)
     assert summary["adapter_sigabrt_at_override"] == "2/3"
     assert summary["gate"] == "fail"
+
+
+def test_reports_the_first_named_frame_below_an_unnamed_thrower():
+    backtrace = """#0  0x00007f93dba969bc in pthread_kill () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007f93dba42476 in raise () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007f93dba287f3 in abort () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00005623d55ff819 in __cxa_allocate_exception ()
+#4  0x00007f93dc2e7b38 in ?? () from /opt/ros/humble/lib/librclcpp.so
+#5  0x00007f93dc3b89bd in ?? () from /opt/ros/humble/lib/librclcpp.so
+#6  0x00007f93dc3109fa in rclcpp::Executor::execute_service(std::shared_ptr<rclcpp::ServiceBase>) () from /opt/ros/humble/lib/librclcpp.so
+"""
+    log = _log({"event": "start", "fault_hook_enabled": False}, {"event": "ready"})
+    result = evaluate_variant(_adapter_record("rclcpp_internal"), backtrace, log)
+    assert result["outcome"] == "passBoundedVerification", result["reasons"]
+    assert result["caller"] == "?? from /opt/ros/humble/lib/librclcpp.so"
+    assert result["first_named_frame"] == "rclcpp::Executor::execute_service from /opt/ros/humble/lib/librclcpp.so"

@@ -32,7 +32,10 @@ sudo install -m 0644 "$work/keyring.gpg" "$keyring"
 echo "deb [arch=amd64 signed-by=$keyring] http://snapshots.ros.org/humble/$snapshot_date/ubuntu jammy main" |
   sudo tee /etc/apt/sources.list.d/ros2-snapshot.list
 
-packages=(ros-humble-ros-base ros-humble-rmw-cyclonedds-cpp ros-humble-autoware-vehicle-msgs)
+# Both ROS 2 middlewares by name: ros-base asks for one of them only, and
+# rmw_implementation's search for a missing one throws.
+packages=(ros-humble-ros-base ros-humble-rmw-fastrtps-cpp ros-humble-rmw-cyclonedds-cpp
+          ros-humble-autoware-vehicle-msgs)
 if [ "$mode" = "build" ]; then
   packages+=(ros-humble-ament-cmake-gtest python3-colcon-common-extensions)
 else
