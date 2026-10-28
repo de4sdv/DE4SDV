@@ -277,7 +277,8 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   the parameter through which they reach it; the gaps name each use case and
   actor that does not bind. A use case has one subject, its own or its
   definition's. Its actors are its own and those of its definitions that no
-  own actor redefines. Without a use case, or without an actor, the story
+  own actor redefines. A redefinition by the language rule counts too: the
+  export records it. Without a use case, or without an actor, the story
   checks are not applicable, never passed. Whether a role is a System 1 role
   stays with review. So:
 

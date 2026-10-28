@@ -183,7 +183,8 @@ These method rules apply to every increment:
      it.
    - **Use case parameters.** A use case has one subject: its own, else its
      definition's. Its actors are its own and those of its definitions
-     that no own actor redefines. A bound value is the parameter's own
+     that no own actor redefines, explicitly or by the language rule (the
+     export records both). A bound value is the parameter's own
      `= <usage>`; a feature chain counts as its last feature.
    - **Left to review.** Whether a role is a System 1 or a System 2 role:
      the kernel classifies no role as either.

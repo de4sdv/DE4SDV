@@ -33,7 +33,7 @@ import pytest
 from de4sdv.semantic import method_evaluator as me
 from de4sdv.semantic.increment_evaluation import evaluate_increment
 from de4sdv.semantic.increment_scope import ModelView
-from de4sdv.semantic.method_checks import NAMED_CHECKS
+from de4sdv.semantic.method_checks import NAMED_CHECKS, use_case_parameters
 from de4sdv.sysml_api.qualified_names import QualifiedNameIndex
 from increment_model_fixtures import (
     INFINITY,
@@ -97,10 +97,13 @@ def _bind(builder, feature: dict[str, Any], target: dict[str, Any]) -> None:
     builder.own(feature, builder.value_expression(feature, target), kind="FeatureValue")
 
 
-def _redefines(builder, feature: dict[str, Any], target: dict[str, Any]) -> None:
+def _redefines(builder, feature: dict[str, Any], target: dict[str, Any], *, implied: bool = False) -> None:
+    """``:>> target``; ``implied`` is the Redefinition the serializer writes for a parameter the language
+    rule makes redefine its definition's parameter (``isImplied``)."""
     builder.relationship("Redefinition", feature, general=ref(target), specific=ref(feature),
                          subsettedFeature=ref(target), subsettingFeature=ref(feature),
-                         redefinedFeature=ref(target), redefiningFeature=ref(feature))
+                         redefinedFeature=ref(target), redefiningFeature=ref(feature),
+                         **({"isImplied": True} if implied else {}))
 
 
 def _parameter(builder, use_case: dict[str, Any], membership: str, kind: str, name: str,
@@ -496,14 +499,20 @@ def test_an_inherited_actor_no_own_actor_redefines_is_unbound_and_fails() -> Non
     assert any("actor reviewer is bound to no usage" in d for d in _diagnostics(evaluation, ACTORS_BOUND))
 
 
-def test_an_own_actor_that_redefines_the_inherited_one_replaces_it() -> None:
+@pytest.mark.parametrize("implied", [False, True], ids=["declared", "implied"])
+def test_an_own_actor_that_redefines_the_inherited_one_replaces_it(implied: bool) -> None:
+    """Declared (``actor :>> driver = ...;``) or by the language rule (``actor driver = ...;`` in a use
+    case whose definition declares ``actor driver``): the export writes the second as an implied
+    Redefinition, the shape of INC-AEBS-010's story."""
     story = _story()
     b = story.builder
     definition = b.definition("UseCaseDefinition", "FixtureStoryDefinition", story.context_package)
     inherited = _parameter(b, definition, "ActorMembership", "PartUsage", "driver")
     b.typed(story.use_case, definition)
-    _redefines(b, story.actors["driver"], inherited)
-    assert _unit(_evaluate(story), ACTORS_BOUND).verdict == me.VERDICT_PASS
+    _redefines(b, story.actors["driver"], inherited, implied=implied)
+    evaluation = _evaluate(story)
+    assert _unit(evaluation, ACTORS_BOUND).verdict == me.VERDICT_PASS
+    assert inherited["@id"] not in use_case_parameters(evaluation.view, story.use_case["@id"], "ActorMembership")
 
 
 def test_a_story_without_actors_has_none_to_bind_not_a_pass() -> None:

@@ -1031,15 +1031,35 @@ def increment_use_cases(view: ModelView, increment: IncrementScope) -> list[str]
             if str(view.element(element).get("@type")) == "UseCaseUsage"]
 
 
+def redefined_parameters(view: ModelView, parameter: str) -> list[str]:
+    """``parameter`` and the parameters it stands for, transitively: those it subsets, redefines or
+    references, and those it redefines by the language rule. The language makes an owned parameter of a
+    use case redefine a parameter of its definition without a declared ``:>>`` (``actor reviewer = ...;``
+    in a use case whose definition declares ``actor reviewer``); the serializer writes that Redefinition
+    as implied, and only implied Redefinitions are read here, no implied subsetting."""
+    found: list[str] = []
+    frontier = [parameter]
+    while frontier:
+        current = frontier.pop(0)
+        if current in found:
+            continue
+        found.append(current)
+        frontier.extend(narrowed_features(view, current)[1:])
+        for relationship in view.index.owned_relationships(current, "Redefinition"):
+            if relationship.get("isImplied"):
+                frontier.extend(reference_ids(relationship.get("redefinedFeature")))
+    return found
+
+
 def use_case_parameters(view: ModelView, use_case: str, membership: str) -> list[str]:
     """The use case's parameters of one membership kind (``SubjectMembership``, ``ActorMembership``): its
-    own, then those of its definitions (nearest first) that none of the ones before narrows. A use case
-    has one subject: its own, else its nearest definition's."""
+    own, then those of its definitions (nearest first) that none of the ones before redefines
+    (:func:`redefined_parameters`). A use case has one subject: its own, else its nearest definition's."""
     found = list(membership_members(view, use_case, membership))
     for definition in type_lineage(view, use_case):
         if membership == "SubjectMembership" and found:
             break
-        narrowed = {target for parameter in found for target in narrowed_features(view, parameter)}
+        narrowed = {target for parameter in found for target in redefined_parameters(view, parameter)}
         found.extend(parameter for parameter in membership_members(view, definition, membership)
                      if parameter not in narrowed and parameter not in found)
     return found
