@@ -55,7 +55,8 @@ import re
 import struct
 from typing import Any, Callable
 
-from de4sdv_score_bench.abort_matrix import BLOCKED, ERROR, FAIL, MISSING, PASS, json_lines, parse_adapter_log
+from de4sdv_score_bench.abort_matrix import (
+    BLOCKED, ERROR, EXECUTABLES, FAIL, MISSING, PASS, json_lines, parse_adapter_log)
 from de4sdv_score_bench.backtrace import (
     check_abort_top_frames,
     first_named_frame_below_override,
@@ -64,7 +65,6 @@ from de4sdv_score_bench.backtrace import (
 )
 from de4sdv_score_bench.node_info import check_member_endpoints
 
-ADAPTER_EXECUTABLE = "de4sdv_score_adapter"
 MIN_OBSERVED_RATIO = 0.95
 FRAME_PREFIX_BYTES = 4
 FLOAT32_MAX = 3.4028234663852886e38
@@ -323,7 +323,7 @@ def evaluate_soak(
     result["mw_log_fallback"] = "Fallback to console logging" in adapter_log_text
     if backtrace_text and mappings_text:
         frames = read_located_frames(backtrace_text, mappings_text)
-        check = check_abort_top_frames(frames, ADAPTER_EXECUTABLE)
+        check = check_abort_top_frames(frames, EXECUTABLES["adapter"])
         named = first_named_frame_below_override(frames, check)
         if named is not None:
             result["abort_caller"] = frame_text(named)

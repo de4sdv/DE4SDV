@@ -39,6 +39,7 @@ BENCH = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BENCH / "src"))
 
 import bench_runtime as rt  # noqa: E402
+from de4sdv_score_bench.abort_matrix import EXECUTABLES  # noqa: E402
 from de4sdv_score_bench.backtrace import (  # noqa: E402
     check_abort_top_frames,
     first_named_frame_below_override,
@@ -47,7 +48,6 @@ from de4sdv_score_bench.backtrace import (  # noqa: E402
 )
 from de4sdv_score_bench.startup_probe import evaluate_case, summarize_probe  # noqa: E402
 
-ADAPTER = "de4sdv_score_adapter"
 OTHER_PARTICIPANTS = 11
 
 # The loopback configuration of config/cyclonedds.xml without
@@ -130,7 +130,7 @@ def run_case(args: argparse.Namespace, case: Case) -> dict:
     peers: list[rt.BenchProcess] = []
     count_velocity = case.expected == "runs" and case.peers_before + case.peers_after >= OTHER_PARTICIPANTS
     peers_ready = start_peers(case.peers_before, 1, run_dir, env, count_velocity and case.peers_after == 0, peers)
-    binary = bundle / "bin" / ADAPTER
+    binary = bundle / "bin" / EXECUTABLES["adapter"]
     adapter = rt.BenchProcess("adapter", [str(binary), "--mw-com-config",
                                           str(bundle / "config" / "mw_com_config_adapter.json"),
                                           "--status-period-s", "5"],

@@ -28,6 +28,7 @@ BENCH = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BENCH / "src"))
 
 import bench_runtime as rt  # noqa: E402
+from de4sdv_score_bench.abort_matrix import EXECUTABLES  # noqa: E402
 from de4sdv_score_bench.soak import SUBSCRIPTION_SETTLE_S, count_no_subscriber_drops, evaluate_soak  # noqa: E402
 
 PROVIDER_VALUES = [0.0, 10.0, 36.0, 50.0, 72.0, 100.0, 130.0, 20.5]
@@ -84,7 +85,7 @@ def main() -> int:
                                   "--values", ",".join(str(value) for value in PROVIDER_VALUES),
                                   "--period-ms", "100", "--log", str(out / "provider.jsonl")], env)
     provider.wait_for(rt.json_event_predicate("offered"), 20.0)
-    adapter_binary = bundle / "bin" / "de4sdv_score_adapter"
+    adapter_binary = bundle / "bin" / EXECUTABLES["adapter"]
     adapter = start("adapter", [str(adapter_binary), "--mw-com-config", str(config / "mw_com_config_adapter.json"),
                                 "--frame-port", str(args.frame_port), "--status-period-s", "60"],
                     rt.adapter_environment(bundle, env))
